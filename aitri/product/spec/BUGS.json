@@ -19,6 +19,28 @@
       "created_at": "2026-07-02T12:32:36.248Z",
       "updated_at": "2026-07-02T12:40:10.402Z",
       "resolution": "Fira Code auto-alojada con next/font/google (descarga en build, se sirve local); eliminados los <link> a fonts.googleapis.com/gstatic.com en layout.tsx. --font-mono conserva 'Fira Code' como fallback literal. TC-104e verifica cero peticiones externas en runtime."
+    },
+    {
+      "id": "BG-002",
+      "title": "Sin indicador de foco visible por teclado (NFR-002/TC-102e)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-02T22:18:51.288Z",
+      "updated_at": "2026-07-02T22:30:00.367Z",
+      "resolution": "Añadida regla global :focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px } en globals.css. Verificado por TC-102e (e2e).",
+      "fix_commit_sha": "652f7ccc43429e9ef73c0e2cbd426d35effec924",
+      "fix_at": "2026-07-02T22:26:29.876Z"
     }
   ]
 }

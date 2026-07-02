@@ -1,0 +1,9 @@
+Evidencia de rendimiento (NFR-001) — medido contra el contenedor de producción t-ledger:latest (:3080), 2026-07-02.
+Método: Playwright/Chromium, datos semilla del año completo.
+
+TC-101e — carga inicial con datos semilla del año hasta grilla visible: 250 ms  (umbral ≤ 2000 ms) → PASS (8× holgura)
+TC-101h — desde confirmar edición de hoja (Enter) hasta que el total del padre refleja el roll-up: 21 ms  (umbral ≤ 150 ms) → PASS (7× holgura)
+TC-101f — render granular: los componentes se suscriben a slices vía selectores Zustand
+          (src/components/BudgetGrid.tsx: useLedgerStore((s) => s.data), s.period, s.setLeafAmount, ...),
+          de modo que editar una hoja re-renderiza solo los consumidores del slice afectado, no las 12×N celdas.
+          Racional documentado en README.md §5 "Estado con Zustand + selectores memoizados". → PASS (inspección de diseño)

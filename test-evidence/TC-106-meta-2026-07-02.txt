@@ -1,0 +1,9 @@
+Evidencia de arranque/CI (NFR-006) — inspección + prueba, 2026-07-02.
+
+TC-106e — el smoke detecta un fallo de arranque (5xx / no-200):
+  smoke.sh: code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/") ; if [ "$code" != "200" ]; then exit 1
+  Prueba: GET a un puerto sin servidor devuelve no-200 → la condición dispara exit 1. → PASS (detecta el fallo)
+
+TC-106f — el pipeline falla si un test de la suite falla:
+  .github/workflows/ci.yml ejecuta como pasos: `npm run typecheck`, `npm run test:run`, `npm run build`, `npm run test:e2e`.
+  Ningún paso tiene `continue-on-error`, así que un exit!=0 (test fallido) falla el job de GitHub Actions. → PASS (inspección de CI)

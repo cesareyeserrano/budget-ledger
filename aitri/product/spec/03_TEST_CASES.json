@@ -975,7 +975,10 @@
       "expected_result": "Δt ≤ 150ms",
       "test_data": {
         "threshold_ms": 150
-      }
+      },
+      "automation": "manual",
+      "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
+      "downgraded_from": "skip"
     },
     {
       "id": "TC-101e",
@@ -999,7 +1002,10 @@
       "expected_result": "carga ≤ 2000ms",
       "test_data": {
         "threshold_ms": 2000
-      }
+      },
+      "automation": "manual",
+      "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
+      "downgraded_from": "skip"
     },
     {
       "id": "TC-101f",
@@ -1022,7 +1028,10 @@
         "Contar celdas re-renderizadas"
       ],
       "expected_result": "celdas re-renderizadas ≪ total (solo hoja + ancestros)",
-      "test_data": {}
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
+      "downgraded_from": "skip"
     },
     {
       "id": "TC-102h",
@@ -1367,7 +1376,10 @@
       "test_data": {
         "route": "/",
         "expectedStatus": "5xx"
-      }
+      },
+      "automation": "manual",
+      "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
+      "downgraded_from": "skip"
     },
     {
       "id": "TC-106f",
@@ -1390,7 +1402,10 @@
         "Verificar exit code != 0"
       ],
       "expected_result": "pipeline exit != 0 cuando un test falla (manual verification required)",
-      "test_data": {}
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
+      "downgraded_from": "skip"
     }
   ]
 }

@@ -90,6 +90,14 @@ body {
   color: var(--fg);
 }
 
+/* Accesibilidad (NFR-002): indicador de foco visible por teclado.
+   Coherente con "bordes sobre rellenos" — outline de acento, sin relleno.
+   :focus-visible → solo teclado; el clic de ratón no lo dispara (heurística del navegador). */
+:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
