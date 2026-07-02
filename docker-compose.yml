@@ -1,0 +1,18 @@
+# Ledger — despliegue local/Ultron. Nginx (host o contenedor aparte) hace de reverse proxy → este servicio.
+services:
+  ledger:
+    build: .
+    image: t-ledger:latest
+    container_name: ledger
+    restart: unless-stopped
+    ports:
+      - "3080:3000"        # host 3080 → contenedor 3000; Nginx (TLS + security headers) hace de proxy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s

@@ -1,0 +1,68 @@
+# Project Idea
+
+> Ledger — App web de finanzas personales (proyecto de portafolio).
+> Esta v1 corresponde a la **Fase 1** del stack: corre 100% en el browser, sin backend.
+> Campos marcados [ASSUMPTION] fueron inferidos por el agente y deben confirmarse antes de aprobar Fase 1.
+
+---
+
+## Problem
+
+[ASSUMPTION] Registrar un gasto o ingreso en las apps de finanzas existentes toma demasiados pasos
+y fricción para el momento real de uso (parado en una caja, pagando algo). El usuario quiere capturar
+un movimiento en segundos, con el monto como protagonista, sin perderse en formularios.
+Secundariamente, este proyecto sirve como pieza de portafolio para demostrar un stack moderno
+(Next.js 15 + Tailwind v4 + shadcn/ui) con una UX cuidada y decisiones técnicas justificadas.
+
+## Target Users
+
+[ASSUMPTION] Una persona individual que lleva sus finanzas personales y captura movimientos sobre la
+marcha desde el teléfono. Cómoda con apps móviles; no necesita contabilidad formal ni reportes
+complejos. En esta v1 es un solo usuario (auth básica local).
+
+## Current Pain / Baseline
+
+[ASSUMPTION] Hoy el usuario anota gastos en notas del teléfono, una hoja de cálculo, o no los anota.
+El registro manual es tedioso y se abandona. No hay métrica establecida; el objetivo es que registrar
+un movimiento tome menos de ~10 segundos y que el usuario no abandone el hábito.
+
+## Business Rules
+
+
+## Success Criteria
+
+Given la pantalla de registro, when el usuario abre la app en móvil, then el monto aparece como número grande protagonista y al tocarlo se abre el teclado numérico nativo.
+Given un monto capturado, when el usuario selecciona el tipo en el toggle (gasto/ingreso/transferencia), then la interfaz adopta el color correspondiente a ese tipo.
+Given la fila de categorías, when el usuario hace scroll horizontal, then puede recorrer todas las categorías sin que la fila crezca verticalmente.
+Given un movimiento con monto, tipo y categoría, when el usuario lo guarda, then queda persistido en localStorage y aparece en la lista de movimientos.
+Given movimientos previamente registrados, when el usuario recarga la página, then los movimientos siguen visibles (persistencia en el navegador).
+Given un usuario sin sesión, when intenta acceder a la app, then debe pasar primero por la autenticación básica.
+[ASSUMPTION] Given el flujo completo de registro, when el usuario captura un movimiento típico, then lo completa en menos de ~10 segundos / 3 toques principales.
+
+## Hard Constraints
+
+- Fase 1 sin backend: la app corre completamente en el browser; persistencia en localStorage. Sin base de datos en la nube ni APIs de servidor en esta versión.
+- Stack obligatorio (ver aitri/product/idea_context/stack-ledger.md): Next.js 15, Tailwind CSS v4, shadcn/ui, Lucide (íconos). Recharts disponible pero reservado para cuando existan resúmenes/gráficos (fuera de v1).
+- Hosting objetivo DEFINITIVO: todo se aloja en Ultron (Raspberry Pi 5, 8GB RAM). No se usa Vercel ni hosting externo (Vercel solo como fallback de emergencia para acceso público, no es el plan).
+- Despliegue preferido: Next.js en Docker con Nginx como reverse proxy en el Pi 5. La decisión final (Docker vs. export estático servido por Nginx) se resuelve en la fase de Arquitectura. Nota: la Fase 1 es 100% client-side (localStorage), por lo que un `next build` con `output: 'export'` servido directo por Nginx —sin Docker ni Node corriendo— es técnicamente viable y más ligero; Docker se prefiere por reproducibilidad y por dejar la infra lista para la Fase 2 (backend).
+- Proyecto de portafolio: el README debe explicar las decisiones técnicas, no solo cómo correr el proyecto.
+
+## Out of Scope
+
+- Multi-moneda / conversión de divisas.
+- Presupuestos, reportes y gráficos (Recharts) en v1.
+- Editar o eliminar movimientos existentes en v1 (solo registrar y listar).
+- Gestión/creación de categorías por el usuario (la lista de categorías es fija en v1).
+- Backend real, base de datos en la nube, multiusuario y sincronización entre dispositivos (Fase 2: Supabase / Clerk / PlanetScale).
+- Sincronización o conexión con bancos.
+- Comportamiento desktop avanzado (en v1 solo presentación mínima centrada).
+
+## Tech Stack
+
+Next.js 15 (App Router, SSR), Tailwind CSS v4, shadcn/ui, Lucide para íconos, localStorage para persistencia.
+Recharts incluido en el stack pero no usado en v1 (reservado para resúmenes/gráficos futuros).
+Despliegue en Docker (Pi 5 / Nginx) o Vercel. Detalle completo en aitri/product/idea_context/stack-ledger.md.
+
+## Assets
+
+- aitri/product/idea_context/stack-ledger.md — stack tecnológico por fases, features mínimas del portafolio y hosting.

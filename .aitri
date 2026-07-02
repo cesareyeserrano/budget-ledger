@@ -1,0 +1,279 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "T-Ledger",
+  "createdAt": "2026-07-01T18:46:31.850Z",
+  "aitriVersion": "2.0.0-rc.145",
+  "layoutRoot": "aitri",
+  "artifactsDir": "aitri/product/spec",
+  "updatedAt": "2026-07-02T21:18:50.082Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-02T04:39:52.857Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 54,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T04:56:39.364Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 47,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T06:05:41.260Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 54,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T11:57:21.891Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 47,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T11:57:59.245Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T11:57:59.317Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T11:58:04.552Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T11:58:54.226Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 47,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T12:03:42.814Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T12:03:42.886Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T12:03:43.013Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-02T12:04:27.303Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 47,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T12:15:09.441Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 38,
+      "failed": 0,
+      "skipped": 16,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T12:39:54.277Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 43,
+      "failed": 0,
+      "skipped": 11,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-02T12:39:58.928Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 43,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-02T12:47:46.967Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-02T12:49:13.054Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-02T12:51:51.259Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-02T12:51:54.715Z",
+      "event": "approved",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-02T19:48:46.038Z",
+      "event": "upgrade_migration",
+      "phase": "upgrade",
+      "from_version": "0.1.65",
+      "to_version": "2.0.0-rc.145",
+      "category": "stateMissing",
+      "target": ".aitri#auditLastAt",
+      "transform": "backfill auditLastAt from AUDIT_REPORT.md mtime"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
+    "2": "dcad55de71702eae9cf5f894aa4e7c764a066820acd9245879ecac81a5a28563",
+    "3": "e8236d2d34c33d8bde8066471fe00854f2ecc76d2f61667b1b873b215a1d4852",
+    "4": "13ed2bee5b4ad0b486d9644e5bb9c85702c5ed436a7a1d54b98600673c4da535",
+    "5": "7b74263e13240a1927e4f4db4a9f34db254a14cdf952960ac5a3da458ec7f50f",
+    "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
+    "ux": "3023ad277d3c9ef0ec96e6312abd7ac7e3df52a02da8634802a9d69606a4acbe"
+  },
+  "verifyPassed": true,
+  "frSnapshots": {
+    "2": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-006",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015"
+    ],
+    "3": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-006",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015"
+    ],
+    "4": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-006",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015"
+    ],
+    "5": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-006",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015"
+    ],
+    "ux": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-006",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015"
+    ]
+  },
+  "upgradeFindings": [],
+  "coverageAuditLastAt": "2026-07-02T20:02:10.154Z",
+  "verifyResultsHash": "09d48d79d4d332efe18089260ea2af5eb28394131a727b3b7d81e39d7639f97a",
+  "verifyRanAt": "2026-07-02T12:39:54.277Z",
+  "lastVerifyRun": {
+    "passed": 43,
+    "failed": 0,
+    "skipped": 11,
+    "manual": 0,
+    "at": "2026-07-02T12:39:54.277Z"
+  },
+  "verifySummary": {
+    "total": 54,
+    "passed": 44,
+    "failed": 0,
+    "skipped": 10,
+    "skipped_e2e": 9,
+    "skipped_no_marker": 1,
+    "manual": 0,
+    "manual_verified": 1
+  },
+  "auditLastAt": "2026-07-02T03:00:41.255Z"
+}

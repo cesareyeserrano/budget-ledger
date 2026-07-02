@@ -1,0 +1,1396 @@
+{
+  "test_plan": {
+    "strategy": "Pirámide de pruebas sobre un núcleo de dominio TS puro. UNIT (Vitest) para toda la lógica de dominio (roll-up, signo/varianza, borrado→'Sin asignar', reparent, semilla, edición de hoja) — es donde viven los FR de tipo logic y el invariante de regresión. INTEGRATION (Vitest + jsdom localStorage) para persistencia (carga/guardado, recuperación de corrupción, semilla, andamiaje ownerId). E2E (Playwright) para los flujos de UI críticos y los FR de tipo UX/visual (grilla sticky, responsive 760px, tokens, drag-and-drop, dashboard). Cada TC embebe su id TC-XXX en el nombre para que verify-run lo mapee. Se respetan las divergencias v1: sin distribución, 'Sin asignar' por grupo, móvil solo Registrar, sin teclado numérico.",
+    "coverage_goal": "85% líneas en domain/ (núcleo); e2e cubre los flujos críticos declarados",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-001h",
+      "requirement_id": "FR-001",
+      "user_story_id": "US-001",
+      "ac_id": "AC-001",
+      "title": "Registrar movimiento suma al Ejecutado y encabeza recientes (flujo crítico)",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada con semilla; categoría 'Comida' (Gasto) existe y su Ejecutado en 'jun' es E0"
+      ],
+      "given": "el módulo Registrar con tipo=Gasto, categoría='Comida', mes='jun' seleccionados y monto vacío",
+      "when": "el usuario escribe 50000 en el input de monto y hace clic en 'Guardar movimiento'",
+      "then": "el Ejecutado de 'Comida' en 'jun' pasa a E0+50000 exactamente, aparece un toast, y el primer item de la lista de recientes es 'Comida · -$50.000'",
+      "steps": [
+        "Seleccionar tipo Gasto",
+        "Seleccionar categoría Comida",
+        "Seleccionar mes jun",
+        "Escribir 50000",
+        "Clic Guardar movimiento",
+        "Leer Ejecutado de Comida y primer reciente"
+      ],
+      "expected_result": "actuals['Comida']['jun'] === E0+50000 y recientes[0].name === 'Comida'",
+      "test_data": {
+        "amount": 50000,
+        "month": "jun",
+        "type": "expense",
+        "category": "Comida"
+      }
+    },
+    {
+      "id": "TC-001e",
+      "requirement_id": "FR-001",
+      "user_story_id": "US-001",
+      "ac_id": "AC-001",
+      "title": "addMovement con target=subcategoría suma a la hoja subId, no a la categoría",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría 'Comida' que tiene subcategoría 'Mercado' (hoja)"
+      ],
+      "given": "un estado donde 'Comida' tiene la subcategoría 'Mercado' y actuals['Mercado']['jun']=0",
+      "when": "se llama addMovement(state, { type:'expense', catId:'Comida', subId:'Mercado', amount:30000, month:'jun' })",
+      "then": "el movimiento resultante tiene target==='Mercado' y actuals['Mercado']['jun']===30000; actuals directo de 'Comida' no cambia",
+      "steps": [
+        "Construir estado con sub 'Mercado'",
+        "Invocar addMovement con subId",
+        "Verificar target y actuals['Mercado']"
+      ],
+      "expected_result": "movement.target==='Mercado' && actuals['Mercado']['jun']===30000",
+      "test_data": {
+        "catId": "Comida",
+        "subId": "Mercado",
+        "amount": 30000,
+        "month": "jun"
+      }
+    },
+    {
+      "id": "TC-001f",
+      "requirement_id": "FR-001",
+      "user_story_id": "US-001",
+      "ac_id": "AC-002",
+      "title": "Monto 0 o sin categoría: guardar deshabilitado y no se crea movimiento",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Núcleo de validación del formulario disponible"
+      ],
+      "given": "una entrada de formulario con amount=0 y catId=null",
+      "when": "se evalúa canSave({ amount:0, catId:null }) y se intenta addMovement con amount=0",
+      "then": "canSave devuelve false; addMovement rechaza (o no altera) y movements.length permanece igual (0 nuevos)",
+      "steps": [
+        "Evaluar canSave con amount=0/sin categoría",
+        "Intentar addMovement con amount=0",
+        "Contar movements"
+      ],
+      "expected_result": "canSave===false y no se agrega ningún movimiento (movements.length sin cambios)",
+      "test_data": {
+        "amount": 0,
+        "catId": null
+      }
+    },
+    {
+      "id": "TC-002h",
+      "requirement_id": "FR-002",
+      "user_story_id": "US-002",
+      "ac_id": "AC-003",
+      "title": "Crear grupo y categoría bajo un tipo fijo aparecen en la jerarquía y en los selectores",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada; tipo Gasto seleccionado"
+      ],
+      "given": "el tipo Gasto activo en la gestión de categorías",
+      "when": "el usuario crea un grupo 'Estilo de vida' y dentro una categoría 'Ocio'",
+      "then": "'Estilo de vida' aparece en la lista de grupos de Gasto y 'Ocio' aparece como opción de categoría en el módulo Registrar cuando el tipo activo es Gasto",
+      "steps": [
+        "Crear grupo 'Estilo de vida'",
+        "Crear categoría 'Ocio' dentro",
+        "Abrir Registrar con tipo Gasto",
+        "Verificar 'Ocio' en el selector"
+      ],
+      "expected_result": "'Estilo de vida' visible en árbol de Gasto y 'Ocio' seleccionable en Registrar",
+      "test_data": {
+        "group": "Estilo de vida",
+        "category": "Ocio",
+        "type": "expense"
+      }
+    },
+    {
+      "id": "TC-002e",
+      "requirement_id": "FR-002",
+      "user_story_id": "US-002",
+      "ac_id": "AC-003",
+      "title": "Crear la 1ª subcategoría de una categoría-hoja traslada sus montos (totales no caen)",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría-hoja 'Vivienda' con budgets['Vivienda']['ene']=800000"
+      ],
+      "given": "un estado donde 'Vivienda' es categoría-hoja con budget 'ene'=800000 y sin subcategorías",
+      "when": "se llama createNode(state, { level:'sub', parentId:'Vivienda', name:'Arriendo' })",
+      "then": "budgets['Arriendo']['ene']===800000, budgets['Vivienda'] ya no almacena monto propio (es padre), y rollupBudget('Vivienda','ene')===800000",
+      "steps": [
+        "Crear sub 'Arriendo' bajo 'Vivienda'",
+        "Verificar traslado de montos",
+        "Verificar rollup de 'Vivienda'"
+      ],
+      "expected_result": "budgets['Arriendo']['ene']===800000 && rollupBudget('Vivienda','ene')===800000",
+      "test_data": {
+        "parent": "Vivienda",
+        "sub": "Arriendo",
+        "amount": 800000,
+        "month": "ene"
+      }
+    },
+    {
+      "id": "TC-002f",
+      "requirement_id": "FR-002",
+      "user_story_id": "US-002",
+      "ac_id": "AC-004",
+      "title": "Tipos fijos y 'Sin asignar' no exponen renombrar/borrar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con los 3 tipos fijos y una categoría 'Sin asignar' (system:true) en un grupo (Esenciales, tipo Gasto)"
+      ],
+      "given": "los nodos de tipo (expense/income/transfer) y una categoría system 'Sin asignar'",
+      "when": "se consulta canRename(node) y canDelete(node) para un tipo y para 'Sin asignar'",
+      "then": "canRename y canDelete devuelven false para los 3 tipos y para 'Sin asignar' (system:true)",
+      "steps": [
+        "Evaluar canRename/canDelete sobre un tipo",
+        "Evaluar canRename/canDelete sobre 'Sin asignar'"
+      ],
+      "expected_result": "canRename===false && canDelete===false para tipos y para 'Sin asignar'",
+      "test_data": {
+        "system_category": "Sin asignar"
+      }
+    },
+    {
+      "id": "TC-003h",
+      "requirement_id": "FR-003",
+      "user_story_id": "US-003",
+      "ac_id": "AC-005",
+      "title": "Borrar categoría con movimientos la convierte en subcategoría de 'Sin asignar' del grupo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado: 'Café' (grupo Esenciales, tipo Gasto) con 3 movimientos cuyo target='Café'"
+      ],
+      "given": "el estado con 'Café' (grupo Esenciales, tipo Gasto) y 3 movimientos con target='Café'",
+      "when": "se llama deleteNode(state, 'Café')",
+      "then": "'Café' pasa a level='sub' con parentId = id de 'Sin asignar' del grupo Esenciales; los 3 movimientos conservan target='Café' y siguen resolviendo un nodo existente",
+      "steps": [
+        "Invocar deleteNode('Café')",
+        "Verificar 'Café'.parentId === id('Sin asignar' del grupo Esenciales)",
+        "Verificar los 3 movimientos siguen con target válido"
+      ],
+      "expected_result": "nodes['Café'].level==='sub' && parent es 'Sin asignar'(grupo Esenciales) && 3 movimientos con target resoluble",
+      "test_data": {
+        "category": "Café",
+        "type": "expense",
+        "movements": 3
+      }
+    },
+    {
+      "id": "TC-003e",
+      "requirement_id": "FR-003",
+      "user_story_id": "US-003",
+      "ac_id": "AC-005",
+      "title": "Borrar hoja sin movimientos la elimina directo; 'Sin asignar' solo se muestra con datos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con hoja 'Gimnasio' (grupo Esenciales) sin movimientos y sin 'Sin asignar' materializada en ese grupo"
+      ],
+      "given": "una hoja 'Gimnasio' (grupo Esenciales, tipo Gasto) sin movimientos y ninguna reasignación previa en ese grupo",
+      "when": "se llama deleteNode(state, 'Gimnasio')",
+      "then": "'Gimnasio' y sus entradas budgets/actuals se eliminan directo; no se crea/mostrar 'Sin asignar' del grupo Esenciales (isVisible('Sin asignar' del grupo Esenciales)===false)",
+      "steps": [
+        "Invocar deleteNode('Gimnasio')",
+        "Verificar nodo y montos eliminados",
+        "Verificar 'Sin asignar' no visible"
+      ],
+      "expected_result": "nodes no contiene 'Gimnasio' && budgets/actuals sin 'Gimnasio' && 'Sin asignar' oculta",
+      "test_data": {
+        "leaf": "Gimnasio",
+        "type": "expense"
+      }
+    },
+    {
+      "id": "TC-003f",
+      "requirement_id": "FR-003",
+      "user_story_id": "US-003",
+      "ac_id": "AC-006",
+      "title": "Borrar un grupo que aún contiene categorías se bloquea",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con grupo 'Esenciales' que contiene ≥1 categoría"
+      ],
+      "given": "el grupo 'Esenciales' con categorías dentro",
+      "when": "se llama deleteNode(state, 'Esenciales')",
+      "then": "el resultado es { blocked: 'group_not_empty' } y el estado de nodos permanece idéntico (nada se elimina)",
+      "steps": [
+        "Invocar deleteNode('Esenciales')",
+        "Verificar resultado blocked",
+        "Verificar nodos sin cambios"
+      ],
+      "expected_result": "resultado.blocked==='group_not_empty' && nodes idéntico al previo",
+      "test_data": {
+        "group": "Esenciales"
+      }
+    },
+    {
+      "id": "TC-004h",
+      "requirement_id": "FR-004",
+      "user_story_id": "US-004",
+      "ac_id": "AC-007",
+      "title": "Roll-up de Ejecutado suma las hojas y sube por grupo y tipo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría 'Comida' que tiene 3 subcategorías con actuals 'mar' = 100/200/300"
+      ],
+      "given": "3 subcategorías de 'Comida' con actuals['mar'] = 100, 200, 300",
+      "when": "se evalúa rollupActual(state, 'Comida', 'mar') y rollupActual del grupo y del tipo Gasto",
+      "then": "rollupActual('Comida','mar')===600 y ese 600 se incluye en el total del grupo y del tipo Gasto",
+      "steps": [
+        "Calcular rollupActual('Comida','mar')",
+        "Calcular rollup del grupo y del tipo"
+      ],
+      "expected_result": "rollupActual('Comida','mar')===600 y sube a grupo y tipo",
+      "test_data": {
+        "subs_actual": [
+          100,
+          200,
+          300
+        ],
+        "month": "mar"
+      }
+    },
+    {
+      "id": "TC-004e",
+      "requirement_id": "FR-004",
+      "user_story_id": "US-004",
+      "ac_id": "AC-008",
+      "title": "Ejecutado puesto directo en categoría-hoja se cuenta en el roll-up del grupo y tipo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría-hoja 'Transporte' (sin subs) con actuals['abr']=120000"
+      ],
+      "given": "'Transporte' es categoría-hoja con actuals['abr']=120000",
+      "when": "se evalúa rollupActual del grupo padre y del tipo para 'abr' (usando subtreeIds)",
+      "then": "el total del grupo y del tipo en 'abr' incluye los 120000 de 'Transporte'",
+      "steps": [
+        "Calcular rollupActual del grupo en 'abr'",
+        "Verificar inclusión de 120000"
+      ],
+      "expected_result": "rollupActual(grupo,'abr') incluye 120000 de la categoría-hoja",
+      "test_data": {
+        "leafCategory": "Transporte",
+        "actual": 120000,
+        "month": "abr"
+      }
+    },
+    {
+      "id": "TC-004f",
+      "requirement_id": "FR-004",
+      "user_story_id": "US-004",
+      "ac_id": "AC-007",
+      "title": "El Presupuestado de un padre nunca difiere de la suma de sus hojas (invariante)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría 'Comida' y subs con budgets conocidos"
+      ],
+      "given": "una categoría 'Comida' con subs cuyo budget 'ene' suma S",
+      "when": "se intenta forzar/consultar un total de padre distinto y se recomputa rollupBudget('Comida','ene')",
+      "then": "rollupBudget('Comida','ene')===S siempre (no existe un setter que fije un total de padre; los padres no se persisten)",
+      "steps": [
+        "Sumar budgets de hojas = S",
+        "Verificar rollupBudget del padre === S",
+        "Verificar que no existe API para fijar total de padre"
+      ],
+      "expected_result": "rollupBudget(padre) === Σ budgets(hojas) y no hay setter de total-padre",
+      "test_data": {}
+    },
+    {
+      "id": "TC-006h",
+      "requirement_id": "FR-006",
+      "user_story_id": "US-006",
+      "ac_id": "AC-011",
+      "title": "Grilla 1440px: columna categoría fija y encabezados de mes sticky al hacer scroll",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Viewport 1440x900; app con semilla; grilla visible"
+      ],
+      "given": "la grilla de presupuesto en viewport 1440px con la jerarquía expandida",
+      "when": "se hace scroll vertical 300px y scroll horizontal 400px dentro de la grilla",
+      "then": "la columna 'CATEGORÍA' permanece con left fijo (sticky) y la fila de encabezados de mes permanece con top fijo (sticky) — ambas visibles tras el scroll",
+      "steps": [
+        "Fijar viewport 1440",
+        "Scroll vertical 300px",
+        "Scroll horizontal 400px",
+        "Verificar posición de columna categoría y encabezados"
+      ],
+      "expected_result": "columna categoría con position sticky left visible y encabezados sticky top visibles",
+      "test_data": {
+        "viewport": "1440x900"
+      }
+    },
+    {
+      "id": "TC-006e",
+      "requirement_id": "FR-006",
+      "user_story_id": "US-006",
+      "ac_id": "AC-011",
+      "title": "Editar celda-hoja Pres.: Enter confirma el nuevo valor",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Grilla visible en escritorio; subcategoría 'Mercado' con Pres. 'ene'=840000"
+      ],
+      "given": "la celda Pres. 'ene' de la subcategoría 'Mercado' con valor 840000",
+      "when": "el usuario hace clic en la celda, escribe 900000 y presiona Enter",
+      "then": "la celda muestra 900.000 y budgets['Mercado']['ene']===900000",
+      "steps": [
+        "Clic en celda Pres. de Mercado ene",
+        "Escribir 900000",
+        "Presionar Enter",
+        "Leer valor de celda y store"
+      ],
+      "expected_result": "celda === '900.000' && budgets['Mercado']['ene']===900000",
+      "test_data": {
+        "leaf": "Mercado",
+        "month": "ene",
+        "newValue": 900000
+      }
+    },
+    {
+      "id": "TC-006f",
+      "requirement_id": "FR-006",
+      "user_story_id": "US-006",
+      "ac_id": "AC-012",
+      "title": "Escape cancela la edición y la celda de un nodo padre no es editable",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Grilla visible; subcategoría 'Mercado' Pres.'ene'=840000; categoría padre 'Comida' con total roll-up"
+      ],
+      "given": "la celda Pres. 'ene' de 'Mercado'=840000 y la celda Pres. de la categoría padre 'Comida'",
+      "when": "el usuario abre el input de 'Mercado', escribe 999999 y presiona Escape; luego hace clic en la celda Pres. de 'Comida'",
+      "then": "'Mercado' permanece en 840000 (edición cancelada) y la celda de 'Comida' NO abre input de edición (padre solo lectura)",
+      "steps": [
+        "Editar Mercado, escribir 999999, Escape",
+        "Verificar 840000 intacto",
+        "Clic en celda de 'Comida'",
+        "Verificar que no aparece input"
+      ],
+      "expected_result": "budgets['Mercado']['ene']===840000 && la celda de 'Comida' no es editable",
+      "test_data": {
+        "leaf": "Mercado",
+        "parent": "Comida",
+        "month": "ene"
+      }
+    },
+    {
+      "id": "TC-008h",
+      "requirement_id": "FR-008",
+      "user_story_id": "US-008",
+      "ac_id": "AC-015",
+      "title": "Gasto con Ejecutado > Presupuestado marca varianza 'over' (--error)",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Función varianceOf disponible"
+      ],
+      "given": "type='expense', budget=100000, actual=130000",
+      "when": "se llama varianceOf('expense', 100000, 130000)",
+      "then": "devuelve 'over' (que la UI mapea a --error #ef4444)",
+      "steps": [
+        "Invocar varianceOf('expense',100000,130000)"
+      ],
+      "expected_result": "varianceOf === 'over'",
+      "test_data": {
+        "type": "expense",
+        "budget": 100000,
+        "actual": 130000
+      }
+    },
+    {
+      "id": "TC-008e",
+      "requirement_id": "FR-008",
+      "user_story_id": "US-008",
+      "ac_id": "AC-015",
+      "title": "Ingreso ≥ presupuesto = favorable; < presupuesto = under",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Función varianceOf disponible"
+      ],
+      "given": "type='income' con (budget=100000, actual=100000) y con (budget=100000, actual=80000)",
+      "when": "se llama varianceOf('income',100000,100000) y varianceOf('income',100000,80000)",
+      "then": "el primero devuelve 'favorable' (--success) y el segundo 'under' (--warning)",
+      "steps": [
+        "varianceOf income 100000/100000",
+        "varianceOf income 100000/80000"
+      ],
+      "expected_result": "'favorable' y 'under' respectivamente",
+      "test_data": {
+        "type": "income"
+      }
+    },
+    {
+      "id": "TC-008f",
+      "requirement_id": "FR-008",
+      "user_story_id": "US-008",
+      "ac_id": "AC-016",
+      "title": "Transferencia es neutral sin juicio de sobre/bajo presupuesto",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Función varianceOf disponible"
+      ],
+      "given": "type='transfer' con actual muy por encima del budget (budget=100000, actual=500000)",
+      "when": "se llama varianceOf('transfer', 100000, 500000)",
+      "then": "devuelve 'neutral' (nunca 'over'/'under'), y signOf('transfer')==='↔'",
+      "steps": [
+        "varianceOf transfer 100000/500000",
+        "signOf transfer"
+      ],
+      "expected_result": "varianceOf==='neutral' && signOf==='↔'",
+      "test_data": {
+        "type": "transfer",
+        "budget": 100000,
+        "actual": 500000
+      }
+    },
+    {
+      "id": "TC-009h",
+      "requirement_id": "FR-009",
+      "user_story_id": "US-009",
+      "ac_id": "AC-017",
+      "title": "Balance neto del mes = Ingresos ejecutados − Gastos ejecutados",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con ingresos y gastos ejecutados conocidos en 'jun'"
+      ],
+      "given": "un estado con Ingresos ejecutados 'jun'=5165000 y Gastos ejecutados 'jun'=2871000",
+      "when": "se evalúa dashboardMetrics(state, {mode:'month', month:'jun'}).balance",
+      "then": "balance === 2294000 (5165000 − 2871000)",
+      "steps": [
+        "Invocar dashboardMetrics month jun",
+        "Leer balance"
+      ],
+      "expected_result": "balance === 2294000",
+      "test_data": {
+        "income": 5165000,
+        "expense": 2871000,
+        "month": "jun"
+      }
+    },
+    {
+      "id": "TC-009e",
+      "requirement_id": "FR-009",
+      "user_story_id": "US-009",
+      "ac_id": "AC-017",
+      "title": "Cambiar filtro Mes→Año recalcula los indicadores sobre el total del año",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Estado con ejecutados en varios meses"
+      ],
+      "given": "un estado con Gastos ejecutados por mes cuya suma anual es G_year",
+      "when": "se evalúa dashboardMetrics(state, {mode:'year'}).expense",
+      "then": "expense === G_year (suma de los 12 meses), distinto del valor de un solo mes",
+      "steps": [
+        "Invocar dashboardMetrics mode year",
+        "Comparar con suma anual"
+      ],
+      "expected_result": "dashboardMetrics(year).expense === Σ meses",
+      "test_data": {
+        "mode": "year"
+      }
+    },
+    {
+      "id": "TC-009f",
+      "requirement_id": "FR-009",
+      "user_story_id": "US-009",
+      "ac_id": "AC-018",
+      "title": "Sin categorías sobre presupuesto: indicador muestra estado vacío",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Estado/periodo donde ninguna categoría de gasto tiene Ejecutado > Presupuestado"
+      ],
+      "given": "el dashboard en un periodo donde ninguna categoría de gasto excede su presupuesto",
+      "when": "se abre el indicador 'Sobre presupuesto'",
+      "then": "se muestra el texto 'Todo dentro del presupuesto en este periodo' y no se renderiza ninguna fila de categoría en ese indicador",
+      "steps": [
+        "Abrir Dashboard en el periodo sin excesos",
+        "Leer indicador 'Sobre presupuesto'"
+      ],
+      "expected_result": "texto de estado vacío visible y 0 filas de categoría",
+      "test_data": {}
+    },
+    {
+      "id": "TC-010h",
+      "requirement_id": "FR-010",
+      "user_story_id": "US-010",
+      "ac_id": "AC-020",
+      "title": "375px muestra SOLO Registrar; 1440px muestra la app completa",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App desplegada"
+      ],
+      "given": "la app abierta",
+      "when": "se carga a viewport 375px y luego a 1440px",
+      "then": "a 375px el módulo Registrar es visible y la grilla de presupuesto y el dashboard NO están en el DOM visible; a 1440px Registrar, grilla y dashboard están presentes",
+      "steps": [
+        "Cargar a 375px",
+        "Verificar solo Registrar",
+        "Cargar a 1440px",
+        "Verificar app completa"
+      ],
+      "expected_result": "375px: solo Registrar (grilla/dashboard ausentes); 1440px: los tres presentes",
+      "test_data": {
+        "viewports": [
+          "375",
+          "1440"
+        ]
+      }
+    },
+    {
+      "id": "TC-010e",
+      "requirement_id": "FR-010",
+      "user_story_id": "US-010",
+      "ac_id": "AC-019",
+      "title": "Un movimiento capturado en pantalla pequeña se refleja en la grilla de escritorio",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Mismo navegador/localStorage; app responsive"
+      ],
+      "given": "un movimiento de 25000 en 'Comida'/'jun' registrado con viewport 375px",
+      "when": "se redimensiona a 1440px y se abre la grilla",
+      "then": "el Ejecutado de 'Comida' en 'jun' en la grilla refleja el +25000 sin importar/exportar datos manualmente",
+      "steps": [
+        "375px: registrar 25000 en Comida jun",
+        "Redimensionar a 1440px",
+        "Leer Ejecutado de Comida jun en la grilla"
+      ],
+      "expected_result": "la grilla de escritorio muestra el movimiento capturado en móvil (mismo store)",
+      "test_data": {
+        "amount": 25000,
+        "category": "Comida",
+        "month": "jun"
+      }
+    },
+    {
+      "id": "TC-010f",
+      "requirement_id": "FR-010",
+      "user_story_id": "US-010",
+      "ac_id": "AC-020",
+      "title": "En el límite exacto de 760px se muestra la vista móvil (solo Registrar)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App desplegada"
+      ],
+      "given": "la app cargada a viewport de exactamente 760px de ancho",
+      "when": "se inspecciona qué shell se renderiza",
+      "then": "se muestra el shell móvil (Registrar) y NO la grilla de escritorio (regla @media max-width:760px)",
+      "steps": [
+        "Cargar a 760px",
+        "Verificar shell móvil activo y grilla ausente"
+      ],
+      "expected_result": "a 760px: shell móvil (solo Registrar), grilla de escritorio ausente",
+      "test_data": {
+        "viewport": "760"
+      }
+    },
+    {
+      "id": "TC-011h",
+      "requirement_id": "FR-011",
+      "user_story_id": "US-011",
+      "ac_id": "AC-021",
+      "title": "Los datos persisten tras recargar (sobreviven a reinicio del navegador)",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "jsdom con localStorage; repositorio LocalStorageRepository"
+      ],
+      "given": "un estado con un movimiento de 40000 guardado vía repository.save",
+      "when": "se crea una nueva instancia y se llama repository.load('local')",
+      "then": "el estado cargado contiene el movimiento de 40000 y ledger.budget.v2 en localStorage lo refleja",
+      "steps": [
+        "save(state con movimiento 40000)",
+        "load('local') en nueva instancia",
+        "Verificar movimiento presente"
+      ],
+      "expected_result": "load() devuelve el movimiento de 40000; localStorage['ledger.budget.v2'] lo contiene",
+      "test_data": {
+        "amount": 40000
+      }
+    },
+    {
+      "id": "TC-011e",
+      "requirement_id": "FR-011",
+      "user_story_id": "US-011",
+      "ac_id": "AC-021",
+      "title": "Una edición de Presupuesto se relee correctamente tras recargar",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "jsdom con localStorage"
+      ],
+      "given": "un estado donde se editó budgets['Mercado']['ene']=900000 y se guardó",
+      "when": "se recarga con repository.load('local')",
+      "then": "el estado cargado tiene budgets['Mercado']['ene']===900000",
+      "steps": [
+        "Editar y save",
+        "load",
+        "Verificar budget"
+      ],
+      "expected_result": "budgets['Mercado']['ene']===900000 tras recargar",
+      "test_data": {
+        "leaf": "Mercado",
+        "month": "ene",
+        "value": 900000
+      }
+    },
+    {
+      "id": "TC-011f",
+      "requirement_id": "FR-011",
+      "user_story_id": "US-011",
+      "ac_id": "AC-022",
+      "title": "localStorage con JSON inválido se recupera a la semilla sin excepción",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "jsdom con localStorage"
+      ],
+      "given": "localStorage['ledger.budget.v2'] = '{corrupto::' (JSON inválido)",
+      "when": "se llama repository.load('local')",
+      "then": "load NO lanza excepción y devuelve null (→ el caller usa buildSeed); el estado resultante es la semilla válida, no una pantalla en blanco",
+      "steps": [
+        "Escribir JSON inválido en la clave",
+        "Invocar load",
+        "Verificar que no lanza y devuelve null/semilla"
+      ],
+      "expected_result": "load no lanza; retorna null; buildSeed produce estado válido",
+      "test_data": {
+        "corruptValue": "{corrupto::"
+      }
+    },
+    {
+      "id": "TC-012h",
+      "requirement_id": "FR-012",
+      "user_story_id": "US-012",
+      "ac_id": "AC-023",
+      "title": "Los CSS custom properties coinciden con los tokens exactos del prototipo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en navegador"
+      ],
+      "given": "la app renderizada",
+      "when": "se leen las variables CSS de :root vía getComputedStyle(document.documentElement)",
+      "then": "--bg==='#080c12', --primary==='#4a7fa5', --success==='#10b981', --warning==='#f59e0b', --error==='#ef4444' y la font-family efectiva incluye 'Fira Code'",
+      "steps": [
+        "getComputedStyle de :root",
+        "Comparar cada token con el valor esperado"
+      ],
+      "expected_result": "todos los tokens coinciden exacto y font-family incluye Fira Code",
+      "test_data": {
+        "tokens": {
+          "--bg": "#080c12",
+          "--primary": "#4a7fa5",
+          "--error": "#ef4444"
+        }
+      }
+    },
+    {
+      "id": "TC-012e",
+      "requirement_id": "FR-012",
+      "user_story_id": "US-012",
+      "ac_id": "AC-023",
+      "title": "Contraste de texto primario sobre fondo ≥ 4.5:1",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "App cargada"
+      ],
+      "given": "texto primario color --fg #e8edf5 sobre fondo --bg #080c12",
+      "when": "se calcula la razón de contraste WCAG entre #e8edf5 y #080c12",
+      "then": "la razón es ≥ 4.5:1 (aprox 15:1)",
+      "steps": [
+        "Calcular contraste WCAG fg/bg",
+        "Verificar ≥4.5"
+      ],
+      "expected_result": "contraste ≥ 4.5:1",
+      "test_data": {
+        "fg": "#e8edf5",
+        "bg": "#080c12"
+      }
+    },
+    {
+      "id": "TC-012f",
+      "requirement_id": "FR-012",
+      "user_story_id": "US-012",
+      "ac_id": "AC-024",
+      "title": "prefers-reduced-motion elimina animaciones y no hay emoji/gradiente",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Navegador con prefers-reduced-motion: reduce activo"
+      ],
+      "given": "el navegador con prefers-reduced-motion: reduce",
+      "when": "se navega y se inspeccionan animation-duration/transition-duration y el DOM en busca de emoji o background gradients",
+      "then": "animation-duration y transition-duration efectivos son ~0.001ms; no existe ningún emoji ni background con 'gradient' en las superficies",
+      "steps": [
+        "Activar reduced-motion",
+        "Leer duraciones efectivas",
+        "Escanear DOM por emoji/gradient"
+      ],
+      "expected_result": "duraciones ~0.001ms y cero emoji/gradientes",
+      "test_data": {}
+    },
+    {
+      "id": "TC-013h",
+      "requirement_id": "FR-013",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "Primer arranque sin datos genera semilla determinista coherente",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "localStorage vacío"
+      ],
+      "given": "localStorage sin claves ledger.nodes.v1 / ledger.budget.v2",
+      "when": "se inicializa la app (load devuelve null → buildSeed('local'))",
+      "then": "existe una jerarquía semilla con hojas cuyo actuals de 'ene'..'may' > 0 y 'jul'..'dic' === 0 (factores del prototipo), determinista (dos ejecuciones producen los mismos montos)",
+      "steps": [
+        "load() con storage vacío",
+        "buildSeed('local')",
+        "Verificar actuals por mes",
+        "Repetir y comparar determinismo"
+      ],
+      "expected_result": "semilla con Ene–May>0, Jul–Dic=0 e idéntica entre corridas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-013e",
+      "requirement_id": "FR-013",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "La jerarquía semilla es editable (renombrar/borrar una categoría semilla)",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Estado semilla recién generado"
+      ],
+      "given": "el estado semilla con la categoría 'Comida'",
+      "when": "se llama renameNode(state, id('Comida'), 'Alimentación') y se guarda",
+      "then": "la categoría queda con name 'Alimentación' y persiste tras load",
+      "steps": [
+        "renameNode Comida→Alimentación",
+        "save",
+        "load",
+        "Verificar nombre"
+      ],
+      "expected_result": "nodo semilla renombrado y persistido (seed editable)",
+      "test_data": {
+        "from": "Comida",
+        "to": "Alimentación"
+      }
+    },
+    {
+      "id": "TC-013f",
+      "requirement_id": "FR-013",
+      "user_story_id": "US-013",
+      "ac_id": "AC-026",
+      "title": "Con datos existentes, la semilla NO se regenera ni sobrescribe",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "localStorage con datos de usuario previos (1 categoría propia 'Mascotas')"
+      ],
+      "given": "localStorage con nodes que incluyen una categoría 'Mascotas' creada por el usuario",
+      "when": "se inicializa la app (load encuentra datos)",
+      "then": "el estado cargado conserva 'Mascotas' y NO se ejecuta buildSeed (no se sobrescriben los datos)",
+      "steps": [
+        "Sembrar storage con 'Mascotas'",
+        "Inicializar app",
+        "Verificar 'Mascotas' presente y sin regenerar semilla"
+      ],
+      "expected_result": "'Mascotas' presente; buildSeed no invocado; datos intactos",
+      "test_data": {
+        "userCategory": "Mascotas"
+      }
+    },
+    {
+      "id": "TC-015h",
+      "requirement_id": "FR-015",
+      "user_story_id": "US-015",
+      "ac_id": "AC-029",
+      "title": "Arrastrar subcategoría de 'Sin asignar' a otra categoría la reubica con sus movimientos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "'Sin asignar' (Gasto) contiene la subcategoría 'Café' con movimientos; existe categoría 'Restaurantes' (Gasto)"
+      ],
+      "given": "'Café' como subcategoría dentro de 'Sin asignar' (Gasto) con sus movimientos y la categoría 'Restaurantes' (Gasto)",
+      "when": "el usuario arrastra 'Café' y la suelta sobre 'Restaurantes'",
+      "then": "'Café' queda como subcategoría de 'Restaurantes' (parentId='Restaurantes'), sus movimientos conservan target='Café', y el roll-up de 'Sin asignar' disminuye mientras el de 'Restaurantes' aumenta en el mismo monto",
+      "steps": [
+        "Arrastrar 'Café' sobre 'Restaurantes'",
+        "Soltar",
+        "Verificar parentId",
+        "Verificar roll-ups origen/destino"
+      ],
+      "expected_result": "'Café'.parentId==='Restaurantes' y roll-ups actualizados sin huérfanos",
+      "test_data": {
+        "drag": "Café",
+        "dropOn": "Restaurantes",
+        "type": "expense"
+      }
+    },
+    {
+      "id": "TC-015e",
+      "requirement_id": "FR-015",
+      "user_story_id": "US-015",
+      "ac_id": "AC-029",
+      "title": "Soltar una subcategoría en la zona de un grupo la promueve a categoría nueva",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Subcategoría 'Café' (Gasto) arrastrable; grupo 'Estilo de vida' (Gasto) como destino"
+      ],
+      "given": "la subcategoría 'Café' (Gasto) y el grupo 'Estilo de vida' (Gasto)",
+      "when": "el usuario arrastra 'Café' y la suelta en la zona del grupo 'Estilo de vida'",
+      "then": "'Café' pasa a level='category' con parentId='Estilo de vida' (promovida a categoría)",
+      "steps": [
+        "Arrastrar 'Café' a la zona del grupo",
+        "Soltar",
+        "Verificar level y parentId"
+      ],
+      "expected_result": "'Café'.level==='category' && parentId==='Estilo de vida'",
+      "test_data": {
+        "drag": "Café",
+        "dropOnGroup": "Estilo de vida"
+      }
+    },
+    {
+      "id": "TC-015f",
+      "requirement_id": "FR-015",
+      "user_story_id": "US-015",
+      "ac_id": "AC-030",
+      "title": "Soltar en un tipo, otro tipo o crear grupo por arrastre es rechazado",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Subcategoría 'Café' (Gasto) arrastrable; existe tipo Ingreso y una categoría 'Salario' (Ingreso)"
+      ],
+      "given": "la subcategoría 'Café' (tipo Gasto) siendo arrastrada",
+      "when": "se intenta soltar 'Café' sobre el nodo Tipo, sobre la categoría 'Salario' (tipo Ingreso), o para crear un grupo",
+      "then": "el drop se rechaza (sin resalte de destino válido); 'Café' conserva su parentId original y la jerarquía queda intacta",
+      "steps": [
+        "Arrastrar 'Café' sobre un Tipo",
+        "Intentar soltar sobre 'Salario' (Ingreso)",
+        "Verificar rechazo y jerarquía intacta"
+      ],
+      "expected_result": "moveNode devuelve rejected (cross_type/invalid_target); jerarquía sin cambios",
+      "test_data": {
+        "drag": "Café",
+        "invalidTargets": [
+          "type",
+          "Salario(income)",
+          "new-group"
+        ]
+      }
+    },
+    {
+      "id": "TC-101h",
+      "requirement_id": "NFR-001",
+      "user_story_id": "US-004",
+      "ac_id": "AC-007",
+      "title": "Editar una hoja recalcula los ancestros en ≤150ms",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App con semilla completa cargada; grilla visible"
+      ],
+      "given": "la grilla con la jerarquía semilla completa cargada",
+      "when": "se edita el Presupuesto de una hoja y se mide el tiempo hasta que los totales de categoría/grupo/tipo reflejan el cambio",
+      "then": "el reflejo de los ancestros ocurre en ≤150ms",
+      "steps": [
+        "Marcar t0 al confirmar edición",
+        "Esperar actualización de ancestros",
+        "Medir Δt"
+      ],
+      "expected_result": "Δt ≤ 150ms",
+      "test_data": {
+        "threshold_ms": 150
+      }
+    },
+    {
+      "id": "TC-101e",
+      "requirement_id": "NFR-001",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "Carga inicial con datos semilla del año completo en ≤2s",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Semilla del año completo; equipo de gama media"
+      ],
+      "given": "la app con datos semilla del año completo",
+      "when": "se mide el tiempo desde navegación hasta que la grilla es interactiva",
+      "then": "el tiempo de carga es ≤ 2000ms",
+      "steps": [
+        "Navegar a la app",
+        "Medir hasta interactividad de la grilla"
+      ],
+      "expected_result": "carga ≤ 2000ms",
+      "test_data": {
+        "threshold_ms": 2000
+      }
+    },
+    {
+      "id": "TC-101f",
+      "requirement_id": "NFR-001",
+      "user_story_id": "US-006",
+      "ac_id": "AC-011",
+      "title": "Editar una hoja NO re-renderiza toda la grilla (solo celdas afectadas)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Grilla instrumentada con contador de render por celda"
+      ],
+      "given": "la grilla con celdas instrumentadas para contar renders",
+      "when": "se edita una sola hoja",
+      "then": "solo re-renderizan la celda editada y las celdas de sus ancestros directos (no las 12×N celdas de la grilla)",
+      "steps": [
+        "Instrumentar renders",
+        "Editar una hoja",
+        "Contar celdas re-renderizadas"
+      ],
+      "expected_result": "celdas re-renderizadas ≪ total (solo hoja + ancestros)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-102h",
+      "requirement_id": "NFR-002",
+      "user_story_id": "US-012",
+      "ac_id": "AC-023",
+      "title": "Sin desborde horizontal en 375/768/1440px",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "App desplegada"
+      ],
+      "given": "la app cargada",
+      "when": "se renderiza a 375px, 768px y 1440px",
+      "then": "en cada viewport document.scrollWidth ≤ viewport width (sin scroll horizontal por desborde)",
+      "steps": [
+        "Cargar a 375/768/1440",
+        "Comparar scrollWidth vs viewport"
+      ],
+      "expected_result": "sin desborde horizontal en los 3 breakpoints",
+      "test_data": {
+        "viewports": [
+          "375",
+          "768",
+          "1440"
+        ]
+      }
+    },
+    {
+      "id": "TC-102e",
+      "requirement_id": "NFR-002",
+      "user_story_id": "US-012",
+      "ac_id": "AC-023",
+      "title": "Componentes clave accesibles por teclado con foco visible",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "App en escritorio"
+      ],
+      "given": "el módulo Registrar",
+      "when": "se navega con Tab por tipo → categoría → monto → Guardar",
+      "then": "cada control recibe foco en orden lógico y muestra indicador de foco (border-color --accent en el input)",
+      "steps": [
+        "Tab por los controles",
+        "Verificar orden y foco visible"
+      ],
+      "expected_result": "orden de tabulación lógico y foco visible en cada control",
+      "test_data": {}
+    },
+    {
+      "id": "TC-102f",
+      "requirement_id": "NFR-002",
+      "user_story_id": "US-012",
+      "ac_id": "AC-024",
+      "title": "Con reduced-motion las transiciones se reducen a ~0.001ms",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "prefers-reduced-motion: reduce"
+      ],
+      "given": "el navegador con reduced-motion activo",
+      "when": "se dispara una transición (abrir panel/toast) y se lee la duración efectiva",
+      "then": "transition-duration/animation-duration efectivos ≈ 0.001ms (sin movimiento perceptible)",
+      "steps": [
+        "Activar reduced-motion",
+        "Disparar transición",
+        "Leer duración"
+      ],
+      "expected_result": "duraciones ~0.001ms",
+      "test_data": {}
+    },
+    {
+      "id": "TC-103h",
+      "requirement_id": "NFR-003",
+      "user_story_id": "US-011",
+      "ac_id": "AC-021",
+      "title": "Persistencia robusta: los datos sobreviven a reinicio",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "jsdom con localStorage"
+      ],
+      "given": "un estado guardado con 2 movimientos y 1 edición de presupuesto",
+      "when": "se descarta la instancia y se recarga desde localStorage",
+      "then": "los 2 movimientos y la edición se conservan idénticos",
+      "steps": [
+        "save estado",
+        "Descartar y load",
+        "Comparar igualdad profunda"
+      ],
+      "expected_result": "estado recargado === estado guardado (movimientos y budgets)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-103e",
+      "requirement_id": "NFR-003",
+      "user_story_id": "US-011",
+      "ac_id": "AC-021",
+      "title": "Fallo de setItem (quota) no corrompe el estado en memoria",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "localStorage.setItem mockeado para lanzar QuotaExceededError"
+      ],
+      "given": "un repositorio cuyo setItem lanza QuotaExceededError",
+      "when": "se llama repository.save(state)",
+      "then": "save captura la excepción (no propaga un crash), el estado en memoria permanece válido y se puede seguir operando en la sesión",
+      "steps": [
+        "Mockear setItem para lanzar",
+        "Invocar save",
+        "Verificar no-crash y estado en memoria intacto"
+      ],
+      "expected_result": "save no lanza al caller; estado en memoria intacto",
+      "test_data": {
+        "error": "QuotaExceededError"
+      }
+    },
+    {
+      "id": "TC-103f",
+      "requirement_id": "NFR-003",
+      "user_story_id": "US-011",
+      "ac_id": "AC-022",
+      "title": "Estado corrupto se recupera a semilla sin pantalla en blanco",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "localStorage con payload no conforme al esquema Zod"
+      ],
+      "given": "localStorage['ledger.nodes.v1'] con un objeto que NO cumple el esquema (p. ej. { foo: 1 })",
+      "when": "se llama repository.load('local') (Zod.safeParse falla)",
+      "then": "load devuelve null sin lanzar; el arranque usa buildSeed y la app muestra la semilla (no pantalla en blanco ni excepción no capturada)",
+      "steps": [
+        "Escribir payload no conforme",
+        "load",
+        "Verificar null + fallback a semilla"
+      ],
+      "expected_result": "safeParse falla → load null → semilla renderizada",
+      "test_data": {
+        "invalid": "{ foo: 1 }"
+      }
+    },
+    {
+      "id": "TC-104h",
+      "requirement_id": "NFR-004",
+      "user_story_id": "US-001",
+      "ac_id": "AC-001",
+      "title": "El monto acepta un entero positivo válido",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Esquema Zod del monto disponible"
+      ],
+      "given": "el esquema de validación del monto (entero ≥1 COP)",
+      "when": "se valida amount=15000",
+      "then": "la validación pasa y el movimiento es aceptado para persistir",
+      "steps": [
+        "Validar 15000 con el esquema",
+        "Verificar éxito"
+      ],
+      "expected_result": "amount=15000 válido",
+      "test_data": {
+        "amount": 15000
+      }
+    },
+    {
+      "id": "TC-104e",
+      "requirement_id": "NFR-004",
+      "user_story_id": "US-010",
+      "ac_id": "AC-019",
+      "title": "No se realizan peticiones HTTP externas en runtime (v1 offline)",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Playwright con intercepción de red"
+      ],
+      "given": "la app en ejecución con un interceptor de red activo (permitiendo solo self y fuentes de Google Fonts)",
+      "when": "se recorre el flujo end-to-end (registrar, editar, dashboard)",
+      "then": "no se emite ninguna petición HTTP a un host de datos externo (0 requests fuera de self/fonts)",
+      "steps": [
+        "Interceptar red",
+        "Recorrer flujo",
+        "Contar requests externos de datos"
+      ],
+      "expected_result": "0 peticiones HTTP externas de datos en runtime",
+      "test_data": {}
+    },
+    {
+      "id": "TC-104f",
+      "requirement_id": "NFR-004",
+      "user_story_id": "US-001",
+      "ac_id": "AC-002",
+      "title": "Montos no numéricos o negativos se rechazan y no se persisten",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Esquema Zod del monto disponible"
+      ],
+      "given": "entradas amount='abc' y amount=-500",
+      "when": "se valida cada una con el esquema del monto",
+      "then": "ambas fallan la validación y addMovement no persiste ningún movimiento para esas entradas",
+      "steps": [
+        "Validar 'abc'",
+        "Validar -500",
+        "Verificar rechazo y no-persistencia"
+      ],
+      "expected_result": "'abc' y -500 rechazados; 0 movimientos persistidos",
+      "test_data": {
+        "invalid": [
+          "abc",
+          -500
+        ]
+      }
+    },
+    {
+      "id": "TC-105h",
+      "requirement_id": "NFR-005",
+      "user_story_id": "US-003",
+      "ac_id": "AC-005",
+      "title": "Regresión: tras borrar una categoría, cero movimientos huérfanos",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con varias categorías con movimientos"
+      ],
+      "given": "un estado con N movimientos distribuidos en varias categorías del tipo Gasto",
+      "when": "se borra una categoría con movimientos (deleteNode) y se verifica cada movimiento",
+      "then": "TODOS los movimientos siguen resolviendo un nodo target existente (cero huérfanos); ninguno apunta a un id inexistente",
+      "steps": [
+        "Contar movimientos con target válido antes",
+        "deleteNode(categoría con movimientos)",
+        "Verificar que los N movimientos siguen con target existente"
+      ],
+      "expected_result": "movimientos con target inexistente === 0 tras el borrado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-105e",
+      "requirement_id": "NFR-005",
+      "user_story_id": "US-015",
+      "ac_id": "AC-029",
+      "title": "Regresión: tras un reparent por arrastre, totales cuadran y cero huérfanos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con 'Café' (con movimientos) reubicable a 'Restaurantes'"
+      ],
+      "given": "un estado con 'Café' (con movimientos) y 'Restaurantes' (ambos Gasto)",
+      "when": "se llama moveNode('Café', {kind:'category', id:'Restaurantes'})",
+      "then": "no hay movimientos huérfanos y para cada nodo padre afectado rollupBudget(padre)===Σ budgets(hojas) (los totales cuadran en origen y destino)",
+      "steps": [
+        "moveNode Café→Restaurantes",
+        "Verificar 0 huérfanos",
+        "Verificar rollup(padre)===Σ hojas en origen y destino"
+      ],
+      "expected_result": "0 huérfanos && rollup(padre)===Σ hojas para todos los ancestros afectados",
+      "test_data": {}
+    },
+    {
+      "id": "TC-105f",
+      "requirement_id": "NFR-005",
+      "user_story_id": "US-015",
+      "ac_id": "AC-030",
+      "title": "Regresión: una operación inválida (cross-type) no altera la jerarquía ni crea huérfanos",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con 'Café' (Gasto) y 'Salario' (Ingreso)"
+      ],
+      "given": "'Café' (Gasto) con movimientos y 'Salario' (Ingreso)",
+      "when": "se llama moveNode('Café', {kind:'category', id:'Salario'}) (destino de otro tipo)",
+      "then": "moveNode devuelve { rejected:'cross_type' }, la jerarquía queda idéntica y siguen 0 huérfanos (el invariante se mantiene)",
+      "steps": [
+        "moveNode Café→Salario (cross-type)",
+        "Verificar rejected",
+        "Verificar jerarquía intacta y 0 huérfanos"
+      ],
+      "expected_result": "rejected='cross_type'; nodos sin cambios; 0 huérfanos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-106h",
+      "requirement_id": "NFR-006",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "Smoke: el contenedor arranca y responde 200 en /",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Imagen Docker construida; script smoke.sh"
+      ],
+      "given": "el contenedor Next.js iniciado (next start) en el puerto configurado",
+      "when": "smoke.sh hace GET /",
+      "then": "la respuesta es HTTP 200 y el HTML del shell de la app está presente (sin error 5xx)",
+      "steps": [
+        "docker run de la imagen",
+        "curl GET /",
+        "Verificar 200 y contenido del shell"
+      ],
+      "expected_result": "GET / → 200 con el shell servido",
+      "test_data": {
+        "route": "/",
+        "expectedStatus": 200
+      },
+      "automation": "manual",
+      "manual_reason": "Smoke de despliegue: requiere levantar la imagen Docker y hacer HTTP GET /, fuera del alcance del runner unitario (jsdom). Se verifica ejecutando el contenedor.",
+      "downgraded_from": "skip"
+    },
+    {
+      "id": "TC-106e",
+      "requirement_id": "NFR-006",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "Smoke detecta un fallo de arranque (respuesta 5xx en /)",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Imagen Docker con un bootstrap deliberadamente roto (fixture de config inválida)"
+      ],
+      "given": "el contenedor arrancado con una configuración que rompe el bootstrap del server",
+      "when": "smoke.sh hace GET / contra ese contenedor",
+      "then": "smoke.sh recibe un status 5xx y termina con exit code != 0 (falla el gate en vez de dar falso verde)",
+      "steps": [
+        "Arrancar contenedor con bootstrap roto",
+        "curl GET /",
+        "Verificar 5xx y exit != 0 de smoke.sh"
+      ],
+      "expected_result": "GET / → 5xx y smoke.sh exit != 0",
+      "test_data": {
+        "route": "/",
+        "expectedStatus": "5xx"
+      }
+    },
+    {
+      "id": "TC-106f",
+      "requirement_id": "NFR-006",
+      "user_story_id": "US-013",
+      "ac_id": "AC-025",
+      "title": "El pipeline falla si un test de la suite falla",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Pipeline CI configurado para correr la suite completa; verificación manual del comportamiento del gate"
+      ],
+      "given": "la suite de tests del proyecto ejecutándose en CI con al menos un test forzado a fallar",
+      "when": "se ejecuta el pipeline en un push a main",
+      "then": "el pipeline termina con exit code distinto de 0 (build/deploy bloqueado) — no publica con tests rojos",
+      "steps": [
+        "Introducir un test que falla (fixture)",
+        "Correr el pipeline",
+        "Verificar exit code != 0"
+      ],
+      "expected_result": "pipeline exit != 0 cuando un test falla (manual verification required)",
+      "test_data": {}
+    }
+  ]
+}

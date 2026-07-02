@@ -1,0 +1,658 @@
+{
+  "executed_at": "2026-07-02T12:39:54.275Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "results": [
+    {
+      "tc_id": "TC-001h",
+      "status": "pass",
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001h: registrar en categoría-hoja suma exactamente el monto al Ejecutado 1ms"
+    },
+    {
+      "tc_id": "TC-001e",
+      "status": "pass",
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001e: addMovement con subId suma a la hoja subId, no a la categoría 4ms"
+    },
+    {
+      "tc_id": "TC-001f",
+      "status": "pass",
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001f: monto 0 o sin categoría → canSave false y no crea movimiento 1ms"
+    },
+    {
+      "tc_id": "TC-002h",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002h: crear grupo y categoría bajo un tipo aparecen en la jerarquía 3ms"
+    },
+    {
+      "tc_id": "TC-002e",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002e: crear 1ª subcategoría traslada los montos de la categoría-hoja 1ms"
+    },
+    {
+      "tc_id": "TC-002f",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002f: 'Sin asignar' (system) no es renombrable ni borrable; los tipos son fijos 1ms"
+    },
+    {
+      "tc_id": "TC-003h",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-003 borrado → 'Sin asignar' del grupo > TC-003h: borrar categoría con movimientos la convierte en sub de 'Sin asignar' del grupo 1ms"
+    },
+    {
+      "tc_id": "TC-003e",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-003 borrado → 'Sin asignar' del grupo > TC-003e: borrar hoja sin movimientos la elimina directo; 'Sin asignar' no visible 0ms"
+    },
+    {
+      "tc_id": "TC-003f",
+      "status": "pass",
+      "notes": "✓ tests/domain/categories.test.ts > FR-003 borrado → 'Sin asignar' del grupo > TC-003f: borrar grupo con categorías se bloquea (nada cambia) 1ms"
+    },
+    {
+      "tc_id": "TC-004h",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004h: Ejecutado de categoría = suma de sus subcategorías 3ms"
+    },
+    {
+      "tc_id": "TC-004e",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004e: Ejecutado directo en categoría-hoja se cuenta en el grupo 1ms"
+    },
+    {
+      "tc_id": "TC-004f",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004f: Presupuestado del padre === suma de hojas (invariante, sin setter de padre) 1ms"
+    },
+    {
+      "tc_id": "TC-006h",
+      "status": "pass",
+      "notes": "✓   9 [chromium] › tests/e2e/critical.spec.ts:48:5 › TC-006h: la grilla renderiza con columna categoría sticky y 12 meses (892ms)"
+    },
+    {
+      "tc_id": "TC-006e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-006e\" so it appears on stdout (e.g. test_TC_006e_description, # @aitri-tc TC-006e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-006e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-006f",
+      "status": "pass",
+      "notes": "✓   2 [chromium] › tests/e2e/coverage-extra.spec.ts:6:5 › TC-006f: Escape cancela la edición y la celda de un nodo padre no es editable (2.7s)"
+    },
+    {
+      "tc_id": "TC-008h",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-008 signo y varianza > TC-008h: Gasto Ejec>Pres → 'over' 0ms"
+    },
+    {
+      "tc_id": "TC-008e",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-008 signo y varianza > TC-008e: Ingreso >= pres → favorable; < pres → under 0ms"
+    },
+    {
+      "tc_id": "TC-008f",
+      "status": "pass",
+      "notes": "✓ tests/domain/rollup-sign.test.ts > FR-008 signo y varianza > TC-008f: Transferencia siempre neutral 0ms"
+    },
+    {
+      "tc_id": "TC-009h",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009h: balance del mes = ingresos − gastos ejecutados 1ms"
+    },
+    {
+      "tc_id": "TC-009e",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009e: filtro Año suma los 12 meses 0ms"
+    },
+    {
+      "tc_id": "TC-009f",
+      "status": "pass",
+      "notes": "✓  10 [chromium] › tests/e2e/critical.spec.ts:59:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (930ms)"
+    },
+    {
+      "tc_id": "TC-010h",
+      "status": "pass",
+      "notes": "✓   7 [chromium] › tests/e2e/critical.spec.ts:26:5 › TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla (1.0s)"
+    },
+    {
+      "tc_id": "TC-010e",
+      "status": "pass",
+      "notes": "✓   1 [chromium] › tests/e2e/coverage-extra.spec.ts:26:5 › TC-010e: un movimiento capturado en pantalla pequeña se refleja en la grilla de escritorio (2.6s)"
+    },
+    {
+      "tc_id": "TC-010f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-010f\" so it appears on stdout (e.g. test_TC_010f_description, # @aitri-tc TC-010f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-010f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-011h",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011h: los datos persisten tras recargar 4ms"
+    },
+    {
+      "tc_id": "TC-011e",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011e: una edición de Presupuesto se relee tras recargar 1ms"
+    },
+    {
+      "tc_id": "TC-011f",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011f: JSON inválido → load devuelve null sin lanzar (→ semilla) 0ms"
+    },
+    {
+      "tc_id": "TC-012h",
+      "status": "pass",
+      "notes": "✓   6 [chromium] › tests/e2e/critical.spec.ts:5:5 › TC-012h: los tokens CSS coinciden con el sistema de diseño César Augusto (869ms)"
+    },
+    {
+      "tc_id": "TC-012e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-012e\" so it appears on stdout (e.g. test_TC_012e_description, # @aitri-tc TC-012e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-012e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-012f",
+      "status": "pass",
+      "notes": "✓   3 [chromium] › tests/e2e/coverage-extra.spec.ts:55:5 › TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradiente (2.1s)"
+    },
+    {
+      "tc_id": "TC-013h",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013h: primer arranque sin datos → semilla coherente y determinista 1ms"
+    },
+    {
+      "tc_id": "TC-013e",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013e: la semilla es editable (renombrar persiste) 1ms"
+    },
+    {
+      "tc_id": "TC-013f",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013f: con datos existentes, no se regenera la semilla 1ms"
+    },
+    {
+      "tc_id": "TC-015h",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría 4ms"
+    },
+    {
+      "tc_id": "TC-015e",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015e: soltar en la zona de un grupo la promueve a categoría nueva 1ms"
+    },
+    {
+      "tc_id": "TC-015f",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015f: soltar en otro tipo o mover un grupo se rechaza 1ms"
+    },
+    {
+      "tc_id": "TC-101h",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-101h\" so it appears on stdout (e.g. test_TC_101h_description, # @aitri-tc TC-101h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-101h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-101e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-101e\" so it appears on stdout (e.g. test_TC_101e_description, # @aitri-tc TC-101e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-101e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-101f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-101f\" so it appears on stdout (e.g. test_TC_101f_description, # @aitri-tc TC-101f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-101f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-102h",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-102h\" so it appears on stdout (e.g. test_TC_102h_description, # @aitri-tc TC-102h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-102h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-102e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-102e\" so it appears on stdout (e.g. test_TC_102e_description, # @aitri-tc TC-102e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-102e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-102f",
+      "status": "pass",
+      "notes": "✓   4 [chromium] › tests/e2e/coverage-extra.spec.ts:72:5 › TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms (2.1s)"
+    },
+    {
+      "tc_id": "TC-103h",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103h: robustez — estado con 2 movimientos + 1 edición sobrevive a reinicio 1ms"
+    },
+    {
+      "tc_id": "TC-103e",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103e: fallo de setItem (quota) no propaga crash 7ms"
+    },
+    {
+      "tc_id": "TC-103f",
+      "status": "pass",
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103f: payload no conforme al esquema → load null (recupera a semilla) 1ms"
+    },
+    {
+      "tc_id": "TC-104h",
+      "status": "pass",
+      "notes": "✓ tests/domain/movement.test.ts > NFR-004 validación de monto > TC-104h: acepta entero positivo 0ms"
+    },
+    {
+      "tc_id": "TC-104e",
+      "status": "pass",
+      "notes": "✓   5 [chromium] › tests/e2e/coverage-extra.spec.ts:40:5 › TC-104e: no se realizan peticiones HTTP externas en runtime (v1 offline) (2.6s)"
+    },
+    {
+      "tc_id": "TC-104f",
+      "status": "pass",
+      "notes": "✓ tests/domain/movement.test.ts > NFR-004 validación de monto > TC-104f: rechaza no numérico y negativo (no persiste) 1ms"
+    },
+    {
+      "tc_id": "TC-105h",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105h: tras borrar categoría con movimientos, cero huérfanos 1ms"
+    },
+    {
+      "tc_id": "TC-105e",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105e: tras reparent, cero huérfanos y totales cuadran 1ms"
+    },
+    {
+      "tc_id": "TC-105f",
+      "status": "pass",
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105f: operación cross-type no altera la jerarquía ni crea huérfanos 0ms"
+    },
+    {
+      "tc_id": "TC-106h",
+      "status": "pass",
+      "notes": "Contenedor t-ledger:latest corriendo (healthy); GET http://127.0.0.1:3080/ → 200, sirve la app real (<title>Ledger — Presupuesto 2026</title>); ruta inexistente → 404 (no 5xx). Evidencia: test-evidence/TC-106h-smoke-2026-07-02.txt",
+      "downgraded_from": "skip",
+      "verified_manually": true,
+      "verified_at": "2026-07-02T21:18:50.075Z",
+      "evidence": "test-evidence/TC-106h-smoke-2026-07-02.txt"
+    },
+    {
+      "tc_id": "TC-106e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-106e\" so it appears on stdout (e.g. test_TC_106e_description, # @aitri-tc TC-106e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-106e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-106f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-106f\" so it appears on stdout (e.g. test_TC_106f_description, # @aitri-tc TC-106f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-106f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-001",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-002",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-004",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-006",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-008",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-009",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-010",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-011",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-012",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-013",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-014",
+      "tests_passing": 0,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "partial"
+    },
+    {
+      "fr_id": "FR-015",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-001",
+      "fr_id": "FR-001",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-002",
+      "fr_id": "FR-001",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-003",
+      "fr_id": "FR-002",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-004",
+      "fr_id": "FR-002",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-005",
+      "fr_id": "FR-003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-006",
+      "fr_id": "FR-003",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-007",
+      "fr_id": "FR-004",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-008",
+      "fr_id": "FR-004",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-011",
+      "fr_id": "FR-006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 2,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-012",
+      "fr_id": "FR-006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-015",
+      "fr_id": "FR-008",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-016",
+      "fr_id": "FR-008",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-017",
+      "fr_id": "FR-009",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-018",
+      "fr_id": "FR-009",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-019",
+      "fr_id": "FR-010",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-020",
+      "fr_id": "FR-010",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-021",
+      "fr_id": "FR-011",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-022",
+      "fr_id": "FR-011",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-023",
+      "fr_id": "FR-012",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 3,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-024",
+      "fr_id": "FR-012",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-025",
+      "fr_id": "FR-013",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 3,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-026",
+      "fr_id": "FR-013",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-029",
+      "fr_id": "FR-015",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-030",
+      "fr_id": "FR-015",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 54,
+    "passed": 44,
+    "failed": 0,
+    "skipped": 10,
+    "skipped_e2e": 9,
+    "skipped_no_marker": 1,
+    "manual": 0,
+    "manual_verified": 1
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "[smoke] arrancando la app en :3210\n[smoke] GET / -> 200\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "TTP externas en runtime (v1 offline) (959ms)\n  ✓  10 [chromium] › tests/e2e/critical.spec.ts:59:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (395ms)\n  ✓   8 [chromium] › tests/e2e/critical.spec.ts:38:5 › TC-001h: registrar un movimiento lo suma y lo muestra en recientes (648ms)\n  ✓  12 [chromium] › tests/e2e/reparent.spec.ts:44:5 › TC-015f: el destino de otro tipo no reubica (jerarquía intacta) (705ms)\n  ✓  11 [chromium] › tests/e2e/reparent.spec.ts:27:5 › TC-015h: arrastrar una subcategoría sobre otra categoría la reubica (2.4s)\n\n  12 passed (17.7s)"
+    }
+  ]
+}

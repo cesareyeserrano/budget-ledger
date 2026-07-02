@@ -1,0 +1,673 @@
+{
+  "project_name": "Ledger (T-Ledger)",
+  "project_summary": "Ledger es una APP WEB de finanzas personales single-user que registra movimientos de dinero contra un presupuesto anual, con una taxonomía de 3 niveles gestionada por el usuario (Grupo → Categoría → Subcategoría) bajo 3 tipos fijos (Gasto/Ingreso/Transferencia). Es una sola app web responsive (Next.js 15 + Tailwind v4 + shadcn/ui): en pantalla pequeña (móvil, v1) muestra SOLO el módulo de registro de movimientos (versión compacta); en pantalla grande (escritorio) es la app completa (registro + grilla de 12 meses con Presupuestado/Ejecutado + dashboard). No es mobile-first ni app nativa: es web. Persistencia en localStorage (v1). Tema oscuro único, tipografía mono, sistema de diseño César Augusto. North Star KPI: recorrer el flujo end-to-end completo en escritorio (registrar → gestionar categorías → editar presupuesto → ver dashboard) con datos coherentes entre superficies y cero bugs (demo funcional completa). JTBD: llevar mis finanzas personales contra un presupuesto capturando movimientos rápido y planeando/analizando el año sobre los mismos datos. Guardrail metric: al editar una celda (hoja) de la grilla, los totales de los ancestros se recalculan por roll-up de forma perceptiblemente inmediata (≤150ms) con la jerarquía semilla completa cargada. Nota de alcance: se ELIMINÓ la distribución proporcional al editar un nodo padre (se editan las hojas; los padres se calculan por roll-up); al borrar una categoría con movimientos ésta se convierte en subcategoría de una categoría fija 'Sin asignar' (una por grupo), y su contenido se reorganiza por arrastrar-y-soltar hacia categorías reales (FR-015).",
+  "functional_requirements": [
+    {
+      "id": "FR-001",
+      "title": "Registrar movimiento (módulo de captura; única vista en móvil compacto v1)",
+      "description": "App WEB. El usuario captura un movimiento eligiendo tipo (Gasto/Ingreso/Transferencia), categoría, subcategoría opcional, mes y monto, y lo guarda. La entrada de monto es un input estándar de formulario web (NO hay teclado numérico ad-hoc). Este módulo es la ÚNICA vista en pantalla pequeña (móvil responsive) en v1; en escritorio está disponible como sección/panel dentro de la app completa. Al guardar, el amount se suma al Ejecutado de la hoja destino (target = subId si existe, si no catId) en el mes elegido, se recalculan roll-ups, se agrega al log de recientes y se muestra un toast. El botón 'Guardar' está deshabilitado si monto=0 o no hay categoría.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dado tipo+categoría+mes seleccionados y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000 y el movimiento aparece primero en la lista de recientes",
+        "Con monto=0 o sin categoría seleccionada, el botón 'Guardar movimiento' está deshabilitado y no se crea ningún movimiento (negativo)",
+        "Si la categoría elegida tiene subcategorías, el selector de subcategoría aparece; si no tiene, no se muestra (edge)",
+        "El monto se ingresa por un input estándar de formulario web; no existe un teclado numérico ad-hoc en pantalla (regla de plataforma)",
+        "Tras guardar con éxito, el campo de monto se limpia a 0 y se muestra un toast de confirmación que se autodescarta en ~2s"
+      ]
+    },
+    {
+      "id": "FR-002",
+      "title": "Gestión de categorías: CRUD de jerarquía de 3 niveles bajo 3 tipos fijos",
+      "description": "El usuario crea, renombra y borra Grupos, Categorías y Subcategorías (jerarquía editable) bajo los 3 tipos FIJOS Gasto/Ingreso/Transferencia (D-1: los tipos NO son editables; son el eje de signo). Una Categoría contiene Subcategorías o es hoja por sí misma; una Subcategoría siempre es hoja. Al crear la primera subcategoría de una categoría-hoja, los montos de la categoría se trasladan a esa primera subcategoría para que los totales no caigan. La jerarquía se muestra como acordeones expandibles y alimenta los selectores de la pantalla de registro, filtrados por el tipo activo. Persiste en la clave localStorage de la jerarquía. (La categoría 'Sin asignar' —una por grupo, ver FR-003— es gestionada por el sistema: no se renombra ni se borra, pero SÍ admite edición de montos y reorganización de su contenido por arrastre, ver FR-015. La reubicación de nodos por arrastrar-y-soltar se especifica en FR-015.)",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al crear un Grupo 'Estilo de vida' bajo el tipo Gasto, aparece en la lista de grupos de Gasto y queda disponible como padre para nuevas categorías (happy)",
+        "Al crear la primera subcategoría de una categoría-hoja con Presupuestado=800000, ese monto se traslada íntegro a la nueva subcategoría y el total de la categoría permanece en 800000 (edge)",
+        "No es posible crear, renombrar ni eliminar un Tipo (Gasto/Ingreso/Transferencia): son fijos y no exponen acciones de edición/borrado (negativo)",
+        "La categoría 'Sin asignar' (una por grupo) no expone acciones de renombrar ni borrar, aunque sus montos sí son editables (negativo — gestionada por el sistema)",
+        "Renombrar cualquier nodo editable (edición en línea) actualiza su nombre en todas las superficies que lo referencian tras confirmar",
+        "Los cambios en la jerarquía persisten tras recargar la página"
+      ]
+    },
+    {
+      "id": "FR-003",
+      "title": "Borrado de categoría → subcategoría de 'Sin asignar' (por grupo, sin huérfanos)",
+      "description": "Al borrar un nodo se aplica el flujo: una hoja sin movimientos se borra directo; una Categoría CON movimientos NO se destruye: se CONVIERTE en una subcategoría dentro de la categoría fija 'Sin asignar' del MISMO GRUPO, conservando sus movimientos agrupados bajo su nombre (no se pierde historial); un Grupo con categorías está BLOQUEADO hasta mover/eliminar sus categorías. La categoría 'Sin asignar' es UNA por GRUPO, gestionada por el sistema: no se renombra ni se borra, pero sus montos son editables y su contenido se reorganiza por arrastre (FR-015). Solo se MUESTRA cuando tiene datos. Desde 'Sin asignar' el usuario reubica esas subcategorías a categorías reales por arrastrar-y-soltar (FR-015). Al borrar una hoja se eliminan también sus entradas en budgets/actuals. Ningún movimiento queda huérfano: todo movimiento sigue resolviendo un target válido tras la operación.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al borrar la categoría 'Café' (grupo Esenciales, tipo Gasto) que tiene N movimientos, 'Café' pasa a ser una subcategoría dentro de 'Sin asignar' del grupo Esenciales, con sus N movimientos agrupados bajo ella (happy)",
+        "Tras la conversión, los N movimientos siguen resolviendo un target válido (la subcategoría 'Café' dentro de 'Sin asignar' de su grupo) y su Ejecutado por mes se contabiliza en 'Sin asignar'; ningún movimiento queda huérfano (invariante)",
+        "La categoría 'Sin asignar' de un grupo solo se muestra cuando tiene datos; si un grupo nunca recibió una categoría borrada, 'Sin asignar' no aparece (edge)",
+        "Al intentar borrar un Grupo que aún contiene categorías, la acción se bloquea y no se elimina nada (negativo)",
+        "Borrar una hoja sin movimientos la elimina directo junto con sus entradas en budgets y actuals (edge)"
+      ]
+    },
+    {
+      "id": "FR-004",
+      "title": "Roll-up jerárquico de Presupuestado y Ejecutado",
+      "description": "Presupuestado y Ejecutado se agregan de abajo hacia arriba: subcategoría → categoría → grupo → tipo. El Presupuestado de un nodo padre agrega solo sus hojas descendientes (leafDescendants); el Ejecutado agrega todo el subárbol (subtreeIds) para contabilizar montos registrados directamente en cualquier nivel. Editar una hoja recalcula todos los ancestros al instante. Categoría/Grupo/Tipo no almacenan montos: se calculan por roll-up. (No hay edición directa de un total padre: los padres solo se calculan por agregación — ver no_go_zone, distribución proporcional eliminada.)",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dadas 3 subcategorías con Ejecutado 100/200/300 en un mes, el Ejecutado de su categoría en ese mes es exactamente 600 y sube por grupo y tipo (happy)",
+        "Al editar una hoja, el Presupuestado/Ejecutado de todos sus ancestros se recalcula reflejando el nuevo total en ≤150ms (edge/perf)",
+        "Un Ejecutado registrado directamente en una categoría-hoja (sin subcategorías) se cuenta en el roll-up del grupo y del tipo (edge)",
+        "Un nodo padre nunca muestra un total distinto a la suma de sus descendientes-hoja para Presupuestado (negativo/invariante)"
+      ]
+    },
+    {
+      "id": "FR-006",
+      "title": "Grilla de presupuesto de 12 meses en escritorio (edición inline de hojas, sticky, scroll horizontal)",
+      "description": "En escritorio se muestra una grilla construida con divs flex (no <table>): columna de Categoría fija (sticky izquierda, 240px) con fila de total por Tipo → Grupos → Categorías → Subcategorías, expandible en cada nivel con chevron, indentación por profundidad e ícono de nivel; 12 columnas de mes con scroll horizontal y encabezados sticky-top; cada mes tiene 2 sub-columnas Presupuestado y Ejecutado. Solo las celdas de HOJA (subcategoría, o categoría que es hoja) son editables: clic abre un input inline (Enter confirma, Escape cancela, blur confirma); los nodos padre muestran su total por roll-up y NO son editables (sin distribución proporcional). Al hacer hover sobre una fila de nodo editable aparecen sus acciones (+ agregar hijo solo en categorías, lápiz renombrar, papelera borrar) y hay filas '+' para agregar nuevo grupo/categoría/subcategoría directo en la grilla. El mes en foco (filtro) se resalta en su encabezado. La grilla es un módulo de escritorio (no se renderiza en móvil v1).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En viewport 1440px la columna de Categoría permanece fija a la izquierda y los encabezados de mes permanecen visibles (sticky-top) al hacer scroll vertical de la grilla",
+        "Con más columnas de mes que el ancho de pantalla, la grilla permite scroll horizontal manteniendo la columna de categoría fija (edge)",
+        "Clic en una celda Pres. de una subcategoría (hoja) abre un input; Enter confirma el nuevo valor y Escape lo cancela sin cambios (happy + negativo)",
+        "Las celdas de un nodo padre (categoría con hijos, grupo, tipo) muestran el total por roll-up y no abren input al hacer clic (negativo — no editable)",
+        "Al hover sobre una fila de categoría aparecen los controles +/lápiz/papelera; en filas de total por Tipo NO aparecen acciones ni edición (negativo)"
+      ]
+    },
+    {
+      "id": "FR-008",
+      "title": "Tipo → signo, color semántico y regla de varianza",
+      "description": "Cada tipo deriva signo, color base y regla de varianza: Gasto (signo −, color --error; Ejecutado > Presupuestado ⇒ sobre presupuesto/alerta); Ingreso (signo +, --success si ≥ presupuesto favorable, --warning si < presupuesto por debajo); Transferencia (↔, --accent-light, neutro, sin juicio de sobre/bajo). El color se aplica en montos, celdas Ejec. de la grilla y chips/selectores según el tipo activo.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Una celda de Gasto cuyo Ejecutado excede el Presupuestado se marca con el color de sobre-presupuesto (--error) (happy)",
+        "Un Ingreso con Ejecutado ≥ Presupuestado se muestra en --success y con Ejecutado < Presupuestado en --warning (edge)",
+        "Una Transferencia se muestra en --accent-light sin marca de sobre/bajo presupuesto independientemente de los montos (negativo respecto a varianza)",
+        "El signo mostrado junto al monto es − para Gasto, + para Ingreso y ↔ para Transferencia"
+      ]
+    },
+    {
+      "id": "FR-009",
+      "title": "Dashboard de indicadores con filtro Mes/Año (escritorio)",
+      "description": "En escritorio, el dashboard muestra los 7 indicadores mínimos respetando el filtro Mes/Año: (1) Ingresos ejecutados con referencia de presupuestado, (2) Gastos ejecutados con referencia, (3) Balance neto (ingresos − gastos), (4) Tasa de ahorro (balance/ingreso, %; ≥20% success, ≥0% warning, <0 error), (5) Adherencia del presupuesto de gastos (% ejecutado, >100% error, >85% warning, resto accent-light + barra), (6) Top categorías de gasto (ranking mayor→menor con barras proporcionales), (7) Sobre presupuesto (categorías cuyo Ejecutado excede Presupuestado con +monto y %, con estado vacío 'todo dentro del presupuesto'). Visual de tendencia mensual ingreso-vs-gasto como apoyo deseable. El dashboard es un módulo de escritorio (no se renderiza en móvil v1).",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Con datos de un mes seleccionado, el Balance neto mostrado = Ingresos ejecutados − Gastos ejecutados de ese mes (happy)",
+        "Al alternar el filtro Mes→Año, los 7 indicadores recalculan sobre el total del año seleccionado (edge)",
+        "Cuando ninguna categoría de gasto excede su presupuesto, el indicador 'Sobre presupuesto' muestra el estado vacío 'todo dentro del presupuesto' en lugar de una lista (negativo/empty state)",
+        "La Tasa de ahorro aplica el color por umbral: ≥20% success, entre 0 y 20% warning, <0% error",
+        "El indicador de Top categorías renderiza al menos las categorías con gasto ordenadas de mayor a menor con barras proporcionales al monto"
+      ]
+    },
+    {
+      "id": "FR-010",
+      "title": "App web responsive: móvil compacto (solo registro) vs escritorio (app completa)",
+      "description": "Una sola app web responsive. En pantalla pequeña (≤ breakpoint, móvil) en v1 se muestra SOLO el módulo de registro de movimientos (FR-001) en su versión compacta — la grilla de presupuesto y el dashboard NO se renderizan en móvil. En pantalla grande (> breakpoint, escritorio) se muestra la app completa: registro + grilla de presupuesto de 12 meses + dashboard, con la navegación entre esas vistas. Ambas presentaciones leen el mismo estado, datos y reglas; la conmutación es por CSS responsive. Breakpoint de referencia: 760px (ajustable en diseño).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 375px (móvil) se muestra únicamente el módulo de registro; la grilla de presupuesto y el dashboard no están presentes en el DOM visible (happy)",
+        "A 1440px (escritorio) se muestra la app completa: registro, grilla de presupuesto y dashboard con navegación entre ellos (happy)",
+        "Un movimiento registrado en pantalla pequeña se refleja en la grilla/dashboard al abrir la app en pantalla grande, sin importar/exportar datos manualmente (edge — datos compartidos)",
+        "En el límite exacto de 760px se aplica la vista compacta móvil (solo registro), no la de escritorio (negativo/boundary)"
+      ]
+    },
+    {
+      "id": "FR-011",
+      "title": "Persistencia local de datos (localStorage) con recuperación segura",
+      "description": "Toda la jerarquía, budgets, actuals y movements persisten en localStorage (v1). Los datos sobreviven a recargas y reinicios del navegador. Ante datos ausentes se genera el estado semilla (FR-013); ante datos corruptos/no parseables la app no debe romper: se recupera a un estado válido (semilla) sin pantalla en blanco. El modelo de datos deja el andamiaje (campo de propietario/scope) para multiusuario futuro sin activarlo en v1.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Tras registrar movimientos y recargar la página, los movimientos, budgets y actuals se conservan idénticos (happy — sobrevive a reinicio)",
+        "Con la clave de localStorage conteniendo JSON inválido, al abrir la app se recupera al estado semilla sin lanzar excepción ni renderizar pantalla en blanco (negativo/corrupción)",
+        "Una edición de Presupuestado en la grilla persiste y se lee correctamente tras recargar (edge — query devuelve el registro escrito)"
+      ]
+    },
+    {
+      "id": "FR-012",
+      "title": "Sistema de diseño César Augusto (tema oscuro mono, tokens exactos)",
+      "description": "La UI implementa el sistema de diseño César Augusto: tema oscuro único (sin modo claro), tipografía mono (Fira Code) en todo el producto, bordes sobre rellenos (el hover cambia el color del borde, no el fondo, salvo selección con relleno alpha del acento), sin gradientes/glassmorphism/glow/emoji. Se cargan los tokens exactos de la spec §2 (colores, tipografía, espaciado base 4px, radios, sombras rgba negro, motion con prefers-reduced-motion respetado). En v1 los tweaks (acento/densidad/varianza) quedan fijos en los valores base (comfortable + subtle + acento acero #4a7fa5).",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Los CSS custom properties definidos coinciden con los tokens de la spec (--bg #080c12, --primary #4a7fa5, --success #10b981, --warning #f59e0b, --error #ef4444, --font-mono Fira Code)",
+        "El contraste de texto primario (--fg #e8edf5) sobre fondo (--bg #080c12) es ≥4.5:1",
+        "Con prefers-reduced-motion activo, todas las animaciones/transiciones se reducen a ~0.001ms (negativo — sin movimiento)",
+        "No se renderiza ningún emoji, gradiente ni glow en ninguna superficie; los íconos son de línea currentColor (negativo/regla dura)",
+        "El módulo de registro renderiza sin desbordes a 375px (móvil); la app completa (registro + grilla + dashboard) renderiza sin desbordes a 768px y 1440px, reflejando la composición de los mockups"
+      ]
+    },
+    {
+      "id": "FR-013",
+      "title": "Datos semilla determinísticos al primer arranque",
+      "description": "Al primer arranque sin datos guardados se genera una jerarquía semilla determinística (Comida, Transporte, Vivienda, Salario, Freelance, Ahorros, etc.) y montos dummy por hoja/mes: Ene–May con ejecutados, Jun en curso, Jul–Dic proyectados (ejecutado=0), con Ingresos de base mayor que Gastos y transferencias intermedias. Sirve como estado inicial demostrable (soporta el North Star de demo funcional). El catálogo fijo se migra como seed EDITABLE (las categorías siguen gestionables por FR-002).",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "En un navegador sin datos previos, al abrir la app se muestra la jerarquía semilla con montos por mes coherentes (Ene–May ejecutado, Jul–Dic ejecutado=0) (happy)",
+        "La jerarquía semilla es editable: el usuario puede renombrar o borrar una categoría semilla vía FR-002 (edge — seed editable)",
+        "Si ya existen datos guardados, la semilla NO se regenera ni sobrescribe los datos del usuario (negativo)"
+      ]
+    },
+    {
+      "id": "FR-014",
+      "title": "Andamiaje de datos para multiusuario y APIs externas (sin activar en v1)",
+      "description": "El modelo de datos y la capa de acceso a datos se estructuran para admitir en el futuro multiusuario (diferentes libros / libro compartido) y conexiones API externas, sin implementar auth ni endpoints en v1. Concretamente: las entidades persistidas admiten un identificador de propietario/libro (ownerId/bookId opcional, default único en v1) y el acceso a datos pasa por una capa/repositorio único que en el futuro pueda apuntar a un backend (Supabase) sin reescribir la UI.",
+      "priority": "SHOULD",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Las entidades persistidas (nodes, budgets, actuals, movements) incluyen un campo de propietario/libro (ownerId o bookId) con un valor por defecto único en v1",
+        "Toda lectura/escritura de datos pasa por una capa de repositorio única (no acceso directo a localStorage disperso en componentes), de modo que sustituir la implementación por un backend no requiere cambiar la UI",
+        "En v1 no existe pantalla de login ni llamadas HTTP externas en runtime (negativo — andamiaje, no funcionalidad)"
+      ]
+    },
+    {
+      "id": "FR-015",
+      "title": "Reorganizar categorías/subcategorías por arrastrar-y-soltar (reparent)",
+      "description": "El usuario reubica nodos de la jerarquía arrastrando-y-soltando. Una subcategoría (p. ej. una que quedó dentro de 'Sin asignar' tras un borrado, FR-003) o una categoría se puede arrastrar y soltar: (a) sobre otra categoría → se convierte en subcategoría de ésta; o (b) en la zona de un grupo → se promueve a categoría nueva de ese grupo. Los GRUPOS y los TIPOS no se mueven ni se crean por arrastre, y no se puede soltar un nodo fuera de su tipo. Al reubicar, los movimientos viajan con el nodo (siguen resolviendo su target) y los roll-ups de origen y destino se recalculan; cero huérfanos. Este es el mecanismo con el que el usuario vacía 'Sin asignar' llevando su contenido a categorías reales. (Reordenar por posición/sort dentro de un mismo padre queda fuera de v1 — ver no_go_zone.)",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Arrastrar una subcategoría desde 'Sin asignar' y soltarla sobre otra categoría del mismo tipo la reubica como subcategoría de ésta; sus movimientos viajan y los roll-ups de origen y destino se recalculan y reflejan en ≤150ms (happy)",
+        "Durante el arrastre se muestra feedback visual del destino válido (drop target resaltado) en ≤100ms del hover sobre un objetivo válido (affordance)",
+        "Soltar una subcategoría en la zona de un grupo del mismo tipo la promueve a categoría nueva de ese grupo (edge)",
+        "No se puede arrastrar/soltar un Grupo ni un Tipo, ni crear un grupo por arrastre, ni soltar un nodo en un tipo distinto al suyo: el soltar se rechaza y la jerarquía queda intacta (negativo)",
+        "Tras cualquier reubicación válida, ningún movimiento queda huérfano y los totales de origen y destino siguen cuadrando con la suma de sus hojas (invariante)"
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales (single-user)",
+      "tech_level": "mid",
+      "goal": "Registrar rápido cada gasto/ingreso y planear/analizar su presupuesto anual desde el escritorio sobre los mismos datos, usando una app web",
+      "pain_point": "Hoy la captura y el presupuesto viven separados (hoja de cálculo o apps genéricas rígidas); no tiene una vista plan-vs-realidad de 12 meses con categorías propias y roll-ups"
+    },
+    {
+      "role": "Autor / revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Demostrar una app web coherente end-to-end con decisiones técnicas defendibles (andamiaje multiusuario/API, sistema de diseño propio) y un README que explique el porqué",
+      "pain_point": "Necesita que el flujo completo funcione sin bugs y que la arquitectura muestre criterio, no solo que 'corra'"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-001",
+      "requirement_id": "FR-001",
+      "as_a": "dueño de mis finanzas",
+      "i_want": "registrar un movimiento con tipo, categoría, mes y monto en pocos pasos, desde el navegador",
+      "so_that": "capturo el gasto en el momento sin abrir la app del banco",
+      "acceptance_criteria": [
+        {
+          "id": "AC-001",
+          "given": "el módulo Registrar con tipo Gasto, categoría Comida y mes Junio seleccionados",
+          "when": "escribo 50000 en el input de monto y pulso Guardar movimiento",
+          "then": "el Ejecutado de Comida en Junio aumenta en 50000, aparece un toast y el movimiento encabeza la lista de recientes"
+        },
+        {
+          "id": "AC-002",
+          "given": "el módulo Registrar con monto en 0 y sin categoría",
+          "when": "observo el botón Guardar",
+          "then": "el botón está deshabilitado y no se puede crear el movimiento"
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "requirement_id": "FR-002",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "crear, renombrar y borrar grupos, categorías y subcategorías bajo los 3 tipos fijos",
+      "so_that": "organizo mis finanzas con mis propias categorías sin tocar código",
+      "acceptance_criteria": [
+        {
+          "id": "AC-003",
+          "given": "el tipo Gasto seleccionado",
+          "when": "creo un grupo 'Estilo de vida' y luego una categoría 'Ocio' dentro",
+          "then": "ambos aparecen en la jerarquía de Gasto y 'Ocio' queda disponible en el selector de registro"
+        },
+        {
+          "id": "AC-004",
+          "given": "los 3 tipos Gasto/Ingreso/Transferencia y la categoría 'Sin asignar'",
+          "when": "busco una acción para editar o borrar un tipo o la categoría 'Sin asignar'",
+          "then": "no existe tal acción: los tipos son fijos y 'Sin asignar' la gestiona el sistema"
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "requirement_id": "FR-003",
+      "as_a": "dueño de mi historial",
+      "i_want": "que al borrar una categoría con movimientos, éstos se conserven",
+      "so_that": "no pierdo el historial de mis movimientos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-005",
+          "given": "la categoría 'Café' (grupo 'Esenciales', tipo Gasto) con 3 movimientos",
+          "when": "borro la categoría 'Café'",
+          "then": "'Café' pasa a ser una subcategoría dentro de 'Sin asignar' del grupo Esenciales, con sus 3 movimientos agrupados, sin dejar huérfanos"
+        },
+        {
+          "id": "AC-006",
+          "given": "un grupo 'Esenciales' que contiene categorías",
+          "when": "intento borrar el grupo",
+          "then": "la acción se bloquea y nada se elimina hasta mover/eliminar sus categorías"
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "requirement_id": "FR-004",
+      "as_a": "planeador de mi presupuesto",
+      "i_want": "que los totales de categoría/grupo/tipo reflejen la suma de sus hojas",
+      "so_that": "confío en que los agregados son correctos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-007",
+          "given": "3 subcategorías con Ejecutado 100/200/300 en Marzo",
+          "when": "observo el Ejecutado de su categoría en Marzo",
+          "then": "muestra exactamente 600 y ese valor sube al grupo y al tipo"
+        },
+        {
+          "id": "AC-008",
+          "given": "una categoría-hoja con un Ejecutado registrado directamente",
+          "when": "observo el roll-up del grupo",
+          "then": "el monto de la hoja está incluido en el total del grupo y del tipo"
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "requirement_id": "FR-006",
+      "as_a": "planeador en escritorio",
+      "i_want": "una grilla de 12 meses con Pres./Ejec. editables en las hojas y columna de categoría fija",
+      "so_that": "veo y edito el plan vs realidad de todo el año de un vistazo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-011",
+          "given": "la grilla en viewport 1440px con la jerarquía expandida",
+          "when": "hago scroll vertical y horizontal",
+          "then": "la columna de categoría permanece fija a la izquierda y los encabezados de mes permanecen sticky arriba"
+        },
+        {
+          "id": "AC-012",
+          "given": "una celda Pres. de subcategoría (hoja)",
+          "when": "hago clic, escribo un valor y presiono Escape",
+          "then": "la edición se cancela y el valor original permanece sin cambios"
+        }
+      ]
+    },
+    {
+      "id": "US-008",
+      "requirement_id": "FR-008",
+      "as_a": "usuario que interpreta sus cifras",
+      "i_want": "colores y signos consistentes por tipo",
+      "so_that": "identifico de un vistazo qué está sobre o bajo presupuesto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-015",
+          "given": "una categoría de Gasto con Ejecutado mayor que Presupuestado",
+          "when": "veo su celda Ejec.",
+          "then": "se muestra con el color de sobre-presupuesto (--error)"
+        },
+        {
+          "id": "AC-016",
+          "given": "una Transferencia con cualquier monto",
+          "when": "veo su fila",
+          "then": "se muestra en --accent-light sin marca de sobre/bajo presupuesto"
+        }
+      ]
+    },
+    {
+      "id": "US-009",
+      "requirement_id": "FR-009",
+      "as_a": "usuario que evalúa su salud financiera",
+      "i_want": "un dashboard con los indicadores clave filtrable por mes o año",
+      "so_that": "entiendo mi situación financiera de un vistazo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-017",
+          "given": "el dashboard con el filtro en Junio",
+          "when": "leo el Balance neto",
+          "then": "es igual a Ingresos ejecutados de Junio menos Gastos ejecutados de Junio"
+        },
+        {
+          "id": "AC-018",
+          "given": "un periodo en el que ninguna categoría de gasto excede su presupuesto",
+          "when": "veo el indicador 'Sobre presupuesto'",
+          "then": "muestra el estado vacío 'todo dentro del presupuesto' en lugar de una lista"
+        }
+      ]
+    },
+    {
+      "id": "US-010",
+      "requirement_id": "FR-010",
+      "as_a": "usuario en distintos tamaños de pantalla",
+      "i_want": "una vista compacta de solo registro en móvil y la app completa en escritorio, sobre los mismos datos",
+      "so_that": "capturo rápido en pantalla pequeña y planeo en pantalla grande sin duplicar datos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-019",
+          "given": "un movimiento registrado en pantalla pequeña (móvil)",
+          "when": "abro la app en pantalla grande con los mismos datos",
+          "then": "el movimiento se refleja en la grilla y el dashboard sin importar/exportar manualmente"
+        },
+        {
+          "id": "AC-020",
+          "given": "un viewport de exactamente 760px",
+          "when": "carga la app",
+          "then": "se muestra la vista compacta móvil (solo registro), no la de escritorio"
+        }
+      ]
+    },
+    {
+      "id": "US-011",
+      "requirement_id": "FR-011",
+      "as_a": "usuario que vuelve a la app",
+      "i_want": "que mis datos persistan localmente y no se rompan si algo se corrompe",
+      "so_that": "no pierdo mi información entre sesiones",
+      "acceptance_criteria": [
+        {
+          "id": "AC-021",
+          "given": "movimientos y ediciones guardados",
+          "when": "cierro y reabro el navegador",
+          "then": "todos los datos se conservan idénticos"
+        },
+        {
+          "id": "AC-022",
+          "given": "la clave de localStorage con JSON inválido",
+          "when": "abro la app",
+          "then": "se recupera al estado semilla sin lanzar excepción ni mostrar pantalla en blanco"
+        }
+      ]
+    },
+    {
+      "id": "US-012",
+      "requirement_id": "FR-012",
+      "as_a": "revisor técnico del portafolio",
+      "i_want": "una implementación fiel del sistema de diseño César Augusto",
+      "so_that": "la app se ve deliberada y coherente con el prototipo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-023",
+          "given": "la app cargada",
+          "when": "inspecciono los CSS custom properties",
+          "then": "coinciden con los tokens de la spec (--bg #080c12, --primary #4a7fa5, --success #10b981, --error #ef4444, Fira Code)"
+        },
+        {
+          "id": "AC-024",
+          "given": "prefers-reduced-motion activo",
+          "when": "navego entre pantallas",
+          "then": "no hay animaciones perceptibles (duraciones ~0.001ms) y no se renderiza ningún emoji ni gradiente"
+        }
+      ]
+    },
+    {
+      "id": "US-013",
+      "requirement_id": "FR-013",
+      "as_a": "usuario nuevo (o revisor de la demo)",
+      "i_want": "ver datos semilla coherentes al primer arranque",
+      "so_that": "puedo operar y evaluar la app sin configurar nada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-025",
+          "given": "un navegador sin datos previos",
+          "when": "abro la app por primera vez",
+          "then": "se muestra la jerarquía semilla con montos coherentes (Ene–May ejecutado, Jul–Dic ejecutado=0)"
+        },
+        {
+          "id": "AC-026",
+          "given": "datos de usuario ya guardados",
+          "when": "recargo la app",
+          "then": "la semilla no se regenera ni sobrescribe los datos existentes"
+        }
+      ]
+    },
+    {
+      "id": "US-015",
+      "requirement_id": "FR-015",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "arrastrar y soltar subcategorías para reubicarlas, incluidas las que quedaron en 'Sin asignar'",
+      "so_that": "reorganizo mi jerarquía y vacío 'Sin asignar' llevando su contenido a categorías reales",
+      "acceptance_criteria": [
+        {
+          "id": "AC-029",
+          "given": "una subcategoría 'Café' dentro de 'Sin asignar' de su grupo con sus movimientos",
+          "when": "la arrastro y la suelto sobre la categoría 'Restaurantes' del mismo tipo",
+          "then": "'Café' queda como subcategoría de 'Restaurantes', sus movimientos viajan con ella y los roll-ups de 'Sin asignar' y de 'Restaurantes' se recalculan sin dejar huérfanos"
+        },
+        {
+          "id": "AC-030",
+          "given": "una subcategoría del tipo Gasto siendo arrastrada",
+          "when": "intento soltarla sobre un Tipo, sobre un Grupo como nuevo grupo, o sobre una categoría de otro tipo",
+          "then": "el sistema rechaza el soltar: no se mueve el nodo y la jerarquía queda intacta"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-001",
+      "category": "Performance",
+      "requirement": "La edición de una celda-hoja (Pres./Ejec.) recalcula y refleja los roll-ups de todos los ancestros de forma perceptiblemente inmediata, y la grilla de 12 meses con la jerarquía semilla completa cargada permanece fluida.",
+      "acceptance_criteria": "Editar una hoja actualiza los ancestros en ≤150ms; la carga inicial de la app con datos semilla del año completo renderiza en ≤2s en un equipo de gama media"
+    },
+    {
+      "id": "NFR-002",
+      "category": "Usability",
+      "requirement": "La app web es responsive con un único breakpoint (760px de referencia), accesible en contraste y respeta prefers-reduced-motion.",
+      "acceptance_criteria": "El módulo de registro renderiza sin desborde a 375px; la app completa renderiza sin desborde a 768px y 1440px; contraste de texto primario ≥4.5:1; con prefers-reduced-motion las transiciones se reducen a ~0.001ms"
+    },
+    {
+      "id": "NFR-003",
+      "category": "Reliability",
+      "requirement": "La persistencia local es robusta: los datos sobreviven a recargas y la app se recupera de estado corrupto sin romperse.",
+      "acceptance_criteria": "Los datos persisten tras reinicio del navegador; ante localStorage con JSON inválido la app se recupera al estado semilla sin excepción no capturada ni pantalla en blanco"
+    },
+    {
+      "id": "NFR-004",
+      "category": "Security",
+      "requirement": "App web single-user offline sin backend, sin auth, sin secretos y sin PII enviada por red en v1: no hay superficie de red que proteger. La única entrada de usuario (montos) se valida como numérica no negativa antes de persistir. (Auth/red se abordan en Fase 2 junto con el backend.)",
+      "acceptance_criteria": "El campo de monto rechaza entradas no numéricas y valores negativos (no se persiste un movimiento inválido); no se realiza ninguna petición HTTP externa en runtime en v1"
+    },
+    {
+      "id": "NFR-005",
+      "category": "Regression",
+      "requirement": "Invariantes de integridad del dominio que NO deben romperse: ningún movimiento queda huérfano tras un borrado (la categoría borrada pasa a subcategoría de 'Sin asignar' de su grupo) ni tras una reubicación por arrastre (FR-015), y todo total de nodo padre iguala la suma de sus descendientes-hoja.",
+      "acceptance_criteria": "Tras cualquier operación de borrado o de reubicación (drag-drop) de categorías/subcategorías, todo movimiento resuelve un target válido (cero huérfanos); para todo nodo padre, Presupuestado(padre) == suma(Presupuestado hojas descendientes)"
+    },
+    {
+      "id": "NFR-006",
+      "category": "Reliability",
+      "requirement": "CI/CD y arranque: el proyecto corre su suite de pruebas completa en cada push a la rama principal, y la imagen Docker de despliegue arranca y sirve la app sin error de servidor.",
+      "acceptance_criteria": "El pipeline ejecuta la suite completa de tests en cada push a main; el contenedor Next.js responde 200 en la ruta principal ('/') tras arrancar (smoke)"
+    }
+  ],
+  "no_go_zone": [
+    "Distribución proporcional al editar un nodo padre — ELIMINADO del alcance: en la grilla se editan solo las hojas y los padres se calculan por roll-up; no existe la edición de un total padre que se reparta hacia abajo",
+    "Presupuesto y Dashboard en pantalla pequeña (móvil) — en v1 la vista compacta móvil muestra SOLO el módulo de registro; grilla y dashboard son de escritorio (ampliar la experiencia móvil → posterior)",
+    "Teclado numérico ad-hoc en pantalla — el monto se ingresa por input estándar de formulario web (es una app web, no app móvil nativa)",
+    "Multiusuario real / login funcional / libros compartidos — en v1 solo se deja el ANDAMIAJE de datos (FR-014); auth se implementa en Fase 2",
+    "APIs externas / conexiones HTTP para registros o consultas — solo andamiaje en v1 (FR-014); implementación en Fase 2",
+    "Multi-año y multi-moneda — v1 es single-year (2026) y single-currency (COP); selector multi-año y conversión de moneda quedan para Fase 2",
+    "Backend / base de datos (Supabase, PostgreSQL) — v1 persiste solo en localStorage; el backend llega en Fase 2",
+    "Reordenar por POSICIÓN (sort/orden manual dentro de un mismo padre) y arrastrar GRUPOS/TIPOS — fuera de v1 (Fase 5). En v1 el arrastrar-y-soltar SOLO reubica (reparent) categorías/subcategorías a categorías o grupos del mismo tipo (FR-015), no reordena posiciones ni mueve grupos",
+    "Exportación de datos (CSV/otros) — post-MVP (Fase 5)",
+    "Tweaks (acento/densidad/varianza) expuestos como preferencias de usuario — en v1 quedan fijos en comfortable + subtle + acento acero #4a7fa5 (Fase 5)",
+    "Modo claro / theming alternativo — el producto es tema oscuro único por diseño",
+    "App nativa móvil — es una web app responsive en navegador"
+  ],
+  "constraints": [
+    "Plataforma: APP WEB responsive (no app nativa, no mobile-first). Móvil v1 = solo módulo de registro; escritorio = app completa",
+    "Stack fijo: Next.js 15, Tailwind CSS v4, shadcn/ui, Recharts, Lucide, TypeScript",
+    "Tema oscuro único (sin modo claro), tipografía mono Fira Code, sistema de diseño César Augusto con tokens exactos de la spec §2",
+    "Moneda COP y UI en español; código e identificadores en inglés",
+    "Persistencia v1 en localStorage con claves versionadas (jerarquía, budgets, actuals, movements)",
+    "Breakpoint responsive de referencia: 760px (ajustable en diseño)",
+    "Hosting inicial: Next.js en Docker sobre Ultron (Raspberry Pi 5, 8GB RAM) con Nginx como reverse proxy; preparar para hosting profesional",
+    "El README debe explicar decisiones técnicas, no solo cómo correr el proyecto",
+    "D-1 resuelto: los 3 tipos (Gasto/Ingreso/Transferencia) son FIJOS como eje de signo; los Grupos editables son la capa adicional (Opción A)",
+    "D-2 resuelto: al borrar una categoría con movimientos ésta se convierte en subcategoría de una categoría fija 'Sin asignar' (UNA por GRUPO; auto, no renombrable/borrable, montos editables, visible solo con datos)",
+    "D-4 resuelto: distribución proporcional ELIMINADA — se editan hojas, padres por roll-up",
+    "D-7 (parcial en v1): arrastrar-y-soltar reubica (reparent) categorías/subcategorías a categorías o grupos del mismo tipo (FR-015); NO reordena posiciones ni mueve grupos/tipos (eso es Fase 5)"
+  ],
+  "technology_preferences": [
+    "Next.js 15 (App Router)",
+    "Tailwind CSS v4",
+    "shadcn/ui",
+    "Recharts (gráficos del dashboard)",
+    "Lucide (íconos de línea)",
+    "TypeScript",
+    "localStorage (v1); capa de repositorio preparada para Supabase en Fase 2"
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "IDEA.md + 00_DISCOVERY.md aprobado + Especificación Técnica (idea_context/ designado por el usuario)",
+    "users": "IDEA.md (single-user) + 00_DISCOVERY.md; confirmado por el usuario; portafolio del autor",
+    "baseline": "IDEA.md + prototipo HTML offline en idea_context/ (reglas §4 como implementación de referencia)",
+    "success_metric": "Usuario confirmó en chat: 'Demo funcional completa' (flujo end-to-end sin bugs, datos coherentes)",
+    "no_go_zone": "Usuario confirmó en chat las correcciones: app web (sin teclado numérico), móvil v1 solo registro, sin distribución proporcional, borrado a 'Sin asignar' por grupo; multiusuario/APIs/multi-año → Fase 2; localStorage v1; tipos fijos (D-1)"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Registrar movimiento (tipo, categoría, subcategoría opcional, mes, monto) y sumar al Ejecutado, con input estándar web",
+      "disposition": "FR-001"
+    },
+    {
+      "need": "Módulo de registro como única vista en móvil compacto v1 y lista de recientes",
+      "disposition": "FR-001"
+    },
+    {
+      "need": "CRUD de jerarquía de 3 niveles (Grupo/Categoría/Subcategoría) bajo 3 tipos fijos",
+      "disposition": "FR-002"
+    },
+    {
+      "need": "Traslado de montos al crear la primera subcategoría de una categoría-hoja",
+      "disposition": "FR-002"
+    },
+    {
+      "need": "Borrado: categoría con movimientos se convierte en subcategoría de 'Sin asignar' de su grupo; guardrail de grupo no vacío (sin huérfanos)",
+      "disposition": "FR-003"
+    },
+    {
+      "need": "Categoría 'Sin asignar' una por grupo: auto, no renombrable/borrable, montos editables, visible solo con datos",
+      "disposition": "FR-003"
+    },
+    {
+      "need": "Reorganizar (reparent) categorías/subcategorías por arrastrar-y-soltar; mecanismo para vaciar 'Sin asignar'",
+      "disposition": "FR-015"
+    },
+    {
+      "need": "Roll-up jerárquico de Presupuestado (hojas) y Ejecutado (subárbol)",
+      "disposition": "FR-004"
+    },
+    {
+      "need": "Grilla de presupuesto de 12 meses en escritorio (sticky, scroll, edición inline de hojas, CRUD inline)",
+      "disposition": "FR-006"
+    },
+    {
+      "need": "Signo, color semántico y regla de varianza por tipo",
+      "disposition": "FR-008"
+    },
+    {
+      "need": "Dashboard con 7 indicadores mínimos y filtro Mes/Año (escritorio)",
+      "disposition": "FR-009"
+    },
+    {
+      "need": "Visual de tendencia mensual ingreso-vs-gasto (apoyo deseable)",
+      "disposition": "FR-009"
+    },
+    {
+      "need": "App web responsive: móvil compacto solo registro vs escritorio app completa, mismos datos/reglas",
+      "disposition": "FR-010"
+    },
+    {
+      "need": "Persistencia en localStorage y recuperación ante corrupción",
+      "disposition": "FR-011"
+    },
+    {
+      "need": "Sistema de diseño César Augusto (tokens, mono, dark, sin emoji/gradientes, motion)",
+      "disposition": "FR-012"
+    },
+    {
+      "need": "Datos semilla determinísticos al primer arranque (seed editable)",
+      "disposition": "FR-013"
+    },
+    {
+      "need": "Andamiaje de datos para multiusuario y APIs externas (sin activar en v1)",
+      "disposition": "FR-014"
+    },
+    {
+      "need": "Distribución proporcional al editar un padre",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Presupuesto/Dashboard en móvil v1",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Teclado numérico ad-hoc",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multiusuario real / login / libros compartidos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "APIs externas en runtime",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-año y multi-moneda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Backend / base de datos Supabase en v1",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Reordenar por posición (sort) y arrastrar grupos/tipos (D-7 completo)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Exportación de datos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Tweaks como preferencias de usuario expuestas",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rendimiento de edición/roll-up y carga inicial",
+      "disposition": "NFR-001"
+    },
+    {
+      "need": "Accesibilidad/responsive/motion",
+      "disposition": "NFR-002"
+    },
+    {
+      "need": "Robustez de persistencia local",
+      "disposition": "NFR-003"
+    },
+    {
+      "need": "Postura de seguridad (offline single-user) y validación de entrada",
+      "disposition": "NFR-004"
+    },
+    {
+      "need": "Integridad del dominio: sin huérfanos, totales = suma de hojas (regresión)",
+      "disposition": "NFR-005"
+    },
+    {
+      "need": "CI/CD y arranque de la imagen de despliegue (smoke)",
+      "disposition": "NFR-006"
+    }
+  ],
+  "original_brief": "# Project Idea — Ledger (T-Ledger)\n\n> Seed brief. La definición detallada del producto vive en `aitri/product/idea_context/`\n> (Especificación Técnica Completa, mockups, stack, notas de dominio) y es **autoritativa**.\n> Este archivo captura los inputs de tierra-verdad confirmados con el usuario.\n> Actualizado 2026-07-01 con correcciones: es una **app web** (no app móvil, no mobile-first);\n> en v1 el móvil (responsive compacto) muestra **solo** el módulo de registro de movimientos;\n> Presupuesto y Dashboard son de **escritorio**. Se elimina la distribución proporcional.\n> El borrado reasigna a una categoría fija **\"Sin asignar\"** por grupo.\n\n---\n\n## Problem\n\nLas personas que quieren llevar sus finanzas personales contra un presupuesto no tienen una\nherramienta que combine captura rápida de movimientos con planeación y análisis anual sobre los\nmismos datos. Las apps existentes son demasiado complejas, caras, o separan la captura del\npresupuesto. Ledger es una **app web** que resuelve registrar movimientos de dinero contra un\npresupuesto mensual/anual, con una taxonomía de categorías que el propio usuario gestiona. La\nmisma app web es responsive: en pantalla pequeña (móvil, v1) muestra una versión **compacta** con\nsolo el módulo de captura; en pantalla grande (escritorio) es la app completa (presupuesto + dashboard).\n\n## Target Users\n\nUsuario individual que gestiona sus finanzas personales (single-user en v1). Cómodo con herramientas\nweb básicas. Usa la app web desde el navegador: en el escritorio para planear/analizar el presupuesto\nanual, y en pantalla pequeña (responsive) para capturar movimientos rápido.\nTambién es un proyecto de portafolio técnico del autor (César Augusto).\n\n## Current Pain / Baseline\n\nHoy se resuelve con hojas de cálculo o apps genéricas: la captura y el presupuesto viven separados,\nla taxonomía es rígida, y no hay una vista de plan-vs-realidad de 12 meses con roll-ups jerárquicos.\nBaseline: prototipo HTML offline de alta fidelidad ya construido (`idea_context/Ledger (offline).html`)\ncuyas reglas de cálculo (§4 de la spec) son la implementación de referencia.\n\n## Business Rules\n\nThe system must permitir registrar un movimiento (tipo, categoría, subcategoría opcional, mes, monto) y sumarlo al Ejecutado de la hoja destino. La entrada de monto es un input estándar de la app web (sin teclado numérico ad-hoc).\nThe system must gestionar una jerarquía de 3 niveles editables (Grupo → Categoría → Subcategoría) bajo 3 tipos fijos (Gasto/Ingreso/Transferencia), con CRUD completo.\nThe system must preservar los movimientos al borrar una categoría, reasignándolos a una categoría fija \"Sin asignar\" dentro del mismo grupo (sin huérfanos). La categoría \"Sin asignar\" es una por grupo, no editable ni borrable, y solo se muestra cuando tiene datos.\nThe system must calcular roll-ups de abajo hacia arriba: subcategoría → categoría → grupo → tipo, para Presupuestado y Ejecutado.\nThe system must mostrar una grilla de presupuesto de 12 meses en escritorio (columnas Presupuestado/Ejecutado por mes, edición en línea de las hojas, sticky). El presupuesto es un módulo de escritorio.\nThe system must derivar signo, color y regla de varianza por tipo (Gasto sobre-presupuesto = error; Ingreso favorable/bajo; Transferencia neutra).\nThe system must mostrar un dashboard con los 7 indicadores mínimos (ingresos, gastos, balance neto, tasa de ahorro, adherencia, top categorías, sobre-presupuesto) respetando el filtro Mes/Año. El dashboard es un módulo de escritorio.\nThe system must ser una sola app web responsive; en pantalla pequeña (móvil, v1) muestra la versión compacta con SOLO el módulo de registro de movimientos, y en escritorio la app completa (registro + presupuesto + dashboard), sobre los mismos datos y reglas.\nThe system must persistir los datos en localStorage (jerarquía, budgets, actuals, movements) en v1.\nThe system must implementar el sistema de diseño César Augusto (tema oscuro único, tipografía mono, bordes sobre rellenos, sin emoji/gradientes) con los tokens exactos de la spec.\n\n## Success Criteria\n\nGiven un usuario nuevo, when abre la app por primera vez, then ve datos semilla coherentes (jerarquía + montos dummy) y puede operar sin configuración.\nGiven el módulo de registro (en móvil compacto o en escritorio), when elige tipo + categoría + mes + monto y guarda, then el movimiento se suma al Ejecutado, se recalculan los roll-ups y aparece en recientes.\nGiven la grilla de escritorio, when edita una celda Presupuestado/Ejecutado de una hoja, then el valor se fija y los ancestros (categoría/grupo/tipo) se recalculan por roll-up al instante.\nGiven una categoría con movimientos, when el usuario la borra, then sus movimientos se reasignan a la categoría \"Sin asignar\" del mismo grupo y no se pierde historial (cero huérfanos).\nGiven el dashboard, when cambia el filtro Mes/Año, then los 7 indicadores reflejan el periodo seleccionado con la semántica de color correcta.\nGiven una pantalla pequeña (móvil) en v1, when el usuario abre la app, then ve solo el módulo de registro compacto (no la grilla de presupuesto ni el dashboard).\nGiven cualquier flujo end-to-end (captura → categorías → presupuesto → dashboard en escritorio), when se recorre completo, then los datos son coherentes entre superficies y no hay bugs. (Criterio de éxito principal de la v1.)\n\n## Hard Constraints\n\n- Stack: Next.js 15, Tailwind CSS v4, shadcn/ui, Recharts, Lucide, TypeScript.\n- Tema oscuro único (sin modo claro), tipografía mono (Fira Code), sistema de diseño César Augusto con tokens exactos de la spec.\n- Moneda COP, idioma UI español; código e identificadores en inglés.\n- Hosting inicial: Next.js en Docker sobre Ultron (Pi 5, 8GB RAM), Nginx como reverse proxy; dejar preparado para hosting profesional.\n- El README debe explicar decisiones técnicas, no solo cómo correr el proyecto.\n\n## Out of Scope\n\n**v1 (MVP) — fuera de alcance, con andamiaje preparado donde se indica:**\n- Presupuesto y Dashboard en móvil — en v1 el móvil (responsive compacto) muestra SOLO el módulo de registro; presupuesto/dashboard son de escritorio (→ Fase 2 puede ampliar la experiencia móvil).\n- Distribución proporcional al editar un nodo padre — ELIMINADO del alcance; en la grilla se editan las hojas y los padres se recalculan por roll-up (los padres no se editan directamente para repartir).\n- Multiusuario real / login funcional / libros compartidos — solo se deja el ANDAMIAJE de datos (→ Fase 2).\n- APIs externas (conexiones para registros/consultas) — solo se deja el ANDAMIAJE (→ Fase 2).\n- Multi-año y multi-moneda — v1 es single-year (2026) y single-currency (COP) (→ Fase 2).\n\n**Post-MVP (Fase 5), fuera de v1:**\n- Drag-and-drop para reordenar grupos/categorías (D-7).\n- Exportación de datos.\n- Tweaks (acento/densidad/varianza) como preferencias de usuario — en v1 quedan como valores base fijos (comfortable + subtle + acento acero).\n\n## Tech Stack\n\nNext.js 15 · Tailwind CSS v4 · shadcn/ui · Recharts · Lucide · TypeScript · localStorage (v1).\nAndamiaje preparado para Supabase (PostgreSQL) + multiusuario y APIs externas en Fase 2.\n\n## Assets\n\n- `aitri/product/idea_context/Ledger - Especificacion Tecnica Completa.md` — spec funcional y técnica completa (AUTORITATIVA).\n- `aitri/product/idea_context/Ledger (offline).html` — prototipo funcional de referencia (reglas de cálculo §4).\n- `aitri/product/idea_context/mockup-dashboard.png` — mockup del dashboard.\n- `aitri/product/idea_context/mockup-budget-desktop-gastos.png`, `mockup-budget-desktop-gastos-2.png`, `mockup-budget-desktop-transferencias.png` — mockups grilla presupuesto escritorio.\n- `aitri/product/idea_context/Captura de pantalla 2026-06-27 a la(s) 9.33.04 p.m..png` — captura de pantalla de referencia.\n- `aitri/product/idea_context/stack-ledger.md` — stack tecnológico.\n- `aitri/product/idea_context/parte2-presupuesto-notas-rescatadas.md` — notas de dominio (jerarquía + presupuesto).\n\n## Decisiones confirmadas (2026-07-01)\n\n- **D-1:** Tipos FIJOS (Gasto/Ingreso/Transferencia como eje de signo; Grupos editables como capa adicional). Opción A.\n- **D-2 (borrado):** los movimientos de una categoría borrada se reasignan a una categoría fija \"Sin asignar\" por grupo (no a una hermana); \"Sin asignar\" es auto, no editable/borrable y solo visible cuando tiene datos.\n- **D-4 (distribución proporcional):** ELIMINADA. Se editan las hojas; los padres se recalculan por roll-up.\n- **Plataforma:** app WEB responsive. Móvil v1 = solo módulo de registro (compacto). Escritorio = app completa. Sin teclado numérico ad-hoc.\n- **Persistencia v1:** localStorage.\n- **Éxito v1:** demo funcional completa end-to-end, datos coherentes, sin bugs.\n\n## Decisiones aún abiertas (para discovery/diseño)\n\nD-3 (editar Ejecutado directo vs derivado de movimientos), D-5 (log único de movimientos),\nD-8 (movimientos a nivel subcategoría).\n"
+}

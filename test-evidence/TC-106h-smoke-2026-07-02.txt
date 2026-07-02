@@ -1,0 +1,15 @@
+Smoke evidence — TC-106h (NFR-006): el contenedor arranca y responde 200 en /
+Fecha: 2026-07-02
+Contenedor: t-ledger:latest (container "ledger"), docker healthcheck = healthy (Up 7h)
+Puerto: host 3080 → contenedor 3000
+
+$ curl -s -o body.html -w "%{http_code}" http://127.0.0.1:3080/
+200
+
+Bytes: 5831
+<title>Ledger — Presupuesto 2026</title>  (sirve la app real, no una página de error)
+Contiene marcadores __next / "presupuesto" / "Ledger"
+
+Variante de ruta inexistente (no 5xx):
+$ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3080/ruta-inexistente-xyz
+404

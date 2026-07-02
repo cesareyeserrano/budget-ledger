@@ -1,0 +1,30 @@
+name: CI
+
+# NFR-006: corre la suite completa en cada push/PR a main; falla el pipeline si algo falla.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci || npm install
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit + integration tests
+        run: npm run test:run
+      - name: Build
+        run: npm run build
+      - name: E2E (Playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e

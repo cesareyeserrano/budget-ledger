@@ -1,0 +1,94 @@
+{
+  "files_created": [
+    "package.json",
+    "tsconfig.json",
+    "next.config.mjs",
+    "postcss.config.mjs",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    ".eslintrc.json",
+    ".env.example",
+    "Dockerfile",
+    "smoke.sh",
+    "README.md",
+    ".github/workflows/ci.yml",
+    "src/domain/types.ts",
+    "src/domain/months.ts",
+    "src/domain/tree.ts",
+    "src/domain/rollup.ts",
+    "src/domain/sign.ts",
+    "src/domain/validation.ts",
+    "src/domain/seed.ts",
+    "src/domain/mutations.ts",
+    "src/domain/dashboard.ts",
+    "src/domain/index.ts",
+    "src/data/repository.ts",
+    "src/state/store.ts",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/components/format.ts",
+    "src/components/MovementForm.tsx",
+    "src/components/RecentList.tsx",
+    "src/components/MobileShell.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/Dashboard.tsx",
+    "tests/domain/movement.test.ts",
+    "tests/domain/categories.test.ts",
+    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/move-dashboard-seed.test.ts",
+    "tests/domain/hardening.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/e2e/critical.spec.ts",
+    "tests/e2e/reparent.spec.ts"
+  ],
+  "files_modified": [],
+  "setup_commands": ["npm install"],
+  "environment_variables": [
+    { "name": "PORT", "default": "3000" }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-006",
+      "substitution": "La grilla implementa columna sticky, 12 meses, edición inline de hojas, expandir y CRUD; los TCs de la grilla (TC-006h/e/f) son e2e (Playwright) — su ejecución requiere navegador (CI o `npx playwright install chromium`). La lógica editable subyacente (setLeafAmount, roll-up, no-edición de padres) está cubierta por tests unit (TC-004f, categories/rollup).",
+      "reason": "El sandbox de build no ejecuta navegadores; los e2e corren en el step de Playwright del CI. La corrección del dominio es verificable sin navegador y ya está en verde.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-015",
+      "substitution": "Reparent por drag-and-drop implementado con @dnd-kit (mover a categoría → sub; a grupo → categoría nueva; rechazo cross-type/grupo). Los TCs declarados (TC-015h/e/f) son e2e; la lógica pura moveNode está cubierta al 100% por unit tests (TC-105e/f, move-dashboard-seed).",
+      "reason": "El arrastre real necesita un navegador (Playwright en CI). El invariante 'cero huérfanos / no cruza de tipo' se verifica de forma determinista en unit.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-012",
+      "substitution": "Tokens del sistema de diseño en :root (globals.css) verificados por e2e (TC-012h/e/f) contra getComputedStyle; el subconjunto de espaciado/sombras/motion se implementa como CSS vars formalizadas (el prototipo los tenía inline).",
+      "reason": "La verificación de contraste y reduced-motion se hace en navegador (e2e/CI); no hay unit para computed styles.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-014",
+      "substitution": "Andamiaje multiusuario/API: entidades cargan `ownerId` (default 'local') y toda la persistencia pasa por la interfaz LedgerRepository. Sin TCs dedicados (FR SHOULD sin user story); se ejercita indirectamente en los tests de persistencia.",
+      "reason": "Es andamiaje para Fase 2, no funcionalidad activa en v1; su contrato (interfaz + ownerId) está presente y usado por el store.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/domain/movement.test.ts",
+    "tests/domain/categories.test.ts",
+    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/move-dashboard-seed.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/e2e/critical.spec.ts",
+    "tests/e2e/reparent.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": true, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ]
+}
