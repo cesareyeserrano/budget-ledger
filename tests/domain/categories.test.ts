@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildSeed, createNode, renameNode, canRename, canDelete, deleteNode } from "@/domain";
 import { rollupBudget } from "@/domain/rollup";
-import { findNode, childrenOf } from "@/domain/tree";
+import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import { setLeafAmount } from "@/domain/mutations";
 
 describe("FR-002 CRUD de categorías", () => {
@@ -89,6 +89,26 @@ describe("FR-003 borrado → 'Sin asignar' del grupo", () => {
     expect(state.budgets[gym.id]).toBeUndefined();
     // no se materializó 'Sin asignar'
     expect(findNode(state.nodes, "unassigned-g-esenciales")).toBeUndefined();
+  });
+
+  // Regresión BG-003: el seed trae ejecutado (actuals) SIN movements; borrar una categoría
+  // semilla con ejecutado debe preservarla en 'Sin asignar', no eliminarla directo.
+  it("BG-003: borrar categoría semilla con ejecutado (sin movements) la mueve a 'Sin asignar'", () => {
+    const s = buildSeed("local");
+    expect(s.movements.length).toBe(0); // el seed no genera movimientos
+    const leafCat = s.nodes.find(
+      (n) => n.level === "category" && isLeaf(n, s.nodes) && Object.values(s.actuals[n.id] ?? {}).some((v) => v > 0)
+    )!;
+    expect(leafCat).toBeDefined();
+    const groupId = leafCat.parentId!;
+    const res = deleteNode(s, leafCat.id);
+    expect("state" in res).toBe(true);
+    const state = "state" in res ? res.state : s;
+    const moved = findNode(state.nodes, leafCat.id)!;
+    expect(moved.level).toBe("sub");
+    expect(moved.parentId).toBe(`unassigned-${groupId}`);
+    // no se pierde el historial: su ejecutado se conserva
+    expect(Object.values(state.actuals[leafCat.id] ?? {}).some((v) => v > 0)).toBe(true);
   });
 
   // @aitri-tc TC-003f

@@ -173,9 +173,20 @@ export function isUnassignedVisible(nodes: LedgerNode[], groupId: string): boole
   return childrenOf(nodes, catId).length > 0;
 }
 
-function nodeHasMovements(state: LedgerState, nodeId: string): boolean {
+/**
+ * FR-003: ¿el nodo tiene HISTORIAL que preservar al borrar? Es historial si registró
+ * movimientos O si tiene ejecutado (actuals > 0) en su subárbol. El seed genera actuals
+ * sin `movements`, así que mirar solo `movements` haría desaparecer datos semilla con
+ * ejecutado al borrar (BG-003); el ejecutado también cuenta como historial a conservar.
+ */
+function nodeHasHistory(state: LedgerState, nodeId: string): boolean {
   const ids = new Set(subtreeIds(state.nodes, nodeId));
-  return state.movements.some((m) => ids.has(m.target));
+  if (state.movements.some((m) => ids.has(m.target))) return true;
+  for (const id of ids) {
+    const a = state.actuals[id];
+    if (a && Object.values(a).some((v) => v > 0)) return true;
+  }
+  return false;
 }
 
 export type DeleteResult = { state: LedgerState } | { blocked: "group_not_empty" };
@@ -192,7 +203,7 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
   }
 
   // category o sub
-  if (!nodeHasMovements(state, id)) {
+  if (!nodeHasHistory(state, id)) {
     // borrado directo: elimina el subárbol y sus montos
     const ids = new Set(subtreeIds(state.nodes, id));
     const next = clone(state);
@@ -204,7 +215,7 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
     return { state: next };
   }
 
-  // con movimientos → convertir en subcategoría de "Sin asignar" del grupo (cero huérfanos)
+  // con historial (movimientos o ejecutado) → convertir en subcategoría de "Sin asignar" del grupo (cero huérfanos)
   const groupId = groupIdOf(state.nodes, node);
   if (!groupId) return { state };
   const next = clone(state);
