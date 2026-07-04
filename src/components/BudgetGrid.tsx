@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { DndContext, useDraggable, useDroppable, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import type { LedgerNode, MonthKey, NodeLevel, NodeType } from "@/domain/types";
@@ -50,6 +50,7 @@ export function BudgetGrid() {
   const [editVal, setEditVal] = useState("");
   const [namingId, setNamingId] = useState<string | null>(null);
   const [catW, setCatW] = useState<number>(() => readCatWidth()); // FR-104: ancho persistido de la columna categoría
+  const [dragId, setDragId] = useState<string | null>(null); // FR-015: nodo en arrastre (para el DragOverlay)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   // FR-104: arrastre de la manija (Pointer Events propios, aislados del dnd de nodos).
@@ -94,15 +95,25 @@ export function BudgetGrid() {
   function onAddGroup(type: NodeType) {
     onAdd({ level: "group", parentId: null, type });
   }
+  function onDragStart(ev: DragStartEvent) {
+    setDragId(String(ev.active.id));
+    document.body.style.cursor = "grabbing";
+  }
+  function endDrag() {
+    setDragId(null);
+    document.body.style.cursor = "";
+  }
   function onDragEnd(ev: DragEndEvent) {
+    endDrag();
     const over = ev.over;
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
     if (kind === "category" || kind === "group") moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
   }
+  const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
   return (
-    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
       <div className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
         <div className="w-max min-w-full text-[0.74rem]">
           {/* Encabezados sticky */}
@@ -164,6 +175,15 @@ export function BudgetGrid() {
           })}
         </div>
       </div>
+      {/* FR-015: preview flotante del nodo en arrastre (feedback claro de "estoy moviendo esto") */}
+      <DragOverlay dropAnimation={null}>
+        {dragNode ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-card border border-accent shadow-lg text-[0.8rem] text-fg cursor-grabbing" style={{ boxShadow: "var(--shadow-lg)" }}>
+            <NodeIcon name={dragNode.icon} level={dragNode.level} size={14} color={dragNode.level === "sub" ? "var(--fg-muted)" : typeColorVar(dragNode.type)} />
+            {dragNode.name}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -236,8 +256,12 @@ function NodeRow(props: {
           ref={draggable.setNodeRef}
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
-          className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab" : "cursor-default")}
-          style={{ paddingLeft: 14 + row.depth * 16, background: droppable.isOver && dropId ? "color-mix(in srgb, var(--accent) 12%, var(--bg))" : "var(--bg)" }}
+          className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default")}
+          style={{
+            paddingLeft: 14 + row.depth * 16,
+            background: droppable.isOver && dropId ? "color-mix(in srgb, var(--accent) 18%, var(--bg))" : "var(--bg)",
+            boxShadow: droppable.isOver && dropId ? "inset 0 0 0 1.5px var(--accent)" : undefined,
+          }}
         >
           <button aria-label="Expandir" onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted", row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
           {(node.level === "category" || node.level === "group") && !node.system ? (
