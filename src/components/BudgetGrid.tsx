@@ -114,8 +114,12 @@ export function BudgetGrid() {
                 role="separator"
                 aria-label="Redimensionar columna de categorías"
                 aria-orientation="vertical"
-                className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
-              />
+                title="Arrastra para ampliar la columna"
+                className="group absolute right-0 top-0 bottom-0 w-2.5 flex justify-end cursor-col-resize"
+              >
+                {/* línea visible siempre (afordancia), acento en hover/arrastre */}
+                <span className="w-[2px] h-full bg-border-hover group-hover:bg-accent transition-colors" />
+              </span>
             </div>
             <div className="flex flex-col">
               <div className="flex">
