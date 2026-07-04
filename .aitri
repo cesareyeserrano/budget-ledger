@@ -23,32 +23,9 @@
   "aitriVersion": "2.0.0-rc.149",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-04T02:17:34.594Z",
+  "updatedAt": "2026-07-04T02:30:17.264Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-02T12:51:54.715Z",
-      "event": "approved",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-02T19:48:46.038Z",
-      "event": "upgrade_migration",
-      "phase": "upgrade",
-      "from_version": "0.1.65",
-      "to_version": "2.0.0-rc.145",
-      "category": "stateMissing",
-      "target": ".aitri#auditLastAt",
-      "transform": "backfill auditLastAt from AUDIT_REPORT.md mtime"
-    },
-    {
-      "at": "2026-07-02T21:43:43.909Z",
-      "event": "rehash",
-      "phase": "3",
-      "artifact": "03_TEST_CASES.json",
-      "before_hash": "e8236d2d34c33d8bde8066471fe00854f2ecc76d2f61667b1b873b215a1d4852",
-      "after_hash": "7feb883e485d7d0fe297a1acfb5f272723548978a624d8e8a44def9236421115"
-    },
     {
       "at": "2026-07-02T22:29:07.255Z",
       "event": "verify-run",
@@ -185,6 +162,30 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-04T02:24:32.838Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 2,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-04T02:30:17.147Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-04T02:30:17.242Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -277,14 +278,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-02T20:02:10.154Z",
-  "verifyResultsHash": "af07371c2e51e5f377851f46e49914acbbc5a793ffac4d82ec51618fcc79a904",
-  "verifyRanAt": "2026-07-04T02:14:35.990Z",
+  "verifyResultsHash": "3bbd6b170b23814923bb380470393cd682ca83f6d35d340a73f1d28b1cb4978f",
+  "verifyRanAt": "2026-07-04T02:30:17.147Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-04T02:14:35.990Z"
+    "at": "2026-07-04T02:30:17.147Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "verifySummary": {
