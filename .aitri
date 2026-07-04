@@ -23,19 +23,9 @@
   "aitriVersion": "2.0.0-rc.148",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-04T02:06:12.960Z",
+  "updatedAt": "2026-07-04T02:14:36.109Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-02T12:49:13.054Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-02T12:51:51.259Z",
-      "event": "completed",
-      "phase": 5
-    },
     {
       "at": "2026-07-02T12:51:54.715Z",
       "event": "approved",
@@ -179,6 +169,22 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-04T02:14:35.990Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-04T02:14:36.086Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -271,14 +277,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-02T20:02:10.154Z",
-  "verifyResultsHash": "784a8bd1f088571fe3957eea644ad68c72d6256530f303bd16df6ea1a84f440e",
-  "verifyRanAt": "2026-07-04T02:06:12.834Z",
+  "verifyResultsHash": "af07371c2e51e5f377851f46e49914acbbc5a793ffac4d82ec51618fcc79a904",
+  "verifyRanAt": "2026-07-04T02:14:35.990Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-04T02:06:12.834Z"
+    "at": "2026-07-04T02:14:35.990Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "verifySummary": {
