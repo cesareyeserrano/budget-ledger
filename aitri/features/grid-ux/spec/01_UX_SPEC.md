@@ -126,3 +126,18 @@ Bajo la grilla (solo escritorio) se agrega un **footer** de dos líneas, `--fg-m
 | Conector “└” | BudgetGrid (fila subcategoría) | nuevo/ajuste | FR-108 | CornerDownRight; solo subs |
 | Pie de ayuda | DesktopShell/BudgetGrid (bajo grilla) | nuevo | FR-107 | 2 líneas; solo escritorio; sin “reparto” |
 | Fuente global Lexend | globals.css / layout | modificado (token) | FR-109 | self-hosted; cifras tabular-nums; toda la app |
+
+---
+
+## Amendments — modelo final (supersede lo anterior donde difiera)
+
+Tras la revisión con el usuario, el diseño de agregar/borrar/íconos se refinó. Esta sección es la fuente de verdad sobre esos puntos:
+
+- **Agregar (supersede FR-101/FR-102 y "Component Inventory" arriba):** NO existen filas adder persistentes ("+ Nueva X"). Agregar es siempre por un botón **"+" que aparece en HOVER** de la fila del nivel padre:
+  - Hover en la fila de **TIPO** (Gasto/Ingreso/Transferencia) → "+" agrega un **grupo** (y expande el tipo si estaba colapsado).
+  - Hover en un **grupo** → "+" agrega una **categoría**.
+  - Hover en una **categoría** → "+" agrega una **subcategoría**.
+- **Borrado (supersede el flujo con "Sin asignar"):** se **retiró la categoría "Sin asignar"**. Un grupo con categorías, o una categoría/sub con datos (movimientos o ejecutado), **no es borrable** — el ícono 🗑 solo aparece si `canDeleteNode` es true. Los nodos vacíos se borran con la confirmación inline ✓/✗. Una migración en carga limpia cualquier "Sin asignar" heredado (promueve sus hijos a categorías del grupo) sin pérdida.
+- **Íconos editables (FR-111):** el ícono de una **categoría o grupo** es un botón; clic abre el selector de íconos (para grupos incluye "folder"). Elegir uno lo aplica y cierra.
+- **Layout (FR-112):** la app de escritorio es **full-bleed** (sin tarjeta/borde exterior), fondo `--bg`. Los números "Presupuestado" usan `--fg-secondary` (más claros).
+- **Manija de resize (FR-104):** vive dentro de la celda sticky "CATEGORÍA" (que sirve de containing block); NO se usa `position: relative` sobre esa celda porque anularía su `sticky`.

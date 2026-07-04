@@ -1,29 +1,29 @@
 {
   "project_name": "Ledger — Feature: grid-ux",
-  "project_summary": "Feature de pulido de la página de presupuesto (escritorio, FR-006) del proyecto Ledger + un cambio de tipografía global. Alcance final confirmado con el usuario: (A) capacidades/arreglos de la grilla: crear GRUPO desde la grilla (hoy sin UI), '+' inline en grupo/categoría, controles de fila (+/✎/🗑) revelados en hover de forma fiable y bien alineados, y columna de categorías redimensionable con ancho recordado en localStorage (hoy fija 240px con recorte). (B) pulido de la página: tab 'Budget'→'Resumen' (UI en español, P1), período por defecto que muestra datos ejecutados (P2), pie de ayuda + leyenda de meses (P3), conector '└' en subcategorías (P4). (C) tipografía: reemplazar el mono Fira Code por Lexend + números tabulares en toda la app (token global; self-hosted, sin CDN). NO se cambia la paleta (se conserva el acento steel-blue #4a7fa5 y los tokens de color del sistema César Augusto). North Star: construir/ajustar toda la jerarquía sin salir de la grilla, leer nombres largos ampliando la columna, y una tipografía más legible. Guardrail: NO romper edición inline de hojas, borrado→'Sin asignar', reparent drag-drop, roll-up ≤150ms, ni la vista móvil. Solo escritorio para la grilla; la tipografía es global.",
+  "project_summary": "Feature de pulido de la página de presupuesto (escritorio, FR-006) del proyecto Ledger + un cambio de tipografía global. Alcance final confirmado con el usuario: (A) capacidades/arreglos de la grilla: crear GRUPO desde la grilla (hoy sin UI), '+' inline en grupo/categoría, controles de fila (+/✎/🗑) revelados en hover de forma fiable y bien alineados, y columna de categorías redimensionable con ancho recordado en localStorage (hoy fija 240px con recorte). (B) pulido de la página: tab 'Budget'→'Resumen' (UI en español, P1), período por defecto que muestra datos ejecutados (P2), pie de ayuda + leyenda de meses (P3), conector '└' en subcategorías (P4). (C) tipografía: reemplazar el mono Fira Code por Lexend + números tabulares en toda la app (token global; self-hosted, sin CDN). NO se cambia la paleta (se conserva el acento steel-blue #4a7fa5 y los tokens de color del sistema César Augusto). North Star: construir/ajustar toda la jerarquía sin salir de la grilla, leer nombres largos ampliando la columna, y una tipografía más legible. Guardrail: NO romper edición inline de hojas, borrado→'Sin asignar', reparent drag-drop, roll-up ≤150ms, ni la vista móvil. Solo escritorio para la grilla; la tipografía es global. [ACTUALIZADO al modelo final] Agregar es por el '+' en hover de cada nivel (tipo→grupo, grupo→categoría, categoría→subcategoría); no hay filas adder. Se retiró 'Sin asignar': borrar con datos queda bloqueado (revierte FR-003 root). Íconos de grupo y categoría editables por clic. Layout full-bleed. Migración en carga limpia 'Sin asignar' heredado.",
   "functional_requirements": [
     {
       "id": "FR-101",
-      "title": "Crear grupo desde la grilla (adder '+ Nuevo grupo' por tipo)",
-      "description": "En escritorio, al final de la sección de cada tipo (Gasto/Ingreso/Transferencia) se muestra una fila adder '+ Nuevo grupo'. Al pulsarla se crea un grupo nuevo bajo ese tipo mediante createNode(level:'group') y se inicia la edición en línea de su nombre. Hoy existen los adders de categoría (bajo grupo) y de subcategoría (bajo categoría) pero NO el de grupo, por lo que crear un grupo no tiene entrada de UI.",
+      "title": "Crear grupo desde la grilla ('+' en hover de la fila de tipo)",
+      "description": "En escritorio, al pasar el cursor sobre la fila de un TIPO (Gasto/Ingreso/Transferencia) aparece un botón '+' (ícono Lucide Plus) que crea un grupo nuevo bajo ese tipo mediante createNode(level:'group') e inicia la edición en línea de su nombre. Agregar un grupo EXPANDE su tipo (si estaba colapsado) para que el nuevo grupo se vea. NO existen filas adder persistentes: crear es siempre por el '+' en hover del nivel correspondiente.",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "A 1440px, bajo la última fila de la sección GASTOS aparece una fila '+ Nuevo grupo'; al pulsarla se crea un grupo de tipo expense y su nombre entra en edición en línea (input con autofocus) (happy)",
-        "Al confirmar el nombre (Enter), el grupo queda en la jerarquía de ese tipo y ofrece su propio adder '+ Nueva categoría' (edge)",
-        "Existe exactamente 1 fila '+ Nuevo grupo' por cada uno de los 3 tipos (3 en total) y ninguna aparece anidada dentro de un grupo o categoría (negativo)"
+        "A 1440px, al pasar el cursor sobre la fila del tipo GASTOS aparece un botón 'Agregar grupo'; al pulsarlo se crea un grupo de tipo expense y su nombre entra en edición en línea (happy)",
+        "Agregar un grupo a un tipo COLAPSADO expande el tipo y muestra el nuevo grupo (edge)",
+        "No existen filas adder persistentes de texto ('+ Nuevo grupo'/'+ Nueva categoría'/'+ Nueva subcategoría'): 0 en el DOM (negativo)"
       ]
     },
     {
       "id": "FR-102",
-      "title": "Botón '+' inline para agregar hijo en filas de grupo y categoría",
-      "description": "Cada fila de grupo (no-system) y de categoría (no-system) muestra, junto a los controles ✎/🗑, un botón '+' (ícono Lucide Plus, no emoji) que agrega un hijo del nivel correspondiente: '+' en un grupo crea una categoría hija; '+' en una categoría crea una subcategoría hija. Usa createNode con el parentId de la fila, expande el padre e inicia la edición en línea del nombre. La categoría 'Sin asignar' (system) NO expone '+'. Complementa (no reemplaza) los adders de fila '+ Nueva categoría/subcategoría'.",
+      "title": "'+' en hover para agregar hijo (grupo→categoría, categoría→subcategoría)",
+      "description": "Al pasar el cursor sobre una fila de grupo (no-system) o categoría (no-system) aparece, junto a ✎ (renombrar) y 🗑 (borrar, ver FR-110), un botón '+' (Lucide Plus, no emoji) que agrega un hijo del nivel correspondiente: '+' en un grupo crea una categoría hija; '+' en una categoría crea una subcategoría hija. Expande el padre e inicia la edición en línea del nombre. No hay filas adder persistentes.",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "A 1440px, al pulsar el '+' inline de un grupo se crea una categoría hija, el grupo se expande y el nombre entra en edición en línea (happy)",
-        "Al pulsar el '+' inline de una categoría-hoja se crea exactamente 1 subcategoría hija (edge)",
-        "La categoría 'Sin asignar' (system) muestra 0 botones '+' inline (negativo)"
+        "A 1440px, al pasar el cursor sobre un grupo y pulsar su '+', se crea una categoría hija, el grupo se expande y el nombre entra en edición (happy)",
+        "Al pulsar el '+' de una categoría-hoja se crea exactamente 1 subcategoría hija (edge)",
+        "El '+' solo aparece en hover (0 controles visibles en reposo) y no en nodos system (negativo)"
       ]
     },
     {
@@ -110,6 +110,41 @@
         "Se conservan los tokens de color exactos del sistema (--bg #080c12, --primary #4a7fa5, --success #10b981, --warning #f59e0b, --error #ef4444) sin cambios (invariante — no se cambia la paleta)",
         "El contraste del texto primario (--fg #e8edf5) sobre el fondo (--bg #080c12) con Lexend se mantiene ≥ 4.5:1 (accesibilidad)"
       ]
+    },
+    {
+      "id": "FR-110",
+      "title": "Borrado seguro: bloquear si hay datos (sin 'Sin asignar')",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Se retira la categoría 'Sin asignar'. Un grupo con categorías, o una categoría/sub con datos (movimientos o ejecutado>0), NO se puede borrar (bloqueado hasta vaciarlo). Solo los nodos vacíos se borran (con confirmación inline ✓/✗). canDeleteNode gobierna tanto la habilitación como la visibilidad del 🗑. Migración en carga limpia datos 'Sin asignar' heredados sin pérdida.",
+      "acceptance_criteria": [
+        "Borrar una categoría con ejecutado devuelve bloqueado y no la elimina; la categoría y sus montos siguen (happy)",
+        "Un grupo con categorías no es borrable; una categoría vacía sí se borra tras confirmar (edge)",
+        "Un nodo no borrable muestra 0 íconos 🗑 en hover (negativo)"
+      ]
+    },
+    {
+      "id": "FR-111",
+      "title": "Editar ícono de grupo y categoría (clic en el ícono)",
+      "priority": "SHOULD",
+      "type": "UX",
+      "description": "El ícono de una categoría o grupo (no-system) es un botón: al hacer clic abre un selector de íconos (paleta CATEGORY_ICONS; para grupos incluye 'folder'). Elegir uno lo aplica y cierra el selector. También aparece durante el renombrado.",
+      "acceptance_criteria": [
+        "A 1440px, clic en el ícono de una categoría abre la paleta de íconos (happy)",
+        "Elegir un ícono lo aplica y cierra la paleta (edge)",
+        "Los nodos system no exponen el botón de cambiar ícono (negativo)"
+      ]
+    },
+    {
+      "id": "FR-112",
+      "title": "Layout full-bleed (sin tarjeta/borde exterior)",
+      "priority": "SHOULD",
+      "type": "visual",
+      "description": "La app de escritorio ocupa el viewport de borde a borde; se retira la 'tarjeta' exterior (borde redondeado + sombra + padding) que la contenía. Fondo --bg. Los números 'Presupuestado' usan --fg-secondary (más claros que --fg-muted).",
+      "acceptance_criteria": [
+        "A 1440px la app llena el ancho del viewport sin un borde/tarjeta que la enmarque (happy)",
+        "Los números 'Pres.' usan un color más claro que el mínimo muted (legibilidad) (edge)"
+      ]
     }
   ],
   "non_functional_requirements": [
@@ -122,8 +157,8 @@
     {
       "id": "NFR-102",
       "category": "Regression",
-      "requirement": "El borrado→'Sin asignar' (FR-003, incl. el fix BG-003) y el reparent por arrastrar-y-soltar (FR-015) siguen funcionando; el nuevo '+' inline y la manija de resize NO interfieren con el arrastre de nodos ni con el drop-target.",
-      "acceptance_criteria": "Tras la feature: borrar una categoría con ejecutado la mueve a 'Sin asignar' (cero huérfanos); arrastrar una subcategoría sobre otra categoría la reubica; el resize/'+' no dispara un drag de nodo accidental"
+      "requirement": "Se RETIRÓ la categoría 'Sin asignar' (revierte el mecanismo de FR-003 root por decisión del usuario). Borrar una categoría/sub CON datos (movimientos o ejecutado) queda BLOQUEADO (hay que vaciarla primero); el ícono 🗑 solo se muestra si el nodo es borrable (canDeleteNode). El reparent por arrastrar-y-soltar (FR-015) sigue funcionando; el '+' en hover y la manija de resize NO disparan un drag de nodo. Una migración en carga promueve los hijos de un 'Sin asignar' heredado (datos previos) a categorías de su grupo y elimina el nodo, sin pérdida.",
+      "acceptance_criteria": "Borrar categoría con datos → bloqueado (TC-211h); nodo no borrable no muestra 🗑 (TC-202f); reparent intacto (TC-015h/f); dato 'Sin asignar' heredado se limpia en carga sin pérdida"
     },
     {
       "id": "NFR-103",
@@ -157,7 +192,9 @@
     "Arrastrar/crear GRUPOS o TIPOS por drag-and-drop — el '+'/adder agregan grupos por botón, no por arrastre; el arrastre sigue siendo solo reparent de categorías/subcategorías",
     "Cualquier cambio de comportamiento en la vista MÓVIL — solo aplica la tipografía global; la grilla y sus controles siguen siendo de escritorio",
     "Fuentes vía CDN/Google Fonts — Lexend se sirve self-hosted (NFR-004/BG-001); cero fuentes externas en runtime",
-    "Cambiar el formulario de movimiento a un panel acoplado (mockup) — es un cambio de layout mayor, fuera de esta feature"
+    "Cambiar el formulario de movimiento a un panel acoplado (mockup) — es un cambio de layout mayor, fuera de esta feature",
+    "Filas adder persistentes ('+ Nueva X') — RETIRADAS: agregar es por el '+' en hover de cada nivel (tipo→grupo, grupo→categoría, categoría→sub)",
+    "Categoría 'Sin asignar' — RETIRADA por decisión del usuario; borrar con datos queda bloqueado (revierte FR-003 root)"
   ],
   "constraints": [
     "La grilla y sus controles viven en src/components/BudgetGrid.tsx (escritorio); FR-105/106 tocan DesktopShell.tsx; FR-109 toca el token global de fuente (globals.css / layout) y aplica a toda la app",
@@ -394,6 +431,18 @@
     {
       "need": "Formulario de movimiento como panel acoplado",
       "disposition": "out_of_scope"
+    },
+    {
+      "need": "Borrado seguro: bloquear categoría/grupo con datos; retirar 'Sin asignar'; migrar dato heredado",
+      "disposition": "FR-110"
+    },
+    {
+      "need": "Editar ícono de grupo y categoría por clic",
+      "disposition": "FR-111"
+    },
+    {
+      "need": "Layout full-bleed + números 'Pres.' más claros",
+      "disposition": "FR-112"
     }
   ],
   "original_brief": "## Feature\nPulido de UX de la grilla de presupuesto (escritorio): controles de fila fiables, capacidad de agregar completa (grupo/categoría/subcategoría) desde la grilla, y columna de categorías redimensionable con ancho recordado.\n\n## Problem / Why\nLa grilla de presupuesto (FR-006) tiene fricciones de UX confirmadas contra el mockup/uso real:\n1. **No se puede crear un GRUPO nuevo desde la grilla.** Existen los adders \"+ Nueva categoría\" (bajo grupo) y \"+ Nueva subcategoría\" (bajo categoría), pero falta el adder \"+ Nuevo grupo\" por tipo. Crear un grupo no tiene entrada de UI.\n2. **Falta el \"+\" inline** para agregar un hijo directamente en la fila de un grupo (→ categoría) o de una categoría (→ subcategoría). Hoy en hover solo aparecen ✎ (renombrar) y 🗑 (borrar).\n3. **Los controles de hover son frágiles** de accionar (el ✎/🗑 solo aparece al pasar el mouse y es difícil de alcanzar sin perder el hover), y quedan mal alineados.\n4. **La columna de categorías es fija (240px)** con recorte por ellipsis: los nombres largos quedan ocultos y no hay forma de ampliarla.\n\n## Target Users\nUsuario principal — dueño de sus finanzas personales — en **escritorio** (donde vive la grilla). No afecta la vista móvil (solo registro).\n\n## New Behavior\n- The system must ofrecer un adder **\"+ Nuevo grupo\"** al final de cada sección de tipo (Gasto/Ingreso/Transferencia) que crea un grupo nuevo bajo ese tipo e inicia su renombrado en línea.\n- The system must mostrar un botón **\"+\" inline** en la fila de cada grupo (agrega una categoría hija) y de cada categoría no-system (agrega una subcategoría hija), junto a los controles ✎/🗑, que crea el hijo e inicia su renombrado.\n- The system must revelar los controles de fila (**+ agregar hijo, ✎ renombrar, 🗑 borrar**) al pasar el cursor sobre la fila de forma **fiable** (se mantienen accionables mientras el cursor está sobre la fila) y alineados a la derecha de la columna de categoría.\n- The system must permitir **redimensionar el ancho de la columna de categorías** arrastrando una manija en su borde derecho (mínimo ~180px, máximo ~480px), y **recordar** el ancho elegido en localStorage para que persista al recargar.\n\n## Success Criteria\n- Given la grilla en escritorio, when el usuario pulsa \"+ Nuevo grupo\" bajo el tipo Gasto, then aparece un grupo nuevo bajo Gasto con su nombre en edición en línea, y al confirmar queda disponible como padre para categorías.\n- Given una fila de grupo o categoría, when el usuario pasa el cursor y pulsa el \"+\" inline, then se crea un hijo (categoría o subcategoría según el nivel) con su nombre en edición en línea, y el padre se expande.\n- Given una fila editable, when el usuario pasa el cursor sobre ella, then los controles +/✎/🗑 se muestran y permanecen accionables (clic en 🗑 abre la confirmación en línea sin perderse) mientras el cursor está sobre la fila.\n- Given la columna de categorías, when el usuario arrastra su borde derecho, then el ancho cambia en vivo dentro de [180px, 480px]; y when recarga la página, then el ancho elegido se conserva.\n\n## Touch Points\n- **MODIFICA** `src/components/BudgetGrid.tsx` (grilla): filas de nodo, adders, controles de hover, y el ancho de la columna de categoría (hoy constante `LABEL_W = w-[240px]`).\n- **MODIFICA (extiende) FR-006** (grilla de presupuesto en escritorio) y **FR-002** (CRUD de jerarquía — habilita crear grupo desde la grilla, que hoy no tiene UI).\n- **USA FR-011 / persistencia** (localStorage) para recordar el ancho de la columna (clave nueva, no toca las claves de datos existentes).\n- No toca dominio (`mutations.ts` ya expone `createNode` para los tres niveles) salvo que el diseño lo requiera.\n\n## Must Not Break (Regression Boundary)\n- FR-006: la **edición inline de celdas-hoja** (Pres./Ejec., Enter confirma / Escape cancela) sigue funcionando igual.\n- FR-002/003/015: **CRUD, borrado→\"Sin asignar\" y reparent por drag-and-drop** siguen funcionando; el nuevo \"+\" inline y el resize no interfieren con el arrastre de nodos.\n- NFR-001: editar una hoja sigue reflejando roll-ups en **≤150ms**; el resize de columna no degrada el render.\n- FR-010: la **vista móvil (solo registro)** no se altera — este cambio es solo de escritorio.\n- FR-011 / NFR-003: la persistencia de datos (jerarquía/budgets/actuals/movements) **no se corrompe**; la clave de ancho es independiente y su ausencia/corrupción cae al default 240px sin romper.\n- FR-012: se respeta el sistema de diseño (bordes sobre rellenos, sin gradientes/emoji, tokens exactos); la manija de resize usa el estilo del sistema.\n\n## Out of Scope\n- **Backgrounds/tonos por nivel de jerarquía** — descartado explícitamente por el usuario; los niveles se siguen distinguiendo por indentación + ícono + peso de texto.\n- Reordenar por posición (sort) y arrastrar grupos/tipos — sigue fuera de v1 (no_go_zone del proyecto).\n- Cualquier cambio en la vista móvil.\n- Ampliar el set de íconos de categoría más allá del actual (el selector de íconos existente se conserva).\n"
