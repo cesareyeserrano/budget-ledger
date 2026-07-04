@@ -23,33 +23,9 @@
   "aitriVersion": "2.0.0-rc.148",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-04T01:09:45.000Z",
+  "updatedAt": "2026-07-04T01:47:18.438Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-02T11:58:54.226Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 7,
-      "failed": 0,
-      "skipped": 47,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-02T12:03:42.814Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-02T12:03:42.886Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-02T12:03:43.013Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-07-02T12:04:27.303Z",
       "event": "verify-run",
@@ -170,6 +146,37 @@
       "method": "git",
       "baseRefFrom": "c0c6c77b48271ab447e9ed1cfeff6b67d12a75bc",
       "baseRefTo": "9be85fadbb463357f355415be51468b4e673a429"
+    },
+    {
+      "at": "2026-07-04T01:43:13.711Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 1,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-04T01:43:32.586Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 1,
+      "method": "git"
+    },
+    {
+      "at": "2026-07-04T01:47:09.131Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-04T01:47:18.414Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -262,15 +269,16 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-02T20:02:10.154Z",
-  "verifyResultsHash": "f954e1caf2397f1286185835ca66bd4a81a870fdd2b78e1170601c1642c6aed5",
-  "verifyRanAt": "2026-07-03T00:31:46.121Z",
+  "verifyResultsHash": "7c965b00f8108dcf026032ba1dbd2af3caa2e7423601a707c62ad69ad7a6b417",
+  "verifyRanAt": "2026-07-04T01:47:09.131Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-03T00:31:46.121Z"
+    "at": "2026-07-04T01:47:09.131Z"
   },
+  "auditLastAt": "2026-07-02T03:00:41.255Z",
   "verifySummary": {
     "total": 54,
     "passed": 54,
@@ -280,6 +288,5 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 6
-  },
-  "auditLastAt": "2026-07-02T03:00:41.255Z"
+  }
 }
