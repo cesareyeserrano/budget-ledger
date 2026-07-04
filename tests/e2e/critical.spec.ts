@@ -20,7 +20,8 @@ test("TC-012h: los tokens CSS coinciden con el sistema de diseño César Augusto
   expect(tokens.success).toBe("#10b981");
   expect(tokens.warning).toBe("#f59e0b");
   expect(tokens.error).toBe("#ef4444");
-  expect(tokens.font).toContain("Fira Code");
+  // FR-109 (feature grid-ux) reemplazó la familia tipográfica Fira Code por Lexend; la paleta se conserva.
+  expect(tokens.font).toContain("Lexend");
 });
 
 test("TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla", async ({ page }) => {

@@ -1,7 +1,6 @@
-// @aitri-trace domain:mutations — FR-001/002/003/006/015: registrar, CRUD, borrado→"Sin asignar", reparent.
+// @aitri-trace domain:mutations — FR-001/002/006/015: registrar, CRUD, borrado (bloquea si hay datos), reparent.
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
 import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "./types";
-import { UNASSIGNED_NAME } from "./types";
 import { childrenOf, findNode, isAncestor, isLeaf, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema } from "./validation";
 
@@ -139,45 +138,10 @@ export function renameNode(state: LedgerState, id: string, name: string): Ledger
   return next;
 }
 
-// ── FR-003: borrado → subcategoría de "Sin asignar" (por grupo) ────────────────
-function unassignedCatId(groupId: string) {
-  return `unassigned-${groupId}`;
-}
-
-/** Resuelve el grupo que contiene a un nodo (categoría → su grupo; sub → grupo de su categoría). */
-function groupIdOf(nodes: LedgerNode[], node: LedgerNode): string | null {
-  if (node.level === "group") return node.id;
-  if (node.level === "category") return node.parentId;
-  const cat = node.parentId ? findNode(nodes, node.parentId) : null; // sub → categoría → grupo
-  return cat ? cat.parentId : null;
-}
-
-/** Crea perezosamente la categoría "Sin asignar" DEL GRUPO si no existe. Muta `next` in place. */
-function ensureUnassigned(next: LedgerState, groupId: string): string {
-  const group = findNode(next.nodes, groupId);
-  const catId = unassignedCatId(groupId);
-  if (group && !findNode(next.nodes, catId)) {
-    next.nodes.push({
-      id: catId, ownerId: next.ownerId, type: group.type, level: "category",
-      parentId: groupId, name: UNASSIGNED_NAME, icon: "inbox", system: true, order: next.nodes.length,
-    });
-  }
-  return catId;
-}
-
-/** ¿La categoría "Sin asignar" del grupo debe mostrarse? Solo si existe y tiene contenido. */
-export function isUnassignedVisible(nodes: LedgerNode[], groupId: string): boolean {
-  const catId = unassignedCatId(groupId);
-  const node = findNode(nodes, catId);
-  if (!node) return false;
-  return childrenOf(nodes, catId).length > 0;
-}
-
+// ── Borrado (sin "Sin asignar" — decisión del usuario: se retiró hasta redefinirla) ─────────
 /**
- * FR-003: ¿el nodo tiene HISTORIAL que preservar al borrar? Es historial si registró
- * movimientos O si tiene ejecutado (actuals > 0) en su subárbol. El seed genera actuals
- * sin `movements`, así que mirar solo `movements` haría desaparecer datos semilla con
- * ejecutado al borrar (BG-003); el ejecutado también cuenta como historial a conservar.
+ * ¿El nodo tiene DATOS (historial) — movimientos registrados o ejecutado (actuals > 0) en su
+ * subárbol? El seed genera actuals sin `movements`, así que ambos cuentan como datos.
  */
 function nodeHasHistory(state: LedgerState, nodeId: string): boolean {
   const ids = new Set(subtreeIds(state.nodes, nodeId));
@@ -189,7 +153,21 @@ function nodeHasHistory(state: LedgerState, nodeId: string): boolean {
   return false;
 }
 
-export type DeleteResult = { state: LedgerState } | { blocked: "group_not_empty" };
+export type DeleteBlock = "group_not_empty" | "has_data";
+export type DeleteResult = { state: LedgerState } | { blocked: DeleteBlock };
+
+/**
+ * ¿Se puede borrar este nodo? (para gatear el ícono 🗑 en la UI — no mostrar borrar si no aplica)
+ * - system: no.
+ * - grupo: solo si NO tiene categorías.
+ * - categoría/sub: solo si NO tiene datos (movimientos/ejecutado) — se debe vaciar primero.
+ */
+export function canDeleteNode(state: LedgerState, id: string): boolean {
+  const node = findNode(state.nodes, id);
+  if (!node || node.system) return false;
+  if (node.level === "group") return childrenOf(state.nodes, id).length === 0;
+  return !nodeHasHistory(state, id);
+}
 
 export function deleteNode(state: LedgerState, id: string): DeleteResult {
   const node = findNode(state.nodes, id);
@@ -202,33 +180,16 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
     return { state: next };
   }
 
-  // category o sub
-  if (!nodeHasHistory(state, id)) {
-    // borrado directo: elimina el subárbol y sus montos
-    const ids = new Set(subtreeIds(state.nodes, id));
-    const next = clone(state);
-    next.nodes = next.nodes.filter((n) => !ids.has(n.id));
-    for (const nid of ids) {
-      delete next.budgets[nid];
-      delete next.actuals[nid];
-    }
-    return { state: next };
-  }
+  // categoría o sub CON datos → bloqueado (hay que vaciarla primero; cero pérdida silenciosa)
+  if (nodeHasHistory(state, id)) return { blocked: "has_data" };
 
-  // con historial (movimientos o ejecutado) → convertir en subcategoría de "Sin asignar" del grupo (cero huérfanos)
-  const groupId = groupIdOf(state.nodes, node);
-  if (!groupId) return { state };
+  // sin datos → borrado directo del subárbol y sus montos
+  const ids = new Set(subtreeIds(state.nodes, id));
   const next = clone(state);
-  const unId = ensureUnassigned(next, groupId);
-  const target = findNode(next.nodes, id)!;
-  const formerChildren = childrenOf(state.nodes, id); // subs a aplanar
-  target.level = "sub";
-  target.parentId = unId;
-  target.icon = null;
-  for (const child of formerChildren) {
-    const c = findNode(next.nodes, child.id)!;
-    c.parentId = unId; // aplanar como hermanos dentro de "Sin asignar"
-    c.level = "sub";
+  next.nodes = next.nodes.filter((n) => !ids.has(n.id));
+  for (const nid of ids) {
+    delete next.budgets[nid];
+    delete next.actuals[nid];
   }
   return { state: next };
 }

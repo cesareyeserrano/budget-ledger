@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildSeed, createNode, renameNode, canRename, canDelete, deleteNode } from "@/domain";
+import { buildSeed, createNode, deleteNode } from "@/domain";
 import { rollupBudget } from "@/domain/rollup";
 import { findNode, childrenOf, isLeaf } from "@/domain/tree";
+import { canDeleteNode } from "@/domain/mutations";
 import { setLeafAmount } from "@/domain/mutations";
 
 describe("FR-002 CRUD de categorías", () => {
@@ -31,25 +32,17 @@ describe("FR-002 CRUD de categorías", () => {
   });
 
   // @aitri-tc TC-002f
-  it("TC-002f: 'Sin asignar' (system) no es renombrable ni borrable; los tipos son fijos", () => {
-    // materializar 'Sin asignar' del grupo Esenciales borrando una categoría con movimientos
-    const s0 = buildSeed("local");
-    const withMov = { ...s0, movements: [{ id: "m1", ownerId: "local", type: "expense" as const, catId: "c-comida", subId: null, target: "s-comida-mercado", amount: 1000, month: "ene" as const, createdAt: 1 }] };
-    const res = deleteNode(withMov, "c-comida");
-    const state = "state" in res ? res.state : withMov;
-    const unassigned = findNode(state.nodes, "unassigned-g-esenciales")!;
-    expect(unassigned.system).toBe(true);
-    expect(canRename(unassigned)).toBe(false);
-    expect(canDelete(unassigned)).toBe(false);
-    // renameNode sobre system no cambia nada
-    const s2 = renameNode(state, "unassigned-g-esenciales", "Otro nombre");
-    expect(findNode(s2.nodes, "unassigned-g-esenciales")!.name).toBe("Sin asignar");
+  it("TC-002f: los tipos son fijos y un grupo con categorías no es borrable", () => {
+    const s = buildSeed("local");
     // Tipos fijos: no existen como nodos editables (el eje de signo es constante)
-    expect(state.nodes.some((n) => n.level === "group" && (n.type as string) === "type")).toBe(false);
+    expect(s.nodes.some((n) => n.level === "group" && (n.type as string) === "type")).toBe(false);
+    // Un grupo con categorías no se puede borrar (bloqueado hasta vaciarlo)
+    expect(canDeleteNode(s, "g-esenciales")).toBe(false);
+    expect(deleteNode(s, "g-esenciales")).toEqual({ blocked: "group_not_empty" });
   });
 });
 
-describe("FR-003 borrado → 'Sin asignar' del grupo", () => {
+describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
   function seedWithMovements() {
     const s0 = buildSeed("local");
     const movements = [
@@ -65,21 +58,18 @@ describe("FR-003 borrado → 'Sin asignar' del grupo", () => {
   }
 
   // @aitri-tc TC-003h
-  it("TC-003h: borrar categoría con movimientos la convierte en sub de 'Sin asignar' del grupo", () => {
+  it("TC-003h: borrar categoría CON movimientos está bloqueado (no se borra, no se pierde)", () => {
     const s = seedWithMovements();
+    expect(canDeleteNode(s, "c-cafe")).toBe(false); // no borrable → la UI no muestra 🗑
     const res = deleteNode(s, "c-cafe");
-    expect("state" in res).toBe(true);
-    const state = "state" in res ? res.state : s;
-    const cafe = findNode(state.nodes, "c-cafe")!;
-    expect(cafe.level).toBe("sub");
-    expect(cafe.parentId).toBe("unassigned-g-esenciales");
-    // los 3 movimientos siguen resolviendo target existente
-    const ids = new Set(state.nodes.map((n) => n.id));
-    expect(state.movements.every((m) => ids.has(m.target))).toBe(true);
+    expect(res).toEqual({ blocked: "has_data" });
+    // la categoría sigue existiendo con sus movimientos intactos
+    expect(findNode(s.nodes, "c-cafe")).toBeDefined();
+    expect(s.movements.length).toBe(3);
   });
 
   // @aitri-tc TC-003e
-  it("TC-003e: borrar hoja sin movimientos la elimina directo; 'Sin asignar' no visible", () => {
+  it("TC-003e: borrar hoja sin datos la elimina directo", () => {
     let s = buildSeed("local");
     s = createNode(s, { level: "category", parentId: "g-esenciales", type: "expense", name: "Gimnasio" });
     const gym = s.nodes.find((n) => n.name === "Gimnasio")!;
@@ -87,28 +77,23 @@ describe("FR-003 borrado → 'Sin asignar' del grupo", () => {
     const state = "state" in res ? res.state : s;
     expect(findNode(state.nodes, gym.id)).toBeUndefined();
     expect(state.budgets[gym.id]).toBeUndefined();
-    // no se materializó 'Sin asignar'
-    expect(findNode(state.nodes, "unassigned-g-esenciales")).toBeUndefined();
+    
   });
 
-  // Regresión BG-003: el seed trae ejecutado (actuals) SIN movements; borrar una categoría
-  // semilla con ejecutado debe preservarla en 'Sin asignar', no eliminarla directo.
-  it("BG-003: borrar categoría semilla con ejecutado (sin movements) la mueve a 'Sin asignar'", () => {
+  // BG-003 (revisado): el seed trae ejecutado (actuals) SIN movements; borrar una categoría
+  // semilla con ejecutado está BLOQUEADO (hay que vaciarla primero) — no se pierde el dato.
+  it("BG-003: borrar categoría semilla con ejecutado (sin movements) está bloqueado", () => {
     const s = buildSeed("local");
     expect(s.movements.length).toBe(0); // el seed no genera movimientos
     const leafCat = s.nodes.find(
       (n) => n.level === "category" && isLeaf(n, s.nodes) && Object.values(s.actuals[n.id] ?? {}).some((v) => v > 0)
     )!;
     expect(leafCat).toBeDefined();
-    const groupId = leafCat.parentId!;
-    const res = deleteNode(s, leafCat.id);
-    expect("state" in res).toBe(true);
-    const state = "state" in res ? res.state : s;
-    const moved = findNode(state.nodes, leafCat.id)!;
-    expect(moved.level).toBe("sub");
-    expect(moved.parentId).toBe(`unassigned-${groupId}`);
-    // no se pierde el historial: su ejecutado se conserva
-    expect(Object.values(state.actuals[leafCat.id] ?? {}).some((v) => v > 0)).toBe(true);
+    expect(canDeleteNode(s, leafCat.id)).toBe(false); // ejecutado > 0 → no borrable
+    expect(deleteNode(s, leafCat.id)).toEqual({ blocked: "has_data" });
+    // sigue existiendo y su ejecutado se conserva
+    expect(findNode(s.nodes, leafCat.id)).toBeDefined();
+    expect(Object.values(s.actuals[leafCat.id] ?? {}).some((v) => v > 0)).toBe(true);
   });
 
   // @aitri-tc TC-003f

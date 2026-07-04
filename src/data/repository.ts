@@ -1,7 +1,25 @@
 // @aitri-trace data:repository — FR-011/FR-014: persistencia tras interfaz (punto de swap a Supabase). NFR-003: recuperación segura.
-import type { LedgerState } from "@/domain/types";
+import type { LedgerNode, LedgerState } from "@/domain/types";
 import { STORAGE_KEYS } from "@/domain/types";
 import { persistedBudgetSchema, persistedNodesSchema } from "@/domain/validation";
+
+/**
+ * Migración: se retiró la categoría "Sin asignar" (nodos system). Datos guardados en versiones
+ * anteriores pueden contener nodos "Sin asignar" con hijos (categorías que se movieron ahí al borrar).
+ * Los promovemos de vuelta a categorías reales de su grupo y eliminamos el nodo system — cero pérdida.
+ */
+function stripLegacyUnassigned(nodes: LedgerNode[]): LedgerNode[] {
+  const legacy = nodes.filter((n) => n.system);
+  if (legacy.length === 0) return nodes;
+  const legacyById = new Map(legacy.map((n) => [n.id, n]));
+  return nodes
+    .filter((n) => !legacyById.has(n.id)) // quitar los nodos 'Sin asignar'
+    .map((n) => {
+      const parent = n.parentId ? legacyById.get(n.parentId) : undefined;
+      // un hijo de 'Sin asignar' vuelve a ser categoría del grupo (parentId del 'Sin asignar' = grupo)
+      return parent ? { ...n, parentId: parent.parentId, level: "category" as const } : n;
+    });
+}
 
 export interface LedgerRepository {
   /** Devuelve null si no hay datos válidos (el caller usa buildSeed). Nunca lanza por datos corruptos. */
@@ -26,7 +44,7 @@ export class LocalStorageRepository implements LedgerRepository {
 
     return {
       ownerId,
-      nodes: nodesParsed.nodes,
+      nodes: stripLegacyUnassigned(nodesParsed.nodes),
       budgets: budgetParsed.budgets,
       actuals: budgetParsed.actuals,
       movements: budgetParsed.movements,

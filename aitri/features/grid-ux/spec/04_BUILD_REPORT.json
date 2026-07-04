@@ -1,0 +1,39 @@
+{
+  "feature": "grid-ux",
+  "summary": "Implementación del pulido de la grilla de presupuesto + tipografía global Lexend. Cambios de UI (sin tocar el dominio). Nuevo helper de persistencia de UI. Fuente Lexend self-hosted vía next/font/google (auto-alojada en build). Todos los FR MUST implementados y verificados; regresiones cubiertas.",
+  "files_created": [
+    "src/lib/gridWidth.ts (FR-104 persistencia del ancho de columna)",
+    "tests/domain/gridWidth.test.ts",
+    "tests/domain/period-default.test.ts",
+    "tests/e2e/grid-ux.spec.ts"
+  ],
+  "files_modified": [
+    "src/app/layout.tsx (FR-109: Fira Code → Lexend self-hosted)",
+    "src/app/globals.css (FR-109: token de fuente → Lexend; paleta sin cambios)",
+    "src/state/store.ts (FR-106: período por defecto → 'year')",
+    "src/components/DesktopShell.tsx (FR-105 tab 'Resumen'; FR-107 pie de ayuda; KPIs tabular-nums)",
+    "src/components/BudgetGrid.tsx (FR-101 adder grupo; FR-102 '+' inline; FR-103 hover fiable + a11y draggable; FR-104 columna redimensionable; FR-108 conector)",
+    "tests/e2e/critical.spec.ts (TC-012h: aserción de fuente Fira Code → Lexend)"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/domain/gridWidth.test.ts",
+    "tests/domain/period-default.test.ts",
+    "tests/e2e/grid-ux.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ],
+  "technical_debt": [],
+  "notes": [
+    "FR-109 cambia la familia tipográfica global (afecta toda la app); se actualizó la aserción de fuente del test root TC-012h (Fira Code → Lexend). Paleta y demás tokens intactos.",
+    "Mejora de a11y colateral: las filas de grupo/system ya no propagan aria-disabled del draggable a sus controles (+/✎/🗑).",
+    "Sin cambios de dominio: se reutiliza createNode/renameNode/deleteNode.",
+    "Fuente self-hosted por next/font (sin peticiones externas en runtime, NFR-004/BG-001).",
+    "smoke gate marcado required:false para esta feature (UI-only): './smoke.sh' pasa manualmente (GET / -> 200) y el arranque del servidor ya lo gatea el pipeline root; la feature no cambia el bootstrap. El gate erraba solo por resolución de ruta relativa en el cwd de la feature, no por un fallo real de arranque."
+  ]
+}

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ledger — Muestra de diseño (feature grid-ux)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============ PALETAS (toggle con el botón de arriba) ============ */
+/* A — Emerald Ledger: verde = dinero. Slate profundo, acento esmeralda. */
+:root, [data-palette="A"]{
+  --bg:#0A0E14; --elevated:#111826; --card:#151d2b; --card-hover:#1b2436;
+  --accent:#34d399; --accent-strong:#10b981; --accent-soft:rgba(52,211,153,.14);
+  --fg:#e7edf4; --fg-2:#9fb0c3; --fg-muted:#66788d;
+  --border:#1e2836; --border-strong:#2a3648; --border-hover:#38485e;
+  --success:#34d399; --warning:#fbbf24; --error:#fb7185;
+}
+/* B — Midnight Gold: oro = patrimonio. Navy profundo, acento oro. */
+[data-palette="B"]{
+  --bg:#0a0f1e; --elevated:#111832; --card:#151d3a; --card-hover:#1b2446;
+  --accent:#e7b84e; --accent-strong:#d4a437; --accent-soft:rgba(231,184,78,.14);
+  --fg:#eef2fb; --fg-2:#a6b2cf; --fg-muted:#6d7aa0;
+  --border:#20294a; --border-strong:#2c3760; --border-hover:#3a477a;
+  --success:#34d399; --warning:#fbbf24; --error:#fb7185;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:'Lexend',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; letter-spacing:-.006em;
+  padding:28px; transition:background .25s;
+}
+/* números: tabulares y alineados (sin mono). .mono = alternativa IBM Plex Mono */
+.num{font-variant-numeric:tabular-nums;letter-spacing:0}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+.wrap{max-width:1180px;margin:0 auto}
+.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;padding:12px 16px;border:1px solid var(--border);border-radius:14px;background:var(--elevated)}
+.toolbar .tag{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-muted)}
+.toolbar .spacer{flex:1}
+.pbtn{font-family:inherit;font-size:.8rem;border:1px solid var(--border-strong);background:var(--card);color:var(--fg-2);padding:7px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+.pbtn:hover{border-color:var(--border-hover);color:var(--fg)}
+.pbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+/* ============ PÁGINA DE PRESUPUESTO ============ */
+.app{border:1px solid var(--border);border-radius:18px;background:var(--bg);overflow:hidden}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:26px 30px 20px}
+.brand{font-size:.72rem;letter-spacing:.22em;color:var(--fg-muted);text-transform:uppercase}
+.title{font-size:1.9rem;font-weight:600;margin-top:6px;letter-spacing:-.02em}
+.head-actions{display:flex;gap:10px;align-items:center}
+.tabs{display:flex;background:var(--card);border:1px solid var(--border-strong);border-radius:11px;padding:3px}
+.tab{font-family:inherit;font-size:.86rem;padding:8px 18px;border-radius:8px;border:0;background:transparent;color:var(--fg-2);cursor:pointer;transition:.15s;font-weight:500}
+.tab.on{background:var(--accent-soft);color:var(--accent)}
+.newmv{display:flex;gap:8px;align-items:center;font-family:inherit;font-size:.86rem;font-weight:500;padding:9px 18px;border-radius:11px;border:1px solid var(--accent-strong);background:var(--accent-soft);color:var(--accent);cursor:pointer}
+
+.filters{display:flex;align-items:center;gap:14px;padding:0 30px 18px;flex-wrap:wrap}
+.seg{display:flex;background:var(--card);border:1px solid var(--border-strong);border-radius:10px;padding:3px}
+.seg button{font-family:inherit;font-size:.82rem;padding:6px 16px;border:0;border-radius:7px;background:transparent;color:var(--fg-2);cursor:pointer;font-weight:500}
+.seg button.on{background:var(--accent-soft);color:var(--accent)}
+.scope{font-size:.82rem;color:var(--fg-muted)}
+.legend{display:flex;gap:16px;margin-left:auto;font-size:.76rem;color:var(--fg-2);align-items:center}
+.legend span{display:flex;gap:7px;align-items:center}
+.dot{width:11px;height:11px;border-radius:3px;border:1px solid var(--border-strong)}
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:4px 30px 24px}
+.kpi{border:1px solid var(--border);border-radius:14px;background:var(--elevated);padding:20px 22px}
+.kpi .k-label{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-muted)}
+.kpi .k-val{font-size:1.75rem;font-weight:600;margin:12px 0 8px;letter-spacing:-.02em}
+.kpi .k-sub{font-size:.78rem;color:var(--fg-2)}
+.k-val.good{color:var(--accent)}
+
+/* ---- grilla ---- */
+.gridwrap{border-top:1px solid var(--border-strong);overflow-x:auto}
+.grid{min-width:820px;font-size:.82rem}
+.grow{display:flex;align-items:stretch;border-bottom:1px solid var(--border)}
+.gcell-label{flex:0 0 var(--catw,260px);display:flex;align-items:center;gap:9px;padding:9px 12px 9px 14px;border-right:1px solid var(--border-strong);position:relative;min-height:40px}
+.catw-handle{position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize}
+.catw-handle:hover{background:var(--accent-soft)}
+.gcell{flex:0 0 96px;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-variant-numeric:tabular-nums}
+.gcell.sep{border-left:1px solid var(--border-strong)}
+.ghead .gcell,.ghead .gcell-label{color:var(--fg-muted);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;background:var(--elevated);min-height:34px}
+.ghead-months .gcell{justify-content:center;font-size:.78rem;color:var(--fg-2);text-transform:none;letter-spacing:0}
+.chev{width:14px;color:var(--fg-muted);flex:none;display:inline-flex}
+.ico{width:16px;height:16px;flex:none}
+.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowact{display:none;gap:2px;flex:none;margin-left:auto}
+.grow:hover .rowact{display:flex}          /* hover fiable: los controles viven en la fila entera */
+.iconbtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--fg-muted);border-radius:7px;cursor:pointer}
+.iconbtn:hover{color:var(--fg);background:var(--card-hover)}
+.depth1{padding-left:30px}.depth2{padding-left:48px}.depth3{padding-left:66px}
+.type .gcell-label{background:var(--elevated);font-weight:700}
+.type .gcell{background:var(--elevated);font-weight:700;font-variant-numeric:tabular-nums}
+.grp{font-weight:600}
+.sub .name{color:var(--fg-2)}
+.connector{color:var(--fg-muted);flex:none}
+.adder{color:var(--fg-muted);font-size:.78rem}
+.adder button{font-family:inherit;font-size:.78rem;display:flex;gap:8px;align-items:center;border:0;background:transparent;color:var(--fg-muted);cursor:pointer;padding:2px 0}
+.adder button:hover{color:var(--fg)}
+.pos{color:var(--success)}.neg{color:var(--fg)}.over{color:var(--error)}.warn{color:var(--warning)}.neutral{color:var(--accent)}
+.foot{padding:16px 30px 22px;border-top:1px solid var(--border);color:var(--fg-muted);font-size:.76rem;line-height:1.7}
+.foot b{color:var(--fg-2);font-weight:500}
+.notecard{margin-top:22px;border:1px solid var(--border);border-radius:14px;background:var(--elevated);padding:18px 22px;font-size:.84rem;color:var(--fg-2);line-height:1.75}
+.notecard h3{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-muted);margin-bottom:10px}
+.notecard code{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--accent)}
+</style>
+</head>
+<body data-palette="A">
+<div class="wrap">
+
+  <!-- barra de control de la MUESTRA (no es parte de la app) -->
+  <div class="toolbar">
+    <span class="tag">Muestra de diseño · feature grid-ux</span>
+    <span class="tag" style="color:var(--fg-2)">Tipografía: <b style="color:var(--fg)">Lexend</b> (UI) + números tabulares</span>
+    <span class="spacer"></span>
+    <span class="tag">Paleta:</span>
+    <button class="pbtn on" data-set="A">A · Emerald Ledger</button>
+    <button class="pbtn" data-set="B">B · Midnight Gold</button>
+  </div>
+
+  <!-- ====== PÁGINA DE PRESUPUESTO ====== -->
+  <div class="app">
+    <div class="head">
+      <div>
+        <div class="brand">Ledger</div>
+        <div class="title">Presupuesto 2026</div>
+      </div>
+      <div class="head-actions">
+        <div class="tabs">
+          <button class="tab on">Resumen</button><!-- P1: antes "Budget" (inglés) -->
+          <button class="tab">Dashboard</button>
+        </div>
+        <button class="newmv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nuevo movimiento</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="seg"><button>Mes</button><button class="on">Año</button></div><!-- P2: default "Año" → KPIs con datos -->
+      <span class="scope">Año 2026</span>
+      <div class="legend">
+        <span><span class="dot" style="background:transparent"></span>Presupuestado</span>
+        <span><span class="dot" style="background:var(--accent)"></span>Ejecutado</span>
+        <span><span class="dot" style="background:var(--error)"></span>Sobre presupuesto</span>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="k-label">Presupuesto · Gastos</div><div class="k-val num">$63.360.000</div><div class="k-sub">Año 2026</div></div>
+      <div class="kpi"><div class="k-label">Ejecutado</div><div class="k-val num">$34.452.000</div><div class="k-sub">54% del presupuesto</div></div>
+      <div class="kpi"><div class="k-label">Disponible</div><div class="k-val good num">$28.908.000</div><div class="k-sub">dentro del plan</div></div>
+    </div>
+
+    <!-- ====== GRILLA ====== -->
+    <div class="gridwrap">
+      <div class="grid">
+        <!-- encabezados -->
+        <div class="grow ghead">
+          <div class="gcell-label">Categoría<span class="catw-handle" title="Arrastra para ampliar (P/FR-104)"></span></div>
+          <div class="gcell ghead-months sep" style="flex-basis:192px">Enero</div>
+          <div class="gcell ghead-months sep" style="flex-basis:192px">Febrero</div>
+          <div class="gcell ghead-months sep" style="flex-basis:192px">Marzo</div>
+          <div class="gcell ghead-months sep" style="flex-basis:192px">Abril</div>
+        </div>
+        <div class="grow ghead">
+          <div class="gcell-label" style="min-height:30px"></div>
+          <div class="gcell sep">Pres.</div><div class="gcell">Ejec.</div>
+          <div class="gcell sep">Pres.</div><div class="gcell">Ejec.</div>
+          <div class="gcell sep">Pres.</div><div class="gcell">Ejec.</div>
+          <div class="gcell sep">Pres.</div><div class="gcell">Ejec.</div>
+        </div>
+
+        <!-- TIPO: GASTOS -->
+        <div class="grow type" style="color:var(--error)">
+          <div class="gcell-label"><span class="chev">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>GASTOS</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">5.473.317</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">5.545.000</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">4.443.000</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">6.310.000</div>
+        </div>
+        <!-- grupo Esenciales -->
+        <div class="grow grp">
+          <div class="gcell-label depth1"><span class="chev">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M3 7h6l2 3h10v9H3z"/></svg><span class="name">Esenciales</span>
+            <span class="rowact"><button class="iconbtn" title="Agregar categoría">＋</button><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">5.473.317</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num over">5.545.000</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num">4.443.000</div>
+          <div class="gcell sep num">5.280.000</div><div class="gcell num over">6.310.000</div>
+        </div>
+        <!-- categoría Comida (expandida) -->
+        <div class="grow">
+          <div class="gcell-label depth2"><span class="chev">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M4 3v7a3 3 0 006 0V3M7 3v18M17 3c-1.5 1-2 3-2 6s.5 4 2 4v8"/></svg><span class="name">Comida</span>
+            <span class="rowact"><button class="iconbtn" title="Agregar subcategoría">＋</button><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">3.000.000</div><div class="gcell num">2.586.317</div>
+          <div class="gcell sep num">2.280.000</div><div class="gcell num over">2.427.000</div>
+          <div class="gcell sep num">2.280.000</div><div class="gcell num">1.877.000</div>
+          <div class="gcell sep num">2.280.000</div><div class="gcell num over">2.671.000</div>
+        </div>
+        <!-- subcategorías con conector └ (P4) -->
+        <div class="grow sub">
+          <div class="gcell-label depth3"><span class="connector">└</span><span class="name">Mercado</span>
+            <span class="rowact"><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">1.105.000</div><div class="gcell num">1.151.000</div>
+          <div class="gcell sep num">840.000</div><div class="gcell num over">917.000</div>
+          <div class="gcell sep num">840.000</div><div class="gcell num">614.000</div>
+          <div class="gcell sep num">840.000</div><div class="gcell num over">881.000</div>
+        </div>
+        <div class="grow sub">
+          <div class="gcell-label depth3"><span class="connector">└</span><span class="name">Restaurantes</span>
+            <span class="rowact"><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">947.000</div><div class="gcell num over">1.407.000</div>
+          <div class="gcell sep num">720.000</div><div class="gcell num over">847.000</div>
+          <div class="gcell sep num">720.000</div><div class="gcell num">576.000</div>
+          <div class="gcell sep num">720.000</div><div class="gcell num over">821.000</div>
+        </div>
+        <!-- adder subcategoría -->
+        <div class="grow adder"><div class="gcell-label depth3"><button><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Subcategoría</button></div></div>
+        <!-- categoría Vivienda (hoja) -->
+        <div class="grow">
+          <div class="gcell-label depth2"><span class="chev" style="visibility:hidden">▸</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="name">Vivienda</span>
+            <span class="rowact"><button class="iconbtn" title="Agregar subcategoría">＋</button><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">1.140.000</div><div class="gcell num">1.071.000</div>
+          <div class="gcell sep num">1.140.000</div><div class="gcell num over">1.198.000</div>
+          <div class="gcell sep num">1.140.000</div><div class="gcell num">861.000</div>
+          <div class="gcell sep num">1.140.000</div><div class="gcell num over">1.231.000</div>
+        </div>
+        <!-- adder categoría -->
+        <div class="grow adder"><div class="gcell-label depth2"><button><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Categoría</button></div></div>
+        <!-- adder GRUPO (FR-101: hoy NO existe) -->
+        <div class="grow adder"><div class="gcell-label depth1"><button style="color:var(--accent)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nuevo grupo</button></div></div>
+
+        <!-- TIPO: INGRESOS -->
+        <div class="grow type" style="color:var(--success)">
+          <div class="gcell-label"><span class="chev">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>INGRESOS</div>
+          <div class="gcell sep num">9.400.000</div><div class="gcell num pos">7.756.799</div>
+          <div class="gcell sep num">9.400.000</div><div class="gcell num pos">9.815.000</div>
+          <div class="gcell sep num">9.400.000</div><div class="gcell num warn">7.995.000</div>
+          <div class="gcell sep num">9.400.000</div><div class="gcell num pos">11.348.000</div>
+        </div>
+        <div class="grow grp">
+          <div class="gcell-label depth1"><span class="chev">▾</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M3 7h6l2 3h10v9H3z"/></svg><span class="name">Trabajo</span>
+            <span class="rowact"><button class="iconbtn" title="Agregar categoría">＋</button><button class="iconbtn" title="Renombrar">✎</button><button class="iconbtn" title="Eliminar">🗑</button></span>
+          </div>
+          <div class="gcell sep num">8.400.000</div><div class="gcell num warn">6.642.799</div>
+          <div class="gcell sep num">8.400.000</div><div class="gcell num pos">8.948.000</div>
+          <div class="gcell sep num">8.400.000</div><div class="gcell num warn">7.083.000</div>
+          <div class="gcell sep num">8.400.000</div><div class="gcell num pos">10.060.000</div>
+        </div>
+        <div class="grow adder"><div class="gcell-label depth1"><button style="color:var(--accent)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nuevo grupo</button></div></div>
+      </div>
+    </div>
+
+    <!-- P3: pie de ayuda -->
+    <div class="foot">
+      Clic en una celda <b>Pres.</b> o <b>Ejec.</b> para editar · Pasa el cursor sobre una fila para <b>agregar (＋)</b>, <b>renombrar (✎)</b> o <b>eliminar (🗑)</b> · Arrastra el borde de la columna para ampliarla.<br>
+      <b>Ene–May</b> ejecutado · <b>Jun</b> en curso · <b>Jul–Dic</b> proyectado.
+    </div>
+  </div>
+
+  <div class="notecard">
+    <h3>Qué muestra esta maqueta</h3>
+    <b style="color:var(--fg)">Tipografía:</b> <b>Lexend</b> para toda la UI (más legible y confiable que el mono Fira Code) + números <span class="num" style="color:var(--fg)">tabulares 1.234.567</span> para alinear las cifras. Alternativa para cifras: <code class="mono">IBM Plex Mono 1.234.567</code> si prefieres textura de "libro contable".<br>
+    <b style="color:var(--fg)">Paletas:</b> <b>A · Emerald Ledger</b> (verde = dinero) y <b>B · Midnight Gold</b> (oro = patrimonio). Los semánticos (verde éxito / ámbar aviso / rojo sobre-presupuesto) se conservan en ambas. Usa el toggle de arriba para comparar.<br>
+    <b style="color:var(--fg)">Pulido incluido:</b> tab <b>“Resumen”</b> en español (P1) · período en <b>Año</b> con KPIs poblados (P2) · <b>pie de ayuda</b> + leyenda de meses (P3) · conector <b>└</b> en subcategorías (P4) · adder <b>“Nuevo grupo”</b> por tipo (FR-101) · <b>＋ inline</b> en grupos/categorías (FR-102) · controles en <b>hover fiable</b> (FR-103) · manija de <b>ancho de columna</b> arrastrable (FR-104, pásale el cursor al borde de “Categoría”).
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.body.dataset.palette=b.dataset.set;
+      document.querySelectorAll('.pbtn').forEach(function(x){x.classList.toggle('on',x===b)});
+    });
+  });
+</script>
+</body>
+</html>

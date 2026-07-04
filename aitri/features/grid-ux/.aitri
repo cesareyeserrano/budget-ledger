@@ -1,0 +1,213 @@
+{
+  "currentPhase": 4,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4
+  ],
+  "projectName": "grid-ux",
+  "createdAt": "2026-07-03T00:43:21.553Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-03T16:37:05.354Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-03T00:44:31.420Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-03T01:13:56.104Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-03T01:43:17.285Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-03T01:43:31.061Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-07-03T01:43:57.159Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-03T01:46:13.834Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-03T01:51:32.948Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-03T01:51:33.049Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-03T01:53:34.413Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-03T01:53:41.026Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-03T01:53:41.126Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-03T02:26:04.001Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-03T02:27:47.711Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-03T02:27:47.809Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-03T16:01:37.713Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-03T16:01:45.619Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-03T16:02:16.653Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 14,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-03T16:32:22.587Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 14,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-03T16:36:56.183Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 14,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-03T16:37:05.341Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 31,
+      "failed": 0
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "a82fe27fe9d8211e06500976617f010edbcbbdc1c6e425cc1596cf1cb78f6093",
+    "2": "6f916299d0acdee26e135b427805ccd4c24b569cef1d6cbff10c4730e9d1e5ad",
+    "3": "e3ba426aae772dc35ed941d2a844cf1dfa9321e8b6c3ea3329cf2182e9c9c516",
+    "4": "2a8da46b2636ccce00c870eb839e264ca97e8652360e01b1bc27a7e89544991c",
+    "ux": "8ffffdea273d1ac16afc98308bedcd415bda36c72a235c65a33ae70d8fa01de6"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-101",
+      "FR-102",
+      "FR-103",
+      "FR-104",
+      "FR-105",
+      "FR-106",
+      "FR-107",
+      "FR-108",
+      "FR-109"
+    ],
+    "3": [
+      "FR-101",
+      "FR-102",
+      "FR-103",
+      "FR-104",
+      "FR-105",
+      "FR-106",
+      "FR-107",
+      "FR-108",
+      "FR-109"
+    ],
+    "4": [
+      "FR-101",
+      "FR-102",
+      "FR-103",
+      "FR-104",
+      "FR-105",
+      "FR-106",
+      "FR-107",
+      "FR-108",
+      "FR-109"
+    ],
+    "ux": [
+      "FR-101",
+      "FR-102",
+      "FR-103",
+      "FR-104",
+      "FR-105",
+      "FR-106",
+      "FR-107",
+      "FR-108",
+      "FR-109"
+    ]
+  },
+  "verifyResultsHash": "dfca9bf8bf85fb9b11440d3e232db2c870bc7b9ec1f631cd51ffb2e1f4ab4b1b",
+  "verifyRanAt": "2026-07-03T16:36:56.183Z",
+  "lastVerifyRun": {
+    "passed": 31,
+    "failed": 0,
+    "skipped": 14,
+    "manual": 0,
+    "at": "2026-07-03T16:36:56.183Z"
+  },
+  "verifyPassed": true,
+  "verifySummary": {
+    "total": 45,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 14,
+    "skipped_e2e": 14,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
+}

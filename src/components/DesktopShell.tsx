@@ -35,10 +35,10 @@ export function DesktopShell() {
   const scopeLabel = period.mode === "month" ? `${monthLabel(period.month)} 2026` : "Año 2026";
 
   return (
-    <div className="lx-desktop min-h-screen w-full justify-center p-6" style={{ background: "#05080b" }}>
-      <div className="w-full max-w-[1640px] bg-bg border border-border-strong rounded-[14px] overflow-hidden flex flex-col relative" style={{ boxShadow: "var(--shadow-lg)", height: "calc(100vh - 48px)" }}>
+    <div className="lx-desktop w-full" style={{ background: "var(--bg)" }}>
+      <div className="w-full overflow-hidden flex flex-col relative" style={{ height: "100vh" }}>
         {/* Header */}
-        <div className="flex items-end justify-between px-6 pt-[18px] pb-4 border-b border-border gap-4 flex-wrap">
+        <div className="flex items-end justify-between px-6 pt-3 pb-3 border-b border-border gap-4 flex-wrap">
           <div>
             <div className="text-[0.62rem] font-bold tracking-[0.18em] text-fg-muted">LEDGER</div>
             <div className="text-[1.4rem] font-[450] text-fg mt-1 tracking-[-0.02em]">Presupuesto 2026</div>
@@ -46,7 +46,7 @@ export function DesktopShell() {
           <div className="flex items-center gap-3">
             <Tabs value={view} onValueChange={(v) => setView(v as View)}>
               <TabsList>
-                <TabsTrigger value="budget">Budget</TabsTrigger>
+                <TabsTrigger value="budget">Resumen</TabsTrigger>
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -97,6 +97,7 @@ export function DesktopShell() {
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 min-w-0 flex flex-col mt-3.5">
             {view === "budget" ? <BudgetGrid /> : <Dashboard />}
+            {view === "budget" && <GridFooter />}
           </div>
           {panel && (
             <div className="w-[360px] flex-shrink-0 border-l border-border bg-card px-5 py-4 overflow-y-auto lx-scroll" style={{ animation: "slideIn 0.3s var(--ease-snap)" }}>
@@ -118,15 +119,31 @@ export function DesktopShell() {
   );
 }
 
+/** FR-107: pie de ayuda de la grilla + leyenda de meses (solo escritorio). Sin mención a reparto (D-4). */
+function GridFooter() {
+  return (
+    <div className="px-6 py-3 border-t border-border text-[0.66rem] text-fg-muted leading-[1.7] flex-none">
+      <div>
+        Clic en una celda <b className="text-fg-secondary font-medium">Pres.</b> o <b className="text-fg-secondary font-medium">Ejec.</b> para editar
+        {" · "}Pasa el cursor sobre una fila para <b className="text-fg-secondary font-medium">agregar</b>, <b className="text-fg-secondary font-medium">renombrar</b> o <b className="text-fg-secondary font-medium">eliminar</b>
+        {" · "}Arrastra el borde de la columna para ampliarla.
+      </div>
+      <div>
+        <b className="text-fg-secondary font-medium">Ene–May</b> ejecutado · <b className="text-fg-secondary font-medium">Jun</b> en curso · <b className="text-fg-secondary font-medium">Jul–Dic</b> proyectado.
+      </div>
+    </div>
+  );
+}
+
 function LegendDot({ fill, border }: { fill?: string; border?: boolean }) {
   return <span className="inline-block w-[9px] h-[9px] rounded-[2px]" style={{ background: fill ?? "var(--bg-elevated)", border: border ? "1px solid var(--border-hover)" : undefined }} />;
 }
 
 function Kpi({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
   return (
-    <div className="flex-1 min-w-[200px] border border-border rounded-[--radius-md] bg-card px-4 py-[13px]">
+    <div className="flex-1 min-w-[200px] border border-border rounded-[--radius-md] bg-card px-3.5 py-[9px]">
       <div className="text-[0.6rem] tracking-[0.1em] text-fg-muted mb-[7px]">{label}</div>
-      <div className="text-[1.35rem] font-light tracking-[-0.02em]" style={{ color }}>{value}</div>
+      <div className="text-[1.35rem] font-light tracking-[-0.02em] tabular-nums" style={{ color }}>{value}</div>
       {sub && <div className="text-[0.64rem] text-fg-muted mt-[5px]">{sub}</div>}
     </div>
   );

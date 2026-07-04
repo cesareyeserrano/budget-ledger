@@ -20,7 +20,7 @@ interface LedgerStore {
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
-  deleteNode: (id: string) => "ok" | "group_not_empty";
+  deleteNode: (id: string) => "ok" | "group_not_empty" | "has_data";
   moveNode: (id: string, dest: { kind: "category" | "group"; id: string }) => "ok" | "cross_type" | "invalid_target";
   setLeafAmount: (leafId: string, month: MonthKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
@@ -43,7 +43,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   return {
     data: buildSeed(OWNER),
     hydrated: false,
-    period: { mode: "month", month: currentMonth() },
+    // FR-106: arrancar en 'Año' agrega todo el ejecutado del año, así los KPIs no abren en $0
+    // (el mes actual puede ser un mes proyectado sin ejecutado). El usuario cambia el filtro libremente.
+    period: { mode: "year" },
     toast: null,
     showToast: (msg) => {
       set({ toast: msg });

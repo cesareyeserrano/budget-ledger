@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Fira_Code } from "next/font/google";
+import { Lexend } from "next/font/google";
 import "./globals.css";
 
 // next/font descarga y AUTO-ALOJA la fuente en build; en runtime se sirve local — sin peticiones a Google (NFR-004, BG-001).
-const firaCode = Fira_Code({
+// FR-109: Lexend (sans, más legible que el mono Fira Code) en toda la app; cifras con tabular-nums (globals.css).
+const lexend = Lexend({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-fira-code",
+  variable: "--font-lexend",
   display: "swap",
 });
 
@@ -23,7 +24,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={firaCode.variable}>
+    <html lang="es" className={lexend.variable}>
       <body>{children}</body>
     </html>
   );

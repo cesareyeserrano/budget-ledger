@@ -1,0 +1,400 @@
+{
+  "project_name": "Ledger — Feature: grid-ux",
+  "project_summary": "Feature de pulido de la página de presupuesto (escritorio, FR-006) del proyecto Ledger + un cambio de tipografía global. Alcance final confirmado con el usuario: (A) capacidades/arreglos de la grilla: crear GRUPO desde la grilla (hoy sin UI), '+' inline en grupo/categoría, controles de fila (+/✎/🗑) revelados en hover de forma fiable y bien alineados, y columna de categorías redimensionable con ancho recordado en localStorage (hoy fija 240px con recorte). (B) pulido de la página: tab 'Budget'→'Resumen' (UI en español, P1), período por defecto que muestra datos ejecutados (P2), pie de ayuda + leyenda de meses (P3), conector '└' en subcategorías (P4). (C) tipografía: reemplazar el mono Fira Code por Lexend + números tabulares en toda la app (token global; self-hosted, sin CDN). NO se cambia la paleta (se conserva el acento steel-blue #4a7fa5 y los tokens de color del sistema César Augusto). North Star: construir/ajustar toda la jerarquía sin salir de la grilla, leer nombres largos ampliando la columna, y una tipografía más legible. Guardrail: NO romper edición inline de hojas, borrado→'Sin asignar', reparent drag-drop, roll-up ≤150ms, ni la vista móvil. Solo escritorio para la grilla; la tipografía es global.",
+  "functional_requirements": [
+    {
+      "id": "FR-101",
+      "title": "Crear grupo desde la grilla (adder '+ Nuevo grupo' por tipo)",
+      "description": "En escritorio, al final de la sección de cada tipo (Gasto/Ingreso/Transferencia) se muestra una fila adder '+ Nuevo grupo'. Al pulsarla se crea un grupo nuevo bajo ese tipo mediante createNode(level:'group') y se inicia la edición en línea de su nombre. Hoy existen los adders de categoría (bajo grupo) y de subcategoría (bajo categoría) pero NO el de grupo, por lo que crear un grupo no tiene entrada de UI.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, bajo la última fila de la sección GASTOS aparece una fila '+ Nuevo grupo'; al pulsarla se crea un grupo de tipo expense y su nombre entra en edición en línea (input con autofocus) (happy)",
+        "Al confirmar el nombre (Enter), el grupo queda en la jerarquía de ese tipo y ofrece su propio adder '+ Nueva categoría' (edge)",
+        "Existe exactamente 1 fila '+ Nuevo grupo' por cada uno de los 3 tipos (3 en total) y ninguna aparece anidada dentro de un grupo o categoría (negativo)"
+      ]
+    },
+    {
+      "id": "FR-102",
+      "title": "Botón '+' inline para agregar hijo en filas de grupo y categoría",
+      "description": "Cada fila de grupo (no-system) y de categoría (no-system) muestra, junto a los controles ✎/🗑, un botón '+' (ícono Lucide Plus, no emoji) que agrega un hijo del nivel correspondiente: '+' en un grupo crea una categoría hija; '+' en una categoría crea una subcategoría hija. Usa createNode con el parentId de la fila, expande el padre e inicia la edición en línea del nombre. La categoría 'Sin asignar' (system) NO expone '+'. Complementa (no reemplaza) los adders de fila '+ Nueva categoría/subcategoría'.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, al pulsar el '+' inline de un grupo se crea una categoría hija, el grupo se expande y el nombre entra en edición en línea (happy)",
+        "Al pulsar el '+' inline de una categoría-hoja se crea exactamente 1 subcategoría hija (edge)",
+        "La categoría 'Sin asignar' (system) muestra 0 botones '+' inline (negativo)"
+      ]
+    },
+    {
+      "id": "FR-103",
+      "title": "Controles de fila fiables en hover, bien alineados (íconos SVG, sin emoji)",
+      "description": "Los controles de fila (+ agregar hijo, ✎ renombrar, 🗑 borrar) se revelan al pasar el cursor sobre la fila y permanecen accionables mientras el cursor está en CUALQUIER punto de la fila, incluida el área de los botones (el estado de hover vive en la fila entera, no solo en el texto), sin desaparecer al mover el mouse del nombre al botón. Se alinean a la derecha de la columna de categoría sin empujar el nombre ni desbordar. Íconos Lucide (Plus/Pencil/Trash2), nunca emoji (FR-012). El flujo de borrado en línea (🗑 → ✓/✗) sigue funcionando. Alcanzables por teclado con foco visible.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, al posicionar el cursor sobre una fila de categoría editable, los controles +/✎/🗑 se muestran y permanecen visibles mientras el cursor está en cualquier punto de la fila, incluidos los botones (happy)",
+        "Al pulsar 🗑 aparece la confirmación en línea (✓/✗) sin que los controles se pierdan por perder el hover; ✓ borra y ✗ cancela (edge)",
+        "Los controles usan íconos SVG Lucide (no emoji, 0 caracteres emoji en el DOM de la fila) y se alinean a la derecha dentro de la columna (240px) sin recortar el nombre ni desbordar la fila (scrollWidth de la fila ≤ ancho visible) (negativo/layout)"
+      ]
+    },
+    {
+      "id": "FR-104",
+      "title": "Columna de categorías redimensionable con ancho persistido",
+      "description": "La columna de categoría (hoy fija LABEL_W=240px) se redimensiona arrastrando una manija en su borde derecho con el mouse. El ancho se limita a [180px, 480px] y aplica a todas las filas (encabezado, tipos, nodos, adders) y a la posición sticky. El ancho elegido se guarda en localStorage bajo una clave dedicada (independiente de las claves de datos) y se restaura al recargar. Si la clave está ausente o corrupta, se usa el default 240px sin romper. La manija respeta el sistema de diseño (cursor col-resize, borde de acento al hover/arrastre, sin relleno).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Al arrastrar la manija del borde derecho de la columna, su ancho cambia en vivo y se aplica a todas las filas manteniendo la columna sticky (happy)",
+        "El ancho se limita a [180px, 480px]: arrastrar por debajo de 180 fija 180 y por encima de 480 fija 480 (edge/boundary)",
+        "Tras elegir un ancho (p.ej. 360px) y recargar la página, la columna reabre con 360px leído de localStorage (edge — persistencia)",
+        "Con la clave de ancho ausente o con valor no numérico/corrupto, la columna abre con el default 240px sin lanzar excepción (negativo/corrupción)"
+      ]
+    },
+    {
+      "id": "FR-105",
+      "title": "Etiquetas de UI en español (tab 'Budget' → 'Resumen')",
+      "description": "La navegación de escritorio usa etiquetas en español, según la constraint de UI en español del proyecto. En concreto, la pestaña 'Budget' (hoy en inglés, DesktopShell.tsx) se renombra a 'Resumen'. Se revisan las etiquetas visibles de la página de presupuesto para que ninguna quede en inglés (excepto términos aceptados como marca/'Ledger'). No cambia el valor interno del estado (view='budget'), solo el texto visible.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px (escritorio), la pestaña que hoy dice 'Budget' muestra el texto exacto 'Resumen' en la barra de navegación (happy)",
+        "A 1440px, ninguna etiqueta visible de la página de presupuesto queda en inglés salvo la marca 'Ledger' (negativo)"
+      ]
+    },
+    {
+      "id": "FR-106",
+      "title": "Período por defecto que muestra datos ejecutados",
+      "description": "Al primer arranque, la página de presupuesto abre en un período que muestra datos ejecutados, para que los KPIs (Ejecutado, Disponible) no aparezcan en $0. Hoy abre en el mes actual (Julio), que es proyectado (ejecutado=0). El default pasa a ser el modo 'Año' (agrega todo el ejecutado del año) — o, si se prefiere mes, el último mes con ejecutado > 0. El usuario puede seguir cambiando el filtro Mes/Año libremente.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al primer arranque, el KPI 'Ejecutado' muestra un valor > 0 (no $0) porque el período por defecto incluye meses con ejecutado (happy)",
+        "El usuario puede cambiar a cualquier mes (incluido uno proyectado con ejecutado 0) y los KPIs reflejan ese período (edge)",
+        "El período por defecto no es un mes proyectado con ejecutado 0 (negativo — evita la pantalla 'vacía' inicial)"
+      ]
+    },
+    {
+      "id": "FR-107",
+      "title": "Pie de ayuda de la grilla + leyenda de meses",
+      "description": "Bajo la grilla de escritorio se muestra un pie de ayuda (footer) que explica las interacciones y el estado de los datos, como en el mockup: (1) una línea de ayuda de interacción — 'Clic en una celda Pres./Ejec. para editar · Pasa el cursor sobre una fila para agregar/renombrar/eliminar · Arrastra el borde de la columna para ampliarla'; (2) la leyenda de meses — 'Ene–May ejecutado · Jun en curso · Jul–Dic proyectado'. NO incluye la línea del mockup sobre 'reparte el monto entre subcategorías' (esa función fue eliminada en D-4). Solo escritorio.",
+      "priority": "SHOULD",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px (escritorio), bajo la grilla aparece un pie con la línea de ayuda de interacción y la leyenda de meses (happy)",
+        "El pie contiene 0 menciones de reparto/distribución del monto entre subcategorías (negativo — función eliminada D-4)",
+        "A 375px (móvil) el pie no está presente en el DOM visible (edge)"
+      ]
+    },
+    {
+      "id": "FR-108",
+      "title": "Conector '└' en filas de subcategoría",
+      "description": "Las filas de subcategoría muestran un conector de árbol '└' (o equivalente visual, p.ej. el ícono Lucide CornerDownRight ya usado) que las relaciona visualmente con su categoría padre, como en el mockup. Ajuste de fidelidad menor; no cambia comportamiento.",
+      "priority": "SHOULD",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, cada fila de subcategoría muestra un conector '└' a la izquierda de su nombre, con indentación de 16px por nivel de profundidad (happy)",
+        "Grupos y categorías muestran 0 conectores '└' (negativo)"
+      ]
+    },
+    {
+      "id": "FR-109",
+      "title": "Tipografía: Lexend + números tabulares (reemplaza Fira Code), self-hosted",
+      "description": "Se reemplaza la tipografía mono Fira Code por Lexend en toda la UI del producto (token global --font, aplica a escritorio y móvil, todas las superficies). Las cifras (montos en KPIs, grilla, dashboard, recientes) usan números tabulares (font-variant-numeric: tabular-nums) para mantener la alineación vertical propia de un libro contable. La fuente Lexend se sirve SELF-HOSTED (archivos en el proyecto), sin peticiones a Google Fonts u otro CDN (respeta NFR-004/BG-001: cero fuentes externas en runtime). NO cambia la paleta ni los demás tokens del sistema César Augusto (colores, espaciado, bordes-sobre-rellenos, sin emoji/gradientes). Modifica el aspecto tipográfico de FR-012.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "El token de fuente global resuelve a 'Lexend' (no 'Fira Code'); el texto de la app se renderiza en Lexend en escritorio y móvil (happy)",
+        "Las cifras de montos usan font-variant-numeric: tabular-nums y quedan alineadas por columna en la grilla (edge)",
+        "No se realiza ninguna petición HTTP externa para cargar la fuente en runtime; los archivos de Lexend se sirven desde el propio proyecto (negativo — self-hosted, NFR-004)",
+        "Se conservan los tokens de color exactos del sistema (--bg #080c12, --primary #4a7fa5, --success #10b981, --warning #f59e0b, --error #ef4444) sin cambios (invariante — no se cambia la paleta)",
+        "El contraste del texto primario (--fg #e8edf5) sobre el fondo (--bg #080c12) con Lexend se mantiene ≥ 4.5:1 (accesibilidad)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-101",
+      "category": "Regression",
+      "requirement": "La edición inline de celdas-hoja de la grilla (FR-006) sigue funcionando sin cambios: clic en celda-hoja abre input, Enter confirma, Escape cancela, y los nodos padre no son editables.",
+      "acceptance_criteria": "Tras la feature, clic en una celda Pres./Ejec. de una subcategoría abre el editor; Enter fija el valor y Escape lo cancela; clic en una celda de nodo padre no abre editor"
+    },
+    {
+      "id": "NFR-102",
+      "category": "Regression",
+      "requirement": "El borrado→'Sin asignar' (FR-003, incl. el fix BG-003) y el reparent por arrastrar-y-soltar (FR-015) siguen funcionando; el nuevo '+' inline y la manija de resize NO interfieren con el arrastre de nodos ni con el drop-target.",
+      "acceptance_criteria": "Tras la feature: borrar una categoría con ejecutado la mueve a 'Sin asignar' (cero huérfanos); arrastrar una subcategoría sobre otra categoría la reubica; el resize/'+' no dispara un drag de nodo accidental"
+    },
+    {
+      "id": "NFR-103",
+      "category": "Regression",
+      "requirement": "El roll-up jerárquico sigue reflejándose en ≤150ms al editar una hoja; el resize de columna y el nuevo render de controles no degradan la grilla.",
+      "acceptance_criteria": "Editar una hoja refleja los ancestros en ≤150ms tras la feature; redimensionar la columna no bloquea ni ralentiza perceptiblemente la grilla"
+    },
+    {
+      "id": "NFR-104",
+      "category": "Regression",
+      "requirement": "La vista móvil (v1, solo módulo de registro, FR-010) sigue mostrando únicamente el registro; los controles de grilla, '+' inline, resize y pie de ayuda son de escritorio. La nueva tipografía Lexend SÍ aplica en móvil (token global) sin romper el layout del registro.",
+      "acceptance_criteria": "A 375px la app muestra solo el módulo de registro (sin grilla/controles/pie); el módulo de registro renderiza sin desborde con la fuente Lexend"
+    },
+    {
+      "id": "NFR-105",
+      "category": "Regression",
+      "requirement": "La persistencia de datos (jerarquía/budgets/actuals/movements) no se corrompe por la nueva clave de ancho de columna; la clave de ancho es independiente y su ausencia/corrupción cae al default 240px sin afectar la carga de datos.",
+      "acceptance_criteria": "Los datos existentes se conservan idénticos tras usar el resize; con la clave de ancho corrupta la grilla usa 240px sin afectar la carga de datos ni lanzar excepción"
+    },
+    {
+      "id": "NFR-106",
+      "category": "Regression",
+      "requirement": "El sistema de diseño César Augusto (FR-012) se mantiene salvo el cambio tipográfico declarado: se conservan los tokens de color exactos, bordes-sobre-rellenos, y la regla de cero emoji/gradientes; no se introduce ninguna fuente externa en runtime (NFR-004).",
+      "acceptance_criteria": "Los CSS custom properties de color coinciden con los tokens de la spec; no se renderiza emoji/gradiente; no hay petición HTTP externa de fuentes en runtime; el contraste de texto primario sobre fondo se mantiene ≥4.5:1 con Lexend"
+    }
+  ],
+  "no_go_zone": [
+    "Cambiar la PALETA de colores — el usuario decidió conservar el acento steel-blue #4a7fa5 y los tokens de color del sistema César Augusto; SOLO cambia la tipografía",
+    "Diferenciar los niveles de jerarquía por color de FONDO/tono — DESCARTADO por el usuario; los niveles se distinguen por indentación + ícono + peso de texto",
+    "Reordenar por POSICIÓN (sort dentro de un mismo padre) — sigue fuera de v1 (no_go_zone del proyecto padre)",
+    "Arrastrar/crear GRUPOS o TIPOS por drag-and-drop — el '+'/adder agregan grupos por botón, no por arrastre; el arrastre sigue siendo solo reparent de categorías/subcategorías",
+    "Cualquier cambio de comportamiento en la vista MÓVIL — solo aplica la tipografía global; la grilla y sus controles siguen siendo de escritorio",
+    "Fuentes vía CDN/Google Fonts — Lexend se sirve self-hosted (NFR-004/BG-001); cero fuentes externas en runtime",
+    "Cambiar el formulario de movimiento a un panel acoplado (mockup) — es un cambio de layout mayor, fuera de esta feature"
+  ],
+  "constraints": [
+    "La grilla y sus controles viven en src/components/BudgetGrid.tsx (escritorio); FR-105/106 tocan DesktopShell.tsx; FR-109 toca el token global de fuente (globals.css / layout) y aplica a toda la app",
+    "Stack existente: Next.js 15, React 19, Tailwind v4, Zustand, TypeScript; se reutiliza createNode/renameNode del dominio (sin cambios de dominio)",
+    "Sistema de diseño César Augusto (FR-012): se conserva TODO salvo la familia tipográfica (Fira Code→Lexend); bordes sobre rellenos, sin gradientes/emoji, tokens de color exactos, íconos Lucide de línea",
+    "Lexend self-hosted (archivos de fuente en el proyecto), sin peticiones externas en runtime (NFR-004)",
+    "El ancho de columna persiste en una clave de localStorage nueva y versionada, independiente de las claves de datos",
+    "Moneda COP, idioma UI español (FR-105 corrige una etiqueta en inglés)"
+  ],
+  "technology_preferences": [
+    "React 19 + Zustand (estado de UI local para ancho de columna, hover, período por defecto)",
+    "localStorage para persistir el ancho de la columna (clave dedicada)",
+    "Tailwind CSS v4 + tokens del sistema (color sin cambios; fuente Lexend self-hosted vía next/font/local o @font-face local)",
+    "Lucide (íconos de línea; Plus/Pencil/Trash2 — sin emoji)"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales (single-user), en escritorio",
+      "tech_level": "mid",
+      "goal": "Construir y ajustar toda su jerarquía (grupo→categoría→subcategoría) sin salir de la grilla, leer nombres largos ampliando la columna, y una UI legible con etiquetas en español y datos visibles al arrancar",
+      "pain_point": "Hoy no puede crear un grupo desde la grilla, no tiene '+' inline, los controles de hover son frágiles, la columna fina recorta los nombres, una etiqueta está en inglés, el arranque muestra $0 ejecutado, y la fuente mono es densa"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-101",
+      "requirement_id": "FR-101",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "crear un grupo nuevo desde la grilla",
+      "so_that": "no me quedo sin forma de agregar un grupo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-101",
+          "given": "la sección GASTOS",
+          "when": "pulso '+ Nuevo grupo'",
+          "then": "se crea un grupo de gasto y su nombre entra en edición"
+        }
+      ]
+    },
+    {
+      "id": "US-102",
+      "requirement_id": "FR-102",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "un '+' inline en grupos y categorías",
+      "so_that": "agrego hijos sin buscar la fila adder",
+      "acceptance_criteria": [
+        {
+          "id": "AC-102",
+          "given": "una fila de grupo con el cursor encima",
+          "when": "pulso el '+' inline",
+          "then": "se crea una categoría hija, el grupo se expande y el nombre entra en edición"
+        }
+      ]
+    },
+    {
+      "id": "US-103",
+      "requirement_id": "FR-103",
+      "as_a": "usuario de la grilla",
+      "i_want": "controles +/✎/🗑 fiables en hover",
+      "so_that": "renombro, agrego o borro sin que el botón desaparezca",
+      "acceptance_criteria": [
+        {
+          "id": "AC-103",
+          "given": "una fila editable",
+          "when": "muevo el cursor del nombre al botón 🗑",
+          "then": "los controles permanecen visibles y 🗑 abre la confirmación"
+        }
+      ]
+    },
+    {
+      "id": "US-104",
+      "requirement_id": "FR-104",
+      "as_a": "usuario en escritorio",
+      "i_want": "arrastrar el borde de la columna y que recuerde el ancho",
+      "so_that": "leo nombres largos sin recorte y no reajusto cada carga",
+      "acceptance_criteria": [
+        {
+          "id": "AC-104",
+          "given": "la columna de categorías",
+          "when": "arrastro su manija a 360px y recargo",
+          "then": "reabre con 360px de localStorage"
+        }
+      ]
+    },
+    {
+      "id": "US-105",
+      "requirement_id": "FR-105",
+      "as_a": "usuario hispanohablante",
+      "i_want": "las etiquetas en español",
+      "so_that": "la UI es coherente en idioma",
+      "acceptance_criteria": [
+        {
+          "id": "AC-105",
+          "given": "la barra de navegación",
+          "when": "la observo",
+          "then": "la pestaña dice 'Resumen', no 'Budget'"
+        }
+      ]
+    },
+    {
+      "id": "US-106",
+      "requirement_id": "FR-106",
+      "as_a": "usuario que abre la app",
+      "i_want": "ver datos ejecutados al arrancar",
+      "so_that": "la página no se ve vacía en $0",
+      "acceptance_criteria": [
+        {
+          "id": "AC-106",
+          "given": "el primer arranque",
+          "when": "veo el KPI 'Ejecutado'",
+          "then": "muestra un valor > 0 (período por defecto con datos)"
+        }
+      ]
+    },
+    {
+      "id": "US-107",
+      "requirement_id": "FR-107",
+      "as_a": "usuario de la grilla",
+      "i_want": "un pie con ayuda y leyenda de meses",
+      "so_that": "entiendo las interacciones y el estado de los datos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-107",
+          "given": "la grilla en escritorio",
+          "when": "miro bajo la grilla",
+          "then": "veo la ayuda de interacción y la leyenda Ene–May/Jun/Jul–Dic"
+        }
+      ]
+    },
+    {
+      "id": "US-109",
+      "requirement_id": "FR-109",
+      "as_a": "usuario y revisor",
+      "i_want": "una tipografía más legible (Lexend) con cifras alineadas",
+      "so_that": "leo cómodamente sin la densidad del mono",
+      "acceptance_criteria": [
+        {
+          "id": "AC-109",
+          "given": "la app cargada",
+          "when": "inspecciono la fuente",
+          "then": "resuelve a Lexend self-hosted, cifras tabulares, sin petición externa de fuente"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Reportado por el usuario en chat (temas de la grilla + pulido general + tipografía) y verificado contra el código y el mockup",
+    "users": "Usuario principal del proyecto padre (dueño de finanzas, escritorio); confirmado",
+    "baseline": "Grilla actual FR-006 (BudgetGrid.tsx) + DesktopShell.tsx + sistema de diseño FR-012 (Fira Code) + mockup idea_context",
+    "success_metric": "Usuario confirmó vía preguntas: 4 temas de grilla; pulido P1–P4; tipografía Lexend + tabular; SIN cambio de paleta",
+    "no_go_zone": "Usuario confirmó: sin cambio de paleta; sin backgrounds por nivel; solo escritorio (salvo fuente global); fuente self-hosted; resto hereda del proyecto"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Crear un GRUPO desde la grilla (hoy sin UI)",
+      "disposition": "FR-101"
+    },
+    {
+      "need": "Botón '+' inline para agregar categoría/subcategoría",
+      "disposition": "FR-102"
+    },
+    {
+      "need": "Controles de fila (+/✎/🗑) fiables en hover y bien posicionados; íconos que faltan",
+      "disposition": "FR-103"
+    },
+    {
+      "need": "Columna de categorías redimensionable con el mouse",
+      "disposition": "FR-104"
+    },
+    {
+      "need": "Recordar el ancho de la columna al recargar",
+      "disposition": "FR-104"
+    },
+    {
+      "need": "Etiqueta 'Budget' en inglés → español (P1)",
+      "disposition": "FR-105"
+    },
+    {
+      "need": "Período por defecto muestra $0 ejecutado (P2)",
+      "disposition": "FR-106"
+    },
+    {
+      "need": "Falta el pie de ayuda/leyenda de la grilla (P3)",
+      "disposition": "FR-107"
+    },
+    {
+      "need": "Conector '└' en subcategorías (P4)",
+      "disposition": "FR-108"
+    },
+    {
+      "need": "Cambiar la tipografía por una más acorde (Lexend)",
+      "disposition": "FR-109"
+    },
+    {
+      "need": "No romper edición inline de hojas (FR-006)",
+      "disposition": "NFR-101"
+    },
+    {
+      "need": "No romper borrado→'Sin asignar' ni reparent (FR-003/015)",
+      "disposition": "NFR-102"
+    },
+    {
+      "need": "No degradar el roll-up ≤150ms (NFR-001)",
+      "disposition": "NFR-103"
+    },
+    {
+      "need": "No alterar el comportamiento móvil (FR-010)",
+      "disposition": "NFR-104"
+    },
+    {
+      "need": "No corromper la persistencia (FR-011)",
+      "disposition": "NFR-105"
+    },
+    {
+      "need": "Conservar el resto del sistema de diseño / sin fuentes externas (FR-012/NFR-004)",
+      "disposition": "NFR-106"
+    },
+    {
+      "need": "Cambiar la paleta de colores",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Diferenciar niveles por color de fondo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Formulario de movimiento como panel acoplado",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nPulido de UX de la grilla de presupuesto (escritorio): controles de fila fiables, capacidad de agregar completa (grupo/categoría/subcategoría) desde la grilla, y columna de categorías redimensionable con ancho recordado.\n\n## Problem / Why\nLa grilla de presupuesto (FR-006) tiene fricciones de UX confirmadas contra el mockup/uso real:\n1. **No se puede crear un GRUPO nuevo desde la grilla.** Existen los adders \"+ Nueva categoría\" (bajo grupo) y \"+ Nueva subcategoría\" (bajo categoría), pero falta el adder \"+ Nuevo grupo\" por tipo. Crear un grupo no tiene entrada de UI.\n2. **Falta el \"+\" inline** para agregar un hijo directamente en la fila de un grupo (→ categoría) o de una categoría (→ subcategoría). Hoy en hover solo aparecen ✎ (renombrar) y 🗑 (borrar).\n3. **Los controles de hover son frágiles** de accionar (el ✎/🗑 solo aparece al pasar el mouse y es difícil de alcanzar sin perder el hover), y quedan mal alineados.\n4. **La columna de categorías es fija (240px)** con recorte por ellipsis: los nombres largos quedan ocultos y no hay forma de ampliarla.\n\n## Target Users\nUsuario principal — dueño de sus finanzas personales — en **escritorio** (donde vive la grilla). No afecta la vista móvil (solo registro).\n\n## New Behavior\n- The system must ofrecer un adder **\"+ Nuevo grupo\"** al final de cada sección de tipo (Gasto/Ingreso/Transferencia) que crea un grupo nuevo bajo ese tipo e inicia su renombrado en línea.\n- The system must mostrar un botón **\"+\" inline** en la fila de cada grupo (agrega una categoría hija) y de cada categoría no-system (agrega una subcategoría hija), junto a los controles ✎/🗑, que crea el hijo e inicia su renombrado.\n- The system must revelar los controles de fila (**+ agregar hijo, ✎ renombrar, 🗑 borrar**) al pasar el cursor sobre la fila de forma **fiable** (se mantienen accionables mientras el cursor está sobre la fila) y alineados a la derecha de la columna de categoría.\n- The system must permitir **redimensionar el ancho de la columna de categorías** arrastrando una manija en su borde derecho (mínimo ~180px, máximo ~480px), y **recordar** el ancho elegido en localStorage para que persista al recargar.\n\n## Success Criteria\n- Given la grilla en escritorio, when el usuario pulsa \"+ Nuevo grupo\" bajo el tipo Gasto, then aparece un grupo nuevo bajo Gasto con su nombre en edición en línea, y al confirmar queda disponible como padre para categorías.\n- Given una fila de grupo o categoría, when el usuario pasa el cursor y pulsa el \"+\" inline, then se crea un hijo (categoría o subcategoría según el nivel) con su nombre en edición en línea, y el padre se expande.\n- Given una fila editable, when el usuario pasa el cursor sobre ella, then los controles +/✎/🗑 se muestran y permanecen accionables (clic en 🗑 abre la confirmación en línea sin perderse) mientras el cursor está sobre la fila.\n- Given la columna de categorías, when el usuario arrastra su borde derecho, then el ancho cambia en vivo dentro de [180px, 480px]; y when recarga la página, then el ancho elegido se conserva.\n\n## Touch Points\n- **MODIFICA** `src/components/BudgetGrid.tsx` (grilla): filas de nodo, adders, controles de hover, y el ancho de la columna de categoría (hoy constante `LABEL_W = w-[240px]`).\n- **MODIFICA (extiende) FR-006** (grilla de presupuesto en escritorio) y **FR-002** (CRUD de jerarquía — habilita crear grupo desde la grilla, que hoy no tiene UI).\n- **USA FR-011 / persistencia** (localStorage) para recordar el ancho de la columna (clave nueva, no toca las claves de datos existentes).\n- No toca dominio (`mutations.ts` ya expone `createNode` para los tres niveles) salvo que el diseño lo requiera.\n\n## Must Not Break (Regression Boundary)\n- FR-006: la **edición inline de celdas-hoja** (Pres./Ejec., Enter confirma / Escape cancela) sigue funcionando igual.\n- FR-002/003/015: **CRUD, borrado→\"Sin asignar\" y reparent por drag-and-drop** siguen funcionando; el nuevo \"+\" inline y el resize no interfieren con el arrastre de nodos.\n- NFR-001: editar una hoja sigue reflejando roll-ups en **≤150ms**; el resize de columna no degrada el render.\n- FR-010: la **vista móvil (solo registro)** no se altera — este cambio es solo de escritorio.\n- FR-011 / NFR-003: la persistencia de datos (jerarquía/budgets/actuals/movements) **no se corrompe**; la clave de ancho es independiente y su ausencia/corrupción cae al default 240px sin romper.\n- FR-012: se respeta el sistema de diseño (bordes sobre rellenos, sin gradientes/emoji, tokens exactos); la manija de resize usa el estilo del sistema.\n\n## Out of Scope\n- **Backgrounds/tonos por nivel de jerarquía** — descartado explícitamente por el usuario; los niveles se siguen distinguiendo por indentación + ícono + peso de texto.\n- Reordenar por posición (sort) y arrastrar grupos/tipos — sigue fuera de v1 (no_go_zone del proyecto).\n- Cualquier cambio en la vista móvil.\n- Ampliar el set de íconos de categoría más allá del actual (el selector de íconos existente se conserva).\n"
+}

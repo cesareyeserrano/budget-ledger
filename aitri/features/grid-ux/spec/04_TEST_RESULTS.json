@@ -1,0 +1,432 @@
+{
+  "executed_at": "2026-07-03T16:36:56.182Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "results": [
+    {
+      "tc_id": "TC-201h",
+      "status": "pass",
+      "notes": "✓  16 [chromium] › tests/e2e/grid-ux.spec.ts:20:5 › TC-201h: '+ Nuevo grupo' crea un grupo del tipo y abre rename inline (171ms)"
+    },
+    {
+      "tc_id": "TC-201e",
+      "status": "pass",
+      "notes": "✓  17 [chromium] › tests/e2e/grid-ux.spec.ts:28:5 › TC-201e: al confirmar el nombre, el grupo queda y ofrece '+ Nueva categoría' (223ms)"
+    },
+    {
+      "tc_id": "TC-201f",
+      "status": "pass",
+      "notes": "✓  18 [chromium] › tests/e2e/grid-ux.spec.ts:39:5 › TC-201f: existe exactamente 1 '+ Nuevo grupo' por tipo (3), no anidado (138ms)"
+    },
+    {
+      "tc_id": "TC-202h",
+      "status": "pass",
+      "notes": "✓  19 [chromium] › tests/e2e/grid-ux.spec.ts:46:5 › TC-202h: '+' inline en grupo crea categoría hija y abre rename (250ms)"
+    },
+    {
+      "tc_id": "TC-202e",
+      "status": "pass",
+      "notes": "✓  20 [chromium] › tests/e2e/grid-ux.spec.ts:55:5 › TC-202e: '+' inline en categoría-hoja crea una subcategoría (253ms)"
+    },
+    {
+      "tc_id": "TC-202f",
+      "status": "pass",
+      "notes": "✓  21 [chromium] › tests/e2e/grid-ux.spec.ts:64:5 › TC-202f: la categoría 'Sin asignar' (system) muestra 0 botones '+' (315ms)"
+    },
+    {
+      "tc_id": "TC-203h",
+      "status": "pass",
+      "notes": "✓  22 [chromium] › tests/e2e/grid-ux.spec.ts:80:5 › TC-203h: hover muestra +/✎/🗑 y siguen accionables (194ms)"
+    },
+    {
+      "tc_id": "TC-203e",
+      "status": "pass",
+      "notes": "✓  23 [chromium] › tests/e2e/grid-ux.spec.ts:90:5 › TC-203e: 🗑 abre confirmación inline ✓/✗ y ✗ cancela (296ms)"
+    },
+    {
+      "tc_id": "TC-203f",
+      "status": "pass",
+      "notes": "✓  24 [chromium] › tests/e2e/grid-ux.spec.ts:101:5 › TC-203f: controles son SVG (0 emoji) (192ms)"
+    },
+    {
+      "tc_id": "TC-204h",
+      "status": "pass",
+      "notes": "✓  25 [chromium] › tests/e2e/grid-ux.spec.ts:112:5 › TC-204h: arrastrar la manija cambia el ancho de la columna (295ms)"
+    },
+    {
+      "tc_id": "TC-204e",
+      "status": "pass",
+      "notes": "✓  26 [chromium] › tests/e2e/grid-ux.spec.ts:127:5 › TC-204e: el ancho persiste tras recargar (localStorage) (200ms)"
+    },
+    {
+      "tc_id": "TC-204f",
+      "status": "pass",
+      "notes": "✓ tests/domain/gridWidth.test.ts > FR-104 ancho de columna persistido > TC-204f: clave ausente o corrupta → default 240 sin excepción 1ms"
+    },
+    {
+      "tc_id": "TC-205h",
+      "status": "pass",
+      "notes": "✓  27 [chromium] › tests/e2e/grid-ux.spec.ts:139:5 › TC-205h: la pestaña muestra 'Resumen' (no 'Budget') (146ms)"
+    },
+    {
+      "tc_id": "TC-205e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-205e\" so it appears on stdout (e.g. test_TC_205e_description, # @aitri-tc TC-205e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-205e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-205f",
+      "status": "pass",
+      "notes": "✓  28 [chromium] › tests/e2e/grid-ux.spec.ts:146:5 › TC-205f: no aparece 'Budget' en ninguna etiqueta visible (151ms)"
+    },
+    {
+      "tc_id": "TC-206h",
+      "status": "pass",
+      "notes": "✓  29 [chromium] › tests/e2e/grid-ux.spec.ts:153:5 › TC-206h: al arrancar, el KPI 'Ejecutado' es > 0 (159ms)"
+    },
+    {
+      "tc_id": "TC-206e",
+      "status": "pass",
+      "notes": "✓ tests/domain/period-default.test.ts > FR-106 período por defecto > TC-206e: el período inicial del store es {mode:'year'} 1ms"
+    },
+    {
+      "tc_id": "TC-206f",
+      "status": "pass",
+      "notes": "✓  30 [chromium] › tests/e2e/grid-ux.spec.ts:165:5 › TC-206f: el arranque no abre en un mes proyectado con Ejecutado $0 (156ms)"
+    },
+    {
+      "tc_id": "TC-207h",
+      "status": "pass",
+      "notes": "✓  31 [chromium] › tests/e2e/grid-ux.spec.ts:173:5 › TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses (162ms)"
+    },
+    {
+      "tc_id": "TC-207e",
+      "status": "pass",
+      "notes": "✓  32 [chromium] › tests/e2e/grid-ux.spec.ts:180:5 › TC-207e: el pie no se renderiza a 375px (móvil) (146ms)"
+    },
+    {
+      "tc_id": "TC-207f",
+      "status": "pass",
+      "notes": "✓  33 [chromium] › tests/e2e/grid-ux.spec.ts:186:5 › TC-207f: el pie no menciona reparto/distribución (D-4) (146ms)"
+    },
+    {
+      "tc_id": "TC-208h",
+      "status": "pass",
+      "notes": "✓  34 [chromium] › tests/e2e/grid-ux.spec.ts:193:5 › TC-208h: las subcategorías muestran el conector (CornerDownRight) (225ms)"
+    },
+    {
+      "tc_id": "TC-208e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-208e\" so it appears on stdout (e.g. test_TC_208e_description, # @aitri-tc TC-208e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-208e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-208f",
+      "status": "pass",
+      "notes": "✓  35 [chromium] › tests/e2e/grid-ux.spec.ts:203:5 › TC-208f: grupos y categorías no comparten el ícono de conector de subs (176ms)"
+    },
+    {
+      "tc_id": "TC-209h",
+      "status": "pass",
+      "notes": "✓  36 [chromium] › tests/e2e/grid-ux.spec.ts:212:5 › TC-209h: la fuente global resuelve a Lexend (no Fira Code) (155ms)"
+    },
+    {
+      "tc_id": "TC-209e",
+      "status": "pass",
+      "notes": "✓  37 [chromium] › tests/e2e/grid-ux.spec.ts:219:5 › TC-209e: las cifras de la grilla usan tabular-nums (179ms)"
+    },
+    {
+      "tc_id": "TC-209f",
+      "status": "pass",
+      "notes": "✓  38 [chromium] › tests/e2e/grid-ux.spec.ts:227:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (577ms)"
+    },
+    {
+      "tc_id": "TC-210h",
+      "status": "pass",
+      "notes": "✓  40 [chromium] › tests/e2e/grid-ux.spec.ts:257:5 › TC-210h: (regresión) editar celda-hoja: Enter fija el valor (291ms)"
+    },
+    {
+      "tc_id": "TC-210e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-210e\" so it appears on stdout (e.g. test_TC_210e_description, # @aitri-tc TC-210e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-210e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-210f",
+      "status": "pass",
+      "notes": "✓  41 [chromium] › tests/e2e/grid-ux.spec.ts:270:5 › TC-210f: (regresión) una celda de nodo padre no abre editor (232ms)"
+    },
+    {
+      "tc_id": "TC-211h",
+      "status": "pass",
+      "notes": "✓  42 [chromium] › tests/e2e/grid-ux.spec.ts:278:5 › TC-211h: (regresión) borrar categoría con ejecutado → 'Sin asignar' (319ms)"
+    },
+    {
+      "tc_id": "TC-211e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-211e\" so it appears on stdout (e.g. test_TC_211e_description, # @aitri-tc TC-211e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-211e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-211f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-211f\" so it appears on stdout (e.g. test_TC_211f_description, # @aitri-tc TC-211f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-211f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-212h",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-212h\" so it appears on stdout (e.g. test_TC_212h_description, # @aitri-tc TC-212h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-212h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-212e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-212e\" so it appears on stdout (e.g. test_TC_212e_description, # @aitri-tc TC-212e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-212e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-212f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-212f\" so it appears on stdout (e.g. test_TC_212f_description, # @aitri-tc TC-212f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-212f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-213h",
+      "status": "pass",
+      "notes": "✓  43 [chromium] › tests/e2e/grid-ux.spec.ts:288:5 › TC-213h: (regresión) a 375px se muestra solo el registro (sin grilla) (127ms)"
+    },
+    {
+      "tc_id": "TC-213e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-213e\" so it appears on stdout (e.g. test_TC_213e_description, # @aitri-tc TC-213e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-213e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-213f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-213f\" so it appears on stdout (e.g. test_TC_213f_description, # @aitri-tc TC-213f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-213f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-214h",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-214h\" so it appears on stdout (e.g. test_TC_214h_description, # @aitri-tc TC-214h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-214h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-214e",
+      "status": "pass",
+      "notes": "✓ tests/domain/gridWidth.test.ts > FR-104 ancho de columna persistido > TC-214e: la clave de ancho es independiente de las claves de datos 0ms"
+    },
+    {
+      "tc_id": "TC-214f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-214f\" so it appears on stdout (e.g. test_TC_214f_description, # @aitri-tc TC-214f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-214f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-215h",
+      "status": "pass",
+      "notes": "✓  44 [chromium] › tests/e2e/grid-ux.spec.ts:296:5 › TC-215h: (regresión) sin emoji ni gradiente en la página (132ms)"
+    },
+    {
+      "tc_id": "TC-215e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-215e\" so it appears on stdout (e.g. test_TC_215e_description, # @aitri-tc TC-215e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-215e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-215f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-215f\" so it appears on stdout (e.g. test_TC_215f_description, # @aitri-tc TC-215f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-215f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-101",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-102",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-103",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-104",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-105",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-106",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-107",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-108",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-109",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-101",
+      "fr_id": "FR-101",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-102",
+      "fr_id": "FR-102",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 2,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-103",
+      "fr_id": "FR-103",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-104",
+      "fr_id": "FR-104",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 5,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-105",
+      "fr_id": "FR-105",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-106",
+      "fr_id": "FR-106",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-107",
+      "fr_id": "FR-107",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 1,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-109",
+      "fr_id": "FR-109",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 4,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 45,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 14,
+    "skipped_e2e": 14,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "status": "error",
+      "exit_code": null
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "› TC-215h: (regresión) sin emoji ni gradiente en la página (143ms)\n  ✓  42 [chromium] › tests/e2e/grid-ux.spec.ts:278:5 › TC-211h: (regresión) borrar categoría con ejecutado → 'Sin asignar' (341ms)\n  ✓  38 [chromium] › tests/e2e/grid-ux.spec.ts:227:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (584ms)\n  ✓  46 [chromium] › tests/e2e/reparent.spec.ts:44:5 › TC-015f: el destino de otro tipo no reubica (jerarquía intacta) (482ms)\n  ✓  45 [chromium] › tests/e2e/reparent.spec.ts:27:5 › TC-015h: arrastrar una subcategoría sobre otra categoría la reubica (2.1s)\n\n  46 passed (12.4s)"
+    }
+  ]
+}

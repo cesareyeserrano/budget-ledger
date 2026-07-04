@@ -71,7 +71,9 @@
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --font-mono: var(--font-fira-code), "Fira Code", "Courier New", monospace;
+  /* FR-109: la familia global ahora es Lexend (sans). Se conserva el nombre --font-mono
+     para no tocar todas las referencias; su valor apunta a Lexend + fallback sans. */
+  --font-mono: var(--font-lexend), "Lexend", system-ui, -apple-system, sans-serif;
 }
 
 * {
