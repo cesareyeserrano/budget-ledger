@@ -114,7 +114,7 @@ export function BudgetGrid() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
-      <div className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
+      <div className="lx-scroll overflow-auto flex-1 px-6" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
         <div className="w-max min-w-full text-[0.74rem]">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
