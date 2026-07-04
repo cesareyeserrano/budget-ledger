@@ -20,17 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.0.0-rc.145",
+  "aitriVersion": "2.0.0-rc.148",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-03T00:31:51.115Z",
+  "updatedAt": "2026-07-04T00:48:32.504Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-02T11:57:59.317Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-07-02T11:58:04.552Z",
       "event": "approved",
@@ -163,13 +158,21 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-04T00:48:32.469Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "7feb883e485d7d0fe297a1acfb5f272723548978a624d8e8a44def9236421115",
+      "after_hash": "8f3ca2b78bb99ab2009ba769d7af59b3860a427a6b376b992fdfb95fe89a6dc4"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
     "2": "dcad55de71702eae9cf5f894aa4e7c764a066820acd9245879ecac81a5a28563",
-    "3": "7feb883e485d7d0fe297a1acfb5f272723548978a624d8e8a44def9236421115",
+    "3": "8f3ca2b78bb99ab2009ba769d7af59b3860a427a6b376b992fdfb95fe89a6dc4",
     "4": "13ed2bee5b4ad0b486d9644e5bb9c85702c5ed436a7a1d54b98600673c4da535",
     "5": "7b74263e13240a1927e4f4db4a9f34db254a14cdf952960ac5a3da458ec7f50f",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",

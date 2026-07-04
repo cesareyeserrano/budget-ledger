@@ -1,62 +1,62 @@
 {
-  "executed_at": "2026-07-03T16:36:56.182Z",
+  "executed_at": "2026-07-04T00:46:41.217Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "results": [
     {
       "tc_id": "TC-201h",
       "status": "pass",
-      "notes": "✓  16 [chromium] › tests/e2e/grid-ux.spec.ts:20:5 › TC-201h: '+ Nuevo grupo' crea un grupo del tipo y abre rename inline (171ms)"
+      "notes": "✓  16 [chromium] › tests/e2e/grid-ux.spec.ts:20:5 › TC-201h: el '+' en hover del TIPO crea un grupo y abre rename inline (676ms)"
     },
     {
       "tc_id": "TC-201e",
       "status": "pass",
-      "notes": "✓  17 [chromium] › tests/e2e/grid-ux.spec.ts:28:5 › TC-201e: al confirmar el nombre, el grupo queda y ofrece '+ Nueva categoría' (223ms)"
+      "notes": "✓  17 [chromium] › tests/e2e/grid-ux.spec.ts:29:5 › TC-201e: al confirmar el nombre, el grupo nuevo queda en la jerarquía (717ms)"
     },
     {
       "tc_id": "TC-201f",
       "status": "pass",
-      "notes": "✓  18 [chromium] › tests/e2e/grid-ux.spec.ts:39:5 › TC-201f: existe exactamente 1 '+ Nuevo grupo' por tipo (3), no anidado (138ms)"
+      "notes": "✓  18 [chromium] › tests/e2e/grid-ux.spec.ts:41:5 › TC-201f: no hay filas adder persistentes; el '+' de grupo vive en el tipo (629ms)"
     },
     {
       "tc_id": "TC-202h",
       "status": "pass",
-      "notes": "✓  19 [chromium] › tests/e2e/grid-ux.spec.ts:46:5 › TC-202h: '+' inline en grupo crea categoría hija y abre rename (250ms)"
+      "notes": "✓  19 [chromium] › tests/e2e/grid-ux.spec.ts:55:5 › TC-202h: '+' inline en grupo crea categoría hija y abre rename (641ms)"
     },
     {
       "tc_id": "TC-202e",
       "status": "pass",
-      "notes": "✓  20 [chromium] › tests/e2e/grid-ux.spec.ts:55:5 › TC-202e: '+' inline en categoría-hoja crea una subcategoría (253ms)"
+      "notes": "✓  20 [chromium] › tests/e2e/grid-ux.spec.ts:64:5 › TC-202e: '+' inline en categoría-hoja crea una subcategoría (648ms)"
     },
     {
       "tc_id": "TC-202f",
       "status": "pass",
-      "notes": "✓  21 [chromium] › tests/e2e/grid-ux.spec.ts:64:5 › TC-202f: la categoría 'Sin asignar' (system) muestra 0 botones '+' (315ms)"
+      "notes": "✓  21 [chromium] › tests/e2e/grid-ux.spec.ts:73:5 › TC-202f: un nodo NO borrable no muestra 🗑 (categoría con datos, grupo con hijos) (578ms)"
     },
     {
       "tc_id": "TC-203h",
       "status": "pass",
-      "notes": "✓  22 [chromium] › tests/e2e/grid-ux.spec.ts:80:5 › TC-203h: hover muestra +/✎/🗑 y siguen accionables (194ms)"
+      "notes": "✓  22 [chromium] › tests/e2e/grid-ux.spec.ts:85:5 › TC-203h: hover muestra los controles (renombrar/agregar) accionables (403ms)"
     },
     {
       "tc_id": "TC-203e",
       "status": "pass",
-      "notes": "✓  23 [chromium] › tests/e2e/grid-ux.spec.ts:90:5 › TC-203e: 🗑 abre confirmación inline ✓/✗ y ✗ cancela (296ms)"
+      "notes": "✓  23 [chromium] › tests/e2e/grid-ux.spec.ts:93:5 › TC-203e: 🗑 en una categoría vacía abre confirmación ✓/✗ y ✗ cancela (866ms)"
     },
     {
       "tc_id": "TC-203f",
       "status": "pass",
-      "notes": "✓  24 [chromium] › tests/e2e/grid-ux.spec.ts:101:5 › TC-203f: controles son SVG (0 emoji) (192ms)"
+      "notes": "✓  24 [chromium] › tests/e2e/grid-ux.spec.ts:108:5 › TC-203f: los controles son SVG (0 emoji) (519ms)"
     },
     {
       "tc_id": "TC-204h",
       "status": "pass",
-      "notes": "✓  25 [chromium] › tests/e2e/grid-ux.spec.ts:112:5 › TC-204h: arrastrar la manija cambia el ancho de la columna (295ms)"
+      "notes": "✓  25 [chromium] › tests/e2e/grid-ux.spec.ts:119:5 › TC-204h: arrastrar la manija cambia el ancho de la columna (573ms)"
     },
     {
       "tc_id": "TC-204e",
       "status": "pass",
-      "notes": "✓  26 [chromium] › tests/e2e/grid-ux.spec.ts:127:5 › TC-204e: el ancho persiste tras recargar (localStorage) (200ms)"
+      "notes": "✓  26 [chromium] › tests/e2e/grid-ux.spec.ts:134:5 › TC-204e: el ancho persiste tras recargar (localStorage) (536ms)"
     },
     {
       "tc_id": "TC-204f",
@@ -66,7 +66,7 @@
     {
       "tc_id": "TC-205h",
       "status": "pass",
-      "notes": "✓  27 [chromium] › tests/e2e/grid-ux.spec.ts:139:5 › TC-205h: la pestaña muestra 'Resumen' (no 'Budget') (146ms)"
+      "notes": "✓  27 [chromium] › tests/e2e/grid-ux.spec.ts:146:5 › TC-205h: la pestaña muestra 'Resumen' (no 'Budget') (403ms)"
     },
     {
       "tc_id": "TC-205e",
@@ -76,12 +76,12 @@
     {
       "tc_id": "TC-205f",
       "status": "pass",
-      "notes": "✓  28 [chromium] › tests/e2e/grid-ux.spec.ts:146:5 › TC-205f: no aparece 'Budget' en ninguna etiqueta visible (151ms)"
+      "notes": "✓  28 [chromium] › tests/e2e/grid-ux.spec.ts:153:5 › TC-205f: no aparece 'Budget' en ninguna etiqueta visible (347ms)"
     },
     {
       "tc_id": "TC-206h",
       "status": "pass",
-      "notes": "✓  29 [chromium] › tests/e2e/grid-ux.spec.ts:153:5 › TC-206h: al arrancar, el KPI 'Ejecutado' es > 0 (159ms)"
+      "notes": "✓  29 [chromium] › tests/e2e/grid-ux.spec.ts:160:5 › TC-206h: al arrancar, el KPI 'Ejecutado' es > 0 (662ms)"
     },
     {
       "tc_id": "TC-206e",
@@ -91,27 +91,27 @@
     {
       "tc_id": "TC-206f",
       "status": "pass",
-      "notes": "✓  30 [chromium] › tests/e2e/grid-ux.spec.ts:165:5 › TC-206f: el arranque no abre en un mes proyectado con Ejecutado $0 (156ms)"
+      "notes": "✓  30 [chromium] › tests/e2e/grid-ux.spec.ts:172:5 › TC-206f: el arranque no abre en un mes proyectado con Ejecutado $0 (702ms)"
     },
     {
       "tc_id": "TC-207h",
       "status": "pass",
-      "notes": "✓  31 [chromium] › tests/e2e/grid-ux.spec.ts:173:5 › TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses (162ms)"
+      "notes": "✓  31 [chromium] › tests/e2e/grid-ux.spec.ts:180:5 › TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses (657ms)"
     },
     {
       "tc_id": "TC-207e",
       "status": "pass",
-      "notes": "✓  32 [chromium] › tests/e2e/grid-ux.spec.ts:180:5 › TC-207e: el pie no se renderiza a 375px (móvil) (146ms)"
+      "notes": "✓  32 [chromium] › tests/e2e/grid-ux.spec.ts:187:5 › TC-207e: el pie no se renderiza a 375px (móvil) (598ms)"
     },
     {
       "tc_id": "TC-207f",
       "status": "pass",
-      "notes": "✓  33 [chromium] › tests/e2e/grid-ux.spec.ts:186:5 › TC-207f: el pie no menciona reparto/distribución (D-4) (146ms)"
+      "notes": "✓  33 [chromium] › tests/e2e/grid-ux.spec.ts:193:5 › TC-207f: el pie no menciona reparto/distribución (D-4) (619ms)"
     },
     {
       "tc_id": "TC-208h",
       "status": "pass",
-      "notes": "✓  34 [chromium] › tests/e2e/grid-ux.spec.ts:193:5 › TC-208h: las subcategorías muestran el conector (CornerDownRight) (225ms)"
+      "notes": "✓  34 [chromium] › tests/e2e/grid-ux.spec.ts:200:5 › TC-208h: las subcategorías muestran el conector (CornerDownRight) (747ms)"
     },
     {
       "tc_id": "TC-208e",
@@ -121,27 +121,27 @@
     {
       "tc_id": "TC-208f",
       "status": "pass",
-      "notes": "✓  35 [chromium] › tests/e2e/grid-ux.spec.ts:203:5 › TC-208f: grupos y categorías no comparten el ícono de conector de subs (176ms)"
+      "notes": "✓  35 [chromium] › tests/e2e/grid-ux.spec.ts:210:5 › TC-208f: grupos y categorías no comparten el ícono de conector de subs (684ms)"
     },
     {
       "tc_id": "TC-209h",
       "status": "pass",
-      "notes": "✓  36 [chromium] › tests/e2e/grid-ux.spec.ts:212:5 › TC-209h: la fuente global resuelve a Lexend (no Fira Code) (155ms)"
+      "notes": "✓  36 [chromium] › tests/e2e/grid-ux.spec.ts:219:5 › TC-209h: la fuente global resuelve a Lexend (no Fira Code) (638ms)"
     },
     {
       "tc_id": "TC-209e",
       "status": "pass",
-      "notes": "✓  37 [chromium] › tests/e2e/grid-ux.spec.ts:219:5 › TC-209e: las cifras de la grilla usan tabular-nums (179ms)"
+      "notes": "✓  37 [chromium] › tests/e2e/grid-ux.spec.ts:226:5 › TC-209e: las cifras de la grilla usan tabular-nums (645ms)"
     },
     {
       "tc_id": "TC-209f",
       "status": "pass",
-      "notes": "✓  38 [chromium] › tests/e2e/grid-ux.spec.ts:227:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (577ms)"
+      "notes": "✓  38 [chromium] › tests/e2e/grid-ux.spec.ts:234:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (1.0s)"
     },
     {
       "tc_id": "TC-210h",
       "status": "pass",
-      "notes": "✓  40 [chromium] › tests/e2e/grid-ux.spec.ts:257:5 › TC-210h: (regresión) editar celda-hoja: Enter fija el valor (291ms)"
+      "notes": "✓  40 [chromium] › tests/e2e/grid-ux.spec.ts:264:5 › TC-210h: (regresión) editar celda-hoja: Enter fija el valor (610ms)"
     },
     {
       "tc_id": "TC-210e",
@@ -151,12 +151,12 @@
     {
       "tc_id": "TC-210f",
       "status": "pass",
-      "notes": "✓  41 [chromium] › tests/e2e/grid-ux.spec.ts:270:5 › TC-210f: (regresión) una celda de nodo padre no abre editor (232ms)"
+      "notes": "✓  41 [chromium] › tests/e2e/grid-ux.spec.ts:277:5 › TC-210f: (regresión) una celda de nodo padre no abre editor (375ms)"
     },
     {
       "tc_id": "TC-211h",
       "status": "pass",
-      "notes": "✓  42 [chromium] › tests/e2e/grid-ux.spec.ts:278:5 › TC-211h: (regresión) borrar categoría con ejecutado → 'Sin asignar' (319ms)"
+      "notes": "✓  42 [chromium] › tests/e2e/grid-ux.spec.ts:285:5 › TC-211h: (regresión) categoría con datos NO borrable; una vacía SÍ se borra (842ms)"
     },
     {
       "tc_id": "TC-211e",
@@ -186,7 +186,7 @@
     {
       "tc_id": "TC-213h",
       "status": "pass",
-      "notes": "✓  43 [chromium] › tests/e2e/grid-ux.spec.ts:288:5 › TC-213h: (regresión) a 375px se muestra solo el registro (sin grilla) (127ms)"
+      "notes": "✓  43 [chromium] › tests/e2e/grid-ux.spec.ts:303:5 › TC-213h: (regresión) a 375px se muestra solo el registro (sin grilla) (290ms)"
     },
     {
       "tc_id": "TC-213e",
@@ -216,7 +216,7 @@
     {
       "tc_id": "TC-215h",
       "status": "pass",
-      "notes": "✓  44 [chromium] › tests/e2e/grid-ux.spec.ts:296:5 › TC-215h: (regresión) sin emoji ni gradiente en la página (132ms)"
+      "notes": "✓  44 [chromium] › tests/e2e/grid-ux.spec.ts:311:5 › TC-215h: (regresión) sin emoji ni gradiente en la página (412ms)"
     },
     {
       "tc_id": "TC-215e",
@@ -426,7 +426,7 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "output": "› TC-215h: (regresión) sin emoji ni gradiente en la página (143ms)\n  ✓  42 [chromium] › tests/e2e/grid-ux.spec.ts:278:5 › TC-211h: (regresión) borrar categoría con ejecutado → 'Sin asignar' (341ms)\n  ✓  38 [chromium] › tests/e2e/grid-ux.spec.ts:227:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (584ms)\n  ✓  46 [chromium] › tests/e2e/reparent.spec.ts:44:5 › TC-015f: el destino de otro tipo no reubica (jerarquía intacta) (482ms)\n  ✓  45 [chromium] › tests/e2e/reparent.spec.ts:27:5 › TC-015h: arrastrar una subcategoría sobre otra categoría la reubica (2.1s)\n\n  46 passed (12.4s)"
+      "output": "atos NO borrable; una vacía SÍ se borra (1.5s)\n  ✓  45 [chromium] › tests/e2e/grid-ux.spec.ts:326:5 › TC-216: clic en el ícono de una categoría abre el selector y lo cambia (534ms)\n  ✓  46 [chromium] › tests/e2e/grid-ux.spec.ts:338:5 › TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo (582ms)\n  ✓  48 [chromium] › tests/e2e/reparent.spec.ts:44:5 › TC-015f: el destino de otro tipo no reubica (jerarquía intacta) (709ms)\n  ✓  47 [chromium] › tests/e2e/reparent.spec.ts:27:5 › TC-015h: arrastrar una subcategoría sobre otra categoría la reubica (2.5s)\n\n  48 passed (21.8s)"
     }
   ]
 }
