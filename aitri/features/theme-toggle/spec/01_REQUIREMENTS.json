@@ -1,0 +1,295 @@
+{
+  "project_name": "Ledger — Feature: theme-toggle",
+  "project_summary": "Rediseño del sistema de color de Ledger a un esquema NEUTRO (zinc) + ACENTO DINÁMICO por tipo, con temas CLARO y OSCURO conmutables (default = Sistema, sigue prefers-color-scheme) vía next-themes. Reemplaza el sistema César Augusto steel-blue dark-only (FR-012) y el mapeo de color por tipo (FR-008: Transferencia pasa de steel a azul). El usuario proporcionó los tokens exactos (autoritativos): CLARO bg #FFFFFF/surface #F4F4F5/primary #18181B/text #18181B-#52525B/border #E4E4E7/error #DC2626; OSCURO bg #09090B/surface #18181B/primary #FAFAFA/text #FAFAFA-#A1A1AA/border #27272A/error #F87171; tipos Gasto #DC2626-#EF4444, Ingreso #16A34A-#22C55E, Transferencia #2563EB-#3B82F6 (claro-oscuro). Acento dinámico = color del tipo activo SOLO en Registro (chrome de Presupuesto/Dashboard = neutro primary zinc). Instala el stack de soporte (next-themes, react-day-picker, @testing-library/react) — el USO de react-day-picker/@testing-library es de features posteriores. North Star: sistema de diseño profesional, accesible AA en ambos temas, sin romper ninguna funcionalidad ni el layout. Solo cambia color/tema.",
+  "functional_requirements": [
+    {
+      "id": "FR-201",
+      "title": "Temas claro/oscuro con next-themes (default Sistema, persistente)",
+      "description": "La app soporta tema claro y oscuro mediante next-themes con attribute='class' (clase .dark en <html>), envuelta en un ThemeProvider en el layout. Default = 'system' (sigue prefers-color-scheme del SO). La preferencia elegida por el usuario persiste en localStorage (clave propia de next-themes, 'theme'), independiente de las claves de datos. Sin flash de tema incorrecto en la hidratación (suppressHydrationWarning + estrategia estándar de next-themes). Sin peticiones de red.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con el SO en oscuro y sin preferencia guardada, al abrir la app el <html> tiene la clase 'dark' y el fondo es #09090B (happy)",
+        "Con el SO en claro y sin preferencia, el fondo es #FFFFFF y no hay clase 'dark' (edge)",
+        "La preferencia se guarda en la clave 'theme' de localStorage, distinta de las claves de datos (ledger.*) (negativo — aislamiento)",
+        "No se realiza ninguna petición HTTP externa por el theming en runtime (negativo — NFR-004)"
+      ]
+    },
+    {
+      "id": "FR-202",
+      "title": "Tokens de color theme-aware (paleta zinc neutra, spec exacta)",
+      "description": "Los CSS custom properties de color se definen por tema: set claro en :root (o .light) y set oscuro en .dark, con los HEX exactos de la especificación del usuario. Reemplaza los tokens César Augusto. Roles: background, surface, surface-hover, primary, text-primary, text-secondary, text-muted, border, border-strong, border-hover, error, y accent (dinámico, ver FR-203). Todas las superficies que hoy usan --bg/--fg/--accent/etc. resuelven a los nuevos tokens según el tema activo.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "En tema claro, --background=#FFFFFF, --surface=#F4F4F5, --primary=#18181B, --text-primary=#18181B, --text-secondary=#52525B, --border=#E4E4E7, --error=#DC2626 (happy)",
+        "En tema oscuro (.dark), --background=#09090B, --surface=#18181B, --primary=#FAFAFA, --text-primary=#FAFAFA, --text-secondary=#A1A1AA, --border=#27272A, --error=#F87171 (edge)",
+        "No queda ningún token steel-blue del sistema anterior (--primary #4a7fa5, --bg #080c12) en el CSS resuelto (negativo)"
+      ]
+    },
+    {
+      "id": "FR-203",
+      "title": "Acento dinámico = color del tipo activo (Registro); chrome neutro en Presupuesto/Dashboard",
+      "description": "El 'accent' es dinámico: es el color del TIPO activo. Aplica SOLO donde hay un tipo activo — la pantalla de Registro (MovementForm): el selector de tipo, el estado de foco y los chips reflejan el color del tipo seleccionado (Gasto rojo / Ingreso verde / Transferencia azul). En Presupuesto y Dashboard NO hay un tipo activo único: el chrome (tabs, botones, filtros, foco) usa el color NEUTRO 'primary' (zinc). La acción principal (Guardar/Nuevo movimiento) es neutra (primary) para no competir con los colores semánticos.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En Registro con tipo=Gasto, el acento (selector/foco/chip activo) usa el color de Gasto (#DC2626 claro / #EF4444 oscuro); al cambiar a Ingreso pasa a verde; a Transferencia, azul (happy)",
+        "A 1440px en Presupuesto, el chrome (tabs Resumen/Dashboard, botón 'Nuevo movimiento', filtro Mes/Año) usa el color neutro primary (zinc), no un color de tipo (edge)",
+        "El botón de acción principal no usa un color de tipo como relleno (negativo — neutro)"
+      ]
+    },
+    {
+      "id": "FR-204",
+      "title": "Color por tipo (Gasto rojo / Ingreso verde / Transferencia azul), AA en ambos temas",
+      "description": "Cada tipo tiene su color de identidad, con variante clara y oscura (AA ≥4.5:1): Gasto #DC2626/#EF4444, Ingreso #16A34A/#22C55E, Transferencia #2563EB/#3B82F6. Reemplaza el mapeo actual (typeColorVar: transfer = accent-light steel). Aplica a filas de tipo de la grilla, signos/varianza, chips y selectores según el tipo. La semántica de varianza (Gasto sobre-presupuesto = error; Ingreso favorable/bajo; Transferencia neutra) se conserva usando los nuevos colores.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "En tema claro, la fila del tipo Transferencia usa azul #2563EB (no el steel-blue anterior); Gasto #DC2626; Ingreso #16A34A (happy)",
+        "En tema oscuro, los tipos usan las variantes #EF4444/#22C55E/#3B82F6 (edge)",
+        "El contraste de cada color de tipo como texto sobre el fondo del tema es ≥4.5:1 (negativo/AA)"
+      ]
+    },
+    {
+      "id": "FR-205",
+      "title": "Toggle de tema (claro/oscuro/sistema) en la UI",
+      "description": "Un control de tema visible en la UI (escritorio y móvil) permite elegir Claro, Oscuro o Sistema. Refleja el estado actual y aplica el cambio al instante; la elección persiste. Ícono Lucide (Sun/Moon/Monitor), sin emoji. Accesible por teclado con foco visible.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, el toggle está visible en la barra de navegación y al elegir 'Oscuro' el <html> gana la clase 'dark' (happy)",
+        "A 375px (móvil) el toggle está accesible en la vista de registro (edge)",
+        "Al recargar tras elegir 'Claro', la app sigue en claro (persistencia) (negativo/persistencia)"
+      ]
+    },
+    {
+      "id": "FR-206",
+      "title": "Instalar el stack de soporte (next-themes, react-day-picker, @testing-library/react)",
+      "description": "Se agregan al package.json y se instalan: next-themes (usado por esta feature), react-day-picker y @testing-library/react (fundación del stack; su USO es de features posteriores). No se introduce ninguna petición externa en runtime.",
+      "priority": "SHOULD",
+      "type": "logic",
+      "acceptance_criteria": [
+        "package.json incluye next-themes, react-day-picker y @testing-library/react como dependencias (happy)",
+        "El build de producción compila con las nuevas deps sin errores (edge)",
+        "react-day-picker no se importa en runtime todavía (solo instalado) (negativo — sin uso aún)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-201",
+      "category": "Regression",
+      "requirement": "Toda la funcionalidad existente (registro, grilla, edición inline de hojas, borrado bloqueado, reparent drag-drop, dashboard, responsive móvil) sigue funcionando idéntica tras el cambio de tema — solo cambia el color.",
+      "acceptance_criteria": "Los TCs existentes (grilla, reparent, registro, dashboard, móvil) siguen pasando en ambos temas; ninguna interacción cambia de comportamiento"
+    },
+    {
+      "id": "NFR-202",
+      "category": "Regression",
+      "requirement": "La persistencia de datos (jerarquía/budgets/actuals/movements) no se ve afectada; la preferencia de tema vive en una clave independiente ('theme').",
+      "acceptance_criteria": "Tras cambiar de tema y recargar, los datos se conservan idénticos; la clave 'theme' no colisiona con ledger.*"
+    },
+    {
+      "id": "NFR-203",
+      "category": "Regression",
+      "requirement": "Accesibilidad: el contraste de texto primario y secundario es ≥4.5:1 (AA) en AMBOS temas; el foco visible se conserva.",
+      "acceptance_criteria": "text-primary y text-secondary sobre background alcanzan ≥4.5:1 en claro y oscuro; :focus-visible sigue visible en ambos"
+    },
+    {
+      "id": "NFR-204",
+      "category": "Regression",
+      "requirement": "Sin peticiones HTTP externas en runtime: next-themes no hace red; la fuente Lexend sigue self-hosted; sin CDN.",
+      "acceptance_criteria": "0 peticiones externas al cargar o cambiar de tema"
+    },
+    {
+      "id": "NFR-205",
+      "category": "Regression",
+      "requirement": "Sin regresión de layout: la grilla alineada (px-6 en contenedor), la columna sticky, el full-bleed y el espaciado se conservan — solo cambia color/tema.",
+      "acceptance_criteria": "A 1440px la grilla mantiene alineación con KPIs y sticky; a 375px solo registro; sin desborde; el cambio de tema no altera posiciones"
+    }
+  ],
+  "no_go_zone": [
+    "USO de react-day-picker (captura por fecha) — es la feature siguiente 'date-capture'; aquí solo se instala la dependencia",
+    "Tests de componente con @testing-library/react — se agregan cuando toque; aquí solo la dep",
+    "Selector de 'tipo activo' en Presupuesto/Dashboard — el chrome ahí es NEUTRO (no hay tipo activo); no se agrega UI de selección de tipo",
+    "Rediseño de layout, tipografía o espaciado — se conservan (Lexend, full-bleed, grilla); esta feature SOLO cambia el color/tema",
+    "Modo de alto contraste u otros temas adicionales más allá de claro/oscuro/sistema — fuera de alcance"
+  ],
+  "constraints": [
+    "next-themes con attribute='class', defaultTheme='system', enableSystem; ThemeProvider en el layout con suppressHydrationWarning",
+    "Tokens de color EXACTOS de la especificación del usuario (§4.1–4.3); derivados (surface-hover, border-strong/hover, text-muted, accent-soft) definidos en el UX spec, AA en ambos temas",
+    "Íconos Lucide (Sun/Moon/Monitor); sin emoji/gradientes; motion respeta prefers-reduced-motion",
+    "Stack: Next.js 15, React 19, Tailwind v4, Zustand, TypeScript; la fuente Lexend self-hosted se conserva (NFR-004)"
+  ],
+  "technology_preferences": [
+    "next-themes (tema claro/oscuro/sistema, attribute=class)",
+    "Tailwind CSS v4 + CSS custom properties theme-aware",
+    "Lucide (Sun/Moon/Monitor para el toggle)",
+    "react-day-picker y @testing-library/react instalados como fundación (sin uso en esta feature)"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales",
+      "tech_level": "mid",
+      "goal": "Usar la app en el tema que prefiera (o el del sistema), con una identidad de color clara por tipo de movimiento",
+      "pain_point": "Hoy la app es dark-only con un acento fijo; no respeta el modo claro del sistema ni distingue fuerte los tipos"
+    },
+    {
+      "role": "Revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Ver un sistema de diseño profesional, accesible AA en claro y oscuro, con tokens coherentes",
+      "pain_point": "Un solo tema y contraste no verificado en un segundo tema restan nivel profesional"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-201",
+      "requirement_id": "FR-201",
+      "as_a": "usuario con el SO en modo claro",
+      "i_want": "que la app abra en claro automáticamente",
+      "so_that": "es coherente con mi sistema",
+      "acceptance_criteria": [
+        {
+          "id": "AC-201",
+          "given": "SO en claro, sin preferencia previa",
+          "when": "abro la app",
+          "then": "arranca en tema claro (#FFFFFF)"
+        }
+      ]
+    },
+    {
+      "id": "US-203",
+      "requirement_id": "FR-203",
+      "as_a": "usuario registrando un movimiento",
+      "i_want": "que el acento siga el tipo que elijo",
+      "so_that": "identifico de inmediato Gasto/Ingreso/Transferencia por color",
+      "acceptance_criteria": [
+        {
+          "id": "AC-203",
+          "given": "el Registro con tipo Transferencia",
+          "when": "lo observo",
+          "then": "el acento del selector/foco es azul"
+        }
+      ]
+    },
+    {
+      "id": "US-205",
+      "requirement_id": "FR-205",
+      "as_a": "usuario",
+      "i_want": "un toggle para elegir claro/oscuro/sistema",
+      "so_that": "controlo el tema",
+      "acceptance_criteria": [
+        {
+          "id": "AC-205",
+          "given": "el toggle",
+          "when": "elijo Oscuro y recargo",
+          "then": "sigue en oscuro"
+        }
+      ]
+    },
+    {
+      "id": "US-202",
+      "requirement_id": "FR-202",
+      "as_a": "revisor técnico",
+      "i_want": "tokens de color por tema exactos",
+      "so_that": "el sistema es coherente y verificable",
+      "acceptance_criteria": [
+        {
+          "id": "AC-202",
+          "given": "tema oscuro",
+          "when": "leo --background",
+          "then": "es #09090B"
+        }
+      ]
+    },
+    {
+      "id": "US-204",
+      "requirement_id": "FR-204",
+      "as_a": "usuario",
+      "i_want": "cada tipo con su color (Transferencia azul)",
+      "so_that": "distingo los tipos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-204",
+          "given": "la fila Transferencia",
+          "when": "la veo",
+          "then": "es azul, no steel-blue"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Usuario en chat: 'nivel profesional', migración al stack + theme toggle + estilos; dark-only actual es la limitación",
+    "users": "Personas del proyecto padre (dueño de finanzas + revisor de portafolio); confirmado",
+    "baseline": "Sistema César Augusto actual (dark-only, steel-blue, globals.css) como punto de partida a reemplazar",
+    "success_metric": "Usuario proporcionó la especificación de color exacta (§4.1–4.3) + decisiones: default=Sistema, acento dinámico Registro=tipo/chrome=neutro",
+    "no_go_zone": "Usuario confirmó vía preguntas: default Sistema; acento dinámico solo en Registro; react-day-picker solo instalar (uso después); sin cambiar layout/tipografía"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Tema claro/oscuro con default Sistema, persistente, sin flash",
+      "disposition": "FR-201"
+    },
+    {
+      "need": "Tokens de color zinc neutros exactos, theme-aware",
+      "disposition": "FR-202"
+    },
+    {
+      "need": "Acento dinámico = tipo activo (Registro); chrome neutro en Presupuesto/Dashboard",
+      "disposition": "FR-203"
+    },
+    {
+      "need": "Color por tipo Gasto rojo/Ingreso verde/Transferencia azul, AA ambos temas",
+      "disposition": "FR-204"
+    },
+    {
+      "need": "Toggle claro/oscuro/sistema en la UI",
+      "disposition": "FR-205"
+    },
+    {
+      "need": "Instalar next-themes, react-day-picker, @testing-library/react",
+      "disposition": "FR-206"
+    },
+    {
+      "need": "No romper funcionalidad existente",
+      "disposition": "NFR-201"
+    },
+    {
+      "need": "No tocar persistencia de datos; tema en clave aparte",
+      "disposition": "NFR-202"
+    },
+    {
+      "need": "Contraste AA en ambos temas",
+      "disposition": "NFR-203"
+    },
+    {
+      "need": "Sin peticiones externas",
+      "disposition": "NFR-204"
+    },
+    {
+      "need": "Sin regresión de layout",
+      "disposition": "NFR-205"
+    },
+    {
+      "need": "Uso de react-day-picker (captura por fecha)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Tests de componente con @testing-library",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Selector de tipo activo en Presupuesto/Dashboard",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nRediseño del sistema de color a un esquema **neutro (zinc) + acento dinámico por tipo**, con **temas claro y oscuro** conmutables (default = Sistema), reemplazando el sistema César Augusto steel-blue dark-only. Instala el stack de soporte (next-themes, react-day-picker, @testing-library/react).\n\n## Problem / Why\nEl producto es dark-only con un acento steel-blue fijo (FR-012). Para llevarlo a nivel profesional se requiere: (1) soporte de **tema claro/oscuro** que siga la preferencia del sistema, (2) una paleta **neutra zinc** que no compita con los colores semánticos, y (3) que el **color del tipo** (Gasto/Ingreso/Transferencia) sea la identidad cromática — el acento es dinámico según el tipo activo. El usuario proporcionó la especificación de color exacta (§4.1–4.3) — es autoritativa; se implementa verbatim.\n\n## Target Users\nUsuario principal (dueño de finanzas) en escritorio y móvil; el revisor técnico del portafolio (evalúa un sistema de diseño profesional, accesible AA en ambos temas).\n\n## New Behavior\n- The system must soportar **tema claro y oscuro** vía `next-themes` con `attribute=\"class\"`, **default = \"system\"** (sigue `prefers-color-scheme`); el usuario puede forzar claro/oscuro/sistema desde un **toggle** en la UI (escritorio y móvil).\n- The system must aplicar los **tokens de color exactos** de la especificación del usuario (ver Tokens), theme-aware (set claro en `:root`/`.light`, set oscuro en `.dark`), reemplazando los tokens César Augusto. Sin peticiones externas.\n- The system must usar el **acento dinámico = color del tipo activo** SOLO donde hay un tipo activo (pantalla de Registro: selector de tipo, foco, chips). En Presupuesto/Dashboard el **chrome es neutro** (`primary` zinc); cada tipo se colorea por fila/sección con su color de tipo.\n- The system must colorear cada **tipo** con su color en ambos temas (AA): Gasto rojo, Ingreso verde, **Transferencia azul** (ver §4.3), reemplazando el mapeo actual (transfer = accent-light steel).\n- The system must persistir la preferencia de tema (next-themes, clave propia) sin tocar las claves de datos.\n- The system must instalar `react-day-picker` y `@testing-library/react` como fundación del stack (su USO —captura por fecha, tests de componente— es de features posteriores; aquí solo se agregan las deps).\n\n## Tokens (especificación autoritativa del usuario — implementar verbatim)\n\n### 4.1 Tema CLARO\nbackground #FFFFFF · surface #F4F4F5 (zinc-100) · primary #18181B (zinc-900) · accent = dinámico (color del tipo activo) · error #DC2626 (red-600) · text-primary #18181B · text-secondary #52525B (zinc-600) · border #E4E4E7 (zinc-200).\n\n### 4.2 Tema OSCURO\nbackground #09090B (zinc-950) · surface #18181B (zinc-900) · primary #FAFAFA (zinc-50) · accent = dinámico (variante dark) · error #F87171 (red-400) · text-primary #FAFAFA · text-secondary #A1A1AA (zinc-400) · border #27272A (zinc-800).\n\n### 4.3 Colores de tipo (un color por tipo, AA en ambos temas)\nGasto: claro #DC2626 (red-600) / oscuro #EF4444 (red-500). Ingreso: claro #16A34A (green-600) / oscuro #22C55E (green-500). Transferencia: claro #2563EB (blue-600) / oscuro #3B82F6 (blue-500).\n\nDerivados a definir en el UX spec (por tema, todos AA): `surface-hover`, `border-strong`/`border-hover`, `text-muted`, y `accent-soft` (tinte del tipo para fondos de selección). La varianza de presupuesto (sobre/bajo) mapea a los colores de tipo/semánticos correspondientes.\n\n## Success Criteria\n- Given el SO en modo oscuro, when el usuario abre la app sin preferencia previa, then arranca en oscuro (zinc-950 fondo, §4.2); en SO claro arranca en claro (§4.1).\n- Given el toggle de tema, when el usuario elige Claro/Oscuro/Sistema, then el tema cambia y la preferencia persiste al recargar.\n- Given Registro con tipo=Gasto, when se observa el acento, then es el rojo de Gasto; al cambiar a Ingreso → verde; a Transferencia → azul.\n- Given Presupuesto/Dashboard, when se observa el chrome (tabs/botones/filtros), then es neutro (primary zinc, no un color de tipo).\n- Given cualquier texto primario/secundario en ambos temas, then el contraste es ≥4.5:1 (AA).\n\n## Touch Points\n- **REEMPLAZA FR-012** (César Augusto, dark-only, steel-blue) → sistema zinc neutro + acento dinámico + light/dark. **MODIFICA FR-008** (color por tipo: transfer steel → azul).\n- `src/app/globals.css` (tokens theme-aware), `src/app/layout.tsx` (ThemeProvider), un componente **ThemeToggle**, `src/components/format.ts` (`typeColorVar` → nuevos colores de tipo). Toca superficies que usan `--accent`/`--fg`/etc. (DesktopShell, BudgetGrid, MovementForm, Dashboard, RecentList, ui/*).\n- `package.json`: + next-themes, react-day-picker, @testing-library/react.\n\n## Must Not Break (Regression Boundary)\n- Toda la funcionalidad existente (registro, grilla, edición inline, borrado bloqueado, reparent, dashboard, persistencia, responsive móvil) sigue igual — solo cambia color/tema.\n- FR-011/NFR-003: las claves de datos en localStorage no se tocan; la preferencia de tema es una clave aparte.\n- Sin emoji/gradientes; íconos Lucide; motion con prefers-reduced-motion.\n- Sin peticiones HTTP externas en runtime (NFR-004): next-themes no hace red; Lexend sigue self-hosted.\n- Cero regresión de layout (grilla alineada, sticky, full-bleed) — solo color.\n- Contraste AA (≥4.5:1) preservado o mejorado en ambos temas.\n\n## Out of Scope\n- **Uso** de react-day-picker (captura por fecha) — feature siguiente `date-capture`; aquí solo la dep.\n- Tests de componente con @testing-library — solo la dep aquí.\n- Selector de \"tipo activo\" en Presupuesto/Dashboard — el chrome ahí es neutro.\n- Rediseño de layout/tipografía — se conservan (Lexend, full-bleed, espaciado); solo cambia el color.\n"
+}
