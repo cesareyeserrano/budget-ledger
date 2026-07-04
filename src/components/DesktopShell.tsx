@@ -96,8 +96,13 @@ export function DesktopShell() {
         {/* Cuerpo */}
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 min-w-0 flex flex-col mt-3.5">
-            {view === "budget" ? <BudgetGrid /> : <Dashboard />}
-            {view === "budget" && <GridFooter />}
+            {view === "budget" ? (
+              // px-6 en el contenedor (fuera del scroll) → la grilla se alinea con los KPIs y el sticky no se rompe
+              <div className="flex-1 min-h-0 flex flex-col px-6">
+                <BudgetGrid />
+                <GridFooter />
+              </div>
+            ) : <Dashboard />}
           </div>
           {panel && (
             <div className="w-[360px] flex-shrink-0 border-l border-border bg-card px-5 py-4 overflow-y-auto lx-scroll" style={{ animation: "slideIn 0.3s var(--ease-snap)" }}>
@@ -122,7 +127,7 @@ export function DesktopShell() {
 /** FR-107: pie de ayuda de la grilla + leyenda de meses (solo escritorio). Sin mención a reparto (D-4). */
 function GridFooter() {
   return (
-    <div className="px-6 py-3 border-t border-border text-[0.66rem] text-fg-muted leading-[1.7] flex-none">
+    <div className="py-3 border-t border-border text-[0.66rem] text-fg-muted leading-[1.7] flex-none">
       <div>
         Clic en una celda <b className="text-fg-secondary font-medium">Pres.</b> o <b className="text-fg-secondary font-medium">Ejec.</b> para editar
         {" · "}Pasa el cursor sobre una fila para <b className="text-fg-secondary font-medium">agregar</b>, <b className="text-fg-secondary font-medium">renombrar</b> o <b className="text-fg-secondary font-medium">eliminar</b>
