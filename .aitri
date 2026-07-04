@@ -23,18 +23,9 @@
   "aitriVersion": "2.0.0-rc.149",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-04T02:30:17.264Z",
+  "updatedAt": "2026-07-04T02:32:21.885Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-02T22:29:07.255Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 49,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 5
-    },
     {
       "at": "2026-07-02T22:30:00.443Z",
       "event": "verify-complete",
@@ -186,6 +177,15 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-04T02:32:21.856Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 2,
+      "method": "git",
+      "baseRefFrom": "2ff59b3ac5c08ade5275a13ff1cf4ac9fd89186a",
+      "baseRefTo": "88fcd184c5d418bae24519fe2c9460280b30adbb"
     }
   ],
   "cascadedPhases": [],
