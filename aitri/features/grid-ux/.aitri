@@ -19,24 +19,9 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-04T01:07:31.178Z",
+  "updatedAt": "2026-07-04T01:29:33.894Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-03T01:51:32.948Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-03T01:51:33.049Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-03T01:53:34.413Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-07-03T01:53:41.026Z",
       "event": "approved",
@@ -144,16 +129,40 @@
       "at": "2026-07-04T01:07:31.157Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-07-04T01:29:31.181Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "a82fe27fe9d8211e06500976617f010edbcbbdc1c6e425cc1596cf1cb78f6093",
+      "after_hash": "240a1eb19213495ef5151bb3da04f404bb9aeddf771796a3beb876b5efbe4d7d"
+    },
+    {
+      "at": "2026-07-04T01:29:32.934Z",
+      "event": "rehash",
+      "phase": "ux",
+      "artifact": "01_UX_SPEC.md",
+      "before_hash": "8ffffdea273d1ac16afc98308bedcd415bda36c72a235c65a33ae70d8fa01de6",
+      "after_hash": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
+    },
+    {
+      "at": "2026-07-04T01:29:33.856Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "e3ba426aae772dc35ed941d2a844cf1dfa9321e8b6c3ea3329cf2182e9c9c516",
+      "after_hash": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "a82fe27fe9d8211e06500976617f010edbcbbdc1c6e425cc1596cf1cb78f6093",
+    "1": "240a1eb19213495ef5151bb3da04f404bb9aeddf771796a3beb876b5efbe4d7d",
     "2": "6f916299d0acdee26e135b427805ccd4c24b569cef1d6cbff10c4730e9d1e5ad",
-    "3": "e3ba426aae772dc35ed941d2a844cf1dfa9321e8b6c3ea3329cf2182e9c9c516",
+    "3": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e",
     "4": "247bf301bfac2a030fbe1967726f11791eed048522f37d78bdce5859fc29d507",
     "5": "c6269891312c8dc12f0cbc2b8079e575f67f334b5d7ea0d64150f6f93e17dc47",
-    "ux": "8ffffdea273d1ac16afc98308bedcd415bda36c72a235c65a33ae70d8fa01de6"
+    "ux": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
   },
   "frSnapshots": {
     "2": [
