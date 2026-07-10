@@ -1,22 +1,24 @@
 {
-  "executed_at": "2026-07-04T02:30:17.145Z",
+  "executed_at": "2026-07-10T16:44:10.789Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-001h",
       "status": "pass",
-      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001h: registrar en categoría-hoja suma exactamente el monto al Ejecutado 1ms"
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001h: registrar en categoría-hoja suma exactamente el monto al Ejecutado 0ms"
     },
     {
       "tc_id": "TC-001e",
       "status": "pass",
-      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001e: addMovement con subId suma a la hoja subId, no a la categoría 3ms"
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001e: addMovement con subId suma a la hoja subId, no a la categoría 2ms"
     },
     {
       "tc_id": "TC-001f",
       "status": "pass",
-      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001f: monto 0 o sin categoría → canSave false y no crea movimiento 1ms"
+      "notes": "✓ tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001f: monto 0 o sin categoría → canSave false y no crea movimiento 0ms"
     },
     {
       "tc_id": "TC-002h",
@@ -26,17 +28,17 @@
     {
       "tc_id": "TC-002e",
       "status": "pass",
-      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002e: crear 1ª subcategoría traslada los montos de la categoría-hoja 1ms"
+      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002e: crear 1ª subcategoría traslada los montos de la categoría-hoja 0ms"
     },
     {
       "tc_id": "TC-002f",
       "status": "pass",
-      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002f: los tipos son fijos y un grupo con categorías no es borrable 1ms"
+      "notes": "✓ tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002f: los tipos son fijos y un grupo con categorías no es borrable 0ms"
     },
     {
       "tc_id": "TC-003h",
       "status": "pass",
-      "notes": "✓ tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-003h: borrar categoría CON movimientos está bloqueado (no se borra, no se pierde) 1ms"
+      "notes": "✓ tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-003h: borrar categoría CON movimientos está bloqueado (no se borra, no se pierde) 0ms"
     },
     {
       "tc_id": "TC-003e",
@@ -66,17 +68,17 @@
     {
       "tc_id": "TC-006h",
       "status": "pass",
-      "notes": "✓  14 [chromium] › tests/e2e/critical.spec.ts:49:5 › TC-006h: la grilla renderiza con columna categoría sticky y 12 meses (448ms)"
+      "notes": "✓   34 [chromium] › tests/e2e/critical.spec.ts:59:5 › TC-006h: la grilla renderiza con columna categoría sticky y 12 meses (124ms)"
     },
     {
       "tc_id": "TC-006e",
       "status": "pass",
-      "notes": "✓   6 [chromium] › tests/e2e/coverage-skips.spec.ts:7:5 › TC-006e: editar una celda-hoja Pres. y confirmar con Enter fija el nuevo valor (800ms)"
+      "notes": "✓   26 [chromium] › tests/e2e/coverage-skips.spec.ts:7:5 › TC-006e: editar una celda-hoja Pres. y confirmar con Enter fija el nuevo valor (218ms)"
     },
     {
       "tc_id": "TC-006f",
       "status": "pass",
-      "notes": "✓   3 [chromium] › tests/e2e/coverage-extra.spec.ts:6:5 › TC-006f: Escape cancela la edición y la celda de un nodo padre no es editable (1.9s)"
+      "notes": "✓   21 [chromium] › tests/e2e/coverage-extra.spec.ts:6:5 › TC-006f: Escape cancela la edición y la celda de un nodo padre no es editable (266ms)"
     },
     {
       "tc_id": "TC-008h",
@@ -96,7 +98,7 @@
     {
       "tc_id": "TC-009h",
       "status": "pass",
-      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009h: balance del mes = ingresos − gastos ejecutados 1ms"
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009h: balance del mes = ingresos − gastos ejecutados 0ms"
     },
     {
       "tc_id": "TC-009e",
@@ -106,72 +108,72 @@
     {
       "tc_id": "TC-009f",
       "status": "pass",
-      "notes": "✓  15 [chromium] › tests/e2e/critical.spec.ts:60:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (518ms)"
+      "notes": "✓   35 [chromium] › tests/e2e/critical.spec.ts:70:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (184ms)"
     },
     {
       "tc_id": "TC-010h",
       "status": "pass",
-      "notes": "✓  12 [chromium] › tests/e2e/critical.spec.ts:27:5 › TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla (521ms)"
+      "notes": "✓   32 [chromium] › tests/e2e/critical.spec.ts:33:5 › TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla (145ms)"
     },
     {
       "tc_id": "TC-010e",
       "status": "pass",
-      "notes": "✓   1 [chromium] › tests/e2e/coverage-extra.spec.ts:26:5 › TC-010e: un movimiento capturado en pantalla pequeña se refleja en la grilla de escritorio (1.8s)"
+      "notes": "✓   22 [chromium] › tests/e2e/coverage-extra.spec.ts:26:5 › TC-010e: un movimiento capturado en pantalla pequeña se refleja en la grilla de escritorio (585ms)"
     },
     {
       "tc_id": "TC-010f",
       "status": "pass",
-      "notes": "✓   7 [chromium] › tests/e2e/coverage-skips.spec.ts:23:5 › TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil (solo Registrar) (518ms)"
+      "notes": "✓   27 [chromium] › tests/e2e/coverage-skips.spec.ts:23:5 › TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil (solo Registrar) (102ms)"
     },
     {
       "tc_id": "TC-011h",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011h: los datos persisten tras recargar 5ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011h: los datos persisten tras recargar 3ms"
     },
     {
       "tc_id": "TC-011e",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011e: una edición de Presupuesto se relee tras recargar 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011e: una edición de Presupuesto se relee tras recargar 0ms"
     },
     {
       "tc_id": "TC-011f",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011f: JSON inválido → load devuelve null sin lanzar (→ semilla) 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011f: JSON inválido → load devuelve null sin lanzar (→ semilla) 0ms"
     },
     {
       "tc_id": "TC-012h",
       "status": "pass",
-      "notes": "✓  11 [chromium] › tests/e2e/critical.spec.ts:5:5 › TC-012h: los tokens CSS coinciden con el sistema de diseño César Augusto (481ms)"
+      "notes": "✓   31 [chromium] › tests/e2e/critical.spec.ts:5:5 › TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema claro) (110ms)"
     },
     {
       "tc_id": "TC-012e",
       "status": "pass",
-      "notes": "✓   8 [chromium] › tests/e2e/coverage-skips.spec.ts:30:5 › TC-012e: el contraste de texto primario sobre el fondo es ≥ 4.5:1 (337ms)"
+      "notes": "✓   28 [chromium] › tests/e2e/coverage-skips.spec.ts:30:5 › TC-012e: el contraste de texto primario sobre el fondo es ≥ 4.5:1 (117ms)"
     },
     {
       "tc_id": "TC-012f",
       "status": "pass",
-      "notes": "✓   2 [chromium] › tests/e2e/coverage-extra.spec.ts:55:5 › TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradiente (1.4s)"
+      "notes": "✓   24 [chromium] › tests/e2e/coverage-extra.spec.ts:61:5 › TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradiente (119ms)"
     },
     {
       "tc_id": "TC-013h",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013h: primer arranque sin datos → semilla coherente y determinista 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013h: primer arranque sin datos → semilla coherente y determinista 0ms"
     },
     {
       "tc_id": "TC-013e",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013e: la semilla es editable (renombrar persiste) 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013e: la semilla es editable (renombrar persiste) 0ms"
     },
     {
       "tc_id": "TC-013f",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013f: con datos existentes, no se regenera la semilla 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-013 semilla determinista > TC-013f: con datos existentes, no se regenera la semilla 0ms"
     },
     {
       "tc_id": "TC-015h",
       "status": "pass",
-      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría 2ms"
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría 1ms"
     },
     {
       "tc_id": "TC-015e",
@@ -181,7 +183,7 @@
     {
       "tc_id": "TC-015f",
       "status": "pass",
-      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015f: soltar en otro tipo o mover un grupo se rechaza 1ms"
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015f: soltar en otro tipo o mover un grupo se rechaza 0ms"
     },
     {
       "tc_id": "TC-101h",
@@ -210,17 +212,17 @@
     {
       "tc_id": "TC-102h",
       "status": "pass",
-      "notes": "✓   9 [chromium] › tests/e2e/coverage-skips.spec.ts:53:5 › TC-102h: la app renderiza sin desborde horizontal a 375, 768 y 1440px (2.2s)"
+      "notes": "✓   29 [chromium] › tests/e2e/coverage-skips.spec.ts:55:5 › TC-102h: la app renderiza sin desborde horizontal a 375, 768 y 1440px (1.6s)"
     },
     {
       "tc_id": "TC-102e",
       "status": "pass",
-      "notes": "✓  10 [chromium] › tests/e2e/coverage-skips.spec.ts:67:5 › TC-102e: los controles clave son accesibles por teclado con foco visible (529ms)"
+      "notes": "✓   30 [chromium] › tests/e2e/coverage-skips.spec.ts:69:5 › TC-102e: los controles clave son accesibles por teclado con foco visible (104ms)"
     },
     {
       "tc_id": "TC-102f",
       "status": "pass",
-      "notes": "✓   5 [chromium] › tests/e2e/coverage-extra.spec.ts:72:5 › TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms (1.3s)"
+      "notes": "✓   25 [chromium] › tests/e2e/coverage-extra.spec.ts:78:5 › TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms (125ms)"
     },
     {
       "tc_id": "TC-103h",
@@ -230,12 +232,12 @@
     {
       "tc_id": "TC-103e",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103e: fallo de setItem (quota) no propaga crash 5ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103e: fallo de setItem (quota) no propaga crash 3ms"
     },
     {
       "tc_id": "TC-103f",
       "status": "pass",
-      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103f: payload no conforme al esquema → load null (recupera a semilla) 1ms"
+      "notes": "✓ tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103f: payload no conforme al esquema → load null (recupera a semilla) 0ms"
     },
     {
       "tc_id": "TC-104h",
@@ -245,7 +247,7 @@
     {
       "tc_id": "TC-104e",
       "status": "pass",
-      "notes": "✓   4 [chromium] › tests/e2e/coverage-extra.spec.ts:40:5 › TC-104e: no se realizan peticiones HTTP externas en runtime (v1 offline) (1.8s)"
+      "notes": "✓   23 [chromium] › tests/e2e/coverage-extra.spec.ts:46:5 › TC-104e: no se realizan peticiones HTTP externas en runtime (v1 offline) (628ms)"
     },
     {
       "tc_id": "TC-104f",
@@ -260,7 +262,7 @@
     {
       "tc_id": "TC-105e",
       "status": "pass",
-      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105e: tras reparent, cero huérfanos y totales cuadran 1ms"
+      "notes": "✓ tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105e: tras reparent, cero huérfanos y totales cuadran 0ms"
     },
     {
       "tc_id": "TC-105f",
@@ -666,7 +668,7 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "output": "tos NO borrable; una vacía SÍ se borra (917ms)\n  ✓  45 [chromium] › tests/e2e/grid-ux.spec.ts:326:5 › TC-216: clic en el ícono de una categoría abre el selector y lo cambia (552ms)\n  ✓  46 [chromium] › tests/e2e/grid-ux.spec.ts:338:5 › TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo (570ms)\n  ✓  48 [chromium] › tests/e2e/reparent.spec.ts:44:5 › TC-015f: el destino de otro tipo no reubica (jerarquía intacta) (749ms)\n  ✓  47 [chromium] › tests/e2e/reparent.spec.ts:27:5 › TC-015h: arrastrar una subcategoría sobre otra categoría la reubica (2.5s)\n\n  48 passed (21.8s)"
+      "output": " la grilla de 12 meses sigue funcionando tras la feature (130ms)\n  ✓  160 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (190ms)\n  ✓  161 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (142ms)\n  ✓  162 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (76ms)\n  ✓  158 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  162 passed (38.6s)"
     }
   ]
 }
