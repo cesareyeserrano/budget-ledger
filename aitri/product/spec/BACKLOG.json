@@ -33,6 +33,14 @@
       "problem": "Con budget-state-color la grilla comunica el ESTADO por color, pero el usuario nunca ve el NUMERO: cuanto lleva consumido de cada presupuesto. Se evaluo un pill de % por fila y se descarto por ruido ('too much information') y porque en una grilla de 12 meses era ambiguo saber a que mes pertenecia el porcentaje.",
       "status": "open",
       "createdAt": "2026-07-09T22:23:43.049Z"
+    },
+    {
+      "id": "BL-005",
+      "title": "Alinear la leyenda del encabezado con el nuevo código de estado",
+      "priority": "P2",
+      "problem": "La leyenda del encabezado de la vista Resumen (DesktopShell.tsx ~L88) tiene un punto --error rotulado 'Sobre presupuesto' que quedó desalineado tras budget-state-color: 'sobre presupuesto' ya no es un solo rojo, sino un código de 3 estados (neutro dentro / ámbar '>' te pasaste poco / rojo '>>' te pasaste mucho). El pie de la grilla ya tiene la leyenda correcta (StateLegend, grid-legend); el encabezado describe un código que ya no existe.",
+      "status": "open",
+      "createdAt": "2026-07-10T16:24:51.193Z"
     }
   ]
 }
