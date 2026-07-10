@@ -63,6 +63,28 @@
       "resolution": "nodeHasMovements → nodeHasHistory: el borrado preserva en 'Sin asignar' si el subárbol tiene movimientos O ejecutado(actuals)>0. Cubre datos semilla (movements:[]). Test de regresión BG-003 en categories.test.ts.",
       "fix_commit_sha": "45d002ecdda620a48b0c4a657a500aabd8f36f80",
       "fix_at": "2026-07-03T00:31:00.274Z"
+    },
+    {
+      "id": "BG-004",
+      "title": "Guardar/crear falla por HTTP: crypto.randomUUID no existe en contexto no seguro",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "critical",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-10T19:20:58.699Z",
+      "updated_at": "2026-07-10T19:24:52.538Z",
+      "resolution": "uid() en src/domain/mutations.ts degrada: crypto.randomUUID si existe (secure context), si no getRandomValues (disponible por HTTP) para armar un UUIDv4, y como último recurso un id no-cripto. Regresión: tests/domain/movement.test.ts BG-004h/e/f simulan el contexto HTTP (randomUUID ausente) y exigen que guardar y crear categorías sigan operando.",
+      "fix_commit_sha": "a956e11a6c9d5f417b71e04c177bf3f24d01cb6e",
+      "fix_at": "2026-07-10T19:24:52.538Z"
     }
   ]
 }

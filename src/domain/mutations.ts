@@ -4,8 +4,23 @@ import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType }
 import { childrenOf, findNode, isAncestor, isLeaf, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema } from "./validation";
 
+/**
+ * Genera un id único para movimientos/nodos. `crypto.randomUUID()` SOLO existe en secure contexts
+ * (HTTPS o localhost); servida por HTTP en una IP de LAN no lo está, y ahí lanzaría (BG-004). Por eso
+ * degrada: getRandomValues sí está disponible sobre HTTP, y como último recurso un id no-cripto
+ * (suficiente para un app single-user local — la unicidad, no la impredecibilidad, es lo que importa).
+ */
 function uid(): string {
-  return globalThis.crypto.randomUUID();
+  const c: Crypto | undefined = globalThis.crypto;
+  if (typeof c?.randomUUID === "function") return c.randomUUID();
+  if (typeof c?.getRandomValues === "function") {
+    const b = c.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40; // versión 4
+    b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function clone(state: LedgerState): LedgerState {
