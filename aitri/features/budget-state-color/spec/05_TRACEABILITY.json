@@ -56,7 +56,7 @@
       "id": "NFR-405",
       "title": "Regresión — la suite completa sigue en verde; typecheck y lint sin errores",
       "level": "complete",
-      "evidence": "3 TCs registrados contra la evidencia de los quality gates de 04_TEST_RESULTS.json (verify-run 2026-07-10T13:05:17Z), con downgraded_from estampado por aitri para el revisor: no tienen función de test propia porque su sujeto SON los gates, y aitri no parsea la salida de los gates buscando TC ids. TC-BSC-455h: gates typecheck y lint en pass, exit_code 0. TC-BSC-455e: gate coverage en pass, 93.25% medido sobre umbral 80%, y budgetState.ts al 100% de ramas. TC-BSC-455f: vitest exit_code 0 (83 unit+integration) y Playwright '162 passed (38.9s)' en la misma corrida, 0 failed y 0 flaky. No hubo aserciones superseded que declarar: el riesgo #2 (aserciones previas fijando bg-elevated en la fila de tipo) no se materializó."
+      "evidence": "Los cinco quality gates de 04_TEST_RESULTS.json (verify-run 2026-07-10T15:47:49Z) en pass con exit_code 0: typecheck, lint, smoke, e2e y coverage (93.25% sobre umbral 80%, budgetState.ts al 100% de ramas). El gate e2e (../../../e2e.sh, distDir y puerto propios) reporta '162 passed (38.7s)' con exit 0: es lo que hace que verify-run FALLE mecánicamente si se rompe cualquier test de la suite completa, no solo los que mapean a un TC-BSC-*. Los tres TCs TC-BSC-455h/e/f afirman precisamente estos gates (typecheck+lint en 0, coverage ≥80%, suite verde); se registran contra la evidencia de gates porque su sujeto SON los gates y aitri no parsea su salida buscando TC ids. No hubo aserciones superseded que declarar: el riesgo #2 (aserciones previas fijando bg-elevated en la fila de tipo) no se materializó."
     }
   ],
   "technical_debt_inherited": [],

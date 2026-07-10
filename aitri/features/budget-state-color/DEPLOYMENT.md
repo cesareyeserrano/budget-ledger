@@ -122,8 +122,12 @@ Esta feature **no declara ninguna NFR de CI/CD**, así que no se modifica el wor
 | lint | `npm run lint` | sí | pass (exit 0) |
 | coverage | umbral 80 % | sí | pass — 93.25 % medido |
 | smoke | `../../../smoke.sh` | sí | pass (exit 0) |
+| e2e | `../../../e2e.sh` | sí | pass — 162 passed |
 
-> El gate `e2e` fue **retirado** del manifiesto: Aitri auto-detecta el runner de Playwright y ya lo
-> ejecuta dentro de `verify-run` (es de ahí que se acreditan los 20 TCs e2e). Declararlo además como
-> gate hacía correr la suite completa dos veces en paralelo, compitiendo por `.next` y por el puerto
-> 3220, hasta que el timeout mataba una de las dos corridas.
+> Tanto `smoke.sh` como `e2e.sh` hacen `cd "$(dirname "$0")"` (los gates de una feature corren con el
+> directorio de la feature como cwd) y usan su **propio** `distDir` y puerto (`.next-smoke` / 3210 y
+> `.next-e2e` / 3230). Eso es lo que permite que convivan con la corrida de Playwright que Aitri
+> auto-detecta y ejecuta en paralelo: sin directorios separados, el `next build` de una le arrancaba
+> el `.next` a la otra. El gate `e2e` existe porque la corrida auto-detectada solo acredita los TCs
+> que mapean a un id — solo este gate hace fallar el `verify-run` si se rompe cualquier test de la
+> suite completa.
