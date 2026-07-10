@@ -1,0 +1,152 @@
+{
+  "project": "Ledger (T-Ledger) — Feature: ux-consistency",
+  "version": "1.0.0",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "feature": "ux-consistency",
+  "overall_status": "compliant",
+  "deployment_model": "Web estatica Next.js (next build + next start). Sin backend, sin contenedor nuevo, sin serverless. Persistencia en localStorage del navegador.",
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-301",
+      "title": "Sistema de superficie/elevación con profundidad (claro y oscuro)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-301h, TC-UXC-301e, TC-UXC-301f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-302",
+      "title": "Escala de radios fina y consistente (tokens)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-302h, TC-UXC-302e, TC-UXC-302f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-303",
+      "title": "Escala tipográfica con roles, aplicada uniforme",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-303h, TC-UXC-303e, TC-UXC-303f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-304",
+      "title": "Cabecera con intención (marca / título / año)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-304h, TC-UXC-304e, TC-UXC-304f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-305",
+      "title": "Toda cifra monetaria en DM Mono (.tabular)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-305h, TC-UXC-305e, TC-UXC-305f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-306",
+      "title": "Eyebrow unificado en una sola clase",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-306h, TC-UXC-306e, TC-UXC-306f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-307",
+      "title": "Registro coherente con el lenguaje visual del resto de la app",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-307h, TC-UXC-307e, TC-UXC-307f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-308",
+      "title": "Consolidar componentes duplicados (Kpi/Card y selector de tipo)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-308h, TC-UXC-308e, TC-UXC-308f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-309",
+      "title": "Selector de iconos rico (Lucide) para categorías/subcategorías",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-309h, TC-UXC-309e, TC-UXC-309f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-310",
+      "title": "Overlays con primitivas shadcn/ui (Radix) consistentes",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-310h, TC-UXC-310e, TC-UXC-310f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-311",
+      "title": "Contraste AA del texto sobre relleno de tipo (toggle activo)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-311h, TC-UXC-311e, TC-UXC-311f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-312",
+      "title": "Arrancar en el mes en curso (no siempre enero)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-312h, TC-UXC-312e, TC-UXC-312f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-313",
+      "title": "Scroll con rueda del mouse (vertical y horizontal)",
+      "level": "complete",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-313h, TC-UXC-313e, TC-UXC-313f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner)"
+    },
+    {
+      "id": "FR-314",
+      "title": "Nitpicks de tokens y clases",
+      "level": "partial",
+      "evidence": "fr_coverage.status=covered (3 pass / 0 fail / 0 skip); TCs TC-UXC-314h, TC-UXC-314e, TC-UXC-314f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); deuda tecnica declarada en 04_BUILD_REPORT.json"
+    },
+    {
+      "id": "NFR-301",
+      "title": "Cero regresión funcional: registro (guardar → Ejecutado + roll-ups), grilla de 12 meses + edición inline, borr",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-351h, TC-UXC-351e, TC-UXC-351f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria Regression"
+    },
+    {
+      "id": "NFR-302",
+      "title": "Se conserva la IDENTIDAD del producto: neutro zinc + acento semántico por tipo (Gasto rojo/Ingreso verde/Trans",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-352h, TC-UXC-352e, TC-UXC-352f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria Regression"
+    },
+    {
+      "id": "NFR-303",
+      "title": "Accesibilidad AA preservada o mejorada: contraste de texto ≥4.5:1 en ambos temas (incl. texto sobre relleno de",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-353h, TC-UXC-353e, TC-UXC-353f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria Regression"
+    },
+    {
+      "id": "NFR-304",
+      "title": "Sin peticiones HTTP externas en runtime; fuentes self-hosted; iconos Lucide y primitivas shadcn/Radix son clie",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-354h, TC-UXC-354e, TC-UXC-354f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria Regression"
+    },
+    {
+      "id": "NFR-305",
+      "title": "La suite completa existente (unit + integration + e2e del root y features previas) sigue en verde tras el refi",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-355h, TC-UXC-355e, TC-UXC-355f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria Regression"
+    },
+    {
+      "id": "NFR-306",
+      "title": "La suite completa (vitest + e2e) corre en cada push a main.",
+      "level": "complete",
+      "evidence": "TCs TC-UXC-356h, TC-UXC-356e, TC-UXC-356f — 3/3 pass en 04_TEST_RESULTS.json (salida real del runner); categoria CI/CD"
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-314",
+      "substitution": "--primary-foreground se mantiene #ffffff en claro y #18181b en oscuro (contrato 'texto sobre relleno neutro'); para el TEXTO SOBRE RELLENO DE ACENTO se usa un token dedicado --on-accent (#ffffff en ambos temas), porque los rellenos de acento son oscuros en los dos temas (FR-311) y el valor oscuro de --primary-foreground fallaría AA ahí.",
+      "reason": "Separar el contrato de texto-sobre-neutro del de texto-sobre-acento evita un fallo AA.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": [
+    "Evidencia: 60/60 TCs pass (5 unit + 55 e2e) segun 04_TEST_RESULTS.json, escrito por aitri verify-run desde la salida real del runner. Ningun nivel se asigno por optimismo: se derivan de fr_coverage.status y del estado por TC.",
+    "FR-314 queda en \"partial\" por la unica deuda tecnica declarada: se implementa --primary-foreground (usado por el relleno neutro del chrome) y ADEMAS un token dedicado --on-accent para el texto sobre relleno de ACENTO, porque el valor oscuro de --primary-foreground fallaria AA sobre los rellenos de acento (oscuros en ambos temas). Sus tres TCs (TC-UXC-314h/e/f) pasan.",
+    "overall_status=compliant: los 14 FR estan covered y verificados y los 6 NFR tienen sus TCs en verde; la unica desviacion esta declarada, acotada y se arrastra en technical_debt_inherited.",
+    "NFR-306 (CI/CD): .github/workflows/ci.yml corre en push/PR a main -> typecheck, lint, test:run (el test_runner exacto del manifiesto), build y e2e. El smoke (200 en /) se verifica con TC-UXC-356h/f.",
+    "Sin variables de entorno: la app es cliente puro (localStorage), por eso no se emite .env.example."
+  ]
+}

@@ -26,8 +26,14 @@ test("TC-006f: Escape cancela la edición y la celda de un nodo padre no es edit
 test("TC-010e: un movimiento capturado en pantalla pequeña se refleja en la grilla de escritorio", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/");
-  await page.getByLabel("Monto").fill("77777"); // la categoría por defecto queda pre-seleccionada
-  await page.getByRole("button", { name: "Guardar movimiento" }).click();
+  // Registro rediseñado: monto + elegir la hoja disponible + Guardar.
+  await page.getByLabel("Monto en pesos").fill("77777");
+  await page.getByTestId("category-row").getByRole("button").first().click();
+  const subRow = page.getByTestId("subcategory-row");
+  if (await subRow.waitFor({ state: "visible", timeout: 800 }).then(() => true).catch(() => false)) {
+    await subRow.getByRole("button").first().click();
+  }
+  await page.getByTestId("save-button").click();
   await expect(page.getByTestId("recent-item").first()).toBeVisible();
   // cambiar a escritorio: mismos datos vía localStorage, sin importar/exportar
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -4,9 +4,10 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// shadcn/ui Button, re-tematizado al sistema de diseño César Augusto (bordes sobre rellenos, mono).
+// shadcn/ui Button, re-tematizado al sistema zinc (bordes sobre rellenos). FR-213: usa la fuente de
+// texto (Inter, font-sans) como el resto de la UI; DM Mono queda reservado para montos/cifras.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[--radius-sm] font-mono transition-colors outline-none disabled:cursor-not-allowed disabled:opacity-60 focus-visible:border-accent",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-sm) font-sans transition-colors outline-none disabled:cursor-not-allowed disabled:opacity-60 focus-visible:border-accent",
   {
     variants: {
       variant: {

@@ -156,11 +156,14 @@ test("TC-205f: no aparece 'Budget' en ninguna etiqueta visible", async ({ page }
   await expect(page.getByText("Budget", { exact: true })).toHaveCount(0);
 });
 
-// ---------- FR-106 — período por defecto con datos ----------
-test("TC-206h: al arrancar, el KPI 'Ejecutado' es > 0", async ({ page }) => {
+// ---------- FR-106 — período por defecto (SUPERSEDED por ux-consistency FR-312) ----------
+// FR-312 cambia el default de 'Año' al MES EN CURSO. Los TCs conservan su id y se re-encuadran:
+// el agregado anual sigue sumando ejecutado (206h) y el arranque abre en Mes, no en Año (206f).
+test("TC-206h: al cambiar a 'Año', el KPI 'Ejecutado' agrega y es > 0", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
+  await page.getByRole("tab", { name: "Año" }).click();
   const val = await page.evaluate(() => {
     const label = [...document.querySelectorAll("div")].find((d) => d.textContent?.trim() === "EJECUTADO");
     return label?.nextElementSibling?.textContent ?? "";
@@ -169,11 +172,14 @@ test("TC-206h: al arrancar, el KPI 'Ejecutado' es > 0", async ({ page }) => {
   expect(parseInt(digits || "0")).toBeGreaterThan(0);
 });
 
-test("TC-206f: el arranque no abre en un mes proyectado con Ejecutado $0", async ({ page }) => {
+test("TC-206f: el arranque abre en el MES EN CURSO, no en 'Año' (FR-312)", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
-  // por defecto 'Año' está activo (no un mes proyectado)
-  await expect(page.getByRole("tab", { name: "Año" })).toHaveAttribute("data-state", "active");
+  await expect(page.getByRole("tab", { name: "Mes" })).toHaveAttribute("data-state", "active");
+  await expect(page.getByRole("tab", { name: "Año" })).toHaveAttribute("data-state", "inactive");
+  // el selector muestra el mes del reloj, no enero ni un mes fijo
+  const clockMonth = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][new Date().getMonth()];
+  await expect(page.getByLabel("Mes")).toContainText(clockMonth);
 });
 
 // ---------- FR-107 — pie de ayuda ----------
@@ -215,11 +221,12 @@ test("TC-208f: grupos y categorías no comparten el ícono de conector de subs",
   await expect(grid.getByText("Vivienda", { exact: true })).toBeVisible();
 });
 
-// ---------- FR-109 — tipografía Lexend ----------
-test("TC-209h: la fuente global resuelve a Lexend (no Fira Code)", async ({ page }) => {
+// ---------- FR-213 — tipografía Inter (reemplaza Lexend) ----------
+test("TC-209h: la fuente global resuelve a Inter (no Lexend/Fira Code)", async ({ page }) => {
   await page.goto("/");
   const ff = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
-  expect(ff).toContain("Lexend");
+  expect(ff).toContain("Inter");
+  expect(ff).not.toContain("Lexend");
   expect(ff).not.toContain("Fira Code");
 });
 
@@ -244,19 +251,21 @@ test("TC-209f: no hay petición externa para la fuente (self-hosted)", async ({ 
   expect(external, external.join(",")).toEqual([]);
 });
 
-test("TC-209i: tokens de color intactos y contraste ≥4.5:1", async ({ page }) => {
+test("TC-209i: tokens de color zinc y contraste ≥4.5:1 (tema claro)", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
   const { tokens, ratio } = await page.evaluate(() => {
     const s = getComputedStyle(document.documentElement);
-    const hex = (h: string) => [0, 2, 4].map((i) => parseInt(h.trim().replace("#", "").slice(i, i + 2), 16));
+    const hex = (h: string) => { let v = h.trim().replace("#", ""); if (v.length === 3) v = [...v].map((c) => c + c).join(""); return [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16)); };
     const lum = (rgb: number[]) => { const a = rgb.map((c) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]; };
     const fg = lum(hex(s.getPropertyValue("--fg"))), bg = lum(hex(s.getPropertyValue("--bg")));
     const [hi, lo] = fg > bg ? [fg, bg] : [bg, fg];
     return { tokens: { primary: s.getPropertyValue("--primary").trim(), success: s.getPropertyValue("--success").trim(), error: s.getPropertyValue("--error").trim() }, ratio: (hi + 0.05) / (lo + 0.05) };
   });
-  expect(tokens.primary).toBe("#4a7fa5");
-  expect(tokens.success).toBe("#10b981");
-  expect(tokens.error).toBe("#ef4444");
+  // ux-consistency FR-301/FR-311: tokens afinados (desaturados) — el gate real es el ratio AA de abajo.
+  expect(tokens.primary).toBe("#1c1c1f");
+  expect(tokens.success).toBe("#2f7d53");
+  expect(tokens.error).toBe("#c4453e");
   expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
 
@@ -323,16 +332,19 @@ test("TC-215h: (regresión) sin emoji ni gradiente en la página", async ({ page
 });
 
 // ---------- Editar ícono de categoría (clic en el ícono abre el selector) ----------
+// ux-consistency FR-309/310 SUPERSEDE el selector inline por un IconPicker en Popover (shadcn/Radix)
+// con catálogo Lucide amplio y buscable. Se conserva el TC id y el flujo (abrir → elegir → cerrar).
 test("TC-216: clic en el ícono de una categoría abre el selector y lo cambia", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
   await page.locator(String.raw`button[aria-label="Cambiar ícono"]`).first().click();
-  // aparece la paleta de íconos
-  await expect(page.locator(String.raw`button[aria-label^="Ícono "]`).first()).toBeVisible();
+  // aparece el IconPicker (Popover) con el catálogo de íconos
+  await expect(page.getByTestId("icon-picker")).toBeVisible();
+  await expect(page.getByTestId("icon-option").first()).toBeVisible();
   // elegir uno cierra el selector
-  await page.locator(String.raw`button[aria-label^="Ícono "]`).nth(3).click();
-  await expect(page.locator(String.raw`button[aria-label^="Ícono "]`)).toHaveCount(0);
+  await page.getByTestId("icon-option").nth(3).click();
+  await expect(page.getByTestId("icon-picker")).toHaveCount(0);
 });
 
 test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo", async ({ page }) => {

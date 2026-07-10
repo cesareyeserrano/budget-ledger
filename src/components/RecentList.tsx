@@ -13,9 +13,9 @@ export function RecentList({ title = "RECIENTES" }: { title?: string }) {
 
   return (
     <div className="mt-6">
-      <div className="text-[0.58rem] text-fg-muted tracking-[0.12em] mb-2.5">{title}</div>
+      <div className="eyebrow mb-2.5">{title}</div>
       {recent.length === 0 ? (
-        <div data-testid="recent-empty" className="text-[0.78rem] text-fg-muted py-2">
+        <div data-testid="recent-empty" className="caption text-fg-muted py-2">
           Aún no hay movimientos
         </div>
       ) : (
@@ -24,17 +24,17 @@ export function RecentList({ title = "RECIENTES" }: { title?: string }) {
             const node = findNode(data.nodes, m.target);
             const color = typeColorVar(m.type);
             return (
-              <div key={m.id} data-testid="recent-item" className="flex items-center gap-[11px] py-2.5 px-0.5 border-b border-border">
+              <div key={m.id} data-testid="recent-item" className="flex items-center gap-3 py-2.5 px-0.5 border-b border-border">
                 <span className="inline-flex" style={{ color }}>
                   <NodeIcon name={node?.icon ?? null} level={node?.level ?? "category"} size={16} />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[0.8rem] text-fg whitespace-nowrap overflow-hidden text-ellipsis">{node?.name ?? "—"}</div>
-                  <div className="text-[0.6rem] text-fg-muted mt-0.5">
+                  <div className="label text-fg whitespace-nowrap overflow-hidden text-ellipsis">{node?.name ?? "—"}</div>
+                  <div className="caption text-fg-muted mt-0.5">
                     {m.type === "expense" ? "Gasto" : m.type === "income" ? "Ingreso" : "Transferencia"} · {monthLabel(m.month)}
                   </div>
                 </div>
-                <div className="text-[0.84rem] whitespace-nowrap" style={{ color }}>
+                <div data-testid="recent-amount" className="tabular label whitespace-nowrap" style={{ color }}>
                   {signOf(m.type)} {money(m.amount)}
                 </div>
               </div>

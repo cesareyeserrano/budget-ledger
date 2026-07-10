@@ -6,6 +6,8 @@ import { dashboardMetrics } from "@/domain";
 import { typeTotals } from "@/domain/rollup";
 import { MONTHS } from "@/domain/months";
 import { money } from "./format";
+import { Kpi } from "./ui/Kpi";
+import { Card } from "./ui/Card";
 
 /** FR-009 — 7 indicadores mínimos respetando el filtro Mes/Año. */
 export function Dashboard() {
@@ -34,12 +36,14 @@ export function Dashboard() {
         <Kpi label="TASA DE AHORRO" value={`${vm.savingsRate}%`} color={savingsColor} sub="del ingreso ejecutado" />
       </div>
 
+      <div className="flex flex-col gap-3">
       <Card title="Ejecución mensual · 2026">
         <div className="w-full h-[220px]" data-testid="monthly-trend">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trend} barGap={2} barCategoryGap="20%">
               <XAxis dataKey="mes" tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-              <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", borderRadius: 8, fontSize: 12, color: "var(--fg)" }} formatter={(v: number) => money(v)} />
+              {/* FR-301: cursor del tooltip theme-aware (color-mix con --fg), visible en claro; no rgba blanco fijo. */}
+              <Tooltip cursor={{ fill: "color-mix(in srgb, var(--fg) 6%, transparent)" }} contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", borderRadius: 10, fontSize: 12, color: "var(--fg)", boxShadow: "var(--shadow-md)" }} formatter={(v: number) => money(v)} />
               <Legend wrapperStyle={{ fontSize: 12, color: "var(--fg-muted)" }} />
               <RBar dataKey="Ingresos" fill="var(--success)" radius={[3, 3, 0, 0]} />
               <RBar dataKey="Gastos" fill="var(--error)" radius={[3, 3, 0, 0]} />
@@ -49,7 +53,7 @@ export function Dashboard() {
       </Card>
 
       <Card title="Adherencia · gastos">
-        <div className="text-[2rem] font-light" style={{ color: adhColor }} data-testid="adherence">{vm.adherence}%</div>
+        <div className="tabular display" style={{ color: adhColor }} data-testid="adherence">{vm.adherence}%</div>
         <Bar pct={Math.min(vm.adherence, 100)} color={adhColor} />
       </Card>
 
@@ -59,7 +63,7 @@ export function Dashboard() {
         ) : (
           vm.topCategories.slice(0, 5).map((c) => (
             <div key={c.catId} className="mb-2.5">
-              <div className="flex justify-between text-[0.78rem] mb-[5px]"><span>{c.name}</span><span>{money(c.amount)}</span></div>
+              <div className="flex justify-between caption mb-1.5 text-fg"><span>{c.name}</span><span className="tabular">{money(c.amount)}</span></div>
               <Bar pct={(c.amount / maxTop) * 100} color="var(--accent)" />
             </div>
           ))
@@ -71,44 +75,26 @@ export function Dashboard() {
           <Empty color="var(--success)" testid="over-empty">Todo dentro del presupuesto en este periodo</Empty>
         ) : (
           vm.overBudget.map((o) => (
-            <div key={o.catId} data-testid="over-item" className="flex justify-between py-2 border-b border-border text-[0.78rem]">
+            <div key={o.catId} data-testid="over-item" className="flex justify-between py-2 border-b border-border caption">
               <span>{o.name}</span>
-              <span className="text-error">+{money(o.over)} · {o.pct}%</span>
+              <span className="tabular text-error">+{money(o.over)} · {o.pct}%</span>
             </div>
           ))
         )}
       </Card>
-    </div>
-  );
-}
-
-function Kpi({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
-  return (
-    <div className="border border-border rounded-[--radius-md] bg-card px-4 py-3.5">
-      <div className="text-[0.6rem] tracking-[0.1em] text-fg-muted mb-[7px]">{label}</div>
-      <div className="text-[1.35rem] font-light tracking-[-0.02em]" style={{ color }}>{value}</div>
-      {sub && <div className="text-[0.64rem] text-fg-muted mt-[5px]">{sub}</div>}
-    </div>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border border-border rounded-[--radius-md] bg-card px-4 py-3.5 mb-3">
-      <div className="text-[0.72rem] text-fg mb-3">{title}</div>
-      {children}
+      </div>
     </div>
   );
 }
 
 function Bar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
+    <div className="h-1.5 bg-sunken rounded-(--radius-full) overflow-hidden">
       <div className="h-full" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color, transition: "width 280ms" }} />
     </div>
   );
 }
 
 function Empty({ children, color, testid }: { children: React.ReactNode; color?: string; testid?: string }) {
-  return <div data-testid={testid} className="text-[0.78rem]" style={{ color: color ?? "var(--fg-muted)" }}>{children}</div>;
+  return <div data-testid={testid} className="caption" style={{ color: color ?? "var(--fg-muted)" }}>{children}</div>;
 }

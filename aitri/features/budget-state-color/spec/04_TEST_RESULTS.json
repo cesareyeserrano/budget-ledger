@@ -1,0 +1,276 @@
+{
+  "executed_at": "2026-07-10T13:05:17.156Z",
+  "test_runner": "npx vitest run --root ../../.. --reporter verbose --coverage",
+  "exit_code": 0,
+  "results": [
+    {
+      "tc_id": "TC-BSC-401h",
+      "status": "pass",
+      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401h: dentro del presupuesto (incluido el 100% exacto) el estado es 'within' 1ms"
+    },
+    {
+      "tc_id": "TC-BSC-401e",
+      "status": "pass",
+      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401e: valores frontera exactos del umbral: 100 / 101 / 119 / 120 / 121 % 0ms"
+    },
+    {
+      "tc_id": "TC-BSC-401f",
+      "status": "pass",
+      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401f: casos degenerados: presupuesto 0, ejecutado 0 y negativos no producen NaN ni Infinity 1ms"
+    },
+    {
+      "tc_id": "TC-BSC-411e",
+      "status": "pass",
+      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-411e: volumen de producción: 6.000 derivaciones (500 nodos × 12 meses) sin degradación ni NaN 3ms"
+    },
+    {
+      "tc_id": "TC-BSC-402h",
+      "status": "pass",
+      "notes": "✓    1 [chromium] › tests/e2e/budget-state-color.spec.ts:152:5 › TC-BSC-402h: la celda pasada muestra el glifo antes del monto, en el color del estado (496ms)"
+    },
+    {
+      "tc_id": "TC-BSC-402e",
+      "status": "pass",
+      "notes": "✓    2 [chromium] › tests/e2e/budget-state-color.spec.ts:174:5 › TC-BSC-402e: fronteras del glifo y ancho: 100% sin marca, 120% con '››', y un monto de 7 cifras no desborda (501ms)"
+    },
+    {
+      "tc_id": "TC-BSC-402f",
+      "status": "pass",
+      "notes": "✓    3 [chromium] › tests/e2e/budget-state-color.spec.ts:197:5 › TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transferencia, ni el total por tipo lleva glifo (324ms)"
+    },
+    {
+      "tc_id": "TC-BSC-403h",
+      "status": "pass",
+      "notes": "✓    4 [chromium] › tests/e2e/budget-state-color.spec.ts:221:5 › TC-BSC-403h: el pie de la grilla contiene la leyenda con los tres estados, su color y su glifo (314ms)"
+    },
+    {
+      "tc_id": "TC-BSC-403e",
+      "status": "pass",
+      "notes": "✓    5 [chromium] › tests/e2e/budget-state-color.spec.ts:241:5 › TC-BSC-403e: la leyenda aparece exactamente una vez, no por fila (292ms)"
+    },
+    {
+      "tc_id": "TC-BSC-403f",
+      "status": "pass",
+      "notes": "✓    6 [chromium] › tests/e2e/budget-state-color.spec.ts:248:5 › TC-BSC-403f: no existe ningún icono de información por fila (289ms)"
+    },
+    {
+      "tc_id": "TC-BSC-404h",
+      "status": "pass",
+      "notes": "✓    7 [chromium] › tests/e2e/budget-state-color.spec.ts:259:5 › TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la fila; la hoja usa el lienzo (339ms)"
+    },
+    {
+      "tc_id": "TC-BSC-404e",
+      "status": "pass",
+      "notes": "✓    8 [chromium] › tests/e2e/budget-state-color.spec.ts:278:5 › TC-BSC-404e: un grupo VACÍO tampoco es editable y también recibe la superficie de estructura (352ms)"
+    },
+    {
+      "tc_id": "TC-BSC-404f",
+      "status": "pass",
+      "notes": "✓    9 [chromium] › tests/e2e/budget-state-color.spec.ts:292:5 › TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad (383ms)"
+    },
+    {
+      "tc_id": "TC-BSC-451h",
+      "status": "pass",
+      "notes": "✓   10 [chromium] › tests/e2e/budget-state-color.spec.ts:326:5 › TC-BSC-451h: regresión — el Registro conserva la propagación de color por tipo (546ms)"
+    },
+    {
+      "tc_id": "TC-BSC-451e",
+      "status": "pass",
+      "notes": "✓   11 [chromium] › tests/e2e/budget-state-color.spec.ts:343:5 › TC-BSC-451e: regresión — Transferencia también propaga su color en el Registro (475ms)"
+    },
+    {
+      "tc_id": "TC-BSC-451f",
+      "status": "pass",
+      "notes": "✓   12 [chromium] › tests/e2e/budget-state-color.spec.ts:356:5 › TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de presupuesto (108ms)"
+    },
+    {
+      "tc_id": "TC-BSC-452h",
+      "status": "pass",
+      "notes": "✓   13 [chromium] › tests/e2e/budget-state-color.spec.ts:376:5 › TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warning, superado = success) (308ms)"
+    },
+    {
+      "tc_id": "TC-BSC-452e",
+      "status": "pass",
+      "notes": "✓   14 [chromium] › tests/e2e/budget-state-color.spec.ts:389:5 › TC-BSC-452e: regresión — Transferencia sigue neutra (--accent-light) (287ms)"
+    },
+    {
+      "tc_id": "TC-BSC-452f",
+      "status": "pass",
+      "notes": "✓   15 [chromium] › tests/e2e/budget-state-color.spec.ts:397:5 › TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto NO recibe glifo ni color de estado (297ms)"
+    },
+    {
+      "tc_id": "TC-BSC-453h",
+      "status": "pass",
+      "notes": "✓ tests/domain/budget-state-aa.test.ts > NFR-403 · contraste AA de los tokens de estado > TC-BSC-453h: los tokens de estado alcanzan ≥4.5:1 sobre las cuatro superficies, en ambos temas 2ms"
+    },
+    {
+      "tc_id": "TC-BSC-453e",
+      "status": "pass",
+      "notes": "✓   16 [chromium] › tests/e2e/budget-state-color.spec.ts:409:5 › TC-BSC-453e: AA en la app real — el estado sobre la celda resaltada de una fila padre cumple ≥4.5:1 (497ms)"
+    },
+    {
+      "tc_id": "TC-BSC-453f",
+      "status": "pass",
+      "notes": "✓   17 [chromium] › tests/e2e/budget-state-color.spec.ts:432:5 › TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: toda celda coloreada lleva glifo (282ms)"
+    },
+    {
+      "tc_id": "TC-BSC-454h",
+      "status": "pass",
+      "notes": "✓   18 [chromium] › tests/e2e/budget-state-color.spec.ts:457:5 › TC-BSC-454h: regresión — la edición inline de una hoja sigue funcionando y persiste (423ms)"
+    },
+    {
+      "tc_id": "TC-BSC-454e",
+      "status": "pass",
+      "notes": "✓   19 [chromium] › tests/e2e/budget-state-color.spec.ts:473:5 › TC-BSC-454e: regresión — filtro Mes/Año, roll-ups y la lista Recientes siguen intactos (381ms)"
+    },
+    {
+      "tc_id": "TC-BSC-454f",
+      "status": "pass",
+      "notes": "✓   20 [chromium] › tests/e2e/budget-state-color.spec.ts:496:5 › TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor (301ms)"
+    },
+    {
+      "tc_id": "TC-BSC-455h",
+      "status": "pass",
+      "notes": "Gates typecheck y lint: status pass, exit_code 0 en 04_TEST_RESULTS.json (verify-run 2026-07-10T13:05:17Z). Sin funcion de test propia: el sujeto del TC ES el gate, y aitri no parsea la salida de los gates en busca de TC ids.",
+      "downgraded_from": "skip",
+      "verified_manually": true,
+      "verified_at": "2026-07-10T13:06:01.915Z",
+      "evidence": "spec/04_TEST_RESULTS.json"
+    },
+    {
+      "tc_id": "TC-BSC-455e",
+      "status": "pass",
+      "notes": "Gate coverage: status pass, medido 93.25% >= umbral 80% (verify-run 2026-07-10T13:05:17Z). budgetState.ts alcanza 100% de ramas, verificado en la tabla de v8: '  budgetState.ts | 100 | 100 | 100 | 100'.",
+      "downgraded_from": "skip",
+      "verified_manually": true,
+      "verified_at": "2026-07-10T13:06:18.468Z",
+      "evidence": "spec/04_TEST_RESULTS.json"
+    },
+    {
+      "tc_id": "TC-BSC-455f",
+      "status": "pass",
+      "notes": "Suite completa verde en la misma corrida: vitest exit_code 0 (83 unit+integration) y Playwright '162 passed (38.9s)', 0 failed y 0 flaky. Ninguna asercion previa fue actualizada: el riesgo #2 (aserciones que fijaban bg-elevated en la fila de tipo) NO se materializo, asi que no hay entradas superseded que declarar.",
+      "downgraded_from": "skip",
+      "verified_manually": true,
+      "verified_at": "2026-07-10T13:06:18.508Z",
+      "evidence": "spec/04_TEST_RESULTS.json"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-401",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-402",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-403",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-404",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-401",
+      "fr_id": "FR-401",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-402",
+      "fr_id": "FR-402",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-403",
+      "fr_id": "FR-403",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-404",
+      "fr_id": "FR-404",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  },
+  "line_coverage": 93.25,
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "[smoke] arrancando la app en :3210\n[smoke] GET / -> 200\n[smoke] OK"
+    },
+    {
+      "name": "coverage",
+      "threshold": 80,
+      "measured": 93.25,
+      "required": true,
+      "status": "pass"
+    }
+  ]
+}

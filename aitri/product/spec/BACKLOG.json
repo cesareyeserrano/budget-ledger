@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1",
+  "items": [
+    {
+      "id": "BL-001",
+      "title": "Estado de presupuesto como señal: rojo reservado + ámbar + pill de %",
+      "priority": "P2",
+      "problem": "El color señala el TIPO de movimiento, no el ESTADO del presupuesto. Recientes y el Registro pintan de rojo TODO gasto, incluso los que van dentro de lo presupuestado. Evidencia peer-reviewed (Bazley, Cronqvist & Mormann, 'Visual Finance', Management Science 2021 — 8 experimentos, 1.451 participantes): el rojo sobre datos financieros reduce la toma de riesgo y prolonga expectativas pesimistas, y el efecto es especifico del contexto financiero. Resultado: la app 'grita' donde no hay problema y pierde poder de señal donde si lo hay.",
+      "status": "closed",
+      "createdAt": "2026-07-09T14:13:12.230Z",
+      "closedAt": "2026-07-10T13:09:04.316Z"
+    },
+    {
+      "id": "BL-002",
+      "title": "Escala de tamaños de control + base de diseño atómico",
+      "priority": "P2",
+      "problem": "No existe una escala de TAMAÑO de control: hoy conviven 6 alturas distintas para elementos del mismo tipo — TabsTrigger ~30px, Button sm/icon 32px, Button default 36px, SelectTrigger ~40px (y sub-tile 40px), ThemeToggle 44px, y TypeToggle/date-field/Guardar/tiles 48px. Elementos del mismo tipo se ven mas grandes que otros. Es la misma clase de deriva que el audit encontro en tipografia (17 tamanos) y radios (dos convenciones), pero en la dimension TAMANO, que ningun FR cubre.",
+      "status": "open",
+      "createdAt": "2026-07-09T16:20:03.386Z"
+    },
+    {
+      "id": "BL-003",
+      "title": "Quitar la lista 'Recientes' del registro móvil",
+      "priority": "P3",
+      "problem": "El usuario decidio que la lista de movimientos recientes del movil no aporta y quiere quitarla. Hoy RecentList se renderiza en MobileShell y esta sostenida por FR-001 (MUST, raiz) — 'Registrar movimiento (modulo de captura; unica vista en movil compacto v1)' — con 7 aserciones de test que la cubren (recent-item / recent-empty / recent-amount).",
+      "status": "open",
+      "createdAt": "2026-07-09T20:11:24.621Z"
+    },
+    {
+      "id": "BL-004",
+      "title": "Mostrar el % de consumo del presupuesto en los resúmenes/KPIs",
+      "priority": "P3",
+      "problem": "Con budget-state-color la grilla comunica el ESTADO por color, pero el usuario nunca ve el NUMERO: cuanto lleva consumido de cada presupuesto. Se evaluo un pill de % por fila y se descarto por ruido ('too much information') y porque en una grilla de 12 meses era ambiguo saber a que mes pertenecia el porcentaje.",
+      "status": "open",
+      "createdAt": "2026-07-09T22:23:43.049Z"
+    }
+  ]
+}

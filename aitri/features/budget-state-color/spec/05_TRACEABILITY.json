@@ -1,0 +1,71 @@
+{
+  "project": "Ledger (T-Ledger) — Feature: budget-state-color",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-401",
+      "title": "Estado de sobre-consumo por umbral: neutro / ámbar / rojo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). La regla vive en src/domain/budgetState.ts como función pura y total. TC-BSC-401h fija que el 100% exacto es 'within'; TC-BSC-401e ataca las fronteras 89/100/101/119/120/121 % derivando el 120% de la constante exportada OVER_HARD_RATIO en vez de repetir el literal; TC-BSC-401f cubre los degenerados (presupuesto 0 con ejecutado>0 → over_hard sin dividir por cero, 0/0 → within, negativos) sin producir NaN ni Infinity; TC-BSC-411e evalúa 6.000 derivaciones deterministas en <50ms sin un solo NaN. El gate de coverage reporta budgetState.ts al 100% de ramas: sus cinco caminos son el requisito."
+    },
+    {
+      "id": "FR-402",
+      "title": "Marca de forma no cromática en las celdas pasadas (WCAG 1.4.1)",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BSC-402h verifica sobre valores COMPUTADOS del navegador que la celda al 110% empieza con '›' y computa a rgb(158,71,8), y la del 130% empieza con '››' y computa a rgb(173,57,50). TC-BSC-402e fija las fronteras (100% sin marca, 120% con '››') y mide el riesgo #1 declarado: '›› 1.300.000' en la sub-celda de 108px da scrollWidth ≤ clientWidth, sin desbordar el documento. TC-BSC-402f confirma 0 glifos en celdas ≤100%, en filas de Ingreso/Transferencia y en la fila de total por tipo. El glifo es aria-hidden y deriva del MISMO BudgetState que el color (ADR-02), así que no pueden contradecirse."
+    },
+    {
+      "id": "FR-403",
+      "title": "Leyenda única del código de estado en el pie de la grilla",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BSC-403h lee data-testid=grid-legend y comprueba los tres estados nombrados, los glifos '›' y '››', y que los tres puntos de color computan a rgb(28,28,31) / rgb(158,71,8) / rgb(173,57,50). TC-BSC-403e cuenta exactamente 1 leyenda con ≥6 filas presentes (no se repite por fila). TC-BSC-403f confirma 0 iconos de información dentro de las filas: la explicación vive solo en el pie, como decidió el usuario."
+    },
+    {
+      "id": "FR-404",
+      "title": "Superficie de estructura para las filas NO editables (afordancia)",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BSC-404h lee el background computado de la columna fija Y de una celda de mes: total por tipo, grupo y categoría-con-hijos dan rgb(241,241,243) en toda la fila; la hoja da rgb(247,247,248). TC-BSC-404e comprueba que un grupo VACÍO también recibe la superficie y que su celda NO abre el editor — el predicado es !isLeaf (no 'tiene hijos'), el mismo que ya gobierna la edición (ADR-05). TC-BSC-404f verifica 0 hojas con superficie de estructura, alturas iguales (±1px) y editabilidad sin cambios. Las filas de tipo migraron de bg-elevated a bg-sunken (ADR-04) sin romper una sola aserción previa."
+    },
+    {
+      "id": "NFR-401",
+      "title": "Regresión — el Registro conserva su propagación de color por tipo",
+      "level": "complete",
+      "evidence": "3 TCs passing. La feature no toca src/components/register/**. TC-BSC-451h confirma que Gasto propaga --type-expense rgb(196,69,62) al signo, al monto y al botón Guardar, y que Ingreso cambia al verde bosque. TC-BSC-451e verifica Transferencia (azul acero) y aria-selected único. TC-BSC-451f recorre TODO el DOM del registro móvil leyendo color y background-color computados y exige cero elementos con --state-warning o --state-over: los tokens de estado no se filtran fuera de la grilla."
+    },
+    {
+      "id": "NFR-402",
+      "title": "Regresión — la semántica de color de Ingreso y Transferencia no cambia",
+      "level": "complete",
+      "evidence": "3 TCs passing. Garantizado por construcción: ejecColor delega en budgetState SOLO en la rama 'expense'; las ramas de income y transfer quedan literalmente iguales. TC-BSC-452h confirma Ingreso corto en --warning y superado en --success, ninguno usando los tokens de estado. TC-BSC-452e confirma Transferencia en --accent-light. TC-BSC-452f es el caso decisivo: un Ingreso al 130% (superar el presupuesto es BUENO en Ingreso) no recibe glifo ni --state-over."
+    },
+    {
+      "id": "NFR-403",
+      "title": "Regresión — accesibilidad AA preservada y WCAG 1.4.1 cumplido",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-BSC-453h (unit) NO copia los hex del spec: parsea globals.css, extrae los tokens de :root y .dark, y COMPONE el tinte del mes resaltado (6% de --accent sobre el fondo de la fila) igual que el navegador; los 16 ratios (2 tokens × 4 superficies × 2 temas) son ≥4.5:1, con mínimo claro 4.85 sobre #e4e4e6 y mínimo oscuro 5.22 sobre #212123. TC-BSC-453e mide el ratio sobre los valores REALES que el navegador computa en la celda resaltada de una fila padre sobre-consumida, en claro y en oscuro; ese test falló primero con 3.39:1 por un error del PARSER (Chrome devuelve color-mix como 'color(srgb 0.89498 …)' en fracciones, no rgb() en enteros), y al corregirlo confirmó que la superficie real es exactamente #e4e4e6, la peor que el diseño predijo. TC-BSC-453f audita que TODA celda con color de estado lleva glifo: cero celdas dependen solo del color."
+    },
+    {
+      "id": "NFR-404",
+      "title": "Regresión — cero regresión funcional",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-BSC-454h edita una celda hoja inline, pulsa Enter y recarga: el valor persiste (localStorage intacto, sin migración). TC-BSC-454e comprueba que el roll-up del padre iguala la suma de sus hijos (855.000), que el filtro Mes/Año recalcula los KPIs y los restituye, y que la lista Recientes sigue existiendo a 375px (su remoción es BL-003, otra feature). TC-BSC-454f confirma que una celda de fila padre sigue sin abrir el editor: la nueva superficie es apariencia, no editabilidad. Los tests de reparent por drag-drop (TC-015h/TC-015f) siguen pasando tras aislar el realce de drop-target sobre la superficie real de la fila."
+    },
+    {
+      "id": "NFR-405",
+      "title": "Regresión — la suite completa sigue en verde; typecheck y lint sin errores",
+      "level": "complete",
+      "evidence": "3 TCs registrados contra la evidencia de los quality gates de 04_TEST_RESULTS.json (verify-run 2026-07-10T13:05:17Z), con downgraded_from estampado por aitri para el revisor: no tienen función de test propia porque su sujeto SON los gates, y aitri no parsea la salida de los gates buscando TC ids. TC-BSC-455h: gates typecheck y lint en pass, exit_code 0. TC-BSC-455e: gate coverage en pass, 93.25% medido sobre umbral 80%, y budgetState.ts al 100% de ramas. TC-BSC-455f: vitest exit_code 0 (83 unit+integration) y Playwright '162 passed (38.9s)' en la misma corrida, 0 failed y 0 flaky. No hubo aserciones superseded que declarar: el riesgo #2 (aserciones previas fijando bg-elevated en la fila de tipo) no se materializó."
+    }
+  ],
+  "technical_debt_inherited": [],
+  "notes": [
+    "technical_debt vacío: cero substituciones respecto de las MUST FR. overall_status 'compliant' porque las cuatro FR MUST están 'complete' con cobertura de test real, y las cinco NFR de regresión también.",
+    "Modelo de despliegue sin cambio: web estática Next.js (next build + next start). Sin Dockerfile — el System Design no declara despliegue containerizado. Sin .env.example — la app no requiere ninguna variable de entorno.",
+    "Esta feature NO declara NFR de CI/CD, así que .github/workflows/ci.yml (preexistente) no se modifica.",
+    "HALLAZGO DE INFRAESTRUCTURA, corregido en esta fase de build: el quality gate 'smoke' —el único que prueba que el producto ensamblado arranca y sirve— NUNCA se había ejecutado en este proyecto. Los 04_TEST_RESULTS.json de grid-ux, stack-upgrade-theme y ux-consistency muestran los tres 'smoke: error (exit_code null)', invisible porque estaba en required:false. Causa raíz: verify-run de una feature ejecuta los gates con el directorio de la FEATURE como working dir, donde './smoke.sh' no existe → spawn ENOENT, cero salida. Corregido (cd al dirname del script + command '../../../smoke.sh'), junto con dos bugs más del script: el guard '[ ! -d .next ]' que un .next de `next dev` satisface sin tener BUILD_ID, y un '|| echo 000' que concatenaba con la salida de curl. Ahora pasa con exit 0 y es required:true.",
+    "OBSERVACIÓN PARA EL USUARIO (no bloquea, no implementada): en tema OSCURO --state-warning y --state-over coinciden con --warning y --error (#e0a458 y #ec6a66). Es consecuencia declarada de ADR-03, no un defecto: en oscuro esos tonos ya cumplían AA. Efecto semántico a registrar: en oscuro un GASTO en over_soft se pinta igual que un INGRESO corto, y lo que los distingue es el GLIFO, no el color — que es exactamente la función del canal redundante de WCAG 1.4.1.",
+    "OBSERVACIÓN PARA EL USUARIO (fuera de alcance, candidata a backlog): la leyenda del ENCABEZADO de la vista Resumen conserva un punto --error rotulado 'Sobre presupuesto'. Tras esta feature 'sobre presupuesto' ya no es un solo rojo, sino ámbar/rojo con glifo, así que esa leyenda quedó desalineada del nuevo código de estado. Cambiarla altera comportamiento visible y no la cubre ningún FR aprobado."
+  ]
+}

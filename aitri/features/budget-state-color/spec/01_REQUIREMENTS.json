@@ -1,0 +1,290 @@
+{
+  "project_name": "Ledger (T-Ledger) — Feature: budget-state-color",
+  "project_summary": "El color de la grilla debe señalar el ESTADO del presupuesto, no el tipo de movimiento. Hoy el rojo comunica 'esto es un gasto' y no 'esto es un problema': una categoría que va dentro de lo presupuestado se ve igual de alarmante que una que se pasó. Eso tiene un costo medible — Bazley, Cronqvist & Mormann, 'Visual Finance', Management Science (2021), 8 experimentos / 1.451 participantes: el rojo sobre datos financieros reduce la toma de riesgo y prolonga expectativas pesimistas, y el efecto es específico del contexto financiero. DECISIÓN DEL USUARIO (revisión del mockup de UX): el color NO avisa antes de pasarse — aparece SOLO cuando ya se superó el presupuesto, y gradúa la GRAVEDAD del desvío: ≤100% neutro, >100% ámbar ('te pasaste poco'), ≥120% rojo ('te pasaste mucho'). NORTH STAR / gate: el ruido crece con los problemas, no con las filas — mientras todas las categorías estén dentro de su presupuesto la grilla queda completamente MUDA (0 celdas coloreadas, 0 marcas), y cuando algo se sale, se ve de inmediato y con su gravedad. JTBD: que el usuario distinga de un vistazo un desvío leve de uno grave, sin ruido mientras va bien. El estado NUNCA se codifica solo con color: las celdas pasadas llevan además una marca de FORMA (› ámbar / ›› rojo), porque ámbar y rojo son indistinguibles para un daltónico rojo-verde (WCAG 1.4.1). GUARDRAIL: cero regresión — el Registro conserva su propagación de color por tipo (FR-203/FR-204), Ingreso y Transferencia conservan su semántica, Recientes no se toca, y el modelo de datos, los roll-ups y el layout de la grilla quedan idénticos. Todo el color cumple AA (≥4.5:1) en claro y oscuro, incluida la celda del mes resaltado.",
+  "technology_preferences": [
+    "Reutilizar los tokens ya afinados por ux-consistency: --warning (#B45309 claro / #E0A458 oscuro), --error (#C4453E / #EC6A66) y el neutro --fg. No se crean colores nuevos.",
+    "Reutilizar las utilidades tipográficas existentes (.caption, .tabular) y la escala de radios (--radius-full para el pill).",
+    "Sin dependencias nuevas: el cambio vive en BudgetGrid.tsx (ejecColor + pill) y GridFooter (leyenda)."
+  ],
+  "constraints": [
+    "Cambio sobre el stack existente: Next.js 15, React 19, Tailwind v4 (@theme inline), Zustand, TypeScript",
+    "Umbrales (decisión explícita del usuario): ≤100% neutro · >100% y <120% ámbar · ≥120% rojo. El color aparece SOLO cuando ya se superó el presupuesto",
+    "El estado se acompaña de una marca de forma (› / ››) para no depender solo del color (WCAG 1.4.1)",
+    "La grilla es una superficie de ESCRITORIO (>760px); en móvil (≤760px) solo existe el registro, así que la medida declarada para los tests de layout es 1440px",
+    "La celda del mes seleccionado lleva un tinte de realce que OSCURECE el fondo a #EAEAEB en claro: el contraste AA debe medirse contra esa celda, no solo contra la fila",
+    "Sin peticiones externas en runtime; la app corre en localhost:3100 (NO 3000)",
+    "Las filas PADRE (total por tipo, grupo, y categoría con hijos) usan la superficie hundida --bg-sunken. Eso crea cuatro superficies donde medir AA: fila hoja (#F7F7F8), fila padre (#F1F1F3), y sus celdas del mes resaltado (#EAEAEB y #E4E4E6). La peor es #E4E4E6 en claro",
+    "La capa de estructura debe ser la HUNDIDA (--bg-sunken), no la ELEVADA que hoy usan las filas de tipo: medido, --state-over sobre la celda del mes resaltado de una fila elevada da 4.14:1 en oscuro (falla AA); sobre la hundida da 5.22:1"
+  ],
+  "no_go_zone": [
+    "Mostrar el porcentaje de consumo por fila (pill): descartado por el usuario por ruido ('too much information') y porque en una grilla de 12 meses es ambiguo a qué mes pertenece. Se difiere a los resúmenes/KPIs en BL-004",
+    "Avisar ANTES de superar el presupuesto (umbral al 90%): el usuario decidió que el color aparezca solo tras pasarse",
+    "Quitar o modificar la lista 'Recientes' del registro móvil — la sostiene FR-001 (MUST, raíz) y 7 aserciones de test; va en su propia feature (BL-003)",
+    "Cambiar la propagación de color por tipo del Registro (FR-203/FR-204): al elegir Gasto, el monto, el signo y el botón Guardar siguen tiñéndose del color del tipo. El paper mide el rojo sobre datos que se LEEN e interpretan; en el Registro el rojo es identidad del tipo mientras se CAPTURA un movimiento",
+    "Cambiar la semántica de color de Ingreso (corto = --warning, superado = --success) ni de Transferencia (neutro): los umbrales aplican SOLO al consumo de un presupuesto de GASTO",
+    "Cambiar el modelo de datos, los roll-ups, la persistencia o la composición/layout de la grilla; introducir una identidad o hue nuevo; notificaciones o alertas fuera de la grilla; despliegue, auth y navegación"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales",
+      "tech_level": "mid",
+      "goal": "Ver de un vistazo qué categorías están por pasarse del presupuesto, para reaccionar ANTES de pasarse",
+      "pain_point": "Hoy todo gasto se pinta de rojo aunque vaya bien, así que el rojo no significa nada; y no hay forma de saber cuánto lleva consumido hasta que ya se pasó"
+    },
+    {
+      "role": "Revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Ver que el color signifique algo — una señal escasa y consistente, no decoración",
+      "pain_point": "Un color semántico aplicado a todo pierde su valor informativo; delata falta de criterio"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-401",
+      "title": "Estado de sobre-consumo por umbral: neutro / ámbar / rojo",
+      "description": "El color del Ejecutado de un GASTO deja de indicar el tipo y pasa a graduar la GRAVEDAD del sobre-consumo de su presupuesto. Mientras el consumo sea ≤100% se muestra en NEUTRO (--fg): la grilla no dice nada porque no hay nada que decir. Por encima del 100% y por debajo del 120% se muestra en ÁMBAR (--state-warning, \"te pasaste poco\"). Al alcanzar o superar el 120% se muestra en ROJO (--state-over, \"te pasaste mucho\"). La regla vive en la función ejecColor de BudgetGrid.tsx, único punto donde se decide ese color. Un ejecutado de 0 conserva su tratamiento atenuado actual. Un presupuesto de 0 con ejecutado > 0 no puede expresarse como porcentaje: se trata como el estado más grave (rojo) sin dividir por cero. La semántica de Ingreso y Transferencia no cambia.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Un gasto con presupuesto 200.000 y ejecutado 120.000 (60%) se muestra en neutro (--fg), igual que uno con ejecutado 200.000 (100%) (happy)",
+        "Los bordes exactos: 100% neutro, 101% ámbar, 119% ámbar, 120% rojo — el 100% es el último valor neutro y el 120% el primero rojo (edge)",
+        "Un gasto con presupuesto 0 y ejecutado > 0 se muestra en rojo sin producir NaN ni Infinity; un ejecutado de 0 conserva el em-dash atenuado (negativo)"
+      ]
+    },
+    {
+      "id": "FR-402",
+      "title": "Marca de forma no cromática en las celdas pasadas (WCAG 1.4.1)",
+      "description": "El estado NUNCA se codifica solo con color, porque ámbar y rojo son indistinguibles para un daltónico rojo-verde (≈1 de cada 12 hombres). Las celdas de Ejecutado que superaron el presupuesto llevan, antes del monto, una marca de FORMA que duplica la señal: \"›\" para el estado ámbar (>100% y <120%) y \"››\" para el rojo (≥120%). Las celdas dentro del presupuesto (≤100%) no llevan ninguna marca. La marca no es un número ni un pill: no reintroduce el porcentaje que el usuario descartó por ruido.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Una celda al 110% muestra la marca \"›\" antes del monto y una al 130% muestra \"››\" (happy)",
+        "Una celda exactamente al 100% no muestra marca; una exactamente al 120% muestra \"››\" (edge)",
+        "Ninguna celda ≤100%, ninguna fila de Ingreso o Transferencia y ninguna fila de total por tipo muestra marca alguna (negativo)"
+      ]
+    },
+    {
+      "id": "FR-403",
+      "title": "Leyenda única del código de estado en el pie de la grilla",
+      "description": "El código de estado se explica UNA sola vez, en el pie de ayuda de la grilla (GridFooter, que ya existe y ya explica cómo usar la grilla): dentro del presupuesto (neutro, sin marca), te pasaste poco (ámbar, ›) y te pasaste mucho (rojo, ››). La leyenda nombra tanto el color como la marca, de modo que la explicación también sirva a quien no distingue los colores. Se rechaza explícitamente un icono de información por fila: sería más ruido y escondería el dato tras una interacción.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El pie de la grilla contiene una leyenda que nombra los tres estados con su color Y su marca (happy)",
+        "La leyenda aparece exactamente UNA vez en la pantalla, no por fila (edge)",
+        "No existe ningún icono de información por fila en la grilla (negativo)"
+      ]
+    },
+    {
+      "id": "FR-404",
+      "title": "Superficie de estructura para las filas NO editables (afordancia)",
+      "description": "Las filas cuyos valores son roll-ups no son editables; solo las HOJAS lo son. La condición ya existe en el código: la edición se dispara solo si row.leaf, y isLeaf() define hoja como: subcategoría (siempre), o categoría SIN hijos. Un GRUPO nunca es hoja —ni siquiera vacío— y la fila de total por tipo tampoco. Hoy la única pista visual es el cursor al pasar por encima, así que el usuario descubre que una celda no es editable DESPUÉS de apuntarla. Todas las filas no editables (total por tipo, todo grupo, y categoría con hijos) adoptan, EN TODA LA FILA, la superficie hundida --bg-sunken: la misma capa que ya usa el encabezado de la grilla. Así la ESTRUCTURA se distingue del DATO editable de un vistazo. Se eligió la capa HUNDIDA y no la ELEVADA que hoy usan las filas de tipo porque, medido, el rojo de estado (--state-over #EC6A66) sobre la celda del mes resaltado de una fila elevada da 4.14:1 en oscuro y FALLA AA; sobre la hundida da 5.22:1. Efecto secundario buscado y necesario: las cifras de la fila de total por tipo llevan el color de identidad del tipo (rojo en GASTOS) y, al quedar sobre una superficie de estructura, dejan de confundirse con el rojo de sobre-consumo (FR-401) de una celda de datos; sin esto el rojo tendría dos significados en la misma pantalla. No cambian ni las alturas, ni las columnas, ni la editabilidad: solo la superficie.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "La fila de total por tipo, un grupo, y una categoría CON hijos se renderizan con --bg-sunken en TODA la fila (columna fija y celdas de mes); una subcategoría y una categoría SIN hijos se renderizan sobre --bg (happy)",
+        "Un grupo VACÍO (sin hijos) tampoco es editable y por tanto también recibe la superficie de estructura — la regla es \"no editable\" (!isLeaf), no \"tiene hijos\" (edge)",
+        "Ninguna fila hoja usa la superficie de estructura; ninguna fila cambia de altura, de columnas ni de editabilidad respecto de hoy (negativo)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-401",
+      "requirement_id": "FR-401",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "que el color me diga qué tan grave es un desvío, y que no me diga nada mientras voy bien",
+      "so_that": "la grilla quede muda cuando no hay problemas y los problemas salten a la vista con su gravedad",
+      "acceptance_criteria": [
+        {
+          "id": "AC-401",
+          "given": "una categoría de gasto con presupuesto 200.000 y ejecutado 220.000 (110%)",
+          "when": "observo su celda de Ejecutado en la grilla",
+          "then": "el valor se muestra en ámbar (--state-warning); con ejecutado 240.000 (120%) se muestra en rojo (--state-over); con ejecutado 200.000 (100%) se muestra en neutro (--fg)"
+        }
+      ]
+    },
+    {
+      "id": "US-402",
+      "requirement_id": "FR-402",
+      "as_a": "usuario que no distingue el rojo del verde ni del ámbar",
+      "i_want": "una señal que no dependa del color",
+      "so_that": "pueda ver qué categorías se pasaron y cuáles se pasaron mucho",
+      "acceptance_criteria": [
+        {
+          "id": "AC-402",
+          "given": "una celda al 110% y otra al 130%",
+          "when": "observo la grilla en escala de grises",
+          "then": "la primera muestra la marca \"›\" y la segunda \"››\" antes del monto, de modo que los dos estados siguen siendo distinguibles sin color"
+        }
+      ]
+    },
+    {
+      "id": "US-403",
+      "requirement_id": "FR-403",
+      "as_a": "usuario que ve la grilla por primera vez",
+      "i_want": "una explicación breve del significado de los colores y las marcas",
+      "so_that": "entienda la señal sin adivinarla ni pasar el mouse por cada fila",
+      "acceptance_criteria": [
+        {
+          "id": "AC-403",
+          "given": "la vista Resumen a 1440px",
+          "when": "leo el pie de ayuda de la grilla",
+          "then": "encuentro una única leyenda que nombra los tres estados (dentro del presupuesto / te pasaste poco › / te pasaste mucho ››) con su color y su marca"
+        }
+      ]
+    },
+    {
+      "id": "US-404",
+      "requirement_id": "FR-404",
+      "as_a": "usuario que edita su presupuesto en la grilla",
+      "i_want": "ver de un vistazo qué filas puedo editar y cuáles son totales calculados",
+      "so_that": "no intente editar una fila que solo suma a sus hijos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-404",
+          "given": "la grilla a 1440px con una fila de total por tipo, un grupo, una categoría con hijos, un grupo vacío y una categoría hoja",
+          "when": "observo el fondo de cada fila",
+          "then": "el total por tipo, el grupo, el grupo vacío y la categoría con hijos se ven sobre --bg-sunken en toda la fila (estructura, no editable) y la categoría hoja sobre --bg (dato editable), sin tener que pasar el mouse por encima"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-401",
+      "category": "Regression",
+      "requirement": "El Registro conserva intacta su propagación de color por tipo (FR-203/FR-204): al elegir Gasto, el monto, el signo y el botón Guardar siguen tiñéndose del color del tipo, y lo mismo para Ingreso y Transferencia.",
+      "acceptance_criteria": "En el registro móvil, seleccionar Gasto/Ingreso/Transferencia sigue propagando el color del tipo al monto, al signo y al botón Guardar, exactamente como antes de esta feature"
+    },
+    {
+      "id": "NFR-402",
+      "category": "Regression",
+      "requirement": "La semántica de color de Ingreso y de Transferencia no cambia: en Ingreso, quedarse corto sigue marcándose con --warning y superar el presupuesto sigue siendo --success; Transferencia sigue neutro (--accent-light). Los umbrales de sobre-consumo aplican SOLO al presupuesto de gasto.",
+      "acceptance_criteria": "Una fila de Ingreso por debajo de su presupuesto sigue en --warning y por encima en --success; una de Transferencia sigue en --accent-light; ninguna de las dos muestra marca"
+    },
+    {
+      "id": "NFR-403",
+      "category": "Regression",
+      "requirement": "Accesibilidad AA preservada y WCAG 1.4.1 cumplido: el ámbar y el rojo del estado alcanzan ≥4.5:1 sobre las CUATRO superficies de la grilla —fila hoja, fila padre (hundida), y las celdas del mes resaltado de cada una— en claro y oscuro. La peor superficie clara es #E4E4E6 (celda resaltada de una fila padre). El estado nunca depende solo del color: la marca de forma (› / ››) es el canal redundante.",
+      "acceptance_criteria": "contrast(--state-warning, X) ≥ 4.5:1 y contrast(--state-over, X) ≥ 4.5:1 para X ∈ {fila hoja, fila padre, celda resaltada de hoja, celda resaltada de padre}, en claro y oscuro; toda celda pasada lleva además de color una marca de forma"
+    },
+    {
+      "id": "NFR-404",
+      "category": "Regression",
+      "requirement": "Cero regresión funcional: la edición inline de celdas hoja, los roll-ups de los padres, el reparent por drag-drop, el borrado, el filtro Mes/Año, la persistencia en localStorage y la lista Recientes se comportan idénticos.",
+      "acceptance_criteria": "La suite de regresión existente (root + grid-ux + stack-upgrade-theme + ux-consistency) sigue pasando; ninguna interacción existente cambia de comportamiento"
+    },
+    {
+      "id": "NFR-405",
+      "category": "Regression",
+      "requirement": "La suite completa existente (unit + integration + e2e) sigue en verde tras la feature; typecheck y lint sin errores.",
+      "acceptance_criteria": "npm run test:run y la suite Playwright completa pasan; npm run typecheck y npm run lint salen con exit code 0"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "assumed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Planteado por el usuario en la revisión humana de ux-consistency y refinado al revisar el mockup de UX: decidió que el color NO avise antes de pasarse, sino que gradúe la gravedad del desvío (≤100% neutro, >100% ámbar, ≥120% rojo). Respaldado por evidencia peer-reviewed que el usuario aceptó (Management Science 2021).",
+    "users": "Las dos personas ya aprobadas del proyecto y de la feature ux-consistency; esta feature no desbloquea tipos de usuario nuevos.",
+    "baseline": "Verificado leyendo el código, no asumido: ejecColor en src/components/BudgetGrid.tsx pinta neutro (--fg) y solo va a rojo si e > b; el token --warning existe en globals.css (#b45309 claro / #e0a458 oscuro) pero no se usa para este fin; no hay ningún % por categoría en la grilla; RecentList solo se renderiza en MobileShell.",
+    "success_metric": "El usuario fijó explícitamente los umbrales (>100% ámbar, ≥120% rojo) y descartó el pill de %. La métrica observable \"periodo sano ⇒ grilla completamente muda\" es una DERIVACIÓN del autor de los requisitos, no algo que el usuario haya enunciado como criterio de éxito.",
+    "no_go_zone": "Decidido explícitamente por el usuario: sin aviso temprano al 90%, sin pill de % por fila (se difiere a los resúmenes, BL-004), sin tocar el Registro, y Recientes en su propia feature (BL-003)."
+  },
+  "idea_gaps": [
+    "success_metric: el usuario fijó los umbrales y descartó el pill, pero NO enunció una métrica de éxito. La métrica \"periodo sano ⇒ 0 celdas coloreadas y 0 marcas\" es una derivación lógica. CONFIRMAR que la acepta como criterio de done.",
+    "[ASSUMPTION] Glifos exactos de la marca: el usuario aprobó el concepto de \"un símbolo diminuto en la celda\"; los caracteres \"›\" y \"››\" son propuesta del autor. CONFIRMAR en la revisión visual del build.",
+    "[ASSUMPTION] Casos borde de FR-401 (presupuesto = 0 con ejecutado > 0 ⇒ rojo; ejecutado = 0 ⇒ atenuado) no aparecen en el seed: se derivaron del baseline del código y de la necesidad de no dividir por cero. CONFIRMAR el tratamiento del presupuesto 0.",
+    "[ASSUMPTION] El estado se evalúa sobre la hoja y también sobre el roll-up de los nodos padre. CONFIRMAR antes de cerrar el diseño.",
+    "FR-404 (superficie de filas padre) fue pedido explícitamente por el usuario durante la revisión del mockup de UX, y además resuelve el conflicto del doble significado del rojo que el mockup destapó. Los valores de --state-warning/--state-over se oscurecieron (#9E4708 / #AD3932) porque la nueva superficie de fila padre bajaba el rojo a 4.46:1 sobre la celda resaltada.",
+    "FR-404: el usuario pidió \"solo para padres con hijos\". Se implementa como \"no editable\" (!isLeaf), que además cubre el GRUPO VACÍO —que tampoco es editable— porque de lo contrario el usuario intentaría editarlo. CONFIRMAR que acepta incluir el grupo vacío."
+  ],
+  "coverage_map": [
+    {
+      "need": "Un gasto dentro de presupuesto no debe teñirse de nada (neutro hasta el 100% inclusive)",
+      "disposition": "FR-401"
+    },
+    {
+      "need": "Distinguir un desvío leve de uno grave (ámbar >100%, rojo ≥120%)",
+      "disposition": "FR-401"
+    },
+    {
+      "need": "No avisar antes de pasarse: el color aparece solo tras superar el presupuesto",
+      "disposition": "FR-401"
+    },
+    {
+      "need": "No dividir por cero cuando el presupuesto es 0",
+      "disposition": "FR-401"
+    },
+    {
+      "need": "El estado no puede depender solo del color (ámbar vs rojo son indistinguibles para un daltónico rojo-verde)",
+      "disposition": "FR-402"
+    },
+    {
+      "need": "La señal redundante debe ser una marca de forma, no un número ni un pill",
+      "disposition": "FR-402"
+    },
+    {
+      "need": "Un periodo sano deja la grilla completamente muda (0 colores, 0 marcas)",
+      "disposition": "FR-402"
+    },
+    {
+      "need": "Explicar el código de estado una sola vez, en el pie de la grilla, nombrando color Y marca",
+      "disposition": "FR-403"
+    },
+    {
+      "need": "Rechazo explícito de un icono de información por fila",
+      "disposition": "FR-403"
+    },
+    {
+      "need": "El ámbar y el rojo cumplen AA (≥4.5:1) también sobre la celda tintada del mes resaltado",
+      "disposition": "NFR-403"
+    },
+    {
+      "need": "El Registro conserva su propagación de color por tipo (FR-203/FR-204)",
+      "disposition": "NFR-401"
+    },
+    {
+      "need": "Ingreso y Transferencia conservan su semántica de color",
+      "disposition": "NFR-402"
+    },
+    {
+      "need": "Cero regresión: edición inline, roll-ups, reparent, filtro Mes/Año, persistencia",
+      "disposition": "NFR-404"
+    },
+    {
+      "need": "La suite completa sigue verde; typecheck y lint sin errores",
+      "disposition": "NFR-405"
+    },
+    {
+      "need": "Mostrar el porcentaje de consumo por fila (pill)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Avisar antes de pasarse (umbral temprano al 90%)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Quitar la lista Recientes del registro móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Volver neutro el color del Registro al elegir Gasto",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Distinguir de un vistazo qué filas son editables (hojas) y cuáles son totales calculados (no editables, incluidos los grupos vacíos)",
+      "disposition": "FR-404"
+    },
+    {
+      "need": "Evitar que el rojo tenga dos significados: identidad del tipo en la fila de total vs sobre-consumo en una celda de datos",
+      "disposition": "FR-404"
+    }
+  ],
+  "original_brief": "## Feature\nEl color de la grilla señala el **estado del presupuesto** (dentro / cerca del límite / pasado), no el tipo de movimiento: se agrega el escalón **ámbar al 90%** y un **pill de % solo en las filas en problema**.\n\n## Problem / Why\nHoy el rojo comunica *\"esto es un gasto\"*, no *\"esto es un problema\"*. Un gasto que va perfectamente dentro de lo presupuestado se ve igual de alarmante que uno que se pasó.\n\nEso tiene un costo medible, no estético. Evidencia peer-reviewed:\n\n> **Bazley, Cronqvist & Mormann — \"Visual Finance: The Pervasive Effects of Red on Investor Behavior\", *Management Science* (2021).** 8 experimentos, 1.451 participantes: el rojo sobre datos financieros **reduce la toma de riesgo y prolonga expectativas pesimistas**. El efecto es **específico del contexto financiero** (desaparece cuando el dato se muestra en negro o azul, y en personas daltónicas).\n\nConsecuencia: la app \"grita\" donde no hay problema y por eso **pierde poder de señal donde sí lo hay**. Además, el usuario no tiene forma de ver *cuánto* de un presupuesto lleva consumido: solo sabe si ya se pasó, cuando ya es tarde.\n\nLa norma de la industria (RAG) es **neutro = dentro · ámbar = cerca del límite · rojo = se pasó**. El benchmark lo corrobora: los productos de presupuesto reales (Actual Budget, Mercury, Stripe) usan chrome neutro dominante y tratan el color como **señal escasa**, no como marca.\n\n## Target Users\nLos mismos usuarios existentes, sin desbloquear tipos nuevos:\n- **Dueño de sus finanzas personales** — necesita reaccionar *antes* de pasarse, no enterarse después. Hoy no tiene aviso temprano.\n- **Revisor técnico del portafolio** — lee la coherencia de la señal: que el color signifique algo y no sea decoración.\n\n## New Behavior\nEl sistema debe...\n- Pintar el Ejecutado de un gasto en **neutro** cuando lleva **<90%** de su presupuesto.\n- Pintar el Ejecutado de un gasto en **ámbar** (`--warning`) cuando alcanza **≥90%** y **≤100%** de su presupuesto.\n- Pintar el Ejecutado de un gasto en **rojo** (`--error`) cuando **supera el 100%** de su presupuesto (comportamiento ya existente, se conserva).\n- Mostrar un **pill con el porcentaje** únicamente en las categorías **en problema** (≥90%): `92%` en ámbar, `+40%` en rojo cuando se pasó.\n- **No mostrar pill alguno** en las categorías que van dentro del presupuesto (<90%): si el periodo va bien, la grilla queda completamente calma.\n- Explicar el código de color **una sola vez**, en el pie de la grilla (`GridFooter`, que ya existe y ya explica cómo usar la grilla) — no un icono de información por fila.\n- Mantener el contraste **AA (≥4.5:1)** del ámbar y del rojo sobre su superficie, en tema claro y oscuro.\n\n## Success Criteria\n- **Given** una categoría de gasto con presupuesto 200.000 y ejecutado 120.000 (60%), **when** se ve la grilla, **then** su Ejecutado se muestra en color neutro y **no** aparece ningún pill.\n- **Given** una categoría con presupuesto 200.000 y ejecutado 190.000 (95%), **when** se ve la grilla, **then** su Ejecutado se muestra en ámbar y aparece un pill `95%`.\n- **Given** una categoría con presupuesto 150.000 y ejecutado 210.000 (140%), **when** se ve la grilla, **then** su Ejecutado se muestra en rojo y aparece un pill `+40%`.\n- **Given** un periodo en el que todas las categorías van por debajo del 90%, **when** se ve la grilla, **then** hay **0 pills** y **0 celdas rojas**.\n- **Given** cualquier tema (claro u oscuro), **when** se mide el contraste del ámbar y del rojo contra su fondo, **then** ambos alcanzan ≥4.5:1.\n\n## Touch Points\n**MODIFICA** (existente):\n- `src/components/BudgetGrid.tsx` — la función `ejecColor` (hoy: neutro, y rojo solo si `e > b`). Es el único punto donde se decide el color del Ejecutado.\n- `src/components/DesktopShell.tsx` — `GridFooter`, para añadir la línea que explica el código de color.\n- FR raíz relacionados: **FR-104/FR-107** (grilla y pie de ayuda). El escalón ámbar **agrega** un estado; no cambia los roll-ups ni la edición inline.\n\n**AGREGA** (nuevo):\n- El estado \"cerca del límite\" (ámbar) y su umbral (90%).\n- El componente/pill de porcentaje por excepción.\n- Tokens ya disponibles, no hay que crearlos: `--warning` (#B45309 ámbar-700) y `--error` (#C4453E ladrillo), afinados por `ux-consistency`.\n\n**NO TOCA:** `Register/*`, `RecentList`, `store.ts`, dominio, persistencia.\n\n## Must Not Break (Regression Boundary)\n- El **Registro** conserva su propagación de color por tipo (FR-203/FR-204): al elegir Gasto, el monto, el signo y el botón Guardar siguen tiñéndose del color del tipo. *(El paper mide el rojo sobre datos que se leen e interpretan; en el Registro el rojo es identidad del tipo mientras se captura — todavía no hay presupuesto ni estado que señalar.)*\n- La lógica de **Ingreso** se conserva: quedarse corto sigue marcándose con `--warning` y superar el presupuesto sigue siendo `--success`. El escalón ámbar del 90% aplica **solo al consumo de un presupuesto de gasto**.\n- La lógica de **Transferencia** se conserva (neutro, `--accent-light`).\n- La **edición inline** de celdas hoja, los **roll-ups** de padres, el **reparent** drag-drop, el borrado y el filtro **Mes/Año** funcionan idénticos.\n- La **persistencia** en localStorage y el modelo de datos no cambian.\n- **Recientes** sigue existiendo y comportándose igual (su remoción es BL-003, otra feature).\n- La suite completa existente (root + `grid-ux` + `stack-upgrade-theme` + `ux-consistency`) sigue verde; typecheck y lint sin errores.\n\n## Out of Scope\n- **Quitar la lista \"Recientes\"** del registro móvil. El usuario quiere hacerlo, pero lo sostiene `FR-001` (MUST, raíz) y 7 aserciones de test: se decidió que va en **su propia feature** (BL-003) para mantener esta chica y enfocada.\n- **Cambiar el color del Registro** (FR-203/FR-204).\n- Cambiar el modelo de datos, los roll-ups, o la composición/layout de la grilla.\n- Introducir una identidad o hue nuevo: se reutilizan los tokens ya afinados.\n- Reordenar columnas o indicadores; tocar despliegue, auth o navegación.\n- Notificaciones, alertas push o cualquier aviso fuera de la grilla.\n\n---\n\n## Pregunta abierta para la fase de UX (deliberadamente sin resolver)\n\n**¿Dónde vive el pill, dado que la grilla tiene 12 meses?**\n\nEl % de consumo existe por **(categoría, mes)**, no por fila. Si el pill fuera por celda, podría aparecer **hasta 12 veces en la misma fila** — exactamente el ruido que esta feature quiere evitar.\n\n**[ASSUMPTION] Propuesta a evaluar en UX:** el **color de cada celda `Ejec.` sigue codificando el estado por mes** (ya lo hace), y el **pill vive una sola vez por fila, en la columna fija de categoría**, reflejando el **periodo seleccionado** por el filtro Mes/Año (usando el agregado anual cuando el filtro está en Año). Un pill por fila, solo si esa categoría está en problema, y siempre coherente con el filtro.\n\n---\n\n## Provenance\n\n- **confirmed** — decidido explícitamente por el usuario en la revisión: el umbral ámbar en **90%**; el pill **solo por excepción**; **no** tocar el Registro; **no** tocar Recientes aquí (feature aparte); y el rechazo explícito a un icono de información por fila (*\"no quiero llenar de ruido la grilla\"*).\n- **confirmed** — verificado leyendo el código, no asumido: el baseline de `ejecColor`, la existencia del token `--warning`, la ausencia de cualquier % por categoría, y que `RecentList` solo se renderiza en `MobileShell`.\n- **[ASSUMPTION]** — que el pill deba seguir al filtro Mes/Año y vivir en la columna fija (pendiente: fase de UX).\n- **[ASSUMPTION]** — que el umbral se evalúe sobre el presupuesto de la **hoja** (categoría/subcategoría) y también sobre el roll-up de los padres (pendiente: confirmar en requisitos).\n"
+}

@@ -38,6 +38,12 @@ export interface Movement {
   amount: number; // entero >= 1
   month: MonthKey;
   createdAt: number;
+  /** Delta aditivo (feature stack-upgrade-theme, ADR-03): fecha de captura ISO del registro
+   *  móvil ("YYYY-MM-DDTHH:mm"). El `month` se DERIVA de aquí. Opcional: los movimientos
+   *  previos no lo tienen y siguen siendo válidos (sin migración). */
+  date?: string;
+  /** Nota opcional (≤280, trim, vacío→null). Ausente en movimientos previos. */
+  note?: string | null;
 }
 
 export interface LedgerState {

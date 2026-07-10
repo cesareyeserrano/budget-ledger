@@ -1,0 +1,31 @@
+{
+  "project": "Ledger (T-Ledger) — Feature: stack-upgrade-theme",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    { "id": "FR-201", "title": "Temas claro/oscuro/sistema con next-themes (default Sistema, persistente)", "level": "complete", "evidence": "TC-SUT-201h/202e/203f + persistencia del toggle (TC-SUT-215f); ThemeProvider en layout, clave 'theme' aislada" },
+    { "id": "FR-202", "title": "Tokens de color theme-aware (paleta zinc neutra)", "level": "complete", "evidence": "TC-SUT-204h/205e/206f: HEX exactos en :root/.dark; sin tokens steel-blue previos" },
+    { "id": "FR-203", "title": "Acento dinámico = color del tipo activo en el Registro", "level": "complete", "evidence": "TC-SUT-207h propagación a signo/caret/tile/botón; TC-SUT-208e/209f chrome neutro fuera del registro" },
+    { "id": "FR-204", "title": "Color por tipo (Gasto rojo/Ingreso verde/Transferencia azul), AA", "level": "complete", "evidence": "TC-SUT-210h/211e/212f; typeColor/typeTextColor; Transferencia azul #2563EB" },
+    { "id": "FR-205", "title": "Toggle de tema (claro/oscuro/sistema) en la UI", "level": "complete", "evidence": "TC-SUT-213h/214e/215f: aplica y persiste; visible en móvil y escritorio" },
+    { "id": "FR-206", "title": "Actualizar el stack (next-themes/react-day-picker/@testing-library)", "level": "complete", "evidence": "TC-SUT-216h deps + build; TC-SUT-217e carga diferida; TC-SUT-218f sin red" },
+    { "id": "FR-207", "title": "Registro móvil rediseñado: monto protagonista + COP", "level": "partial", "evidence": "TC-SUT-219h/220e/221f/222f. Deuda declarada: el mensaje de rechazo de decimales vive en validateAmountInput (verificado por unit test); la UI restringe a dígitos por teclado" },
+    { "id": "FR-208", "title": "Toggle de tipo en el registro", "level": "complete", "evidence": "TC-SUT-223h/224e/225f: relleno + aria-selected, conserva monto, deselecciona categoría" },
+    { "id": "FR-209", "title": "Selector de categorías por tipo leyendo la jerarquía", "level": "complete", "evidence": "TC-SUT-226h/227e/228f + selección de la HOJA disponible (categoría-hoja o subcategoría con expansión, refinamiento de revisión)" },
+    { "id": "FR-210", "title": "Campo de fecha 'Hoy' editable con calendario", "level": "complete", "evidence": "TC-SUT-229h/230e/231f/232f: react-day-picker diferido; la hora no se muestra" },
+    { "id": "FR-211", "title": "Nota opcional con límite de 280", "level": "complete", "evidence": "TC-SUT-233h/234e/235f: contador n/280, recorte duro, vacío→null" },
+    { "id": "FR-212", "title": "Guardado con overlay + anti doble-tap (semántica existente)", "level": "complete", "evidence": "TC-SUT-236h/237e/238f/239f/240e: suma a Ejecutado + roll-ups, overlay ~2s, anti doble-tap 600ms, StorageBanner" },
+    { "id": "FR-213", "title": "Tipografía Inter + DM Mono (reemplaza Lexend)", "level": "complete", "evidence": "TC-SUT-241h/242e/243f: Inter en texto/botones, DM Mono en montos, sin Lexend, self-hosted" },
+    { "id": "NFR-201", "title": "Sin regresión funcional (grilla/reparent/dashboard/roll-ups)", "level": "complete", "evidence": "TC-SUT-244h/245e/246f + suite de regresión del parent (grid-ux/critical/reparent) verde" },
+    { "id": "NFR-202", "title": "Sin cambio de persistencia/modelo; delta aditivo", "level": "complete", "evidence": "TC-SUT-247h/248e/249f: date/note opcionales sobreviven a recarga; sin almacén paralelo; 'theme' aislada" },
+    { "id": "NFR-203", "title": "Accesibilidad AA en ambos temas; táctil ≥48px", "level": "complete", "evidence": "TC-SUT-250h/251e/252f: contraste ≥4.5:1, regla green-700 texto pequeño, controles ≥48px" },
+    { "id": "NFR-204", "title": "Sin peticiones HTTP externas en runtime", "level": "complete", "evidence": "TC-SUT-253h/254e/255f: 0 peticiones externas al cargar/tema/calendario/guardar; fuentes self-hosted" },
+    { "id": "NFR-205", "title": "Sin regresión de layout en escritorio", "level": "complete", "evidence": "TC-SUT-256h/257e/258f: grilla alineada/sticky; registro sin desborde; el tema no altera posiciones" },
+    { "id": "NFR-206", "title": "Registro móvil centrado sin scroll horizontal", "level": "complete", "evidence": "TC-SUT-259h/260e/261f: sin scroll-x a 375/768/1440; feedback inmediato del overlay" },
+    { "id": "NFR-207", "title": "CI corre la suite completa en cada push a main", "level": "complete", "evidence": "TC-SUT-262h/263e/264f: ci.yml ejecuta typecheck+vitest+build+e2e en push/PR a main; smoke 200 en '/'" }
+  ],
+  "technical_debt_inherited": [
+    { "fr_id": "FR-207", "substitution": "La regla de rechazo de decimales ('El monto debe ser un valor entero en pesos.') vive en validateAmountInput y se verifica por unit test; en la UI el input restringe a dígitos (inputMode='numeric' + strip), así que el separador decimal no es alcanzable por teclado — la validación es la barrera defensiva/verificable." }
+  ]
+}

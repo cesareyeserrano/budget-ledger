@@ -15,7 +15,7 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex w-full items-center justify-between rounded-[--radius-sm] border border-border bg-elevated px-3 py-2.5 text-[0.85rem] text-fg outline-none data-[state=open]:border-accent focus:border-accent",
+      "flex w-full items-center justify-between rounded-(--radius-sm) border border-border bg-elevated px-3 py-2.5 text-[0.85rem] text-fg outline-none data-[state=open]:border-accent focus:border-accent",
       className
     )}
     {...props}
@@ -37,7 +37,8 @@ export const SelectContent = React.forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-[--radius-sm] border border-border-strong bg-card text-fg shadow-[0_8px_30px_rgba(0,0,0,0.5)]",
+        // FR-301: sombra theme-aware (--shadow-lg), no rgba negro fijo; superficie 'elevada' + hairline.
+        "elevated-lg relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-(--radius-md) border border-border-strong bg-elevated text-fg",
         position === "popper" && "data-[side=bottom]:translate-y-1",
         className
       )}
@@ -56,7 +57,8 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-[0.8rem] text-fg outline-none data-[highlighted:bg-elevated] data-[highlighted]:bg-elevated",
+      // FR-314: se retira la variante malformada data-[highlighted:bg-elevated]; el highlight usa --bg-sunken (distinto del content).
+      "relative flex cursor-pointer select-none items-center rounded-(--radius-sm) py-1.5 pl-7 pr-2 text-[0.8rem] text-fg outline-none data-[highlighted]:bg-sunken",
       className
     )}
     {...props}

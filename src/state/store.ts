@@ -15,8 +15,12 @@ interface LedgerStore {
   hydrated: boolean;
   period: PeriodFilter;
   toast: string | null;
+  /** Aviso no bloqueante cuando falla la persistencia local (quota/indisponible). */
+  storageError: "quota" | null;
   showToast: (msg: string) => void;
-  addMovement: (input: NewMovement) => void;
+  /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
+   *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
+  addMovement: (input: NewMovement) => boolean;
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
@@ -34,19 +38,29 @@ function makeRepo(): LedgerRepository | null {
   return new LocalStorageRepository(window.localStorage);
 }
 
+/** Ventana (ms) en la que un guardado idéntico se considera doble-tap y no se duplica (FR-212). */
+const DOUBLE_TAP_MS = 600;
+
 export const useLedgerStore = create<LedgerStore>((set, get) => {
   const repo = makeRepo();
   const persist = (data: LedgerState) => {
-    void repo?.save(OWNER, data);
+    // Si la persistencia falla (p. ej. quota), se surface un aviso no bloqueante (FR-212).
+    void repo?.save(OWNER, data).then((ok) => {
+      if (ok === false) set({ storageError: "quota" });
+    });
   };
+  // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
+  let lastSig: string | null = null;
+  let lastAt = 0;
 
   return {
     data: buildSeed(OWNER),
     hydrated: false,
-    // FR-106: arrancar en 'Año' agrega todo el ejecutado del año, así los KPIs no abren en $0
-    // (el mes actual puede ser un mes proyectado sin ejecutado). El usuario cambia el filtro libremente.
-    period: { mode: "year" },
+    // ux-consistency FR-312: arrancar en el MES EN CURSO (según el reloj), no en un año/mes fijo.
+    // Supersede el default 'Año' de FR-106; el usuario cambia el filtro Mes/Año libremente.
+    period: { mode: "month", month: currentMonth() },
     toast: null,
+    storageError: null,
     showToast: (msg) => {
       set({ toast: msg });
       setTimeout(() => {
@@ -65,10 +79,23 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       set({ data, hydrated: true });
     },
 
+    /**
+     * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-216, TC-ID: TC-SUT-242f
+     */
     addMovement: (input) => {
-      const data = addMovement(get().data, input);
+      // Anti doble-tap: un guardado idéntico dentro de la ventana no se duplica (FR-212).
+      const sig = [input.type, input.catId, input.subId ?? "", input.amount, input.month, input.date ?? "", input.note ?? ""].join("|");
+      const now = Date.now();
+      if (lastSig === sig && now - lastAt < DOUBLE_TAP_MS) return false;
+
+      const prev = get().data;
+      const data = addMovement(prev, input);
+      if (data === prev) return false; // inválido: no se persiste
+      lastSig = sig;
+      lastAt = now;
       set({ data });
       persist(data);
+      return true;
     },
     createNode: (input) => {
       const prev = get().data;

@@ -1,22 +1,24 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import type { LedgerNode, MonthKey, NodeLevel, NodeType } from "@/domain/types";
 import { MONTHS } from "@/domain/months";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
+import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { cellNum, typeColorVar } from "./format";
-import { NodeIcon, CATEGORY_ICONS } from "./NodeIcon";
+import { NodeIcon } from "./NodeIcon";
+import { IconPicker } from "./IconPicker";
 import { cn } from "@/lib/utils";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
 
 const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowDown }[] = [
   { id: "expense", label: "GASTOS", Icon: ArrowDown },
   { id: "income", label: "INGRESOS", Icon: ArrowUp },
-  { id: "transfer", label: "TRANSFERENCIAS", Icon: ArrowLeftRight },
+  { id: "transfer", label: "TRANSFERENCIAS", Icon: ArrowUpDown },
 ];
 
 // Ancho de la columna categoría vía CSS var --cat-w (FR-104, redimensionable); sub-celda de mes 108px, alto de fila 37px.
@@ -27,12 +29,69 @@ const STICKY_BASE = "sticky left-0 z-[2] flex items-center gap-2 flex-none borde
 interface Adder { level: NodeLevel; parentId: string | null; type: NodeType }
 interface Row { node: LedgerNode | null; type: NodeType; depth: number; leaf: boolean; expandable: boolean }
 
-/** Color del Ejecutado por tipo/varianza (regla del prototipo). */
+/**
+ * Color y glifo del estado de sobre-consumo. Ambos se indexan por el MISMO BudgetState (ADR-02):
+ * mientras se lean de estas dos tablas, el canal redundante de WCAG 1.4.1 no puede contradecir al
+ * color, porque no hay una segunda condición que mantener en sincronía.
+ */
+const STATE_COLOR: Record<BudgetState, string> = {
+  within: "var(--fg)",
+  over_soft: "var(--state-warning)",
+  over_hard: "var(--state-over)",
+};
+const STATE_GLYPH: Record<BudgetState, "" | "›" | "››"> = {
+  within: "",
+  over_soft: "›",
+  over_hard: "››",
+};
+
+/**
+ * Marca de forma del estado: el canal NO cromático de WCAG 1.4.1 (ámbar y rojo son un par
+ * rojo-verde, indistinguible para ≈1 de cada 12 hombres).
+ *
+ * @param state Estado de consumo del presupuesto.
+ * @returns El glifo a dibujar antes del monto; cadena vacía cuando no hay desvío.
+ *
+ * @aitri-trace FR-ID: FR-402, US-ID: US-402, AC-ID: AC-402, TC-ID: TC-BSC-402h, TC-BSC-453f
+ */
+function stateGlyph(state: BudgetState): "" | "›" | "››" {
+  return STATE_GLYPH[state];
+}
+
+/**
+ * Color del Ejecutado. En GASTO ya no indica el tipo: gradúa la GRAVEDAD del sobre-consumo
+ * (neutro ≤100 % · ámbar >100 % y <120 % · rojo ≥120 %). Ingreso y Transferencia conservan
+ * intacta su semántica anterior (NFR-402).
+ *
+ * @param type Tipo del nodo. Solo `expense` consulta el estado de presupuesto.
+ * @param b Presupuesto del mes.
+ * @param e Ejecutado del mes. 0 conserva el em-dash atenuado.
+ * @returns La variable CSS del color, lista para `style`.
+ *
+ * @aitri-trace FR-ID: FR-401, US-ID: US-401, AC-ID: AC-401, TC-ID: TC-BSC-402h, TC-BSC-452h, TC-BSC-452e
+ */
 function ejecColor(type: NodeType, b: number, e: number): string {
   if (!e) return "var(--fg-secondary)";
-  if (type === "expense") return e > b ? "var(--error)" : "var(--fg)";
+  if (type === "expense") return STATE_COLOR[budgetState(b, e)];
   if (type === "income") return e >= b ? "var(--success)" : "var(--warning)";
   return "var(--accent-light)";
+}
+
+/**
+ * Glifo del Ejecutado. Deriva del mismo `budgetState(b, e)` que el color, con las mismas entradas:
+ * solo los GASTOS con ejecutado > 0 pueden llevar marca (NFR-402 — un Ingreso que supera su
+ * presupuesto es BUENO y no lleva ninguna).
+ *
+ * @param type Tipo del nodo.
+ * @param b Presupuesto del mes.
+ * @param e Ejecutado del mes.
+ * @returns El glifo, o cadena vacía cuando la celda no expresa desvío.
+ *
+ * @aitri-trace FR-ID: FR-402, US-ID: US-402, AC-ID: AC-402, TC-ID: TC-BSC-402e, TC-BSC-402f, TC-BSC-452f
+ */
+function ejecGlyph(type: NodeType, b: number, e: number): "" | "›" | "››" {
+  if (!e || type !== "expense") return "";
+  return stateGlyph(budgetState(b, e));
 }
 
 export function BudgetGrid() {
@@ -118,7 +177,7 @@ export function BudgetGrid() {
         <div className="w-max min-w-full text-[0.74rem]">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
-            <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[76px] pl-3.5 pr-2.5 pb-2.5 bg-elevated border-b border-border-strong font-semibold tracking-[0.06em] text-fg-secondary text-[0.62rem]")}>CATEGORÍA
+            <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[76px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
               {/* FR-104: manija de resize (la celda sticky ya es containing block para el absolute) */}
               <span
                 onPointerDown={startResize}
@@ -135,14 +194,14 @@ export function BudgetGrid() {
             <div className="flex flex-col">
               <div className="flex">
                 {MONTHS.map((m) => (
-                  <div key={m.k} className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 text-[0.76rem] font-medium bg-elevated border-b border-border border-l-2 border-l-border-strong")} style={{ width: 216, color: highlightMonth === m.k ? "var(--accent-light)" : "var(--fg)" }}>{m.label}</div>
+                  <div key={m.k} className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong")} style={{ width: 216, color: highlightMonth === m.k ? "var(--accent-light)" : "var(--fg)" }}>{m.label}</div>
                 ))}
               </div>
               <div className="flex">
                 {MONTHS.map((m) => (
                   <div key={m.k} className="flex">
-                    <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 text-[0.6rem] tracking-[0.04em] text-fg-muted bg-elevated border-b border-border-strong border-l-2 border-l-border-strong")}>Pres.</div>
-                    <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 text-[0.6rem] tracking-[0.04em] text-fg-muted bg-elevated border-b border-border-strong")}>Ejec.</div>
+                    <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 caption text-fg-muted bg-sunken border-b border-border-strong border-l-2 border-l-border-strong")}>Pres.</div>
+                    <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 caption text-fg-muted bg-sunken border-b border-border-strong")}>Ejec.</div>
                   </div>
                 ))}
               </div>
@@ -193,8 +252,11 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, isExpanded, onToggle,
   const color = typeColorVar(type);
   const [hover, setHover] = useState(false);
   return (
-    <div className="flex" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <div className={cn(STICKY_BASE, LABEL_W, "bg-elevated border-b border-border pl-3.5 pr-2.5 gap-2 font-bold")} style={{ color }}>
+    <div className="flex" data-testid="type-total-row" data-type={type} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
+          la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
+          sobre-consumo de una celda de datos. */}
+      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color }}>
         <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
         <Icon size={15} color={color} /><span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
         {/* "+" para agregar un GRUPO de este tipo (el adder de grupo vive en el hover del tipo) */}
@@ -206,8 +268,9 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, isExpanded, onToggle,
         const t = typeTotals(data, type, [m.k]);
         return (
           <div key={m.k} className="flex">
-            <Cell value={t.budget} sep bold color={color} bg="bg-elevated" highlight={highlightMonth === m.k} />
-            <Cell value={t.actual} bold color={color} bg="bg-elevated" highlight={highlightMonth === m.k} />
+            {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
+            <Cell value={t.budget} sep bold color={color} sunken highlight={highlightMonth === m.k} />
+            <Cell value={t.actual} bold color={color} sunken highlight={highlightMonth === m.k} />
           </div>
         );
       })}
@@ -239,7 +302,6 @@ function NodeRow(props: {
   const [hover, setHover] = useState(false);
   const [nameVal, setNameVal] = useState(node.name);
   const [confirmDel, setConfirmDel] = useState(false);
-  const [pickingIcon, setPickingIcon] = useState(false); // selector de ícono de categoría (clic en el ícono)
 
   useEffect(() => { if (naming) setNameVal(node.name); }, [naming, node.name]);
 
@@ -248,26 +310,40 @@ function NodeRow(props: {
   const droppable = useDroppable({ id: dropId ?? `noop:${node.id}` });
   const canDrag = node.level !== "group" && !node.system;
   const bWeight = node.level === "group" ? 500 : 400;
+  // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es
+  // lienzo, un grupo es estructura), no sobre el lienzo en ambos casos.
+  const rowSurface = row.leaf ? "var(--bg)" : "var(--bg-sunken)";
 
   return (
-    <div className="flex flex-col" style={{ opacity: draggable.isDragging ? 0.4 : 1 }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} ref={dropId ? droppable.setNodeRef : undefined}>
+    <div className="flex flex-col" data-testid="node-row" data-level={node.level} data-leaf={String(row.leaf)} style={{ opacity: draggable.isDragging ? 0.4 : 1 }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} ref={dropId ? droppable.setNodeRef : undefined}>
       <div className="flex">
         <div
           ref={draggable.setNodeRef}
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
+          data-testid="row-label"
           className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default")}
           style={{
             paddingLeft: 14 + row.depth * 16,
-            background: droppable.isOver && dropId ? "color-mix(in srgb, var(--accent) 18%, var(--bg))" : "var(--bg)",
+            // FR-404: la columna fija comparte la superficie de la fila — la estructura se distingue
+            // del dato editable en TODA la fila, no solo en las celdas de mes.
+            background: droppable.isOver && dropId ? `color-mix(in srgb, var(--accent) 18%, ${rowSurface})` : rowSurface,
             boxShadow: droppable.isOver && dropId ? "inset 0 0 0 1.5px var(--accent)" : undefined,
           }}
         >
           <button aria-label="Expandir" onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted", row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
           {(node.level === "category" || node.level === "group") && !node.system ? (
-            <button aria-label="Cambiar ícono" title="Cambiar ícono" onClick={() => setPickingIcon((p) => !p)} className={cn("inline-flex flex-none cursor-pointer bg-transparent border-0 p-0 rounded", pickingIcon && "ring-1 ring-accent")}>
-              <NodeIcon name={node.icon} level={node.level} size={15} color={typeColorVar(node.type)} />
-            </button>
+            // FR-309/310: selector de iconos rico en un Popover shadcn (≥40 Lucide, buscable)
+            <IconPicker
+              value={node.icon}
+              onChange={(icon) => props.setIcon(icon)}
+              color={typeColorVar(node.type)}
+              trigger={
+                <button aria-label="Cambiar ícono" title="Cambiar ícono" className="inline-flex flex-none cursor-pointer bg-transparent border-0 p-0 rounded-(--radius-sm) outline-none focus-visible:ring-1 focus-visible:ring-accent data-[state=open]:ring-1 data-[state=open]:ring-accent">
+                  <NodeIcon name={node.icon} level={node.level} size={15} color={typeColorVar(node.type)} />
+                </button>
+              }
+            />
           ) : (
             <span className="inline-flex flex-none"><NodeIcon name={node.icon} level={node.level} size={node.level === "sub" ? 13 : 15} color={node.level === "sub" ? "var(--fg-muted)" : typeColorVar(node.type)} /></span>
           )}
@@ -302,44 +378,55 @@ function NodeRow(props: {
           return (
             <div key={m.k} className="flex">
               <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} onStart={() => row.leaf && props.startEdit(m.k, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} onStart={() => row.leaf && props.startEdit(m.k, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} onStart={() => row.leaf && props.startEdit(m.k, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
       </div>
-
-      {(naming || pickingIcon) && (node.level === "category" || node.level === "group") && !node.system && (
-        <div className="sticky left-0 flex gap-1.5 flex-wrap py-2 bg-bg" style={{ width: 260, paddingLeft: 14 + row.depth * 16 + 22 }}>
-          {(node.level === "group" ? ["folder", ...CATEGORY_ICONS] : CATEGORY_ICONS).map((ic) => (
-            <button key={ic} aria-label={`Ícono ${ic}`} onMouseDown={(e) => e.preventDefault()} onClick={() => { props.setIcon(ic); setPickingIcon(false); }} className={cn("inline-flex p-[5px] rounded-md cursor-pointer border", node.icon === ic ? "border-accent text-accent-light" : "border-border bg-card text-fg-secondary")} style={node.icon === ic ? { background: "color-mix(in srgb, var(--accent) 16%, transparent)" } : undefined}>
-              <NodeIcon name={ic} level="category" size={15} />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; editVal: string; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
   if (props.editing) {
     return (
       <div className={cn(CELL_W, "py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
-        <input autoFocus aria-label="Editar valor" value={props.editVal} onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))} onBlur={props.commit} onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }} className="w-full bg-elevated border border-accent rounded-md text-fg text-[0.74rem] text-right px-1.5 py-1 outline-none" />
+        <input autoFocus aria-label="Editar valor" value={props.editVal} onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))} onBlur={props.commit} onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }} className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-[0.74rem] text-right px-1.5 py-1 outline-none" />
       </div>
     );
   }
-  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
+  // FR-404: la fila NO editable (!leaf) lleva la superficie hundida — el MISMO predicado que gobierna
+  // la edición, así la afordancia no puede desalinearse del comportamiento (ADR-05).
+  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
 }
 
-function Cell({ value, sep, muted, color, weight, bold, highlight, bg, onClick, clickable }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; bg?: string; onClick?: () => void; clickable?: boolean }) {
+/**
+ * Superficie de una celda. El tinte del mes resaltado se compone SOBRE el fondo de la fila, no
+ * sobre el lienzo: por eso la celda resaltada de una fila hundida es #e4e4e6 — la superficie más
+ * oscura de la grilla en claro, y la que fija el peor caso de AA (NFR-403).
+ *
+ * @param sunken La fila NO es editable (estructura).
+ * @param highlight La celda pertenece al mes del filtro.
+ * @returns El valor de `background` para el `style` de la celda.
+ *
+ * @aitri-trace FR-ID: FR-404, US-ID: US-404, AC-ID: AC-404, TC-ID: TC-BSC-404h, TC-BSC-453e
+ */
+function cellSurface(sunken: boolean | undefined, highlight: boolean | undefined): string {
+  const base = sunken ? "var(--bg-sunken)" : "var(--bg)";
+  return highlight ? `color-mix(in srgb, var(--accent) 6%, ${base})` : base;
+}
+
+function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, onClick, clickable }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; onClick?: () => void; clickable?: boolean }) {
   return (
     <div
       onClick={onClick}
       data-testid={clickable ? "cell-leaf" : "cell-parent"}
-      className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular-nums border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", bg, clickable ? "cursor-text" : "cursor-default")}
-      style={{ color: color ?? (muted ? "var(--fg-secondary)" : "var(--fg)"), fontWeight: bold ? 700 : weight ?? 400, background: highlight && !bg ? "color-mix(in srgb, var(--accent) 6%, transparent)" : undefined }}
+      className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable ? "cursor-text" : "cursor-default")}
+      style={{ color: color ?? (muted ? "var(--fg-secondary)" : "var(--fg)"), fontWeight: bold ? 500 : weight ?? 400, background: cellSurface(sunken, highlight) }}
     >
+      {/* Canal redundante de WCAG 1.4.1 (FR-402): aria-hidden porque el dato ya lo portan el monto
+          y el Pres. adyacente. flex-none para que nunca empuje al monto fuera de la celda. */}
+      {glyph ? <span aria-hidden="true" className="flex-none mr-1 text-[0.75rem] leading-none">{glyph}</span> : null}
       {cellNum(value)}
     </div>
   );

@@ -4,7 +4,7 @@
 
 **Method:** Independent re-derivation of client needs from `00_DISCOVERY.md`, `01_REQUIREMENTS.json#original_brief`, and the seed IDEA, traced backward to the functional requirements, then diffed against the Phase-1 `coverage_map`.
 
-**Verdict (re-audited 2026-07-02):** 30 needs traced · 28 fully covered · 0 uncovered (dropped) · 2 divergences/questions to resolve.
+**Verdict (re-audited 2026-07-07):** 30 needs traced · 28 fully covered · 0 uncovered (dropped) · 2 divergences/questions to resolve. Fresh independent re-derivation on 2026-07-07 reproduced the same trace and confirms the 2026-07-02 findings stand — root Phase-1 FRs unchanged; GAP-2 and GAP-3 remain open pending a user decision. (Note: the in-flight `stack-upgrade-theme` feature will supersede FR-012's design system, but that is a feature-level change not yet folded into root Phase 1.)
 No client need was silently *dropped* — every expressed need maps to an FR, an NFR, a constraint, or an explicit `no_go_zone` line. The prior GAP-1 ("Sin asignar" per-GRUPO → per-TIPO divergence) is **RESOLVED**: FR-003 now reads *"la categoría fija 'Sin asignar' del **MISMO GRUPO** … UNA por **GRUPO**"* and NFR-005 *"de 'Sin asignar' de su grupo"*, matching the brief and D-2; the editable-montos point is now consistent with the D-2 constraint (`auto, no renombrable/borrable, montos editables`). Two items still diverge and should be confirmed.
 
 ---

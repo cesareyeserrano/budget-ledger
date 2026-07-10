@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Lexend } from "next/font/google";
+import { Inter, DM_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
-// next/font descarga y AUTO-ALOJA la fuente en build; en runtime se sirve local — sin peticiones a Google (NFR-004, BG-001).
-// FR-109: Lexend (sans, más legible que el mono Fira Code) en toda la app; cifras con tabular-nums (globals.css).
-const lexend = Lexend({
+// next/font descarga y AUTO-ALOJA las fuentes en build; en runtime se sirven locales — sin
+// peticiones a Google (NFR-204). FR-213: Inter (texto, --font-sans) + DM Mono (montos, --font-mono,
+// tabular-nums); reemplaza a Lexend.
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-lexend",
+  variable: "--font-inter",
+  display: "swap",
+});
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
   display: "swap",
 });
 
@@ -17,15 +24,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080c12",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={lexend.variable}>
-      <body>{children}</body>
+    <html lang="es" className={`${inter.variable} ${dmMono.variable}`} suppressHydrationWarning>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

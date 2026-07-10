@@ -57,7 +57,8 @@ describe("FR-011 / NFR-003 persistencia", () => {
       removeItem: () => {},
     };
     const repo = new LocalStorageRepository(throwing);
-    await expect(repo.save("local", buildSeed("local"))).resolves.toBeUndefined();
+    // feature stack-upgrade-theme: save ya no lanza; devuelve false ante fallo (para el StorageBanner).
+    await expect(repo.save("local", buildSeed("local"))).resolves.toBe(false);
     expect(throwing.setItem).toHaveBeenCalled();
   });
 

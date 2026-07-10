@@ -25,6 +25,18 @@ export interface NewMovement {
   subId?: string | null;
   amount: number | string;
   month: MonthKey;
+  /** Feature stack-upgrade-theme (ADR-03): fecha ISO de captura; el registro móvil la envía y
+   *  deriva `month` de ella. Opcional para no romper llamadores existentes (grilla/panel). */
+  date?: string;
+  /** Nota opcional del registro móvil (se normaliza: trim, ≤280, vacío→null). */
+  note?: string | null;
+}
+
+/** Nota: trim; vacío→null; recorte duro a 280 (FR-211). */
+export function normalizeNote(note: string | null | undefined): string | null {
+  if (note == null) return null;
+  const trimmed = note.trim();
+  return trimmed === "" ? null : trimmed.slice(0, 280);
 }
 
 /** El botón Guardar está habilitado solo con monto válido (>=1) y categoría seleccionada. */
@@ -32,7 +44,13 @@ export function canSave(input: { amount: number | string; catId: string | null }
   return parseAmount(input.amount) !== null && !!input.catId;
 }
 
-/** Suma el monto al Ejecutado de la hoja destino (target = subId ?? catId). Rechaza montos inválidos. */
+/**
+ * Suma el monto al Ejecutado de la hoja destino (target = subId ?? catId). Rechaza montos
+ * inválidos. Delta aditivo: persiste `date`/`note` cuando el registro móvil los envía; el
+ * `month` de agregación lo aporta el llamador (derivado de `date`) — semántica de roll-ups intacta.
+ *
+ * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
+ */
 export function addMovement(state: LedgerState, input: NewMovement): LedgerState {
   const amount = parseAmount(input.amount);
   if (amount === null || !input.catId) return state; // negativo: no altera el estado
@@ -42,6 +60,8 @@ export function addMovement(state: LedgerState, input: NewMovement): LedgerState
     id: uid(), ownerId: state.ownerId, type: input.type,
     catId: input.catId, subId: input.subId ?? null, target,
     amount, month: input.month, createdAt: nextSeq(),
+    ...(input.date ? { date: input.date } : {}),
+    ...(input.note !== undefined ? { note: normalizeNote(input.note) } : {}),
   };
   next.movements.unshift(mv);
   next.actuals[target] = { ...(next.actuals[target] ?? {}) };

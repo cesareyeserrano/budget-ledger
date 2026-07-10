@@ -1,0 +1,247 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "ux-consistency",
+  "createdAt": "2026-07-08T17:09:25.061Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-09T19:08:51.248Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-08T21:46:34.174Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-08T21:52:18.799Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T23:16:41.485Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-09T16:22:32.771Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T16:22:39.763Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T16:22:44.478Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T16:25:13.665Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T17:27:11.263Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-09T18:03:03.428Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T18:03:03.508Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T18:03:03.623Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T18:03:03.725Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-09T18:08:35.971Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-09T18:08:59.022Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-09T18:11:02.100Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-09T18:28:33.600Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-09T18:28:41.405Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-09T18:29:29.112Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-09T19:08:46.993Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-09T19:08:51.223Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "17469e4b5b732e6e6c4b7972b966ebd23540f22f07cecd3a9b406811d3e0e36f",
+    "2": "b40fd30fc1dd92d47bc746f3ab9af79a5a916d48f63c2c0d4c962e540cb4b07c",
+    "3": "4d2b4e87cd9bf898dfb2e30228ffde5265c06e0c69fc215ef42edbc68f11d0fd",
+    "4": "2776c82ab9c9aa05c0bf8836dfe6fbd9192632cce1ffb0e0ab8eb87d90f3cd63",
+    "5": "e4871727cb22dc8a0f7b8990205d13c011df0a96bdd896ecfa8c14639aae1bf0",
+    "ux": "f124bf457b22971005303442c924b0c28109f003b6103ea8880c4655a4cd9b07"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-301",
+      "FR-302",
+      "FR-303",
+      "FR-304",
+      "FR-305",
+      "FR-306",
+      "FR-307",
+      "FR-308",
+      "FR-309",
+      "FR-310",
+      "FR-311",
+      "FR-312",
+      "FR-313",
+      "FR-314"
+    ],
+    "3": [
+      "FR-301",
+      "FR-302",
+      "FR-303",
+      "FR-304",
+      "FR-305",
+      "FR-306",
+      "FR-307",
+      "FR-308",
+      "FR-309",
+      "FR-310",
+      "FR-311",
+      "FR-312",
+      "FR-313",
+      "FR-314"
+    ],
+    "4": [
+      "FR-301",
+      "FR-302",
+      "FR-303",
+      "FR-304",
+      "FR-305",
+      "FR-306",
+      "FR-307",
+      "FR-308",
+      "FR-309",
+      "FR-310",
+      "FR-311",
+      "FR-312",
+      "FR-313",
+      "FR-314"
+    ],
+    "5": [
+      "FR-301",
+      "FR-302",
+      "FR-303",
+      "FR-304",
+      "FR-305",
+      "FR-306",
+      "FR-307",
+      "FR-308",
+      "FR-309",
+      "FR-310",
+      "FR-311",
+      "FR-312",
+      "FR-313",
+      "FR-314"
+    ],
+    "ux": [
+      "FR-301",
+      "FR-302",
+      "FR-303",
+      "FR-304",
+      "FR-305",
+      "FR-306",
+      "FR-307",
+      "FR-308",
+      "FR-309",
+      "FR-310",
+      "FR-311",
+      "FR-312",
+      "FR-313",
+      "FR-314"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "c62ce84d11551edc033eea8ffab220b1bfad3fb6430a969b25fbfa885c7294dd",
+  "verifyRanAt": "2026-07-09T18:28:33.600Z",
+  "lastVerifyRun": {
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-07-09T18:28:33.600Z"
+  },
+  "verifySummary": {
+    "total": 60,
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
+}

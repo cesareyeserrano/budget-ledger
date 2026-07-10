@@ -24,7 +24,7 @@ function stripLegacyUnassigned(nodes: LedgerNode[]): LedgerNode[] {
 export interface LedgerRepository {
   /** Devuelve null si no hay datos válidos (el caller usa buildSeed). Nunca lanza por datos corruptos. */
   load(ownerId: string): Promise<LedgerState | null>;
-  save(ownerId: string, state: LedgerState): Promise<void>;
+  save(ownerId: string, state: LedgerState): Promise<boolean>;
 }
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -51,7 +51,7 @@ export class LocalStorageRepository implements LedgerRepository {
     };
   }
 
-  async save(ownerId: string, state: LedgerState): Promise<void> {
+  async save(ownerId: string, state: LedgerState): Promise<boolean> {
     try {
       this.storage.setItem(
         STORAGE_KEYS.nodes,
@@ -61,9 +61,12 @@ export class LocalStorageRepository implements LedgerRepository {
         STORAGE_KEYS.budget,
         JSON.stringify({ version: 2, budgets: state.budgets, actuals: state.actuals, movements: state.movements })
       );
+      return true;
     } catch (err) {
       // p. ej. QuotaExceededError: no propagar un crash; el estado en memoria sigue válido.
+      // Devuelve false para que la UI muestre un aviso no bloqueante (StorageBanner, FR-212).
       console.warn("[ledger] no se pudo persistir en localStorage:", err);
+      return false;
     }
   }
 }

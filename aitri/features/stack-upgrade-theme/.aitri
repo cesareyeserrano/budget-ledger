@@ -1,41 +1,252 @@
 {
-  "currentPhase": 1,
+  "currentPhase": 5,
   "approvedPhases": [
-    1
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
   ],
   "completedPhases": [
-    1
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
   ],
   "projectName": "stack-upgrade-theme",
   "createdAt": "2026-07-04T03:13:12.351Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-04T03:17:37.666Z",
+  "updatedAt": "2026-07-08T17:08:59.265Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-07-04T03:14:52.408Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-07-04T03:16:29.342Z",
+      "at": "2026-07-08T02:48:16.666Z",
       "event": "completed",
-      "phase": 1
+      "phase": 2
     },
     {
-      "at": "2026-07-04T03:17:37.534Z",
+      "at": "2026-07-08T02:48:45.335Z",
       "event": "completed",
-      "phase": 1
+      "phase": 2
     },
     {
-      "at": "2026-07-04T03:17:37.641Z",
+      "at": "2026-07-08T02:50:02.633Z",
       "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
+      "phase": 2
+    },
+    {
+      "at": "2026-07-08T02:50:41.574Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-08T03:06:28.580Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-08T03:08:49.556Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-08T04:16:50.647Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T13:43:58.896Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T13:44:21.848Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T13:52:43.832Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 5,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-08T14:08:48.837Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-08T14:31:23.355Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-08T14:31:39.249Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-08T15:50:23.742Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T15:50:23.891Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-08T15:54:24.533Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-08T15:58:18.758Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-08T17:07:41.760Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-08T17:08:54.740Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-08T17:08:59.243Z",
+      "event": "approved",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "746b5d7f16fcbf45794902c9b4fb38ea6af2a1045ca9a4db0b6f006fb5d226c2"
+    "1": "b8b72fa3030a282241b9a47b78e87e84443968d1c9ea563ab4c3a1945a3e9f9d",
+    "2": "191860a2d95ab60eb57463dd3187398b0cb94cf33740996ac7724acfb82fb09a",
+    "3": "ec411b67fb6a902c516077e639c27370535836944d85414e494f4986f24a9de2",
+    "4": "4ba5d2bde35df11086a452cb8def5c312598d6f05cfb2b5332e74737a66a9481",
+    "5": "4a53d7f34d19062f3b1c5fb922aa8b904e92973c94a42d6ab786ec63131a1769",
+    "ux": "06d1425ec1f8285add2f88f041837aeff8406c826f59447fd36727b4406f6028"
+  },
+  "verifyPassed": true,
+  "frSnapshots": {
+    "2": [
+      "FR-201",
+      "FR-202",
+      "FR-203",
+      "FR-204",
+      "FR-205",
+      "FR-206",
+      "FR-207",
+      "FR-208",
+      "FR-209",
+      "FR-210",
+      "FR-211",
+      "FR-212",
+      "FR-213"
+    ],
+    "3": [
+      "FR-201",
+      "FR-202",
+      "FR-203",
+      "FR-204",
+      "FR-205",
+      "FR-206",
+      "FR-207",
+      "FR-208",
+      "FR-209",
+      "FR-210",
+      "FR-211",
+      "FR-212",
+      "FR-213"
+    ],
+    "4": [
+      "FR-201",
+      "FR-202",
+      "FR-203",
+      "FR-204",
+      "FR-205",
+      "FR-206",
+      "FR-207",
+      "FR-208",
+      "FR-209",
+      "FR-210",
+      "FR-211",
+      "FR-212",
+      "FR-213"
+    ],
+    "5": [
+      "FR-201",
+      "FR-202",
+      "FR-203",
+      "FR-204",
+      "FR-205",
+      "FR-206",
+      "FR-207",
+      "FR-208",
+      "FR-209",
+      "FR-210",
+      "FR-211",
+      "FR-212",
+      "FR-213"
+    ],
+    "ux": [
+      "FR-201",
+      "FR-202",
+      "FR-203",
+      "FR-204",
+      "FR-205",
+      "FR-206",
+      "FR-207",
+      "FR-208",
+      "FR-209",
+      "FR-210",
+      "FR-211",
+      "FR-212",
+      "FR-213"
+    ]
+  },
+  "verifyResultsHash": "b4c31f11d6d0fcdfcf42852ce38931ccdbb5b9d258f4831e8015a5dc48d86c61",
+  "verifyRanAt": "2026-07-08T15:54:24.533Z",
+  "lastVerifyRun": {
+    "passed": 64,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-07-08T15:54:24.533Z"
+  },
+  "verifySummary": {
+    "total": 64,
+    "passed": 64,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
   }
 }

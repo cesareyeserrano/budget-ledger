@@ -1,0 +1,97 @@
+{
+  "feature": "stack-upgrade-theme",
+  "summary": "Adopción del MVP de registro móvil + migración de color/tema (zinc neutro + acento dinámico por tipo, claro/oscuro/sistema vía next-themes) + actualización de stack (next-themes, react-day-picker, @testing-library/react) y tipografía (Inter + DM Mono, reemplaza Lexend). El registro móvil (MobileShell) se rediseña con componentes nuevos (monto protagonista, toggle de tipo con color propagado, fila de categorías leída de la jerarquía existente, fecha 'Hoy' con calendario, nota, overlay, anti doble-tap) y GUARDA con la semántica de datos existente (suma a Ejecutado + roll-ups); el Movement gana campos opcionales date/note (el month se deriva de la fecha, ADR-03). Los tokens de color se redefinen por tema conservando sus nombres, así la grilla/dashboard de escritorio se re-tokenizan sin reescribir clases (solo cambia color/tema/fuente; layout y lógica intactos). Todos los FR MUST y las NFR de regresión implementados y verificados.",
+  "files_created": [
+    "src/app/providers.tsx (FR-201 ThemeProvider next-themes, default=system)",
+    "src/components/ThemeToggle.tsx (FR-205)",
+    "src/lib/tokens.ts (FR-204 SSoT de color por tipo + typeTextColor AA)",
+    "src/lib/money.ts (FR-207 parsePesos/formatCOP/validateAmountInput)",
+    "src/lib/date.ts (FR-210 nowForInput/dateLabel/monthKeyFromDate)",
+    "src/components/useResolvedTheme.ts",
+    "src/components/register/AmountDisplay.tsx (FR-207)",
+    "src/components/register/TypeToggle.tsx (FR-208)",
+    "src/components/register/CategoryRow.tsx (FR-209, lee la jerarquía)",
+    "src/components/register/DateTimeField.tsx + DateCalendar.tsx (FR-210, react-day-picker diferido)",
+    "src/components/register/NoteField.tsx (FR-211)",
+    "src/components/register/SaveButton.tsx (FR-212)",
+    "src/components/register/ConfirmOverlay.tsx (FR-212)",
+    "src/components/register/StorageBanner.tsx (FR-212 aviso de quota)",
+    "src/components/register/Register.tsx (orquestador)",
+    "tests/unit/feature-stack.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/e2e/feature-stack.spec.ts"
+  ],
+  "files_modified": [
+    "src/app/layout.tsx (FR-213 Inter+DM Mono; ThemeProvider; suppressHydrationWarning)",
+    "src/app/globals.css (FR-202 tokens theme-aware :root/.dark zinc; FR-204 --type-*; fuente)",
+    "src/components/format.ts (FR-204 typeColorVar/typeTextColorVar theme-aware)",
+    "src/components/MobileShell.tsx (FR-207: Register + ThemeToggle + StorageBanner reemplazan MovementForm)",
+    "src/components/DesktopShell.tsx (FR-205: ThemeToggle en el chrome)",
+    "src/domain/types.ts (ADR-03: Movement += date?/note?)",
+    "src/domain/mutations.ts (ADR-03: NewMovement += date?/note?; normalizeNote; addMovement persiste date/note)",
+    "src/domain/validation.ts (Zod: date/note opcionales para que sobrevivan a la recarga)",
+    "src/data/repository.ts (save devuelve boolean para surface del fallo de persistencia)",
+    "src/state/store.ts (FR-212 anti doble-tap 600ms; storageError; addMovement→boolean)",
+    "src/components/ui/button.tsx (FR-213 revisión: font-mono→font-sans, botones en Inter como el resto)",
+    "src/components/register/CategoryRow.tsx (FR-209 revisión: selección de la HOJA disponible — categoría-hoja o subcategoría con expansión al tocar el padre)",
+    "src/components/register/Register.tsx (FR-209 revisión: selección {catId,subId}; guarda con subId)",
+    "src/components/DesktopShell.tsx (FR-207 revisión: usa el MISMO Register que móvil; se elimina MovementForm)",
+    "src/components/MovementForm.tsx — ELIMINADO (unificado en Register)",
+    "vitest.config.ts (incluye tests/unit/**)",
+    "tests/e2e/critical.spec.ts (TC-012h tokens zinc; TC-001h registro rediseñado)",
+    "tests/e2e/coverage-extra.spec.ts (TC-010e registro rediseñado)",
+    "tests/e2e/coverage-skips.spec.ts (TC-012e contraste, hex shorthand)",
+    "tests/e2e/grid-ux.spec.ts (TC-209h Inter; TC-209i tokens zinc)"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/unit/feature-stack.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/e2e/feature-stack.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "timeout_ms": 600000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-207",
+      "substitution": "La regla de rechazo de decimales ('El monto debe ser un valor entero en pesos.') vive en validateAmountInput y se verifica por unit test; en la UI el input restringe a dígitos (inputMode='numeric' + strip), así que el separador decimal no es alcanzable por teclado — la validación es la barrera defensiva/verificable."
+    }
+  ],
+  "notes": [
+    "Regresión: 6 tests e2e del pipeline root asertaban el diseño anterior (tokens César Augusto, Lexend, formulario móvil viejo). La feature SUPERSEDE FR-012/FR-008/FR-213, así que se actualizaron esas aserciones al diseño zinc + Inter + registro rediseñado, conservando sus TC ids. Nada de la lógica de dominio/persistencia cambió.",
+    "Tokens theme-aware por REDEFINICIÓN de valores (mismos nombres --bg/--fg/--border/--accent/…) → la grilla/dashboard de escritorio se re-tokenizan sin tocar sus clases (NFR-201/205).",
+    "Lightning CSS minifica #ffffff→#fff; los tests de token normalizan el shorthand.",
+    "next/font (Inter + DM Mono) auto-aloja las fuentes en build; cero peticiones externas en runtime (NFR-204).",
+    "Delta de datos aditivo y backward-compatible: Movement.date/note opcionales; el month sigue siendo la fuente de los roll-ups (monthKeyFromDate); movimientos previos válidos sin migración (NFR-202).",
+    "Fuera de alcance (honra no_go_zone): auth/login/AuthGate, navegación multi-ruta/TabBar, export estático, gestión de categorías desde móvil.",
+    "smoke y e2e como quality_gates required:false (UI-only, mismo patrón que la feature grid-ux); la suite unit+integration es el test_runner y el e2e se corre para acreditar los TCs de UI.",
+    "Refinamientos de la revisión humana (resuelven la deuda técnica declarada): (1) fuente unificada — los botones pasan de DM Mono a Inter, misma tipografía en móvil y escritorio; (2) el selector elige la HOJA disponible (categoría si es hoja, o subcategoría desplegando el padre) — target = subId ?? catId; (3) el módulo de registro es UN solo componente (Register) usado en móvil y en el panel de escritorio; MovementForm eliminado."
+  ]
+}

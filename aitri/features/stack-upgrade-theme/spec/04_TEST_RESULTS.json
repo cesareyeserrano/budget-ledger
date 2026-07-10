@@ -1,0 +1,640 @@
+{
+  "executed_at": "2026-07-08T15:54:24.529Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "results": [
+    {
+      "tc_id": "TC-SUT-201h",
+      "status": "pass",
+      "notes": "✓  16 [chromium] › tests/e2e/feature-stack.spec.ts:33:5 › TC-SUT-201h: SO en oscuro sin preferencia arranca en tema oscuro con bg #09090B (175ms)"
+    },
+    {
+      "tc_id": "TC-SUT-202e",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-201/FR-202 — tema y tokens > TC-SUT-202e: el default es claro en :root (#ffffff) y .dark lo sobrescribe a #09090b 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-203f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-201 — tema > TC-SUT-203f: la preferencia de tema se aísla en la clave 'theme' sin tocar ledger.* 2ms"
+    },
+    {
+      "tc_id": "TC-SUT-204h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-201/FR-202 — tema y tokens > TC-SUT-204h: tokens de color claros exactos en :root 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-205e",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-201/FR-202 — tema y tokens > TC-SUT-205e: tokens de color oscuros exactos bajo .dark 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-206f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-202/FR-204 — tokens de color > TC-SUT-206f: no queda ningún token steel-blue del sistema César Augusto anterior 5ms"
+    },
+    {
+      "tc_id": "TC-SUT-207h",
+      "status": "pass",
+      "notes": "✓  17 [chromium] › tests/e2e/feature-stack.spec.ts:42:5 › TC-SUT-207h: el color del tipo activo se propaga a signo, input y botón Guardar (598ms)"
+    },
+    {
+      "tc_id": "TC-SUT-208e",
+      "status": "pass",
+      "notes": "✓  18 [chromium] › tests/e2e/feature-stack.spec.ts:54:5 › TC-SUT-208e: en escritorio el chrome usa primary neutro (zinc), no un color de tipo (206ms)"
+    },
+    {
+      "tc_id": "TC-SUT-209f",
+      "status": "pass",
+      "notes": "✓  19 [chromium] › tests/e2e/feature-stack.spec.ts:63:5 › TC-SUT-209f: el botón de acción principal fuera del Registro no se rellena con color de tipo (204ms)"
+    },
+    {
+      "tc_id": "TC-SUT-210h",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-202/FR-204 — tokens de color > TC-SUT-210h: Transferencia usa azul #2563EB y Gasto/Ingreso sus hex en claro 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-211e",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-202/FR-204 — tokens de color > TC-SUT-211e: en tema oscuro los tipos usan las variantes 500 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-212f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-202/FR-204 — tokens de color > TC-SUT-212f: typeTextColor usa green-700 #15803D para texto pequeño Ingreso en claro (AA ≥4.5:1) 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-213h",
+      "status": "pass",
+      "notes": "✓  20 [chromium] › tests/e2e/feature-stack.spec.ts:74:5 › TC-SUT-213h: a 1440px el ThemeToggle aplica 'Oscuro' y <html> gana la clase dark (227ms)"
+    },
+    {
+      "tc_id": "TC-SUT-214e",
+      "status": "pass",
+      "notes": "✓  21 [chromium] › tests/e2e/feature-stack.spec.ts:83:5 › TC-SUT-214e: a 375px el ThemeToggle está en la cabecera del Registro y es accesible por teclado (183ms)"
+    },
+    {
+      "tc_id": "TC-SUT-215f",
+      "status": "pass",
+      "notes": "✓  22 [chromium] › tests/e2e/feature-stack.spec.ts:91:5 › TC-SUT-215f: tras elegir 'Claro' y recargar, la app sigue en claro (persistencia) (319ms)"
+    },
+    {
+      "tc_id": "TC-SUT-216h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-206 — stack > TC-SUT-216h: package.json incluye next-themes, react-day-picker y @testing-library/react 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-217e",
+      "status": "pass",
+      "notes": "✓  23 [chromium] › tests/e2e/feature-stack.spec.ts:104:5 › TC-SUT-217e: react-day-picker se carga diferida y solo aparece al abrir el calendario (859ms)"
+    },
+    {
+      "tc_id": "TC-SUT-218f",
+      "status": "pass",
+      "notes": "✓  24 [chromium] › tests/e2e/feature-stack.spec.ts:112:5 › TC-SUT-218f: ninguna dependencia nueva emite una petición HTTP externa en runtime (985ms)"
+    },
+    {
+      "tc_id": "TC-SUT-219h",
+      "status": "pass",
+      "notes": "✓  25 [chromium] › tests/e2e/feature-stack.spec.ts:126:5 › TC-SUT-219h: teclear 1250 muestra '$1.250' en DM Mono con color de Gasto y teclado numérico (182ms)"
+    },
+    {
+      "tc_id": "TC-SUT-220e",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-207 — monto > TC-SUT-220e: un monto de 7+ dígitos reduce el tamaño de fuente vs. el base 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-221f",
+      "status": "pass",
+      "notes": "✓  26 [chromium] › tests/e2e/feature-stack.spec.ts:137:5 › TC-SUT-221f: monto vacío muestra placeholder '$0' y deja Guardar deshabilitado (176ms)"
+    },
+    {
+      "tc_id": "TC-SUT-222f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-207 — monto > TC-SUT-222f: una entrada con separador decimal se rechaza con el mensaje de monto entero 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-223h",
+      "status": "pass",
+      "notes": "✓  27 [chromium] › tests/e2e/feature-stack.spec.ts:146:5 › TC-SUT-223h: tipo=Gasto está relleno #DC2626 con aria-selected=true y los otros inactivos (173ms)"
+    },
+    {
+      "tc_id": "TC-SUT-224e",
+      "status": "pass",
+      "notes": "✓  28 [chromium] › tests/e2e/feature-stack.spec.ts:154:5 › TC-SUT-224e: cambiar de Gasto a Ingreso conserva el monto y deselecciona la categoría (627ms)"
+    },
+    {
+      "tc_id": "TC-SUT-225f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-208 — tipo > TC-SUT-225f: el dominio de tipos es fijo (3) y cada uno tiene un signo — nunca hay estado sin tipo 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-226h",
+      "status": "pass",
+      "notes": "✓  29 [chromium] › tests/e2e/feature-stack.spec.ts:165:5 › TC-SUT-226h: se elige la HOJA disponible (categoría-hoja o subcategoría) con tinte del tipo (765ms)"
+    },
+    {
+      "tc_id": "TC-SUT-227e",
+      "status": "pass",
+      "notes": "✓  31 [chromium] › tests/e2e/feature-stack.spec.ts:194:5 › TC-SUT-227e: un tipo sin categorías muestra la guía a crearlas en escritorio y bloquea Guardar (563ms)"
+    },
+    {
+      "tc_id": "TC-SUT-228f",
+      "status": "pass",
+      "notes": "✓  32 [chromium] › tests/e2e/feature-stack.spec.ts:210:5 › TC-SUT-228f: guardar sin categoría muestra 'Elige una categoría.' y no persiste (531ms)"
+    },
+    {
+      "tc_id": "TC-SUT-229h",
+      "status": "pass",
+      "notes": "✓  33 [chromium] › tests/e2e/feature-stack.spec.ts:219:5 › TC-SUT-229h: el campo de fecha muestra 'Hoy' por defecto (162ms)"
+    },
+    {
+      "tc_id": "TC-SUT-230e",
+      "status": "pass",
+      "notes": "✓  34 [chromium] › tests/e2e/feature-stack.spec.ts:224:5 › TC-SUT-230e: abrir el calendario y elegir el día 15 muestra la fecha y cierra el popover (877ms)"
+    },
+    {
+      "tc_id": "TC-SUT-231f",
+      "status": "pass",
+      "notes": "✓  35 [chromium] › tests/e2e/feature-stack.spec.ts:234:5 › TC-SUT-231f: clic fuera del popover lo cierra sin cambiar la fecha (585ms)"
+    },
+    {
+      "tc_id": "TC-SUT-232f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-210 — fecha > TC-SUT-232f: la hora nunca se muestra en la etiqueta del campo aunque se persista 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-233h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-211/FR-212 — guardado > TC-SUT-233h: una nota se guarda con el movimiento y el contador muestra '50/280' 2ms"
+    },
+    {
+      "tc_id": "TC-SUT-234e",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-211 — nota > TC-SUT-234e: guardar con la nota vacía normaliza a null 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-235f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-211 — nota > TC-SUT-235f: una nota de 300 caracteres se recorta a 280 (límite duro) 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-236h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-211/FR-212 — guardado > TC-SUT-236h: guardar 50000 aumenta el Ejecutado del destino en 50000 y encabeza recientes 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-237e",
+      "status": "pass",
+      "notes": "✓  36 [chromium] › tests/e2e/feature-stack.spec.ts:244:5 › TC-SUT-237e: tras guardar aparece el overlay ~2s y el formulario se resetea a fecha=Hoy (2.9s)"
+    },
+    {
+      "tc_id": "TC-SUT-238f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > FR-212 — anti doble-tap > TC-SUT-238f: dos guardados idénticos dentro de 600ms crean un solo movimiento 84ms"
+    },
+    {
+      "tc_id": "TC-SUT-239f",
+      "status": "pass",
+      "notes": "✓  37 [chromium] › tests/e2e/feature-stack.spec.ts:256:5 › TC-SUT-239f: con monto=0 el botón Guardar está deshabilitado; con monto y sin categoría no crea movimiento (423ms)"
+    },
+    {
+      "tc_id": "TC-SUT-240e",
+      "status": "pass",
+      "notes": "✓  38 [chromium] › tests/e2e/feature-stack.spec.ts:264:5 › TC-SUT-240e: fallo de almacenamiento (quota) muestra el StorageBanner y el form sigue usable (649ms)"
+    },
+    {
+      "tc_id": "TC-SUT-241h",
+      "status": "pass",
+      "notes": "✓  39 [chromium] › tests/e2e/feature-stack.spec.ts:281:5 › TC-SUT-241h: el texto general usa Inter y el monto usa DM Mono tabular-nums (172ms)"
+    },
+    {
+      "tc_id": "TC-SUT-242e",
+      "status": "pass",
+      "notes": "✓  40 [chromium] › tests/e2e/feature-stack.spec.ts:290:5 › TC-SUT-242e: el monto no salta de ancho al teclear (tabular-nums) (178ms)"
+    },
+    {
+      "tc_id": "TC-SUT-243f",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > FR-213 — tipografía > TC-SUT-243f: no queda referencia a Lexend y las fuentes vienen de next/font (self-hosted) 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-244h",
+      "status": "pass",
+      "notes": "✓  41 [chromium] › tests/e2e/feature-stack.spec.ts:299:5 › TC-SUT-244h: la grilla de 12 meses y sus controles siguen funcionando tras la feature (190ms)"
+    },
+    {
+      "tc_id": "TC-SUT-245e",
+      "status": "pass",
+      "notes": "✓  42 [chromium] › tests/e2e/feature-stack.spec.ts:309:5 › TC-SUT-245e: edición inline de una hoja se conserva en tema oscuro (275ms)"
+    },
+    {
+      "tc_id": "TC-SUT-246f",
+      "status": "pass",
+      "notes": "✓  43 [chromium] › tests/e2e/feature-stack.spec.ts:321:5 › TC-SUT-246f: interacciones de escritorio (tabs Resumen/Dashboard) no cambian de comportamiento (281ms)"
+    },
+    {
+      "tc_id": "TC-SUT-247h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > NFR-202 — persistencia > TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note) sobre ledger.budget.v2 3ms"
+    },
+    {
+      "tc_id": "TC-SUT-248e",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > NFR-202 — persistencia > TC-SUT-248e: la clave 'theme' no colisiona con ledger.* y ambas coexisten 1ms"
+    },
+    {
+      "tc_id": "TC-SUT-249f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > NFR-202 — persistencia > TC-SUT-249f: no existe una clave de movimientos nueva ni un almacén paralelo 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-250h",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > NFR-203 — accesibilidad > TC-SUT-250h: text-primary y text-secondary alcanzan ≥4.5:1 en ambos temas 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-251e",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > NFR-203 — accesibilidad > TC-SUT-251e: green-600 falla y green-700 #15803D cumple ≥4.5:1 en claro (texto pequeño) 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-252f",
+      "status": "pass",
+      "notes": "✓  44 [chromium] › tests/e2e/feature-stack.spec.ts:330:5 › TC-SUT-252f: los controles del Registro tienen min-height ≥48px (181ms)"
+    },
+    {
+      "tc_id": "TC-SUT-253h",
+      "status": "pass",
+      "notes": "✓  45 [chromium] › tests/e2e/feature-stack.spec.ts:341:5 › TC-SUT-253h: cargar, cambiar tema, abrir calendario y guardar producen 0 peticiones externas (979ms)"
+    },
+    {
+      "tc_id": "TC-SUT-254e",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > NFR-204 — sin red > TC-SUT-254e: las fuentes se cargan vía next/font (self-hosted) sin <link> a Google Fonts 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-255f",
+      "status": "pass",
+      "notes": "✓  46 [chromium] › tests/e2e/feature-stack.spec.ts:355:5 › TC-SUT-255f: abrir el calendario (react-day-picker) no emite ninguna petición externa (849ms)"
+    },
+    {
+      "tc_id": "TC-SUT-256h",
+      "status": "pass",
+      "notes": "✓  47 [chromium] › tests/e2e/feature-stack.spec.ts:366:5 › TC-SUT-256h: a 1440px la grilla conserva alineación y columna sticky (188ms)"
+    },
+    {
+      "tc_id": "TC-SUT-257e",
+      "status": "pass",
+      "notes": "✓  48 [chromium] › tests/e2e/feature-stack.spec.ts:374:5 › TC-SUT-257e: a 375px se muestra solo el Registro sin desbordamiento horizontal (170ms)"
+    },
+    {
+      "tc_id": "TC-SUT-258f",
+      "status": "pass",
+      "notes": "✓  49 [chromium] › tests/e2e/feature-stack.spec.ts:381:5 › TC-SUT-258f: cambiar de tema no altera el layout a 1440px (280ms)"
+    },
+    {
+      "tc_id": "TC-SUT-259h",
+      "status": "pass",
+      "notes": "✓  50 [chromium] › tests/e2e/feature-stack.spec.ts:393:5 › TC-SUT-259h: el Registro no produce scroll horizontal a 375, 768 ni 1440px (285ms)"
+    },
+    {
+      "tc_id": "TC-SUT-260e",
+      "status": "pass",
+      "notes": "✓  51 [chromium] › tests/e2e/feature-stack.spec.ts:402:5 › TC-SUT-260e: a 768px el Registro se mantiene centrado a máx. 480px (213ms)"
+    },
+    {
+      "tc_id": "TC-SUT-261f",
+      "status": "pass",
+      "notes": "✓  52 [chromium] › tests/e2e/feature-stack.spec.ts:412:5 › TC-SUT-261f: tras Guardar el overlay de confirmación aparece de inmediato (629ms)"
+    },
+    {
+      "tc_id": "TC-SUT-262h",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > NFR-207 — CI/CD > TC-SUT-262h: el workflow ejecuta la suite (vitest) y el e2e en cada push a main 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-263e",
+      "status": "pass",
+      "notes": "✓ tests/integration/feature-stack.test.ts > NFR-207 — CI/CD > TC-SUT-263e: el smoke arranca la app y exige 200 en '/' 0ms"
+    },
+    {
+      "tc_id": "TC-SUT-264f",
+      "status": "pass",
+      "notes": "✓ tests/unit/feature-stack.test.ts > NFR-207 — CI > TC-SUT-264f: un test que falla hace fallar el CI (el gate no lo ignora) 0ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-201",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-202",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-203",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-204",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-205",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-206",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-207",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-208",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-209",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-210",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-211",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-212",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-213",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-201",
+      "fr_id": "FR-201",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-202",
+      "fr_id": "FR-202",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-203",
+      "fr_id": "FR-203",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-204",
+      "fr_id": "FR-204",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-205",
+      "fr_id": "FR-205",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-206",
+      "fr_id": "FR-206",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-207",
+      "fr_id": "FR-207",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-208",
+      "fr_id": "FR-207",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-209",
+      "fr_id": "FR-208",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-210",
+      "fr_id": "FR-209",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-211",
+      "fr_id": "FR-209",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-212",
+      "fr_id": "FR-210",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-213",
+      "fr_id": "FR-210",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-214",
+      "fr_id": "FR-211",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-215",
+      "fr_id": "FR-212",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-216",
+      "fr_id": "FR-212",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-217",
+      "fr_id": "FR-213",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 64,
+    "passed": 64,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:155:11\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:752:26\n    at \u001b[90mfile:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout \u001b[90m(file:///Users/cesareyeserrano/Documents/PROJECTS/T-Ledger/\u001b[39mnode_modules/\u001b[4m@vitest/runner\u001b[24m/dist/chunk-hooks.js:1863:10\u001b[90m)\u001b[39m"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "status": "error",
+      "exit_code": null
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "md\n\n  2) [chromium] › tests/e2e/feature-stack.spec.ts:402:5 › TC-SUT-260e: a 768px el Registro se mantiene centrado a máx. 480px \n\n    Test timeout of 60000ms exceeded while setting up \"page\".\n\n    Error Context: test-results/feature-stack-TC-SUT-260e--2fd4b-ntiene-centrado-a-máx-480px-chromium/error-context.md\n\n  2 flaky\n    [chromium] › tests/e2e/feature-stack.spec.ts:393:5 › TC-SUT-259h: el Registro no produce scroll horizontal a 375, 768 ni 1440px \n    [chromium] › tests/e2e/feature-stack.spec.ts:402:5 › TC-SUT-260e: a 768px el Registro se mantiene centrado a máx. 480px \n  85 passed (3.2m)"
+    }
+  ]
+}

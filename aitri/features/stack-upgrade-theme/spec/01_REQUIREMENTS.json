@@ -1,52 +1,52 @@
 {
-  "project_name": "Ledger — Feature: theme-toggle",
-  "project_summary": "Rediseño del sistema de color de Ledger a un esquema NEUTRO (zinc) + ACENTO DINÁMICO por tipo, con temas CLARO y OSCURO conmutables (default = Sistema, sigue prefers-color-scheme) vía next-themes. Reemplaza el sistema César Augusto steel-blue dark-only (FR-012) y el mapeo de color por tipo (FR-008: Transferencia pasa de steel a azul). El usuario proporcionó los tokens exactos (autoritativos): CLARO bg #FFFFFF/surface #F4F4F5/primary #18181B/text #18181B-#52525B/border #E4E4E7/error #DC2626; OSCURO bg #09090B/surface #18181B/primary #FAFAFA/text #FAFAFA-#A1A1AA/border #27272A/error #F87171; tipos Gasto #DC2626-#EF4444, Ingreso #16A34A-#22C55E, Transferencia #2563EB-#3B82F6 (claro-oscuro). Acento dinámico = color del tipo activo SOLO en Registro (chrome de Presupuesto/Dashboard = neutro primary zinc). Instala el stack de soporte (next-themes, react-day-picker, @testing-library/react) — el USO de react-day-picker/@testing-library es de features posteriores. North Star: sistema de diseño profesional, accesible AA en ambos temas, sin romper ninguna funcionalidad ni el layout. Solo cambia color/tema.",
+  "project_name": "Ledger — Feature: stack-upgrade-theme (registro móvil MVP + stack + tema)",
+  "project_summary": "Adopta el MVP de la pantalla de REGISTRO móvil (definido y anclado a código real en feature_context/MODULO_MOBILE_RESPONSIVE.md §8) como la vista ≤760px del app responsive de Ledger, y de paso actualiza el stack y el sistema de diseño. La feature hace 3 cosas: (1) REDISEÑA la pantalla de registro móvil (reemplaza el MovementForm actual) con el patrón del MVP —monto protagonista con teclado numérico nativo, toggle de tipo con propagación de color, fila de categorías por tipo, fecha 'Hoy' editable con calendario, nota opcional, overlay de confirmación—, preservando la semántica de guardado EXISTENTE (el movimiento suma al Ejecutado de la hoja destino y recalcula roll-ups, parent FR-001/FR-004) y leyendo las categorías de la JERARQUÍA existente (parent FR-002), no de un catálogo fijo; (2) MIGRA el sistema de color a NEUTRO zinc + acento dinámico por tipo, con temas claro/oscuro/sistema (default=Sistema) vía next-themes, reemplazando el sistema César Augusto steel-blue dark-only (parent FR-012) y el mapeo de color por tipo (parent FR-008: Transferencia steel→azul); (3) ACTUALIZA el stack: instala y USA next-themes (tema) y react-day-picker (calendario de fecha), e instala @testing-library/react (tests de componente), y cambia la tipografía a Inter (texto) + DM Mono (montos), reemplazando Lexend en toda la app. Tokens exactos del usuario (autoritativos): CLARO bg #FFFFFF/surface #F4F4F5/primary #18181B/text #18181B-#52525B/border #E4E4E7/error #DC2626; OSCURO bg #09090B/surface #18181B/primary #FAFAFA/text #FAFAFA-#A1A1AA/border #27272A/error #F87171; tipos Gasto #DC2626-#EF4444, Ingreso #16A34A-#22C55E, Transferencia #2563EB-#3B82F6 (claro-oscuro), AA≥4.5:1 en ambos temas. North Star / acceptance gate: la vista móvil de registro se rediseña al patrón del MVP y el stack+tema+fuente se actualizan SIN romper ninguna funcionalidad existente (grilla, edición inline, borrado, reparent, dashboard, persistencia, roll-ups, responsive de escritorio) y con accesibilidad AA en ambos temas. JTBD: capturar un movimiento en el instante del pago desde el móvil, rápido y con el monto como protagonista, sobre los mismos datos que el escritorio. Guardrail: cero regresión de comportamiento en el escritorio y en la persistencia; el registro sigue guardando con la semántica de datos existente. Alcance NO incluido: auth/login (el registro NO queda tras un gate en esta feature; parent v1 sin auth), navegación multi-ruta / TabBar / export estático del MVP (el app sigue siendo single-page responsive sobre Docker/Next), y gestión de categorías desde móvil (el selector solo LEE la jerarquía; crear/editar desde móvil es futuro).",
   "functional_requirements": [
     {
       "id": "FR-201",
-      "title": "Temas claro/oscuro con next-themes (default Sistema, persistente)",
-      "description": "La app soporta tema claro y oscuro mediante next-themes con attribute='class' (clase .dark en <html>), envuelta en un ThemeProvider en el layout. Default = 'system' (sigue prefers-color-scheme del SO). La preferencia elegida por el usuario persiste en localStorage (clave propia de next-themes, 'theme'), independiente de las claves de datos. Sin flash de tema incorrecto en la hidratación (suppressHydrationWarning + estrategia estándar de next-themes). Sin peticiones de red.",
+      "title": "Temas claro/oscuro/sistema con next-themes (default Sistema, persistente)",
+      "description": "La app soporta tema claro y oscuro mediante next-themes con attribute='class' (clase .dark en <html>), envuelta en un ThemeProvider en el layout. Default = 'system' (sigue prefers-color-scheme del SO). La preferencia elegida por el usuario persiste en localStorage (clave propia de next-themes, 'theme'), independiente de las claves de datos (ledger.*). Sin flash de tema incorrecto en la hidratación (suppressHydrationWarning + estrategia estándar de next-themes). Sin peticiones de red.",
       "priority": "MUST",
       "type": "logic",
       "acceptance_criteria": [
         "Con el SO en oscuro y sin preferencia guardada, al abrir la app el <html> tiene la clase 'dark' y el fondo es #09090B (happy)",
         "Con el SO en claro y sin preferencia, el fondo es #FFFFFF y no hay clase 'dark' (edge)",
         "La preferencia se guarda en la clave 'theme' de localStorage, distinta de las claves de datos (ledger.*) (negativo — aislamiento)",
-        "No se realiza ninguna petición HTTP externa por el theming en runtime (negativo — NFR-004)"
+        "No se realiza ninguna petición HTTP externa por el theming en runtime (negativo — NFR-204)"
       ]
     },
     {
       "id": "FR-202",
       "title": "Tokens de color theme-aware (paleta zinc neutra, spec exacta)",
-      "description": "Los CSS custom properties de color se definen por tema: set claro en :root (o .light) y set oscuro en .dark, con los HEX exactos de la especificación del usuario. Reemplaza los tokens César Augusto. Roles: background, surface, surface-hover, primary, text-primary, text-secondary, text-muted, border, border-strong, border-hover, error, y accent (dinámico, ver FR-203). Todas las superficies que hoy usan --bg/--fg/--accent/etc. resuelven a los nuevos tokens según el tema activo.",
+      "description": "Los CSS custom properties de color se definen por tema: set claro en :root y set oscuro en .dark, con los HEX exactos de la especificación del usuario (feature_context §4.3/§4.5). Reemplaza los tokens César Augusto (parent FR-012). Roles: background, surface, primary, primary-foreground, text-primary, text-secondary, border, error, y accent (dinámico, ver FR-203). Los derivados por tema (surface-hover, border-strong/border-hover, text-muted, accent-soft) se definen en el UX spec, AA en ambos temas. Todas las superficies que hoy usan los tokens steel resuelven a los nuevos tokens según el tema activo.",
       "priority": "MUST",
       "type": "visual",
       "acceptance_criteria": [
-        "En tema claro, --background=#FFFFFF, --surface=#F4F4F5, --primary=#18181B, --text-primary=#18181B, --text-secondary=#52525B, --border=#E4E4E7, --error=#DC2626 (happy)",
-        "En tema oscuro (.dark), --background=#09090B, --surface=#18181B, --primary=#FAFAFA, --text-primary=#FAFAFA, --text-secondary=#A1A1AA, --border=#27272A, --error=#F87171 (edge)",
+        "En tema claro: --background=#FFFFFF, --surface=#F4F4F5, --primary=#18181B, --text-primary=#18181B, --text-secondary=#52525B, --border=#E4E4E7, --error=#DC2626 (happy)",
+        "En tema oscuro (.dark): --background=#09090B, --surface=#18181B, --primary=#FAFAFA, --text-primary=#FAFAFA, --text-secondary=#A1A1AA, --border=#27272A, --error=#F87171 (edge)",
         "No queda ningún token steel-blue del sistema anterior (--primary #4a7fa5, --bg #080c12) en el CSS resuelto (negativo)"
       ]
     },
     {
       "id": "FR-203",
-      "title": "Acento dinámico = color del tipo activo (Registro); chrome neutro en Presupuesto/Dashboard",
-      "description": "El 'accent' es dinámico: es el color del TIPO activo. Aplica SOLO donde hay un tipo activo — la pantalla de Registro (MovementForm): el selector de tipo, el estado de foco y los chips reflejan el color del tipo seleccionado (Gasto rojo / Ingreso verde / Transferencia azul). En Presupuesto y Dashboard NO hay un tipo activo único: el chrome (tabs, botones, filtros, foco) usa el color NEUTRO 'primary' (zinc). La acción principal (Guardar/Nuevo movimiento) es neutra (primary) para no competir con los colores semánticos.",
+      "title": "Acento dinámico = color del tipo activo en el Registro (propagación de color)",
+      "description": "El 'accent' es dinámico: es el color del TIPO activo, y aplica SOLO en la pantalla de Registro (donde hay un tipo activo). Al seleccionar un tipo, su color se propaga SIMULTÁNEAMENTE a: el signo del monto, el caret del input de monto, el tile de la categoría seleccionada (vía la custom property --type-color) y el botón Guardar. En Presupuesto y Dashboard NO hay un tipo activo único: el chrome (tabs, botones, filtros, foco) usa el color NEUTRO 'primary' (zinc). La acción principal fuera del registro es neutra (primary) para no competir con los colores semánticos.",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "En Registro con tipo=Gasto, el acento (selector/foco/chip activo) usa el color de Gasto (#DC2626 claro / #EF4444 oscuro); al cambiar a Ingreso pasa a verde; a Transferencia, azul (happy)",
-        "A 1440px en Presupuesto, el chrome (tabs Resumen/Dashboard, botón 'Nuevo movimiento', filtro Mes/Año) usa el color neutro primary (zinc), no un color de tipo (edge)",
-        "El botón de acción principal no usa un color de tipo como relleno (negativo — neutro)"
+        "En Registro con tipo=Gasto, el signo del monto, el caret, el tile de categoría activo y el botón Guardar usan el color de Gasto (#DC2626 claro / #EF4444 oscuro); al cambiar a Ingreso pasan a verde; a Transferencia, azul (happy)",
+        "A 1440px en Presupuesto, el chrome (tabs, botón principal, filtro Mes/Año) usa el color neutro primary (zinc), no un color de tipo (edge)",
+        "El botón de acción principal en Presupuesto/Dashboard no usa un color de tipo como relleno (negativo — neutro)"
       ]
     },
     {
       "id": "FR-204",
       "title": "Color por tipo (Gasto rojo / Ingreso verde / Transferencia azul), AA en ambos temas",
-      "description": "Cada tipo tiene su color de identidad, con variante clara y oscura (AA ≥4.5:1): Gasto #DC2626/#EF4444, Ingreso #16A34A/#22C55E, Transferencia #2563EB/#3B82F6. Reemplaza el mapeo actual (typeColorVar: transfer = accent-light steel). Aplica a filas de tipo de la grilla, signos/varianza, chips y selectores según el tipo. La semántica de varianza (Gasto sobre-presupuesto = error; Ingreso favorable/bajo; Transferencia neutra) se conserva usando los nuevos colores.",
+      "description": "Cada tipo tiene su color de identidad, con variante clara y oscura (AA ≥4.5:1 sobre el fondo del tema): Gasto #DC2626/#EF4444, Ingreso #16A34A/#22C55E, Transferencia #2563EB/#3B82F6. Reemplaza el mapeo actual (parent FR-008: transfer = accent-light steel). Fuente única en lib/tokens (typeColor por tema). Aplica a signos/varianza, filas de tipo de la grilla, chips y selectores según el tipo. La semántica de varianza (Gasto sobre-presupuesto = error; Ingreso favorable/bajo; Transferencia neutra) se conserva usando los nuevos colores.",
       "priority": "MUST",
       "type": "visual",
       "acceptance_criteria": [
-        "En tema claro, la fila del tipo Transferencia usa azul #2563EB (no el steel-blue anterior); Gasto #DC2626; Ingreso #16A34A (happy)",
+        "En tema claro, la fila/elemento del tipo Transferencia usa azul #2563EB (no el steel-blue anterior); Gasto #DC2626; Ingreso #16A34A (happy)",
         "En tema oscuro, los tipos usan las variantes #EF4444/#22C55E/#3B82F6 (edge)",
         "El contraste de cada color de tipo como texto sobre el fondo del tema es ≥4.5:1 (negativo/AA)"
       ]
@@ -54,25 +54,112 @@
     {
       "id": "FR-205",
       "title": "Toggle de tema (claro/oscuro/sistema) en la UI",
-      "description": "Un control de tema visible en la UI (escritorio y móvil) permite elegir Claro, Oscuro o Sistema. Refleja el estado actual y aplica el cambio al instante; la elección persiste. Ícono Lucide (Sun/Moon/Monitor), sin emoji. Accesible por teclado con foco visible.",
+      "description": "Un control de tema visible en la UI (escritorio y móvil) permite alternar el tema. Refleja el estado actual y aplica el cambio al instante; la elección persiste (FR-201). Íconos Lucide (Sun/Moon/Monitor), sin emoji. Accesible por teclado con foco visible.",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "A 1440px, el toggle está visible en la barra de navegación y al elegir 'Oscuro' el <html> gana la clase 'dark' (happy)",
-        "A 375px (móvil) el toggle está accesible en la vista de registro (edge)",
+        "A 1440px, el toggle está visible en el chrome y al elegir 'Oscuro' el <html> gana la clase 'dark' (happy)",
+        "A 375px (móvil) el toggle está accesible en la cabecera de la vista de registro (edge)",
         "Al recargar tras elegir 'Claro', la app sigue en claro (persistencia) (negativo/persistencia)"
       ]
     },
     {
       "id": "FR-206",
-      "title": "Instalar el stack de soporte (next-themes, react-day-picker, @testing-library/react)",
-      "description": "Se agregan al package.json y se instalan: next-themes (usado por esta feature), react-day-picker y @testing-library/react (fundación del stack; su USO es de features posteriores). No se introduce ninguna petición externa en runtime.",
+      "title": "Actualizar el stack: instalar y USAR next-themes + react-day-picker; instalar @testing-library/react",
+      "description": "Se agregan al package.json y se instalan: next-themes (USADO por el theming, FR-201/FR-205), react-day-picker (USADO por el calendario del campo de fecha, FR-210) y @testing-library/react + jsdom (USADOS por los tests de componente del registro rediseñado). react-day-picker se carga de forma diferida (dynamic ssr:false) y su hoja react-day-picker/style.css + locale 'es' se importan solo en el componente del calendario. No se introduce ninguna petición externa en runtime.",
       "priority": "SHOULD",
       "type": "logic",
       "acceptance_criteria": [
-        "package.json incluye next-themes, react-day-picker y @testing-library/react como dependencias (happy)",
-        "El build de producción compila con las nuevas deps sin errores (edge)",
-        "react-day-picker no se importa en runtime todavía (solo instalado) (negativo — sin uso aún)"
+        "package.json incluye next-themes, react-day-picker y @testing-library/react como dependencias y el build de producción compila sin errores (happy)",
+        "react-day-picker se importa dinámicamente (ssr:false) y solo entra al bundle al abrir el calendario (edge — carga diferida)",
+        "Ninguna dependencia nueva emite una petición HTTP externa en runtime (negativo)"
+      ]
+    },
+    {
+      "id": "FR-207",
+      "title": "Registro móvil rediseñado: monto protagonista + formato COP entero",
+      "description": "La pantalla de registro móvil (vista ≤760px, reemplaza el MovementForm actual) presenta el MONTO como protagonista visual: el número grande ES el <input> (inputMode='numeric', pattern='[0-9]*' — teclado numérico nativo, no un teclado ad-hoc en pantalla), centrado, en fuente mono (DM Mono) tabular-nums, con el color y caret del tipo activo. La entrada se limpia a solo dígitos y se recorta a 15 dígitos; el valor mostrado se deriva del monto formateado en COP (símbolo $, miles con '.', sin decimales/centavos → '$1.250'); vacío muestra placeholder '$0'. El signo va a la izquierda escalando con el número (+ Ingreso, − Gasto, ícono ArrowRightLeft Transferencia). El tamaño de fuente se reduce por longitud (≤8→3.5rem, ≤10→2.75rem, ≤13→2.25rem, resto 1.75rem). Un monto ≤0 o con separador decimal no permite guardar.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Al teclear 1250 el monto se muestra '$1.250' en fuente mono, centrado, con el color del tipo activo, y el teclado invocado es numérico (inputMode='numeric') (happy)",
+        "Con monto vacío o 0 se muestra el placeholder '$0' y el guardado queda bloqueado (negativo)",
+        "Una entrada con separador decimal (p. ej. '12,5' o '12.5') se rechaza al guardar con el mensaje 'El monto debe ser un valor entero en pesos.' (negativo — COP sin centavos)",
+        "Un monto de 7+ dígitos ('$1.000.000') reduce el tamaño de fuente en vez de desbordar el contenedor a 375px (edge)"
+      ]
+    },
+    {
+      "id": "FR-208",
+      "title": "Toggle de tipo en el registro (Gasto/Ingreso/Transferencia)",
+      "description": "El registro tiene un toggle de tipo con 3 segmentos (role='tablist'/'tab' con aria-selected), Gasto por defecto. El segmento activo se rellena con el color del tipo (texto blanco); los inactivos muestran su signo/punto en el color del tipo y label en text-secondary. Cambiar de tipo NO pierde el monto ya ingresado, pero SÍ deselecciona la categoría actual (porque el catálogo de categorías cambia por tipo, FR-209).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con tipo=Gasto seleccionado, el segmento Gasto está relleno con #DC2626 (claro) y aria-selected=true; los otros dos aparecen inactivos (happy)",
+        "Al cambiar de Gasto a Ingreso, el monto ya escrito se conserva y la categoría previamente seleccionada queda deseleccionada (edge)",
+        "El toggle no permite un estado sin tipo: siempre hay exactamente un tipo activo (negativo — invariante)"
+      ]
+    },
+    {
+      "id": "FR-209",
+      "title": "Selector de categorías por tipo (fila horizontal) leyendo la jerarquía existente",
+      "description": "Bajo el monto, una fila horizontal muestra las categorías del TIPO activo tomadas de la JERARQUÍA existente gestionada por el usuario (parent FR-002) — no un catálogo fijo. Scroll horizontal sin barra visible con un fade a la derecha que indica más contenido; una sola categoría seleccionable a la vez; el tile activo usa el tinte del color del tipo (accent-soft) y borde del tipo. Al cambiar de tipo la fila se remonta y el scroll vuelve al inicio. La selección de subcategoría opcional se conserva según parent FR-001 (si la categoría elegida tiene subcategorías, el destino puede ser la subcategoría). Crear/editar categorías desde móvil NO es parte de esta feature (solo lectura del árbol).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con tipo=Gasto, la fila lista las categorías de Gasto que existen en la jerarquía del usuario, en scroll horizontal, con una seleccionable (happy)",
+        "Al seleccionar una categoría, su tile adopta el tinte y borde del color del tipo activo; al cambiar de tipo la selección se limpia y el scroll vuelve a la primera categoría (edge)",
+        "Si no se selecciona ninguna categoría, el guardado queda bloqueado y se muestra 'Elige una categoría.' al intentar guardar (negativo)"
+      ]
+    },
+    {
+      "id": "FR-210",
+      "title": "Campo de fecha 'Hoy' editable con calendario",
+      "description": "El registro incluye un campo de fecha que muestra 'Hoy' por defecto (o la fecha formateada 'DD mmm YYYY' si no es hoy); la hora se guarda con el movimiento pero NUNCA se muestra. Un botón abre un popover (role='dialog') con un calendario (react-day-picker, mode='single', locale 'es', carga diferida) para cambiar el día; al elegir un día se conserva la hora actual y se cierra el popover; también cierra al hacer clic fuera. La fecha resultante se persiste con el movimiento según la semántica de datos existente.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Al abrir el registro el campo muestra 'Hoy' y el movimiento guardado lleva la fecha actual (happy)",
+        "Al pulsar el campo se abre el calendario; elegir el día 15 del mes muestra '15 <mes> <año>' y cierra el popover, conservando la hora (edge)",
+        "El popover se cierra al hacer clic fuera sin cambiar la fecha seleccionada (negativo)",
+        "La hora nunca se muestra en la etiqueta del campo aunque se persista (negativo — regla de presentación)"
+      ]
+    },
+    {
+      "id": "FR-211",
+      "title": "Nota opcional con límite de 280 caracteres",
+      "description": "El registro incluye una nota opcional (textarea) con contador 'n/280' y límite duro de 280 caracteres (recorte también en JS). Vacía se normaliza a null (no se persiste una nota vacía). No bloquea el guardado.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Escribir una nota de 50 caracteres muestra el contador '50/280' y la nota se guarda con el movimiento (happy)",
+        "Al intentar escribir más de 280 caracteres, el valor se recorta a 280 y el contador marca '280/280' (negativo — límite duro)",
+        "Guardar con la nota vacía persiste el movimiento con note=null (edge)"
+      ]
+    },
+    {
+      "id": "FR-212",
+      "title": "Guardado con overlay de confirmación y anti doble-tap (semántica de datos existente)",
+      "description": "Al pulsar Guardar, el registro valida (monto>0 y sin decimales, categoría del tipo válida, fecha válida, nota ≤280) y, si es válido, GUARDA usando la semántica de datos EXISTENTE (el amount suma al Ejecutado de la hoja destino en el mes elegido, se recalculan los roll-ups y aparece en recientes — parent FR-001/FR-004; NO se introduce un modelo de movimientos paralelo). Tras guardar muestra un overlay de confirmación a pantalla completa (círculo con check + monto y signo en el color del tipo) que se autocierra a ~2000ms y deja el formulario listo para el siguiente registro (monto/categoría/nota limpios, fecha=Hoy). Anti doble-tap: un guardado idéntico (mismo tipo/monto/categoría/fecha/nota) dentro de 600ms no crea un duplicado. El botón Guardar está deshabilitado si el monto es 0/inválido o mientras persiste.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con tipo+categoría+mes y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000, se recalculan roll-ups y el movimiento aparece primero en recientes (happy)",
+        "Tras un guardado exitoso se muestra el overlay ~2s con el monto y su signo en el color del tipo, y luego el formulario queda limpio con fecha=Hoy (edge)",
+        "Dos pulsaciones idénticas de Guardar dentro de 600ms crean UN solo movimiento, no dos (negativo — anti doble-tap)",
+        "Con monto=0 o sin categoría, el botón Guardar está deshabilitado y no se crea ningún movimiento (negativo)"
+      ]
+    },
+    {
+      "id": "FR-213",
+      "title": "Tipografía Inter (texto) + DM Mono (montos) en toda la app",
+      "description": "La app carga Inter (texto general, variable --font-sans) y DM Mono pesos 400/500 (dígitos de montos, variable --font-mono) vía next/font/google (self-hosted en build, sin CDN en runtime), reemplazando Lexend. El monto del registro y las cifras usan explícitamente DM Mono con tabular-nums. El resto de la UI usa Inter.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "El texto general de la app se renderiza en Inter y el monto del registro en DM Mono con tabular-nums (happy)",
+        "No queda ninguna referencia a Lexend en el CSS/fuentes resueltas de la app (negativo)",
+        "Las fuentes se sirven self-hosted (next/font) sin ninguna petición externa a Google Fonts en runtime (negativo — NFR-204)"
       ]
     }
   ],
@@ -80,65 +167,86 @@
     {
       "id": "NFR-201",
       "category": "Regression",
-      "requirement": "Toda la funcionalidad existente (registro, grilla, edición inline de hojas, borrado bloqueado, reparent drag-drop, dashboard, responsive móvil) sigue funcionando idéntica tras el cambio de tema — solo cambia el color.",
-      "acceptance_criteria": "Los TCs existentes (grilla, reparent, registro, dashboard, móvil) siguen pasando en ambos temas; ninguna interacción cambia de comportamiento"
+      "requirement": "Toda la funcionalidad existente sigue funcionando idéntica tras la feature: grilla de 12 meses, edición inline de hojas, borrado bloqueado / conversión a 'Sin asignar', reparent por drag-drop, dashboard, roll-ups, y la conmutación responsive móvil/escritorio (parent FR-010). La feature SOLO cambia: la UI de la pantalla de registro móvil, el sistema de color/tema y la tipografía.",
+      "acceptance_criteria": "Los TCs existentes (grilla, reparent, borrado, roll-ups, dashboard, responsive) siguen pasando en ambos temas; ninguna interacción de escritorio cambia de comportamiento"
     },
     {
       "id": "NFR-202",
       "category": "Regression",
-      "requirement": "La persistencia de datos (jerarquía/budgets/actuals/movements) no se ve afectada; la preferencia de tema vive en una clave independiente ('theme').",
-      "acceptance_criteria": "Tras cambiar de tema y recargar, los datos se conservan idénticos; la clave 'theme' no colisiona con ledger.*"
+      "requirement": "La persistencia y el modelo de datos no cambian: el registro rediseñado guarda con la semántica existente (suma a Ejecutado, roll-ups) sobre las mismas claves localStorage (ledger.*); la preferencia de tema vive en la clave independiente 'theme'. No se introduce un almacén de movimientos paralelo.",
+      "acceptance_criteria": "Tras registrar desde el registro rediseñado y recargar, los datos se conservan idénticos y coherentes con la grilla/dashboard; la clave 'theme' no colisiona con ledger.*; no aparece una clave de movimientos nueva y separada"
     },
     {
       "id": "NFR-203",
       "category": "Regression",
-      "requirement": "Accesibilidad: el contraste de texto primario y secundario es ≥4.5:1 (AA) en AMBOS temas; el foco visible se conserva.",
-      "acceptance_criteria": "text-primary y text-secondary sobre background alcanzan ≥4.5:1 en claro y oscuro; :focus-visible sigue visible en ambos"
+      "requirement": "Accesibilidad: el contraste de texto primario y secundario, y de cada color de tipo como texto, es ≥4.5:1 (AA) en AMBOS temas; el foco visible se conserva; los objetivos táctiles del registro son ≥48px.",
+      "acceptance_criteria": "text-primary, text-secondary y los colores de tipo sobre background alcanzan ≥4.5:1 en claro y oscuro; :focus-visible sigue visible; los controles del registro tienen min-height 48px"
     },
     {
       "id": "NFR-204",
       "category": "Regression",
-      "requirement": "Sin peticiones HTTP externas en runtime: next-themes no hace red; la fuente Lexend sigue self-hosted; sin CDN.",
-      "acceptance_criteria": "0 peticiones externas al cargar o cambiar de tema"
+      "requirement": "Sin peticiones HTTP externas en runtime: next-themes y react-day-picker no hacen red; las fuentes Inter/DM Mono son self-hosted (next/font); sin CDN.",
+      "acceptance_criteria": "0 peticiones externas al cargar la app, cambiar de tema, abrir el calendario o guardar un movimiento"
     },
     {
       "id": "NFR-205",
       "category": "Regression",
-      "requirement": "Sin regresión de layout: la grilla alineada (px-6 en contenedor), la columna sticky, el full-bleed y el espaciado se conservan — solo cambia color/tema.",
-      "acceptance_criteria": "A 1440px la grilla mantiene alineación con KPIs y sticky; a 375px solo registro; sin desborde; el cambio de tema no altera posiciones"
+      "requirement": "Sin regresión de layout en escritorio: la grilla alineada, la columna sticky, el full-bleed y el espaciado se conservan — el rediseño del registro móvil y el cambio de color/tema/fuente no alteran la composición del escritorio.",
+      "acceptance_criteria": "A 1440px la grilla mantiene alineación y sticky; a 375px se muestra solo el registro rediseñado sin desborde; el cambio de tema no altera posiciones"
+    },
+    {
+      "id": "NFR-206",
+      "category": "Usability",
+      "requirement": "El registro móvil es una vista centrada mobile-first (contenedor max-w-[480px], mx-auto) que no produce scroll horizontal en ningún breakpoint, y da feedback de guardado inmediato (overlay).",
+      "acceptance_criteria": "El registro renderiza sin scroll horizontal a 375px, 768px y 1440px (contenido centrado, no estirado); tras Guardar el overlay aparece de inmediato (<100ms perceptible)"
+    },
+    {
+      "id": "NFR-207",
+      "category": "CI/CD",
+      "requirement": "La suite de tests completa —incluidos los nuevos tests de componente del registro con @testing-library/react— corre en cada push a main.",
+      "acceptance_criteria": "El workflow ejecuta la suite completa (vitest + los tests de componente del registro) en cada push a main; el contenedor sigue arrancando y respondiendo 200 en '/' (smoke, parent NFR-006)"
     }
   ],
   "no_go_zone": [
-    "USO de react-day-picker (captura por fecha) — es la feature siguiente 'date-capture'; aquí solo se instala la dependencia",
-    "Tests de componente con @testing-library/react — se agregan cuando toque; aquí solo la dep",
-    "Selector de 'tipo activo' en Presupuesto/Dashboard — el chrome ahí es NEUTRO (no hay tipo activo); no se agrega UI de selección de tipo",
-    "Rediseño de layout, tipografía o espaciado — se conservan (Lexend, full-bleed, grilla); esta feature SOLO cambia el color/tema",
-    "Modo de alto contraste u otros temas adicionales más allá de claro/oscuro/sistema — fuera de alcance"
+    "Auth / login / AuthGate — el registro NO queda detrás de un gate en esta feature; el parent v1 no tiene auth. El AuthGate, authStore, lib/auth y lib/sha256 del MVP NO se traen aquí (evitan redirigir a un /login inexistente y romper la app); llegarán con una feature de login futura",
+    "Navegación multi-ruta / TabBar / páginas separadas /movimientos y /presupuestos del MVP — el app sigue siendo single-page responsive (DesktopShell/MobileShell) con su navegación actual; no se adopta el modelo de rutas del MVP",
+    "output:'export' estático y cambio de plataforma de despliegue — se conserva el despliegue actual (Next.js en Docker sobre Ultron); no se migra a export estático",
+    "Gestión de categorías (crear/renombrar/borrar) desde móvil — el selector del registro móvil SOLO lee la jerarquía existente (parent FR-002); crear/gestionar desde móvil es una feature futura",
+    "Reemplazar el estado/repositorio de datos existente por los stores del MVP (movementsStore paralelo) — se conserva el store y repositorio actuales; solo cambia la UI del registro y su presentación",
+    "USO de la app fuera del registro en móvil (grilla de presupuesto / dashboard en pantalla pequeña) — sigue fuera de alcance en móvil (parent FR-010/out-of-scope)",
+    "Modo de alto contraste u otros temas más allá de claro/oscuro/sistema — fuera de alcance",
+    "Rediseño del layout, la grilla o el dashboard de escritorio — se conservan; esta feature solo rediseña el registro móvil y cambia color/tema/fuente"
   ],
   "constraints": [
-    "next-themes con attribute='class', defaultTheme='system', enableSystem; ThemeProvider en el layout con suppressHydrationWarning",
-    "Tokens de color EXACTOS de la especificación del usuario (§4.1–4.3); derivados (surface-hover, border-strong/hover, text-muted, accent-soft) definidos en el UX spec, AA en ambos temas",
-    "Íconos Lucide (Sun/Moon/Monitor); sin emoji/gradientes; motion respeta prefers-reduced-motion",
-    "Stack: Next.js 15, React 19, Tailwind v4, Zustand, TypeScript; la fuente Lexend self-hosted se conserva (NFR-004)"
+    "next-themes con attribute='class', defaultTheme='system', enableSystem=true; ThemeProvider en el layout con suppressHydrationWarning",
+    "Tokens de color EXACTOS de la especificación del usuario (feature_context §4.3/§4.5); derivados (surface-hover, border-strong/hover, text-muted, accent-soft) definidos en el UX spec, AA en ambos temas",
+    "El registro móvil guarda con la semántica de datos EXISTENTE (suma a Ejecutado, roll-ups, parent FR-001/FR-004); las categorías se leen de la jerarquía existente (parent FR-002)",
+    "Tipografía Inter (--font-sans) + DM Mono 400/500 (--font-mono) vía next/font/google (self-hosted); el monto usa DM Mono tabular-nums; reemplaza Lexend",
+    "Monto en COP entero (sin centavos), formato es-CO normalizado sin espacio ('$1.250'); entrada por input estándar con inputMode='numeric' (teclado nativo, no ad-hoc)",
+    "Íconos Lucide (Sun/Moon/Monitor para el tema; íconos de categoría de la jerarquía); sin emoji/gradientes; motion respeta prefers-reduced-motion",
+    "Stack: Next.js 15, React 19, Tailwind v4, Zustand, TypeScript (existentes); + next-themes, react-day-picker, @testing-library/react",
+    "react-day-picker se carga diferida (dynamic, ssr:false) con su hoja de estilos y locale 'es' solo en el componente del calendario"
   ],
   "technology_preferences": [
-    "next-themes (tema claro/oscuro/sistema, attribute=class)",
+    "next-themes (tema claro/oscuro/sistema, attribute=class, default=system)",
+    "react-day-picker (calendario del campo de fecha, carga diferida)",
+    "@testing-library/react + jsdom (tests de componente del registro)",
+    "Inter + DM Mono vía next/font/google (self-hosted)",
     "Tailwind CSS v4 + CSS custom properties theme-aware",
-    "Lucide (Sun/Moon/Monitor para el toggle)",
-    "react-day-picker y @testing-library/react instalados como fundación (sin uso en esta feature)"
+    "Zustand (store existente; se conserva) y el repositorio de datos existente"
   ],
   "user_personas": [
     {
       "role": "Dueño de sus finanzas personales",
       "tech_level": "mid",
-      "goal": "Usar la app en el tema que prefiera (o el del sistema), con una identidad de color clara por tipo de movimiento",
-      "pain_point": "Hoy la app es dark-only con un acento fijo; no respeta el modo claro del sistema ni distingue fuerte los tipos"
+      "goal": "Capturar un gasto/ingreso/transferencia en el instante del pago desde el móvil, rápido y con el monto como protagonista, en el tema que prefiera (o el del sistema), sobre los mismos datos que ve en el escritorio",
+      "pain_point": "Hoy el registro móvil es funcional pero plano; la app es dark-only con un acento fijo y no distingue fuerte los tipos ni respeta el modo claro del sistema"
     },
     {
       "role": "Revisor técnico del portafolio",
       "tech_level": "high",
-      "goal": "Ver un sistema de diseño profesional, accesible AA en claro y oscuro, con tokens coherentes",
-      "pain_point": "Un solo tema y contraste no verificado en un segundo tema restan nivel profesional"
+      "goal": "Ver un sistema de diseño profesional, accesible AA en claro y oscuro, con una pantalla de captura pulida, sin que el rediseño rompa la app existente",
+      "pain_point": "Un solo tema, un registro plano y contraste no verificado en un segundo tema restan nivel profesional"
     }
   ],
   "user_stories": [
@@ -149,42 +257,7 @@
       "i_want": "que la app abra en claro automáticamente",
       "so_that": "es coherente con mi sistema",
       "acceptance_criteria": [
-        {
-          "id": "AC-201",
-          "given": "SO en claro, sin preferencia previa",
-          "when": "abro la app",
-          "then": "arranca en tema claro (#FFFFFF)"
-        }
-      ]
-    },
-    {
-      "id": "US-203",
-      "requirement_id": "FR-203",
-      "as_a": "usuario registrando un movimiento",
-      "i_want": "que el acento siga el tipo que elijo",
-      "so_that": "identifico de inmediato Gasto/Ingreso/Transferencia por color",
-      "acceptance_criteria": [
-        {
-          "id": "AC-203",
-          "given": "el Registro con tipo Transferencia",
-          "when": "lo observo",
-          "then": "el acento del selector/foco es azul"
-        }
-      ]
-    },
-    {
-      "id": "US-205",
-      "requirement_id": "FR-205",
-      "as_a": "usuario",
-      "i_want": "un toggle para elegir claro/oscuro/sistema",
-      "so_that": "controlo el tema",
-      "acceptance_criteria": [
-        {
-          "id": "AC-205",
-          "given": "el toggle",
-          "when": "elijo Oscuro y recargo",
-          "then": "sigue en oscuro"
-        }
+        { "id": "AC-201", "given": "SO en claro, sin preferencia previa", "when": "abro la app", "then": "arranca en tema claro con --background=#FFFFFF y sin clase 'dark'" }
       ]
     },
     {
@@ -194,12 +267,17 @@
       "i_want": "tokens de color por tema exactos",
       "so_that": "el sistema es coherente y verificable",
       "acceptance_criteria": [
-        {
-          "id": "AC-202",
-          "given": "tema oscuro",
-          "when": "leo --background",
-          "then": "es #09090B"
-        }
+        { "id": "AC-202", "given": "tema oscuro activo", "when": "leo --background y --surface", "then": "son #09090B y #18181B respectivamente" }
+      ]
+    },
+    {
+      "id": "US-203",
+      "requirement_id": "FR-203",
+      "as_a": "usuario registrando un movimiento",
+      "i_want": "que el acento siga el tipo que elijo",
+      "so_that": "identifico de inmediato Gasto/Ingreso/Transferencia por color",
+      "acceptance_criteria": [
+        { "id": "AC-203", "given": "el Registro con tipo Transferencia", "when": "observo el signo del monto, el caret, el tile activo y el botón Guardar", "then": "los cuatro usan el azul de Transferencia" }
       ]
     },
     {
@@ -207,14 +285,103 @@
       "requirement_id": "FR-204",
       "as_a": "usuario",
       "i_want": "cada tipo con su color (Transferencia azul)",
-      "so_that": "distingo los tipos",
+      "so_that": "distingo los tipos de un vistazo",
       "acceptance_criteria": [
-        {
-          "id": "AC-204",
-          "given": "la fila Transferencia",
-          "when": "la veo",
-          "then": "es azul, no steel-blue"
-        }
+        { "id": "AC-204", "given": "la fila del tipo Transferencia en tema claro", "when": "la veo", "then": "es azul #2563EB, no el steel-blue anterior" }
+      ]
+    },
+    {
+      "id": "US-205",
+      "requirement_id": "FR-205",
+      "as_a": "usuario",
+      "i_want": "un toggle para elegir claro/oscuro/sistema",
+      "so_that": "controlo el tema",
+      "acceptance_criteria": [
+        { "id": "AC-205", "given": "el toggle de tema", "when": "elijo Oscuro y recargo", "then": "la app sigue en oscuro" }
+      ]
+    },
+    {
+      "id": "US-206",
+      "requirement_id": "FR-206",
+      "as_a": "desarrollador de la app",
+      "i_want": "el stack de tema, calendario y tests instalado y usado",
+      "so_that": "las funciones del registro rediseñado se apoyan en librerías estándar",
+      "acceptance_criteria": [
+        { "id": "AC-206", "given": "el package.json y el build", "when": "compilo producción", "then": "next-themes, react-day-picker y @testing-library/react están presentes y el build pasa sin errores" }
+      ]
+    },
+    {
+      "id": "US-207",
+      "requirement_id": "FR-207",
+      "as_a": "dueño de mis finanzas capturando en el móvil",
+      "i_want": "escribir el monto como protagonista con teclado numérico y verlo formateado en COP",
+      "so_that": "registro el gasto rápido y sin ambigüedad de cifras",
+      "acceptance_criteria": [
+        { "id": "AC-207", "given": "el registro móvil abierto con tipo Gasto", "when": "tecleo 1250", "then": "veo '$1.250' en fuente mono con el color de Gasto y el teclado es numérico" },
+        { "id": "AC-208", "given": "el campo de monto vacío", "when": "observo el guardado", "then": "el monto muestra '$0' y el botón Guardar está deshabilitado" }
+      ]
+    },
+    {
+      "id": "US-208",
+      "requirement_id": "FR-208",
+      "as_a": "usuario que registra distintos tipos",
+      "i_want": "cambiar de tipo sin perder el monto",
+      "so_that": "corrijo el tipo sin volver a teclear la cifra",
+      "acceptance_criteria": [
+        { "id": "AC-209", "given": "tipo Gasto con monto 50000 y una categoría seleccionada", "when": "cambio a Ingreso", "then": "el monto 50000 se conserva y la categoría queda deseleccionada" }
+      ]
+    },
+    {
+      "id": "US-209",
+      "requirement_id": "FR-209",
+      "as_a": "usuario que categoriza su gasto",
+      "i_want": "elegir la categoría del tipo activo desde mis propias categorías",
+      "so_that": "el movimiento cae en la misma taxonomía que veo en el escritorio",
+      "acceptance_criteria": [
+        { "id": "AC-210", "given": "tipo Gasto activo", "when": "veo la fila de categorías", "then": "lista las categorías de Gasto de mi jerarquía y puedo seleccionar exactamente una" },
+        { "id": "AC-211", "given": "ninguna categoría seleccionada", "when": "intento guardar", "then": "el guardado se bloquea y aparece 'Elige una categoría.'" }
+      ]
+    },
+    {
+      "id": "US-210",
+      "requirement_id": "FR-210",
+      "as_a": "usuario que registra un gasto de otro día",
+      "i_want": "cambiar la fecha con un calendario, con 'Hoy' por defecto",
+      "so_that": "asiento el movimiento en la fecha correcta sin fricción",
+      "acceptance_criteria": [
+        { "id": "AC-212", "given": "el registro recién abierto", "when": "observo el campo de fecha", "then": "muestra 'Hoy' y el movimiento guardado lleva la fecha actual" },
+        { "id": "AC-213", "given": "el calendario abierto", "when": "hago clic fuera del popover", "then": "se cierra sin cambiar la fecha" }
+      ]
+    },
+    {
+      "id": "US-211",
+      "requirement_id": "FR-211",
+      "as_a": "usuario que anota contexto",
+      "i_want": "una nota opcional con límite claro",
+      "so_that": "recuerdo el porqué del movimiento sin exceder el campo",
+      "acceptance_criteria": [
+        { "id": "AC-214", "given": "el campo de nota", "when": "escribo 300 caracteres", "then": "el valor se recorta a 280 y el contador marca '280/280'" }
+      ]
+    },
+    {
+      "id": "US-212",
+      "requirement_id": "FR-212",
+      "as_a": "dueño de mis finanzas",
+      "i_want": "guardar el movimiento y ver una confirmación, sin duplicados por doble toque",
+      "so_that": "confío en que quedó registrado una sola vez y en los datos correctos",
+      "acceptance_criteria": [
+        { "id": "AC-215", "given": "tipo+categoría+mes y monto=50000", "when": "pulso Guardar", "then": "el Ejecutado de la hoja destino sube 50000, se recalculan roll-ups, aparece en recientes y se muestra el overlay ~2s" },
+        { "id": "AC-216", "given": "un guardado válido", "when": "pulso Guardar dos veces idénticas dentro de 600ms", "then": "se crea un solo movimiento, no dos" }
+      ]
+    },
+    {
+      "id": "US-213",
+      "requirement_id": "FR-213",
+      "as_a": "revisor técnico del portafolio",
+      "i_want": "una tipografía coherente Inter + DM Mono",
+      "so_that": "la app se ve deliberada y los montos legibles",
+      "acceptance_criteria": [
+        { "id": "AC-217", "given": "la app cargada", "when": "inspecciono las fuentes", "then": "el texto usa Inter, el monto usa DM Mono tabular-nums y no queda Lexend" }
       ]
     }
   ],
@@ -226,70 +393,41 @@
     "no_go_zone": "confirmed"
   },
   "idea_provenance_sources": {
-    "problem": "Usuario en chat: 'nivel profesional', migración al stack + theme toggle + estilos; dark-only actual es la limitación",
+    "problem": "feature_context/MODULO_MOBILE_RESPONSIVE.md (MVP mobile de registro, anclado a código real §8) designado por el usuario + confirmación en chat de traer el MVP a la app existente",
     "users": "Personas del proyecto padre (dueño de finanzas + revisor de portafolio); confirmado",
-    "baseline": "Sistema César Augusto actual (dark-only, steel-blue, globals.css) como punto de partida a reemplazar",
-    "success_metric": "Usuario proporcionó la especificación de color exacta (§4.1–4.3) + decisiones: default=Sistema, acento dinámico Registro=tipo/chrome=neutro",
-    "no_go_zone": "Usuario confirmó vía preguntas: default Sistema; acento dinámico solo en Registro; react-day-picker solo instalar (uso después); sin cambiar layout/tipografía"
+    "baseline": "App T-Ledger actual (MovementForm móvil, sistema César Augusto dark-only, Lexend) como punto de partida a rediseñar; código actual en src/ leído",
+    "success_metric": "Usuario proporcionó el MVP con tokens/comportamientos exactos y confirmó 4 decisiones de reconciliación: (1) el registro MVP reemplaza la vista móvil del app responsive; (2) categorías desde la jerarquía existente; (3) tipografía Inter+DM Mono; (4) default de tema = Sistema",
+    "no_go_zone": "Usuario confirmó en chat: una sola app, mismos datos; sin gestionar categorías desde móvil (por ahora). Derivado del parent v1: sin auth/login, single-page responsive, Docker (no export estático). AuthGate/TabBar/rutas del MVP quedan fuera de esta feature"
   },
   "idea_gaps": [],
   "coverage_map": [
-    {
-      "need": "Tema claro/oscuro con default Sistema, persistente, sin flash",
-      "disposition": "FR-201"
-    },
-    {
-      "need": "Tokens de color zinc neutros exactos, theme-aware",
-      "disposition": "FR-202"
-    },
-    {
-      "need": "Acento dinámico = tipo activo (Registro); chrome neutro en Presupuesto/Dashboard",
-      "disposition": "FR-203"
-    },
-    {
-      "need": "Color por tipo Gasto rojo/Ingreso verde/Transferencia azul, AA ambos temas",
-      "disposition": "FR-204"
-    },
-    {
-      "need": "Toggle claro/oscuro/sistema en la UI",
-      "disposition": "FR-205"
-    },
-    {
-      "need": "Instalar next-themes, react-day-picker, @testing-library/react",
-      "disposition": "FR-206"
-    },
-    {
-      "need": "No romper funcionalidad existente",
-      "disposition": "NFR-201"
-    },
-    {
-      "need": "No tocar persistencia de datos; tema en clave aparte",
-      "disposition": "NFR-202"
-    },
-    {
-      "need": "Contraste AA en ambos temas",
-      "disposition": "NFR-203"
-    },
-    {
-      "need": "Sin peticiones externas",
-      "disposition": "NFR-204"
-    },
-    {
-      "need": "Sin regresión de layout",
-      "disposition": "NFR-205"
-    },
-    {
-      "need": "Uso de react-day-picker (captura por fecha)",
-      "disposition": "out_of_scope"
-    },
-    {
-      "need": "Tests de componente con @testing-library",
-      "disposition": "out_of_scope"
-    },
-    {
-      "need": "Selector de tipo activo en Presupuesto/Dashboard",
-      "disposition": "out_of_scope"
-    }
+    { "need": "Tema claro/oscuro con default Sistema, persistente, sin flash", "disposition": "FR-201" },
+    { "need": "Tokens de color zinc neutros exactos, theme-aware", "disposition": "FR-202" },
+    { "need": "Acento dinámico = tipo activo propagado en el Registro (signo, caret, categoría, botón)", "disposition": "FR-203" },
+    { "need": "Color por tipo Gasto rojo/Ingreso verde/Transferencia azul, AA ambos temas", "disposition": "FR-204" },
+    { "need": "Toggle de tema claro/oscuro/sistema en la UI", "disposition": "FR-205" },
+    { "need": "Instalar y usar next-themes + react-day-picker; instalar @testing-library/react", "disposition": "FR-206" },
+    { "need": "Monto protagonista con teclado numérico y formato COP entero", "disposition": "FR-207" },
+    { "need": "Toggle de tipo que conserva el monto y deselecciona categoría al cambiar", "disposition": "FR-208" },
+    { "need": "Selector de categorías por tipo (fila horizontal) leyendo la jerarquía existente", "disposition": "FR-209" },
+    { "need": "Campo de fecha 'Hoy' editable con calendario (react-day-picker)", "disposition": "FR-210" },
+    { "need": "Nota opcional con límite de 280 y contador", "disposition": "FR-211" },
+    { "need": "Guardado con overlay de confirmación + anti doble-tap, semántica de datos existente", "disposition": "FR-212" },
+    { "need": "Tipografía Inter + DM Mono en toda la app (reemplaza Lexend)", "disposition": "FR-213" },
+    { "need": "No romper la funcionalidad existente (grilla/reparent/borrado/dashboard/roll-ups/responsive)", "disposition": "NFR-201" },
+    { "need": "No cambiar persistencia ni modelo de datos; tema en clave aparte", "disposition": "NFR-202" },
+    { "need": "Contraste AA en ambos temas y objetivos táctiles ≥48px", "disposition": "NFR-203" },
+    { "need": "Sin peticiones externas en runtime (tema, calendario, fuentes)", "disposition": "NFR-204" },
+    { "need": "Sin regresión de layout en escritorio", "disposition": "NFR-205" },
+    { "need": "Registro móvil centrado sin scroll horizontal, feedback inmediato", "disposition": "NFR-206" },
+    { "need": "La suite (incl. tests de componente) corre en cada push a main", "disposition": "NFR-207" },
+    { "need": "Auth / login / AuthGate del MVP", "disposition": "out_of_scope" },
+    { "need": "Navegación multi-ruta / TabBar / páginas /movimientos y /presupuestos", "disposition": "out_of_scope" },
+    { "need": "Export estático (output:'export') / cambio de despliegue", "disposition": "out_of_scope" },
+    { "need": "Gestión de categorías desde móvil", "disposition": "out_of_scope" },
+    { "need": "Stores del MVP (modelo de movimientos paralelo)", "disposition": "out_of_scope" },
+    { "need": "Grilla/dashboard en móvil", "disposition": "out_of_scope" },
+    { "need": "Rediseño del layout/grilla/dashboard de escritorio", "disposition": "out_of_scope" }
   ],
-  "original_brief": "## Feature\nRediseño del sistema de color a un esquema **neutro (zinc) + acento dinámico por tipo**, con **temas claro y oscuro** conmutables (default = Sistema), reemplazando el sistema César Augusto steel-blue dark-only. Instala el stack de soporte (next-themes, react-day-picker, @testing-library/react).\n\n## Problem / Why\nEl producto es dark-only con un acento steel-blue fijo (FR-012). Para llevarlo a nivel profesional se requiere: (1) soporte de **tema claro/oscuro** que siga la preferencia del sistema, (2) una paleta **neutra zinc** que no compita con los colores semánticos, y (3) que el **color del tipo** (Gasto/Ingreso/Transferencia) sea la identidad cromática — el acento es dinámico según el tipo activo. El usuario proporcionó la especificación de color exacta (§4.1–4.3) — es autoritativa; se implementa verbatim.\n\n## Target Users\nUsuario principal (dueño de finanzas) en escritorio y móvil; el revisor técnico del portafolio (evalúa un sistema de diseño profesional, accesible AA en ambos temas).\n\n## New Behavior\n- The system must soportar **tema claro y oscuro** vía `next-themes` con `attribute=\"class\"`, **default = \"system\"** (sigue `prefers-color-scheme`); el usuario puede forzar claro/oscuro/sistema desde un **toggle** en la UI (escritorio y móvil).\n- The system must aplicar los **tokens de color exactos** de la especificación del usuario (ver Tokens), theme-aware (set claro en `:root`/`.light`, set oscuro en `.dark`), reemplazando los tokens César Augusto. Sin peticiones externas.\n- The system must usar el **acento dinámico = color del tipo activo** SOLO donde hay un tipo activo (pantalla de Registro: selector de tipo, foco, chips). En Presupuesto/Dashboard el **chrome es neutro** (`primary` zinc); cada tipo se colorea por fila/sección con su color de tipo.\n- The system must colorear cada **tipo** con su color en ambos temas (AA): Gasto rojo, Ingreso verde, **Transferencia azul** (ver §4.3), reemplazando el mapeo actual (transfer = accent-light steel).\n- The system must persistir la preferencia de tema (next-themes, clave propia) sin tocar las claves de datos.\n- The system must instalar `react-day-picker` y `@testing-library/react` como fundación del stack (su USO —captura por fecha, tests de componente— es de features posteriores; aquí solo se agregan las deps).\n\n## Tokens (especificación autoritativa del usuario — implementar verbatim)\n\n### 4.1 Tema CLARO\nbackground #FFFFFF · surface #F4F4F5 (zinc-100) · primary #18181B (zinc-900) · accent = dinámico (color del tipo activo) · error #DC2626 (red-600) · text-primary #18181B · text-secondary #52525B (zinc-600) · border #E4E4E7 (zinc-200).\n\n### 4.2 Tema OSCURO\nbackground #09090B (zinc-950) · surface #18181B (zinc-900) · primary #FAFAFA (zinc-50) · accent = dinámico (variante dark) · error #F87171 (red-400) · text-primary #FAFAFA · text-secondary #A1A1AA (zinc-400) · border #27272A (zinc-800).\n\n### 4.3 Colores de tipo (un color por tipo, AA en ambos temas)\nGasto: claro #DC2626 (red-600) / oscuro #EF4444 (red-500). Ingreso: claro #16A34A (green-600) / oscuro #22C55E (green-500). Transferencia: claro #2563EB (blue-600) / oscuro #3B82F6 (blue-500).\n\nDerivados a definir en el UX spec (por tema, todos AA): `surface-hover`, `border-strong`/`border-hover`, `text-muted`, y `accent-soft` (tinte del tipo para fondos de selección). La varianza de presupuesto (sobre/bajo) mapea a los colores de tipo/semánticos correspondientes.\n\n## Success Criteria\n- Given el SO en modo oscuro, when el usuario abre la app sin preferencia previa, then arranca en oscuro (zinc-950 fondo, §4.2); en SO claro arranca en claro (§4.1).\n- Given el toggle de tema, when el usuario elige Claro/Oscuro/Sistema, then el tema cambia y la preferencia persiste al recargar.\n- Given Registro con tipo=Gasto, when se observa el acento, then es el rojo de Gasto; al cambiar a Ingreso → verde; a Transferencia → azul.\n- Given Presupuesto/Dashboard, when se observa el chrome (tabs/botones/filtros), then es neutro (primary zinc, no un color de tipo).\n- Given cualquier texto primario/secundario en ambos temas, then el contraste es ≥4.5:1 (AA).\n\n## Touch Points\n- **REEMPLAZA FR-012** (César Augusto, dark-only, steel-blue) → sistema zinc neutro + acento dinámico + light/dark. **MODIFICA FR-008** (color por tipo: transfer steel → azul).\n- `src/app/globals.css` (tokens theme-aware), `src/app/layout.tsx` (ThemeProvider), un componente **ThemeToggle**, `src/components/format.ts` (`typeColorVar` → nuevos colores de tipo). Toca superficies que usan `--accent`/`--fg`/etc. (DesktopShell, BudgetGrid, MovementForm, Dashboard, RecentList, ui/*).\n- `package.json`: + next-themes, react-day-picker, @testing-library/react.\n\n## Must Not Break (Regression Boundary)\n- Toda la funcionalidad existente (registro, grilla, edición inline, borrado bloqueado, reparent, dashboard, persistencia, responsive móvil) sigue igual — solo cambia color/tema.\n- FR-011/NFR-003: las claves de datos en localStorage no se tocan; la preferencia de tema es una clave aparte.\n- Sin emoji/gradientes; íconos Lucide; motion con prefers-reduced-motion.\n- Sin peticiones HTTP externas en runtime (NFR-004): next-themes no hace red; Lexend sigue self-hosted.\n- Cero regresión de layout (grilla alineada, sticky, full-bleed) — solo color.\n- Contraste AA (≥4.5:1) preservado o mejorado en ambos temas.\n\n## Out of Scope\n- **Uso** de react-day-picker (captura por fecha) — feature siguiente `date-capture`; aquí solo la dep.\n- Tests de componente con @testing-library — solo la dep aquí.\n- Selector de \"tipo activo\" en Presupuesto/Dashboard — el chrome ahí es neutro.\n- Rediseño de layout/tipografía — se conservan (Lexend, full-bleed, espaciado); solo cambia el color.\n"
+  "original_brief": "## Feature\nAdoptar el MVP de la pantalla de REGISTRO móvil (feature_context/MODULO_MOBILE_RESPONSIVE.md, anclado a código real §8) como la vista ≤760px del app responsive, y actualizar el stack y el sistema de diseño. Tres ejes: (1) rediseñar el registro móvil con el patrón del MVP preservando la semántica de guardado existente y leyendo las categorías de la jerarquía; (2) migrar el color a zinc neutro + acento dinámico por tipo, con temas claro/oscuro/sistema (default=Sistema) vía next-themes; (3) actualizar el stack (next-themes + react-day-picker usados, @testing-library/react instalado) y la tipografía a Inter + DM Mono (reemplaza Lexend).\n\n## Decisiones de reconciliación confirmadas por el usuario\n- El registro MVP REEMPLAZA la vista móvil del app responsive (parent FR-001/FR-010); escritorio conserva grilla + dashboard. Una sola app.\n- El selector de categorías LEE la jerarquía existente (parent FR-002), no un catálogo fijo. Gestionar categorías desde móvil es futuro.\n- Tipografía Inter + DM Mono (reemplaza Lexend en toda la app).\n- Default de tema = Sistema (toggle claro/oscuro/sistema).\n- Auth/login (AuthGate→/login), navegación multi-ruta/TabBar del MVP y export estático quedan FUERA de esta feature (parent v1 sin auth, single-page responsive, Docker).\n\n## Tokens (autoritativos — implementar verbatim)\nCLARO: background #FFFFFF · surface #F4F4F5 · primary #18181B · text-primary #18181B · text-secondary #52525B · border #E4E4E7 · error #DC2626. OSCURO: background #09090B · surface #18181B · primary #FAFAFA · text-primary #FAFAFA · text-secondary #A1A1AA · border #27272A · error #F87171. Tipos (AA ambos temas): Gasto #DC2626/#EF4444, Ingreso #16A34A/#22C55E, Transferencia #2563EB/#3B82F6.\n\n## Must Not Break (Regression Boundary)\nToda la funcionalidad existente (grilla, edición inline, borrado/'Sin asignar', reparent, dashboard, roll-ups, persistencia, responsive de escritorio) sigue igual. El registro guarda con la semántica de datos existente (suma a Ejecutado, roll-ups) sobre las claves ledger.*; la preferencia de tema es una clave aparte. Sin peticiones externas en runtime. Cero regresión de layout de escritorio. Contraste AA (≥4.5:1) en ambos temas.\n\n## Fuente de verdad\nAnte discrepancia entre la prosa y el código de referencia del MVP (feature_context §8 / ~/Desktop/ledger - primera version), gana el código — salvo en los puntos reconciliados arriba (categorías desde jerarquía, sin auth, single-page, Docker, default Sistema), donde gana la decisión del usuario."
 }

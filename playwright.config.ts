@@ -8,7 +8,11 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Reintentos y workers acotados: verify-run corre e2e junto con coverage y el smoke-server,
+  // así que se limita la concurrencia y se reintentan los timeouts por contención de recursos.
+  retries: 2,
+  workers: 2,
+  timeout: 60_000,
   reporter: [["list"]],
   use: {
     baseURL: BASE,

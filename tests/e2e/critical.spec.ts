@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 
 // Flujos críticos de UI (FR-006/009/010/012). Cada test embebe su TC id para verify-run.
 
-test("TC-012h: los tokens CSS coinciden con el sistema de diseño César Augusto", async ({ page }) => {
+test("TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema claro)", async ({ page }) => {
+  // Feature stack-upgrade-theme: reemplaza César Augusto steel-blue por zinc neutro + tema claro/oscuro.
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
   const tokens = await page.evaluate(() => {
     const s = getComputedStyle(document.documentElement);
@@ -12,16 +14,20 @@ test("TC-012h: los tokens CSS coinciden con el sistema de diseño César Augusto
       success: s.getPropertyValue("--success").trim(),
       warning: s.getPropertyValue("--warning").trim(),
       error: s.getPropertyValue("--error").trim(),
-      font: s.getPropertyValue("--font-mono").trim(),
+      font: s.getPropertyValue("--font-sans").trim(),
+      transfer: s.getPropertyValue("--type-transfer").trim(),
     };
   });
-  expect(tokens.bg).toBe("#080c12");
-  expect(tokens.primary).toBe("#4a7fa5");
-  expect(tokens.success).toBe("#10b981");
-  expect(tokens.warning).toBe("#f59e0b");
-  expect(tokens.error).toBe("#ef4444");
-  // FR-109 (feature grid-ux) reemplazó la familia tipográfica Fira Code por Lexend; la paleta se conserva.
-  expect(tokens.font).toContain("Lexend");
+  // Lightning CSS minifica #ffffff → #fff; normalizamos el shorthand antes de comparar.
+  const expand = (h: string) => (h.length === 4 ? "#" + [...h.slice(1)].map((c) => c + c).join("") : h);
+  // ux-consistency FR-301/FR-311: lienzo off-white + acentos desaturados (mismo hue, sin vibración).
+  expect(expand(tokens.bg)).toBe("#f7f7f8"); // lienzo (antes #ffffff) para profundidad
+  expect(tokens.primary).toBe("#1c1c1f");
+  expect(tokens.success).toBe("#2f7d53");
+  expect(tokens.warning).toBe("#b45309");
+  expect(tokens.error).toBe("#c4453e");
+  expect(tokens.transfer).toBe("#2f6db4"); // Transferencia: azul acero (FR-204)
+  expect(tokens.font).toContain("Inter"); // FR-213: Inter reemplaza Lexend
 });
 
 test("TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla", async ({ page }) => {
@@ -39,10 +45,14 @@ test("TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla", asyn
 test("TC-001h: registrar un movimiento lo suma y lo muestra en recientes", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/");
-  // El formulario pre-selecciona la primera categoría (effectiveCat = catId || categories[0]),
-  // así que basta con el monto para habilitar Guardar (canSave: amount>0 && catId).
-  await page.getByLabel("Monto").fill("50000");
-  await page.getByRole("button", { name: "Guardar movimiento" }).click();
+  // Registro rediseñado (feature stack-upgrade-theme): monto + elegir la hoja disponible + Guardar.
+  await page.getByLabel("Monto en pesos").fill("50000");
+  await page.getByTestId("category-row").getByRole("button").first().click();
+  const subRow = page.getByTestId("subcategory-row");
+  if (await subRow.waitFor({ state: "visible", timeout: 800 }).then(() => true).catch(() => false)) {
+    await subRow.getByRole("button").first().click();
+  }
+  await page.getByTestId("save-button").click();
   await expect(page.getByTestId("recent-item").first()).toBeVisible();
 });
 

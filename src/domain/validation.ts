@@ -56,6 +56,10 @@ export const persistedBudgetSchema = z.object({
       amount: z.number(),
       month: MONTH_KEY,
       createdAt: z.number(),
+      // Delta aditivo (feature stack-upgrade-theme): opcionales para que sobrevivan a la recarga
+      // y para no invalidar movimientos previos que no los tienen.
+      date: z.string().optional(),
+      note: z.string().nullable().optional(),
     })
   ),
 });

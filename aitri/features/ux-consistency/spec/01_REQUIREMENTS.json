@@ -1,0 +1,569 @@
+{
+  "project_name": "Ledger (T-Ledger) — Feature: ux-consistency",
+  "project_summary": "Refinamiento de diseño PROFESIONAL de toda la app (pulido, NO rediseño ni reconstrucción). Conserva la identidad (neutro zinc + acento semántico por tipo, Inter + DM Mono) y la estructura/flujos existentes; eleva el ACABADO a partir de la auditoría (feature_context/UX_AUDIT.md) y una dirección de diseño aprobada por el usuario (mockup visual). Ejes: (1) sistema de SUPERFICIE/ELEVACIÓN por capas con sombra suave — evoluciona 'bordes sobre rellenos' a hairline + elevación — para dar PROFUNDIDAD en claro (lienzo gris + cards que flotan, se acaba lo 'ultra-plano') y en oscuro (superficies progresivamente más claras + highlight superior); (2) neutros/tokens afinados para profundidad y AA (misma identidad, sin marca nueva) + corregir 2 bugs reales de tema (tooltip blanco hardcodeado, sombra negra fija del Select); (3) escala de RADIOS fina y consistente (6/8/10/14/full — nada cuadrado, nada ordinario); (4) ESCALA TIPOGRÁFICA con roles aplicada uniforme + eyebrow único; (5) CABECERA con intención (se retira el doble 'LEDGER'+título; jerarquía clara + año como control discreto); (6) TODA cifra en DM Mono (.tabular); (7) el registro coherente con el lenguaje del resto (superficies/bordes/radios) y consolidación de componentes duplicados (Kpi/Card, un solo selector de tipo); (8) selector de ICONOS rico (Lucide) para categorías y overlays con primitivas shadcn/Radix. Además 2 fixes FUNCIONALES: arrancar en el MES EN CURSO (no siempre enero) y el SCROLL con rueda del mouse (vertical y horizontal). North Star / gate = PARIDAD + acabado: la app se ve deliberada, con profundidad y consistencia en claro y oscuro, CERO regresión funcional (registro, grilla, dashboard, reparent, persistencia, roll-ups, responsive), AA preservado o mejorado, y la suite completa existente sigue verde. JTBD: que la app se sienta profesional y pulida (nivel portafolio) sin cambiar lo que hace. Guardrail: ninguna interacción existente cambia de comportamiento (salvo los 2 fixes funcionales pedidos) y no aparece ninguna petición externa en runtime.",
+  "functional_requirements": [
+    {
+      "id": "FR-301",
+      "title": "Sistema de superficie/elevación con profundidad (claro y oscuro)",
+      "description": "Se introduce una jerarquía de superficies por elevación: lienzo (canvas) → superficie/card → elevado (popover/panel) → hundido (encabezado de grilla/insets), con hairline (border) + sombra suave. Evoluciona 'bordes sobre rellenos' a bordes + elevación. En CLARO el lienzo es un gris suave y las cards son claras que flotan por encima (se elimina lo ultra-plano). En OSCURO cada nivel es progresivamente más claro, con un highlight superior sutil. Se corrigen además los 2 bugs de tema: el cursor del tooltip del dashboard usa un token theme-aware (no rgba(255,255,255) fijo) y la sombra del Select usa var(--shadow-lg) (no un rgba negro fijo).",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "En claro, el lienzo y las cards tienen distinto tono (card más clara que el lienzo) + sombra suave, de modo que la card se percibe elevada, no plana (happy)",
+        "En oscuro, superficie > lienzo en luminosidad y hay un highlight superior sutil; los cuatro niveles (canvas/surface/elevado/hundido) son distinguibles (edge)",
+        "El tooltip del dashboard es visible en claro (token, no blanco fijo) y la sombra del Select resuelve a var(--shadow-lg) — no queda ningún rgba(255,255,255,…) ni rgba(0,0,0,0.5) hardcodeado en esas superficies (negativo)"
+      ]
+    },
+    {
+      "id": "FR-302",
+      "title": "Escala de radios fina y consistente (tokens)",
+      "description": "Una sola escala de radios por token (xs 6 / sm 8 / md 10 / lg 14 / full 9999) aplicada en toda la app. Se elimina la mezcla de esquinas cuadradas y redondeadas y los literales rounded-xl/2xl/full ad-hoc; todo usa la escala. Radios 'finos' (moderados), ni cuadrados ni exagerados.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Cards, campos, botones, chips y overlays usan un radio de la escala de tokens (no un literal arbitrario) (happy)",
+        "--radius-xs/sm/md/lg/full quedan definidos y expuestos como utilidades de tema (edge)",
+        "No queda ninguna esquina cuadrada (radio 0) en superficies/controles ni literales rounded-2xl sueltos fuera de la escala (negativo)"
+      ]
+    },
+    {
+      "id": "FR-303",
+      "title": "Escala tipográfica con roles, aplicada uniforme",
+      "description": "Se define e implementa UNA escala de texto con roles: display (~1.75rem/600), title (1.25/600), title-sm (1.0625/600), body (0.875/400-500), label (0.8125/500), caption (0.75/400), eyebrow (0.6875/600 uppercase tracking muted). Reemplaza los ~17 tamaños ad-hoc (text-[…rem] sueltos) y el peso no estándar font-[450]. Line-height ~1.5 en texto.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Títulos, labels, captions y valores resuelven a los tamaños/pesos de la escala en toda la app (happy)",
+        "Los títulos usan un peso estándar (no font-[450]) (edge)",
+        "No queda ningún text-[…rem] arbitrario fuera de la escala en los shells/KPIs/grilla/registro auditados (negativo)"
+      ]
+    },
+    {
+      "id": "FR-304",
+      "title": "Cabecera con intención (marca / título / año)",
+      "description": "Se rediseña la cabecera para que tenga jerarquía y propósito: se retira el doble 'LEDGER' (eyebrow) + título grande apilado ('Presupuesto 2026') que se percibía como relleno. La marca vive discreta en la barra superior; cada pantalla tiene UN título claro; el año/periodo se expone como control discreto (pill/segmento), no como parte del título. Sin cambiar la navegación ni las vistas.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El escritorio muestra una marca discreta + un único título de pantalla con jerarquía clara (no dos marcas apiladas) (happy)",
+        "El año/periodo se presenta como control discreto (pill/segmento), no embebido en un título grande (edge)",
+        "No queda el patrón anterior de eyebrow 'LEDGER' + título grande redundante en móvil ni escritorio (negativo)"
+      ]
+    },
+    {
+      "id": "FR-305",
+      "title": "Toda cifra monetaria en DM Mono (.tabular)",
+      "description": "Cada valor monetario usa DM Mono con tabular-nums (clase .tabular): KPIs del dashboard y del escritorio, celdas de la grilla, montos de la lista de recientes y del registro. Se elimina el tabular-nums pelado (Inter) o Inter plano para cifras.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Un KPI del dashboard y uno del escritorio se renderizan en DM Mono con tabular-nums (happy)",
+        "Una celda de la grilla y un monto de recientes usan DM Mono tabular (edge)",
+        "Ninguna cifra monetaria queda en Inter pleno ni con solo tabular-nums sin DM Mono (negativo)"
+      ]
+    },
+    {
+      "id": "FR-306",
+      "title": "Eyebrow unificado en una sola clase",
+      "description": "La etiqueta mayúscula pequeña (eyebrow) se unifica en una clase .eyebrow (0.6875rem, tracking ~0.09em, semibold, uppercase, text-muted) usada en todas las superficies que hoy la implementan de ~5 formas distintas (LEDGER, RECIENTES, labels de KPI, CATEGORÍA, etc.).",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Los eyebrows de móvil, escritorio, recientes y labels de KPI resuelven al mismo font-size (0.6875rem), tracking (~0.09em), peso (600) y color (text-muted) vía la clase .eyebrow (happy)",
+        "El eyebrow 'CATEGORÍA' de la grilla usa la misma clase con contraste ≥4.5:1 sobre su fondo (edge)",
+        "No queda ningún eyebrow con font-size/tracking/peso/color ad-hoc distinto de la clase (negativo)"
+      ]
+    },
+    {
+      "id": "FR-307",
+      "title": "Registro coherente con el lenguaje visual del resto de la app",
+      "description": "Los campos y superficies del registro (TypeToggle, DateTimeField, NoteField, tiles de CategoryRow, botón Guardar) adoptan el mismo lenguaje que el chrome del resto: superficies/bordes por token y la escala de radios, con la elevación del sistema (FR-301). El registro deja de leer como un lenguaje distinto junto a la grilla/dashboard. Se conserva el tinte de selección del tipo activo y el comportamiento.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Los campos del registro usan superficie/borde/radio por token, coherentes con la grilla/dashboard en ambos temas (happy)",
+        "El tile de categoría seleccionado conserva su tinte y borde del color del tipo (edge)",
+        "Ningún campo del registro queda con un tratamiento (radio/relleno/borde) que contradiga el chrome del resto (negativo)"
+      ]
+    },
+    {
+      "id": "FR-308",
+      "title": "Consolidar componentes duplicados (Kpi/Card y selector de tipo)",
+      "description": "Se extrae un único componente Kpi (y Card si aplica) reutilizado por dashboard y escritorio (hoy duplicados y divergentes en padding/cifra). Se resuelve la duplicación del selector de tipo: hay un ToggleGroupItem hecho para eso pero TypeToggle lo reimplementa distinto; se adopta un único patrón de estado activo y se retira el otro. Sin cambiar el comportamiento.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dashboard y escritorio renderizan KPIs con el MISMO componente (mismo padding y misma regla de cifra) (happy)",
+        "Existe un único patrón de selector de tipo; el componente no usado se retira o se adopta (edge)",
+        "El comportamiento de selección de tipo y de los KPIs no cambia (negativo — sin regresión)"
+      ]
+    },
+    {
+      "id": "FR-309",
+      "title": "Selector de iconos rico (Lucide) para categorías/subcategorías",
+      "description": "Al crear/editar una categoría o subcategoría, el usuario elige su icono de un catálogo AMPLIO de Lucide (buscable/paginado), en vez del set fijo de ~13 actual. El icono persiste y se muestra en jerarquía, grilla y registro. Fallback consistente para nodos sin icono.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El selector ofrece un catálogo notablemente mayor (≥40 iconos Lucide) y permite elegir uno (happy)",
+        "El icono elegido persiste tras recargar y se refleja en jerarquía/grilla/registro (edge)",
+        "Una categoría sin icono usa un fallback consistente sin romper el render (negativo)"
+      ]
+    },
+    {
+      "id": "FR-310",
+      "title": "Overlays con primitivas shadcn/ui (Radix) consistentes",
+      "description": "Los overlays ad-hoc se reemplazan por primitivas shadcn/ui (Radix): el popover del calendario y el selector de iconos usan Popover/Dialog; el tooltip del dashboard usa el patrón Tooltip; menús/acciones usan Dropdown donde aplique. Foco correcto, cierre por Escape/click-fuera, accesible.",
+      "priority": "SHOULD",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El popover del calendario y el selector de iconos usan una primitiva shadcn/ui con manejo de foco y cierre por Escape/click-fuera (happy)",
+        "El overlay abre/cierra por teclado (Escape) y click fuera (edge)",
+        "Ningún overlay adoptado introduce petición externa ni rompe el foco/scroll de la página (negativo)"
+      ]
+    },
+    {
+      "id": "FR-311",
+      "title": "Contraste AA del texto sobre relleno de tipo (toggle activo)",
+      "description": "El texto sobre el relleno del tipo Ingreso (verde) en el segmento activo alcanza ≥4.5:1 (hoy ~3.4:1), subiendo peso/tamaño del label o ajustando el tono del relleno para ese rol, sin cambiar la identidad cromática del tipo. Se revisa lo mismo para cualquier texto sobre relleno de acento.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "El label del segmento activo de Ingreso sobre su relleno alcanza ≥4.5:1 en ambos temas (happy)",
+        "Gasto y Transferencia activos siguen ≥4.5:1 (edge)",
+        "Ningún texto sobre relleno de acento queda por debajo de 4.5:1 (negativo/AA)"
+      ]
+    },
+    {
+      "id": "FR-312",
+      "title": "Arrancar en el mes en curso (no siempre enero)",
+      "description": "El periodo por defecto al abrir la app pasa a ser el MES EN CURSO (según el reloj) en lugar de arrancar siempre en enero/año fijo. El usuario puede cambiar el filtro Mes/Año libremente como hoy. Se conserva el comportamiento de los KPIs y roll-ups para el periodo elegido.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al abrir la app en julio, el filtro de periodo arranca en julio (mes en curso), no en enero (happy)",
+        "El usuario puede cambiar a otro mes o a Año y los indicadores recalculan sobre el periodo elegido (edge)",
+        "No se fuerza enero ni un mes fijo independientemente de la fecha actual (negativo)"
+      ]
+    },
+    {
+      "id": "FR-313",
+      "title": "Scroll con rueda del mouse (vertical y horizontal)",
+      "description": "Las áreas desplazables responden a la rueda del mouse: el scroll vertical de las vistas y el scroll HORIZONTAL (fila de categorías del registro, columnas de meses de la grilla) funcionan con la rueda/trackpad. Se corrige el caso en que la rueda no desplaza; los contenedores overflow tienen la configuración correcta (overflow + overscroll-behavior) y, donde aplique, se mapea el desplazamiento vertical de la rueda a horizontal en filas horizontales.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, un evento de rueda (deltaY>0) sobre la grilla incrementa su scrollTop en >0px (desplazamiento vertical de filas) (happy)",
+        "A 1440px, la rueda sobre la fila de categorías/columnas de meses que desbordan incrementa su scrollLeft en >0px (desplazamiento horizontal) (edge)",
+        "Ningún contenedor desplazable queda 'muerto' a la rueda: el scrollTop/scrollLeft del contenedor cambia (>0px), no solo el de la página (negativo)"
+      ]
+    },
+    {
+      "id": "FR-314",
+      "title": "Nitpicks de tokens y clases",
+      "description": "Se corrigen: la variante Tailwind malformada del Select (data-[highlighted:bg-elevated]); pesos no estándar font-[450] → peso real; y se agregan/exponen los tokens faltantes (--radius-full en @theme, --primary-foreground/--on-accent para texto sobre relleno) usados por el sistema.",
+      "priority": "SHOULD",
+      "type": "visual",
+      "acceptance_criteria": [
+        "El Select ya no contiene la clase malformada; el highlight funciona con la variante correcta (happy)",
+        "No queda ningún font-[450] (edge)",
+        "--radius-full y --primary-foreground existen como tokens y el texto sobre relleno los usa (negativo — sin literales white sueltos donde aplique el token)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-301",
+      "category": "Regression",
+      "requirement": "Cero regresión funcional: registro (guardar → Ejecutado + roll-ups), grilla de 12 meses + edición inline, borrado/'Sin asignar', reparent drag-drop, dashboard + filtro Mes/Año, persistencia y responsive siguen idénticos (salvo los 2 cambios funcionales pedidos: mes en curso FR-312 y scroll con rueda FR-313).",
+      "acceptance_criteria": "La suite de regresión existente (root + features previas) sigue pasando; ninguna interacción cambia de comportamiento excepto FR-312/FR-313 en ambos temas"
+    },
+    {
+      "id": "NFR-302",
+      "category": "Regression",
+      "requirement": "Se conserva la IDENTIDAD del producto: neutro zinc + acento semántico por tipo (Gasto rojo/Ingreso verde/Transferencia azul), Inter + DM Mono, tema claro/oscuro/sistema. Los valores de token pueden AFINARSE para profundidad/AA, pero no se introduce una marca/hue nuevo ni se cambia el default de tema (Sistema).",
+      "acceptance_criteria": "Los acentos por tipo siguen siendo rojo/verde/azul reconocibles; el default de tema sigue Sistema; no aparece un color de marca ajeno a la identidad"
+    },
+    {
+      "id": "NFR-303",
+      "category": "Regression",
+      "requirement": "Accesibilidad AA preservada o mejorada: contraste de texto ≥4.5:1 en ambos temas (incl. texto sobre relleno de acento); foco visible; objetivos táctiles ≥48px en controles interactivos.",
+      "acceptance_criteria": "text-primary/secondary y textos sobre relleno alcanzan ≥4.5:1 en claro y oscuro; :focus-visible se conserva; controles del registro ≥48px"
+    },
+    {
+      "id": "NFR-304",
+      "category": "Regression",
+      "requirement": "Sin peticiones HTTP externas en runtime; fuentes self-hosted; iconos Lucide y primitivas shadcn/Radix son client-side y no hacen red.",
+      "acceptance_criteria": "0 peticiones externas al cargar, cambiar de tema, abrir overlays (calendario/selector de iconos) o guardar"
+    },
+    {
+      "id": "NFR-305",
+      "category": "Regression",
+      "requirement": "La suite completa existente (unit + integration + e2e del root y features previas) sigue en verde tras el refinamiento; typecheck y lint sin errores.",
+      "acceptance_criteria": "npm run test:run y la suite Playwright completa pasan; typecheck y lint OK"
+    },
+    {
+      "id": "NFR-306",
+      "category": "CI/CD",
+      "requirement": "La suite completa (vitest + e2e) corre en cada push a main.",
+      "acceptance_criteria": "ci.yml ejecuta la suite en push/PR a main; el contenedor responde 200 en '/' (smoke)"
+    }
+  ],
+  "no_go_zone": [
+    "Rediseñar o reconstruir la app desde cero — es PULIDO/refinamiento del acabado, no remodelación; la estructura, vistas y flujos se conservan",
+    "Cambiar funcionalidad o el modelo de datos (salvo los 2 fixes funcionales pedidos: mes en curso y scroll con rueda)",
+    "Introducir una identidad/marca/hue nuevo — se conserva zinc + acentos por tipo; los tokens solo se AFINAN para profundidad/AA",
+    "Reordenar indicadores del dashboard o columnas de la grilla, o cambiar la composición/layout de las pantallas",
+    "Cambios en el pipeline de despliegue (Docker/Next) o export estático; auth/login; navegación multi-ruta"
+  ],
+  "constraints": [
+    "Refinamiento sobre el stack existente: Next.js 15, React 19, Tailwind v4 (@theme inline), Zustand, TS; + Lucide (catálogo amplio para iconos) y shadcn/ui (Radix) para overlays",
+    "Identidad conservada: zinc + acento por tipo, Inter (--font-sans) + DM Mono (--font-mono, .tabular en cifras); default de tema = Sistema",
+    "Sistema de elevación: capas (canvas/surface/elevado/hundido) + hairline + sombra suave, theme-aware (más profundidad que el estado plano actual)",
+    "Escalas por token: radios (6/8/10/14/full) y tipografía (display/title/title-sm/body/label/caption/eyebrow); espaciado en escala 4px",
+    "Sin peticiones externas en runtime; app corre en localhost:3100 (NO 3000)",
+    "Dirección de diseño aprobada por el usuario vía mockup visual (profundidad por capas, radios finos, tipografía con intención, cabecera deliberada)"
+  ],
+  "technology_preferences": [
+    "Tailwind CSS v4 + CSS custom properties (tokens de elevación/sombra, .eyebrow, .tabular, escalas)",
+    "lucide-react (catálogo amplio para el selector de iconos)",
+    "shadcn/ui + Radix (Popover/Dialog/Tooltip/Dropdown) para overlays consistentes",
+    "class-variance-authority para variantes de componentes compartidos (Kpi/Card)"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales",
+      "tech_level": "mid",
+      "goal": "Usar una app que se sienta profesional y pulida (con profundidad, no plana) en móvil y escritorio, y que arranque en el mes en curso",
+      "pain_point": "Hoy la app se ve plana/inconsistente (esquinas mixtas, tokens raros, títulos sin intención) y arranca en enero aunque sea julio; el scroll con rueda a veces no funciona"
+    },
+    {
+      "role": "Revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Ver un sistema de diseño coherente, con profundidad, escalas por token y componentes reutilizados — señal de criterio de diseño e ingeniería",
+      "pain_point": "El 'reguero' de valores ad-hoc, la falta de profundidad y los componentes duplicados restan nivel profesional"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-301",
+      "requirement_id": "FR-301",
+      "as_a": "usuario",
+      "i_want": "que la app tenga profundidad (no plana) en claro y oscuro",
+      "so_that": "se siente pulida y jerarquizada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-301",
+          "given": "el escritorio en tema claro",
+          "when": "observo una card sobre el lienzo",
+          "then": "la card es más clara que el lienzo y tiene sombra suave (se percibe elevada)"
+        }
+      ]
+    },
+    {
+      "id": "US-302",
+      "requirement_id": "FR-302",
+      "as_a": "usuario",
+      "i_want": "esquinas redondeadas finas y consistentes",
+      "so_that": "nada se ve cuadrado u ordinario",
+      "acceptance_criteria": [
+        {
+          "id": "AC-302",
+          "given": "cards, campos y chips",
+          "when": "los observo",
+          "then": "todos usan un radio de la escala de tokens, sin esquinas cuadradas"
+        }
+      ]
+    },
+    {
+      "id": "US-303",
+      "requirement_id": "FR-303",
+      "as_a": "revisor técnico",
+      "i_want": "una escala tipográfica con roles",
+      "so_that": "la jerarquía de texto es coherente",
+      "acceptance_criteria": [
+        {
+          "id": "AC-303",
+          "given": "cualquier pantalla",
+          "when": "inspecciono tamaños/pesos",
+          "then": "resuelven a la escala definida, sin text-[…rem] ni font-[450] ad-hoc"
+        }
+      ]
+    },
+    {
+      "id": "US-304",
+      "requirement_id": "FR-304",
+      "as_a": "usuario",
+      "i_want": "una cabecera con intención",
+      "so_that": "no veo marcas/títulos redundantes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-304",
+          "given": "el escritorio",
+          "when": "veo la cabecera",
+          "then": "hay una marca discreta + un único título y el año como control discreto, sin el doble LEDGER+título"
+        }
+      ]
+    },
+    {
+      "id": "US-305",
+      "requirement_id": "FR-305",
+      "as_a": "usuario que lee cifras",
+      "i_want": "todas las cifras en la misma fuente mono",
+      "so_that": "se alinean y se leen consistentes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-305",
+          "given": "un KPI del dashboard y una celda de la grilla",
+          "when": "los observo",
+          "then": "ambos usan DM Mono con tabular-nums"
+        }
+      ]
+    },
+    {
+      "id": "US-306",
+      "requirement_id": "FR-306",
+      "as_a": "revisor técnico",
+      "i_want": "un solo estilo de eyebrow",
+      "so_that": "las etiquetas de sección se ven uniformes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-306",
+          "given": "los eyebrows de móvil, escritorio y recientes",
+          "when": "los comparo",
+          "then": "usan la misma clase .eyebrow"
+        }
+      ]
+    },
+    {
+      "id": "US-307",
+      "requirement_id": "FR-307",
+      "as_a": "usuario",
+      "i_want": "que el registro se vea del mismo lenguaje que el resto",
+      "so_that": "la app se siente una sola pieza",
+      "acceptance_criteria": [
+        {
+          "id": "AC-307",
+          "given": "los campos del registro junto a la grilla/dashboard",
+          "when": "los observo",
+          "then": "usan superficie/borde/radio por token coherentes con el chrome"
+        }
+      ]
+    },
+    {
+      "id": "US-308",
+      "requirement_id": "FR-308",
+      "as_a": "desarrollador",
+      "i_want": "un Kpi y un selector de tipo únicos",
+      "so_that": "no hay duplicación divergente",
+      "acceptance_criteria": [
+        {
+          "id": "AC-308",
+          "given": "dashboard y escritorio",
+          "when": "renderizan KPIs",
+          "then": "usan el mismo componente Kpi sin divergencia"
+        }
+      ]
+    },
+    {
+      "id": "US-309",
+      "requirement_id": "FR-309",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "elegir el icono de una categoría de un catálogo amplio",
+      "so_that": "personalizo más allá de ~13 iconos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-309",
+          "given": "la edición de una categoría",
+          "when": "abro el selector de icono",
+          "then": "hay ≥40 iconos Lucide y el elegido persiste"
+        }
+      ]
+    },
+    {
+      "id": "US-310",
+      "requirement_id": "FR-310",
+      "as_a": "usuario",
+      "i_want": "overlays accesibles y consistentes",
+      "so_that": "los popovers/diálogos se comportan igual",
+      "acceptance_criteria": [
+        {
+          "id": "AC-310",
+          "given": "el popover del calendario o el selector de iconos",
+          "when": "presiono Escape o click fuera",
+          "then": "el overlay cierra sin romper el foco"
+        }
+      ]
+    },
+    {
+      "id": "US-311",
+      "requirement_id": "FR-311",
+      "as_a": "usuario con baja visión",
+      "i_want": "texto legible sobre los rellenos de color",
+      "so_that": "leo el tipo activo sin esfuerzo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-311",
+          "given": "el segmento activo de Ingreso",
+          "when": "mido el contraste del label sobre el relleno",
+          "then": "es ≥4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "US-312",
+      "requirement_id": "FR-312",
+      "as_a": "usuario",
+      "i_want": "que la app abra en el mes en curso",
+      "so_that": "veo mi periodo actual sin cambiar el filtro",
+      "acceptance_criteria": [
+        {
+          "id": "AC-312",
+          "given": "que hoy es julio",
+          "when": "abro la app",
+          "then": "el filtro de periodo arranca en julio, no en enero"
+        }
+      ]
+    },
+    {
+      "id": "US-313",
+      "requirement_id": "FR-313",
+      "as_a": "usuario de escritorio",
+      "i_want": "desplazar con la rueda del mouse",
+      "so_that": "navego la grilla y las filas sin fricción",
+      "acceptance_criteria": [
+        {
+          "id": "AC-313",
+          "given": "la grilla con más meses que el ancho visible",
+          "when": "uso la rueda del mouse",
+          "then": "desplaza las columnas de meses (horizontal) y las filas (vertical)"
+        }
+      ]
+    },
+    {
+      "id": "US-314",
+      "requirement_id": "FR-314",
+      "as_a": "desarrollador",
+      "i_want": "sin clases muertas ni pesos no estándar y con tokens completos",
+      "so_that": "el CSS es limpio y predecible",
+      "acceptance_criteria": [
+        {
+          "id": "AC-314",
+          "given": "el Select y los títulos",
+          "when": "reviso clases/tokens",
+          "then": "no hay data-[highlighted:...] malformada, ni font-[450], y existen --radius-full/--primary-foreground"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Usuario en chat: bordes cuadrados vs redondeados, tokens 'raros', claro ultra-plano, oscuro sin profundidad, títulos sin intención, fuentes, scroll de rueda, mes en curso; auditoría en feature_context/UX_AUDIT.md (contexto designado)",
+    "users": "Personas del proyecto padre (dueño de finanzas + revisor de portafolio); confirmado",
+    "baseline": "App tras stack-upgrade-theme (5/5, verificada); código actual leído; auditoría de consistencia",
+    "success_metric": "Usuario aprobó la DIRECCIÓN de diseño vía mockup visual (profundidad por capas, radios finos, tipografía con intención, cabecera deliberada); alcance = pulido/refinamiento, no rediseño, con paridad funcional",
+    "no_go_zone": "Usuario explícito: 'no es una reconstrucción de cero ni remodelación total; no está terminado/pulido/consistente'. Conservar identidad, estructura y funcionalidad; solo 2 cambios funcionales pedidos (mes en curso, scroll rueda)"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Profundidad/elevación por capas (claro plano + oscuro sin profundidad) + bugs de tema",
+      "disposition": "FR-301"
+    },
+    {
+      "need": "Bordes cuadrados vs redondeados → radios finos consistentes",
+      "disposition": "FR-302"
+    },
+    {
+      "need": "Tamaños de fuente sin escala → escala tipográfica con roles",
+      "disposition": "FR-303"
+    },
+    {
+      "need": "Títulos (Ledger/Presupuesto 2026) sin intención → cabecera deliberada",
+      "disposition": "FR-304"
+    },
+    {
+      "need": "Cifras en fuentes distintas → DM Mono en toda cifra",
+      "disposition": "FR-305"
+    },
+    {
+      "need": "Eyebrow implementado de ~5 formas → una clase",
+      "disposition": "FR-306"
+    },
+    {
+      "need": "Registro con lenguaje distinto al resto → coherencia",
+      "disposition": "FR-307"
+    },
+    {
+      "need": "Kpi/selector de tipo duplicados/divergentes → consolidar",
+      "disposition": "FR-308"
+    },
+    {
+      "need": "Selector de iconos rico (Lucide)",
+      "disposition": "FR-309"
+    },
+    {
+      "need": "Overlays ad-hoc → primitivas shadcn/ui",
+      "disposition": "FR-310"
+    },
+    {
+      "need": "Contraste AA texto sobre relleno de tipo (verde)",
+      "disposition": "FR-311"
+    },
+    {
+      "need": "Arrancar en el mes en curso (no enero)",
+      "disposition": "FR-312"
+    },
+    {
+      "need": "Scroll con rueda del mouse (vertical/horizontal)",
+      "disposition": "FR-313"
+    },
+    {
+      "need": "Nitpicks (dead class, font-[450], tokens faltantes)",
+      "disposition": "FR-314"
+    },
+    {
+      "need": "No romper funcionalidad existente",
+      "disposition": "NFR-301"
+    },
+    {
+      "need": "Conservar identidad (zinc + acentos, tema)",
+      "disposition": "NFR-302"
+    },
+    {
+      "need": "AA preservado o mejorado; táctil ≥48px",
+      "disposition": "NFR-303"
+    },
+    {
+      "need": "Sin peticiones externas; self-hosted",
+      "disposition": "NFR-304"
+    },
+    {
+      "need": "Suite completa existente sigue verde",
+      "disposition": "NFR-305"
+    },
+    {
+      "need": "CI corre la suite en cada push",
+      "disposition": "NFR-306"
+    },
+    {
+      "need": "Rediseñar/reconstruir desde cero",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar funcionalidad/modelo de datos (más allá de los 2 fixes)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Nueva identidad/marca/hue; reordenar dashboard/grilla; despliegue/auth/rutas",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nRefactor de **consistencia de UX/UI y sistema de diseño** en TODA la app T-Ledger, a partir de la\nauditoría independiente (`feature_context/UX_AUDIT.md`, contexto designado/autoritativo). Unifica cómo\nlos componentes consumen el sistema de tokens zinc — sin cambiar funcionalidad.\n\n## Problem / Why\nTras la migración a zinc + acento dinámico (feature stack-upgrade-theme) los tokens están bien\ndefinidos pero los componentes los ignoran: **17 tamaños de fuente ad-hoc sin escala**, el \"eyebrow\"\nimplementado de ~5 formas, **las cifras usan 3 fuentes distintas** (el spec manda DM Mono para montos),\nel registro contradice el principio \"bordes sobre rellenos\" del resto de la app, componentes\nduplicados/divergentes (Kpi, selector de tipo), dos convenciones de radios, espaciados fuera de la\nescala 4px, y **2 bugs reales de tema** (tooltip blanco hardcodeado y sombra negra fija que se ven mal\nen claro). Resultado: un \"reguero\" visual inconsistente entre móvil/escritorio y entre el registro y la\ngrilla/dashboard. El usuario (dueño/revisor de portafolio) percibe la app como poco pulida.\n\n## Target Users\nLos mismos del proyecto: el dueño de sus finanzas (usa la app a diario) y el revisor técnico del\nportafolio (evalúa un sistema de diseño profesional y coherente). No desbloquea usuarios nuevos.\n\n## New Behavior\n- The system must estandarizar UNA escala de diseño: 6 tamaños de texto, una clase `.eyebrow`,\n  `.tabular` (DM Mono) en TODA cifra, radios por token (`--radius-*`, exponer `--radius-full`),\n  espaciado en la escala 4px — aplicada en toda la app.\n- The system must corregir los 2 bugs de tema: el cursor del tooltip del dashboard usa un token\n  theme-aware (no `rgba(255,255,255,…)`); la sombra del Select usa `var(--shadow-lg)` (no un rgba negro fijo).\n- The system must unificar el \"eyebrow\" (etiqueta mayúscula) en una sola clase/estilo en todas las superficies.\n- The system must renderizar TODA cifra monetaria en DM Mono (`.tabular`): KPIs, celdas de grilla,\n  lista de recientes y registro.\n- The system must alinear los campos del registro con el lenguaje visual del resto de la app\n  (\"bordes sobre rellenos\") o exponer una variante de superficie documentada y consistente.\n- The system must consolidar los componentes duplicados/divergentes: un `Kpi`/`Card` compartido y un\n  único patrón de selector de tipo (adoptar o retirar `ToggleGroupItem`).\n- The system must ofrecer un selector de iconos rico (catálogo Lucide amplio) para categorías y\n  subcategorías, en vez del set fijo de ~13 iconos actual.\n- The system must adoptar componentes shadcn/ui (dialog, popover, dropdown, tooltip…) de forma\n  consistente donde hoy hay implementaciones ad-hoc.\n- The system must resolver el contraste blanco-sobre-relleno del tipo Ingreso (≥AA) en el toggle activo.\n\n## Success Criteria\n- Given cualquier superficie (móvil/escritorio, claro/oscuro), when se inspecciona, then usa la escala\n  de tipos única, el `.eyebrow` único, cifras en DM Mono, radios y espaciado por token — sin valores ad-hoc.\n- Given el dashboard en tema claro, when se muestra el tooltip, then su cursor es visible (token, no blanco fijo).\n- Given el Select en tema claro, when se abre, then su sombra usa `var(--shadow-lg)` (no la variante oscura fija).\n- Given la creación/edición de una categoría, when se elige su icono, then hay un catálogo amplio de iconos (Lucide).\n- Given el flujo end-to-end (registrar → categorías → presupuesto → dashboard) en ambos temas, when se\n  recorre, then no hay regresión funcional ni de layout y el contraste es ≥AA.\n\n## Touch Points\nMODIFICA (estilo/consumo de tokens, sin cambiar lógica): `src/app/globals.css` (escala, `.eyebrow`,\n`--radius-full`, `--primary-foreground`), `src/components/DesktopShell.tsx`, `MobileShell.tsx`,\n`BudgetGrid.tsx`, `Dashboard.tsx`, `RecentList.tsx`, `NodeIcon.tsx`, `format.ts`,\n`src/components/ui/*` (button, select, tabs, toggle-group), `src/components/register/*`.\nAGREGA: componente selector de iconos; posibles componentes shadcn/ui nuevos (Kpi/Card/Dialog/Popover\ncompartidos). Supersede parcialmente el estilo de FR-012/FR-213 (unifica su aplicación; no re-decide la paleta).\n\n## Must Not Break (Regression Boundary)\n- Toda la funcionalidad existente sigue idéntica: registro (guardar → Ejecutado + roll-ups), grilla de\n  12 meses + edición inline, borrado/'Sin asignar', reparent drag-drop, dashboard + filtro Mes/Año,\n  persistencia localStorage, conmutación responsive móvil/escritorio.\n- El tema claro/oscuro/sistema y los tokens de color aprobados (paleta zinc, colores de tipo) se conservan.\n- Accesibilidad AA (≥4.5:1) preservada o mejorada en ambos temas; objetivos táctiles ≥48px.\n- Sin peticiones HTTP externas en runtime; fuentes self-hosted.\n- La suite completa existente (unit + integration + e2e del root y de las features previas) sigue en verde.\n\n## Out of Scope\n- Cambiar funcionalidad, el modelo de datos, o el flujo/layout de las pantallas (grilla de 12 meses,\n  dashboard, flujo de registro conservan su estructura — es consistencia de estilo + componentes).\n- Re-abrir las decisiones de paleta/color ya aprobadas (solo se unifica su aplicación).\n- Cambios en el pipeline de despliegue (Docker/Next) o migración a export estático.\n- Auth/login, multi-ruta/TabBar (siguen fuera, como en el resto del proyecto v1).\n"
+}

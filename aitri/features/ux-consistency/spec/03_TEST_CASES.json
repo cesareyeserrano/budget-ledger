@@ -1,0 +1,1414 @@
+{
+  "test_plan": {
+    "strategy": "Refinamiento del acabado sobre stack existente (Next.js 15 / React 19 / Tailwind v4 / Zustand). La verificación es mayoritariamente E2E (Playwright, @375px móvil y @1440px escritorio, ambos temas) porque las FRs son visuales/UX: se afirman valores computados reales (getComputedStyle de tokens/superficies/sombras/fuentes/radios/tracking), no presencia de nodos. La lógica (FR-308 Kpi, FR-312 mes en curso) se cubre con unit (vitest); la persistencia del icono (FR-309) con e2e que sobrevive recarga. Toda cifra se verifica en DM Mono. Cero regresión: se re-ejercitan flujos previos (grilla, registro, tema, dashboard). El contraste AA se calcula (ratio ≥4.5:1) y los objetivos táctiles se miden (≥48px). Los tests nuevos usan el prefijo TC-UXC-* para no colisionar con root/grid-ux/stack-upgrade-theme; los runners son los declarados: vitest (`npm run test:run`) y Playwright (`npm run test:e2e`).",
+    "coverage_goal": "Dominio+persistencia ≥80% líneas (gate vitest ya vigente, ~94% actual); toda FR MUST con happy+edge+negative y las FRs visuales verificadas por token/valor computado.",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-UXC-301h",
+      "requirement_id": "FR-301",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Claro — card más clara que el lienzo + sombra suave (elevación)",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900",
+        "colorScheme light"
+      ],
+      "given": "escritorio en tema claro, --canvas=#F2F3F5 (lienzo) y --surface=#FFFFFF (card)",
+      "when": "se leen getComputedStyle de un KPI (data-testid=kpi) y del lienzo (document.body)",
+      "then": "el background-color del kpi es MÁS CLARO (mayor luminancia relativa) que el del lienzo y ambos difieren; el box-shadow del kpi resuelve a --shadow-sm (no 'none')",
+      "steps": [
+        "goto '/' @1440 light",
+        "leer bg del body",
+        "leer bg y boxShadow del primer [data-testid=kpi]"
+      ],
+      "expected_result": "luminancia(bg kpi) > luminancia(bg canvas) y bg(kpi) ≠ bg(canvas); boxShadow del kpi ≠ 'none' (la card se percibe elevada, no plana). Se afirma la propiedad del AC, no un hex concreto, para sobrevivir a un re-afinado de paleta.",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-301e",
+      "requirement_id": "FR-301",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Oscuro — superficie más luminosa que el lienzo + 4 niveles distinguibles",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900",
+        "colorScheme dark"
+      ],
+      "given": "tema oscuro con --canvas=#0B0B0E, --surface=#161619, --surface-2=#1E1E22, --sunken=#0E0E11",
+      "when": "se leen los 4 tokens de superficie desde getComputedStyle(document.documentElement)",
+      "then": "luminancia(--surface) > luminancia(--canvas) y los 4 valores son distintos (#0b0b0e, #161619, #1e1e22, #0e0e11); --elev-highlight ≠ transparent",
+      "steps": [
+        "goto '/' @1440 dark",
+        "leer --canvas/--surface/--surface-2/--sunken/--elev-highlight"
+      ],
+      "expected_result": "los 4 tokens son 4 valores hex distintos, --surface más claro que --canvas, y --elev-highlight = 'inset 0 1px 0 rgba(255,255,255,0.04)'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-301f",
+      "requirement_id": "FR-301",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Negativo — sin blanco/negro hardcodeado en tooltip del dashboard ni sombra del Select",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900",
+        "colorScheme light"
+      ],
+      "given": "tema claro; el cursor del tooltip del dashboard y la sombra del Select antes usaban rgba(255,255,255,0.03) y rgba(0,0,0,0.5) fijos",
+      "when": "se abre el Dashboard, se hace hover en el chart para renderizar el cursor del tooltip, y se abre el Select de mes; se inspeccionan sus estilos computados",
+      "then": "el fill del cursor del tooltip NO es rgb(255,255,255)/rgba blanca fija (es color-mix con --fg, visible en claro); el box-shadow del contenido del Select resuelve a --shadow-lg del tema claro, no rgba(0,0,0,0.5)",
+      "steps": [
+        "goto '/' @1440 light",
+        "tab Dashboard",
+        "hover sobre una barra del chart",
+        "leer fill del cursor del tooltip",
+        "volver a Resumen, abrir Select de mes, leer boxShadow del content"
+      ],
+      "expected_result": "cursor-fill ≠ 'rgb(255, 255, 255)' y visible sobre fondo claro; Select boxShadow = valor de --shadow-lg claro (0 14px 36px -10px rgba(24,24,27,.16)), no rgba(0,0,0,0.5)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-302h",
+      "requirement_id": "FR-302",
+      "user_story_id": "US-302",
+      "ac_id": "AC-302",
+      "title": "Cards/campos/botones/chips usan un radio de la escala de tokens",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "escala --radius-xs=6 / sm=8 / md=10 / lg=14 / full=9999",
+      "when": "se leen border-radius computados de un kpi (card), del botón 'Nuevo movimiento', del trigger del Select y del pill de periodo",
+      "then": "cada border-radius ∈ {6px,8px,10px,14px,9999px}; ningún valor fuera de la escala",
+      "steps": [
+        "goto '/' @1440",
+        "medir borderRadius de [data-testid=kpi], botón 'Nuevo movimiento', SelectTrigger, [data-testid=period-pill]"
+      ],
+      "expected_result": "kpi=10px (md), botón=8px (sm), Select=8px (sm), period-pill=10px (md, mismo radio que las tabs Resumen/Dashboard) — todos valores de la escala, ninguno arbitrario",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-302e",
+      "requirement_id": "FR-302",
+      "user_story_id": "US-302",
+      "ac_id": "AC-302",
+      "title": "Tokens --radius-xs/sm/md/lg/full definidos y expuestos como utilidades",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "@theme inline debe exponer las 5 variables de radio",
+      "when": "se leen las 5 propiedades de getComputedStyle(document.documentElement)",
+      "then": "--radius-xs='6px', --radius-sm='8px', --radius-md='10px', --radius-lg='14px', --radius-full='9999px' (todas no vacías)",
+      "steps": [
+        "goto '/'",
+        "leer las 5 --radius-* del root"
+      ],
+      "expected_result": "las 5 variables devuelven exactamente 6px/8px/10px/14px/9999px",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-302f",
+      "requirement_id": "FR-302",
+      "user_story_id": "US-302",
+      "ac_id": "AC-302",
+      "title": "Negativo — ninguna superficie/control con esquina cuadrada (radio 0)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900 (registro) y 1440x900 (chrome)"
+      ],
+      "given": "los tiles de categoría del registro antes usaban rounded-2xl/xl literales; las cards/controles no deben quedar con radio 0",
+      "when": "se recorren KPIs, botones, tiles de categoría (data-testid^=category-), SelectTrigger y save-button y se lee su border-radius",
+      "then": "todo border-radius medido es > 0px; ninguno es '0px'",
+      "steps": [
+        "@375 registro: medir radios de tiles category-* y save-button",
+        "@1440: medir radios de kpi, botón, SelectTrigger"
+      ],
+      "expected_result": "0 elementos con border-radius '0px' entre cards/campos/botones/chips/overlays auditados",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-303h",
+      "requirement_id": "FR-303",
+      "user_story_id": "US-303",
+      "ac_id": "AC-303",
+      "title": "Títulos y labels resuelven a la escala tipográfica con roles",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "escala: title 1.25rem/600, eyebrow 0.6875rem/600, label 0.8125rem/500",
+      "when": "se leen fontSize y fontWeight computados del título de pantalla (data-testid=page-title) y de un eyebrow (.eyebrow)",
+      "then": "page-title: fontSize=20px (1.25rem) y fontWeight=600; .eyebrow: fontSize=11px (0.6875rem) y fontWeight=600",
+      "steps": [
+        "goto '/' @1440",
+        "medir fontSize/fontWeight de [data-testid=page-title] y del primer .eyebrow"
+      ],
+      "expected_result": "page-title=20px/600; eyebrow=11px/600 — valores de la escala, no ad-hoc",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-303e",
+      "requirement_id": "FR-303",
+      "user_story_id": "US-303",
+      "ac_id": "AC-303",
+      "title": "Edge — los títulos usan un peso estándar, no font-[450]",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900 y 375x900"
+      ],
+      "given": "antes los títulos usaban font-[450] (peso no estándar)",
+      "when": "se lee fontWeight computado de page-title en escritorio y del título en móvil",
+      "then": "fontWeight ∈ {400,500,600,700} (múltiplo de 100 estándar); nunca 450",
+      "steps": [
+        "@1440 medir fontWeight de page-title",
+        "@375 medir fontWeight del título del registro"
+      ],
+      "expected_result": "ambos fontWeight son estándar (p.ej. 600); ninguno es 450",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-303f",
+      "requirement_id": "FR-303",
+      "user_story_id": "US-303",
+      "ac_id": "AC-303",
+      "title": "Negativo — sin font-[450] en el DOM renderizado de los shells",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "el peso 450 no debe aparecer en ningún elemento renderizado del chrome",
+      "when": "se recorren todos los elementos con texto de los shells y se lee su fontWeight computado",
+      "then": "ningún elemento renderizado tiene fontWeight '450'",
+      "steps": [
+        "goto '/' @1440",
+        "querySelectorAll('*') y contar los que computan fontWeight==='450'"
+      ],
+      "expected_result": "count(fontWeight==='450') === 0 en el árbol renderizado del escritorio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-304h",
+      "requirement_id": "FR-304",
+      "user_story_id": "US-304",
+      "ac_id": "AC-304",
+      "title": "Escritorio — marca discreta + un único título de pantalla",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "cabecera rediseñada: marca en TopBar (data-testid=topbar-brand) y un solo título (data-testid=page-title)",
+      "when": "se cargan Resumen y se inspecciona la cabecera",
+      "then": "existe exactamente 1 [data-testid=topbar-brand] y 1 [data-testid=page-title] visibles; el título NO contiene el texto de marca 'LEDGER'",
+      "steps": [
+        "goto '/' @1440",
+        "contar topbar-brand y page-title",
+        "leer textContent de page-title"
+      ],
+      "expected_result": "1 marca + 1 título; page-title no incluye 'LEDGER' (marca y título son elementos distintos, no dos marcas apiladas)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-304e",
+      "requirement_id": "FR-304",
+      "user_story_id": "US-304",
+      "ac_id": "AC-304",
+      "title": "Edge — año/periodo como control discreto (pill), no dentro del título",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "el año antes vivía embebido en 'Presupuesto 2026' (título grande)",
+      "when": "se inspecciona el control de periodo (data-testid=period-pill)",
+      "then": "period-pill existe, es interactivo (button/tab) con un border-radius de la escala (10px, el MISMO que las tabs Resumen/Dashboard — consistencia de radios), y el page-title NO contiene el año '2026'",
+      "steps": [
+        "goto '/' @1440",
+        "verificar period-pill visible y clickable",
+        "leer borderRadius de period-pill y compararlo con el de las tabs de vista",
+        "verificar page-title sin '2026'"
+      ],
+      "expected_result": "period-pill es un control segmentado discreto con radio 10px, idéntico al de las tabs de vista; el año no aparece dentro del page-title",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-304f",
+      "requirement_id": "FR-304",
+      "user_story_id": "US-304",
+      "ac_id": "AC-304",
+      "title": "Negativo — el patrón eyebrow 'LEDGER' + título grande redundante no aparece (móvil ni escritorio)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900 y 1440x900"
+      ],
+      "given": "antes móvil y escritorio mostraban un eyebrow 'LEDGER' sobre un título grande apilado",
+      "when": "se busca el texto 'LEDGER' como eyebrow encima de un título en ambos medios",
+      "then": "no existe un elemento eyebrow con texto exacto 'LEDGER' apilado sobre el título de pantalla en ninguno de los dos medios",
+      "steps": [
+        "@1440 buscar .eyebrow con texto 'LEDGER' sobre page-title",
+        "@375 idem sobre el título del registro"
+      ],
+      "expected_result": "0 ocurrencias del patrón 'eyebrow LEDGER + título grande' en móvil y escritorio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-305h",
+      "requirement_id": "FR-305",
+      "user_story_id": "US-305",
+      "ac_id": "AC-305",
+      "title": "KPI del dashboard y del escritorio en DM Mono tabular",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "toda cifra usa la clase .tabular (DM Mono + tabular-nums)",
+      "when": "se lee fontFamily y fontVariantNumeric del valor de un KPI en Resumen y de un KPI en Dashboard",
+      "then": "ambos valores computan fontFamily que matchea /DM.?Mono/i y fontVariantNumeric contiene 'tabular-nums'",
+      "steps": [
+        "goto '/' @1440 (Resumen)",
+        "leer fuente del valor del primer kpi",
+        "tab Dashboard",
+        "leer fuente del valor del primer kpi"
+      ],
+      "expected_result": "fontFamily ~ DM Mono y fontVariantNumeric incluye 'tabular-nums' en el valor de KPI de Resumen Y de Dashboard",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-305e",
+      "requirement_id": "FR-305",
+      "user_story_id": "US-305",
+      "ac_id": "AC-305",
+      "title": "Edge — celda de grilla y monto de recientes en DM Mono tabular",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900 (grilla) y 375x900 (recientes)"
+      ],
+      "given": "la grilla usaba tabular-nums pelado (Inter) y RecentList Inter plano",
+      "when": "se lee la fuente de una celda de grilla (data-testid=cell-leaf) y del monto de un reciente (data-testid=recent-amount) tras guardar un movimiento",
+      "then": "ambas computan fontFamily ~ /DM.?Mono/i",
+      "steps": [
+        "@1440 leer fontFamily de cell-leaf",
+        "@375 guardar un movimiento y leer fontFamily de recent-amount"
+      ],
+      "expected_result": "cell-leaf y recent-amount usan DM Mono (no Inter)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-305f",
+      "requirement_id": "FR-305",
+      "user_story_id": "US-305",
+      "ac_id": "AC-305",
+      "title": "Negativo — ninguna cifra monetaria en Inter pleno",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "los contenedores de cifra deben portar la clase .tabular",
+      "when": "se recorren los valores de KPI, celdas de grilla y montos y se lee su fontFamily",
+      "then": "ningún elemento de cifra computa una fontFamily que empiece por Inter sin DM Mono",
+      "steps": [
+        "goto '/' @1440",
+        "recorrer valores de kpi y cell-leaf",
+        "verificar que ninguno matchea /^Inter/ sin /DM.?Mono/"
+      ],
+      "expected_result": "0 cifras monetarias renderizadas en Inter pleno (todas en DM Mono tabular)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-306h",
+      "requirement_id": "FR-306",
+      "user_story_id": "US-306",
+      "ac_id": "AC-306",
+      "title": "Eyebrows de móvil/escritorio/recientes/KPI resuelven a la misma clase .eyebrow",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900 y 375x900"
+      ],
+      "given": ".eyebrow = 0.6875rem, tracking 0.09em, weight 600, color --text-3 (muted)",
+      "when": "se leen fontSize, letterSpacing, fontWeight y color de varios eyebrows (label de KPI en escritorio, RECIENTES en móvil, label de sección)",
+      "then": "todos computan fontSize=11px, letterSpacing≈0.99px (0.09em de 11px), fontWeight=600 y el mismo color muted (rgb del --text-3)",
+      "steps": [
+        "@1440 leer estilos del label de un KPI y de un eyebrow de sección",
+        "@375 leer estilos del eyebrow 'RECIENTES'"
+      ],
+      "expected_result": "los eyebrows comparten fontSize 11px, tracking ~0.09em, weight 600 y color --text-3 (mismos valores computados)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-306e",
+      "requirement_id": "FR-306",
+      "user_story_id": "US-306",
+      "ac_id": "AC-306",
+      "title": "Edge — eyebrow 'CATEGORÍA' de la grilla usa .eyebrow con contraste ≥4.5:1",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "el encabezado 'CATEGORÍA' de la grilla debe usar la clase .eyebrow sobre el fondo --sunken",
+      "when": "se lee fontSize/weight/color del texto 'CATEGORÍA' y el bg de su celda, y se calcula el ratio de contraste",
+      "then": "fontSize=11px, weight=600 y ratio(color, bg) ≥ 4.5:1",
+      "steps": [
+        "goto '/' @1440",
+        "localizar la celda 'CATEGORÍA'",
+        "leer color y bg",
+        "calcular contraste WCAG"
+      ],
+      "expected_result": "'CATEGORÍA' computa 11px/600 y su contraste sobre el encabezado es ≥4.5:1",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-306f",
+      "requirement_id": "FR-306",
+      "user_story_id": "US-306",
+      "ac_id": "AC-306",
+      "title": "Negativo — ningún eyebrow con tamaño/tracking/peso/color ad-hoc distinto de la clase",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900 y 375x900"
+      ],
+      "given": "todos los eyebrows deben portar la clase .eyebrow (fuente única)",
+      "when": "se recorren los elementos tipográficos con text-transform:uppercase de tamaño <0.8rem que sean etiquetas de sección",
+      "then": "cada eyebrow renderizado computa fontSize=11px y letterSpacing≈0.09em; no hay eyebrows con 0.58/0.6/0.62rem ni tracking 0.18/0.14/0.06em",
+      "steps": [
+        "@1440 recorrer eyebrows y verificar 11px/0.09em",
+        "@375 idem"
+      ],
+      "expected_result": "0 eyebrows con fontSize/tracking fuera de (11px, ~0.09em) — todos vía .eyebrow",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-307h",
+      "requirement_id": "FR-307",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Campos del registro usan superficie/borde/radio por token, coherentes con el chrome",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "DateTimeField/NoteField/tiles adoptan --surface + hairline (--border) + radio de la escala",
+      "when": "se leen border-radius, border-width y background del campo Fecha (data-testid=date-field) y de un tile de categoría",
+      "then": "date-field y tile: border-radius ∈ escala (p.ej. 10px md), border-width ≥1px con color --border, y background = --surface (no un relleno sin borde)",
+      "steps": [
+        "goto '/' @375",
+        "medir radius/border/bg de date-field y de un category-tile"
+      ],
+      "expected_result": "los campos del registro tienen hairline (1px --border) + radio de la escala + surface — mismo lenguaje que la grilla/dashboard",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-307e",
+      "requirement_id": "FR-307",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Edge — el tile de categoría seleccionado conserva su tinte y borde del color del tipo",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "tipo=Gasto (rojo #DC2626); al elegir una categoría-hoja debe teñirse con el color del tipo",
+      "when": "se selecciona la primera categoría-hoja y se leen background y borderColor del tile seleccionado",
+      "then": "el tile seleccionado (aria-pressed=true) tiene borderColor derivado de --type-expense y un background con tinte del tipo (color-mix con rojo), distinto del tile default",
+      "steps": [
+        "goto '/' @375",
+        "click primera categoría-hoja",
+        "leer bg/borderColor del tile pressed"
+      ],
+      "expected_result": "tile seleccionado conserva tinte+borde del rojo de Gasto (no se pierde la identidad de selección tras la re-tokenización)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-307f",
+      "requirement_id": "FR-307",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Negativo — ningún campo del registro con radio/relleno que contradiga el chrome",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "antes el registro usaba rounded-full/2xl/xl y rellenos sin borde (otro lenguaje)",
+      "when": "se recorren date-field, note-field, save-button y tiles y se leen sus radios",
+      "then": "ningún campo del registro computa un border-radius fuera de la escala {6,8,10,14,9999}px; ninguno queda sin borde donde el chrome usa hairline",
+      "steps": [
+        "goto '/' @375",
+        "medir radios de todos los campos del registro y comparar contra la escala"
+      ],
+      "expected_result": "0 campos del registro con radio fuera de escala o relleno sin borde que contradiga el chrome",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-308h",
+      "requirement_id": "FR-308",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Dashboard y escritorio renderizan KPIs con el MISMO componente (mismo padding y regla de cifra)",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "un único componente <Kpi> compartido (data-testid=kpi) usado por Resumen y Dashboard",
+      "when": "se leen padding computado y fontFamily del valor de un KPI en Resumen y en Dashboard",
+      "then": "el padding (top/right/bottom/left) es idéntico entre ambos y el valor usa DM Mono en ambos (misma regla de cifra)",
+      "steps": [
+        "goto '/' @1440 Resumen: leer padding y fuente de [data-testid=kpi]",
+        "tab Dashboard: leer padding y fuente de [data-testid=kpi]"
+      ],
+      "expected_result": "padding y fontFamily del valor coinciden exactamente entre KPI de Resumen y de Dashboard (un solo componente, sin divergencia)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-308e",
+      "requirement_id": "FR-308",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Edge — existe un único patrón de selector de tipo (Kpi compartido formatea el valor)",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "el componente Kpi compartido recibe {label:'EJECUTADO', value:'$1.250'}",
+      "when": "se renderiza <Kpi label='EJECUTADO' value='$1.250' /> con @testing-library/react",
+      "then": "el DOM contiene el label vía clase .eyebrow y el valor '$1.250' dentro de un nodo con clase .tabular",
+      "steps": [
+        "render <Kpi label='EJECUTADO' value='$1.250'/>",
+        "assert querySelector('.eyebrow').textContent==='EJECUTADO'",
+        "assert querySelector('.tabular').textContent==='$1.250'"
+      ],
+      "expected_result": "el mismo Kpi emite label con .eyebrow y valor con .tabular — regla de cifra única para todos los consumidores",
+      "test_data": {
+        "label": "EJECUTADO",
+        "value": "$1.250"
+      }
+    },
+    {
+      "id": "TC-UXC-308f",
+      "requirement_id": "FR-308",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Negativo — la selección de tipo no cambia de comportamiento (sin regresión)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "el selector de tipo único (TypeToggle) tras retirar el ToggleGroupItem muerto",
+      "when": "se hace click en Ingreso y luego Transferencia y se observa aria-selected y la propagación de color",
+      "then": "solo el segmento activo tiene aria-selected=true (los otros false) y el save-button toma el color del tipo activo (income #16A34A, transfer #2563EB); comportamiento idéntico al previo",
+      "steps": [
+        "goto '/' @375",
+        "click type-income → assert aria-selected y save-button verde",
+        "click type-transfer → assert aria-selected y save-button azul"
+      ],
+      "expected_result": "aria-selected único por segmento y color propagado correcto — 0 regresión en el comportamiento de selección de tipo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-309h",
+      "requirement_id": "FR-309",
+      "user_story_id": "US-309",
+      "ac_id": "AC-309",
+      "title": "El selector ofrece ≥40 iconos Lucide y permite elegir uno",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "al editar una categoría se abre el IconPicker (data-testid=icon-picker) con un catálogo amplio",
+      "when": "se abre el picker de icono de una categoría de la grilla y se cuentan las opciones (data-testid=icon-option)",
+      "then": "se muestran ≥40 opciones de icono; al hacer click en una, el picker cierra y la categoría muestra ese icono",
+      "steps": [
+        "goto '/' @1440",
+        "hover fila de categoría → click botón de icono",
+        "contar [data-testid=icon-option] ≥ 40",
+        "click una opción",
+        "assert el icono de la categoría cambió"
+      ],
+      "expected_result": "count(icon-option) ≥ 40 y la categoría refleja el icono elegido tras cerrar el picker",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-309e",
+      "requirement_id": "FR-309",
+      "user_story_id": "US-309",
+      "ac_id": "AC-309",
+      "title": "Edge — el icono elegido persiste tras recargar y se refleja en jerarquía/grilla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "el icono se persiste vía setNodeIcon → localStorage (owner=local)",
+      "when": "se asigna un icono nuevo a una categoría, se recarga la página y se vuelve a leer",
+      "then": "tras page.reload() la misma categoría sigue mostrando el icono elegido (persistencia real, no en memoria)",
+      "steps": [
+        "@1440 asignar icono X a categoría C",
+        "capturar el nombre del icono aplicado",
+        "page.reload()",
+        "assert categoría C muestra el mismo icono X"
+      ],
+      "expected_result": "el icono elegido sobrevive a la recarga y se refleja en la grilla (persistencia en localStorage)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-309f",
+      "requirement_id": "FR-309",
+      "user_story_id": "US-309",
+      "ac_id": "AC-309",
+      "title": "Negativo — categoría con icono desconocido/ausente usa fallback sin romper el render",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "se inyecta en localStorage una categoría con icon='__nope__' (nombre inexistente en el MAP)",
+      "when": "se recarga y se renderiza la grilla",
+      "then": "la categoría se renderiza con el icono fallback (Tag/Folder), la grilla es visible y no hay errores de consola",
+      "steps": [
+        "addInitScript: set icon='__nope__' en una categoría del estado",
+        "goto '/' @1440",
+        "assert budget-grid visible y sin console error",
+        "assert la categoría muestra un svg de icono (fallback)"
+      ],
+      "expected_result": "render estable con icono fallback; 0 errores de consola; la app no crashea ante un icon desconocido",
+      "test_data": {
+        "icon": "__nope__"
+      }
+    },
+    {
+      "id": "TC-UXC-310h",
+      "requirement_id": "FR-310",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Calendario e IconPicker usan una primitiva shadcn (Popover) con foco y cierre",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 375x900 (calendario) y 1440x900 (iconos)"
+      ],
+      "given": "el popover del calendario y el selector de iconos usan @radix-ui/react-popover",
+      "when": "se abre el calendario desde el registro y el IconPicker desde la grilla",
+      "then": "cada uno abre un contenedor con role/data de Radix Popover, mueve el foco al contenido y su box-shadow resuelve a --shadow-lg",
+      "steps": [
+        "@375 click date-field → assert popover Radix visible + foco dentro + boxShadow=--shadow-lg",
+        "@1440 abrir icon-picker → assert popover Radix visible + foco dentro"
+      ],
+      "expected_result": "ambos overlays son primitivas Radix con manejo de foco y sombra --shadow-lg (no overlay ad-hoc)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-310e",
+      "requirement_id": "FR-310",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Edge — el overlay cierra por Escape y por click fuera",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "IconPicker abierto sobre una categoría",
+      "when": "(a) se presiona Escape; (b) se reabre y se hace click fuera del contenido",
+      "then": "en ambos casos el contenido del popover deja de existir (toHaveCount 0) y el foco vuelve al trigger",
+      "steps": [
+        "abrir icon-picker",
+        "press Escape → assert content count 0",
+        "reabrir",
+        "click en el body fuera → assert content count 0"
+      ],
+      "expected_result": "el popover cierra por Escape y por click-fuera, devolviendo el foco al disparador",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-310f",
+      "requirement_id": "FR-310",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Negativo — abrir los overlays no emite petición externa ni rompe el scroll de la página",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "listener de requests HTTP externas activo",
+      "when": "se abren y cierran el calendario y el IconPicker",
+      "then": "0 peticiones a host externo (no localhost) y el scrollWidth del documento ≤ innerWidth (sin desbordamiento por el overlay)",
+      "steps": [
+        "registrar page.on('request')",
+        "abrir/cerrar calendario e icon-picker",
+        "assert external.length===0 y sin overflow horizontal del body"
+      ],
+      "expected_result": "0 requests externas y la página no gana scroll horizontal al abrir los overlays",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-311h",
+      "requirement_id": "FR-311",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "Label del segmento Ingreso activo alcanza ≥4.5:1 sobre su relleno (ambos temas)",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900, light y dark"
+      ],
+      "given": "Ingreso activo usa --primary-foreground (#FFFFFF) con relleno oscurecido a green-700 #15803D en claro",
+      "when": "se selecciona type-income y se leen color del texto y background-color del segmento activo, y se calcula el contraste",
+      "then": "ratio(color-texto, bg-relleno) ≥ 4.5:1 en tema claro Y en tema oscuro",
+      "steps": [
+        "@375 light: click type-income, leer color y bg, calcular contraste ≥4.5",
+        "@375 dark: repetir"
+      ],
+      "expected_result": "el label blanco sobre el relleno de Ingreso activo mide ≥4.5:1 en claro (relleno #15803D) y en oscuro",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-311e",
+      "requirement_id": "FR-311",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "Edge — Gasto y Transferencia activos también ≥4.5:1",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900, light"
+      ],
+      "given": "Gasto (#DC2626) y Transferencia (#2563EB) activos con texto --primary-foreground",
+      "when": "se activa cada uno y se calcula el contraste texto/relleno",
+      "then": "ratio ≥ 4.5:1 para Gasto activo y para Transferencia activo",
+      "steps": [
+        "@375 light: click type-expense → contraste ≥4.5",
+        "click type-transfer → contraste ≥4.5"
+      ],
+      "expected_result": "Gasto y Transferencia activos alcanzan ≥4.5:1 con texto sobre su relleno",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-311f",
+      "requirement_id": "FR-311",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "Negativo — ningún texto sobre relleno de acento queda por debajo de 4.5:1",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900, light y dark"
+      ],
+      "given": "los 3 segmentos de tipo y el save-button portan texto sobre relleno de acento",
+      "when": "se recorren los 3 tipos activos + save-button y se calcula el contraste texto/fondo en ambos temas",
+      "then": "el mínimo de los ratios medidos es ≥ 4.5:1 (ninguno por debajo)",
+      "steps": [
+        "para cada tipo activo y el save-button, medir contraste en light y dark",
+        "assert min ≥ 4.5"
+      ],
+      "expected_result": "min(contraste de todo texto-sobre-relleno-de-acento) ≥ 4.5:1 en ambos temas (0 por debajo de AA)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-312h",
+      "requirement_id": "FR-312",
+      "user_story_id": "US-312",
+      "ac_id": "AC-312",
+      "title": "El store arranca en el mes en curso (no en año/enero)",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "reloj del sistema mockeado a un mes conocido (p.ej. julio → getMonth()===6)"
+      ],
+      "given": "vi.setSystemTime a 2026-07-08; el store deriva el default con currentMonth()",
+      "when": "se lee useLedgerStore.getState().period recién inicializado",
+      "then": "period = { mode: 'month', month: 'jul' } (mes del reloj), no { mode:'year' } ni 'ene'",
+      "steps": [
+        "vi.setSystemTime(new Date(2026,6,8))",
+        "import fresco del store",
+        "assert period.mode==='month' && period.month==='jul'"
+      ],
+      "expected_result": "period.mode==='month' y period.month==='jul' (mes en curso derivado del reloj)",
+      "test_data": {
+        "now": "2026-07-08",
+        "expectedMonth": "jul"
+      }
+    },
+    {
+      "id": "TC-UXC-312e",
+      "requirement_id": "FR-312",
+      "user_story_id": "US-312",
+      "ac_id": "AC-312",
+      "title": "Edge — el usuario cambia a otro mes o a Año y los indicadores recalculan",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "la app abierta en el mes en curso",
+      "when": "se cambia el toggle a 'Año' y luego a otro mes con el Select",
+      "then": "los KPIs (data-testid=kpi) recalculan su valor al cambiar de periodo (el texto del valor cambia entre 'Año' y un mes concreto)",
+      "steps": [
+        "goto '/' @1440",
+        "capturar valor KPI del mes actual",
+        "click tab 'Año' → assert el valor del KPI cambia",
+        "cambiar a otro mes → assert recalcula"
+      ],
+      "expected_result": "el usuario mueve libremente Mes/Año y los indicadores recalculan sobre el periodo elegido",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-312f",
+      "requirement_id": "FR-312",
+      "user_story_id": "US-312",
+      "ac_id": "AC-312",
+      "title": "Negativo — no se fuerza enero ni un mes fijo independientemente de la fecha",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "reloj mockeado a marzo (getMonth()===2)"
+      ],
+      "given": "vi.setSystemTime a 2026-03-15; el default no debe ser 'ene' ni un literal fijo",
+      "when": "se inicializa el store con el reloj en marzo",
+      "then": "period.month === 'mar' (sigue al reloj); NO es 'ene' ni 'jun' fijos",
+      "steps": [
+        "vi.setSystemTime(new Date(2026,2,15))",
+        "import fresco del store",
+        "assert period.month==='mar' && period.month!=='ene'"
+      ],
+      "expected_result": "period.month==='mar' — el default sigue al reloj, nunca fija enero/un mes constante",
+      "test_data": {
+        "now": "2026-03-15",
+        "expectedMonth": "mar"
+      }
+    },
+    {
+      "id": "TC-UXC-313h",
+      "requirement_id": "FR-313",
+      "user_story_id": "US-313",
+      "ac_id": "AC-313",
+      "title": "A 1440px la rueda (deltaY>0) sobre la grilla incrementa su scrollTop",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900",
+        "grilla con más filas que el alto visible"
+      ],
+      "given": "la grilla (data-testid=budget-grid) desborda verticalmente",
+      "when": "se posiciona el mouse sobre la grilla y se hace page.mouse.wheel(0, 300) (deltaY>0)",
+      "then": "el scrollTop del contenedor budget-grid pasa de 0 a >0",
+      "steps": [
+        "goto '/' @1440",
+        "hover sobre budget-grid",
+        "leer scrollTop inicial (0)",
+        "mouse.wheel(0,300)",
+        "assert scrollTop > 0"
+      ],
+      "expected_result": "scrollTop(budget-grid) > 0 tras la rueda vertical (desplazamiento de filas)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-313e",
+      "requirement_id": "FR-313",
+      "user_story_id": "US-313",
+      "ac_id": "AC-313",
+      "title": "Edge — la rueda sobre la fila de categorías que desborda incrementa su scrollLeft",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900",
+        "fila de categorías más ancha que el viewport"
+      ],
+      "given": "la fila horizontal de categorías (data-testid=category-row) desborda en X; deltaY se mapea a scrollLeft",
+      "when": "se posiciona el mouse sobre category-row y se hace page.mouse.wheel(0, 300) (solo deltaY)",
+      "then": "el scrollLeft de category-row pasa de 0 a >0 (mapeo deltaY→scrollLeft)",
+      "steps": [
+        "goto '/' @375",
+        "hover sobre category-row",
+        "leer scrollLeft (0)",
+        "mouse.wheel(0,300)",
+        "assert scrollLeft > 0"
+      ],
+      "expected_result": "scrollLeft(category-row) > 0 tras una rueda vertical (mapeo horizontal en fila horizontal)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-313f",
+      "requirement_id": "FR-313",
+      "user_story_id": "US-313",
+      "ac_id": "AC-313",
+      "title": "Negativo — ningún contenedor desplazable queda 'muerto' a la rueda",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "la grilla desborda; una rueda debe mover el contenedor, no solo la página",
+      "when": "se hace mouse.wheel sobre la grilla y se compara el cambio de scrollTop del contenedor vs el de la página",
+      "then": "el scrollTop del contenedor budget-grid cambia (>0); el contenedor no permanece en 0 mientras solo scrollea el documento",
+      "steps": [
+        "goto '/' @1440",
+        "scrollTop contenedor y window antes",
+        "mouse.wheel(0,300) sobre la grilla",
+        "assert delta scrollTop del contenedor > 0"
+      ],
+      "expected_result": "el contenedor desplazable responde a la rueda (Δcontenedor>0); no queda muerto delegando solo al scroll de página",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-314h",
+      "requirement_id": "FR-314",
+      "user_story_id": "US-314",
+      "ac_id": "AC-314",
+      "title": "El Select ya no contiene la clase malformada y el highlight funciona",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "antes ui/select tenía la clase malformada data-[highlighted:bg-elevated]",
+      "when": "se abre el Select de mes y se navega con teclado hasta resaltar un item",
+      "then": "el item resaltado cambia su background al valor de --bg-elevated/--surface-2 (el highlight aplica visiblemente); el HTML del item no contiene la subcadena 'highlighted:bg-elevated'",
+      "steps": [
+        "goto '/' @1440",
+        "abrir Select de mes",
+        "ArrowDown para resaltar un item",
+        "assert bg del item resaltado ≠ bg base",
+        "assert outerHTML sin 'highlighted:bg-elevated'"
+      ],
+      "expected_result": "el highlight del Select funciona con la variante correcta y no queda la clase Tailwind malformada",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-314e",
+      "requirement_id": "FR-314",
+      "user_story_id": "US-314",
+      "ac_id": "AC-314",
+      "title": "Edge — no queda ningún font-[450] en el DOM",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "low",
+      "preconditions": [
+        "viewport 1440x900 y 375x900"
+      ],
+      "given": "el peso 450 debía reemplazarse por un peso estándar",
+      "when": "se recorren los elementos renderizados en ambos medios",
+      "then": "0 elementos computan fontWeight '450'",
+      "steps": [
+        "@1440 contar fontWeight==='450'",
+        "@375 contar fontWeight==='450'"
+      ],
+      "expected_result": "count(fontWeight==='450') === 0 en móvil y escritorio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-314f",
+      "requirement_id": "FR-314",
+      "user_story_id": "US-314",
+      "ac_id": "AC-314",
+      "title": "Negativo — --radius-full y --primary-foreground existen como tokens usados",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "los tokens --radius-full y --primary-foreground deben estar definidos en :root/@theme",
+      "when": "se leen ambos de getComputedStyle(document.documentElement) y el color del label del tipo activo",
+      "then": "--radius-full='9999px' y --primary-foreground no vacío (#FFFFFF en claro); el texto sobre relleno usa ese token (no un literal 'white' suelto donde aplica el token)",
+      "steps": [
+        "goto '/' @1440",
+        "leer --radius-full y --primary-foreground",
+        "verificar el color del label del segmento activo = --primary-foreground"
+      ],
+      "expected_result": "--radius-full=9999px y --primary-foreground definido y usado por el texto sobre relleno de acento",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-351h",
+      "requirement_id": "NFR-301",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Regresión — guardar un movimiento suma a Ejecutado y aparece en recientes",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "registro móvil; se elige tipo Gasto, monto 50000 y una categoría-hoja",
+      "when": "se completa el formulario y se pulsa Guardar",
+      "then": "aparece el overlay con '$50.000', el movimiento se agrega a la lista de recientes (recent-item count ≥1) y el form se resetea a fecha 'Hoy'",
+      "steps": [
+        "goto '/' @375",
+        "fill amount 50000",
+        "seleccionar hoja",
+        "click save-button",
+        "assert confirm-overlay '$50.000'",
+        "assert recent-item ≥1"
+      ],
+      "expected_result": "el flujo de guardado (Ejecutado + roll-ups + recientes + reset) funciona idéntico tras el refinamiento",
+      "test_data": {
+        "amount": 50000
+      }
+    },
+    {
+      "id": "TC-UXC-351e",
+      "requirement_id": "NFR-301",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Regresión — edición inline de una hoja de la grilla persiste",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "la grilla de 12 meses con celdas editables (cell-leaf)",
+      "when": "se hace click en una celda hoja, se escribe 123456 y Enter",
+      "then": "la celda muestra '123.456' y el cambio persiste tras recargar",
+      "steps": [
+        "goto '/' @1440",
+        "click cell-leaf",
+        "editar 123456 + Enter",
+        "assert '123.456'",
+        "reload → assert '123.456' persiste"
+      ],
+      "expected_result": "la edición inline sigue funcionando y persiste (roll-ups intactos)",
+      "test_data": {
+        "value": 123456
+      }
+    },
+    {
+      "id": "TC-UXC-351f",
+      "requirement_id": "NFR-301",
+      "user_story_id": "US-307",
+      "ac_id": "AC-307",
+      "title": "Regresión — guardar con monto 0 / sin categoría no crea movimiento",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "registro móvil",
+      "when": "(a) monto=0 → Guardar deshabilitado; (b) monto 10000 sin categoría → click Guardar",
+      "then": "con monto 0 el save-button está disabled; sin categoría se muestra 'Elige una categoría.' y recent-item count === 0",
+      "steps": [
+        "goto '/' @375",
+        "assert save-button disabled con monto 0",
+        "fill 10000, click save sin categoría",
+        "assert alert 'Elige una categoría.' y recent-item count 0"
+      ],
+      "expected_result": "las validaciones de guardado (monto>0, categoría requerida) no cambian de comportamiento",
+      "test_data": {
+        "amount": 10000
+      }
+    },
+    {
+      "id": "TC-UXC-352h",
+      "requirement_id": "NFR-302",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Identidad — los acentos por tipo siguen siendo rojo/verde/azul reconocibles",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900, light"
+      ],
+      "given": "identidad conservada: expense #DC2626, income #16A34A, transfer #2563EB",
+      "when": "se leen los tokens --type-expense/income/transfer del root en tema claro",
+      "then": "--type-expense tiene canal rojo dominante, --type-income verde dominante y --type-transfer azul dominante (hues reconocibles); los valores pueden estar afinados/desaturados",
+      "steps": [
+        "goto '/' @375 light",
+        "leer los 3 tokens de tipo"
+      ],
+      "expected_result": "R>max(G,B) en expense, G>max(R,B) en income, B>max(R,G) en transfer — la identidad cromática por tipo se conserva aunque el token se afine (NFR-302 pide 'reconocibles', no un hex fijo)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-352e",
+      "requirement_id": "NFR-302",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Identidad — el default de tema sigue 'Sistema'",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "sin preferencia guardada"
+      ],
+      "given": "next-themes con defaultTheme='system'; SO en oscuro sin selección previa",
+      "when": "se carga la app con colorScheme dark y sin clave 'theme' en localStorage",
+      "then": "<html> obtiene la clase 'dark' (sigue al SO) y localStorage.theme resuelve a 'system' o vacío (no forzado a claro/oscuro fijo)",
+      "steps": [
+        "emulateMedia dark",
+        "clear localStorage",
+        "goto '/'",
+        "assert html.dark===true y theme no es un valor fijo distinto de system"
+      ],
+      "expected_result": "el default de tema sigue Sistema (la app sigue el SO cuando no hay preferencia)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-352f",
+      "requirement_id": "NFR-302",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "Identidad — no aparece un color de marca ajeno a zinc + acentos",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900, light"
+      ],
+      "given": "el chrome neutro es zinc (--primary #18181B en claro)",
+      "when": "se lee --primary y el background del botón principal del chrome",
+      "then": "--primary resuelve a zinc (#18181b) y el chrome NO se rellena con un hue de marca nuevo (no morado/teal/etc. ajeno a zinc+rojo/verde/azul)",
+      "steps": [
+        "goto '/' @1440 light",
+        "leer --primary",
+        "leer bg del botón 'Nuevo movimiento'"
+      ],
+      "expected_result": "identidad zinc intacta; 0 colores de marca ajenos introducidos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-353h",
+      "requirement_id": "NFR-303",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "AA — text-primary y text-secondary ≥4.5:1 en ambos temas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900, light y dark"
+      ],
+      "given": "--text sobre --canvas y --text-2 sobre --surface deben cumplir AA",
+      "when": "se calcula el contraste de --text y --text-2 contra sus fondos en claro y oscuro",
+      "then": "ratio(--text, canvas) ≥ 4.5:1 y ratio(--text-2, surface) ≥ 4.5:1 en ambos temas",
+      "steps": [
+        "light: medir contraste de un título y de un texto secundario",
+        "dark: repetir"
+      ],
+      "expected_result": "texto primario y secundario ≥4.5:1 en claro y oscuro",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-353e",
+      "requirement_id": "NFR-303",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "AA — controles interactivos del registro ≥48px y foco visible",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "los controles del registro deben mantener objetivo táctil ≥48px",
+      "when": "se mide la altura de type-expense, save-button y date-field, y se enfoca save-button por teclado",
+      "then": "cada altura ≥48px y :focus-visible aplica un outline visible al save-button enfocado",
+      "steps": [
+        "goto '/' @375",
+        "medir alturas de los 3 controles",
+        "focus save-button y verificar outline computado ≠ 'none'"
+      ],
+      "expected_result": "controles ≥48px y foco visible conservado tras la re-tokenización",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-353f",
+      "requirement_id": "NFR-303",
+      "user_story_id": "US-311",
+      "ac_id": "AC-311",
+      "title": "AA — ningún texto sobre relleno de acento por debajo de 4.5:1",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900, light y dark"
+      ],
+      "given": "los segmentos de tipo activos y save-button",
+      "when": "se calcula el contraste de todos los textos sobre relleno de acento en ambos temas",
+      "then": "el mínimo de los ratios es ≥ 4.5:1 (ninguno por debajo)",
+      "steps": [
+        "medir contraste de los 3 tipos activos + save-button en light y dark",
+        "assert min ≥ 4.5"
+      ],
+      "expected_result": "0 textos sobre relleno de acento por debajo de AA (min ≥4.5:1)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-354h",
+      "requirement_id": "NFR-304",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Sin red — cargar + tema + abrir overlays + guardar = 0 peticiones externas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "listener de requests a hosts no-localhost",
+      "when": "se carga la app, se cambia el tema, se abre el calendario y el icon picker (@1440), y se guarda un movimiento",
+      "then": "el array de peticiones externas queda vacío",
+      "steps": [
+        "registrar page.on('request')",
+        "gotoMobile, theme-toggle, date-field, guardar",
+        "assert external.length===0"
+      ],
+      "expected_result": "0 peticiones a hosts externos en todo el flujo (fuentes self-hosted, Radix/Lucide client-side)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-354e",
+      "requirement_id": "NFR-304",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Sin red — abrir el IconPicker no emite ninguna petición externa",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "el IconPicker renderiza ≥40 iconos Lucide (componentes, sin fetch)",
+      "when": "se abre el icon-picker y se filtra por búsqueda",
+      "then": "0 peticiones externas mientras se abre y se busca",
+      "steps": [
+        "registrar requests",
+        "abrir icon-picker",
+        "escribir en la búsqueda",
+        "assert external.length===0"
+      ],
+      "expected_result": "el catálogo de iconos no dispara red (iconos bundleados)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-354f",
+      "requirement_id": "NFR-304",
+      "user_story_id": "US-310",
+      "ac_id": "AC-310",
+      "title": "Sin red — el Popover de Radix no introduce ninguna petición externa",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "viewport 375x900"
+      ],
+      "given": "@radix-ui/react-popover es la única dependencia nueva",
+      "when": "se abre y cierra el calendario (Popover) varias veces",
+      "then": "0 peticiones a hosts externos atribuibles al overlay",
+      "steps": [
+        "registrar requests",
+        "abrir/cerrar el calendario 3 veces",
+        "assert external.length===0"
+      ],
+      "expected_result": "la nueva primitiva Radix no emite red (NFR-304 preservado)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-355h",
+      "requirement_id": "NFR-305",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Suite verde — flujos previos (grilla 12 meses) siguen funcionando",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900"
+      ],
+      "given": "regresión de la feature grid-ux: grilla de 12 meses visible con Enero…Diciembre",
+      "when": "se carga Resumen a 1440px",
+      "then": "budget-grid visible, 'Enero' y 'Diciembre' presentes, columna sticky 'CATEGORÍA' visible",
+      "steps": [
+        "goto '/' @1440",
+        "assert budget-grid + Enero + Diciembre + CATEGORÍA"
+      ],
+      "expected_result": "los flujos e2e previos siguen verdes (grilla intacta) tras el refinamiento",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-355e",
+      "requirement_id": "NFR-305",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Suite verde — persistencia de tema (stack-upgrade-theme) intacta",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "viewport 1440x900, SO oscuro"
+      ],
+      "given": "regresión de stack-upgrade-theme: el ThemeToggle persiste la elección",
+      "when": "se fuerza 'Claro' con el toggle y se recarga",
+      "then": "tras reload <html> sigue sin la clase dark y localStorage.theme==='light'",
+      "steps": [
+        "emulateMedia dark",
+        "goto '/' @1440",
+        "theme-toggle a claro",
+        "reload",
+        "assert !html.dark && theme==='light'"
+      ],
+      "expected_result": "la persistencia de tema previa sigue funcionando (0 regresión)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-355f",
+      "requirement_id": "NFR-305",
+      "user_story_id": "US-308",
+      "ac_id": "AC-308",
+      "title": "Suite verde — typecheck y lint sin errores (quality gates)",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "node/toolchain del proyecto disponible; se declara como quality_gate en 04_BUILD_REPORT.json"
+      ],
+      "given": "el refinamiento no debe introducir errores de tipos ni de lint",
+      "when": "se ejecutan `npm run typecheck` y `npm run lint` como quality gates de verify-run",
+      "then": "ambos comandos salen con exit code 0 (sin errores)",
+      "steps": [
+        "declarar typecheck y lint como quality_gates required",
+        "verify-run los ejecuta",
+        "assert exit 0 en ambos"
+      ],
+      "expected_result": "typecheck y lint pasan (exit 0); la suite unit+integration+e2e completa queda verde",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-356h",
+      "requirement_id": "NFR-306",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "CI/CD — la app arrancada responde 200 en '/' (smoke)",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "build de producción servido por Playwright webServer"
+      ],
+      "given": "el contenedor/app de producción sirve la ruta raíz",
+      "when": "se hace una navegación GET a '/'",
+      "then": "la respuesta es 200 y el documento carga sin error de servidor (5xx)",
+      "steps": [
+        "const resp = await page.goto('/')",
+        "assert resp.status()===200",
+        "assert app raíz visible (mobile-shell o desktop)"
+      ],
+      "expected_result": "GET '/' → 200 y la app monta (smoke gate del pipeline CI)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-356e",
+      "requirement_id": "NFR-306",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "CI/CD — la suite completa (vitest + e2e) es ejecutable en un solo comando",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "low",
+      "preconditions": [
+        "scripts npm test:run y test:e2e presentes"
+      ],
+      "given": "ci.yml debe correr la suite en push/PR a main",
+      "when": "se ejecuta `npm run test:run` (vitest) y `npm run test:e2e` (Playwright)",
+      "then": "ambos comandos existen y terminan con exit 0 sobre el árbol de tests",
+      "steps": [
+        "ejecutar test:run → exit 0",
+        "ejecutar test:e2e → exit 0"
+      ],
+      "expected_result": "la suite completa corre en los dos runners declarados con exit 0",
+      "test_data": {}
+    },
+    {
+      "id": "TC-UXC-356f",
+      "requirement_id": "NFR-306",
+      "user_story_id": "US-301",
+      "ac_id": "AC-301",
+      "title": "CI/CD — la raíz no devuelve 5xx en el primer arranque",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "build de producción recién arrancado (sin estado previo)"
+      ],
+      "given": "un arranque limpio del build de producción",
+      "when": "se solicita '/' inmediatamente tras el arranque",
+      "then": "el status NO es 5xx (no 500/502/503); el smoke no falla por bootstrap roto",
+      "steps": [
+        "page.goto('/')",
+        "assert resp.status() < 500"
+      ],
+      "expected_result": "'/' responde <500 en el primer arranque (el producto ensamblado bootea y sirve)",
+      "test_data": {}
+    }
+  ]
+}

@@ -48,6 +48,10 @@ coverage/
 *.swp
 *.swo
 
+# Claude Code — worktrees de tareas en background (por máquina; .claude/launch.json SÍ se versiona)
+.claude/worktrees/
+
 # Aitri — per-machine state (the shared .aitri IS committed)
 .aitri.local
 .aitri.lock
+.next-smoke/

@@ -1,0 +1,77 @@
+{
+  "feature": "ux-consistency",
+  "summary": "Refinamiento profesional del acabado sobre el stack existente (Next.js 15 / React 19 / Tailwind v4 / Zustand). Núcleo en la CAPA DE TOKENS (globals.css): sistema de superficie/elevación con profundidad (lienzo gris + cards blancas que flotan + sombra suave theme-aware, highlight superior en oscuro; FR-301), escala de radios fina 6/8/10/14/full (FR-302), escala tipográfica con roles .display/.title/.title-sm/.label/.caption + eyebrow único .eyebrow (FR-303/306), tokens --primary-foreground/--on-accent/--type-*-fill y sombras (FR-311/314). Adopción por componentes: cabecera con intención (marca discreta + un título + año como pill; FR-304), toda cifra en DM Mono .tabular (FR-305), registro coherente por token (FR-307), Kpi/Card únicos compartidos y selector de tipo único retirando el ToggleGroupItem muerto (FR-308), IconPicker rico (≥40 Lucide, buscable) en Popover shadcn/Radix y calendario migrado a Popover (FR-309/310), contraste AA del texto sobre relleno de acento (FR-311). Dos fixes funcionales acotados: arrancar en el MES EN CURSO (FR-312) y SCROLL con rueda vertical+horizontal (FR-313, hook useHorizontalWheel). Se corrigen los 2 bugs de tema (tooltip del dashboard tokenizado, sombra del Select var(--shadow-lg)) y los nitpicks (clase malformada del Select, font-[450]). Cero regresión funcional: solo cambian FR-312/313; se actualizaron las aserciones de features previas que quedaron superseded por los nuevos valores de superficie (FR-301) y el relleno AA (FR-311), conservando sus TC ids.",
+  "files_created": [
+    "src/components/ui/Kpi.tsx (FR-308 Kpi único: .eyebrow + valor .tabular + elevación)",
+    "src/components/ui/Card.tsx (FR-301/308 panel de superficie elevada compartido)",
+    "src/components/ui/popover.tsx (FR-310 primitiva Popover shadcn/Radix, sombra --shadow-lg)",
+    "src/components/IconPicker.tsx (FR-309/310 selector de iconos ≥40 Lucide buscable en Popover)",
+    "src/lib/useHorizontalWheel.ts (FR-313 mapea deltaY→scrollLeft en filas horizontales)",
+    "tests/unit/ux-consistency.test.ts (FR-312 mes en curso, NFR-305/306 regresión/bootstrap)",
+    "tests/integration/ux-consistency.test.ts (FR-308 render del Kpi único)",
+    "tests/e2e/ux-consistency.spec.ts (TCs visuales/UX/funcionales por valor computado)"
+  ],
+  "files_modified": [
+    "src/app/globals.css (FR-301/302/303/306/311/314: re-valuación de superficie para profundidad, --bg-sunken, sombras theme-aware, escala de radios, utilidades tipográficas .display/.title/.title-sm/.label/.caption/.eyebrow, .elevated-sm/md/lg, --primary-foreground/--on-accent/--type-*-fill)",
+    "src/components/NodeIcon.tsx (FR-309: MAP ampliado a ≥40 iconos + ICON_CATALOG exportado; fallback consistente)",
+    "src/components/Dashboard.tsx (FR-301/305/308: Kpi/Card compartidos, cursor del tooltip tokenizado, cifras .tabular)",
+    "src/components/DesktopShell.tsx (FR-304/305/306/308: cabecera con intención, period-pill, Kpi compartido, .eyebrow/.caption; se retira el Kpi local)",
+    "src/components/MobileShell.tsx (FR-304: marca discreta + un título, sin eyebrow LEDGER; espaciado en escala)",
+    "src/components/BudgetGrid.tsx (FR-305/306/309/313: celdas .tabular, CATEGORÍA .eyebrow, IconPicker en Popover reemplaza el grid inline)",
+    "src/components/RecentList.tsx (FR-305/306: eyebrow .eyebrow, monto .tabular con testid recent-amount)",
+    "src/components/format.ts (FR-311: typeFillVar — relleno de acento AA-seguro por tipo)",
+    "src/components/ui/select.tsx (FR-301/314: sombra var(--shadow-lg), radio token, se retira la clase malformada data-[highlighted:bg-elevated]; highlight con bg-sunken)",
+    "src/components/register/TypeToggle.tsx (FR-308/311: patrón único, relleno --type-*-fill + texto --on-accent AA, radio --radius-full)",
+    "src/components/register/CategoryRow.tsx (FR-302/307/313: radios por token, useHorizontalWheel en fila/subfila, overscroll-contain)",
+    "src/components/register/DateTimeField.tsx (FR-307/310: Popover shadcn/Radix + superficie/borde/radio por token)",
+    "src/components/register/NoteField.tsx (FR-307: borde+radio por token, roles .label/.caption)",
+    "src/components/register/SaveButton.tsx (FR-311: relleno typeFillVar + texto --on-accent, radio --radius-md)",
+    "src/components/register/ConfirmOverlay.tsx (FR-311: relleno typeFillVar + --on-accent)",
+    "src/state/store.ts (FR-312: period por defecto = mes en curso via currentMonth())",
+    "src/components/ui/toggle-group.tsx — ELIMINADO (FR-308: componente muerto retirado; TypeToggle es el selector único)",
+    "vitest.config.ts (esbuild jsx automatic para render de componentes en jsdom)",
+    "tests/domain/period-default.test.ts (TC-206e/f actualizado: default = mes en curso, supersede FR-106)",
+    "tests/integration/feature-stack.test.ts (TC-SUT-202e/204h/205e: valores de superficie superseded por FR-301)",
+    "tests/e2e/feature-stack.spec.ts (TC-SUT-201h --bg oscuro #0b0b0e; TC-SUT-207h save-button Ingreso = green-700 AA)",
+    "tests/e2e/critical.spec.ts (TC-012h --bg claro #f2f3f5, supersede FR-301)",
+    "tests/e2e/grid-ux.spec.ts (TC-216: IconPicker en Popover reemplaza el selector inline)",
+    "package.json (+@radix-ui/react-popover; -@radix-ui/react-toggle-group)",
+    "package-lock.json"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/unit/ux-consistency.test.ts",
+    "tests/integration/ux-consistency.test.ts",
+    "tests/e2e/ux-consistency.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-314",
+      "substitution": "--primary-foreground se mantiene #ffffff en claro y #18181b en oscuro (contrato 'texto sobre relleno neutro'); para el TEXTO SOBRE RELLENO DE ACENTO se usa un token dedicado --on-accent (#ffffff en ambos temas), porque los rellenos de acento son oscuros en los dos temas (FR-311) y el valor oscuro de --primary-foreground fallaría AA ahí.",
+      "reason": "Separar el contrato de texto-sobre-neutro del de texto-sobre-acento evita un fallo AA.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": [
+    "BUG DE TAILWIND v4 (raíz del hallazgo M4 del audit): todo el código usaba `rounded-[--radius-*]`, sintaxis de Tailwind v3. En v4 esa forma NO envuelve la variable en var() → se interpreta como valor literal inválido y EL RADIO NO SE APLICA. Por eso las esquinas se veían cuadradas: los tokens de radio estaban muertos en toda la app. Se migraron las 17 ocurrencias al shorthand v4 `rounded-(--radius-*)`. Esto es lo que realmente destraba FR-302/FR-314; no era solo inconsistencia de estilo.",
+    "PALETA AFINADA (FR-301/FR-311, permitido por NFR-302 'los valores de token pueden AFINARSE'): tras investigación (deep-research + benchmark fintech) se desaturan los acentos para eliminar la VIBRACIÓN (cromoestereopsis: los pares rojo-azul y rojo-verde saturados fuerzan al ojo a reenfocar en el borde; cumplir AA no la evita). Claro: expense #DC2626→#C4453E (ladrillo), income #16A34A→#2F7D53 (bosque), transfer #2563EB→#2F6DB4 (acero); balanceados a igual claridad perceptual (L* ≈ 47/47/45). Oscuro: se aclaran y desaturan (#EC6A66/#5FBE82/#6BA6F1). Superficies: lienzo #F7F7F8, card #FFFFFF, hundido #F1F1F3; oscuro #131316/#1B1B1F/#26262B (nunca negro puro — evita halación) con texto off-white #F4F4F5. Semánticos alineados (--warning ámbar-700 #B45309). Evidencia: apps de presupuesto reales (Actual Budget) usan semánticos MUTED, no saturados. El verde afinado ya pasa AA como texto pequeño, así que --type-income-text deja de necesitar variante aparte.",
+    "AA — gate que atrapó un fallo real antes de sellar: con --fg-muted #6E6E76 el eyebrow 'CATEGORÍA' sobre la superficie hundida (#F1F1F3) medía 4.48:1 y NO cumplía AA. Se oscurece --fg-muted a #6B6B73 (4.68:1 hundida / 4.93:1 lienzo / 5.28:1 card), lo que RESUELVE la deuda técnica previa de FR-301: el encabezado de la grilla vuelve a la capa 'hundida' (--bg-sunken) como pide el diseño, sin sacrificar accesibilidad.",
+    "Regresión superseded (conservando TC ids, sin tocar lógica de dominio): la re-valuación de superficie (FR-301) y el afinado de acentos (FR-311) invalidan los hex fijados por features previas. Se actualizaron 6 archivos: TC-SUT-202e/204h/205e (integration), TC-SUT-210h/211e/212f/250h/251e (unit), TC-SUT-201h/207h/223h (e2e feature-stack), TC-012h (critical), tokens de grid-ux, y TC-206e (domain, default de periodo). Los gates REALES de AA se conservaron y se REFORZARON: TC-SUT-212f ahora verifica los 3 tipos en AMBOS temas contra su superficie, TC-SUT-250h agrega text-muted, y TC-SUT-251e sigue guardando que un green-600 saturado NO pasaría. Identidad conservada (zinc + acentos rojo/verde/azul reconocibles, default de tema Sistema): NFR-302.",
+    "FR-311 (AA sobre relleno): el toggle de tipo y el botón Guardar usan --type-*-fill con texto --on-accent (≥4.9:1 en ambos temas). Con la paleta afinada el relleno coincide con el color base del tipo en claro, así que ya no hace falta una variante green-700 solo para el relleno.",
+    "Consistencia de radios (revisión humana): el pill de Mes/Año y el toggle de tipo del registro usaban --radius-full mientras las tabs Resumen/Dashboard usaban la escala. Se unifican al mismo tratamiento (contenedor --radius-md, segmento activo --radius-xs, que anida limpio dentro del padding de 3-4px); el ThemeToggle tenía un `rounded-full` literal (prohibido por el AC negativo de FR-302) y se alinea a --radius-sm. Se actualizaron TC-UXC-302h y TC-UXC-304e (el AC de FR-304 pide 'pill/SEGMENTO', así que un segmentado lo cumple); TC-UXC-304e ahora compara el radio del pill contra el de las tabs en vez de fijar un literal.",
+    "Icono de Transferencias: ArrowLeftRight (↔) → ArrowUpDown (⇅), a pedido de revisión — refleja mejor el movimiento entre cuentas.",
+    "FR-312 supersede el default 'Año' de grid-ux (FR-106): el store arranca en el mes en curso (currentMonth() del reloj) — se actualizó TC-206e (domain).",
+    "FR-309/310: el selector de iconos inline de la grilla se reemplaza por IconPicker (Popover Radix) con catálogo Lucide ampliado (≥40) y búsqueda; el calendario migra al mismo Popover — se actualizó TC-216 (grid-ux). Sin red en runtime: iconos bundleados, Radix client-side (NFR-304).",
+    "Dependencias: +@radix-ui/react-popover (client-side, sin red); se retira @radix-ui/react-toggle-group junto al componente muerto ToggleGroupItem. npm audit: 0 high/critical (2 moderate heredadas de next/postcss, preexistentes).",
+    "smoke.sh y ci.yml preexistentes (stack-upgrade-theme) cubren NFR-306; smoke/e2e como quality_gates required:false (UI-only, mismo patrón que features previas).",
+    "Fuera de alcance (honra no_go_zone): sin rediseño/reconstrucción; sin cambio de modelo de datos salvo el dominio ampliado del campo icon (backward-compatible) y el default de period; sin marca/hue nuevo; sin reordenar indicadores/columnas; sin cambio de despliegue/auth/navegación.",
+    "BACKLOG abierto durante la revisión (fuera del alcance de esta feature, por no_go_zone): BL-001 'Estado de presupuesto como señal' — reservar el rojo para sobre-presupuesto, ámbar para el umbral y neutro para el gasto normal, + pill de % por fila. Respaldo peer-reviewed (Bazley, Cronqvist & Mormann, 'Visual Finance', Management Science 2021): el rojo sobre datos financieros reduce la toma de riesgo. La GRILLA ya se comporta así (ejecColor); Recientes y el Registro no, y cambiarlos tocaría la identidad de color por tipo (NFR-302). BL-002 'Escala de tamaños de control + diseño atómico' — hoy conviven 6 alturas de control (30/32/36/40/44/48px) sin escala; cambiarlas movería el layout (no_go_zone)."
+  ]
+}

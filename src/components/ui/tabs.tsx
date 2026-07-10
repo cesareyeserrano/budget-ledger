@@ -12,7 +12,7 @@ export const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={cn("inline-flex items-center gap-[3px] rounded-[--radius-sm] border border-border bg-elevated p-[3px]", className)}
+    className={cn("inline-flex items-center gap-[3px] rounded-(--radius-md) border border-border bg-elevated p-[3px]", className)}
     {...props}
   />
 ));
@@ -25,7 +25,8 @@ export const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-[0.72rem] text-fg-muted transition-colors outline-none cursor-pointer",
+      // radio del segmento activo MENOR que el de la lista (nesting limpio: sin bordes que sobresalgan).
+      "inline-flex items-center gap-1.5 rounded-(--radius-xs) border border-transparent px-3 py-1.5 text-[0.72rem] text-fg-muted transition-colors outline-none cursor-pointer",
       "data-[state=active]:border-accent data-[state=active]:bg-card data-[state=active]:text-fg",
       className
     )}

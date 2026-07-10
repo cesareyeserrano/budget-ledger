@@ -1,0 +1,203 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "budget-state-color",
+  "createdAt": "2026-07-09T20:11:10.790Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-10T13:08:49.880Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-09T23:44:20.232Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-09T23:49:04.071Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T00:22:29.899Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T00:22:51.684Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T00:34:31.608Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T01:13:04.817Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-10T01:32:38.831Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T01:32:43.710Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T12:53:19.305Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T12:53:19.392Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T12:54:16.692Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-10T13:04:15.635Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T13:04:15.708Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-10T13:05:17.157Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-10T13:06:24.104Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-10T13:06:34.506Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-10T13:06:34.542Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-10T13:06:38.840Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-10T13:08:46.108Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-10T13:08:49.865Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
+    "2": "4828c2f93578941b05a51f9a5ba93d4592d9d9ec750620baa13e4246c83e49f2",
+    "3": "e8cd7eb2b283e67d413cc1899b7727a57fa35cd6f897bd55aea920d102d52d5f",
+    "4": "df176fb9112914c8645fc8006b18f44ede1e6a50859c6b8a8f799dd103094ec2",
+    "5": "3062c040c108e3ef21adf489f7f185c6c490e4daf65c55a18a4e83cda9fb4206",
+    "ux": "90c1de7107db0707eb9b41509b62959bb4937ac5c6c1f3bb4762f360c5b87744"
+  },
+  "coverageAuditLastAt": "2026-07-09T20:51:56.992Z",
+  "coverageAuditReqHash": "5bac65fb1b7ecc92a328b0e78e80ce7f3f9472d39b68efa4e92c8a695d6739a3",
+  "verifyPassed": true,
+  "frSnapshots": {
+    "2": [
+      "FR-401",
+      "FR-402",
+      "FR-403",
+      "FR-404"
+    ],
+    "3": [
+      "FR-401",
+      "FR-402",
+      "FR-403",
+      "FR-404"
+    ],
+    "4": [
+      "FR-401",
+      "FR-402",
+      "FR-403",
+      "FR-404"
+    ],
+    "5": [
+      "FR-401",
+      "FR-402",
+      "FR-403",
+      "FR-404"
+    ],
+    "ux": [
+      "FR-401",
+      "FR-402",
+      "FR-403",
+      "FR-404"
+    ]
+  },
+  "verifyResultsHash": "49722791f5fb87f556de2e9835efe6c3442b85d5cab955b0a1cf0dcbf190571e",
+  "verifyRanAt": "2026-07-10T13:05:17.157Z",
+  "lastVerifyRun": {
+    "passed": 25,
+    "failed": 0,
+    "skipped": 3,
+    "manual": 0,
+    "at": "2026-07-10T13:05:17.157Z"
+  },
+  "verifySummary": {
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  }
+}

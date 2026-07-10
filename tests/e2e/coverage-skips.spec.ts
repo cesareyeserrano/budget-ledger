@@ -28,11 +28,13 @@ test("TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil
 });
 
 test("TC-012e: el contraste de texto primario sobre el fondo es ≥ 4.5:1", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
   const ratio = await page.evaluate(() => {
     const s = getComputedStyle(document.documentElement);
     const hexToRgb = (h: string) => {
-      const v = h.trim().replace("#", "");
+      let v = h.trim().replace("#", "");
+      if (v.length === 3) v = [...v].map((c) => c + c).join(""); // #fff → #ffffff (Lightning CSS minifica)
       return [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16));
     };
     const lum = (rgb: number[]) => {
