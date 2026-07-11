@@ -73,7 +73,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "critical",
-      "status": "fixed",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -81,7 +81,7 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-07-10T19:20:58.699Z",
-      "updated_at": "2026-07-10T19:24:52.538Z",
+      "updated_at": "2026-07-11T02:04:28.842Z",
       "resolution": "uid() en src/domain/mutations.ts degrada: crypto.randomUUID si existe (secure context), si no getRandomValues (disponible por HTTP) para armar un UUIDv4, y como último recurso un id no-cripto. Regresión: tests/domain/movement.test.ts BG-004h/e/f simulan el contexto HTTP (randomUUID ausente) y exigen que guardar y crear categorías sigan operando.",
       "fix_commit_sha": "a956e11a6c9d5f417b71e04c177bf3f24d01cb6e",
       "fix_at": "2026-07-10T19:24:52.538Z"
