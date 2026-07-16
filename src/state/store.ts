@@ -7,6 +7,9 @@ import {
   type NewMovement, type NewNode,
 } from "@/domain";
 import { LocalStorageRepository, type LedgerRepository } from "@/data/repository";
+import { ServerRepository } from "@/data/serverRepository";
+import { SERVER_MODE } from "@/lib/serverMode";
+import { STORAGE_KEYS } from "@/domain/types";
 
 export type PeriodFilter = { mode: "month"; month: MonthKey } | { mode: "year" };
 
@@ -29,12 +32,19 @@ interface LedgerStore {
   setLeafAmount: (leafId: string, month: MonthKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
   hydrate: () => Promise<void>;
+  /** Re-carga el estado desde la fuente de verdad (usado por el sync en vivo, FR-511). */
+  resync: () => Promise<void>;
 }
 
 const OWNER = "local";
 
+/**
+ * Punto de swap (FR-011 raíz / FR-508). En modo servidor devuelve la impl de servidor; en modo
+ * localStorage (default) la existente — mismo contrato LedgerRepository, sin tocar el dominio.
+ */
 function makeRepo(): LedgerRepository | null {
   if (typeof window === "undefined") return null;
+  if (SERVER_MODE) return new ServerRepository();
   return new LocalStorageRepository(window.localStorage);
 }
 
@@ -44,9 +54,13 @@ const DOUBLE_TAP_MS = 600;
 export const useLedgerStore = create<LedgerStore>((set, get) => {
   const repo = makeRepo();
   const persist = (data: LedgerState) => {
-    // Si la persistencia falla (p. ej. quota), se surface un aviso no bloqueante (FR-212).
+    // Si la persistencia falla (p. ej. quota local, o conflicto/red en servidor), aviso no bloqueante.
     void repo?.save(OWNER, data).then((ok) => {
-      if (ok === false) set({ storageError: "quota" });
+      if (ok === false) {
+        // En servidor un false puede ser un 409 (stale): re-hidratar para converger (ADR-06/FR-508).
+        if (SERVER_MODE) void get().resync();
+        else set({ storageError: "quota" });
+      }
     });
   };
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
@@ -73,10 +87,40 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         set({ hydrated: true });
         return;
       }
-      const loaded = await repo.load(OWNER);
+      // Split de almacenamiento (FR-509): en servidor, localStorage NUNCA guarda datos financieros;
+      // se retiran las llaves financieras legadas del uso cliente-puro previo (limpieza, no migración).
+      if (SERVER_MODE && typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem(STORAGE_KEYS.nodes);
+          window.localStorage.removeItem(STORAGE_KEYS.budget);
+        } catch {
+          // localStorage indisponible: los datos financieros no dependen de él.
+        }
+      }
+      let loaded: LedgerState | null = null;
+      try {
+        loaded = await repo.load(OWNER);
+      } catch {
+        // Servidor inalcanzable / no autenticado: no se cae a datos locales (no existen). El gate
+        // muestra login o un error de conexión; marcamos hidratado para no bloquear el render.
+        set({ hydrated: true });
+        return;
+      }
+      // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
       const data = loaded ?? buildSeed(OWNER);
       if (!loaded) await repo.save(OWNER, data);
       set({ data, hydrated: true });
+    },
+
+    /** Re-carga desde la fuente de verdad (sync en vivo / resolución de conflicto). */
+    resync: async () => {
+      if (!repo) return;
+      try {
+        const loaded = await repo.load(OWNER);
+        if (loaded) set({ data: loaded });
+      } catch {
+        // Ignorar: una recarga o el próximo evento re-sincronizan (FR-510).
+      }
     },
 
     /**
@@ -137,6 +181,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     setPeriod: (period) => set({ period }),
   };
 });
+
+// Seam de test (solo modo servidor): expone el store para que los e2e observen el estado en vivo
+// (actualizado por el sync SSE) sin recargar. No-op en modo localStorage y en SSR.
+if (SERVER_MODE && typeof window !== "undefined") {
+  (window as unknown as { __ledgerStore?: typeof useLedgerStore }).__ledgerStore = useLedgerStore;
+}
 
 function currentMonth(): MonthKey {
   const keys: MonthKey[] = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];

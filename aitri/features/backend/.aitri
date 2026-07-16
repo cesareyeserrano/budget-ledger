@@ -1,0 +1,231 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "backend",
+  "createdAt": "2026-07-11T02:14:41.264Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-16T14:27:42.985Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-15T17:53:26.472Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-15T17:53:31.399Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-15T18:22:01.703Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-15T19:01:05.701Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-15T19:08:33.991Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-15T23:48:49.502Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T00:27:56.972Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T00:37:41.588Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 82,
+      "failed": 0,
+      "skipped": 4,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-16T00:51:59.108Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
+    },
+    {
+      "at": "2026-07-16T01:11:03.269Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T01:11:07.763Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T01:23:28.433Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 82,
+      "failed": 0,
+      "skipped": 4,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-16T13:07:54.199Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T13:07:54.242Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T13:07:54.325Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-16T13:14:45.997Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-16T14:25:11.679Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-16T14:25:22.755Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-16T14:27:29.998Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-16T14:27:42.970Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "fbb2aee1d07d64f63ab6574713d9c72a10331688749059d55182e64d3f465966",
+    "2": "faa7ebee08ff633d7790e3b8194568e96e22194ca4533b6394f68b30435e274e",
+    "3": "3cea7c4b40345b4aa5ba31e70caa818d596eaa507bae25b322bec21e6b82a491",
+    "4": "810324ee37bd2ddbf409ba4547b27014cf60cc7a385d597746b550832d054c23",
+    "5": "c38fa8e862e045dbe28a1ec4904863ffbd927260cc5ee7de434f9272169ca1d4"
+  },
+  "coverageAuditLastAt": "2026-07-12T00:15:16.577Z",
+  "coverageAuditReqHash": "cb7ba606a60a76900468e9f497b32ee23b58b7d3ced0ffa19d42f2557e3e86f7",
+  "frSnapshots": {
+    "2": [
+      "FR-501",
+      "FR-502",
+      "FR-503",
+      "FR-504",
+      "FR-505",
+      "FR-506",
+      "FR-507",
+      "FR-508",
+      "FR-509",
+      "FR-510",
+      "FR-511",
+      "FR-512",
+      "FR-513"
+    ],
+    "3": [
+      "FR-501",
+      "FR-502",
+      "FR-503",
+      "FR-504",
+      "FR-505",
+      "FR-506",
+      "FR-507",
+      "FR-508",
+      "FR-509",
+      "FR-510",
+      "FR-511",
+      "FR-512",
+      "FR-513"
+    ],
+    "4": [
+      "FR-501",
+      "FR-502",
+      "FR-503",
+      "FR-504",
+      "FR-505",
+      "FR-506",
+      "FR-507",
+      "FR-508",
+      "FR-509",
+      "FR-510",
+      "FR-511",
+      "FR-512",
+      "FR-513"
+    ],
+    "5": [
+      "FR-501",
+      "FR-502",
+      "FR-503",
+      "FR-504",
+      "FR-505",
+      "FR-506",
+      "FR-507",
+      "FR-508",
+      "FR-509",
+      "FR-510",
+      "FR-511",
+      "FR-512",
+      "FR-513"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "72a7d2ad64a48b261fdccdf22a73d957dba4c9b7f71144c1c6d554fc700309d7",
+  "verifyRanAt": "2026-07-16T13:14:45.997Z",
+  "lastVerifyRun": {
+    "passed": 85,
+    "failed": 0,
+    "skipped": 1,
+    "manual": 0,
+    "at": "2026-07-16T13:14:45.997Z"
+  },
+  "verifySummary": {
+    "total": 86,
+    "passed": 85,
+    "failed": 0,
+    "skipped": 1,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 1,
+    "manual": 0,
+    "manual_verified": 0
+  }
+}

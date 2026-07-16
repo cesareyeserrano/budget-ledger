@@ -34,3 +34,47 @@ No client need was silently *dropped* — every expressed need maps to an FR, an
 - **Scaffolding:** multiuser + external-API andamiaje→FR-014.
 - **Visual assets (mockups):** dashboard→FR-009/FR-012 · budget grid→FR-006/FR-008 — covered via UX-type FRs and the approved UX phase.
 - **Out-of-scope (10/10) correctly excluded, not reported as gaps:** distribución proporcional · presupuesto/dashboard móvil · teclado numérico · multiusuario/login · APIs runtime · multi-año/moneda · backend Supabase · reordenar-por-posición + arrastrar grupos · exportación · tweaks como preferencias — each cited in `no_go_zone`.
+
+---
+
+## Security
+
+_Adversarial review tras cerrar la feature `backend` (modo servidor multiusuario: auth, API `/api/v1`, Postgres, SSE). Fecha: 2026-07-16._
+
+**Surfaces audited:** static (código/repo/deps): **covered** — `src/server/**`, rutas `src/app/api/**`, `next.config.mjs`, `docker-compose.yml`, `Dockerfile`, `.env.example`, `npm audit`, escaneo de secretos y de git-tracked env. · runtime (local): **covered** — app booteada en modo servidor (`NEXT_PUBLIC_LEDGER_SERVER_MODE=true`) contra Postgres 16 efímero; probados headers, `/health`, gating 401, rutas de error, endpoints de debug/docs, y el bundle cliente servido. Sin instancia desplegada pública (TLS terminado en proxy) → la verificación de TLS en tránsito queda como manual (ver TC-BE-077h).
+
+**Postura general: sólida.** Auth exigida en las 4 rutas de datos, aislamiento por `ownerId` estructural, contraseñas argon2id, queries parametrizadas (Drizzle), cookies HttpOnly/Secure/SameSite, headers de seguridad presentes, sin endpoints de debug (todo 404), sin stack traces en errores, sin `@aitri-trace`/IDs internos en el bundle cliente, y **sin fuga del valor de ningún secreto al cliente** (el bundle solo contiene el guard de Next que *lanza* al tocar una env server-only). Los hallazgos son de **endurecimiento (todos P2)**, no huecos explotables.
+
+**[RQ-SEC-001]** `P2` — CSP permite `'unsafe-inline'` y `'unsafe-eval'`
+- Severity: Low — Un atacante que logre inyectar HTML (p. ej. vía un XSS futuro en algún punto no escapado) podría ejecutar scripts inline; la CSP actual no lo frenaría. Mitigado en profundidad por el escape por defecto de React y la cookie de sesión HttpOnly (un XSS no exfiltra la sesión), por eso Low.
+- Evidence: header servido `Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; ...` (probado con `curl -D -` sobre `/`).
+- Acceptance criteria: la CSP servida NO contiene `'unsafe-inline'` ni `'unsafe-eval'` en `script-src` (usa nonce o hash). `curl -sD - / | grep -i content-security-policy` no muestra `unsafe-eval`.
+- Suggested implementation: CSP basada en nonce vía `middleware.ts` de Next (genera un nonce por request, lo inyecta en `script-src 'nonce-...'`), o migrar los estilos inline a clases para quitar `unsafe-inline` de `style-src`. Requiere probar que la app no rompe (Next inyecta scripts inline con nonce).
+
+**[RQ-SEC-002]** `P2` — Header `X-Powered-By: Next.js` expone el framework
+- Severity: Low — Fingerprinting: un atacante identifica el framework/versión y ajusta ataques a CVEs conocidos de Next. No es una vulnerabilidad por sí misma, reduce el costo del reconocimiento.
+- Evidence: `curl -sD - / -o /dev/null | grep -i x-powered-by` → `X-Powered-By: Next.js`.
+- Acceptance criteria: la respuesta NO incluye el header `X-Powered-By`.
+- Suggested implementation: `poweredByHeader: false` en `next.config.mjs` (una línea).
+
+**[RQ-SEC-003]** `P2` — Rate-limit de login basado en `X-Forwarded-For` (spoofable sin proxy que lo sanee)
+- Severity: Medium (dependiente del despliegue) — El limitador de `/sign-in/email` (5/60s) se llavea por IP tomada de `x-forwarded-for` (`advanced.ipAddress.ipAddressHeaders`). Si el reverse proxy no **sobrescribe** ese header (o no hay proxy), un atacante rota `X-Forwarded-For` en cada request → un bucket distinto por intento → **elude el límite de fuerza bruta**. (Verificado indirectamente: el harness e2e desactiva el rate-limit precisamente porque el header controla el bucket.)
+- Evidence: `src/server/auth.ts` → `advanced.ipAddress.ipAddressHeaders: ["x-forwarded-for"]` + `rateLimit.customRules["/sign-in/email"] = { window:60, max:5 }`.
+- Acceptance criteria: en el despliegue, el reverse proxy fija (no append) `X-Forwarded-For` al IP real del cliente; documentado en DEPLOYMENT.md como requisito. Opcional: un test que envíe 6 logins fallidos rotando XFF y aún reciba 429 cuando el proxy está presente.
+- Suggested implementation: documentar en DEPLOYMENT.md que el proxy (nginx) debe usar `proxy_set_header X-Forwarded-For $remote_addr;` (reemplazar, no `$proxy_add_x_forwarded_for`). Considerar un `trustedProxy`/hop-count si Better Auth lo soporta.
+
+**[RQ-SEC-004]** `P2` — El registro (`/sign-up/email`) no tiene rate-limit específico
+- Severity: Low — Solo aplica el límite global (100/60s por IP). Permite creación masiva de cuentas / sondeo de emails a mayor volumen que el login. No expone datos; es abuso de recursos.
+- Evidence: `src/server/auth.ts` → `customRules` solo declara `/sign-in/email`; `/sign-up/email` cae al global `max: 100`.
+- Acceptance criteria: `customRules["/sign-up/email"]` declara un límite acotado (p. ej. 10/60s); un test de 11 registros desde una IP recibe 429.
+- Suggested implementation: añadir `"/sign-up/email": { window: 60, max: 10 }` a `rateLimit.customRules`.
+
+**[RQ-SEC-005]** `P2` — 6 vulnerabilidades moderadas en dependencias (dev/build), 0 altas/críticas
+- Severity: Low — `drizzle-kit` (→ `@esbuild-kit/esm-loader`) y `postcss` (vía `next`, XSS en el stringify de CSS) son de **build/dev**, no llegan al runtime servido. `npm audit --audit-level=high` sale 0 (el gate de CI no bloquea). Riesgo real bajo.
+- Evidence: `npm audit` → "6 moderate severity vulnerabilities"; `npm audit --audit-level=high` → exit 0.
+- Acceptance criteria: `npm audit --audit-level=high` mantiene exit 0; revisar y actualizar cuando haya fixes no-breaking para las moderadas.
+- Suggested implementation: seguimiento periódico; el gate SCA de CI ya cubre alto/crítico (NFR-513).
+
+**Proposed quality_gate** — `scripts/security-config.sh` (exit-code): verifica estáticamente que `next.config.mjs` declara los headers requeridos (`Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, CSP con `frame-ancestors 'none'`) **y** `poweredByHeader: false`; que la CSP de `script-src` no contiene `unsafe-eval` (RQ-SEC-001); que `src/server/auth.ts` mantiene `httpOnly` + `sameSite` en las cookies y un `customRule` para `/sign-up/email` (RQ-SEC-004). Declararlo en `04_BUILD_REPORT.json#quality_gates` para que `verify` re-chequee la postura cada ciclo. El gate `security` existente (`scripts/secret-scan.sh`) ya cubre secretos en el árbol.
+
+**Verdict:** 5 hallazgos — **P0: 0 · P1: 0 · P2: 5**. Riesgo general **bajo**: la superficie está bien endurecida; los hallazgos son mejoras de defensa-en-profundidad (CSP más estricta, fingerprinting, rate-limit del registro, y una dependencia operativa del proxy para el anti-fuerza-bruta). Ninguno bloquea el despliegue; RQ-SEC-003 es el más importante por su dependencia del proxy.

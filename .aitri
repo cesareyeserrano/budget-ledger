@@ -20,45 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.0.0-rc.171",
+  "aitriVersion": "2.0.1",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-10T16:49:49.996Z",
+  "updatedAt": "2026-07-16T16:36:55.888Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T01:09:44.963Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 14,
-      "method": "git",
-      "baseRefFrom": "c0c6c77b48271ab447e9ed1cfeff6b67d12a75bc",
-      "baseRefTo": "9be85fadbb463357f355415be51468b4e673a429"
-    },
-    {
-      "at": "2026-07-04T01:43:13.711Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 1,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-04T01:43:32.586Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 1,
-      "method": "git"
-    },
-    {
-      "at": "2026-07-04T01:47:09.131Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-07-04T01:47:18.414Z",
       "event": "verify-complete",
@@ -188,6 +155,39 @@
       "method": "git",
       "baseRefFrom": "bd4d06e531253c64adf16dd0c28163a202554183",
       "baseRefTo": "2a9bc77bf714b9a5af0bb7dafc56c38c16b0197a"
+    },
+    {
+      "at": "2026-07-11T16:20:03.653Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 2,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-11T16:22:56.315Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-11T16:23:07.841Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-11T16:27:06.607Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 2,
+      "method": "git",
+      "baseRefFrom": "2a9bc77bf714b9a5af0bb7dafc56c38c16b0197a",
+      "baseRefTo": "b06149eb1bc04057cb10aa0c94e4e79c019a693b"
     }
   ],
   "cascadedPhases": [],
@@ -280,14 +280,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "c82b1c7bf3bf47213731ccaaf433d4bbf26329a0b81d66e1c7370de7e8a634b7",
-  "verifyRanAt": "2026-07-10T16:44:10.914Z",
+  "verifyResultsHash": "a791c94ed6213a31b7c45f588419ee7fc2a1fc157478ce901323919e6a54823c",
+  "verifyRanAt": "2026-07-11T16:22:56.315Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-10T16:44:10.914Z"
+    "at": "2026-07-11T16:22:56.315Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
@@ -300,5 +300,6 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 6
-  }
+  },
+  "securityAuditLastAt": "2026-07-16T16:36:55.887Z"
 }

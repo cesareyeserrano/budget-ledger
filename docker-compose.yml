@@ -1,18 +1,50 @@
 # Ledger — despliegue local/Ultron. Nginx (host o contenedor aparte) hace de reverse proxy → este servicio.
+# feature backend (FR-512 / NFR-505 / NFR-510): Postgres portátil por volumen nombrado, host-agnóstico.
+# La Pi es solo un target; nada aquí la asume. TLS y security headers los termina el reverse proxy.
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: ledger-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+      POSTGRES_DB: ${POSTGRES_DB:-ledger}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledger}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   ledger:
     build: .
     image: t-ledger:latest
     container_name: ledger
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "3080:3000"        # host 3080 → contenedor 3000; Nginx (TLS + security headers) hace de proxy
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DATABASE_URL=${DATABASE_URL:-postgres://ledger:ledger@db:5432/ledger}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3080}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - LEDGER_ALLOWED_ORIGINS=${LEDGER_ALLOWED_ORIGINS:-}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 25s
+
+volumes:
+  pgdata:

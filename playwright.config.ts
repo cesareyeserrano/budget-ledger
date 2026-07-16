@@ -23,6 +23,7 @@ export default defineConfig({
     command: `npm run build && npx next start -p ${PORT}`,
     url: BASE,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // Holgado: durante `verify-run` este webServer compila bajo carga (testcontainers + otros builds).
+    timeout: 300_000,
   },
 });

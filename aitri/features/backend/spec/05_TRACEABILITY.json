@@ -1,0 +1,54 @@
+{
+  "project": "Ledger (T-Ledger) — Backend (feature)",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    { "id": "FR-501", "title": "Registro e inicio de sesión con email + contraseña", "level": "complete", "evidence": "TC-BE-001h/002f/003f/004e/005f pass (registro, login 401, duplicado, hash argon2id, inyección). Better Auth + argon2id." },
+    { "id": "FR-502", "title": "Inicio de sesión con Google OAuth", "level": "complete", "evidence": "TC-BE-006h/007e (happy path con IdP de Google mockeado: id_token firmado; crea/vincula cuenta + ownerId estable), 008f/009f (callback denegado/state inválido) pass. Provider Google implementado; smoke real de Google recomendado al desplegar." },
+    { "id": "FR-503", "title": "Sesión que identifica al usuario en cada request", "level": "complete", "evidence": "TC-BE-010h/011f/012f/013e pass (userId resuelto, sin sesión no asume, logout invalida, token manipulado). Sesiones en BD." },
+    { "id": "FR-504", "title": "Gating de la API — sin sesión no hay datos", "level": "complete", "evidence": "TC-BE-014h/015f/016e pass (200 con sesión, 401 sin sesión + cero datos, token expirado 401). withApi()." },
+    { "id": "FR-505", "title": "Aislamiento por ownerId", "level": "complete", "evidence": "TC-BE-017h/018f/019f/020e pass (solo datos propios, 404 recurso ajeno, edición ajena rechazada, ownerId de sesión no del payload)." },
+    { "id": "FR-506", "title": "Esquema de base de datos por usuario", "level": "complete", "evidence": "TC-BE-021h/022e/023f pass (movimiento legible, nodo/presupuesto/ejecutado con ownerId, sin ownerId rechazado por constraint)." },
+    { "id": "FR-507", "title": "API de servidor versionada, filtrada por usuario", "level": "complete", "evidence": "TC-BE-024h/025e/026f pass (POST /api/v1 persiste, contrato versionado, payload malformado 422)." },
+    { "id": "FR-508", "title": "Implementación de servidor de LedgerRepository", "level": "complete", "evidence": "TC-BE-027h/028e/029f pass (makeRepo→ServerRepository, escritura al servidor no localStorage, fallo de red no corrompe)." },
+    { "id": "FR-509", "title": "Split de almacenamiento — localStorage solo local", "level": "complete", "evidence": "TC-BE-030h/031e/032f pass (e2e: tema persiste; sin datos financieros; sin credenciales en localStorage)." },
+    { "id": "FR-510", "title": "Sincronización al recargar/abrir entre dispositivos", "level": "complete", "evidence": "TC-BE-033h/034e/035f pass (e2e, 2 contextos: movimiento cruza al recargar; presupuesto editado; otro usuario no lo ve)." },
+    { "id": "FR-511", "title": "Sincronización en vivo entre dispositivos", "level": "complete", "evidence": "TC-BE-036h/037f/038e (e2e ≤5s, otro usuario no recibe, dispositivo cerrado sin error) + 039e (unit: hub enruta por userId) pass. SSE." },
+    { "id": "FR-512", "title": "Persistencia portátil — sobrevive reinicio y cambio de host", "level": "complete", "evidence": "TC-BE-040h/041e/042f pass (sobrevive reinicio; dump→wipe→restore sin pérdida; env faltante aborta el boot). Volumen nombrado pgdata." },
+    { "id": "FR-513", "title": "Estado inicial de un usuario nuevo — arranque limpio", "level": "complete", "evidence": "TC-BE-043h/044e/045f pass (e2e: ledger propio utilizable; no arrastra localStorage previo; dos cuentas independientes)." },
+    { "id": "NFR-501", "title": "Línea base OWASP/ASVS — credenciales, validación, authz, secretos", "level": "complete", "evidence": "TC-BE-046h/047f/048f/049e pass (hash argon2id, inyección parametrizada, autorización horizontal 404, sin secretos en repo/bundle)." },
+    { "id": "NFR-502", "title": "Observabilidad — log por request", "level": "complete", "evidence": "TC-BE-050h/051e/052f pass ([ts] METHOD /path STATUS en 200/401/422). withApi()." },
+    { "id": "NFR-503", "title": "CI ejecuta la suite completa (unit + e2e) en push a main", "level": "complete", "evidence": "TC-BE-053h/054e/055f pass. .github/workflows/ci.yml: push/PR a main, test:run + Playwright (localStorage + backend), un test roto falla el job." },
+    { "id": "NFR-504", "title": "Healthcheck GET /health", "level": "complete", "evidence": "TC-BE-056h/057e/058f pass (200 vivo, sin auth, sin datos de usuario)." },
+    { "id": "NFR-505", "title": "Persistencia portátil que sobrevive reinicios", "level": "complete", "evidence": "TC-BE-059h/060e/061f pass (registro legible tras reinicio, config sin rutas de host, sin pérdida)." },
+    { "id": "NFR-506", "title": "Presupuesto de latencia (≤500ms API, ≤150ms roll-up cliente)", "level": "complete", "evidence": "TC-BE-062h/063e/064f pass (lectura 2000 movs ≤500ms —~370ms medido—, escritura + roll-up ≤150ms, presupuesto como aserción dura)." },
+    { "id": "NFR-507", "title": "Dominio puro sin cambios de cálculo", "level": "complete", "evidence": "TC-BE-065h/066e/067f pass (rollup/dashboard/budgetState idénticos al baseline; ceros sin NaN; entrada inválida rechazada igual)." },
+    { "id": "NFR-508", "title": "Grilla/registro/Mes-Año idénticos contra el backend", "level": "complete", "evidence": "TC-BE-068h/069e/070f pass (e2e: movimiento suma a Ejecutado en la grilla; Mes/Año recalcula; monto 0 no crea)." },
+    { "id": "NFR-509", "title": "Suite existente verde + typecheck/lint sin errores", "level": "complete", "evidence": "TC-BE-071h/072e/073f pass. Modo localStorage (flag off) preserva la suite previa; typecheck+lint exit 0; suite falsable. verify-run: 85/86, 6/6 gates verdes." },
+    { "id": "NFR-510", "title": "Portabilidad — sin supuestos atados a la Pi", "level": "complete", "evidence": "TC-BE-074h/075e/076f pass (build/boot sin rutas de la Pi; host/BD por env; env faltante aborta explícito)." },
+    { "id": "NFR-511", "title": "Cifrado en tránsito (TLS) y en reposo", "level": "partial", "evidence": "TC-BE-078e/079f pass (credenciales argon2id ilegibles; sin sesión no lee). DEUDA: cifrado en reposo de datos financieros delegado al cifrado de volumen (ADR-08, contrato de despliegue, no verificado por código); captura TLS (TC-BE-077h) es verificación manual al desplegar. Documentado en DEPLOYMENT.md; verificar con 'aitri audit security' pre-deploy." },
+    { "id": "NFR-512", "title": "Endurecimiento de auth/sesión/HTTP", "level": "complete", "evidence": "TC-BE-080h/081f/082e/083f pass (cookie HttpOnly/Secure/SameSite, rate limit 5/60s→429, HSTS+nosniff, CORS rechaza origen no permitido)." },
+    { "id": "NFR-513", "title": "Gates de seguridad en CI (SCA + secretos)", "level": "complete", "evidence": "TC-BE-084h/085e/086f pass. CI: npm audit --audit-level=high + scripts/secret-scan.sh (detecta secreto plantado, pasa árbol limpio), ambos en push a main." }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "NFR-511",
+      "substitution": "La captura de tráfico TLS en tránsito (TC-BE-077h) queda como verificación MANUAL con evidencia: requiere un despliegue con TLS terminado en el proxy y un sniff de red. Su acceptance (AC-501d) está cubierta por TC-BE-078e. Google OAuth happy path (006h/007e) y restore cross-host (041e) fueron automatizados.",
+      "reason": "Un sniff de TLS exige una terminación TLS real desplegada.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-511",
+      "substitution": "El cifrado en reposo de los DATOS FINANCIEROS se delega al cifrado de volumen/disco (ADR-08), un contrato de DESPLIEGUE, no cifrado a nivel de aplicación. Las credenciales sí van cifradas (argon2id, TC-BE-078e).",
+      "reason": "El cifrado de campo añadiría gestión de claves propia y rompería CHECKs sobre montos; el cifrado de volumen cumple la acceptance literal al alcance personal.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-501",
+      "substitution": "El modo servidor se activa con el flag NEXT_PUBLIC_LEDGER_SERVER_MODE (off por defecto = modo localStorage previo), punto de swap del diseño como rollout switch: preserva la suite e2e existente (NFR-509) y permite despliegue gradual. El modo servidor está completo y probado.",
+      "reason": "Poner auth delante de toda la app rompería la suite e2e existente; el flag entrega la feature completa sin regresión.",
+      "effort_to_fix": "low"
+    }
+  ]
+}
