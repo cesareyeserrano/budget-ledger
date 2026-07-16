@@ -24,6 +24,14 @@
       "problem": "6 vulns moderadas en deps de dev/build (drizzle-kit, postcss); 0 altas/criticas; el gate SCA de CI ya cubre alto/critico. Actualizar cuando haya fixes no-breaking.",
       "status": "open",
       "createdAt": "2026-07-16T17:35:28.120Z"
+    },
+    {
+      "id": "BL-004",
+      "title": "Cifrado a nivel de campo de datos financieros (montos/notas)",
+      "priority": "P2",
+      "problem": "Hoy los montos se guardan en claro en Postgres (ADR-08 delega el cifrado en reposo al volumen; solo protege disco/backup, no una query directa). Enhancement: cifrar montos/notas/nombres (AES-GCM) para que ni con acceso a la BD sean legibles. Factible porque el cálculo corre en el cliente (el server solo almacena/devuelve). Costo: gestión de claves + se pierden CHECK/queries numéricas sobre el monto. Es una feature propia (aitri feature init), no un parche. Ver NFR-511 en 05_TRACEABILITY.json.",
+      "status": "open",
+      "createdAt": "2026-07-16T21:44:17.050Z"
     }
   ]
 }
