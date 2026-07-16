@@ -23,16 +23,9 @@
   "aitriVersion": "2.0.1",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-16T16:36:55.888Z",
+  "updatedAt": "2026-07-16T18:21:04.125Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T01:47:18.414Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-07-04T01:48:13.220Z",
       "event": "reconcile-resolved",
@@ -188,6 +181,14 @@
       "method": "git",
       "baseRefFrom": "2a9bc77bf714b9a5af0bb7dafc56c38c16b0197a",
       "baseRefTo": "b06149eb1bc04057cb10aa0c94e4e79c019a693b"
+    },
+    {
+      "at": "2026-07-16T18:21:04.123Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 59,
+      "method": "git",
+      "verifyPassedCleared": true
     }
   ],
   "cascadedPhases": [],
@@ -200,7 +201,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "3023ad277d3c9ef0ec96e6312abd7ac7e3df52a02da8634802a9d69606a4acbe"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -291,15 +292,5 @@
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
-  "verifySummary": {
-    "total": 54,
-    "passed": 54,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 6
-  },
   "securityAuditLastAt": "2026-07-16T16:36:55.887Z"
 }
