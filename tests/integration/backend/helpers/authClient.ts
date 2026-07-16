@@ -6,7 +6,7 @@
  *   un navegador. También construye requests a rutas /api/v1 con o sin cookie.
  * Dependencies: @/server/auth
  */
-import { auth } from "@/server/auth";
+import { getAuth } from "@/server/auth";
 
 const BASE = process.env.BETTER_AUTH_URL ?? "http://localhost:3100";
 
@@ -27,7 +27,7 @@ export async function authPost(path: string, body: unknown, opts: AuthReqOpts = 
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (opts.cookie) headers.cookie = opts.cookie;
   if (opts.ip) headers["x-forwarded-for"] = opts.ip;
-  return auth.handler(
+  return getAuth().handler(
     new Request(`${BASE}/api/auth${path}`, { method: "POST", headers, body: JSON.stringify(body) })
   );
 }
@@ -37,7 +37,7 @@ export async function authGet(path: string, opts: AuthReqOpts = {}): Promise<Res
   const headers: Record<string, string> = {};
   if (opts.cookie) headers.cookie = opts.cookie;
   if (opts.ip) headers["x-forwarded-for"] = opts.ip;
-  return auth.handler(new Request(`${BASE}/api/auth${path}`, { method: "GET", headers }));
+  return getAuth().handler(new Request(`${BASE}/api/auth${path}`, { method: "GET", headers }));
 }
 
 /** Registra un usuario y devuelve la cookie de sesión resultante. */

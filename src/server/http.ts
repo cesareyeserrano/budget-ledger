@@ -74,8 +74,10 @@ export function apiError(code: string, message: string, status: number): Respons
  * @returns una función compatible con los route handlers de Next (GET/POST/PUT/...)
  */
 export function withApi<T = unknown>(opts: ApiOptions<T>, handler: RouteHandler<T>) {
-  const e = env();
   return async (req: Request, routeCtx?: NextRouteCtx): Promise<Response> => {
+    // env() es memoizado y se resuelve en runtime (no al invocar withApi al cargar la ruta): así
+    // `next build` no exige las envs al recolectar page data (NFR-510: validar en boot, no en build).
+    const e = env();
     const start = performance.now();
     const rid = nextRequestId();
     const path = new URL(req.url).pathname;

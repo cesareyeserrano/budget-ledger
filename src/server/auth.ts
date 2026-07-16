@@ -15,8 +15,6 @@ import { db } from "./db/client";
 import { account, session, user, verification } from "./db/schema";
 import { env } from "./env";
 
-const e = env();
-
 // Algorithm.Argon2id = 2 (el enum de @node-rs/argon2 es const enum: incompatible con isolatedModules).
 const ARGON2ID = 2;
 // Parámetros OWASP para argon2id (NFR-501): m=19 MiB, t=2, p=1.
@@ -38,7 +36,11 @@ const SIGNUP_MAX_ATTEMPTS = 10; // RQ-SEC-004: acota la creación masiva de cuen
 // funcionamiento del rate limit se verifica en la suite de integración (TC-BE-081f).
 const RATE_LIMIT_DISABLED = process.env.LEDGER_RATE_LIMIT_DISABLED === "true";
 
-export const auth = betterAuth({
+// Inicialización PEREZOSA: env() se llama en el primer uso, NO al importar — así `next build` (que
+// importa las rutas de auth para recolectar page data) no exige las envs en build (NFR-510).
+function buildAuth() {
+  const e = env();
+  return betterAuth({
   baseURL: e.BETTER_AUTH_URL,
   secret: e.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
@@ -82,6 +84,15 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: e.allowedOrigins,
-});
+  });
+}
 
-export type Auth = typeof auth;
+let _auth: ReturnType<typeof buildAuth> | undefined;
+
+/** Instancia de Better Auth, construida una sola vez en el primer uso (runtime, no build). */
+export function getAuth(): ReturnType<typeof buildAuth> {
+  if (!_auth) _auth = buildAuth();
+  return _auth;
+}
+
+export type Auth = ReturnType<typeof getAuth>;

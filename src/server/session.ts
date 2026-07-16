@@ -7,7 +7,7 @@
  * Dependencies: better-auth (auth.api.getSession), ./auth
  */
 import "server-only";
-import { auth } from "./auth";
+import { getAuth } from "./auth";
 
 export interface SessionUser {
   userId: string;
@@ -19,7 +19,7 @@ export interface SessionUser {
  * @returns { userId } si la sesión es válida; null si no hay sesión / está expirada / manipulada
  */
 export async function getSessionUser(headers: Headers): Promise<SessionUser | null> {
-  const result = await auth.api.getSession({ headers });
+  const result = await getAuth().api.getSession({ headers });
   const id = result?.user?.id;
   if (!id) return null;
   return { userId: id };

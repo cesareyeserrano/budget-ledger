@@ -2,10 +2,10 @@
 /**
  * Module: app/api/auth/[...all]/route
  * Purpose: Monta la superficie de Better Auth en /api/auth/* (sign-up, sign-in, sign-out,
- *   get-session, callbacks OAuth). Delega en el handler de Better Auth (server-side).
- * Dependencies: better-auth/next-js, @/server/auth
+ *   get-session, callbacks OAuth). Usa getAuth() (perezoso) para no exigir env en `next build`.
+ * Dependencies: @/server/auth
  */
-import { toNextJsHandler } from "better-auth/next-js";
-import { auth } from "@/server/auth";
+import { getAuth } from "@/server/auth";
 
-export const { GET, POST } = toNextJsHandler(auth);
+export const GET = (req: Request): Promise<Response> => getAuth().handler(req);
+export const POST = (req: Request): Promise<Response> => getAuth().handler(req);
