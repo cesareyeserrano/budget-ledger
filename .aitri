@@ -23,25 +23,9 @@
   "aitriVersion": "2.0.1",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-16T19:35:04.187Z",
+  "updatedAt": "2026-07-16T20:55:22.640Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T01:59:08.179Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-04T01:59:08.277Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-07-04T02:06:12.834Z",
       "event": "verify-run",
@@ -189,6 +173,22 @@
       "failed": 0,
       "skipped": 14,
       "manual": 0
+    },
+    {
+      "at": "2026-07-16T20:42:42.539Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-16T20:55:22.612Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -201,7 +201,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "3023ad277d3c9ef0ec96e6312abd7ac7e3df52a02da8634802a9d69606a4acbe"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -281,16 +281,26 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "e2f2787c27ac2428046ef5d6bc14bf9c377af5d6e5caaa5bdbca6182185f971e",
-  "verifyRanAt": "2026-07-16T19:35:04.165Z",
+  "verifyResultsHash": "8c0fe91dde9fda83911162482f8a18239920ca72dec734c4556ca43f16f16fda",
+  "verifyRanAt": "2026-07-16T20:42:42.539Z",
   "lastVerifyRun": {
-    "passed": 40,
+    "passed": 54,
     "failed": 0,
-    "skipped": 14,
+    "skipped": 0,
     "manual": 0,
-    "at": "2026-07-16T19:35:04.165Z"
+    "at": "2026-07-16T20:42:42.539Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
-  "securityAuditLastAt": "2026-07-16T16:36:55.887Z"
+  "securityAuditLastAt": "2026-07-16T16:36:55.887Z",
+  "verifySummary": {
+    "total": 54,
+    "passed": 54,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 6
+  }
 }
