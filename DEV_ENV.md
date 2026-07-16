@@ -24,6 +24,7 @@ docker compose -f docker-compose.dev.yml down -v
 | Qué | Dónde |
 |---|---|
 | **App** | http://localhost:3100 (modo servidor: login gate, API, sync) |
+| **Visor de la BD** | http://localhost:8081 (pgweb — se conecta solo, sin login) |
 | **Postgres** | `localhost:5432` · user/pass/db = `ledger` / `ledger` / `ledger` |
 | **URL de la BD** | `postgres://ledger:ledger@localhost:5432/ledger` |
 | **Health** | http://localhost:3100/health → `{"status":"ok"}` |
@@ -34,14 +35,17 @@ La primera cuenta que registres siembra su ledger y lo persiste en Postgres. Los
 ## Ver la base de datos
 
 ```bash
-# Opción A — Drizzle Studio (visor visual web)
-DATABASE_URL="postgres://ledger:ledger@localhost:5432/ledger" npx drizzle-kit studio
-#   → abre https://local.drizzle.studio en tu navegador
+# Opción A — pgweb (ya viene en el stack, se conecta solo, sin login)
+#   → abre http://localhost:8081  (nada que instalar; sube con el compose)
 
-# Opción B — psql
+# Opción B — Drizzle Studio (visor visual web, se corre aparte)
+DATABASE_URL="postgres://ledger:ledger@localhost:5432/ledger" npx drizzle-kit studio
+#   → abre https://local.drizzle.studio
+
+# Opción C — psql
 docker exec -it ledger-dev-db psql -U ledger      # \dt, SELECT * FROM movement; ...
 
-# Opción C — tu GUI (TablePlus/DBeaver/pgAdmin): usa los datos de conexión de la tabla de arriba
+# Opción D — tu GUI (TablePlus/DBeaver/pgAdmin): usa los datos de conexión de la tabla de arriba
 ```
 
 ## Notas
