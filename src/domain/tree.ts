@@ -9,11 +9,14 @@ export function findNode(nodes: LedgerNode[], id: string): LedgerNode | undefine
   return nodes.find((n) => n.id === id);
 }
 
-/** sub siempre es hoja; category es hoja si no tiene hijos; group nunca es hoja. */
+/**
+ * sub siempre es hoja; category es hoja si no tiene hijos; group es hoja si no tiene hijos.
+ * FR-603 (promote-to-group): un grupo SIN hijos es hoja editable (su presupuesto/ejecutado se
+ * capturan directo); al ganar su primer hijo deja de ser hoja y pasa a total calculado.
+ */
 export function isLeaf(node: LedgerNode, nodes: LedgerNode[]): boolean {
   if (node.level === "sub") return true;
-  if (node.level === "category") return !nodes.some((n) => n.parentId === node.id);
-  return false;
+  return !nodes.some((n) => n.parentId === node.id);
 }
 
 /** Ids de las hojas descendientes (para roll-up de Presupuestado). Robusto ante ciclos (visited-set). */

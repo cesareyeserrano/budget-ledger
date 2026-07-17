@@ -1,0 +1,983 @@
+{
+  "test_plan": {
+    "feature": "promote-to-group",
+    "summary": "Casos de prueba del incremento 'promover a grupo' + 'grupo sin hijos editable'. Cobertura por FR MUST (happy/edge/negative) y por cada NFR de regresión (hard MUST: happy/edge/negative). Predominan tests unit de dominio (vitest) sobre tree/rollup/mutations por ser el núcleo puro; e2e (Playwright) para las piezas de UX (drag a la fila de tipo, edición de celda de grupo-hoja, destino en el registro). El riesgo alto #2 del TRD (traslado del monto al primer hijo por AMBOS caminos: createNode y moveNode) tiene TC dedicado (TC-604h y TC-604e).",
+    "scope": "Dominio (tree.isLeaf, rollup, mutations.moveNode/createNode/deleteNode/addMovement) + UI de grilla (escritorio) + registro (móvil+escritorio). Sin cambios server-side (no se testea el servidor). No se prueban los items del no_go_zone (degradar, reparto proporcional, reordenar, reabsorción, multi-año).",
+    "strategy": "Cada TC embebe su id en el título del test para el mapeo de aitri verify-run. Prefijo TC-6xx para FR-6xx y TC-65x para NFR-60x; sufijo h=happy, e=edge, f=negative/failure. Datos SPEC-SEALED con ids reales de la semilla (g-esenciales, c-vivienda) y montos concretos.",
+    "type_coverage_matrix": {
+      "FR-601": {
+        "unit": "SHOULD (cubierto por FR-602)",
+        "e2e": "MUST (drag a fila de tipo)"
+      },
+      "FR-602": {
+        "unit": "MUST (moveNode dominio)",
+        "e2e": "no aplica"
+      },
+      "FR-603": {
+        "unit": "MUST (isLeaf/rollup/setLeafAmount)",
+        "e2e": "MUST (celda editable en grilla)"
+      },
+      "FR-604": {
+        "unit": "MUST (traslado por createNode y moveNode)",
+        "e2e": "no aplica"
+      },
+      "FR-605": {
+        "unit": "MUST (reverso a 0)",
+        "e2e": "no aplica"
+      },
+      "FR-606": {
+        "unit": "MUST (addMovement a grupo-hoja)",
+        "e2e": "MUST (registro lista grupo sin hijos)"
+      },
+      "NFR-601": {
+        "unit": "MUST (regresión traslado categoría→sub)"
+      },
+      "NFR-602": {
+        "unit": "MUST (invariante padre==Σhojas, cero huérfanos)"
+      },
+      "NFR-603": {
+        "unit": "MUST (gate de borrado + BG-006)"
+      },
+      "NFR-604": {
+        "unit": "MUST",
+        "e2e": "SHOULD (grupo con hijos no editable)"
+      },
+      "NFR-605": {
+        "unit": "MUST (movimiento exacto)",
+        "e2e": "no aplica; perf manual"
+      },
+      "NFR-606": {
+        "manual": "MUST (sin superficie nueva)"
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "id": "TC-601h",
+      "requirement_id": "FR-601",
+      "user_story_id": "US-601",
+      "ac_id": "AC-601a",
+      "title": "TC-601h: arrastrar la subcategoría 'Café' a la fila GASTOS la convierte en grupo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App escritorio 1440px con semilla",
+        "Existe una subcategoría 'Café' bajo una categoría de gasto"
+      ],
+      "given": "la subcategoría 'Café' (tipo expense) visible en la grilla",
+      "when": "la arrastro y la suelto sobre la fila del tipo GASTOS",
+      "then": "'Café' queda como grupo de gasto con parentId nulo, visible como fila de grupo",
+      "steps": [
+        "Crear/ubicar sub 'Café' bajo Vivienda",
+        "Arrastrar 'Café' al droppable root:expense (fila GASTOS)",
+        "Verificar que 'Café' es ahora grupo (nivel group) y parentId null"
+      ],
+      "expected_result": "'Café' es grupo expense, parentId=null",
+      "test_data": {
+        "node": "Café",
+        "dropTarget": "root:expense"
+      }
+    },
+    {
+      "id": "TC-601e",
+      "requirement_id": "FR-601",
+      "user_story_id": "US-601",
+      "ac_id": "AC-601b",
+      "title": "TC-601e: arrastrar una categoría con subcategorías a su tipo la vuelve grupo y sus subs pasan a categorías",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "App escritorio 1440px",
+        "Una categoría de gasto con ≥1 subcategoría"
+      ],
+      "given": "una categoría 'Comida' con subcategoría 'Café'",
+      "when": "arrastro 'Comida' a la fila del tipo GASTOS",
+      "then": "'Comida' es grupo y 'Café' aparece como categoría del nuevo grupo, conservando su monto",
+      "steps": [
+        "Crear categoría 'Comida' con sub 'Café' (monto ene=5000)",
+        "Arrastrar 'Comida' a root:expense",
+        "Verificar 'Comida' grupo, 'Café' categoría hija con ene=5000"
+      ],
+      "expected_result": "'Comida' grupo; 'Café' categoría hija; monto 5000 intacto",
+      "test_data": {
+        "node": "Comida",
+        "child": "Café",
+        "amount": 5000
+      }
+    },
+    {
+      "id": "TC-601f",
+      "requirement_id": "FR-601",
+      "user_story_id": "US-601",
+      "ac_id": "AC-601c",
+      "title": "TC-601f: soltar un nodo de gasto sobre la fila INGRESOS no realiza ningún cambio",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App escritorio 1440px con semilla"
+      ],
+      "given": "una subcategoría de tipo expense",
+      "when": "la suelto sobre la fila del tipo INGRESOS (income)",
+      "then": "no ocurre ningún cambio: el nodo sigue como subcategoría en su lugar",
+      "steps": [
+        "Arrastrar sub de gasto a root:income",
+        "Verificar que el nodo no cambió de nivel ni de tipo"
+      ],
+      "expected_result": "Sin cambios (cross-type rechazado en UI)",
+      "test_data": {
+        "dropTarget": "root:income"
+      }
+    },
+    {
+      "id": "TC-602h",
+      "requirement_id": "FR-602",
+      "user_story_id": "US-602",
+      "ac_id": "AC-602a",
+      "title": "TC-602h: moveNode(sub, {kind:'root',type:'expense'}) → level group, parentId null, montos preservados",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con una subcategoría 'c-cafe' de tipo expense con budget ene=1000"
+      ],
+      "given": "un estado con sub 'c-cafe' (expense, budget ene=1000)",
+      "when": "llamo moveNode(state, 'c-cafe', {kind:'root', type:'expense'})",
+      "then": "el resultado tiene 'c-cafe' con level='group', parentId=null y budgets['c-cafe'].ene=1000",
+      "steps": [
+        "Construir estado",
+        "moveNode a root:expense",
+        "Assert level/parentId/budget"
+      ],
+      "expected_result": "level='group', parentId=null, budget ene=1000 preservado",
+      "test_data": {
+        "id": "c-cafe",
+        "dest": {
+          "kind": "root",
+          "type": "expense"
+        },
+        "budget": 1000
+      }
+    },
+    {
+      "id": "TC-602e",
+      "requirement_id": "FR-602",
+      "user_story_id": "US-602",
+      "ac_id": "AC-602a",
+      "title": "TC-602e: moveNode de categoría con subs a root → subs quedan level category y movimientos sin huérfanos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría 'c-comida' que tiene sub 'c-cafe' con un movimiento target='c-cafe'"
+      ],
+      "given": "categoría 'c-comida' con sub 'c-cafe' y un movimiento a 'c-cafe'",
+      "when": "llamo moveNode(state, 'c-comida', {kind:'root', type:'expense'})",
+      "then": "'c-comida' es group, 'c-cafe' es category hija, y el movimiento sigue apuntando a 'c-cafe' (0 huérfanos)",
+      "steps": [
+        "Construir estado con jerarquía y movimiento",
+        "moveNode a root",
+        "Assert niveles y que todo movement.target existe"
+      ],
+      "expected_result": "'c-comida' group; 'c-cafe' category; movement.target válido",
+      "test_data": {
+        "id": "c-comida",
+        "child": "c-cafe"
+      }
+    },
+    {
+      "id": "TC-602f",
+      "requirement_id": "FR-602",
+      "user_story_id": "US-602",
+      "ac_id": "AC-602b",
+      "title": "TC-602f: moveNode a root de tipo distinto devuelve rejected:'cross_type' sin mutar el estado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con sub 'c-cafe' de tipo expense"
+      ],
+      "given": "una sub 'c-cafe' de tipo expense",
+      "when": "llamo moveNode(state, 'c-cafe', {kind:'root', type:'income'})",
+      "then": "devuelve { rejected: 'cross_type' } y el estado original no cambia",
+      "steps": [
+        "moveNode a root:income",
+        "Assert rejected='cross_type'",
+        "Assert estado sin cambios"
+      ],
+      "expected_result": "{ rejected: 'cross_type' }, estado intacto",
+      "test_data": {
+        "id": "c-cafe",
+        "dest": {
+          "kind": "root",
+          "type": "income"
+        }
+      }
+    },
+    {
+      "id": "TC-603h",
+      "requirement_id": "FR-603",
+      "user_story_id": "US-603",
+      "ac_id": "AC-603a",
+      "title": "TC-603h: isLeaf(grupo sin hijos)=true y setLeafAmount fija su presupuesto; rollup usa el monto propio",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con un grupo 'g-nuevo' sin hijos"
+      ],
+      "given": "un grupo 'g-nuevo' sin hijos",
+      "when": "setLeafAmount(state, 'g-nuevo', 'ene', 'budget', 800000) y consulto rollupBudget",
+      "then": "isLeaf('g-nuevo')=true, budgets['g-nuevo'].ene=800000 y rollupBudget('g-nuevo','ene')=800000",
+      "steps": [
+        "Crear grupo sin hijos",
+        "Assert isLeaf true",
+        "setLeafAmount",
+        "Assert budget y rollup=800000"
+      ],
+      "expected_result": "isLeaf true; budget y rollup = 800000",
+      "test_data": {
+        "id": "g-nuevo",
+        "budget": 800000
+      }
+    },
+    {
+      "id": "TC-603e",
+      "requirement_id": "FR-603",
+      "user_story_id": "US-603",
+      "ac_id": "AC-603a",
+      "title": "TC-603e: en la grilla, clic en la celda Pres. de un grupo sin hijos abre editor y persiste tras recargar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "App escritorio 1440px",
+        "Un grupo sin hijos visible en la grilla"
+      ],
+      "given": "un grupo sin hijos con celdas Pres./Ejec.",
+      "when": "hago clic en su celda Pres. de enero, escribo 800000 y pulso Enter, luego recargo",
+      "then": "la celda muestra 800000 y persiste tras recargar la página",
+      "steps": [
+        "Crear grupo sin hijos",
+        "Clic celda Pres. enero",
+        "Escribir 800000 + Enter",
+        "Recargar",
+        "Verificar 800000"
+      ],
+      "expected_result": "Celda del grupo = 800000, persiste tras reload",
+      "test_data": {
+        "budget": 800000
+      }
+    },
+    {
+      "id": "TC-603f",
+      "requirement_id": "FR-603",
+      "user_story_id": "US-603",
+      "ac_id": "AC-603b",
+      "title": "TC-603f: un grupo CON un hijo no es hoja; setLeafAmount sobre él es no-op y su valor es la suma del hijo",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con grupo 'g-esenciales' que tiene una categoría hija con budget ene=500"
+      ],
+      "given": "un grupo 'g-esenciales' con una categoría hija (budget ene=500)",
+      "when": "intento setLeafAmount(state, 'g-esenciales', 'ene', 'budget', 999)",
+      "then": "isLeaf('g-esenciales')=false, el estado no cambia y rollupBudget('g-esenciales','ene')=500",
+      "steps": [
+        "Estado con grupo+categoría hija=500",
+        "Assert isLeaf false",
+        "setLeafAmount → no-op",
+        "Assert rollup=500"
+      ],
+      "expected_result": "isLeaf false; no-op; rollup=500 (suma del hijo)",
+      "test_data": {
+        "id": "g-esenciales",
+        "childBudget": 500
+      }
+    },
+    {
+      "id": "TC-604h",
+      "requirement_id": "FR-604",
+      "user_story_id": "US-604",
+      "ac_id": "AC-604a",
+      "title": "TC-604h: crear la 1ª categoría de un grupo-hoja traslada sus montos a la categoría y el total no cae",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con grupo-hoja 'g-nuevo' con budget ene=800000 y sin hijos"
+      ],
+      "given": "un grupo-hoja 'g-nuevo' con budget ene=800000",
+      "when": "createNode(state, {level:'category', parentId:'g-nuevo', type:'expense', name:'Cat1'})",
+      "then": "budgets de la nueva categoría ene=800000, budgets['g-nuevo'] queda sin monto propio y rollupBudget('g-nuevo','ene')=800000",
+      "steps": [
+        "Grupo-hoja con budget 800000",
+        "createNode 1ª categoría",
+        "Assert monto en la categoría",
+        "Assert grupo sin budget propio",
+        "Assert rollup=800000"
+      ],
+      "expected_result": "Monto en la categoría; grupo calculado; total 800000 intacto",
+      "test_data": {
+        "parentId": "g-nuevo",
+        "budget": 800000
+      }
+    },
+    {
+      "id": "TC-604e",
+      "requirement_id": "FR-604",
+      "user_story_id": "US-604",
+      "ac_id": "AC-604b",
+      "title": "TC-604e: promover una sub con montos a grupo la deja como grupo-hoja con sus montos, SIN crear hijo sintético",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con sub 'c-cafe' con budget ene=1000 (expense)"
+      ],
+      "given": "una subcategoría 'c-cafe' con budget ene=1000",
+      "when": "moveNode(state, 'c-cafe', {kind:'root', type:'expense'})",
+      "then": "'c-cafe' es grupo sin hijos (childrenOf=0), conserva budget ene=1000 y no se creó ninguna categoría hija",
+      "steps": [
+        "Sub con budget 1000",
+        "moveNode a root",
+        "Assert grupo sin hijos",
+        "Assert budget 1000 en el grupo",
+        "Assert conteo de nodos = previo+0"
+      ],
+      "expected_result": "Grupo-hoja con 1000; cero hijos sintéticos",
+      "test_data": {
+        "id": "c-cafe",
+        "budget": 1000
+      }
+    },
+    {
+      "id": "TC-604f",
+      "requirement_id": "FR-604",
+      "user_story_id": "US-604",
+      "ac_id": "AC-604a",
+      "title": "TC-604f: tras trasladar al primer hijo, setLeafAmount sobre el grupo es no-op (ya es calculado)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Grupo-hoja con budget ene=800000 al que se le crea la 1ª categoría"
+      ],
+      "given": "un grupo que acaba de recibir su 1ª categoría (montos ya trasladados)",
+      "when": "intento setLeafAmount(state, grupoId, 'ene', 'budget', 999)",
+      "then": "el estado no cambia (isLeaf=false) y rollupBudget del grupo sigue 800000",
+      "steps": [
+        "Trasladar al 1er hijo",
+        "setLeafAmount sobre grupo",
+        "Assert no-op y rollup=800000"
+      ],
+      "expected_result": "No-op; rollup=800000",
+      "test_data": {
+        "budget": 800000
+      }
+    },
+    {
+      "id": "TC-605h",
+      "requirement_id": "FR-605",
+      "user_story_id": "US-605",
+      "ac_id": "AC-605a",
+      "title": "TC-605h: borrar el último hijo de un grupo lo vuelve hoja editable en 0",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Grupo 'g-nuevo' con una sola categoría hija (budget ene=800000)"
+      ],
+      "given": "un grupo con una sola categoría hija (vaciada, actuals 0) borrable",
+      "when": "deleteNode(state, categoriaHijaId)",
+      "then": "el grupo queda con 0 hijos, isLeaf=true, y rollupBudget('g-nuevo','ene')=0",
+      "steps": [
+        "Grupo con 1 categoría (budget en 0 para poder borrarla)",
+        "deleteNode categoría",
+        "Assert grupo isLeaf true",
+        "Assert rollup=0"
+      ],
+      "expected_result": "isLeaf true; rollup=0",
+      "test_data": {
+        "parentId": "g-nuevo"
+      }
+    },
+    {
+      "id": "TC-605e",
+      "requirement_id": "FR-605",
+      "user_story_id": "US-605",
+      "ac_id": "AC-605b",
+      "title": "TC-605e: promover el único hijo de un grupo fuera lo deja como grupo-hoja editable en 0",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Grupo 'g-nuevo' con una sola categoría hija 'c-x'"
+      ],
+      "given": "un grupo 'g-nuevo' con una sola categoría hija 'c-x'",
+      "when": "moveNode(state, 'c-x', {kind:'root', type:'expense'}) (promuevo el hijo a grupo)",
+      "then": "'g-nuevo' queda con 0 hijos, isLeaf=true y rollupBudget('g-nuevo','ene')=0",
+      "steps": [
+        "Grupo con 1 categoría",
+        "Promover la categoría a grupo",
+        "Assert 'g-nuevo' isLeaf true y rollup=0"
+      ],
+      "expected_result": "'g-nuevo' isLeaf true; rollup=0",
+      "test_data": {
+        "parentId": "g-nuevo",
+        "child": "c-x"
+      }
+    },
+    {
+      "id": "TC-605f",
+      "requirement_id": "FR-605",
+      "user_story_id": "US-605",
+      "ac_id": "AC-605a",
+      "title": "TC-605f: el grupo NO reabsorbe el monto del hijo que sale (queda en 0, no en el total previo)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Grupo con una sola categoría hija con budget ene=800000, luego el hijo se promueve a grupo"
+      ],
+      "given": "un grupo cuyo único hijo tenía budget ene=800000 y es promovido fuera",
+      "when": "consulto rollupBudget('g-nuevo','ene') tras la salida del hijo",
+      "then": "rollupBudget del grupo es 0 (no 800000): el monto viajó con el hijo, no se reabsorbe",
+      "steps": [
+        "Grupo con hijo=800000",
+        "Promover el hijo a grupo",
+        "Assert rollup del grupo original=0",
+        "Assert el nodo promovido conserva 800000"
+      ],
+      "expected_result": "grupo original=0; nodo promovido=800000",
+      "test_data": {
+        "budget": 800000
+      }
+    },
+    {
+      "id": "TC-606h",
+      "requirement_id": "FR-606",
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a",
+      "title": "TC-606h: addMovement contra un grupo sin hijos incrementa su ejecutado en exactamente el monto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con grupo 'g-nuevo' sin hijos (expense)"
+      ],
+      "given": "un grupo sin hijos 'g-nuevo'",
+      "when": "addMovement(state, {type:'expense', catId:'g-nuevo', subId:null, amount:'2500', month:'ene'})",
+      "then": "actuals['g-nuevo'].ene aumenta en exactamente 2500 y el movimiento tiene target='g-nuevo'",
+      "steps": [
+        "Grupo sin hijos",
+        "addMovement 2500",
+        "Assert actuals ene=2500",
+        "Assert movement.target='g-nuevo'"
+      ],
+      "expected_result": "actuals ene=2500; movement.target='g-nuevo'",
+      "test_data": {
+        "catId": "g-nuevo",
+        "amount": 2500,
+        "month": "ene"
+      }
+    },
+    {
+      "id": "TC-606e",
+      "requirement_id": "FR-606",
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a",
+      "title": "TC-606e: el selector del registro lista un grupo sin hijos como destino, además de categorías y subs",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "App con un grupo sin hijos y categorías con subs"
+      ],
+      "given": "un grupo sin hijos y categorías con subcategorías",
+      "when": "abro el selector de destino del módulo de registro",
+      "then": "el grupo sin hijos aparece como opción seleccionable, y las categorías y subs siguen listadas",
+      "steps": [
+        "Crear grupo sin hijos",
+        "Abrir registro",
+        "Verificar que el grupo aparece como destino",
+        "Verificar categorías/subs presentes"
+      ],
+      "expected_result": "Grupo sin hijos listado; categorías/subs sin cambios",
+      "test_data": {}
+    },
+    {
+      "id": "TC-606f",
+      "requirement_id": "FR-606",
+      "user_story_id": "US-606",
+      "ac_id": "AC-606b",
+      "title": "TC-606f: un grupo CON hijos no aparece como destino seleccionable en el registro",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App con un grupo que tiene categorías hijas"
+      ],
+      "given": "un grupo con al menos una categoría hija",
+      "when": "abro el selector de destino del registro",
+      "then": "el grupo con hijos NO aparece como opción de primer nivel (solo sus categorías/subs)",
+      "steps": [
+        "Grupo con categorías",
+        "Abrir registro",
+        "Verificar que el grupo no es seleccionable, sus categorías sí"
+      ],
+      "expected_result": "Grupo con hijos ausente del selector; sus categorías presentes",
+      "test_data": {}
+    },
+    {
+      "id": "TC-651h",
+      "requirement_id": "NFR-601",
+      "title": "TC-651h: (regresión) crear la 1ª sub de una categoría-hoja traslada sus montos a la sub",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Categoría-hoja 'c-vivienda' con budget ene=800000"
+      ],
+      "given": "una categoría-hoja 'c-vivienda' con budget ene=800000",
+      "when": "createNode(state, {level:'sub', parentId:'c-vivienda', type:'expense', name:'Arriendo'})",
+      "then": "budgets de la nueva sub ene=800000, budgets['c-vivienda'] sin monto propio, rollupBudget('c-vivienda','ene')=800000",
+      "steps": [
+        "Categoría-hoja 800000",
+        "createNode 1ª sub",
+        "Assert traslado y rollup=800000"
+      ],
+      "expected_result": "Monto en la sub; rollup=800000",
+      "test_data": {
+        "parentId": "c-vivienda",
+        "budget": 800000
+      },
+      "user_story_id": "US-604",
+      "ac_id": "AC-604a"
+    },
+    {
+      "id": "TC-651e",
+      "requirement_id": "NFR-601",
+      "title": "TC-651e: (regresión) crear una 2ª sub NO re-traslada montos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Categoría con 1 sub que ya recibió el traslado (budget ene=800000 en la 1ª sub)"
+      ],
+      "given": "una categoría con una sub que ya tiene el monto trasladado",
+      "when": "createNode una 2ª sub bajo la misma categoría",
+      "then": "la 2ª sub queda en 0 y la 1ª conserva sus 800000 (no hay re-traslado)",
+      "steps": [
+        "Categoría con 1ª sub=800000",
+        "createNode 2ª sub",
+        "Assert 2ª sub=0 y 1ª sub=800000"
+      ],
+      "expected_result": "2ª sub=0; 1ª sub=800000",
+      "test_data": {
+        "budget": 800000
+      },
+      "user_story_id": "US-604",
+      "ac_id": "AC-604a"
+    },
+    {
+      "id": "TC-651f",
+      "requirement_id": "NFR-601",
+      "title": "TC-651f: (regresión) crear una sub bajo categoría sin montos no inventa un traslado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Categoría-hoja sin budget ni actual"
+      ],
+      "given": "una categoría-hoja sin montos",
+      "when": "createNode una sub bajo ella",
+      "then": "la sub queda en 0 y no aparecen montos fantasma en la categoría ni en la sub",
+      "steps": [
+        "Categoría sin montos",
+        "createNode sub",
+        "Assert budgets/actuals vacíos o 0"
+      ],
+      "expected_result": "Sin montos fantasma",
+      "test_data": {},
+      "user_story_id": "US-604",
+      "ac_id": "AC-604a"
+    },
+    {
+      "id": "TC-652h",
+      "requirement_id": "NFR-602",
+      "title": "TC-652h: (regresión) tras promover un nodo a grupo, todo movimiento apunta a un nodo existente (0 huérfanos)",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con categoría 'c-comida' con sub 'c-cafe' y un movimiento target='c-cafe'"
+      ],
+      "given": "una jerarquía con un movimiento a 'c-cafe'",
+      "when": "promuevo 'c-comida' a grupo (moveNode root)",
+      "then": "todo movement.target existe en nodes (0 huérfanos)",
+      "steps": [
+        "Estado con movimiento",
+        "Promover a grupo",
+        "Assert cada movement.target ∈ nodes"
+      ],
+      "expected_result": "0 movimientos huérfanos",
+      "test_data": {},
+      "user_story_id": "US-602",
+      "ac_id": "AC-602a"
+    },
+    {
+      "id": "TC-652e",
+      "requirement_id": "NFR-602",
+      "title": "TC-652e: (regresión) el invariante padre==Σhojas se mantiene tras traslado al 1er hijo y reverso a 0",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Grupo-hoja con budget ene=800000; se le crea 1 categoría; luego se borra"
+      ],
+      "given": "un grupo-hoja con 800000 que gana y luego pierde un hijo",
+      "when": "creo la 1ª categoría (traslado) y después la borro (reverso)",
+      "then": "en cada paso rollupBudget(grupo) = suma de sus hojas (800000 con hijo, 0 sin hijo)",
+      "steps": [
+        "Grupo-hoja 800000",
+        "createNode categoría → assert rollup=800000=Σhojas",
+        "deleteNode categoría → assert rollup=0=Σhojas"
+      ],
+      "expected_result": "padre==Σhojas en ambos estados",
+      "test_data": {
+        "budget": 800000
+      },
+      "user_story_id": "US-602",
+      "ac_id": "AC-602a"
+    },
+    {
+      "id": "TC-652f",
+      "requirement_id": "NFR-602",
+      "title": "TC-652f: (regresión) promover una categoría con subs no crea huérfanos ni pierde movimientos",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Categoría con 2 subs, cada una con un movimiento"
+      ],
+      "given": "una categoría con 2 subs, cada una con un movimiento",
+      "when": "promuevo la categoría a grupo",
+      "then": "las 2 subs son categorías, y los 2 movimientos siguen apuntando a ellas (0 huérfanos, 0 movimientos perdidos)",
+      "steps": [
+        "Categoría con 2 subs+movimientos",
+        "Promover a grupo",
+        "Assert 2 movimientos válidos y conteo intacto"
+      ],
+      "expected_result": "2 movimientos válidos; 0 huérfanos",
+      "test_data": {},
+      "user_story_id": "US-602",
+      "ac_id": "AC-602a"
+    },
+    {
+      "id": "TC-653h",
+      "requirement_id": "NFR-603",
+      "title": "TC-653h: (regresión) canDeleteNode bloquea una categoría con ejecutado > 0",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Categoría con actuals ene=3000"
+      ],
+      "given": "una categoría con ejecutado ene=3000",
+      "when": "consulto canDeleteNode y deleteNode",
+      "then": "canDeleteNode=false y deleteNode devuelve { blocked: 'has_data' }",
+      "steps": [
+        "Categoría con actual 3000",
+        "Assert canDeleteNode false",
+        "Assert deleteNode blocked has_data"
+      ],
+      "expected_result": "false; blocked:'has_data'",
+      "test_data": {
+        "actual": 3000
+      },
+      "user_story_id": "US-605",
+      "ac_id": "AC-605a"
+    },
+    {
+      "id": "TC-653e",
+      "requirement_id": "NFR-603",
+      "title": "TC-653e: (regresión BG-006) una categoría vaciada (ejecutado 0) se borra y retira sus movimientos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Categoría con movimientos históricos pero actuals llevados a 0"
+      ],
+      "given": "una categoría con movimientos históricos y ejecutado en 0",
+      "when": "deleteNode sobre ella",
+      "then": "se borra (state), y no queda ningún movimiento con target de esa categoría (0 huérfanos)",
+      "steps": [
+        "Categoría con movimientos",
+        "setLeafAmount actuals=0 en los meses",
+        "deleteNode",
+        "Assert borrada y movimientos retirados"
+      ],
+      "expected_result": "Borrada; movimientos del subárbol retirados",
+      "test_data": {},
+      "user_story_id": "US-605",
+      "ac_id": "AC-605a"
+    },
+    {
+      "id": "TC-653f",
+      "requirement_id": "NFR-603",
+      "title": "TC-653f: (regresión) borrar un grupo con categorías sigue bloqueado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Grupo 'g-esenciales' con categorías"
+      ],
+      "given": "el grupo 'g-esenciales' con categorías",
+      "when": "deleteNode(state, 'g-esenciales')",
+      "then": "devuelve { blocked: 'group_not_empty' } y nada cambia",
+      "steps": [
+        "deleteNode grupo con hijos",
+        "Assert blocked group_not_empty"
+      ],
+      "expected_result": "blocked:'group_not_empty'",
+      "test_data": {
+        "id": "g-esenciales"
+      },
+      "user_story_id": "US-605",
+      "ac_id": "AC-605a"
+    },
+    {
+      "id": "TC-654h",
+      "requirement_id": "NFR-604",
+      "title": "TC-654h: (regresión) moveNode(sub, categoría) reubica sin cruzar de tipo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con sub 'c-cafe' y categoría destino 'c-vivienda' (mismo tipo)"
+      ],
+      "given": "una sub 'c-cafe' y una categoría 'c-vivienda' del mismo tipo",
+      "when": "moveNode(state, 'c-cafe', {kind:'category', id:'c-vivienda'})",
+      "then": "'c-cafe' queda como sub bajo 'c-vivienda' (comportamiento existente sin cambios)",
+      "steps": [
+        "moveNode sub→categoría",
+        "Assert parentId='c-vivienda' y level='sub'"
+      ],
+      "expected_result": "'c-cafe' sub bajo 'c-vivienda'",
+      "test_data": {
+        "id": "c-cafe",
+        "dest": {
+          "kind": "category",
+          "id": "c-vivienda"
+        }
+      },
+      "user_story_id": "US-602",
+      "ac_id": "AC-602b"
+    },
+    {
+      "id": "TC-654e",
+      "requirement_id": "NFR-604",
+      "title": "TC-654e: (regresión) un grupo con hijos no es hoja ni destino de movimientos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Grupo 'g-esenciales' con categorías"
+      ],
+      "given": "el grupo 'g-esenciales' con categorías",
+      "when": "consulto isLeaf y la lista de destinos del registro",
+      "then": "isLeaf('g-esenciales')=false y no está entre los destinos ofrecidos por el registro",
+      "steps": [
+        "Assert isLeaf false",
+        "Construir lista de destinos (categorías + grupos sin hijos)",
+        "Assert 'g-esenciales' ausente"
+      ],
+      "expected_result": "isLeaf false; ausente de destinos",
+      "test_data": {
+        "id": "g-esenciales"
+      },
+      "user_story_id": "US-603",
+      "ac_id": "AC-603b"
+    },
+    {
+      "id": "TC-654f",
+      "requirement_id": "NFR-604",
+      "title": "TC-654f: (regresión) moveNode cross-type se rechaza",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Sub de gasto 'c-cafe' y categoría de ingreso 'c-salario'"
+      ],
+      "given": "una sub de gasto y una categoría de ingreso",
+      "when": "moveNode(state, 'c-cafe', {kind:'category', id:'c-salario'})",
+      "then": "devuelve { rejected: 'cross_type' } y el estado no cambia",
+      "steps": [
+        "moveNode cross-type",
+        "Assert rejected cross_type y estado intacto"
+      ],
+      "expected_result": "{ rejected:'cross_type' }",
+      "test_data": {
+        "id": "c-cafe",
+        "dest": {
+          "kind": "category",
+          "id": "c-salario"
+        }
+      },
+      "user_story_id": "US-602",
+      "ac_id": "AC-602b"
+    },
+    {
+      "id": "TC-655h",
+      "requirement_id": "NFR-605",
+      "title": "TC-655h: (regresión) un movimiento contra una categoría incrementa su ejecutado en exactamente el monto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Categoría 'c-vivienda' (expense)"
+      ],
+      "given": "una categoría 'c-vivienda'",
+      "when": "addMovement(state, {type:'expense', catId:'c-vivienda', subId:null, amount:'4200', month:'ene'})",
+      "then": "actuals['c-vivienda'].ene aumenta en exactamente 4200",
+      "steps": [
+        "addMovement 4200 a categoría",
+        "Assert actuals ene=4200"
+      ],
+      "expected_result": "actuals ene=4200",
+      "test_data": {
+        "catId": "c-vivienda",
+        "amount": 4200
+      },
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a"
+    },
+    {
+      "id": "TC-655e",
+      "requirement_id": "NFR-605",
+      "title": "TC-655e: (regresión) el re-render de la grilla tras una promoción se mantiene ≤150ms",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "automation": "manual",
+      "preconditions": [
+        "App escritorio con la semilla estándar"
+      ],
+      "given": "la grilla con la semilla estándar",
+      "when": "promuevo un nodo a grupo y mido el tiempo hasta el re-render",
+      "then": "el re-render se completa en ≤150ms (guardrail NFR-001)",
+      "steps": [
+        "Medir con performance.now() alrededor de la promoción",
+        "Assert < 150ms"
+      ],
+      "expected_result": "≤150ms",
+      "test_data": {
+        "budget_ms": 150
+      },
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a"
+    },
+    {
+      "id": "TC-655f",
+      "requirement_id": "NFR-605",
+      "title": "TC-655f: (regresión) un movimiento con subId apunta a la sub, no a la categoría",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Categoría 'c-comida' con sub 'c-cafe'"
+      ],
+      "given": "una categoría con sub 'c-cafe'",
+      "when": "addMovement(state, {type:'expense', catId:'c-comida', subId:'c-cafe', amount:'700', month:'ene'})",
+      "then": "actuals['c-cafe'].ene=700 y actuals['c-comida'] no recibe el monto directo (target=sub)",
+      "steps": [
+        "addMovement con subId",
+        "Assert actuals en la sub, no en la categoría"
+      ],
+      "expected_result": "actuals sub=700; categoría sin monto directo",
+      "test_data": {
+        "catId": "c-comida",
+        "subId": "c-cafe",
+        "amount": 700
+      },
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a"
+    },
+    {
+      "id": "TC-656h",
+      "requirement_id": "NFR-606",
+      "title": "TC-656h: (seguridad) la feature no agrega rutas /api nuevas ni campos persistidos",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "automation": "manual",
+      "preconditions": [
+        "Árbol de rutas src/app/api antes y después de la feature"
+      ],
+      "given": "el conjunto de rutas /api/v1 y el esquema Drizzle previos a la feature",
+      "when": "reviso el diff de la feature",
+      "then": "no se agregan archivos de ruta bajo src/app/api ni columnas/tablas nuevas; el guardado sigue por saveLedger con ownerId del servidor",
+      "steps": [
+        "Comparar listado de rutas /api antes/después",
+        "Comparar esquema Drizzle",
+        "Confirmar sin cambios server-side"
+      ],
+      "expected_result": "0 rutas nuevas; 0 cambios de esquema",
+      "test_data": {},
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a"
+    },
+    {
+      "id": "TC-656e",
+      "requirement_id": "NFR-606",
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a",
+      "title": "TC-656e: (seguridad) en modo servidor el guardado sigue por saveLedger con ownerId del servidor",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "automation": "manual",
+      "preconditions": [
+        "Modo servidor activo; una promoción a grupo realizada en el cliente"
+      ],
+      "given": "una promoción a grupo hecha en modo servidor",
+      "when": "el cliente persiste el snapshot resultante",
+      "then": "el guardado pasa por saveLedger(ownerId, snapshot) con el ownerId fijado por el servidor (no por el payload), sin ruta nueva",
+      "steps": [
+        "Promover a grupo en modo servidor",
+        "Verificar que la persistencia usa el endpoint de guardado existente",
+        "Confirmar ownerId del servidor"
+      ],
+      "expected_result": "Persistencia por saveLedger existente; ownerId del servidor",
+      "test_data": {}
+    },
+    {
+      "id": "TC-656f",
+      "requirement_id": "NFR-606",
+      "user_story_id": "US-606",
+      "ac_id": "AC-606a",
+      "title": "TC-656f: (seguridad) la feature no introduce ningún campo persistido ni columna nueva en el esquema",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "medium",
+      "automation": "manual",
+      "preconditions": [
+        "Esquema Drizzle (node/amountCell/movement/ledger) previo a la feature"
+      ],
+      "given": "el esquema de datos previo a la feature",
+      "when": "reviso el diff de la feature contra src/server y drizzle/",
+      "then": "no hay columnas ni tablas nuevas; los nodos, celdas y movimientos usan los campos existentes (sin bandera 'editable' nueva)",
+      "steps": [
+        "Comparar esquema Drizzle antes/después",
+        "Confirmar 0 columnas nuevas",
+        "Confirmar que el grupo-hoja reusa budgets/actuals existentes"
+      ],
+      "expected_result": "0 columnas/tablas nuevas",
+      "test_data": {}
+    }
+  ]
+}

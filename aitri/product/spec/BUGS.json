@@ -164,7 +164,7 @@
       "actual_result": "Solo permite promoverla a categoría; promover a grupo no es posible",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -172,8 +172,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-07-16T23:13:52.677Z",
-      "updated_at": "2026-07-16T23:13:52.677Z",
-      "resolution": null
+      "updated_at": "2026-07-17T19:23:45.290Z",
+      "resolution": "Resuelto por la feature promote-to-group (5/5, 36/36 TCs): promover sub/categoría a grupo por drag a la fila de tipo (FR-601/602), más grupo sin hijos editable (FR-603/604/605) y como destino de movimientos (FR-606).",
+      "close_commit_sha": "f9f6e7b18d98a75220c56f99e2cc746f9df4bed9",
+      "close_at": "2026-07-17T19:23:45.290Z"
     }
   ]
 }

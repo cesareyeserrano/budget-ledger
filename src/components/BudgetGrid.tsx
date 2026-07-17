@@ -179,6 +179,7 @@ export function BudgetGrid() {
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
     if (kind === "category" || kind === "group") moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
+    else if (kind === "root") moveNode(String(ev.active.id), { kind: "root", type: id as NodeType }); // FR-601: promover a grupo
   }
   const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
@@ -220,7 +221,7 @@ export function BudgetGrid() {
           </div>
 
           {rows.map((row) => {
-            if (row.node === null) { const t = TYPE_ORDER.find((x) => x.id === row.type)!; return <TypeTotalRow key={`t-${row.type}`} type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} />; }
+            if (row.node === null) { const t = TYPE_ORDER.find((x) => x.id === row.type)!; return <TypeTotalRow key={`t-${row.type}`} type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} activeType={dragNode?.type ?? null} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} />; }
             return (
               <NodeRow
                 key={row.node.id}
@@ -258,20 +259,26 @@ export function BudgetGrid() {
   );
 }
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, isExpanded, onToggle, onAddGroup }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void }) {
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void }) {
   const data = useLedgerStore((s) => s.data);
   const color = typeColorVar(type);
   const [hover, setHover] = useState(false);
+  // FR-601: la fila de tipo es destino de promoción a grupo. Solo el tipo COMPATIBLE con el nodo
+  // arrastrado muestra la afordancia (prevención de error / cross-type, H5).
+  const droppable = useDroppable({ id: `root:${type}` });
+  const showDrop = droppable.isOver && activeType === type;
   return (
-    <div className="flex" data-testid="type-total-row" data-type={type} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className="flex" data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
           la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
           sobre-consumo de una celda de datos. */}
-      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color }}>
+      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
         <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
         <Icon size={15} color={color} /><span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+        {/* Afordancia de destino de promoción (solo durante un arrastre compatible) */}
+        {showDrop && <span data-testid="promote-hint" className="flex-none caption" style={{ color: "var(--accent-light)" }}>Soltar para crear grupo</span>}
         {/* "+" para agregar un GRUPO de este tipo (el adder de grupo vive en el hover del tipo) */}
-        {hover && (
+        {hover && !showDrop && (
           <button aria-label="Agregar grupo" onClick={onAddGroup} className="inline-flex p-[3px] rounded-md flex-none cursor-pointer bg-transparent border-0" style={{ color }}><Plus size={14} /></button>
         )}
       </div>

@@ -275,18 +275,21 @@ test("TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la 
   expect(await bgOf(ejecCell(leaf, PLAIN_INDEX))).toBe(BG);
 });
 
-test("TC-BSC-404e: un grupo VACÍO tampoco es editable y también recibe la superficie de estructura", async ({ page }) => {
+test("TC-BSC-404e: un grupo SIN hijos es hoja editable y recibe la superficie de hoja", async ({ page }) => {
   // @aitri-tc TC-BSC-404e
+  // Revisado por la feature promote-to-group (FR-603): un grupo SIN hijos es hoja editable.
+  // La regla de superficie/editabilidad sigue siendo la MISMA (= !isLeaf); solo cambió isLeaf
+  // para el grupo sin hijos → ahora es hoja, luego superficie de hoja (BG) y celda editable.
   await gotoGrid(page);
   const empty = rowByName(page, "Vacío");
-  await expect(empty).toHaveAttribute("data-leaf", "false"); // isLeaf() = false para TODO grupo
+  await expect(empty).toHaveAttribute("data-leaf", "true"); // FR-603: grupo sin hijos = hoja
 
-  expect(await bgOf(empty.getByTestId("row-label"))).toBe(BG_SUNKEN);
+  expect(await bgOf(empty.getByTestId("row-label"))).toBe(BG);
   const cell = ejecCell(empty, PLAIN_INDEX);
-  expect(await bgOf(cell)).toBe(BG_SUNKEN);
+  expect(await bgOf(cell)).toBe(BG);
 
   await cell.click();
-  await expect(page.getByLabel("Editar valor")).toHaveCount(0); // la regla es !isLeaf, no "tiene hijos"
+  await expect(page.getByLabel("Editar valor")).toBeVisible(); // editable: la regla !isLeaf ahora aplica
 });
 
 test("TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad", async ({ page }) => {

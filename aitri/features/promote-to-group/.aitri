@@ -1,0 +1,213 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "promote-to-group",
+  "createdAt": "2026-07-17T13:14:29.266Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-17T19:23:29.142Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-17T16:25:51.432Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T16:28:50.116Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T16:30:39.403Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T16:32:25.049Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T16:32:33.294Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T16:32:50.345Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T16:33:01.091Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T16:42:35.061Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T16:48:00.534Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T16:48:05.607Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-17T17:31:05.160Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-17T17:46:23.630Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-17T17:50:12.178Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 4
+    },
+    {
+      "at": "2026-07-17T18:17:52.580Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 4
+    },
+    {
+      "at": "2026-07-17T18:24:22.316Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 4
+    },
+    {
+      "at": "2026-07-17T18:24:38.249Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 32,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-17T18:25:35.526Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-17T19:19:41.937Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-17T19:20:39.613Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-17T19:23:29.126Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "b8c3a107b7b6bcde118ec733b1934c3b0929e7ac5e141c303bf3092a7c85dd71",
+    "2": "84b70a36d78c0a845dd76fc0614098076646a7cb0387c6336cfb6688621ccbbd",
+    "3": "0afb44d6a0a4b06d41c8416f1945007ff6f73bf615f97e171fd01901464d3b70",
+    "4": "acb0201b53134dcc39427c3164125cd2a24332dc07360b446be12ebb21549d50",
+    "5": "4d78e2ceb5add653a581b6f005cf92f5736758b3e9712cda3adfa6eb3f25ab73",
+    "ux": "1aa9cddd8fa127158c4e4fd26bffdaa6e89b221829b64ecb058a58a0a96763a1"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-601",
+      "FR-602",
+      "FR-603",
+      "FR-604",
+      "FR-605",
+      "FR-606"
+    ],
+    "3": [
+      "FR-601",
+      "FR-602",
+      "FR-603",
+      "FR-604",
+      "FR-605",
+      "FR-606"
+    ],
+    "4": [
+      "FR-601",
+      "FR-602",
+      "FR-603",
+      "FR-604",
+      "FR-605",
+      "FR-606"
+    ],
+    "5": [
+      "FR-601",
+      "FR-602",
+      "FR-603",
+      "FR-604",
+      "FR-605",
+      "FR-606"
+    ],
+    "ux": [
+      "FR-601",
+      "FR-602",
+      "FR-603",
+      "FR-604",
+      "FR-605",
+      "FR-606"
+    ]
+  },
+  "verifyResultsHash": "5270c04cd3107418dba892038db0c7c14c6c46255c3a85e0d66849f4c5b8bbcf",
+  "verifyRanAt": "2026-07-17T18:24:22.316Z",
+  "lastVerifyRun": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 4,
+    "at": "2026-07-17T18:24:22.316Z"
+  },
+  "verifyPassed": true,
+  "verifySummary": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 4
+  }
+}

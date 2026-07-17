@@ -20,36 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.0.1",
+  "aitriVersion": "2.0.2-rc.1",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-17T02:09:08.274Z",
+  "updatedAt": "2026-07-17T19:19:16.049Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T02:24:32.838Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-04T02:30:17.147Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-04T02:30:17.242Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-07-04T02:32:21.856Z",
       "event": "reconcile-resolved",
@@ -191,6 +167,30 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-17T02:09:44.042Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 7,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-17T13:16:20.296Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-17T13:23:08.889Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -283,14 +283,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "245057fe08fb8e500e6c148612bb4e72ae41268c8a94162d2bd337170d6450bd",
-  "verifyRanAt": "2026-07-17T02:08:52.564Z",
+  "verifyResultsHash": "68ad5680585385778a49864fad316168f73571df731cd41ea387d1fc934c1851",
+  "verifyRanAt": "2026-07-17T13:16:20.296Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-17T02:08:52.564Z"
+    "at": "2026-07-17T13:16:20.296Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",

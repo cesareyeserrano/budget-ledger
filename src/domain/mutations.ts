@@ -129,15 +129,15 @@ export function createNode(state: LedgerState, input: NewNode): LedgerState {
     order: next.nodes.length,
   };
   next.nodes.push(node);
-  if (input.level === "category" || input.level === "sub") {
-    next.budgets[id] = next.budgets[id] ?? {};
-    next.actuals[id] = next.actuals[id] ?? {};
-  }
-  // Al crear la 1ª subcategoría de una categoría-hoja, trasladar sus montos a la nueva sub (los totales no caen).
-  if (input.level === "sub" && input.parentId) {
-    const priorSubs = state.nodes.filter((n) => n.parentId === input.parentId && n.level === "sub");
-    const hadAmounts = state.budgets[input.parentId] || state.actuals[input.parentId];
-    if (priorSubs.length === 0 && hadAmounts) {
+  // Todo nodo puede almacenar montos como hoja (grupo-hoja incluido, FR-603); se inicializan perezosos.
+  next.budgets[id] = next.budgets[id] ?? {};
+  next.actuals[id] = next.actuals[id] ?? {};
+  // FR-604 (y FR-002): al agregar el PRIMER hijo a una hoja con montos propios (categoría-hoja → 1ª sub,
+  // o grupo-hoja → 1ª categoría), trasladar sus montos al nuevo hijo — el padre pasa a calculado, el total no cae.
+  if (input.parentId) {
+    const parentHadNoChildren = !state.nodes.some((n) => n.parentId === input.parentId);
+    const parentHadAmounts = state.budgets[input.parentId] || state.actuals[input.parentId];
+    if (parentHadNoChildren && parentHadAmounts) {
       next.budgets[id] = { ...(state.budgets[input.parentId] ?? {}) };
       next.actuals[id] = { ...(state.actuals[input.parentId] ?? {}) };
       delete next.budgets[input.parentId];
@@ -252,20 +252,50 @@ export function setLeafAmount(
   return next;
 }
 
-// ── FR-015: reubicar (reparent) por arrastrar-y-soltar ────────────────────────
+// ── FR-015 / FR-601: reubicar (reparent) y promover por arrastrar-y-soltar ─────
 export type MoveResult = { state: LedgerState } | { rejected: "cross_type" | "invalid_target" };
 
-export function moveNode(
-  state: LedgerState,
-  id: string,
-  dest: { kind: "category" | "group"; id: string }
-): MoveResult {
+/** Destino de un move: dentro de una categoría (→sub), dentro de un grupo (→categoría),
+ *  o sobre la fila de un TIPO = promover a grupo (FR-601). */
+export type MoveDest =
+  | { kind: "category"; id: string }
+  | { kind: "group"; id: string }
+  | { kind: "root"; type: NodeType };
+
+/** Suma dos mapas mensuales (no pierde ninguno de los dos). */
+function mergeMonthMap(
+  a: Record<string, number> | undefined,
+  b: Record<string, number> | undefined
+): Record<string, number> {
+  const out: Record<string, number> = { ...(a ?? {}) };
+  for (const [m, v] of Object.entries(b ?? {})) out[m] = (out[m] ?? 0) + v;
+  return out;
+}
+
+export function moveNode(state: LedgerState, id: string, dest: MoveDest): MoveResult {
   const node = findNode(state.nodes, id);
+  if (!node || node.system) return { rejected: "invalid_target" };
+  if (node.level === "group") return { rejected: "invalid_target" }; // los grupos no se arrastran
+
+  // FR-601 — promover a GRUPO (soltar sobre la fila de un tipo).
+  if (dest.kind === "root") {
+    if (node.type !== dest.type) return { rejected: "cross_type" };
+    const next = clone(state);
+    const moved = findNode(next.nodes, id)!;
+    // los hijos directos ascienden un nivel: las subs pasan a categorías del nuevo grupo.
+    for (const child of childrenOf(state.nodes, id)) {
+      findNode(next.nodes, child.id)!.level = "category";
+    }
+    moved.level = "group";
+    moved.parentId = null;
+    moved.icon = moved.icon ?? "folder"; // grupo sin ícono → folder (las subs traen icon:null)
+    // El nodo conserva sus montos como grupo-hoja (FR-603/604); si tenía hijos, viven en las hojas que ascendieron.
+    return { state: next };
+  }
+
+  // dest category/group → reparent dentro de un contenedor existente (comportamiento previo, NFR-604).
   const destNode = findNode(state.nodes, dest.id);
-  if (!node || !destNode) return { rejected: "invalid_target" };
-  // "Sin asignar" (system) no se mueve ni se puede usar como destino: es catch-all gestionado.
-  if (node.system || destNode.system) return { rejected: "invalid_target" };
-  if (node.level === "group") return { rejected: "invalid_target" }; // no se mueven grupos/tipos
+  if (!destNode || destNode.system) return { rejected: "invalid_target" };
   if (node.type !== destNode.type) return { rejected: "cross_type" };
   if (id === dest.id || isAncestor(state.nodes, id, dest.id)) return { rejected: "invalid_target" };
 
@@ -284,11 +314,20 @@ export function moveNode(
     return { state: next };
   }
 
-  // dest.kind === 'group' → promover a categoría nueva del grupo
+  // dest.kind === 'group' → el nodo pasa a ser categoría del grupo.
   if (destNode.level !== "group") return { rejected: "invalid_target" };
+  const groupWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
+  const groupHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
   const next = clone(state);
   const moved = findNode(next.nodes, id)!;
   moved.level = "category";
   moved.parentId = dest.id;
+  // FR-604 — el grupo-hoja gana su PRIMER hijo → traslada sus montos al hijo (suma, no pierde los del hijo).
+  if (groupWasChildlessLeaf && groupHadAmounts) {
+    next.budgets[id] = mergeMonthMap(state.budgets[dest.id], state.budgets[id]);
+    next.actuals[id] = mergeMonthMap(state.actuals[dest.id], state.actuals[id]);
+    delete next.budgets[dest.id];
+    delete next.actuals[dest.id];
+  }
   return { state: next };
 }

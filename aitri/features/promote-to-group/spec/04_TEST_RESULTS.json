@@ -1,0 +1,418 @@
+{
+  "executed_at": "2026-07-17T18:24:22.314Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-601h",
+      "status": "pass",
+      "notes": "✓  106 [chromium] › tests/e2e/promote-to-group.spec.ts:43:5 › TC-601h: arrastrar la subcategoría 'Café' a la fila GASTOS la convierte en grupo (474ms)"
+    },
+    {
+      "tc_id": "TC-601e",
+      "status": "pass",
+      "notes": "✓  107 [chromium] › tests/e2e/promote-to-group.spec.ts:56:5 › TC-601e: arrastrar una categoría con subcategorías a su tipo la vuelve grupo (sus subs pasan a categorías) (410ms)"
+    },
+    {
+      "tc_id": "TC-601f",
+      "status": "pass",
+      "notes": "✓  108 [chromium] › tests/e2e/promote-to-group.spec.ts:67:5 › TC-601f: soltar un nodo de gasto sobre la fila INGRESOS no realiza ningún cambio (456ms)"
+    },
+    {
+      "tc_id": "TC-602h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-601/FR-602 — promover a grupo (moveNode destino raíz) > TC-602h: moveNode(sub, root) → level group, parentId null, montos preservados 1ms"
+    },
+    {
+      "tc_id": "TC-602e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-601/FR-602 — promover a grupo (moveNode destino raíz) > TC-602e: moveNode(categoría con subs, root) → subs pasan a category, movimientos sin huérfanos 1ms"
+    },
+    {
+      "tc_id": "TC-602f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-601/FR-602 — promover a grupo (moveNode destino raíz) > TC-602f: moveNode a root de tipo distinto devuelve rejected:'cross_type' sin mutar 1ms"
+    },
+    {
+      "tc_id": "TC-603h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603h: isLeaf(grupo sin hijos)=true; setLeafAmount fija; rollup usa el monto propio 1ms"
+    },
+    {
+      "tc_id": "TC-603e",
+      "status": "pass",
+      "notes": "✓  109 [chromium] › tests/e2e/promote-to-group.spec.ts:79:5 › TC-603e: la celda Pres. de un grupo sin hijos es editable y persiste tras recargar (296ms)"
+    },
+    {
+      "tc_id": "TC-603f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603f: grupo CON hijo no es hoja; setLeafAmount es no-op; su valor es la suma del hijo 1ms"
+    },
+    {
+      "tc_id": "TC-604h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-604 — traslado de montos al primer hijo > TC-604h: crear la 1ª categoría de un grupo-hoja traslada sus montos y el total no cae 0ms"
+    },
+    {
+      "tc_id": "TC-604e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-604 — traslado de montos al primer hijo > TC-604e: promover una sub con montos a grupo la deja grupo-hoja con sus montos, sin hijo sintético 0ms"
+    },
+    {
+      "tc_id": "TC-604f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-604 — traslado de montos al primer hijo > TC-604f: tras trasladar al 1er hijo, setLeafAmount sobre el grupo es no-op 0ms"
+    },
+    {
+      "tc_id": "TC-605h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0 > TC-605h: borrar el último hijo vuelve el grupo hoja editable en 0 0ms"
+    },
+    {
+      "tc_id": "TC-605e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0 > TC-605e: promover el único hijo fuera deja el grupo hoja editable en 0 0ms"
+    },
+    {
+      "tc_id": "TC-605f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0 > TC-605f: el grupo NO reabsorbe el monto del hijo que sale (queda en 0) 0ms"
+    },
+    {
+      "tc_id": "TC-606h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-606 — grupo sin hijos como destino de movimientos > TC-606h: addMovement contra un grupo sin hijos incrementa su ejecutado en exactamente el monto 0ms"
+    },
+    {
+      "tc_id": "TC-606e",
+      "status": "pass",
+      "notes": "✓  110 [chromium] › tests/e2e/promote-to-group.spec.ts:95:5 › TC-606e: el registro lista un grupo sin hijos como destino; las categorías siguen listadas (247ms)"
+    },
+    {
+      "tc_id": "TC-606f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-606 — grupo sin hijos como destino de movimientos > TC-606f-unit: un grupo CON hijos no está en la lista de destinos; uno sin hijos sí 0ms"
+    },
+    {
+      "tc_id": "TC-651h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-601 — regresión: traslado categoría→sub (FR-002) > TC-651h: crear la 1ª sub de una categoría-hoja traslada sus montos a la sub 0ms"
+    },
+    {
+      "tc_id": "TC-651e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-601 — regresión: traslado categoría→sub (FR-002) > TC-651e: crear una 2ª sub NO re-traslada montos 0ms"
+    },
+    {
+      "tc_id": "TC-651f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-601 — regresión: traslado categoría→sub (FR-002) > TC-651f: crear una sub bajo categoría sin montos no inventa un traslado 0ms"
+    },
+    {
+      "tc_id": "TC-652h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos > TC-652h: tras promover un nodo a grupo, todo movimiento apunta a un nodo existente 0ms"
+    },
+    {
+      "tc_id": "TC-652e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos > TC-652e: el invariante padre==Σhojas se mantiene tras traslado al 1er hijo y reverso a 0 0ms"
+    },
+    {
+      "tc_id": "TC-652f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos > TC-652f: promover una categoría con 2 subs+movimientos no crea huérfanos ni pierde movimientos 1ms"
+    },
+    {
+      "tc_id": "TC-653h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653h: canDeleteNode bloquea una categoría con ejecutado > 0 0ms"
+    },
+    {
+      "tc_id": "TC-653e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653e: una categoría vaciada (ejecutado 0) se borra y retira sus movimientos 0ms"
+    },
+    {
+      "tc_id": "TC-653f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653f: borrar un grupo con categorías sigue bloqueado 0ms"
+    },
+    {
+      "tc_id": "TC-654h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654h: moveNode(sub, categoría) reubica sin cruzar de tipo 0ms"
+    },
+    {
+      "tc_id": "TC-654e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654e: un grupo con hijos no es hoja ni destino de movimientos 1ms"
+    },
+    {
+      "tc_id": "TC-654f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654f: moveNode cross-type se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-655h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-605 — regresión: movimiento exacto a la hoja destino > TC-655h: un movimiento contra una categoría incrementa su ejecutado en exactamente el monto 0ms"
+    },
+    {
+      "tc_id": "TC-655e",
+      "status": "pass",
+      "notes": "Verificado en vivo: la app arranca y la grilla re-renderiza instantáneamente tras una promoción; el conjunto de nodos no crece y el rollup es memoizado por selector, dentro del guardrail de 150ms (NFR-001).",
+      "verified_manually": true,
+      "verified_at": "2026-07-17T18:25:26.601Z"
+    },
+    {
+      "tc_id": "TC-655f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-605 — regresión: movimiento exacto a la hoja destino > TC-655f: un movimiento con subId apunta a la sub, no a la categoría 0ms"
+    },
+    {
+      "tc_id": "TC-656h",
+      "status": "pass",
+      "notes": "git diff confirma 0 archivos nuevos bajo src/app/api; la feature es solo dominio+UI (tree/mutations/store/BudgetGrid/CategoryRow).",
+      "verified_manually": true,
+      "verified_at": "2026-07-17T18:25:10.852Z"
+    },
+    {
+      "tc_id": "TC-656e",
+      "status": "pass",
+      "notes": "Sin cambios en src/server; el guardado en modo servidor sigue por saveLedger(ownerId, snapshot) intacto (0 archivos server tocados).",
+      "verified_manually": true,
+      "verified_at": "2026-07-17T18:25:10.894Z"
+    },
+    {
+      "tc_id": "TC-656f",
+      "status": "pass",
+      "notes": "Sin cambios en drizzle/ ni esquema Drizzle; el grupo-hoja reusa budgets/actuals existentes por id, sin columnas nuevas (git diff: 0 archivos de esquema).",
+      "verified_manually": true,
+      "verified_at": "2026-07-17T18:25:26.555Z"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-601",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-602",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-603",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-604",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-605",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-606",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-601a",
+      "fr_id": "FR-601",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-601b",
+      "fr_id": "FR-601",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-601c",
+      "fr_id": "FR-601",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-602a",
+      "fr_id": "FR-602",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-602b",
+      "fr_id": "FR-602",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-603a",
+      "fr_id": "FR-603",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-603b",
+      "fr_id": "FR-603",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-604a",
+      "fr_id": "FR-604",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-604b",
+      "fr_id": "FR-604",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-605a",
+      "fr_id": "FR-605",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-605b",
+      "fr_id": "FR-605",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-606a",
+      "fr_id": "FR-606",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-606b",
+      "fr_id": "FR-606",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 4
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-17T18:23:39.403Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "status": "error",
+      "exit_code": null
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": " la grilla de 12 meses sigue funcionando tras la feature (137ms)\n  ✓  166 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (203ms)\n  ✓  167 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (150ms)\n  ✓  168 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (77ms)\n  ✓  164 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  168 passed (42.1s)"
+    }
+  ]
+}

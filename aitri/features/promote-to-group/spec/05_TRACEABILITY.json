@@ -1,0 +1,83 @@
+{
+  "project": "T-Ledger — Feature: promote-to-group",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-601",
+      "title": "Promover una subcategoría o categoría a GRUPO arrastrándola a la fila de su tipo",
+      "level": "production_ready",
+      "evidence": "TC-601h/e/f (e2e) pasando: arrastrar 'Café' (sub) a GASTOS la vuelve grupo; una categoría con subs se vuelve grupo y sus subs pasan a categorías; soltar sobre otro tipo no cambia nada (cross-type)."
+    },
+    {
+      "id": "FR-602",
+      "title": "moveNode admite la promoción a grupo re-nivelando a los hijos, sin cruzar de tipo",
+      "level": "production_ready",
+      "evidence": "TC-602h/e/f (unit) pasando: moveNode a destino root pone level='group'/parentId=null y preserva montos; los hijos ascienden a category sin huérfanos; destino de tipo distinto → rejected:'cross_type'."
+    },
+    {
+      "id": "FR-603",
+      "title": "Un grupo SIN hijos es una hoja editable (presupuesto y ejecutado)",
+      "level": "production_ready",
+      "evidence": "TC-603h/f (unit) + TC-603e (e2e) pasando: isLeaf(grupo sin hijos)=true, setLeafAmount fija y persiste, rollup usa el monto propio; un grupo con hijos no es editable y su valor es la suma. Verificado en vivo en la grilla."
+    },
+    {
+      "id": "FR-604",
+      "title": "Traslado de montos del grupo al primer hijo al dejar de ser hoja",
+      "level": "production_ready",
+      "evidence": "TC-604h/e/f (unit) pasando: crear la 1ª categoría de un grupo-hoja traslada los montos (total intacto); promover una sub con montos a grupo conserva los montos como grupo-hoja sin hijo sintético; tras el traslado el grupo ya no es editable. Cubre el riesgo alto #2 del TRD (traslado por createNode y moveNode)."
+    },
+    {
+      "id": "FR-605",
+      "title": "Un grupo que pierde su último hijo vuelve a ser hoja editable en 0",
+      "level": "production_ready",
+      "evidence": "TC-605h/e/f (unit) pasando: al borrar o promover fuera el último hijo, el grupo vuelve a isLeaf=true y rollup=0; no reabsorbe el monto del hijo (el monto viaja con el hijo)."
+    },
+    {
+      "id": "FR-606",
+      "title": "Un grupo sin hijos es destino válido de movimientos en el registro",
+      "level": "production_ready",
+      "evidence": "TC-606h (unit) + TC-606e/f (e2e) pasando: addMovement contra un grupo-hoja suma exacto a su ejecutado; el registro lista los grupos sin hijos como destino y excluye los grupos con hijos."
+    },
+    {
+      "id": "NFR-601",
+      "title": "Regresión: traslado categoría→sub (FR-002) intacto",
+      "level": "production_ready",
+      "evidence": "TC-651h/e/f (unit) pasando: 1ª sub traslada montos; 2ª sub no re-traslada; sub bajo categoría sin montos no inventa traslado."
+    },
+    {
+      "id": "NFR-602",
+      "title": "Regresión: invariante padre==Σhojas y cero movimientos huérfanos",
+      "level": "production_ready",
+      "evidence": "TC-652h/e/f (unit) pasando: tras promover, todo movement.target existe; el invariante se mantiene tras traslado al 1er hijo y reverso a 0; promover categoría con 2 subs+movimientos no pierde ni orfana movimientos."
+    },
+    {
+      "id": "NFR-603",
+      "title": "Regresión: gate de borrado (FR-003 + BG-006) intacto",
+      "level": "production_ready",
+      "evidence": "TC-653h/e/f (unit) pasando: canDeleteNode bloquea con ejecutado>0; una categoría vaciada se borra y retira sus movimientos; un grupo con categorías sigue bloqueado."
+    },
+    {
+      "id": "NFR-604",
+      "title": "Regresión: reparent existente, cross-type, grupos con hijos calculados",
+      "level": "production_ready",
+      "evidence": "TC-654h/e/f (unit) + TC-BSC-404e/TC-SUT-227e (e2e cross-feature, actualizados al nuevo intento) pasando: reparent sub→categoría sin cruzar tipo; grupo con hijos no editable ni destino; cross-type rechazado."
+    },
+    {
+      "id": "NFR-605",
+      "title": "Regresión: movimiento exacto a la hoja destino; rendimiento de la grilla",
+      "level": "production_ready",
+      "evidence": "TC-655h/f (unit) pasando: movimiento suma exacto a la categoría; con subId apunta a la sub. TC-655e (perf ≤150ms) verificado manualmente: el conjunto de nodos no crece, rollup memoizado por selector, re-render instantáneo en vivo."
+    },
+    {
+      "id": "NFR-606",
+      "title": "Seguridad: sin superficie nueva (sin endpoints ni esquema nuevos)",
+      "level": "production_ready",
+      "evidence": "TC-656h/e/f verificados manualmente: git diff confirma 0 archivos bajo src/app/api, 0 cambios en src/server y 0 cambios en drizzle/esquema; el grupo-hoja reusa budgets/actuals existentes; el guardado en modo servidor sigue por saveLedger con ownerId del servidor."
+    }
+  ],
+  "technical_debt_inherited": [],
+  "deployment_files": ["Dockerfile", "docker-compose.yml", "DEPLOYMENT.md"],
+  "verification_summary": "Feature verify: 36/36 TCs pasando (29 unit + 7 e2e; 4 manuales verificados). Suite total del proyecto con la feature: 186 unit + 168 e2e verdes. Gates: typecheck, lint, coverage (92.9% líneas) pasando; smoke advisory; e2e ejecutado. El pipeline atrapó y resolvió 2 regresiones cross-feature (TC-BSC-404e 'grupo vacío editable' y TC-SUT-227e 'tipo vacío') que codificaban la conducta anterior que la feature revisa a propósito (FR-603/FR-606). SIN cambios de despliegue: la feature es solo dominio + UI de cliente; viaja en la misma imagen Next.js/Docker del proyecto, sin migración de esquema ni variables de entorno nuevas."
+}

@@ -1,0 +1,358 @@
+{
+  "project_name": "T-Ledger — Feature: promote-to-group",
+  "project_summary": "Feature del proyecto Ledger que amplía la reorganización de la taxonomía (grupo > categoría > subcategoría) con un modelo confirmado con el usuario y deliberadamente acotado a SUBIR de nivel: (A) promover cualquier nodo (subcategoría o categoría) a GRUPO arrastrándolo a la fila de su TIPO — al subir un nodo, sus hijos ascienden un nivel con él (las subcategorías de una categoría promovida pasan a categorías); todo movimiento es SIEMPRE dentro del mismo tipo (regla dura). (B) tratar un grupo SIN hijos como hoja editable: su presupuesto/ejecutado se capturan directo (en la grilla y como destino de movimientos), y al ganar su primer hijo traslada sus montos al hijo y se vuelve calculado; al perder su último hijo vuelve a ser hoja editable en 0. Explícitamente FUERA de alcance: bajar de nivel un nodo (degradar), que el usuario evaluó como innecesario y complejo — el comportamiento de reparent existente no se amplía en esa dirección. Contexto de intención: el usuario creía que (B) funcionaba antes; se verificó que NO (isLeaf idéntica desde el commit inicial; el 00_DISCOVERY aprobado excluyó explícitamente 'editar un total padre'), por lo que esto es capacidad NUEVA que revisa esa decisión de alcance, no una regresión. North Star KPI: reorganizar la taxonomía sin recrear nodos ni perder montos (0 pérdidas de monto y 0 movimientos huérfanos en 100% de las promociones/ediciones). JTBD: 'cuando mi presupuesto crece, quiero reorganizar mis grupos/categorías sin empezar de cero ni perder lo ya registrado'. Guardrail: el invariante padre == Σ hojas y el rendimiento de la grilla (≤150ms, NFR-001 del padre) no deben degradarse; los grupos CON hijos siguen siendo totales calculados no editables.",
+  "functional_requirements": [
+    {
+      "id": "FR-601",
+      "title": "Promover una subcategoría o categoría a GRUPO arrastrándola a la fila de su tipo",
+      "description": "En escritorio, arrastrar una subcategoría o una categoría y soltarla sobre la fila de su mismo TIPO (Gasto/Ingreso/Transferencia) la convierte en un grupo de ese tipo (level:'group', parentId:null). Es un solo gesto, incluso para una subcategoría (salto directo sub→grupo, confirmado con el usuario). Al promover un nodo, sus hijos directos ascienden un nivel: las subcategorías de una categoría promovida pasan a categorías del nuevo grupo. Solo SUBE de nivel; nunca cruza de tipo. La fila de tipo es un destino droppable con afordancia visible durante el arrastre.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, arrastrar la subcategoría 'Café' y soltarla sobre la fila del tipo GASTOS la convierte en un grupo de tipo expense con parentId nulo, visible como grupo (happy)",
+        "Arrastrar una categoría con subcategorías a la fila de su tipo la convierte en grupo y sus subcategorías quedan como categorías del nuevo grupo, conservando montos y movimientos (edge)",
+        "Soltar un nodo sobre la fila de un tipo DISTINTO al suyo no realiza ningún cambio (negativo)"
+      ]
+    },
+    {
+      "id": "FR-602",
+      "title": "moveNode admite la promoción a grupo re-nivelando a los hijos, sin cruzar de tipo",
+      "description": "La función de dominio moveNode acepta un destino de tipo-raíz (promoción a grupo) además de los destinos actuales (category, group). Al promover: el nodo pasa a level:'group', parentId:null, y sus hijos directos suben un nivel (sub→category). Preserva los ids de nodo y de movimiento (target sigue válido → cero huérfanos). Rechaza destino de tipo distinto (cross_type). No introduce degradación ni aplanado de subárboles (solo sube).",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "moveNode(sub, destino:'grupo') devuelve un estado con el nodo en level:'group', parentId:null, del mismo tipo, con sus budgets/actuals preservados (happy)",
+        "moveNode(categoría-con-subs, destino:'grupo') deja las subs en level:'category' bajo el nuevo grupo, cada target de movimiento preservado (edge)",
+        "moveNode con destino de tipo distinto devuelve rejected:'cross_type' sin mutar el estado (negativo)"
+      ]
+    },
+    {
+      "id": "FR-603",
+      "title": "Un grupo SIN hijos es una hoja editable (presupuesto y ejecutado)",
+      "description": "isLeaf trata un grupo sin hijos como hoja: sus celdas Pres./Ejec. de cada mes se editan directamente en la grilla (setLeafAmount lo acepta) y el roll-up (leafDescendants) usa su monto propio. En cuanto el grupo tiene ≥1 hijo deja de ser hoja: sus celdas se calculan por agregación y no son editables. Revisa la decisión de alcance del 00_DISCOVERY ('no editar totales padre') SOLO para el caso grupo-sin-hijos.",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "Given un grupo recién creado sin hijos, al hacer clic en su celda Pres. de un mes se abre el editor, Enter fija el valor y persiste tras recargar (happy)",
+        "El presupuesto/ejecutado anual de un grupo-hoja es la suma de sus propios montos mensuales (roll-up respeta el monto propio) (edge)",
+        "Un grupo CON al menos un hijo no abre editor al hacer clic en su celda y su valor es la suma de los hijos (negativo)"
+      ]
+    },
+    {
+      "id": "FR-604",
+      "title": "Traslado de montos del grupo al primer hijo al dejar de ser hoja",
+      "description": "Al agregar el PRIMER hijo a un grupo-hoja con montos propios —por crear una categoría nueva bajo él (createNode) o por promover un nodo hacia él— los budgets/actuals propios del grupo se trasladan íntegros al nuevo hijo y el grupo pasa a total calculado. Replica el traslado de FR-002 (categoría→sub), extendido a grupo→primera-categoría; el total del grupo no cambia por el traslado. Reconciliación: un nodo promovido a grupo mientras NO tiene hijos conserva sus montos como grupo-hoja (FR-603); no se le crea un hijo sintético. El traslado solo ocurre cuando después se le agrega el primer hijo.",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "Given un grupo-hoja con Pres. ene=800000 y sin hijos, al crear su primera categoría los 800000 quedan en la nueva categoría, el grupo ya no almacena monto propio y el total del grupo sigue 800000 (happy)",
+        "Given una subcategoría con montos promovida a grupo (sin hijos), sus montos quedan en el grupo-hoja sin crear ningún hijo (edge)",
+        "Tras trasladar al primer hijo, editar la celda del grupo ya no es posible (es calculado) (negativo)"
+      ]
+    },
+    {
+      "id": "FR-605",
+      "title": "Un grupo que pierde su último hijo vuelve a ser hoja editable en 0",
+      "description": "Cuando un grupo se queda con 0 hijos —porque su último hijo se borró o se movió/promovió fuera— vuelve a ser hoja editable (FR-603) con sus montos propios en 0 (el monto se lo llevó el hijo al salir; el grupo no reabsorbe montos de hijos). Es el reverso de FR-604 y mantiene sin ambigüedad quién es dueño del monto.",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "Given un grupo con un solo hijo, al borrar ese hijo el grupo queda sin hijos, sus celdas Pres./Ejec. vuelven a ser editables y muestran 0 (happy)",
+        "Given un grupo con un solo hijo, al promover ese hijo a grupo el grupo original queda sin hijos y editable en 0 (edge)",
+        "El total anterior del grupo no reaparece en el grupo vacío: el monto viajó con el hijo (negativo)"
+      ]
+    },
+    {
+      "id": "FR-606",
+      "title": "Un grupo sin hijos es destino válido de movimientos en el registro",
+      "description": "El módulo de captura de movimientos ofrece los grupos SIN hijos como destino, además de las categorías y subcategorías. Registrar un movimiento contra un grupo-hoja incrementa su ejecutado en exactamente el monto capturado, igual que cualquier otra hoja (consistencia con FR-603). Un grupo CON hijos no se ofrece como destino (es calculado). Mantiene sin cambios el destino de categorías y subcategorías.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Given un grupo sin hijos, el selector de destino del registro lo lista como opción; guardar un movimiento de N incrementa su actuals del mes en exactamente N (happy)",
+        "El registro sigue ofreciendo las categorías y sus subcategorías como destino, sin cambios (edge)",
+        "Un grupo CON hijos NO aparece como destino seleccionable en el registro (negativo)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-601",
+      "category": "Regression",
+      "requirement": "FR-002 (traslado al crear la 1ª subcategoría de una categoría-hoja) sigue funcionando sin cambios: los budgets/actuals de la categoría se mueven a la nueva sub y el total no cae.",
+      "acceptance_criteria": "Convertir una categoría-hoja con Pres. ene=800000 en padre traslada los 800000 a la nueva subcategoría; rollupBudget de la categoría sigue 800000"
+    },
+    {
+      "id": "NFR-602",
+      "category": "Regression",
+      "requirement": "El invariante padre == Σ hojas y cero movimientos huérfanos (NFR-005 del padre) se mantiene tras cualquier promoción, alta o baja del primer/último hijo, y edición de grupo-hoja.",
+      "acceptance_criteria": "Tras promover un nodo a grupo, trasladar montos al primer hijo, y vaciar un grupo a 0 hijos, todo movement.target apunta a un nodo existente (0 huérfanos) y el roll-up de cada padre es igual a la suma de sus hojas"
+    },
+    {
+      "id": "NFR-603",
+      "category": "Regression",
+      "requirement": "El gate de borrado FR-003 y los fixes BG-006 siguen intactos: una categoría/sub con ejecutado vigente no se borra; una vaciada (ejecutado 0) sí, retirando sus movimientos del subárbol (cero huérfanos).",
+      "acceptance_criteria": "canDeleteNode sigue bloqueando un nodo con actuals>0 y permitiendo uno vaciado; deleteNode de un nodo vaciado retira sus movimientos"
+    },
+    {
+      "id": "NFR-604",
+      "category": "Regression",
+      "requirement": "El reparent existente (sub→categoría, movimiento lateral de categoría, y el comportamiento actual de soltar una categoría dentro de otra) sigue funcionando igual, nunca cruza de tipo, y NO se amplía hacia la degradación. Los grupos CON hijos siguen siendo totales calculados no editables.",
+      "acceptance_criteria": "moveNode(sub, categoría) reubica sin cruzar tipo; una operación cross-type se rechaza; un grupo con hijos no abre editor de celda ni aparece como destino de movimientos"
+    },
+    {
+      "id": "NFR-605",
+      "category": "Regression",
+      "requirement": "El registro de movimientos sigue incrementando el ejecutado de la hoja destino (categoría/sub) en exactamente el monto capturado; el rendimiento de la grilla no supera el guardrail de 150ms (NFR-001 del padre).",
+      "acceptance_criteria": "Un movimiento de N pesos contra una categoría o sub incrementa su actuals en exactamente N; el re-render de la grilla tras una promoción se mantiene ≤150ms con la semilla estándar"
+    },
+    {
+      "id": "NFR-606",
+      "category": "Security",
+      "requirement": "La feature es lógica de dominio del cliente y UI; no agrega endpoints ni superficie de red. En modo servidor la persistencia usa el mismo snapshot-replace con aislamiento por ownerId ya existente (FR-508). No introduce ninguna nueva superficie de seguridad.",
+      "acceptance_criteria": "No se agregan rutas /api nuevas; el guardado en modo servidor sigue pasando por saveLedger con ownerId fijado por el servidor"
+    }
+  ],
+  "no_go_zone": [
+    "Degradar / bajar de nivel un nodo (grupo→categoría, categoría→sub como acción nueva): el usuario lo evaluó como innecesario y complejo; el reparent existente no se amplía en esa dirección. SOLO se agrega SUBIR de nivel.",
+    "Reparto proporcional al editar un total padre CON hijos: sigue fuera de alcance; SOLO el grupo sin hijos es editable.",
+    "Reordenar categorías por arrastre dentro de un mismo nivel: sigue fuera de alcance (decisión de discovery).",
+    "Que un grupo reabsorba los montos de un hijo al perderlo: al perder el último hijo el grupo queda en 0 (el monto viajó con el hijo).",
+    "Multi-año y multi-moneda: fuera de alcance de v1."
+  ],
+  "constraints": [
+    "Toda la lógica nueva vive en el núcleo de dominio TypeScript puro (tree/rollup/mutations) + la UI de grilla y de registro; sin cambios server-side (el servidor persiste el snapshot que el cliente envía).",
+    "Debe funcionar idéntico en modo localStorage y en modo servidor (la lógica de dominio es compartida).",
+    "Compatibilidad con el estado persistido existente (ledger.nodes.v1 / ledger.budget.v2): un ledger guardado antes de la feature carga sin migración.",
+    "Todo movimiento de nodos es SIEMPRE dentro del mismo tipo (Gasto/Ingreso/Transferencia): regla dura."
+  ],
+  "technology_preferences": [
+    "TypeScript puro para el dominio (sin React ni DOM en tree/rollup/mutations).",
+    "@dnd-kit para el drag-drop de promoción (ya usado por el reparent existente); la fila de tipo se vuelve droppable.",
+    "Zustand para el store; vitest (unit) + Playwright (e2e) para las pruebas."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas (usuario único de v1, escritorio)",
+      "tech_level": "Medio; cómodo con hojas de cálculo y con reorganizar su propia taxonomía",
+      "goal": "Reestructurar sus grupos/categorías a medida que su presupuesto evoluciona, sin recrear nodos ni perder lo ya presupuestado o ejecutado",
+      "pain_point": "Hoy solo puede promover sub→categoría y no puede capturar un monto en un grupo nuevo sin antes crearle una categoría; reorganizar obliga a rehacer y arriesga perder montos"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-601",
+      "requirement_id": "FR-601",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "arrastrar una subcategoría o categoría a la fila de su tipo para convertirla en grupo",
+      "so_that": "puedo elevar un rubro a grupo sin recrearlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-601a",
+          "given": "la subcategoría 'Café' bajo Comida",
+          "when": "la suelto sobre la fila del tipo GASTOS",
+          "then": "queda como un grupo de gasto con parentId nulo, conservando sus montos"
+        },
+        {
+          "id": "AC-601b",
+          "given": "una categoría con subcategorías",
+          "when": "la promuevo a grupo",
+          "then": "sus subcategorías quedan como categorías del nuevo grupo"
+        },
+        {
+          "id": "AC-601c",
+          "given": "una subcategoría de gasto",
+          "when": "la suelto sobre INGRESOS",
+          "then": "no ocurre ningún cambio (cross-type)"
+        }
+      ]
+    },
+    {
+      "id": "US-602",
+      "requirement_id": "FR-602",
+      "as_a": "usuario que reorganiza su taxonomía",
+      "i_want": "que promover un nodo suba a sus hijos un nivel y conserve montos y movimientos",
+      "so_that": "no quedan nodos en niveles imposibles ni movimientos huérfanos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-602a",
+          "given": "una categoría con subs promovida a grupo",
+          "when": "se completa el move",
+          "then": "las subs son categorías y cada movimiento sigue apuntando a un nodo válido"
+        },
+        {
+          "id": "AC-602b",
+          "given": "un intento de move cross-type",
+          "when": "se evalúa",
+          "then": "se rechaza sin mutar el estado"
+        }
+      ]
+    },
+    {
+      "id": "US-603",
+      "requirement_id": "FR-603",
+      "as_a": "usuario que crea un grupo nuevo",
+      "i_want": "capturar presupuesto/ejecutado directamente en un grupo sin hijos",
+      "so_that": "puedo presupuestar un rubro global sin verme obligado a crearle una categoría antes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-603a",
+          "given": "un grupo sin hijos",
+          "when": "edito su celda Pres. de un mes",
+          "then": "el valor queda fijado en el grupo y persiste tras recargar"
+        },
+        {
+          "id": "AC-603b",
+          "given": "un grupo con ≥1 hijo",
+          "when": "hago clic en su celda",
+          "then": "no abre editor y el valor es la suma de los hijos"
+        }
+      ]
+    },
+    {
+      "id": "US-604",
+      "requirement_id": "FR-604",
+      "as_a": "usuario que empieza a detallar un grupo",
+      "i_want": "que al crear el primer hijo del grupo sus montos se trasladen a ese hijo",
+      "so_that": "no pierdo lo que ya había presupuestado en el grupo y el total no cambia",
+      "acceptance_criteria": [
+        {
+          "id": "AC-604a",
+          "given": "un grupo-hoja con Pres. ene=800000",
+          "when": "creo su primera categoría",
+          "then": "los 800000 quedan en la categoría, el grupo pasa a calculado y el total sigue 800000"
+        },
+        {
+          "id": "AC-604b",
+          "given": "una sub con montos promovida a grupo sin hijos",
+          "when": "se completa",
+          "then": "los montos quedan en el grupo-hoja sin crear un hijo sintético"
+        }
+      ]
+    },
+    {
+      "id": "US-605",
+      "requirement_id": "FR-605",
+      "as_a": "usuario que reorganiza",
+      "i_want": "que un grupo que se queda sin hijos vuelva a ser editable en 0",
+      "so_that": "puedo volver a presupuestarlo directo sin ambigüedad de montos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-605a",
+          "given": "un grupo con un solo hijo",
+          "when": "borro ese hijo",
+          "then": "el grupo queda editable con montos en 0"
+        },
+        {
+          "id": "AC-605b",
+          "given": "un grupo con un solo hijo",
+          "when": "promuevo ese hijo a grupo",
+          "then": "el grupo original queda editable en 0"
+        }
+      ]
+    },
+    {
+      "id": "US-606",
+      "requirement_id": "FR-606",
+      "as_a": "usuario que registra gastos",
+      "i_want": "poder registrar un movimiento contra un grupo sin hijos",
+      "so_that": "su ejecutado se llena igual que el de cualquier otra hoja, no solo a mano",
+      "acceptance_criteria": [
+        {
+          "id": "AC-606a",
+          "given": "un grupo sin hijos",
+          "when": "registro un movimiento de N contra él",
+          "then": "su ejecutado del mes sube en exactamente N"
+        },
+        {
+          "id": "AC-606b",
+          "given": "un grupo con hijos",
+          "when": "abro el selector de destino",
+          "then": "el grupo no aparece como opción"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Reportado por el usuario en chat (BG-008 promover a grupo + regla de grupo sin hijos editable); refinado en sesión de diseño de lógica y verificado contra el código (isLeaf, moveNode, mutations, CategoryRow) y contra el 00_DISCOVERY/02_SYSTEM_DESIGN aprobados",
+    "users": "Usuario único de v1 (dueño de finanzas, escritorio), heredado del proyecto padre; confirmado",
+    "baseline": "Dominio actual: tree.ts (isLeaf), rollup.ts, mutations.ts (moveNode/createNode/setLeafAmount), BudgetGrid.tsx, register/CategoryRow.tsx; y las reglas aprobadas del padre (FR-002/003/004/015, NFR-005)",
+    "success_metric": "Usuario confirmó vía preguntas: solo SUBIR de nivel; salto directo sub→grupo; hijos ascienden un nivel; grupo sin hijos editable con traslado al primer hijo y reverso a 0 al perder el último; grupo sin hijos como destino de movimientos; degradación fuera de alcance",
+    "no_go_zone": "Usuario confirmó: no degradar nodos (especialmente con hijos); solo grupo SIN hijos editable; el grupo no reabsorbe montos de hijos; el resto hereda las exclusiones del discovery aprobado"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Promover una subcategoría a grupo en un solo gesto (BG-008)",
+      "disposition": "FR-601"
+    },
+    {
+      "need": "Promover una categoría a grupo, con sus subs ascendiendo a categorías",
+      "disposition": "FR-601"
+    },
+    {
+      "need": "Dominio: moveNode admite promoción a grupo re-nivelando hijos, sin cruzar tipo, sin huérfanos",
+      "disposition": "FR-602"
+    },
+    {
+      "need": "Grupo sin hijos con presupuesto/ejecutado editables directamente",
+      "disposition": "FR-603"
+    },
+    {
+      "need": "Al agregar el primer hijo al grupo, trasladar sus montos al hijo y volverlo calculado",
+      "disposition": "FR-604"
+    },
+    {
+      "need": "Un grupo que pierde su último hijo vuelve a hoja editable en 0",
+      "disposition": "FR-605"
+    },
+    {
+      "need": "Grupo sin hijos como destino de movimientos en el registro",
+      "disposition": "FR-606"
+    },
+    {
+      "need": "Conservar integridad (cero huérfanos, padre==Σhojas) tras promociones y transiciones de hoja",
+      "disposition": "NFR-602"
+    },
+    {
+      "need": "No romper el traslado categoría→sub (FR-002)",
+      "disposition": "NFR-601"
+    },
+    {
+      "need": "No romper el gate de borrado ni los fixes BG-006 (FR-003)",
+      "disposition": "NFR-603"
+    },
+    {
+      "need": "No romper el reparent existente ni permitir cross-type; grupos con hijos siguen calculados",
+      "disposition": "NFR-604"
+    },
+    {
+      "need": "No romper el registro de movimientos contra categorías/subs ni el rendimiento de la grilla",
+      "disposition": "NFR-605"
+    },
+    {
+      "need": "Degradar / bajar de nivel un nodo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Reparto proporcional al editar un total padre con hijos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Reordenar categorías por arrastre",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-año / multi-moneda",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nPermitir reorganizar la taxonomía subiendo un nodo a un nivel superior (incluido promover a grupo), y que un grupo sin hijos tenga presupuesto/ejecutado editables directamente, pasando a total calculado en cuanto se le agrega el primer hijo.\n\n## Problem / Why\nHoy la reorganización de la taxonomía es asimétrica y limitada:\n1. Una subcategoría solo se puede promover a categoría; no existe forma —ni en dominio ni en UI— de convertir un nodo en grupo (subir dos niveles), ni de subir una categoría a grupo. El usuario reportó esto como el bug BG-008.\n2. Un grupo nunca es editable: sus celdas siempre son un roll-up de sus hijos, incluso cuando no tiene ninguno. El usuario espera poder capturar un presupuesto/ejecutado directamente en un grupo recién creado y que ese grupo pase a \"calculado\" solo cuando le agrega su primer hijo — el mismo patrón de traslado que ya existe hoy al convertir una categoría-hoja en padre (FR-002).\n\nNota de intención (confirmado con el usuario): el usuario creía que el comportamiento (2) existía antes. Se verificó que NO: `isLeaf` está igual desde el commit inicial (grupo nunca es hoja) y el `00_DISCOVERY.md` aprobado lo puso explícitamente fuera de alcance (\"No existe la función de editar un total padre\"). Por eso esto es capacidad NUEVA que revisa esa decisión de alcance, no una regresión.\n\n## Target Users\nLos usuarios existentes de v1 (un solo usuario del Ledger) que organizan su propia taxonomía de grupos/categorías/subcategorías y quieren reestructurarla sin recrear nodos ni perder montos.\n\n## New Behavior\n- El sistema debe permitir promover una subcategoría a categoría (ya existe) y también a grupo.\n- El sistema debe permitir promover una categoría a grupo.\n- El sistema debe permitir, de forma general, mover un nodo a cualquier nivel superior compatible con su tipo (expense/income/transfer), sin cruzar de tipo.\n- El sistema debe tratar un grupo SIN hijos como hoja editable: sus celdas de presupuesto y ejecutado se editan directamente en la grilla.\n- El sistema debe, al agregar el PRIMER hijo a un grupo (por promoción de un nodo hacia él, o por crear una categoría nueva bajo él), trasladar los montos propios del grupo al nuevo hijo y volver las celdas del grupo un total calculado (roll-up), replicando el traslado que hoy hace FR-002 en categoría→sub.\n- El sistema debe conservar la integridad: cero movimientos huérfanos y el invariante padre == Σ hojas tras cualquier promoción o edición (NFR-005).\n\n## Success Criteria\n- Given un grupo recién creado sin hijos, When el usuario edita su celda de presupuesto de un mes, Then el valor queda fijado en el grupo (editable, sin roll-up) y persiste.\n- Given un grupo con presupuesto/ejecutado propios y sin hijos, When se le agrega el primer hijo, Then los montos del grupo se trasladan íntegros al nuevo hijo, el total del grupo no cambia, y las celdas del grupo pasan a no-editables (calculadas).\n- Given una subcategoría \"Café\" bajo una categoría, When el usuario la promueve a grupo, Then queda como grupo del mismo tipo, con parentId nulo, conservando sus montos como grupo-hoja editable (o en un hijo si el modelo lo requiere), sin huérfanos.\n- Given una categoría con subcategorías, When se promueve a grupo, Then sus subcategorías quedan colgando del nuevo grupo como categorías, con montos y movimientos preservados.\n- Given cualquier promoción, When se completa, Then no hay movimientos cuyo target apunte a un nodo inexistente (cero huérfanos) y padre == Σ hojas.\n\n## Touch Points\nMODIFICA:\n- `src/domain/tree.ts` — `isLeaf` (un grupo sin hijos pasa a ser hoja editable).\n- `src/domain/rollup.ts` — roll-up debe respetar el monto propio de un grupo-hoja.\n- `src/domain/mutations.ts` — `moveNode` (nuevo destino \"root/grupo\" y promoción de la cadena de descendientes), regla de traslado al primer hijo (`createNode` y por promoción), `setLeafAmount` (permitir editar un grupo-hoja).\n- `src/state/store.ts` — firma de `moveNode`.\n- `src/components/BudgetGrid.tsx` — hacer droppable la fila de TIPO como destino de promoción a grupo; permitir edición de celdas de un grupo-hoja.\n- FRs existentes tocados: FR-002 (traslado al crear primer hijo — se generaliza a grupos), FR-004 (roll-up), FR-015 (reparent por drag-drop).\n\nADITIVO:\n- Nuevo destino de reparent \"a grupo / a nivel raíz de tipo\".\n\n## Must Not Break (Regression Boundary)\n- FR-002: convertir una categoría-hoja en padre sigue trasladando sus montos a la primera subcategoría (los totales no caen).\n- FR-004 / NFR-005: el invariante padre == Σ hojas se mantiene tras cualquier promoción o edición; cero movimientos huérfanos.\n- FR-003: borrado de categoría/sub y el gate de borrado (una categoría/sub con ejecutado vigente no se borra; vacía sí) — incluidos los fixes recién verificados BG-006.\n- FR-015: el reparent existente sub→categoría y categoría→categoría sigue funcionando y no cruza de tipo.\n- El registro de movimientos sigue incrementando el ejecutado de la hoja destino en exactamente el monto capturado.\n- Grupos que YA tienen hijos siguen siendo totales calculados no editables.\n\n## Out of Scope\n- Reparto proporcional al editar un total padre CON hijos (sigue fuera de alcance; solo el grupo SIN hijos es editable).\n- Reordenar categorías por arrastre (sigue fuera de alcance, decisión de discovery).\n- Degradar/mover un grupo a un nivel inferior (convertir grupo en categoría) — este incremento cubre solo subir de nivel; bajar queda para otra feature si se necesita.\n- Multi-año / multi-moneda (fuera de alcance de v1).\n"
+}
