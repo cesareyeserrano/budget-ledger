@@ -368,7 +368,7 @@ function NodeRow(props: {
           {naming ? (
             <input autoFocus aria-label="Nombre" value={nameVal} onChange={(e) => setNameVal(e.target.value)} onBlur={() => props.commitName(nameVal)} onKeyDown={(e) => { if (e.key === "Enter") props.commitName(nameVal); if (e.key === "Escape") props.commitName(node.name); }} className="flex-1 min-w-0 bg-card border border-accent rounded-md text-fg px-2 py-1 text-[0.8rem] outline-none" />
           ) : (
-            <span onClick={props.onToggle} className={cn("flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap", row.expandable && "cursor-pointer")}>{node.name}</span>
+            <span onClick={props.onToggle} className={cn("flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap", row.expandable && !canDrag && "cursor-pointer")}>{node.name}</span>
           )}
           {confirmDel && !node.system && (
             <span className="flex gap-1 flex-none">
