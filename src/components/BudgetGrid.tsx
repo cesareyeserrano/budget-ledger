@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
@@ -133,6 +133,17 @@ export function BudgetGrid() {
   const rows = useMemo(() => buildRows(data.nodes, expanded), [data.nodes, expanded]);
   const highlightMonth = period.mode === "month" ? period.month : null;
 
+  // BG-007: al montar, posicionar el scroll horizontal en el mes resaltado (el estado ya arranca
+  // en el mes en curso, pero el contenedor iniciaba en scrollLeft=0 → siempre se veía enero).
+  // Cada mes ocupa 216px (dos celdas CELL_W de 108px); la columna de categoría es sticky.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!highlightMonth || !scrollRef.current) return;
+    const idx = MONTHS.findIndex((m) => m.k === highlightMonth);
+    if (idx > 0) scrollRef.current.scrollLeft = idx * 216;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // solo al montar: después el usuario controla el scroll libremente
+
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
     if (!editing) return;
@@ -173,7 +184,7 @@ export function BudgetGrid() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
-      <div className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
+      <div ref={scrollRef} className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
         <div className="w-max min-w-full text-[0.74rem]">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">

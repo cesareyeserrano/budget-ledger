@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSeed, createNode, deleteNode } from "@/domain";
+import { addMovement, buildSeed, createNode, deleteNode } from "@/domain";
 import { rollupBudget } from "@/domain/rollup";
 import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
@@ -43,22 +43,21 @@ describe("FR-002 CRUD de categorías", () => {
 });
 
 describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
+  // Flujo real: los movimientos se registran vía addMovement (suman a actuals), como en la app.
   function seedWithMovements() {
     const s0 = buildSeed("local");
-    const movements = [
-      { id: "m1", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 1000, month: "ene" as const, createdAt: 1 },
-      { id: "m2", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 2000, month: "feb" as const, createdAt: 2 },
-      { id: "m3", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 3000, month: "mar" as const, createdAt: 3 },
-    ];
     // crear categoría-hoja 'c-cafe' bajo Esenciales
     let s = createNode(s0, { level: "category", parentId: "g-esenciales", type: "expense", name: "Cafetería" });
     const cafe = s.nodes.find((n) => n.name === "Cafetería" && n.level === "category")!;
-    s = { ...s, nodes: s.nodes.map((n) => (n.id === cafe.id ? { ...n, id: "c-cafe" } : n)), movements };
+    s = { ...s, nodes: s.nodes.map((n) => (n.id === cafe.id ? { ...n, id: "c-cafe" } : n)) };
+    s = addMovement(s, { type: "expense", catId: "c-cafe", subId: null, amount: "1000", month: "ene" });
+    s = addMovement(s, { type: "expense", catId: "c-cafe", subId: null, amount: "2000", month: "feb" });
+    s = addMovement(s, { type: "expense", catId: "c-cafe", subId: null, amount: "3000", month: "mar" });
     return s;
   }
 
   // @aitri-tc TC-003h
-  it("TC-003h: borrar categoría CON movimientos está bloqueado (no se borra, no se pierde)", () => {
+  it("TC-003h: borrar categoría CON movimientos (ejecutado > 0) está bloqueado (no se borra, no se pierde)", () => {
     const s = seedWithMovements();
     expect(canDeleteNode(s, "c-cafe")).toBe(false); // no borrable → la UI no muestra 🗑
     const res = deleteNode(s, "c-cafe");
@@ -66,6 +65,25 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     // la categoría sigue existiendo con sus movimientos intactos
     expect(findNode(s.nodes, "c-cafe")).toBeDefined();
     expect(s.movements.length).toBe(3);
+  });
+
+  // BG-006: una categoría/sub VACIADA (ejecutado en 0 en todos los meses) debe poder borrarse,
+  // aunque tenga movimientos históricos en el journal (el journal es inmutable y antes la
+  // bloqueaba para siempre). Al borrarla, sus movimientos se retiran para no dejar huérfanos.
+  it("BG-006: categoría vaciada (ejecutado en 0) se puede borrar aunque tenga movimientos históricos", () => {
+    let s = seedWithMovements();
+    expect(canDeleteNode(s, "c-cafe")).toBe(false); // con ejecutado > 0 sigue bloqueada
+    // el usuario la vacía: pone el ejecutado en 0 en los meses que tenían monto
+    s = setLeafAmount(s, "c-cafe", "ene", "actual", 0);
+    s = setLeafAmount(s, "c-cafe", "feb", "actual", 0);
+    s = setLeafAmount(s, "c-cafe", "mar", "actual", 0);
+    expect(canDeleteNode(s, "c-cafe")).toBe(true); // vaciada → borrable
+    const res = deleteNode(s, "c-cafe");
+    expect("state" in res).toBe(true);
+    const next = ("state" in res ? res.state : s);
+    expect(findNode(next.nodes, "c-cafe")).toBeUndefined();
+    expect(next.movements.some((m) => m.target === "c-cafe")).toBe(false); // sin huérfanos
+    expect(next.actuals["c-cafe"]).toBeUndefined();
   });
 
   // @aitri-tc TC-003e

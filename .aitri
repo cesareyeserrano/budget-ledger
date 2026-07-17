@@ -23,32 +23,9 @@
   "aitriVersion": "2.0.1",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-16T21:07:33.925Z",
+  "updatedAt": "2026-07-17T02:09:08.274Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T02:06:12.936Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-04T02:14:35.990Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-04T02:14:36.086Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-07-04T02:24:32.838Z",
       "event": "reconcile-pending",
@@ -189,6 +166,31 @@
       "method": "git",
       "baseRefFrom": "b06149eb1bc04057cb10aa0c94e4e79c019a693b",
       "baseRefTo": "c1ed4ffba6c96fc1ccbc916af3a39a85ed23d6ce"
+    },
+    {
+      "at": "2026-07-17T02:04:47.842Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-17T02:08:52.564Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-17T02:09:08.249Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -281,14 +283,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "8c0fe91dde9fda83911162482f8a18239920ca72dec734c4556ca43f16f16fda",
-  "verifyRanAt": "2026-07-16T20:42:42.539Z",
+  "verifyResultsHash": "245057fe08fb8e500e6c148612bb4e72ae41268c8a94162d2bd337170d6450bd",
+  "verifyRanAt": "2026-07-17T02:08:52.564Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-16T20:42:42.539Z"
+    "at": "2026-07-17T02:08:52.564Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",

@@ -10,6 +10,7 @@ import { LocalStorageRepository, type LedgerRepository } from "@/data/repository
 import { ServerRepository } from "@/data/serverRepository";
 import { SERVER_MODE } from "@/lib/serverMode";
 import { STORAGE_KEYS } from "@/domain/types";
+import { currentMonthKey } from "@/domain/months";
 
 export type PeriodFilter = { mode: "month"; month: MonthKey } | { mode: "year" };
 
@@ -72,7 +73,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     hydrated: false,
     // ux-consistency FR-312: arrancar en el MES EN CURSO (según el reloj), no en un año/mes fijo.
     // Supersede el default 'Año' de FR-106; el usuario cambia el filtro Mes/Año libremente.
-    period: { mode: "month", month: currentMonth() },
+    period: { mode: "month", month: currentMonthKey() },
     toast: null,
     storageError: null,
     showToast: (msg) => {
@@ -186,13 +187,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 // (actualizado por el sync SSE) sin recargar. No-op en modo localStorage y en SSR.
 if (SERVER_MODE && typeof window !== "undefined") {
   (window as unknown as { __ledgerStore?: typeof useLedgerStore }).__ledgerStore = useLedgerStore;
-}
-
-function currentMonth(): MonthKey {
-  const keys: MonthKey[] = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-  // v1 es single-year 2026; el mes en curso se toma del reloj para el default de la UI.
-  const idx = new Date().getMonth();
-  return keys[idx] ?? "ene";
 }
 
 export type { NodeType };

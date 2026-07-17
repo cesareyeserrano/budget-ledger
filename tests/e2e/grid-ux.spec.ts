@@ -10,10 +10,14 @@ function row(page: PW, name: RegExp): Loc {
   return page.getByTestId("budget-grid").locator("div").filter({ hasText: name }).first();
 }
 // Hover fiable: mueve el mouse al centro-izquierda de la fila (evita la fragilidad de .hover() sobre hijos).
+// BG-007: la grilla arranca auto-scrolleada al mes en curso, así que box.x de la fila puede ser
+// negativo; el hover se ancla a la columna de etiquetas (sticky), siempre visible al borde
+// izquierdo del contenedor.
 async function hoverRow(page: PW, r: Loc) {
   await r.scrollIntoViewIfNeeded();
   const box = await r.boundingBox();
-  if (box) await page.mouse.move(box.x + 40, box.y + box.height / 2);
+  const grid = await page.getByTestId("budget-grid").boundingBox();
+  if (box) await page.mouse.move(Math.max(box.x, grid?.x ?? 0) + 40, box.y + box.height / 2);
 }
 
 // ---------- FR-101 — crear grupo desde la grilla ----------

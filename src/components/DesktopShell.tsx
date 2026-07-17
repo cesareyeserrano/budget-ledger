@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { Plus, X, Wallet } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import { MONTHS, monthLabel } from "@/domain/months";
+import { MONTHS, monthLabel, currentMonthKey } from "@/domain/months";
 import { typeTotals } from "@/domain/rollup";
 import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
@@ -68,7 +68,8 @@ export function DesktopShell() {
         <div className="flex items-center justify-between gap-4 px-6 pt-3.5 flex-wrap">
           <div className="flex items-center gap-3">
             {/* Año/periodo como control segmentado discreto (FR-304), con el MISMO radio que las tabs Resumen/Dashboard */}
-            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : "jun" } : { mode: "year" })}>
+            {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso (antes: "jun" fijo) */}
+            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentMonthKey() } : { mode: "year" })}>
               <TabsList data-testid="period-pill">
                 <TabsTrigger value="month">Mes</TabsTrigger>
                 <TabsTrigger value="year">Año</TabsTrigger>

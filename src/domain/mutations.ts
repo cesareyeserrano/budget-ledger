@@ -175,12 +175,15 @@ export function renameNode(state: LedgerState, id: string, name: string): Ledger
 
 // ── Borrado (sin "Sin asignar" — decisión del usuario: se retiró hasta redefinirla) ─────────
 /**
- * ¿El nodo tiene DATOS (historial) — movimientos registrados o ejecutado (actuals > 0) en su
- * subárbol? El seed genera actuals sin `movements`, así que ambos cuentan como datos.
+ * ¿El nodo tiene DATOS vigentes — ejecutado (actuals > 0) en algún mes de su subárbol?
+ * BG-006: la señal es el ejecutado VIGENTE, no el journal de movimientos. Los movimientos
+ * siempre suman a actuals al registrarse; si el usuario luego vació las celdas (todo en 0),
+ * el nodo está efectivamente vacío y debe poder borrarse. Antes, cualquier movimiento
+ * histórico bloqueaba el borrado para siempre (el journal es inmutable — no hay forma de
+ * quitarlo), dejando subcategorías imposibles de eliminar aun vaciadas.
  */
 function nodeHasHistory(state: LedgerState, nodeId: string): boolean {
   const ids = new Set(subtreeIds(state.nodes, nodeId));
-  if (state.movements.some((m) => ids.has(m.target))) return true;
   for (const id of ids) {
     const a = state.actuals[id];
     if (a && Object.values(a).some((v) => v > 0)) return true;
@@ -195,7 +198,7 @@ export type DeleteResult = { state: LedgerState } | { blocked: DeleteBlock };
  * ¿Se puede borrar este nodo? (para gatear el ícono 🗑 en la UI — no mostrar borrar si no aplica)
  * - system: no.
  * - grupo: solo si NO tiene categorías.
- * - categoría/sub: solo si NO tiene datos (movimientos/ejecutado) — se debe vaciar primero.
+ * - categoría/sub: solo si NO tiene ejecutado vigente — se debe vaciar primero (BG-006).
  */
 export function canDeleteNode(state: LedgerState, id: string): boolean {
   const node = findNode(state.nodes, id);
@@ -218,10 +221,12 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
   // categoría o sub CON datos → bloqueado (hay que vaciarla primero; cero pérdida silenciosa)
   if (nodeHasHistory(state, id)) return { blocked: "has_data" };
 
-  // sin datos → borrado directo del subárbol y sus montos
+  // sin datos → borrado directo del subárbol, sus montos y sus movimientos históricos
+  // (BG-006: sin esto quedarían movimientos huérfanos apuntando a nodos inexistentes en Recientes)
   const ids = new Set(subtreeIds(state.nodes, id));
   const next = clone(state);
   next.nodes = next.nodes.filter((n) => !ids.has(n.id));
+  next.movements = next.movements.filter((m) => !ids.has(m.target));
   for (const nid of ids) {
     delete next.budgets[nid];
     delete next.actuals[nid];
