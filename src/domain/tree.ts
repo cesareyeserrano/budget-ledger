@@ -56,6 +56,24 @@ export function subtreeIds(nodes: LedgerNode[], nodeId: string): string[] {
   return out;
 }
 
+/**
+ * Profundidad del subárbol bajo un nodo: 0 = hoja, 1 = tiene hijos, 2 = tiene nietos.
+ * Es la pieza de "cabida" de la degradación (FR-702): un movimiento cabe si
+ * `profundidadDestino + subtreeDepth(node) ≤ 2` (techo grupo>categoría>subcategoría).
+ * Reutiliza `childrenOf`; robusto ante ciclos (visited-set).
+ */
+export function subtreeDepth(nodes: LedgerNode[], nodeId: string): number {
+  const seen = new Set<string>();
+  const walk = (id: string): number => {
+    if (seen.has(id)) return 0; // corta ciclos en datos corruptos
+    seen.add(id);
+    const kids = childrenOf(nodes, id);
+    if (kids.length === 0) return 0;
+    return 1 + Math.max(...kids.map((k) => walk(k.id)));
+  };
+  return walk(nodeId);
+}
+
 /** ¿`ancestorId` es ancestro (o igual) de `nodeId`? Robusto ante ciclos. */
 export function isAncestor(nodes: LedgerNode[], ancestorId: string, nodeId: string): boolean {
   const seen = new Set<string>();

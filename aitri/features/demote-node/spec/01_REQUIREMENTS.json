@@ -1,0 +1,238 @@
+{
+  "project_name": "T-Ledger — Feature: demote-node",
+  "project_summary": "Feature que completa el reparent del Ledger permitiendo BAJAR de nivel un nodo (degradar), el inverso de promote-to-group. Hoy `moveNode` rechaza mover cualquier grupo y la UI los hace no arrastrables, así que un grupo (p.ej. una categoría que se promovió y luego se vació) queda atrapado sin poder volver a categoría/subcategoría. Alcance confirmado con el usuario: (A) los grupos se vuelven arrastrables; soltar un grupo dentro de otro grupo lo vuelve categoría, dentro de una categoría lo vuelve subcategoría, SIEMPRE dentro del mismo tipo (regla dura), y todo su subárbol baja el mismo número de niveles. (B) el movimiento se permite SOLO si el subárbol completo cabe en el techo de 3 niveles (grupo>categoría>subcategoría); si algún descendiente caería a nivel 4 (desborde), se BLOQUEA con un aviso claro — cero pérdida de datos, cero reestructuración silenciosa; por ahora el usuario reacomoda los nietos a mano. (C) requisito explícito del usuario: el manejo del desborde vive detrás de un SEAM de política enchufable (default = bloquear), de modo que reglas futuras (reasignar el desborde a la zona de no-asignados, aplanar) se agreguen sin un mega-refactor de `moveNode`. North Star KPI: reorganización reversible sin pérdida (0 montos perdidos y 0 movimientos huérfanos en 100% de las degradaciones válidas; 0 desbordes aplicados silenciosamente). JTBD: 'cuando subí algo por error o cambié de idea, quiero bajarlo de nivel sin recrearlo ni perder lo registrado'. Guardrail: el invariante padre == Σ hojas, el techo de 3 niveles y todo lo de promote-to-group no deben romperse.",
+  "functional_requirements": [
+    {
+      "id": "FR-701",
+      "title": "Bajar un grupo por drag-drop dentro de otro grupo (→categoría) o categoría (→subcategoría)",
+      "description": "En escritorio, los grupos se vuelven arrastrables (afordancia cursor grab). Soltar un grupo dentro de otro grupo del mismo tipo lo convierte en categoría de ese grupo; soltarlo dentro de una categoría del mismo tipo lo convierte en subcategoría. Todo su subárbol baja el mismo número de niveles. Nunca cruza de tipo. Conserva los montos y los ids (movimientos siguen válidos).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 1440px, arrastrar un grupo SIN hijos y soltarlo dentro de otro grupo del mismo tipo lo deja como categoría de ese grupo, conservando sus montos (happy)",
+        "Arrastrar un grupo sin hijos y soltarlo dentro de una categoría del mismo tipo lo deja como subcategoría, conservando sus montos (edge)",
+        "Soltar un grupo sobre un destino de tipo distinto no realiza ningún cambio (negativo)"
+      ]
+    },
+    {
+      "id": "FR-702",
+      "title": "moveNode admite un grupo como origen, con chequeo de cabida y re-nivelado del subárbol",
+      "description": "La función de dominio moveNode deja de rechazar los grupos como origen. Calcula si el subárbol del nodo movido CABE en el destino sin exceder el techo de 3 niveles (usando la profundidad del subárbol vs. el nivel destino). Si cabe: re-nivela el nodo y todos sus descendientes por el mismo delta y reubica. Rechaza destino de tipo distinto (cross_type). Preserva ids de nodo y de movimiento (cero huérfanos).",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "moveNode(grupo-sin-hijos, {kind:'group', id}) devuelve estado con el nodo en level:'category', parentId=grupo destino, montos preservados (happy)",
+        "moveNode(grupo con categorías-hoja, {kind:'group', id}) baja el grupo a categoría y sus categorías a subcategorías (cabe en 3 niveles), sin huérfanos (edge)",
+        "moveNode a un destino de tipo distinto devuelve rejected:'cross_type' sin mutar el estado (negativo)"
+      ]
+    },
+    {
+      "id": "FR-703",
+      "title": "Bloqueo con aviso cuando la degradación desbordaría el techo de 3 niveles",
+      "description": "Cuando bajar un nodo haría que algún descendiente caiga por debajo del nivel 3 (subcategoría), moveNode NO aplica el cambio y devuelve un rechazo específico de desborde (distinto de invalid_target/cross_type). La UI avisa al usuario ('vacía o mueve las subcategorías primero') y el estado queda intacto — cero pérdida de datos, cero aplanado silencioso. El usuario reacomoda los nietos manualmente por ahora.",
+      "priority": "MUST",
+      "type": "Feature",
+      "acceptance_criteria": [
+        "moveNode(grupo con categorías que tienen subcategorías, {kind:'category', id}) — donde los nietos caerían a nivel 4 — devuelve rejected:'would_overflow' y el estado no cambia (happy del bloqueo)",
+        "Tras un intento que desborda, ningún nodo cambió de nivel ni de parentId y no se perdió ningún monto ni movimiento (edge)",
+        "Un movimiento que SÍ cabe no se bloquea por error (negativo: el bloqueo no es un falso positivo)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-701",
+      "category": "Maintainability",
+      "requirement": "El manejo del desborde vive detrás de un SEAM de política enchufable (una estrategia/función), no incrustado en el core de moveNode. La única política provista es 'block'. Agregar una política futura (reasignar a zona de no-asignados, aplanar) debe ser registrar una estrategia nueva SIN reescribir la lógica de re-nivelado de moveNode.",
+      "acceptance_criteria": "El core de moveNode delega la decisión de desborde a una política nombrada; existe un punto de extensión documentado donde una política nueva se enchufa sin modificar el algoritmo de cabida/re-nivelado (verificable por inspección de la firma/estructura y un test que sustituye la política por una de prueba)."
+    },
+    {
+      "id": "NFR-702",
+      "category": "Regression",
+      "requirement": "La feature promote-to-group (FR-601..606) sigue funcionando sin cambios: promover a grupo, grupo sin hijos editable, traslado al primer hijo, reverso a 0 y grupo sin hijos como destino de movimientos.",
+      "acceptance_criteria": "Promover una sub a grupo sigue funcionando; un grupo sin hijos sigue editable y como destino de movimientos; el traslado al primer hijo y el reverso a 0 siguen intactos."
+    },
+    {
+      "id": "NFR-703",
+      "category": "Regression",
+      "requirement": "El reparent existente (sub→categoría, categoría→categoría/grupo, promoción a grupo) sigue funcionando y nunca cruza de tipo; el invariante padre == Σ hojas y cero movimientos huérfanos se mantiene tras cualquier degradación.",
+      "acceptance_criteria": "moveNode(sub, categoría) y moveNode(sub/categoría, root) siguen igual; cross-type rechazado; tras degradar, todo movement.target existe y el roll-up de cada padre = suma de sus hojas."
+    },
+    {
+      "id": "NFR-704",
+      "category": "Regression",
+      "requirement": "El gate de borrado (FR-003 + fixes BG-006) y el registro de movimientos siguen intactos.",
+      "acceptance_criteria": "canDeleteNode sigue bloqueando con ejecutado>0 y permitiendo un nodo vaciado; un movimiento suma exacto a su hoja destino."
+    },
+    {
+      "id": "NFR-705",
+      "category": "Security",
+      "requirement": "La feature es lógica de dominio del cliente y UI; no agrega endpoints, superficie de red ni campos persistidos. La persistencia en modo servidor sigue por saveLedger con ownerId del servidor (FR-508).",
+      "acceptance_criteria": "No se agregan rutas /api ni columnas nuevas; el guardado sigue por saveLedger con ownerId fijado por el servidor."
+    }
+  ],
+  "no_go_zone": [
+    "Reintroducir la 'zona de no asignados' (Sin asignar): fue retirada y está pendiente de redefinición; solo se deja el seam listo, no se implementa la zona.",
+    "Forzar movimientos que desbordan (subárbol de 3 niveles completo): se bloquean; su resolución automática queda para cuando exista la zona de no-asignados.",
+    "Degradar cruzando de tipo (regla dura de tipo).",
+    "Reordenar categorías por arrastre dentro del mismo nivel.",
+    "Multi-año / multi-moneda."
+  ],
+  "constraints": [
+    "Toda la lógica nueva vive en el núcleo de dominio TypeScript puro (tree/mutations) + la UI de grilla; sin cambios server-side.",
+    "Debe funcionar idéntico en modo localStorage y en modo servidor (dominio compartido).",
+    "Compatibilidad con el estado persistido existente (ledger.nodes.v1 / ledger.budget.v2), sin migración.",
+    "Todo movimiento de nodos es SIEMPRE dentro del mismo tipo: regla dura.",
+    "El techo del árbol es 3 niveles (grupo>categoría>subcategoría); ningún movimiento puede exceder subcategoría."
+  ],
+  "technology_preferences": [
+    "TypeScript puro para el dominio (sin React ni DOM en tree/mutations).",
+    "@dnd-kit para el drag-drop (ya usado por el reparent y la promoción).",
+    "Zustand para el store; vitest (unit) + Playwright (e2e) para las pruebas."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas (usuario único de v1, escritorio)",
+      "tech_level": "Medio; reorganiza su propia taxonomía y espera que los movimientos sean reversibles",
+      "goal": "Bajar de nivel un nodo que subió por error o que cambió de idea, sin recrearlo ni perder montos",
+      "pain_point": "Un grupo (incluso vacío) queda atrapado: no se puede arrastrar ni volver a categoría/subcategoría"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-701",
+      "requirement_id": "FR-701",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "arrastrar un grupo dentro de otro grupo o categoría para bajarlo de nivel",
+      "so_that": "puedo revertir una promoción o reorganizar sin recrear el nodo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-701a",
+          "given": "un grupo sin hijos que vino de una categoría",
+          "when": "lo suelto dentro de otro grupo del mismo tipo",
+          "then": "queda como categoría de ese grupo, con sus montos"
+        },
+        {
+          "id": "AC-701b",
+          "given": "un grupo sin hijos",
+          "when": "lo suelto dentro de una categoría del mismo tipo",
+          "then": "queda como subcategoría, con sus montos"
+        },
+        {
+          "id": "AC-701c",
+          "given": "un grupo de gasto",
+          "when": "lo suelto sobre un destino de ingreso",
+          "then": "no ocurre ningún cambio (cross-type)"
+        }
+      ]
+    },
+    {
+      "id": "US-702",
+      "requirement_id": "FR-702",
+      "as_a": "usuario que reorganiza",
+      "i_want": "que bajar un grupo re-nivele coherentemente su subárbol y conserve montos y movimientos",
+      "so_that": "no quedan nodos en niveles imposibles ni movimientos huérfanos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-702a",
+          "given": "un grupo con categorías-hoja",
+          "when": "lo bajo dentro de otro grupo",
+          "then": "el grupo pasa a categoría y sus categorías a subcategorías, sin huérfanos"
+        },
+        {
+          "id": "AC-702b",
+          "given": "un intento de bajar cruzando de tipo",
+          "when": "se evalúa",
+          "then": "se rechaza sin mutar el estado"
+        }
+      ]
+    },
+    {
+      "id": "US-703",
+      "requirement_id": "FR-703",
+      "as_a": "usuario que baja un grupo con sub-árbol profundo",
+      "i_want": "que el sistema me bloquee y avise si los nietos no caben, en vez de reestructurar en silencio",
+      "so_that": "no pierdo ni desordeno mis subcategorías sin darme cuenta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-703a",
+          "given": "un grupo con categorías que tienen subcategorías",
+          "when": "intento bajarlo donde los nietos caerían a nivel 4",
+          "then": "el movimiento se bloquea (would_overflow) y nada cambia"
+        },
+        {
+          "id": "AC-703b",
+          "given": "un movimiento que sí cabe",
+          "when": "se evalúa",
+          "then": "no se bloquea (sin falsos positivos)"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Reportado por el usuario probando la app: un grupo que vino de una categoría y quedó vacío no se puede volver a poner como categoría; verificado en el código (moveNode:278 rechaza grupos; BudgetGrid:326 los hace no arrastrables).",
+    "users": "Usuario único de v1 (dueño de finanzas, escritorio), heredado del proyecto padre; confirmado.",
+    "baseline": "Dominio actual (tree/mutations con moveNode, promote-to-group ya integrada) + UI de grilla (BudgetGrid drag-drop).",
+    "success_metric": "Usuario confirmó: bajar grupos que caben; bloquear los que desbordan; reacomodar nietos a mano por ahora; dejar el seam de política listo para el futuro sin mega-refactor.",
+    "no_go_zone": "Usuario confirmó: no reintroducir la zona de no-asignados ahora (solo el seam); no forzar desbordes; no cruzar de tipo."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Bajar un grupo a categoría/subcategoría por drag (grupos arrastrables), mismo tipo",
+      "disposition": "FR-701"
+    },
+    {
+      "need": "moveNode acepta grupo como origen, chequea cabida y re-nivela el subárbol sin huérfanos",
+      "disposition": "FR-702"
+    },
+    {
+      "need": "Bloquear con aviso cuando la degradación desbordaría el techo de 3 niveles (sin pérdida ni aplanado silencioso)",
+      "disposition": "FR-703"
+    },
+    {
+      "need": "Manejo del desborde detrás de un seam de política enchufable (extensible sin mega-refactor)",
+      "disposition": "NFR-701"
+    },
+    {
+      "need": "No romper promote-to-group",
+      "disposition": "NFR-702"
+    },
+    {
+      "need": "No romper el reparent existente ni la integridad (padre==Σhojas, cero huérfanos), sin cruzar tipo",
+      "disposition": "NFR-703"
+    },
+    {
+      "need": "No romper el gate de borrado ni el registro de movimientos",
+      "disposition": "NFR-704"
+    },
+    {
+      "need": "Reintroducir la zona de no-asignados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Forzar movimientos que desbordan",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Degradar cruzando de tipo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Reordenar categorías por arrastre",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-año / multi-moneda",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nPermitir BAJAR de nivel un nodo (degradar): mover un grupo a categoría (dentro de otro grupo) o a subcategoría (dentro de una categoría), siempre que su subárbol quepa en el techo de 3 niveles. Completa el reparent: hoy solo se puede subir (feature promote-to-group), no bajar.\n\n## Problem / Why\nTras la feature promote-to-group, un nodo se puede promover a grupo, pero NO existe forma de revertirlo ni de degradar en general: `moveNode` rechaza mover cualquier grupo (mutations.ts:278) y la UI hace los grupos no arrastrables (BudgetGrid.tsx:326). Caso real reportado por el usuario: promovió una categoría a grupo, le quitó todos los hijos, y ya no puede volver a ponerla como categoría dentro de otro grupo — queda atrapada como grupo. El bloqueo es demasiado amplio: un grupo SIN hijos es estructuralmente idéntico a una hoja y puede bajar sin ningún riesgo.\n\n## Target Users\nLos usuarios de v1 (un solo usuario del Ledger, escritorio) que reorganizan su taxonomía y necesitan que el movimiento sea reversible: bajar lo que subieron, sin recrear nodos ni perder montos.\n\n## New Behavior\n- El sistema debe permitir arrastrar un grupo y soltarlo dentro de otro grupo (→ pasa a categoría) o dentro de una categoría (→ pasa a subcategoría), del MISMO tipo (regla dura).\n- Al bajar un nodo, todo su subárbol baja el mismo número de niveles.\n- El sistema debe permitir el movimiento SOLO si el subárbol completo cabe dentro del techo de 3 niveles (grupo→categoría→subcategoría). Un grupo sin hijos siempre cabe; un grupo con categorías-hoja cabe al bajar a grupo; un grupo con subcategorías (nietos) desborda al bajar más allá de lo que el techo permite.\n- Cuando un movimiento haría que algún descendiente caiga por debajo del nivel 3 (desborde), el sistema debe BLOQUEARLO con un aviso claro (\"vacía o mueve las subcategorías primero\") — cero pérdida de datos, cero reestructuración silenciosa. Por ahora el usuario reacomoda los nietos manualmente.\n- Los grupos se vuelven arrastrables en la grilla (afordancia de cursor grab), pero soltar en un destino inválido/de otro tipo/que desborda no realiza el cambio (o avisa).\n\n## Success Criteria\n- Given un grupo SIN hijos (que vino de una categoría), When lo arrastro dentro de otro grupo del mismo tipo, Then pasa a ser categoría de ese grupo conservando sus montos, sin huérfanos.\n- Given un grupo sin hijos, When lo arrastro dentro de una categoría del mismo tipo, Then pasa a ser subcategoría conservando sus montos.\n- Given un grupo con categorías que a su vez tienen subcategorías, When intento bajarlo a un punto donde los nietos caerían a nivel 4, Then el movimiento se bloquea y nada cambia (aviso claro).\n- Given un intento de bajar cruzando de tipo, Then se rechaza (cross_type), sin mutar el estado.\n- Given cualquier degradación válida, Then el invariante padre == Σ hojas se mantiene y no hay movimientos huérfanos.\n\n## Touch Points\nMODIFICA:\n- `src/domain/mutations.ts` — `moveNode`: quitar el bloqueo general de mover grupos; agregar un chequeo de \"cabe\" (profundidad del subárbol vs. destino) y re-nivelar el subárbol; introducir un SEAM de política de desborde (ver \"Must Not Break / diseño\").\n- `src/domain/tree.ts` — helper de profundidad de subárbol (`subtreeDepth` o similar) para el chequeo de cabida (reutiliza leafDescendants/subtreeIds).\n- `src/state/store.ts` — si cambia el tipo de resultado de moveNode (nuevo motivo de rechazo por desborde).\n- `src/components/BudgetGrid.tsx` — hacer los grupos arrastrables (quitar `disabled` para grupos); feedback al soltar en destino que desborda.\n- FRs existentes tocados: FR-015 (reparent), FR-601/602 (promote-to-group — la degradación es su inverso parcial).\n\nADITIVO:\n- Un motivo de rechazo nuevo para el desborde (p.ej. `rejected: \"would_overflow\"`), separado de `invalid_target`/`cross_type`.\n\n## Must Not Break (Regression Boundary)\n- promote-to-group (FR-601..606): promover a grupo, grupo sin hijos editable, traslado al primer hijo, reverso a 0, destino de movimientos — todo sigue igual.\n- FR-015: el reparent existente sub→categoría y categoría→categoría/grupo sigue funcionando y nunca cruza de tipo.\n- FR-004 / NFR-005: padre == Σ hojas y cero movimientos huérfanos tras cualquier degradación.\n- El gate de borrado (FR-003 + BG-006) y el registro de movimientos siguen intactos.\n- **Diseño para el futuro (requisito explícito del usuario):** el manejo del desborde debe vivir detrás de un SEAM de política (una función/estrategia enchufable), no incrustado en el core de `moveNode`. Hoy la única política es \"bloquear\". Mañana se podrán agregar políticas (\"reasignar el desborde a la zona de no-asignados\", \"aplanar\") SIN reescribir `moveNode` — solo registrando una política nueva. Esto evita un mega-refactor cuando se redefina la zona de no-asignados.\n\n## Out of Scope\n- La \"zona de no asignados\" (Sin asignar): fue retirada del código y está pendiente de redefinición; NO se reintroduce aquí. Solo se deja el seam listo para engancharla después.\n- Forzar movimientos que desbordan (subárbol de 3 niveles completo): se bloquean; su resolución automática queda para cuando exista la zona de no-asignados.\n- Degradar cruzando de tipo: prohibido (regla dura de tipo).\n- Reordenar categorías por arrastre dentro del mismo nivel: sigue fuera de alcance.\n- Multi-año / multi-moneda.\n"
+}

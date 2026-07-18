@@ -1,0 +1,30 @@
+{
+  "feature": "demote-node",
+  "summary": "Implementación de 'bajar de nivel un nodo' (degradar), el inverso de promote-to-group. Dominio puro: tree.subtreeDepth (0 hoja / 1 hijos / 2 nietos) para el chequeo de cabida; mutations.moveNode admite un GRUPO como origen con re-nivelado del subárbol por un delta fijo si cabe en el techo de 3 niveles (destDepth + subtreeDepth ≤ 2), y delega el desborde a un SEAM de política enchufable (OverflowPolicy, default blockPolicy → rejected 'would_overflow'). Solo el origen grupo toma el camino nuevo; las ramas sub/categoría (incluido el aplanado categoría→categoría) quedan intactas (NFR-703). UI: los grupos se vuelven arrastrables (afordancia grab) y onDragEnd mapea would_overflow a un toast. Sin cambios server-side ni migración de esquema. 19 tests unit (dominio) verdes; 3 e2e para el drag de grupos; 3 TCs manuales (seguridad: sin superficie nueva).",
+  "files_created": [
+    "tests/domain/demote-node.test.ts (FR-702/703 + NFR-701..704, unit de dominio + subtreeDepth)",
+    "tests/e2e/demote-node.spec.ts (FR-701, e2e drag de grupo → categoría/subcategoría + cross-type)"
+  ],
+  "files_modified": [
+    "src/domain/tree.ts (FR-702: helper subtreeDepth — profundidad del subárbol, robusto ante ciclos)",
+    "src/domain/mutations.ts (FR-702/703 moveNode admite origen grupo + cabida + re-nivelado por delta; NFR-701 seam OverflowPolicy/blockPolicy; MoveResult +would_overflow; se retira el guard que rechazaba grupos)",
+    "src/state/store.ts (FR-703: la acción moveNode propaga el motivo would_overflow)",
+    "src/components/BudgetGrid.tsx (FR-701: grupos arrastrables — draggable disabled solo por node.system, canDrag incluye grupos; onDragEnd mapea would_overflow → showToast)",
+    "tests/domain/move-dashboard-seed.test.ts (TC-015f actualizado: mover un grupo ya no es 'invalid_target'; un grupo a destino de otro tipo se rechaza por 'cross_type' — regla dura de tipo)"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/domain/demote-node.test.ts",
+    "tests/e2e/demote-node.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ],
+  "technical_debt": [],
+  "environment_variables": [],
+  "notes": "Decisiones clave: (1) nivel=profundidad + cabida aritmética anticipada (ADR-01): no muta hasta confirmar que cabe; el bloqueo retorna 'would_overflow' antes de clonar → pureza-en-rechazo trivial (cubierto por TC-703e). (2) El desborde se decide SOLO invocando overflow(ctx) (ADR-02/NFR-701): blockPolicy por defecto; TC-751h sustituye la política por una que resuelve a un markerState y verifica mecánicamente el seam; TC-751f prueba que la política NO se consulta cuando cabe; TC-751e prueba el default block. (3) Camino de degradación dedicado (ADR-03): solo node.level==='group' entra al camino nuevo; sub/categoría siguen por la lógica existente sin tocar, preservando el aplanado categoría→categoría (una resolución de desborde propia) — mitiga el riesgo alto de regresión del reparent (NFR-703). (4) FR-604 preservado: al degradar un grupo dentro de un grupo-hoja destino con montos, se trasladan al nuevo primer hijo por merge (misma semántica que la rama de reparent a grupo). Cero cambios de esquema; los montos viajan con sus nodos por id (cero pérdida, cero huérfanos). Se actualizó un test del pipeline raíz (move-dashboard-seed TC-015f) que codificaba el contrato viejo 'los grupos no se mueven', ahora regido por la regla dura de tipo (cross_type). TCs manuales TC-755h/e/f: seguridad por inspección — 0 rutas /api nuevas, 0 columnas/tablas, guardado por saveLedger con ownerId del servidor. (5) Revisión adversarial: detectó pérdida silenciosa de presupuesto al degradar un grupo DENTRO de una categoría-hoja con monto (el destino dejaba de ser hoja y su budget quedaba varado — rollupBudget agrega solo hojas). Corregido: el traslado FR-604 ahora aplica a destino grupo Y categoría, y enruta el monto a una HOJA del subárbol entrante (nunca a un nodo interno), cerrando también el caso del nodo movido no-hoja. Cubierto por el nuevo test TC-753e-cat (conserva typeTotals y padre==Σhojas)."
+}

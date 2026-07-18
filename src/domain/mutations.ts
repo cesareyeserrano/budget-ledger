@@ -1,7 +1,7 @@
 // @aitri-trace domain:mutations — FR-001/002/006/015: registrar, CRUD, borrado (bloquea si hay datos), reparent.
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
 import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "./types";
-import { childrenOf, findNode, isAncestor, isLeaf, subtreeIds } from "./tree";
+import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema } from "./validation";
 
 /**
@@ -252,15 +252,46 @@ export function setLeafAmount(
   return next;
 }
 
-// ── FR-015 / FR-601: reubicar (reparent) y promover por arrastrar-y-soltar ─────
-export type MoveResult = { state: LedgerState } | { rejected: "cross_type" | "invalid_target" };
-
+// ── FR-015 / FR-601 / FR-702: reubicar (reparent), promover y DEGRADAR por drag-drop ─────
 /** Destino de un move: dentro de una categoría (→sub), dentro de un grupo (→categoría),
  *  o sobre la fila de un TIPO = promover a grupo (FR-601). */
 export type MoveDest =
   | { kind: "category"; id: string }
   | { kind: "group"; id: string }
   | { kind: "root"; type: NodeType };
+
+// Feature demote-node: +'would_overflow' — la degradación desbordaría el techo de 3 niveles (FR-703).
+export type MoveResult =
+  | { state: LedgerState }
+  | { rejected: "cross_type" | "invalid_target" | "would_overflow" };
+
+// ── Seam de política de desborde (NFR-701) ─────────────────────────────────────
+// El manejo del desborde vive detrás de una estrategia ENCHUFABLE, no incrustado en moveNode.
+// Hoy la única política provista es `blockPolicy` (rechaza sin tocar el estado, cero pérdida de
+// datos). Una política futura (reasignar el desborde a la zona de no-asignados, aplanar) se
+// registra como una estrategia nueva y se pasa a `moveNode` — SIN reescribir el algoritmo de
+// cabida ni de re-nivelado (evita el mega-refactor; ADR-02). Punto de extensión: el parámetro
+// `overflow` de `moveNode`, default `blockPolicy`.
+export type OverflowCtx = {
+  state: LedgerState;
+  nodeId: string;
+  dest: MoveDest;
+  /** Niveles que baja el subárbol (destDepth − depth(node)); >0 en toda degradación. */
+  delta: number;
+};
+export type OverflowDecision =
+  | { kind: "block" } // rechaza; el estado no cambia
+  | { kind: "resolve"; state: LedgerState }; // política futura: produce un estado ya resuelto
+export type OverflowPolicy = (ctx: OverflowCtx) => OverflowDecision;
+
+/** Única política provista hoy: bloquea el desborde sin mutar el estado. */
+export const blockPolicy: OverflowPolicy = () => ({ kind: "block" });
+
+// Nivel = profundidad. Techo del árbol: grupo(0) > categoría(1) > subcategoría(2).
+const MAX_DEPTH = 2;
+const DEPTH_LEVELS: NodeLevel[] = ["group", "category", "sub"];
+const depthOf = (n: LedgerNode): number => DEPTH_LEVELS.indexOf(n.level);
+const levelAtDepth = (d: number): NodeLevel => DEPTH_LEVELS[d];
 
 /** Suma dos mapas mensuales (no pierde ninguno de los dos). */
 function mergeMonthMap(
@@ -272,10 +303,22 @@ function mergeMonthMap(
   return out;
 }
 
-export function moveNode(state: LedgerState, id: string, dest: MoveDest): MoveResult {
+/**
+ * Reubica/promueve/DEGRADA un nodo. Grupos como origen degradan bajando su subárbol por un delta
+ * fijo si cabe en el techo de 3 niveles; si desborda, delega al seam de política (default: bloquear).
+ *
+ * @aitri-trace FR-ID: FR-702, US-ID: US-702, AC-ID: AC-702a, TC-ID: TC-702h
+ * @aitri-trace FR-ID: FR-703, US-ID: US-703, AC-ID: AC-703a, TC-ID: TC-703h
+ * @aitri-trace FR-ID: NFR-701, US-ID: US-703, AC-ID: AC-703a, TC-ID: TC-751h
+ */
+export function moveNode(
+  state: LedgerState,
+  id: string,
+  dest: MoveDest,
+  overflow: OverflowPolicy = blockPolicy // ◄── SEAM (NFR-701): default block; una política futura se enchufa aquí
+): MoveResult {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return { rejected: "invalid_target" };
-  if (node.level === "group") return { rejected: "invalid_target" }; // los grupos no se arrastran
 
   // FR-601 — promover a GRUPO (soltar sobre la fila de un tipo).
   if (dest.kind === "root") {
@@ -298,6 +341,47 @@ export function moveNode(state: LedgerState, id: string, dest: MoveDest): MoveRe
   if (!destNode || destNode.system) return { rejected: "invalid_target" };
   if (node.type !== destNode.type) return { rejected: "cross_type" };
   if (id === dest.id || isAncestor(state.nodes, id, dest.id)) return { rejected: "invalid_target" };
+
+  // ── Feature demote-node (FR-702/703, NFR-701): DEGRADAR un grupo ──────────────
+  // Solo el origen GRUPO toma este camino nuevo (cabida + re-nivelado + seam). sub/categoría
+  // siguen por las ramas existentes de abajo, intactas — el aplanado categoría→categoría es una
+  // resolución de desborde propia que NO se debe romper (NFR-703, ADR-03).
+  if (node.level === "group") {
+    // destDepth = profundidad que ocupará el nodo movido: grupo→categoría(1), categoría→sub(2).
+    const destDepth = dest.kind === "group" ? 1 : 2;
+    const destLevelOk = dest.kind === "group" ? destNode.level === "group" : destNode.level === "category";
+    if (!destLevelOk) return { rejected: "invalid_target" };
+    const delta = destDepth; // depth(group)=0 → delta = destDepth − 0
+    // Cabida: el descendiente más profundo no puede caer bajo el techo (nivel 2 = subcategoría).
+    if (destDepth + subtreeDepth(state.nodes, id) > MAX_DEPTH) {
+      // Desborde → delega al SEAM. blockPolicy (default) rechaza sin mutar; una política futura resuelve.
+      const decision = overflow({ state, nodeId: id, dest, delta });
+      return decision.kind === "block" ? { rejected: "would_overflow" } : { state: decision.state };
+    }
+    // Cabe → re-nivela TODO el subárbol por el mismo delta; los descendientes conservan su
+    // parentId (estructura relativa intacta). Ids de nodo y de movimiento se preservan → cero huérfanos.
+    const next = clone(state);
+    for (const nid of subtreeIds(state.nodes, id)) {
+      const depth = depthOf(findNode(state.nodes, nid)!);
+      findNode(next.nodes, nid)!.level = levelAtDepth(depth + delta);
+    }
+    findNode(next.nodes, id)!.parentId = dest.id;
+    // FR-604 — el destino (grupo o categoría) que era HOJA con montos gana su primer hijo (el subárbol
+    // movido) → deja de ser hoja. Sus montos se trasladan a una HOJA del subárbol entrante; si no, el
+    // roll-up de Presupuestado (que agrega solo hojas) los perdería en silencio, rompiendo padre==Σhojas.
+    // El target es el nodo movido si quedó hoja, o su primera hoja descendiente (nunca el nodo interno).
+    const destWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
+    const destHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
+    if (destWasChildlessLeaf && destHadAmounts) {
+      const movedNode = findNode(next.nodes, id)!;
+      const target = isLeaf(movedNode, next.nodes) ? id : leafDescendants(next.nodes, id)[0] ?? id;
+      next.budgets[target] = mergeMonthMap(state.budgets[dest.id], next.budgets[target]);
+      next.actuals[target] = mergeMonthMap(state.actuals[dest.id], next.actuals[target]);
+      delete next.budgets[dest.id];
+      delete next.actuals[dest.id];
+    }
+    return { state: next };
+  }
 
   if (dest.kind === "category") {
     if (destNode.level !== "category") return { rejected: "invalid_target" };

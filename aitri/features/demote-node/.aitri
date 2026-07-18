@@ -1,0 +1,195 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "demote-node",
+  "createdAt": "2026-07-17T22:59:10.589Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-18T22:14:34.248Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-17T23:16:22.386Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-07-17T23:16:32.148Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-17T23:17:14.049Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-17T23:17:32.310Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-17T23:20:59.791Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-17T23:20:59.963Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T23:23:21.080Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T23:24:04.331Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-17T23:24:04.464Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T23:26:13.600Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-17T23:29:39.798Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-18T21:01:07.501Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T21:22:24.986Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T22:01:30.539Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T22:08:55.602Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 3
+    },
+    {
+      "at": "2026-07-18T22:12:29.961Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 3
+    },
+    {
+      "at": "2026-07-18T22:13:10.432Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-18T22:13:19.020Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-18T22:14:28.384Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-18T22:14:34.224Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
+    "2": "eb84fca5a371e8e8d4dedecacbdf6c2fbeebed91ebad83acb8a49c7ef6701fe6",
+    "3": "17b557ffb5f87f9e13c966a9c28fcc55204972ba3198caed88bfce27b75c4c0c",
+    "4": "e7db3d0f4e5c166a24ba16bd30c9a7f0da0955da2c8546ce5bab16835ea6bd63",
+    "5": "db185311857bf5a03bd9d7e85f95a8ef7dba499cd01e5ffef2e7a104cd13e147",
+    "ux": "292bdb84d430cd09663df14e2a269febdd9704267527f2c2ec9e7d28054c43c0"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-701",
+      "FR-702",
+      "FR-703"
+    ],
+    "3": [
+      "FR-701",
+      "FR-702",
+      "FR-703"
+    ],
+    "4": [
+      "FR-701",
+      "FR-702",
+      "FR-703"
+    ],
+    "5": [
+      "FR-701",
+      "FR-702",
+      "FR-703"
+    ],
+    "ux": [
+      "FR-701",
+      "FR-702",
+      "FR-703"
+    ]
+  },
+  "coverageAuditLastAt": "2026-07-18T21:28:47.952Z",
+  "coverageAuditReqHash": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
+  "verifyResultsHash": "9fbb5c69d6141d4fa2d5354a4a3c1e7fcfedffc843b5183f6a0513f232f3e2f0",
+  "verifyRanAt": "2026-07-18T22:12:29.961Z",
+  "lastVerifyRun": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 3,
+    "at": "2026-07-18T22:12:29.961Z"
+  },
+  "verifySummary": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  },
+  "verifyPassed": true
+}

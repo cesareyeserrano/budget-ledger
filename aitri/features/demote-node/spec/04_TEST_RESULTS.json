@@ -1,0 +1,278 @@
+{
+  "executed_at": "2026-07-18T22:12:29.959Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-701h",
+      "status": "pass",
+      "notes": "✓   36 [chromium] › tests/e2e/demote-node.spec.ts:51:5 › TC-701h: arrastrar un grupo sin hijos dentro de otro grupo lo baja a categoría (619ms)"
+    },
+    {
+      "tc_id": "TC-701e",
+      "status": "pass",
+      "notes": "✓   37 [chromium] › tests/e2e/demote-node.spec.ts:63:5 › TC-701e: arrastrar un grupo sin hijos dentro de una categoría lo baja a subcategoría (2.3s)"
+    },
+    {
+      "tc_id": "TC-701f",
+      "status": "pass",
+      "notes": "✓   38 [chromium] › tests/e2e/demote-node.spec.ts:80:5 › TC-701f: soltar un grupo de gasto sobre un destino de ingreso no realiza ningún cambio (637ms)"
+    },
+    {
+      "tc_id": "TC-702h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados 1ms"
+    },
+    {
+      "tc_id": "TC-702e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos 0ms"
+    },
+    {
+      "tc_id": "TC-702f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702f: moveNode(grupo, destino de tipo distinto) → rejected:'cross_type' sin mutar 1ms"
+    },
+    {
+      "tc_id": "TC-703h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703h: moveNode que desborda el techo devuelve 'would_overflow' sin cambiar el estado 0ms"
+    },
+    {
+      "tc_id": "TC-703e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703e: tras un intento que desborda, cero cambios de nivel/parentId y cero pérdida de montos/movimientos 1ms"
+    },
+    {
+      "tc_id": "TC-703f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703f: un movimiento que SÍ cabe no se bloquea (sin falso positivo) 0ms"
+    },
+    {
+      "tc_id": "TC-751h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-701 — el seam de política de desborde > TC-751h: moveNode delega el desborde a la OverflowPolicy provista y usa su resolución 0ms"
+    },
+    {
+      "tc_id": "TC-751e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-701 — el seam de política de desborde > TC-751e: sin política explícita, el default blockPolicy rechaza el desborde 1ms"
+    },
+    {
+      "tc_id": "TC-751f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-701 — el seam de política de desborde > TC-751f: la política NO se consulta cuando el movimiento cabe 0ms"
+    },
+    {
+      "tc_id": "TC-752h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752h: promover una sub a grupo sigue funcionando 0ms"
+    },
+    {
+      "tc_id": "TC-752e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752e: un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos 0ms"
+    },
+    {
+      "tc_id": "TC-752f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752f: el traslado al primer hijo y el reverso a 0 siguen intactos 1ms"
+    },
+    {
+      "tc_id": "TC-753h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753h: moveNode(sub, categoría) sigue reubicando (camino subir/lateral intacto) 0ms"
+    },
+    {
+      "tc_id": "TC-753e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753e: tras una degradación válida, padre==Σhojas y cero huérfanos 1ms"
+    },
+    {
+      "tc_id": "TC-753f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753f: moveNode cross-type se rechaza sin mutar 0ms"
+    },
+    {
+      "tc_id": "TC-754h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754h: canDeleteNode bloquea una categoría con ejecutado > 0 0ms"
+    },
+    {
+      "tc_id": "TC-754e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754e: (BG-006) una categoría vaciada se borra y retira sus movimientos 0ms"
+    },
+    {
+      "tc_id": "TC-754f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754f: un movimiento incrementa su hoja destino en exactamente el monto 0ms"
+    },
+    {
+      "tc_id": "TC-755h",
+      "status": "pass",
+      "notes": "Inspección del diff: los cambios son solo src/domain (mutations, tree), src/state/store y src/components/BudgetGrid + tests. Cero archivos bajo src/app/api → 0 rutas nuevas.",
+      "verified_manually": true,
+      "verified_at": "2026-07-18T22:13:04.949Z"
+    },
+    {
+      "tc_id": "TC-755e",
+      "status": "pass",
+      "notes": "Persistencia intacta: no se tocó ninguna repo ni saveLedger; el guardado sigue por el LedgerRepository existente con ownerId fijado por el servidor (FR-508). La degradación es transformación en memoria.",
+      "verified_manually": true,
+      "verified_at": "2026-07-18T22:13:05.026Z"
+    },
+    {
+      "tc_id": "TC-755f",
+      "status": "pass",
+      "notes": "Sin cambios en drizzle/ ni src/server; la degradación reusa level/parentId existentes de LedgerNode. Cero columnas/tablas nuevas.",
+      "verified_manually": true,
+      "verified_at": "2026-07-18T22:13:05.101Z"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-701",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-702",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-703",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-701a",
+      "fr_id": "FR-701",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-701b",
+      "fr_id": "FR-701",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-701c",
+      "fr_id": "FR-701",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-702a",
+      "fr_id": "FR-702",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-702b",
+      "fr_id": "FR-702",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-703a",
+      "fr_id": "FR-703",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-703b",
+      "fr_id": "FR-703",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 24,
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-18T22:11:29.511Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "status": "error",
+      "exit_code": null
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "la grilla de 12 meses sigue funcionando tras la feature (214ms)\n  ✓  169 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (335ms)\n  ✓  167 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.3s)\n  ✓  170 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (278ms)\n  ✓  171 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (137ms)\n\n  171 passed (59.1s)"
+    }
+  ]
+}

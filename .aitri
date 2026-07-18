@@ -20,21 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.0.2-rc.1",
+  "aitriVersion": "2.1.0-rc.2",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-17T19:19:16.049Z",
+  "updatedAt": "2026-07-18T20:59:44.815Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-04T02:32:21.856Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "baseRefFrom": "2ff59b3ac5c08ade5275a13ff1cf4ac9fd89186a",
-      "baseRefTo": "88fcd184c5d418bae24519fe2c9460280b30adbb"
-    },
     {
       "at": "2026-07-10T16:25:07.072Z",
       "event": "reconcile-pending",
@@ -191,6 +182,14 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-18T20:59:44.813Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 9,
+      "method": "git",
+      "verifyPassedCleared": true
     }
   ],
   "cascadedPhases": [],
@@ -203,7 +202,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "3023ad277d3c9ef0ec96e6312abd7ac7e3df52a02da8634802a9d69606a4acbe"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -294,15 +293,5 @@
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
-  "securityAuditLastAt": "2026-07-16T16:36:55.887Z",
-  "verifySummary": {
-    "total": 54,
-    "passed": 54,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 6
-  }
+  "securityAuditLastAt": "2026-07-16T16:36:55.887Z"
 }

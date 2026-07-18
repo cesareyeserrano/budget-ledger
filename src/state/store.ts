@@ -29,7 +29,7 @@ interface LedgerStore {
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
   deleteNode: (id: string) => "ok" | "group_not_empty" | "has_data";
-  moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target";
+  moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target" | "would_overflow";
   setLeafAmount: (leafId: string, month: MonthKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
   hydrate: () => Promise<void>;

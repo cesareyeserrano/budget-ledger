@@ -1,0 +1,59 @@
+{
+  "project": "T-Ledger — Feature: demote-node",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-701",
+      "title": "Bajar un grupo por drag-drop dentro de otro grupo (→categoría) o categoría (→subcategoría)",
+      "level": "production_ready",
+      "evidence": "TC-701h/e/f (e2e) pasando: arrastrar un grupo sin hijos sobre otro grupo lo deja como categoría; sobre una categoría lo deja como subcategoría; soltar sobre un destino de otro tipo (ingreso) no cambia nada (cross-type). Verificado en vivo en la grilla por el usuario."
+    },
+    {
+      "id": "FR-702",
+      "title": "moveNode admite un grupo como origen, con chequeo de cabida y re-nivelado del subárbol",
+      "level": "production_ready",
+      "evidence": "TC-702h/e/f (unit) pasando: moveNode(grupo sin hijos, {kind:'group'}) → level='category', parentId, montos preservados; un grupo con categorías-hoja baja a categoría y sus categorías a subs sin huérfanos; destino de tipo distinto → rejected:'cross_type' sin mutar. tree.subtreeDepth probado en aislamiento (0 hoja / 1 hijos / 2 nietos)."
+    },
+    {
+      "id": "FR-703",
+      "title": "Bloqueo con aviso cuando la degradación desbordaría el techo de 3 niveles",
+      "level": "production_ready",
+      "evidence": "TC-703h/e/f (unit) pasando: un movimiento que desborda devuelve rejected:'would_overflow' sin cambiar el estado (pureza-en-rechazo: bloquea antes de clonar); tras el intento nada cambió (nivel/parentId/montos/movimientos); un movimiento que SÍ cabe no se bloquea (sin falso positivo). UI: onDragEnd mapea would_overflow al toast 'Vacía o mueve las subcategorías primero'."
+    },
+    {
+      "id": "NFR-701",
+      "title": "Manejo del desborde detrás de un SEAM de política enchufable (extensible sin mega-refactor)",
+      "level": "production_ready",
+      "evidence": "TC-751h/e/f (unit) pasando: moveNode delega el desborde a la OverflowPolicy provista y usa su resolución (política de prueba → markerState); sin política explícita el default blockPolicy rechaza; la política NO se consulta cuando el movimiento cabe (throwingPolicy no lanza). El punto de extensión es el parámetro overflow: OverflowPolicy (default blockPolicy)."
+    },
+    {
+      "id": "NFR-702",
+      "title": "Regresión: promote-to-group (FR-601..606) intacto",
+      "level": "production_ready",
+      "evidence": "TC-752h/e/f (unit) pasando: promover una sub a grupo sigue funcionando; un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos; el traslado al primer hijo y el reverso a 0 siguen intactos. Suite e2e promote-to-group completa verde."
+    },
+    {
+      "id": "NFR-703",
+      "title": "Regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos), sin cruzar tipo",
+      "level": "production_ready",
+      "evidence": "TC-753h/e/f + TC-753e-cat + TC-753g-flatten (unit) pasando: moveNode(sub, categoría) sigue reubicando; tras una degradación válida padre==Σhojas y cero huérfanos; cross-type rechazado; degradar un grupo dentro de una categoría-hoja con presupuesto conserva el total (fix del hallazgo adversarial: el monto del destino se traslada a una hoja del subárbol entrante); el aplanado categoría→categoría con nietos (riesgo #1 de ADR-03) no se rompe — hallazgo de auditoría de cobertura cerrado con un TC dedicado."
+    },
+    {
+      "id": "NFR-704",
+      "title": "Regresión: gate de borrado (FR-003 + BG-006) y registro de movimientos intactos",
+      "level": "production_ready",
+      "evidence": "TC-754h/e/f (unit) pasando: canDeleteNode bloquea una categoría con ejecutado>0; una categoría vaciada se borra y retira sus movimientos (BG-006); un movimiento incrementa su hoja destino en exactamente el monto."
+    },
+    {
+      "id": "NFR-705",
+      "title": "Seguridad: sin superficie nueva (endpoints, red, campos persistidos)",
+      "level": "production_ready",
+      "evidence": "TC-755h/e/f (manual) verificados por inspección del diff: 0 archivos bajo src/app/api → 0 rutas nuevas; sin cambios en drizzle/ ni src/server → 0 columnas/tablas nuevas; persistencia intacta (LedgerRepository/saveLedger con ownerId del servidor, FR-508). La degradación es una transformación en memoria sobre datos ya propios del usuario."
+    }
+  ],
+  "technical_debt_inherited": [],
+  "deployment_files": ["Dockerfile", "docker-compose.yml", "DEPLOYMENT.md"],
+  "verification_summary": "Feature verify: 24/24 TCs pasando (21 automatizados — 18 unit + 3 e2e — y 3 manuales de seguridad verificados). Suite total del proyecto con la feature: 206 unit + 171 e2e verdes; typecheck y lint limpios. Una revisión adversarial atrapó una pérdida silenciosa de presupuesto (degradar un grupo con monto dentro de una categoría-hoja con monto dejaba el budget del destino varado en un nodo no-hoja) — corregida y cubierta por TC-753e-cat. Una auditoría de cobertura de requisitos confirmó 15/15 necesidades cubiertas (0 gaps de requisitos) y detectó un punto ciego de PRUEBAS en el aplanado categoría→categoría con nietos (riesgo #1 de ADR-03), cerrado con TC-753g-flatten. Se actualizó un test del pipeline raíz (move-dashboard-seed TC-015f) al nuevo contrato: mover un grupo ya no es 'invalid_target' sino que lo rige la regla dura de tipo (cross_type). SIN cambios de despliegue: la feature es solo dominio + UI de cliente; viaja en la misma imagen Next.js/Docker del proyecto, sin migración de esquema ni variables de entorno nuevas (Dockerfile/docker-compose sin cambios)."
+}

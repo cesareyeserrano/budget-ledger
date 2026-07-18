@@ -102,6 +102,7 @@ export function BudgetGrid() {
   const createNode = useLedgerStore((s) => s.createNode);
   const setNodeIcon = useLedgerStore((s) => s.setNodeIcon);
   const moveNode = useLedgerStore((s) => s.moveNode);
+  const showToast = useLedgerStore((s) => s.showToast);
   const period = useLedgerStore((s) => s.period);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => initialExpanded(data.nodes));
@@ -178,8 +179,11 @@ export function BudgetGrid() {
     const over = ev.over;
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
-    if (kind === "category" || kind === "group") moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
-    else if (kind === "root") moveNode(String(ev.active.id), { kind: "root", type: id as NodeType }); // FR-601: promover a grupo
+    if (kind === "category" || kind === "group") {
+      // FR-703: degradar un grupo que desbordaría el techo de 3 niveles se bloquea con aviso.
+      const res = moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
+      if (res === "would_overflow") showToast("Vacía o mueve las subcategorías primero");
+    } else if (kind === "root") moveNode(String(ev.active.id), { kind: "root", type: id as NodeType }); // FR-601: promover a grupo
   }
   const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
@@ -323,10 +327,12 @@ function NodeRow(props: {
 
   useEffect(() => { if (naming) setNameVal(node.name); }, [naming, node.name]);
 
-  const draggable = useDraggable({ id: node.id, disabled: node.level === "group" || node.system });
+  // Feature demote-node (FR-701): los grupos se vuelven arrastrables (para bajarlos de nivel);
+  // solo los nodos del sistema quedan fijos.
+  const draggable = useDraggable({ id: node.id, disabled: node.system });
   const dropId = node.level === "group" ? `group:${node.id}` : node.level === "category" ? `category:${node.id}` : null;
   const droppable = useDroppable({ id: dropId ?? `noop:${node.id}` });
-  const canDrag = node.level !== "group" && !node.system;
+  const canDrag = !node.system;
   const bWeight = node.level === "group" ? 500 : 400;
   // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es
   // lienzo, un grupo es estructura), no sobre el lienzo en ambos casos.
