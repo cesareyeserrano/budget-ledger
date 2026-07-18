@@ -87,9 +87,10 @@ export function DesktopShell() {
           </div>
           {view === "budget" && (
             <div className="flex items-center gap-3.5 caption text-fg-muted">
+              {/* BL-005: solo el par Presupuestado/Ejecutado. El "sobre presupuesto" dejó de ser un
+                  rojo único; su código de 3 estados vive en el StateLegend del pie de la grilla. */}
               <LegendDot border /> Presupuestado
               <LegendDot fill="var(--accent)" /> Ejecutado
-              <LegendDot fill="var(--error)" /> Sobre presupuesto
             </div>
           )}
         </div>
