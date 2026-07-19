@@ -23,42 +23,9 @@
   "aitriVersion": "2.1.0-rc.5",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-18T22:40:11.749Z",
+  "updatedAt": "2026-07-19T00:31:56.940Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T16:49:49.962Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "baseRefFrom": "bd4d06e531253c64adf16dd0c28163a202554183",
-      "baseRefTo": "2a9bc77bf714b9a5af0bb7dafc56c38c16b0197a"
-    },
-    {
-      "at": "2026-07-11T16:20:03.653Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-11T16:22:56.315Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-11T16:23:07.841Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-07-11T16:27:06.607Z",
       "event": "reconcile-resolved",
@@ -189,6 +156,39 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-19T00:25:00.810Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 11,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-19T00:29:01.703Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-19T00:31:56.813Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-19T00:31:56.916Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -281,14 +281,14 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "9244ae1a07b5c28dc37f7254d80578cfe31f75d0b705235bafb159cc788f779a",
-  "verifyRanAt": "2026-07-18T22:40:05.404Z",
+  "verifyResultsHash": "2f6e6179b13895a34c51bf6cefd0086ccb7290fe2836ee056f2e54620c30cb13",
+  "verifyRanAt": "2026-07-19T00:31:56.813Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-18T22:40:05.404Z"
+    "at": "2026-07-19T00:31:56.813Z"
   },
   "auditLastAt": "2026-07-02T03:00:41.255Z",
   "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
