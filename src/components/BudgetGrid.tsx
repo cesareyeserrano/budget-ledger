@@ -209,9 +209,21 @@ export function BudgetGrid() {
             </div>
             <div className="flex flex-col">
               <div className="flex">
-                {MONTHS.map((m) => (
-                  <div key={m.k} className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong")} style={{ width: 216, color: highlightMonth === m.k ? "var(--accent-light)" : "var(--fg)" }}>{m.label}</div>
-                ))}
+                {MONTHS.map((m) => {
+                  const active = highlightMonth === m.k;
+                  // El mes activo DESTACA por peso + color pleno; los inactivos recéden en gris
+                  // secundario. (Antes usaba --accent-light = gris, que en el tema neutro dejaba el
+                  // activo MÁS apagado que los demás — al revés de lo buscado.)
+                  return (
+                    <div
+                      key={m.k}
+                      className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong", active && "font-semibold")}
+                      style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
+                    >
+                      {m.label}
+                    </div>
+                  );
+                })}
               </div>
               <div className="flex">
                 {MONTHS.map((m) => (
