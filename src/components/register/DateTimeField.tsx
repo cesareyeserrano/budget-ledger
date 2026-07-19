@@ -54,7 +54,7 @@ export function DateTimeField({ value, onChange }: Props) {
             type="button"
             data-testid="date-field"
             aria-haspopup="dialog"
-            className="flex min-h-[48px] w-full items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-3 text-left outline-none focus-visible:border-accent data-[state=open]:border-accent"
+            className="flex min-h-(--control-lg) w-full items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-3 text-left outline-none focus-visible:border-accent data-[state=open]:border-accent"
           >
             <CalendarClock className="h-4 w-4 text-fg-secondary" strokeWidth={1.5} aria-hidden />
             <span data-testid="date-label" className="flex-1 text-sm text-fg-secondary">

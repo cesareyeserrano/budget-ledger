@@ -15,10 +15,11 @@ const buttonVariants = cva(
         ghost: "border border-transparent text-fg-muted hover:text-fg hover:border-border",
         outline: "border border-border bg-elevated text-fg hover:border-accent",
       },
+      // control-size-scale FR-802: alturas desde la escala canónica (--control-sm/-md).
       size: {
-        default: "h-9 px-3.5 text-[0.8rem]",
-        sm: "h-8 px-3 text-[0.72rem]",
-        icon: "h-8 w-8 p-0",
+        default: "h-(--control-md) px-3.5 text-[0.8rem]",
+        sm: "h-(--control-sm) px-3 text-[0.72rem]",
+        icon: "h-(--control-sm) w-(--control-sm) p-0",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

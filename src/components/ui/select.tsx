@@ -15,7 +15,8 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex w-full items-center justify-between rounded-(--radius-sm) border border-border bg-elevated px-3 py-2.5 text-[0.85rem] text-fg outline-none data-[state=open]:border-accent focus:border-accent",
+      // control-size-scale FR-802: altura del token md (40) en vez de py-2.5 ad-hoc.
+      "flex h-(--control-md) w-full items-center justify-between rounded-(--radius-sm) border border-border bg-elevated px-3 text-[0.85rem] text-fg outline-none data-[state=open]:border-accent focus:border-accent",
       className
     )}
     {...props}

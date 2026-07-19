@@ -1,0 +1,52 @@
+{
+  "project": "T-Ledger — Feature: control-size-scale",
+  "version": "1.0.0",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-801",
+      "title": "Escala canónica de altura de control (sm 32 / md 40 / lg 48) como única fuente de verdad",
+      "level": "production_ready",
+      "evidence": "TC-801h/e/f (e2e) pasando: los tokens --control-sm/-md/-lg leídos de :root valen 32/40/48px; ningún control clave tiene altura fuera de {32,40,48}; existen exactamente 3 tokens (no un 4º) y el color no cambia. Los tokens viven solo en globals.css."
+    },
+    {
+      "id": "FR-802",
+      "title": "Cada control interactivo mapeado a su token de la escala",
+      "level": "production_ready",
+      "evidence": "TC-802h/e/f (e2e) pasando: TabsTrigger=32, Button default=40, SelectTrigger=40; ThemeToggle=40 (bajó de 44); ningún control mide una altura retirada (30/36/44). Verificado en vivo por el usuario en la grilla."
+    },
+    {
+      "id": "NFR-801",
+      "title": "Regresión: controles del registro ≥48px (objetivo táctil)",
+      "level": "production_ready",
+      "evidence": "TC-851h/e/f (e2e móvil 375) pasando: date-field, save-button y TypeToggle miden ≥48px; el mínimo del registro no baja de 48. Las suites existentes TC-UXC-353e y TC-SUT-252f (≥48 registro) siguen verdes."
+    },
+    {
+      "id": "NFR-802",
+      "title": "Regresión: cero cambio de comportamiento funcional",
+      "level": "production_ready",
+      "evidence": "TC-852h/e/f (e2e) pasando: registrar un movimiento, editar una celda-hoja (persiste tras recargar) y el drag-drop (degradar un grupo) siguen funcionando con los controles re-dimensionados. Suites feature-stack + ux-consistency (94 e2e) verdes."
+    },
+    {
+      "id": "NFR-803",
+      "title": "Regresión: color/tipografía/radio/estado intactos",
+      "level": "production_ready",
+      "evidence": "TC-853h/e/f (e2e) pasando: --accent y --radius-sm conservan su valor; el font-size de un control no cambia; el código de estado (--state-over) sigue vigente. La escala solo tocó altura/padding vertical."
+    },
+    {
+      "id": "NFR-805",
+      "title": "Seguridad: sin superficie nueva",
+      "level": "production_ready",
+      "evidence": "TC-855h/e/f (manual) verificados por inspección del diff: 0 rutas /api, 0 columnas/tablas, 0 dependencias, sin entrada de usuario nueva. La feature es CSS + clases de componente en el cliente."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-801",
+      "substitution": "ADR-02: escala aplicada vía shorthand de token Tailwind v4 (h-(--control-md)/min-h-(--control-lg)) en lugar de 3 clases utilitarias (opción A del ADR); la grilla usa height fija y el registro min-height, que una sola clase no sirve. El token en :root sigue siendo la única fuente de verdad. Desviación de mecanismo documentada, no deuda funcional."
+    }
+  ],
+  "deployment_files": ["Dockerfile", "docker-compose.yml", "DEPLOYMENT.md"],
+  "verification_summary": "Feature verify: 18/18 TCs pasando (15 e2e que miden alturas efectivas + leen tokens de :root, y 3 manuales de seguridad). Suite total del proyecto con la feature: 186 tests verdes; typecheck y lint limpios. Solo 3 alturas reales cambian (tabs 30→32, Button default 36→40, ThemeToggle 44→40); el resto ya caía en la escala. Regresión verificada: feature-stack + ux-consistency (94 e2e) verdes, incluidos los asserts de ≥48px del registro (TC-UXC-353e, TC-SUT-252f). SIN cambios de despliegue: la feature es solo CSS + componentes de cliente; viaja en la misma imagen Next.js/Docker del proyecto, sin migración ni variables de entorno nuevas."
+}

@@ -110,7 +110,7 @@ export function CategoryRow({ type, nodes, value, onChange, error = false }: Pro
                     aria-expanded={hasSubs ? isOpen : undefined}
                     data-testid={`category-${c.id}`}
                     onClick={() => onCategoryClick(c)}
-                    className="flex min-h-[48px] min-w-[64px] shrink-0 flex-col items-center gap-1 rounded-(--radius-md) border px-3 py-2 transition-all duration-[130ms]"
+                    className="flex min-h-(--control-lg) min-w-[64px] shrink-0 flex-col items-center gap-1 rounded-(--radius-md) border px-3 py-2 transition-all duration-[130ms]"
                     style={leafSelected ? SELECTED : isOpen || subActive ? OPEN : DEFAULT}
                   >
                     <NodeIcon name={c.icon} level={c.level} size={20} color="currentColor" />
@@ -146,7 +146,7 @@ export function CategoryRow({ type, nodes, value, onChange, error = false }: Pro
                     aria-pressed={active}
                     data-testid={`sub-${s.id}`}
                     onClick={() => onChange({ catId: expandedCat.id, subId: s.id })}
-                    className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-(--radius-sm) border px-3 py-1.5 text-xs transition-all duration-[130ms]"
+                    className="flex min-h-(--control-md) shrink-0 items-center gap-1 rounded-(--radius-sm) border px-3 py-1.5 text-xs transition-all duration-[130ms]"
                     style={active ? SELECTED : DEFAULT}
                   >
                     <NodeIcon name={s.icon} level="sub" size={14} color="currentColor" />
