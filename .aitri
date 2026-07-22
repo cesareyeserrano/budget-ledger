@@ -20,21 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.1.0-rc.5",
+  "aitriVersion": "2.1.0-rc.6",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-19T00:31:56.940Z",
+  "updatedAt": "2026-07-19T00:39:39.127Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-11T16:27:06.607Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "baseRefFrom": "2a9bc77bf714b9a5af0bb7dafc56c38c16b0197a",
-      "baseRefTo": "b06149eb1bc04057cb10aa0c94e4e79c019a693b"
-    },
     {
       "at": "2026-07-16T18:21:04.123Z",
       "event": "reconcile-pending",
@@ -189,6 +180,15 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-07-19T00:32:53.685Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 11,
+      "method": "git",
+      "baseRefFrom": "67e40171585170ff9ad3e3d77af421c0f9916f79",
+      "baseRefTo": "f54c5e7cf7fd2dd489207d65d2ae001f9ec1b9f4"
     }
   ],
   "cascadedPhases": [],
