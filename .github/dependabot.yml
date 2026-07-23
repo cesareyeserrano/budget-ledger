@@ -1,0 +1,45 @@
+# Actualizaciones automáticas de dependencias.
+# Complementa al gate SCA de CI (`npm audit --audit-level=high`): el gate DETECTA el CVE y rompe el
+# build; Dependabot abre el PR que lo arregla. Sin esto, cada CVE nuevo se arregla a mano (como el de
+# postcss <=8.5.11 en jul-2026), y el gate te bloquea hasta que alguien lo note.
+version: 2
+updates:
+  # ── npm ──────────────────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    # Agrupado: un PR por grupo en vez de uno por paquete. Los majors quedan FUERA de los grupos a
+    # propósito — cada uno llega en su propio PR porque puede romper y merece revisión individual.
+    groups:
+      prod-minor-patch:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      dev-minor-patch:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+  # ── GitHub Actions ───────────────────────────────────────────────────────────
+  # Los workflows fijan cada action por SHA de commit (un tag puede reapuntarse; un SHA no).
+  # Eso las congelaría para siempre, así que Dependabot es quien las mantiene al día.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies", "ci"]
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # ── Docker ───────────────────────────────────────────────────────────────────
+  # Imagen base de producción (node:22-alpine): los CVEs del SO base no los ve `npm audit`.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies", "docker"]

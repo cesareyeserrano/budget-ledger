@@ -7,18 +7,43 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Semanal SOLO para el job de seguridad: un CVE nuevo aparece en una dependencia que no has tocado,
+  # así que sin cron no te enterarías hasta el siguiente commit. Lunes 05:17 UTC.
+  schedule:
+    - cron: "17 5 * * 1"
+
+# GITHUB_TOKEN con permiso mínimo. Sin este bloque, el token hereda permisos de escritura amplios:
+# cualquier dependencia comprometida ejecutándose en un step podría escribir en el repo.
+permissions:
+  contents: read
+
+# Un push nuevo sobre la misma rama cancela la corrida anterior (la suite e2e es cara).
+# En main NO se cancela: cada commit de main debe quedar validado por sí mismo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # La corrida semanal solo tiene sentido para el job `security` (CVEs nuevos): el código no ha
+    # cambiado, así que reejecutar toda la suite e2e sería quemar minutos de runner sin señal nueva.
+    if: github.event_name != 'schedule'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Actions fijadas por SHA de commit, no por tag: un tag puede reapuntarse a código malicioso
+      # si se compromete el repo de la action. Dependabot (github-actions) mantiene estos SHAs.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "npm"
+      # `npm ci` a secas, sin fallback. El antiguo `npm ci || npm install --legacy-peer-deps` hacía
+      # que, si el lockfile estaba desincronizado, el CI resolviera dependencias por su cuenta:
+      # instalaba versiones que nadie revisó y anulaba la garantía de integridad del lockfile.
+      # Mejor romper el build de forma ruidosa y arreglar el lockfile.
       - name: Install dependencies
-        run: npm ci || npm install --legacy-peer-deps
+        run: npm ci
       - name: Type check
         run: npm run typecheck
       - name: Lint
@@ -37,17 +62,19 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: "npm"
       - name: Install dependencies
-        run: npm ci || npm install --legacy-peer-deps
+        run: npm ci
       # SCA (NFR-513): falla ante vulnerabilidad de dependencias de severidad alta/crítica.
       - name: SCA — npm audit
         run: npm audit --audit-level=high
       # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol de fuentes.
+      # El script prefiere gitleaks si está instalado; en el runner cae al fallback de patrones.
       - name: Secret scan
         run: ./scripts/secret-scan.sh
