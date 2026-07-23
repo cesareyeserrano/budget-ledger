@@ -45,6 +45,16 @@ jobs:
           # security-extended añade queries de mayor cobertura (más ruido, más hallazgos reales)
           # frente al set 'default'. Razonable en un proyecto de este tamaño.
           queries: security-extended
+          config: |
+            paths-ignore:
+              # Artefactos de producto de Aitri: specs, mockups y capturas del cliente. No es código
+              # que se despliegue ni que escribamos nosotros — un mockup HTML estático disparaba un
+              # js/xss-through-dom que nunca se va a arreglar porque no es nuestro código.
+              - "aitri/**"
+              # Salidas de build y evidencia de tests (por si alguna corrida las deja en el árbol).
+              - ".next/**"
+              - ".next-*/**"
+              - "test-evidence/**"
 
       # JS/TS es interpretado: CodeQL extrae el código directamente, sin paso de build.
       - name: Analizar
