@@ -1057,11 +1057,11 @@
       "test_data": {}
     },
     {
-      "id": "TC-216",
+      "id": "TC-216h",
       "requirement_id": "FR-111",
       "user_story_id": "US-101",
       "ac_id": "AC-101",
-      "title": "TC-216: clic en el ícono de una categoría/grupo abre el selector y lo cambia",
+      "title": "TC-216h: clic en el ícono de una categoría/grupo abre el selector y lo cambia",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "medium",
@@ -1078,6 +1078,124 @@
         "Verificar cierre"
       ],
       "expected_result": "ícono cambiado, paleta cerrada",
+      "test_data": {}
+    },
+    {
+      "id": "TC-217h",
+      "requirement_id": "FR-110",
+      "user_story_id": "US-110",
+      "ac_id": "AC-110b",
+      "title": "TC-217h: un nodo sin hijos y sin valores se borra y limpia sus montos",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Grupo-hoja creado, con un monto que luego se pone en 0"
+      ],
+      "given": "un nodo sin hijos cuyas celdas están todas en 0",
+      "when": "se invoca deleteNode",
+      "then": "canDeleteNode=true; el nodo se elimina y se limpian budgets/actuals/movements sin huérfanos",
+      "steps": [
+        "Crear grupo-hoja",
+        "Fijar y luego vaciar su ejecutado",
+        "canDeleteNode→true",
+        "deleteNode→state sin el nodo"
+      ],
+      "expected_result": "Nodo borrado; sin entradas huérfanas en budgets/actuals",
+      "test_data": {}
+    },
+    {
+      "id": "TC-217e",
+      "requirement_id": "FR-110",
+      "user_story_id": "US-110",
+      "ac_id": "AC-110a",
+      "title": "TC-217e: un nodo con valores (presupuestado o ejecutado) está bloqueado en todos los niveles",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Categoría y grupo-hoja con solo monto presupuestado"
+      ],
+      "given": "un nodo con monto en Presupuestado (o Ejecutado), sin hijos",
+      "when": "se intenta borrar",
+      "then": "canDeleteNode=false y deleteNode devuelve blocked:'has_data'; el nodo y su monto se conservan hasta vaciarlo",
+      "steps": [
+        "Crear categoría con presupuesto",
+        "canDeleteNode→false",
+        "deleteNode→blocked:has_data",
+        "Repetir con grupo-hoja"
+      ],
+      "expected_result": "Bloqueado (has_data); vaciar a 0 lo vuelve borrable",
+      "test_data": {}
+    },
+    {
+      "id": "TC-217f",
+      "requirement_id": "FR-110",
+      "user_story_id": "US-110",
+      "ac_id": "AC-110c",
+      "title": "TC-217f: un padre con hijos (grupo o categoría) no es borrable aunque no tenga valores",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Categoría con una subcategoría"
+      ],
+      "given": "una categoría con subcategorías, sin montos propios",
+      "when": "se intenta borrar",
+      "then": "canDeleteNode=false y deleteNode devuelve blocked:'has_children'; solo tras quitar los hijos se vuelve borrable",
+      "steps": [
+        "Crear categoría con sub",
+        "canDeleteNode→false",
+        "deleteNode→blocked:has_children",
+        "Borrar el hijo → padre borrable"
+      ],
+      "expected_result": "Bloqueado (has_children) mientras tenga hijos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-216e",
+      "requirement_id": "FR-111",
+      "user_story_id": "US-101",
+      "ac_id": "AC-101",
+      "title": "TC-216e: buscar en el IconPicker filtra el catálogo",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Grilla visible a 1440px"
+      ],
+      "given": "el IconPicker abierto con su catálogo",
+      "when": "escribo un término sin coincidencias en el buscador",
+      "then": "la lista se vacía y se muestra el estado vacío (icon-picker-empty)",
+      "steps": [
+        "Abrir IconPicker",
+        "Escribir 'zzzzzznomatch'",
+        "Ver icon-picker-empty; 0 icon-option"
+      ],
+      "expected_result": "El catálogo se filtra por el término de búsqueda",
+      "test_data": {}
+    },
+    {
+      "id": "TC-216f",
+      "requirement_id": "FR-111",
+      "user_story_id": "US-101",
+      "ac_id": "AC-101",
+      "title": "TC-216f: cerrar el IconPicker con Escape no cambia el ícono",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Grilla visible a 1440px"
+      ],
+      "given": "el IconPicker abierto",
+      "when": "presiono Escape sin elegir ícono",
+      "then": "el picker se cierra y el ícono del nodo no cambia",
+      "steps": [
+        "Abrir IconPicker",
+        "Presionar Escape",
+        "Ver icon-picker cerrado (count 0)"
+      ],
+      "expected_result": "Cierre sin selección; ícono intacto",
       "test_data": {}
     }
   ]

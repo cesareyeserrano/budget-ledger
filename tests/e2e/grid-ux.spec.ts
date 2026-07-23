@@ -10,10 +10,14 @@ function row(page: PW, name: RegExp): Loc {
   return page.getByTestId("budget-grid").locator("div").filter({ hasText: name }).first();
 }
 // Hover fiable: mueve el mouse al centro-izquierda de la fila (evita la fragilidad de .hover() sobre hijos).
+// BG-007: la grilla arranca auto-scrolleada al mes en curso, así que box.x de la fila puede ser
+// negativo; el hover se ancla a la columna de etiquetas (sticky), siempre visible al borde
+// izquierdo del contenedor.
 async function hoverRow(page: PW, r: Loc) {
   await r.scrollIntoViewIfNeeded();
   const box = await r.boundingBox();
-  if (box) await page.mouse.move(box.x + 40, box.y + box.height / 2);
+  const grid = await page.getByTestId("budget-grid").boundingBox();
+  if (box) await page.mouse.move(Math.max(box.x, grid?.x ?? 0) + 40, box.y + box.height / 2);
 }
 
 // ---------- FR-101 — crear grupo desde la grilla ----------
@@ -334,7 +338,8 @@ test("TC-215h: (regresión) sin emoji ni gradiente en la página", async ({ page
 // ---------- Editar ícono de categoría (clic en el ícono abre el selector) ----------
 // ux-consistency FR-309/310 SUPERSEDE el selector inline por un IconPicker en Popover (shadcn/Radix)
 // con catálogo Lucide amplio y buscable. Se conserva el TC id y el flujo (abrir → elegir → cerrar).
-test("TC-216: clic en el ícono de una categoría abre el selector y lo cambia", async ({ page }) => {
+// @aitri-tc TC-216h
+test("TC-216h: clic en el ícono de una categoría abre el selector y lo cambia", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
@@ -347,6 +352,32 @@ test("TC-216: clic en el ícono de una categoría abre el selector y lo cambia",
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
 });
 
+// @aitri-tc TC-216e
+test("TC-216e: buscar en el IconPicker filtra el catálogo (edge)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  await page.locator(String.raw`button[aria-label="Cambiar ícono"]`).first().click();
+  await expect(page.getByTestId("icon-picker")).toBeVisible();
+  const before = await page.getByTestId("icon-option").count();
+  // una búsqueda sin coincidencias vacía la lista (muestra el estado vacío)
+  await page.getByTestId("icon-picker-search").fill("zzzzzznomatch");
+  await expect(page.getByTestId("icon-picker-empty")).toBeVisible();
+  await expect(page.getByTestId("icon-option")).toHaveCount(0);
+  expect(before).toBeGreaterThan(0);
+});
+
+// @aitri-tc TC-216f
+test("TC-216f: cerrar el IconPicker con Escape no cambia el ícono (negativo)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  await page.locator(String.raw`button[aria-label="Cambiar ícono"]`).first().click();
+  await expect(page.getByTestId("icon-picker")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("icon-picker")).toHaveCount(0); // se cerró sin elegir
+});
+
 test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
@@ -355,4 +386,30 @@ test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo g
   await hoverRow(page, row(page, /^GASTOS/));
   await page.locator(String.raw`button[aria-label="Agregar grupo"]`).first().click();
   await expect(page.getByLabel("Nombre")).toBeVisible(); // el grupo se muestra → el tipo se expandió
+});
+
+// ---------- NFR-103 (Regression) — carga con Lexend ----------
+// @aitri-tc TC-212f
+test("TC-212f: la carga inicial con Lexend no supera ~2s y la fuente es self-hosted (sin CDN)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  // Capturar cualquier request de fuente a un host externo (violaría self-hosting NFR-004/BG-001).
+  const externalFontReqs: string[] = [];
+  page.on("request", (req) => {
+    const url = req.url();
+    const isFont = req.resourceType() === "font" || /\.(woff2?|ttf|otf)(\?|$)/i.test(url);
+    const isExternal = /^https?:\/\//i.test(url) && !/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+    if (isFont && isExternal) externalFontReqs.push(url);
+    // fonts.googleapis.com / fonts.gstatic.com serían CDN aunque no disparen resourceType 'font'
+    if (/fonts\.(googleapis|gstatic)\.com/i.test(url)) externalFontReqs.push(url);
+  });
+
+  const start = Date.now();
+  await page.goto("/", { waitUntil: "load" });
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  const elapsed = Date.now() - start;
+
+  // Guardrail de rendimiento: carga inicial ≤ 2s (servida desde el build de producción).
+  expect(elapsed).toBeLessThanOrEqual(2000);
+  // Lexend self-hosted: 0 peticiones de fuente a CDN/host externo.
+  expect(externalFontReqs).toEqual([]);
 });

@@ -39,12 +39,13 @@ describe("FR-015 reparent por drag-and-drop", () => {
   });
 
   // @aitri-tc TC-015f
-  it("TC-015f: soltar en otro tipo o mover un grupo se rechaza", () => {
+  it("TC-015f: soltar en otro tipo se rechaza (feature demote-node: un grupo ya SÍ se puede mover, pero nunca cruza de tipo)", () => {
     const s = seedWithCafe();
     // cross-type: Café (expense) sobre Salario (income)
     expect(moveNode(s, "c-cafe", { kind: "category", id: "c-salario" })).toEqual({ rejected: "cross_type" });
-    // mover un grupo: inválido
-    expect(moveNode(s, "g-esenciales", { kind: "group", id: "g-trabajo" })).toEqual({ rejected: "invalid_target" });
+    // mover un grupo a un destino de OTRO tipo sigue rechazado por cruce de tipo (g-esenciales expense → g-trabajo income).
+    // Antes de demote-node esto era 'invalid_target' (los grupos no se movían); ahora la regla dura de tipo lo rige.
+    expect(moveNode(s, "g-esenciales", { kind: "group", id: "g-trabajo" })).toEqual({ rejected: "cross_type" });
   });
 });
 

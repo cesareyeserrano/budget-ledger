@@ -33,6 +33,11 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-full: 9999px;
+  /* control-size-scale FR-801: escala canónica de ALTURA de control (única fuente de verdad).
+     Retira las alturas ad-hoc 30/36/44. Uso: h-(--control-md) / min-h-(--control-lg). */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
 }
 
 /* ── Sistema de diseño ZINC neutro + acento dinámico por tipo (FR-202/FR-204).

@@ -22,7 +22,6 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
@@ -32,10 +31,15 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-buildcheck/types/**/*.ts",
+    ".next-e2e-backend/types/**/*.ts",
+    ".next-e2e/types/**/*.ts",
+    ".next-sec/types/**/*.ts",
+    ".next-smoke-be/types/**/*.ts",
     ".next-smoke/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-e2e/types/**/*.ts"
+    ".next-nodburl/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

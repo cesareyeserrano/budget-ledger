@@ -1,0 +1,184 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "control-size-scale",
+  "createdAt": "2026-07-18T23:20:09.168Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-19T00:00:46.017Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-18T23:25:29.663Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-18T23:25:43.295Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-07-18T23:26:09.184Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-18T23:27:03.741Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-18T23:27:03.840Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-18T23:27:23.053Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-18T23:28:47.042Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-18T23:28:47.138Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-18T23:29:21.207Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-18T23:31:40.613Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-18T23:31:40.712Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-18T23:31:54.869Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T23:31:59.990Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T23:43:18.344Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T23:56:29.481Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-18T23:59:46.658Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 3
+    },
+    {
+      "at": "2026-07-19T00:00:06.463Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-19T00:00:16.172Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-19T00:00:45.889Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-19T00:00:45.992Z",
+      "event": "approved",
+      "phase": 5
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "3ff125f2f92732a429803ccc4eac832aaeff5c046b8b0312d574aad022fba9b5",
+    "2": "32d9c12d39e7cbc6d38d0ed7e4b6bda97ea9ce4f869cb0488a105213f1759358",
+    "3": "f3c9d1411ca096a1e5f67ac39158bdf35579e76b9033ba1f11ad8cd8f631f192",
+    "4": "685ff7df1c3a9bba49327e1200eef9cfc1d60a734a848687d4c5c2510511b6e8",
+    "5": "07d35cdeda2c069ff8dfda320b86457c3b6589da045635e4195feb932d286bf2",
+    "ux": "ed6ac74732e47d13df7f3670d33d742c3e3059dd537b273898551c608108295d"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-801",
+      "FR-802"
+    ],
+    "3": [
+      "FR-801",
+      "FR-802"
+    ],
+    "4": [
+      "FR-801",
+      "FR-802"
+    ],
+    "5": [
+      "FR-801",
+      "FR-802"
+    ],
+    "ux": [
+      "FR-801",
+      "FR-802"
+    ]
+  },
+  "verifyResultsHash": "f8c047e2bac5e5f4ce292d8c52fa7425c94cd4bf34bceb090ef98fbc2c098dd4",
+  "verifyRanAt": "2026-07-18T23:59:46.658Z",
+  "lastVerifyRun": {
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 3,
+    "at": "2026-07-18T23:59:46.658Z"
+  },
+  "verifySummary": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  },
+  "verifyPassed": true
+}

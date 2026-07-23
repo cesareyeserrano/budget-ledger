@@ -1,0 +1,37 @@
+{
+  "feature": "control-size-scale",
+  "summary": "Escala canónica de altura de control implementada como 3 tokens CSS en globals.css (--control-sm=32 / --control-md=40 / --control-lg=48), única fuente de verdad, consumidos vía el shorthand Tailwind v4 h-(--control-*) / min-h-(--control-*). Cada control interactivo re-mapeado a su token: Button default→md (era h-9=36), sm/icon→sm; TabsTrigger→sm (era ~30 por py-1.5); SelectTrigger→md; ThemeToggle→md (era h-11=44); controles del registro (TypeToggle, tiles, date-field, SaveButton) re-expresados desde min-h-[48px] a min-h-(--control-lg) conservando ≥48 táctil, y el sub-tile de CategoryRow a --control-md. Solo altura; color/tipografía/radio/comportamiento intactos. 15 e2e (miden alturas con boundingBox y leen tokens de :root) + 3 TCs manuales de seguridad; regresión verificada (feature-stack + ux-consistency verdes). Sin cambios de dominio ni server-side.",
+  "files_created": [
+    "tests/e2e/control-size-scale.spec.ts (FR-801/802 + NFR-801..803, e2e de medición de alturas + regresión de flujos)"
+  ],
+  "files_modified": [
+    "src/app/globals.css (FR-801: tokens --control-sm/-md/-lg = 32/40/48 en :root)",
+    "src/components/ui/button.tsx (FR-802: default→md, sm/icon→sm)",
+    "src/components/ui/tabs.tsx (FR-802: TabsTrigger→sm, altura fija 32 en vez de py-1.5)",
+    "src/components/ui/select.tsx (FR-802: SelectTrigger→md, 40 en vez de py-2.5)",
+    "src/components/ThemeToggle.tsx (FR-802: h-11/w-11 44 → md 40)",
+    "src/components/register/DateTimeField.tsx (FR-802/NFR-801: min-h-[48px]→min-h-(--control-lg))",
+    "src/components/register/CategoryRow.tsx (FR-802: tile 48→--control-lg, sub-tile 40→--control-md)",
+    "src/components/register/SaveButton.tsx (FR-802/NFR-801: min-h-[48px]→min-h-(--control-lg))",
+    "src/components/register/TypeToggle.tsx (FR-802/NFR-801: min-h-[48px]→min-h-(--control-lg))"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/e2e/control-size-scale.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-801",
+      "substitution": "ADR-02: se aplicó la escala vía el shorthand de token Tailwind v4 (h-(--control-md) / min-h-(--control-lg)) en lugar de 3 clases utilitarias .control-sm/-md/-lg (opción A del ADR). Motivo: la grilla usa height fija y el registro usa min-height (para crecer sobre el mínimo táctil); una sola clase utilitaria no sirve a ambos semánticamente, mientras que el token en :root sigue siendo la única fuente de verdad. El ADR-02 declaró la opción B como aceptable — no es deuda funcional, es una desviación de mecanismo documentada."
+    }
+  ],
+  "environment_variables": [],
+  "notes": "Decisiones clave: (1) FR-801 — los 3 tokens viven solo en :root de globals.css; ningún componente declara una altura ad-hoc (verificado por TC-801e/TC-802f). (2) FR-802 — solo 3 alturas reales cambian: tabs 30→32, Button default 36→40, ThemeToggle 44→40; el resto ya caía en la escala. (3) NFR-801 — los controles del registro se re-expresan desde min-h-[48px] al token --control-lg, conservando el objetivo táctil ≥48 (TC-851h/e/f verdes + TC-UXC-353e y TC-SUT-252f de las suites existentes sin romperse). (4) NFR-802/803 — regresión verificada: registrar, editar celda y drag-drop (degradar) siguen funcionando (TC-852h/e/f), y color/tipografía/radio/código-de-estado intactos (TC-853h/e/f); suites feature-stack + ux-consistency (94 e2e) verdes. TCs manuales TC-855h/e/f: seguridad por inspección — 0 rutas /api, 0 columnas/tablas, 0 dependencias, sin entrada de usuario nueva."
+}

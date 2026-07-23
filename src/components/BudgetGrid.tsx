@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
@@ -102,6 +102,7 @@ export function BudgetGrid() {
   const createNode = useLedgerStore((s) => s.createNode);
   const setNodeIcon = useLedgerStore((s) => s.setNodeIcon);
   const moveNode = useLedgerStore((s) => s.moveNode);
+  const showToast = useLedgerStore((s) => s.showToast);
   const period = useLedgerStore((s) => s.period);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => initialExpanded(data.nodes));
@@ -132,6 +133,17 @@ export function BudgetGrid() {
 
   const rows = useMemo(() => buildRows(data.nodes, expanded), [data.nodes, expanded]);
   const highlightMonth = period.mode === "month" ? period.month : null;
+
+  // BG-007: al montar, posicionar el scroll horizontal en el mes resaltado (el estado ya arranca
+  // en el mes en curso, pero el contenedor iniciaba en scrollLeft=0 → siempre se veía enero).
+  // Cada mes ocupa 216px (dos celdas CELL_W de 108px); la columna de categoría es sticky.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!highlightMonth || !scrollRef.current) return;
+    const idx = MONTHS.findIndex((m) => m.k === highlightMonth);
+    if (idx > 0) scrollRef.current.scrollLeft = idx * 216;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // solo al montar: después el usuario controla el scroll libremente
 
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
@@ -167,13 +179,17 @@ export function BudgetGrid() {
     const over = ev.over;
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
-    if (kind === "category" || kind === "group") moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
+    if (kind === "category" || kind === "group") {
+      // FR-703: degradar un grupo que desbordaría el techo de 3 niveles se bloquea con aviso.
+      const res = moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
+      if (res === "would_overflow") showToast("Vacía o mueve las subcategorías primero");
+    } else if (kind === "root") moveNode(String(ev.active.id), { kind: "root", type: id as NodeType }); // FR-601: promover a grupo
   }
   const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
-      <div className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
+      <div ref={scrollRef} className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
         <div className="w-max min-w-full text-[0.74rem]">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
@@ -193,9 +209,21 @@ export function BudgetGrid() {
             </div>
             <div className="flex flex-col">
               <div className="flex">
-                {MONTHS.map((m) => (
-                  <div key={m.k} className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong")} style={{ width: 216, color: highlightMonth === m.k ? "var(--accent-light)" : "var(--fg)" }}>{m.label}</div>
-                ))}
+                {MONTHS.map((m) => {
+                  const active = highlightMonth === m.k;
+                  // El mes activo DESTACA por peso + color pleno; los inactivos recéden en gris
+                  // secundario. (Antes usaba --accent-light = gris, que en el tema neutro dejaba el
+                  // activo MÁS apagado que los demás — al revés de lo buscado.)
+                  return (
+                    <div
+                      key={m.k}
+                      className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong", active && "font-semibold")}
+                      style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
+                    >
+                      {m.label}
+                    </div>
+                  );
+                })}
               </div>
               <div className="flex">
                 {MONTHS.map((m) => (
@@ -209,7 +237,7 @@ export function BudgetGrid() {
           </div>
 
           {rows.map((row) => {
-            if (row.node === null) { const t = TYPE_ORDER.find((x) => x.id === row.type)!; return <TypeTotalRow key={`t-${row.type}`} type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} />; }
+            if (row.node === null) { const t = TYPE_ORDER.find((x) => x.id === row.type)!; return <TypeTotalRow key={`t-${row.type}`} type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} activeType={dragNode?.type ?? null} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} />; }
             return (
               <NodeRow
                 key={row.node.id}
@@ -247,20 +275,26 @@ export function BudgetGrid() {
   );
 }
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, isExpanded, onToggle, onAddGroup }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void }) {
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void }) {
   const data = useLedgerStore((s) => s.data);
   const color = typeColorVar(type);
   const [hover, setHover] = useState(false);
+  // FR-601: la fila de tipo es destino de promoción a grupo. Solo el tipo COMPATIBLE con el nodo
+  // arrastrado muestra la afordancia (prevención de error / cross-type, H5).
+  const droppable = useDroppable({ id: `root:${type}` });
+  const showDrop = droppable.isOver && activeType === type;
   return (
-    <div className="flex" data-testid="type-total-row" data-type={type} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className="flex" data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
           la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
           sobre-consumo de una celda de datos. */}
-      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color }}>
+      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
         <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
         <Icon size={15} color={color} /><span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+        {/* Afordancia de destino de promoción (solo durante un arrastre compatible) */}
+        {showDrop && <span data-testid="promote-hint" className="flex-none caption" style={{ color: "var(--accent-light)" }}>Soltar para crear grupo</span>}
         {/* "+" para agregar un GRUPO de este tipo (el adder de grupo vive en el hover del tipo) */}
-        {hover && (
+        {hover && !showDrop && (
           <button aria-label="Agregar grupo" onClick={onAddGroup} className="inline-flex p-[3px] rounded-md flex-none cursor-pointer bg-transparent border-0" style={{ color }}><Plus size={14} /></button>
         )}
       </div>
@@ -305,10 +339,12 @@ function NodeRow(props: {
 
   useEffect(() => { if (naming) setNameVal(node.name); }, [naming, node.name]);
 
-  const draggable = useDraggable({ id: node.id, disabled: node.level === "group" || node.system });
+  // Feature demote-node (FR-701): los grupos se vuelven arrastrables (para bajarlos de nivel);
+  // solo los nodos del sistema quedan fijos.
+  const draggable = useDraggable({ id: node.id, disabled: node.system });
   const dropId = node.level === "group" ? `group:${node.id}` : node.level === "category" ? `category:${node.id}` : null;
   const droppable = useDroppable({ id: dropId ?? `noop:${node.id}` });
-  const canDrag = node.level !== "group" && !node.system;
+  const canDrag = !node.system;
   const bWeight = node.level === "group" ? 500 : 400;
   // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es
   // lienzo, un grupo es estructura), no sobre el lienzo en ambos casos.
@@ -350,7 +386,7 @@ function NodeRow(props: {
           {naming ? (
             <input autoFocus aria-label="Nombre" value={nameVal} onChange={(e) => setNameVal(e.target.value)} onBlur={() => props.commitName(nameVal)} onKeyDown={(e) => { if (e.key === "Enter") props.commitName(nameVal); if (e.key === "Escape") props.commitName(node.name); }} className="flex-1 min-w-0 bg-card border border-accent rounded-md text-fg px-2 py-1 text-[0.8rem] outline-none" />
           ) : (
-            <span onClick={props.onToggle} className={cn("flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap", row.expandable && "cursor-pointer")}>{node.name}</span>
+            <span onClick={props.onToggle} className={cn("flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap", row.expandable && !canDrag && "cursor-pointer")}>{node.name}</span>
           )}
           {confirmDel && !node.system && (
             <span className="flex gap-1 flex-none">

@@ -23,7 +23,7 @@ export function ThemeToggle() {
       aria-label={isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
       data-testid="theme-toggle"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="flex h-11 w-11 items-center justify-center rounded-(--radius-sm) text-fg-secondary hover:text-fg"
+      className="flex h-(--control-md) w-(--control-md) items-center justify-center rounded-(--radius-sm) text-fg-secondary hover:text-fg"
     >
       {/* Antes de montar, evita mismatch: se renderiza la Luna por defecto y se corrige en cliente. */}
       {mounted && isDark ? <Sun className="h-5 w-5" strokeWidth={1.75} /> : <Moon className="h-5 w-5" strokeWidth={1.75} />}

@@ -38,7 +38,7 @@ export function TypeToggle({ value, onChange }: Props) {
             aria-selected={active}
             data-testid={`type-${t.id}`}
             onClick={() => onChange(t.id)}
-            className="flex min-h-[48px] flex-1 items-center justify-center gap-1.5 rounded-(--radius-xs) px-2 py-2 text-sm font-semibold"
+            className="flex min-h-(--control-lg) flex-1 items-center justify-center gap-1.5 rounded-(--radius-xs) px-2 py-2 text-sm font-semibold"
             style={active ? { backgroundColor: typeFillVar(t.id), color: "var(--on-accent)" } : { color: "var(--fg-secondary)" }}
           >
             <span

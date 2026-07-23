@@ -23,7 +23,7 @@ export function SaveButton({ type, disabled, onClick }: Props) {
       data-testid="save-button"
       disabled={disabled}
       onClick={onClick}
-      className="min-h-[48px] w-full rounded-(--radius-md) px-4 py-3 text-base font-semibold disabled:opacity-40"
+      className="min-h-(--control-lg) w-full rounded-(--radius-md) px-4 py-3 text-base font-semibold disabled:opacity-40"
       style={{ backgroundColor: typeFillVar(type), color: "var(--on-accent)" }}
     >
       Guardar

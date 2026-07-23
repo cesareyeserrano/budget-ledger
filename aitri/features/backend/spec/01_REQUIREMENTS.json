@@ -1,0 +1,786 @@
+{
+  "project_name": "Ledger (T-Ledger) — Backend (feature)",
+  "project_summary": "Feature 'backend': convierte a Ledger de app cliente-pura (localStorage por-navegador) en un producto multiusuario con servidor. El backend es HOST-AGNÓSTICO (la Pi es solo el laboratorio; debe correr en cualquier hosting profesional estándar) y expone una SUPERFICIE DE API real con contrato versionado, no solo llamadas internas del frontend. Multiusuario es central desde el día uno: todo dato se modela y aísla por usuario ('ownerId' real), y toda ruta valida la identidad y filtra por el usuario autenticado. Autenticación con email+contraseña Y Google OAuth. Los datos financieros (usuarios/credenciales, nodos de la jerarquía, presupuestos, ejecutados, movimientos) viven en una base de datos por usuario (fuente de verdad); localStorage guarda SOLO lo local del dispositivo (tema, prefs de UI) y jamás datos financieros ni credenciales. El cliente lee/escribe a través del servidor mediante una nueva impl de la interfaz 'LedgerRepository' (punto de swap ya existente, FR-011 raíz), de modo que cualquier dispositivo del mismo usuario vea el mismo dato al recargar Y en vivo (sin recarga). Arranque limpio: no se migra el localStorage actual. North Star / gate de aceptación: un movimiento registrado en el teléfono aparece en el escritorio con la misma cuenta (al recargar y en vivo), dos usuarios distintos ven solo lo suyo, y toda la funcionalidad existente se comporta idéntico contra el backend autenticado. JTBD: llevar mis finanzas personales contra un presupuesto desde varios dispositivos sobre los mismos datos, con mi propia cuenta. Guardrail: el dominio (rollups, dashboard/balance, budgetState) queda PURO y sin cambios de cálculo — solo cambia el origen de los datos; y ninguna regresión en grilla/registro/edición/Mes-Año/borrado/reparent. Decisión confirmada por el usuario: el cálculo/balance sigue ejecutándose en el CLIENTE por ahora (dominio puro y portable). Preguntas de diseño deliberadamente diferidas a Fase 2: estilo/alcance de la API (REST vs GraphQL, interno vs público-versionado), motor de BD (Postgres vs SQLite) + ORM, mecanismo de auth/sesión (JWT/cookies), y mecanismo de sync en vivo (websockets vs SSE vs polling). Escalabilidad: alcance personal/multiusuario de baja concurrencia — el aislamiento por usuario se cubre en Security (NFR-501); no se diseña para escala masiva. Usabilidad: sin cambios de UI (regresión, NFR-509).",
+  "functional_requirements": [
+    {
+      "id": "FR-501",
+      "title": "Registro e inicio de sesión con email + contraseña",
+      "description": "El sistema permite crear una cuenta y autenticarse con email + contraseña. Las contraseñas se almacenan con hash (nunca en texto plano). El registro con un email ya existente se rechaza; el login con credenciales inválidas se rechaza sin emitir sesión.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "registro con email y contraseña válidos crea la cuenta y devuelve una sesión válida",
+        "login con la contraseña correcta devuelve una sesión válida para ese usuario",
+        "login con contraseña incorrecta se rechaza con 401 y no crea sesión",
+        "registro con un email ya registrado se rechaza (409/422) y no crea una segunda cuenta",
+        "la contraseña persiste hasheada — el hash almacenado no es igual al texto plano ingresado"
+      ]
+    },
+    {
+      "id": "FR-502",
+      "title": "Inicio de sesión con Google OAuth",
+      "description": "El sistema permite registrarse/iniciar sesión con Google (OAuth). Un flujo exitoso crea o vincula la cuenta y emite una sesión válida. Un callback OAuth denegado o inválido no crea sesión y se maneja como error.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "un flujo OAuth de Google exitoso crea/vincula la cuenta y devuelve una sesión válida",
+        "el usuario autenticado por Google queda identificado con un ownerId estable entre sesiones",
+        "un callback OAuth denegado por el usuario no crea sesión y devuelve un error manejado (no 5xx)",
+        "un callback OAuth con state/código inválido se rechaza y no crea sesión"
+      ]
+    },
+    {
+      "id": "FR-503",
+      "title": "Sesión que identifica al usuario en cada request",
+      "description": "Cada request al servidor lleva una sesión que identifica al usuario autenticado (userId/ownerId), disponible para el código de servidor. Sin sesión válida, no se asume ningún usuario. El usuario puede cerrar sesión (logout): la sesión se invalida y los requests posteriores requieren autenticarse de nuevo.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "un request autenticado expone al servidor la identidad del usuario (userId/ownerId no vacío)",
+        "un request sin sesión no expone identidad alguna y el servidor no asume un usuario por defecto",
+        "una sesión manipulada o expirada no resuelve a ningún usuario válido",
+        "tras un logout, la sesión deja de resolver a un usuario y un request posterior con esa sesión requiere autenticación de nuevo (401)"
+      ]
+    },
+    {
+      "id": "FR-504",
+      "title": "Gating de la API — sin sesión válida no hay acceso a datos",
+      "description": "Toda ruta de datos del ledger exige una sesión válida. Un request no autenticado recibe 401 y cero datos; uno autenticado recibe 200 con los datos de su usuario.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "un request a una ruta de datos del ledger sin sesión válida devuelve 401 y ningún dato en el cuerpo",
+        "el mismo request con una sesión válida devuelve 200 con los datos del usuario autenticado",
+        "un request con sesión expirada o token manipulado devuelve 401"
+      ]
+    },
+    {
+      "id": "FR-505",
+      "title": "Aislamiento por ownerId — cada usuario ve solo sus datos",
+      "description": "Todo dato del ledger está asociado a un ownerId; toda lectura y escritura filtra por el usuario autenticado. Ningún usuario puede leer ni escribir datos de otro. Esta es la regla de seguridad central del producto multiusuario.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "un GET del usuario A no devuelve ningún registro cuyo ownerId sea el usuario B",
+        "un intento del usuario A de leer un recurso identificado por id que pertenece a B devuelve 403/404 sin filtrar contenido",
+        "un intento del usuario A de escribir/modificar un recurso de B se rechaza (403/404) y no altera el dato de B",
+        "toda query de datos del ledger incluye el ownerId del usuario autenticado como filtro"
+      ]
+    },
+    {
+      "id": "FR-506",
+      "title": "Esquema de base de datos del ledger por usuario",
+      "description": "La base de datos es la fuente de verdad y persiste, asociado a un ownerId: usuarios/credenciales, nodos de la jerarquía (Grupo→Categoría→Subcategoría), presupuestos, ejecutados y movimientos. Un registro de dominio sin ownerId no es válido ni accesible.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "tras escribir un movimiento, una query por su ownerId devuelve el registro con los mismos valores",
+        "usuarios, nodos, presupuestos, ejecutados y movimientos persisten cada uno con su ownerId",
+        "un registro de dominio creado sin ownerId es rechazado (no se persiste) o no es accesible por ninguna consulta de usuario"
+      ]
+    },
+    {
+      "id": "FR-507",
+      "title": "API de servidor del ledger — contrato versionado, filtrado por usuario",
+      "description": "El backend expone una superficie de API real para leer y escribir el ledger, con un contrato versionado (p. ej. prefijo de versión), pensada para poder ser consumida por más de un cliente. Toda ruta filtra por el usuario autenticado. Un payload inválido se rechaza sin persistir.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "existen endpoints de lectura y escritura del ledger bajo un contrato con versión explícita (p. ej. /api/v1/...)",
+        "toda respuesta de datos contiene únicamente registros del usuario autenticado",
+        "un payload malformado o que viola el esquema devuelve 400/422 y no persiste nada",
+        "una operación de escritura válida persiste y es legible en una lectura posterior del mismo usuario"
+      ]
+    },
+    {
+      "id": "FR-508",
+      "title": "Implementación de servidor de LedgerRepository",
+      "description": "Se agrega una implementación de la interfaz existente 'LedgerRepository' (FR-011 raíz, el punto de swap) que lee/escribe contra el servidor en vez de localStorage. makeRepo()/hydrate()/persist() pasan de I/O síncrono de localStorage a I/O de servidor por usuario. Un fallo de red se maneja sin corromper el estado.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "makeRepo() devuelve la implementación de servidor cuando el usuario está autenticado",
+        "un movimiento guardado vía la impl de servidor aparece al re-hidratar el estado desde el servidor",
+        "un fallo de red durante persist() se propaga como error manejado y no deja el estado local corrupto ni parcialmente aplicado en la fuente de verdad"
+      ]
+    },
+    {
+      "id": "FR-509",
+      "title": "Split de almacenamiento — localStorage solo para lo local del dispositivo",
+      "description": "localStorage retiene únicamente estado local del dispositivo: tema y preferencias de UI (p. ej. ancho de columna de la grilla) y, opcionalmente, un caché offline. Nunca almacena datos financieros compartidos ni credenciales.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "el tema y las preferencias de UI persisten en localStorage y sobreviven a una recarga del navegador",
+        "tras registrar y guardar movimientos, la inspección de localStorage no contiene movimientos, nodos, presupuestos ni ejecutados",
+        "la inspección de localStorage nunca contiene credenciales ni contraseñas en ninguna forma"
+      ]
+    },
+    {
+      "id": "FR-510",
+      "title": "Sincronización al recargar/abrir entre dispositivos",
+      "description": "Al abrir o recargar la app en otro dispositivo con la misma cuenta, el usuario ve el mismo dataset (fuente de verdad del servidor). Un movimiento creado en un dispositivo aparece en el otro tras recargar.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "un movimiento creado y guardado en el dispositivo 1 aparece en el dispositivo 2 del mismo usuario tras recargar",
+        "el dataset visto en dos dispositivos del mismo usuario es idéntico tras recargar (mismos nodos, presupuestos, ejecutados y movimientos)",
+        "un usuario distinto que recarga no ve ese movimiento"
+      ]
+    },
+    {
+      "id": "FR-511",
+      "title": "Sincronización en vivo entre dispositivos del mismo usuario",
+      "description": "Cuando un dispositivo del usuario escribe (crea/edita/borra), los demás dispositivos del MISMO usuario que tengan la app abierta se actualizan sin recarga manual, en tiempo casi real. El mecanismo (websockets/SSE/polling) lo decide el diseño. Un dispositivo de otro usuario nunca recibe la actualización.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "con la app abierta en dos dispositivos del mismo usuario, un cambio en el dispositivo 1 se refleja en el dispositivo 2 sin recarga manual en un plazo casi real (≤5s)",
+        "un dispositivo autenticado con OTRO usuario no recibe ni aplica esa actualización",
+        "si el segundo dispositivo tiene la app cerrada, no se produce error; al abrirla ve el dato (vía FR-510)"
+      ]
+    },
+    {
+      "id": "FR-512",
+      "title": "Persistencia portátil — sobrevive reinicio y cambio de host",
+      "description": "Los datos persisten en un volumen/servicio estándar, sin depender de una máquina concreta. Sobreviven a un reinicio del servidor y a un cambio de host, con cero pérdida.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "tras reiniciar el proceso del servidor, los datos previamente guardados siguen presentes y legibles para su usuario",
+        "los datos se almacenan en un volumen/servicio estándar portátil, sin rutas ni supuestos atados a una máquina concreta",
+        "una operación de restauración en un host distinto (mismo volumen/servicio) recupera los datos sin pérdida"
+      ]
+    },
+    {
+      "id": "FR-513",
+      "title": "Estado inicial de un usuario nuevo — arranque limpio y aislado",
+      "description": "Al registrarse, un usuario nuevo obtiene un ledger propio, aislado y utilizable de inmediato (jerarquía semilla inicial o vacío usable — la elección la decide el diseño), sin datos de ningún otro usuario y sin importar el localStorage previo del navegador (arranque limpio confirmado).",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "un usuario recién registrado abre la app y ve un ledger propio y utilizable, sin datos de ningún otro usuario",
+        "el ledger inicial de un usuario nuevo no contiene datos migrados del localStorage del navegador (arranque limpio)",
+        "dos usuarios nuevos distintos obtienen ledgers independientes: un cambio en el de uno no aparece en el del otro"
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "End User",
+      "tech_level": "mid",
+      "goal": "Llevar mis finanzas personales contra un presupuesto desde varios dispositivos (teléfono y escritorio) sobre los mismos datos, con mi propia cuenta.",
+      "pain_point": "Hoy los datos del teléfono y del escritorio son conjuntos distintos que nunca se sincronizan, se pierden si el navegador borra su almacenamiento, y no hay cuentas: no es un producto que otra persona pueda usar con sus propios datos."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-501",
+      "requirement_id": "FR-501",
+      "as_a": "dueño de mis finanzas personales que aún no tiene cuenta",
+      "i_want": "registrarme e iniciar sesión con mi email y una contraseña",
+      "so_that": "tenga una cuenta propia y protegida desde la que acceder a mis finanzas en cualquier dispositivo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-501a",
+          "given": "el email 'ana@example.com' no registrado y la contraseña 'Contra$eña123'",
+          "when": "envío el formulario de registro",
+          "then": "se crea la cuenta con un ownerId propio y recibo una sesión válida que me deja entrar a la app"
+        },
+        {
+          "id": "AC-501b",
+          "given": "la cuenta 'ana@example.com' ya registrada con 'Contra$eña123'",
+          "when": "inicio sesión con la contraseña 'incorrecta'",
+          "then": "el sistema responde 401, no emite sesión y no revela si el email existe o no"
+        },
+        {
+          "id": "AC-501c",
+          "given": "que 'ana@example.com' ya está registrado",
+          "when": "intento registrarme otra vez con ese mismo email",
+          "then": "el sistema rechaza con 409/422 y sigue existiendo una sola cuenta para ese email"
+        },
+        {
+          "id": "AC-501d",
+          "given": "que me registro con 'Contra$eña123'",
+          "when": "se inspecciona el registro de credenciales en la BD",
+          "then": "el valor almacenado es un hash y no es igual al texto 'Contra$eña123'"
+        }
+      ]
+    },
+    {
+      "id": "US-502",
+      "requirement_id": "FR-502",
+      "as_a": "usuario que prefiere no manejar otra contraseña",
+      "i_want": "registrarme e iniciar sesión con mi cuenta de Google",
+      "so_that": "entre rápido y seguro reutilizando mi identidad de Google",
+      "acceptance_criteria": [
+        {
+          "id": "AC-502a",
+          "given": "una cuenta de Google válida",
+          "when": "completo el flujo OAuth con consentimiento exitoso",
+          "then": "se crea o vincula mi cuenta y recibo una sesión válida asociada a mi ownerId"
+        },
+        {
+          "id": "AC-502b",
+          "given": "que ya entré antes con Google",
+          "when": "vuelvo a entrar con la misma cuenta de Google",
+          "then": "obtengo el MISMO ownerId (no se crea un usuario duplicado) y veo mis datos previos"
+        },
+        {
+          "id": "AC-502c",
+          "given": "la pantalla de consentimiento de Google",
+          "when": "deniego el acceso o el callback llega con un state/código inválido",
+          "then": "no se crea sesión ni cuenta y veo un error manejado (no un 5xx)"
+        }
+      ]
+    },
+    {
+      "id": "US-503",
+      "requirement_id": "FR-503",
+      "as_a": "usuario autenticado",
+      "i_want": "que cada request identifique quién soy y poder cerrar sesión cuando quiera",
+      "so_that": "el servidor opere siempre sobre mis datos y yo controle el fin de mi sesión",
+      "acceptance_criteria": [
+        {
+          "id": "AC-503a",
+          "given": "una sesión válida de 'ana@example.com'",
+          "when": "el cliente hace un request al servidor",
+          "then": "el servidor resuelve mi userId/ownerId (no vacío) y lo usa para la operación"
+        },
+        {
+          "id": "AC-503b",
+          "given": "ninguna sesión en el request",
+          "when": "llega al servidor",
+          "then": "no se resuelve ningún usuario y el servidor no asume uno por defecto"
+        },
+        {
+          "id": "AC-503c",
+          "given": "una sesión válida",
+          "when": "hago logout y luego reuso esa misma sesión en un request",
+          "then": "la sesión ya no resuelve a un usuario y el request recibe 401 (debo autenticarme de nuevo)"
+        }
+      ]
+    },
+    {
+      "id": "US-504",
+      "requirement_id": "FR-504",
+      "as_a": "dueño de mis finanzas",
+      "i_want": "que la API rechace a cualquiera que no tenga sesión válida",
+      "so_that": "nadie sin autenticarse pueda leer ni tocar datos del ledger",
+      "acceptance_criteria": [
+        {
+          "id": "AC-504a",
+          "given": "ninguna sesión válida",
+          "when": "se llama a una ruta de datos del ledger (p. ej. GET /api/v1/ledger)",
+          "then": "la API responde 401 y el cuerpo no contiene ningún dato del ledger"
+        },
+        {
+          "id": "AC-504b",
+          "given": "una sesión válida de 'ana@example.com'",
+          "when": "se llama a esa misma ruta",
+          "then": "la API responde 200 con los datos de Ana y de nadie más"
+        },
+        {
+          "id": "AC-504c",
+          "given": "un token de sesión expirado o manipulado",
+          "when": "se llama a una ruta de datos",
+          "then": "la API responde 401 y no ejecuta la operación"
+        }
+      ]
+    },
+    {
+      "id": "US-505",
+      "requirement_id": "FR-505",
+      "as_a": "usuario en un producto multiusuario",
+      "i_want": "ver y modificar únicamente mis datos, nunca los de otro",
+      "so_that": "mi información financiera esté completamente aislada de la de los demás usuarios",
+      "acceptance_criteria": [
+        {
+          "id": "AC-505a",
+          "given": "datos de Ana (ownerId A) y Beto (ownerId B) en la BD",
+          "when": "Ana pide su ledger",
+          "then": "la respuesta contiene solo registros con ownerId A y ningún registro con ownerId B"
+        },
+        {
+          "id": "AC-505b",
+          "given": "un movimiento 'mov-777' que pertenece a Beto",
+          "when": "Ana intenta leerlo por su id (GET /api/v1/movements/mov-777)",
+          "then": "el sistema responde 403/404 y no filtra el contenido del movimiento de Beto"
+        },
+        {
+          "id": "AC-505c",
+          "given": "el mismo movimiento 'mov-777' de Beto",
+          "when": "Ana intenta editarlo o borrarlo por id",
+          "then": "el sistema responde 403/404 y el dato de Beto queda intacto"
+        }
+      ]
+    },
+    {
+      "id": "US-506",
+      "requirement_id": "FR-506",
+      "as_a": "usuario que quiere que sus datos persistan de verdad",
+      "i_want": "que mis nodos, presupuestos, ejecutados y movimientos se guarden en la base de datos bajo mi cuenta",
+      "so_that": "la base de datos sea la fuente de verdad persistente y por-usuario",
+      "acceptance_criteria": [
+        {
+          "id": "AC-506a",
+          "given": "una sesión válida",
+          "when": "guardo un movimiento de 5000 en 'Comida/Mercado' y luego lo consulto",
+          "then": "la BD devuelve el registro con monto 5000, esa categoría/subcategoría y mi ownerId"
+        },
+        {
+          "id": "AC-506b",
+          "given": "una sesión válida",
+          "when": "creo un nodo, edito un presupuesto y registro un ejecutado",
+          "then": "los tres persisten cada uno con mi ownerId y son legibles tras la escritura"
+        },
+        {
+          "id": "AC-506c",
+          "given": "una escritura de dominio sin ownerId",
+          "when": "se intenta persistir",
+          "then": "es rechazada (no se guarda) o queda inaccesible para cualquier consulta de usuario"
+        }
+      ]
+    },
+    {
+      "id": "US-507",
+      "requirement_id": "FR-507",
+      "as_a": "cliente de la API (el frontend, y potencialmente otro cliente futuro)",
+      "i_want": "un contrato de API con versión para leer y escribir el ledger",
+      "so_that": "pueda integrarme de forma estable y siempre limitado a los datos del usuario autenticado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-507a",
+          "given": "una sesión válida",
+          "when": "llamo a un endpoint versionado de escritura (p. ej. POST /api/v1/movements) con un payload válido",
+          "then": "la operación persiste y una lectura posterior del mismo usuario la devuelve"
+        },
+        {
+          "id": "AC-507b",
+          "given": "una sesión válida",
+          "when": "consulto la lista de mis movimientos",
+          "then": "la respuesta contiene únicamente registros de mi ownerId, bajo un contrato con versión explícita en la ruta"
+        },
+        {
+          "id": "AC-507c",
+          "given": "una sesión válida",
+          "when": "envío un payload malformado o que viola el esquema (p. ej. monto no numérico)",
+          "then": "la API responde 400/422 y no persiste nada"
+        }
+      ]
+    },
+    {
+      "id": "US-508",
+      "requirement_id": "FR-508",
+      "as_a": "usuario que usa la app desde varios dispositivos",
+      "i_want": "que la app lea y escriba a través del servidor (nueva impl de LedgerRepository) en vez de localStorage",
+      "so_that": "todos mis dispositivos operen sobre el mismo dato en el servidor",
+      "acceptance_criteria": [
+        {
+          "id": "AC-508a",
+          "given": "un usuario autenticado con makeRepo() devolviendo la impl de servidor",
+          "when": "guardo un movimiento y re-hidrato el estado desde el servidor",
+          "then": "el movimiento aparece en el estado hidratado"
+        },
+        {
+          "id": "AC-508b",
+          "given": "el estado ya hidratado desde el servidor",
+          "when": "una operación de lectura/escritura ocurre",
+          "then": "va contra el servidor y no contra localStorage (localStorage no es la fuente de verdad de esos datos)"
+        },
+        {
+          "id": "AC-508c",
+          "given": "una caída de red durante persist()",
+          "when": "intento guardar",
+          "then": "recibo un error manejado y el estado no queda corrupto ni parcialmente aplicado en la fuente de verdad"
+        }
+      ]
+    },
+    {
+      "id": "US-509",
+      "requirement_id": "FR-509",
+      "as_a": "usuario consciente de su privacidad",
+      "i_want": "que localStorage guarde solo tema y preferencias de UI",
+      "so_that": "mis datos financieros y mis credenciales nunca queden almacenados en el navegador",
+      "acceptance_criteria": [
+        {
+          "id": "AC-509a",
+          "given": "que cambio el tema a 'oscuro' y ajusto el ancho de columna de la grilla",
+          "when": "recargo el navegador",
+          "then": "el tema y el ancho persisten leídos desde localStorage"
+        },
+        {
+          "id": "AC-509b",
+          "given": "que registro y guardo varios movimientos y edito presupuestos",
+          "when": "inspecciono el contenido de localStorage",
+          "then": "no contiene movimientos, nodos, presupuestos ni ejecutados"
+        },
+        {
+          "id": "AC-509c",
+          "given": "que inicié sesión (email o Google)",
+          "when": "inspecciono localStorage",
+          "then": "no contiene credenciales ni contraseñas en ninguna forma"
+        }
+      ]
+    },
+    {
+      "id": "US-510",
+      "requirement_id": "FR-510",
+      "as_a": "usuario con teléfono y escritorio",
+      "i_want": "que un movimiento registrado en el teléfono aparezca en el escritorio al abrir o recargar",
+      "so_that": "tenga exactamente el mismo dataset en todos mis dispositivos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-510a",
+          "given": "un movimiento creado y guardado en el teléfono (dispositivo 1)",
+          "when": "abro o recargo la app en el escritorio (dispositivo 2) con la misma cuenta",
+          "then": "el movimiento aparece y el dataset (nodos, presupuestos, ejecutados, movimientos) es idéntico entre ambos"
+        },
+        {
+          "id": "AC-510b",
+          "given": "que edito un presupuesto en el escritorio",
+          "when": "recargo el teléfono con la misma cuenta",
+          "then": "el teléfono muestra el presupuesto editado"
+        },
+        {
+          "id": "AC-510c",
+          "given": "ese mismo movimiento de Ana",
+          "when": "Beto (otra cuenta) recarga su app",
+          "then": "Beto no ve el movimiento de Ana"
+        }
+      ]
+    },
+    {
+      "id": "US-511",
+      "requirement_id": "FR-511",
+      "as_a": "usuario con la app abierta a la vez en dos dispositivos",
+      "i_want": "que un cambio en un dispositivo se refleje en el otro sin recargar",
+      "so_that": "vea mis finanzas actualizadas en vivo, en tiempo casi real",
+      "acceptance_criteria": [
+        {
+          "id": "AC-511a",
+          "given": "la app abierta simultáneamente en dos dispositivos de Ana",
+          "when": "registro o edito algo en el dispositivo 1",
+          "then": "el dispositivo 2 lo refleja sin recarga manual en ≤5s"
+        },
+        {
+          "id": "AC-511b",
+          "given": "un tercer dispositivo autenticado como Beto",
+          "when": "ocurre ese cambio de Ana",
+          "then": "el dispositivo de Beto no recibe ni aplica la actualización"
+        },
+        {
+          "id": "AC-511c",
+          "given": "que el dispositivo 2 de Ana tiene la app cerrada",
+          "when": "el dispositivo 1 escribe un cambio",
+          "then": "no se produce ningún error, y al abrir el dispositivo 2 ve el cambio (vía FR-510)"
+        }
+      ]
+    },
+    {
+      "id": "US-512",
+      "requirement_id": "FR-512",
+      "as_a": "dueño de mis datos preocupado por no perderlos",
+      "i_want": "que mis datos sobrevivan reinicios del servidor y cambios de host",
+      "so_that": "no pierda mi información y el producto no dependa de una máquina concreta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-512a",
+          "given": "movimientos y presupuestos guardados",
+          "when": "se reinicia el proceso del servidor",
+          "then": "los datos siguen presentes y legibles para su usuario tras el reinicio"
+        },
+        {
+          "id": "AC-512b",
+          "given": "el volumen/servicio de datos estándar y portátil",
+          "when": "se levanta la app en un host distinto sobre ese mismo volumen/servicio",
+          "then": "los datos se recuperan sin pérdida"
+        },
+        {
+          "id": "AC-512c",
+          "given": "la configuración de persistencia",
+          "when": "se revisa cómo localiza los datos",
+          "then": "usa un volumen/servicio estándar por configuración (variables de entorno), sin rutas ni identificadores atados a la Pi u otra máquina concreta"
+        }
+      ]
+    },
+    {
+      "id": "US-513",
+      "requirement_id": "FR-513",
+      "as_a": "usuario que acaba de crear su cuenta",
+      "i_want": "empezar con un ledger propio y utilizable, aislado y en limpio",
+      "so_that": "pueda usar la app de inmediato sin ver datos de nadie más ni arrastrar el localStorage previo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-513a",
+          "given": "una cuenta recién registrada",
+          "when": "abro la app por primera vez",
+          "then": "veo un ledger propio y utilizable (semilla inicial o vacío usable) sin datos de ningún otro usuario"
+        },
+        {
+          "id": "AC-513b",
+          "given": "que el navegador tenía datos financieros en localStorage de un uso previo cliente-puro",
+          "when": "me registro y entro con mi cuenta nueva",
+          "then": "mi ledger inicial NO contiene esos datos migrados (arranque limpio)"
+        },
+        {
+          "id": "AC-513c",
+          "given": "dos cuentas nuevas distintas (Ana y Beto)",
+          "when": "cada una empieza a usar la app",
+          "then": "obtienen ledgers independientes y un cambio en el de Ana no aparece en el de Beto"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-501",
+      "category": "Security",
+      "requirement": "El backend protege credenciales y datos bajo una línea base reconocida (OWASP Top 10 / ASVS nivel 1 como piso): contraseñas con hash fuerte (bcrypt/argon2, nunca texto plano), validación de input en toda ruta (queries parametrizadas contra inyección), autorización por ownerId en cada operación (control de acceso a nivel de objeto), secretos fuera del código (variables de entorno) y transporte seguro. La autorización por usuario (aislamiento) es la superficie crítica.",
+      "acceptance_criteria": "una contraseña almacenada nunca es igual al texto plano (hash verificable); un request con token inválido devuelve 401; una entrada maliciosa (p. ej. inyección SQL/NoSQL) es rechazada/parametrizada y no altera datos; un acceso a un objeto de otro usuario por id se rechaza (403/404); ningún secreto/credencial aparece en el repositorio ni en el bundle del cliente"
+    },
+    {
+      "id": "NFR-502",
+      "category": "Observability",
+      "requirement": "Cada request al servidor registra en stdout/stderr una línea con timestamp, método, ruta y código de estado.",
+      "acceptance_criteria": "tras un request, el log contiene una línea con el formato [timestamp] METHOD /path STATUS correspondiente a ese request"
+    },
+    {
+      "id": "NFR-503",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI ejecuta la suite completa declarada del proyecto — incluyendo el runner e2e (Playwright) — en cada push a la rama main.",
+      "acceptance_criteria": "el archivo de workflow de CI existe, se dispara en push a main, e invoca el comando de tests declarado que corre unit + e2e"
+    },
+    {
+      "id": "NFR-504",
+      "category": "Reliability",
+      "requirement": "El servicio expone un healthcheck: GET /health devuelve 200 cuando el proceso está vivo.",
+      "acceptance_criteria": "con el proceso arriba, GET /health responde 200; el endpoint no requiere autenticación y no expone datos de usuario"
+    },
+    {
+      "id": "NFR-505",
+      "category": "Reliability",
+      "requirement": "La persistencia usa un volumen/servicio estándar portátil, sin supuestos atados a una máquina concreta; los datos sobreviven a reinicios del proceso.",
+      "acceptance_criteria": "tras reiniciar el contenedor/proceso, un registro escrito antes del reinicio sigue siendo legible; la configuración de datos no contiene rutas ni identificadores atados a un host específico"
+    },
+    {
+      "id": "NFR-506",
+      "category": "Performance",
+      "requirement": "Las operaciones de lectura/escritura de la API responden en un presupuesto que mantiene la app perceptiblemente responsiva; el roll-up del cliente (guardrail raíz ≤150ms sobre datos ya cargados) no se degrada porque el cálculo sigue en el cliente.",
+      "acceptance_criteria": "una lectura del ledger de un usuario típico responde en ≤500ms en el entorno de referencia; una escritura de un movimiento confirma en ≤500ms; el recálculo por roll-up en el cliente tras editar una hoja se mantiene ≤150ms con la jerarquía semilla cargada"
+    },
+    {
+      "id": "NFR-507",
+      "category": "Regression",
+      "requirement": "El dominio permanece puro y compartido: rollups, dashboardMetrics/balance y budgetState no cambian su lógica de cálculo; solo cambia el origen de los datos. La regla de estado de presupuesto (budget-state-color) queda intacta.",
+      "acceptance_criteria": "las funciones de src/domain (rollup, dashboard/balance, budgetState) producen exactamente los mismos resultados que en el baseline para las mismas entradas (happy); un caso límite de roll-up (jerarquía profunda / ceros) da idéntico resultado (edge); una entrada inválida se rechaza igual que antes, sin cambio de comportamiento (negative)"
+    },
+    {
+      "id": "NFR-508",
+      "category": "Regression",
+      "requirement": "La grilla de 12 meses, el registro de movimientos, la edición inline, el filtro Mes/Año, el borrado de categorías (a 'Sin asignar') y el reparent por drag-and-drop se comportan idénticos a hoy; solo cambia el origen de los datos.",
+      "acceptance_criteria": "guardar un movimiento suma a Ejecutado y se refleja en la grilla igual que en el baseline (happy); cambiar Mes/Año recalcula indicadores igual (edge); guardar con monto 0 o sin categoría no crea movimiento, igual que hoy (negative)"
+    },
+    {
+      "id": "NFR-509",
+      "category": "Regression",
+      "requirement": "La suite de tests completa existente (root + grid-ux + stack-upgrade-theme + ux-consistency + budget-state-color) permanece verde, y typecheck y lint no arrojan errores tras introducir el backend.",
+      "acceptance_criteria": "aitri verify-run del root y de cada feature previa pasa sin regresiones (happy); un cambio del backend que rompiera una superficie existente haría fallar su TC correspondiente (negative); typecheck y lint terminan con exit 0 (edge/estructural)"
+    },
+    {
+      "id": "NFR-510",
+      "category": "Regression",
+      "requirement": "Portabilidad: el artefacto no incorpora ningún supuesto atado a la Pi u otra máquina concreta; corre en cualquier host estándar (VPS, contenedor gestionado, PaaS).",
+      "acceptance_criteria": "el build/boot no depende de rutas, IPs ni recursos específicos de la Pi (happy); la configuración de host/BD se toma de variables de entorno, no de valores hardcodeados (edge); un valor de entorno faltante falla de forma explícita y controlada en el arranque, no con comportamiento silencioso atado a un host (negative)"
+    },
+    {
+      "id": "NFR-511",
+      "category": "Security",
+      "requirement": "La información financiera de los usuarios se cifra. En TRÁNSITO: todo el tráfico entre cliente y servidor viaja sobre TLS/HTTPS; los datos financieros y las credenciales nunca cruzan la red en texto plano. EN REPOSO: los datos financieros y las credenciales no quedan legibles en claro para alguien con acceso al almacenamiento subyacente. El mecanismo concreto (terminación TLS, cifrado de volumen/disco, cifrado a nivel de columna/campo, o cifrado del gestor de BD) lo decide la Fase 2; el requisito es que ni el transporte ni el almacenamiento expongan datos financieros o credenciales en claro sin la clave/sesión correspondiente.",
+      "acceptance_criteria": "una captura del tráfico cliente↔servidor no revela montos, movimientos ni credenciales en texto plano (transporte cifrado sobre TLS); una inspección directa del almacenamiento subyacente no muestra credenciales en texto plano y los datos financieros no quedan legibles en claro según el mecanismo de cifrado en reposo elegido; sin la clave/sesión correspondiente no es posible leer ni descifrar los datos financieros de un usuario"
+    },
+    {
+      "id": "NFR-512",
+      "category": "Security",
+      "requirement": "Endurecimiento de autenticación, sesión y respuesta HTTP. Autenticación: protección contra fuerza bruta / credential stuffing en el login (rate limiting o bloqueo progresivo tras N intentos fallidos). Sesión: si se usan cookies, son HttpOnly + Secure + SameSite (o el equivalente seguro del mecanismo elegido); la sesión expira y el logout la invalida (FR-503). Respuesta: se emiten cabeceras de seguridad (HSTS, X-Content-Type-Options: nosniff, y una política de contenido/CSP adecuada) y CORS se restringe a orígenes permitidos, no '*'.",
+      "acceptance_criteria": "tras N intentos fallidos de login (p. ej. 5) desde el mismo origen, los intentos siguientes se limitan/bloquean temporalmente (429 o espera) y se registra el evento; una cookie de sesión (si aplica) tiene los flags HttpOnly, Secure y SameSite; las respuestas incluyen HSTS y X-Content-Type-Options: nosniff; una petición CORS desde un origen no permitido es rechazada"
+    },
+    {
+      "id": "NFR-513",
+      "category": "CI/CD",
+      "requirement": "Gates de seguridad automatizados en el pipeline: análisis de composición de software (SCA — escaneo de vulnerabilidades de dependencias, p. ej. 'npm audit' o equivalente) y verificación de que no hay secretos hardcodeados en el repositorio, ejecutados como quality_gates en CI. Complementariamente, antes del despliegue se corre la auditoría adversarial 'aitri audit security' y sus hallazgos P0 se tratan como bugs bloqueantes.",
+      "acceptance_criteria": "el pipeline de CI ejecuta un gate de SCA que falla (exit != 0) ante una vulnerabilidad de severidad alta/crítica en dependencias; un gate verifica que no hay credenciales/secretos en el árbol de fuentes; el workflow declara ambos gates y se dispara en push a main"
+    }
+  ],
+  "no_go_zone": [
+    "Apps nativas / almacenamiento nativo — el producto sigue siendo web; no se construyen binarios nativos ni almacenamiento de plataforma.",
+    "Atarse a un proveedor de hosting concreto — el backend es portátil; elegir y operar el host profesional definitivo es una decisión de despliegue aparte, fuera de esta feature.",
+    "Roles/permisos avanzados, compartir datos entre usuarios y equipos — por ahora cada usuario ve solo lo suyo; sin colaboración ni libros compartidos.",
+    "Cambiar la UI, la composición de la grilla, el modelo de dominio o la semántica de roll-ups/balance — solo cambia el origen de los datos, no el comportamiento visible ni el cálculo.",
+    "Migrar el localStorage actual al servidor — arranque limpio confirmado; no se importan los datos existentes del navegador.",
+    "Mover el cálculo/balance al servidor — decisión confirmada: sigue en el cliente por ahora (el dominio es puro y portable); revisitable en diseño futuro, no en esta feature."
+  ],
+  "constraints": [
+    "Host-agnóstico: tecnología de backend portátil, sin supuestos atados a la Pi u otra máquina concreta.",
+    "La interfaz LedgerRepository (FR-011 raíz) es el punto de swap: la impl de servidor se agrega detrás de ella sin reescribir el dominio.",
+    "El ownerId (hoy fijo en 'local', FR-014 raíz) pasa a ser el id real del usuario autenticado.",
+    "El dominio (src/domain/**) permanece puro y compartido; el cálculo/balance corre en el cliente por ahora (confirmado por el usuario).",
+    "Estándar de ingeniería del backend: nivel PROFESIONAL / de producción, al menos a la par de la seriedad del frontend. El stack concreto lo elige la Arquitectura (Fase 2), pero cualquiera que sea DEBE cumplir la misma barra de rigor que el front: TypeScript estricto, tests (unit + e2e) con la misma exigencia, lint y typecheck sin errores, contenedorización, manejo de configuración por entorno y documentación de decisiones. La paridad con el front es el PISO, no el techo: donde el rigor del frontend esté por debajo de profesional, esta feature sube la barra compartida (agrega el gate/tests que falten) en vez de igualar hacia abajo.",
+    "Postura de ciberseguridad de primer orden: al ir 'en serio', la seguridad es un requisito de diseño desde el inicio (línea base tipo OWASP Top 10 / ASVS), no un añadido posterior — ver NFR-501, NFR-511, NFR-512, NFR-513. Antes del despliegue se corre la auditoría adversarial 'aitri audit security'."
+  ],
+  "technology_preferences": [
+    "Next.js (route handlers / server actions) como capa de servidor, coherente con el stack actual (Next.js 15 + Tailwind v4 + shadcn/ui).",
+    "Base de datos SQL portátil y auth con librería portátil — el motor concreto (Postgres vs SQLite), el ORM/driver, el mecanismo de sesión (JWT/cookies) y el mecanismo de sync en vivo (websockets/SSE/polling) los decide la Fase 2 de diseño bajo el criterio de portabilidad.",
+    "Docker / docker-compose para la BD y su persistencia de forma portátil (la Pi es solo un target de despliegue, no un supuesto)."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "FEATURE_IDEA.md (secciones Problem/Why y Feature) — decidido por el usuario en la conversación y verificado leyendo el código (cliente puro, localStorage por-navegador).",
+    "users": "FEATURE_IDEA.md (Target Users) — usuario confirmó multiusuario, email+contraseña y Google OAuth, ownerId real.",
+    "baseline": "FEATURE_IDEA.md (Problem/Why) verificado leyendo el código: LedgerRepository como punto de swap, LocalStorageRepository única impl v1, andamiaje ownerId (FR-014), dominio puro en src/domain.",
+    "success_metric": "FEATURE_IDEA.md (Success Criteria) — Given/When/Then confirmados por el usuario: sync al recargar Y en vivo, aislamiento por usuario, persistencia portátil, paridad de la funcionalidad existente.",
+    "no_go_zone": "FEATURE_IDEA.md (Out of Scope) — exclusiones declaradas por el usuario; arranque limpio y cálculo-en-cliente confirmados en chat."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Registro/login con email + contraseña",
+      "disposition": "FR-501"
+    },
+    {
+      "need": "Registro/login con Google OAuth",
+      "disposition": "FR-502"
+    },
+    {
+      "need": "Sesión que identifica al usuario en cada request; cierre de sesión (logout)",
+      "disposition": "FR-503"
+    },
+    {
+      "need": "Gating de la API: sin sesión no hay acceso a datos",
+      "disposition": "FR-504"
+    },
+    {
+      "need": "Aislamiento por ownerId: cada usuario ve solo lo suyo",
+      "disposition": "FR-505"
+    },
+    {
+      "need": "Esquema de BD por usuario (usuarios/credenciales, nodos, presupuestos, ejecutados, movimientos)",
+      "disposition": "FR-506"
+    },
+    {
+      "need": "Superficie de API de servidor del ledger, contrato versionado, filtrada por usuario",
+      "disposition": "FR-507"
+    },
+    {
+      "need": "Impl de servidor de LedgerRepository (cliente lee/escribe vía servidor)",
+      "disposition": "FR-508"
+    },
+    {
+      "need": "Split de almacenamiento: localStorage solo tema/prefs, nunca datos financieros ni credenciales",
+      "disposition": "FR-509"
+    },
+    {
+      "need": "Sync al recargar/abrir entre dispositivos del mismo usuario",
+      "disposition": "FR-510"
+    },
+    {
+      "need": "Sync en vivo sin recarga entre dispositivos del mismo usuario",
+      "disposition": "FR-511"
+    },
+    {
+      "need": "Persistencia portátil que sobrevive reinicio y cambio de host",
+      "disposition": "FR-512"
+    },
+    {
+      "need": "Estado inicial de un usuario nuevo: ledger propio, aislado, arranque limpio (empty/seed state)",
+      "disposition": "FR-513"
+    },
+    {
+      "need": "Seguridad: hashing, validación de input, authz por usuario, secretos, transporte",
+      "disposition": "NFR-501"
+    },
+    {
+      "need": "Cifrado de la información financiera de los usuarios (en tránsito y en reposo)",
+      "disposition": "NFR-511"
+    },
+    {
+      "need": "Ciberseguridad en serio: endurecimiento de auth/sesión, cabeceras de seguridad, anti fuerza bruta, CORS",
+      "disposition": "NFR-512"
+    },
+    {
+      "need": "Gates de seguridad en CI (SCA/vuln deps, sin secretos) + auditoría adversarial pre-deploy",
+      "disposition": "NFR-513"
+    },
+    {
+      "need": "Estándar de ingeniería del backend a nivel profesional, a la par (o superior) del frontend",
+      "disposition": "NFR-503"
+    },
+    {
+      "need": "Observabilidad: logging de requests",
+      "disposition": "NFR-502"
+    },
+    {
+      "need": "CI corre la suite completa (incl. e2e) en push a main",
+      "disposition": "NFR-503"
+    },
+    {
+      "need": "Healthcheck del servicio",
+      "disposition": "NFR-504"
+    },
+    {
+      "need": "Persistencia portátil / fiabilidad ante reinicios",
+      "disposition": "NFR-505"
+    },
+    {
+      "need": "Rendimiento de la API sin degradar el roll-up del cliente",
+      "disposition": "NFR-506"
+    },
+    {
+      "need": "Must-not-break: dominio puro y regla budget-state-color intactos",
+      "disposition": "NFR-507"
+    },
+    {
+      "need": "Must-not-break: grilla/registro/edición/Mes-Año/borrado/reparent idénticos",
+      "disposition": "NFR-508"
+    },
+    {
+      "need": "Must-not-break: suite existente verde + typecheck + lint",
+      "disposition": "NFR-509"
+    },
+    {
+      "need": "Must-not-break: portabilidad, sin supuestos atados a la Pi",
+      "disposition": "NFR-510"
+    },
+    {
+      "need": "Apps nativas / almacenamiento nativo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Atarse a un proveedor de hosting concreto",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Roles/permisos avanzados, compartir datos, equipos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar UI/grilla/dominio/semántica de roll-ups/balance",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Migrar el localStorage actual (arranque limpio)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Mover el cálculo/balance al servidor (sigue en el cliente por ahora)",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nConstruir el **backend de la aplicación** (host-agnóstico): una **API de servidor** con **persistencia\nen base de datos** y **autenticación multiusuario**, de modo que los datos financieros vivan en el\nservidor —por usuario— y se **sincronicen entre todos sus dispositivos**. Se diseña de forma\nholística y se construye por etapas.\n\n> **Restricciones de producto de primer orden (recordatorio explícito del usuario):**\n> - **Habrá APIs.** El backend expone una **superficie de API** de verdad (contrato con versión), no\n>   solo llamadas internas del propio frontend. Se trata como un producto: contratos estables,\n>   autenticadas, pensadas para poder ser consumidas por más de un cliente.\n> - **Habrá multiusuarios.** Multiusuario es un requisito **central**, no un extra: todo dato se\n>   modela y se aísla **por usuario** desde el día uno (`ownerId` real), y toda ruta de API valida la\n>   identidad y filtra por el usuario autenticado.\n\n## Problem / Why\nHoy la app es **cliente puro**: persiste en `localStorage`, que es **por-navegador**. Consecuencias:\n- Los datos del **teléfono** y del **escritorio** son conjuntos **distintos que nunca se sincronizan**.\n- Si el navegador borra su almacenamiento, los datos se pierden.\n- No hay **cuentas**: no es un producto real que otra persona pueda usar con sus propios datos.\n\nAdemás, **el destino NO es un host particular**. La Pi es el laboratorio del autor; el producto debe\npoder correr en **hosting profesional** (VPS, contenedor gestionado, PaaS). Por tanto el backend usa\ntecnología **portátil**, sin supuestos atados a una máquina concreta.\n\nLa arquitectura ya anticipó el salto de persistencia: existe la interfaz `LedgerRepository`\n(`src/data/repository.ts`) con `LocalStorageRepository` como única impl v1 y un punto de swap\ndocumentado, y andamiaje de `ownerId` en el modelo (FR-014). Esta feature implementa el servidor\ndetrás de esa interfaz **y** agrega la identidad (auth) que hace real al `ownerId`.\n\n## Target Users\nProducto **multiusuario**: cada persona entra con su **cuenta** y ve **solo sus datos**.\n- **Autenticación:** email + contraseña **y** OAuth con Google (ambos).\n- Usuario primario: el \"Dueño de sus finanzas personales\", usando la app desde **varios dispositivos**\n  contra el mismo servidor. El `ownerId` (hoy fijo en \"local\") pasa a ser el id real del usuario\n  autenticado.\n\n## New Behavior\nEl sistema debe...\n- Ofrecer **registro e inicio de sesión** con email+contraseña y con Google, y una sesión que\n  identifique al usuario en cada request.\n- Exponer una **capa de servidor** (route handlers / server actions de Next) que lee y escribe el\n  ledger en una **base de datos**, **filtrando siempre por el usuario autenticado**.\n- Guardar en la **base de datos** (fuente de verdad, por usuario): usuarios/credenciales, nodos de la\n  jerarquía, presupuestos, ejecutados y movimientos.\n- Mantener en **localStorage** solo lo **local del dispositivo**: tema, preferencias de UI (p. ej.\n  ancho de columna de la grilla) y, opcionalmente, un caché offline — **nunca** datos financieros\n  compartidos ni credenciales.\n- Hacer que el cliente lea/escriba a través del servidor (nueva impl de `LedgerRepository`) en vez de\n  `localStorage`, de modo que cualquier dispositivo del mismo usuario vea el mismo dato.\n- **Propagar cambios en vivo**: cuando un dispositivo del usuario escribe, los demás dispositivos del\n  **mismo** usuario que tengan la app abierta se actualizan **sin recarga** (mecanismo —websockets /\n  SSE / polling— lo decide el diseño).\n- Persistir los datos de forma **portátil** (volumen/servicio estándar), sin depender de una máquina\n  concreta; sobreviven a reinicios y a un cambio de host.\n\n## Success Criteria\n- **Given** un usuario autenticado que registra un movimiento en el teléfono, **when** abre (o\n  recarga) la app en el escritorio con la misma cuenta, **then** el movimiento aparece — mismo dataset.\n- **Sync en vivo (en alcance):** **Given** el mismo usuario con la app abierta a la vez en dos\n  dispositivos, **when** registra o edita algo en uno, **then** el otro lo refleja **sin recarga\n  manual**, en tiempo casi real. (Cubre las dos cosas: al recargar Y en vivo.)\n- **Given** dos usuarios distintos, **when** cada uno entra con su cuenta, **then** cada uno ve **solo\n  sus** datos; ninguno puede leer ni escribir los del otro (aislamiento por `ownerId`).\n- **Given** email+contraseña o Google, **when** el usuario se registra/inicia sesión, **then** obtiene\n  una sesión válida; con credenciales inválidas, se rechaza.\n- **Given** un reinicio del servidor **o un cambio de host**, **when** la app vuelve a levantar,\n  **then** los datos siguen ahí (persistencia portátil, cero pérdida).\n- **Given** toda la funcionalidad existente (grilla, registro, roll-ups, balance del dashboard, filtro\n  Mes/Año, borrado, reparent), **when** se ejerce contra el backend autenticado, **then** se comporta\n  idéntico a hoy.\n\n## Touch Points\n**MODIFICA (existente):**\n- `src/data/repository.ts` — la interfaz `LedgerRepository` es el punto de swap; se agrega la impl de\n  servidor.\n- `src/state/store.ts` — `makeRepo()`, `hydrate()`, `persist()`: pasan de `localStorage` síncrono a\n  I/O de servidor por usuario.\n- `src/app/**` — layout/entrada: pantallas de login/registro y protección de rutas.\n- `Dockerfile` / `docker-compose.yml` — la BD y su persistencia, de forma **portátil** (la Pi es solo\n  un target de despliegue, no un supuesto).\n- FR raíz relacionados: **FR-011** (persistencia tras interfaz) y **FR-014** (`ownerId`).\n\n**AGREGA (nuevo):**\n- Autenticación (email+contraseña + Google OAuth), sesión y gating de la API.\n- La capa de API de servidor del ledger, siempre filtrada por usuario.\n- El esquema de base de datos (usuarios + espejo del modelo de dominio, con `ownerId`).\n- La implementación de servidor de `LedgerRepository`.\n\n## Must Not Break (Regression Boundary)\n- **El dominio y sus cálculos** (`src/domain/**`: rollups, `dashboardMetrics`/balance, `budgetState`)\n  quedan **puros y compartidos** — la lógica de cálculo/balance no cambia; solo se decide dónde se\n  ejecuta (cliente/servidor).\n- **La grilla, el registro, la edición inline, el filtro Mes/Año, el borrado y el reparent** se\n  comportan idénticos — solo cambia el origen de los datos.\n- **La regla de estado de presupuesto** (budget-state-color) sigue intacta.\n- La suite completa existente (root + grid-ux + stack-upgrade-theme + ux-consistency +\n  budget-state-color) sigue verde; typecheck y lint sin errores.\n- **Portabilidad:** ningún supuesto atado a la Pi u otra máquina concreta; el artefacto corre en\n  cualquier host estándar.\n\n## Out of Scope\n- **Apps nativas** / almacenamiento nativo.\n- **Atarse a un proveedor de hosting concreto**: el backend es portátil; elegir/operar el host\n  profesional definitivo es una decisión de despliegue aparte.\n- Roles/permeisos avanzados, compartir datos entre usuarios, equipos: por ahora cada usuario ve solo\n  lo suyo.\n- Cambiar la UI, la composición de la grilla, el modelo de dominio o la semántica de roll-ups/balance.\n\n## Preguntas abiertas para la fase de diseño (deliberadamente sin resolver)\n0. **Estilo y contrato de la API:** REST vs GraphQL; si el contrato es **interno** (solo el frontend)\n   o **público/versionado** (consumible por otros clientes, con documentación y versión). El\n   recordatorio del usuario (\"habrá APIs\") empuja a tratarlo como contrato de producto; el diseño fija\n   el estilo y el alcance.\n1. **Motor de BD + acceso:** SQL portátil (p. ej. Postgres, que corre igual en la Pi y en cualquier\n   hosting) vs SQLite (archivo simple; menos \"profesional\" para multiusuario). Driver/ORM. Lo decide\n   el diseño con el criterio de portabilidad.\n2. **Mecanismo de auth/sesión:** cómo se implementan email+contraseña y Google OAuth (hash de claves,\n   sesiones/JWT/cookies), con una librería portátil. Lo decide el diseño.\n3. **Dónde se ejecuta el cálculo/balance:** el dominio es puro y portátil; ¿se sigue calculando en el\n   cliente (a partir de datos que trae del servidor) o se mueve al servidor? El diseño lo decide según\n   tamaño de datos y consistencia. **[ASSUMPTION — CONFIRMAR]:** seguir en el cliente por ahora.\n4. **Mecanismo de sync en vivo:** websockets vs SSE vs polling, para propagar cambios entre los\n   dispositivos del mismo usuario sin recarga. Lo decide el diseño (afecta infra y hosting).\n\n## Estructura de trabajo (decisión del usuario)\n**Diseño holístico, build incremental.** Se diseña una sola arquitectura coherente\n(persistencia + split BD/localStorage + auth + despliegue portátil) que el usuario aprueba completa;\nla construcción se hace por **etapas** (p. ej. persistencia server-side primero, auth después),\nposiblemente como sub-features de build una vez sellada la arquitectura.\n\n## Provenance\n- **confirmed** — decidido por el usuario en la conversación: objetivo = **sincronizar entre\n  dispositivos**, **al recargar Y en vivo** (sync en tiempo casi real, en alcance); producto\n  **host-agnóstico** (la Pi es solo el lab; debe ir a hosting profesional); **auth con\n  email+contraseña y Google OAuth**, multiusuario; **habrá APIs** (contrato de producto) y **habrá\n  multiusuarios** (aislamiento por usuario desde el día uno); **arranque limpio** (sin migrar el\n  localStorage actual); **online-first**; **diseño holístico, build incremental**.\n- **confirmed** — verificado leyendo el código: `LedgerRepository` como punto de swap,\n  `LocalStorageRepository` como única impl v1, andamiaje `ownerId` (FR-014), la app es cliente puro, y\n  el cálculo/balance ya existe como funciones **puras** en `src/domain/**` (rollup, dashboard/balance,\n  budgetState) que corren hoy en el cliente y son portables sin reescritura.\n- **[ASSUMPTION]** — el cálculo/balance sigue ejecutándose en el cliente por ahora; CONFIRMAR o dejar\n  que el diseño lo decida.\n"
+}

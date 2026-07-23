@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1",
+  "items": [
+    {
+      "id": "BL-001",
+      "title": "Seguridad RQ-SEC-003: proxy debe sanear X-Forwarded-For",
+      "priority": "P2",
+      "problem": "El rate-limit de login (5/60s) se llavea por X-Forwarded-For; sin un proxy que lo sobrescriba, se rota el header para eludir el anti-fuerza-bruta. Fix: nginx proxy_set_header X-Forwarded-For $remote_addr (reemplazar, no append) + documentar en DEPLOYMENT.md. Ver AUDIT_REPORT.md#security.",
+      "status": "open",
+      "createdAt": "2026-07-16T17:35:28.045Z"
+    },
+    {
+      "id": "BL-002",
+      "title": "Seguridad RQ-SEC-001/002/004: endurecimiento menor",
+      "priority": "P3",
+      "problem": "CSP con nonce en vez de unsafe-inline/unsafe-eval (RQ-SEC-001); poweredByHeader:false para quitar X-Powered-By (RQ-SEC-002); rate-limit propio para /sign-up/email (RQ-SEC-004). Proponer gate scripts/security-config.sh. Ver AUDIT_REPORT.md#security.",
+      "status": "open",
+      "createdAt": "2026-07-16T17:35:28.082Z"
+    },
+    {
+      "id": "BL-003",
+      "title": "Seguridad RQ-SEC-005: deps moderadas dev/build",
+      "priority": "P3",
+      "problem": "6 vulns moderadas en deps de dev/build (drizzle-kit, postcss); 0 altas/criticas; el gate SCA de CI ya cubre alto/critico. Actualizar cuando haya fixes no-breaking.",
+      "status": "open",
+      "createdAt": "2026-07-16T17:35:28.120Z"
+    },
+    {
+      "id": "BL-004",
+      "title": "Cifrado a nivel de campo de datos financieros (montos/notas)",
+      "priority": "P2",
+      "problem": "Hoy los montos se guardan en claro en Postgres (ADR-08 delega el cifrado en reposo al volumen; solo protege disco/backup, no una query directa). Enhancement: cifrar montos/notas/nombres (AES-GCM) para que ni con acceso a la BD sean legibles. Factible porque el cálculo corre en el cliente (el server solo almacena/devuelve). Costo: gestión de claves + se pierden CHECK/queries numéricas sobre el monto. Es una feature propia (aitri feature init), no un parche. Ver NFR-511 en 05_TRACEABILITY.json.",
+      "status": "open",
+      "createdAt": "2026-07-16T21:44:17.050Z"
+    }
+  ]
+}

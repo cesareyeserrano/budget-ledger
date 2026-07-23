@@ -1,0 +1,48 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "Un grupo con categorías/valores se puede eliminar, violando FR-110 (canDeleteNode debe bloquear el borrado hasta vaciarlo)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "verified",
+      "fr": "FR-110",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-22T23:51:47.710Z",
+      "updated_at": "2026-07-23T00:52:25.283Z",
+      "resolution": "nodeHasData (antes nodeHasHistory): 'con valores' = presupuestado O ejecutado (>0), en TODOS los niveles (grupo-hoja/categoría/sub). canDeleteNode/deleteNode bloquean (has_data) cualquier nodo con monto en Presupuestado o Ejecutado; hay que vaciar TODAS sus celdas primero. Grupo con hijos → group_not_empty. Borrado limpio elimina budgets/actuals/movements del subárbol. Regresiones: categories.test.ts (grupo-hoja ejecutado, solo-presupuestado todos niveles, vaciado borra limpio); tests de promote-to-group TC-652e y demote-node TC-752f adaptados al flujo vaciar→borrar. NOTA: FR-110 aún dice 'movimientos o ejecutado>0' — el texto del requisito debería ampliarse a 'presupuestado o ejecutado' para no divergir del código.",
+      "fix_commit_sha": "46c09deba2c1e3c896a5a37b38c9bed86315d601",
+      "fix_at": "2026-07-23T00:32:08.991Z"
+    },
+    {
+      "id": "BG-002",
+      "title": "Una categoría con subcategorías se puede borrar (el bloqueo por hijos solo aplicaba a grupos); un padre con hijos no debe borrarse aunque no tenga valores",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "verified",
+      "fr": "FR-110",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-23T00:42:16.525Z",
+      "updated_at": "2026-07-23T01:33:06.246Z",
+      "resolution": "canDeleteNode/deleteNode: el bloqueo por hijos se generalizó de 'node.level===group' a childrenOf(id).length>0, así aplica también a una categoría con subcategorías. Un padre con hijos → blocked:'has_children' (motivo renombrado desde 'group_not_empty', ahora abarca grupo Y categoría). Para borrar un padre debe quedar sin hijos Y sin valores. Regresión: categories.test.ts BG-002. Tipo DeleteBlock y store actualizados.",
+      "fix_commit_sha": "46c09deba2c1e3c896a5a37b38c9bed86315d601",
+      "fix_at": "2026-07-23T00:42:22.385Z"
+    }
+  ]
+}

@@ -9,11 +9,14 @@ export function findNode(nodes: LedgerNode[], id: string): LedgerNode | undefine
   return nodes.find((n) => n.id === id);
 }
 
-/** sub siempre es hoja; category es hoja si no tiene hijos; group nunca es hoja. */
+/**
+ * sub siempre es hoja; category es hoja si no tiene hijos; group es hoja si no tiene hijos.
+ * FR-603 (promote-to-group): un grupo SIN hijos es hoja editable (su presupuesto/ejecutado se
+ * capturan directo); al ganar su primer hijo deja de ser hoja y pasa a total calculado.
+ */
 export function isLeaf(node: LedgerNode, nodes: LedgerNode[]): boolean {
   if (node.level === "sub") return true;
-  if (node.level === "category") return !nodes.some((n) => n.parentId === node.id);
-  return false;
+  return !nodes.some((n) => n.parentId === node.id);
 }
 
 /** Ids de las hojas descendientes (para roll-up de Presupuestado). Robusto ante ciclos (visited-set). */
@@ -51,6 +54,24 @@ export function subtreeIds(nodes: LedgerNode[], nodeId: string): string[] {
   };
   walk(nodeId);
   return out;
+}
+
+/**
+ * Profundidad del subárbol bajo un nodo: 0 = hoja, 1 = tiene hijos, 2 = tiene nietos.
+ * Es la pieza de "cabida" de la degradación (FR-702): un movimiento cabe si
+ * `profundidadDestino + subtreeDepth(node) ≤ 2` (techo grupo>categoría>subcategoría).
+ * Reutiliza `childrenOf`; robusto ante ciclos (visited-set).
+ */
+export function subtreeDepth(nodes: LedgerNode[], nodeId: string): number {
+  const seen = new Set<string>();
+  const walk = (id: string): number => {
+    if (seen.has(id)) return 0; // corta ciclos en datos corruptos
+    seen.add(id);
+    const kids = childrenOf(nodes, id);
+    if (kids.length === 0) return 0;
+    return 1 + Math.max(...kids.map((k) => walk(k.id)));
+  };
+  return walk(nodeId);
 }
 
 /** ¿`ancestorId` es ancestro (o igual) de `nodeId`? Robusto ante ciclos. */

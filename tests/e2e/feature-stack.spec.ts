@@ -198,12 +198,14 @@ test("FR-209 extra: tocar una categoría CON subcategorías despliega sus hijos 
 
 test("TC-SUT-227e: un tipo sin categorías muestra la guía a crearlas en escritorio y bloquea Guardar", async ({ page }) => {
   await gotoMobile(page);
-  // quitar todas las categorías de Transferencia del estado persistido y recargar
+  // Quitar TODOS los nodos de Transferencia (grupo, categoría y sub) del estado persistido.
+  // Incluye el grupo: desde promote-to-group (FR-606) un grupo SIN hijos es un destino válido del
+  // registro, así que un tipo está "vacío" solo si no le queda ni categoría ni grupo-hoja.
   await page.evaluate(() => {
     const raw = localStorage.getItem("ledger.nodes.v1");
     if (!raw) return;
     const data = JSON.parse(raw);
-    data.nodes = data.nodes.filter((n: { type: string; level: string }) => !(n.type === "transfer" && (n.level === "category" || n.level === "sub")));
+    data.nodes = data.nodes.filter((n: { type: string; level: string }) => !(n.type === "transfer" && (n.level === "category" || n.level === "sub" || n.level === "group")));
     localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
   });
   await page.reload();

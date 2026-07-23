@@ -19,149 +19,146 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-04T01:29:33.894Z",
+  "updatedAt": "2026-07-23T18:12:13.793Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-07-03T01:53:41.026Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-03T01:53:41.126Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:26:04.001Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:27:47.711Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:27:47.809Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-03T16:01:37.713Z",
+      "at": "2026-07-23T00:50:15.441Z",
       "event": "completed",
       "phase": 4
     },
     {
-      "at": "2026-07-03T16:01:45.619Z",
+      "at": "2026-07-23T00:50:18.502Z",
       "event": "approved",
       "phase": 4
     },
     {
-      "at": "2026-07-03T16:02:16.653Z",
+      "at": "2026-07-23T00:51:37.051Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-23T00:51:43.141Z",
+      "event": "approved",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-23T17:04:20.478Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0,
       "skipped": 14,
       "manual": 0
     },
     {
-      "at": "2026-07-03T16:32:22.587Z",
+      "at": "2026-07-23T17:29:05.583Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0,
       "skipped": 14,
       "manual": 0
     },
     {
-      "at": "2026-07-03T16:36:56.183Z",
+      "at": "2026-07-23T17:34:00.382Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0,
       "skipped": 14,
       "manual": 0
     },
     {
-      "at": "2026-07-03T16:37:05.341Z",
+      "at": "2026-07-23T17:34:00.436Z",
       "event": "verify-complete",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0
     },
     {
-      "at": "2026-07-04T00:46:41.219Z",
+      "at": "2026-07-23T17:38:52.392Z",
+      "event": "approved",
+      "phase": 3,
+      "afterDrift": true
+    },
+    {
+      "at": "2026-07-23T17:55:00.294Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T17:55:18.190Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T17:57:25.677Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0,
       "skipped": 14,
       "manual": 0
     },
     {
-      "at": "2026-07-04T00:46:46.304Z",
+      "at": "2026-07-23T17:57:33.559Z",
       "event": "verify-complete",
       "phase": "verify",
-      "passed": 31,
+      "passed": 38,
       "failed": 0
     },
     {
-      "at": "2026-07-04T00:58:30.737Z",
-      "event": "rehash",
-      "phase": "4",
-      "artifact": "04_BUILD_REPORT.json",
-      "before_hash": "2a8da46b2636ccce00c870eb839e264ca97e8652360e01b1bc27a7e89544991c",
-      "after_hash": "247bf301bfac2a030fbe1967726f11791eed048522f37d78bdce5859fc29d507"
+      "at": "2026-07-23T18:08:55.507Z",
+      "event": "completed",
+      "phase": 4
     },
     {
-      "at": "2026-07-04T01:06:00.008Z",
+      "at": "2026-07-23T18:08:55.580Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T18:10:55.832Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 41,
+      "failed": 0,
+      "skipped": 11,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-23T18:11:04.924Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 41,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-23T18:11:10.952Z",
       "event": "started",
       "phase": 5
     },
     {
-      "at": "2026-07-04T01:07:24.957Z",
+      "at": "2026-07-23T18:12:00.551Z",
       "event": "completed",
       "phase": 5
     },
     {
-      "at": "2026-07-04T01:07:31.157Z",
+      "at": "2026-07-23T18:12:13.779Z",
       "event": "approved",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-04T01:29:31.181Z",
-      "event": "rehash",
-      "phase": "1",
-      "artifact": "01_REQUIREMENTS.json",
-      "before_hash": "a82fe27fe9d8211e06500976617f010edbcbbdc1c6e425cc1596cf1cb78f6093",
-      "after_hash": "240a1eb19213495ef5151bb3da04f404bb9aeddf771796a3beb876b5efbe4d7d"
-    },
-    {
-      "at": "2026-07-04T01:29:32.934Z",
-      "event": "rehash",
-      "phase": "ux",
-      "artifact": "01_UX_SPEC.md",
-      "before_hash": "8ffffdea273d1ac16afc98308bedcd415bda36c72a235c65a33ae70d8fa01de6",
-      "after_hash": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
-    },
-    {
-      "at": "2026-07-04T01:29:33.856Z",
-      "event": "rehash",
-      "phase": "3",
-      "artifact": "03_TEST_CASES.json",
-      "before_hash": "e3ba426aae772dc35ed941d2a844cf1dfa9321e8b6c3ea3329cf2182e9c9c516",
-      "after_hash": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e"
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "240a1eb19213495ef5151bb3da04f404bb9aeddf771796a3beb876b5efbe4d7d",
-    "2": "6f916299d0acdee26e135b427805ccd4c24b569cef1d6cbff10c4730e9d1e5ad",
-    "3": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e",
-    "4": "247bf301bfac2a030fbe1967726f11791eed048522f37d78bdce5859fc29d507",
-    "5": "c6269891312c8dc12f0cbc2b8079e575f67f334b5d7ea0d64150f6f93e17dc47",
+    "1": "27ecd284e84f158bdaaf5ac8dcdcbccd1b3241be7596fd0d5b4b762f10bacc5c",
+    "2": "ed8265015b7475ae26d1105433a14c02d7265deee9f61840de9260b0298ee449",
+    "3": "5512bcf57971ba464eae362773e3d88a2c0a59046e4d83a341bab2026a2a2324",
+    "4": "6924fcd8991a70e56f5ca2df1e56a456fbc5c05ee32d3743770f3883ee32c108",
+    "5": "ebcd13d652310a2a8bef815f0a858708d2feb5a0436d09576bd5086aced77e6d",
     "ux": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
   },
   "frSnapshots": {
@@ -174,7 +171,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "3": [
       "FR-101",
@@ -185,7 +185,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "4": [
       "FR-101",
@@ -196,7 +199,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "5": [
       "FR-101",
@@ -207,7 +213,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "ux": [
       "FR-101",
@@ -218,25 +227,28 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ]
   },
-  "verifyResultsHash": "216e6697a9c1f3041b8e1921c7d9565f4e9c64ac65dee10453a99616c19f9a0d",
-  "verifyRanAt": "2026-07-04T00:46:41.219Z",
-  "lastVerifyRun": {
-    "passed": 31,
-    "failed": 0,
-    "skipped": 14,
-    "manual": 0,
-    "at": "2026-07-04T00:46:41.219Z"
-  },
   "verifyPassed": true,
-  "verifySummary": {
-    "total": 45,
-    "passed": 31,
+  "verifyResultsHash": "199f8685c6b1736120ad84cdcac48dde796258c5ed7da00110d459e91df76536",
+  "verifyRanAt": "2026-07-23T18:10:55.832Z",
+  "lastVerifyRun": {
+    "passed": 41,
     "failed": 0,
-    "skipped": 14,
-    "skipped_e2e": 14,
+    "skipped": 11,
+    "manual": 0,
+    "at": "2026-07-23T18:10:55.832Z"
+  },
+  "verifySummary": {
+    "total": 52,
+    "passed": 41,
+    "failed": 0,
+    "skipped": 11,
+    "skipped_e2e": 11,
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0

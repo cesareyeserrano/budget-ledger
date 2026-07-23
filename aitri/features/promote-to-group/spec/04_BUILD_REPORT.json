@@ -1,0 +1,29 @@
+{
+  "feature": "promote-to-group",
+  "summary": "Implementación de 'promover a grupo' + 'grupo sin hijos editable'. Cambios de dominio puro (isLeaf trata un grupo sin hijos como hoja; moveNode admite destino tipo-raíz y traslado del monto al primer hijo por createNode y moveNode; el reverso a 0 es emergente) + UI (fila de tipo droppable con afordancia, celda de grupo-hoja editable automática por isLeaf, y el registro ofrece grupos sin hijos como destino). Sin cambios server-side ni migración de esquema. 27 tests unit (dominio) verdes; 6 e2e para las piezas de UX; 3 TCs manuales (perf ≤150ms y seguridad sin superficie nueva).",
+  "files_created": [
+    "tests/domain/promote-to-group.test.ts (FR-601..606 + NFR-601..605, unit de dominio)",
+    "tests/e2e/promote-to-group.spec.ts (FR-601/603/606, e2e drag+registro)"
+  ],
+  "files_modified": [
+    "src/domain/tree.ts (FR-603: isLeaf trata un grupo sin hijos como hoja)",
+    "src/domain/mutations.ts (FR-601/602 moveNode destino root + re-nivelado de hijos; FR-604 traslado al primer hijo por createNode y moveNode; helper mergeMonthMap)",
+    "src/state/store.ts (firma moveNode: MoveDest)",
+    "src/components/BudgetGrid.tsx (FR-601: TypeTotalRow droppable root:{type} + afordancia; despacho del destino root en onDragEnd)",
+    "src/components/register/CategoryRow.tsx (FR-606: grupos sin hijos como destino; ícono por nivel)"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/domain/promote-to-group.test.ts",
+    "tests/e2e/promote-to-group.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+  ],
+  "technical_debt": [],
+  "notes": "Decisiones clave: (1) editabilidad derivada de posición vía isLeaf (ADR-01) — sin campo nuevo ni migración; la semilla no tiene grupos sin hijos, así que no cambia ningún monto sembrado. (2) El traslado del monto al primer hijo se implementa en AMBOS caminos (createNode y la rama moveNode dest.kind='group'), con merge por suma para no perder los montos del hijo entrante (mitiga el riesgo alto #2 del TRD). (3) El reverso a 0 (FR-605) es emergente: al perder el último hijo isLeaf vuelve a true y, como los montos viajaron con el hijo, el grupo-hoja lee 0. TCs manuales: TC-655e (perf ≤150ms, micro-benchmark) y TC-656h/e/f (seguridad: verificación por inspección de que no hay rutas /api ni columnas nuevas)."
+}

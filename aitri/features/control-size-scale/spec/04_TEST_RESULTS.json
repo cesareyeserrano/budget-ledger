@@ -1,0 +1,213 @@
+{
+  "executed_at": "2026-07-18T23:59:46.655Z",
+  "test_runner": "npm run test:run",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-801h",
+      "status": "pass",
+      "notes": "✓   21 [chromium] › tests/e2e/control-size-scale.spec.ts:51:7 › escritorio (1440) › TC-801h: los tokens --control-sm/-md/-lg valen 32/40/48px (309ms)"
+    },
+    {
+      "tc_id": "TC-801e",
+      "status": "pass",
+      "notes": "✓   23 [chromium] › tests/e2e/control-size-scale.spec.ts:66:7 › escritorio (1440) › TC-801e: ningún control clave tiene una altura fuera de {32,40,48}px (271ms)"
+    },
+    {
+      "tc_id": "TC-801f",
+      "status": "pass",
+      "notes": "✓   22 [chromium] › tests/e2e/control-size-scale.spec.ts:59:7 › escritorio (1440) › TC-801f: solo 3 tokens de altura (no hay un 4º) y el color no cambia (228ms)"
+    },
+    {
+      "tc_id": "TC-802h",
+      "status": "pass",
+      "notes": "✓   24 [chromium] › tests/e2e/control-size-scale.spec.ts:80:7 › escritorio (1440) › TC-802h: TabsTrigger=32, Button default=40 y SelectTrigger=40 (275ms)"
+    },
+    {
+      "tc_id": "TC-802e",
+      "status": "pass",
+      "notes": "✓   25 [chromium] › tests/e2e/control-size-scale.spec.ts:87:7 › escritorio (1440) › TC-802e: ThemeToggle mide 40px (md), no 44 (319ms)"
+    },
+    {
+      "tc_id": "TC-802f",
+      "status": "pass",
+      "notes": "✓   26 [chromium] › tests/e2e/control-size-scale.spec.ts:94:7 › escritorio (1440) › TC-802f: ningún control clave mide una altura retirada (30, 36 o 44px) (345ms)"
+    },
+    {
+      "tc_id": "TC-851h",
+      "status": "pass",
+      "notes": "✓   32 [chromium] › tests/e2e/control-size-scale.spec.ts:183:7 › registro (móvil 375) › TC-851h: los controles del registro conservan ≥48px (táctil) (462ms)"
+    },
+    {
+      "tc_id": "TC-851e",
+      "status": "pass",
+      "notes": "✓   33 [chromium] › tests/e2e/control-size-scale.spec.ts:194:7 › registro (móvil 375) › TC-851e: el date-field del registro mide ≥48px (lg) (395ms)"
+    },
+    {
+      "tc_id": "TC-851f",
+      "status": "pass",
+      "notes": "✓   34 [chromium] › tests/e2e/control-size-scale.spec.ts:199:7 › registro (móvil 375) › TC-851f: ningún control del registro baja de 48px (289ms)"
+    },
+    {
+      "tc_id": "TC-852h",
+      "status": "pass",
+      "notes": "✓   35 [chromium] › tests/e2e/control-size-scale.spec.ts:207:7 › registro (móvil 375) › TC-852h: registrar un movimiento sigue funcionando tras la escala (606ms)"
+    },
+    {
+      "tc_id": "TC-852e",
+      "status": "pass",
+      "notes": "✓   30 [chromium] › tests/e2e/control-size-scale.spec.ts:144:7 › escritorio (1440) › TC-852e: editar una celda-hoja de la grilla sigue persistiendo tras la escala (523ms)"
+    },
+    {
+      "tc_id": "TC-852f",
+      "status": "pass",
+      "notes": "✓   31 [chromium] › tests/e2e/control-size-scale.spec.ts:156:7 › escritorio (1440) › TC-852f: el drag-drop (degradar un grupo) sigue funcionando tras la escala (717ms)"
+    },
+    {
+      "tc_id": "TC-853h",
+      "status": "pass",
+      "notes": "✓   27 [chromium] › tests/e2e/control-size-scale.spec.ts:108:7 › escritorio (1440) › TC-853h: color y radio no cambian (spot-check de tokens) (292ms)"
+    },
+    {
+      "tc_id": "TC-853e",
+      "status": "pass",
+      "notes": "✓   28 [chromium] › tests/e2e/control-size-scale.spec.ts:115:7 › escritorio (1440) › TC-853e: la tipografía de un control no cambia (font-size intacto) (332ms)"
+    },
+    {
+      "tc_id": "TC-853f",
+      "status": "pass",
+      "notes": "✓   29 [chromium] › tests/e2e/control-size-scale.spec.ts:126:7 › escritorio (1440) › TC-853f: el código de estado (rojo) de la grilla sigue vigente (1.5s)"
+    },
+    {
+      "tc_id": "TC-855h",
+      "status": "pass",
+      "notes": "Diff solo toca globals.css + componentes de control (button/tabs/select/ThemeToggle/registro) + un e2e. Cero archivos bajo src/app/api → 0 rutas nuevas.",
+      "verified_manually": true,
+      "verified_at": "2026-07-19T00:00:01.412Z"
+    },
+    {
+      "tc_id": "TC-855e",
+      "status": "pass",
+      "notes": "Sin cambios en drizzle/ ni package.json (0 deps nuevas); solo tokens CSS y clases de altura. 0 columnas/tablas nuevas.",
+      "verified_manually": true,
+      "verified_at": "2026-07-19T00:00:01.489Z"
+    },
+    {
+      "tc_id": "TC-855f",
+      "status": "pass",
+      "notes": "El cambio es puramente de altura de controles (CSS/clases); no agrega parsing ni validación de entrada. Sin superficie de datos nueva.",
+      "verified_manually": true,
+      "verified_at": "2026-07-19T00:00:01.568Z"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-801",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-802",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-801a",
+      "fr_id": "FR-801",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-801b",
+      "fr_id": "FR-801",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-802a",
+      "fr_id": "FR-802",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-802b",
+      "fr_id": "FR-802",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-18T23:58:40.221Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": false,
+      "status": "error",
+      "exit_code": null
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "status": "pass",
+      "exit_code": 0,
+      "output": " la grilla de 12 meses sigue funcionando tras la feature (218ms)\n  ✓  184 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (348ms)\n  ✓  185 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (267ms)\n  ✓  182 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.3s)\n  ✓  186 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (139ms)\n\n  186 passed (1.1m)"
+    }
+  ]
+}

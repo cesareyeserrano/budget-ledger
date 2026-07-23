@@ -1,0 +1,179 @@
+{
+  "project_name": "T-Ledger — Feature: control-size-scale",
+  "project_summary": "Feature de design system que establece una escala canónica de tamaños de control y mapea todos los controles interactivos a ella, eliminando la deriva de tamaño (hoy conviven 6 alturas para el mismo tipo de elemento). Escala confirmada con el usuario, 3 tokens: sm=32px (icon-button, TabsTrigger, Button sm), md=40px (input, SelectTrigger, Button default, ThemeToggle), lg=48px (acción primaria Guardar, TypeToggle, tiles del registro, date-field). North Star KPI: 100% de los controles interactivos con altura ∈ {32,40,48}px — 0 alturas ad-hoc fuera de la escala. JTBD: 'cuando uso la app quiero que los controles del mismo tipo se vean del mismo tamaño, para que la interfaz se sienta ordenada y predecible'. Guardrail: el objetivo táctil mínimo de 48px en el registro NO baja (WCAG 2.5.5 / TC-UXC-353e) y 0 regresiones funcionales o e2e. Es puramente un cambio de ALTURA/padding vertical: color, tipografía, radios (ya unificados por ux-consistency) y el comportamiento funcional no se tocan.",
+  "functional_requirements": [
+    {
+      "id": "FR-801",
+      "title": "Escala canónica de altura de control (sm 32 / md 40 / lg 48) como única fuente de verdad",
+      "description": "Se define una escala de 3 tokens de altura de control en un único punto (tokens CSS --control-sm/--control-md/--control-lg = 32/40/48px, o una utilidad de tamaño compartida). Es la única fuente de verdad de la altura de un control; ningún componente declara una altura ad-hoc por su cuenta. Reemplaza las 6 alturas actuales (30/32/36/40/44/48). Solo gobierna la altura/padding vertical, no el ancho ni el resto del estilo.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Existe un único punto que define exactamente 3 alturas de control: 32px, 40px y 48px (happy)",
+        "Ningún componente de control declara una altura efectiva fuera de {32,40,48}px (edge)",
+        "La escala solo define altura/padding vertical; no introduce cambios de color, tipografía, radio ni ancho (negativo)"
+      ]
+    },
+    {
+      "id": "FR-802",
+      "title": "Cada control interactivo mapeado a su token de la escala",
+      "description": "Todo control interactivo adopta el token que le corresponde: TabsTrigger, icon-button y Button sm → sm (32px); Button default, input, SelectTrigger y ThemeToggle → md (40px); acción primaria (botón Guardar), TypeToggle, tiles del registro y date-field → lg (48px). Los ajustes resultantes son menores (tabs 30→32, Button default 36→40, ThemeToggle 44→40); el resto ya cae en la escala. El mapeo no altera el comportamiento ni el look no-dimensional del control.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "TabsTrigger e icon-buttons miden 32px; Button default, SelectTrigger e input miden 40px; Guardar, TypeToggle y tiles del registro miden 48px (happy)",
+        "Tras el re-mapeo, dos controles del mismo tipo (p.ej. dos botones estándar) miden exactamente la misma altura (edge)",
+        "Ningún control queda con una de las alturas retiradas (30, 36 o 44px) (negativo)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-801",
+      "category": "Regression",
+      "requirement": "Los controles del registro (captura móvil y de escritorio) conservan una altura ≥48px con foco visible, preservando el objetivo táctil mínimo (WCAG 2.5.5). El test existente TC-UXC-353e no se rompe.",
+      "acceptance_criteria": "Los controles del registro siguen midiendo ≥48px de alto y conservan su indicador de foco; TC-UXC-353e (ux-consistency) sigue pasando."
+    },
+    {
+      "id": "NFR-802",
+      "category": "Regression",
+      "requirement": "Cero cambio de comportamiento funcional: registrar un movimiento, editar celdas-hoja, drag-drop (reparent/promover/degradar), cambiar tema y filtrar Mes/Año siguen funcionando idéntico. El cambio es puramente de tamaño.",
+      "acceptance_criteria": "Las suites unit y e2e existentes (registrar, edición de grilla, reparent/promote/demote, tema, filtros) siguen verdes tras el re-mapeo de tamaños."
+    },
+    {
+      "id": "NFR-803",
+      "category": "Regression",
+      "requirement": "Color, tipografía, radios (unificados por ux-consistency) y el código de estado (budget-state-color, FR-401/403) no cambian. La escala solo toca altura/padding vertical.",
+      "acceptance_criteria": "Los tests de color/contraste/tipografía de ux-consistency y los de estado de budget-state-color siguen pasando; no se modifica ningún token de color/tipo/radio."
+    },
+    {
+      "id": "NFR-805",
+      "category": "Security",
+      "requirement": "No aplica una NFR de seguridad activa: la feature es puramente presentacional (altura de controles en el cliente). No agrega endpoints, superficie de red, dependencias ni campos persistidos.",
+      "acceptance_criteria": "El diff no toca src/app/api, src/server ni el esquema; no se agregan dependencias. Verificable por inspección."
+    }
+  ],
+  "no_go_zone": [
+    "Re-abrir color, tipografía o radios: ya los unificó la feature ux-consistency; aquí solo se gobierna el TAMAÑO.",
+    "Gobernar el ANCHO de los controles: v1 solo cubre la altura/padding vertical.",
+    "Rediseño visual o de layout más allá de la altura de los controles.",
+    "Introducir una librería de design tokens o un sistema de theming nuevo.",
+    "Cambiar cualquier comportamiento funcional (registrar, editar, drag-drop, tema, filtros)."
+  ],
+  "constraints": [
+    "El cambio vive en la capa de UI (componentes de control + tokens/utilidad de tamaño); sin cambios de dominio ni server-side.",
+    "Debe conservar el objetivo táctil mínimo de 48px donde ya existía (registro).",
+    "La escala tiene exactamente 3 pasos: 32 / 40 / 48px (decisión del usuario).",
+    "Cero regresión: ninguna prueba funcional o e2e existente puede fallar."
+  ],
+  "technology_preferences": [
+    "Tailwind + tokens CSS ya usados en el proyecto (globals.css); sin librerías nuevas.",
+    "Reutilizar los componentes de control existentes (src/components/ui) y sus variantes."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas (usuario único de v1, escritorio + registro móvil)",
+      "tech_level": "Medio; usa la app a diario y percibe la (in)consistencia visual",
+      "goal": "Una interfaz ordenada donde los controles del mismo tipo se ven del mismo tamaño",
+      "pain_point": "Hoy elementos equivalentes tienen alturas distintas (6 valores), lo que se ve descuidado e inconsistente"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-801",
+      "requirement_id": "FR-801",
+      "as_a": "usuario que valora una interfaz ordenada",
+      "i_want": "que la app tenga una escala única de tamaños de control",
+      "so_that": "no convivan alturas arbitrarias y el sistema se vea coherente",
+      "acceptance_criteria": [
+        {
+          "id": "AC-801a",
+          "given": "la definición de tamaños de la app",
+          "when": "la inspecciono",
+          "then": "hay exactamente 3 alturas de control: 32, 40 y 48px, definidas en un solo lugar"
+        },
+        {
+          "id": "AC-801b",
+          "given": "cualquier control interactivo",
+          "when": "mido su altura efectiva",
+          "then": "pertenece a {32,40,48}px, sin valores ad-hoc"
+        }
+      ]
+    },
+    {
+      "id": "US-802",
+      "requirement_id": "FR-802",
+      "as_a": "usuario de la app",
+      "i_want": "que cada control use el tamaño que le corresponde de la escala",
+      "so_that": "dos controles del mismo tipo se vean del mismo tamaño",
+      "acceptance_criteria": [
+        {
+          "id": "AC-802a",
+          "given": "los controles de la app",
+          "when": "los observo tras el cambio",
+          "then": "tabs/icon-buttons miden 32px; botones/inputs/selects/ThemeToggle 40px; Guardar/TypeToggle/tiles 48px"
+        },
+        {
+          "id": "AC-802b",
+          "given": "un control que antes medía 30, 36 o 44px",
+          "when": "lo mido tras el re-mapeo",
+          "then": "ahora cae en un token de la escala (32/40/48), sin alturas retiradas"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Item de backlog BL-002 escrito y priorizado (P2) por el usuario: 'No existe una escala de TAMAÑO de control; conviven 6 alturas distintas'. Verificado en el código (button h-8/h-9, select/tabs py-1.5/2.5, etc.).",
+    "users": "Usuario único de v1 (dueño de finanzas, escritorio + registro móvil), heredado del proyecto padre; confirmado.",
+    "baseline": "Survey del código actual: 6 alturas (TabsTrigger ~30, Button 32/36, SelectTrigger ~40, ThemeToggle 44, TypeToggle/Guardar/tiles 48).",
+    "success_metric": "El usuario confirmó explícitamente en esta sesión la escala de 3 pasos 32/40/48 (frente a alternativas de 2 y 4 pasos); la métrica '0 alturas fuera de {32,40,48}' deriva de esa decisión.",
+    "no_go_zone": "El usuario eligió una escala solo de ALTURA; color/tipografía/radios ya son propiedad de ux-consistency (no se re-abren); el ancho y el rediseño quedan fuera por decisión de alcance."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Escala canónica única de altura de control (3 tokens 32/40/48)",
+      "disposition": "FR-801"
+    },
+    {
+      "need": "Cada control mapeado a su token de la escala",
+      "disposition": "FR-802"
+    },
+    {
+      "need": "No romper el objetivo táctil ≥48px del registro (TC-UXC-353e)",
+      "disposition": "NFR-801"
+    },
+    {
+      "need": "No cambiar ningún comportamiento funcional",
+      "disposition": "NFR-802"
+    },
+    {
+      "need": "No re-abrir color/tipografía/radios ni el código de estado",
+      "disposition": "NFR-803"
+    },
+    {
+      "need": "Sin superficie de seguridad nueva",
+      "disposition": "NFR-805"
+    },
+    {
+      "need": "Gobernar el ancho de los controles",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rediseño visual/layout más allá de la altura",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Librería de design tokens / theming nuevo",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nEstablecer una **escala canónica de tamaños de control** (base de diseño atómico) y mapear todos los controles interactivos a ella. Escala confirmada con el usuario, 3 pasos:\n\n| Token | Altura | Usos |\n|---|---|---|\n| **sm** | 32px | icon-button, TabsTrigger, Button sm |\n| **md** | 40px | input, SelectTrigger, Button default, ThemeToggle |\n| **lg** | 48px | acción primaria (Guardar), TypeToggle, tiles del registro, date-field |\n\nHoy NO existe una escala de TAMAÑO: conviven 6 alturas para el mismo tipo de elemento.\n\n## Problem / Why\nDeriva de tamaño no gobernada por ningún FR. Alturas actuales (verificadas en el código):\nTabsTrigger ~30px (`tabs.tsx` py-1.5), Button sm/icon 32px (`button.tsx` h-8), Button default 36px (`button.tsx` h-9), SelectTrigger ~40px (`select.tsx` py-1.5), ThemeToggle 44px, TypeToggle/date-field/Guardar/tiles 48px. Elementos del mismo tipo se ven más grandes que otros. Es la misma clase de deriva que el audit encontró en tipografía (17 tamaños) y radios (dos convenciones) y que la feature ux-consistency corrigió en esas dimensiones — pero en la dimensión TAMAÑO, que quedó sin cubrir.\n\n## Target Users\nUsuario único de v1 (dueño de sus finanzas, escritorio + registro móvil). No cambia ninguna función; percibe una interfaz más consistente y ordenada.\n\n## New Behavior\n- Se define una escala de 3 tokens de altura (sm 32 / md 40 / lg 48) como única fuente de verdad para la altura de un control — un token CSS o una utilidad compartida, no valores sueltos por componente.\n- Cada control se re-mapea a su token: tabs y icon-buttons → sm; botones estándar, inputs, selects y ThemeToggle → md; acción primaria (Guardar), TypeToggle, tiles del registro y date-field → lg.\n- Cambios de altura resultantes (menores): tabs 30→32, Button default 36→40, ThemeToggle 44→40. Todo lo demás ya cae en la escala.\n- Solo cambia la ALTURA/padding vertical del control; el resto (color, tipografía, radio, comportamiento) no se toca.\n\n## Success Criteria\n- Given cualquier control interactivo de la app, When se inspecciona su altura efectiva, Then pertenece a {32, 40, 48}px — 0 alturas ad-hoc fuera de la escala.\n- Given los controles del registro (móvil y captura), When se miden, Then conservan ≥48px (objetivo táctil WCAG 2.5.5 / el test existente TC-UXC-353e no se rompe).\n- Given la app tras el cambio, Then ninguna prueba funcional ni e2e existente falla (el cambio es puramente de tamaño).\n- Given los 6 valores previos, Then quedan colapsados a 3 tokens y documentados en un solo lugar.\n\n## Touch Points\nMODIFICA:\n- `src/app/globals.css` — (posible) tokens de altura de control (--control-sm/-md/-lg) si se opta por tokens CSS.\n- `src/components/ui/button.tsx` — variantes sm/default/lg → sm/md/lg de la escala (h-8/h-9 → escala).\n- `src/components/ui/select.tsx`, `tabs.tsx` — SelectTrigger → md; TabsTrigger → sm.\n- `src/components/ui/*` y controles compuestos: ThemeToggle → md; TypeToggle, date-field, tiles del registro, botón Guardar → lg.\n- FRs existentes tocados (no cambia su semántica, solo el sistema de tamaño): los de la grilla/registro/tema que rendericen estos controles.\n\nADITIVO:\n- Un punto único que define la escala (token CSS o mapa de tamaños), del que dependen todos los controles.\n\n## Must Not Break (Regression Boundary)\n- **TC-UXC-353e** (ux-consistency): los controles del registro siguen ≥48px con foco visible — la escala mantiene lg=48 para ellos.\n- Ningún cambio de comportamiento funcional: registrar, editar celdas, drag-drop, tema, filtros Mes/Año — todo igual.\n- El código de estado (budget-state-color, FR-401/403), el reparent/degradar y la persistencia no se tocan.\n- Accesibilidad: el objetivo táctil mínimo (48px) se conserva donde ya existía.\n\n## Out of Scope\n- Color, tipografía y radios: ya los unificó la feature ux-consistency; aquí NO se re-abren.\n- Anchos de control (solo se gobierna la ALTURA/padding vertical en v1).\n- Rediseño visual o de layout más allá de la altura de los controles.\n- Introducir una librería de design tokens o un sistema de theming nuevo.\n"
+}
