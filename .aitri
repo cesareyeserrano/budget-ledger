@@ -23,115 +23,9 @@
   "aitriVersion": "2.1.0-rc.9",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-23T18:12:25.770Z",
+  "updatedAt": "2026-07-23T20:09:23.375Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-17T13:16:20.296Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-17T13:23:08.889Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-18T20:59:44.813Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 9,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-18T22:36:29.663Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 7,
-      "method": "git"
-    },
-    {
-      "at": "2026-07-18T22:40:05.404Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-18T22:40:11.725Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-19T00:25:00.810Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 11,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-19T00:29:01.703Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-19T00:31:56.813Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-19T00:31:56.916Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-19T00:32:53.685Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 11,
-      "method": "git",
-      "baseRefFrom": "67e40171585170ff9ad3e3d77af421c0f9916f79",
-      "baseRefTo": "f54c5e7cf7fd2dd489207d65d2ae001f9ec1b9f4"
-    },
-    {
-      "at": "2026-07-23T01:51:17.853Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 6,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-07-23T14:25:45.923Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-07-23T14:26:06.896Z",
       "event": "verify-complete",
@@ -189,12 +83,85 @@
       "method": "git",
       "baseRefFrom": "3131230df4d52c89db5efda178d20b3d03dac9e2",
       "baseRefTo": "c97f3c9a0884918cf089f67f6c6ac8b4b50e34eb"
+    },
+    {
+      "at": "2026-07-23T20:05:26.375Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-23T20:05:31.650Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-23T20:07:00.987Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-23T20:07:01.027Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-23T20:07:10.143Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-23T20:07:10.195Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T20:07:10.231Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T20:07:16.751Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T20:09:15.135Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-23T20:09:19.507Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-23T20:09:23.272Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-23T20:09:23.312Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-23T20:09:23.363Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
-    "2": "dcad55de71702eae9cf5f894aa4e7c764a066820acd9245879ecac81a5a28563",
+    "2": "f2bd00de376bc2938d193c279619d0a7aeb850cc06a7bd2cbf23c26997ee8aa7",
     "3": "8f3ca2b78bb99ab2009ba769d7af59b3860a427a6b376b992fdfb95fe89a6dc4",
     "4": "13ed2bee5b4ad0b486d9644e5bb9c85702c5ed436a7a1d54b98600673c4da535",
     "5": "7b74263e13240a1927e4f4db4a9f34db254a14cdf952960ac5a3da458ec7f50f",
@@ -281,18 +248,18 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "verifyResultsHash": "c943744967710a0f9c8e4d5540519aa88a4d3037db53a650ed99a982a20282d3",
-  "verifyRanAt": "2026-07-23T17:26:52.982Z",
+  "auditLastAt": "2026-07-02T03:00:41.255Z",
+  "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
+  "securityAuditLastAt": "2026-07-16T16:36:55.887Z",
+  "verifyResultsHash": "2d58fe499cd9070d5d4ffb7ea9875ce7181e7cf9023df08900468eb66ee81604",
+  "verifyRanAt": "2026-07-23T20:09:15.135Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-23T17:26:52.982Z"
+    "at": "2026-07-23T20:09:15.135Z"
   },
-  "auditLastAt": "2026-07-02T03:00:41.255Z",
-  "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
-  "securityAuditLastAt": "2026-07-16T16:36:55.887Z",
   "verifySummary": {
     "total": 54,
     "passed": 54,
@@ -302,5 +269,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 6
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-07-23T20:09:23.362Z"
+    }
+  ]
 }

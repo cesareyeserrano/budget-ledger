@@ -145,6 +145,34 @@ class LocalStorageRepository implements LedgerRepository { /* JSON + Zod.safePar
 ### `useLedgerStore` (Zustand — contrato de UI)
 Cada acción de las User Flows tiene su operación: `addMovement`, `createNode`, `renameNode`, `deleteNode`, `moveNode`, `setLeafAmount`, `setPeriodFilter`, `hydrate`. Selectores memoizados: `useRollupBudget(id,m)`, `useRollupActual(id,m)`, `useVariance(...)`, `useDashboard(period)`, `useVisibleTree()`. Toda acción persiste vía `repository.save` tras mutar.
 
+## Implementation Approach
+
+Realización por MUST FR — método, contrato I/O y comportamiento ante fallo. Todo el cálculo vive en el dominio puro (`src/domain/*`) y la UI lo consume vía `useLedgerStore`; las acciones persisten con `repository.save` tras mutar.
+
+- **FR-001 · Registrar movimiento** — *Método:* acción de dominio `addMovement(state, input)` con guarda previa `canSave({amount, catId})`; el monto se normaliza a entero COP ≥1 (`Math.max(1, round)`). *I/O:* `{ type, catId, subId?, month:MonthKey, amount:string|number, note? }` → nuevo `LedgerState` con el movimiento agregado y `actuals[leaf][month]` incrementado. *Fallo:* entrada inválida (monto <1, sin categoría) ⇒ `canSave=false`, la acción es no-op y el estado no muta (sin excepción).
+
+- **FR-002 · CRUD de jerarquía 3 niveles** — *Método:* `createNode` / `renameNode` / `deleteNode` sobre árbol `LedgerNode[]` con `level ∈ {group,category,sub}` bajo 3 `type` FIJOS; `canRename`/`canDeleteNode` gobiernan la elegibilidad. *I/O:* `createNode(state,{type,level,parentId,name})` → estado con nodo nuevo (id `g-/c-/s-…` por slug); `renameNode(state,id,name)` con `name` 1..60. *Fallo:* nombre vacío/fuera de rango o nodo `system` ⇒ no-op; los tipos no son editables (invariante de eje de signo).
+
+- **FR-003 · Borrado seguro (sin huérfanos)** — *Método:* `deleteNode` devuelve un `DeleteResult` discriminado; `canDeleteNode` decide si una hoja se borra directa o si el borrado se bloquea por tener datos/hijos. *I/O:* `deleteNode(state,id)` → `{state}` (borrado) o rechazo con motivo; limpia `budgets/actuals` del nodo eliminado. *Fallo:* borrar un nodo con movimientos/hijos se rechaza sin mutar (cero huérfanos). *(Nota de evolución: la feature `grid-ux` refinó la política de "convertir a 'Sin asignar'" hacia bloquear el borrado con datos — BG-001/002; el mecanismo `DeleteResult` es el mismo.)*
+
+- **FR-004 · Roll-up jerárquico** — *Método:* funciones puras `rollupBudget` (suma de `leafDescendants`), `rollupActual` (suma de `subtreeIds`, incluye montos directos en categoría-hoja) y `typeTotals` por tipo. *I/O:* `(state, nodeId, month)` → `number` (COP entero). *Fallo:* nodo inexistente ⇒ `0`; ceros/negativos degenerados no producen `NaN`/`Infinity` (cubierto por TC-BSC-401f). *Guardrail:* recómputo ≤150ms (NFR-001/NFR-103, TC-212h).
+
+- **FR-006 · Grilla de 12 meses (escritorio)** — *Método:* `BudgetGrid` con `div` flex (no `<table>`), columna de categoría sticky-izquierda y scroll horizontal; edición inline de celdas de hoja vía `setLeafAmount`. *I/O:* render de `useVisibleTree()` × 12 meses; edición `(leafId, month, kind, value)` → estado. *Fallo:* editar un nodo no-hoja (padre) es no-op (los padres son roll-up, no editables).
+
+- **FR-008 · Tipo → signo/color/varianza** — *Método:* `sign.ts` deriva signo por tipo y `budgetState.ts` clasifica el estado (`within`/`over`/…) contra umbrales. *I/O:* `(type, budget, actual)` → `{sign, colorToken, state}`. *Fallo:* presupuesto 0 o valores negativos ⇒ estado degenerado seguro sin `NaN` (TC-BSC-401e/f).
+
+- **FR-009 · Dashboard con filtro Mes/Año** — *Método:* `dashboard.ts` computa los 7 indicadores agregando `typeTotals` sobre el conjunto de meses del filtro. *I/O:* `useDashboard(period)` donde `period = {mode:'month'|'year', month?}` → `{ingresos, gastos, balance, …}`. *Fallo:* período sin ejecutado ⇒ KPIs en 0 (no error); el default abre en un período con ejecutado (FR-106/grid-ux).
+
+- **FR-010 · Web responsive (móvil vs escritorio)** — *Método:* una sola app con breakpoint CSS; en móvil v1 se monta SOLO el módulo de registro (`MobileShell`), en escritorio la app completa (`DesktopShell`). *I/O:* viewport width → shell montado. *Fallo:* ninguna regresión de la vista móvil es un guardrail explícito (no se renderiza grilla/dashboard en móvil).
+
+- **FR-011 · Persistencia localStorage con recuperación segura** — *Método:* `repository` serializa `LedgerState` a localStorage; en carga, `Zod.safeParse` valida el payload. *I/O:* `save(state)` / `hydrate()` → estado validado. *Fallo:* dato ausente ⇒ semilla (FR-013); dato corrupto/adulterado ⇒ se descarta y se regenera semilla sin excepción (NFR-003). Migración en carga limpia el 'Sin asignar' heredado (grid-ux).
+
+- **FR-012 · Sistema de diseño César Augusto** — *Método:* tokens exactos vía CSS custom properties (tema oscuro único, bordes-sobre-rellenos, acento steel-blue `#4a7fa5`); tipografía self-hosted vía `next/font`. *I/O:* tokens `--bg/--fg/--error/--success/…` aplicados por componente. *Fallo:* n/a (contrato visual estático). *(Nota de evolución: `grid-ux/FR-109` reemplazó el mono Fira Code por Lexend + números tabulares; la paleta y demás tokens intactos.)*
+
+- **FR-013 · Semilla determinística** — *Método:* `buildSeed(ownerId)` construye la jerarquía fija y `genBudget` deriva montos dummy por hoja/mes de forma determinística (hash del nombre, sin aleatoriedad). *I/O:* `buildSeed()` → `LedgerState` completo. *Fallo:* determinístico por diseño — misma entrada, misma semilla (verificable byte a byte).
+
+- **FR-015 · Reparent por drag-drop** — *Método:* `moveNode(state, nodeId, dest, overflow=blockPolicy)` reubica un subárbol validando tipo y techo de 3 niveles; el manejo de desborde es una estrategia enchufable. *I/O:* `dest = {kind:'category'|'group'|'root', …}` → `{state}` o `{rejected:'cross_type'|'invalid_target'|'would_overflow'}`. *Fallo:* mover entre tipos distintos o desbordar el techo se rechaza sin mutar ni perder movimientos (cero huérfanos, NFR-602).
+
 ## Security Design
 
 Superficie de v1 (declarada explícitamente, NFR-004): **app web single-user, client-only, sin backend, sin auth, sin secretos, sin PII por red.** No hay endpoints, tokens ni DB que proteger en v1.
