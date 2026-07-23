@@ -23,6 +23,11 @@ export default defineConfig({
     command: `npm run build && npx next start -p ${PORT}`,
     url: BASE,
     reuseExistingServer: !process.env.CI,
+    // La suite e2e es la app en modo localStorage (NFR-509: SERVER_MODE OFF = cero regresión).
+    // Se fuerza OFF aquí para que el build inline el modo cliente-puro y la grilla renderice sin
+    // LoginGate, aunque el .env.local de la máquina tenga NEXT_PUBLIC_LEDGER_SERVER_MODE=true para
+    // pruebas del backend en vivo. process.env tiene precedencia sobre .env.local (BL-006).
+    env: { NEXT_PUBLIC_LEDGER_SERVER_MODE: "false" },
     // Holgado: durante `verify-run` este webServer compila bajo carga (testcontainers + otros builds).
     timeout: 300_000,
   },
