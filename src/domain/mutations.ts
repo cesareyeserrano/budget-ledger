@@ -175,51 +175,59 @@ export function renameNode(state: LedgerState, id: string, name: string): Ledger
 
 // ── Borrado (sin "Sin asignar" — decisión del usuario: se retiró hasta redefinirla) ─────────
 /**
- * ¿El nodo tiene DATOS vigentes — ejecutado (actuals > 0) en algún mes de su subárbol?
- * BG-006: la señal es el ejecutado VIGENTE, no el journal de movimientos. Los movimientos
+ * ¿El nodo tiene DATOS vigentes — presupuestado O ejecutado (>0) en algún mes de su subárbol?
+ * BG-001: "con valores" es cualquier monto visible en la grilla, sea Presupuestado o Ejecutado;
+ * ambos bloquean el borrado (hay que vaciar TODAS las celdas primero). Cero pérdida silenciosa.
+ * BG-006: la señal es el monto VIGENTE en las celdas, no el journal de movimientos. Los movimientos
  * siempre suman a actuals al registrarse; si el usuario luego vació las celdas (todo en 0),
  * el nodo está efectivamente vacío y debe poder borrarse. Antes, cualquier movimiento
  * histórico bloqueaba el borrado para siempre (el journal es inmutable — no hay forma de
  * quitarlo), dejando subcategorías imposibles de eliminar aun vaciadas.
  */
-function nodeHasHistory(state: LedgerState, nodeId: string): boolean {
+function nodeHasData(state: LedgerState, nodeId: string): boolean {
   const ids = new Set(subtreeIds(state.nodes, nodeId));
   for (const id of ids) {
+    const b = state.budgets[id];
+    if (b && Object.values(b).some((v) => v > 0)) return true;
     const a = state.actuals[id];
     if (a && Object.values(a).some((v) => v > 0)) return true;
   }
   return false;
 }
 
-export type DeleteBlock = "group_not_empty" | "has_data";
+export type DeleteBlock = "has_children" | "has_data";
 export type DeleteResult = { state: LedgerState } | { blocked: DeleteBlock };
 
 /**
  * ¿Se puede borrar este nodo? (para gatear el ícono 🗑 en la UI — no mostrar borrar si no aplica)
  * - system: no.
- * - grupo: solo si NO tiene categorías.
- * - categoría/sub: solo si NO tiene ejecutado vigente — se debe vaciar primero (BG-006).
+ * - cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías): no —
+ *   hay que mover/borrar los hijos primero (BG-002). Un padre nunca se borra con hijos, tenga
+ *   o no valores propios; para eliminarlo debe quedar sin hijos Y sin valores.
+ * - cualquier nodo con valores vigentes (presupuestado o ejecutado): no — se debe vaciar
+ *   primero (BG-001/BG-006). Aplica a TODOS los niveles: grupo-hoja (que también almacena
+ *   montos, FR-603), categoría y subcategoría.
  */
 export function canDeleteNode(state: LedgerState, id: string): boolean {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return false;
-  if (node.level === "group") return childrenOf(state.nodes, id).length === 0;
-  return !nodeHasHistory(state, id);
+  if (childrenOf(state.nodes, id).length > 0) return false;
+  return !nodeHasData(state, id);
 }
 
 export function deleteNode(state: LedgerState, id: string): DeleteResult {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return { state };
 
-  if (node.level === "group") {
-    if (childrenOf(state.nodes, id).length > 0) return { blocked: "group_not_empty" };
-    const next = clone(state);
-    next.nodes = next.nodes.filter((n) => n.id !== id);
-    return { state: next };
+  // cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías) →
+  // bloqueado hasta mover/borrar sus hijos (FR-110/BG-002); un padre no se borra con hijos
+  if (childrenOf(state.nodes, id).length > 0) {
+    return { blocked: "has_children" };
   }
 
-  // categoría o sub CON datos → bloqueado (hay que vaciarla primero; cero pérdida silenciosa)
-  if (nodeHasHistory(state, id)) return { blocked: "has_data" };
+  // cualquier nodo CON valores (presupuestado o ejecutado; grupo-hoja, categoría o sub) →
+  // bloqueado (hay que vaciarlo primero; cero pérdida silenciosa — BG-001/BG-006)
+  if (nodeHasData(state, id)) return { blocked: "has_data" };
 
   // sin datos → borrado directo del subárbol, sus montos y sus movimientos históricos
   // (BG-006: sin esto quedarían movimientos huérfanos apuntando a nodos inexistentes en Recientes)

@@ -44,6 +44,14 @@
       "status": "closed",
       "createdAt": "2026-07-10T16:24:51.193Z",
       "closedAt": "2026-07-18T22:45:38.697Z"
+    },
+    {
+      "id": "BL-006",
+      "title": "E2E Playwright no renderiza budget-grid bajo next start (:3220); verify-run se mata a los 15 min",
+      "priority": "P2",
+      "problem": "Al re-sellar el verify de grid-ux, los 3 tests de icono (incl. TC-216h preexistente) fallan en expect(getByTestId('budget-grid')).toBeVisible() contra el server de PRODUCCION de Playwright (next start -p 3220). En dev (:3100) la app y la grilla funcionan (validado en vivo). npm run build compila en 11s -> no es el build. Con 46 e2e fallando+reintentando (workers:2, timeout 60s, retries) el suite excede test_runner_timeout_ms (15 min) y Aitri lo mata (run parcial, no sella verify). Hipotesis: la home bajo prod-build queda gateada/redirigida (auth backend /api/auth) o falta seed/estado que si existe en dev. Impacto: ningun verify-run de feature con e2e puede sellar en este entorno. Accion sugerida: (1) revisar si la home requiere auth en prod y anadir storageState/seed en playwright.config; (2) confirmar reuseExistingServer/puerto 3220; (3) evaluar separar unit de e2e en verify-run. NOTA: el fix de borrado BG-001/BG-002 esta unit-verde (211/211) y validado en vivo; este item es infra e2e, no el fix.",
+      "status": "open",
+      "createdAt": "2026-07-23T01:45:33.572Z"
     }
   ]
 }

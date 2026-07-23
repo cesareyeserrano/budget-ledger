@@ -338,7 +338,8 @@ test("TC-215h: (regresión) sin emoji ni gradiente en la página", async ({ page
 // ---------- Editar ícono de categoría (clic en el ícono abre el selector) ----------
 // ux-consistency FR-309/310 SUPERSEDE el selector inline por un IconPicker en Popover (shadcn/Radix)
 // con catálogo Lucide amplio y buscable. Se conserva el TC id y el flujo (abrir → elegir → cerrar).
-test("TC-216: clic en el ícono de una categoría abre el selector y lo cambia", async ({ page }) => {
+// @aitri-tc TC-216h
+test("TC-216h: clic en el ícono de una categoría abre el selector y lo cambia", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
@@ -349,6 +350,32 @@ test("TC-216: clic en el ícono de una categoría abre el selector y lo cambia",
   // elegir uno cierra el selector
   await page.getByTestId("icon-option").nth(3).click();
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
+});
+
+// @aitri-tc TC-216e
+test("TC-216e: buscar en el IconPicker filtra el catálogo (edge)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  await page.locator(String.raw`button[aria-label="Cambiar ícono"]`).first().click();
+  await expect(page.getByTestId("icon-picker")).toBeVisible();
+  const before = await page.getByTestId("icon-option").count();
+  // una búsqueda sin coincidencias vacía la lista (muestra el estado vacío)
+  await page.getByTestId("icon-picker-search").fill("zzzzzznomatch");
+  await expect(page.getByTestId("icon-picker-empty")).toBeVisible();
+  await expect(page.getByTestId("icon-option")).toHaveCount(0);
+  expect(before).toBeGreaterThan(0);
+});
+
+// @aitri-tc TC-216f
+test("TC-216f: cerrar el IconPicker con Escape no cambia el ícono (negativo)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  await page.locator(String.raw`button[aria-label="Cambiar ícono"]`).first().click();
+  await expect(page.getByTestId("icon-picker")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("icon-picker")).toHaveCount(0); // se cerró sin elegir
 });
 
 test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo", async ({ page }) => {

@@ -19,117 +19,9 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-04T01:29:33.894Z",
+  "updatedAt": "2026-07-23T00:51:43.166Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-03T01:53:41.026Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-03T01:53:41.126Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:26:04.001Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:27:47.711Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-03T02:27:47.809Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-03T16:01:37.713Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-03T16:01:45.619Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-03T16:02:16.653Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-03T16:32:22.587Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-03T16:36:56.183Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-03T16:37:05.341Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-04T00:46:41.219Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-04T00:46:46.304Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 31,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-04T00:58:30.737Z",
-      "event": "rehash",
-      "phase": "4",
-      "artifact": "04_BUILD_REPORT.json",
-      "before_hash": "2a8da46b2636ccce00c870eb839e264ca97e8652360e01b1bc27a7e89544991c",
-      "after_hash": "247bf301bfac2a030fbe1967726f11791eed048522f37d78bdce5859fc29d507"
-    },
-    {
-      "at": "2026-07-04T01:06:00.008Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-04T01:07:24.957Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-04T01:07:31.157Z",
-      "event": "approved",
-      "phase": 5
-    },
     {
       "at": "2026-07-04T01:29:31.181Z",
       "event": "rehash",
@@ -153,15 +45,100 @@
       "artifact": "03_TEST_CASES.json",
       "before_hash": "e3ba426aae772dc35ed941d2a844cf1dfa9321e8b6c3ea3329cf2182e9c9c516",
       "after_hash": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e"
+    },
+    {
+      "at": "2026-07-23T00:37:57.530Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:38:43.895Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:38:48.991Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:39:13.500Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-23T00:43:04.802Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:43:04.884Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:43:07.690Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-23T00:43:13.177Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-23T00:43:13.275Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-23T00:43:56.839Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-23T00:43:59.819Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-23T00:50:11.009Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-23T00:50:15.340Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-23T00:50:15.441Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T00:50:18.502Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-23T00:51:37.051Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-23T00:51:43.141Z",
+      "event": "approved",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "240a1eb19213495ef5151bb3da04f404bb9aeddf771796a3beb876b5efbe4d7d",
-    "2": "6f916299d0acdee26e135b427805ccd4c24b569cef1d6cbff10c4730e9d1e5ad",
-    "3": "e5f301f56145689a5460be87fede3c0e1364a5a3dbb731db869d31862ed57c1e",
+    "1": "27ecd284e84f158bdaaf5ac8dcdcbccd1b3241be7596fd0d5b4b762f10bacc5c",
+    "2": "ed8265015b7475ae26d1105433a14c02d7265deee9f61840de9260b0298ee449",
+    "3": "a0b63351e9a819d7fee1ada8d2e65400e43dfb73b8f3715143f1e301ed688ac8",
     "4": "247bf301bfac2a030fbe1967726f11791eed048522f37d78bdce5859fc29d507",
-    "5": "c6269891312c8dc12f0cbc2b8079e575f67f334b5d7ea0d64150f6f93e17dc47",
+    "5": "380975d28ff3b81e2cbde02b770ef1fa261cb2764cfdd39adb082b0797e4439c",
     "ux": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
   },
   "frSnapshots": {
@@ -174,7 +151,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "3": [
       "FR-101",
@@ -185,7 +165,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "4": [
       "FR-101",
@@ -196,7 +179,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "5": [
       "FR-101",
@@ -207,7 +193,10 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ],
     "ux": [
       "FR-101",
@@ -218,27 +207,11 @@
       "FR-106",
       "FR-107",
       "FR-108",
-      "FR-109"
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "FR-112"
     ]
   },
-  "verifyResultsHash": "216e6697a9c1f3041b8e1921c7d9565f4e9c64ac65dee10453a99616c19f9a0d",
-  "verifyRanAt": "2026-07-04T00:46:41.219Z",
-  "lastVerifyRun": {
-    "passed": 31,
-    "failed": 0,
-    "skipped": 14,
-    "manual": 0,
-    "at": "2026-07-04T00:46:41.219Z"
-  },
-  "verifyPassed": true,
-  "verifySummary": {
-    "total": 45,
-    "passed": 31,
-    "failed": 0,
-    "skipped": 14,
-    "skipped_e2e": 14,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 0
-  }
+  "verifyPassed": false
 }

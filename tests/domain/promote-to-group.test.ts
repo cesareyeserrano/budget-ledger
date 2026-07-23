@@ -254,6 +254,8 @@ describe("NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos", 
     s = createNode(s, { level: "category", parentId: g.id, type: "expense", name: "Cat" });
     const cat = byName(s, "Cat");
     expect(rollupBudget(s, g.id, "ene")).toBe(800000); // == Σ hojas (la categoría)
+    // BG-001: un nodo con presupuesto no es borrable; se vacía primero, LUEGO se borra.
+    s = setLeafAmount(s, cat.id, "ene", "budget", 0);
     const st = stateOf(deleteNode(s, cat.id), s);
     expect(rollupBudget(st, g.id, "ene")).toBe(0); // == Σ hojas (grupo-hoja sin monto)
   });
@@ -303,7 +305,7 @@ describe("NFR-603 — regresión: gate de borrado (FR-003 + BG-006)", () => {
   // @aitri-tc TC-653f
   it("TC-653f: borrar un grupo con categorías sigue bloqueado", () => {
     const s = buildSeed("local");
-    expect(deleteNode(s, "g-esenciales")).toEqual({ blocked: "group_not_empty" });
+    expect(deleteNode(s, "g-esenciales")).toEqual({ blocked: "has_children" });
   });
 });
 

@@ -49,6 +49,17 @@ Sin nueva superficie de red (NFR-004 del proyecto se mantiene). La única entrad
 
 Sin cambios de despliegue: mismo contenedor Next.js (Docker) del proyecto. Los archivos de fuente se empaquetan en el build (`next/font/local`), servidos por el propio Next — no requiere configurar CDN ni Nginx adicional. El smoke gate (NFR-006) sigue aplicando.
 
+## Implementation Approach
+
+Implementación incremental sobre los módulos existentes, sin nuevo esquema ni backend:
+
+1. **Grilla (FR-101..104, 111, 112):** capacidades y controles se añaden en `src/components/BudgetGrid.tsx` (crear grupo/categoría/sub por el `+` en hover, controles `+/✎/🗑` revelados en hover, selector de íconos, layout full-bleed). El ancho de columna persistido vive en `src/lib/gridWidth.ts` (`readCatWidth`/`writeCatWidth`, clamp [180,480], default 240) y una manija con Pointer Events aislada del drag de nodos (dnd-kit).
+2. **Borrado seguro (FR-110):** la política es puramente de dominio en `src/domain/mutations.ts` — `canDeleteNode` (gatea habilitación + visibilidad del 🗑) y `deleteNode` (ejecuta o rechaza). Un nodo es borrable **solo si no tiene hijos Y no tiene valores**: `childrenOf(id).length > 0` → `blocked:"has_children"` (aplica a grupo con categorías Y categoría con subcategorías); `nodeHasData(id)` (presupuestado o ejecutado>0 en el subárbol) → `blocked:"has_data"` (aplica a todos los niveles, grupo-hoja incluido, FR-603). El borrado legítimo limpia budgets/actuals/movements del subárbol (sin huérfanos). El store (`src/state/store.ts`) propaga el resultado (`"ok" | "has_children" | "has_data"`); la UI nunca muestra el 🗑 sobre un nodo no borrable. Regresión cubierta en `tests/domain/categories.test.ts`.
+3. **Pulido de página (FR-3xx):** cambios de copy/tab/período/leyenda en los componentes de shell y grilla, sin lógica de dominio nueva.
+4. **Tipografía (FR-109):** token de fuente global Lexend self-hosted vía `next/font/local` (sin CDN), números tabulares; verificado por regresión de contraste y ausencia de peticiones externas.
+
+Guardrails: no se tocan las rutas de cálculo de roll-up (≤150ms), la edición inline de hojas, el reparent drag-drop ni la vista móvil.
+
 ## Risk Analysis
 
 - **Conflicto manija de resize ↔ drag de nodos (dnd-kit):** riesgo medio. Mitigación: Pointer Events propios en la manija + `stopPropagation`; el `useDraggable` de nodos usa `activationConstraint.distance:6` sobre el cuerpo de la fila, no sobre la manija.

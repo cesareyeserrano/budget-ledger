@@ -116,10 +116,10 @@
       "title": "Borrado seguro: bloquear si hay datos (sin 'Sin asignar')",
       "priority": "MUST",
       "type": "logic",
-      "description": "Se retira la categoría 'Sin asignar'. Un grupo con categorías, o una categoría/sub con datos (movimientos o ejecutado>0), NO se puede borrar (bloqueado hasta vaciarlo). Solo los nodos vacíos se borran (con confirmación inline ✓/✗). canDeleteNode gobierna tanto la habilitación como la visibilidad del 🗑. Migración en carga limpia datos 'Sin asignar' heredados sin pérdida.",
+      "description": "Se retira la categoría 'Sin asignar'. Para borrar un nodo debe cumplir DOS condiciones: (1) no tener HIJOS y (2) no tener VALORES. (1) Cualquier PADRE con hijos —un grupo con categorías O una categoría con subcategorías— NO se puede borrar aunque no tenga montos propios (bloqueado hasta mover/borrar sus hijos); el bloqueo por hijos aplica a grupo Y categoría por igual, no solo a grupos. (2) Cualquier nodo con VALORES —presupuestado o ejecutado>0 en alguna celda de su subárbol— tampoco se puede borrar (bloqueado hasta vaciar TODAS sus celdas); esto aplica a TODOS los niveles, incluido un grupo-hoja (grupo sin categorías, que también almacena montos, FR-603 root). Solo los nodos SIN hijos y SIN valores se borran (con confirmación inline ✓/✗), y el borrado limpia sus budgets/actuals/movements sin dejar huérfanos. canDeleteNode gobierna tanto la habilitación como la visibilidad del 🗑. Migración en carga limpia datos 'Sin asignar' heredados sin pérdida.",
       "acceptance_criteria": [
-        "Borrar una categoría con ejecutado devuelve bloqueado y no la elimina; la categoría y sus montos siguen (happy)",
-        "Un grupo con categorías no es borrable; una categoría vacía sí se borra tras confirmar (edge)",
+        "Borrar una categoría con presupuesto o ejecutado devuelve bloqueado y no la elimina; la categoría y sus montos siguen (happy)",
+        "Un grupo con categorías no es borrable; una categoría con subcategorías tampoco (aunque no tenga valores); un grupo-hoja con valores tampoco; solo un nodo sin hijos y con todas sus celdas en 0 se borra tras confirmar (edge)",
         "Un nodo no borrable muestra 0 íconos 🗑 en hover (negativo)"
       ]
     },
@@ -157,8 +157,8 @@
     {
       "id": "NFR-102",
       "category": "Regression",
-      "requirement": "Se RETIRÓ la categoría 'Sin asignar' (revierte el mecanismo de FR-003 root por decisión del usuario). Borrar una categoría/sub CON datos (movimientos o ejecutado) queda BLOQUEADO (hay que vaciarla primero); el ícono 🗑 solo se muestra si el nodo es borrable (canDeleteNode). El reparent por arrastrar-y-soltar (FR-015) sigue funcionando; el '+' en hover y la manija de resize NO disparan un drag de nodo. Una migración en carga promueve los hijos de un 'Sin asignar' heredado (datos previos) a categorías de su grupo y elimina el nodo, sin pérdida.",
-      "acceptance_criteria": "Borrar categoría con datos → bloqueado (TC-211h); nodo no borrable no muestra 🗑 (TC-202f); reparent intacto (TC-015h/f); dato 'Sin asignar' heredado se limpia en carga sin pérdida"
+      "requirement": "Se RETIRÓ la categoría 'Sin asignar' (revierte el mecanismo de FR-003 root por decisión del usuario). Borrar un nodo (grupo-hoja, categoría o sub) CON valores (presupuestado o ejecutado>0) queda BLOQUEADO (hay que vaciar todas sus celdas primero) — cero pérdida silenciosa de montos; el ícono 🗑 solo se muestra si el nodo es borrable (canDeleteNode). El reparent por arrastrar-y-soltar (FR-015) sigue funcionando; el '+' en hover y la manija de resize NO disparan un drag de nodo. Una migración en carga promueve los hijos de un 'Sin asignar' heredado (datos previos) a categorías de su grupo y elimina el nodo, sin pérdida.",
+      "acceptance_criteria": "Borrar nodo con valores (presupuestado o ejecutado) → bloqueado (TC-211h, BG-001); nodo no borrable no muestra 🗑 (TC-202f); reparent intacto (TC-015h/f); dato 'Sin asignar' heredado se limpia en carga sin pérdida"
     },
     {
       "id": "NFR-103",
@@ -336,6 +336,33 @@
           "given": "la app cargada",
           "when": "inspecciono la fuente",
           "then": "resuelve a Lexend self-hosted, cifras tabulares, sin petición externa de fuente"
+        }
+      ]
+    },
+    {
+      "id": "US-110",
+      "requirement_id": "FR-110",
+      "as_a": "usuario que organiza su presupuesto",
+      "i_want": "que un nodo solo se pueda borrar si no tiene hijos y no tiene valores (presupuestados o ejecutados)",
+      "so_that": "no pierdo subcategorías ni montos de forma silenciosa; primero muevo/borro los hijos y vacío las celdas, y recién entonces puedo eliminar el nodo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-110a",
+          "given": "un nodo (incluido un grupo-hoja) con un monto en la columna Ejecutado",
+          "when": "lo intento borrar",
+          "then": "el borrado queda bloqueado (has_data), no se muestra el 🗑 y el nodo con su monto se conservan"
+        },
+        {
+          "id": "AC-110b",
+          "given": "un nodo con solo un monto en la columna Presupuestado (sin ejecutado)",
+          "when": "lo intento borrar",
+          "then": "también queda bloqueado hasta que ponga todas sus celdas en 0; ya vacío, se borra tras confirmación ✓/✗ y se limpian budgets/actuals/movements sin huérfanos"
+        },
+        {
+          "id": "AC-110c",
+          "given": "un padre con hijos —un grupo con categorías o una categoría con subcategorías— aunque no tenga valores propios",
+          "when": "lo intento borrar",
+          "then": "el borrado queda bloqueado (has_children) y no se muestra el 🗑; solo tras mover/borrar todos sus hijos (y quedar sin valores) se vuelve borrable"
         }
       ]
     }

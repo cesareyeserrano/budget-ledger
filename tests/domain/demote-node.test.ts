@@ -188,6 +188,8 @@ describe("NFR-702 — regresión: promote-to-group intacto", () => {
     s = createNode(s, { level: "category", parentId: ocio.id, type: "expense", name: "Cine" });
     const cine = byName(s, "Cine");
     expect(s.budgets[cine.id].ene).toBe(800000); // traslado al primer hijo
+    // BG-001: un nodo con presupuesto no es borrable; se vacía primero, LUEGO se borra.
+    s = setLeafAmount(s, cine.id, "ene", "budget", 0);
     const st = stateOf(deleteNode(s, cine.id), s);
     expect(rollupBudget(st, ocio.id, "ene")).toBe(0); // reverso a 0
   });

@@ -1,31 +1,134 @@
 {
   "project": "Ledger — Feature: grid-ux",
   "version": "1.0.0",
-  "phases_completed": [1, 2, 3, 4, 5],
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
   "overall_status": "compliant",
   "requirement_compliance": [
-    { "id": "FR-101", "title": "Crear grupo desde la grilla", "level": "production_ready", "evidence": "TC-201h/e/f/g (e2e) pasando. Nota: refinado tras el diseño inicial — el '+' de crear grupo vive en el HOVER de la fila de TIPO (no en una fila adder); agregar un grupo expande su tipo." },
-    { "id": "FR-102", "title": "'+' inline para agregar hijo", "level": "production_ready", "evidence": "TC-202h/e (e2e) pasando. Refinado: '+' en hover de grupo (→categoría) y categoría (→subcategoría); se retiraron las filas adder persistentes." },
-    { "id": "FR-103", "title": "Controles de fila fiables en hover (íconos SVG)", "level": "production_ready", "evidence": "TC-203h/e/f (e2e) pasando. Hover en la fila entera; íconos Lucide, sin emoji; fix a11y: los grupos ya no propagan aria-disabled a sus controles." },
-    { "id": "FR-104", "title": "Columna de categorías redimensionable con ancho persistido", "level": "production_ready", "evidence": "TC-204h/e (e2e) + TC-204f (unit gridWidth) pasando. Manija sticky corregida (el 'relative' anulaba el 'sticky' del encabezado)." },
-    { "id": "FR-105", "title": "Etiquetas de UI en español", "level": "production_ready", "evidence": "TC-205h/f (e2e) pasando: 'Budget'→'Resumen'." },
-    { "id": "FR-106", "title": "Período por defecto con datos", "level": "production_ready", "evidence": "TC-206h/f (e2e) + TC-206e (unit store) pasando: arranca en 'Año', KPIs > 0." },
-    { "id": "FR-107", "title": "Pie de ayuda de la grilla", "level": "production_ready", "evidence": "TC-207h/e/f (e2e) pasando: ayuda + leyenda de meses, solo escritorio, sin mención a reparto (D-4)." },
-    { "id": "FR-108", "title": "Conector └ en subcategorías", "level": "production_ready", "evidence": "TC-208h/f (e2e) pasando (CornerDownRight)." },
-    { "id": "FR-109", "title": "Tipografía Lexend + tabular (self-hosted)", "level": "production_ready", "evidence": "TC-209h/e/f/i (e2e) pasando: Lexend self-hosted, cifras tabulares, 0 fuente externa, paleta y contraste intactos." },
-    { "id": "NFR-101", "title": "(Regresión) edición inline de hojas", "level": "production_ready", "evidence": "TC-210h/f (e2e) pasando: Enter fija, padre no editable." },
-    { "id": "NFR-102", "title": "(Regresión) borrado/reparent sin interferencia", "level": "production_ready", "evidence": "TC-211h + TC-015h/f (reparent) pasando. Nota de cambio de alcance: se RETIRÓ 'Sin asignar' (revierte FR-003 root por decisión del usuario); borrar categoría con datos queda BLOQUEADO (canDeleteNode); migración en carga limpia 'Sin asignar' heredado sin pérdida." },
-    { "id": "NFR-103", "title": "(Regresión) roll-up ≤150ms", "level": "partial", "evidence": "Medido manualmente ~21ms en verificación previa; sin test automatizado en esta feature (TC-212 declarado, skipped). Deuda técnica: perf no automatizada." },
-    { "id": "NFR-104", "title": "(Regresión) móvil solo registro con Lexend", "level": "production_ready", "evidence": "TC-213h (e2e) pasando: a 375px solo registro, sin grilla/manija." },
-    { "id": "NFR-105", "title": "(Regresión) persistencia robusta", "level": "production_ready", "evidence": "TC-214e (unit) + TC-204f (unit): clave de ancho aislada de los datos; corrupta → default 240 sin excepción." },
-    { "id": "NFR-106", "title": "(Regresión) sistema de diseño intacto salvo fuente", "level": "production_ready", "evidence": "TC-215h + TC-209i (e2e): tokens de color intactos, sin emoji/gradiente, sin fuente externa, contraste ≥4.5:1." }
+    {
+      "id": "FR-101",
+      "title": "Crear grupo desde la grilla",
+      "level": "production_ready",
+      "evidence": "TC-201h/e/f/g (e2e) pasando. Nota: refinado tras el diseño inicial — el '+' de crear grupo vive en el HOVER de la fila de TIPO (no en una fila adder); agregar un grupo expande su tipo."
+    },
+    {
+      "id": "FR-102",
+      "title": "'+' inline para agregar hijo",
+      "level": "production_ready",
+      "evidence": "TC-202h/e (e2e) pasando. Refinado: '+' en hover de grupo (→categoría) y categoría (→subcategoría); se retiraron las filas adder persistentes."
+    },
+    {
+      "id": "FR-103",
+      "title": "Controles de fila fiables en hover (íconos SVG)",
+      "level": "production_ready",
+      "evidence": "TC-203h/e/f (e2e) pasando. Hover en la fila entera; íconos Lucide, sin emoji; fix a11y: los grupos ya no propagan aria-disabled a sus controles."
+    },
+    {
+      "id": "FR-104",
+      "title": "Columna de categorías redimensionable con ancho persistido",
+      "level": "production_ready",
+      "evidence": "TC-204h/e (e2e) + TC-204f (unit gridWidth) pasando. Manija sticky corregida (el 'relative' anulaba el 'sticky' del encabezado)."
+    },
+    {
+      "id": "FR-105",
+      "title": "Etiquetas de UI en español",
+      "level": "production_ready",
+      "evidence": "TC-205h/f (e2e) pasando: 'Budget'→'Resumen'."
+    },
+    {
+      "id": "FR-106",
+      "title": "Período por defecto con datos",
+      "level": "production_ready",
+      "evidence": "TC-206h/f (e2e) + TC-206e (unit store) pasando: arranca en 'Año', KPIs > 0."
+    },
+    {
+      "id": "FR-107",
+      "title": "Pie de ayuda de la grilla",
+      "level": "production_ready",
+      "evidence": "TC-207h/e/f (e2e) pasando: ayuda + leyenda de meses, solo escritorio, sin mención a reparto (D-4)."
+    },
+    {
+      "id": "FR-108",
+      "title": "Conector └ en subcategorías",
+      "level": "production_ready",
+      "evidence": "TC-208h/f (e2e) pasando (CornerDownRight)."
+    },
+    {
+      "id": "FR-109",
+      "title": "Tipografía Lexend + tabular (self-hosted)",
+      "level": "production_ready",
+      "evidence": "TC-209h/e/f/i (e2e) pasando: Lexend self-hosted, cifras tabulares, 0 fuente externa, paleta y contraste intactos."
+    },
+    {
+      "id": "NFR-101",
+      "title": "(Regresión) edición inline de hojas",
+      "level": "production_ready",
+      "evidence": "TC-210h/f (e2e) pasando: Enter fija, padre no editable."
+    },
+    {
+      "id": "NFR-102",
+      "title": "(Regresión) borrado/reparent sin interferencia",
+      "level": "production_ready",
+      "evidence": "TC-211h + TC-015h/f (reparent) pasando. Nota de cambio de alcance: se RETIRÓ 'Sin asignar' (revierte FR-003 root por decisión del usuario); borrar categoría con datos queda BLOQUEADO (canDeleteNode); migración en carga limpia 'Sin asignar' heredado sin pérdida."
+    },
+    {
+      "id": "NFR-103",
+      "title": "(Regresión) roll-up ≤150ms",
+      "level": "partial",
+      "evidence": "Medido manualmente ~21ms en verificación previa; sin test automatizado en esta feature (TC-212 declarado, skipped). Deuda técnica: perf no automatizada."
+    },
+    {
+      "id": "NFR-104",
+      "title": "(Regresión) móvil solo registro con Lexend",
+      "level": "production_ready",
+      "evidence": "TC-213h (e2e) pasando: a 375px solo registro, sin grilla/manija."
+    },
+    {
+      "id": "NFR-105",
+      "title": "(Regresión) persistencia robusta",
+      "level": "production_ready",
+      "evidence": "TC-214e (unit) + TC-204f (unit): clave de ancho aislada de los datos; corrupta → default 240 sin excepción."
+    },
+    {
+      "id": "NFR-106",
+      "title": "(Regresión) sistema de diseño intacto salvo fuente",
+      "level": "production_ready",
+      "evidence": "TC-215h + TC-209i (e2e): tokens de color intactos, sin emoji/gradiente, sin fuente externa, contraste ≥4.5:1."
+    },
+    {
+      "id": "FR-110",
+      "title": "Borrado seguro: bloquear si hay hijos o valores",
+      "level": "production_ready",
+      "evidence": "canDeleteNode/deleteNode en src/domain/mutations.ts: un nodo solo se borra sin hijos (childrenOf==0 → blocked:has_children, aplica a grupo Y categoría) y sin valores (nodeHasData: presupuestado o ejecutado>0 → blocked:has_data, todos los niveles incl. grupo-hoja). Borrado legítimo limpia budgets/actuals/movements. Cubierto por TC-217h/e/f (unit, tests/domain/categories.test.ts) y la regresión NFR-102 TC-211h. Bugs BG-001 y BG-002 resueltos."
+    }
   ],
   "technical_debt_inherited": [
-    { "fr_id": "NFR-103", "substitution": "Rendimiento (≤150ms roll-up, ≤2s carga, render granular) verificado por medición manual, no automatizado. TC-212h/e/f declarados pero skipped." },
-    { "fr_id": "varios", "substitution": "14 TCs declarados en 03_TEST_CASES.json quedan skipped (variantes edge/negative/perf: TC-205e, 208e, 210e, 211e/f, 212h/e/f, 213e/f, 214f, 215e/f). Los MUST FRs tienen al menos su camino feliz + negativos clave cubiertos y pasando." },
-    { "fr_id": "smoke", "substitution": "Gate smoke marcado advisory para la feature (resolución de ruta relativa en cwd de feature); './smoke.sh' pasa manualmente (200) y el arranque lo gatea el pipeline root." },
-    { "fr_id": "specs", "substitution": "Los specs escritos de la feature (01_REQUIREMENTS/01_UX_SPEC/03_TEST_CASES) describen el diseño INICIAL (filas adder, 'Sin asignar'); el código y los tests implementados reflejan el modelo FINAL refinado. Pendiente: re-derivar los specs para cerrar la brecha de descripción (la trazabilidad por id es consistente; las descripciones no)." }
+    {
+      "fr_id": "NFR-103",
+      "substitution": "Rendimiento (≤150ms roll-up, ≤2s carga, render granular) verificado por medición manual, no automatizado. TC-212h/e/f declarados pero skipped."
+    },
+    {
+      "fr_id": "varios",
+      "substitution": "14 TCs declarados en 03_TEST_CASES.json quedan skipped (variantes edge/negative/perf: TC-205e, 208e, 210e, 211e/f, 212h/e/f, 213e/f, 214f, 215e/f). Los MUST FRs tienen al menos su camino feliz + negativos clave cubiertos y pasando."
+    },
+    {
+      "fr_id": "smoke",
+      "substitution": "Gate smoke marcado advisory para la feature (resolución de ruta relativa en cwd de feature); './smoke.sh' pasa manualmente (200) y el arranque lo gatea el pipeline root."
+    },
+    {
+      "fr_id": "specs",
+      "substitution": "Los specs escritos de la feature (01_REQUIREMENTS/01_UX_SPEC/03_TEST_CASES) describen el diseño INICIAL (filas adder, 'Sin asignar'); el código y los tests implementados reflejan el modelo FINAL refinado. Pendiente: re-derivar los specs para cerrar la brecha de descripción (la trazabilidad por id es consistente; las descripciones no)."
+    }
   ],
-  "deployment_files": ["Dockerfile", "docker-compose.yml", "DEPLOYMENT.md"],
+  "deployment_files": [
+    "Dockerfile",
+    "docker-compose.yml",
+    "DEPLOYMENT.md"
+  ],
   "verification_summary": "Feature verify: 31/45 TCs declarados pasando (3 unit + 28 e2e), 0 fallos, 14 skip (edge/negative/perf). Suite total del proyecto con la feature: 45 unit + 31 e2e verdes. Gates: typecheck, lint, coverage pasando; smoke advisory (pasa manual); e2e ejecutado. Sin cambios de despliegue: la feature viaja en la misma imagen Next.js/Docker del proyecto."
 }
