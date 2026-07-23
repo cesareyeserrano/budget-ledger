@@ -387,3 +387,29 @@ test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo g
   await page.locator(String.raw`button[aria-label="Agregar grupo"]`).first().click();
   await expect(page.getByLabel("Nombre")).toBeVisible(); // el grupo se muestra → el tipo se expandió
 });
+
+// ---------- NFR-103 (Regression) — carga con Lexend ----------
+// @aitri-tc TC-212f
+test("TC-212f: la carga inicial con Lexend no supera ~2s y la fuente es self-hosted (sin CDN)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  // Capturar cualquier request de fuente a un host externo (violaría self-hosting NFR-004/BG-001).
+  const externalFontReqs: string[] = [];
+  page.on("request", (req) => {
+    const url = req.url();
+    const isFont = req.resourceType() === "font" || /\.(woff2?|ttf|otf)(\?|$)/i.test(url);
+    const isExternal = /^https?:\/\//i.test(url) && !/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+    if (isFont && isExternal) externalFontReqs.push(url);
+    // fonts.googleapis.com / fonts.gstatic.com serían CDN aunque no disparen resourceType 'font'
+    if (/fonts\.(googleapis|gstatic)\.com/i.test(url)) externalFontReqs.push(url);
+  });
+
+  const start = Date.now();
+  await page.goto("/", { waitUntil: "load" });
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  const elapsed = Date.now() - start;
+
+  // Guardrail de rendimiento: carga inicial ≤ 2s (servida desde el build de producción).
+  expect(elapsed).toBeLessThanOrEqual(2000);
+  // Lexend self-hosted: 0 peticiones de fuente a CDN/host externo.
+  expect(externalFontReqs).toEqual([]);
+});

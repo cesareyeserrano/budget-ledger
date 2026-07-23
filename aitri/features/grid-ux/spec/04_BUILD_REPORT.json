@@ -5,6 +5,7 @@
     "src/lib/gridWidth.ts (FR-104 persistencia del ancho de columna)",
     "tests/domain/gridWidth.test.ts",
     "tests/domain/period-default.test.ts",
+    "tests/domain/rollup-perf.test.ts (NFR-103 regresión: roll-up ≤150ms + resize desacoplado)",
     "tests/e2e/grid-ux.spec.ts"
   ],
   "files_modified": [
@@ -19,6 +20,7 @@
   "test_files": [
     "tests/domain/gridWidth.test.ts",
     "tests/domain/period-default.test.ts",
+    "tests/domain/rollup-perf.test.ts",
     "tests/e2e/grid-ux.spec.ts"
   ],
   "quality_gates": [

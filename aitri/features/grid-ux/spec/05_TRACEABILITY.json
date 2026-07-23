@@ -79,8 +79,8 @@
     {
       "id": "NFR-103",
       "title": "(Regresión) roll-up ≤150ms",
-      "level": "partial",
-      "evidence": "Medido manualmente ~21ms en verificación previa; sin test automatizado en esta feature (TC-212 declarado, skipped). Deuda técnica: perf no automatizada."
+      "level": "production_ready",
+      "evidence": "TC-212h/e/f (2 unit + 1 e2e) pasando. TC-212h: editar hoja + recómputo completo de la grilla en ≤150ms (medido ~2ms). TC-212e: writeCatWidth (resize) no altera los roll-ups. TC-212f: carga inicial ≤2s con Lexend self-hosted (0 peticiones de fuente a CDN). Sin cambios de dominio; roll-up cubierto además por NFR-507/TC-BE-065h."
     },
     {
       "id": "NFR-104",
@@ -109,12 +109,8 @@
   ],
   "technical_debt_inherited": [
     {
-      "fr_id": "NFR-103",
-      "substitution": "Rendimiento (≤150ms roll-up, ≤2s carga, render granular) verificado por medición manual, no automatizado. TC-212h/e/f declarados pero skipped."
-    },
-    {
       "fr_id": "varios",
-      "substitution": "14 TCs declarados en 03_TEST_CASES.json quedan skipped (variantes edge/negative/perf: TC-205e, 208e, 210e, 211e/f, 212h/e/f, 213e/f, 214f, 215e/f). Los MUST FRs tienen al menos su camino feliz + negativos clave cubiertos y pasando."
+      "substitution": "11 TCs declarados en 03_TEST_CASES.json quedan skipped (variantes edge/negative: TC-205e, 208e, 210e, 211e/f, 213e/f, 214f, 215e/f). Los MUST FRs tienen al menos su camino feliz + negativos clave cubiertos y pasando; los perf (TC-212h/e/f) ya están automatizados."
     },
     {
       "fr_id": "smoke",
@@ -130,5 +126,5 @@
     "docker-compose.yml",
     "DEPLOYMENT.md"
   ],
-  "verification_summary": "Feature verify: 31/45 TCs declarados pasando (3 unit + 28 e2e), 0 fallos, 14 skip (edge/negative/perf). Suite total del proyecto con la feature: 45 unit + 31 e2e verdes. Gates: typecheck, lint, coverage pasando; smoke advisory (pasa manual); e2e ejecutado. Sin cambios de despliegue: la feature viaja en la misma imagen Next.js/Docker del proyecto."
+  "verification_summary": "Feature verify: 41/52 TCs declarados pasando (6 unit + 35 e2e), 0 fallos, 11 skip (edge/negative). NFR-103 (perf/regresión) ahora automatizado y verde (TC-212h/e/f). Gates: typecheck, lint, coverage pasando; e2e ejecutado; smoke advisory (pasa manual). Sin cambios de despliegue: la feature viaja en la misma imagen Next.js/Docker del proyecto."
 }
