@@ -1,11 +1,11 @@
 # Ledger — imagen de producción (Next.js 15, Node 22). Deploy: reverse proxy (TLS) → este contenedor.
 # feature backend: modo servidor (auth + Postgres). La Pi es solo un target; imagen multi-arch estándar.
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps || npm install --omit=dev --no-audit --no-fund --legacy-peer-deps
 
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund --legacy-peer-deps
@@ -19,7 +19,7 @@ ENV NEXT_PUBLIC_LEDGER_SERVER_MODE=true
 # next/font auto-aloja Fira Code en build (sin peticiones externas en runtime — NFR-004, BG-001).
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
