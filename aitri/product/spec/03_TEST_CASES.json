@@ -14,7 +14,7 @@
       "requirement_id": "FR-001",
       "user_story_id": "US-001",
       "ac_id": "AC-001",
-      "title": "Registrar movimiento suma al Ejecutado y encabeza recientes (flujo crítico)",
+      "title": "Registrar movimiento suma al Ejecutado y confirma con toast (flujo crítico)",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
@@ -23,16 +23,16 @@
       ],
       "given": "el módulo Registrar con tipo=Gasto, categoría='Comida', mes='jun' seleccionados y monto vacío",
       "when": "el usuario escribe 50000 en el input de monto y hace clic en 'Guardar movimiento'",
-      "then": "el Ejecutado de 'Comida' en 'jun' pasa a E0+50000 exactamente, aparece un toast, y el primer item de la lista de recientes es 'Comida · -$50.000'",
+      "then": "el Ejecutado de 'Comida' en 'jun' pasa a E0+50000 exactamente, aparece un toast de confirmación y el campo de monto se limpia a 0",
       "steps": [
         "Seleccionar tipo Gasto",
         "Seleccionar categoría Comida",
         "Seleccionar mes jun",
         "Escribir 50000",
         "Clic Guardar movimiento",
-        "Leer Ejecutado de Comida y primer reciente"
+        "Leer Ejecutado de Comida, el toast y el campo de monto"
       ],
-      "expected_result": "actuals['Comida']['jun'] === E0+50000 y recientes[0].name === 'Comida'",
+      "expected_result": "actuals['Comida']['jun'] === E0+50000, el toast está visible y el input de monto vuelve a 0 (BL-003: sin lista de recientes)",
       "test_data": {
         "amount": 50000,
         "month": "jun",

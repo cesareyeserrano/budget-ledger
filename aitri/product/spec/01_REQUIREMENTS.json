@@ -5,11 +5,11 @@
     {
       "id": "FR-001",
       "title": "Registrar movimiento (módulo de captura; única vista en móvil compacto v1)",
-      "description": "App WEB. El usuario captura un movimiento eligiendo tipo (Gasto/Ingreso/Transferencia), categoría, subcategoría opcional, mes y monto, y lo guarda. La entrada de monto es un input estándar de formulario web (NO hay teclado numérico ad-hoc). Este módulo es la ÚNICA vista en pantalla pequeña (móvil responsive) en v1; en escritorio está disponible como sección/panel dentro de la app completa. Al guardar, el amount se suma al Ejecutado de la hoja destino (target = subId si existe, si no catId) en el mes elegido, se recalculan roll-ups, se agrega al log de recientes y se muestra un toast. El botón 'Guardar' está deshabilitado si monto=0 o no hay categoría.",
+      "description": "App WEB. El usuario captura un movimiento eligiendo tipo (Gasto/Ingreso/Transferencia), categoría, subcategoría opcional, mes y monto, y lo guarda. La entrada de monto es un input estándar de formulario web (NO hay teclado numérico ad-hoc). Este módulo es la ÚNICA vista en pantalla pequeña (móvil responsive) en v1; en escritorio está disponible como sección/panel dentro de la app completa. Al guardar, el amount se suma al Ejecutado de la hoja destino (target = subId si existe, si no catId) en el mes elegido, se recalculan roll-ups y se muestra un toast. El botón 'Guardar' está deshabilitado si monto=0 o no hay categoría.",
       "priority": "MUST",
       "type": "logic",
       "acceptance_criteria": [
-        "Dado tipo+categoría+mes seleccionados y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000 y el movimiento aparece primero en la lista de recientes",
+        "Dado tipo+categoría+mes seleccionados y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000 y se muestra el toast de confirmación",
         "Con monto=0 o sin categoría seleccionada, el botón 'Guardar movimiento' está deshabilitado y no se crea ningún movimiento (negativo)",
         "Si la categoría elegida tiene subcategorías, el selector de subcategoría aparece; si no tiene, no se muestra (edge)",
         "El monto se ingresa por un input estándar de formulario web; no existe un teclado numérico ad-hoc en pantalla (regla de plataforma)",
@@ -203,7 +203,7 @@
           "id": "AC-001",
           "given": "el módulo Registrar con tipo Gasto, categoría Comida y mes Junio seleccionados",
           "when": "escribo 50000 en el input de monto y pulso Guardar movimiento",
-          "then": "el Ejecutado de Comida en Junio aumenta en 50000, aparece un toast y el movimiento encabeza la lista de recientes"
+          "then": "el Ejecutado de Comida en Junio aumenta en 50000, aparece un toast de confirmación y el campo de monto se limpia a 0"
         },
         {
           "id": "AC-002",
@@ -541,7 +541,7 @@
       "disposition": "FR-001"
     },
     {
-      "need": "Módulo de registro como única vista en móvil compacto v1 y lista de recientes",
+      "need": "Módulo de registro como única vista en móvil compacto v1",
       "disposition": "FR-001"
     },
     {

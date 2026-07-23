@@ -20,7 +20,7 @@
   3. Elige mes (default = mes en curso).
   4. Escribe el monto en un **input estándar** (NO teclado numérico ad-hoc). El monto se muestra grande arriba precedido del signo del tipo.
   5. Pulsa "Guardar movimiento".
-- **Exit point:** el movimiento se suma al Ejecutado de la hoja destino en el mes, se recalculan roll-ups, se prepende a "recientes", se limpia el monto a 0 y aparece un toast (~2s).
+- **Exit point:** el movimiento se suma al Ejecutado de la hoja destino en el mes, se recalculan roll-ups, se limpia el monto a 0 y aparece un toast (~2s). (BL-003: sin lista de "recientes".)
 - **Error / prevención:** el botón "Guardar" está **deshabilitado** mientras monto=0 o no hay categoría (H5 error prevention). El input rechaza no-numéricos y negativos; si el usuario intenta un valor inválido, el campo no lo acepta y el botón permanece deshabilitado (mensaje inline "Ingresa un monto mayor a 0").
 
 ### Flujo B — Gestionar categorías (CRUD 3 niveles) (persona: Dueño de finanzas) · FR-002
@@ -74,7 +74,6 @@
 | Selector de subcategoría | default · empty (oculto si la categoría no tiene subs) · disabled · error (n/a) · loading | Aparece solo si la categoría tiene subcategorías | H8 minimalista |
 | Selector de mes | default (mes en curso) · disabled · empty (n/a) · error (n/a) · loading | 12 meses | H6 |
 | Botón "Guardar movimiento" | default · **disabled (monto=0 o sin categoría)** · loading (guardando, instantáneo) · error (n/a) · empty (n/a) | Habilitado toma color del tipo con relleno alpha | H5, H1 |
-| Lista de recientes | default · **empty ("Aún no hay movimientos")** · loading (skeleton) · error (n/a) · disabled (n/a) | Ícono categoría · nombre · meta (tipo · cuándo) · monto con signo/color | H1, H6 |
 | Toast de confirmación | default (visible ~2s) · resto n/a | Fade-in 0.2s, autodescarte ~2s; respeta reduced-motion | H1 |
 
 ### Pantalla: Presupuesto — grilla escritorio — FR-006, FR-004, FR-008
@@ -185,7 +184,7 @@ Escala (rem): título app 1.4/450 · eyebrow 0.62/700 (ls 0.18em, muted) · KPI 
 Aplicación: app `--shadow-lg`, radio 14px; tarjetas `--radius-md`; chips/inputs `--radius-sm`; pastillas `--radius-full`. Reglas duras: fondo siempre sólido (sin gradientes/patrones); hover cambia **borde**, no fondo; **sin emoji**; íconos de línea 1.5–2px `currentColor` 13–20px (Lucide); scrollbars finas oscuras. **`prefers-reduced-motion`: todas las duraciones a 0.001ms.**
 
 ### Responsive (breakpoints por pantalla)
-- **375px (móvil):** SOLO Registrar. Monto héroe, selectores apilados, chips de categoría con scroll horizontal, botón full-width, recientes debajo. Sin grilla ni dashboard en el DOM visible. Sin desbordes.
+- **375px (móvil):** SOLO Registrar. Monto héroe, selectores apilados, chips de categoría con scroll horizontal, botón full-width. Sin grilla ni dashboard en el DOM visible. Sin desbordes.
 - **768px (tablet):** app completa (shell escritorio, ya que >760px). Grilla con scroll horizontal, panel Registrar como lateral opcional; dashboard en 2 columnas.
 - **1440px (desktop):** grilla 12 meses con columna categoría sticky (240px) + encabezados sticky-top; dashboard lado a lado; panel Registrar (slideIn) opcional.
 - **Boundary 760px:** exactamente 760px = shell móvil (solo Registrar).

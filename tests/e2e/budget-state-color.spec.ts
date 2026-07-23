@@ -473,7 +473,7 @@ test("TC-BSC-454h: regresión — la edición inline de una hoja sigue funcionan
   await expect(ejecCell(rowByName(page, "Colegio"), PLAIN_INDEX)).toContainText("123.456"); // la persistencia no cambió
 });
 
-test("TC-BSC-454e: regresión — filtro Mes/Año, roll-ups y la lista Recientes siguen intactos", async ({ page }) => {
+test("TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Recientes' retirada (BL-003)", async ({ page }) => {
   // @aitri-tc TC-BSC-454e
   await gotoGrid(page);
 
@@ -491,9 +491,11 @@ test("TC-BSC-454e: regresión — filtro Mes/Año, roll-ups y la lista Recientes
   await expect(budgetKpi).toHaveText(kpiMonth!); // el mes vuelve a agregar lo mismo
   await expect(page.getByTestId("budget-grid")).toBeVisible();
 
-  // a 375px la lista Recientes sigue existiendo (su remoción es BL-003, otra feature)
+  // BL-003: la lista 'Recientes' se retiró del móvil; el registro sigue siendo la única vista
   await page.setViewportSize(MOBILE);
-  await expect(page.getByText("RECIENTES")).toBeVisible();
+  await expect(page.getByText("RECIENTES")).toHaveCount(0);
+  await expect(page.getByTestId("recent-item")).toHaveCount(0);
+  await expect(page.getByTestId("save-button")).toBeVisible(); // el módulo de registro sigue intacto
 });
 
 test("TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor", async ({ page }) => {

@@ -219,7 +219,7 @@ test("TC-SUT-228f: guardar sin categoría muestra 'Elige una categoría.' y no p
   await page.getByTestId("amount-input").fill("30000");
   await page.getByTestId("save-button").click();
   await expect(page.getByRole("alert").filter({ hasText: "Elige una categoría." })).toBeVisible();
-  await expect(page.getByTestId("recent-item")).toHaveCount(0); // no se agregó
+  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0); // BL-003: sin overlay de confirmación ⇒ no se guardó
 });
 
 // ── FR-210 · fecha ────────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ test("TC-SUT-239f: con monto=0 el botón Guardar está deshabilitado; con monto 
   await expect(page.getByTestId("save-button")).toBeDisabled(); // monto 0
   await page.getByTestId("amount-input").fill("10000");
   await page.getByTestId("save-button").click(); // sin categoría
-  await expect(page.getByTestId("recent-item")).toHaveCount(0);
+  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0); // BL-003: sin overlay ⇒ no se creó el movimiento
 });
 
 test("TC-SUT-240e: fallo de almacenamiento (quota) muestra el StorageBanner y el form sigue usable", async ({ page }) => {

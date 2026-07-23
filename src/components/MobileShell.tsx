@@ -1,7 +1,6 @@
 "use client";
 import { Wallet } from "lucide-react";
 import { Register } from "./register/Register";
-import { RecentList } from "./RecentList";
 import { StorageBanner } from "./register/StorageBanner";
 import { ThemeToggle } from "./ThemeToggle";
 import { Toaster } from "./Toaster";
@@ -23,9 +22,6 @@ export function MobileShell() {
       <div className="lx-scroll flex-1 overflow-y-auto px-5 pt-5 pb-6">
         <div className="mb-3"><StorageBanner /></div>
         <Register />
-        <div className="mt-6">
-          <RecentList />
-        </div>
       </div>
       <Toaster />
     </div>

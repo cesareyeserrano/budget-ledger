@@ -23,7 +23,7 @@ North Star: demo funcional end-to-end sin bugs. La arquitectura prioriza **corre
 │        ┌──────────▼─────────┐       ┌─────────▼──────────────────────┐ │
 │        │  MobileShell       │       │  DesktopShell                  │ │
 │        │  SOLO <MovementForm>│      │  MovementPanel · BudgetGrid ·  │ │
-│        │  + <RecentList>    │       │  Dashboard · CategoryTree      │ │
+│        │  (sin RecentList)  │       │  Dashboard · CategoryTree      │ │
 │        └──────────┬─────────┘       └─────────┬──────────────────────┘ │
 │                   │  UI (shadcn/ui, Recharts[lazy], @dnd-kit)          │
 │        ┌──────────▼──────────────────────────────────────────────────┐│
@@ -51,7 +51,7 @@ North Star: demo funcional end-to-end sin bugs. La arquitectura prioriza **corre
 
 **Componentes y responsabilidad:**
 - **ResponsiveShell** — elige Mobile/Desktop por media-query 760px (FR-010). Única responsabilidad: layout raíz.
-- **MobileShell** — monta SOLO `MovementForm` + `RecentList` (FR-001, FR-010, divergencia v1 #1). No importa grilla ni dashboard (garantiza que no estén en el DOM en móvil).
+- **MobileShell** — monta SOLO `MovementForm` (FR-001, FR-010, divergencia v1 #1). No importa grilla ni dashboard (garantiza que no estén en el DOM en móvil). La lista de recientes se retiró (BL-003): el guardado se confirma por toast + reset del monto.
 - **DesktopShell** — orquesta MovementPanel (slideIn), BudgetGrid, Dashboard, CategoryTree y el toggle Resumen/Dashboard.
 - **BudgetGrid** — divs flex + sticky (columna categoría 240px, encabezados 12 meses); edición inline SOLO de celdas-hoja; drag-drop de reparent (FR-006, FR-015).
 - **useLedgerStore (Zustand)** — única fuente de verdad en memoria; acciones (mutaciones puras del dominio) + selectores (roll-ups derivados memoizados). Persiste vía repositorio tras cada mutación.

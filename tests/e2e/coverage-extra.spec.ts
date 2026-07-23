@@ -34,7 +34,9 @@ test("TC-010e: un movimiento capturado en pantalla pequeña se refleja en la gri
     await subRow.getByRole("button").first().click();
   }
   await page.getByTestId("save-button").click();
-  await expect(page.getByTestId("recent-item").first()).toBeVisible();
+  // BL-003: confirmación por el overlay del registro, ya no por 'Recientes'
+  await expect(page.getByTestId("confirm-overlay")).toContainText("$77.777");
+  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0, { timeout: 4000 });
   // cambiar a escritorio: mismos datos vía localStorage, sin importar/exportar
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.reload();

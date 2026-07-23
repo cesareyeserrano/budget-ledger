@@ -42,7 +42,7 @@ test("TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla", asyn
   await expect(page.getByTestId("mobile-shell")).toHaveCount(0);
 });
 
-test("TC-001h: registrar un movimiento lo suma y lo muestra en recientes", async ({ page }) => {
+test("TC-001h: registrar un movimiento lo guarda y confirma con toast", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/");
   // Registro rediseñado (feature stack-upgrade-theme): monto + elegir la hoja disponible + Guardar.
@@ -53,7 +53,11 @@ test("TC-001h: registrar un movimiento lo suma y lo muestra en recientes", async
     await subRow.getByRole("button").first().click();
   }
   await page.getByTestId("save-button").click();
-  await expect(page.getByTestId("recent-item").first()).toBeVisible();
+  // BL-003: la lista 'Recientes' se retiró del móvil; el guardado se confirma por el overlay
+  // con el monto y por el campo de monto que vuelve a 0 (AC de FR-001).
+  await expect(page.getByTestId("confirm-overlay")).toContainText("$50.000");
+  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0, { timeout: 4000 });
+  await expect(page.getByLabel("Monto en pesos")).toHaveValue("");
 });
 
 test("TC-006h: la grilla renderiza con columna categoría sticky y 12 meses", async ({ page }) => {

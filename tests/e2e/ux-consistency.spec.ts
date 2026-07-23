@@ -192,16 +192,14 @@ test("TC-UXC-305h: KPI del dashboard y del escritorio en DM Mono tabular", async
   expect(isMono(await dashVal.evaluate((el) => getComputedStyle(el).fontFamily))).toBe(true);
 });
 
-test("TC-UXC-305e: celda de grilla y monto de recientes en DM Mono", async ({ page }) => {
+test("TC-UXC-305e: celda de grilla y monto del registro en DM Mono", async ({ page }) => {
   await gotoDesk(page, "light");
   const cellFont = await page.getByTestId("cell-leaf").first().evaluate((el) => getComputedStyle(el).fontFamily);
   expect(isMono(cellFont)).toBe(true);
+  // BL-003: 'Recientes' se retiró; la superficie de monto en móvil es el input del registro.
   await gotoMobile(page, "light");
   await page.getByTestId("amount-input").fill("50000");
-  await selectLeaf(page);
-  await page.getByTestId("save-button").click();
-  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0, { timeout: 4000 });
-  const amtFont = await page.getByTestId("recent-amount").first().evaluate((el) => getComputedStyle(el).fontFamily);
+  const amtFont = await page.getByTestId("amount-input").evaluate((el) => getComputedStyle(el).fontFamily);
   expect(isMono(amtFont)).toBe(true);
 });
 
@@ -225,11 +223,15 @@ test("TC-UXC-306h: los eyebrows resuelven al mismo tamaño/peso/color vía .eyeb
   expect(deskEyebrows.length).toBeGreaterThan(1);
   for (const s of deskEyebrows) { expect(s.fs).toBe("11px"); expect(s.fw).toBe("600"); expect(s.tt).toBe("uppercase"); }
   expect(new Set(deskEyebrows.map((s) => s.color)).size).toBe(1);
+  // BL-003: al retirar la lista 'Recientes' el móvil se quedó sin eyebrows (era su encabezado).
+  // La consistencia de .eyebrow se afirma en escritorio, que es donde viven; en móvil se afirma
+  // que no queda ninguno y que la cabecera del registro conserva su escala tipográfica.
   await gotoMobile(page, "light");
-  const mobEyebrow = (await eyebrowStyles(page))[0];
-  expect(mobEyebrow.fs).toBe("11px");
-  expect(mobEyebrow.fw).toBe("600");
-  expect(mobEyebrow.color).toBe(deskEyebrows[0].color);
+  expect(await eyebrowStyles(page)).toHaveLength(0);
+  const mobTitle = await page.getByTestId("page-title").evaluate((el) => {
+    const s = getComputedStyle(el); return { fs: s.fontSize, fw: s.fontWeight };
+  });
+  expect(mobTitle.fw).toBe("600");
 });
 
 test("TC-UXC-306e: el eyebrow 'CATEGORÍA' de la grilla usa .eyebrow con contraste ≥4.5:1", async ({ page }) => {
@@ -510,14 +512,15 @@ test("TC-UXC-314f: --radius-full y --primary-foreground existen y el texto sobre
 });
 
 // ── NFR-301 · regresión funcional ──────────────────────────────────────────────
-test("TC-UXC-351h: guardar un movimiento suma a Ejecutado y aparece en recientes", async ({ page }) => {
+test("TC-UXC-351h: guardar un movimiento lo confirma y limpia el monto", async ({ page }) => {
   await gotoMobile(page, "light");
   await page.getByTestId("amount-input").fill("50000");
   await selectLeaf(page);
   await page.getByTestId("save-button").click();
   await expect(page.getByTestId("confirm-overlay")).toContainText("$50.000");
   await expect(page.getByTestId("confirm-overlay")).toHaveCount(0, { timeout: 4000 });
-  await expect(page.getByTestId("recent-item").first()).toBeVisible();
+  // BL-003: sin lista 'Recientes'; el guardado se observa por el reset del monto.
+  await expect(page.getByTestId("amount-input")).toHaveValue("");
 });
 
 test("TC-UXC-351e: edición inline de una hoja de la grilla persiste", async ({ page }) => {
@@ -538,7 +541,7 @@ test("TC-UXC-351f: guardar con monto 0 / sin categoría no crea movimiento", asy
   await page.getByTestId("amount-input").fill("10000");
   await page.getByTestId("save-button").click();
   await expect(page.getByRole("alert").filter({ hasText: "Elige una categoría." })).toBeVisible();
-  await expect(page.getByTestId("recent-item")).toHaveCount(0);
+  await expect(page.getByTestId("confirm-overlay")).toHaveCount(0); // BL-003: sin overlay ⇒ no se creó el movimiento
 });
 
 // ── NFR-302 · identidad conservada ─────────────────────────────────────────────

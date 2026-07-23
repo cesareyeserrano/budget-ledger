@@ -14,7 +14,7 @@
       "id": "FR-001",
       "title": "Registrar movimiento (captura; única vista en móvil compacto v1)",
       "level": "production_ready",
-      "evidence": "3 tests pasando (TC-001h e2e + TC-001e/f unit): suma al Ejecutado de la hoja destino, guardado deshabilitado sin monto/categoría."
+      "evidence": "3 tests pasando (TC-001h e2e + TC-001e/f unit): suma al Ejecutado de la hoja destino, guardado deshabilitado sin monto/categoría. BL-003: se retiró la lista de recientes; la confirmación de guardado es el overlay con el monto + el campo que vuelve a 0 (TC-001h e2e pasando)."
     },
     {
       "id": "FR-002",
@@ -158,6 +158,6 @@
     "smoke.sh",
     ".github/workflows/ci.yml"
   ],
-  "verification_summary": "43/54 tests pasando (29 unit + 14 e2e), 0 fallos, 11 skip (manual/cubiertos por otro test). Cobertura de dominio+data 94% líneas. Gates: typecheck, lint, coverage(≥80), smoke — todos en verde. Sin bugs activos (BG-001 verificado).",
+  "verification_summary": "54/54 tests pasando (0 fallos, 0 skip). Gates: typecheck, lint, coverage, smoke y e2e todos en verde. Sin bugs activos. BL-003 aplicado: la lista 'Recientes' se retiró del móvil; FR-001 se verifica ahora por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
   "version_source": "team"
 }
