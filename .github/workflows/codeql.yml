@@ -1,0 +1,53 @@
+name: CodeQL
+
+# Análisis estático de seguridad (SAST). Cubre el hueco que dejan los otros dos gates:
+#   - `npm audit` mira las DEPENDENCIAS (CVEs de terceros).
+#   - `secret-scan.sh` mira los SECRETOS hardcodeados.
+#   - CodeQL mira el CÓDIGO PROPIO: inyección SQL, XSS, path traversal, redirecciones abiertas.
+# Los hallazgos aparecen en la pestaña Security → Code scanning, y como anotación en el PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Semanal: las queries de CodeQL evolucionan, así que código sin tocar puede volverse vulnerable
+  # a ojos de una regla nueva. Lunes 04:17 UTC (fuera de hora punta del runner compartido).
+  schedule:
+    - cron: "17 4 * * 1"
+
+# Permiso mínimo por defecto para el GITHUB_TOKEN; el job eleva solo lo que necesita.
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analizar JS/TS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write # publicar resultados en la pestaña Security
+    steps:
+      # Actions fijadas por SHA de commit, no por tag: un tag puede reapuntarse a código malicioso
+      # si se compromete el repo de la action. Dependabot (github-actions) mantiene estos SHAs.
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        with:
+          languages: javascript-typescript
+          # security-extended añade queries de mayor cobertura (más ruido, más hallazgos reales)
+          # frente al set 'default'. Razonable en un proyecto de este tamaño.
+          queries: security-extended
+
+      # JS/TS es interpretado: CodeQL extrae el código directamente, sin paso de build.
+      - name: Analizar
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        with:
+          category: "/language:javascript-typescript"
