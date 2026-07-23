@@ -1,6 +1,6 @@
 {
   "project": "Ledger (T-Ledger)",
-  "version": "1.0.0",
+  "version": "0.0.1-beta",
   "phases_completed": [
     1,
     2,
@@ -158,5 +158,6 @@
     "smoke.sh",
     ".github/workflows/ci.yml"
   ],
-  "verification_summary": "43/54 tests pasando (29 unit + 14 e2e), 0 fallos, 11 skip (manual/cubiertos por otro test). Cobertura de dominio+data 94% líneas. Gates: typecheck, lint, coverage(≥80), smoke — todos en verde. Sin bugs activos (BG-001 verificado)."
+  "verification_summary": "43/54 tests pasando (29 unit + 14 e2e), 0 fallos, 11 skip (manual/cubiertos por otro test). Cobertura de dominio+data 94% líneas. Gates: typecheck, lint, coverage(≥80), smoke — todos en verde. Sin bugs activos (BG-001 verificado).",
+  "version_source": "team"
 }
