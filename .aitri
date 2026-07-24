@@ -23,33 +23,9 @@
   "aitriVersion": "2.1.0-rc.9",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-23T22:08:54.481Z",
+  "updatedAt": "2026-07-24T00:18:29.784Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-23T20:09:23.312Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-23T20:09:23.363Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "1.0.0",
-      "version_source": null
-    },
-    {
-      "at": "2026-07-23T20:50:32.960Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-23T20:50:33.011Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "0.0.1-beta",
-      "version_source": "team"
-    },
     {
       "at": "2026-07-23T21:51:11.700Z",
       "event": "completed",
@@ -141,6 +117,39 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "team"
+    },
+    {
+      "at": "2026-07-23T22:48:53.513Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 6,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-07-24T00:14:57.943Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-24T00:15:03.337Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-24T00:18:29.749Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 6,
+      "method": "git",
+      "baseRefFrom": "0d271d13a847d26a9abd1bb51a8822f26fd7b014",
+      "baseRefTo": "b1abee6b8b3e991c137f757d20a046691ce0d4b5"
     }
   ],
   "cascadedPhases": [],
@@ -253,14 +262,14 @@
       "at": "2026-07-23T22:08:54.458Z"
     }
   ],
-  "verifyResultsHash": "9b9b3c940084bd5393b5313614f266292e6636546e3f30348e0fda69932ac622",
-  "verifyRanAt": "2026-07-23T22:08:36.197Z",
+  "verifyResultsHash": "b61d7dcdbe4f3be54cedd6dc15ab5d40459569ae12a4626e3c4f8929d44c31a6",
+  "verifyRanAt": "2026-07-24T00:14:57.943Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-23T22:08:36.197Z"
+    "at": "2026-07-24T00:14:57.943Z"
   },
   "verifySummary": {
     "total": 54,
