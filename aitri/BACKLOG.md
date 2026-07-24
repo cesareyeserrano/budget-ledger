@@ -42,3 +42,19 @@ Entries without `Files` and `Behavior` are considered incomplete and should be e
   Behavior: when the project records `last_deploy_at` (set by the deploy job), `status` renders a `Last deploy: <relative time>` line in the header. Absent → omit the line entirely.
   Decisions: relative time only (no absolute date), capped upstream at "30+ days ago" — exact dates belong in CI logs, not in the daily-driver CLI header.
   Acceptance: unit test asserts the header includes the line when the field is present and omits the line when absent.
+
+---
+
+## Diferidos conscientemente (cerrados en el backlog CLI, NO implementados)
+
+Registro de por qué se cerró cada uno — `aitri backlog done` no guarda motivo. Cerrados el 2026-07-24.
+
+- **backend/BL-004 — Cifrado a nivel de campo de montos y notas (era P2). NO IMPLEMENTADO.**
+  Estado real: `amount` sigue en claro como `bigint` en `src/server/db/schema.ts` (tablas `amount_cell` y `movement`); ADR-08 delega el cifrado en reposo al volumen, lo que protege disco y backup pero no una query directa a la BD. Riesgo vigente: quien obtenga acceso de lectura a Postgres lee los montos.
+  Por qué se difiere: es una feature propia, no un parche — exige gestión de claves (AES-GCM) y rompe los `CHECK amount >= 0` y cualquier query numérica sobre el monto.
+  Para retomar: `aitri feature init field-encryption`. Ver NFR-511 en `05_TRACEABILITY.json`.
+
+- **backend/BL-002 — CSP con nonce (era P3). Cerrado como decisión aceptada, no como trabajo hecho.**
+  Las otras dos partes del ítem sí están implementadas: `poweredByHeader: false` (`next.config.mjs`) y el rate-limit de `/sign-up/email` (`src/server/auth.ts`).
+  La CSP mantiene `'unsafe-inline' 'unsafe-eval'` en `next.config.mjs`: Next inyecta scripts y estilos inline sin nonce en este setup, y endurecerla rompe la app. El comentario del archivo ya documenta el trade-off. Revisar si Next habilita nonces nativos.
+  El gate `scripts/security-config.sh` que proponía el audit no se creó.
