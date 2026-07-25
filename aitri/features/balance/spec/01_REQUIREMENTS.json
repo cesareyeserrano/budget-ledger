@@ -1,0 +1,356 @@
+{
+  "project_name": "Ledger (T-Ledger) — Feature: balance",
+  "project_summary": "La grilla registra el presupuesto pero no lo INTERPRETA como BALANCE: muestra cuánto se presupuestó/ejecutó por categoría, pero no cuánto le queda disponible al usuario ni cuánto ya está apartado. ALCANCE RECORTADO (2026-07-24): las filas de agregación que el brief pedía — subtotal por grupo, Total por tipo, subtotal por categoría — YA EXISTEN en el build actual (componente TypeTotalRow + roll-ups en las filas padre, con dos sub-columnas Pres./Ejec. por mes) y quedan FUERA de esta feature. Lo que esta feature construye de nuevo es: (a) un módulo de BALANCE debajo del bloque de tipos que deriva, columna por columna (mes) y en ambos planos, seis cifras; y (b) la separación visual del bloque Transferencia. MODELO (cerrado con el usuario 2026-07-24, ver 00_DISCOVERY.md): la grilla mezcla FLUJO (ingresos/gastos, se resetean cada mes) con STOCK (lo transferido a reservas: alcancías/bolsillos/cuentas, se arrastra). Regla base: transferir SIEMPRE sale de disponible (modelo sobre); disponible = lo gastable o ahorrable/transferible. Por columna: Saldo mes anterior (disponible previo + reservado previo, dos componentes; mes 1 = 0) · Flujo del mes (Ingreso − Gasto) · Reservas del mes (lo guardado; v1 solo aportes ≥ 0) · Saldo disponible (= disp. previo + Ingreso − Gasto − Reservas) · Saldo reservado (= reserv. previo + Reservas) · Saldo total (= disponible + reservado). Las seis cifras se calculan en los DOS planos, Presupuestado y Ejecutado (igual que la grilla), para comparar plan vs realidad del balance en cada mes; cada plano arrastra su propio cierre de forma independiente (el presupuestado el planeado, el ejecutado el real). El reservado se acumula (internamente cada alcancía aporta su columna); el módulo MUESTRA el reservado GLOBAL (la suma), no el saldo por alcancía — ver el acumulado por ítem queda fuera de v1. Propiedad de consistencia: la transferencia se cancela entre disponible y reservado, así que Saldo total = Saldo total del mes anterior + Flujo del mes. El saldo mes anterior NO es un ingreso (sería doble conteo). No hay circularidad: la transferencia es un DATO registrado, no una fórmula derivada del disponible; el balance se calcula en una sola pasada. NORTH STAR: el usuario responde de un vistazo '¿cuánto tengo disponible y cuánto está apartado este mes?' sin sumar a mano, y las cifras del balance RECONCILIAN (Saldo total = total previo + flujo del mes, dentro de cada plano) para cualquier estado de la grilla. JTBD: cuando reviso mi presupuesto del mes, quiero ver el balance de lo que ya registré — disponible, reservado y total — para decidir cuánto puedo gastar sin cuentas mentales. GUARDRAIL (cero regresión): los montos hoja por hoja se muestran y editan igual, los roll-ups existentes (sub→cat→grupo→tipo) quedan idénticos, el código de estado por color (budget-state-color), promover/degradar (promote-to-group/demote-node) y el registro de movimientos no cambian; los agregados y el balance son DERIVADOS, no alteran datos almacenados. ALCANCE v1: solo GUARDAR en una reserva (aporte ≥ 0, sale de disponible) — la reserva solo crece y nunca queda negativa. 'Sacar' de una reserva, mover entre dos reservas y los préstamos se difieren a la feature `transferencias`, que hace las transferencias CALCULADAS (origen→destino) y vuelve las celdas de transferencia no editables a mano. Consecuencia importante: v1 NO toca el modelo de datos ni el CHECK `amount >= 0` (todos los aportes son positivos). El balance es una superficie de ESCRITORIO, igual que presupuesto y dashboard; en móvil v1 solo existe el registro.",
+  "technology_preferences": [
+    "Cambio sobre el stack existente: Next.js 15, React 19, Tailwind v4 (@theme inline), Zustand, TypeScript. Sin dependencias nuevas.",
+    "Los agregados y el balance se CALCULAN a partir de la fuente única existente (hojas: budgets/actuals + movements); no se persiste estado redundante que pueda descuadrar.",
+    "Reutilizar la superficie de estructura --bg-sunken (ya usada por filas no editables en budget-state-color) para las filas de agregación, y las utilidades tipográficas .tabular/.caption existentes.",
+    "El cálculo de roll-up ya existe (sub→cat→grupo→tipo); las filas de agregación y el balance se apoyan en ese mismo mecanismo, extendiéndolo, no reimplementándolo."
+  ],
+  "constraints": [
+    "Modelo de balance según 00_DISCOVERY.md — no re-decidir aquí: transferir sale de disponible, cada plano arrastra su propio cierre (presupuestado el planeado, ejecutado el real, independientes), mes 1 = 0, reservado por ítem. v1 solo aportes (guardar); 'sacar' difiere a `transferencias`.",
+    "La grilla y el balance son superficies de ESCRITORIO (>760px); en móvil (≤760px) solo existe el registro. La medida declarada para tests de layout es 1440px.",
+    "Sin peticiones externas en runtime; la app corre en localhost:3100 (NO 3000).",
+    "Moneda COP, idioma UI español; código e identificadores en inglés. Los montos son enteros >= 0 (CHECK amount >= 0 en el schema). v1 solo GUARDA en reservas (aportes ≥ 0), así que NO toca ese CHECK; 'sacar' (que exigiría negativos) vive en la feature `transferencias`.",
+    "Las filas de agregación (subtotal de grupo, total por tipo, subtotal de categoría) YA EXISTEN en el build (TypeTotalRow + roll-ups en filas padre); esta feature NO las re-implementa ni las toca. El balance las consume como insumo.",
+    "Nombres de las seis filas del balance (Saldo mes anterior / Flujo del mes / Reservas del mes / Saldo disponible / Saldo reservado / Saldo total) son de trabajo, a ratificar en la revisión de UX/Build."
+  ],
+  "no_go_zone": [
+    "Filas de subtotal de grupo, total por tipo y subtotal de categoría (con o sin toggle): YA EXISTEN en el build actual (TypeTotalRow + roll-ups en las filas padre, con sub-columnas Pres./Ejec.). Se DESESTIMAN como trabajo nuevo — el brief los pedía sin saber que ya estaban. Esta feature no los construye, re-especifica ni añade un toggle para ellos.",
+    "'Sacar' de una reserva (devolverla a disponible), mover entre dos reservas nombradas (alcancía A → alcancía B) y préstamos: TODO esto se difiere a la feature `transferencias`, que hace las transferencias calculadas (origen→destino) y vuelve las celdas de transferencia no editables a mano. v1 de balance SOLO hace guardar (aporte ≥ 0): la reserva solo crece, nunca queda negativa, y NO se toca el CHECK amount >= 0 del schema.",
+    "Saldo inicial manual del mes 1: DECIDIDO que el mes 1 arranca en 0 (no hay mes anterior). No se construye un campo de saldo inicial editable.",
+    "Cálculo propio del módulo de tipos de transacción más allá de los totales por tipo de esta feature: no definido por el usuario, fuera de alcance.",
+    "Cuenta / bolsillo / alcancía como entidades con saldo e histórico independientes: se tratan como nodos de reserva del tipo Transferencia, no como objetos con vida propia.",
+    "Proyecciones, pronóstico o comparación entre meses: el balance describe cada mes con sus datos; no estima el futuro ni compara columnas entre sí.",
+    "Gráficos y exportación de los cálculos: el balance es numérico dentro de la grilla.",
+    "Cambiar el modelo de datos almacenado, los roll-ups existentes, la persistencia, el registro de movimientos o el código de estado por color: los agregados y el balance son DERIVADOS y no tocan nada de eso."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales",
+      "tech_level": "mid",
+      "goal": "Ver de un vistazo, por mes, cuánto puede gastar (disponible), cuánto ya apartó (reservado) y su patrimonio (total), sin sumar a mano",
+      "pain_point": "Hoy la grilla muestra montos sueltos; para saber lo disponible tiene que sumar mentalmente o fuera de la app, y no distingue el dinero que fluye del que está apartado, así que sobreestima lo gastable"
+    },
+    {
+      "role": "Revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Ver que las cifras de balance reconcilian (subtotales = total; total = total previo + flujo) y que los agregados son derivados sin duplicar estado",
+      "pain_point": "Un balance que no cuadra o que persiste totales redundantes delata un modelo de datos frágil"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-904",
+      "title": "Separación visual del bloque Transferencia",
+      "description": "El bloque del tipo Transferencia se muestra separado visualmente del bloque Ingresos/Gastos (espaciado propio, no contiguo), reflejando que las transferencias no son flujo (ingreso/gasto) sino movimientos de reserva. No cambia el modelo ni el orden lógico de los tipos, solo su disposición/espaciado en la grilla de escritorio. El tipo `transfer` ya existe en el dominio; esto es disposición visual, no un tipo nuevo.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En la grilla de escritorio (1440px) el bloque Transferencia queda separado del bloque Ingresos/Gastos por un espaciado propio, distinguible del espaciado entre grupos de un mismo tipo (happy)",
+        "La separación es solo visual: el orden lógico de los tipos y el modelo de datos quedan idénticos (edge)",
+        "En móvil (≤760px) no aplica: solo existe el registro, no la grilla (negative)"
+      ]
+    },
+    {
+      "id": "FR-905",
+      "title": "Módulo de Balance: seis cifras derivadas por columna (mes), en ambos planos",
+      "description": "Debajo del bloque de tipos, un módulo de Balance muestra por cada columna (mes) seis filas: (1) Saldo mes anterior; (2) Flujo del mes = Ingreso − Gasto; (3) Reservas del mes = lo transferido (GUARDADO) este mes — en v1 solo aportes (≥ 0); 'sacar' de una reserva se difiere a la feature `transferencias`; (4) Saldo disponible = saldo mes anterior disponible + Ingreso − Gasto − Reservas del mes; (5) Saldo reservado = saldo mes anterior reservado + Reservas del mes; (6) Saldo total = Saldo disponible + Saldo reservado. NATURALEZA DE LOS DOS PLANOS (decisión del usuario 2026-07-24): el módulo de balance es de SOLO LECTURA — nada se teclea en él; todo se DERIVA de las celdas de la grilla (los presupuestos y los ejecutados que el usuario tecleó arriba). El Ejecutado del balance suma los datos reales; el Presupuestado del balance suma el PLAN manual. Cada plano es INDEPENDIENTE: el SALDO MES ANTERIOR de cada columna es el cierre de ESE MISMO plano en el mes previo — el Ejecutado arrastra su cierre ejecutado (real), el Presupuestado arrastra su cierre presupuestado (el plan). Ninguno toma datos del otro (el presupuestado NUNCA usa el saldo real, ni viceversa). Mes 1: saldo mes anterior = 0 en ambos planos. El saldo mes anterior NO es un ingreso: es una línea del módulo, no un movimiento del tipo Ingreso.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Ejecutado, mes con saldo mes anterior 0/0, Ingreso 100.000, Gasto 30.000, Reservas 20.000 (guardar): Flujo del mes = 70.000, Saldo disponible = 50.000, Saldo reservado = 20.000, Saldo total = 70.000 (happy)",
+        "Cada plano arrastra su propio cierre: si enero cierra Presupuestado en total 3.400.000 y Ejecutado en total 2.283.482, febrero abre su Saldo mes anterior Presupuestado en 3.400.000 y su Ejecutado en 2.283.482 — dos valores distintos, cada uno de su plano (edge)",
+        "Invariante de reconciliación DENTRO de cada plano: para todo mes, Saldo total = Saldo total del mes anterior del MISMO plano + Flujo del mes del MISMO plano. El presupuestado no usa ningún valor ejecutado ni viceversa (edge)",
+        "El saldo mes anterior no aparece como movimiento del tipo Ingreso ni infla el Flujo del mes; es exclusivamente una fila del módulo de balance (negative)"
+      ]
+    },
+    {
+      "id": "FR-906",
+      "title": "Arrastre del saldo entre meses (apertura por columna), por plano",
+      "description": "El Saldo mes anterior de un mes, en cada plano, es el cierre de ESE plano en el mes inmediatamente anterior, con sus dos componentes (Saldo disponible + Saldo reservado del plano). El Ejecutado arrastra su cierre ejecutado (real); el Presupuestado arrastra su cierre presupuestado (el plan). Son dos cadenas INDEPENDIENTES — la presupuestada no toma valores ejecutados ni viceversa. El primer mes (sin mes previo) arranca con ambos componentes en 0 en ambos planos. El arrastre es de dos componentes independientes: el disponible arrastrado y el reservado arrastrado no se mezclan (el reservado no se vuelve gastable solo por cambiar de mes).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Plano Ejecutado: si enero cierra ejecutado con Saldo disponible 50.000 y Saldo reservado 20.000, febrero abre su Saldo mes anterior ejecutado en disponible 50.000 + reservado 20.000. Plano Presupuestado: si enero cierra presupuestado en disponible 80.000/reservado 20.000, febrero abre su presupuestado en 80.000/20.000 (happy)",
+        "El mes 1 abre con Saldo mes anterior = 0 en ambos componentes y en ambos planos; no existe saldo inicial manual (edge)",
+        "Las dos cadenas de arrastre son independientes: la del plano presupuestado no toma ningún valor del ejecutado ni viceversa (negative)"
+      ]
+    },
+    {
+      "id": "FR-907",
+      "title": "Guardar en reservas; el Saldo reservado GLOBAL se acumula mes a mes (v1: solo aportes)",
+      "description": "Guardar en un nodo de tipo Transferencia es un aporte POSITIVO: sale de disponible, entra a la reserva. El módulo de balance MUESTRA el Saldo reservado GLOBAL (la suma de todas las reservas), que se acumula mes a mes = reservado global del mes anterior + lo guardado (en todas las reservas) ese mes. El acumulado se lleva por ítem de forma interna (cada reserva aporta su columna), pero el módulo NO muestra el saldo de cada alcancía por separado — ver el acumulado por ítem queda fuera de v1 (decisión del usuario 2026-07-24: 'global basta'). Guardar NO cambia el Saldo total del mes (la plata solo cambia de ubicación: baja disponible, sube reservado). En v1 una reserva SOLO crece (aportes ≥ 0) y por tanto el reservado nunca queda negativo. 'Sacar' (reducir una reserva, que la devolvería a disponible) y mover entre reservas se difieren a la feature `transferencias`, que hace las transferencias calculadas (origen→destino) y vuelve las celdas de transferencia NO editables a mano.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con una sola alcancía que guarda 50.000 en enero, 50.000 en febrero y 30.000 en marzo, el Saldo reservado global muestra 50.000 en enero, 100.000 en febrero y 130.000 en marzo (acumulado) (happy)",
+        "Guardar 20.000 en una reserva baja el Saldo disponible del mes en 20.000 y sube el Saldo reservado global en 20.000; el Saldo total no cambia (edge)",
+        "El Saldo reservado global de un mes = reservado del mes anterior + total guardado ese mes en todas las reservas; nunca queda negativo en v1 (solo aportes); el módulo no expone un saldo por alcancía (negative)"
+      ]
+    },
+    {
+      "id": "FR-908",
+      "title": "Recalculo en vivo del módulo de balance ante cambios",
+      "description": "El módulo de Balance (FR-905/906/907) se recalcula al instante cuando cambia un monto de hoja (edición en línea de Presupuestado o Ejecutado), se registra un movimiento, o se reestructura la jerarquía (promover a grupo / degradar nodo), y queda consistente sin recargar y sin dejar valores obsoletos. Las filas de agregación existentes (total por tipo, subtotales de grupo/categoría) ya recalculan hoy y quedan fuera de esta feature; aquí solo se garantiza que el balance nuevo también se actualiza en vivo, incluido el arrastre hacia los meses siguientes.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Editar el ejecutado de una hoja de ingreso/gasto actualiza inmediatamente el Flujo del mes y el Saldo disponible/total del plano Ejecutado de ese mes y de los siguientes por arrastre (happy)",
+        "Tras promover a grupo o degradar un nodo, el balance se recompone según la nueva jerarquía sin quedar obsoleto (edge)",
+        "Ningún recalculo del balance altera datos almacenados (hojas/movimientos): el balance es solo lectura derivada (negative)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-904",
+      "requirement_id": "FR-904",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "que las transferencias se vean separadas de ingresos y gastos",
+      "so_that": "entienda de un vistazo que no son flujo del mes sino movimientos de reserva",
+      "acceptance_criteria": [
+        {
+          "id": "AC-904",
+          "given": "la grilla de escritorio a 1440px",
+          "when": "la recorro de arriba a abajo",
+          "then": "el bloque Transferencia queda separado del bloque Ingresos/Gastos por un espaciado propio, distinto del espaciado entre grupos de un mismo tipo"
+        }
+      ]
+    },
+    {
+      "id": "US-905",
+      "requirement_id": "FR-905",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "ver por mes cuánto tengo disponible, cuánto reservado y mi saldo total",
+      "so_that": "decida cuánto puedo gastar sin cuentas mentales",
+      "acceptance_criteria": [
+        {
+          "id": "AC-905",
+          "given": "un mes con disponible previo 0, reservado previo 0, Ingreso 100.000, Gasto 30.000 y Reservas +20.000",
+          "when": "miro el módulo de balance de ese mes",
+          "then": "Flujo del mes = 70.000, Saldo disponible = 50.000, Saldo reservado = 20.000 y Saldo total = 70.000"
+        }
+      ]
+    },
+    {
+      "id": "US-906",
+      "requirement_id": "FR-906",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "que el saldo de un mes arranque desde el cierre del mes anterior",
+      "so_that": "el balance refleje la continuidad real de mi dinero y no reinicie cada mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-906",
+          "given": "enero cierra con Saldo disponible 50.000 y Saldo reservado 20.000",
+          "when": "miro febrero",
+          "then": "su Saldo mes anterior = disponible 50.000 + reservado 20.000, y el mes 1 abre en 0 en ambos componentes"
+        }
+      ]
+    },
+    {
+      "id": "US-907",
+      "requirement_id": "FR-907",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "guardar en mis reservas y ver cuánto llevo apartado en total, mes a mes",
+      "so_that": "sepa cuánto he apartado sin que descuadre mi saldo total",
+      "acceptance_criteria": [
+        {
+          "id": "AC-907",
+          "given": "aportes de 50.000 en enero, 50.000 en febrero y 30.000 en marzo",
+          "when": "miro el Saldo reservado del balance",
+          "then": "muestra 50.000, 100.000 y 130.000 acumulados; cada aporte baja el disponible y sube el reservado del mes, y el Saldo total no cambia por guardar"
+        }
+      ]
+    },
+    {
+      "id": "US-908",
+      "requirement_id": "FR-908",
+      "as_a": "dueño de mis finanzas personales",
+      "i_want": "que el balance se actualice solo al cambiar algo",
+      "so_that": "nunca vea un balance obsoleto ni tenga que recargar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-908",
+          "given": "la grilla con el módulo de balance visible",
+          "when": "edito el ejecutado de una hoja de ingreso/gasto o promuevo/degrado un nodo",
+          "then": "el Flujo del mes y el Saldo disponible/total del mes y de los siguientes se recalculan al instante, sin alterar datos almacenados"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-901",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los montos hoja por hoja (budgets/actuals) se muestran y editan exactamente igual que antes; los agregados y el balance son derivados y NO alteran ningún valor almacenado.",
+      "acceptance_criteria": "Editar una celda de hoja fija su valor y persiste igual que antes de la feature; ninguna fila de agregación ni del balance escribe en budgets/actuals ni en movements"
+    },
+    {
+      "id": "NFR-902",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las filas de agregación existentes (total por tipo vía TypeTotalRow, subtotales de grupo y de categoría vía roll-up en las filas padre, sub→cat→grupo→tipo) para Presupuestado y Ejecutado quedan idénticas; el total de un nivel sigue siendo la suma de sus hojas (sin huérfanos). Esta feature las consume, no las modifica.",
+      "acceptance_criteria": "Para un conjunto de hojas dado, los valores de categoría/grupo/tipo y las filas de total por tipo son los mismos antes y después de la feature; total = suma de hojas en todos los niveles"
+    },
+    {
+      "id": "NFR-903",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El código de estado por color de budget-state-color (neutro ≤100% / ámbar >100% / rojo ≥120%, con marca de forma) sigue aplicándose igual a las celdas de hoja de gasto; las filas de agregación y del balance no reintroducen el rojo de tipo como sobre-consumo.",
+      "acceptance_criteria": "Una hoja de gasto al 110% sigue mostrando ámbar con marca ›; ninguna fila de agregación (subtotal/total) ni del balance muestra marca de sobre-consumo"
+    },
+    {
+      "id": "NFR-904",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Promover a grupo (promote-to-group) y degradar nodo (demote-node) siguen funcionando; tras esas operaciones los agregados y el balance se recomponen según la nueva jerarquía en vez de quedar obsoletos.",
+      "acceptance_criteria": "Ejecutar un promote o un demote mantiene el comportamiento existente de esas features y los subtotales/totales/balance reflejan la jerarquía resultante sin recargar"
+    },
+    {
+      "id": "NFR-905",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El registro de movimientos (móvil compacto y escritorio) sigue guardando contra la hoja destino sin cambios; en móvil v1 sigue existiendo SOLO el registro (ni grilla ni balance).",
+      "acceptance_criteria": "Registrar un movimiento suma al Ejecutado de la hoja destino igual que antes; en viewport ≤760px no se renderiza la grilla ni el módulo de balance"
+    },
+    {
+      "id": "NFR-906",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las filas de agregación y el módulo de balance respetan la escala de tamaños de control (control-size-scale) y la consistencia visual/tipográfica (ux-consistency): sin alturas nuevas fuera de escala, sin tamaños tipográficos nuevos, radios y superficies dentro del sistema existente.",
+      "acceptance_criteria": "Las nuevas filas y el módulo usan alturas de la escala existente, la superficie --bg-sunken para estructura y las utilidades .tabular/.caption; no introducen un token de tamaño, hue o radio nuevo"
+    },
+    {
+      "id": "NFR-907",
+      "category": "Performance",
+      "priority": "SHOULD",
+      "requirement": "El recalculo de agregados y balance no degrada la edición en línea de la grilla: la actualización tras editar una celda se percibe inmediata en la superficie de escritorio con la semilla de datos por defecto.",
+      "acceptance_criteria": "Tras editar una celda de hoja, subtotales/totales/balance se actualizan sin parpadeo perceptible ni bloqueo de la UI (< 100 ms con los datos semilla en 1440px)"
+    },
+    {
+      "id": "NFR-908",
+      "category": "Security",
+      "priority": "SHOULD",
+      "requirement": "Aplicabilidad de seguridad: esta feature no añade entradas nuevas ni superficie de red — es cálculo derivado de solo lectura sobre datos ya validados (montos enteros, validación de entrada cubierta por la NFR de seguridad raíz). No maneja secretos ni autenticación. Observabilidad, CI/CD y healthcheck se heredan del pipeline raíz y del backend, sin cambios propios.",
+      "acceptance_criteria": "El código de balance no introduce inputs de usuario nuevos sin validar ni llamadas de red; los montos que consume ya cumplen los CHECK del schema; no se declara ninguna NFR operacional nueva porque las existentes (raíz + backend) cubren CI/CD, healthcheck y seguridad"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": [
+    "problem: user confirmed — 00_DISCOVERY.md §Problem, reformulado y aceptado por el usuario en la conversación de diseño 2026-07-24",
+    "users: user confirmed — mismo presupuestador personal del producto raíz (IDEA.md §Target Users); el usuario confirmó que no abre un tipo de usuario nuevo",
+    "baseline: user confirmed — hoy la grilla no suma nada; el usuario describió que suma a mano o fuera de la app (00_DISCOVERY.md §Problem)",
+    "success_metric: user confirmed — modelo de balance confirmado regla por regla el 2026-07-24 (transferir sale de disponible, cada plano arrastra su propio cierre de forma independiente, mes 1 = 0, v1 solo guardar); la reconciliación (total = total previo + flujo, dentro de cada plano) es el criterio de done aceptado",
+    "no_go_zone: user confirmed — el usuario decidió diferir reserva↔reserva y préstamos a la feature transferencias, fijar mes 1 = 0 (sin saldo inicial manual), y dejar fuera tipos/entidades/proyecciones/gráficos (00_DISCOVERY.md §Out of Scope)",
+    "FEATURE_IDEA.md (balance) — brief hablado inicial del usuario"
+  ],
+  "idea_gaps": [
+    "Las filas de agregación (subtotal de grupo, total por tipo, subtotal de categoría) que el brief pedía YA EXISTEN en el build (TypeTotalRow + roll-ups en filas padre). El usuario lo confirmó el 2026-07-24 (estaban 'arriba' en la fila del padre, no en una fila al pie) y las DESESTIMÓ como trabajo nuevo, incluido el toggle de categoría. Removidas del alcance (antes FR-901/902/903).",
+    "[ASSUMPTION] 'Toda transferencia cuenta como reserva' es una simplificación consciente de v1 (el propio usuario la marcó como incorrecta a futuro: préstamos, movimientos internos). La regla correcta vive en la feature `transferencias`. Aceptada a conciencia para v1.",
+    "[ASSUMPTION] Nombres de las seis filas del balance y del propio módulo son de trabajo (Saldo mes anterior / Flujo del mes / Reservas del mes / Saldo disponible / Saldo reservado / Saldo total). CONFIRMAR en la revisión visual.",
+    "Restricción de datos RESUELTA (2026-07-24): v1 solo GUARDA en reservas (aportes ≥ 0), así que NO toca el CHECK amount >= 0 del schema. 'Sacar' habría exigido montos negativos y validar que la reserva no quede negativa — se difirió a la feature `transferencias` para no relajar el schema desde esta feature. Decisión del usuario tras notar que una reserva no puede tener saldo negativo."
+  ],
+  "coverage_map": [
+    {
+      "need": "Subtotal por grupo, por columna (YA EXISTE en el build — roll-up en la fila del grupo)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Total por tipo, Total Ingreso/Gasto (YA EXISTE en el build — TypeTotalRow)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Subtotal por categoría y su toggle (YA EXISTE el subtotal en la fila de categoría; el usuario desestimó el toggle)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Separar visualmente Transferencia de Ingresos/Gastos (espaciado)",
+      "disposition": "FR-904"
+    },
+    {
+      "need": "Módulo de balance con flujo disponible, saldo reservado y saldo total por mes",
+      "disposition": "FR-905"
+    },
+    {
+      "need": "Balance en ambos planos (Presupuestado y Ejecutado) para comparar plan vs realidad por mes (módulo global al pie, no por nodo)",
+      "disposition": "FR-905"
+    },
+    {
+      "need": "Saldo mes anterior como apertura de columna; mes 1 = 0",
+      "disposition": "FR-906"
+    },
+    {
+      "need": "Guardar en reservas; arrastre del saldo de cada alcancía (v1 solo aportes)",
+      "disposition": "FR-907"
+    },
+    {
+      "need": "Sacar de una reserva / mover entre reservas / volver las transferencias calculadas y no editables a mano",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Recalculo en vivo al cambiar montos o reestructurar la jerarquía",
+      "disposition": "FR-908"
+    },
+    {
+      "need": "No romper los montos de hoja (agregados derivados, no alteran datos)",
+      "disposition": "NFR-901"
+    },
+    {
+      "need": "No romper los roll-ups existentes (total = suma de hojas)",
+      "disposition": "NFR-902"
+    },
+    {
+      "need": "No romper el código de estado por color (budget-state-color)",
+      "disposition": "NFR-903"
+    },
+    {
+      "need": "No romper promover a grupo / degradar nodo",
+      "disposition": "NFR-904"
+    },
+    {
+      "need": "No romper el registro de movimientos ni el móvil solo-registro",
+      "disposition": "NFR-905"
+    },
+    {
+      "need": "Respetar la escala de tamaños y la consistencia visual",
+      "disposition": "NFR-906"
+    },
+    {
+      "need": "Recalculo en vivo sin degradar la edición",
+      "disposition": "NFR-907"
+    },
+    {
+      "need": "Aplicabilidad de seguridad y NFRs operacionales heredados",
+      "disposition": "NFR-908"
+    },
+    {
+      "need": "Cálculo del módulo de tipos de transacción más allá de los totales",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Transferencia entre dos reservas nombradas y préstamos (origen/destino)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cuenta/bolsillo/alcancía como entidades con saldo propio e histórico",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Saldo inicial manual del mes 1",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Proyecciones, comparación entre meses, gráficos y exportación",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- Redactado por el agente a partir del brief hablado del usuario (2026-07-24).\n     Lo marcado [ASSUMPTION] lo infirió el agente y NO está confirmado.\n     Lo marcado [A DEFINIR EN DISCOVERY] lo dejó abierto el usuario a propósito. -->\n\n## Feature\nUn módulo de **Balance** que se ubica debajo del módulo de tipos de transacción y calcula, columna por columna (mes a mes), las cifras derivadas del presupuesto — junto con las filas de agregación (subtotales y totales) que ese cálculo necesita dentro de la grilla actual.\n\n## Problem / Why\nHoy la grilla muestra los montos hoja por hoja, pero el usuario no ve en ninguna parte **cuánto suma** cada grupo, cada tipo, ni qué le queda disponible en el mes. Tiene que sumar mentalmente o por fuera de la app para responder la pregunta que motiva un presupuesto: *¿cuánto tengo realmente disponible este mes, y cuánto de lo que \"tengo\" ya está comprometido?*\n\nFalta también la distinción entre dinero que **fluye** (ingresos menos gastos) y dinero que está **apartado** (lo movido a cuentas, bolsillos o alcancías vía transferencias). Sin esa separación, el saldo aparente sobreestima lo que el usuario puede gastar.\n\n[ASSUMPTION] La formulación del problema la redactó el agente a partir del brief; el usuario describió el QUÉ (los cálculos) más que el PORQUÉ. Confirmar en discovery.\n\n## Target Users\n[ASSUMPTION] El mismo usuario único del producto actual — quien lleva su presupuesto personal en la grilla. La feature no abre un tipo de usuario nuevo.\n\n## New Behavior\nEl sistema debe:\n\n1. **Subtotales de grupo** — mostrar una fila de subtotal en TODOS los grupos, calculada por columna (mes).\n2. **Totales por tipo** — mostrar filas de total por tipo de transacción: *Total Ingreso* y *Total Gasto*.\n3. **Subtotales de categoría** — mostrar subtotal por categoría, **opcional**: activable/desactivable con un control de verificación (checkbox).\n   - [A DEFINIR EN DISCOVERY] Si el toggle es global, por tipo, o por categoría individual; y si su estado persiste.\n4. **Separación visual de transferencias** — transferencias deja de estar pegada a ingresos y gastos en la grilla; va espaciada del bloque de transacciones.\n   - Nota del agente: el tipo `transfer` YA existe en el dominio (`src/domain/types.ts`), así que esto es un cambio de disposición/agrupación visual, no la creación de un tipo nuevo. El usuario lo describió como \"nuevo tipo transferencia\" — confirmar que la intención es la separación visual y no un modelo distinto.\n5. **Módulo de Balance** — debajo del módulo de tipos de transacción, calcula por columna:\n   - **Flujo disponible** = Total Ingreso − Total Gasto\n   - **Saldo reservado** = lo acumulado en transferencias hacia cuentas, bolsillos o alcancías\n   - **Saldo total** = Flujo disponible + Saldo reservado\n6. **El módulo de tipos de transacción también llevará cálculo** — el usuario aún no definió cuál.\n   - [A DEFINIR EN DISCOVERY] Qué calcula ese módulo y cómo se relaciona con los totales por tipo del punto 2 (¿son lo mismo con otro nombre, o cosas distintas?).\n\n## Success Criteria\n[A DEFINIR EN DISCOVERY] El usuario no definió aún un criterio medible de \"listo\". Punto de partida a confirmar:\n\n- Given un mes con ingresos y gastos cargados, When el usuario mira la columna de ese mes, Then ve el subtotal de cada grupo, el Total Ingreso, el Total Gasto y las tres cifras de balance sin salir de la vista ni calcular a mano.\n- [ASSUMPTION] Las cifras cuadran: la suma de subtotales de grupo de un tipo es igual al total de ese tipo, para cualquier estado de la grilla.\n\n## Touch Points\nMODIFICA:\n- `src/components/BudgetGrid.tsx` — la grilla que hoy renderiza tipo → grupo → categoría → sub.\n- `src/domain/` — se añade la capa de cálculo agregado sobre `AmountMap` (hoy solo las hojas guardan montos; los agregados son derivados, no almacenados).\n- La disposición de los tres tipos en la grilla (punto 4).\n- [A DEFINIR EN DISCOVERY] Si el saldo reservado exige distinguir el DESTINO de una transferencia (cuenta / bolsillo / alcancía), toca también el modelo de nodos y la captura de movimientos.\n\nAÑADE:\n- El módulo de Balance como bloque nuevo bajo el módulo de tipos de transacción.\n\n## Must Not Break (Regression Boundary)\n- Los montos hoja por hoja de la grilla siguen mostrándose y editándose igual; las filas de agregación son **derivadas** y no alteran ningún monto almacenado.\n- El código de estado de presupuesto por color (feature `budget-state-color`: neutro dentro / ámbar `>` / rojo `>>`) sigue aplicándose igual a las filas existentes.\n- Promover a grupo y degradar nodo (features `promote-to-group`, `demote-node`) siguen funcionando; los agregados se recalculan tras esas operaciones en vez de quedar obsoletos.\n- El registro de movimientos (móvil y escritorio) sigue guardando contra la hoja destino sin cambios.\n- La escala de tamaños de control y la consistencia visual (`control-size-scale`, `ux-consistency`) se respetan en las filas y el módulo nuevos.\n\n## Out of Scope\n- [A DEFINIR EN DISCOVERY] El usuario no declaró explícitamente qué queda fuera. Candidatos a confirmar: proyecciones o pronóstico a futuro, comparación entre meses, gráficos, exportación de los cálculos, y cualquier concepto de \"cuenta\" como entidad con saldo propio e histórico.\n\n## Nota de nomenclatura\nEl usuario pidió explícitamente **definir en discovery los nombres** de cada concepto: el módulo mismo (\"balance\" vs \"cuentas\" vs otro), y las tres cifras (\"flujo disponible\", \"saldo reservado\", \"saldo total\" son nombres de trabajo, no definitivos). También queda por precisar qué es exactamente una cuenta, un bolsillo y una alcancía, y si son tres cosas distintas o sinónimos del mismo concepto.\n"
+}

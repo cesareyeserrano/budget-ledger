@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Balance — UX Preview</title>
+<style>
+  :root{
+    --bg:#131316; --bg-card:#1b1b1f; --bg-sunken:#0f0f12; --bg-hover:#26262b;
+    --fg:#f4f4f5; --fg-secondary:#b4b4bb; --fg-muted:#9b9ba3;
+    --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.22);
+    --expense:#ec6a66; --income:#5fbe82; --transfer:#6ba6f1;
+    --success:#5fbe82; --state-over:#ec6a66;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:13px;line-height:1.5;padding:28px}
+  .note{max-width:1180px;margin:0 auto 18px;color:var(--fg-muted);font-size:12px}
+  .note b{color:var(--fg-secondary)}
+  .frame{max-width:1180px;margin:0 auto;background:var(--bg-card);
+    border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline}
+  .eyebrow{color:var(--fg-muted);letter-spacing:.12em;font-size:10px;text-transform:uppercase}
+  .title{font-size:20px;margin-top:2px}
+  .legend{display:flex;gap:16px;font-size:11px;color:var(--fg-secondary)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  col.cat{width:214px} col.m{width:auto}
+  th,td{padding:7px 12px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.cat,td.cat{text-align:left;position:sticky;left:0;background:inherit}
+  thead th{color:var(--fg-muted);font-weight:400;font-size:11px;border-bottom:1px solid var(--border)}
+  .monthgroup{border-left:1px solid var(--border)}
+  .sub{color:var(--fg-muted);font-size:10px;font-weight:400}
+  tbody tr td{border-bottom:1px solid var(--border)}
+  .type td{font-weight:700}
+  .type.exp td.cat{color:var(--expense)} .type.inc td.cat{color:var(--income)} .type.tr td.cat{color:var(--transfer)}
+  .type.exp .ejec{color:var(--expense)} .type.inc .ejec{color:var(--income)} .type.tr .ejec{color:var(--transfer)}
+  .child td.cat{color:var(--fg-secondary);padding-left:30px}
+  .child .pres{color:var(--fg-muted)}
+  .dash{color:var(--fg-muted)}
+  /* FR-904: separación visual del bloque Transferencia */
+  .sep td{padding:0;height:22px;background:var(--bg);border-bottom:1px solid var(--border)!important}
+  /* BALANCE module */
+  .balance-head td{background:var(--bg-sunken);border-top:1px solid var(--border-strong);
+    color:var(--fg-muted);letter-spacing:.12em;font-size:10px;text-transform:uppercase;padding-top:12px}
+  tr.bal td{background:var(--bg-sunken);border-bottom:1px solid var(--border)}
+  /* insumos / contexto — atenuados */
+  tr.bal.ctx td{color:var(--fg-secondary)}
+  tr.bal.ctx td.cat{color:var(--fg-secondary)}
+  tr.bal.in td{color:var(--fg-secondary)}
+  tr.bal.in td.cat{color:var(--fg-secondary)}
+  /* resultados — destacados. Saldo disponible/total: verde si ≥0, rojo si <0 (como la card DISPONIBLE) */
+  tr.bal.disp td{font-weight:600;color:var(--success)}
+  tr.bal.disp td.cat{font-weight:600;color:var(--fg)}
+  tr.bal.res td{font-weight:600;color:var(--transfer)}
+  tr.bal.res td.cat{font-weight:600;color:var(--transfer)}
+  tr.bal.total td{font-weight:700;font-size:15px;border-top:1px solid var(--border-strong);color:var(--success)}
+  tr.bal.total td.cat{font-weight:700;font-size:15px;color:var(--fg)}
+  tr.bal.disp td.neg, tr.bal.total td.neg{color:var(--state-over)}
+  /* saldo mes anterior: neutro en positivo, rojo solo si es negativo (arrancas en rojo) */
+  tr.bal.ctx td.neg{color:var(--state-over)}
+  .neg{color:var(--state-over)}
+  .mark{color:var(--state-over)}
+  .caption{max-width:1180px;margin:14px auto 0;color:var(--fg-muted);font-size:11px}
+  .caption b{color:var(--fg-secondary)}
+</style>
+</head>
+<body>
+
+<div class="note">
+  <b>UX Preview — feature balance.</b> Render del spec (no es la app). Muestra
+  (1) la <b>separación visual del bloque TRANSFERENCIAS</b> y (2) el <b>módulo BALANCE</b> al pie:
+  6 filas × 2 planos (Pres. = plan manual · Ejec. = real). El módulo es de <b>solo lectura</b>: nada se teclea aquí,
+  todo se calcula de las celdas de la grilla de arriba. <b>Cada columna arrastra su propio cierre</b>: el Saldo mes
+  anterior Pres. = cierre presupuestado del mes previo (tu plan); el Ejec. = cierre real — dos trayectorias independientes.
+  Solo 3 meses por espacio; en la app son 12.
+</div>
+
+<div class="frame">
+  <div class="head">
+    <div><div class="eyebrow">Ledger · Resumen</div><div class="title">Presupuesto 2026</div></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--success)"></i>Saldo ≥ 0</span>
+      <span><i class="dot" style="background:var(--state-over)"></i>Saldo &lt; 0</span>
+      <span><i class="dot" style="background:var(--transfer)"></i>Reservado</span>
+    </div>
+  </div>
+
+  <table>
+    <colgroup><col class="cat"><col class="m"><col class="m"><col class="m"><col class="m"><col class="m"><col class="m"></colgroup>
+    <thead>
+      <tr>
+        <th class="cat">Categoría</th>
+        <th class="monthgroup" colspan="2">Enero</th>
+        <th class="monthgroup" colspan="2">Febrero</th>
+        <th class="monthgroup" colspan="2">Marzo</th>
+      </tr>
+      <tr>
+        <th class="cat"></th>
+        <th class="sub monthgroup">Pres.</th><th class="sub">Ejec.</th>
+        <th class="sub monthgroup">Pres.</th><th class="sub">Ejec.</th>
+        <th class="sub monthgroup">Pres.</th><th class="sub">Ejec.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- filas de agregación existentes (fuera de esta feature; contexto) -->
+      <tr class="type exp">
+        <td class="cat">↓ GASTOS</td>
+        <td class="pres monthgroup">6.000.000</td><td class="ejec">5.473.317</td>
+        <td class="pres monthgroup">5.280.000</td><td class="ejec">5.545.000</td>
+        <td class="pres monthgroup">5.280.000</td><td class="ejec">4.443.000</td>
+      </tr>
+      <tr class="child">
+        <td class="cat">▸ Esenciales</td>
+        <td class="pres monthgroup">6.000.000</td><td>5.473.317</td>
+        <td class="pres monthgroup">5.280.000</td><td>5.545.000</td>
+        <td class="pres monthgroup">5.280.000</td><td>4.443.000</td>
+      </tr>
+      <tr class="type inc">
+        <td class="cat">↑ INGRESOS</td>
+        <td class="pres monthgroup">9.400.000</td><td class="ejec">7.756.799</td>
+        <td class="pres monthgroup">9.400.000</td><td class="ejec">9.815.000</td>
+        <td class="pres monthgroup">9.400.000</td><td class="ejec">7.995.000</td>
+      </tr>
+      <tr class="child">
+        <td class="cat">▸ Trabajo</td>
+        <td class="pres monthgroup">8.400.000</td><td>6.642.799</td>
+        <td class="pres monthgroup">8.400.000</td><td>8.948.000</td>
+        <td class="pres monthgroup">8.400.000</td><td>7.083.000</td>
+      </tr>
+
+      <!-- FR-904: separación visual del bloque Transferencia -->
+      <tr class="sep"><td colspan="7"></td></tr>
+
+      <tr class="type tr">
+        <td class="cat">⇄ TRANSFERENCIAS</td>
+        <td class="pres monthgroup">1.040.000</td><td class="ejec">1.040.000</td>
+        <td class="pres monthgroup">1.040.000</td><td class="ejec">1.148.000</td>
+        <td class="pres monthgroup">1.040.000</td><td class="ejec">900.000</td>
+      </tr>
+      <tr class="child">
+        <td class="cat">▸ Ahorros (alcancía)</td>
+        <td class="pres monthgroup">1.040.000</td><td>1.040.000</td>
+        <td class="pres monthgroup">1.040.000</td><td>1.148.000</td>
+        <td class="pres monthgroup">1.040.000</td><td>900.000</td>
+      </tr>
+
+      <!-- FR-905/906/907: módulo BALANCE -->
+      <tr class="balance-head"><td class="cat">Balance</td><td colspan="6"></td></tr>
+
+      <tr class="bal ctx">
+        <td class="cat">Saldo mes anterior</td>
+        <td class="pres monthgroup dash">—</td><td class="dash">—</td>
+        <td class="pres monthgroup">3.400.000</td><td>2.283.482</td>
+        <td class="pres monthgroup">7.520.000</td><td>6.553.482</td>
+      </tr>
+      <tr class="bal in">
+        <td class="cat">Flujo del mes</td>
+        <td class="pres monthgroup">3.400.000</td><td>2.283.482</td>
+        <td class="pres monthgroup">4.120.000</td><td>4.270.000</td>
+        <td class="pres monthgroup">4.120.000</td><td>3.552.000</td>
+      </tr>
+      <tr class="bal in">
+        <td class="cat">Reservas del mes</td>
+        <td class="pres monthgroup">1.040.000</td><td>1.040.000</td>
+        <td class="pres monthgroup">1.040.000</td><td>1.148.000</td>
+        <td class="pres monthgroup">1.040.000</td><td>900.000</td>
+      </tr>
+      <tr class="bal disp">
+        <td class="cat">Saldo disponible</td>
+        <td class="pres monthgroup">2.360.000</td><td>1.243.482</td>
+        <td class="pres monthgroup">5.440.000</td><td>4.365.482</td>
+        <td class="pres monthgroup">8.520.000</td><td>7.017.482</td>
+      </tr>
+      <tr class="bal res">
+        <td class="cat">Saldo reservado</td>
+        <td class="pres monthgroup">1.040.000</td><td>1.040.000</td>
+        <td class="pres monthgroup">2.080.000</td><td>2.188.000</td>
+        <td class="pres monthgroup">3.120.000</td><td>3.088.000</td>
+      </tr>
+      <tr class="bal total">
+        <td class="cat">Saldo total</td>
+        <td class="pres monthgroup">3.400.000</td><td>2.283.482</td>
+        <td class="pres monthgroup">7.520.000</td><td>6.553.482</td>
+        <td class="pres monthgroup">11.640.000</td><td>10.105.482</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="caption">
+  Notas del render:
+  · <b>Saldo mes anterior</b> = cierre del MISMO plano en el mes previo: Pres. arrastra el cierre presupuestado (feb: 3.400.000), Ejec. el cierre real (feb: 2.283.482) — valores distintos, cada uno de su columna. Enero = <span class="dash">—</span> (mes 1, sin arrastre).
+  · Cada plano es independiente: el presupuestado nunca toma datos reales, ni al revés. Así comparas "lo que planeé acumulado" vs "lo real".
+  · Cada aporte a la alcancía (guardar) baja el disponible y sube el reservado; el <b>Saldo total no cambia</b> por guardar. En v1 solo se guarda (la reserva solo crece); “sacar” vive en la feature <b>transferencias</b>.
+  · Un <span class="neg">rojo</span> aparecería en Saldo disponible/total solo si el gasto superara lo disponible (deuda real).
+  · Sin <b>+</b> en positivos; solo <span class="neg">−</span> cuando es negativo.
+  · Color solo en los RESULTADOS: <b style="color:var(--success)">Saldo disponible</b> y <b style="color:var(--success);font-size:14px">Saldo total</b> en verde si ≥0, <span class="neg">rojo si &lt;0</span> (como la card DISPONIBLE existente). Insumos atenuados. <b style="color:var(--transfer)">Saldo reservado</b> azul (ni bueno ni malo).
+</div>
+
+</body>
+</html>

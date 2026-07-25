@@ -1,0 +1,158 @@
+{
+  "currentPhase": 3,
+  "approvedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3
+  ],
+  "completedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3
+  ],
+  "projectName": "balance",
+  "createdAt": "2026-07-24T15:27:08.017Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-07-25T00:40:57.747Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-24T23:39:43.676Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-24T23:44:24.661Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-24T23:44:24.721Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-24T23:44:24.772Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-25T00:05:55.422Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-25T00:05:55.476Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-25T00:05:55.527Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-25T00:24:48.071Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-25T00:24:48.125Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-25T00:24:48.175Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-25T00:28:49.943Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-25T00:28:49.991Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-25T00:28:50.041Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-25T00:31:24.549Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-25T00:31:24.600Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-25T00:31:24.650Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-25T00:31:42.253Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-25T00:36:43.350Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-25T00:40:11.255Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-25T00:40:57.724Z",
+      "event": "approved",
+      "phase": 3
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "3edb4ebd28c78446dab2b0ec63508c0754218e5151f0f3127c4d434fb2e7829f",
+    "2": "37b13064a6331cedf73cfd37c49b0bea97bbcf67843602af5245bdd3eed14d4a",
+    "3": "93bd939e42bb17bd74506bdc52d56dc5b784eca17cdd473edf9fbffbb269fac5",
+    "discovery": "820d6155f66b905a8ddba150da95686e365eae9be4f9fa66c000a872d12c51e5",
+    "ux": "0edb39ec0851143c19fb81f89b6aa5b7214fadbadedfc88cf47497aec6249d93"
+  },
+  "coverageAuditLastAt": "2026-07-24T21:36:14.042Z",
+  "coverageAuditReqHash": "d585fe4f5f429f5b4ceae755ebb1c7fc6aaa007a196a40c12e50034bcea44a7b",
+  "verifyPassed": false,
+  "frSnapshots": {
+    "2": [
+      "FR-904",
+      "FR-905",
+      "FR-906",
+      "FR-907",
+      "FR-908"
+    ],
+    "3": [
+      "FR-904",
+      "FR-905",
+      "FR-906",
+      "FR-907",
+      "FR-908"
+    ],
+    "ux": [
+      "FR-904",
+      "FR-905",
+      "FR-906",
+      "FR-907",
+      "FR-908"
+    ]
+  }
+}
