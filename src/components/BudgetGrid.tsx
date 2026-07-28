@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
@@ -12,19 +12,27 @@ import { canDeleteNode } from "@/domain/mutations";
 import { cellNum, typeColorVar } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
+import { BalanceModule } from "./BalanceModule";
+import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
 
+/**
+ * Orden de los bloques: sigue el CAMINO DE LA PLATA — entra, sale, se aparta — y refleja el orden
+ * de la propia cuenta del balance (`Ingreso − Gasto`). Antes empezaba por GASTOS.
+ *
+ * "RESERVAS" en vez de "TRANSFERENCIAS": es la palabra que el módulo de balance ya usa ("Reservas
+ * del mes", "Saldo reservado"), así que la grilla y el balance hablan igual. El tipo del dominio
+ * sigue siendo `transfer` — cambia el rótulo, no el modelo.
+ */
 const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowDown }[] = [
-  { id: "expense", label: "GASTOS", Icon: ArrowDown },
   { id: "income", label: "INGRESOS", Icon: ArrowUp },
-  { id: "transfer", label: "TRANSFERENCIAS", Icon: ArrowUpDown },
+  { id: "expense", label: "GASTOS", Icon: ArrowDown },
+  { id: "transfer", label: "RESERVAS", Icon: ArrowUpDown },
 ];
 
-// Ancho de la columna categoría vía CSS var --cat-w (FR-104, redimensionable); sub-celda de mes 108px, alto de fila 37px.
-const LABEL_W = "w-[var(--cat-w)]";
-const CELL_W = "w-[108px]";
-const STICKY_BASE = "sticky left-0 z-[2] flex items-center gap-2 flex-none border-r border-border-strong min-h-[34px]";
+// La geometría (ancho de la columna categoría vía --cat-w, sub-celda de mes de 108px, base sticky)
+// vive en ./gridLayout porque el módulo de Balance la comparte para alinear sus columnas.
 
 interface Adder { level: NodeLevel; parentId: string | null; type: NodeType }
 interface Row { node: LedgerNode | null; type: NodeType; depth: number; leaf: boolean; expandable: boolean }
@@ -236,8 +244,16 @@ export function BudgetGrid() {
             </div>
           </div>
 
-          {rows.map((row) => {
-            if (row.node === null) { const t = TYPE_ORDER.find((x) => x.id === row.type)!; return <TypeTotalRow key={`t-${row.type}`} type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} activeType={dragNode?.type ?? null} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} />; }
+          {rows.map((row, i) => {
+            if (row.node === null) {
+              const t = TYPE_ORDER.find((x) => x.id === row.type)!;
+              // FR-904/banda: filete fuerte al inicio de cada bloque. El primero no lo lleva —
+              // el encabezado sticky ya cierra por arriba.
+              const typeRow = <TypeTotalRow type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} activeType={dragNode?.type ?? null} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} bandTop={i > 0} />;
+              // FR-904: Transferencia no es flujo (ingreso/gasto) sino movimiento de reserva, y el
+              // espaciado lo dice antes que cualquier rótulo.
+              return <Fragment key={`t-${row.type}`}>{typeRow}</Fragment>;
+            }
             return (
               <NodeRow
                 key={row.node.id}
@@ -260,6 +276,13 @@ export function BudgetGrid() {
               />
             );
           })}
+
+          {/* Cierra la última banda de tipos: sin esto, el bloque quedaría abierto por abajo. */}
+          <div aria-hidden="true" className="border-b border-b-border-strong" />
+
+          {/* FR-905/906/907/908: el balance va al pie, DENTRO del contenedor de scroll, para que
+              comparta la rejilla de columnas y la columna de rótulos sticky con la grilla. */}
+          <BalanceModule />
         </div>
       </div>
       {/* FR-015: preview flotante del nodo en arrastre (feedback claro de "estoy moviendo esto") */}
@@ -275,7 +298,8 @@ export function BudgetGrid() {
   );
 }
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void }) {
+
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean }) {
   const data = useLedgerStore((s) => s.data);
   const color = typeColorVar(type);
   const [hover, setHover] = useState(false);
@@ -284,7 +308,7 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
   const droppable = useDroppable({ id: `root:${type}` });
   const showDrop = droppable.isOver && activeType === type;
   return (
-    <div className="flex" data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className={cn("flex", bandTop && "border-t border-t-border-strong")} data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
           la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
           sobre-consumo de una celda de datos. */}

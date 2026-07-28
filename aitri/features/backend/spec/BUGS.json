@@ -1,0 +1,28 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "TC-BE-084h falla: npm audit reporta 18 vulns high (GHSA-mh99-v99m-4gvg, brace-expansion) — todas dev-only, sin fix viable",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "closed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-25T19:38:38.119Z",
+      "updated_at": "2026-07-28T15:32:09.432Z",
+      "resolution": "Resuelto 2026-07-28 con overrides brace-expansion ^5.0.8 + minimatch ^10.2.6. El aviso GHSA-mh99-v99m-4gvg no tenia fix segun npm (fixAvailable:false), y forzar solo brace-expansion@5.0.8 rompia el proveedor de cobertura porque minimatch CJS hacia require(...).default. La solucion aparecio aguas arriba: minimatch@10.2.6 declara brace-expansion ^5.0.8, o sea esta hecho para la v5. Verificado: npm audit 0 vulnerabilidades, TC-BE-084h pasa, suite completa 243/243, cobertura 94.46%, typecheck y lint en 0.",
+      "fix_commit_sha": "a66fc8ea753be0b3cf1d5f827ef00dd06c49c2e0",
+      "fix_at": "2026-07-28T15:32:09.385Z",
+      "close_commit_sha": "a66fc8ea753be0b3cf1d5f827ef00dd06c49c2e0",
+      "close_at": "2026-07-28T15:32:09.432Z"
+    }
+  ]
+}

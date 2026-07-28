@@ -1,22 +1,112 @@
 {
   "test_plan": {
-    "strategy": "El corazón de la feature es aritmética pura en src/domain/balance.ts (computeBalanceSeries), así que FR-905/906/907 y su invariante se verifican con vitest SIN DOM, construyendo LedgerState mínimos con valores concretos y afirmando cada campo de MonthBalance. La invariante de reconciliación (Saldo total = total previo + Flujo, dentro de cada plano) se prueba en varios meses. La independencia de planos (presupuestado no toma valores ejecutados) se ataca con un estado donde budget y actual difieren. FR-904 (separación de Transferencia) y FR-908 (recalculo en vivo) se verifican con Playwright a 1440px afirmando el DOM/valores computados reales; la pureza de FR-908 (no muta estado) se prueba unit. La regresión (NFR-901..906) re-ejercita rollups, TypeTotalRow, el color de estado, promover/degradar, el registro y el móvil solo-registro. Prefijo TC-BAL-* para no colisionar con root/bsc/grid-ux/etc. Runners: vitest (npm run test:run) y Playwright (npm run test:e2e).",
+    "strategy": "El corazón de la feature es aritmética pura en src/domain/balance.ts (computeBalanceSeries), así que FR-905/906/907 y su invariante se verifican con vitest SIN DOM, construyendo LedgerState mínimos con valores concretos y afirmando cada campo de MonthBalance. La invariante de reconciliación (Saldo total = total previo + Flujo, dentro de cada plano) se prueba en varios meses. La independencia de planos (presupuestado no toma valores ejecutados) se ataca con un estado donde budget y actual difieren. FR-904 (separación de Transferencia) y FR-908 (recalculo en vivo) se verifican con Playwright a 1440px afirmando el DOM/valores computados reales; la pureza de FR-908 (no muta estado) se prueba unit. La regresión (NFR-901..906) re-ejercita rollups, TypeTotalRow, el color de estado, promover/degradar, el registro y el móvil solo-registro. Prefijo TC-BAL-* para no colisionar con root/bsc/grid-ux/etc. Runners: vitest (npm run test:run) y Playwright (npm run test:e2e). FR-909/910/911 (plegado, orden y rótulo) se verifican con Playwright a 1440px contra el DOM real: qué filas quedan visibles tras cada clic, y en qué orden aparecen los bloques. El plegado se ataca por sus DOS direcciones —lo que debe ocultar y lo que NO debe tocar— porque los defectos reales fueron justo esos: plegar borraba los totales en vez de resumirlos, y el chevron plegaba hacia arriba.",
     "coverage_goal": "src/domain/balance.ts al 100% de ramas (sus caminos son el requisito: mes 1, arrastre por plano, flujo, reserva global, disponible/reservado/total). Dominio ≥80% líneas (gate vitest vigente).",
-    "test_types": ["unit", "integration", "e2e"],
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
     "type_coverage_matrix": {
-      "FR-904": { "type": "UX", "required_levels": ["e2e"] },
-      "FR-905": { "type": "logic", "required_levels": ["unit"] },
-      "FR-906": { "type": "logic", "required_levels": ["unit"] },
-      "FR-907": { "type": "logic", "required_levels": ["unit"] },
-      "FR-908": { "type": "logic", "required_levels": ["unit", "e2e"] },
-      "NFR-901": { "type": "Regression", "required_levels": ["unit", "e2e"] },
-      "NFR-902": { "type": "Regression", "required_levels": ["unit"] },
-      "NFR-903": { "type": "Regression", "required_levels": ["e2e"] },
-      "NFR-904": { "type": "Regression", "required_levels": ["unit", "e2e"] },
-      "NFR-905": { "type": "Regression", "required_levels": ["e2e"] },
-      "NFR-906": { "type": "Regression", "required_levels": ["e2e"] },
-      "NFR-907": { "type": "Performance", "required_levels": ["unit"] },
-      "NFR-908": { "type": "Security", "required_levels": ["unit"] }
+      "FR-904": {
+        "type": "UX",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "FR-905": {
+        "type": "logic",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "FR-906": {
+        "type": "logic",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "FR-907": {
+        "type": "logic",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "FR-908": {
+        "type": "logic",
+        "required_levels": [
+          "unit",
+          "e2e"
+        ]
+      },
+      "NFR-901": {
+        "type": "Regression",
+        "required_levels": [
+          "unit",
+          "e2e"
+        ]
+      },
+      "NFR-902": {
+        "type": "Regression",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "NFR-903": {
+        "type": "Regression",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "NFR-904": {
+        "type": "Regression",
+        "required_levels": [
+          "unit",
+          "e2e"
+        ]
+      },
+      "NFR-905": {
+        "type": "Regression",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "NFR-906": {
+        "type": "Regression",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "NFR-907": {
+        "type": "Performance",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "NFR-908": {
+        "type": "Security",
+        "required_levels": [
+          "unit"
+        ]
+      },
+      "FR-909": {
+        "type": "UX",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "FR-910": {
+        "type": "UX",
+        "required_levels": [
+          "e2e"
+        ]
+      },
+      "FR-911": {
+        "type": "UX",
+        "required_levels": [
+          "e2e"
+        ]
+      }
     }
   },
   "test_cases": [
@@ -29,7 +119,9 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada de src/domain/balance.ts"],
+      "preconditions": [
+        "computeBalanceSeries importada de src/domain/balance.ts"
+      ],
       "given": "un LedgerState de un mes (ene) con una hoja de ingreso (actual 100000), una de gasto (actual 30000) y una de reserva/transfer (actual 20000, guardar); sin datos en meses previos",
       "when": "se llama computeBalanceSeries(state) y se lee series.ene.actual",
       "then": "flow=70000, reserved=20000, available=50000, reservedBalance=20000, total=70000, prevAvailable=0, prevReserved=0",
@@ -42,7 +134,11 @@
         "assert s.total === 70000"
       ],
       "expected_result": "series.ene.actual = { flow:70000, available:50000, reservedBalance:20000, total:70000 }",
-      "test_data": { "income_actual": 100000, "expense_actual": 30000, "transfer_actual": 20000 }
+      "test_data": {
+        "income_actual": 100000,
+        "expense_actual": 30000,
+        "transfer_actual": 20000
+      }
     },
     {
       "id": "TC-BAL-905e",
@@ -53,7 +149,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un LedgerState de ene donde el PRESUPUESTO difiere del EJECUTADO: ingreso budget 120000 / actual 100000; gasto budget 40000 / actual 30000; transfer budget 0 / actual 0",
       "when": "se leen series.ene.budget y series.ene.actual",
       "then": "budget.flow=80000 (120000−40000) y actual.flow=70000 (100000−30000); son distintos y cada uno sale de sus propias celdas",
@@ -64,7 +162,12 @@
         "assert b.budget.total === 80000 && b.actual.total === 70000"
       ],
       "expected_result": "budget.flow=80000, actual.flow=70000 (planos independientes, cada uno de su plano)",
-      "test_data": { "income_budget": 120000, "income_actual": 100000, "expense_budget": 40000, "expense_actual": 30000 }
+      "test_data": {
+        "income_budget": 120000,
+        "income_actual": 100000,
+        "expense_budget": 40000,
+        "expense_actual": 30000
+      }
     },
     {
       "id": "TC-BAL-905f",
@@ -75,7 +178,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado de dos meses; enero cierra ejecutado con total 70000; febrero tiene ingreso actual 50000 y gasto actual 10000",
       "when": "se lee series.feb.actual.flow",
       "then": "flow=40000 (50000−10000) EXACTAMENTE — el arrastre de 70000 del mes anterior NO se suma al flujo; una implementación que lo sumara daría 110000 y el test falla",
@@ -86,28 +191,44 @@
         "assert feb.flow !== 110000"
       ],
       "expected_result": "feb.actual.flow === 40000 (el carry no entra al flujo)",
-      "test_data": { "ene_total": 70000, "feb_income_actual": 50000, "feb_expense_actual": 10000 }
+      "test_data": {
+        "ene_total": 70000,
+        "feb_income_actual": 50000,
+        "feb_expense_actual": 10000
+      }
     },
     {
       "id": "TC-BAL-915e",
       "requirement_id": "FR-905",
       "user_story_id": "US-905",
       "ac_id": "AC-905",
-      "title": "Invariante de reconciliación: total = total previo + flujo, en cada plano y varios meses",
+      "title": "Invariante de reconciliación: ambos planos reconcilian contra el cierre real previo",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado de tres meses (ene/feb/mar) con ingresos, gastos y reservas distintas cada mes en ambos planos",
-      "when": "se recorre la serie y para cada mes i>ene y cada plano p se compara series[i][p].total con series[i-1][p].total + series[i][p].flow",
-      "then": "la igualdad se cumple para TODOS los meses y AMBOS planos (la transferencia se cancela entre disponible y reservado); si falla en un solo par el test falla",
+      "when": "se recorre la serie y para cada mes i>ene y cada plano p se compara series[i][p].total con series[i-1].actual.total + series[i][p].flow",
+      "then": "la igualdad se cumple para TODOS los meses y AMBOS planos (los dos arrancan del mismo punto real); además la cadena ejecutada acumula sobre sí misma mes a mes",
       "steps": [
         "const s = computeBalanceSeries(state)",
         "for (const [prev,cur] of [['ene','feb'],['feb','mar']]) for (const p of ['budget','actual'])",
         "  assert s[cur][p].total === s[prev][p].total + s[cur][p].flow"
       ],
-      "expected_result": "para todo mes/plano: total(mes) === total(mes−1) + flow(mes)",
-      "test_data": { "meses": ["ene", "feb", "mar"], "planos": ["budget", "actual"] }
+      "expected_result": "para todo mes/plano: total(mes) === total EJECUTADO(mes−1) + flow(mes)",
+      "test_data": {
+        "meses": [
+          "ene",
+          "feb",
+          "mar"
+        ],
+        "planos": [
+          "budget",
+          "actual"
+        ]
+      }
     },
     {
       "id": "TC-BAL-925e",
@@ -118,7 +239,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado de ene con ingreso actual 30000 y gasto actual 100000 (gastas más de lo que entra), sin reservas, sin mes previo",
       "when": "se lee series.ene.actual",
       "then": "flow=−70000, available=−70000, total=−70000 (valores negativos EXACTOS, no clampeados a 0); reservedBalance=0",
@@ -129,27 +252,33 @@
         "assert s.reservedBalance === 0"
       ],
       "expected_result": "disponible y total = −70000 (negativo real, sin recorte)",
-      "test_data": { "income_actual": 30000, "expense_actual": 100000 }
+      "test_data": {
+        "income_actual": 30000,
+        "expense_actual": 100000
+      }
     },
     {
       "id": "TC-BAL-935h",
       "requirement_id": "FR-905",
       "user_story_id": "US-905",
       "ac_id": "AC-905",
-      "title": "Un resultado sano (≥0) se pinta en verde (--success)",
+      "title": "Un resultado sano (≥0) se pinta en verde (--success-strong)",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "app con datos semilla (saldo positivo)"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "app con datos semilla (saldo positivo)"
+      ],
       "given": "el módulo de balance con Saldo disponible y Saldo total positivos en el mes vigente",
       "when": "se lee el color computado de las celdas de Saldo disponible y Saldo total",
-      "then": "ambas usan var(--success) (verde), el mismo token que la card DISPONIBLE; sin signo − ni marca ‹‹",
+      "then": "ambas usan var(--success-strong) (verde), la variante AA-segura del verde del producto; sin signo − ni marca ‹‹",
       "steps": [
         "const c = getComputedStyle(page.getByTestId('bal-total-actual-<mes>'))",
         "assert c.color === rgb(--success)",
         "assert !textContent.includes('−') && !textContent.includes('‹‹')"
       ],
-      "expected_result": "disponible/total ≥0 en --success (verde), sin marca",
+      "expected_result": "disponible/total ≥0 en --success-strong (verde, 4.87:1 sobre --bg-sunken), sin marca",
       "test_data": {}
     },
     {
@@ -157,21 +286,24 @@
       "requirement_id": "FR-905",
       "user_story_id": "US-905",
       "ac_id": "AC-905",
-      "title": "Un resultado negativo se pinta rojo (--error) con − y marca ‹‹",
+      "title": "Un resultado negativo se pinta rojo (--error-strong) con − y marca ‹‹",
       "type": "e2e",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "un mes con sobre-gasto que deja el Saldo total < 0 (seed/edición)"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "un mes con sobre-gasto que deja el Saldo total < 0 (seed/edición)"
+      ],
       "given": "el módulo de balance en un mes cuyo Saldo total ejecutado es negativo",
       "when": "se leen color computado, signo y marca de la celda de Saldo total",
-      "then": "color === var(--error) (rojo), el texto comienza con − y contiene la marca ‹‹ (no depende solo del color, WCAG 1.4.1)",
+      "then": "color === var(--error-strong) (rojo), el texto comienza con − y contiene la marca ‹‹ (no depende solo del color, WCAG 1.4.1)",
       "steps": [
         "const cell = page.getByTestId('bal-total-actual-<mes>')",
         "assert getComputedStyle(cell).color === rgb(--error)",
         "assert (await cell.textContent()).trim().startsWith('−')",
         "assert (await cell.textContent()).includes('‹‹')"
       ],
-      "expected_result": "total negativo en --error con − y ‹‹",
+      "expected_result": "total negativo en --error-strong (5.46:1 sobre --bg-sunken) con − y ‹‹",
       "test_data": {}
     },
     {
@@ -183,7 +315,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un LedgerState con jerarquía pero sin montos (budgets/actuals vacíos) — el caso de un usuario nuevo con semilla sin cifras",
       "when": "se corre computeBalanceSeries y se recorren todas las cifras de todos los meses/planos",
       "then": "todas las cifras son exactamente 0 y Number.isFinite es true para cada una (ni NaN por dividir, ni Infinity); el render las mostrará como em-dash",
@@ -204,7 +338,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado de ene con ingreso actual 50000, sin gasto y sin reservas",
       "when": "se lee series.ene.actual",
       "then": "flow=50000, available=50000, reservedBalance=0, total=50000",
@@ -214,28 +350,41 @@
         "assert s.reservedBalance === 0 && s.total === 50000"
       ],
       "expected_result": "flujo/disponible/total = 50000, reservado = 0",
-      "test_data": { "income_actual": 50000 }
+      "test_data": {
+        "income_actual": 50000
+      }
     },
     {
       "id": "TC-BAL-906h",
       "requirement_id": "FR-906",
       "user_story_id": "US-906",
       "ac_id": "AC-906",
-      "title": "Cada plano arrastra su propio cierre al mes siguiente",
+      "title": "Ambos planos abren en el cierre REAL del mes anterior",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado donde enero cierra: PRESUPUESTADO disponible 80000/reservado 20000; EJECUTADO disponible 50000/reservado 20000",
       "when": "se leen series.feb.budget y series.feb.actual (componentes prevAvailable/prevReserved)",
-      "then": "feb.budget.prevAvailable=80000, feb.budget.prevReserved=20000; feb.actual.prevAvailable=50000, feb.actual.prevReserved=20000 — cada uno del cierre de su propio plano",
+      "then": "feb.budget.prevAvailable=50000 y feb.actual.prevAvailable=50000 — los DOS abren en el cierre ejecutado de enero; el cierre presupuestado (80000) no reaparece en ningún arrastre",
       "steps": [
         "const feb = computeBalanceSeries(state).feb",
         "assert feb.budget.prevAvailable === 80000 && feb.budget.prevReserved === 20000",
         "assert feb.actual.prevAvailable === 50000 && feb.actual.prevReserved === 20000"
       ],
-      "expected_result": "feb.budget arranca en 80000/20000 y feb.actual en 50000/20000",
-      "test_data": { "ene_budget_close": [80000, 20000], "ene_actual_close": [50000, 20000] }
+      "expected_result": "feb.budget y feb.actual arrancan ambos en 50.000/20.000 (el cierre real de enero)",
+      "test_data": {
+        "ene_budget_close": [
+          80000,
+          20000
+        ],
+        "ene_actual_close": [
+          50000,
+          20000
+        ]
+      }
     },
     {
       "id": "TC-BAL-906e",
@@ -246,7 +395,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado cuyo primer mes con datos es enero (no hay mes previo)",
       "when": "se leen los componentes de arrastre de series.ene",
       "then": "ene.budget.prevAvailable=0, ene.budget.prevReserved=0, ene.actual.prevAvailable=0, ene.actual.prevReserved=0 — sin saldo inicial manual",
@@ -256,28 +407,35 @@
         "assert ene.actual.prevAvailable === 0 && ene.actual.prevReserved === 0"
       ],
       "expected_result": "ene abre 0/0 en ambos planos",
-      "test_data": { "primer_mes": "ene" }
+      "test_data": {
+        "primer_mes": "ene"
+      }
     },
     {
       "id": "TC-BAL-906f",
       "requirement_id": "FR-906",
       "user_story_id": "US-906",
       "ac_id": "AC-906",
-      "title": "Las cadenas de arrastre son independientes (presupuestado no toma el real)",
+      "title": "El presupuestado arranca del cierre REAL, no de su propio cierre planeado",
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado donde enero cierra presupuestado total 80000 y ejecutado total 50000 (distintos)",
       "when": "se lee series.feb.budget.prevAvailable + prevReserved (el arrastre del plano presupuestado)",
-      "then": "el arrastre presupuestado de febrero es 80000 (cierre PRESUPUESTADO de enero), NUNCA 50000 (el real); una implementación que sembrara el presupuestado con el cierre real daría 50000 y el test falla",
+      "then": "el arrastre presupuestado de febrero es 50000 (cierre EJECUTADO de enero), NUNCA 80000; una implementación que arrastrara el plan sobre sí mismo daría 80000 y planificaría febrero con 30000 que nunca existieron",
       "steps": [
         "const feb = computeBalanceSeries(state).feb.budget",
         "assert feb.prevAvailable + feb.prevReserved === 80000",
         "assert feb.prevAvailable + feb.prevReserved !== 50000"
       ],
-      "expected_result": "arrastre presupuestado de feb === 80000 (no toma el real 50000)",
-      "test_data": { "ene_budget_total": 80000, "ene_actual_total": 50000 }
+      "expected_result": "arrastre presupuestado de feb === 50000 (el real), no 80000 (el plan)",
+      "test_data": {
+        "ene_budget_total": 80000,
+        "ene_actual_total": 50000
+      }
     },
     {
       "id": "TC-BAL-926e",
@@ -288,7 +446,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado donde enero ejecutado sobre-gasta y cierra con Saldo disponible −40000 (total −40000); febrero tiene ingreso actual 100000, sin gasto",
       "when": "se leen series.feb.actual.prevAvailable y series.feb.actual.available",
       "then": "feb.prevAvailable=−40000 (el cierre negativo de enero SE ARRASTRA, no se pone en 0), y feb.available=60000 (−40000 + 100000); el arranque en rojo es real",
@@ -298,7 +458,10 @@
         "assert feb.available === 60000"
       ],
       "expected_result": "el saldo mes anterior negativo se arrastra (−40000) y suma al mes siguiente",
-      "test_data": { "ene_actual_disponible": -40000, "feb_income_actual": 100000 }
+      "test_data": {
+        "ene_actual_disponible": -40000,
+        "feb_income_actual": 100000
+      }
     },
     {
       "id": "TC-BAL-907h",
@@ -309,7 +472,9 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado con una hoja de reserva/transfer que guarda (actual) 50000 en ene, 50000 en feb y 30000 en mar",
       "when": "se leen series.{ene,feb,mar}.actual.reservedBalance",
       "then": "reservedBalance = 50000 (ene), 100000 (feb), 130000 (mar) — acumulado",
@@ -320,7 +485,13 @@
         "assert s.mar.actual.reservedBalance === 130000"
       ],
       "expected_result": "reservedBalance ene/feb/mar = 50000/100000/130000",
-      "test_data": { "aportes": { "ene": 50000, "feb": 50000, "mar": 30000 } }
+      "test_data": {
+        "aportes": {
+          "ene": 50000,
+          "feb": 50000,
+          "mar": 30000
+        }
+      }
     },
     {
       "id": "TC-BAL-907e",
@@ -331,7 +502,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "dos estados idénticos (ingreso actual 100000, gasto actual 0) salvo que el segundo guarda 20000 en una reserva",
       "when": "se comparan series.ene.actual de ambos",
       "then": "con guardar: available=80000, reservedBalance=20000, total=100000. Sin guardar: available=100000, reservedBalance=0, total=100000. El TOTAL es 100000 en ambos (guardar solo reubica)",
@@ -342,7 +515,10 @@
         "assert conGuardar.total === 100000 && sinGuardar.total === 100000"
       ],
       "expected_result": "total idéntico (100000) con y sin guardar; disponible −20000, reservado +20000",
-      "test_data": { "income_actual": 100000, "guardar": 20000 }
+      "test_data": {
+        "income_actual": 100000,
+        "guardar": 20000
+      }
     },
     {
       "id": "TC-BAL-907f",
@@ -353,7 +529,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado con dos reservas que guardan (actual) 40000 y 60000 en enero (solo aportes ≥ 0)",
       "when": "se lee series.ene.actual.reservedBalance",
       "then": "reservedBalance=100000 (suma de las dos), y es ≥ 0; el módulo no expone un saldo por alcancía separado (reservedBalance es global). No hay entrada que lo haga negativo en v1",
@@ -363,7 +541,10 @@
         "assert ene.reservedBalance >= 0"
       ],
       "expected_result": "reservedBalance === 100000 (global, ≥ 0)",
-      "test_data": { "reserva_a": 40000, "reserva_b": 60000 }
+      "test_data": {
+        "reserva_a": 40000,
+        "reserva_b": 60000
+      }
     },
     {
       "id": "TC-BAL-936e",
@@ -374,7 +555,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "dos reservas A y B: A guarda 30000 en ene y 20000 en feb; B guarda 10000 en feb (nada en ene)",
       "when": "se leen series.ene.actual.reservedBalance y series.feb.actual.reservedBalance",
       "then": "reservedBalance ene=30000 (solo A) y feb=60000 (30000 previo + 20000 de A + 10000 de B) — acumula sobre ítems y meses",
@@ -384,7 +567,15 @@
         "assert s.feb.actual.reservedBalance === 60000"
       ],
       "expected_result": "reservado global ene=30000, feb=60000 (suma de A y B, acumulada)",
-      "test_data": { "A": { "ene": 30000, "feb": 20000 }, "B": { "feb": 10000 } }
+      "test_data": {
+        "A": {
+          "ene": 30000,
+          "feb": 20000
+        },
+        "B": {
+          "feb": 10000
+        }
+      }
     },
     {
       "id": "TC-BAL-908h",
@@ -395,7 +586,11 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "app en localhost:3100 con datos semilla", "sesión iniciada si aplica"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "app en localhost:3100 con datos semilla",
+        "sesión iniciada si aplica"
+      ],
       "given": "la vista Resumen con el módulo de balance visible; se lee el Saldo total ejecutado del mes vigente",
       "when": "se edita en la grilla el Ejecutado de una hoja de gasto sumándole 10000 y se confirma",
       "then": "el Saldo total ejecutado del mes baja exactamente 10000 respecto del valor previo, sin recargar la página",
@@ -406,7 +601,9 @@
         "assert antes - despues === 10000"
       ],
       "expected_result": "Saldo total ejecutado disminuye 10000 en vivo",
-      "test_data": { "delta_gasto": 10000 }
+      "test_data": {
+        "delta_gasto": 10000
+      }
     },
     {
       "id": "TC-BAL-908e",
@@ -417,7 +614,10 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px", "app con datos semilla"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "app con datos semilla"
+      ],
       "given": "la vista Resumen con el balance visible y un nodo susceptible de promover a grupo",
       "when": "se ejecuta la acción de promover a grupo (feature promote-to-group)",
       "then": "los valores del balance (disponible/reservado/total) siguen siendo coherentes con los roll-ups de la nueva jerarquía; ninguna cifra queda con el valor previo obsoleto",
@@ -438,7 +638,10 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries importada", "structuredClone disponible"],
+      "preconditions": [
+        "computeBalanceSeries importada",
+        "structuredClone disponible"
+      ],
       "given": "un LedgerState arbitrario del que se toma una copia profunda antes de llamar",
       "when": "se llama computeBalanceSeries(state) y luego se compara state con su copia",
       "then": "state es idéntico a la copia (deep equal): budgets, actuals, nodes y movements sin cambios — el cálculo es solo lectura, no escribe datos almacenados",
@@ -455,20 +658,23 @@
       "requirement_id": "FR-904",
       "user_story_id": "US-904",
       "ac_id": "AC-904",
-      "title": "El bloque Transferencia tiene una separación visual propia",
+      "title": "El módulo de Balance tiene una separación visual propia",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "app con datos semilla, los tres tipos con datos"],
-      "given": "la grilla de Resumen a 1440px con GASTOS, INGRESOS y TRANSFERENCIAS",
-      "when": "se mide el gap/separador vertical inmediatamente antes de la fila de tipo TRANSFERENCIAS y el gap entre dos grupos de un mismo tipo",
-      "then": "el separador antes de TRANSFERENCIAS es estrictamente mayor que el gap entre grupos de un mismo tipo (existe el TransferSeparator con ~24px o un hairline distinto)",
+      "preconditions": [
+        "Playwright a 1440px",
+        "app con datos semilla, los tres tipos con datos"
+      ],
+      "given": "la grilla de Resumen a 1440px con GASTOS, INGRESOS, TRANSFERENCIAS y el módulo BALANCE",
+      "when": "se mide el separador vertical inmediatamente antes del encabezado BALANCE y el espaciado entre filas contiguas de la grilla",
+      "then": "el separador antes de BALANCE es estrictamente mayor que el espaciado entre filas (existe el balance-separator, ~32px de aire vacío)",
       "steps": [
         "const sepTransfer = boundingGapBefore('[data-testid=type-total-row][data-type=transfer]')",
         "const sepGrupo = boundingGapBetweenGroupsSameType()",
         "assert sepTransfer > sepGrupo"
       ],
-      "expected_result": "separación antes de Transferencia > separación entre grupos del mismo tipo",
+      "expected_result": "separación antes de Balance > separación entre filas de la grilla",
       "test_data": {}
     },
     {
@@ -476,19 +682,21 @@
       "requirement_id": "FR-904",
       "user_story_id": "US-904",
       "ac_id": "AC-904",
-      "title": "La separación es solo visual: orden lógico y datos intactos",
+      "title": "Los tres tipos quedan contiguos y los datos intactos",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "la grilla con el separador de Transferencia",
-      "when": "se leen el orden de los tipos (expense, income, transfer) y los totales por tipo",
-      "then": "el orden lógico de los tipos es el mismo que antes de la feature y los totales por tipo no cambian — el separador no altera datos ni orden",
+      "when": "se leen el orden de los tipos (expense, income, transfer), los totales por tipo y el espaciado entre el último nodo de INGRESOS y la fila TRANSFERENCIAS",
+      "then": "el orden lógico y los totales por tipo no cambian, y NO existe separador entre los tipos: son contiguos como una sola grilla",
       "steps": [
         "assert secuencia de data-type = ['expense','income','transfer']",
         "assert los totales por tipo coinciden con los roll-ups (sin cambio)"
       ],
-      "expected_result": "orden y totales por tipo idénticos; solo cambia el espaciado",
+      "expected_result": "orden y totales idénticos; los tres tipos contiguos, sin separador entre ellos",
       "test_data": {}
     },
     {
@@ -500,7 +708,9 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["Playwright a 375px"],
+      "preconditions": [
+        "Playwright a 375px"
+      ],
       "given": "la app abierta en viewport de 375px",
       "when": "se busca el módulo de balance y la grilla en el DOM",
       "then": "ni la grilla ni el módulo de balance existen en el DOM (getByTestId('budget-grid') y ('balance-module') no visibles); solo se muestra el módulo de Registro",
@@ -510,7 +720,9 @@
         "assert await page.getByTestId('budget-grid').count() === 0"
       ],
       "expected_result": "balance-module y budget-grid ausentes a 375px",
-      "test_data": { "viewport": 375 }
+      "test_data": {
+        "viewport": 375
+      }
     },
     {
       "id": "TC-BAL-951h",
@@ -521,7 +733,9 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["store y computeBalanceSeries importados"],
+      "preconditions": [
+        "store y computeBalanceSeries importados"
+      ],
       "given": "un estado; se edita el actual de una hoja a 12345 vía la mutación existente del store",
       "when": "se persiste y luego se corre computeBalanceSeries",
       "then": "state.actuals[hoja][mes]===12345 antes y después del cómputo; computeBalanceSeries no modifica budgets ni actuals",
@@ -532,7 +746,9 @@
         "assert deepEqual(state.actuals, before) && state.actuals[hoja][mes]===12345"
       ],
       "expected_result": "actuals inalterados por el balance; la edición persiste",
-      "test_data": { "valor": 12345 }
+      "test_data": {
+        "valor": 12345
+      }
     },
     {
       "id": "TC-BAL-951e",
@@ -543,7 +759,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "el módulo de balance renderizado",
       "when": "se hace click en una celda del balance (p.ej. Saldo total ejecutado)",
       "then": "no aparece ningún input de edición (a diferencia de las hojas); la celda es de solo lectura",
@@ -563,7 +781,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["rollupActual/rollupBudget importados"],
+      "preconditions": [
+        "rollupActual/rollupBudget importados"
+      ],
       "given": "un estado con hojas de valores conocidos",
       "when": "se leen rollupBudget/rollupActual de las hojas y sus padres",
       "then": "coinciden exactamente con los valores esperados (sin cambio por la feature); ninguna celda de hoja cambió su valor mostrado",
@@ -583,7 +803,9 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["typeTotals importada de src/domain/rollup.ts"],
+      "preconditions": [
+        "typeTotals importada de src/domain/rollup.ts"
+      ],
       "given": "un estado con gastos de hojas conocidas en marzo",
       "when": "se llama typeTotals(state, 'expense', ['mar'])",
       "then": "devuelve { budget, actual } iguales a la suma de las hojas de gasto de marzo — el balance consume esto sin alterarlo",
@@ -604,7 +826,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["rollup importado"],
+      "preconditions": [
+        "rollup importado"
+      ],
       "given": "un tipo con dos grupos de subtotales conocidos en abril",
       "when": "se compara typeTotals(tipo, ['abr']) con la suma de rollup de cada grupo",
       "then": "son iguales (la agregación existente se conserva; no hay hojas huérfanas fuera del roll-up)",
@@ -623,7 +847,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "medium",
-      "preconditions": ["rollup y computeBalanceSeries importados"],
+      "preconditions": [
+        "rollup y computeBalanceSeries importados"
+      ],
       "given": "un estado; se capturan los roll-ups de todos los nodos",
       "when": "se corre computeBalanceSeries y se recapturan",
       "then": "los roll-ups son idénticos antes y después; el balance es solo lectura y no altera la agregación",
@@ -644,7 +870,10 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "una hoja de gasto al 110%"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "una hoja de gasto al 110%"
+      ],
       "given": "una hoja de gasto con presupuesto 200000 y ejecutado 220000 (110%)",
       "when": "se lee el color computado y el glifo de su celda de Ejecutado",
       "then": "sigue mostrando ámbar (--state-warning) y la marca › — el código de budget-state-color no se rompe con la feature",
@@ -653,7 +882,10 @@
         "assert celda contiene '›'"
       ],
       "expected_result": "estado ámbar › intacto en la hoja al 110%",
-      "test_data": { "budget": 200000, "actual": 220000 }
+      "test_data": {
+        "budget": 200000,
+        "actual": 220000
+      }
     },
     {
       "id": "TC-BAL-953e",
@@ -664,7 +896,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "el módulo de balance con cifras positivas",
       "when": "se inspeccionan las filas del balance",
       "then": "ninguna fila del balance muestra los glifos ›/›› de sobre-consumo (esos son de las hojas de gasto); el negativo del balance usa −/‹‹ y --error, no el código de la grilla",
@@ -683,7 +917,9 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "una fila de Ingreso por debajo de su presupuesto y una de Transferencia",
       "when": "se leen sus colores computados",
       "then": "el Ingreso corto sigue en --warning y la Transferencia sigue neutra; la feature no cambió su semántica",
@@ -703,11 +939,16 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "la vista Resumen con el balance visible y un nodo promovible",
       "when": "se ejecuta promover a grupo",
       "then": "la operación se completa con el mismo comportamiento que la feature promote-to-group (el nodo pasa a grupo, jerarquía coherente)",
-      "steps": ["promover nodo a grupo", "assert el nodo es ahora grupo y la jerarquía es válida"],
+      "steps": [
+        "promover nodo a grupo",
+        "assert el nodo es ahora grupo y la jerarquía es válida"
+      ],
       "expected_result": "promote-to-group intacto",
       "test_data": {}
     },
@@ -720,11 +961,16 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "un nodo degradable y el balance visible",
       "when": "se ejecuta degradar (demote-node)",
       "then": "la operación se completa como en la feature demote-node y el balance se recompone sin error",
-      "steps": ["degradar nodo", "assert jerarquía válida y balance recomputado"],
+      "steps": [
+        "degradar nodo",
+        "assert jerarquía válida y balance recomputado"
+      ],
       "expected_result": "demote-node intacto; balance recompone",
       "test_data": {}
     },
@@ -737,7 +983,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": ["computeBalanceSeries y la mutación de promote importadas"],
+      "preconditions": [
+        "computeBalanceSeries y la mutación de promote importadas"
+      ],
       "given": "un estado; se calcula el balance, luego se promueve un nodo",
       "when": "se recalcula computeBalanceSeries sobre el estado post-promote",
       "then": "el nuevo balance refleja los roll-ups de la jerarquía resultante (no reutiliza el valor previo); difiere del previo si la agregación cambió",
@@ -759,13 +1007,21 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Playwright", "módulo de registro"],
+      "preconditions": [
+        "Playwright",
+        "módulo de registro"
+      ],
       "given": "el módulo de registro; una hoja destino con ejecutado conocido",
       "when": "se registra un movimiento de 15000 a esa hoja",
       "then": "el Ejecutado de la hoja sube 15000, exactamente como antes de la feature",
-      "steps": ["registrar movimiento 15000", "assert ejecutado hoja += 15000"],
+      "steps": [
+        "registrar movimiento 15000",
+        "assert ejecutado hoja += 15000"
+      ],
       "expected_result": "registro de movimiento sin cambio",
-      "test_data": { "monto": 15000 }
+      "test_data": {
+        "monto": 15000
+      }
     },
     {
       "id": "TC-BAL-955e",
@@ -776,7 +1032,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Playwright a 375px"],
+      "preconditions": [
+        "Playwright a 375px"
+      ],
       "given": "la app a 375px",
       "when": "se inspecciona el DOM",
       "then": "existe el módulo de registro y NO existen ni budget-grid ni balance-module",
@@ -785,7 +1043,9 @@
         "assert page.getByTestId('balance-module').count() === 0"
       ],
       "expected_result": "móvil = solo registro",
-      "test_data": { "viewport": 375 }
+      "test_data": {
+        "viewport": 375
+      }
     },
     {
       "id": "TC-BAL-955f",
@@ -796,11 +1056,16 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "medium",
-      "preconditions": ["la mutación de registro y computeBalanceSeries importadas"],
+      "preconditions": [
+        "la mutación de registro y computeBalanceSeries importadas"
+      ],
       "given": "un estado; se registra un movimiento",
       "when": "se compara la estructura de movements/actuals con la esperada por la lógica existente",
       "then": "el movimiento se guarda con la misma forma que antes (mismo efecto en actuals); el balance solo lo LEE después",
-      "steps": ["registrar movimiento", "assert movements y actuals con la forma existente"],
+      "steps": [
+        "registrar movimiento",
+        "assert movements y actuals con la forma existente"
+      ],
       "expected_result": "captura de movimiento sin cambio de forma",
       "test_data": {}
     },
@@ -813,7 +1078,9 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "medium",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "el módulo de balance renderizado",
       "when": "se leen background-color de sus filas y la familia tipográfica",
       "then": "las filas usan --bg-sunken (igual que las filas no editables) y Fira Code; ningún color/hue fuera de la paleta existente",
@@ -833,15 +1100,20 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Playwright a 1440px", "medición de contraste computada"],
+      "preconditions": [
+        "Playwright a 1440px",
+        "medición de contraste computada"
+      ],
       "given": "el módulo de balance en tema oscuro y claro",
-      "when": "se calcula el ratio de contraste de --fg, --success, --error y --transfer sobre --bg-sunken",
-      "then": "todos los ratios son ≥ 4.5:1 (texto) — medidos, no asumidos",
+      "when": "se calcula el ratio de contraste de --fg-secondary, --success-strong, --error-strong y --type-transfer sobre --bg-sunken",
+      "then": "todos los ratios son ≥ 4.5:1 (texto) — medidos en el navegador sobre el color y el fondo computados reales, no asumidos",
       "steps": [
         "for token in [--fg,--success,--error,--transfer]: assert contrast(token, --bg-sunken) >= 4.5"
       ],
       "expected_result": "todos los roles de texto ≥ 4.5:1 sobre --bg-sunken",
-      "test_data": { "umbral": 4.5 }
+      "test_data": {
+        "umbral": 4.5
+      }
     },
     {
       "id": "TC-BAL-956f",
@@ -852,11 +1124,15 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "low",
-      "preconditions": ["Playwright a 1440px"],
+      "preconditions": [
+        "Playwright a 1440px"
+      ],
       "given": "las filas del balance",
       "when": "se mide la altura de sus filas",
       "then": "la altura coincide con una de la escala existente (control-size-scale); no aparece una altura nueva ad-hoc",
-      "steps": ["assert alturaFilaBalance ∈ escala existente"],
+      "steps": [
+        "assert alturaFilaBalance ∈ escala existente"
+      ],
       "expected_result": "altura dentro de la escala existente",
       "test_data": {}
     },
@@ -869,7 +1145,10 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "medium",
-      "preconditions": ["computeBalanceSeries importada", "estado con ~decenas de hojas × 12 meses"],
+      "preconditions": [
+        "computeBalanceSeries importada",
+        "estado con ~decenas de hojas × 12 meses"
+      ],
       "given": "un estado representativo (todas las hojas de la semilla, 12 meses)",
       "when": "se mide el tiempo de computeBalanceSeries en N iteraciones y se promedia",
       "then": "el promedio por llamada es < 100 ms (holgado para O(meses×hojas))",
@@ -878,7 +1157,10 @@
         "assert avg < 100"
       ],
       "expected_result": "promedio por llamada < 100 ms",
-      "test_data": { "iteraciones": 50, "umbral_ms": 100 }
+      "test_data": {
+        "iteraciones": 50,
+        "umbral_ms": 100
+      }
     },
     {
       "id": "TC-BAL-957e",
@@ -889,7 +1171,10 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["computeBalanceSeries importada", "estado representativo"],
+      "preconditions": [
+        "computeBalanceSeries importada",
+        "estado representativo"
+      ],
       "given": "un estado representativo ya calculado una vez",
       "when": "se muta el actual de una hoja y se vuelve a llamar computeBalanceSeries, midiendo solo la segunda llamada",
       "then": "la recomputación tras la edición tarda < 100 ms (el caso real de FR-908: editar → recalcular en vivo)",
@@ -899,7 +1184,9 @@
         "const t0=performance.now(); computeBalanceSeries(state); assert performance.now()-t0 < 100"
       ],
       "expected_result": "recomputación post-edición < 100 ms",
-      "test_data": { "umbral_ms": 100 }
+      "test_data": {
+        "umbral_ms": 100
+      }
     },
     {
       "id": "TC-BAL-957f",
@@ -910,11 +1197,16 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "low",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "dos estados: uno con datos en 1 mes, otro con datos en 12 meses",
       "when": "se mide el tiempo de cada uno",
       "then": "el de 12 meses no tarda más de ~12× el de 1 mes (lineal en meses); no hay explosión cuadrática",
-      "steps": ["medir t1 (1 mes) y t12 (12 meses)", "assert t12 < t1 * 20"],
+      "steps": [
+        "medir t1 (1 mes) y t12 (12 meses)",
+        "assert t12 < t1 * 20"
+      ],
       "expected_result": "escala lineal en meses (sin blow-up)",
       "test_data": {}
     },
@@ -927,7 +1219,9 @@
       "type": "unit",
       "scenario": "happy_path",
       "priority": "medium",
-      "preconditions": ["análisis estático / import del módulo"],
+      "preconditions": [
+        "análisis estático / import del módulo"
+      ],
       "given": "el módulo src/domain/balance.ts",
       "when": "se revisa que solo importe de src/domain (types, rollup, months) y no use fetch/XHR/fs/localStorage",
       "then": "no hay llamadas de red ni IO ni nuevas entradas de usuario; es cálculo puro sobre el estado ya validado",
@@ -947,7 +1241,10 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "low",
-      "preconditions": ["computeBalanceSeries importada", "STORAGE_KEYS de types.ts"],
+      "preconditions": [
+        "computeBalanceSeries importada",
+        "STORAGE_KEYS de types.ts"
+      ],
       "given": "un estado; se capturan las claves de localStorage (ledger.nodes.v1, ledger.budget.v2)",
       "when": "se corre computeBalanceSeries",
       "then": "no se crea ninguna clave de persistencia nueva para el balance (es derivado, no se almacena); las claves de storage siguen siendo las existentes",
@@ -968,7 +1265,9 @@
       "type": "unit",
       "scenario": "negative",
       "priority": "medium",
-      "preconditions": ["computeBalanceSeries importada"],
+      "preconditions": [
+        "computeBalanceSeries importada"
+      ],
       "given": "un estado con reservas (todas ≥ 0)",
       "when": "se corre el balance y se revisa que no produce ni intenta persistir montos negativos",
       "then": "todas las cifras de reserva son ≥ 0 y el módulo no escribe en actuals/budgets (no hay ruta que genere un negativo que rompa el CHECK amount>=0)",
@@ -979,6 +1278,132 @@
       ],
       "expected_result": "reservas ≥ 0; sin escritura al almacén (CHECK intacto)",
       "test_data": {}
+    },
+    {
+      "id": "TC-BAL-909h",
+      "requirement_id": "FR-909",
+      "user_story_id": "US-909",
+      "ac_id": "AC-909",
+      "title": "Plegar el módulo desde su encabezado conserva el Saldo total",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "given": "la grilla a 1440px con el módulo de balance desplegado y datos en julio y agosto",
+      "when": "se pulsa el chevron del encabezado BALANCE",
+      "then": "quedan 0 filas de balance visibles y el encabezado muestra 24 celdas (12 meses × 2 planos) con el Saldo total de cada una; el número de julio coincide con el que mostraba la fila Saldo total antes de plegar",
+      "expected_result": "0 filas · 24 celdas de total en el encabezado · mismo valor que la fila Saldo total"
+    },
+    {
+      "id": "TC-BAL-909e",
+      "requirement_id": "FR-909",
+      "user_story_id": "US-909",
+      "ac_id": "AC-909",
+      "title": "El chevron de Saldo disponible oculta las dos filas de abajo",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "given": "el módulo desplegado con sus seis filas",
+      "when": "se pulsa el chevron de la fila Saldo disponible",
+      "then": "quedan exactamente 4 filas visibles en este orden: prevAvailable, flow, reserved, available; y desaparecen reservedBalance y total",
+      "expected_result": "4 filas visibles; Saldo reservado y Saldo total ocultos"
+    },
+    {
+      "id": "TC-BAL-909f",
+      "requirement_id": "FR-909",
+      "user_story_id": "US-909",
+      "ac_id": "AC-909",
+      "title": "El chevron de Saldo disponible NO oculta ninguna fila de arriba",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "given": "el módulo desplegado",
+      "when": "se pliega desde Saldo disponible y se leen las filas que siguen visibles",
+      "then": "las tres filas de insumo (Saldo mes anterior, Flujo del mes, Reservas del mes) SIGUEN visibles: plegar hacia arriba sería el defecto. Al desplegar de nuevo vuelven las seis",
+      "expected_result": "los tres insumos siguen visibles al plegar; el ciclo plegar/desplegar restituye las seis filas"
+    },
+    {
+      "id": "TC-BAL-910h",
+      "requirement_id": "FR-910",
+      "user_story_id": "US-910",
+      "ac_id": "AC-910",
+      "title": "Los bloques aparecen en el orden Ingresos → Gastos → Reservas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "given": "la grilla de escritorio a 1440px",
+      "when": "se leen en orden de DOM los data-type de las filas de tipo",
+      "then": "la secuencia es exactamente ['income','expense','transfer'], y el módulo de balance va después de las tres",
+      "expected_result": "orden income, expense, transfer; balance al pie"
+    },
+    {
+      "id": "TC-BAL-910e",
+      "requirement_id": "FR-910",
+      "user_story_id": "US-910",
+      "ac_id": "AC-910",
+      "title": "Reordenar no cambia ningún total",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "given": "una semilla con gasto 300.000 e ingreso 1.000.000 en febrero",
+      "when": "se leen los totales por tipo tras el reordenamiento",
+      "then": "el total de GASTOS sigue siendo 300.000 y el de INGRESOS 1.000.000: el orden es solo de presentación",
+      "expected_result": "totales por tipo idénticos al valor sembrado"
+    },
+    {
+      "id": "TC-BAL-910f",
+      "requirement_id": "FR-910",
+      "user_story_id": "US-910",
+      "ac_id": "AC-910",
+      "title": "Ningún nodo cambia de tipo ni de padre al reordenar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "given": "un LedgerState semilla del que se captura, por nodo, su type y su parentId",
+      "when": "se recorre TYPE_ORDER para construir las filas y se recapturan",
+      "then": "cada nodo conserva su type y su parentId: el reordenamiento es de render y no muta el estado",
+      "expected_result": "type y parentId de todos los nodos sin cambio"
+    },
+    {
+      "id": "TC-BAL-911h",
+      "requirement_id": "FR-911",
+      "user_story_id": "US-911",
+      "ac_id": "AC-911",
+      "title": "El bloque de tipo transfer se rotula RESERVAS",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "given": "la grilla de escritorio a 1440px",
+      "when": "se lee el rótulo de la fila de tipo con data-type='transfer'",
+      "then": "dice RESERVAS, la misma palabra que usan las filas del balance ('Reservas del mes', 'Saldo reservado')",
+      "expected_result": "rótulo RESERVAS en la fila de tipo transfer"
+    },
+    {
+      "id": "TC-BAL-911e",
+      "requirement_id": "FR-911",
+      "user_story_id": "US-911",
+      "ac_id": "AC-911",
+      "title": "El tipo del dominio sigue siendo transfer",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "given": "la grilla con el bloque rotulado RESERVAS",
+      "when": "se lee el atributo data-type de esa fila y el nodo persistido en localStorage",
+      "then": "el atributo sigue siendo 'transfer' y el nodo guardado conserva type='transfer': cambió el rótulo, no el modelo",
+      "expected_result": "data-type='transfer' y el nodo persistido con type='transfer'"
+    },
+    {
+      "id": "TC-BAL-911f",
+      "requirement_id": "FR-911",
+      "user_story_id": "US-911",
+      "ac_id": "AC-911",
+      "title": "No queda ningún rótulo TRANSFERENCIAS en la grilla",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "given": "la grilla de escritorio renderizada",
+      "when": "se busca el texto 'TRANSFERENCIAS' en la columna de rótulos",
+      "then": "no aparece en ninguna fila de tipo: el rótulo viejo no sobrevive en ningún lugar de la grilla",
+      "expected_result": "cero ocurrencias de TRANSFERENCIAS en los rótulos de tipo"
     }
   ]
 }

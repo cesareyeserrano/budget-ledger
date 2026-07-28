@@ -2,7 +2,7 @@
   "name": "t-ledger",
   "version": "0.0.1-beta",
   "private": true,
-  "description": "Ledger — app web de finanzas personales contra presupuesto (single-user, localStorage v1)",
+  "description": "Ledger \u2014 app web de finanzas personales contra presupuesto (single-user, localStorage v1)",
   "scripts": {
     "dev": "next dev -p 3100",
     "db:up": "docker compose -f docker-compose.dev.yml up -d db db-viewer",
@@ -70,6 +70,8 @@
     "postcss": "$postcss",
     "@esbuild-kit/core-utils": {
       "esbuild": "^0.25.0"
-    }
+    },
+    "brace-expansion": "^5.0.8",
+    "minimatch": "^10.2.6"
   }
 }

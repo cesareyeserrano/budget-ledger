@@ -84,6 +84,15 @@
   --state-warning: #9e4708;   /* ámbar "te pasaste poco" (>100 % y <120 %) — peor caso 4.92:1 */
   --state-over: #ad3932;      /* rojo  "te pasaste mucho" (≥120 %)          — peor caso 4.85:1 */
 
+  /* balance FR-905/NFR-906: cifras de RESULTADO del módulo de Balance (Saldo disponible/total).
+     Mismo motivo y misma solución que los --state-*: medido, --success y --error se quedan cortos
+     sobre la superficie HUNDIDA del módulo (#f1f1f3 → 4.45:1 y 4.36:1, bajo el mínimo AA de 4.5).
+     Se AGREGAN en vez de redefinir --success/--error, que usa toda la app (card DISPONIBLE,
+     StorageBanner, dashboard, registro). Mismo hue, luminancia bajada lo justo. */
+  --success-strong: #2d7650;  /* verde "saldo sano"     — 4.87:1 sobre --bg-sunken */
+  --error-strong: #ad3932;    /* rojo  "saldo negativo" — 5.46:1 sobre --bg-sunken. Coincide con
+                                 --state-over a propósito: rojo = problema en toda la grilla (H4). */
+
   /* Colores por tipo de movimiento (identidad cromática, FR-204). ux-consistency: los valores se
      AFINAN (permitido por NFR-302) a tonos DESATURADOS — ladrillo / bosque / acero — para eliminar
      la vibración (cromoestereopsis) sin cambiar el hue ni la semántica. L* ≈ 47/47/45 (balanceados). */
@@ -148,6 +157,11 @@
      (peor caso: la celda resaltada de una hoja, #212123 → ámbar 7.36:1, rojo 5.22:1). */
   --state-warning: #e0a458;
   --state-over: #ec6a66;
+
+  /* balance: en oscuro los tonos BASE ya pasan sobre la superficie hundida (#0f0f12 → verde
+     8.36:1, rojo 6.21:1), así que la variante coincide con su token base: cero cambio visual. */
+  --success-strong: #5fbe82;
+  --error-strong: #ec6a66;
 
   /* Acentos por tipo en oscuro: mismo hue, aclarados y desaturados (~20-40% menos saturación). */
   --type-expense: #ec6a66;    /* 5.6:1 sobre la superficie */
