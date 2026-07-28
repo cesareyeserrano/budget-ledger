@@ -1,7 +1,89 @@
-<!-- PLANEADA — NO INICIAR el pipeline hasta terminar la feature `balance`.
-     Documento redactado con el usuario el 2026-07-24 como parte del diseño de `balance`.
-     Confirmar los campos de ground-truth (Problem / Users / Success / Out of Scope)
-     con el usuario ANTES de correr Fase 1. Lo marcado [ASSUMPTION] no está confirmado. -->
+<!-- PLANEADA — Fase 1 NO iniciada a propósito.
+     REVISADO CON EL USUARIO EL 2026-07-28. Lo de abajo (secciones originales del 2026-07-24)
+     quedó PARCIALMENTE OBSOLETO: leer primero esta cabecera. La conversación se detuvo para
+     retomarla en sesión fresca — el usuario pidió repensar el flujo desde cero. -->
+
+# ⚠️ ESTADO AL 2026-07-28 — leer esto antes que nada
+
+## La premisa REAL (corrige el encuadre original)
+
+El usuario lo dijo así: *"necesitamos controlar las transferencias o movimientos dentro de
+transferencias, que no tienen control ni límite"*. El dolor es el **descontrol**, no la falta de un
+modelo de origen→destino. Hoy podés apartar plata que no tenés.
+
+## CONFIRMADO con el usuario
+
+1. **La edición manual de las celdas SE QUEDA.** Esto CONTRADICE la sección "New Behavior" de abajo,
+   que decía volver las celdas no editables. El usuario fue explícito: *"no eliminar la posibilidad
+   de editar manualmente"*.
+
+2. **La regla tiene DOS lados:**
+   - **Techo:** `reservas del mes ≤ saldo mes anterior + flujo del mes`
+   - **Piso:** el `saldo reservado` no puede quedar negativo (no sacar más de lo guardado)
+
+3. **La formulación inicial del usuario tenía un hueco, y él lo corrigió a medias.** Había propuesto
+   *"disponible positivo **O** ingresos − egresos del mes positivo"*. El "O" abre un agujero:
+   enero cierra en −500, en febrero entran 300 → el flujo es positivo, pero tenés −200 y la regla
+   te dejaría transferir. **No son dos condiciones alternativas: es la SUMA de las dos.**
+   Ojo: tampoco es "≤ Saldo disponible", porque esa cifra YA tiene las reservas restadas — el
+   margen real es `saldo mes anterior + flujo`, antes de restar reservas. El usuario detectó
+   justamente este error.
+
+4. **Al pasarse: se BLOQUEA con mensaje que explique por qué** (no se guarda y se avisa). No es un
+   aviso blando.
+
+5. **Las reglas deben aplicar en LAS DOS puertas de entrada.** Hoy no se hablan: la grilla valida
+   con `Math.max(0, …)` en `setLeafAmount`, el registro con `parseAmount` (≥1) en `addMovement`, y
+   el registro SÍ permite tipo "Transferencia" (`TypeToggle.tsx`). Ninguna sabe del saldo →
+   **la validación tiene que vivir en el DOMINIO**, no en el componente de grilla.
+
+6. **Transferencias entre ítems del mismo tipo** (alcancía A → alcancía B): no son problema. Son
+   neto cero y hoy YA funcionan editando dos celdas. Va como regresión a verificar, no como trabajo.
+
+7. **Sacar de una reserva NO es un ingreso.** Verificado con números: julio cierra en disponible 300
+   / reservado 200 / total 500; si en agosto sacás 50 y lo anotás como ingreso, el total sube a 550
+   (plata inventada) y el reservado sigue diciendo 200. Contablemente es una reclasificación de
+   activo: no toca ninguna cuenta de resultado y el patrimonio no cambia.
+
+## ABIERTO — es donde se detuvo la conversación
+
+**Cómo se REPRESENTA "sacar" de una reserva.** Se exploraron tres formas y ninguna convenció:
+
+| forma | objeción |
+|---|---|
+| Monto negativo en la celda | Al usuario no le convence ver negativos ahí |
+| Dos renglones por alcancía (guardé / saqué) | *"Si sacás y no metés en ningún lado"* — la mayoría de los meses uno queda vacío y la grilla se duplica |
+| Línea "Retiro de reservas" en el balance (idea del usuario) | Buena para leer, pero el balance es DERIVADO: el número igual hay que teclearlo en algún lado |
+
+Matiz importante que sí quedó claro: **reducir lo guardado en el MISMO mes ya funciona hoy** (bajás
+la celda de julio de 200 a 150 y esos 50 vuelven a disponible). Lo que no existe es sacar en un mes
+POSTERIOR, que exigiría un negativo y toca el `CHECK amount >= 0`.
+
+## La hipótesis de por qué nada cerraba
+
+Hay **dos modelos peleando**: la grilla es una MATRIZ DE PRESUPUESTO (un número por celda: "cuánto va
+a esta categoría este mes"), pero guardar y sacar son EVENTOS CON DOS LADOS. Todas las opciones de
+arriba eran parches para ese desajuste.
+
+## Las preguntas que quedaron SIN responder
+
+El usuario pidió repensar el flujo desde cero. Se le preguntó, y no alcanzó a contestar:
+
+- Tenés 200 en la alcancía "Viaje" y en agosto necesitás 50 para pagar algo. ¿Qué pasa paso a paso?
+  ¿Sacás y después gastás, o pagás directo con esa plata?
+- Ese gasto, ¿lo anotás como gasto normal? ¿En qué categoría?
+- **La pregunta clave: ¿la alcancía es un LUGAR donde tenés plata, o una CATEGORÍA de gasto que vas
+  llenando?** Son cosas distintas y el modelo cambia por completo según cuál sea.
+
+## Recomendación para la próxima sesión
+
+Empezar por esas preguntas, NO por escribir requisitos. Considerar correr `discovery` para esta
+feature: los campos Success Criteria y Out of Scope de abajo siguen marcados "[A DEFINIR EN
+DISCOVERY]", y Target Users sigue siendo un [ASSUMPTION] sin confirmar.
+
+---
+
+# Documento original (2026-07-24) — leer con la cabecera de arriba
 
 ## Feature
 Un módulo de **transferencia calculada**: mover dinero entre lugares (disponible ↔ reservas, o entre dos reservas) eligiendo **origen → destino → monto**, de modo que la app ajuste ambos lados sola y ninguna transferencia pueda descuadrar. Al hacerlo, las celdas de transferencia de la grilla dejan de editarse **a mano** (que es lo que hoy descuadra): pasan a ser el resultado CALCULADO de estos movimientos.
