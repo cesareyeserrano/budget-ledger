@@ -60,9 +60,10 @@
       "title": "Implementar los 11 TC de grid-ux nunca escritos (6 NFR de regresion)",
       "priority": "P1",
       "problem": "TC-205e/208e/210e/211e/211f/213e/213f/214h/214f/215e/215f figuran skip en aitri/features/grid-ux/spec/04_TEST_RESULTS.json con la nota 'Not detected in runner output', pero un grep de cada id sobre tests/ devuelve cero coincidencias: los tests no existen. Seis cubren NFR de regresion (NFR-101 Escape cancela edicion, NFR-102 reparent + manija de resize, NFR-104 registro a 375px, NFR-105 persistencia tras resize, NFR-106 contraste AA y cero fuente externa).",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:58:44.368Z",
-      "acceptance": "Cada uno de los 11 TC tiene un test en tests/e2e/grid-ux.spec.ts nombrado por su TC-ID, verify-run los reporta pass y grid-ux queda 0 skip. TC-215e/215f se re-anclan a Inter + DM Mono (FR-213 de stack-upgrade-theme reemplazo a Lexend). TC-BE-077h se marca manual y se verifica."
+      "acceptance": "Cada uno de los 11 TC tiene un test en tests/e2e/grid-ux.spec.ts nombrado por su TC-ID, verify-run los reporta pass y grid-ux queda 0 skip. TC-215e/215f se re-anclan a Inter + DM Mono (FR-213 de stack-upgrade-theme reemplazo a Lexend). TC-BE-077h se marca manual y se verifica.",
+      "closedAt": "2026-07-28T21:00:52.376Z"
     },
     {
       "id": "BL-008",

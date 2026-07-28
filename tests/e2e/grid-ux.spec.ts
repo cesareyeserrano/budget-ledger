@@ -413,3 +413,356 @@ test("TC-212f: la carga inicial con Lexend no supera ~2s y la fuente es self-hos
   // Lexend self-hosted: 0 peticiones de fuente a CDN/host externo.
   expect(externalFontReqs).toEqual([]);
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BL-007 — los 11 TC que la feature declaró y nunca se escribieron.
+//
+// Figuraban `skip` en 04_TEST_RESULTS.json con la nota "Not detected in runner
+// output", que se lee como un problema de parseo; en realidad no existía ningún
+// test que los referenciara. Seis son NFR de REGRESIÓN (NFR-101..106), o sea la
+// red que protege lo que esta feature no debía romper.
+//
+// Re-anclaje: los TC redactados "con Lexend" (213e, 215e) se verifican contra
+// Inter + DM Mono — FR-213 de stack-upgrade-theme reemplazó a Lexend en toda la
+// app. El invariante que cada TC afirma no cambia; cambia la fuente que lo encarna.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Fila de nodo por nombre, acotada al testid (más preciso que el helper `row` genérico). */
+function nodeRow(page: PW, name: string): Loc {
+  return page.getByTestId("budget-grid").locator('[data-testid="node-row"]').filter({ hasText: name }).first();
+}
+
+/** Firma nivel:nombre de cada fila — detecta cualquier reubicación accidental. */
+async function hierarchy(page: PW): Promise<string[]> {
+  return page.getByTestId("budget-grid").locator('[data-testid="node-row"]').evaluateAll((els) =>
+    els.map((e) => `${e.getAttribute("data-level")}:${e.querySelector('[data-testid="row-label"]')?.textContent?.trim() ?? ""}`)
+  );
+}
+
+/** Contraste WCAG entre dos variables CSS de :root, en el tema activo. */
+async function contrastRatio(page: PW, fgVar: string, bgVar: string): Promise<number> {
+  return page.evaluate(([fgv, bgv]) => {
+    const s = getComputedStyle(document.documentElement);
+    const hex = (h: string) => {
+      let v = h.trim().replace("#", "");
+      if (v.length === 3) v = [...v].map((c) => c + c).join("");
+      return [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16));
+    };
+    const lum = (rgb: number[]) => {
+      const a = rgb.map((c) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+      return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+    };
+    const fg = lum(hex(s.getPropertyValue(fgv))), bg = lum(hex(s.getPropertyValue(bgv)));
+    const [hi, lo] = fg > bg ? [fg, bg] : [bg, fg];
+    return (hi + 0.05) / (lo + 0.05);
+  }, [fgVar, bgVar]);
+}
+
+// ---------- FR-105 — etiquetas en español ----------
+// @aitri-tc TC-205e
+test("TC-205e: al alternar a Dashboard y volver, la pestaña sigue en 'Resumen'", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByRole("tab", { name: "Resumen" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Dashboard" }).click();
+  await expect(page.getByTestId("page-title")).toHaveText("Dashboard");
+
+  await page.getByRole("tab", { name: "Resumen" }).click();
+  await expect(page.getByTestId("page-title")).toHaveText("Presupuesto");
+
+  // El cambio de texto es ESTABLE: ni el ciclo de ida y vuelta ni el re-render
+  // reintroducen la etiqueta en inglés.
+  await expect(page.getByRole("tab", { name: "Resumen" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Budget" })).toHaveCount(0);
+  await expect(page.getByText("Budget", { exact: true })).toHaveCount(0);
+});
+
+// ---------- FR-108 — conector alineado por profundidad ----------
+// @aitri-tc TC-208e
+test("TC-208e: el conector se alinea por indentación de profundidad (16px/nivel)", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  const grid = page.getByTestId("budget-grid");
+  await grid.getByText("Comida", { exact: true }).first().click(); // expandir para que haya un sub
+  await expect(grid.getByText("Mercado", { exact: true })).toBeVisible();
+
+  const padOf = (level: string) =>
+    page
+      .locator(`[data-testid="node-row"][data-level="${level}"] [data-testid="row-label"]`)
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
+
+  const grupo = await padOf("group");
+  const categoria = await padOf("category");
+  const sub = await padOf("sub");
+
+  // Un solo escalón por nivel, idéntico en toda la jerarquía: es lo que hace que el
+  // conector de la subcategoría caiga siempre bajo el ícono de su padre.
+  expect(categoria - grupo).toBe(16);
+  expect(sub - categoria).toBe(16);
+});
+
+// ---------- NFR-101 (Regression) — edición inline ----------
+// @aitri-tc TC-210e
+test("TC-210e: (regresión) Escape cancela la edición sin cambios", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  const grid = page.getByTestId("budget-grid");
+  const cell = nodeRow(page, "Vivienda").getByTestId("cell-leaf").first();
+  const original = ((await cell.textContent()) ?? "").trim();
+  expect(original).not.toBe("");
+
+  await cell.click();
+  const editor = page.getByLabel("Editar valor");
+  await editor.fill("999999");
+  await editor.press("Escape");
+
+  // El editor se cierra y el valor previo queda intacto — Escape no puede colarse
+  // como un commit por la vía del blur.
+  await expect(page.getByLabel("Editar valor")).toHaveCount(0);
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText(original);
+
+  // …y tampoco se persistió: tras recargar sigue el valor original.
+  await page.reload();
+  await expect(grid).toBeVisible();
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText(original);
+});
+
+// ---------- NFR-102 (Regression) — el dnd de nodos ----------
+// @aitri-tc TC-211e
+test("TC-211e: (regresión) reparent por arrastre sigue funcionando", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  const grid = page.getByTestId("budget-grid");
+  await grid.getByText("Comida", { exact: true }).first().click(); // expandir para ver 'Café'
+  await expect(grid.getByText("Café", { exact: true }).first()).toBeVisible();
+
+  // El total del tipo GASTOS antes de tocar nada: reubicar no puede cambiar cuánto suma
+  // (NFR-005 raíz / BG-009). Es la mitad de "los roll-ups se recalculan" que TC-105e
+  // comprueba en el dominio; aquí se comprueba en la grilla real.
+  const totalGastos = page.locator('[data-testid="type-total-row"][data-type="expense"]');
+  const antes = ((await totalGastos.getByTestId("cell-parent").first().textContent()) ?? "").trim();
+
+  const cafe = grid.getByText("Café", { exact: true }).first();
+  const vivienda = grid.getByText("Vivienda", { exact: true }).first();
+  const a = (await cafe.boundingBox())!;
+  const b = (await vivienda.boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2, { steps: 5 }); // supera la distancia de activación
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 10 });
+  await page.mouse.up();
+
+  // 'Café' quedó bajo 'Vivienda'. Al reparentar el store re-monta la grilla y las
+  // categorías se colapsan, así que se reintenta expandir hasta verlo (sin oscilar).
+  await expect(async () => {
+    if ((await grid.getByText("Café", { exact: true }).count()) === 0) {
+      await grid.getByText("Vivienda", { exact: true }).first().click();
+    }
+    await expect(grid.getByText("Café", { exact: true }).first()).toBeVisible({ timeout: 1500 });
+  }).toPass({ timeout: 15000 });
+  await expect(nodeRow(page, "Café")).toHaveAttribute("data-level", "sub");
+
+  // …y el roll-up del tipo se recalculó sin perder ni inventar plata.
+  await expect(totalGastos.getByTestId("cell-parent").first()).toHaveText(antes);
+});
+
+// @aitri-tc TC-211f
+test("TC-211f: (regresión) usar la manija de resize o '+' NO dispara un drag de nodo", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  const grid = page.getByTestId("budget-grid");
+  await expect(grid).toBeVisible();
+  const antes = await hierarchy(page);
+  expect(antes.length).toBeGreaterThan(0);
+
+  // 1) La manija usa Pointer Events propios; su arrastre no debe llegar al PointerSensor de dnd-kit.
+  const handle = page.getByRole("separator", { name: /Redimensionar/ });
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + 3, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 83, box.y + 20, { steps: 5 });
+  await page.mouse.up();
+
+  await expect(page.getByTestId("promote-hint")).toHaveCount(0); // sin afordancia de drop
+  expect(await hierarchy(page)).toEqual(antes); // nada se reubicó
+
+  // 2) El '+' es un botón dentro de la fila arrastrable: su clic no puede iniciar un arrastre.
+  const esenciales = nodeRow(page, "Esenciales");
+  await hoverRow(page, esenciales);
+  await page.locator(String.raw`button[aria-label="Agregar categoría"]`).first().click();
+  await expect(page.getByLabel("Nombre")).toBeVisible(); // su efecto real: abre el rename
+
+  await expect(page.getByTestId("promote-hint")).toHaveCount(0);
+  // Se agregó una fila, pero NINGUNA de las previas cambió de nivel ni de sitio.
+  expect(await hierarchy(page)).toEqual(expect.arrayContaining(antes));
+});
+
+// ---------- NFR-104 (Regression) — la vista móvil ----------
+// @aitri-tc TC-213e
+test("TC-213e: (regresión) el módulo de registro no desborda a 375px", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/");
+  await expect(page.getByTestId("mobile-shell")).toBeVisible();
+
+  // Re-anclado a Inter (FR-213 reemplazó a Lexend); el invariante es el mismo: la
+  // tipografía global no puede empujar el registro fuera del ancho del dispositivo.
+  const ff = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+  expect(ff).toContain("Inter");
+
+  const overflow = await page.evaluate(() => {
+    const shell = document.querySelector('[data-testid="mobile-shell"]') as HTMLElement;
+    // Qué significa "desbordar" para quien usa el teléfono: que algo quede fuera del
+    // ancho de la pantalla. Se mide por la caja pintada, no por scrollWidth de cada
+    // nodo: un glifo centrado en una caja de ancho fijo (el signo del TypeToggle, w-3)
+    // rebasa SU caja a propósito para alinear las tres etiquetas, y eso no es desborde.
+    const fuera = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="mobile-shell"] *'))
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && (r.right > window.innerWidth + 1 || r.left < -1);
+      })
+      .map((el) => `${el.tagName}.${el.className}`.slice(0, 80));
+    return {
+      shell: { scrollWidth: shell.scrollWidth, clientWidth: shell.clientWidth },
+      doc: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth },
+      fuera,
+    };
+  });
+
+  expect(overflow.shell.scrollWidth).toBeLessThanOrEqual(overflow.shell.clientWidth);
+  expect(overflow.doc.scrollWidth).toBeLessThanOrEqual(overflow.doc.clientWidth);
+  expect(overflow.fuera, overflow.fuera.join(" | ")).toEqual([]);
+});
+
+// @aitri-tc TC-213f
+test("TC-213f: (regresión) a 375px NO aparece la grilla ni la manija de resize", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/");
+  await expect(page.getByTestId("mobile-shell")).toBeVisible();
+
+  // Barrido negativo: CERO elementos de escritorio en el DOM, no solo invisibles.
+  for (const testid of ["budget-grid", "node-row", "type-total-row", "cell-leaf", "cell-parent", "balance-module"]) {
+    await expect(page.getByTestId(testid)).toHaveCount(0);
+  }
+  await expect(page.getByRole("separator", { name: /Redimensionar/ })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Dashboard" })).toHaveCount(0);
+});
+
+// ---------- NFR-105 (Regression) — la persistencia ----------
+// @aitri-tc TC-214h
+test("TC-214h: (regresión) los datos persisten tras usar el resize y recargar", async ({ page }) => {
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  const grid = page.getByTestId("budget-grid");
+  await expect(grid).toBeVisible();
+
+  // Un dato propio del usuario, guardado por la vía normal.
+  await nodeRow(page, "Vivienda").getByTestId("cell-leaf").first().click();
+  const editor = page.getByLabel("Editar valor");
+  await editor.fill("777000");
+  await editor.press("Enter");
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText("777.000");
+
+  // Usar el resize: escribe en SU propia clave, que no puede tocar las de datos.
+  const handle = page.getByRole("separator", { name: /Redimensionar/ });
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + 3, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 103, box.y + 20, { steps: 5 });
+  await page.mouse.up();
+  const ancho = parseInt(await grid.evaluate((el) => getComputedStyle(el).getPropertyValue("--cat-w")));
+  expect(ancho).toBeGreaterThan(240);
+
+  await page.reload();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+  // El dato sobrevive idéntico, y el ancho también — cada uno en su clave.
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText("777.000");
+  const anchoTrasRecarga = parseInt(
+    await page.getByTestId("budget-grid").evaluate((el) => getComputedStyle(el).getPropertyValue("--cat-w"))
+  );
+  expect(anchoTrasRecarga).toBe(ancho);
+});
+
+// @aitri-tc TC-214f
+test("TC-214f: (regresión) ancho corrupto no afecta la carga de datos ni lanza excepción", async ({ page }) => {
+  const errores: string[] = [];
+  page.on("pageerror", (e) => errores.push(String(e)));
+
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+  await nodeRow(page, "Vivienda").getByTestId("cell-leaf").first().click();
+  const editor = page.getByLabel("Editar valor");
+  await editor.fill("654000");
+  await editor.press("Enter");
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText("654.000");
+
+  // Corromper SOLO la clave de ancho; las de datos quedan intactas.
+  await page.evaluate(() => localStorage.setItem("ledger.grid.catWidth.v1", "{esto-no-es-un-numero"));
+  await page.reload();
+
+  const grid = page.getByTestId("budget-grid");
+  await expect(grid).toBeVisible();
+  // La grilla abre al default sin lanzar…
+  const w = parseInt(await grid.evaluate((el) => getComputedStyle(el).getPropertyValue("--cat-w")));
+  expect(w).toBe(240);
+  // …y el dato del usuario carga normalmente: una clave corrupta no arrastra a la otra.
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").first()).toHaveText("654.000");
+  expect(errores, errores.join(" | ")).toEqual([]);
+});
+
+// ---------- NFR-106 (Regression) — el sistema de diseño ----------
+// @aitri-tc TC-215e
+test("TC-215e: (regresión) contraste de texto primario ≥4.5:1", async ({ page }) => {
+  // Re-anclado a Inter (FR-213 reemplazó a Lexend). El umbral AA se verifica en los DOS
+  // temas: la feature stack-upgrade-theme añadió el claro después de redactarse este TC.
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/");
+    await expect(page.getByTestId("mobile-shell").or(page.getByTestId("budget-grid")).first()).toBeVisible();
+
+    const ff = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(ff).toContain("Inter");
+    expect(ff).not.toContain("Lexend");
+
+    const ratio = await contrastRatio(page, "--fg", "--bg");
+    expect(ratio, `contraste --fg/--bg en tema ${scheme}`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+// @aitri-tc TC-215f
+test("TC-215f: (regresión) 0 emoji/gradiente y 0 petición externa de fuente", async ({ page }) => {
+  const externas: string[] = [];
+  page.on("request", (req) => {
+    const url = req.url();
+    const esFuente = req.resourceType() === "font" || /\.(woff2?|ttf|otf)(\?|$)/i.test(url);
+    const esExterna = /^https?:\/\//i.test(url) && !/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+    if (esFuente && esExterna) externas.push(url);
+    if (/fonts\.(googleapis|gstatic)\.com/i.test(url)) externas.push(url);
+  });
+
+  await page.setViewportSize(DESK);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  // Ejercitar superficies que podrían traer decoración propia antes de inspeccionar.
+  await page.getByTestId("budget-grid").getByText("Comida", { exact: true }).first().click();
+  await page.getByRole("tab", { name: "Dashboard" }).click();
+  await expect(page.getByTestId("page-title")).toHaveText("Dashboard");
+  await page.waitForTimeout(400);
+
+  const { emoji, gradiente } = await page.evaluate(() => {
+    const emoji = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u.test(document.body.innerText);
+    let gradiente = false;
+    for (const el of Array.from(document.querySelectorAll("*"))) {
+      if (getComputedStyle(el).backgroundImage.includes("gradient")) { gradiente = true; break; }
+    }
+    return { emoji, gradiente };
+  });
+
+  expect(emoji).toBe(false);
+  expect(gradiente).toBe(false);
+  expect(externas, externas.join(",")).toEqual([]); // tipografía self-hosted (NFR-004/BG-001)
+});
