@@ -6,6 +6,7 @@ import { setLeafAmount, canDeleteNode } from "@/domain/mutations";
 import { rollupBudget } from "@/domain/rollup";
 import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import type { LedgerState, LedgerNode } from "@/domain/types";
+import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 
 const byName = (s: LedgerState, name: string): LedgerNode =>
   s.nodes.find((n) => n.name === name)!;
@@ -317,9 +318,14 @@ describe("NFR-604 — regresión: reparent existente, cross-type, grupos con hij
     const cat = byName(s, "Cat");
     s = createNode(s, { level: "sub", parentId: cat.id, type: "expense", name: "Sub" });
     const sub = byName(s, "Sub");
+    const antes = yearTotals(s);
     const st = stateOf(moveNode(s, sub.id, { kind: "category", id: "c-vivienda" }), s);
     expect(findNode(st.nodes, sub.id)!.parentId).toBe("c-vivienda");
     expect(findNode(st.nodes, sub.id)!.level).toBe("sub");
+    // c-vivienda es categoría-HOJA con montos: al ganar su primer hijo NO puede perder el suyo
+    // de los agregados (NFR-604/NFR-005; regresión de BG-009).
+    expect(yearTotals(st)).toEqual(antes);
+    expect(orphanBudgetNodes(st)).toEqual([]);
   });
 
   // @aitri-tc TC-654e

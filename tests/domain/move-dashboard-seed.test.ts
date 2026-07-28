@@ -3,6 +3,7 @@ import { buildSeed, createNode, moveNode, dashboardMetrics, deleteNode } from "@
 import { findNode, childrenOf, subtreeIds } from "@/domain/tree";
 import { setLeafAmount } from "@/domain/mutations";
 import { MONTH_KEYS } from "@/domain/months";
+import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 
 function seedWithCafe() {
   const s0 = buildSeed("local");
@@ -87,11 +88,18 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
   // @aitri-tc TC-105e
   it("TC-105e: tras reparent, cero huérfanos y totales cuadran", () => {
     const s = seedWithCafe();
+    const antes = yearTotals(s);
+    // c-vivienda es una categoría-HOJA con montos en la semilla: al recibir a c-cafe deja de ser
+    // hoja, que es el caso donde BG-009 perdía su presupuesto de todos los agregados.
     const res = moveNode(s, "c-cafe", { kind: "category", id: "c-vivienda" });
     const state = "state" in res ? res.state : s;
     expect(noOrphans(state.nodes, state.movements)).toBe(true);
     // rollup del nuevo padre incluye la hoja movida
     expect(subtreeIds(state.nodes, "c-vivienda")).toContain("c-cafe");
+    // …y "totales cuadran" se COMPRUEBA, no solo se enuncia (BG-009/BL-008): reestructurar no
+    // puede cambiar cuánto suma el año, ni dejar presupuesto colgado de un nodo que ya no es hoja.
+    expect(yearTotals(state)).toEqual(antes);
+    expect(orphanBudgetNodes(state)).toEqual([]);
   });
 
   // @aitri-tc TC-105f

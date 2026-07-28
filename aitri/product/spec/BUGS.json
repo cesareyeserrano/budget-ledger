@@ -176,6 +176,48 @@
       "resolution": "Resuelto por la feature promote-to-group (5/5, 36/36 TCs): promover sub/categoría a grupo por drag a la fila de tipo (FR-601/602), más grupo sin hijos editable (FR-603/604/605) y como destino de movimientos (FR-606).",
       "close_commit_sha": "f9f6e7b18d98a75220c56f99e2cc746f9df4bed9",
       "close_at": "2026-07-17T19:23:45.290Z"
+    },
+    {
+      "id": "BG-009",
+      "title": "moveNode a categoria-hoja con montos pierde el presupuesto del destino en el roll-up (FR-604)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-28T19:57:53.074Z",
+      "updated_at": "2026-07-28T20:10:55.254Z",
+      "resolution": "La rama dest.kind==='category' de moveNode (src/domain/mutations.ts:394) ahora aplica la misma regla FR-604 que createNode y las otras dos ramas: si la categoria destino era hoja con montos y gana su primer hijo, sus budgets/actuals se trasladan (sumando) al nodo movido, que en esa rama siempre queda hoja. Verificado por mutacion: quitando el arreglo, TC-105e, TC-753h y TC-654h fallan; con el arreglo pasan.",
+      "fix_commit_sha": "56f92faacef70faa8322cd497b936acf8579a009",
+      "fix_at": "2026-07-28T20:07:31.291Z"
+    },
+    {
+      "id": "BG-010",
+      "title": "createdAt de los movimientos no es monotonico entre sesiones (orden incorrecto en GET /api/v1/movements)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-28T19:57:58.346Z",
+      "updated_at": "2026-07-28T19:57:58.346Z",
+      "resolution": null
     }
   ]
 }

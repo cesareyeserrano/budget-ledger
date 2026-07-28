@@ -54,6 +54,115 @@
       "status": "closed",
       "createdAt": "2026-07-23T01:45:33.572Z",
       "closedAt": "2026-07-23T14:28:06.639Z"
+    },
+    {
+      "id": "BL-007",
+      "title": "Implementar los 11 TC de grid-ux nunca escritos (6 NFR de regresion)",
+      "priority": "P1",
+      "problem": "TC-205e/208e/210e/211e/211f/213e/213f/214h/214f/215e/215f figuran skip en aitri/features/grid-ux/spec/04_TEST_RESULTS.json con la nota 'Not detected in runner output', pero un grep de cada id sobre tests/ devuelve cero coincidencias: los tests no existen. Seis cubren NFR de regresion (NFR-101 Escape cancela edicion, NFR-102 reparent + manija de resize, NFR-104 registro a 375px, NFR-105 persistencia tras resize, NFR-106 contraste AA y cero fuente externa).",
+      "status": "open",
+      "createdAt": "2026-07-28T19:58:44.368Z",
+      "acceptance": "Cada uno de los 11 TC tiene un test en tests/e2e/grid-ux.spec.ts nombrado por su TC-ID, verify-run los reporta pass y grid-ux queda 0 skip. TC-215e/215f se re-anclan a Inter + DM Mono (FR-213 de stack-upgrade-theme reemplazo a Lexend). TC-BE-077h se marca manual y se verifica."
+    },
+    {
+      "id": "BL-008",
+      "title": "TC-105e afirma 'totales cuadran' sin comprobar ningun total (dejo pasar BG-009)",
+      "priority": "P1",
+      "problem": "tests/domain/move-dashboard-seed.test.ts:87-95 se titula 'tras reparent, cero huerfanos y totales cuadran' y acredita NFR-005 raiz y NFR-902 de balance, pero solo asserta noOrphans() y subtreeIds().toContain(). Nunca compara rollupBudget/rollupActual antes y despues. Ejecuta exactamente la operacion que dispara BG-009, pierde 300.000 mensuales del total del grupo, y pasa en verde. Misma laguna en demote-node.test.ts:206,258 y promote-to-group.test.ts:320.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:58:44.441Z",
+      "acceptance": "TC-105e y los reparents de demote-node/promote-to-group comparan el total del grupo y del tipo en los 12 meses antes y despues de la operacion, y fallan si no se conservan. Evaluar un quality_gate de mutacion para esta clase de falso verde.",
+      "closedAt": "2026-07-28T20:07:31.392Z"
+    },
+    {
+      "id": "BL-009",
+      "title": "Memoizar los roll-ups de la grilla y medir NFR-103 a escala real",
+      "priority": "P2",
+      "problem": "BudgetGrid.tsx:435-444 y :325-334 recalculan rollupBudget/rollupActual y typeTotals por celda (12 meses x fila), cada uno O(n^2) por los escaneos de childrenOf/isLeaf. Ademas NodeRow y TypeTotalRow se suscriben al objeto data completo, asi que toda fila re-renderiza ante cualquier cambio (el diseno prometia selectores memoizados). El test del guardrail tests/domain/rollup-perf.test.ts:49 solo mide sobre buildSeed() (12 nodos), el unico tamano donde no puede fallar.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:58:59.134Z",
+      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms."
+    },
+    {
+      "id": "BL-010",
+      "title": "Serializar las escrituras al servidor (cola/debounce) para no perder ediciones en vuelo",
+      "priority": "P2",
+      "problem": "src/state/store.ts:57-66 llama repo.save() sin esperar (fire-and-forget) en cada mutacion, y ServerRepository (src/data/serverRepository.ts:58-81) solo actualiza this.revision al responder el PUT. Dos ediciones rapidas seguidas salen con la misma baseRevision, la segunda recibe 409, el handler llama resync() y set({data: loaded}) sobrescribe el estado local, revirtiendo en silencio lo que el usuario acaba de teclear.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:58:59.210Z",
+      "acceptance": "Un save en vuelo a la vez con coalescencia del ultimo estado; un 409 que descarte cambios locales avisa al usuario en vez de revertir en silencio."
+    },
+    {
+      "id": "BL-011",
+      "title": "Aplicar el sistema de diseno a AuthForm y al boton de logout",
+      "priority": "P2",
+      "problem": "src/components/auth/AuthForm.tsx:42-110 esta maquetado con style inline y inputs/buttons sin clase: sin tokens, sin los componentes ui/ (Button, Card), sin estados de foco. LoginGate.tsx:52-59 dibuja el boton Salir como un button fixed con opacity 0.7 y ningun estilo. En modo servidor es la primera pantalla que ve el usuario y contradice FR-012 y el trabajo de ux-consistency. Ningun TC cubre su fidelidad visual.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:58:59.286Z",
+      "acceptance": "AuthForm y el logout usan Card/Button/Input del sistema y tokens theme-aware, con foco visible (NFR-002), en claro y oscuro."
+    },
+    {
+      "id": "BL-012",
+      "title": "Unificar el punto de swap del repositorio: data/makeRepo.ts es codigo muerto",
+      "priority": "P2",
+      "problem": "src/data/makeRepo.ts solo lo usa tests/integration/backend/repo-sync.test.ts:18, que es el test que acredita TC-BE-027h. La app usa la funcion local makeRepo() de src/state/store.ts:46, con otra firma (decide por SERVER_MODE, no por autenticacion). El TC verifica un camino que el producto no ejecuta, y las dos decisiones de swap pueden divergir sin que ningun test lo note.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:17.500Z",
+      "acceptance": "O el store consume data/makeRepo.ts (y TC-BE-027h pasa a verificar el camino real), o se borra el modulo y el TC se reapunta al store. Un solo punto de decision de swap en el arbol."
+    },
+    {
+      "id": "BL-013",
+      "title": "El pie de la grilla describe la semilla, no los datos del usuario",
+      "priority": "P2",
+      "problem": "DesktopShell.tsx:147 (GridFooter) imprime 'Ene-May ejecutado / Jun en curso / Jul-Dic proyectado', que es literalmente la tabla FACTOR de src/domain/seed.ts:14-17. En cuanto el usuario captura movimientos reales o avanza el ano, el pie afirma algo falso sobre la grilla que tiene delante, con el peso de una leyenda del producto.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:17.573Z",
+      "acceptance": "La leyenda se deriva del estado (ultimo mes con ejecutado > 0 y el mes en curso via currentMonthKey()) o se retira."
+    },
+    {
+      "id": "BL-014",
+      "title": "Migrar el lint a la CLI de ESLint con flat config y cubrir tests/e2e",
+      "priority": "P2",
+      "problem": "package.json ejecuta 'next lint', que ya avisa 'deprecated and will be removed in Next.js 16' (npm outdated muestra Next 16.2.12 como latest). El gate lint es required:true en 04_BUILD_REPORT.json, asi que el salto a Next 16 rompe verify-run por un motivo ajeno al codigo. Ademas .eslintrc.json es formato legacy (ESLint 9 usa flat config) e ignorePatterns excluye tests/e2e/**, ~2.500 lineas de las mas fragiles del repo.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:17.647Z",
+      "acceptance": "eslint.config.mjs con flat config, script lint via la CLI de ESLint, tests/e2e incluido en el analisis, y npm run lint en verde."
+    },
+    {
+      "id": "BL-015",
+      "title": "Declarar los gates de seguridad en 04_BUILD_REPORT.json y crear scripts/security-config.sh",
+      "priority": "P2",
+      "problem": "quality_gates solo declara typecheck/lint/coverage/smoke/e2e. El escaneo de secretos (scripts/secret-scan.sh, que si existe) y el SCA (npm audit --audit-level=high) solo corren en .github/workflows/ci.yml, asi que aitri verify-run no los ejecuta nunca. Ademas falta el scripts/security-config.sh propuesto al cierre de la seccion Security del AUDIT_REPORT: verificar cabeceras, poweredByHeader:false, CSP sin unsafe-eval, cookies httpOnly/sameSite y el customRule de /sign-up/email. Dos de esas correcciones ya estan en el codigo sin nada que impida revertirlas.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:17.721Z",
+      "acceptance": "scripts/security-config.sh existe y sale non-zero si falta cualquiera de las condiciones; secret-scan y security-config declarados como quality_gates required en 04_BUILD_REPORT.json y ejecutados por verify-run."
+    },
+    {
+      "id": "BL-016",
+      "title": "Actualizar files_created y test_files de 04_BUILD_REPORT.json",
+      "priority": "P3",
+      "problem": "aitri/product/spec/04_BUILD_REPORT.json cita en files_created src/components/MovementForm.tsx y src/components/RecentList.tsx, ambos borrados (los reemplazaron register/ y BL-003). test_files sigue enumerando los 7 archivos de la primera build cuando la suite real son 33. El artefacto es la referencia de quien llega nuevo al proyecto y describe un arbol que no existe.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:31.898Z",
+      "acceptance": "files_created y test_files regenerados contra el arbol actual; ningun archivo citado inexistente."
+    },
+    {
+      "id": "BL-017",
+      "title": "Escritura incremental del ledger en vez de snapshot-replace completo",
+      "priority": "P3",
+      "problem": "saveLedger (src/server/data/ledgerRepo.ts:174-177) borra TODOS los nodos, celdas y movimientos del owner y los reinserta en cada PUT, incluso al editar una sola celda: tres DELETE mas N INSERT en chunks de 500, con un for-update sobre la fila ancla que serializa todo. Es una decision deliberada y correcta hoy (ADR-06: nunca deja estado parcial), pero el coste por tecla crece linealmente con el historial.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:31.970Z",
+      "acceptance": "Un diff por celda/nodo dentro de la misma transaccion, conservando el lock optimista por revision y la garantia de no dejar estado parcial."
+    },
+    {
+      "id": "BL-018",
+      "title": "Limpiar los restos de 'Sin asignar' (UNASSIGNED_NAME sin uso, ramas system inalcanzables)",
+      "priority": "P3",
+      "problem": "src/domain/types.ts:63 exporta UNASSIGNED_NAME sin ningun consumidor en src/ ni tests/. Ningun camino crea ya nodos system, asi que las ramas gateadas por node.system en mutations.ts (canRename/canDelete/deleteNode/moveNode) y en BudgetGrid.tsx son inalcanzables. stripLegacyUnassigned (src/data/repository.ts:11-22) SI debe quedarse: migra datos guardados por versiones anteriores.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:32.043Z",
+      "acceptance": "UNASSIGNED_NAME eliminado y las ramas system retiradas o justificadas; stripLegacyUnassigned intacto. Hacerlo junto con la re-derivacion de FR-003 (GAP-4 del AUDIT_REPORT)."
     }
   ]
 }

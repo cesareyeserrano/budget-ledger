@@ -23,19 +23,9 @@
   "aitriVersion": "2.1.0-rc.10",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-07-28T16:23:40.059Z",
+  "updatedAt": "2026-07-28T20:10:55.358Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-23T21:54:31.742Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-23T21:54:34.375Z",
-      "event": "approved",
-      "phase": 2
-    },
     {
       "at": "2026-07-23T21:54:34.474Z",
       "event": "completed",
@@ -163,6 +153,22 @@
       "method": "git",
       "baseRefFrom": "a66fc8ea753be0b3cf1d5f827ef00dd06c49c2e0",
       "baseRefTo": "adbfcdcbbbbd4a3c5ca40cc386e7b34b62b36d44"
+    },
+    {
+      "at": "2026-07-28T20:10:38.996Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-28T20:10:55.332Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -254,9 +260,9 @@
     ]
   },
   "upgradeFindings": [],
-  "coverageAuditLastAt": "2026-07-08T01:14:04.170Z",
-  "auditLastAt": "2026-07-02T03:00:41.255Z",
-  "coverageAuditReqHash": "aee7ab7e320f9083921f1bd86fdb7c1cdedbc3a1855710060c3c612bf280fc5f",
+  "coverageAuditLastAt": "2026-07-28T19:41:52.498Z",
+  "auditLastAt": "2026-07-28T19:32:55.678Z",
+  "coverageAuditReqHash": "41d7dca0a0e0a364b64b6c33fdb85a7a59e58bd1f86c046d64a4ce9308120ff2",
   "securityAuditLastAt": "2026-07-16T16:36:55.887Z",
   "releaseHistory": [
     {
@@ -275,14 +281,14 @@
       "at": "2026-07-23T22:08:54.458Z"
     }
   ],
-  "verifyResultsHash": "5bfce5c42aea92737208111fada96a195ff35f2eadd510c01441b47bfb0326a4",
-  "verifyRanAt": "2026-07-28T15:51:03.201Z",
+  "verifyResultsHash": "72416a84b1875a04db936d3a3359126bfb6b23ec19d05c0815b0f7ada3eb70c4",
+  "verifyRanAt": "2026-07-28T20:10:38.996Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-28T15:51:03.201Z"
+    "at": "2026-07-28T20:10:38.996Z"
   },
   "verifySummary": {
     "total": 54,

@@ -393,6 +393,10 @@ export function moveNode(
 
   if (dest.kind === "category") {
     if (destNode.level !== "category") return { rejected: "invalid_target" };
+    // FR-604 — se leen ANTES de mutar: la categoría destino puede ser una HOJA con montos propios
+    // que está a punto de ganar su primer hijo (BG-009).
+    const catWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
+    const catHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
     const next = clone(state);
     const moved = findNode(next.nodes, id)!;
     const formerChildren = childrenOf(state.nodes, id);
@@ -402,6 +406,17 @@ export function moveNode(
       const c = findNode(next.nodes, child.id)!;
       c.parentId = dest.id; // aplanar subs al nuevo padre
       c.level = "sub";
+    }
+    // FR-604 / BG-009 — la categoría-hoja destino deja de ser hoja al recibir este nodo. Como el
+    // roll-up de Presupuestado agrega SOLO hojas, sus montos propios desaparecerían de todos los
+    // totales (grupo, tipo, KPIs, Balance) quedando huérfanos en el mapa. Se trasladan al nodo
+    // movido, que aquí siempre queda hoja (pasa a 'sub' y sus antiguos hijos se aplanaron al
+    // destino). Es la MISMA regla que ya aplican createNode y las otras dos ramas de moveNode.
+    if (catWasChildlessLeaf && catHadAmounts) {
+      next.budgets[id] = mergeMonthMap(state.budgets[dest.id], state.budgets[id]);
+      next.actuals[id] = mergeMonthMap(state.actuals[dest.id], state.actuals[id]);
+      delete next.budgets[dest.id];
+      delete next.actuals[dest.id];
     }
     return { state: next };
   }

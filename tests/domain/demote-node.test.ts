@@ -8,6 +8,7 @@ import { subtreeDepth } from "@/domain/tree";
 import { rollupBudget, typeTotals } from "@/domain/rollup";
 import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import type { LedgerState, LedgerNode } from "@/domain/types";
+import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 
 const byName = (s: LedgerState, name: string): LedgerNode =>
   s.nodes.find((n) => n.name === name)!;
@@ -203,9 +204,14 @@ describe("NFR-703 — regresión: reparent existente + integridad (padre==Σhoja
     const comida = byName(s, "Comida");
     s = createNode(s, { level: "sub", parentId: comida.id, type: "expense", name: "c-cafe" });
     const cafe = byName(s, "c-cafe");
+    const antes = yearTotals(s);
     const st = stateOf(moveNode(s, cafe.id, { kind: "category", id: "c-vivienda" }), s);
     expect(findNode(st.nodes, cafe.id)!.parentId).toBe("c-vivienda");
     expect(findNode(st.nodes, cafe.id)!.level).toBe("sub");
+    // El destino c-vivienda es categoría-HOJA con montos en la semilla: al recibir a cafe deja de
+    // serlo. "Reubicar" no puede costar dinero (NFR-703/NFR-005; regresión de BG-009).
+    expect(yearTotals(st)).toEqual(antes);
+    expect(orphanBudgetNodes(st)).toEqual([]);
   });
 
   // @aitri-tc TC-753e
