@@ -1,9 +1,164 @@
 {
-  "currentPhase": 0,
-  "approvedPhases": [],
-  "completedPhases": [],
+  "currentPhase": 3,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3
+  ],
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-28T19:30:04.035Z"
+  "updatedAt": "2026-07-29T15:52:18.873Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-28T23:52:41.247Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-28T23:52:44.922Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-29T00:17:00.490Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-29T00:26:45.169Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-29T00:26:48.891Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-29T00:26:49.005Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-07-29T00:27:29.368Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-29T00:28:11.813Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-29T00:32:56.741Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-29T00:48:08.009Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-29T00:56:21.067Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-29T00:58:47.370Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-29T00:59:03.086Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-29T00:59:48.042Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-29T00:59:53.654Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-29T11:31:09.025Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-29T15:52:18.826Z",
+      "event": "approved",
+      "phase": 3
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "5df20e225d664274100d7d8509387e5db3df5ca925a973432331f9c9854b8d83",
+    "2": "6ecf4e687f33abf83e2169e4393b313f5ec42a7f8bce629abd5fa6a0fbcfcab7",
+    "3": "b2a8d34ee18cde3e06b334b4a209b18cc98923f14e36cfc6e62ce4ee3185ded2",
+    "ux": "92425b6ea20083cc9c8650f04fb173d7552c2b911f24669c88c7d21903906d13"
+  },
+  "coverageAuditLastAt": "2026-07-29T00:19:17.291Z",
+  "coverageAuditReqHash": "c8f8478e6a4fe9479ef3c5c05352d18d24099056e5372b21099f511f41f4448d",
+  "frSnapshots": {
+    "2": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1013"
+    ],
+    "3": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1013"
+    ],
+    "ux": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1013"
+    ]
+  }
 }

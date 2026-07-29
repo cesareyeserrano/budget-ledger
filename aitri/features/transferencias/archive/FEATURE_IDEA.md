@@ -1,7 +1,12 @@
-<!-- PLANEADA — Fase 1 NO iniciada a propósito.
-     REVISADO CON EL USUARIO EL 2026-07-28. Lo de abajo (secciones originales del 2026-07-24)
-     quedó PARCIALMENTE OBSOLETO: leer primero esta cabecera. La conversación se detuvo para
-     retomarla en sesión fresca — el usuario pidió repensar el flujo desde cero. -->
+<!-- PLANEADA — Fase 1 lista para iniciar.
+     SESIÓN DE DISEÑO COMPLETADA 2026-07-28 (tarde): el usuario pidió repensar desde casos de uso
+     y el diseño CONVERGIÓ. La fuente autoritativa para la Fase 1 es
+     `feature_context/DESIGN_OPTIONS.md` — casos de uso confirmados, primitiva única
+     (sacar → disponible; un retiro JAMÁS es ingreso), representación (dos almacenes ≥0 por celda,
+     se muestra el neto), reglas techo/piso refinadas, y TODAS las decisiones abiertas cerradas
+     (plan con retiros que avisa sin bloquear · préstamos = reserva nombrada · dos pasos sin atajo).
+     La sección "ABIERTO" y las "preguntas sin responder" de abajo quedaron RESUELTAS ahí;
+     lo demás de esta cabecera (lo CONFIRMADO del seed) sigue vigente. -->
 
 # ⚠️ ESTADO AL 2026-07-28 — leer esto antes que nada
 
