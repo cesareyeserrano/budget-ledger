@@ -12,9 +12,11 @@
 import type { LedgerState, MonthKey } from "./types";
 import { typeTotals } from "./rollup";
 import { MONTH_KEYS } from "./months";
+import { reserveDelta, type Plane } from "./reserve";
 
-/** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad. */
-export type Plane = "budget" | "actual";
+/** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad.
+ *  (El origen del tipo vive en reserve.ts — feature transferencias — para evitar ciclos.) */
+export type { Plane } from "./reserve";
 
 /** Las seis cifras de un mes en UN plano, más los dos componentes que arrastra del mes previo. */
 export interface MonthBalance {
@@ -50,22 +52,23 @@ interface Carry {
 const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
 
 /**
- * Neto de reserva de un mes en un plano: lo transferido (guardado) hacia las reservas.
- *
- * Se apoya en `typeTotals`, el mismo roll-up que ya alimenta las filas de total por tipo — de ahí
- * que el "Reservas del mes" del balance y la fila TRANSFERENCIAS de la grilla no puedan divergir.
- * En v1 solo se guarda (aportes ≥ 0), así que el neto nunca es negativo.
+ * Movimiento neto de reservas de un mes en un plano: aportes − retiros, derivado de SALDOS
+ * RESUELTOS por hoja (feature transferencias, FR-1009 — supersede la versión de FR-907 que
+ * sumaba celdas como flujo: con semántica saldo, una celda ausente resolvía 0 e inventaba
+ * retiros fantasma en cada mes sin operación, hallazgo 9.2). Puede ser negativo (retiro neto);
+ * la conservación total = total previo + flujo se hereda por construcción en monthBalance.
  *
  * @param state Estado completo del ledger.
  * @param month Mes (columna) a calcular.
- * @param plane Plano a leer: `budget` (el plan tecleado) o `actual` (lo real).
- * @returns El neto transferido del mes en ese plano. Sin hojas de transferencia devuelve 0.
- * @throws Nunca. Un mes sin celdas resuelve 0, igual que los `rollup*`.
+ * @param plane Plano a leer: `budget` (la trayectoria planeada, anclada al real previo, ADR-03)
+ *              o `actual` (lo operado).
+ * @returns Σsaldos(m) − Σsaldos(m−1) del tipo transfer. Sin hojas devuelve 0.
+ * @throws Nunca. La resolución por hoja es total.
  *
- * @aitri-trace FR-ID: FR-907, US-ID: US-907, AC-ID: AC-907, TC-ID: TC-BAL-907h, TC-BAL-907f, TC-BAL-936e
+ * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h, TC-TRF-109e, TC-TRF-109f
  */
 export function reserveNet(state: LedgerState, month: MonthKey, plane: Plane): number {
-  return typeTotals(state, "transfer", [month])[plane];
+  return reserveDelta(state, month, plane);
 }
 
 /**

@@ -198,18 +198,21 @@ test("FR-209 extra: tocar una categoría CON subcategorías despliega sus hijos 
 
 test("TC-SUT-227e: un tipo sin categorías muestra la guía a crearlas en escritorio y bloquea Guardar", async ({ page }) => {
   await gotoMobile(page);
-  // Quitar TODOS los nodos de Transferencia (grupo, categoría y sub) del estado persistido.
+  // Quitar TODOS los nodos de GASTO (grupo, categoría y sub) del estado persistido.
   // Incluye el grupo: desde promote-to-group (FR-606) un grupo SIN hijos es un destino válido del
   // registro, así que un tipo está "vacío" solo si no le queda ni categoría ni grupo-hoja.
+  // Re-derivado por feature transferencias (FR-1005): el tipo Reserva ya no usa CategoryRow — su
+  // estado vacío propio lo cubre TC-TRF-105e; este TC conserva su propósito (la guía del selector
+  // de categorías) sobre un tipo que SÍ lo usa.
   await page.evaluate(() => {
     const raw = localStorage.getItem("ledger.nodes.v1");
     if (!raw) return;
     const data = JSON.parse(raw);
-    data.nodes = data.nodes.filter((n: { type: string; level: string }) => !(n.type === "transfer" && (n.level === "category" || n.level === "sub" || n.level === "group")));
+    data.nodes = data.nodes.filter((n: { type: string; level: string }) => !(n.type === "expense" && (n.level === "category" || n.level === "sub" || n.level === "group")));
     localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
   });
   await page.reload();
-  await page.getByTestId("type-transfer").click();
+  await page.getByTestId("type-expense").click();
   await expect(page.getByTestId("category-empty")).toBeVisible();
   await expect(page.getByTestId("category-empty")).toContainText("créalas en el escritorio");
 });
@@ -272,7 +275,7 @@ test("TC-SUT-240e: fallo de almacenamiento (quota) muestra el StorageBanner y el
   await page.addInitScript(() => {
     const orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k: string, v: string) {
-      if (k === "ledger.budget.v2") { const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; }
+      if (k === "ledger.budget.v3") { const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; }
       return orig.call(this, k, v);
     };
   });

@@ -283,14 +283,16 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
 describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
   it("TC-BAL-907h: el Saldo reservado global se acumula mes a mes con los aportes", () => {
     // @aitri-tc TC-BAL-907h
-    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { ene: 50_000, feb: 50_000, mar: 30_000 } }]);
+    // Re-derivado por feature transferencias (FR-1009 supersede FR-907): las celdas transfer son
+    // SALDOS con arrastre — la misma acumulación se expresa como trayectoria de saldo.
+    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { ene: 50_000, feb: 100_000, mar: 130_000 } }]);
 
     const series = computeBalanceSeries(s);
 
     expect(series.ene.actual.reservedBalance).toBe(50_000);
     expect(series.feb.actual.reservedBalance).toBe(100_000);
     expect(series.mar.actual.reservedBalance).toBe(130_000);
-    // el acumulado se conserva en los meses sin aportes (no se reinicia)
+    // el acumulado se conserva en los meses sin operación (arrastre: delta 0, no se reinicia)
     expect(series.abr.actual.reservedBalance).toBe(130_000);
     expect(series.dic.actual.reservedBalance).toBe(130_000);
   });
@@ -328,19 +330,25 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
     expect(series.ene.actual.reservedBalance).toBe(100_000); // GLOBAL: la suma de las dos
     // el módulo no expone un saldo por alcancía — reservedBalance es una sola cifra global
     expect(Object.keys(series.ene.actual)).not.toContain("byItem");
-    // en v1 solo hay aportes: ningún mes queda con reservado negativo
+    // Re-derivado (FR-1009 supersede FR-907): `reserved` ahora es delta y PUEDE ser negativo
+    // (retiro neto); lo que jamás es negativo es el saldo reservado GLOBAL (piso por alcancía).
     for (const mk of MONTH_KEYS) {
       for (const p of PLANES) {
-        expect(series[mk][p].reserved, `${mk}/${p}`).toBeGreaterThanOrEqual(0);
         expect(series[mk][p].reservedBalance, `${mk}/${p}`).toBeGreaterThanOrEqual(0);
       }
+    }
+    // En esta fixture (solo aportes en ene y arrastre después) el delta nunca es negativo.
+    for (const mk of MONTH_KEYS) {
+      expect(series[mk].actual.reserved, `${mk}/actual`).toBeGreaterThanOrEqual(0);
     }
   });
 
   it("TC-BAL-936e: multi-reserva y multi-mes: el reservado global acumula sobre todas las reservas y meses", () => {
     // @aitri-tc TC-BAL-936e
+    // Re-derivado (FR-1009 supersede FR-907): celdas = SALDOS. A aporta 30.000 en ene y sube a
+    // 50.000 en feb (+20.000); B abre en feb con 10.000. Mismos deltas que la versión de flujo.
     const s = makeState([
-      { id: "c-alcancia-a", type: "transfer", actual: { ene: 30_000, feb: 20_000 } },
+      { id: "c-alcancia-a", type: "transfer", actual: { ene: 30_000, feb: 50_000 } },
       { id: "c-alcancia-b", type: "transfer", actual: { feb: 10_000 } }, // nada en enero
     ]);
 
@@ -625,7 +633,8 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
   it("TC-BAL-958h: balance.ts no hace IO ni red ni lee entradas de usuario nuevas", () => {
     // @aitri-tc TC-BAL-958h
     const imports = [...BALANCE_SRC.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
-    expect(imports.sort()).toEqual(["./months", "./rollup", "./types"]);
+    // Feature transferencias: + ./reserve (dominio puro — reserveNet deriva de saldos resueltos).
+    expect(imports.sort()).toEqual(["./months", "./reserve", "./reserve", "./rollup", "./types"]);
 
     for (const forbidden of ["fetch(", "XMLHttpRequest", "localStorage", "sessionStorage", "node:fs", "require(", "process.env", "eval("]) {
       expect(BALANCE_SRC.includes(forbidden), `balance.ts no debe usar ${forbidden}`).toBe(false);
@@ -654,7 +663,7 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
     expect(writes).toEqual([]); // ni una escritura: el balance es derivado, no se almacena
     // las claves de persistencia siguen siendo las dos existentes — el balance no añadió ninguna
     expect(Object.keys(STORAGE_KEYS).sort()).toEqual(["budget", "nodes"]);
-    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v2"]);
+    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v3"]);
   });
 
   it("TC-BAL-958f: el balance no puede escribir en el schema (no toca el CHECK)", () => {
@@ -671,7 +680,9 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
 
     // el disponible SÍ puede quedar negativo (es una cifra derivada en pantalla)…
     expect(series.ene.actual.available).toBeLessThan(0);
-    // …pero ninguna cifra de RESERVA lo es: no hay ruta que genere un monto negativo para persistir
+    // …pero ninguna cifra de RESERVA lo es EN ESTA FIXTURE (solo aportes). Re-derivado por
+    // feature transferencias (FR-1009): `reserved` como delta PUEDE ser negativo con retiros;
+    // lo que jamás baja de 0 es reservedBalance (piso por alcancía) — y el CHECK sigue intacto.
     for (const mk of MONTH_KEYS) {
       for (const p of PLANES) {
         expect(series[mk][p].reserved, `${mk}/${p}`).toBeGreaterThanOrEqual(0);

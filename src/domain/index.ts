@@ -6,4 +6,6 @@ export * from "./sign";
 export * from "./seed";
 export * from "./validation";
 export * from "./mutations";
+export * from "./reserve";
+export * from "./migrate";
 export * from "./dashboard";

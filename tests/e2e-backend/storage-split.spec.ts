@@ -30,7 +30,7 @@ test("TC-BE-031e: tras guardar movimientos, localStorage no contiene datos finan
   const ls = await dumpLocalStorage(page);
   // No hay llaves financieras.
   expect(ls["ledger.nodes.v1"]).toBeUndefined();
-  expect(ls["ledger.budget.v2"]).toBeUndefined();
+  expect(ls["ledger.budget.v3"]).toBeUndefined();
   // Ningún valor de localStorage contiene montos/movimientos/nodos/presupuestos.
   const blob = JSON.stringify(ls);
   expect(blob).not.toContain("5000");

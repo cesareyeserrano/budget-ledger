@@ -20,6 +20,10 @@ export const movementInputSchema = z.object({
   month: MONTH_KEY,
   date: z.string().optional(),
   note: z.string().nullable().optional(),
+  // Feature transferencias (FR-1004/FR-1010): extremos De→A de una operación de reserva (hoja
+  // transfer o el sentinel "@disponible"). Acotados como `target`; ignorados para expense/income.
+  from: z.string().min(1).max(64).optional(),
+  to: z.string().min(1).max(64).optional(),
 });
 export type MovementInput = z.infer<typeof movementInputSchema>;
 
@@ -49,7 +53,16 @@ const apiMovementSchema = z.object({
   createdAt: z.number(),
   date: z.string().optional(),
   note: z.string().nullable().optional(),
+  // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
+
+/** Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`). */
+const apiCellNotes = z.record(
+  z.string(),
+  z.record(MONTH_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280) })))
+);
 
 /** Estado completo del ledger para el snapshot PUT. */
 export const ledgerStateSchema = z.object({
@@ -58,6 +71,9 @@ export const ledgerStateSchema = z.object({
   budgets: apiAmountMap,
   actuals: apiAmountMap,
   movements: z.array(apiMovementSchema),
+  // FR-1010/FR-1012: opcional — un cliente pre-feature no lo envía; sin este campo el PUT haría
+  // strip silencioso de las observaciones.
+  cellNotes: apiCellNotes.optional(),
 });
 
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */

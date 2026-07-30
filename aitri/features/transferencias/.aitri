@@ -1,5 +1,5 @@
 {
-  "currentPhase": 3,
+  "currentPhase": 4,
   "approvedPhases": [
     1,
     "ux",
@@ -10,12 +10,13 @@
     1,
     "ux",
     2,
-    3
+    3,
+    4
   ],
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-29T15:52:18.873Z",
+  "updatedAt": "2026-07-29T21:41:48.285Z",
   "driftPhases": [],
   "events": [
     {
@@ -103,6 +104,21 @@
       "at": "2026-07-29T15:52:18.826Z",
       "event": "approved",
       "phase": 3
+    },
+    {
+      "at": "2026-07-29T16:01:04.837Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-29T20:22:33.919Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-29T21:41:48.252Z",
+      "event": "completed",
+      "phase": 4
     }
   ],
   "cascadedPhases": [],
@@ -110,6 +126,7 @@
     "1": "5df20e225d664274100d7d8509387e5db3df5ca925a973432331f9c9854b8d83",
     "2": "6ecf4e687f33abf83e2169e4393b313f5ec42a7f8bce629abd5fa6a0fbcfcab7",
     "3": "b2a8d34ee18cde3e06b334b4a209b18cc98923f14e36cfc6e62ce4ee3185ded2",
+    "4": "1941f3e03423e340e833945dd63871b2bdef7a064955899700eefab168d7f97e",
     "ux": "92425b6ea20083cc9c8650f04fb173d7552c2b911f24669c88c7d21903906d13"
   },
   "coverageAuditLastAt": "2026-07-29T00:19:17.291Z",

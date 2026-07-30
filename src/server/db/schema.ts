@@ -90,6 +90,9 @@ export const ledger = pgTable("ledger", {
     .references(() => user.id, { onDelete: "cascade" }),
   revision: bigint("revision", { mode: "number" }).notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  // Feature transferencias (FR-1010): marca de versión de DATOS. 2 = celdas transfer como aportes
+  // (formato viejo); 3 = saldos. loadLedger migra lazy y estampa 3 — idempotencia por marca.
+  dataVersion: integer("data_version").notNull().default(2),
 });
 
 /** Nodo de la jerarquía (Grupo→Categoría→Subcategoría). CHECKs espejan NodeType/NodeLevel. */
@@ -152,6 +155,10 @@ export const movement = pgTable(
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     date: text("date"),
     note: text("note"),
+    // Feature transferencias (FR-1004/FR-1010): extremos De→A de una operación de reserva.
+    // Sin FK (como target); NULL en movimientos previos y en gastos/ingresos.
+    fromId: text("from_id"),
+    toId: text("to_id"),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.id] }),
@@ -159,5 +166,25 @@ export const movement = pgTable(
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
     check("movement_month_ck", sql`${t.month} in ('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic')`),
     check("movement_amount_ck", sql`${t.amount} >= 1`),
+  ]
+);
+
+/** Observaciones manuales por celda (FR-1012). Texto ≤ 280 (CHECK); CASCADE por owner. */
+export const cellNote = pgTable(
+  "cell_note",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    nodeId: text("node_id").notNull(),
+    month: text("month").notNull(),
+    id: text("id").notNull(),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    text: text("text").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ownerId, t.nodeId, t.month, t.id] }),
+    check("cell_note_month_ck", sql`${t.month} in ('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic')`),
+    check("cell_note_text_ck", sql`char_length(${t.text}) <= 280`),
   ]
 );

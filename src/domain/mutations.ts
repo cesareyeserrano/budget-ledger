@@ -2,26 +2,12 @@
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
 import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "./types";
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
-import { parseAmount, nodeNameSchema } from "./validation";
+import { parseAmount, nodeNameSchema, normalizeNote } from "./validation";
+import { uid, nextSeq, __resetSeq } from "./ids";
+import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp } from "./reserve";
 
-/**
- * Genera un id único para movimientos/nodos. `crypto.randomUUID()` SOLO existe en secure contexts
- * (HTTPS o localhost); servida por HTTP en una IP de LAN no lo está, y ahí lanzaría (BG-004). Por eso
- * degrada: getRandomValues sí está disponible sobre HTTP, y como último recurso un id no-cripto
- * (suficiente para un app single-user local — la unicidad, no la impredecibilidad, es lo que importa).
- */
-function uid(): string {
-  const c: Crypto | undefined = globalThis.crypto;
-  if (typeof c?.randomUUID === "function") return c.randomUUID();
-  if (typeof c?.getRandomValues === "function") {
-    const b = c.getRandomValues(new Uint8Array(16));
-    b[6] = (b[6] & 0x0f) | 0x40; // versión 4
-    b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
-    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
-    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
-  }
-  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+// Compat: estos símbolos vivieron aquí; ahora los comparten reserve/ids sin ciclo de imports.
+export { normalizeNote, __resetSeq };
 
 function clone(state: LedgerState): LedgerState {
   return {
@@ -30,6 +16,8 @@ function clone(state: LedgerState): LedgerState {
     budgets: structuredClone(state.budgets),
     actuals: structuredClone(state.actuals),
     movements: state.movements.map((m) => ({ ...m })),
+    // FR-1012: las observaciones sobreviven cualquier mutación (delta aditivo del estado).
+    ...(state.cellNotes ? { cellNotes: structuredClone(state.cellNotes) } : {}),
   };
 }
 
@@ -45,13 +33,10 @@ export interface NewMovement {
   date?: string;
   /** Nota opcional del registro móvil (se normaliza: trim, ≤280, vacío→null). */
   note?: string | null;
-}
-
-/** Nota: trim; vacío→null; recorte duro a 280 (FR-211). */
-export function normalizeNote(note: string | null | undefined): string | null {
-  if (note == null) return null;
-  const trimmed = note.trim();
-  return trimmed === "" ? null : trimmed.slice(0, 280);
+  /** Feature transferencias (ADR-05): extremos De→A explícitos para type "transfer". Sin ellos,
+   *  la delegación asume guardar: Disponible→target. Ignorados para expense/income (NFR-1002). */
+  from?: string;
+  to?: string;
 }
 
 /** El botón Guardar está habilitado solo con monto válido (>=1) y categoría seleccionada. */
@@ -64,12 +49,29 @@ export function canSave(input: { amount: number | string; catId: string | null }
  * inválidos. Delta aditivo: persiste `date`/`note` cuando el registro móvil los envía; el
  * `month` de agregación lo aporta el llamador (derivado de `date`) — semántica de roll-ups intacta.
  *
+ * Feature transferencias (modelo v4): para type "transfer" DELEGA en applyReserveOp — guardar
+ * suma el aporte a la celda del mes Y journaliza con from/to; sacar solo journaliza; ambos
+ * validan techo/piso. Un rechazo del dominio devuelve el estado intacto (mismo contrato que un
+ * monto inválido). expense/income conservan su camino byte a byte (NFR-1002).
+ *
  * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
+ * @aitri-trace FR-ID: FR-1004, US-ID: US-1004, AC-ID: AC-1004b, TC-ID: TC-TRF-104e, TC-TRF-152h
  */
 export function addMovement(state: LedgerState, input: NewMovement): LedgerState {
   const amount = parseAmount(input.amount);
   if (amount === null || !input.catId) return state; // negativo: no altera el estado
   const target = input.subId ?? input.catId;
+  if (input.type === "transfer") {
+    const result = applyReserveOp(state, {
+      from: input.from ?? AVAILABLE_ID,
+      to: input.to ?? target,
+      month: input.month,
+      amount,
+      ...(input.date ? { date: input.date } : {}),
+      ...(input.note !== undefined ? { note: input.note } : {}),
+    });
+    return "state" in result ? result.state : state;
+  }
   const next = clone(state);
   const mv: Movement = {
     id: uid(), ownerId: state.ownerId, type: input.type,
@@ -82,16 +84,6 @@ export function addMovement(state: LedgerState, input: NewMovement): LedgerState
   next.actuals[target] = { ...(next.actuals[target] ?? {}) };
   next.actuals[target][input.month] = (next.actuals[target][input.month] ?? 0) + amount;
   return next;
-}
-
-// createdAt monotónico e inyectable (evita Date.now() no determinista en tests).
-let _seq = 0;
-function nextSeq(): number {
-  _seq += 1;
-  return _seq;
-}
-export function __resetSeq(): void {
-  _seq = 0;
 }
 
 // ── FR-002: CRUD de categorías ───────────────────────────────────────────────
@@ -142,6 +134,9 @@ export function createNode(state: LedgerState, input: NewNode): LedgerState {
       next.actuals[id] = { ...(state.actuals[input.parentId] ?? {}) };
       delete next.budgets[input.parentId];
       delete next.actuals[input.parentId];
+      // Los movimientos de reserva siguen a las celdas — sin esto el saldo del hijo renace
+      // sin sus retiros (saldo fantasma, hallazgo adversarial 1).
+      if (input.type === "transfer") repointReserveMovements(next, input.parentId, id);
     }
   }
   return next;
@@ -231,10 +226,29 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
 
   // sin datos → borrado directo del subárbol, sus montos y sus movimientos históricos
   // (BG-006: sin esto quedarían movimientos huérfanos apuntando a nodos inexistentes en Recientes)
+  // Feature transferencias: un movimiento de reserva referencia la alcancía por from O to. Si el
+  // DESTINO de un mover A→B se borra pero A sigue viva, el retiro de A debe SOBREVIVIR — borrarlo
+  // resucitaría el saldo de A sin operación alguna (hallazgo adversarial 3). Ese movimiento se
+  // convierte en retiro a Disponible (la plata salió de A; el destino dejó de existir).
   const ids = new Set(subtreeIds(state.nodes, id));
   const next = clone(state);
   next.nodes = next.nodes.filter((n) => !ids.has(n.id));
-  next.movements = next.movements.filter((m) => !ids.has(m.target));
+  next.movements = next.movements.flatMap((m) => {
+    const refsDeleted = ids.has(m.target) || (m.from ? ids.has(m.from) : false) || (m.to ? ids.has(m.to) : false);
+    if (!refsDeleted) return [m];
+    const fromAlive = m.type === "transfer" && m.from && !ids.has(m.from) && findNode(next.nodes, m.from);
+    if (fromAlive) {
+      const fromNode = findNode(next.nodes, m.from!)!;
+      return [{
+        ...m,
+        to: AVAILABLE_ID,
+        target: m.from!,
+        catId: fromNode.level === "sub" ? fromNode.parentId! : m.from!,
+        subId: fromNode.level === "sub" ? m.from! : null,
+      }];
+    }
+    return [];
+  });
   for (const nid of ids) {
     delete next.budgets[nid];
     delete next.actuals[nid];
@@ -243,6 +257,14 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
 }
 
 // ── FR-006 / D-3: edición de celda-hoja (sin distribución a padres) ───────────
+/**
+ * Escribe el valor de una celda-hoja. Para hojas TRANSFER delega en el camino de reserva (modelo
+ * v4): el valor tecleado es el APORTE de ese mes — corregir la celda jamás genera retiros ni
+ * journal; techo/piso en cadena validan y un rechazo devuelve el estado intacto (la UI rica usa
+ * applyReserveCellEdit directamente para leer el veredicto). expense/income: camino intacto.
+ *
+ * @aitri-trace FR-ID: FR-1003, US-ID: US-1003, AC-ID: AC-1003, TC-ID: TC-TRF-203e
+ */
 export function setLeafAmount(
   state: LedgerState,
   leafId: string,
@@ -253,6 +275,10 @@ export function setLeafAmount(
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes)) return state; // los padres no son editables (roll-up)
   const v = Math.max(0, Math.round(Number(value) || 0));
+  if (node.type === "transfer") {
+    const result = applyReserveCellEdit(state, { leafId, month, plane: kind, newAmount: v });
+    return "rejected" in result ? state : result.state;
+  }
   const next = clone(state);
   const store = kind === "budget" ? next.budgets : next.actuals;
   store[leafId] = { ...(store[leafId] ?? {}) };
@@ -301,7 +327,7 @@ const DEPTH_LEVELS: NodeLevel[] = ["group", "category", "sub"];
 const depthOf = (n: LedgerNode): number => DEPTH_LEVELS.indexOf(n.level);
 const levelAtDepth = (d: number): NodeLevel => DEPTH_LEVELS[d];
 
-/** Suma dos mapas mensuales (no pierde ninguno de los dos). */
+/** Suma dos mapas mensuales (no pierde ninguno de los dos). Correcto para FLUJOS (expense/income). */
 function mergeMonthMap(
   a: Record<string, number> | undefined,
   b: Record<string, number> | undefined
@@ -309,6 +335,41 @@ function mergeMonthMap(
   const out: Record<string, number> = { ...(a ?? {}) };
   for (const [m, v] of Object.entries(b ?? {})) out[m] = (out[m] ?? 0) + v;
   return out;
+}
+
+/** Modelo v4 (2026-07-29): las celdas transfer volvieron a ser FLUJOS (aportes del mes), así que
+ *  la fusión por suma de celdas es correcta para los TRES tipos — el despacho por tipo se
+ *  conserva como costura por si un tipo vuelve a cambiar de semántica. */
+function mergeMonthMapForType(
+  _type: NodeType,
+  a: Record<string, number> | undefined,
+  b: Record<string, number> | undefined
+): Record<string, number> {
+  return mergeMonthMap(a, b);
+}
+
+/**
+ * Cuando el traslado FR-604 mueve las CELDAS de una hoja transfer a otro nodo, sus movimientos de
+ * reserva del journal deben SEGUIR a las celdas (hallazgos adversariales 1-2, 2026-07-29): si los
+ * retiros quedan apuntando al nodo cedente, el saldo derivado del receptor renace completo —
+ * saldo fantasma del que se puede volver a sacar (se fabrica plata). Re-apunta from/to/target.
+ */
+function repointReserveMovements(next: LedgerState, cedingId: string, receivingId: string): void {
+  const receiver = findNode(next.nodes, receivingId);
+  const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;
+  const subId = receiver && receiver.level === "sub" ? receivingId : null;
+  next.movements = next.movements.map((m) => {
+    if (m.type !== "transfer" || (m.from !== cedingId && m.to !== cedingId && m.target !== cedingId)) return m;
+    const nm = { ...m };
+    if (nm.from === cedingId) nm.from = receivingId;
+    if (nm.to === cedingId) nm.to = receivingId;
+    if (nm.target === cedingId) {
+      nm.target = receivingId;
+      nm.catId = catId;
+      nm.subId = subId;
+    }
+    return nm;
+  });
 }
 
 /**
@@ -383,10 +444,12 @@ export function moveNode(
     if (destWasChildlessLeaf && destHadAmounts) {
       const movedNode = findNode(next.nodes, id)!;
       const target = isLeaf(movedNode, next.nodes) ? id : leafDescendants(next.nodes, id)[0] ?? id;
-      next.budgets[target] = mergeMonthMap(state.budgets[dest.id], next.budgets[target]);
-      next.actuals[target] = mergeMonthMap(state.actuals[dest.id], next.actuals[target]);
+      next.budgets[target] = mergeMonthMapForType(node.type, state.budgets[dest.id], next.budgets[target]);
+      next.actuals[target] = mergeMonthMapForType(node.type, state.actuals[dest.id], next.actuals[target]);
       delete next.budgets[dest.id];
       delete next.actuals[dest.id];
+      // Los movimientos de reserva del destino cedente siguen a sus celdas (hallazgo adversarial 2).
+      if (node.type === "transfer") repointReserveMovements(next, dest.id, target);
     }
     return { state: next };
   }
@@ -413,10 +476,12 @@ export function moveNode(
     // movido, que aquí siempre queda hoja (pasa a 'sub' y sus antiguos hijos se aplanaron al
     // destino). Es la MISMA regla que ya aplican createNode y las otras dos ramas de moveNode.
     if (catWasChildlessLeaf && catHadAmounts) {
-      next.budgets[id] = mergeMonthMap(state.budgets[dest.id], state.budgets[id]);
-      next.actuals[id] = mergeMonthMap(state.actuals[dest.id], state.actuals[id]);
+      next.budgets[id] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[id]);
+      next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
       delete next.budgets[dest.id];
       delete next.actuals[dest.id];
+      // Los movimientos de reserva del destino cedente siguen a sus celdas (hallazgo adversarial 2).
+      if (node.type === "transfer") repointReserveMovements(next, dest.id, id);
     }
     return { state: next };
   }
@@ -431,10 +496,12 @@ export function moveNode(
   moved.parentId = dest.id;
   // FR-604 — el grupo-hoja gana su PRIMER hijo → traslada sus montos al hijo (suma, no pierde los del hijo).
   if (groupWasChildlessLeaf && groupHadAmounts) {
-    next.budgets[id] = mergeMonthMap(state.budgets[dest.id], state.budgets[id]);
-    next.actuals[id] = mergeMonthMap(state.actuals[dest.id], state.actuals[id]);
+    next.budgets[id] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[id]);
+    next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
     delete next.budgets[dest.id];
     delete next.actuals[dest.id];
+    // Los movimientos de reserva del grupo-hoja cedente siguen a sus celdas (hallazgo adversarial 2).
+    if (node.type === "transfer") repointReserveMovements(next, dest.id, id);
   }
   return { state: next };
 }

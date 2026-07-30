@@ -1,5 +1,6 @@
 "use client";
-// @aitri-trace components:BalanceModule — FR-905/906/907/908: el módulo de Balance al pie de la grilla.
+// @aitri-trace components:BalanceModule — FR-905/906/908 y FR-1009 (feature transferencias): el
+// módulo de Balance al pie de la grilla, con Reservas/Retiros del mes como filas de un solo signo.
 //
 // Módulo:       src/components/BalanceModule.tsx
 // Propósito:    Pintar las seis cifras del balance por mes y plano. Es una superficie de SOLO
@@ -14,10 +15,13 @@ import { Component, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS } from "@/domain/months";
-import { computeBalanceSeries, type MonthBalance } from "@/domain/balance";
+import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
+import { reserveAportes, reserveRetiros } from "@/domain/reserve";
+import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, typeColorVar } from "./format";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
+import type { LedgerState, MonthKey } from "@/domain/types";
 
 /**
  * Marca de forma del saldo negativo. Es el canal NO cromático de WCAG 1.4.1: verde y rojo son un
@@ -30,10 +34,13 @@ const NEGATIVE_MARK = "‹‹";
 /** El signo menos tipográfico (U+2212), no el guion del teclado: alinea con las cifras tabulares. */
 const MINUS = "−";
 
-/** Cómo se comporta cada una de las seis filas: es la tabla que gobierna color, peso y alarma. */
+/** Cómo se comporta cada una de las siete filas: es la tabla que gobierna color, peso y alarma. */
 interface RowSpec {
-  /** Clave estable para los tests y para `data-row`. */
-  key: keyof Pick<MonthBalance, "prevAvailable" | "flow" | "reserved" | "available" | "reservedBalance" | "total">;
+  /** Clave estable para los tests y para `data-row`. `reserved` pinta SOLO los aportes del mes y
+   *  `retiros` las bajadas — dos filas de un solo signo (FR-1009). `monthAvailable` es lo que el
+   *  MES dejó disponible (flujo − aportes + retiros), sin el arrastre — la cuenta que el usuario
+   *  hacía mentalmente (observación 2026-07-29). */
+  key: keyof Pick<MonthBalance, "prevAvailable" | "flow" | "reserved" | "available" | "reservedBalance" | "total"> | "retiros" | "monthAvailable";
   label: string;
   /**
    * Signo que encabeza la fila. Es lo que convierte la columna en una CUENTA CORRIDA legible de
@@ -62,6 +69,11 @@ const ROWS: RowSpec[] = [
   { key: "prevAvailable", label: "Saldo mes anterior", op: "", tone: "input", alarms: true, weight: 400 },
   { key: "flow", label: "Flujo del mes", op: "+", tone: "input", alarms: false, weight: 400 },
   { key: "reserved", label: "Reservas del mes", op: "−", tone: "input", alarms: false, weight: 400 },
+  // FR-1009 · la idea original del usuario: los retiros como fila propia (operados; en Pres., el
+  // retiro planeado). Siempre presente (0 en meses sin retiros) para no mover el layout.
+  { key: "retiros", label: "Retiros del mes", op: "+", tone: "reserve", alarms: false, weight: 400 },
+  // Lo que el MES dejó disponible (sin arrastre): flujo − aportes + retiros. Evita la cuenta mental.
+  { key: "monthAvailable", label: "Disponible del mes", op: "=", tone: "result", alarms: true, weight: 600, rule: "soft" },
   { key: "available", label: "Saldo disponible", op: "=", tone: "result", alarms: true, weight: 600, rule: "soft" },
   { key: "reservedBalance", label: "Saldo reservado", op: "+", tone: "reserve", alarms: false, weight: 600 },
   { key: "total", label: "Saldo total", op: "=", tone: "result", alarms: true, weight: 600, rule: "strong", bottomLine: true },
@@ -94,22 +106,50 @@ function balanceColor(spec: RowSpec, value: number): string {
   return "var(--fg-secondary)";
 }
 
+/** Aportes y retiros del mes por plano — el desdoble de `reserved` en dos filas de un solo signo. */
+type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: number }>>;
+
+/**
+ * Desdoble del movimiento de reservas por mes y plano (FR-1009): `aportes` (subidas de saldo) y
+ * `retiros` (bajadas), ambos ≥ 0 siempre — el neto `reserved` = aportes − retiros.
+ *
+ * @param data Estado del ledger.
+ * @returns Los dos componentes por mes y plano.
+ *
+ * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h, TC-TRF-109e
+ */
+function computeReserveFlows(data: LedgerState): ReserveFlows {
+  const out = {} as ReserveFlows;
+  for (const m of MONTHS) {
+    out[m.k] = {
+      budget: { aportes: reserveAportes(data, m.k, "budget"), retiros: reserveRetiros(data, m.k, "budget") },
+      actual: { aportes: reserveAportes(data, m.k, "actual"), retiros: reserveRetiros(data, m.k, "actual") },
+    };
+  }
+  return out;
+}
+
 /**
  * Valor a pintar en una celda: el campo homónimo de la fila, sin componer nada.
  *
  * En particular, "Saldo mes anterior" muestra el DISPONIBLE arrastrado, no la suma de los dos
- * componentes. Es lo que hace que las dos cuentas del módulo se lean en pantalla:
- *   Saldo disponible = Saldo mes anterior + Flujo del mes − Reservas del mes
+ * componentes. La cuenta corrida del módulo se lee en pantalla (FR-1009, un solo signo por fila):
+ *   Saldo disponible = Saldo mes anterior + Flujo del mes − Reservas del mes + Retiros del mes
  *   Saldo total      = Saldo disponible   + Saldo reservado
- * El reservado arrastrado no se pierde de vista: vive en "Saldo reservado", que es acumulado.
+ * "Reservas del mes" pinta SOLO los aportes y "Retiros del mes" solo las bajadas — jamás un
+ * "− Reservas −50" de doble negativo. El neto sigue viviendo en la aritmética (reserved).
  *
  * @param m Las cifras del mes en un plano.
  * @param key Fila a leer.
+ * @param flows Aportes/retiros del mes en el plano (desdoble de `reserved`).
  * @returns El valor a pintar en la celda.
  *
- * @aitri-trace FR-ID: FR-906, US-ID: US-906, AC-ID: AC-906, TC-ID: TC-BAL-906h
+ * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h
  */
-function cellValue(m: MonthBalance, key: RowSpec["key"]): number {
+function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: number; retiros: number }): number {
+  if (key === "reserved") return flows.aportes;
+  if (key === "retiros") return flows.retiros;
+  if (key === "monthAvailable") return m.flow - m.reserved; // reserved es neto: flujo − aportes + retiros
   return m[key];
 }
 
@@ -206,6 +246,7 @@ function BalanceRows() {
   // estado, NO con un selector de store — Zustand v5 no memoiza selectores y devolver un objeto
   // nuevo por llamada dispararía el "getSnapshot should be cached".
   const series = useMemo(() => computeBalanceSeries(data), [data]);
+  const reserveFlows = useMemo(() => computeReserveFlows(data), [data]);
 
   return (
     <div data-testid="balance-module">
@@ -293,12 +334,21 @@ function BalanceRows() {
             </span>
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
           </div>
-          {MONTHS.map((m) => (
-            <div key={m.k} className="flex">
-              <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key)} sep rule={rule} />
-              <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key)} rule={rule} />
-            </div>
-          ))}
+          {MONTHS.map((m) =>
+            spec.key === "retiros" ? (
+              // La fila «Retiros del mes» es OPERABLE (unificación 2026-07-29): Pres. edita el
+              // retiro planeado; Ejec. abre el mini-form de sacar/corregir y gradúa el sobre-retiro.
+              <div key={m.k} className="flex">
+                <PlannedWithdrawCell month={m.k} sep />
+                <WithdrawCell month={m.k} />
+              </div>
+            ) : (
+              <div key={m.k} className="flex">
+                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget)} sep rule={rule} />
+                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual)} rule={rule} />
+              </div>
+            )
+          )}
         </div>
         );
       })}

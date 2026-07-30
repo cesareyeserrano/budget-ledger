@@ -9,6 +9,8 @@ import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
+import { planTechoMonths } from "@/domain/reserve";
+import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
 import { cellNum, typeColorVar } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
@@ -141,6 +143,9 @@ export function BudgetGrid() {
 
   const rows = useMemo(() => buildRows(data.nodes, expanded), [data.nodes, expanded]);
   const highlightMonth = period.mode === "month" ? period.month : null;
+  // FR-1008: meses del plan que superan su techo — estado del PLAN (no de una edición); las celdas
+  // Pres. de hojas que aportan en esos meses llevan «!» + ámbar.
+  const planWarnMonths = useMemo(() => planTechoMonths(data), [data]);
 
   // BG-007: al montar, posicionar el scroll horizontal en el mes resaltado (el estado ya arranca
   // en el mes en curso, pero el contenedor iniciaba en scrollLeft=0 → siempre se veía enero).
@@ -156,6 +161,8 @@ export function BudgetGrid() {
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
     if (!editing) return;
+    // Las hojas transfer no pasan por aquí: su editor (ReserveCellEditor) comitea vía el camino de
+    // reserva del dominio (FR-1003) — este commit es el de flujo (expense/income).
     setLeafAmount(editing.id, editing.mk, editing.field, Math.max(0, Math.round(Number(editVal) || 0)));
     setEditing(null);
   }
@@ -273,11 +280,14 @@ export function BudgetGrid() {
                 setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
                 onDelete={() => deleteNode(row.node!.id)}
                 onAddChild={() => onAddChild(row.node!)}
+                planWarnMonths={planWarnMonths}
               />
             );
           })}
 
-          {/* Cierra la última banda de tipos: sin esto, el bloque quedaría abierto por abajo. */}
+          {/* Cierra la última banda de tipos: sin esto, el bloque quedaría abierto por abajo.
+              (La operación de retiros vive en la fila «Retiros del mes» del Balance — unificada
+              por decisión del usuario 2026-07-29: una sola fila, sin duplicar.) */}
           <div aria-hidden="true" className="border-b border-b-border-strong" />
 
           {/* FR-905/906/907/908: el balance va al pie, DENTRO del contenedor de scroll, para que
@@ -314,7 +324,9 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
           sobre-consumo de una celda de datos. */}
       <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
         <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
-        <Icon size={15} color={color} /><span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+        <Icon size={15} color={color} />
+        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+        <span className="flex-1 min-w-0" />
         {/* Afordancia de destino de promoción (solo durante un arrastre compatible) */}
         {showDrop && <span data-testid="promote-hint" className="flex-none caption" style={{ color: "var(--accent-light)" }}>Soltar para crear grupo</span>}
         {/* "+" para agregar un GRUPO de este tipo (el adder de grupo vive en el hover del tipo) */}
@@ -323,6 +335,8 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
         )}
       </div>
       {MONTHS.map((m) => {
+        // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
+        // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
         const t = typeTotals(data, type, [m.k]);
         return (
           <div key={m.k} className="flex">
@@ -353,6 +367,7 @@ function NodeRow(props: {
   setIcon: (icon: string) => void;
   onDelete: () => void;
   onAddChild: () => void;
+  planWarnMonths: Partial<Record<MonthKey, number>>;
 }) {
   const { row, naming } = props;
   const node = row.node!;
@@ -433,6 +448,26 @@ function NodeRow(props: {
         </div>
 
         {MONTHS.map((m) => {
+          // Modelo v4: la celda transfer es el APORTE del mes (flujo). Solo la HOJA usa el editor
+          // de reserva (franja de validación + observaciones); los padres agregan como siempre.
+          if (node.type === "transfer" && row.leaf) {
+            const editingB = props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget";
+            const editingA = props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual";
+            return (
+              <div key={m.k} className="flex">
+                {editingB ? (
+                  <ReserveCellEditor leafId={node.id} month={m.k} plane="budget" sep highlight={props.highlightMonth === m.k} onClose={props.cancelEdit} />
+                ) : (
+                  <ReserveLeafCell leafId={node.id} month={m.k} plane="budget" sep highlight={props.highlightMonth === m.k} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m.k, "budget", 0)} />
+                )}
+                {editingA ? (
+                  <ReserveCellEditor leafId={node.id} month={m.k} plane="actual" highlight={props.highlightMonth === m.k} onClose={props.cancelEdit} />
+                ) : (
+                  <ReserveLeafCell leafId={node.id} month={m.k} plane="actual" highlight={props.highlightMonth === m.k} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m.k, "actual", 0)} />
+                )}
+              </div>
+            );
+          }
           const bud = rollupBudget(data, node.id, m.k);
           const act = rollupActual(data, node.id, m.k);
           return (

@@ -44,7 +44,23 @@ export interface Movement {
   date?: string;
   /** Nota opcional (≤280, trim, vacío→null). Ausente en movimientos previos. */
   note?: string | null;
+  /** Delta aditivo (feature transferencias, ADR-02): extremo ORIGEN de una operación de reserva
+   *  De→A — id de hoja transfer o el sentinel "@disponible". Los movimientos previos no lo
+   *  tienen y siguen siendo válidos. El sentinel JAMÁS aparece en `target`. */
+  from?: string;
+  /** Extremo DESTINO de una operación de reserva (hoja transfer o "@disponible"). */
+  to?: string;
 }
+
+/** Observación manual de una celda (FR-1012). Texto ≤ 280; id/createdAt como los movimientos. */
+export interface CellNote {
+  id: string;
+  createdAt: number;
+  text: string;
+}
+
+/** Mapa nodeId → mes → observaciones manuales de esa celda (feature transferencias, FR-1012). */
+export type CellNotesMap = Record<string, Partial<Record<MonthKey, CellNote[]>>>;
 
 export interface LedgerState {
   ownerId: string;
@@ -52,12 +68,22 @@ export interface LedgerState {
   budgets: AmountMap;
   actuals: AmountMap;
   movements: Movement[];
+  /** Delta aditivo (FR-1012): ausente en estados previos — cargan y operan sin él. */
+  cellNotes?: CellNotesMap;
 }
 
 export const STORAGE_KEYS = {
   nodes: "ledger.nodes.v1",
-  budget: "ledger.budget.v2",
+  // Feature transferencias (modelo v4, decisión del usuario 2026-07-29): celdas transfer =
+  // APORTES del mes; retiros en el journal. La clave ES la marca de versión (idempotencia por
+  // marca, nunca por heurística).
+  budget: "ledger.budget.v4",
 } as const;
+
+/** Claves de formatos previos. Se leen UNA vez para migrar y se eliminan.
+ *  v2 = aportes sin journal de retiros (identidad de celdas); v3 = saldos con arrastre (se
+ *  deshace el acumulado y los deltas negativos pasan al journal). */
+export const LEGACY_BUDGET_KEYS = { v2: "ledger.budget.v2", v3: "ledger.budget.v3" } as const;
 
 /** Nombre de la categoría del sistema que recibe categorías borradas (una por tipo). */
 export const UNASSIGNED_NAME = "Sin asignar";

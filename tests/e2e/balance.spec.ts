@@ -107,7 +107,7 @@ async function seed(page: Page, leaves: Leaf[]) {
         "ledger.nodes.v1",
         JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
       );
-      localStorage.setItem("ledger.budget.v2", JSON.stringify({ version: 2, budgets, actuals, movements: [] }));
+      localStorage.setItem("ledger.budget.v3", JSON.stringify({ version: 3, budgets, actuals, movements: [] }));
     },
     { nodes: NODES, leaves, months: MONTH_KEYS }
   );
@@ -294,7 +294,7 @@ test("TC-BAL-953e: las filas del balance no muestran la marca de sobre-consumo d
 
   const cells = page.getByTestId("balance-module").getByTestId("balance-cell");
   const count = await cells.count();
-  expect(count).toBe(6 * 12 * 2); // seis filas × doce meses × dos planos
+  expect(count).toBe(7 * 12 * 2); // siete filas × doce meses × dos planos (FR-1009: +«Retiros del mes»)
 
   const texts = await cells.allTextContents();
   for (const t of texts) {
@@ -538,9 +538,10 @@ test("TC-BAL-953f: Ingreso y Transferencia conservan su semántica de color", as
   const ingreso = gridEjec(rowByName(page, "Salario"), PLAIN.index);
   expect(await colorOf(ingreso)).toBe("rgb(180, 83, 9)"); // --warning claro (#b45309)
 
-  // la transferencia sigue neutra: la feature no le añadió semántica de estado
+  // Re-derivado por feature transferencias (FR-1002): la celda transfer es un SALDO explícito →
+  // tinta plena --fg; los umbrales/estados de gasto siguen sin afectarla.
   const transfer = gridEjec(rowByName(page, "Alcancía"), PLAIN.index);
-  expect(await colorOf(transfer)).toBe("rgb(85, 85, 93)"); // --accent-light claro
+  expect(await colorOf(transfer)).toBe("rgb(28, 28, 31)"); // --fg claro (saldo explícito, FR-1002)
 
   // y ninguna de las dos lleva marca de sobre-consumo
   for (const c of [ingreso, transfer]) expect((await c.textContent())!).not.toContain("›");
@@ -592,11 +593,11 @@ test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo total
 test("TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo", async ({ page }) => {
   // @aitri-tc TC-BAL-909e
   await gotoGrid(page, POSITIVE);
-  expect(await filasVisibles(page)).toHaveLength(6);
+  expect(await filasVisibles(page)).toHaveLength(7); // FR-1009: +«Retiros del mes»
 
   await page.getByLabel("Colapsar saldos").click();
 
-  expect(await filasVisibles(page)).toEqual(["prevAvailable", "flow", "reserved", "available"]);
+  expect(await filasVisibles(page)).toEqual(["prevAvailable", "flow", "reserved", "retiros", "available"]);
   await expect(balRow(page, "reservedBalance")).toHaveCount(0);
   await expect(balRow(page, "total")).toHaveCount(0);
 });
@@ -608,12 +609,12 @@ test("TC-BAL-909f: el chevron de Saldo disponible NO oculta ninguna fila de arri
   await page.getByLabel("Colapsar saldos").click();
 
   // el defecto que este test existe para impedir: plegar hacia ARRIBA, ocultando los insumos
-  for (const key of ["prevAvailable", "flow", "reserved"]) {
+  for (const key of ["prevAvailable", "flow", "reserved", "retiros"]) {
     await expect(balRow(page, key), `el insumo ${key} no puede ocultarse`).toHaveCount(1);
   }
-  // y el ciclo es reversible: volver a abrir restituye las seis
+  // y el ciclo es reversible: volver a abrir restituye las siete
   await page.getByLabel("Expandir saldos").click();
-  expect(await filasVisibles(page)).toHaveLength(6);
+  expect(await filasVisibles(page)).toHaveLength(7);
 });
 
 // ══ FR-910 · orden de los bloques ══════════════════════════════════════════════════════════════

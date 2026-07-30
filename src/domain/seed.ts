@@ -16,7 +16,11 @@ const FACTOR: Record<MonthKey, number> = {
   jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0,
 };
 
-/** Genera budgets/actuals deterministas por hoja/mes (verificado contra `genBudget` del prototipo). */
+/**
+ * Genera budgets/actuals deterministas por hoja/mes (verificado contra `genBudget` del prototipo).
+ * Los TRES tipos comparten semántica de FLUJO mensual (modelo v4): en transfer la celda es el
+ * APORTE del mes, igual que un gasto es el gasto del mes.
+ */
 export function genBudget(nodes: LedgerNode[]): { budgets: AmountMap; actuals: AmountMap } {
   const budgets: AmountMap = {};
   const actuals: AmountMap = {};

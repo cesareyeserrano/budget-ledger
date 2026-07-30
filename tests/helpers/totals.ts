@@ -8,10 +8,12 @@
  * DINERO. Un nodo puede estar perfectamente colgado y aun así llevarse un presupuesto fuera de todos
  * los agregados. Estas dos funciones miden el dinero.
  */
-import type { LedgerState, NodeType } from "@/domain/types";
+import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
 import { typeTotals } from "@/domain/rollup";
+import { resolvedTypeTotal } from "@/domain/reserve";
 import { isLeaf } from "@/domain/tree";
 import { MONTH_KEYS } from "@/domain/months";
+import type { Plane } from "@/domain/reserve";
 
 const TYPES: NodeType[] = ["expense", "income", "transfer"];
 
@@ -42,4 +44,16 @@ export function orphanBudgetNodes(state: LedgerState): string[] {
     .filter((n) => !isLeaf(n, state.nodes))
     .filter((n) => Object.values(state.budgets[n.id] ?? {}).some((v) => (v ?? 0) > 0))
     .map((n) => n.id);
+}
+
+/**
+ * Invariante de conservación para RESERVAS (FR-1011): Σ de saldos RESUELTOS del tipo transfer,
+ * mes a mes. Para saldos, sumar celdas de 12 meses no significa nada (200 constantes = 2.400);
+ * lo que una reestructuración debe conservar es ESTA serie — idéntica antes y después, en los
+ * 12 meses de ambos planos.
+ */
+export function resolvedYearByMonth(state: LedgerState, plane: Plane): Record<MonthKey, number> {
+  const out = {} as Record<MonthKey, number>;
+  for (const m of MONTH_KEYS) out[m] = resolvedTypeTotal(state, m, plane);
+  return out;
 }

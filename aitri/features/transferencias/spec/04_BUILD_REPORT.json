@@ -1,0 +1,111 @@
+{
+  "feature": "transferencias",
+  "summary": "Reservas con semántica de SALDO: las celdas del tipo transfer dejan de ser flujo mensual y pasan a decir cuánto HAY en cada alcancía, con arrastre por hoja (ausente = arrastra el último explícito; 0 explícito = vaciada). Todo el trabajo vive en el patrón del producto: núcleo puro en src/domain/reserve.ts — resolvedBalance (memoizado por identidad del mapa, WeakMap), applyReserveOp (la operación De→A atómica: guardar/sacar/mover son la MISMA mutación, journalizada con from/to y el sentinel @disponible que JAMÁS va en target), validateReserveWrite (techo GLOBAL por mes: Σdeltas ≤ max(0, disponiblePrevio + flujo); piso por alcancía; AMBAS en cadena de 12 meses con veredicto que nombra el mes ofensor) — consumido por las dos puertas (grilla y registro: mismo veredicto por construcción, NFR-1004) y por el servidor vía el dominio compartido. El Balance deriva de saldos resueltos (reserveNet = aportes − retiros; adiós retiros fantasma) y desdobla la información en dos filas de un solo signo: «− Reservas del mes» y «+ Retiros del mes». Persistencia: bump versionado ledger.budget.v2 → v3 con migración cumsum idempotente POR MARCA (cliente en localStorage; servidor lazy en loadLedger con for update + re-check: dos dispositivos concurrentes migran exactamente una vez); from/to y cellNotes atraviesan las cinco capas (Zod persistencia, schemas API, columnas BD, rowsToState, insertSnapshot); insertMovement persiste el diff multi-celda en UNA transacción. UI: tres tintas por estado de celda, badge SALDO, editor con franja de bloqueo inline que NO se cierra (valor seleccionado, «corrige o Escape»), preview de efectos derivados ANTES de aplicar (los meses explícitos posteriores MANDAN), «↺ Volver al arrastre», toast con Deshacer de un nivel tras retiro, banner one-shot post-migración, marca «!» + ámbar del plan (avisa, jamás bloquea), popover «Planear trayectoria…» (FR-1013), observaciones por celda (derivadas del journal + manuales ≤280), y el registro renombrado «Reserva» con chips De/A que muestran el saldo ANTES de operar (De=A imposible por construcción). Reestructurar el árbol conserva los saldos: la fusión FR-604 materializa el arrastre de ambas series (mergeReserveMonthMap). La aritmética de monthBalance no cambió: conservación total = total previo + flujo verificada con el escenario del usuario (500→500→450) y con secuencias de 120 operaciones.",
+  "files_created": [
+    "src/domain/reserve.ts",
+    "src/domain/migrate.ts",
+    "src/domain/ids.ts",
+    "src/components/ReserveCells.tsx",
+    "src/components/reserveText.ts",
+    "src/components/register/ReserveRow.tsx",
+    "drizzle/0001_transferencias.sql",
+    "drizzle/meta/0001_snapshot.json",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/reserve-closure.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts"
+  ],
+  "files_modified": [
+    "src/domain/types.ts",
+    "src/domain/validation.ts",
+    "src/domain/mutations.ts",
+    "src/domain/balance.ts",
+    "src/domain/seed.ts",
+    "src/domain/index.ts",
+    "src/data/repository.ts",
+    "src/state/store.ts",
+    "src/components/BudgetGrid.tsx",
+    "src/components/BalanceModule.tsx",
+    "src/components/Toaster.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/register/Register.tsx",
+    "src/components/register/TypeToggle.tsx",
+    "src/components/register/ConfirmOverlay.tsx",
+    "src/server/schemas.ts",
+    "src/server/db/schema.ts",
+    "src/server/data/ledgerRepo.ts",
+    "drizzle/meta/_journal.json",
+    "tests/helpers/totals.ts",
+    "tests/domain/balance.test.ts",
+    "tests/unit/feature-stack.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e-backend/auth-flow.spec.ts",
+    "tests/e2e-backend/storage-split.spec.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1002",
+      "substitution": "El banner one-shot post-migración se dispara con la heurística «flag ausente + existe historia de reservas», no con una señal exacta de «acabo de migrar»: un usuario NUEVO (semilla con trayectorias de reservas) también lo ve una vez, y en modo servidor el flag vive en localStorage por dispositivo, así que un usuario multi-dispositivo puede verlo una vez por dispositivo.",
+      "reason": "La señal exacta exigiría acarrear un flag transitorio desde la capa de migración (repositorio/servidor) hasta la UI, cruzando el contrato LedgerRepository para un aviso de una sola vez. El costo del falso positivo es un banner informativo verdadero (las celdas SÍ muestran saldos) descartable con un clic, y TC-TRF-202e verifica el contrato que importa: exactamente una vez por flag. Decidido como proporcional.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-1007",
+      "substitution": "TC-TRF-102f ejerce la secuencia de operaciones (guardar, sacar, mover A→B) por la GRILLA; la operación equivalente por el registro está cubierta en TC-TRF-205h/152e (spec del registro a 375px), no dentro del mismo test.",
+      "reason": "El invariante que el TC defiende (ninguna celda transfer pinta un negativo) es del RENDER de la grilla y las operaciones del registro pasan por exactamente el mismo applyReserveOp (verificado por TC-TRF-154h: mismo veredicto ambas puertas); duplicar la puerta móvil dentro del test de escritorio añadiría un cambio de viewport sin añadir cobertura del invariante.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "No se declara un quality_gate de seguridad propio de esta feature.",
+      "reason": "El escaneo de seguridad del proyecto corre como CodeQL en CI y el SCA de dependencias (npm audit) ya está declarado por la feature backend; esta feature no añade superficie de red ni de auth (postura heredada intacta, ADR-04: el PUT permanece confiado y documentado), y sus entradas nuevas (from/to, cellNotes.text ≤280) validan por Zod en el borde — verificado por TC-TRF-110f y el CHECK de BD char_length ≤ 280.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_files": [
+    "../../../tests/domain/reserve.test.ts",
+    "../../../tests/domain/reserve-balance.test.ts",
+    "../../../tests/domain/reserve-grid.test.ts",
+    "../../../tests/domain/reserve-restructure.test.ts",
+    "../../../tests/domain/reserve-notes.test.ts",
+    "../../../tests/domain/reserve-perf.test.ts",
+    "../../../tests/integration/reserve-migration.test.ts",
+    "../../../tests/integration/reserve-closure.test.ts",
+    "../../../tests/integration/backend/reserve-server.test.ts",
+    "../../../tests/e2e/transferencias.spec.ts",
+    "../../../tests/e2e/transferencias-registro.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "../../../coverage.sh", "required": true, "timeout_ms": 900000 },
+    { "name": "smoke", "command": "../../../smoke.sh", "required": true, "timeout_ms": 420000 },
+    { "name": "e2e", "command": "../../../e2e.sh", "required": true, "timeout_ms": 600000 }
+  ],
+  "test_runner_timeout_ms": 1200000,
+  "notes": [
+    "EJECUCIÓN POR EPICS (BUILD_PLAN.md, 8 epics EP-01..EP-08, cada uno cerrado con sus Makes-pass TCs en verde y evidencia registrada). Los 67 TC ids de 03_TEST_CASES.json están repartidos cada uno en exactamente un epic; ninguno se creó, renombró ni omitió (Test Authorship Lock).",
+    "RE-DERIVACIONES DECLARADAS (NFR-1007) — la lista completa, hecha y verificable: TC-BAL-907h, TC-BAL-907f y TC-BAL-936e re-basados en tests/domain/balance.test.ts a semántica de saldo (fixtures como trayectorias; comentario «Re-derivado por feature transferencias (FR-1009 supersede FR-907)» en cada uno); TC-BAL-958e re-basado a la clave ledger.budget.v3; TC-BAL-958f conserva sus aserciones (su fixture solo aporta) con la nota de alcance de que `reserved` como delta PUEDE ser negativo con retiros — lo que jamás baja de 0 es reservedBalance. TC-BAL-958h (adicional, no declarado en el PRD): whitelist de imports de balance.ts + './reserve' — ajuste de allowlist, el sentido del test (pureza) intacto. Los 8 archivos que sembraban ledger.budget.v2 crudo (tests/domain/balance.test.ts, tests/unit/feature-stack.test.ts, tests/integration/feature-stack.test.ts, tests/e2e/balance.spec.ts, tests/e2e/budget-state-color.spec.ts, tests/e2e/feature-stack.spec.ts, tests/e2e-backend/auth-flow.spec.ts, tests/e2e-backend/storage-split.spec.ts) quedaron re-basados a v3; el literal viejo vive SOLO en tests/integration/reserve-migration.test.ts, verificado mecánicamente por TC-TRF-157f. Re-derivaciones e2e adicionales por FR-1002/FR-1009 (documentadas en BUILD_PLAN EP-04): TC-BAL-953e (6→7 filas del balance), TC-BAL-909e/909f (la fila «retiros» dentro del pliegue), TC-BAL-953f y TC-BSC-452e (tinta de celda transfer: de --accent-light a las tintas de saldo). Y TC-SUT-227e (feature-stack, e2e): probaba el estado vacío del selector de CATEGORÍAS usando el tipo transfer, que ya no usa CategoryRow (FR-1005) — se re-basó al tipo gasto para conservar su propósito; el estado vacío de Reserva lo cubre TC-TRF-105e.",
+    "SEMÁNTICA FIJADA DEL PISO EN CADENA (DESIGN_OPTIONS §9.1, TC-TRF-207e): al reducir un mes previo, los retiros ya operados del PRIMER mes explícito posterior deben seguir siendo ejecutables — saldoImplicado = explícito(m1) + d ≥ 0; el veredicto trae «el saldo que quedaría» (negativo), renderizado como «Bloquea en octubre: “Viaje” quedaría en −$50.000». Computable solo de celdas, sin journal.",
+    "TECHO EN CADENA CON GUARDA «NO EMPEORAR»: bloquea solo los meses donde la escritura EMPEORA el exceso vs el estado base (candExcess > baseExcess). Sin esta guarda, los datos migrados o históricos que ya violaban el techo (legítimo: las reglas no existían) bloquearían ediciones ajenas — coherente con ADR-04 (el PUT confiado acepta esos estados). limit del veredicto = margen restante del mes (max(0, margen − deltaBase)), que es el número que el mensaje necesita.",
+    "MIGRACIÓN v2→v3: cumsum escribe los 12 meses EXPLÍCITOS (los datos históricos no distinguían «ausente» de «0 aportado»; el gris de arrastre nace con las operaciones nuevas — aceptado en §9 del diseño). saveLedger estampa data_version=3 SIEMPRE (un snapshot que llega ya habla v3; sin el sello, un ledger nuevo con default 2 se «re-migraría» — cumsum sobre saldos, la corrupción exacta que la marca impide). Concurrencia verificada contra Postgres real (testcontainers): dos loadLedger simultáneos migran exactamente una vez.",
+    "UNDO DE UN NIVEL (ADR-07): el store guarda {prevData, afterData} del último retiro; deshacer solo aplica si el estado vigente ES afterData (igualdad de referencia) — cualquier mutación posterior lo invalida sin bookkeeping. El toast con acción dura 6s (los informativos 2s).",
+    "RESULTADO AGREGADO al cierre del build (NFR-1007, cero rojo accidental): vitest completo (app+backend, Postgres efímero) 292/292 · Playwright cliente-puro COMPLETO (todas las features) 245/245 · Playwright backend (modo servidor + Postgres efímero) 15/15. De la feature: e2e transferencias 13/13 + registro 6/6. Los gates mecánicos re-verifican todo en aitri feature verify-run transferencias.",
+    "PERF (NFR-1005) medida de nuevo sobre la ruta REAL, no heredada: con 30 alcancías × 12 meses de historia mixta, validar + aplicar + computeBalanceSeries + fila total de 12 meses < 150 ms (TC-TRF-155h, típicamente <10 ms). Los contadores __reservePerfCounters (solo tests) prueban la memoización por identidad (155e) y que un gasto jamás invoca las reglas de reservas (155f).",
+    "FR-1013 (SHOULD) implementado: popover «Planear trayectoria…» en el editor Pres. con preview de la serie y aviso de meses que quedarán marcados (nunca bloquea). Sin TCs propios por decisión de Fase 3 (no tiene US); cubierto indirectamente por TC-TRF-108h (el plan avisa y guarda).",
+    "NO_GO_ZONE honrado: sin atajo compuesto «pagar con esta reserva», sin vencimientos/intereses, sin transferencias programadas ni cierres automáticos (nada se mueve solo: lo automático es el cálculo y el control), sin conciliación bancaria, sin vista de journal (la lectura nace como observaciones por celda), sin saldo inicial manual (el patrón primera carga = ingreso + reserva del mismo mes PASA por construcción, TC-TRF-306h), single-year ratificado, sin marca de «sobre» por nodo."
+  ]
+}

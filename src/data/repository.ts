@@ -1,7 +1,10 @@
 // @aitri-trace data:repository — FR-011/FR-014: persistencia tras interfaz (punto de swap a Supabase). NFR-003: recuperación segura.
+// Feature transferencias: en modo localStorage el DUEÑO de las migraciones de formato es este
+// repositorio — migra al cargar, una sola vez, con la clave como marca de versión.
 import type { LedgerNode, LedgerState } from "@/domain/types";
-import { STORAGE_KEYS } from "@/domain/types";
+import { LEGACY_BUDGET_KEYS, STORAGE_KEYS } from "@/domain/types";
 import { persistedBudgetSchema, persistedNodesSchema } from "@/domain/validation";
+import { migrateStateV3toV4 } from "@/domain/migrate";
 
 /**
  * Migración: se retiró la categoría "Sin asignar" (nodos system). Datos guardados en versiones
@@ -35,20 +38,42 @@ export class LocalStorageRepository implements LedgerRepository {
 
   async load(ownerId: string): Promise<LedgerState | null> {
     const nodesRaw = this.storage.getItem(STORAGE_KEYS.nodes);
-    const budgetRaw = this.storage.getItem(STORAGE_KEYS.budget);
+    // La clave vigente primero; si no existe, los formatos viejos se leen UNA vez para migrar.
+    const budgetRaw =
+      this.storage.getItem(STORAGE_KEYS.budget) ??
+      this.storage.getItem(LEGACY_BUDGET_KEYS.v3) ??
+      this.storage.getItem(LEGACY_BUDGET_KEYS.v2);
     if (!nodesRaw || !budgetRaw) return null;
 
     const nodesParsed = safeParseJson(nodesRaw, persistedNodesSchema);
     const budgetParsed = safeParseJson(budgetRaw, persistedBudgetSchema);
     if (!nodesParsed || !budgetParsed) return null; // corrupto/no conforme → recupera a semilla
 
-    return {
+    const nodes = stripLegacyUnassigned(nodesParsed.nodes);
+    const loaded: LedgerState = {
       ownerId,
-      nodes: stripLegacyUnassigned(nodesParsed.nodes),
+      nodes,
       budgets: budgetParsed.budgets,
       actuals: budgetParsed.actuals,
       movements: budgetParsed.movements,
+      ...("cellNotes" in budgetParsed && budgetParsed.cellNotes ? { cellNotes: budgetParsed.cellNotes } : {}),
     };
+
+    if (budgetParsed.version !== 4) {
+      // Migración one-shot al modelo v4 (celdas = aportes; retiros en el journal):
+      // · v2 → identidad de celdas (ya eran aportes); solo cambia la marca.
+      // · v3 → se deshace el acumulado (deltas) y los deltas negativos pasan al journal como
+      //   retiros. Se re-persiste en la clave nueva y se eliminan las viejas: la MARCA (la
+      //   clave) garantiza la idempotencia — una segunda carga jamás re-convierte.
+      const state = budgetParsed.version === 3 ? migrateStateV3toV4(loaded) : loaded;
+      if (await this.save(ownerId, state)) {
+        this.storage.removeItem(LEGACY_BUDGET_KEYS.v2);
+        this.storage.removeItem(LEGACY_BUDGET_KEYS.v3);
+      }
+      return state;
+    }
+
+    return loaded;
   }
 
   async save(ownerId: string, state: LedgerState): Promise<boolean> {
@@ -59,7 +84,13 @@ export class LocalStorageRepository implements LedgerRepository {
       );
       this.storage.setItem(
         STORAGE_KEYS.budget,
-        JSON.stringify({ version: 2, budgets: state.budgets, actuals: state.actuals, movements: state.movements })
+        JSON.stringify({
+          version: 4,
+          budgets: state.budgets,
+          actuals: state.actuals,
+          movements: state.movements,
+          ...(state.cellNotes ? { cellNotes: state.cellNotes } : {}),
+        })
       );
       return true;
     } catch (err) {

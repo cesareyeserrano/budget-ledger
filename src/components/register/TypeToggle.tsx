@@ -7,7 +7,9 @@ import { typeColorVar, typeFillVar } from "@/components/format";
 const TYPES: { id: NodeType; label: string }[] = [
   { id: "expense", label: "Gasto" },
   { id: "income", label: "Ingreso" },
-  { id: "transfer", label: "Transferencia" },
+  // Feature transferencias (FR-1005): renombrado desde "Transferencia" — cierra el pendiente de
+  // FR-911 de balance. El tipo del dominio sigue siendo `transfer`; cambia el rótulo, no el modelo.
+  { id: "transfer", label: "Reserva" },
 ];
 
 interface Props {

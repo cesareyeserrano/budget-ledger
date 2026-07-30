@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NodeType } from "@/domain/types";
 import { useLedgerStore } from "@/state/store";
+import { AVAILABLE_ID, applyReserveOp, availableMargin, isAvailable, labelOfEnd, resolvedBalance } from "@/domain/reserve";
 import { parsePesos } from "@/lib/money";
 import { nowForInput, monthKeyFromDate } from "@/lib/date";
+import { money } from "@/components/format";
+import { blockMessage } from "@/components/reserveText";
 import { AmountDisplay } from "./AmountDisplay";
 import { TypeToggle } from "./TypeToggle";
 import { CategoryRow, type LeafSelection } from "./CategoryRow";
+import { ReserveRow, type ReserveEnds } from "./ReserveRow";
 import { DateTimeField } from "./DateTimeField";
 import { NoteField } from "./NoteField";
 import { SaveButton } from "./SaveButton";
@@ -20,19 +24,28 @@ const CONFIRM_MS = 2000;
  * tipo (color propagado), categorías de la jerarquía, fecha, nota, guardado y overlay. GUARDA con
  * la semántica de datos existente (suma a Ejecutado + roll-ups); el `month` se deriva de la fecha.
  *
+ * Feature transferencias (FR-1005): el tipo Reserva reemplaza el selector de categorías por las
+ * filas De→A (saldos visibles, máximo/margen junto al monto, De=A imposible), guarda vía la
+ * operación atómica del dominio (modelo v4: guardar suma el aporte a la celda del mes y
+ * journaliza; sacar solo journaliza).
+ *
  * @aitri-trace FR-ID: FR-207, US-ID: US-207, AC-ID: AC-207, TC-ID: TC-SUT-220h
+ * @aitri-trace FR-ID: FR-1005, US-ID: US-1005, AC-ID: AC-1005, TC-ID: TC-TRF-105h, TC-TRF-205h
  */
 export function Register() {
-  const nodes = useLedgerStore((s) => s.data.nodes);
+  const data = useLedgerStore((s) => s.data);
+  const nodes = data.nodes;
   const add = useLedgerStore((s) => s.addMovement);
 
   const [type, setType] = useState<NodeType>("expense");
   const [rawAmount, setRawAmount] = useState("");
   const [sel, setSel] = useState<LeafSelection | null>(null);
+  const [ends, setEnds] = useState<ReserveEnds>({ from: null, to: null });
   const [date, setDate] = useState("");
   const [note, setNote] = useState("");
   const [showErrors, setShowErrors] = useState(false);
-  const [confirm, setConfirm] = useState<{ amount: number; type: NodeType } | null>(null);
+  const [ruleError, setRuleError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ amount: number; type: NodeType; summary?: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -43,23 +56,68 @@ export function Register() {
   }, []);
 
   const amount = useMemo(() => parsePesos(rawAmount), [rawAmount]);
-  const saveEnabled = amount > 0;
+  const month = monthKeyFromDate(date);
 
-  /** Cambiar de tipo conserva el monto pero deselecciona la categoría (FR-208/FR-209). */
+  // FR-1005: la guía de estado bajo el monto — el límite visible MIENTRAS se teclea (H1/H5).
+  const isReserve = type === "transfer";
+  const reserveLimit = useMemo(() => {
+    if (!isReserve || !ends.from) return null;
+    if (isAvailable(ends.from)) return { label: "Margen del mes", value: availableMargin(data, month) };
+    return { label: "Máx.", value: resolvedBalance(data, ends.from, month, "actual") };
+  }, [isReserve, ends.from, data, month]);
+  const overLimit = reserveLimit !== null && amount > reserveLimit.value;
+
+  const saveEnabled = isReserve
+    ? amount > 0 && !!ends.from && !!ends.to && !overLimit
+    : amount > 0;
+
+  /** Cambiar de tipo conserva el monto pero deselecciona la categoría/los extremos (FR-208/209). */
   function onChangeType(t: NodeType) {
     setType(t);
     setSel(null);
+    setEnds({ from: null, to: null });
+    setRuleError(null);
   }
 
   function resetForNext() {
     setRawAmount("");
     setSel(null);
+    setEnds({ from: null, to: null });
     setNote("");
     setDate(nowForInput());
     setShowErrors(false);
+    setRuleError(null);
+  }
+
+  function saveReserve() {
+    const { from, to } = ends;
+    if (amount <= 0 || !from || !to) {
+      setShowErrors(true);
+      return;
+    }
+    // La operación del registro: mismo dominio, mismo veredicto que la grilla (NFR-1004).
+    const dry = applyReserveOp(data, { from, to, month, amount, date, note });
+    if ("rejected" in dry) {
+      // Carrera contra la guía (el estado cambió bajo los pies): el mensaje de la regla, bajo el monto.
+      if (dry.rejected === "invalid_target") setRuleError("Operación inválida — revisa origen y destino");
+      else if (!dry.rejected.ok) setRuleError(blockMessage(data, dry.rejected, { editedMonth: month, attempted: amount }));
+      return;
+    }
+    const targetLeaf = isAvailable(to) ? from : to;
+    const ok = add({ type: "transfer", catId: targetLeaf, amount, month, date, note, from, to });
+    if (!ok) return; // doble-tap: sin overlay
+    setConfirm({ amount, type, summary: `${money(amount)} · ${labelOfEnd(data, from)} → ${labelOfEnd(data, to)}` });
+    timer.current = setTimeout(() => {
+      setConfirm(null);
+      resetForNext();
+    }, CONFIRM_MS);
   }
 
   function onSave() {
+    if (isReserve) {
+      saveReserve();
+      return;
+    }
     if (amount <= 0 || sel === null) {
       setShowErrors(true);
       return;
@@ -69,7 +127,7 @@ export function Register() {
       catId: sel.catId,
       subId: sel.subId,
       amount,
-      month: monthKeyFromDate(date),
+      month,
       date,
       note,
     });
@@ -83,22 +141,39 @@ export function Register() {
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-[480px] flex-col gap-6" style={{ animation: "mvScreenIn 0.26s ease" }}>
-      {confirm && <ConfirmOverlay amount={confirm.amount} type={confirm.type} />}
+      {confirm && <ConfirmOverlay amount={confirm.amount} type={confirm.type} summary={confirm.summary} />}
+
 
       <TypeToggle value={type} onChange={onChangeType} />
 
       <AmountDisplay amount={amount} type={type} onDigits={setRawAmount} error={showErrors && amount <= 0} />
 
-      <div className="flex min-w-0 flex-col gap-3">
-        <span className="text-sm font-medium text-fg-secondary">Categoría</span>
-        <CategoryRow
-          type={type}
-          nodes={nodes}
-          value={sel}
-          onChange={setSel}
-          error={showErrors && sel === null}
-        />
-      </div>
+      {/* FR-1005: la guía de estado bajo el monto — pasa a --error cuando el monto la excede (H9). */}
+      {isReserve && reserveLimit && (
+        <p data-testid="reserve-guide" className="tabular -mt-4 text-sm" style={{ color: overLimit ? "var(--error)" : "var(--fg-secondary)" }} role={overLimit ? "alert" : undefined}>
+          {reserveLimit.label}: {money(reserveLimit.value)}
+        </p>
+      )}
+      {isReserve && ruleError && (
+        <p data-testid="reserve-rule-error" className="-mt-4 text-sm" role="alert" style={{ color: "var(--error)" }}>
+          {ruleError}
+        </p>
+      )}
+
+      {isReserve ? (
+        <ReserveRow data={data} month={month} value={ends} onChange={(e) => { setEnds(e); setRuleError(null); }} error={showErrors && (!ends.from || !ends.to)} />
+      ) : (
+        <div className="flex min-w-0 flex-col gap-3">
+          <span className="text-sm font-medium text-fg-secondary">Categoría</span>
+          <CategoryRow
+            type={type}
+            nodes={nodes}
+            value={sel}
+            onChange={setSel}
+            error={showErrors && sel === null}
+          />
+        </div>
+      )}
 
       <DateTimeField value={date} onChange={setDate} />
       <NoteField value={note} onChange={setNote} />

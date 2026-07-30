@@ -9,6 +9,8 @@ import { typeColorVar, typeFillVar } from "@/components/format";
 interface Props {
   amount: number;
   type: NodeType;
+  /** Resumen de una operación De→A («$50.000 · Viaje → Disponible», FR-1005). */
+  summary?: string;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  *
  * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-237e
  */
-export function ConfirmOverlay({ amount, type }: Props) {
+export function ConfirmOverlay({ amount, type, summary }: Props) {
   const color = typeColorVar(type);
   return (
     <div
@@ -33,6 +35,11 @@ export function ConfirmOverlay({ amount, type }: Props) {
         {signOf(type)}
         {formatCOP(amount)}
       </span>
+      {summary && (
+        <span data-testid="confirm-summary" className="text-sm text-fg-secondary">
+          {summary}
+        </span>
+      )}
       <span className="text-sm text-fg-secondary">Guardado</span>
     </div>
   );
