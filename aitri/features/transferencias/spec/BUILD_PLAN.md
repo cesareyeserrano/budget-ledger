@@ -177,3 +177,13 @@ Nota de alcance: FR-1013 (SHOULD, helper de trayectoria) no tiene US ni TCs prop
   «− Reservas del mes» pasa a pintar SOLO aportes (`reserveAportes`/`reserveRetiros`). La aritmética
   de `monthBalance` intacta; conservación verificada con el escenario del usuario (500→500→450) y
   con secuencias deterministas de 120 operaciones (TC-TRF-109f).
+
+### Re-derivación v3→v4 (2026-07-30) — pipeline normalizado
+- Fase 1 reescrita al modelo v4 (14 FRs + 7 NFRs, coverage_map de 24 necesidades) — auditoría
+  independiente de requisitos: 31/31 cubiertas, 0 gaps. UX spec y TRD re-derivados (ADR-01v4).
+- Fase 3: 67 TCs nuevos con prefijo TC-TRF4-* (los TC-TRF-* del modelo v3 quedan superseded).
+- Suite completa reescrita: unit (38) + integration app (10) + backend (2) + e2e (17, en 19 runs).
+- Runs finales: vitest app **229/229 ✓** · backend **62/62 ✓** · Playwright **246/246 ✓** ·
+  typecheck y lint limpios.
+- Los hallazgos adversariales del 2026-07-30 quedaron como TCs negativos permanentes
+  (TC-TRF4-004e/104e/011f) y la migración v3→v4 con retiros sintetizados como TC-TRF4-010h/010e.

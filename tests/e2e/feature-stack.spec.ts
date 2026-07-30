@@ -275,7 +275,7 @@ test("TC-SUT-240e: fallo de almacenamiento (quota) muestra el StorageBanner y el
   await page.addInitScript(() => {
     const orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function (k: string, v: string) {
-      if (k === "ledger.budget.v3") { const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; }
+      if (k === "ledger.budget.v4") { const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; }
       return orig.call(this, k, v);
     };
   });

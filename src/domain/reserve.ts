@@ -181,7 +181,7 @@ export function reserveAportes(state: LedgerState, month: MonthKey, plane: Plane
 /**
  * Clave sentinel del PLAN de retiros (observación del usuario 2026-07-29: los retiros también se
  * presupuestan). Vive como fila propia del mapa `budgets` — no es un nodo del árbol, así que los
- * roll-ups por nodos jamás la cuentan; persiste igual que cualquier celda (localStorage y BD).
+ * roll-ups por nodos jamás la cuentan; persiste igual que cualquier celda (almacén local y BD).
  */
 export const RETIROS_PLAN_ID = "@retiros";
 

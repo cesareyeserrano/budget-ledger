@@ -1,14 +1,13 @@
 /**
- * Feature transferencias (Reservas) — EP-03: el lado servidor contra Postgres efímero.
- * FR-1010 (migración lazy transaccional con marcador data_version; from/to por las cinco capas)
- * y FR-1004 (insertMovement persiste el diff multi-celda de una operación De→A en UNA transacción).
+ * Feature transferencias · modelo v4 — FR-1010 lado servidor contra Postgres efímero:
+ * migración lazy una sola vez (y también antes de un POST), y las cinco capas de from/to+cellNotes.
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { signUp } from "./helpers/authClient";
 import { truncateAll, closeTestDb, testDb } from "./helpers/db";
 import { getSessionUser } from "@/server/session";
-import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
+import { loadLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
 import type { LedgerNode, LedgerState } from "@/domain";
 import { GET as ledgerGET, PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
@@ -34,21 +33,19 @@ function req(url: string, init: { method?: string; cookie?: string; body?: unkno
   if (init.cookie) headers.cookie = init.cookie;
   if (init.origin) headers.origin = init.origin;
   if (init.body !== undefined) headers["content-type"] = "application/json";
-  return new Request(`http://localhost:3100${url}`, {
+  return new Request(`${ORIGIN}${url}`, {
     method: init.method ?? "GET",
     headers,
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
 }
 
-/** Estado mínimo: salario (income) + dos alcancías, con los montos que cada TC necesita. */
-function makeState(ownerId: string, opts: { salario?: Partial<Record<string, number>>; viaje?: Partial<Record<string, number>>; fondo?: Partial<Record<string, number>> } = {}): LedgerState {
+function makeState(ownerId: string, opts: { salario?: Partial<Record<string, number>>; viaje?: Partial<Record<string, number>> } = {}): LedgerState {
   const nodes: LedgerNode[] = [
     { id: "g-trabajo", ownerId, type: "income", level: "group", parentId: null, name: "Trabajo", icon: "folder", order: 0 },
     { id: "c-salario", ownerId, type: "income", level: "category", parentId: "g-trabajo", name: "Salario", icon: "tag", order: 1 },
     { id: "g-ahorro", ownerId, type: "transfer", level: "group", parentId: null, name: "Ahorro", icon: "folder", order: 2 },
     { id: "c-viaje", ownerId, type: "transfer", level: "category", parentId: "g-ahorro", name: "Viaje", icon: "tag", order: 3 },
-    { id: "c-fondo", ownerId, type: "transfer", level: "category", parentId: "g-ahorro", name: "Fondo", icon: "tag", order: 4 },
   ];
   return {
     ownerId,
@@ -57,10 +54,17 @@ function makeState(ownerId: string, opts: { salario?: Partial<Record<string, num
     actuals: {
       ...(opts.salario ? { "c-salario": opts.salario } : {}),
       ...(opts.viaje ? { "c-viaje": opts.viaje } : {}),
-      ...(opts.fondo ? { "c-fondo": opts.fondo } : {}),
     } as LedgerState["actuals"],
     movements: [],
   };
+}
+
+/** Siembra un ledger y lo retrocede al formato de SALDOS (data_version 3) para probar la migración. */
+async function seedAsV3(cookie: string, userId: string, viajeSaldos: Partial<Record<string, number>>): Promise<void> {
+  const state = makeState(userId, { salario: { ene: 900_000 }, viaje: viajeSaldos });
+  const put = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state } }));
+  expect(put.status).toBe(200);
+  await testDb().execute(sql`UPDATE "ledger" SET data_version = 3 WHERE owner_id = ${userId}`);
 }
 
 beforeEach(async () => {
@@ -71,113 +75,73 @@ afterAll(async () => {
 });
 
 describe("FR-1010 — migración lazy en el servidor", () => {
-  it("TC-TRF-110e: dos cargas concurrentes migran exactamente una vez", async () => {
-    // @aitri-tc TC-TRF-110e
-    const { userId } = await newUser("mig@example.com");
-    // Datos en semántica VIEJA (aportes mensuales): 100.000 en ene, feb y mar.
-    const v2 = makeState(userId, { salario: { ene: 500_000 }, viaje: { ene: 100_000, feb: 100_000, mar: 100_000 } });
-    expect((await saveLedger(userId, v2, 0)).ok).toBe(true);
-    // saveLedger estampa v3; retroceder el marcador simula un ledger pre-feature.
-    await testDb().execute(sql`UPDATE "ledger" SET data_version = 2 WHERE owner_id = ${userId}`);
+  it("TC-TRF4-010e: dos cargas concurrentes migran una sola vez y un POST también garantiza v4", async () => {
+    // @aitri-tc TC-TRF4-010e
+    const a = await newUser("mig-v4@example.com");
+    // saldos v3: aportes {ene:100k,feb:100k} y retiro de 50k en mar (delta negativo)
+    await seedAsV3(a.cookie, a.userId, { ene: 100_000, feb: 200_000, mar: 150_000 });
 
-    // Dos dispositivos cargan durante la ventana de migración.
-    const [a, b] = await Promise.all([loadLedger(userId), loadLedger(userId)]);
-
-    // Ambos ven el estado migrado (cumsum UNA vez, disperso: {100, 200, 300} y el resto arrastra —
-    // jamás doble acumulado ni celdas materializadas de más).
-    for (const r of [a, b]) {
-      expect(r!.state.actuals["c-viaje"]).toEqual({ ene: 100_000, feb: 200_000, mar: 300_000 });
-      expect(resolvedBalance(r!.state, "c-viaje", "dic", "actual")).toBe(300_000); // diciembre ARRASTRA
-      expect(r!.state.actuals["c-salario"]).toEqual({ ene: 500_000 }); // income intacto
+    const [r1, r2] = await Promise.all([loadLedger(a.userId), loadLedger(a.userId)]);
+    for (const r of [r1, r2]) {
+      expect(r!.state.actuals["c-viaje"]).toEqual({ ene: 100_000, feb: 100_000 }); // aportes recuperados
+      const synth = r!.state.movements.filter((m) => m.from === "c-viaje" && m.to === AVAILABLE_ID);
+      expect(synth).toHaveLength(1); // el retiro sintetizado, UNA vez (sin doble conversión)
+      expect(synth[0]).toMatchObject({ month: "mar", amount: 50_000 });
+      expect(resolvedBalance(r!.state, "c-viaje", "dic", "actual")).toBe(150_000); // == saldo v3
     }
-    // El marcador quedó estampado y una tercera carga no re-acumula.
-    const [row] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${userId}`)) as unknown as { data_version: number }[];
-    expect(row.data_version).toBe(3);
-    const again = await loadLedger(userId);
-    expect(again!.state.actuals["c-viaje"].mar).toBe(300_000);
+    const [row] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${a.userId}`)) as unknown as { data_version: number }[];
+    expect(row.data_version).toBe(4);
+
+    // Un usuario v3 SIN cargar: el POST /movements migra ANTES de operar (hallazgo adversarial).
+    const b = await newUser("mig-post@example.com");
+    await seedAsV3(b.cookie, b.userId, { ene: 100_000, feb: 100_000 });
+    const post = await movsPOST(
+      req("/api/v1/movements", { method: "POST", cookie: b.cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 200_000, month: "abr", from: "c-viaje", to: AVAILABLE_ID } })
+    );
+    // saldos v3 {100k,100k} = saldo REAL 100k; leído como aportes sin migrar sería 200k y el retiro
+    // del doble pasaría — migrado primero, se RECHAZA (422).
+    expect(post.status).toBe(422);
+    const [rowB] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${b.userId}`)) as unknown as { data_version: number }[];
+    expect(rowB.data_version).toBe(4);
+    const after = await loadLedger(b.userId);
+    expect(after!.state.actuals["c-viaje"]).toEqual({ ene: 100_000 }); // aportes recuperados (feb era arrastre)
   });
 
-  it("TC-TRF-110f: from/to sobreviven las cinco capas; los movimientos viejos sin ellos siguen válidos", async () => {
-    // @aitri-tc TC-TRF-110f
-    const { cookie, userId } = await newUser("capas@example.com");
-    // Snapshot inicial con un movimiento VIEJO (sin from/to) — sigue siendo válido en el PUT.
+  it("TC-TRF4-010f: from/to y cellNotes atraviesan las cinco capas", async () => {
+    // @aitri-tc TC-TRF4-010f
+    const { cookie, userId } = await newUser("capas-v4@example.com");
     const base = makeState(userId, { salario: { ene: 500_000 }, viaje: { ene: 200_000 } });
+    base.cellNotes = { "c-viaje": { ene: [{ id: "n-1", createdAt: 1, text: "meta del año" }] } };
     base.movements = [
       { id: "m-viejo", ownerId: userId, type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 200_000, month: "ene", createdAt: 1 },
     ];
     const put = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state: base } }));
     expect(put.status).toBe(200);
 
-    // Capa API de entrada: POST de una operación De→A con from/to (capa 2), que el dominio ejecuta.
     const post = await movsPOST(
-      req("/api/v1/movements", {
-        method: "POST",
-        cookie,
-        origin: ORIGIN,
-        body: { type: "transfer", catId: "c-viaje", amount: 50_000, month: "feb", from: "c-viaje", to: AVAILABLE_ID, note: "retiro por API" },
-      })
+      req("/api/v1/movements", { method: "POST", cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 50_000, month: "feb", from: "c-viaje", to: AVAILABLE_ID, note: "retiro por API" } })
     );
     expect(post.status).toBe(201);
     const created = (await post.json()) as { movement: { from?: string; to?: string; target: string } };
-    expect(created.movement.from).toBe("c-viaje");
-    expect(created.movement.to).toBe(AVAILABLE_ID);
-    expect(created.movement.target).toBe("c-viaje"); // el sentinel jamás es target
+    expect(created.movement).toMatchObject({ from: "c-viaje", to: AVAILABLE_ID, target: "c-viaje" });
 
-    // Capa BD (capa 3): columnas from_id/to_id pobladas.
+    // Capa BD: columnas pobladas.
     const rows = (await testDb().execute(sql`SELECT from_id, to_id FROM "movement" WHERE owner_id = ${userId} AND note = 'retiro por API'`)) as unknown as { from_id: string | null; to_id: string | null }[];
-    expect(rows).toHaveLength(1);
-    expect(rows[0].from_id).toBe("c-viaje");
-    expect(rows[0].to_id).toBe(AVAILABLE_ID);
+    expect(rows).toEqual([{ from_id: "c-viaje", to_id: AVAILABLE_ID }]);
+    const notes = (await testDb().execute(sql`SELECT text FROM "cell_note" WHERE owner_id = ${userId}`)) as unknown as { text: string }[];
+    expect(notes).toEqual([{ text: "meta del año" }]);
 
-    // Capas rowsToState + GET (capas 4-5): el ciclo completo cliente→PUT→BD→GET→cliente conserva todo.
+    // Capa GET: el ciclo completo conserva todo; los movimientos viejos no ganan campos fantasma.
     const get = await ledgerGET(req("/api/v1/ledger", { cookie }));
-    expect(get.status).toBe(200);
     const body = (await get.json()) as { state: LedgerState };
     const nuevo = body.state.movements.find((m) => m.note === "retiro por API")!;
     expect(nuevo.from).toBe("c-viaje");
     expect(nuevo.to).toBe(AVAILABLE_ID);
     const viejo = body.state.movements.find((m) => m.id === "m-viejo")!;
-    expect(viejo.from).toBeUndefined(); // el movimiento pre-feature ni lanza ni gana campos fantasma
-    expect(viejo.to).toBeUndefined();
-  });
-});
-
-describe("FR-1004 — insertMovement multi-celda transaccional", () => {
-  it("TC-TRF-304e: insertMovement del servidor persiste el diff multi-celda en una transacción", async () => {
-    // @aitri-tc TC-TRF-304e
-    const { cookie, userId } = await newUser("multicel@example.com");
-    const base = makeState(userId, { salario: { ene: 1_000_000 }, viaje: { ene: 200_000 }, fondo: { ene: 800_000 } });
-    const put = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state: base } }));
-    expect(put.status).toBe(200);
-
-    // Mover 100.000 Viaje→Fondo en mayo (margen 0: el neto es cero, el techo global lo permite).
-    const result = await insertMovement(userId, { type: "transfer", catId: "c-fondo", amount: 100_000, month: "may", from: "c-viaje", to: "c-fondo" });
-    expect(result).not.toBeNull();
-
-    // AMBAS celdas actualizadas en la tabla amount_cell…
-    const cells = (await testDb().execute(
-      sql`SELECT node_id, amount::int AS amount FROM "amount_cell" WHERE owner_id = ${userId} AND month = 'may' AND kind = 'actual' ORDER BY node_id`
-    )) as unknown as { node_id: string; amount: number }[];
-    expect(cells).toEqual([
-      { node_id: "c-fondo", amount: 900_000 },
-      { node_id: "c-viaje", amount: 100_000 },
-    ]);
-    // …la fila del movimiento con from_id/to_id…
-    const movs = (await testDb().execute(sql`SELECT from_id, to_id, target FROM "movement" WHERE owner_id = ${userId} AND month = 'may'`)) as unknown as { from_id: string; to_id: string; target: string }[];
-    expect(movs).toEqual([{ from_id: "c-viaje", to_id: "c-fondo", target: "c-fondo" }]);
-    // …la revision subió exactamente 1 (1 del PUT inicial + 1 de la operación)…
-    expect(result!.revision).toBe(2);
-    // …y el GET devuelve el estado consistente.
-    const get = await ledgerGET(req("/api/v1/ledger", { cookie }));
-    const body = (await get.json()) as { revision: number; state: LedgerState };
-    expect(body.revision).toBe(2);
-    expect(body.state.actuals["c-viaje"].may).toBe(100_000);
-    expect(body.state.actuals["c-fondo"].may).toBe(900_000);
-
-    // Rechazo del dominio (sacar más del saldo): nada se persiste — transaccional, sin estado parcial.
-    const rejected = await insertMovement(userId, { type: "transfer", catId: "c-viaje", amount: 999_999_999, month: "jun", from: "c-viaje", to: AVAILABLE_ID });
-    expect(rejected).toBeNull();
-    const after = (await testDb().execute(sql`SELECT count(*)::int AS n FROM "movement" WHERE owner_id = ${userId}`)) as unknown as { n: number }[];
-    expect(after[0].n).toBe(1); // solo la operación válida — la rechazada no dejó rastro
+    expect(viejo.from).toBeUndefined();
+    expect(body.state.cellNotes?.["c-viaje"]?.ene?.[0]?.text).toBe("meta del año");
+    // El retiro no tocó celdas: la celda de feb no existe y el saldo derivado bajó.
+    expect(body.state.actuals["c-viaje"].feb).toBeUndefined();
+    expect(resolvedBalance(body.state, "c-viaje", "dic", "actual")).toBe(150_000);
   });
 });

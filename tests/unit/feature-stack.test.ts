@@ -151,7 +151,7 @@ describe("FR-212 — anti doble-tap", () => {
 // ── NFR-202 · sin almacén paralelo ──────────────────────────────────────────
 describe("NFR-202 — persistencia", () => {
   it("TC-SUT-249f: no existe una clave de movimientos nueva ni un almacén paralelo", () => {
-    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v3"]);
+    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v4"]);
     expect(Object.values(STORAGE_KEYS)).not.toContain("ledger.movements");
   });
 });

@@ -112,7 +112,7 @@ async function seed(page: Page) {
         "ledger.nodes.v1",
         JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
       );
-      localStorage.setItem("ledger.budget.v3", JSON.stringify({ version: 3, budgets, actuals, movements: [] }));
+      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements: [] }));
     },
     { nodes: NODES, leaves: ALL_LEAVES, months: MONTH_KEYS }
   );
@@ -390,12 +390,12 @@ test("TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warnin
 
 test("TC-BSC-452e: regresión — Transferencia sigue fuera de los umbrales de gasto", async ({ page }) => {
   // @aitri-tc TC-BSC-452e
-  // Re-derivado por feature transferencias (FR-1002): la celda transfer pinta su SALDO explícito en
-  // tinta plena --fg. Lo que este TC protege sigue intacto: los umbrales/estados de GASTO no la
-  // afectan y jamás lleva la marca de sobre-consumo.
+  // Modelo v4 (feature transferencias): la celda transfer es el APORTE del mes con la convención
+  // previa del tipo (--accent-light). Lo que este TC protege sigue intacto: los umbrales/estados
+  // de GASTO no la afectan y jamás lleva la marca de sobre-consumo.
   await gotoGrid(page);
   const cell = ejecCell(rowByName(page, "Ahorro"), PLAIN_INDEX);
-  expect(await colorOf(cell)).toBe(FG); // tinta plena de saldo explícito (FR-1002)
+  expect(await colorOf(cell)).toBe("rgb(85, 85, 93)"); // --accent-light claro
   expect(await colorOf(cell)).not.toBe(STATE_WARNING);
   expect(await colorOf(cell)).not.toBe(STATE_OVER);
   expect((await cell.textContent())!).not.toContain("›");

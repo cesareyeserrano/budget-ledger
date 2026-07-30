@@ -1,8 +1,8 @@
 /**
- * Feature transferencias (Reservas) — EP-01: dominio puro.
- * FR-1001 (saldo resuelto con arrastre), FR-1004 (applyReserveOp De→A), FR-1006 (techo global),
- * FR-1007 (piso por alcancía), y los NFR de regresión que verifican ESTE dominio (NFR-1002/1003/1004).
- * Todo sin DOM: aritmética y veredictos tipados con los números exactos del diseño (§9).
+ * Feature transferencias (Reservas) · modelo v4 — dominio puro.
+ * FR-1001 (saldo derivado), FR-1003 (editar = corregir aporte), FR-1004 (De→A + integridad
+ * estructural del journal), FR-1006 (techo), FR-1007 (piso), FR-1014 (rechazos del retiro) y los
+ * NFR que verifican ESTE dominio (NFR-1002/1004).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -11,18 +11,16 @@ import {
   AVAILABLE_ID,
   applyReserveCellEdit,
   applyReserveOp,
+  removeReserveRetiro,
   resolvedBalance,
-  resolvedSeries,
-  resolvedTypeTotal,
-  reserveDelta,
+  reserveRetiros,
   validateReserveWrite,
 } from "@/domain/reserve";
-import { addMovement, deleteNode, canDeleteNode } from "@/domain/mutations";
+import { addMovement, createNode, deleteNode, moveNode, setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
 import { MONTH_KEYS } from "@/domain/months";
-import type { AmountMap, LedgerNode, LedgerState, MonthKey, Movement, NodeType } from "@/domain/types";
+import type { AmountMap, LedgerNode, LedgerState, MonthKey, NodeType } from "@/domain/types";
 
-// ── fixture: hojas mínimas por tipo (mismo patrón que balance.test.ts) ────────────────────────
 interface LeafSpec {
   id: string;
   type: NodeType;
@@ -35,7 +33,6 @@ function makeState(leaves: LeafSpec[]): LedgerState {
   const budgets: AmountMap = {};
   const actuals: AmountMap = {};
   const seen = new Set<NodeType>();
-
   leaves.forEach((l, i) => {
     if (!seen.has(l.type)) {
       seen.add(l.type);
@@ -45,210 +42,229 @@ function makeState(leaves: LeafSpec[]): LedgerState {
     if (l.budget) budgets[l.id] = { ...l.budget };
     if (l.actual) actuals[l.id] = { ...l.actual };
   });
-
   return { ownerId: "local", nodes, budgets, actuals, movements: [] };
 }
 
 const deep = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
-
-/** Ingreso ejecutado directo (sin journal): crea el margen del mes en las fixtures. */
 const income = (cells: Partial<Record<MonthKey, number>>): LeafSpec => ({ id: "c-ingreso", type: "income", actual: cells });
 const expense = (cells: Partial<Record<MonthKey, number>>): LeafSpec => ({ id: "c-gasto", type: "expense", actual: cells });
 
-// ══ FR-1001 · saldo resuelto con arrastre ═════════════════════════════════════════════════════
+/** Aplica una operación que DEBE pasar. */
+function op(s: LedgerState, o: Parameters<typeof applyReserveOp>[1]): LedgerState {
+  const r = applyReserveOp(s, o);
+  if (!("state" in r)) throw new Error(`operación rechazada: ${JSON.stringify(r)}`);
+  return r.state;
+}
 
-describe("FR-1001 · resolvedBalance por hoja", () => {
-  it("TC-TRF-101h: resolvedBalance arrastra el último explícito hacia adelante", () => {
-    // @aitri-tc TC-TRF-101h
-    const s = makeState([{ id: "c-viaje", type: "transfer", actual: { jul: 200_000 } }]);
+// ══ FR-1001 · saldo derivado ══════════════════════════════════════════════════════════════════
 
-    const series = MONTH_KEYS.map((m) => resolvedBalance(s, "c-viaje", m, "actual"));
+describe("FR-1001 · saldo derivado por alcancía", () => {
+  it("TC-TRF4-001h: el saldo derivado acumula aportes y descuenta retiros, con arrastre implícito", () => {
+    // @aitri-tc TC-TRF4-001h
+    const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 100_000, feb: 100_000, mar: 100_000 } }]);
+    const s = op(base, { from: "c-viaje", to: AVAILABLE_ID, month: "abr", amount: 50_000 });
 
-    expect(series).toEqual([0, 0, 0, 0, 0, 0, 200_000, 200_000, 200_000, 200_000, 200_000, 200_000]);
-    // Hoja sin ningún valor explícito: 0 en los 12 meses, sin lanzar.
-    expect(MONTH_KEYS.map((m) => resolvedBalance(s, "c-inexistente", m, "actual"))).toEqual(new Array(12).fill(0));
+    const serie = MONTH_KEYS.map((m) => resolvedBalance(s, "c-viaje", m, "actual"));
+    expect(serie).toEqual([100_000, 200_000, 300_000, 250_000, 250_000, 250_000, 250_000, 250_000, 250_000, 250_000, 250_000, 250_000]);
   });
 
-  it("TC-TRF-101f: un mes ausente con historia JAMÁS agrega 0 (retiro fantasma del hallazgo 9.2)", () => {
-    // @aitri-tc TC-TRF-101f
-    const s = makeState([
-      { id: "c-a", type: "transfer", actual: { jul: 200_000 } },
-      { id: "c-b", type: "transfer", actual: { ago: 100_000 } },
-    ]);
+  it("TC-TRF4-001e: alcancía sin aportes ni retiros deriva 0 en los 12 meses sin lanzar", () => {
+    // @aitri-tc TC-TRF4-001e
+    const s = makeState([{ id: "c-nueva", type: "transfer" }]);
+    expect(MONTH_KEYS.map((m) => resolvedBalance(s, "c-nueva", m, "actual"))).toEqual(new Array(12).fill(0));
+    expect(MONTH_KEYS.map((m) => resolvedBalance(s, "c-no-existe", m, "actual"))).toEqual(new Array(12).fill(0));
+  });
 
-    // El total del tipo en ago incluye el arrastre de A: 200.000 + 100.000, no 100.000.
-    expect(resolvedTypeTotal(s, "ago", "actual")).toBe(300_000);
-    // El delta de ago es el aporte de B (+100.000) — nunca un retiro que nadie operó.
-    expect(reserveDelta(s, "ago", "actual")).toBe(100_000);
-    // Y los meses sin operación posteriores no generan delta alguno.
-    expect(reserveDelta(s, "sep", "actual")).toBe(0);
+  it("TC-TRF4-001f: ninguna secuencia de operaciones aceptadas produce saldo derivado negativo", () => {
+    // @aitri-tc TC-TRF4-001f
+    const base = makeState([income({ ene: 2_000_000 }), { id: "c-a", type: "transfer" }, { id: "c-b", type: "transfer" }]);
+    let s = base;
+    let seed = 7;
+    const rand = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+    const leaves = ["c-a", "c-b"];
+    const retiroIds: string[] = [];
+    for (let i = 0; i < 60; i++) {
+      const month = MONTH_KEYS[Math.floor(rand() * 12)];
+      const amount = Math.floor(rand() * 300_000) + 1;
+      const a = leaves[Math.floor(rand() * 2)];
+      const b = leaves.find((l) => l !== a)!;
+      const kind = rand();
+      let attempt;
+      if (kind < 0.3) attempt = applyReserveOp(s, { from: AVAILABLE_ID, to: a, month, amount });
+      else if (kind < 0.55) attempt = applyReserveOp(s, { from: a, to: AVAILABLE_ID, month, amount });
+      else if (kind < 0.75) attempt = applyReserveOp(s, { from: a, to: b, month, amount });
+      else if (kind < 0.9) {
+        const r = applyReserveCellEdit(s, { leafId: a, month, plane: "actual", newAmount: amount });
+        attempt = "rejected" in r ? r : { state: r.state, movement: null };
+      } else if (retiroIds.length > 0) {
+        s = removeReserveRetiro(s, retiroIds.pop()!);
+        attempt = null;
+      } else attempt = null;
+      if (attempt && "state" in attempt) {
+        s = attempt.state;
+        if (attempt.movement && attempt.movement.to === AVAILABLE_ID) retiroIds.push(attempt.movement.id);
+      }
+      for (const leaf of leaves) {
+        for (const m of MONTH_KEYS) {
+          expect(resolvedBalance(s, leaf, m, "actual"), `${leaf}/${m} tras op ${i}`).toBeGreaterThanOrEqual(0);
+        }
+      }
+    }
   });
 });
 
-// ══ FR-1004 · applyReserveOp De→A ═════════════════════════════════════════════════════════════
+// ══ FR-1003 · editar la celda ═════════════════════════════════════════════════════════════════
 
-describe("FR-1004 · operación de reserva De→A", () => {
-  it("TC-TRF-104h: mover A→B con margen 0 es atómico y neto cero", () => {
-    // @aitri-tc TC-TRF-104h
-    const s = makeState([
-      income({ ene: 1_000_000 }),
-      { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } },
-      { id: "c-fondo", type: "transfer", actual: { ene: 800_000 } },
-    ]);
-    const totalsBefore = MONTH_KEYS.map((m) => resolvedTypeTotal(s, m, "actual"));
+describe("FR-1003 · editar la celda corrige el aporte", () => {
+  it("TC-TRF4-003h: editar la celda escribe el aporte y JAMÁS journaliza", () => {
+    // @aitri-tc TC-TRF4-003h
+    const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { feb: 100_000 } }]);
+    const s0 = op(base, { from: AVAILABLE_ID, to: "c-viaje", month: "ene", amount: 10_000 }); // journal N=1
+    const n = s0.movements.length;
 
-    const res = applyReserveOp(s, { from: "c-viaje", to: "c-fondo", month: "may", amount: 100_000 });
+    const up = applyReserveCellEdit(s0, { leafId: "c-viaje", month: "feb", plane: "actual", newAmount: 150_000 });
+    if (!("state" in up)) throw new Error("edición válida rechazada");
+    expect(up.state.actuals["c-viaje"].feb).toBe(150_000);
+    expect(up.state.movements).toHaveLength(n);
 
-    expect("state" in res).toBe(true);
-    if (!("state" in res)) return;
-    expect(resolvedBalance(res.state, "c-viaje", "may", "actual")).toBe(100_000);
-    expect(resolvedBalance(res.state, "c-fondo", "may", "actual")).toBe(900_000);
-    // Σ saldos del tipo idéntico en los 12 meses: neto cero.
-    expect(MONTH_KEYS.map((m) => resolvedTypeTotal(res.state, m, "actual"))).toEqual(totalsBefore);
-    // UN solo movimiento nuevo, con from/to y target = la alcancía destino (jamás el sentinel).
-    expect(res.state.movements).toHaveLength(1);
-    expect(res.movement).toMatchObject({ from: "c-viaje", to: "c-fondo", target: "c-fondo", amount: 100_000, month: "may", type: "transfer" });
+    const down = applyReserveCellEdit(up.state, { leafId: "c-viaje", month: "feb", plane: "actual", newAmount: 80_000 });
+    if (!("state" in down)) throw new Error("edición válida rechazada");
+    expect(down.state.actuals["c-viaje"].feb).toBe(80_000);
+    expect(down.state.movements).toHaveLength(n);
+    // setLeafAmount (la puerta genérica de la grilla) delega en el mismo camino
+    const viaSet = setLeafAmount(down.state, "c-viaje", "feb", "actual", 90_000);
+    expect(viaSet.actuals["c-viaje"].feb).toBe(90_000);
+    expect(viaSet.movements).toHaveLength(n);
   });
 
-  it("TC-TRF-104e: guardar sobre un mes que arrastra LEE el arrastre (el bug de addMovement, imposible)", () => {
-    // @aitri-tc TC-TRF-104e
-    const s = makeState([
-      income({ jul: 200_000, ago: 50_000 }),
-      { id: "c-viaje", type: "transfer", actual: { jul: 200_000 } },
-    ]);
+  it("TC-TRF4-003e: bajar un aporte que financiaba retiros posteriores bloquea nombrando el mes", () => {
+    // @aitri-tc TC-TRF4-003e
+    const base = makeState([income({ feb: 100_000 }), { id: "c-viaje", type: "transfer", actual: { feb: 100_000 } }]);
+    const s = op(base, { from: "c-viaje", to: AVAILABLE_ID, month: "oct", amount: 80_000 });
 
-    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "ago", amount: 50_000 });
+    const verdict = validateReserveWrite(s, { leafId: "c-viaje", month: "feb", plane: "actual", newAmount: 0 });
 
-    expect("state" in res).toBe(true);
-    if (!("state" in res)) return;
-    // 200.000 arrastrados + 50.000 — jamás 50.000 a secas.
-    expect(res.state.actuals["c-viaje"].ago).toBe(250_000);
-    // Y addMovement con type transfer delega exactamente aquí (ADR-05).
-    const viaAdd = addMovement(s, { type: "transfer", catId: "c-viaje", amount: 50_000, month: "ago" });
-    expect(viaAdd.actuals["c-viaje"].ago).toBe(250_000);
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.rule).toBe("piso");
+    expect(verdict.month).toBe("oct");
+    expect(verdict.limit).toBeLessThan(0); // el saldo que quedaría
+  });
+});
+
+// ══ FR-1004 · applyReserveOp ══════════════════════════════════════════════════════════════════
+
+describe("FR-1004 · operación De→A y su integridad estructural", () => {
+  it("TC-TRF4-004h: guardar suma celda+journal; sacar solo journal; mover suma destino+journal", () => {
+    // @aitri-tc TC-TRF4-004h
+    const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer" }, { id: "c-fondo", type: "transfer" }]);
+
+    const g = applyReserveOp(base, { from: AVAILABLE_ID, to: "c-viaje", month: "ene", amount: 50_000 });
+    if (!("state" in g)) throw new Error("guardar rechazado");
+    expect(g.state.actuals["c-viaje"].ene).toBe(50_000);
+    expect(g.movement).toMatchObject({ from: AVAILABLE_ID, to: "c-viaje", target: "c-viaje" });
+
+    const r = applyReserveOp(g.state, { from: "c-viaje", to: AVAILABLE_ID, month: "ene", amount: 20_000 });
+    if (!("state" in r)) throw new Error("sacar rechazado");
+    expect(r.state.actuals["c-viaje"].ene).toBe(50_000); // sacar NO toca celdas
+    expect(r.movement).toMatchObject({ from: "c-viaje", to: AVAILABLE_ID, target: "c-viaje" });
+
+    const m = applyReserveOp(r.state, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 10_000 });
+    if (!("state" in m)) throw new Error("mover rechazado");
+    expect(m.state.actuals["c-fondo"].ene).toBe(10_000);
+    expect(m.movement).toMatchObject({ from: "c-viaje", to: "c-fondo", target: "c-fondo" });
+    expect(m.state.movements.every((mv) => mv.target !== AVAILABLE_ID)).toBe(true);
+    expect(resolvedBalance(m.state, "c-viaje", "dic", "actual")).toBe(20_000); // 50−20−10
   });
 
-  it("TC-TRF-104f: entradas inválidas: rechazo tipado sin mutar el estado", () => {
-    // @aitri-tc TC-TRF-104f
-    const s = makeState([
-      income({ ene: 500_000 }),
-      { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } },
-      { id: "c-fondo", type: "transfer", actual: { ene: 100_000 } },
-    ]);
+  it("TC-TRF4-004e: el journal SIGUE a las celdas — crear hijo o fusionar no fabrica saldo", () => {
+    // @aitri-tc TC-TRF4-004e
+    const base = makeState([income({ ene: 1_000_000 }), { id: "c-viaje", type: "transfer" }, { id: "c-dest", type: "transfer", actual: { may: 5_000 } }]);
+    let s = op(base, { from: AVAILABLE_ID, to: "c-viaje", month: "ene", amount: 100_000 });
+    s = op(s, { from: "c-viaje", to: AVAILABLE_ID, month: "ene", amount: 100_000 }); // saldo derivado 0
+
+    // createNode: la subcategoría hereda celdas Y journal — el saldo del hijo sigue en 0.
+    const withChild = createNode(s, { level: "sub", parentId: "c-viaje", type: "transfer", name: "Sub" });
+    const childId = withChild.nodes[withChild.nodes.length - 1].id;
+    expect(resolvedBalance(withChild, childId, "dic", "actual")).toBe(0);
+    const again = applyReserveOp(withChild, { from: childId, to: AVAILABLE_ID, month: "ene", amount: 100_000 });
+    expect("rejected" in again).toBe(true); // el saldo fantasma es imposible
+
+    // moveNode (fusión FR-604): mover c-viaje DENTRO de c-dest (hoja con montos) re-apunta el journal.
+    const moved = moveNode(s, "c-viaje", { kind: "category", id: "c-dest" });
+    if (!("state" in moved)) throw new Error("reparent rechazado");
+    expect(resolvedBalance(moved.state, "c-viaje", "dic", "actual")).toBe(5_000); // solo lo del destino cedido
+    const again2 = applyReserveOp(moved.state, { from: "c-viaje", to: AVAILABLE_ID, month: "may", amount: 100_000 });
+    expect("rejected" in again2).toBe(true);
+  });
+
+  it("TC-TRF4-104e: borrar el destino de un mover A→B conserva el retiro de A", () => {
+    // @aitri-tc TC-TRF4-104e
+    const base = makeState([income({ ene: 500_000 }), { id: "c-a", type: "transfer" }, { id: "c-b", type: "transfer" }]);
+    let s = op(base, { from: AVAILABLE_ID, to: "c-a", month: "ene", amount: 100_000 });
+    s = op(s, { from: "c-a", to: "c-b", month: "ene", amount: 100_000 }); // saldo A=0, celda B=100k
+    const cleared = applyReserveCellEdit(s, { leafId: "c-b", month: "ene", plane: "actual", newAmount: 0 });
+    if (!("state" in cleared)) throw new Error("vaciar B rechazado");
+    s = cleared.state;
+
+    const del = deleteNode(s, "c-b");
+    if (!("state" in del)) throw new Error(`borrado bloqueado: ${JSON.stringify(del)}`);
+    // El retiro de A sobrevive convertido a Disponible: su saldo NO resucita.
+    expect(resolvedBalance(del.state, "c-a", "dic", "actual")).toBe(0);
+    const survivor = del.state.movements.find((m) => m.from === "c-a");
+    expect(survivor).toMatchObject({ to: AVAILABLE_ID, target: "c-a" });
+  });
+
+  it("TC-TRF4-004f: entradas inválidas: rechazo tipado sin mutar el estado", () => {
+    // @aitri-tc TC-TRF4-004f
+    const s = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } }, { id: "c-fondo", type: "transfer" }]);
     const frozen = deep(s);
 
     const attempts = [
       applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: 0 }),
       applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: -50_000 }),
-      applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: Number("no-numérico") }),
+      applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: Number("nope") }),
       applyReserveOp(s, { from: "c-viaje", to: "c-viaje", month: "feb", amount: 10_000 }),
       applyReserveOp(s, { from: AVAILABLE_ID, to: AVAILABLE_ID, month: "feb", amount: 10_000 }),
       applyReserveOp(s, { from: AVAILABLE_ID, to: "c-no-existe", month: "feb", amount: 10_000 }),
     ];
 
     expect(attempts.every((r) => "rejected" in r)).toBe(true);
-    expect(s).toEqual(frozen); // 6/6 rechazadas, 0 mutaciones
-  });
-
-  it("TC-TRF-204e: el sentinel nunca es target; deleteNode limpia por ambos extremos", () => {
-    // @aitri-tc TC-TRF-204e
-    const s0 = makeState([
-      income({ ene: 300_000 }),
-      { id: "c-viaje", type: "transfer" },
-      { id: "c-fondo", type: "transfer" },
-    ]);
-    // Guardar 200.000 → sacar 100.000 → mover 100.000 (Viaje queda vaciada en 0 explícito).
-    const r1 = applyReserveOp(s0, { from: AVAILABLE_ID, to: "c-viaje", month: "ene", amount: 200_000 });
-    if (!("state" in r1)) throw new Error("guardar rechazado");
-    const r2 = applyReserveOp(r1.state, { from: "c-viaje", to: AVAILABLE_ID, month: "ene", amount: 100_000 });
-    if (!("state" in r2)) throw new Error("sacar rechazado");
-    const r3 = applyReserveOp(r2.state, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 100_000 });
-    if (!("state" in r3)) throw new Error("mover rechazado");
-    const s = r3.state;
-
-    // target SIEMPRE una alcancía real: retiro → from; mover → to. El sentinel jamás.
-    expect(r2.movement.target).toBe("c-viaje");
-    expect(r3.movement.target).toBe("c-fondo");
-    for (const m of s.movements) {
-      expect(m.target).not.toBe(AVAILABLE_ID);
-      // invariante extendido: cada extremo resuelve un nodo O es el sentinel
-      for (const end of [m.from, m.to]) {
-        if (end !== undefined) {
-          expect(end === AVAILABLE_ID || s.nodes.some((n) => n.id === end)).toBe(true);
-        }
-      }
-    }
-
-    // Viaje vaciada (0 explícito) es borrable, y el borrado limpia por from Y por to.
-    expect(canDeleteNode(s, "c-viaje")).toBe(true);
-    const del = deleteNode(s, "c-viaje");
-    if (!("state" in del)) throw new Error("borrado bloqueado");
-    const refs = del.state.movements.filter((m) => m.target === "c-viaje" || m.from === "c-viaje" || m.to === "c-viaje");
-    expect(refs).toHaveLength(0);
+    expect(s).toEqual(frozen);
   });
 });
 
-// ══ FR-1006 · techo global por mes ════════════════════════════════════════════════════════════
+// ══ FR-1006 · techo ═══════════════════════════════════════════════════════════════════════════
 
 describe("FR-1006 · regla TECHO", () => {
-  it("TC-TRF-106h: guardar dentro del margen pasa", () => {
-    // @aitri-tc TC-TRF-106h
-    const s = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }]);
+  it("TC-TRF4-006h: al límite exacto pasa; un peso más bloquea global", () => {
+    // @aitri-tc TC-TRF4-006h
+    const base = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }, { id: "c-fondo", type: "transfer" }]);
+    const s = op(base, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 150_000 });
 
-    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 150_000 });
-
-    // Aceptada AL LÍMITE exacto del margen (≤, no <), y el saldo sube exactamente 150.000.
-    expect("state" in res).toBe(true);
-    if (!("state" in res)) return;
-    expect(resolvedBalance(res.state, "c-viaje", "mar", "actual")).toBe(150_000);
-  });
-
-  it("TC-TRF-106f: guardar sobre el margen bloquea con el mensaje exacto", () => {
-    // @aitri-tc TC-TRF-106f
-    const s = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }]);
-    const frozen = deep(s);
-
-    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 200_000 });
-
-    expect(res).toEqual({ rejected: { ok: false, rule: "techo", month: "mar", leafId: undefined, limit: 150_000 } });
-    expect(s).toEqual(frozen);
-  });
-
-  it("TC-TRF-106e: el techo es GLOBAL: el margen se consume entre alcancías", () => {
-    // @aitri-tc TC-TRF-106e
-    const s0 = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }, { id: "c-fondo", type: "transfer" }]);
-    const r1 = applyReserveOp(s0, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 150_000 });
-    if (!("state" in r1)) throw new Error("primer aporte rechazado");
-
-    const res = applyReserveOp(r1.state, { from: AVAILABLE_ID, to: "c-fondo", month: "mar", amount: 1 });
-
+    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-fondo", month: "mar", amount: 1 });
     expect("rejected" in res && res.rejected !== "invalid_target" && !res.rejected.ok).toBe(true);
     if (!("rejected" in res) || res.rejected === "invalid_target" || res.rejected.ok) return;
     expect(res.rejected.rule).toBe("techo");
-    expect(res.rejected.limit).toBe(0); // los aportes del mes se acumulan sobre el MISMO margen
-  });
-
-  it("TC-TRF-206e: el agujero del 'O' está cerrado: margen = max(0, saldo previo + flujo)", () => {
-    // @aitri-tc TC-TRF-206e
-    const s = makeState([expense({ ene: 500_000 }), income({ feb: 300_000 }), { id: "c-viaje", type: "transfer" }]);
-
-    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: 1 });
-
-    // −500.000 + 300.000 = −200.000 → max(0,·) = 0. La SUMA, no "flujo positivo".
-    expect("rejected" in res && res.rejected !== "invalid_target" && !res.rejected.ok).toBe(true);
-    if (!("rejected" in res) || res.rejected === "invalid_target" || res.rejected.ok) return;
-    expect(res.rejected.rule).toBe("techo");
-    expect(res.rejected.month).toBe("feb");
     expect(res.rejected.limit).toBe(0);
   });
 
-  it("TC-TRF-306h: patrón de primera carga: ingreso del mes + reserva del mismo mes PASA", () => {
-    // @aitri-tc TC-TRF-306h
+  it("TC-TRF4-006e: el agujero del 'O' está cerrado y mover con margen 0 pasa", () => {
+    // @aitri-tc TC-TRF4-006e
+    const holed = makeState([expense({ ene: 500_000 }), income({ feb: 300_000 }), { id: "c-viaje", type: "transfer" }]);
+    const res = applyReserveOp(holed, { from: AVAILABLE_ID, to: "c-viaje", month: "feb", amount: 1 });
+    expect("rejected" in res && res.rejected !== "invalid_target" && !res.rejected.ok && res.rejected.limit === 0).toBe(true);
+
+    const zero = makeState([income({ ene: 1_000_000 }), { id: "c-a", type: "transfer", actual: { ene: 200_000 } }, { id: "c-b", type: "transfer", actual: { ene: 800_000 } }]);
+    const mv = applyReserveOp(zero, { from: "c-a", to: "c-b", month: "may", amount: 100_000 });
+    expect("state" in mv).toBe(true); // neto 0: el retiro financia el aporte
+  });
+
+  it("TC-TRF4-006f: patrón de primera carga: ingreso del mes + reserva del mismo mes PASA", () => {
+    // @aitri-tc TC-TRF4-006f
     const s0 = makeState([{ id: "c-ingreso", type: "income" }, { id: "c-ahorros", type: "transfer" }]);
     const withIncome = addMovement(s0, { type: "income", catId: "c-ingreso", amount: 2_000_000, month: "mar" });
-
     const res = applyReserveOp(withIncome, { from: AVAILABLE_ID, to: "c-ahorros", month: "mar", amount: 2_000_000 });
-
     expect("state" in res).toBe(true);
     if (!("state" in res)) return;
     const m = computeBalanceSeries(res.state).mar.actual;
@@ -257,189 +273,121 @@ describe("FR-1006 · regla TECHO", () => {
     expect(m.total).toBe(2_000_000);
   });
 
-  it("TC-TRF-406e: la cadena nombra el mes ofensor: editar julio que rompe octubre bloquea diciendo octubre", () => {
-    // @aitri-tc TC-TRF-406e
-    // jul: ingreso 300.000 financia el aporte de Viaje (queda margen 100.000 consumido en ago por
-    // un gasto de 200.000 → disponible sep = −100.000). oct: flujo +50.000 y saldo explícito que
-    // ARRASTRA (delta 0). Bajar julio a 0 convierte el delta de octubre en un aporte de 200.000
-    // contra un margen de 150.000 → bloquea NOMBRANDO octubre.
-    const s = makeState([
-      income({ jul: 300_000, oct: 50_000 }),
-      expense({ ago: 200_000 }),
-      { id: "c-viaje", type: "transfer", actual: { jul: 200_000, oct: 200_000 } },
-    ]);
-
-    const verdict = validateReserveWrite(s, { leafId: "c-viaje", month: "jul", plane: "actual", newBalance: 0 });
-
-    expect(verdict.ok).toBe(false);
-    if (verdict.ok) return;
-    expect(verdict.rule).toBe("techo");
-    expect(verdict.month).toBe("oct"); // no 'jul'
-    expect(verdict.limit).toBe(150_000); // el margen de octubre tras la edición
+  it("TC-TRF4-106f: guardar sobre el margen bloquea con el mensaje exacto y sin mutar", () => {
+    // @aitri-tc TC-TRF4-106f
+    const s = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }]);
+    const frozen = deep(s);
+    const res = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 200_000 });
+    expect(res).toEqual({ rejected: { ok: false, rule: "techo", month: "mar", leafId: undefined, limit: 150_000 } });
+    expect(s).toEqual(frozen);
   });
 });
 
-// ══ FR-1007 · piso por alcancía ═══════════════════════════════════════════════════════════════
+// ══ FR-1007 · piso ════════════════════════════════════════════════════════════════════════════
 
 describe("FR-1007 · regla PISO", () => {
-  it("TC-TRF-107h: sacar hasta el saldo exacto pasa y deja la alcancía en 0", () => {
-    // @aitri-tc TC-TRF-107h
+  it("TC-TRF4-007h: sacar el saldo exacto pasa y deja 0; un peso más bloquea", () => {
+    // @aitri-tc TC-TRF4-007h
     const s = makeState([income({ ene: 150_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 150_000 } }]);
+    const ok = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 150_000 });
+    expect("state" in ok).toBe(true);
+    if (!("state" in ok)) return;
+    expect(resolvedBalance(ok.state, "c-viaje", "jun", "actual")).toBe(0);
 
-    const res = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 150_000 });
-
-    expect("state" in res).toBe(true);
-    if (!("state" in res)) return;
-    expect(res.state.actuals["c-viaje"].jun).toBe(0); // 0 explícito: estado válido
-    const before = computeBalanceSeries(s).jun.actual.available;
-    const after = computeBalanceSeries(res.state).jun.actual.available;
-    expect(after - before).toBe(150_000); // el disponible sube exactamente lo sacado
+    const over = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 150_001 });
+    expect("rejected" in over).toBe(true);
   });
 
-  it("TC-TRF-107f: sacar un peso más del saldo bloquea con el saldo en el veredicto", () => {
-    // @aitri-tc TC-TRF-107f
-    const s = makeState([income({ ene: 150_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 150_000 } }]);
-    const frozen = deep(s);
-
-    const res = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 150_001 });
-
-    expect(res).toEqual({ rejected: { ok: false, rule: "piso", month: "jun", leafId: "c-viaje", limit: 150_000 } });
-    expect(s).toEqual(frozen);
-  });
-
-  it("TC-TRF-107e: sacar con el disponible en rojo PASA (caso 4: para eso existe)", () => {
-    // @aitri-tc TC-TRF-107e
-    const s = makeState([
-      income({ ene: 2_000_000 }),
-      expense({ feb: 300_000 }),
-      { id: "c-fondo", type: "transfer", actual: { ene: 2_000_000 } },
-    ]);
+  it("TC-TRF4-007e: sacar con el disponible en rojo PASA", () => {
+    // @aitri-tc TC-TRF4-007e
+    const s = makeState([income({ ene: 2_000_000 }), expense({ feb: 300_000 }), { id: "c-fondo", type: "transfer", actual: { ene: 2_000_000 } }]);
     expect(computeBalanceSeries(s).feb.actual.available).toBe(-300_000);
-
     const res = applyReserveOp(s, { from: "c-fondo", to: AVAILABLE_ID, month: "feb", amount: 300_000 });
-
-    expect("state" in res).toBe(true); // el retiro no consulta el techo
+    expect("state" in res).toBe(true);
     if (!("state" in res)) return;
     expect(computeBalanceSeries(res.state).feb.actual.available).toBe(0);
   });
 
-  it("TC-TRF-207e: el piso corre en cadena: sacar en julio que dejaría octubre negativo bloquea nombrando octubre", () => {
-    // @aitri-tc TC-TRF-207e
-    // Viaje: jul=200.000; octubre con retiros YA registrados (saldo explícito 50.000 = sacó
-    // 150.000). Sacar 100.000 en julio dejaría esos retiros de octubre inejecutables:
-    // 50.000 − 100.000 = −50.000 → "Viaje quedaría en −50.000 en octubre" (9.1).
-    const s = makeState([income({ jul: 200_000 }), { id: "c-viaje", type: "transfer", actual: { jul: 200_000, oct: 50_000 } }]);
+  it("TC-TRF4-107f: sobre-sacar bloquea con el saldo en el veredicto y sin mutar", () => {
+    // @aitri-tc TC-TRF4-107f
+    const s = makeState([income({ ene: 150_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 150_000 } }]);
     const frozen = deep(s);
-
-    const res = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jul", amount: 100_000 });
-
-    expect("rejected" in res && res.rejected !== "invalid_target" && !res.rejected.ok).toBe(true);
-    if (!("rejected" in res) || res.rejected === "invalid_target" || res.rejected.ok) return;
-    expect(res.rejected.rule).toBe("piso");
-    expect(res.rejected.month).toBe("oct");
-    expect(res.rejected.leafId).toBe("c-viaje");
-    expect(res.rejected.limit).toBe(-50_000); // el saldo que quedaría
+    const res = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 150_001 });
+    expect(res).toEqual({ rejected: { ok: false, rule: "piso", month: "jun", leafId: "c-viaje", limit: 150_000 } });
     expect(s).toEqual(frozen);
+  });
+
+  it("TC-TRF4-114f: el dominio rechaza el sobre-retiro y removeReserveRetiro solo borra retiros puros", () => {
+    // @aitri-tc TC-TRF4-114f
+    const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 250_000 } }, { id: "c-fondo", type: "transfer" }]);
+    const over = applyReserveOp(base, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 999_999 });
+    expect("rejected" in over && over.rejected !== "invalid_target" && !over.rejected.ok && over.rejected.limit === 250_000).toBe(true);
+
+    // removeReserveRetiro: id inexistente = no-op; un MOVER A→B no es eliminable (su aporte tocó celdas).
+    const m = applyReserveOp(base, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 10_000 });
+    if (!("state" in m)) throw new Error("mover rechazado");
+    expect(removeReserveRetiro(m.state, "no-existe")).toBe(m.state);
+    expect(removeReserveRetiro(m.state, m.movement.id)).toBe(m.state);
   });
 });
 
-// ══ NFR-1002 · gastos e ingresos intactos ═════════════════════════════════════════════════════
+// ══ NFR-1002 · gastos/ingresos intactos ═══════════════════════════════════════════════════════
 
 describe("NFR-1002 · la captura de gastos/ingresos NO cambia", () => {
-  it("TC-TRF-152h: addMovement para expense/income conserva su comportamiento byte a byte", () => {
-    // @aitri-tc TC-TRF-152h
+  it("TC-TRF4-152h: addMovement para expense/income conserva su comportamiento e ignora from/to", () => {
+    // @aitri-tc TC-TRF4-152h
     const s = makeState([expense({}), income({}), { id: "c-viaje", type: "transfer", actual: { ene: 100_000 } }]);
-
-    const afterExpense = addMovement(s, { type: "expense", catId: "c-gasto", amount: 50_000, month: "feb", note: "mercado" });
-    // Suma al ejecutado del target (no escribe saldo) y journaliza SIN from/to.
-    expect(afterExpense.actuals["c-gasto"].feb).toBe(50_000);
-    const twice = addMovement(afterExpense, { type: "expense", catId: "c-gasto", amount: 20_000, month: "feb" });
-    expect(twice.actuals["c-gasto"].feb).toBe(70_000); // acumula (semántica flujo intacta)
-    const mv = afterExpense.movements[0];
-    expect(mv).toMatchObject({ type: "expense", target: "c-gasto", amount: 50_000, month: "feb", note: "mercado" });
-    expect(mv.from).toBeUndefined();
-    expect(mv.to).toBeUndefined();
-
-    const afterIncome = addMovement(s, { type: "income", catId: "c-ingreso", amount: 300_000, month: "mar" });
-    expect(afterIncome.actuals["c-ingreso"].mar).toBe(300_000);
-    // Y las celdas transfer no se tocaron en ningún caso.
-    expect(afterExpense.actuals["c-viaje"]).toEqual({ ene: 100_000 });
-    expect(afterIncome.actuals["c-viaje"]).toEqual({ ene: 100_000 });
+    const once = addMovement(s, { type: "expense", catId: "c-gasto", amount: 50_000, month: "feb", note: "mercado" });
+    expect(once.actuals["c-gasto"].feb).toBe(50_000);
+    const twice = addMovement(once, { type: "expense", catId: "c-gasto", amount: 20_000, month: "feb" });
+    expect(twice.actuals["c-gasto"].feb).toBe(70_000); // acumula (semántica flujo)
+    expect(once.movements[0]).toMatchObject({ type: "expense", target: "c-gasto", note: "mercado" });
+    expect(once.movements[0].from).toBeUndefined();
+    const inc = addMovement(s, { type: "income", catId: "c-ingreso", amount: 300_000, month: "mar" });
+    expect(inc.actuals["c-ingreso"].mar).toBe(300_000);
   });
 
-  it("TC-TRF-152f: un movimiento expense con from/to accidentales no altera saldos de reservas", () => {
-    // @aitri-tc TC-TRF-152f
+  it("TC-TRF4-152f: un expense con from/to accidentales no gana extremos ni toca reservas", () => {
+    // @aitri-tc TC-TRF4-152f
     const s = makeState([expense({}), { id: "c-viaje", type: "transfer", actual: { ene: 100_000 } }, { id: "c-fondo", type: "transfer", actual: { ene: 50_000 } }]);
-
     const after = addMovement(s, { type: "expense", catId: "c-gasto", amount: 10_000, month: "feb", from: "c-viaje", to: "c-fondo" });
-
-    // El gasto se registró normal, los from/to se IGNORARON y ningún saldo de reserva cambió.
     expect(after.actuals["c-gasto"].feb).toBe(10_000);
     expect(after.movements[0].from).toBeUndefined();
     expect(after.movements[0].to).toBeUndefined();
-    expect(MONTH_KEYS.map((m) => resolvedBalance(after, "c-viaje", m, "actual"))).toEqual(
-      MONTH_KEYS.map((m) => resolvedBalance(s, "c-viaje", m, "actual"))
-    );
-    expect(MONTH_KEYS.map((m) => resolvedBalance(after, "c-fondo", m, "actual"))).toEqual(
-      MONTH_KEYS.map((m) => resolvedBalance(s, "c-fondo", m, "actual"))
-    );
-  });
-});
-
-// ══ NFR-1003 · datos previos siguen válidos ═══════════════════════════════════════════════════
-
-describe("NFR-1003 · movimientos viejos sin from/to", () => {
-  it("TC-TRF-153f: un movimiento viejo sin from/to jamás lanza en ninguna superficie", () => {
-    // @aitri-tc TC-TRF-153f
-    const s = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } }, expense({})]);
-    // Journal pre-feature: transfer viejo (sin from/to) y un gasto normal.
-    const oldTransfer: Movement = { id: "old-1", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 200_000, month: "ene", createdAt: 1 };
-    const oldExpense: Movement = { id: "old-2", ownerId: "local", type: "expense", catId: "c-gasto", subId: null, target: "c-gasto", amount: 10_000, month: "ene", createdAt: 2 };
-    s.movements.push(oldTransfer, oldExpense);
-
-    // Ninguna superficie del dominio lanza con from/to ausentes:
-    expect(() => computeBalanceSeries(s)).not.toThrow();
-    expect(() => reserveDelta(s, "feb", "actual")).not.toThrow();
-    expect(() => resolvedTypeTotal(s, "dic", "actual")).not.toThrow();
-    const res = applyReserveOp(s, { from: "c-viaje", to: AVAILABLE_ID, month: "feb", amount: 50_000 });
-    expect("state" in res).toBe(true);
-    // deleteNode con movimientos viejos: el filtro por from/to tolera undefined.
-    const del = deleteNode(s, "c-gasto");
-    expect("blocked" in del || "state" in del).toBe(true);
+    expect(reserveRetiros(after, "feb", "actual")).toBe(0);
+    expect(MONTH_KEYS.map((m) => resolvedBalance(after, "c-viaje", m, "actual"))).toEqual(MONTH_KEYS.map((m) => resolvedBalance(s, "c-viaje", m, "actual")));
   });
 });
 
 // ══ NFR-1004 · una regla, todas las puertas ═══════════════════════════════════════════════════
 
 describe("NFR-1004 · el dominio es la única regla", () => {
-  it("TC-TRF-154h: grilla y registro producen el MISMO veredicto para la misma operación", () => {
-    // @aitri-tc TC-TRF-154h
+  it("TC-TRF4-154h: las tres puertas producen el MISMO veredicto para la misma operación", () => {
+    // @aitri-tc TC-TRF4-154h
     const s = makeState([income({ mar: 150_000 }), { id: "c-viaje", type: "transfer" }]);
 
-    // Rechazo idéntico: editar la celda a 200.000 (grilla) ≡ guardar 200.000 (registro).
-    const gridRejected = applyReserveCellEdit(s, { leafId: "c-viaje", month: "mar", plane: "actual", newBalance: 200_000 });
-    const registerRejected = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 200_000 });
-    expect("rejected" in gridRejected && "rejected" in registerRejected).toBe(true);
-    if (!("rejected" in gridRejected) || !("rejected" in registerRejected)) return;
-    expect(gridRejected.rejected).toEqual(registerRejected.rejected);
+    // Exceder el techo por la celda (grilla) y por la operación (registro / mini-form): mismo rechazo.
+    const gridRejected = applyReserveCellEdit(s, { leafId: "c-viaje", month: "mar", plane: "actual", newAmount: 200_000 });
+    const opRejected = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 200_000 });
+    expect("rejected" in gridRejected && "rejected" in opRejected).toBe(true);
+    if (!("rejected" in gridRejected) || !("rejected" in opRejected)) return;
+    expect(gridRejected.rejected).toEqual(opRejected.rejected);
 
-    // Aceptación idéntica: mismo estado resultante de celdas.
-    const gridOk = applyReserveCellEdit(s, { leafId: "c-viaje", month: "mar", plane: "actual", newBalance: 150_000 });
-    const registerOk = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 150_000 });
-    if (!("state" in gridOk) || !("state" in registerOk)) throw new Error("operación válida rechazada");
-    expect(gridOk.state.actuals).toEqual(registerOk.state.actuals);
+    // Aceptación equivalente: mismo estado de celdas (la op además journaliza).
+    const gridOk = applyReserveCellEdit(s, { leafId: "c-viaje", month: "mar", plane: "actual", newAmount: 150_000 });
+    const opOk = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-viaje", month: "mar", amount: 150_000 });
+    if (!("state" in gridOk) || !("state" in opOk)) throw new Error("operación válida rechazada");
+    expect(gridOk.state.actuals).toEqual(opOk.state.actuals);
   });
 
-  it("TC-TRF-154e: el dominio de reservas es puro: sin imports de UI ni IO", () => {
-    // @aitri-tc TC-TRF-154e
+  it("TC-TRF4-154e: el dominio de reservas es puro: sin imports de UI ni IO", () => {
+    // @aitri-tc TC-TRF4-154e
     const src = readFileSync(fileURLToPath(new URL("../../src/domain/reserve.ts", import.meta.url)), "utf8");
-
     const importLines = src.split("\n").filter((l) => /^import /.test(l));
     expect(importLines.length).toBeGreaterThan(0);
     for (const line of importLines) {
       expect(line).toMatch(/from "\.\/(types|months|tree|rollup|validation|ids)"/);
     }
-    // Ni React/DOM, ni IO, ni store: la regla vive en el dominio puro (una regla, todas las puertas).
     expect(src).not.toMatch(/from "(react|next|zustand)/);
     expect(src).not.toMatch(/from "node:/);
     expect(src).not.toMatch(/\b(localStorage|document|window|fetch)\b/);

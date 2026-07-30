@@ -1,145 +1,190 @@
-# Technical Design Document (TRD) — feature transferencias (Reservas)
+# Technical Design Document (TRD) — feature transferencias (Reservas) · modelo v4
 
 ## Executive Summary
 
-Cambio sobre el sistema existente, **sin dependencias nuevas**: el tipo `transfer` pasa de celdas-flujo a **celdas-saldo con arrastre**, y se añade la operación de reserva **De→A** con dos reglas de dominio (techo global, piso por alcancía). Todo el trabajo nuevo vive en el patrón ya probado del producto: **núcleo puro en `src/domain`** (nueva derivación `resolvedBalance`, nueva mutación `applyReserveOp`, nuevo validador `validateReserveWrite`), consumido por las dos puertas (grilla y registro) y por el servidor vía el dominio compartido (NFR-507 del backend se conserva). Persistencia: bump versionado `ledger.budget.v2 → v3` con migración **idempotente y con dueño** (cliente en modo localStorage; servidor en modo servidor, con marcador transaccional). La aritmética de `monthBalance` NO cambia — `reserved` pasa a ser el delta de saldos resueltos y la conservación se hereda por construcción (verificado contra el motor real en la sesión de diseño).
-
-Justificación de stack: cero opciones nuevas que justificar — la feature es la extensión natural del diseño aprobado del monorepo (Next 15 + dominio TS puro + Zustand + Drizzle/Postgres). La decisión de fondo (guardar SALDOS, no deltas) es ADR-01.
+Cambio sobre el sistema existente, **sin dependencias nuevas**. Modelo v4 (decidido por el usuario
+en uso real, 2026-07-29, tras construir y revertir el modelo de celdas-saldo v3): las celdas del
+tipo `transfer` son **APORTES del mes** (flujo, la misma semántica de los otros dos tipos); los
+**RETIROS son operaciones explícitas del journal** (`Movement` con `from`/`to`); el **saldo por
+alcancía es DERIVADO** — `resolvedBalance = Σ aportes(celdas) − Σ retiros(journal)` — y lo
+consumen las reglas, el registro, el mini-form de retiros y el Balance (FR-1001). Todo el trabajo
+vive en el patrón probado del producto: **núcleo puro en `src/domain`** consumido por las tres
+puertas (grilla FR-1003, fila «Retiros del mes» FR-1014/FR-1015, registro FR-1005) y por el
+servidor vía el dominio compartido. Persistencia versionada `ledger.budget.v4` / `data_version=4`
+con migraciones idempotentes v2→v4 (identidad) y v3→v4 (deshace saldos; deltas negativos →
+retiros sintetizados) — FR-1010. La aritmética de `monthBalance` NO cambia (FR-1009, NFR-1001).
 
 ## System Architecture
 
 ```
-                    ┌───────────────────────────────────────────────────────┐
-                    │                src/domain (puro, sin IO)              │
-                    │                                                       │
-  BudgetGrid ──────▶│  reserve.ts (NUEVO)                                   │
-  (editor celda)    │   · AVAILABLE_ID = "@disponible" (sentinel)           │
-                    │   · resolvedBalance(state, leafId, m, plane)          │
-  Register ────────▶│   · resolvedTypeTotal / reserveDeltas (Σ por mes)     │
-  (De→A)            │   · validateReserveWrite(state, edit) → ok | rechazo  │
-                    │       techo GLOBAL + piso por hoja, cadena 12 meses,  │
-  Balance ─────────▶│       Ejecutado bloquea / Pres. avisa                 │
-  (reserveNet v2)   │   · applyReserveOp(state, {from,to,month,amount,...}) │
-                    │       lee resueltos → valida → escribe ≤2 hojas +     │
-  server/ledgerRepo │       movimiento from/to  (addMovement delega aquí    │
-  (insertMovement) ─▶│       cuando type === "transfer")                    │
-                    │  migrate.ts (NUEVO): v2→v3 cumsum ambos planos        │
-                    └───────────────────────────────────────────────────────┘
-   Persistencia: localStorage ledger.budget.v3  ·  Postgres (ledger.data_version,
-   movement.from_id/to_id, tabla cell_note)  ·  PUT/GET /api/v1 (schemas extendidos)
+                    ┌──────────────────────────────────────────────────────────┐
+                    │                 src/domain (puro, sin IO)                │
+  BudgetGrid ──────▶│  reserve.ts                                              │
+  (celda = aporte,  │   · AVAILABLE_ID "@disponible" · RETIROS_PLAN_ID "@retiros"
+   FR-1002/1003)    │   · resolvedBalance/resolvedSeries (derivado, memo)  FR-1001
+                    │   · reserveAportes (Σ celdas) / reserveRetiros       FR-1009
+  BalanceModule ───▶│     (journal en Ejec.; budgets[@retiros] en Pres.)   FR-1015
+  fila Retiros      │   · validateReserveWrite (techo FR-1006 + piso FR-1007,
+  (FR-1014/1015)    │     cadena 12 meses, no-empeorar vs base)
+                    │   · applyReserveOp (guardar celda+journal · sacar    FR-1004
+  Register De→A ───▶│     journal-only · mover celda destino+journal)
+  (FR-1005)         │   · applyReserveCellEdit (corrige aporte, jamás journal)
+                    │   · setPlannedRetiro + plannedRetiroLimit            FR-1015
+  server/ledgerRepo │   · removeReserveRetiro (corrección)                 FR-1014
+  (insertMovement) ─▶│   · cellObservations / addCellNote (≤280)           FR-1012
+                    │  mutations.ts: repointReserveMovements — el journal
+                    │   SIGUE a las celdas en FR-604; deleteNode conserva  FR-1011
+                    │   el retiro cuyo origen vive (adversarial 2026-07-30)
+                    │  migrate.ts: v3→v4 (deltas; negativos → journal /
+                    │   @retiros del plan) · v2→v4 identidad              FR-1010
+                    └──────────────────────────────────────────────────────────┘
+   Persistencia: localStorage ledger.budget.v4 · Postgres (ledger.data_version=4,
+   movement.from_id/to_id, cell_note) · PUT/GET /api/v1 (schemas con from/to y cellNotes)
 ```
-
-Componentes tocados: `domain/{reserve,migrate,mutations,balance,types,validation}.ts` · `state/store.ts` (acción de reserva + undo de un nivel) · `components/{BudgetGrid,BalanceModule,register/*,Toaster}` · `data/repository.ts` (carga v2|v3) · `server/{schemas,db/schema,data/ledgerRepo}.ts` · `drizzle/` (migración SQL aditiva).
 
 ## Data Model
 
-**Contrato de preservación (NO cambia):** `node` (jerarquía, CHECKs), celdas de `expense`/`income` (flujo mensual), `amount_cell` con su PK y su `CHECK amount >= 0`, los campos existentes de `movement` (`id, ownerId, type, catId, subId, target, amount, month, createdAt, date, note`), las tablas de auth, `ledger.revision` (lock optimista), las claves `ledger.nodes.v1` y `theme`. `Movement.target` conserva su invariante — SIEMPRE un nodo real; el sentinel jamás va ahí.
+**Contrato de preservación:** `node`, celdas de `expense`/`income`, `amount_cell` (PK y
+`CHECK amount >= 0`), campos existentes de `movement`, tablas de auth, `ledger.revision`,
+`ledger.nodes.v1`, `theme`. `Movement.target` = SIEMPRE una alcancía real; el sentinel jamás.
 
-**Delta que introduce esta feature:**
-
-| Pieza | Cambio | Notas |
+| Pieza | Modelo v4 | Notas |
 |---|---|---|
-| Celdas de nodos `transfer` | REINTERPRETACIÓN: el número almacenado es el SALDO del mes (≥ 0, natural con el CHECK) | Ausente = arrastra el previo; 0 explícito = vaciada. Ambos planos |
-| `Movement` | + `from?: string`, + `to?: string` (ids de hoja transfer o `"@disponible"`) | Aditivo como `date`/`note`; movimientos viejos sin ellos siguen válidos |
-| `movement` (BD) | + columnas `from_id text NULL`, `to_id text NULL` | Sin FK (como `target`); migración SQL aditiva |
-| `ledger` (BD) | + `data_version integer NOT NULL DEFAULT 2` | El marcador que hace la migración detectable e idempotente |
-| `cell_note` (BD, NUEVA) | `(owner_id, node_id, month, id) PK · created_at bigint · text text(≤280)` | Observaciones manuales por celda (FR-1012); CASCADE por owner |
-| localStorage | `ledger.budget.v3` = `{version:3, budgets, actuals, movements, cellNotes}` | `cellNotes: Record<nodeId, Partial<Record<MonthKey, {id, createdAt, text}[]>>>` |
-| Zod persistencia | `persistedBudgetSchema` → unión discriminada `v2 | v3` | v2 se acepta SOLO para migrar (una vez); v3 es lo que se escribe |
+| Celdas de nodos `transfer` | APORTES del mes (flujo ≥ 0) — FR-1002 | Misma semántica que expense/income |
+| Retiros | SOLO journal: `Movement{type:"transfer", from:alcancía, to:"@disponible"\|alcancía}` — FR-1004 | Sacar no toca celdas; eliminar el movimiento restaura el saldo (FR-1014) |
+| `budgets["@retiros"]` | Retiro PLANEADO global por mes — FR-1015 | Clave sentinel del mapa, no un nodo: los roll-ups por nodos jamás la cuentan; persiste como cualquier celda |
+| `Movement.from/to` | extremos De→A (hoja transfer o "@disponible") | Aditivo; movimientos viejos sin ellos válidos (NFR-1003) |
+| `ledger.data_version` | 2 = aportes sin journal · 3 = saldos (revertido) · 4 = VIGENTE | Marca de idempotencia (FR-1010) |
+| `cell_note` (BD) / `cellNotes` (estado) | observaciones manuales ≤280 — FR-1012 | rechazo sin truncar |
+| localStorage | `ledger.budget.v4 = {version:4, budgets, actuals, movements, cellNotes?}` | schemas Zod: enteros ≥ 0 (blob corrupto → semilla, NFR-1003) |
 
-**Migración v2→v3 (`domain/migrate.ts`, pura):** para cada hoja transfer y cada plano, `saldo[m] = Σ aportes[1..m]` (celdas explícitas en los 12 meses — conserva la corrección aunque pierda el gris de arrastre en datos históricos, aceptado en el diseño §9). Expense/income: intactos. Idempotencia por MARCA, no por heurística: la clave/columna de versión decide si corre, nunca el contenido.
+**Migraciones (`domain/migrate.ts`, puras) — FR-1010:** v2→v4 = identidad de celdas (solo marca).
+v3→v4 = por hoja transfer: serie resuelta (arrastre) → deltas; delta>0 → celda aporte; delta<0 →
+retiro sintetizado (journal con nota, plano Ejec.) o acumulado en `budgets["@retiros"]` (plano
+Pres.). El saldo derivado v4 == saldo resuelto v3, mes a mes. Idempotencia por MARCA.
 
 ## API Design
 
-**Contrato preservado:** todas las rutas `/api/v1` conservan método, path, auth y formas actuales; `GET /api/v1/ledger` → `{revision, state}` · `PUT` → lock optimista por `baseRevision` (409) · `POST /api/v1/movements` → 201/422. El bundle cliente no gana envs nuevas.
+**Contrato preservado:** rutas `/api/v1` con método/path/auth/formas actuales; journal inmutable
+por API (PATCH/DELETE de movimiento → 404) — la corrección de retiros (FR-1014) viaja por el PUT
+snapshot como todo lo demás.
 
-**Delta de contrato:**
-- `apiMovementSchema` y `movementInputSchema`: + `from`/`to` opcionales (`z.string().optional()`); el `ledgerStateSchema` del PUT: + `cellNotes` opcional. Las CINCO capas del precedente `date`/`note` se tocan a la vez: schema Zod de persistencia · schemas del API · columnas BD · `rowsToState` · `insertSnapshot` (más `cell_note` en las últimas tres).
-- `insertMovement` (servidor): para `type==="transfer"` ejecuta `applyReserveOp` del dominio compartido y persiste **el diff completo de celdas** (todas las hojas cuyo saldo cambió) + el movimiento, en UNA transacción con bump de `revision`. Deja de asumir "un movimiento = una celda".
-- `loadLedger` (servidor): si `data_version < 3`, migra DENTRO de la misma transacción (`for update` sobre la fila ancla), estampa `data_version = 3` y devuelve el estado migrado — lazy, one-shot, sin carrera entre dispositivos (ADR-03).
+- `movementInputSchema`/`apiMovementSchema`: + `from`/`to` opcionales; `ledgerStateSchema`: +
+  `cellNotes` opcional. Las 5 capas del precedente date/note cubiertas (FR-1010).
+- `insertMovement` (servidor): **garantiza v4 antes de operar** (`ensureV4InTx`, hallazgo
+  adversarial: un POST sobre un ledger v3 leería saldos como aportes) y persiste el diff completo
+  de celdas + el movimiento en UNA transacción con bump de `revision` (FR-1004).
+- `loadLedger`: migra lazy DENTRO de la transacción (`for update` + re-check del marcador) — dos
+  dispositivos concurrentes migran exactamente una vez (FR-1010).
 
-**API interna del dominio (firmas):**
+**API interna del dominio (firmas reales):**
 ```ts
-export const AVAILABLE_ID = "@disponible";
-type Plane = "budget" | "actual";
-function resolvedBalance(state: LedgerState, leafId: string, m: MonthKey, plane: Plane): number;
-function reserveDelta(state: LedgerState, m: MonthKey, plane: Plane): number;        // Σres(m) − Σres(m−1)
-function reserveAportes(state, m, plane): number;  function reserveRetiros(state, m, plane): number;
-type ReserveEdit = { leafId: string; month: MonthKey; plane: Plane; newBalance: number };
-type ReserveVerdict = { ok: true; derived: DerivedEffect[] } |
-  { ok: false; rule: "techo" | "piso"; month: MonthKey; leafId?: string; limit: number };
-function validateReserveWrite(state: LedgerState, edit: ReserveEdit): ReserveVerdict; // Pres.: siempre ok + warnings
-type ReserveOp = { from: string; to: string; month: MonthKey; amount: number; date?: string; note?: string };
-function applyReserveOp(state: LedgerState, op: ReserveOp):
-  { state: LedgerState; movement: Movement } | { rejected: ReserveVerdict | "invalid_target" };
-function clearReserveCell(state: LedgerState, leafId: string, m: MonthKey, plane: Plane): LedgerState;
-function migrateBudgetV2toV3(v2: PersistedBudgetV2): PersistedBudgetV3;              // pura, testeable
+export const AVAILABLE_ID = "@disponible"; export const RETIROS_PLAN_ID = "@retiros";
+function resolvedBalance(state, leafId, m, plane): number;              // FR-1001
+function reserveAportes/reserveRetiros/reserveDelta(state, m, plane): number; // FR-1009
+function availableMargin(state, m): number;                             // FR-1006
+function validateReserveWrite(state, {leafId, month, plane, newAmount}): ReserveVerdict; // FR-1003/1006/1007/1008
+function applyReserveOp(state, {from,to,month,amount,date?,note?}): {state,movement}|{rejected}; // FR-1004
+function applyReserveCellEdit(state, edit): {state,warnings,noop}|{rejected}; // FR-1003
+function setPlannedRetiro(state, m, v): {state}|{rejected:{limit}};     // FR-1015
+function plannedRetiroLimit(state, m): number;                          // FR-1015
+function removeReserveRetiro(state, movementId): LedgerState;           // FR-1014
+function cellObservations/addCellNote(...);                             // FR-1012
+function migrateStateV3toV4(state): LedgerState;                        // FR-1010
 ```
 
 ## Implementation Approach
 
-- **FR-1001 (resolvedBalance):** una pasada por hoja (array de 12, carry-forward). Memoización por identidad del objeto `data` (WeakMap) — cada mutación reemplaza `data`, así que el caché es correcto por construcción. I/O: `LedgerState → number`. Fallo: imposible (total, `?? carry`).
-- **FR-1002/1003 (grilla):** `BudgetGrid` bifurca el render de celdas por `node.type === "transfer"`: tinta por estado (explícita/arrastrada/0/—), badge SALDO en la fila de tipo, editor extendido (franja de bloqueo/preview ancladas a la celda, acción «↺ Volver al arrastre» → `clearReserveCell`, sección de observaciones). Commit: `setLeafAmount` delega en el camino de reserva cuando es hoja transfer — traduce `newBalance` a `applyReserveOp` con `from/to` inferidos (subida = Disponible→hoja; bajada = hoja→Disponible). Sin cambio = no-op ANTES de llamar al dominio. Fallo: `ReserveVerdict` alimenta la franja con el mes y el límite.
-- **FR-1004 (applyReserveOp):** valida con `validateReserveWrite` sobre el estado candidato de AMBOS extremos; escribe los saldos resueltos ± monto como explícitos en el mes; `unshift` del movimiento con `from/to`; `target` = la alcancía (retiro: from; aporte/mover: to). `deleteNode` extiende su filtro a `from/to`. Fallo: rechazo tipado, estado intacto.
-- **FR-1005 (registro):** `TypeToggle` renombra el segmento; `Register` monta `ReserveRow` (dos filas de chips De/A con saldo, exclusión mutua, guía Máx/Margen) en lugar de `CategoryRow` para el tipo transfer; guardar llama la acción de store `applyReserveOp`. Fallo: guía en `--error` + botón deshabilitado; el mensaje del dominio si llega el rechazo (carrera).
-- **FR-1006 (techo):** `validateReserveWrite` recorre los 12 meses una vez con los agregados resueltos precalculados: techo = `Σdelta(m) ≤ max(0, prevAvailable(m) + flow(m))` — GLOBAL por mes (necesita la serie del balance: reusa `computeBalanceSeries` del estado candidato). Devuelve el PRIMER mes ofensor con su margen. Ejecutado: bloquea; Pres.: `ok` + lista de meses marcados (la UI pinta «!»). El patrón de primera carga pasa por construcción (el ingreso del mes entra en `flow`).
-- **FR-1007 (piso):** en la misma pasada, la serie resuelta POR HOJA debe quedar ≥ 0 en los 12 meses del estado candidato; un retiro jamás consulta el techo (solo reduce `Σdelta`). Devuelve la hoja y el mes ofensor con su saldo («"Viaje" solo tiene $150.000»). Fallo: rechazo tipado; la UI decide franja (grilla) o guía (registro).
-- **FR-1008 (plan):** `reserveDelta(budget)` ancla contra `resolvedBalance(..., m−1, "actual")` (ADR-03 de balance); el aviso es un derivado de `validateReserveWrite` en modo plan.
-- **FR-1009 (Balance):** `reserveNet` se reemplaza por `reserveAportes/reserveRetiros`; `BalanceModule` inserta la fila «+ Retiros del mes» (tone reserve, siempre visible). `monthBalance` intacto: `reserved = aportes − retiros`.
-- **FR-1010 (migración):** ver Data Model/API. El camino cliente (localStorage) migra en `LocalStorageRepository.load` (lee v2 → escribe v3 → borra clave v2); el servidor en `loadLedger`. Spec dedicado de idempotencia.
-- **FR-1011 (reestructurar):** `mergeMonthMap` gana variante para transfer: materializa (12 valores explícitos resueltos) ambas series y suma — la conservación de Σresolved(m) queda por construcción; el helper de tests gana `resolvedYearByMonth` para el invariante.
-- **FR-1012 (observaciones):** derivadas (notas de movimientos from/to del mes de la hoja) + manuales (`cellNotes`). Punto indicador si `derived.length + manual.length > 0`.
-- **Undo (FR-1003):** el store guarda `{prevData, description}` del último retiro; el toast llama `undoLastReserveOp` que restaura `prevData` y persiste — un solo nivel, en memoria, se descarta con cualquier mutación posterior.
+- **FR-1001:** serie derivada por hoja memoizada por IDENTIDAD (WeakMap budgets/actuals →
+  WeakMap movements → Map hoja): cada mutación clona, el caché es correcto por construcción
+  (NFR-1005, con contadores de instrumentación para los TCs).
+- **FR-1002/1003 (grilla):** las celdas transfer usan `ReserveLeafCell`/`ReserveCellEditor`
+  (`ReserveCells.tsx`): edición estándar + franja de bloqueo inline del veredicto; editar jamás
+  journaliza. Totales de fila/tipo por `typeTotals` (celdas del mes).
+- **FR-1004:** guardar → celda destino += monto + journal; sacar → journal-only; mover → celda
+  destino + journal con ambos extremos. Candidato validado con `chainCheck` (techo global
+  no-empeorar + piso derivado por hoja afectada). `target` = alcancía (retiro: from; resto: to).
+- **FR-1011 + integridad estructural:** `repointReserveMovements` en los 4 sitios FR-604
+  (createNode + 3 ramas de moveNode) — el journal sigue a las celdas; `deleteNode` conserva el
+  retiro cuyo `from` sigue vivo convertido en retiro a Disponible (hallazgos adversariales 1-3).
+- **FR-1014 (fila Retiros del mes · Ejec.):** `WithdrawCell` en `BalanceModule`: Σ retiros
+  graduada con `budgetState(planeado, ejecutado)` (misma tabla ›/›› de gastos); popover con
+  select jerárquico (`leafPathLabel`), Máx., historial del mes con eliminación
+  (`removeReserveRetiro`); toast + Deshacer (undo de un nivel por referencia — ADR-07).
+- **FR-1015 (fila Retiros del mes · Pres.):** `PlannedWithdrawCell`: escribe
+  `budgets["@retiros"]`; `setPlannedRetiro` rechaza sobre `plannedRetiroLimit` (franja inline);
+  marca auto-sanadora cuando el plan de aportes deja de cubrirlo.
+- **FR-1005 (registro):** `TypeToggle` «Reserva»; `ReserveRow` (chips De/A con saldo derivado,
+  exclusión mutua); guía Máx./Margen; guarda vía `addMovement` (delega en `applyReserveOp`).
+- **FR-1006/1007:** `techoScan` forward (margen = max(0, disponiblePrevio + flujo); neto =
+  aportes − retiros; bloquea solo `candExcess > baseExcess`); piso = serie derivada ≥ 0 de cada
+  hoja afectada en el candidato, nombrando el primer mes ofensor.
+- **FR-1008:** plano budget de `chainCheck` → warnings (jamás bloquea); `planTechoMonths` para
+  las marcas «!» de celdas.
+- **FR-1009:** `BalanceModule`: filas reserved(=aportes) / retiros / monthAvailable
+  (flow − reserved) / available / reservedBalance / total; `reserveNet = reserveDelta`.
+- **FR-1012:** derivadas del journal (from/to del mes) + `cellNotes` manuales; punto indicador,
+  tooltip y sección del editor.
 
 ## Security Design
 
-Sin superficie nueva de red ni de auth. Postura heredada intacta: `ownerId` de la sesión (jamás del payload), rutas bajo `withApi` (401/422/origin), cookies y rate-limit sin cambio. Validación de entrada: los campos nuevos pasan por Zod en el borde (`from/to` strings acotados; `cell_note.text` ≤ 280 con trim — mismo tratamiento que `note`; render como texto plano, jamás HTML → XSS neutralizado por React igual que las notas existentes). Trust boundaries: (1) entrada del usuario → schemas Zod del borde; (2) sesión → `ownerId` estructural en `ledgerRepo`; sin cambio. **Decisión del PUT snapshot (constraint de Fase 1): el PUT permanece como puerta CONFIADA** — no valida techo/piso. Racional (ADR-04): los datos migrados y los históricos pueden violar legítimamente el techo (las reglas no existían cuando se escribieron); rechazar el snapshot bloquearía la sincronización de cuentas válidas. Las reglas son integridad de UX del dominio compartido, no seguridad; la BD sigue garantizando `amount ≥ 0`. No hay NFRs de seguridad activos nuevos en el PRD (NFR-1004 es de arquitectura de reglas y queda cubierto arriba).
+Sin superficie nueva de red ni auth. Postura heredada intacta (`ownerId` de sesión, `withApi`,
+rate-limit). Campos nuevos por Zod en el borde (`from`/`to` acotados; `cell_note.text` ≤280;
+`@retiros` pasa `gte(0)`); render como texto plano (React). **ADR-04 — PUT confiado:** el PUT
+snapshot NO re-valida techo/piso (datos históricos pueden violarlos legítimamente; las reglas son
+integridad de UX del dominio compartido, no seguridad; la BD garantiza `amount ≥ 0`). Documentado
+como decisión (NFR-1004): un blob artesanal solo afecta los datos del propio usuario autenticado.
 
 ## Performance & Scalability
 
-- `resolvedBalance`: O(1) por consulta tras una pasada O(hojas×12) memoizada por identidad de `data` (WeakMap). Con 30 alcancías: 360 celdas — trivial.
-- `validateReserveWrite`: una corrida de `computeBalanceSeries` (<100 ms medido en TC-BAL-957h) + la serie por hoja (O(hojas×12)) sobre el estado candidato, por tecleo. Presupuesto NFR-1005: ≤150 ms con 30 alcancías — TC de perf propio (no se hereda la cifra vieja).
-- Migración: O(hojas×12) una vez; en servidor dentro de la transacción existente de `loadLedger` (sin round-trips extra).
-- Sin caching nuevo, sin cambio de límites del INSERT_CHUNK; `cell_note` acotada por texto ≤280 y PK compuesta.
+`resolvedSeries` O(hojas×12) memoizada por identidad; `validateReserveWrite` = un `techoScan`
+(O(12) con typeTotals) + series por hoja afectada, por tecleo. Presupuesto NFR-1005: ≤150 ms con
+30 alcancías (TC propio con contadores). Migración O(hojas×12) una vez, transaccional. La edición
+expense/income no invoca las reglas de reservas (contador = 0 en el TC).
 
 ## Deployment Architecture
 
-**Modelo: el existente, sin cambios — contenedor Docker (Next standalone) + Postgres**, o modo localStorage sin backend. Entornos y CI/CD: los actuales (ci.yml completo + job de seguridad). Lo único nuevo para desplegar: **una migración drizzle aditiva** (`ALTER TABLE ledger ADD COLUMN data_version…`, `ALTER TABLE movement ADD COLUMN from_id/to_id…`, `CREATE TABLE cell_note…`) que corre con `npm run db:migrate` antes del rollout — es de ESQUEMA; la de DATOS (v2→v3) es lazy por usuario en `loadLedger`, sin ventana de mantenimiento. Rollback: las columnas/tabla nuevas son inertes para el código viejo.
+El existente sin cambios (Docker Next standalone + Postgres, o localStorage). Lo único nuevo: la
+migración drizzle aditiva `0001_transferencias.sql` (data_version, from_id/to_id, cell_note) con
+`npm run db:migrate` antes del rollout; la de DATOS es lazy por usuario. Rollback: columnas/tabla
+inertes para código viejo.
 
 ## Risk Analysis
 
-- **R1 · La migración corrompe datos (impacto alto):** mitigado por marca de versión (nunca heurística), migración pura testeable, spec dedicado de idempotencia (cargar 2× == 1×), y transacción con `for update` en servidor. ADR-03.
-- **R2 · Falso verde por el blast-radius de tests declarado (alto):** 4 TCs de balance + 1 de storage-keys mueren por diseño y 8 seeds se re-basan; mitigado por NFR-1007 (la suite agregada en verde al cierre, re-derivaciones listadas en el build report) — el costo está DECLARADO, no se descubre en verify.
-- **R3 · Doble semántica en una grilla confunde (medio):** mitigado por badge SALDO + banner one-shot + tintas de arrastre (spec UX); el riesgo residual se mide en el uso real.
-- **R4 · El editor traduce mal edición→operación (medio):** la traducción (subida/bajada → De/A) vive en UNA función del dominio con tests de tabla; la UI no calcula nada.
-- **R5 · Muro de diciembre (bajo, aceptado):** restricción heredada single-year, ratificada en el no_go_zone; sin código.
+- **R1 · Migración corrompe datos (alto):** marca de versión (nunca heurística), conversión pura
+  testeable (v3→v4 preserva el saldo derivado exacto), transacción con for update, `insertMovement`
+  también migra. Mitigado + verificado adversarialmente.
+- **R2 · Operaciones estructurales fabrican/pierden plata (alto — MATERIALIZADO y corregido):**
+  los hallazgos adversariales 1-3 (saldo fantasma por createNode/moveNode; resurrección por
+  deleteNode) se cierran con `repointReserveMovements` + conservación del retiro vivo; FR-1011
+  exige el invariante Σ derivado(m) idéntico y sus TCs lo afirman.
+- **R3 · Falso verde por re-derivación de TCs (alto):** los TC-TRF-* del modelo v3 se re-derivan a
+  v4 (NFR-1007); la suite agregada en verde es el gate.
+- **R4 · UX de retiros no definitiva (medio, aceptado):** BL-019; la v1 es funcional y validada
+  operativamente.
 
-**ADR-01 — Guardar SALDOS, no deltas.** Contexto: la celda muestra saldo; ¿almacenar saldo o delta? Decisión: saldo (el número que el usuario ve y teclea ES el almacenado; `CHECK ≥ 0` = el piso, natural; ausente=arrastre expresable). Consecuencia: los deltas se derivan; migración = cumsum.
-**ADR-02 — Sentinel `@disponible` solo en `from`/`to`.** `target` conserva su contrato (los 4 suites de noOrphans se re-derivan con el sentinel como caso, no se relajan).
-**ADR-03 — Migración lazy con marcador, dueño = quien posee el dato.** localStorage: el cliente al cargar; Postgres: el servidor en `loadLedger` transaccional. Nunca el cliente por PUT (carreras).
-**ADR-04 — PUT confiado.** Ver Security Design.
-**ADR-05 — `applyReserveOp` separada; `addMovement` delega por tipo.** Reutilizar `addMovement` sumaría sobre saldos (retiros fantasma); gastos/ingresos no cambian ni un byte (NFR-1002).
-**ADR-06 — Observaciones: derivadas de movimientos + `cellNotes` manuales.** No se inventa un journal-vista; la celda es la superficie de lectura (decisión del usuario).
-**ADR-07 — Undo de un nivel en memoria.** Suficiente para el gesto blur-commit; un historial general está fuera de alcance.
+**ADR-01v4 — Celdas = aportes; retiros = journal; saldo = derivado.** Sustituye al ADR-01 (saldos
+almacenados): el usuario, en uso real, rechazó la semántica de celda-saldo (rompía el gesto de
+teclear movimientos y generaba retiros implícitos). Consecuencia: el CHECK ≥ 0 sigue natural, la
+grilla es homogénea entre tipos, y el journal es la única fuente de retiros.
+**ADR-02 — Sentinel `@disponible` solo en from/to; `@retiros` solo como clave del plan.**
+**ADR-03 — Migración lazy con marcador; dueño = quien posee el dato; insertMovement garantiza v4.**
+**ADR-04 — PUT confiado** (ver Security).
+**ADR-05 — `applyReserveOp` separada; `addMovement` delega por tipo; expense/income intactos.**
+**ADR-06 — Observaciones: derivadas del journal + `cellNotes`; historial de retiros en el mini-form.**
+**ADR-07 — Undo de un nivel en memoria, validado por identidad de referencia; corrección duradera
+via eliminación de retiros (FR-1014).**
 
 ## Technical Risk Flags
 
-[RISK] Validación en cadena por tecleo compite con el guardrail de latencia
-Conflict: NFR-1005 exige ≤150 ms por edición, pero validateReserveWrite corre computeBalanceSeries + series por hoja sobre el estado candidato en cada commit.
-Mitigation: pasada única memoizada por identidad de data (WeakMap); presupuesto medido con TC propio (30 alcancías); si excede, precomputar las series del estado base y aplicar el delta candidato incrementalmente.
-Severity: medium
+[RISK] La clave sentinel "@retiros" viaja por mapas de celdas
+Conflict: cualquier consumidor nuevo que itere claves crudas de budgets podría tratarla como nodo.
+Mitigation: los consumidores actuales iteran `nodes` (verificado por grep + adversarial); regla
+documentada aquí y en reserve.ts; TC negativo dedicado.
+Severity: low
 
-[RISK] La reinterpretación de celdas rompe consumidores no inventariados
-Conflict: FR-1002 cambia el significado del dato almacenado para transfer, y cualquier lector directo de budgets/actuals (typeTotals, dashboard, KPIs, tests) que no pase por resolvedBalance leerá saldos como flujos.
-Mitigation: grep-inventario en build de TODO lector de mapas para type transfer (typeTotals, dashboardMetrics, helpers de tests) y redirección a la capa resuelta; NFR-1007 exige la suite agregada verde como red final.
-Severity: high
-
-[RISK] Migración lazy en servidor bajo concurrencia de dispositivos
-Conflict: FR-1010 exige one-shot, pero dos GET simultáneos podrían migrar dos veces sin serialización.
-Mitigation: la migración corre dentro de la transacción con `select … for update` de la fila ancla `ledger` (el mismo lock del save) + re-check de data_version tras adquirirlo.
-Severity: medium
-
-[RISK] El sentinel se filtra a superficies que esperan nodos
-Conflict: FR-1004 introduce "@disponible" en from/to; cualquier código que resuelva esos campos contra el árbol (render de journal futuro, deleteNode) lanzaría o dejaría huérfanos.
-Mitigation: helpers únicos isAvailable(id)/labelOfEnd(id) en domain/reserve.ts; deleteNode extendido a ambos extremos; TC negativo dedicado.
+[RISK] Corrección de retiros reordena la historia
+Conflict: eliminar un retiro antiguo puede dejar un techo histórico "peor" que el presente.
+Mitigation: decisión explícita — la eliminación es SIEMPRE permitida (equivale al estado previo al
+error, que existió legítimamente); el techo con regla no-empeorar tolera estados históricos.
 Severity: low

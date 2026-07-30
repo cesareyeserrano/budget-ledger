@@ -1,7 +1,6 @@
 /**
- * Feature transferencias (Reservas) — EP-08: NFR-1005 (performance).
- * El guardrail heredado (≤150 ms por edición) se MIDE de nuevo sobre la ruta real — resolución por
- * hoja + validación en cadena + balance — no se hereda la cifra vieja (9.2).
+ * Feature transferencias · modelo v4 — NFR-1005 (performance): la ruta real ≤150 ms con 30
+ * alcancías, memoización por identidad y cero acoplamiento con la edición de gastos.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import {
@@ -15,9 +14,9 @@ import {
 import { setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
 import { MONTH_KEYS } from "@/domain/months";
-import type { AmountMap, LedgerNode, LedgerState, MonthKey } from "@/domain/types";
+import type { AmountMap, LedgerNode, LedgerState } from "@/domain/types";
 
-/** 30 alcancías × 12 meses con historia mixta (explícitos y arrastres) + flujo real. */
+/** 30 alcancías × 12 meses con aportes mixtos + flujo real. */
 function makeBigState(): LedgerState {
   const nodes: LedgerNode[] = [
     { id: "g-ingresos", ownerId: "local", type: "income", level: "group", parentId: null, name: "Trabajo", icon: null, order: 0 },
@@ -29,7 +28,7 @@ function makeBigState(): LedgerState {
   const budgets: AmountMap = {};
   const actuals: AmountMap = { "c-salario": {}, "c-mercado": {} };
   for (const m of MONTH_KEYS) {
-    actuals["c-salario"][m] = 90_000_000; // margen holgado: la edición cronometrada no bloquea
+    actuals["c-salario"][m] = 90_000_000;
     actuals["c-mercado"][m] = 1_000_000;
   }
   for (let i = 0; i < 30; i++) {
@@ -37,7 +36,6 @@ function makeBigState(): LedgerState {
     nodes.push({ id, ownerId: "local", type: "transfer", level: "category", parentId: "g-ahorro", name: `Alcancía ${i}`, icon: null, order: 5 + i });
     actuals[id] = {};
     budgets[id] = {};
-    // Historia mixta: explícitos en meses alternos (según i), arrastre en los demás.
     for (let mi = 0; mi < 12; mi++) {
       if ((mi + i) % 3 === 0) {
         actuals[id][MONTH_KEYS[mi]] = 100_000 + i * 10_000 + mi * 1_000;
@@ -53,17 +51,14 @@ beforeEach(() => {
 });
 
 describe("NFR-1005 · performance de la capa de reservas", () => {
-  it("TC-TRF-155h: edición + validación en cadena + balance ≤150ms con 30 alcancías", () => {
-    // @aitri-tc TC-TRF-155h
+  it("TC-TRF4-155h: edición + validación en cadena + balance ≤150ms con 30 alcancías", () => {
+    // @aitri-tc TC-TRF4-155h
     const s = makeBigState();
 
     const t0 = performance.now();
-    // La ruta REAL de un tecleo: validar…
-    const verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newBalance: 500_000 });
-    // …aplicar la edición (incluye su propia validación en cadena)…
-    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newBalance: 500_000 });
+    const verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newAmount: 500_000 });
+    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newAmount: 500_000 });
     if (!("state" in applied)) throw new Error("edición válida rechazada");
-    // …y recomputar lo que la pantalla consume: balance completo + fila total de los 12 meses.
     const series = computeBalanceSeries(applied.state);
     for (const m of MONTH_KEYS) resolvedTypeTotal(applied.state, m, "actual");
     const elapsed = performance.now() - t0;
@@ -73,40 +68,35 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     expect(elapsed, `ruta completa en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });
 
-  it("TC-TRF-155e: la memoización por identidad evita recomputar sin cambios", () => {
-    // @aitri-tc TC-TRF-155e
+  it("TC-TRF4-155e: la memoización por identidad evita recomputar sin cambios", () => {
+    // @aitri-tc TC-TRF4-155e
     const s = makeBigState();
 
     const first = resolvedSeries(s, "c-alcancia-3", "actual");
-    const computesAfterFirst = __reservePerfCounters().seriesComputes;
-    expect(computesAfterFirst).toBe(1);
-
-    // Mismo objeto data, consultas repetidas: cero recomputos y la MISMA referencia.
+    expect(__reservePerfCounters().seriesComputes).toBe(1);
     const second = resolvedSeries(s, "c-alcancia-3", "actual");
     for (const m of MONTH_KEYS) resolvedSeries(s, "c-alcancia-3", "actual");
-    expect(second).toBe(first);
+    expect(second).toBe(first); // misma referencia = cero recomputos
     expect(__reservePerfCounters().seriesComputes).toBe(1);
 
-    // Una mutación (data nuevo) SÍ recomputa — y el resultado refleja el cambio.
-    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-3", month: "ene", plane: "actual", newBalance: 999_000 });
+    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-3", month: "ene", plane: "actual", newAmount: 999_000 });
     if (!("state" in applied)) throw new Error("edición válida rechazada");
     __resetReservePerfCounters();
     const third = resolvedSeries(applied.state, "c-alcancia-3", "actual");
-    expect(__reservePerfCounters().seriesComputes).toBe(1);
+    expect(__reservePerfCounters().seriesComputes).toBe(1); // data nuevo SÍ recomputa
     expect(third).not.toBe(first);
     expect(third[0]).toBe(999_000);
   });
 
-  it("TC-TRF-155f: la validación no degrada la edición de gastos/ingresos", () => {
-    // @aitri-tc TC-TRF-155f
+  it("TC-TRF4-155f: la edición de gastos/ingresos no pasa por las reglas de reservas", () => {
+    // @aitri-tc TC-TRF4-155f
     const s = makeBigState();
 
     const t0 = performance.now();
     const next = setLeafAmount(s, "c-mercado", "jun", "actual", 2_000_000);
     const elapsed = performance.now() - t0;
 
-    // Un gasto JAMÁS pasa por las reglas de reservas (contador 0) y queda dentro del guardrail.
-    expect(__reservePerfCounters().validateCalls).toBe(0);
+    expect(__reservePerfCounters().validateCalls).toBe(0); // cero acoplamiento
     expect(next.actuals["c-mercado"].jun).toBe(2_000_000);
     expect(elapsed, `edición expense en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });

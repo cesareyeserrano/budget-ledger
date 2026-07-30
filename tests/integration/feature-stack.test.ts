@@ -95,7 +95,7 @@ describe("FR-213 — tipografía", () => {
 
 // ── NFR-202 · persistencia sobre las claves ledger.* ────────────────────────
 describe("NFR-202 — persistencia", () => {
-  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note) sobre ledger.budget.v3", async () => {
+  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note) sobre ledger.budget.v4", async () => {
     const store = memStorage();
     const repo = new LocalStorageRepository(store);
     const seed = buildSeed("local");
@@ -109,7 +109,7 @@ describe("NFR-202 — persistencia", () => {
     expect(mv).toBeTruthy();
     expect(mv.date).toBe("2026-06-05T09:00"); // el delta sobrevive a la recarga
     expect(mv.note).toBe("almuerzo");
-    expect(store._map.has("ledger.budget.v3")).toBe(true);
+    expect(store._map.has("ledger.budget.v4")).toBe(true);
   });
 
   it("TC-SUT-248e: la clave 'theme' no colisiona con ledger.* y ambas coexisten", async () => {

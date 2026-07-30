@@ -1,16 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Feature transferencias (Reservas) — EP-04: la grilla habla SALDO. Los TCs visuales afirman
-// VALORES COMPUTADOS reales (color, texto, persistencia), nunca clases. Prefijo TC-TRF-*.
+// Feature transferencias · modelo v4 — la grilla habla APORTES del mes; los retiros se operan y
+// corrigen en la fila «Retiros del mes» del Balance. Valores COMPUTADOS reales. Prefijo TC-TRF4-*.
 
 const DESK = { width: 1440, height: 1250 };
 
-// Tintas del tema claro (globals.css) — los tres estados de una celda-saldo (9.6).
-const FG = "rgb(28, 28, 31)"; //        --fg          (explícita plena, Ejec.)
-const FG_MUTED = "rgb(107, 107, 115)"; // --fg-muted   (arrastrada / sin historia)
-const STATE_WARNING = "rgb(158, 71, 8)"; // --state-warning (marca de plan inviable)
-
 type CellMap = Record<string, Record<string, number>>;
+type Mov = Record<string, unknown>;
 
 const NODES = [
   { id: "g-ingresos", type: "income", level: "group", parentId: null, name: "Trabajo", order: 0 },
@@ -20,51 +16,34 @@ const NODES = [
   { id: "g-ahorro", type: "transfer", level: "group", parentId: null, name: "Ahorro", order: 4 },
   { id: "c-viaje", type: "transfer", level: "category", parentId: "g-ahorro", name: "Viaje", order: 5 },
   { id: "c-fondo", type: "transfer", level: "category", parentId: "g-ahorro", name: "Fondo", order: 6 },
-  { id: "c-vacia", type: "transfer", level: "category", parentId: "g-ahorro", name: "Vaciada", order: 7 },
+  { id: "s-fondo-emergencia", type: "transfer", level: "sub", parentId: "c-fondo", name: "Emergencia", order: 7 },
   { id: "c-nueva", type: "transfer", level: "category", parentId: "g-ahorro", name: "Nueva", order: 8 },
 ];
 
-/** Fixture BASE: margen holgado en ene; Viaje arrastra desde jul; Vaciada quedó en 0 explícito. */
+/** BASE: margen holgado; Viaje aporta en ene; la sub Emergencia aporta en feb. */
 const BASE = {
   budgets: {} as CellMap,
-  actuals: {
-    "c-salario": { ene: 1_000_000 },
-    "c-viaje": { jul: 200_000 },
-    "c-fondo": { ene: 300_000 },
-    "c-vacia": { feb: 100_000, dic: 0 },
-  } as CellMap,
+  actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 100_000 }, "s-fondo-emergencia": { feb: 200_000 } } as CellMap,
+  movements: [] as Mov[],
 };
 
-/** Fixture TIGHT: margen exacto de 150.000 en ene (para el bloqueo del techo con mensaje). */
-const TIGHT = {
-  budgets: {} as CellMap,
-  actuals: { "c-salario": { ene: 150_000 } } as CellMap,
-};
-
-/** Fixture PLAN: trayectoria Pres. de Viaje que supera el margen planeado de marzo (1.000.000). */
-const PLAN = {
-  budgets: { "c-viaje": { mar: 1_200_000 } } as CellMap,
-  actuals: { "c-salario": { ene: 1_000_000 } } as CellMap,
-};
-
-async function seed(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: unknown[] }, opts: { noticeSeen?: boolean } = {}) {
+async function seed(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: Mov[] }) {
   await page.addInitScript(
-    ({ nodes, budgets, actuals, movements, noticeSeen }) => {
+    ({ nodes, budgets, actuals, movements }) => {
       if (localStorage.getItem("ledger.nodes.v1")) return; // idempotente entre navegaciones
       localStorage.setItem(
         "ledger.nodes.v1",
         JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
       );
-      localStorage.setItem("ledger.budget.v3", JSON.stringify({ version: 3, budgets, actuals, movements }));
-      if (noticeSeen) localStorage.setItem("ledger.ui.reservasNoticeSeen.v1", "1");
+      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements }));
     },
-    { nodes: NODES, budgets: data.budgets, actuals: data.actuals, movements: data.movements ?? [], noticeSeen: opts.noticeSeen ?? true }
+    { nodes: NODES, budgets: data.budgets, actuals: data.actuals, movements: data.movements ?? [] }
   );
 }
 
-async function gotoGrid(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: unknown[] } = BASE, opts: { noticeSeen?: boolean } = {}) {
+async function gotoGrid(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: Mov[] } = BASE) {
   await page.setViewportSize(DESK);
-  await seed(page, data, opts);
+  await seed(page, data);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
 }
@@ -72,170 +51,91 @@ async function gotoGrid(page: Page, data: { budgets: CellMap; actuals: CellMap; 
 const rowByName = (page: Page, name: string) =>
   page.getByTestId("node-row").filter({ has: page.getByTestId("row-label").filter({ hasText: name }) });
 
-/** Celda de una hoja transfer: mes (0-11) × plano. Solo válido con la fila SIN editor abierto. */
+/** Celda de una hoja transfer: mes (0-11) × plano. */
 const reserveCell = (page: Page, name: string, monthIdx: number, plane: "budget" | "actual") =>
   rowByName(page, name).getByTestId("cell-leaf").nth(monthIdx * 2 + (plane === "actual" ? 1 : 0));
 
-/** El estado persistido (v3) tal como quedó en localStorage. */
-async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellMap; movements: unknown[] }> {
-  return page.evaluate(() => JSON.parse(localStorage.getItem("ledger.budget.v3") ?? "null"));
+async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] }> {
+  return page.evaluate(() => JSON.parse(localStorage.getItem("ledger.budget.v4") ?? "null"));
 }
 
-test.describe("FR-1002 — la celda dice su SALDO", () => {
-  test("TC-TRF-102h: la celda-saldo pinta explícita plena, arrastrada atenuada, y el badge SALDO está en el bloque", async ({ page }) => {
-    // @aitri-tc TC-TRF-102h
+/** Un retiro ya operado, para las fixtures que lo necesitan. */
+const retiro = (from: string, month: string, amount: number, note?: string): Mov => ({
+  id: `mv-${from}-${month}`, ownerId: "local", type: "transfer", catId: from, subId: null, target: from,
+  amount, month, createdAt: 1, from, to: "@disponible", ...(note ? { note } : {}),
+});
+
+test.describe("FR-1002 — la celda dice el aporte del mes", () => {
+  test("TC-TRF4-002h: la celda dice el aporte de ESE mes y el total del bloque es la suma del mes", async ({ page }) => {
+    // @aitri-tc TC-TRF4-002h
     await gotoGrid(page);
 
-    // jul explícito: '200.000' en tinta plena.
-    const jul = reserveCell(page, "Viaje", 6, "actual");
-    await expect(jul).toHaveText("200.000");
-    await expect(jul).toHaveCSS("color", FG);
-    // ago..dic arrastran: misma cifra en la tinta más atenuada.
-    for (const idx of [7, 8, 9, 10, 11]) {
-      const cell = reserveCell(page, "Viaje", idx, "actual");
-      await expect(cell).toHaveText("200.000");
-      await expect(cell).toHaveCSS("color", FG_MUTED);
-    }
-    // El rótulo del bloque RESERVAS lleva el badge de semántica.
+    await expect(reserveCell(page, "Viaje", 0, "actual")).toHaveText("100.000");
+    for (const idx of [1, 2, 11]) await expect(reserveCell(page, "Viaje", idx, "actual")).toHaveText("—");
+    // la subcategoría vive bajo Fondo: expandirla primero
+    await rowByName(page, "Fondo").first().getByLabel("Expandir").click();
+    await expect(reserveCell(page, "Emergencia", 1, "actual")).toHaveText("200.000");
+
+    // La fila total RESERVAS: ene = 100.000 y feb = 200.000 (jamás 300.000 acumulado).
     const typeRow = page.getByTestId("type-total-row").filter({ hasText: "RESERVAS" });
-    await expect(typeRow.getByTestId("saldo-badge")).toHaveText("SALDO");
+    const cells = typeRow.locator("div.flex > div").filter({ hasText: /./ });
+    await expect(typeRow).toContainText("RESERVAS");
+    const eneActual = typeRow.locator(":scope > div").nth(1).locator("> div").nth(1);
+    const febActual = typeRow.locator(":scope > div").nth(2).locator("> div").nth(1);
+    await expect(eneActual).toHaveText("100.000");
+    await expect(febActual).toHaveText("200.000");
+    void cells;
   });
 
-  test("TC-TRF-102e: '0' explícito ≠ '—' sin historia ≠ gris arrastrado — tres tintas distinguibles", async ({ page }) => {
-    // @aitri-tc TC-TRF-102e
+  test("TC-TRF4-002e: la fila padre agrega celdas del mes, como los otros tipos", async ({ page }) => {
+    // @aitri-tc TC-TRF4-002e
     await gotoGrid(page);
-
-    // Diciembre, tres alcancías, tres estados:
-    const vaciada = reserveCell(page, "Vaciada", 11, "actual"); // 0 EXPLÍCITO
-    await expect(vaciada).toHaveText("0");
-    await expect(vaciada).toHaveCSS("color", FG); // legible como DATO, no como ausencia
-    const sinHistoria = reserveCell(page, "Nueva", 11, "actual");
-    await expect(sinHistoria).toHaveText("—");
-    await expect(sinHistoria).toHaveCSS("color", FG_MUTED);
-    const arrastrada = reserveCell(page, "Viaje", 11, "actual");
-    await expect(arrastrada).toHaveText("200.000");
-    await expect(arrastrada).toHaveCSS("color", FG_MUTED);
+    // c-fondo (padre de Emergencia): feb = 200.000 y el resto em-dash.
+    const fondoRow = rowByName(page, "Fondo").first();
+    const cells = fondoRow.getByTestId("cell-parent");
+    await expect(cells.nth(1 * 2 + 1)).toHaveText("200.000"); // feb Ejec.
+    await expect(cells.nth(0 * 2 + 1)).toHaveText("—"); // ene Ejec.
+    await expect(cells.nth(11 * 2 + 1)).toHaveText("—"); // dic Ejec. (sin acumulado)
   });
 
-  test("TC-TRF-102f: ninguna celda transfer muestra un negativo bajo ninguna secuencia válida", async ({ page }) => {
-    // @aitri-tc TC-TRF-102f
-    await gotoGrid(page);
+  test("TC-TRF4-002f: ninguna celda del bloque muestra un acumulado ni un negativo", async ({ page }) => {
+    // @aitri-tc TC-TRF4-002f
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "mar", 40_000)] });
 
-    // Guardar (subir Fondo), sacar (bajar Viaje) y mover A→B por dos ediciones.
-    await reserveCell(page, "Fondo", 2, "actual").click();
-    await page.getByLabel("Editar saldo").fill("400000");
-    await page.keyboard.press("Enter");
-    await reserveCell(page, "Viaje", 8, "actual").click();
-    await page.getByLabel("Editar saldo").fill("150000");
-    await page.keyboard.press("Enter");
-    // A→B: bajar Fondo primero, subir Viaje después (el retiro financia el aporte).
-    await reserveCell(page, "Fondo", 9, "actual").click();
-    await page.getByLabel("Editar saldo").fill("300000");
-    await page.keyboard.press("Enter");
-    await reserveCell(page, "Viaje", 9, "actual").click();
-    await page.getByLabel("Editar saldo").fill("250000");
+    // Operar: subir un aporte por celda y sacar desde la fila Retiros del mes.
+    await reserveCell(page, "Nueva", 2, "actual").click();
+    await page.getByLabel("Editar valor").fill("50000");
     await page.keyboard.press("Enter");
 
-    // Escaneo completo del bloque RESERVAS: cero celdas con signo negativo.
-    for (const name of ["Viaje", "Fondo", "Vaciada", "Nueva"]) {
+    for (const name of ["Viaje", "Emergencia", "Nueva"]) {
       const texts = await rowByName(page, name).getByTestId("cell-leaf").allTextContents();
       for (const t of texts) {
         expect(t.startsWith("−"), `${name}: "${t}"`).toBe(false);
         expect(t.startsWith("-"), `${name}: "${t}"`).toBe(false);
       }
     }
-  });
-
-  test("TC-TRF-202e: el banner post-migración aparece exactamente una vez", async ({ page }) => {
-    // @aitri-tc TC-TRF-202e
-    await gotoGrid(page, BASE, { noticeSeen: false });
-
-    const banner = page.getByTestId("reservas-banner");
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText("Las celdas de Reservas ahora muestran el saldo");
-    await banner.getByRole("button", { name: "Entendido" }).click();
-    await expect(banner).toHaveCount(0);
-
-    // El flag quedó persistido y el banner no reaparece en las siguientes cargas.
-    expect(await page.evaluate(() => localStorage.getItem("ledger.ui.reservasNoticeSeen.v1"))).toBe("1");
-    await page.reload();
-    await expect(page.getByTestId("budget-grid")).toBeVisible();
-    await expect(page.getByTestId("reservas-banner")).toHaveCount(0);
-    await page.reload();
-    await expect(page.getByTestId("budget-grid")).toBeVisible();
-    await expect(page.getByTestId("reservas-banner")).toHaveCount(0);
+    // La celda de Viaje sigue diciendo su aporte de ene (100.000) — no el saldo derivado (60.000).
+    await expect(reserveCell(page, "Viaje", 0, "actual")).toHaveText("100.000");
   });
 });
 
-test.describe("FR-1003 — editar la celda = operar el saldo", () => {
-  test("TC-TRF-103h: bajar la celda saca a Disponible, con toast y Deshacer que revierte todo", async ({ page }) => {
-    // @aitri-tc TC-TRF-103h
-    await gotoGrid(page);
-    await expect(page.getByTestId("balance-module")).toBeVisible();
+test.describe("FR-1003 — editar la celda con validación inline", () => {
+  test("TC-TRF4-003f: el bloqueo del techo no cierra el editor: franja, valor seleccionado, Escape restaura", async ({ page }) => {
+    // @aitri-tc TC-TRF4-003f
+    await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { ene: 150_000 } }, movements: [] });
 
-    const availableRow = page.locator('[data-testid="balance-row"][data-row="available"]');
-    const availableSep = availableRow.getByTestId("balance-cell").nth(8 * 2 + 1); // sep, plano Ejec.
-    await expect(availableSep).toHaveText("400.000"); // 1.000.000 − 300.000 (Fondo) − 200.000 (Viaje) − 100.000 (Vaciada)
-
-    // Editar sep de Viaje (arrastra 200.000) a 150.000 = sacar 50.000.
-    await reserveCell(page, "Viaje", 8, "actual").click();
-    await page.getByLabel("Editar saldo").fill("150000");
-    await page.keyboard.press("Enter");
-
-    await expect(reserveCell(page, "Viaje", 8, "actual")).toHaveText("150.000");
-    await expect(availableSep).toHaveText("450.000"); // el disponible subió exactamente 50.000
-    const toast = page.getByTestId("toast");
-    await expect(toast).toContainText("Sacaste $50.000 de Viaje → Disponible");
-    await expect(toast).toContainText("Deshacer");
-
-    // Deshacer revierte la operación completa: saldo, balance y journal sin residuo.
-    await page.getByTestId("toast-undo").click();
-    await expect(reserveCell(page, "Viaje", 8, "actual")).toHaveText("200.000");
-    await expect(reserveCell(page, "Viaje", 8, "actual")).toHaveCSS("color", FG_MUTED); // vuelve a arrastrar
-    await expect(availableSep).toHaveText("400.000");
-    expect((await persisted(page)).movements).toHaveLength(0);
-  });
-
-  test("TC-TRF-103e: commit sin cambio sobre celda arrastrada = no-op total", async ({ page }) => {
-    // @aitri-tc TC-TRF-103e
-    await gotoGrid(page);
-
-    const oct = reserveCell(page, "Viaje", 9, "actual");
-    await expect(oct).toHaveCSS("color", FG_MUTED);
-    await oct.click();
-    // El editor abre con el valor RESUELTO (el arrastrado) ya cargado y seleccionado.
-    const input = page.getByLabel("Editar saldo");
-    await expect(input).toHaveValue("200000");
-    await page.keyboard.press("Enter");
-
-    // Cero escritura, cero journal, sigue gris.
-    await expect(reserveCell(page, "Viaje", 9, "actual")).toHaveCSS("color", FG_MUTED);
-    const stored = await persisted(page);
-    expect(stored.actuals["c-viaje"]).toEqual({ jul: 200_000 }); // oct NO es clave explícita
-    expect(stored.movements).toHaveLength(0);
-  });
-
-  test("TC-TRF-103f: el bloqueo no cierra el editor: mensaje inline, valor seleccionado, Escape restaura", async ({ page }) => {
-    // @aitri-tc TC-TRF-103f
-    await gotoGrid(page, TIGHT);
-
-    // Nueva sin historia; teclear 200.000 exige un aporte de 200.000 con margen 150.000.
     await reserveCell(page, "Nueva", 0, "actual").click();
-    const input = page.getByLabel("Editar saldo");
+    const input = page.getByLabel("Editar valor");
     await input.fill("200000");
     await page.keyboard.press("Enter");
 
-    // El editor NO se cierra: input visible y con foco, franja con el mensaje exacto.
     await expect(input).toBeVisible();
     await expect(input).toBeFocused();
     await expect(page.getByTestId("reserve-block")).toContainText("No puedes reservar $200.000: tu margen este mes es $150.000");
-    // El valor rechazado queda seleccionado («corrige o Escape»).
     expect(await input.evaluate((el: HTMLInputElement) => el.selectionEnd! - el.selectionStart!)).toBe(6);
 
-    // Escape restaura el valor previo y nada se persistió (la recarga lo confirma).
     await page.keyboard.press("Escape");
     await expect(input).toHaveCount(0);
-    await expect(reserveCell(page, "Nueva", 0, "actual")).toHaveText("—");
     await page.reload();
     await expect(page.getByTestId("budget-grid")).toBeVisible();
     await expect(reserveCell(page, "Nueva", 0, "actual")).toHaveText("—");
@@ -243,12 +143,146 @@ test.describe("FR-1003 — editar la celda = operar el saldo", () => {
   });
 });
 
-// ── contraste WCAG calculado de valores reales del navegador (patrón de TC-BSC-453h) ───────────
+test.describe("FR-1008 — la marca del plan de aportes", () => {
+  test("TC-TRF4-008e: la marca del plan es «!» + ámbar: canal propio, distinto de ›/›› y ‹‹", async ({ page }) => {
+    // @aitri-tc TC-TRF4-008e
+    await gotoGrid(page, { budgets: { "c-viaje": { mar: 1_200_000 } }, actuals: { "c-salario": { ene: 1_000_000 } }, movements: [] });
+
+    const cell = reserveCell(page, "Viaje", 2, "budget");
+    await expect(cell).toHaveAttribute("data-plan-warn", "true");
+    await expect(cell).toHaveCSS("color", "rgb(158, 71, 8)"); // --state-warning claro
+    const text = (await cell.textContent()) ?? "";
+    expect(text).toContain("!");
+    expect(text).toContain("1.200.000"); // el valor SE GUARDÓ
+    expect(text).not.toContain("›");
+    expect(text).not.toContain("‹");
+  });
+});
+
+test.describe("FR-1012 — observaciones por celda", () => {
+  test("TC-TRF4-012h: la nota de una operación De→A se lee desde la celda y se puede añadir manual", async ({ page }) => {
+    // @aitri-tc TC-TRF4-012h
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "sep", 50_000, "pasaje")] });
+
+    const cell = reserveCell(page, "Viaje", 8, "actual");
+    await expect(cell.getByTestId("note-dot")).toBeVisible();
+    await expect(cell).toHaveAttribute("title", /pasaje/);
+    await cell.click();
+    const notes = page.getByTestId("cell-notes");
+    await expect(notes.getByTestId("cell-note")).toHaveText("pasaje");
+    await page.getByLabel("Añadir observación").fill("meta del viaje");
+    await page.getByTestId("cell-note-add").click();
+    await expect(notes.getByTestId("cell-note")).toHaveCount(2);
+    await expect(notes.getByTestId("cell-note").nth(1)).toHaveText("meta del viaje");
+  });
+
+  test("TC-TRF4-012e: celda sin observaciones: sin indicador y con placeholder en el editor", async ({ page }) => {
+    // @aitri-tc TC-TRF4-012e
+    await gotoGrid(page);
+    const cell = reserveCell(page, "Viaje", 4, "actual");
+    await expect(cell.getByTestId("note-dot")).toHaveCount(0);
+    await cell.click();
+    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin observaciones este mes");
+  });
+});
+
+test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", () => {
+  test("TC-TRF4-014h: el mini-form saca con desplegable jerárquico, Máx. y toast con Deshacer", async ({ page }) => {
+    // @aitri-tc TC-TRF4-014h
+    await gotoGrid(page);
+    await expect(page.getByTestId("balance-module")).toBeVisible();
+
+    await page.getByTestId("withdraw-cell").nth(5).click(); // jun
+    const select = page.getByTestId("withdraw-source");
+    await expect(select).toBeVisible();
+    // Desplegable con TODAS las alcancías, ruta completa y saldo derivado.
+    await expect(select.locator("option", { hasText: "Ahorro · Fondo · Emergencia — $200.000" })).toHaveCount(1);
+    await expect(select.locator("option", { hasText: "Ahorro · Viaje — $100.000" })).toHaveCount(1);
+    await select.selectOption("s-fondo-emergencia");
+    await page.getByTestId("withdraw-amount").fill("50000");
+    await expect(page.getByText("Máx. $200.000")).toBeVisible();
+    await page.getByTestId("withdraw-save").click();
+
+    await expect(page.getByTestId("withdraw-cell").nth(5)).toContainText("50.000");
+    const toast = page.getByTestId("toast");
+    await expect(toast).toContainText("Sacaste $50.000 de Emergencia → Disponible");
+    await page.getByTestId("toast-undo").click();
+    await expect(page.getByTestId("withdraw-cell").nth(5)).toHaveText("—");
+    expect((await persisted(page)).movements).toHaveLength(0);
+  });
+
+  test("TC-TRF4-014e: eliminar un retiro del historial restaura el saldo derivado", async ({ page }) => {
+    // @aitri-tc TC-TRF4-014e
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "jun", 40_000)] });
+
+    await expect(page.getByTestId("withdraw-cell").nth(5)).toContainText("40.000");
+    await page.getByTestId("withdraw-cell").nth(5).click();
+    const history = page.getByTestId("withdraw-history");
+    await expect(history).toContainText("Ahorro · Viaje — $40.000");
+    await page.getByTestId("withdraw-delete-mv-c-viaje-jun").click();
+
+    await expect(page.getByTestId("withdraw-cell").nth(5)).toHaveText("—");
+    expect((await persisted(page)).movements).toHaveLength(0);
+    // El saldo derivado se restauró: el desplegable (el popover sigue abierto) ofrece $100.000.
+    await expect(page.getByTestId("withdraw-source").locator("option", { hasText: "Ahorro · Viaje — $100.000" })).toHaveCount(1);
+  });
+
+  test("TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo)", async ({ page }) => {
+    // @aitri-tc TC-TRF4-014f
+    await gotoGrid(page, {
+      budgets: { "@retiros": { mar: 100_000, may: 150_000 } },
+      actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 500_000 } },
+      movements: [retiro("c-viaje", "mar", 150_000), retiro("c-viaje", "may", 160_000), retiro("c-viaje", "jun", 30_000)],
+    });
+
+    // mar: 150k/100k = 150% → rojo + ›› · may: 160k/150k ≈107% → ámbar + › · jun: sin plan → rojo + ››
+    const mar = page.getByTestId("withdraw-cell").nth(2);
+    await expect(mar).toHaveAttribute("data-over", "over_hard");
+    await expect(mar).toContainText("››");
+    // el color es exactamente el token --state-over resuelto por el tema
+    const stateOver = await cssVar(page, "--state-over");
+    await expect(mar).toHaveCSS("color", stateOver);
+    const may = page.getByTestId("withdraw-cell").nth(4);
+    await expect(may).toHaveAttribute("data-over", "over_soft");
+    await expect(may).toContainText("›");
+    const jun = page.getByTestId("withdraw-cell").nth(5);
+    await expect(jun).toHaveAttribute("data-over", "over_hard");
+  });
+});
+
+test.describe("FR-1015 — retiros planeados", () => {
+  test("TC-TRF4-015e: franja al exceder el plan y marca auto-sanadora al quedar descubierto", async ({ page }) => {
+    // @aitri-tc TC-TRF4-015e
+    await gotoGrid(page, {
+      budgets: { "c-viaje": { ene: 200_000 }, "@retiros": { jun: 150_000 } },
+      actuals: { "c-salario": { ene: 1_000_000 } },
+      movements: [],
+    });
+
+    // Exceder el plan: la franja con el límite exacto; el editor no se cierra.
+    await page.getByTestId("planned-withdraw-cell").nth(1).click(); // feb
+    const input = page.getByLabel("Retiro planeado");
+    await input.fill("250000");
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("planned-withdraw-block")).toContainText("Solo hay $200.000 reservados en tu plan hasta febrero");
+    await page.keyboard.press("Escape");
+
+    // Auto-sanador: el retiro planeado de jun (150k) quedó descubierto al bajar el plan de aportes.
+    await reserveCell(page, "Viaje", 0, "budget").click();
+    await page.getByLabel("Editar valor").fill("100000");
+    await page.keyboard.press("Enter");
+    const junPlanned = page.getByTestId("planned-withdraw-cell").nth(5);
+    await expect(junPlanned).toHaveAttribute("data-plan-warn", "true");
+    await expect(junPlanned).toContainText("!");
+    await expect(junPlanned).toHaveAttribute("title", /ya no cubre/);
+  });
+});
+
+// ── contraste WCAG computado (patrón de TC-BSC-453h) ───────────────────────────────────────────
 function parseColor(s: string): number[] {
   const t = s.trim();
   if (t.startsWith("#")) {
     const hex = t.slice(1);
-    if (hex.length === 3) return [...hex].map((h) => parseInt(h + h, 16));
     return [hex.slice(0, 2), hex.slice(2, 4), hex.slice(4, 6)].map((h) => parseInt(h, 16));
   }
   const nums = (t.match(/-?\d*\.?\d+/g) ?? ["0", "0", "0"]).map(Number);
@@ -266,133 +300,67 @@ function contrast(fg: string, bg: string): number {
   const [hi, lo] = [luminance(parseColor(fg)), luminance(parseColor(bg))].sort((a, b) => b - a);
   return (hi + 0.05) / (lo + 0.05);
 }
-
-/** color y background-color computados de un locator. */
-async function paint(l: ReturnType<Page["locator"]>): Promise<{ color: string; bg: string }> {
-  return l.evaluate((el) => {
-    const cs = getComputedStyle(el);
-    return { color: cs.color, bg: cs.backgroundColor };
-  });
-}
-
-/** Valor resuelto de una variable CSS del tema activo (medida sobre un elemento real). */
 async function cssVar(page: Page, name: string): Promise<string> {
-  return page.evaluate((v) => getComputedStyle(document.body).getPropertyValue(v).trim(), name);
+  return page.evaluate((v) => {
+    const probe = document.createElement("div");
+    probe.style.color = `var(${v})`;
+    document.body.appendChild(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    return resolved;
+  }, name);
 }
 
 test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
   for (const scheme of ["light", "dark"] as const) {
-    test(`TC-TRF-156h: las tintas nuevas pasan AA sobre sus superficies en ambos temas (${scheme})`, async ({ page }) => {
-      // @aitri-tc TC-TRF-156h
+    test(`TC-TRF4-156h: las tintas nuevas pasan AA en ambos temas (${scheme})`, async ({ page }) => {
+      // @aitri-tc TC-TRF4-156h
       await page.emulateMedia({ colorScheme: scheme });
-      await gotoGrid(page, PLAN);
+      await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { ene: 150_000 } }, movements: [] });
 
-      // Los tres pares del spec, con los valores REALES que el tema resuelve en el navegador.
       const [fgMuted, bg, error, bgCard, warning] = await Promise.all(
         ["--fg-muted", "--bg", "--error", "--bg-card", "--state-warning"].map((v) => cssVar(page, v))
       );
-      expect(contrast(fgMuted, bg), `arrastrada ${scheme}: ${fgMuted} sobre ${bg}`).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(error, bgCard), `bloqueo ${scheme}: ${error} sobre ${bgCard}`).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(warning, bg), `plan ${scheme}: ${warning} sobre ${bg}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(fgMuted, bg), `muted ${scheme}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(error, bgCard), `error ${scheme}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(warning, bg), `warning ${scheme}`).toBeGreaterThanOrEqual(4.5);
 
-      // Y la UI usa esas tintas de verdad: marca de plan sobre su celda…
-      const warnPaint = await paint(reserveCell(page, "Viaje", 2, "budget"));
-      expect(parseColor(warnPaint.color)).toEqual(parseColor(warning));
-      // …y franja de bloqueo real (provocada) pintada con --error sobre --bg-card.
+      // La franja de bloqueo REAL pintada con esos pares.
       await reserveCell(page, "Nueva", 0, "actual").click();
-      await page.getByLabel("Editar saldo").fill("999999999");
+      await page.getByLabel("Editar valor").fill("999999999");
       await page.keyboard.press("Enter");
       const block = page.getByTestId("reserve-block");
       await expect(block).toBeVisible();
-      const blockPaint = await paint(block);
-      expect(contrast(blockPaint.color, blockPaint.bg), `franja ${scheme}`).toBeGreaterThanOrEqual(4.5);
+      const paint = await block.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { color: cs.color, bg: cs.backgroundColor };
+      });
+      expect(contrast(paint.color, paint.bg), `franja ${scheme}`).toBeGreaterThanOrEqual(4.5);
     });
   }
 
-  test("TC-TRF-156f: ningún estado nuevo depende SOLO del color", async ({ page }) => {
-    // @aitri-tc TC-TRF-156f
-    await gotoGrid(page, PLAN);
+  test("TC-TRF4-156f: ningún estado nuevo depende SOLO del color", async ({ page }) => {
+    // @aitri-tc TC-TRF4-156f
+    await gotoGrid(page, {
+      budgets: { "c-viaje": { mar: 1_200_000 } },
+      actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 300_000 } },
+      movements: [retiro("c-viaje", "jun", 100_000)],
+    });
 
-    // Plan inviable: porta el glifo «!» (texto real en el DOM, no un tinte).
+    // Plan inviable: glifo «!» + atributo inspeccionable.
     const warn = reserveCell(page, "Viaje", 2, "budget");
     await expect(warn).toContainText("!");
     await expect(warn).toHaveAttribute("data-plan-warn", "true");
-
-    // Arrastre: el dato COMPLETO está en el texto (la cifra resuelta) y el estado viaja en un
-    // atributo inspeccionable sin percepción de color.
-    const carried = reserveCell(page, "Viaje", 11, "budget");
-    await expect(carried).toHaveAttribute("data-reserve-state", "carried");
-    expect(((await carried.textContent()) ?? "").trim().length).toBeGreaterThan(0);
-    // Y el «0» explícito ≠ «—» sin historia: distinción por TEXTO, no por tinte.
-    await expect(reserveCell(page, "Nueva", 0, "actual")).toHaveText("—");
-
-    // Bloqueo: porta el mensaje completo en texto (número exacto incluido), jamás solo un borde rojo.
+    // Sobre-retiro (sin plan): glifo ›› + atributo.
+    const jun = page.getByTestId("withdraw-cell").nth(5);
+    await expect(jun).toContainText("››");
+    await expect(jun).toHaveAttribute("data-over", "over_hard");
+    // Bloqueo: el mensaje completo en texto, con el número exacto.
     await reserveCell(page, "Nueva", 0, "actual").click();
-    await page.getByLabel("Editar saldo").fill("999999999");
+    await page.getByLabel("Editar valor").fill("999999999");
     await page.keyboard.press("Enter");
-    const block = page.getByTestId("reserve-block");
-    await expect(block).toBeVisible();
-    const text = (await block.textContent()) ?? "";
+    const text = (await page.getByTestId("reserve-block").textContent()) ?? "";
     expect(text).toMatch(/margen|solo tiene|Bloquea/);
-    expect(text).toMatch(/\$/); // el número exacto está escrito
-  });
-});
-
-test.describe("FR-1012 — observaciones por celda", () => {
-  test("TC-TRF-112h: la nota de una operación De→A se lee desde la celda del mes", async ({ page }) => {
-    // @aitri-tc TC-TRF-112h
-    // Un retiro con nota «pasaje» ya registrado en sep (journal con from/to).
-    const data = {
-      budgets: {} as CellMap,
-      actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { jul: 200_000, sep: 150_000 } } as CellMap,
-      movements: [
-        { id: "mv-1", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 50_000, month: "sep", createdAt: 1, from: "c-viaje", to: "@disponible", note: "pasaje" },
-      ],
-    };
-    await gotoGrid(page, data);
-
-    // La celda del mes de la alcancía afectada muestra el punto indicador y la nota es legible.
-    const cell = reserveCell(page, "Viaje", 8, "actual");
-    await expect(cell.getByTestId("note-dot")).toBeVisible();
-    await expect(cell).toHaveAttribute("title", /pasaje/);
-    // Lectura completa al interactuar: el editor lista la observación derivada del journal…
-    await cell.click();
-    const notes = page.getByTestId("cell-notes");
-    await expect(notes.getByTestId("cell-note")).toHaveText("pasaje");
-    // …y se puede añadir una manual, que aflora de inmediato.
-    await page.getByLabel("Añadir observación").fill("meta del viaje");
-    await page.getByTestId("cell-note-add").click();
-    await expect(notes.getByTestId("cell-note")).toHaveCount(2);
-    await expect(notes.getByTestId("cell-note").nth(1)).toHaveText("meta del viaje");
-  });
-
-  test("TC-TRF-112e: celda sin observaciones: sin indicador y con placeholder en el editor", async ({ page }) => {
-    // @aitri-tc TC-TRF-112e
-    await gotoGrid(page);
-
-    const cell = reserveCell(page, "Fondo", 4, "actual"); // may: arrastra, sin nota alguna
-    await expect(cell.getByTestId("note-dot")).toHaveCount(0);
-    await cell.click();
-    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin observaciones este mes");
-  });
-});
-
-test.describe("FR-1008 — el plan AVISA con su propia marca", () => {
-  test("TC-TRF-108e: la marca del plan es «!» + ámbar: canal no cromático propio, distinto de ›/›› y ‹‹", async ({ page }) => {
-    // @aitri-tc TC-TRF-108e
-    await gotoGrid(page, PLAN);
-
-    // La celda Pres. de marzo de Viaje guarda 1.200.000 (delta planeado > margen 1.000.000).
-    const cell = reserveCell(page, "Viaje", 2, "budget");
-    await expect(cell).toHaveAttribute("data-plan-warn", "true");
-    await expect(cell).toHaveCSS("color", STATE_WARNING);
-    const text = (await cell.textContent()) ?? "";
-    // Marca de forma propia: «!», y JAMÁS las de sobre-consumo (›/››) ni la de negativo (‹‹).
-    expect(text).toContain("!");
-    expect(text).toContain("1.200.000"); // el valor SE GUARDÓ: avisar, no bloquear
-    expect(text).not.toContain("›");
-    expect(text).not.toContain("‹");
-    // Visible sin percepción de color: la marca es texto, presente en el DOM accesible.
-    await expect(cell).toContainText("!");
+    expect(text).toMatch(/\$/);
   });
 });

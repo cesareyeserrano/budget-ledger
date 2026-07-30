@@ -283,9 +283,9 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
 describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
   it("TC-BAL-907h: el Saldo reservado global se acumula mes a mes con los aportes", () => {
     // @aitri-tc TC-BAL-907h
-    // Re-derivado por feature transferencias (FR-1009 supersede FR-907): las celdas transfer son
-    // SALDOS con arrastre — la misma acumulación se expresa como trayectoria de saldo.
-    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { ene: 50_000, feb: 100_000, mar: 130_000 } }]);
+    // Modelo v4 (feature transferencias): las celdas transfer son APORTES del mes — la fixture
+    // original de flujo vuelve a ser la correcta; reservedBalance acumula los aportes.
+    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { ene: 50_000, feb: 50_000, mar: 30_000 } }]);
 
     const series = computeBalanceSeries(s);
 
@@ -345,10 +345,9 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
 
   it("TC-BAL-936e: multi-reserva y multi-mes: el reservado global acumula sobre todas las reservas y meses", () => {
     // @aitri-tc TC-BAL-936e
-    // Re-derivado (FR-1009 supersede FR-907): celdas = SALDOS. A aporta 30.000 en ene y sube a
-    // 50.000 en feb (+20.000); B abre en feb con 10.000. Mismos deltas que la versión de flujo.
+    // Modelo v4: celdas = APORTES del mes (la fixture original de flujo).
     const s = makeState([
-      { id: "c-alcancia-a", type: "transfer", actual: { ene: 30_000, feb: 50_000 } },
+      { id: "c-alcancia-a", type: "transfer", actual: { ene: 30_000, feb: 20_000 } },
       { id: "c-alcancia-b", type: "transfer", actual: { feb: 10_000 } }, // nada en enero
     ]);
 
@@ -663,7 +662,7 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
     expect(writes).toEqual([]); // ni una escritura: el balance es derivado, no se almacena
     // las claves de persistencia siguen siendo las dos existentes — el balance no añadió ninguna
     expect(Object.keys(STORAGE_KEYS).sort()).toEqual(["budget", "nodes"]);
-    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v3"]);
+    expect(Object.values(STORAGE_KEYS)).toEqual(["ledger.nodes.v1", "ledger.budget.v4"]);
   });
 
   it("TC-BAL-958f: el balance no puede escribir en el schema (no toca el CHECK)", () => {

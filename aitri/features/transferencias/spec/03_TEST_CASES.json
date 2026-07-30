@@ -1,7 +1,7 @@
 {
   "test_plan": {
-    "strategy": "Tres capas fieles a la arquitectura: UNIT sobre el dominio puro (resolvedBalance, validateReserveWrite, applyReserveOp, migrateBudgetV2toV3, merge de reestructuración — tabla de casos con números exactos del diseño); INTEGRATION sobre persistencia y servidor (round-trip localStorage v2→v3 con idempotencia, insertMovement multi-celda transaccional, migración lazy concurrente, las cinco capas de from/to); E2E (Playwright) sobre las dos puertas reales (editor de celda con franjas/toast/Deshacer, registro De→A a 375px, badge/banner/marca de plan). Lección de BG-009/BL-008 aplicada: cada invariante de conservación lleva su caso NEGATIVO que falla si el invariante se rompe — ningún TC afirma 'cuadra' sin comparar números antes/después. Los TCs de re-derivación declarada (balance v2, seeds) se listan en NFR-1007 y se implementan en el build, no aquí.",
-    "coverage_goal": "85% de líneas en src/domain/reserve.ts y src/domain/migrate.ts; la señal honesta es el set happy/edge/negative por FR más los negativos de conservación",
+    "strategy": "Tres capas fieles a la arquitectura v4: UNIT sobre el dominio puro (saldo derivado, applyReserveOp con sus tres semánticas, techo/piso en cadena, retiros planeados, integridad estructural del journal —los hallazgos adversariales 2026-07-30 como TCs negativos—, conservación por fuzz determinista); INTEGRATION sobre persistencia y servidor (migraciones v2/v3→v4 idempotentes, cinco capas, migración lazy concurrente y pre-POST, blob corrupto → semilla); E2E (Playwright) sobre las tres puertas reales (celdas de la grilla con franja, fila Retiros del mes operable con desplegable/corrección/graduación, registro De→A a 375px) más accesibilidad AA en ambos temas. Cada invariante lleva su caso NEGATIVO que falla si se rompe.",
+    "coverage_goal": "85% de líneas en src/domain/reserve.ts y src/domain/migrate.ts; la señal honesta es el set happy/edge/negative por FR más los negativos de conservación e integridad estructural",
     "test_types": [
       "unit",
       "integration",
@@ -10,332 +10,172 @@
   },
   "test_cases": [
     {
-      "id": "TC-TRF-101h",
+      "id": "TC-TRF4-001h",
       "requirement_id": "FR-1001",
       "user_story_id": "US-1001",
       "ac_id": "AC-1001",
-      "title": "resolvedBalance arrastra el último explícito hacia adelante",
+      "title": "El saldo derivado acumula aportes y descuenta retiros, con arrastre implícito",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "una hoja transfer con único valor explícito actuals jul=200000",
-      "when": "se consulta resolvedBalance(state, hoja, m, 'actual') para los 12 meses",
-      "then": "devuelve 0 para ene..jun y 200000 para jul..dic, sin lanzar",
-      "steps": [
-        "construir estado con makeState",
-        "consultar los 12 meses",
-        "comparar el arreglo completo"
-      ],
-      "expected_result": "[0,0,0,0,0,0,200000,200000,200000,200000,200000,200000]",
-      "test_data": {
-        "jul": 200000
-      }
+      "given": "aportes {ene:100000, feb:100000, mar:100000} y un retiro de 50000 en abr (journal)",
+      "when": "se consulta resolvedBalance de la alcancía en los 12 meses",
+      "then": "la serie es 100000/200000/300000/250000 y se mantiene 250000 hasta dic",
+      "expected_result": "[100,200,300,250,250,250,250,250,250,250,250,250] (miles)"
     },
     {
-      "id": "TC-TRF-101e",
-      "requirement_id": "FR-1001",
-      "user_story_id": "US-1001",
-      "ac_id": "AC-1001b",
-      "title": "0 explícito = vaciada, y la distinción ausente-vs-0 sobrevive el round-trip de persistencia",
-      "type": "integration",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "hoja con actuals jul=200000 y sep=0 EXPLÍCITO (ago ausente)",
-      "when": "se resuelve la serie, se guarda vía LocalStorageRepository y se recarga",
-      "then": "ago resuelve 200000 (arrastre) y sep..dic resuelven 0 (vaciada); tras recargar, ago sigue AUSENTE en el mapa y sep sigue presente con 0",
-      "steps": [
-        "resolver serie",
-        "save+load",
-        "comparar mapas byte a byte y re-resolver"
-      ],
-      "expected_result": "ago=200000/ausente, sep=0/presente — idéntico antes y después de persistir",
-      "test_data": {
-        "jul": 200000,
-        "sep": 0
-      }
-    },
-    {
-      "id": "TC-TRF-101f",
+      "id": "TC-TRF4-001e",
       "requirement_id": "FR-1001",
       "user_story_id": "US-1001",
       "ac_id": "AC-1001",
-      "title": "Un mes ausente con historia JAMÁS agrega 0 (el retiro fantasma del hallazgo 9.2)",
+      "title": "Alcancía sin aportes ni retiros deriva 0 en los 12 meses sin lanzar",
       "type": "unit",
-      "scenario": "negative",
-      "priority": "high",
-      "preconditions": [],
-      "given": "hoja A con {jul:200000} y hoja B con {ago:100000}, ambas transfer del mismo tipo",
-      "when": "se consulta el total resuelto del tipo en ago y el delta de reservas de ago",
-      "then": "el total de ago es 300000 (200000 arrastrado + 100000) — no 100000 — y el delta de ago es +100000 — no −100000",
-      "steps": [
-        "construir estado",
-        "resolvedTypeTotal(ago)",
-        "reserveDelta(ago)"
-      ],
-      "expected_result": "total ago=300000, delta ago=+100000; nunca aparece un retiro que nadie operó",
-      "test_data": {
-        "A.jul": 200000,
-        "B.ago": 100000
-      }
-    },
-    {
-      "id": "TC-TRF-102h",
-      "requirement_id": "FR-1002",
-      "user_story_id": "US-1002",
-      "ac_id": "AC-1002",
-      "title": "La celda-saldo pinta explícita plena, arrastrada atenuada, y el badge SALDO está en el bloque",
-      "type": "e2e",
-      "scenario": "happy_path",
-      "priority": "high",
-      "preconditions": [
-        "semilla v3 con hoja transfer jul=200000"
-      ],
-      "given": "la grilla de escritorio (1440px) con una alcancía con saldo explícito solo en jul",
-      "when": "se inspeccionan las celdas Ejec. de jul..dic y el rótulo del bloque RESERVAS",
-      "then": "jul muestra '200.000' con color computado var(--fg); ago..dic muestran '200.000' con var(--fg-muted); el rótulo contiene el badge 'SALDO'",
-      "steps": [
-        "goto /",
-        "leer getComputedStyle de las celdas",
-        "assert del badge"
-      ],
-      "expected_result": "tintas correctas por estado y badge visible",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-102e",
-      "requirement_id": "FR-1002",
-      "user_story_id": "US-1002",
-      "ac_id": "AC-1002b",
-      "title": "'0' explícito ≠ '—' sin historia ≠ gris arrastrado — tres tintas distinguibles",
-      "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "una alcancía vaciada (0 explícito en dic), otra sin historia, otra arrastrando",
-      "when": "se comparan las tres celdas del mismo mes",
-      "then": "la vaciada muestra el texto '0' en tinta plena; la sin-historia muestra '—' en var(--fg-muted); la arrastrada muestra su cifra en var(--fg-muted)",
-      "steps": [
-        "sembrar los tres estados",
-        "leer texto y color de cada celda"
-      ],
-      "expected_result": "tres representaciones distintas, la vaciada legible como dato",
-      "test_data": {}
+      "given": "una hoja transfer sin celdas ni movimientos (y un id inexistente)",
+      "when": "se consulta resolvedBalance en los 12 meses",
+      "then": "devuelve 0 los 12 meses sin lanzar, para la hoja y para el id inexistente",
+      "expected_result": "[0×12] en ambos casos"
     },
     {
-      "id": "TC-TRF-102f",
+      "id": "TC-TRF4-001f",
+      "requirement_id": "FR-1001",
+      "user_story_id": "US-1001",
+      "ac_id": "AC-1001",
+      "title": "Ninguna secuencia de operaciones aceptadas produce saldo derivado negativo",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una secuencia determinista de ~60 operaciones mixtas (aportes por celda, guardar/sacar/mover, eliminar retiros)",
+      "when": "tras cada operación aceptada se verifica la serie derivada de cada alcancía",
+      "then": "todas las series quedan ≥ 0 en los 12 meses",
+      "expected_result": "0 violaciones del piso"
+    },
+    {
+      "id": "TC-TRF4-002h",
       "requirement_id": "FR-1002",
       "user_story_id": "US-1002",
       "ac_id": "AC-1002",
-      "title": "Ninguna celda transfer muestra un negativo bajo ninguna secuencia válida",
+      "title": "La celda dice el aporte de ESE mes y el total del bloque es la suma del mes",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la grilla de escritorio con dos alcancías: aporte 100000 en ene (A) y 200000 en feb (B)",
+      "when": "se inspeccionan las celdas Ejec. y la fila total RESERVAS",
+      "then": "A muestra 100.000 solo en ene; B 200.000 solo en feb; el total de feb es 200.000 (no 300.000) y las demás celdas em-dash",
+      "expected_result": "celdas por mes, jamás acumulado"
+    },
+    {
+      "id": "TC-TRF4-002f",
+      "requirement_id": "FR-1002",
+      "user_story_id": "US-1002",
+      "ac_id": "AC-1002",
+      "title": "Ninguna celda del bloque RESERVAS muestra un acumulado ni un negativo",
       "type": "e2e",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [],
-      "given": "una sesión con guardados, retiros y movimientos A→B ejecutados por grilla y registro",
+      "given": "una sesión con aportes, retiros y ediciones ejecutadas",
       "when": "se escanean todas las celdas del bloque RESERVAS",
-      "then": "ningún textContent de celda transfer empieza con '−' ni '-'",
-      "steps": [
-        "ejecutar la secuencia de operaciones",
-        "escanear celdas por regex"
-      ],
-      "expected_result": "0 celdas con signo negativo",
-      "test_data": {}
+      "then": "ningún textContent empieza con '−'/'-' y ningún valor iguala el acumulado derivado cuando difiere del aporte del mes",
+      "expected_result": "0 celdas con signo negativo o acumulado"
     },
     {
-      "id": "TC-TRF-202e",
-      "requirement_id": "FR-1002",
-      "user_story_id": "US-1002",
-      "ac_id": "AC-1002",
-      "title": "El banner post-migración aparece exactamente una vez",
-      "type": "e2e",
-      "scenario": "edge_case",
-      "priority": "medium",
-      "preconditions": [
-        "localStorage sembrado con ledger.budget.v2"
-      ],
-      "given": "primera carga tras la migración v2→v3",
-      "when": "se carga la app, se pulsa 'Entendido', y se recarga dos veces",
-      "then": "el banner 'Las celdas de Reservas ahora muestran el saldo…' es visible en la primera carga y tiene count 0 en las siguientes",
-      "steps": [
-        "sembrar v2",
-        "goto /",
-        "assert banner",
-        "click Entendido",
-        "reload ×2",
-        "assert ausencia"
-      ],
-      "expected_result": "banner una sola vez; flag ledger.ui.reservasNoticeSeen.v1 persistido",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-103h",
+      "id": "TC-TRF4-003h",
       "requirement_id": "FR-1003",
       "user_story_id": "US-1003",
       "ac_id": "AC-1003",
-      "title": "Bajar la celda saca a Disponible, con toast y Deshacer que revierte todo",
-      "type": "e2e",
+      "title": "Editar la celda escribe el aporte y JAMÁS journaliza",
+      "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": [
-        "alcancía con saldo 200000 en sep"
-      ],
-      "given": "la grilla con el módulo de Balance visible",
-      "when": "se edita la celda de sep a 150000 y se confirma; luego se pulsa 'Deshacer' en el toast",
-      "then": "tras confirmar: la celda muestra 150.000, el Saldo disponible del Balance sube 50.000 y el toast dice 'Sacaste $50.000 de Viaje → Disponible · Deshacer'; tras Deshacer: la celda vuelve a 200.000 y el Balance a su estado previo",
-      "steps": [
-        "editar celda",
-        "assert celda+balance+toast",
-        "click Deshacer",
-        "assert reversión completa"
-      ],
-      "expected_result": "operación y reversión exactas, sin residuo en el journal tras Deshacer",
-      "test_data": {}
+      "preconditions": [],
+      "given": "una alcancía con aporte 100000 en feb y un journal con N movimientos",
+      "when": "applyReserveCellEdit sube feb a 150000 y luego lo baja a 80000",
+      "then": "las celdas quedan 150000 y luego 80000; movements.length sigue siendo N en ambos casos",
+      "expected_result": "cero movimientos nuevos por editar"
     },
     {
-      "id": "TC-TRF-103e",
+      "id": "TC-TRF4-003f",
       "requirement_id": "FR-1003",
       "user_story_id": "US-1003",
-      "ac_id": "AC-1003c",
-      "title": "Commit sin cambio sobre celda arrastrada = no-op total",
+      "ac_id": "AC-1003",
+      "title": "El bloqueo del techo no cierra el editor: franja inline, valor seleccionado, Escape restaura",
       "type": "e2e",
-      "scenario": "edge_case",
+      "scenario": "negative",
       "priority": "high",
-      "preconditions": [
-        "celda de oct arrastrando 150000"
-      ],
-      "given": "el editor abierto sobre la celda gris de oct (muestra 150000 seleccionado)",
-      "when": "se confirma con Enter sin cambiar el valor",
-      "then": "la celda sigue en tinta var(--fg-muted) (arrastrada), el mapa NO contiene oct como clave explícita, y movements.length no cambió",
-      "steps": [
-        "click celda gris",
-        "Enter",
-        "leer color + estado vía __ledgerStore/localStorage"
-      ],
-      "expected_result": "cero escritura, cero journal, sigue gris",
-      "test_data": {}
+      "preconditions": [],
+      "given": "margen del mes 150000 y una alcancía sin historia",
+      "when": "se teclea 200000 en su celda Ejec. y se pulsa Enter",
+      "then": "el input sigue visible y con foco; la franja dice 'No puedes reservar $200.000: tu margen este mes es $150.000'; el valor queda seleccionado; Escape restaura y la recarga confirma que nada se persistió",
+      "expected_result": "editor abierto en bloqueo; persistencia intacta"
     },
     {
-      "id": "TC-TRF-103f",
+      "id": "TC-TRF4-003e",
       "requirement_id": "FR-1003",
       "user_story_id": "US-1003",
       "ac_id": "AC-1003b",
-      "title": "El bloqueo no cierra el editor: mensaje inline, valor seleccionado, Escape restaura",
-      "type": "e2e",
-      "scenario": "negative",
-      "priority": "high",
-      "preconditions": [
-        "margen del mes 150000"
-      ],
-      "given": "el editor abierto sobre una celda transfer",
-      "when": "se teclea un saldo que exige un aporte de 200000 y se pulsa Enter",
-      "then": "el input sigue visible y con foco, junto a la celda aparece 'No puedes reservar $200.000: tu margen este mes es $150.000'; Escape restaura el valor previo y nada se persistió (recarga lo confirma)",
-      "steps": [
-        "editar con valor inválido",
-        "Enter",
-        "assert franja+foco",
-        "Escape",
-        "reload",
-        "assert valor previo"
-      ],
-      "expected_result": "editor abierto en bloqueo; persistencia intacta tras Escape",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-203e",
-      "requirement_id": "FR-1003",
-      "user_story_id": "US-1003",
-      "ac_id": "AC-1003d",
-      "title": "A→B por dos ediciones con margen 0: bajar primero pasa, subir primero bloquea",
+      "title": "Bajar un aporte que financiaba retiros posteriores bloquea nombrando el mes",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "margen del mes = 0 (prevAvailable 0, flow 0); Viaje con saldo 200000, Fondo con 800000",
-      "when": "secuencia 1: bajar Viaje 100000 y luego subir Fondo 100000; secuencia 2 (estado fresco): subir Fondo 100000 primero",
-      "then": "secuencia 1: ambas escrituras aceptadas y Σ saldos del mes idéntico; secuencia 2: la primera escritura rechazada con rule='techo' y limit=0",
-      "steps": [
-        "ejecutar ambas secuencias vía validateReserveWrite/applyReserveOp",
-        "comparar veredictos y estados"
-      ],
-      "expected_result": "el orden importa exactamente como se decidió; ningún estado intermedio inválido persiste",
-      "test_data": {
-        "margen": 0,
-        "monto": 100000
-      }
+      "given": "aporte 100000 en feb y un retiro de 80000 en oct (el saldo de oct depende de feb)",
+      "when": "se valida bajar el aporte de feb a 0",
+      "then": "rechazo con rule='piso', month='oct' y el saldo que quedaría (negativo) en limit",
+      "expected_result": "el veredicto apunta al mes que de verdad rompe"
     },
     {
-      "id": "TC-TRF-303e",
-      "requirement_id": "FR-1003",
-      "user_story_id": "US-1003",
-      "ac_id": "AC-1003",
-      "title": "Editar julio con agosto explícito produce la preview del delta derivado nombrando el mes",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "Viaje con jul=200000 y ago=200000 explícitos (delta de ago = 0)",
-      "when": "se valida la edición de jul a 150000",
-      "then": "el veredicto es ok con derived=[{month:'ago', delta:+50000}] — la UI puede decir 'esto convierte agosto en un aporte de 50.000' antes de aplicar",
-      "steps": [
-        "validateReserveWrite con la edición de jul",
-        "inspeccionar derived[]"
-      ],
-      "expected_result": "derived nombra 'ago' con +50000; sin confirmación no se aplica nada",
-      "test_data": {
-        "jul": 200000,
-        "ago": 200000,
-        "nuevoJul": 150000
-      }
-    },
-    {
-      "id": "TC-TRF-104h",
+      "id": "TC-TRF4-004h",
       "requirement_id": "FR-1004",
       "user_story_id": "US-1004",
       "ac_id": "AC-1004",
-      "title": "Mover A→B con margen 0 es atómico y neto cero",
+      "title": "Guardar suma celda+journal; sacar solo journal; mover suma destino+journal — targets correctos",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "Viaje 200000 y Fondo 800000 resueltos en el mes m; margen 0",
-      "when": "applyReserveOp({from:'viaje', to:'fondo', month:m, amount:100000})",
-      "then": "un solo estado resultante con Viaje=100000 y Fondo=900000, Σ saldos idéntico, y UN movimiento con from='viaje', to='fondo', target='fondo'",
-      "steps": [
-        "ejecutar la op",
-        "comparar saldos resueltos y el movimiento emitido"
-      ],
-      "expected_result": "ambos lados ajustados en un acto; total del tipo sin cambio",
-      "test_data": {
-        "amount": 100000
-      }
+      "given": "margen suficiente y dos alcancías A y B",
+      "when": "applyReserveOp: guardar 50000 en A; sacar 20000 de A; mover 10000 de A a B",
+      "then": "guardar: celda A +=50000 y movimiento from='@disponible'/to=A/target=A; sacar: celdas intactas y from=A/to='@disponible'/target=A; mover: celda B +=10000 y from=A/to=B/target=B",
+      "expected_result": "tres semánticas exactas; el sentinel jamás en target"
     },
     {
-      "id": "TC-TRF-104e",
+      "id": "TC-TRF4-004e",
       "requirement_id": "FR-1004",
       "user_story_id": "US-1004",
       "ac_id": "AC-1004b",
-      "title": "Guardar sobre un mes que arrastra LEE el arrastre (el bug de addMovement, imposible)",
+      "title": "El journal SIGUE a las celdas: crear hijo o fusionar por drag-drop no fabrica saldo",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "Viaje con único explícito jul=200000; operación en ago",
-      "when": "applyReserveOp({from:'@disponible', to:'viaje', month:'ago', amount:50000})",
-      "then": "el saldo explícito de ago queda en 250000 — jamás 50000",
-      "steps": [
-        "ejecutar",
-        "leer actuals['viaje']['ago']"
-      ],
-      "expected_result": "250000",
-      "test_data": {
-        "jul": 200000,
-        "amount": 50000
-      }
+      "given": "una alcancía con aporte 100000 y retiro 100000 (saldo derivado 0)",
+      "when": "createNode le añade una subcategoría; en otro estado, moveNode fusiona otra hoja sobre ella",
+      "then": "el saldo derivado del receptor sigue siendo 0 en ambos casos y un segundo retiro de 100000 se RECHAZA con rule='piso'",
+      "expected_result": "el saldo fantasma del hallazgo adversarial es imposible"
     },
     {
-      "id": "TC-TRF-104f",
+      "id": "TC-TRF4-104e",
+      "requirement_id": "FR-1004",
+      "user_story_id": "US-1004",
+      "ac_id": "AC-1004b",
+      "title": "Borrar el destino de un mover A→B conserva el retiro de A (no resucita su saldo)",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "guardar 100000 en A; mover 100000 de A a B; vaciar la celda de B",
+      "when": "deleteNode(B)",
+      "then": "el borrado procede, el movimiento sobrevive convertido en from=A/to='@disponible'/target=A, y el saldo derivado de A sigue en 0",
+      "expected_result": "sin resurrección de saldos"
+    },
+    {
+      "id": "TC-TRF4-004f",
       "requirement_id": "FR-1004",
       "user_story_id": "US-1004",
       "ac_id": "AC-1004",
@@ -345,1131 +185,834 @@
       "priority": "high",
       "preconditions": [],
       "given": "un estado válido cualquiera",
-      "when": "applyReserveOp con: monto 0, monto negativo, monto no numérico, from===to, from y to ambos '@disponible', y un id de hoja inexistente",
-      "then": "cada llamada devuelve rechazo tipado ('invalid_target' o veredicto) y el estado de entrada queda idéntico (misma referencia o deep-equal)",
-      "steps": [
-        "tabla de 6 entradas inválidas",
-        "assert rechazo + estado intacto en cada una"
-      ],
-      "expected_result": "6/6 rechazadas, 0 mutaciones",
-      "test_data": {}
+      "when": "applyReserveOp con monto 0, negativo, no numérico; from===to; ambos sentinel; hoja inexistente",
+      "then": "cada llamada devuelve rechazo tipado y el estado queda deep-equal al original",
+      "expected_result": "6/6 rechazadas, 0 mutaciones"
     },
     {
-      "id": "TC-TRF-204e",
-      "requirement_id": "FR-1004",
-      "user_story_id": "US-1004",
-      "ac_id": "AC-1004c",
-      "title": "El sentinel nunca es target; deleteNode limpia por ambos extremos",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "un retiro (from='viaje', to='@disponible') y un mover (from='viaje', to='fondo') registrados; Viaje luego vaciada",
-      "when": "se inspeccionan los movimientos y se ejecuta deleteNode('viaje')",
-      "then": "en ambos movimientos target es una alcancía real (retiro: 'viaje'; mover: 'fondo'); tras el borrado, ningún movimiento restante referencia 'viaje' ni por from, ni por to, ni por target",
-      "steps": [
-        "crear ops",
-        "assert targets",
-        "vaciar y borrar",
-        "assert limpieza por ambos extremos"
-      ],
-      "expected_result": "cero huérfanos bajo el invariante extendido (nodo real o sentinel)",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-304e",
-      "requirement_id": "FR-1004",
-      "user_story_id": "US-1004",
-      "ac_id": "AC-1004c",
-      "title": "insertMovement del servidor persiste el diff multi-celda en una transacción",
-      "type": "integration",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [
-        "Postgres efímero (testcontainers) con ledger inicializado"
-      ],
-      "given": "un usuario con Viaje y Fondo con saldos; una operación mover A→B vía la capa del servidor",
-      "when": "insertMovement ejecuta la op del dominio compartido",
-      "then": "la tabla amount_cell refleja AMBAS celdas actualizadas, movement tiene la fila con from_id/to_id, revision subió exactamente 1, y un GET del snapshot devuelve el estado consistente",
-      "steps": [
-        "sembrar",
-        "POST de la op",
-        "leer BD y snapshot"
-      ],
-      "expected_result": "dos celdas + un movimiento + un bump, o nada (transaccional)",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-105h",
+      "id": "TC-TRF4-005h",
       "requirement_id": "FR-1005",
       "user_story_id": "US-1005",
       "ac_id": "AC-1005",
-      "title": "El registro Reserva muestra saldos en De y el máximo retirable antes de operar",
+      "title": "El registro Reserva muestra saldos en De y el máximo/margen antes de operar",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": [
-        "viewport 375px",
-        "alcancías con saldos"
-      ],
-      "given": "el registro móvil con tipo Reserva activo",
-      "when": "se abre la fila De y se elige 'Viaje'",
-      "then": "el chip de Viaje muestra su saldo ('$150.000'), y junto al monto aparece 'Máx. $150.000'; al elegir 'Disponible' como De aparece 'Margen del mes: $…'",
-      "steps": [
-        "seleccionar tipo Reserva",
-        "inspeccionar chips",
-        "elegir origen",
-        "assert guía"
-      ],
-      "expected_result": "el estado visible ANTES de teclear; jamás descubierto por error",
-      "test_data": {}
+      "preconditions": [],
+      "given": "el registro móvil (375px) con tipo Reserva y alcancías con saldo",
+      "when": "se abre la fila De y se elige una alcancía; luego se elige 'Disponible'",
+      "then": "cada chip muestra su saldo derivado; elegida la alcancía aparece 'Máx. $X'; con Disponible aparece 'Margen del mes: $X'",
+      "expected_result": "el estado visible ANTES de teclear"
     },
     {
-      "id": "TC-TRF-105e",
+      "id": "TC-TRF4-005f",
       "requirement_id": "FR-1005",
       "user_story_id": "US-1005",
-      "ac_id": "AC-1005c",
-      "title": "Estado vacío sin alcancías, y el toggle dice 'Reserva'",
-      "type": "e2e",
-      "scenario": "edge_case",
-      "priority": "medium",
-      "preconditions": [
-        "estado sin hojas transfer"
-      ],
-      "given": "el registro móvil de un usuario sin alcancías",
-      "when": "se elige el tipo Reserva",
-      "then": "aparece 'No tienes alcancías — créalas en el escritorio', las filas De/A no se muestran, Guardar está deshabilitado, y el segmento del toggle dice 'Reserva' (0 apariciones de 'Transferencia' en el registro)",
-      "steps": [
-        "vaciar hojas transfer",
-        "seleccionar tipo",
-        "asserts"
-      ],
-      "expected_result": "guía clara, guardado imposible, rótulo nuevo",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-105f",
-      "requirement_id": "FR-1005",
-      "user_story_id": "US-1005",
-      "ac_id": "AC-1005b",
+      "ac_id": "AC-1005",
       "title": "De=A es imposible por construcción",
       "type": "e2e",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": [
-        "≥2 alcancías"
-      ],
-      "given": "la fila De con 'Viaje' elegido",
-      "when": "se abre la fila A",
-      "then": "'Viaje' no existe entre las opciones de A (count 0); al cambiar De a 'Fondo', 'Viaje' reaparece en A y 'Fondo' desaparece",
-      "steps": [
-        "elegir De",
-        "escanear opciones de A",
-        "cambiar De",
-        "re-escanear"
-      ],
-      "expected_result": "exclusión mutua dinámica; ninguna secuencia produce De=A",
-      "test_data": {}
+      "preconditions": [],
+      "given": "la fila De con una alcancía elegida",
+      "when": "se abre la fila A y luego se cambia la selección de De",
+      "then": "la opción elegida en De no existe en A; al cambiar De la exclusión se actualiza dinámicamente",
+      "expected_result": "ninguna secuencia produce De=A"
     },
     {
-      "id": "TC-TRF-205h",
+      "id": "TC-TRF4-005e",
       "requirement_id": "FR-1005",
       "user_story_id": "US-1005",
       "ac_id": "AC-1005",
-      "title": "Guardar la operación crea el movimiento from/to y muestra el overlay de confirmación",
+      "title": "Estado vacío sin alcancías y el toggle dice 'Reserva'",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "el registro móvil de un usuario sin alcancías",
+      "when": "se elige el tipo Reserva",
+      "then": "aparece 'No tienes alcancías — créalas en el escritorio', sin filas De/A, Guardar deshabilitado, el toggle dice 'Reserva' y 'Transferencia' no aparece",
+      "expected_result": "guía clara, guardado imposible, rótulo nuevo"
+    },
+    {
+      "id": "TC-TRF4-105h",
+      "requirement_id": "FR-1005",
+      "user_story_id": "US-1005",
+      "ac_id": "AC-1005",
+      "title": "Guardar la operación crea el movimiento from/to y muestra el overlay",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": [
-        "viewport 375px"
-      ],
-      "given": "De='Viaje' (saldo 150000), A='Disponible', monto $50.000, nota 'pasaje'",
+      "preconditions": [],
+      "given": "De=alcancía con saldo 150000, A='Disponible', monto 50000, nota 'pasaje'",
       "when": "se pulsa Guardar movimiento",
-      "then": "aparece el overlay de confirmación con '$50.000' y la operación; el monto vuelve a 0; el estado contiene un movimiento con from='viaje', to='@disponible', note='pasaje', y el saldo de Viaje del mes queda en 100000",
-      "steps": [
-        "llenar el formulario",
-        "guardar",
-        "assert overlay + estado vía __ledgerStore"
-      ],
-      "expected_result": "operación completa con journal y overlay, misma UX que un gasto",
-      "test_data": {
-        "amount": 50000
-      }
+      "then": "overlay con '$50.000 · [alcancía] → Disponible'; el monto vuelve a 0; el estado tiene el movimiento con from/to/note y las celdas intactas (sacar no toca celdas)",
+      "expected_result": "operación completa con journal y overlay"
     },
     {
-      "id": "TC-TRF-106h",
+      "id": "TC-TRF4-006h",
       "requirement_id": "FR-1006",
       "user_story_id": "US-1006",
       "ac_id": "AC-1006",
-      "title": "Guardar dentro del margen pasa",
+      "title": "El techo es global y al límite exacto pasa; un peso más bloquea",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "margen del mes = 150000 (prevAvailable + flow)",
-      "when": "applyReserveOp guarda 150000 en Viaje",
-      "then": "la operación es aceptada y el saldo de Viaje sube exactamente 150000",
-      "steps": [
-        "construir estado con margen conocido",
-        "guardar",
-        "assert"
-      ],
-      "expected_result": "aceptada al límite exacto del margen (≤, no <)",
-      "test_data": {
-        "margen": 150000
-      }
+      "given": "margen del mes 150000",
+      "when": "guardar 150000 en A; luego intentar 1 peso más en B el mismo mes",
+      "then": "el primero pasa; el segundo se rechaza con rule='techo' y limit=0",
+      "expected_result": "≤ es aceptado; el margen se consume entre alcancías"
     },
     {
-      "id": "TC-TRF-106f",
+      "id": "TC-TRF4-006e",
       "requirement_id": "FR-1006",
       "user_story_id": "US-1006",
       "ac_id": "AC-1006",
-      "title": "Guardar sobre el margen bloquea con el mensaje exacto",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "high",
-      "preconditions": [],
-      "given": "margen del mes = 150000",
-      "when": "se intenta guardar 200000",
-      "then": "rechazo con rule='techo', limit=150000, month=el mes de la op — suficiente para renderizar 'No puedes reservar $200.000: tu margen este mes es $150.000' — y el estado queda intacto",
-      "steps": [
-        "intentar",
-        "assert veredicto completo + estado"
-      ],
-      "expected_result": "bloqueo tipado con el margen en el veredicto",
-      "test_data": {
-        "margen": 150000,
-        "monto": 200000
-      }
-    },
-    {
-      "id": "TC-TRF-106e",
-      "requirement_id": "FR-1006",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006b",
-      "title": "El techo es GLOBAL: el margen se consume entre alcancías",
+      "title": "El agujero del 'O' está cerrado y mover con margen 0 pasa",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "margen 150000, ya guardados 150000 en Viaje este mes",
-      "when": "se intenta guardar 1 peso en Fondo el mismo mes",
-      "then": "rechazo con rule='techo' y limit=0 — los aportes del mes se acumulan sobre el mismo margen",
-      "steps": [
-        "guardar el primero",
-        "intentar el segundo",
-        "assert"
-      ],
-      "expected_result": "el segundo aporte bloqueado aunque sea de 1",
-      "test_data": {}
+      "given": "ene cierra con disponible −500000 y feb ingresa 300000; en otro estado, margen 0 con dos alcancías",
+      "when": "guardar 1 peso en feb; mover 100000 A→B con margen 0",
+      "then": "el aporte de feb se rechaza con limit=0 (max(0, −500000+300000)); el mover pasa (neto 0)",
+      "expected_result": "la SUMA, no el 'O'; un retiro nunca choca con el techo"
     },
     {
-      "id": "TC-TRF-206e",
+      "id": "TC-TRF4-006f",
       "requirement_id": "FR-1006",
       "user_story_id": "US-1006",
       "ac_id": "AC-1006",
-      "title": "El agujero del 'O' está cerrado: margen = max(0, saldo previo + flujo)",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "enero cierra con disponible −500000; en febrero entran ingresos por 300000",
-      "when": "se intenta guardar 1 peso en febrero",
-      "then": "rechazo con limit=0 — la SUMA (−500000+300000=−200000 → max(0,·)=0), no la alternativa 'flujo positivo'",
-      "steps": [
-        "construir el escenario del usuario",
-        "intentar",
-        "assert"
-      ],
-      "expected_result": "margen 0, no 300000 — el escenario que el propio usuario detectó",
-      "test_data": {
-        "ene": -500000,
-        "febIngreso": 300000
-      }
-    },
-    {
-      "id": "TC-TRF-306h",
-      "requirement_id": "FR-1006",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006c",
       "title": "Patrón de primera carga: ingreso del mes + reserva del mismo mes PASA",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "estado nuevo sin historia; en el mes m se registra un ingreso de 2000000",
-      "when": "se guarda 2000000 en 'Ahorros' ese mismo mes",
-      "then": "la operación pasa (el ingreso creó el margen) y el Balance cierra m con disponible 0, reservado 2000000, total 2000000",
-      "steps": [
-        "addMovement de ingreso",
-        "applyReserveOp",
-        "computeBalanceSeries",
-        "assert las tres cifras"
-      ],
-      "expected_result": "los ahorros preexistentes representables sin mecanismo especial",
-      "test_data": {
-        "monto": 2000000
-      }
+      "given": "estado nuevo; ingreso de 2000000 en el mes m",
+      "when": "guardar 2000000 en 'Ahorros' ese mismo mes",
+      "then": "pasa y el Balance cierra m con disponible 0, reservado 2000000, total 2000000",
+      "expected_result": "los ahorros preexistentes sin mecanismo especial"
     },
     {
-      "id": "TC-TRF-406e",
-      "requirement_id": "FR-1006",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006",
-      "title": "La cadena nombra el mes ofensor: editar julio que rompe octubre bloquea diciendo octubre",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "una edición de julio cuyo delta implícito hace que el aporte neto de OCTUBRE supere su margen",
-      "when": "se valida la edición de julio",
-      "then": "rechazo con month='oct' (no 'jul') y el margen de octubre en limit",
-      "steps": [
-        "construir la cadena",
-        "validar",
-        "assert el mes del veredicto"
-      ],
-      "expected_result": "el veredicto apunta al mes que de verdad rompe",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-107h",
-      "requirement_id": "FR-1007",
-      "user_story_id": "US-1007",
-      "ac_id": "AC-1007b",
-      "title": "Sacar hasta el saldo exacto pasa y deja la alcancía en 0",
-      "type": "unit",
-      "scenario": "happy_path",
-      "priority": "high",
-      "preconditions": [],
-      "given": "Viaje con saldo resuelto 150000 en el mes m",
-      "when": "applyReserveOp saca 150000",
-      "then": "aceptada; el saldo explícito de m es 0 y el disponible sube 150000",
-      "steps": [
-        "sacar el total",
-        "assert saldo 0 + balance"
-      ],
-      "expected_result": "vaciar es legal; 0 es un estado válido",
-      "test_data": {
-        "saldo": 150000
-      }
-    },
-    {
-      "id": "TC-TRF-107f",
-      "requirement_id": "FR-1007",
-      "user_story_id": "US-1007",
-      "ac_id": "AC-1007b",
-      "title": "Sacar un peso más del saldo bloquea con el saldo en el veredicto",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "high",
-      "preconditions": [],
-      "given": "Viaje con saldo resuelto 150000",
-      "when": "se intenta sacar 150001",
-      "then": "rechazo con rule='piso', leafId='viaje', limit=150000 — renderizable como '«Viaje» solo tiene $150.000' — y estado intacto",
-      "steps": [
-        "intentar",
-        "assert veredicto + estado"
-      ],
-      "expected_result": "bloqueo tipado con el saldo disponible de la alcancía",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-107e",
+      "id": "TC-TRF4-007h",
       "requirement_id": "FR-1007",
       "user_story_id": "US-1007",
       "ac_id": "AC-1007",
-      "title": "Sacar con el disponible en rojo PASA (caso 4: para eso existe)",
+      "title": "Sacar hasta el saldo exacto pasa; un peso más bloquea con el saldo en el veredicto",
       "type": "unit",
-      "scenario": "edge_case",
+      "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "Saldo disponible del mes = −300000; fondo con saldo 2000000",
-      "when": "se sacan 300000 del fondo",
-      "then": "aceptada (el retiro no consulta el techo) y el disponible del mes queda en 0",
-      "steps": [
-        "construir mes en rojo",
-        "sacar",
-        "assert"
-      ],
-      "expected_result": "cubrir el descubierto funciona",
-      "test_data": {}
+      "given": "una alcancía con saldo derivado 150000",
+      "when": "sacar 150000; en estado fresco, sacar 150001",
+      "then": "el primero pasa y deja el derivado en 0; el segundo se rechaza con rule='piso' y limit=150000, sin mutar",
+      "expected_result": "vaciar es legal; sobre-sacar imposible"
     },
     {
-      "id": "TC-TRF-207e",
+      "id": "TC-TRF4-007e",
       "requirement_id": "FR-1007",
       "user_story_id": "US-1007",
-      "ac_id": "AC-1007b",
-      "title": "El piso corre en cadena: sacar en julio que dejaría octubre negativo bloquea nombrando octubre",
+      "ac_id": "AC-1007",
+      "title": "Sacar con el disponible en rojo PASA",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "Viaje con retiros explícitos ya registrados en octubre; un retiro de julio que dejaría la serie de octubre < 0",
-      "when": "se valida el retiro de julio",
-      "then": "rechazo con rule='piso', month='oct' y el saldo que quedaría",
-      "steps": [
-        "construir la cadena",
-        "validar",
-        "assert"
-      ],
-      "expected_result": "ningún mes de la serie puede quedar negativo, no solo el editado",
-      "test_data": {}
+      "given": "disponible del mes en −300000 y un fondo con saldo 2000000",
+      "when": "se sacan 300000 del fondo",
+      "then": "aceptada (el retiro no consulta el techo) y el disponible del mes queda en 0",
+      "expected_result": "cubrir el descubierto funciona"
     },
     {
-      "id": "TC-TRF-108h",
+      "id": "TC-TRF4-008h",
       "requirement_id": "FR-1008",
       "user_story_id": "US-1008",
       "ac_id": "AC-1008",
-      "title": "El plan que viola el techo AVISA y GUARDA",
+      "title": "El plan de aportes que viola el techo AVISA y GUARDA",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "el plano Pres. con una trayectoria que supera el margen planeado de marzo",
-      "when": "se valida y aplica la edición en modo plan",
-      "then": "el veredicto es ok:true con warnings=[{month:'mar',...}] y el valor queda escrito en budgets",
-      "steps": [
-        "editar Pres.",
-        "assert ok + warnings + persistencia"
-      ],
-      "expected_result": "avisar sin bloquear; el plan siempre se guarda",
-      "test_data": {}
+      "given": "el plano Pres. sin margen planeado en marzo",
+      "when": "se valida y aplica un aporte planeado de 100000 en mar",
+      "then": "el veredicto es ok con warning {rule:'techo', month:'mar'} y el valor queda escrito en budgets; planTechoMonths incluye mar",
+      "expected_result": "avisar sin bloquear; el plan siempre se guarda"
     },
     {
-      "id": "TC-TRF-108e",
+      "id": "TC-TRF4-008e",
       "requirement_id": "FR-1008",
       "user_story_id": "US-1008",
       "ac_id": "AC-1008",
-      "title": "La marca del plan es «!» + ámbar: canal no cromático propio, distinto de ›/›› y ‹‹",
+      "title": "La marca del plan es «!» + ámbar: canal propio, distinto de ›/›› y ‹‹",
       "type": "e2e",
       "scenario": "edge_case",
-      "priority": "medium",
-      "preconditions": [
-        "plan inviable sembrado"
-      ],
-      "given": "una celda Pres. marcada como inviable",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda Pres. con aporte planeado que supera su margen",
       "when": "se inspecciona la celda",
-      "then": "contiene el glifo '!' antes de la cifra, color computado var(--state-warning), y en toda la grilla ese glifo no se usa para ningún otro estado",
-      "steps": [
-        "sembrar plan inviable",
-        "leer glifo+color",
-        "escanear exclusividad del glifo"
-      ],
-      "expected_result": "tercera semántica con tercera marca, visible sin color",
-      "test_data": {}
+      "then": "porta data-plan-warn, color --state-warning, contiene '!' y no contiene '›' ni '‹'; el valor guardado es visible",
+      "expected_result": "marca de forma propia, dato guardado"
     },
     {
-      "id": "TC-TRF-108f",
+      "id": "TC-TRF4-008f",
       "requirement_id": "FR-1008",
       "user_story_id": "US-1008",
-      "ac_id": "AC-1008b",
-      "title": "Los planos no se contaminan y el delta del plan ancla al real previo",
+      "ac_id": "AC-1008",
+      "title": "Los planos no se contaminan",
       "type": "unit",
       "scenario": "negative",
-      "priority": "high",
+      "priority": "medium",
       "preconditions": [],
-      "given": "real de jun con Viaje=150000; plan de jun=200000 y plan de jul=250000",
-      "when": "se computa el balance del plano Pres. de julio",
-      "then": "el delta del plan de jul se calcula contra el saldo REAL de jun (150000) — reservedBalance_budget(jul) = 150000 + (250000−200000)... NO: = Σsaldos_real(jun) + delta_plan(jul) donde delta_plan(jul) = plan(jul) − plan(jun) = 50000 → 200000; y ninguna escritura del plan altera actuals ni viceversa",
-      "steps": [
-        "construir ambos planos",
-        "computar",
-        "assert ancla y aislamiento"
-      ],
-      "expected_result": "ancla ADR-03 exacta; planos aislados",
-      "test_data": {}
+      "given": "aportes reales en jul y un plan en ago",
+      "when": "se edita el plan y luego el ejecutado",
+      "then": "editar budgets no altera actuals y viceversa",
+      "expected_result": "planos separados"
     },
     {
-      "id": "TC-TRF-109h",
+      "id": "TC-TRF4-009h",
       "requirement_id": "FR-1009",
       "user_story_id": "US-1009",
       "ac_id": "AC-1009",
-      "title": "El escenario del usuario, número a número, con las dos filas",
+      "title": "El escenario del usuario, número a número, con las filas de un solo signo",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "jul: flujo +500000 y aporte 200000 a Viaje; ago: retiro de 50000 y gasto de 50000",
-      "when": "se computa la serie del balance y las filas Reservas/Retiros",
-      "then": "jul: aportes=200000, retiros=0, disponible=300000, reservado=200000, total=500000 · ago: aportes=0, retiros=50000, disponible=300000, reservado=150000, total=450000",
-      "steps": [
-        "construir el escenario",
-        "computar",
-        "comparar las 10 cifras"
-      ],
-      "expected_result": "el total no cambió al sacar y bajó exactamente el gasto",
-      "test_data": {}
+      "given": "jul: flujo +500000 y guardar 200000; ago: sacar 50000 y gasto de 50000",
+      "when": "se computa la serie del balance y aportes/retiros por mes",
+      "then": "jul: disponible 300000/reservado 200000/total 500000; ago sin gasto: total 500000; con gasto: total 450000; aportes y retiros siempre ≥ 0 por fila",
+      "expected_result": "el total baja solo por el gasto, jamás por el retiro"
     },
     {
-      "id": "TC-TRF-109e",
+      "id": "TC-TRF4-009e",
       "requirement_id": "FR-1009",
       "user_story_id": "US-1009",
-      "ac_id": "AC-1009b",
-      "title": "El arrastre no es movimiento: mes sin operaciones = Reservas 0 y Retiros 0",
+      "ac_id": "AC-1009",
+      "title": "'Disponible del mes' es lo del MES y el reservado ARRASTRA el acumulado",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "alcancías arrastrando saldos (sin celdas explícitas en el mes m)",
-      "when": "se computan las filas del mes m",
-      "then": "reserveAportes(m)=0 y reserveRetiros(m)=0, con reservedBalance(m) conservando el arrastre",
-      "steps": [
-        "computar",
-        "assert"
-      ],
-      "expected_result": "cero movimiento fantasma en el balance",
-      "test_data": {}
+      "given": "flujo 500000 y aporte 200000 en jul; sep sin operaciones",
+      "when": "se computan flow−reserved de jul y las filas de sep",
+      "then": "Disponible del mes de jul = 300000 (sin arrastre); sep: aportes 0, retiros 0 y reservedBalance idéntico al de ago",
+      "expected_result": "la cuenta mental resuelta; el arrastre no es movimiento"
     },
     {
-      "id": "TC-TRF-109f",
+      "id": "TC-TRF4-009f",
       "requirement_id": "FR-1009",
       "user_story_id": "US-1009",
       "ac_id": "AC-1009",
-      "title": "Ninguna secuencia de operaciones rompe total = total previo + flujo",
+      "title": "total(m) = total(m−1) + flujo(m) para cualquier estado alcanzable",
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [],
-      "given": "una secuencia mixta de 20 operaciones válidas (guardar/sacar/mover/editar/limpiar, ambos planos)",
-      "when": "se computa la serie tras cada operación",
-      "then": "en cada paso y cada mes, total(m) === total(m−1) + flow(m) en ambos planos (comparación exacta, no aproximada)",
-      "steps": [
-        "ejecutar la secuencia determinista",
-        "verificar la identidad tras cada paso"
-      ],
-      "expected_result": "la conservación sobrevive TODA la secuencia — el test falla si un solo paso la rompe",
-      "test_data": {}
+      "given": "secuencias deterministas de ~100 operaciones mixtas válidas",
+      "when": "se verifica la identidad tras cada operación en ambos planos",
+      "then": "la identidad se cumple en los 12 meses siempre",
+      "expected_result": "0 violaciones de conservación"
     },
     {
-      "id": "TC-TRF-110h",
+      "id": "TC-TRF4-010h",
       "requirement_id": "FR-1010",
       "user_story_id": "US-1010",
       "ac_id": "AC-1010",
-      "title": "La migración v2→v3 acumula ambos planos y es idempotente",
+      "title": "La migración v3→v4 deshace saldos, sintetiza retiros (Ejec. y plan) y es idempotente",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "localStorage con ledger.budget.v2: aportes {ene:100000, feb:100000, mar:100000} en budgets Y actuals de una hoja transfer",
-      "when": "se carga la app dos veces seguidas",
-      "then": "ambas cargas producen saldos {ene:100000, feb:200000, mar:300000} en ambos planos, la clave v3 existe, la v2 fue retirada, y la segunda carga es byte-idéntica a la primera",
-      "steps": [
-        "sembrar v2",
-        "load",
-        "snapshot",
-        "load de nuevo",
-        "comparar"
-      ],
-      "expected_result": "cumsum una sola vez; cargar 2× == 1×",
-      "test_data": {}
+      "given": "un blob v3 con saldos {100,200,300,250} en actuals y un plan no monótono en budgets",
+      "when": "se carga con LocalStorageRepository dos veces",
+      "then": "quedan aportes {100,100,100}, un retiro sintetizado de 50000 con nota, el plan con budgets['@retiros'], el saldo derivado idéntico al resuelto v3 los 12 meses, y la segunda carga no duplica nada",
+      "expected_result": "conversión exacta e idempotente por marca"
     },
     {
-      "id": "TC-TRF-110e",
+      "id": "TC-TRF4-010e",
       "requirement_id": "FR-1010",
       "user_story_id": "US-1010",
-      "ac_id": "AC-1010b",
-      "title": "Servidor: dos cargas concurrentes migran exactamente una vez",
+      "ac_id": "AC-1010",
+      "title": "Servidor: migración lazy una sola vez y también antes de un POST",
       "type": "integration",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": [
-        "Postgres efímero con datos v2 y data_version=2"
-      ],
-      "given": "dos llamadas concurrentes a loadLedger del mismo owner",
-      "when": "ambas corren a la vez",
-      "then": "las dos devuelven el estado migrado idéntico, data_version=3, y los saldos NO están doblemente acumulados (el segundo cumsum no ocurrió)",
-      "steps": [
-        "sembrar v2 en BD",
-        "Promise.all de dos loadLedger",
-        "assert estado + versión"
-      ],
-      "expected_result": "el lock for update serializa; una sola migración",
-      "test_data": {}
+      "preconditions": [],
+      "given": "un ledger con data_version=3 en Postgres",
+      "when": "dos loadLedger concurrentes; en otro usuario v3, un insertMovement directo",
+      "then": "la migración corre exactamente una vez (marcador transaccional); el insertMovement opera sobre el estado YA migrado y estampa v4",
+      "expected_result": "sin doble conversión ni semánticas mixtas"
     },
     {
-      "id": "TC-TRF-110f",
+      "id": "TC-TRF4-010f",
       "requirement_id": "FR-1010",
       "user_story_id": "US-1010",
-      "ac_id": "AC-1010c",
-      "title": "from/to sobreviven las cinco capas; los movimientos viejos sin ellos siguen válidos",
+      "ac_id": "AC-1010",
+      "title": "from/to y cellNotes atraviesan las 5 capas; un blob local corrupto cae a semilla",
       "type": "integration",
       "scenario": "negative",
       "priority": "high",
-      "preconditions": [
-        "Postgres efímero"
-      ],
-      "given": "un movimiento nuevo con from/to y un movimiento pre-feature sin ellos",
-      "when": "viajan cliente→PUT→BD→GET→cliente",
-      "then": "el nuevo conserva from/to intactos en las cinco capas (ningún schema hace strip); el viejo carga sin error, sin from/to, y se muestra sin lanzar",
-      "steps": [
-        "PUT del estado con ambos",
-        "GET",
-        "comparar movimientos"
-      ],
-      "expected_result": "cero pérdida silenciosa; retrocompatibilidad completa",
-      "test_data": {}
+      "preconditions": [],
+      "given": "una operación con from/to/nota y una observación de celda; aparte, un blob v4 con montos negativos",
+      "when": "ciclo cliente→PUT→BD→GET→cliente; y carga del blob corrupto",
+      "then": "from/to/nota y la observación sobreviven el ciclo completo; el blob negativo se rechaza (load → null → semilla)",
+      "expected_result": "sin strip silencioso; recuperación segura"
     },
     {
-      "id": "TC-TRF-111h",
+      "id": "TC-TRF4-011h",
       "requirement_id": "FR-1011",
       "user_story_id": "US-1011",
       "ac_id": "AC-1011",
-      "title": "El merge de reestructuración materializa el arrastre: {ene:100} + {dic:50} → dic 150",
+      "title": "Reestructurar conserva Σ saldo derivado en los 12 meses",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "una alcancía con {ene:100000} (arrastra todo el año) fusionándose con una hoja con {dic:50000} vía la rama FR-604 de moveNode",
-      "when": "se completa el reparent",
-      "then": "el saldo resuelto de diciembre del conjunto es 150000 — no 50000",
-      "steps": [
-        "construir",
-        "mover",
-        "resolver dic"
-      ],
-      "expected_result": "150000",
-      "test_data": {}
+      "given": "una alcancía con aportes y retiros",
+      "when": "reparent a categoría-hoja con montos, promote a grupo y demote a otro grupo, en secuencia",
+      "then": "Σ saldo derivado del tipo es idéntico antes y después de cada paso, mes a mes",
+      "expected_result": "cero fabricación/pérdida de plata"
     },
     {
-      "id": "TC-TRF-111e",
-      "requirement_id": "FR-1011",
-      "user_story_id": "US-1011",
-      "ac_id": "AC-1011",
-      "title": "Todo reparent/promote/demote de transfer conserva Σ resolved(m) en los 12 meses",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "estados con alcancías con arrastres mixtos, para cada operación de reestructuración (mover a categoría, a grupo, promover a grupo, degradar)",
-      "when": "se ejecuta cada operación",
-      "then": "resolvedYearByMonth(tipo transfer) es idéntico antes y después, mes a mes, para las cuatro operaciones",
-      "steps": [
-        "tabla de 4 operaciones",
-        "comparar las series completas"
-      ],
-      "expected_result": "conservación de saldos resueltos por construcción, verificada",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-111f",
-      "requirement_id": "FR-1011",
-      "user_story_id": "US-1011",
-      "ac_id": "AC-1011",
-      "title": "El invariante viejo (suma de celdas crudas) NO detecta la fuga; el nuevo SÍ",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "medium",
-      "preconditions": [],
-      "given": "el merge INGENUO (suma cruda mes a mes, sin materializar) aplicado al caso {ene:100}+{dic:50}",
-      "when": "se comparan ambos invariantes sobre el resultado corrupto",
-      "then": "la suma de celdas crudas cuadra (falso verde) mientras Σ resolved(dic) cae de 150000 a 50000 — el test documenta por qué el invariante para transfer es el resuelto",
-      "steps": [
-        "aplicar el merge ingenuo en un fixture aislado",
-        "evaluar ambos invariantes"
-      ],
-      "expected_result": "el invariante resuelto detecta la pérdida que el crudo deja pasar (la lección de BL-008, sellada en test)",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-112h",
+      "id": "TC-TRF4-012h",
       "requirement_id": "FR-1012",
       "user_story_id": "US-1012",
       "ac_id": "AC-1012",
-      "title": "La nota de una operación De→A se lee desde la celda del mes",
+      "title": "La nota de una operación De→A se lee desde la celda y se puede añadir manual",
       "type": "e2e",
       "scenario": "happy_path",
-      "priority": "medium",
-      "preconditions": [
-        "operación con nota 'pasaje' registrada en sep"
-      ],
-      "given": "la grilla con la celda de sep de Viaje",
-      "when": "se observa la celda y se abre su editor",
-      "then": "la celda muestra el punto indicador (4px); la sección Observaciones del editor lista 'pasaje' con su fecha",
-      "steps": [
-        "registrar op con nota",
-        "abrir grilla",
-        "assert punto + lectura"
-      ],
-      "expected_result": "la observación de la operación aflora en la celda sin journal aparte",
-      "test_data": {}
+      "priority": "high",
+      "preconditions": [],
+      "given": "un retiro con nota 'pasaje' en sep",
+      "when": "se inspecciona la celda Ejec. de sep de la alcancía y se abre su editor",
+      "then": "punto indicador visible, tooltip contiene 'pasaje', la sección Observaciones la lista y una manual añadida aparece de inmediato",
+      "expected_result": "lectura e ingreso desde la celda"
     },
     {
-      "id": "TC-TRF-112e",
+      "id": "TC-TRF4-012e",
       "requirement_id": "FR-1012",
       "user_story_id": "US-1012",
       "ac_id": "AC-1012",
-      "title": "Celda sin observaciones: sin indicador y con placeholder en el editor",
+      "title": "Celda sin observaciones: sin indicador y con placeholder",
       "type": "e2e",
       "scenario": "edge_case",
-      "priority": "low",
+      "priority": "medium",
       "preconditions": [],
-      "given": "una celda transfer sin operaciones con nota ni observaciones manuales",
-      "when": "se inspecciona la celda y su editor",
-      "then": "el punto indicador tiene count 0; la sección muestra 'Sin observaciones este mes'",
-      "steps": [
-        "inspeccionar",
-        "assert"
-      ],
-      "expected_result": "cero ruido en celdas sin datos",
-      "test_data": {}
+      "given": "una celda transfer sin notas del mes",
+      "when": "se inspecciona y se abre el editor",
+      "then": "sin punto indicador; la sección muestra 'Sin observaciones este mes'",
+      "expected_result": "cero ruido sin datos"
     },
     {
-      "id": "TC-TRF-112f",
+      "id": "TC-TRF4-012f",
       "requirement_id": "FR-1012",
       "user_story_id": "US-1012",
       "ac_id": "AC-1012",
-      "title": "Una observación manual de más de 280 caracteres se rechaza",
+      "title": "Una observación de más de 280 caracteres se rechaza sin truncar",
       "type": "unit",
       "scenario": "negative",
       "priority": "medium",
       "preconditions": [],
-      "given": "el campo de observación manual con un texto de 281 caracteres",
-      "when": "se intenta añadir (dominio y borde Zod del servidor)",
-      "then": "el dominio la normaliza/rechaza (mismo contrato que note: trim, ≤280) y el schema del API rechaza el exceso con 422",
-      "steps": [
-        "probar dominio",
-        "probar schema"
-      ],
-      "expected_result": "límite 280 en las dos capas, consistente con las notas existentes",
-      "test_data": {}
+      "given": "una alcancía válida",
+      "when": "addCellNote con 281 caracteres, con vacío, y con 280 exactos",
+      "then": "281 y vacío → rechazo tipado sin mutar; 280 → aceptada íntegra",
+      "expected_result": "el límite es inclusivo y sin recorte silencioso"
     },
     {
-      "id": "TC-TRF-151h",
-      "requirement_id": "NFR-1001",
-      "user_story_id": "US-1009",
-      "ac_id": "AC-1009",
-      "title": "Conservación bajo reserved negativo: el retiro no toca el total",
-      "type": "unit",
+      "id": "TC-TRF4-014h",
+      "requirement_id": "FR-1014",
+      "user_story_id": "US-1014",
+      "ac_id": "AC-1014",
+      "title": "El mini-form saca con desplegable jerárquico, Máx. y toast con Deshacer",
+      "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "un mes con retiro neto (aportes 0, retiros 50000) y flujo 0",
-      "when": "se computa la serie del balance en ambos planos",
-      "then": "total(m) === total(m−1) exactamente (el retiro se cancela entre disponible y reservado) y monthBalance no fue modificado (misma firma y semántica)",
-      "steps": [
-        "construir",
-        "computar",
-        "assert identidad"
-      ],
-      "expected_result": "total idéntico con reserved=−50000",
-      "test_data": {}
+      "given": "alcancías con saldo (incluida una subcategoría) y la fila Retiros del mes visible",
+      "when": "clic en la celda Ejec. de un mes, elegir origen en el desplegable, teclear un monto ≤ Máx. y Sacar",
+      "then": "el desplegable lista todas las alcancías con ruta completa y saldo; la celda suma el retiro; toast 'Sacaste $X de … → Disponible' con Deshacer que revierte todo",
+      "expected_result": "operar retiros desde el Balance"
     },
     {
-      "id": "TC-TRF-151e",
-      "requirement_id": "NFR-1001",
-      "user_story_id": "US-1009",
-      "ac_id": "AC-1009",
-      "title": "Conservación con operaciones en ambos planos entrelazadas",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "high",
-      "preconditions": [],
-      "given": "ediciones de plan y operaciones reales alternadas sobre los mismos meses",
-      "when": "se computa la serie tras cada paso",
-      "then": "la identidad total=prev+flow se cumple en ambos planos en cada paso; el plan usa su flujo y su delta anclado al real",
-      "steps": [
-        "secuencia mixta",
-        "verificar por paso"
-      ],
-      "expected_result": "identidad exacta en ambos planos, todos los pasos",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-151f",
-      "requirement_id": "NFR-1001",
-      "user_story_id": "US-1009",
-      "ac_id": "AC-1009",
-      "title": "Mutación centinela: romper el arreglo de reserveNet hace fallar la suite",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "medium",
-      "preconditions": [],
-      "given": "el fixture del escenario del usuario (jul/ago)",
-      "when": "se sustituye reserveDelta por la suma cruda de celdas (la semántica vieja) en un cálculo paralelo",
-      "then": "el resultado difiere del esperado en ago (retiro fantasma de −200000 vs +50000 real) — el test documenta que la suite DETECTA la regresión a typeTotals",
-      "steps": [
-        "computar con ambas funciones",
-        "assert divergencia"
-      ],
-      "expected_result": "el cálculo crudo NO cuadra: la red detecta el retorno a la semántica vieja",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-152h",
-      "requirement_id": "NFR-1002",
-      "user_story_id": "US-1004",
-      "ac_id": "AC-1004",
-      "title": "addMovement para expense/income conserva su comportamiento byte a byte",
-      "type": "unit",
-      "scenario": "happy_path",
-      "priority": "high",
-      "preconditions": [],
-      "given": "un estado semilla; movimientos de gasto e ingreso idénticos a los de la suite previa",
-      "when": "se ejecuta addMovement con type 'expense' e 'income'",
-      "then": "el resultado (actuals del target, movimiento emitido, campos) es exactamente el actual: suma al ejecutado, unshift, sin from/to",
-      "steps": [
-        "ejecutar ambos tipos",
-        "comparar contra snapshot del comportamiento previo"
-      ],
-      "expected_result": "cero cambio para gastos e ingresos",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-152e",
-      "requirement_id": "NFR-1002",
-      "user_story_id": "US-1004",
-      "ac_id": "AC-1004",
-      "title": "La captura de gasto/ingreso del registro no pasa por las reglas de reservas",
+      "id": "TC-TRF4-014e",
+      "requirement_id": "FR-1014",
+      "user_story_id": "US-1014",
+      "ac_id": "AC-1014",
+      "title": "Eliminar un retiro del historial restaura el saldo derivado",
       "type": "e2e",
       "scenario": "edge_case",
-      "priority": "medium",
-      "preconditions": [
-        "viewport 375px"
-      ],
-      "given": "un mes con margen de reservas 0",
-      "when": "se registra un gasto normal de 50000",
-      "then": "el gasto se guarda sin ninguna franja/bloqueo de reservas (las reglas techo/piso no aplican a expense/income)",
-      "steps": [
-        "registrar gasto con margen 0",
-        "assert overlay de éxito"
-      ],
-      "expected_result": "gastos e ingresos jamás bloqueados por reglas de reservas",
-      "test_data": {}
+      "priority": "high",
+      "preconditions": [],
+      "given": "un retiro operado en el mes",
+      "when": "en el mini-form, eliminar el retiro con su 🗑",
+      "then": "desaparece del historial, la Σ de la celda baja y el saldo derivado de la alcancía vuelve exacto",
+      "expected_result": "corrección de errores"
     },
     {
-      "id": "TC-TRF-152f",
+      "id": "TC-TRF4-014f",
+      "requirement_id": "FR-1014",
+      "user_story_id": "US-1014",
+      "ac_id": "AC-1014",
+      "title": "El sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo)",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "retiro planeado 150000 y retiros ejecutados que lo superan",
+      "when": "se inspecciona la celda Ejec. de Retiros del mes",
+      "then": "entre 100% y 120%: ámbar con '›'; ≥120% o sin plan: rojo con '››'; ≤100%: neutro sin glifo",
+      "expected_result": "la MISMA regla budgetState de los gastos"
+    },
+    {
+      "id": "TC-TRF4-114f",
+      "requirement_id": "FR-1014",
+      "user_story_id": "US-1014",
+      "ac_id": "AC-1014",
+      "title": "El monto sobre el Máx. deshabilita Sacar; el dominio rechaza el sobre-retiro",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una alcancía con saldo 250000",
+      "when": "applyReserveOp saca 999999",
+      "then": "rechazo con rule='piso' y limit=250000; removeReserveRetiro de un id inexistente o de un mover A→B es no-op",
+      "expected_result": "doble puerta: UI deshabilita, dominio rechaza"
+    },
+    {
+      "id": "TC-TRF4-015h",
+      "requirement_id": "FR-1015",
+      "user_story_id": "US-1015",
+      "ac_id": "AC-1015",
+      "title": "El retiro planeado respeta el techo lógico acumulativo del plan",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "plan de aportes 100000 en ene y 100000 en feb",
+      "when": "setPlannedRetiro(feb, 250000); luego (feb, 150000); luego se consulta el límite de mar",
+      "then": "250000 → rechazo con limit=200000; 150000 → aceptado; el límite de mar queda en 50000",
+      "expected_result": "no se planea sacar lo que el plan no habrá reservado"
+    },
+    {
+      "id": "TC-TRF4-015e",
+      "requirement_id": "FR-1015",
+      "user_story_id": "US-1015",
+      "ac_id": "AC-1015",
+      "title": "Franja al exceder y marca auto-sanadora al bajar los aportes del plan",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un retiro planeado válido",
+      "when": "se intenta planear de más (franja) y luego se bajan los aportes del plan",
+      "then": "la franja dice 'Solo hay $X reservados en tu plan hasta [mes]'; tras bajar aportes la celda queda «!» + ámbar con tooltip, sin bloquear",
+      "expected_result": "rechazo al escribir; aviso al degradarse"
+    },
+    {
+      "id": "TC-TRF4-151h",
+      "requirement_id": "NFR-1001",
+      "user_story_id": "US-1009",
+      "ac_id": "AC-1009",
+      "title": "Conservación bajo secuencias mixtas (retiros y eliminaciones incluidos)",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "secuencia determinista de ≥100 operaciones mixtas (aportes, guardar/sacar/mover, plan, eliminar retiros, gastos/ingresos)",
+      "when": "tras cada operación aceptada se computa la serie del balance",
+      "then": "total(m) = total(m−1) + flujo(m) en ambos planos y Σ saldos derivados == reservedBalance, siempre",
+      "expected_result": "conservación total bajo el modelo v4"
+    },
+    {
+      "id": "TC-TRF4-152h",
       "requirement_id": "NFR-1002",
       "user_story_id": "US-1004",
       "ac_id": "AC-1004",
-      "title": "Un movimiento expense con from/to accidentales no altera saldos de reservas",
+      "title": "addMovement para expense/income conserva su comportamiento e ignora from/to",
       "type": "unit",
-      "scenario": "negative",
-      "priority": "medium",
+      "scenario": "happy_path",
+      "priority": "high",
       "preconditions": [],
-      "given": "un input de movimiento type='expense' que incluye from/to por error",
-      "when": "se procesa por addMovement",
-      "then": "los campos from/to se ignoran/omiten para tipos no-transfer y ninguna celda transfer cambia",
-      "steps": [
-        "ejecutar",
-        "assert celdas transfer intactas"
-      ],
-      "expected_result": "la rama de reservas solo se activa con type transfer",
-      "test_data": {}
+      "given": "hojas de gasto e ingreso",
+      "when": "addMovement de un gasto (dos veces, acumula) y de un gasto con from/to accidentales",
+      "then": "suma al ejecutado del target, journaliza sin extremos, y ningún saldo de reserva cambia",
+      "expected_result": "gastos/ingresos byte a byte"
     },
     {
-      "id": "TC-TRF-153h",
+      "id": "TC-TRF4-153h",
       "requirement_id": "NFR-1003",
       "user_story_id": "US-1010",
       "ac_id": "AC-1010",
-      "title": "Un estado pre-feature completo carga sin pérdida",
+      "title": "Un estado pre-feature completo carga sin pérdida y el CHECK sigue intacto",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "un dump v2 real (nodos + budgets + actuals + movimientos sin from/to, incluidos expense/income)",
-      "when": "se carga con el repositorio nuevo",
-      "then": "todos los nodos, todas las celdas expense/income y todos los movimientos están presentes; solo las celdas transfer cambiaron de interpretación (cumsum)",
-      "steps": [
-        "cargar dump",
-        "comparar inventario completo"
-      ],
-      "expected_result": "cero datos perdidos; migración no destructiva",
-      "test_data": {}
+      "given": "un blob v2 completo (nodos+celdas+movimientos con date/note, sin from/to)",
+      "when": "se carga (identidad v2→v4) y se revisan schema BD y migración SQL",
+      "then": "nada se pierde ni se convierte (las celdas ya eran aportes); movimientos sin from/to válidos; el CHECK amount >= 0 presente y la migración 0001 es aditiva",
+      "expected_result": "migración no destructiva"
     },
     {
-      "id": "TC-TRF-153e",
-      "requirement_id": "NFR-1003",
-      "user_story_id": "US-1010",
-      "ac_id": "AC-1010c",
-      "title": "El CHECK amount >= 0 no cambió y las claves ajenas quedan intactas",
-      "type": "integration",
-      "scenario": "edge_case",
-      "priority": "medium",
-      "preconditions": [
-        "Postgres efímero"
-      ],
-      "given": "el esquema migrado (drizzle aditivo aplicado)",
-      "when": "se inspecciona el DDL y se intenta insertar una celda negativa",
-      "then": "amount_cell_amount_ck sigue presente y rechaza −1; ledger.nodes.v1 y theme no fueron tocadas por la migración de datos",
-      "steps": [
-        "insert negativo → error",
-        "assert claves localStorage"
-      ],
-      "expected_result": "contrato de preservación cumplido",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-153f",
-      "requirement_id": "NFR-1003",
-      "user_story_id": "US-1010",
-      "ac_id": "AC-1010c",
-      "title": "Un movimiento viejo sin from/to jamás lanza en ninguna superficie",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "medium",
-      "preconditions": [],
-      "given": "movimientos pre-feature (sin from/to) mezclados con nuevos",
-      "when": "se derivan observaciones, se ejecuta deleteNode y se computa el balance",
-      "then": "ninguna función lanza; los viejos se tratan como aportes simples (target) y las observaciones los ignoran limpiamente",
-      "steps": [
-        "ejecutar las tres superficies",
-        "assert sin throw"
-      ],
-      "expected_result": "retrocompatibilidad total en el dominio",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-154h",
+      "id": "TC-TRF4-154h",
       "requirement_id": "NFR-1004",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006",
-      "title": "Grilla y registro producen el MISMO veredicto para la misma operación",
+      "user_story_id": "US-1003",
+      "ac_id": "AC-1003",
+      "title": "Las tres puertas producen el MISMO veredicto para la misma operación",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "una operación que viola el techo, expresada como edición de celda Y como op De→A",
-      "when": "se validan ambas rutas",
-      "then": "ambos veredictos son estructuralmente idénticos (rule, month, limit) — provienen de la misma función",
-      "steps": [
-        "validar por ambas rutas",
-        "deep-equal de veredictos"
-      ],
-      "expected_result": "una sola regla, cero divergencia entre puertas",
-      "test_data": {}
+      "given": "margen 150000 y una alcancía",
+      "when": "exceder el techo vía applyReserveCellEdit, vía applyReserveOp (registro) y validar la equivalencia del retiro (mini-form usa applyReserveOp)",
+      "then": "los rechazos son deep-equal (rule/month/limit) y las aceptaciones producen estados equivalentes",
+      "expected_result": "una regla, todas las puertas"
     },
     {
-      "id": "TC-TRF-154e",
+      "id": "TC-TRF4-154e",
       "requirement_id": "NFR-1004",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006",
+      "user_story_id": "US-1003",
+      "ac_id": "AC-1003",
       "title": "El dominio de reservas es puro: sin imports de UI ni IO",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "los fuentes de domain/reserve.ts y domain/migrate.ts",
-      "when": "se inspeccionan sus imports (test estructural, patrón de TC-BAL-958h)",
-      "then": "cero imports de react/next/dom/fetch/fs; solo ./types, ./tree, ./months, ./balance y zod",
-      "steps": [
-        "leer el fuente",
-        "regex de imports"
-      ],
-      "expected_result": "pureza verificada estructuralmente",
-      "test_data": {}
+      "given": "el archivo src/domain/reserve.ts",
+      "when": "se inspeccionan sus imports y su texto",
+      "then": "solo importa de ./types ./months ./tree ./rollup ./validation ./ids; sin react/next/zustand/node:/localStorage/document/window/fetch",
+      "expected_result": "capa pura verificada"
     },
     {
-      "id": "TC-TRF-154f",
+      "id": "TC-TRF4-154f",
       "requirement_id": "NFR-1004",
-      "user_story_id": "US-1006",
-      "ac_id": "AC-1006",
+      "user_story_id": "US-1010",
+      "ac_id": "AC-1010",
       "title": "El PUT confiado está documentado y el server no re-valida reglas (ADR-04)",
       "type": "integration",
       "scenario": "negative",
       "priority": "medium",
-      "preconditions": [
-        "Postgres efímero"
-      ],
-      "given": "un snapshot PUT cuyo estado viola el techo histórico (datos migrados legítimos)",
-      "when": "se hace PUT del snapshot",
-      "then": "el PUT responde 200 (no 422) — la puerta es confiada por decisión ADR-04 — y 02_SYSTEM_DESIGN.md contiene la decisión documentada",
-      "steps": [
-        "PUT con estado históricamente inválido",
-        "assert 200",
-        "grep del ADR"
-      ],
-      "expected_result": "cuentas migradas jamás bloqueadas de sincronizar",
-      "test_data": {}
+      "preconditions": [],
+      "given": "el diseño aprobado y la capa del servidor",
+      "when": "se inspeccionan 02_SYSTEM_DESIGN.md y ledgerRepo/schemas",
+      "then": "el documento declara el PUT confiado con ADR-04 y validateReserveWrite no aparece en el camino del snapshot",
+      "expected_result": "decisión explícita, no omisión"
     },
     {
-      "id": "TC-TRF-155h",
+      "id": "TC-TRF4-155h",
       "requirement_id": "NFR-1005",
-      "user_story_id": "US-1003",
-      "ac_id": "AC-1003",
+      "user_story_id": "US-1001",
+      "ac_id": "AC-1001",
       "title": "Edición + validación en cadena + balance ≤150ms con 30 alcancías",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "un estado con 30 hojas transfer × 12 meses con historia mixta (explícitos y arrastres)",
-      "when": "se cronometra: una edición de celda + validateReserveWrite completo + computeBalanceSeries + resolvedTypeTotal de los 12 meses",
-      "then": "el total tarda ≤150ms (performance.now), midiendo la ruta REAL — no la vieja",
-      "steps": [
-        "construir 30 alcancías",
-        "cronometrar la ruta completa",
-        "assert"
-      ],
-      "expected_result": "≤150ms medido, no heredado",
-      "test_data": {
-        "alcancias": 30
-      }
+      "given": "30 hojas transfer × 12 meses con historia mixta y flujo real",
+      "when": "se cronometra: validateReserveWrite + applyReserveCellEdit + computeBalanceSeries + totales de 12 meses",
+      "then": "el total tarda ≤150 ms (performance.now) sobre la ruta REAL",
+      "expected_result": "dentro del guardrail heredado"
     },
     {
-      "id": "TC-TRF-155e",
+      "id": "TC-TRF4-155e",
       "requirement_id": "NFR-1005",
-      "user_story_id": "US-1003",
-      "ac_id": "AC-1003",
-      "title": "La memoización por identidad evita recomputar sin cambios",
+      "user_story_id": "US-1001",
+      "ac_id": "AC-1001",
+      "title": "La memoización por identidad evita recomputar; los gastos no invocan las reglas",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "el mismo objeto data consultado dos veces",
-      "when": "se piden los saldos resueltos repetidamente sin mutar",
-      "then": "la segunda pasada no recomputa (contador de invocaciones del resolver interno == 1) y una mutación (data nuevo) sí recomputa",
-      "steps": [
-        "instrumentar el resolver",
-        "consultar 2×",
-        "mutar",
-        "consultar"
-      ],
-      "expected_result": "caché correcto por identidad de estado",
-      "test_data": {}
+      "given": "el mismo estado consultado repetidamente; una edición de celda expense",
+      "when": "se piden series repetidas y se edita el gasto midiendo los contadores",
+      "then": "cómputos == 1 con el mismo estado (misma referencia de serie) y validateCalls == 0 en la edición expense; una mutación sí recomputa",
+      "expected_result": "instrumentación del dominio verificada"
     },
     {
-      "id": "TC-TRF-155f",
-      "requirement_id": "NFR-1005",
-      "user_story_id": "US-1003",
-      "ac_id": "AC-1003",
-      "title": "La validación no degrada la edición de gastos/ingresos",
-      "type": "unit",
-      "scenario": "negative",
-      "priority": "medium",
-      "preconditions": [],
-      "given": "el mismo estado de 30 alcancías",
-      "when": "se cronometra una edición de celda EXPENSE",
-      "then": "no invoca validateReserveWrite (contador 0) y queda dentro del guardrail previo",
-      "steps": [
-        "instrumentar",
-        "editar expense",
-        "assert contador y tiempo"
-      ],
-      "expected_result": "las reglas de reservas no cobran peaje a los otros tipos",
-      "test_data": {}
-    },
-    {
-      "id": "TC-TRF-156h",
+      "id": "TC-TRF4-156h",
       "requirement_id": "NFR-1006",
-      "user_story_id": "US-1008",
-      "ac_id": "AC-1008",
+      "user_story_id": "US-1014",
+      "ac_id": "AC-1014",
       "title": "Las tintas nuevas pasan AA sobre sus superficies en ambos temas",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "la grilla con celdas arrastradas, franja de bloqueo y marca de plan, en claro y oscuro",
-      "when": "se computan los ratios de contraste (patrón de TC-BSC-453h)",
-      "then": "--fg-muted sobre --bg ≥4.5, --error sobre --bg-card ≥4.5, --state-warning sobre su superficie ≥4.5, en ambos temas",
-      "steps": [
-        "emular ambos temas",
-        "medir pares",
-        "assert ≥4.5"
-      ],
-      "expected_result": "AA verificado en los pares nuevos",
-      "test_data": {}
+      "given": "la grilla con marca de plan y franja de bloqueo provocada, en claro y oscuro",
+      "when": "se computan los ratios de contraste de los pares reales del navegador",
+      "then": "--fg-muted/--bg, --error/--bg-card y --state-warning/--bg ≥ 4.5 en ambos temas; la franja real también",
+      "expected_result": "AA verificado con valores computados"
     },
     {
-      "id": "TC-TRF-156e",
+      "id": "TC-TRF4-156e",
       "requirement_id": "NFR-1006",
-      "user_story_id": "US-1008",
-      "ac_id": "AC-1008",
+      "user_story_id": "US-1005",
+      "ac_id": "AC-1005",
       "title": "Táctiles ≥48px en los controles nuevos del registro",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": [
-        "viewport 375px"
-      ],
-      "given": "el registro con tipo Reserva activo",
-      "when": "se miden los chips De/A y el botón Guardar",
-      "then": "cada control interactivo mide ≥48px de alto efectivo (patrón TC-UXC-353e)",
-      "steps": [
-        "medir boundingBox de cada control"
-      ],
-      "expected_result": "WCAG 2.5.5 conservado",
-      "test_data": {}
+      "preconditions": [],
+      "given": "el registro móvil con tipo Reserva",
+      "when": "se miden los bounding boxes de chips De/A y Guardar",
+      "then": "todos ≥ 48px de alto",
+      "expected_result": "WCAG 2.5.5 conservado"
     },
     {
-      "id": "TC-TRF-156f",
+      "id": "TC-TRF4-156f",
       "requirement_id": "NFR-1006",
-      "user_story_id": "US-1008",
-      "ac_id": "AC-1008",
+      "user_story_id": "US-1015",
+      "ac_id": "AC-1015",
       "title": "Ningún estado nuevo depende SOLO del color",
       "type": "e2e",
       "scenario": "negative",
-      "priority": "high",
+      "priority": "medium",
       "preconditions": [],
-      "given": "celda arrastrada, celda de plan inviable, franja de bloqueo",
-      "when": "se inspecciona cada estado sin percepción de color (por contenido/atributos)",
-      "then": "plan inviable porta el glifo '!'; el bloqueo porta texto; el arrastre es distinguible por el par tinta+contexto y el dato completo está en el texto — ningún estado queda mudo sin color",
-      "steps": [
-        "assert glifos/textos por estado"
-      ],
-      "expected_result": "canal no cromático en cada estado nuevo",
-      "test_data": {}
+      "given": "celda de plan inviable, sobre-retiro y franja de bloqueo",
+      "when": "se inspecciona cada estado por contenido/atributos, sin percepción de color",
+      "then": "el plan porta '!'; el sobre-retiro porta '›'/'››'; el bloqueo porta el mensaje con el número exacto; atributos data-* presentes",
+      "expected_result": "canales no cromáticos en el DOM"
     },
     {
-      "id": "TC-TRF-157h",
+      "id": "TC-TRF4-157h",
       "requirement_id": "NFR-1007",
       "user_story_id": "US-1010",
       "ac_id": "AC-1010",
-      "title": "La suite agregada del monorepo queda en verde al cierre",
+      "title": "La suite re-derivada está completa y la re-derivación documentada",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": [
-        "build de la feature completo"
-      ],
-      "given": "la suite completa (raíz + todas las features) tras el build",
-      "when": "corre aitri verify-run / npm run test:run + e2e",
-      "then": "0 tests fallando en el agregado; los TCs de balance re-derivados pasan con la semántica nueva",
-      "steps": [
-        "correr la suite completa",
-        "assert 0 ✗"
-      ],
-      "expected_result": "agregado en verde, sin suites rotas sin re-derivar",
-      "test_data": {}
+      "preconditions": [],
+      "given": "el árbol de tests tras la re-derivación v4",
+      "when": "se recolectan los marcadores @aitri-tc TC-TRF4-* y se revisa el build report",
+      "then": "cada TC de este spec aparece exactamente una vez en la suite; ningún test siembra los formatos viejos fuera del spec de migración; 04_BUILD_REPORT.json documenta la re-derivación v3→v4",
+      "expected_result": "cero TCs huérfanos ni duplicados"
     },
     {
-      "id": "TC-TRF-157e",
-      "requirement_id": "NFR-1007",
+      "id": "TC-TRF4-153e",
+      "requirement_id": "NFR-1003",
       "user_story_id": "US-1010",
       "ac_id": "AC-1010",
-      "title": "Las re-derivaciones declaradas están hechas y documentadas",
+      "title": "Claves ajenas intactas y movimientos sin from/to jamás lanzan",
       "type": "integration",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "la lista declarada: TC-BAL-907h, TC-BAL-936e, TC-BAL-907f, TC-BAL-958f, TC-BAL-958e y los 8 seeds v2",
-      "when": "se auditan los archivos de tests",
-      "then": "cada TC de la lista fue re-derivado (asume saldos/v3), ningún test siembra ledger.budget.v2 salvo el spec dedicado de migración, y 04_BUILD_REPORT.json documenta la lista",
-      "steps": [
-        "grep de la lista",
-        "assert re-derivación + doc"
-      ],
-      "expected_result": "cascada declarada ejecutada por completo",
-      "test_data": {}
+      "given": "un estado con movimientos pre-feature (sin from/to) y las claves ledger.nodes.v1/theme",
+      "when": "se cargan, se derivan saldos, se computa el balance y se borra un nodo",
+      "then": "ninguna superficie lanza; las claves ajenas no cambian de nombre ni de forma",
+      "expected_result": "compatibilidad total hacia atrás"
     },
     {
-      "id": "TC-TRF-157f",
-      "requirement_id": "NFR-1007",
+      "id": "TC-TRF4-153f",
+      "requirement_id": "NFR-1003",
       "user_story_id": "US-1010",
       "ac_id": "AC-1010",
-      "title": "El spec de migración es el ÚNICO que siembra v2",
+      "title": "Un blob local corrupto (negativos/no enteros) se rechaza y cae a semilla",
       "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "blobs v4 con actuals negativos, con no enteros, y con budgets['@retiros'] negativo",
+      "when": "se cargan con LocalStorageRepository",
+      "then": "los tres devuelven null (el caller siembra) — jamás un estado que viole el piso",
+      "expected_result": "recuperación segura (NFR-003 raíz)"
+    },
+    {
+      "id": "TC-TRF4-155f",
+      "requirement_id": "NFR-1005",
+      "user_story_id": "US-1001",
+      "ac_id": "AC-1001",
+      "title": "La edición de gastos/ingresos no pasa por las reglas de reservas",
+      "type": "unit",
       "scenario": "negative",
       "priority": "medium",
       "preconditions": [],
-      "given": "el árbol de tests tras el re-base",
-      "when": "se busca 'ledger.budget.v2' en tests/",
-      "then": "aparece exactamente en el spec dedicado de migración (y en ningún otro archivo) — sembrar v2 fuera de él re-introduciría fixtures con la semántica vieja",
-      "steps": [
-        "grep",
-        "assert conteo de archivos == 1"
-      ],
-      "expected_result": "un solo punto de contacto con el formato viejo",
-      "test_data": {}
+      "given": "el estado de 30 alcancías y una hoja de gasto",
+      "when": "se edita la celda del gasto midiendo el contador de validaciones",
+      "then": "validateCalls == 0, el valor queda escrito y la edición cabe en el guardrail",
+      "expected_result": "cero acoplamiento de tipos"
+    },
+    {
+      "id": "TC-TRF4-157e",
+      "requirement_id": "NFR-1007",
+      "user_story_id": "US-1010",
+      "ac_id": "AC-1010",
+      "title": "Los formatos viejos solo se siembran en el spec de migración",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "el árbol de tests re-derivado",
+      "when": "se busca 'ledger.budget.v2', 'ledger.budget.v3' y 'version\": 3' en tests/",
+      "then": "aparecen exactamente en el spec dedicado de migración y en ningún otro archivo",
+      "expected_result": "un solo punto de contacto con los formatos viejos"
+    },
+    {
+      "id": "TC-TRF4-157f",
+      "requirement_id": "NFR-1007",
+      "user_story_id": "US-1010",
+      "ac_id": "AC-1010",
+      "title": "Ningún TC del spec queda sin test ni duplicado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "los marcadores @aitri-tc del árbol de tests y la lista de TCs de este spec",
+      "when": "se comparan ambos conjuntos",
+      "then": "cada id del spec aparece EXACTAMENTE una vez; no hay marcadores TC-TRF4-* fuera del spec",
+      "expected_result": "biyección spec↔suite"
+    },
+    {
+      "id": "TC-TRF4-002e",
+      "requirement_id": "FR-1002",
+      "user_story_id": "US-1002",
+      "ac_id": "AC-1002",
+      "title": "La fila padre y el total del tipo agregan celdas del mes, como los otros tipos",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "una categoría transfer con dos subcategorías con aportes en meses distintos",
+      "when": "se inspeccionan la fila padre y la fila total RESERVAS",
+      "then": "cada mes muestra la Σ de las celdas de ESE mes (roll-up estándar), sin acumulados",
+      "expected_result": "agregación homogénea entre tipos"
+    },
+    {
+      "id": "TC-TRF4-106f",
+      "requirement_id": "FR-1006",
+      "user_story_id": "US-1006",
+      "ac_id": "AC-1006",
+      "title": "Guardar sobre el margen bloquea con el mensaje exacto y sin mutar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "margen del mes 150000",
+      "when": "se intenta guardar 200000",
+      "then": "rechazo con rule='techo', month=el mes y limit=150000 — renderizable como 'No puedes reservar $200.000: tu margen este mes es $150.000' — y el estado queda deep-equal",
+      "expected_result": "bloqueo tipado con el margen en el veredicto"
+    },
+    {
+      "id": "TC-TRF4-107f",
+      "requirement_id": "FR-1007",
+      "user_story_id": "US-1007",
+      "ac_id": "AC-1007",
+      "title": "Sobre-sacar bloquea con el saldo en el veredicto y sin mutar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una alcancía con saldo derivado 150000",
+      "when": "se intenta sacar 150001",
+      "then": "rechazo con rule='piso', leafId=la alcancía, limit=150000 y estado deep-equal",
+      "expected_result": "'«Viaje» solo tiene $150.000'"
+    },
+    {
+      "id": "TC-TRF4-011e",
+      "requirement_id": "FR-1011",
+      "user_story_id": "US-1011",
+      "ac_id": "AC-1011",
+      "title": "El helper de conservación cubre el invariante derivado y una cadena de reestructuras lo mantiene",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "el helper resolvedYearByMonth y una secuencia de varias reestructuras seguidas",
+      "when": "se compara la serie derivada del tipo tras cada paso",
+      "then": "idéntica en cada paso; el helper es la aserción de los TCs de reestructuración",
+      "expected_result": "invariante instrumentado en tests"
+    },
+    {
+      "id": "TC-TRF4-011f",
+      "requirement_id": "FR-1011",
+      "user_story_id": "US-1011",
+      "ac_id": "AC-1011",
+      "title": "El invariante detecta la fusión corrupta (celdas sin journal re-apuntado)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un estado corrupto construido a mano: celdas trasladadas SIN re-apuntar los retiros (el bug adversarial)",
+      "when": "se compara la serie derivada contra la del estado sano",
+      "then": "difieren (el invariante DETECTA la fuga) mientras el camino real de moveNode las mantiene idénticas",
+      "expected_result": "el test falla si alguien reintroduce el bug"
+    },
+    {
+      "id": "TC-TRF4-015f",
+      "requirement_id": "FR-1015",
+      "user_story_id": "US-1015",
+      "ac_id": "AC-1015",
+      "title": "Planear un retiro sobre el límite rechaza sin mutar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "plan de aportes 200000 acumulados",
+      "when": "setPlannedRetiro por encima del límite y con valores inválidos (negativo, no numérico)",
+      "then": "rechazo tipado con el límite (o no-op para inválidos) y budgets['@retiros'] sin cambios",
+      "expected_result": "el plan imposible jamás se escribe"
+    },
+    {
+      "id": "TC-TRF4-151e",
+      "requirement_id": "NFR-1001",
+      "user_story_id": "US-1009",
+      "ac_id": "AC-1009",
+      "title": "Conservación con operaciones entrelazadas en ambos planos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "aportes/retiros ejecutados entrelazados con plan de aportes y retiros planeados",
+      "when": "se computa la serie tras cada paso",
+      "then": "total(m) = total(m−1) + flujo(m) en ambos planos; el plan jamás altera el ejecutado",
+      "expected_result": "conservación bi-plano"
+    },
+    {
+      "id": "TC-TRF4-151f",
+      "requirement_id": "NFR-1001",
+      "user_story_id": "US-1009",
+      "ac_id": "AC-1009",
+      "title": "Mutación centinela: solo los retiros reales cuentan como retiros",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "un journal con un expense con from/to accidentales, un transfer viejo sin from y un retiro real",
+      "when": "se computa reserveRetiros del mes",
+      "then": "solo el retiro real suma; los otros dos aportan 0 — cualquier regresión del filtro rompe esta aserción",
+      "expected_result": "el filtro from-real/type-transfer es load-bearing"
+    },
+    {
+      "id": "TC-TRF4-152e",
+      "requirement_id": "NFR-1002",
+      "user_story_id": "US-1005",
+      "ac_id": "AC-1005",
+      "title": "La captura de gasto/ingreso del registro no pasa por las reglas de reservas",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "el registro móvil con margen de reservas 0",
+      "when": "se registra un GASTO enorme",
+      "then": "se guarda con overlay normal (las reglas techo/piso son de reservas, no del flujo) y los saldos de reservas quedan intactos",
+      "expected_result": "captura de flujo intacta"
+    },
+    {
+      "id": "TC-TRF4-152f",
+      "requirement_id": "NFR-1002",
+      "user_story_id": "US-1004",
+      "ac_id": "AC-1004",
+      "title": "Un expense con from/to accidentales no gana extremos ni toca reservas",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "una hoja de gasto y alcancías con saldo",
+      "when": "addMovement type expense con from/to en el input",
+      "then": "el movimiento persiste SIN from/to y ningún saldo derivado de reservas cambia",
+      "expected_result": "los extremos son exclusivos del tipo transfer"
     }
   ]
 }
