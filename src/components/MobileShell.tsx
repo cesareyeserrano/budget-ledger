@@ -3,6 +3,7 @@ import { Wallet } from "lucide-react";
 import { Register } from "./register/Register";
 import { StorageBanner } from "./register/StorageBanner";
 import { ThemeToggle } from "./ThemeToggle";
+import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
 
 /** Móvil v1 (≤760px): SOLO el módulo de registro rediseñado. Sin grilla ni dashboard (FR-010). */
@@ -17,7 +18,10 @@ export function MobileShell() {
           </span>
           <h1 data-testid="page-title" className="title-sm text-fg truncate">Nuevo movimiento</h1>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <LogoutButton />
+        </div>
       </div>
       <div className="lx-scroll flex-1 overflow-y-auto px-5 pt-5 pb-6">
         <div className="mb-3"><StorageBanner /></div>

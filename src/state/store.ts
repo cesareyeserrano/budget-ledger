@@ -79,23 +79,71 @@ const DOUBLE_TAP_MS = 600;
 
 export const useLedgerStore = create<LedgerStore>((set, get) => {
   const repo = makeRepo();
-  /**
-   * `save` devuelve false en DOS casos distintos y cada uno pide una respuesta distinta:
-   *   · 409 stale  → re-hidratar para converger (ADR-06/FR-508). `conflicted` lo distingue.
-   *   · red / 5xx  → el cambio NO llegó a la fuente de verdad: avisar sin bloquear (FR-212).
-   * Antes ambos caían en resync — un fallo de red disparaba un resync que también fallaba y el
-   * usuario no se enteraba de nada. El StorageBanner se re-apunta aquí (decisión del usuario
-   * 2026-07-30): su disparador de cuota de localStorage desapareció con el modo retirado.
-   *
-   * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
-   */
-  const persist = (data: LedgerState) => {
-    void repo?.save(OWNER, data).then((ok) => {
-      if (ok === false) {
-        if (repo.conflicted) void get().resync();
-        else set({ storageError: "network" });
+  // BL-010: escrituras serializadas con coalescencia. Un PUT por mutación sin esperar producía
+  // dos guardados con la misma baseRevision: el segundo recibía 409 y el resync machacaba lo que
+  // el usuario acababa de teclear. Ahora `persist` solo apunta el snapshot más reciente y el
+  // drenador mantiene UN save en vuelo; al terminar, si llegó otro snapshot, envía ese (los
+  // intermedios no importan: el modelo es snapshot-replace, ADR-06).
+  let pendingSave: LedgerState | null = null;
+  let saveInFlight = false;
+
+  /** Recarga desde la fuente de verdad preservando la ventana de undo (BG-011). */
+  const doResync = async () => {
+    if (!repo) return;
+    try {
+      const before = get().data;
+      const loaded = await repo.load();
+      if (!loaded) return;
+      // BG-011: la ventana de undo de un retiro (ADR-07) se valida por igualdad de REFERENCIA
+      // sobre `data`. Si nadie mutó localmente, el resync solo devuelve NUESTRA propia escritura:
+      // la ventana se re-apunta al estado recién cargado en vez de morir.
+      if (reserveUndo && before === reserveUndo.afterData) {
+        reserveUndo = { ...reserveUndo, afterData: loaded };
       }
-    });
+      set({ data: loaded });
+    } catch {
+      // Ignorar: una recarga o el próximo evento re-sincronizan (FR-510).
+    }
+  };
+
+  const drainSaves = async () => {
+    if (saveInFlight || !repo) return;
+    saveInFlight = true;
+    try {
+      while (pendingSave) {
+        const data = pendingSave;
+        pendingSave = null;
+        /**
+         * `save` devuelve false en DOS casos distintos y cada uno pide una respuesta distinta:
+         *   · 409 stale  → converger al servidor (ADR-06/FR-508) y AVISAR: con las escrituras ya
+         *     serializadas, un 409 solo puede venir de OTRA sesión, y descartar lo local en
+         *     silencio era el defecto de BL-010. `conflicted` lo distingue.
+         *   · red / 5xx  → el cambio NO llegó a la fuente de verdad: avisar sin bloquear (FR-212).
+         * El StorageBanner se re-apunta aquí (decisión del usuario 2026-07-30): su disparador de
+         * cuota de localStorage desapareció con el modo retirado.
+         *
+         * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
+         */
+        const ok = await repo.save(OWNER, data);
+        if (ok !== false) continue;
+        if (repo.conflicted) {
+          // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
+          // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
+          pendingSave = null;
+          await doResync();
+          get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        } else {
+          set({ storageError: "network" });
+        }
+      }
+    } finally {
+      saveInFlight = false;
+    }
+  };
+
+  const persist = (data: LedgerState) => {
+    pendingSave = data;
+    void drainSaves();
   };
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
   let lastSig: string | null = null;
@@ -228,28 +276,13 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     /** Re-carga desde la fuente de verdad (sync en vivo / resolución de conflicto). */
     resync: async () => {
-      if (!repo) return;
-      try {
-        const before = get().data;
-        const loaded = await repo.load();
-        if (!loaded) return;
-        // BG-011: la ventana de undo de un retiro (ADR-07) se valida por igualdad de REFERENCIA
-        // sobre `data`. El sync en vivo la mataba: tras persistir el retiro, el servidor publica el
-        // evento, resync trae un objeto NUEVO, y el «Deshacer» del toast se auto-descartaba en
-        // silencio — el usuario pulsaba un botón que no hacía nada.
-        //
-        // Si nadie mutó localmente (la referencia vigente sigue siendo la que produjo el retiro),
-        // el resync solo nos devuelve NUESTRA propia escritura: eso no es una mutación ajena, así
-        // que la ventana se re-apunta al estado recién cargado en vez de morir. Se respeta la
-        // intención de ADR-07 —el undo vale solo si nada mutó tras el retiro— sin castigarlo por
-        // el eco de su propio guardado.
-        if (reserveUndo && before === reserveUndo.afterData) {
-          reserveUndo = { ...reserveUndo, afterData: loaded };
-        }
-        set({ data: loaded });
-      } catch {
-        // Ignorar: una recarga o el próximo evento re-sincronizan (FR-510).
-      }
+      // BL-010: con un save en vuelo (o pendiente), lo que cargaríamos es ANTERIOR a lo que este
+      // cliente ya tiene en pantalla — el resync machacaba el estado local (p. ej. borraba el nodo
+      // recién creado en demote-node). El evento SSE que se salta aquí es inofensivo: si era
+      // nuestro propio eco no aportaba nada, y si era una escritura ajena el PUT en vuelo va a
+      // recibir 409 y el drenador converge y avisa.
+      if (saveInFlight || pendingSave) return;
+      await doResync();
     },
 
     /**

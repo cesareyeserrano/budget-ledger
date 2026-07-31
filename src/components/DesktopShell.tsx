@@ -8,6 +8,7 @@ import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
+import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
 import { money } from "./format";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
@@ -61,6 +62,7 @@ export function DesktopShell() {
               <Plus size={15} /> Nuevo movimiento
             </Button>
             <ThemeToggle />
+            <LogoutButton />
           </div>
         </div>
 

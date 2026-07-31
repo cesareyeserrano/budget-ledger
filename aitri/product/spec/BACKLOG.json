@@ -89,9 +89,10 @@
       "title": "Serializar las escrituras al servidor (cola/debounce) para no perder ediciones en vuelo",
       "priority": "P2",
       "problem": "src/state/store.ts:57-66 llama repo.save() sin esperar (fire-and-forget) en cada mutacion, y ServerRepository (src/data/serverRepository.ts:58-81) solo actualiza this.revision al responder el PUT. Dos ediciones rapidas seguidas salen con la misma baseRevision, la segunda recibe 409, el handler llama resync() y set({data: loaded}) sobrescribe el estado local, revirtiendo en silencio lo que el usuario acaba de teclear.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:58:59.210Z",
-      "acceptance": "Un save en vuelo a la vez con coalescencia del ultimo estado; un 409 que descarte cambios locales avisa al usuario en vez de revertir en silencio."
+      "acceptance": "Un save en vuelo a la vez con coalescencia del ultimo estado; un 409 que descarte cambios locales avisa al usuario en vez de revertir en silencio.",
+      "closedAt": "2026-07-31T17:42:29.880Z"
     },
     {
       "id": "BL-011",

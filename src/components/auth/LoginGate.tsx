@@ -19,7 +19,6 @@
 import { useEffect, useRef } from "react";
 import { AuthForm } from "./AuthForm";
 import { AuthPending } from "./AuthPending";
-import { LogoutButton } from "./LogoutButton";
 import { useLedgerStore } from "@/state/store";
 import { SyncClient } from "@/data/syncClient";
 import { useSession } from "@/lib/authClient";
@@ -49,10 +48,5 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   if (isPending) return <AuthPending />;
   if (!session) return <AuthForm />;
 
-  return (
-    <>
-      <LogoutButton />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }
