@@ -1,4 +1,6 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "./helpers/fixtures";
+import { seedLedger } from "./helpers/seed";
+import type { LedgerNode } from "@/domain/types";
 import { MONTH_KEYS } from "../../src/domain/months";
 
 // Feature budget-state-color — el color de la grilla señala el ESTADO del presupuesto, no el tipo.
@@ -95,27 +97,24 @@ const ALL_LEAVES = [...EXPENSE_LEAVES, SEVEN_DIGITS, SUB_LEAF, INCOME_SHORT, INC
  * un falso negativo.
  */
 async function seed(page: Page) {
-  await page.addInitScript(
-    ({ nodes, leaves, months }) => {
-      if (localStorage.getItem("ledger.nodes.v1")) return; // arranque en caliente: respetar lo persistido
-      const budgets: Record<string, Record<string, number>> = {};
-      const actuals: Record<string, Record<string, number>> = {};
-      for (const l of leaves) {
-        budgets[l.id] = {};
-        actuals[l.id] = {};
-        for (const m of months) {
-          budgets[l.id][m] = l.budget;
-          actuals[l.id][m] = l.actual;
-        }
-      }
-      localStorage.setItem(
-        "ledger.nodes.v1",
-        JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
-      );
-      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements: [] }));
-    },
-    { nodes: NODES, leaves: ALL_LEAVES, months: MONTH_KEYS }
-  );
+  // Siembra por API autenticada (FR-1104): localStorage dejó de guardar datos financieros.
+  // El PUT es un snapshot completo, así que ya no hace falta la guarda de idempotencia que
+  // necesitaba addInitScript (corría en CADA navegación y pisaba lo editado).
+  const budgets: Record<string, Record<string, number>> = {};
+  const actuals: Record<string, Record<string, number>> = {};
+  for (const l of ALL_LEAVES) {
+    budgets[l.id] = {};
+    actuals[l.id] = {};
+    for (const m of MONTH_KEYS) {
+      budgets[l.id][m] = l.budget;
+      actuals[l.id][m] = l.actual;
+    }
+  }
+  await seedLedger(page, {
+    nodes: NODES.map((n) => ({ ...n, ownerId: "local", icon: null })) as unknown as LedgerNode[],
+    budgets,
+    actuals,
+  });
 }
 
 async function gotoGrid(page: Page, scheme: "light" | "dark" = "light") {

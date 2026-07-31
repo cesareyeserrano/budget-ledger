@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
 
 // FR-015 — reparent por arrastrar-y-soltar. dnd-kit usa PointerSensor (distancia de activación),
 // por eso el arrastre se simula con pasos de mouse (mousedown → move >6px → move a destino → mouseup).

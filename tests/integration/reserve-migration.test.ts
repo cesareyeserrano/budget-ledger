@@ -1,34 +1,29 @@
 /**
- * Feature transferencias · modelo v4 — FR-1010 (migraciones v2/v3→v4), NFR-1003 (no destructiva,
- * blob corrupto → semilla) y NFR-1004 (PUT confiado documentado).
+ * Feature transferencias · modelo v4 — FR-1010 (conversión v2/v3→v4), NFR-1003 (no destructiva) y
+ * NFR-1004 (PUT confiado documentado).
  *
- * ESTE ARCHIVO es el spec dedicado que siembra los formatos viejos (TC-TRF4-157e): ningún otro
- * archivo de tests/ puede contener las claves ledger.budget.v2 / ledger.budget.v3.
+ * RE-APUNTADO por la feature servidor-fuente-unica (FR-1106 / ADR-04 corregido).
+ *
+ * Antes este archivo ejercitaba la conversión a través de LocalStorageRepository, sembrando las
+ * claves ledger.budget.v2/v3. Ese vehículo desapareció con el almacén — pero la CONVERSIÓN sigue
+ * viva: `migrateStateV3toV4` la invoca el servidor en `ensureV4InTx`
+ * (src/server/data/ledgerRepo.ts:161), dentro de una transacción con lock y marcada por la columna
+ * `dataVersion`. Retirar este archivo habría dejado sin cobertura la aritmética de esa migración.
+ *
+ * Reparto de cobertura (deliberado, sin duplicar):
+ *   · ESTE archivo  → la ARITMÉTICA de la conversión sobre la función pura de dominio.
+ *   · reserve-server.test.ts → el CABLEADO en el servidor (migración lazy, marca dataVersion,
+ *     una sola vez, también antes de un POST).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { LocalStorageRepository } from "@/data/repository";
+import { migrateStateV3toV4 } from "@/domain/migrate";
+import { persistedBudgetSchema } from "@/domain/validation";
 import { AVAILABLE_ID, RETIROS_PLAN_ID, resolvedBalance, reserveRetiros } from "@/domain/reserve";
-import { STORAGE_KEYS, type LedgerNode, type LedgerState } from "@/domain/types";
+import { STORAGE_KEYS, type LedgerNode, type LedgerState, type Movement } from "@/domain/types";
 
-const V2_KEY = "ledger.budget.v2";
-const V3_KEY = "ledger.budget.v3";
 const ROOT = process.cwd();
-
-function makeStorage(initial: Record<string, string> = {}) {
-  const map = new Map(Object.entries(initial));
-  return {
-    map,
-    getItem: (k: string) => map.get(k) ?? null,
-    setItem: (k: string, v: string) => void map.set(k, v),
-    removeItem: (k: string) => void map.delete(k),
-  };
-}
-
-function nodesBlob(nodes: LedgerNode[]): string {
-  return JSON.stringify({ version: 1, ownerId: "local", nodes });
-}
 
 const NODES: LedgerNode[] = [
   { id: "g-ahorro", ownerId: "local", type: "transfer", level: "group", parentId: null, name: "Ahorro", icon: "folder", order: 0 },
@@ -37,71 +32,80 @@ const NODES: LedgerNode[] = [
   { id: "c-salario", ownerId: "local", type: "income", level: "category", parentId: "g-trabajo", name: "Salario", icon: "tag", order: 3 },
 ];
 
-describe("FR-1010 · migraciones al modelo v4 (localStorage)", () => {
+/** Estado en formato v3 (celdas = SALDOS con arrastre), tal como lo entrega el servidor con dataVersion=3. */
+function v3State(): LedgerState {
+  return {
+    ownerId: "local",
+    nodes: NODES,
+    // saldos v3: aportes 100k×3 y un retiro de 50k en abr; plan no monótono (retiro planeado 30k en jun)
+    budgets: { "c-viaje": { ene: 80_000, jun: 50_000 } },
+    actuals: { "c-viaje": { ene: 100_000, feb: 200_000, mar: 300_000, abr: 250_000 } },
+    movements: [],
+  };
+}
+
+describe("FR-1010 · conversión al modelo v4", () => {
   it("TC-TRF4-010h: v3→v4 deshace saldos, sintetiza retiros (Ejec. y plan) y es idempotente", async () => {
     // @aitri-tc TC-TRF4-010h
-    const storage = makeStorage({
-      [STORAGE_KEYS.nodes]: nodesBlob(NODES),
-      [V3_KEY]: JSON.stringify({
-        version: 3,
-        // saldos v3: aportes 100k×3 y un retiro de 50k en abr; plan no monótono (retiro planeado 30k en jun)
-        budgets: { "c-viaje": { ene: 80_000, jun: 50_000 } },
-        actuals: { "c-viaje": { ene: 100_000, feb: 200_000, mar: 300_000, abr: 250_000 } },
-        movements: [],
-      }),
-    });
-    const repo = new LocalStorageRepository(storage);
+    const first = migrateStateV3toV4(v3State());
 
-    const first = await repo.load("local");
-    expect(first).not.toBeNull();
     // Ejecutado: aportes recuperados + retiro sintetizado con nota.
-    expect(first!.actuals["c-viaje"]).toEqual({ ene: 100_000, feb: 100_000, mar: 100_000 });
-    const synth = first!.movements.filter((m) => m.from === "c-viaje" && m.to === AVAILABLE_ID);
+    expect(first.actuals["c-viaje"]).toEqual({ ene: 100_000, feb: 100_000, mar: 100_000 });
+    const synth = first.movements.filter((m: Movement) => m.from === "c-viaje" && m.to === AVAILABLE_ID);
     expect(synth).toHaveLength(1);
     expect(synth[0]).toMatchObject({ month: "abr", amount: 50_000 });
     expect(synth[0].note).toMatch(/migrado/i);
     // Plan: el delta negativo (80k→50k en jun) va a la fila de retiros del plan.
-    expect(first!.budgets["c-viaje"]).toEqual({ ene: 80_000 });
-    expect(first!.budgets[RETIROS_PLAN_ID]).toEqual({ jun: 30_000 });
-    expect(reserveRetiros(first!, "jun", "budget")).toBe(30_000);
-    // El saldo derivado v4 == el saldo resuelto v3, mes a mes.
-    expect(resolvedBalance(first!, "c-viaje", "mar", "actual")).toBe(300_000);
-    expect(resolvedBalance(first!, "c-viaje", "dic", "actual")).toBe(250_000);
-    // Idempotencia: la clave vieja se eliminó y la segunda carga no duplica nada.
-    expect(storage.map.has(V3_KEY)).toBe(false);
-    const second = await repo.load("local");
-    expect(second!.actuals).toEqual(first!.actuals);
-    expect(second!.movements.filter((m) => m.note?.match(/migrado/i))).toHaveLength(1);
+    expect(first.budgets["c-viaje"]).toEqual({ ene: 80_000 });
+    expect(first.budgets[RETIROS_PLAN_ID]).toEqual({ jun: 30_000 });
+    expect(reserveRetiros(first, "jun", "budget")).toBe(30_000);
+    // El saldo derivado v4 == el saldo resuelto v3, mes a mes: la conversión no pierde información.
+    expect(resolvedBalance(first, "c-viaje", "mar", "actual")).toBe(300_000);
+    expect(resolvedBalance(first, "c-viaje", "dic", "actual")).toBe(250_000);
+
+    // La conversión NO es idempotente, y eso es DELIBERADO: convierte saldos→aportes, así que
+    // aplicarla a un estado que ya es de aportes los vuelve a des-acumular y destruye los datos.
+    // Por eso la MARCA de versión es carga estructural, no burocracia: es lo único que impide una
+    // segunda aplicación. Antes la marca era la clave de localStorage (ledger.budget.v3 → v4);
+    // ahora es la columna `dataVersion`, y el guard que la lee vive en ensureV4InTx
+    // (src/server/data/ledgerRepo.ts:162, `if (dataVersion >= DATA_VERSION_FLOWS) return state`),
+    // cubierto por reserve-server.test.ts.
+    //
+    // Este assert fija esa propiedad: si alguien hiciera la conversión idempotente "por seguridad",
+    // o peor, quitara el guard creyéndola inofensiva, este test lo delata.
+    const twice = migrateStateV3toV4(first);
+    expect(twice.actuals["c-viaje"]).not.toEqual(first.actuals["c-viaje"]);
+    expect(twice.actuals["c-viaje"]).toEqual({ ene: 100_000 }); // feb/mar se des-acumulan a 0 y se pierden
   });
 });
 
 describe("NFR-1003 · la migración es no destructiva", () => {
-  it("TC-TRF4-153h: un estado pre-feature v2 completo carga sin pérdida (identidad) y el CHECK sigue intacto", async () => {
+  it("TC-TRF4-153h: un estado pre-feature v2 pasa por identidad (nada se convierte ni se pierde)", async () => {
     // @aitri-tc TC-TRF4-153h
-    const oldMovements = [
+    // v2: las celdas YA eran aportes, así que el camino v2→v4 es identidad — no llama a
+    // migrateStateV3toV4, solo estampa la marca (ledgerRepo.ts:165, rama dataVersion !== 3).
+    const oldMovements: Movement[] = [
       { id: "m-1", ownerId: "local", type: "expense", catId: "c-salario", subId: null, target: "c-salario", amount: 10_000, month: "ene", createdAt: 1 },
       { id: "m-2", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 50_000, month: "feb", createdAt: 2, date: "2026-02-10T09:00", note: "aporte viejo" },
     ];
-    const storage = makeStorage({
-      [STORAGE_KEYS.nodes]: nodesBlob(NODES),
-      [V2_KEY]: JSON.stringify({
-        version: 2,
-        budgets: { "c-salario": { ene: 900_000 } },
-        actuals: { "c-salario": { ene: 870_000 }, "c-viaje": { feb: 50_000 } },
-        movements: oldMovements,
-      }),
-    });
+    const v2: LedgerState = {
+      ownerId: "local",
+      nodes: NODES,
+      budgets: { "c-salario": { ene: 900_000 } },
+      actuals: { "c-salario": { ene: 870_000 }, "c-viaje": { feb: 50_000 } },
+      movements: oldMovements,
+    };
 
-    const loaded = await new LocalStorageRepository(storage).load("local");
-
-    // IDENTIDAD: las celdas v2 ya eran aportes — nada se convierte ni se pierde.
-    expect(loaded!.nodes.map((n) => n.id)).toEqual(NODES.map((n) => n.id));
-    expect(loaded!.budgets["c-salario"]).toEqual({ ene: 900_000 });
-    expect(loaded!.actuals["c-viaje"]).toEqual({ feb: 50_000 });
-    expect(loaded!.movements).toHaveLength(2);
-    expect(loaded!.movements[1]).toMatchObject({ id: "m-2", note: "aporte viejo" });
-    expect(loaded!.movements[1].from).toBeUndefined();
-    expect(storage.map.has(V2_KEY)).toBe(false); // re-persistido como v4
+    // IDENTIDAD: el estado v2 es ya un estado v4 válido; nada se convierte ni se pierde.
+    expect(v2.nodes.map((n: LedgerNode) => n.id)).toEqual(NODES.map((n) => n.id));
+    expect(v2.budgets["c-salario"]).toEqual({ ene: 900_000 });
+    expect(v2.actuals["c-viaje"]).toEqual({ feb: 50_000 });
+    expect(v2.movements).toHaveLength(2);
+    expect(v2.movements[1]).toMatchObject({ id: "m-2", note: "aporte viejo" });
+    expect(v2.movements[1].from).toBeUndefined();
+    // Y se deriva sin lanzar: un movimiento sin from/to no cuenta como retiro.
+    expect(resolvedBalance(v2, "c-viaje", "dic", "actual")).toBe(50_000);
+    expect(reserveRetiros(v2, "feb", "actual")).toBe(0);
 
     // El CHECK de la BD no se toca y la migración drizzle es puramente aditiva.
     const dbSchema = readFileSync(path.join(ROOT, "src/server/db/schema.ts"), "utf8");
@@ -111,42 +115,45 @@ describe("NFR-1003 · la migración es no destructiva", () => {
     expect(migration).not.toMatch(/ALTER TABLE "amount_cell"/i);
   });
 
-  it("TC-TRF4-153e: claves ajenas intactas y movimientos sin from/to jamás lanzan", async () => {
+  it("TC-TRF4-153e: un movimiento sin from/to jamás lanza al derivar el saldo", async () => {
     // @aitri-tc TC-TRF4-153e
+    // La clave de datos sobrevive como CONSTANTE (la limpieza necesita su nombre) pero ya no se
+    // escribe: FR-1104 prohíbe el uso en escritura, no la existencia del identificador.
     expect(STORAGE_KEYS.nodes).toBe("ledger.nodes.v1");
     expect(STORAGE_KEYS.budget).toBe("ledger.budget.v4");
-    // theme convive sin colisión de prefijo: ninguna clave del ledger la pisa
     expect(Object.values(STORAGE_KEYS).every((k) => k.startsWith("ledger."))).toBe(true);
 
-    const storage = makeStorage({
-      [STORAGE_KEYS.nodes]: nodesBlob(NODES),
-      [STORAGE_KEYS.budget]: JSON.stringify({
-        version: 4,
-        budgets: {},
-        actuals: { "c-viaje": { feb: 50_000 } },
-        movements: [{ id: "m-old", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 50_000, month: "feb", createdAt: 1 }],
-      }),
-    });
-    const loaded = await new LocalStorageRepository(storage).load("local");
-    expect(loaded).not.toBeNull();
-    // movimiento viejo sin from/to: se deriva sin lanzar y no cuenta como retiro
-    expect(() => resolvedBalance(loaded!, "c-viaje", "dic", "actual")).not.toThrow();
-    expect(resolvedBalance(loaded!, "c-viaje", "dic", "actual")).toBe(50_000);
-    expect(reserveRetiros(loaded!, "feb", "actual")).toBe(0);
+    const state: LedgerState = {
+      ownerId: "local",
+      nodes: NODES,
+      budgets: {},
+      actuals: { "c-viaje": { feb: 50_000 } },
+      movements: [{ id: "m-old", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 50_000, month: "feb", createdAt: 1 }],
+    };
+    expect(() => resolvedBalance(state, "c-viaje", "dic", "actual")).not.toThrow();
+    expect(resolvedBalance(state, "c-viaje", "dic", "actual")).toBe(50_000);
+    expect(reserveRetiros(state, "feb", "actual")).toBe(0);
   });
 
-  it("TC-TRF4-153f: un blob local corrupto (negativos/no enteros) se rechaza y cae a semilla", async () => {
+  it("TC-TRF4-153f: el esquema rechaza montos negativos y no enteros", async () => {
     // @aitri-tc TC-TRF4-153f
+    // Antes esto se probaba a través de LocalStorageRepository.load(), que validaba con Zod y
+    // devolvía null (→ semilla). Ese repositorio se retiró, así que se verifica el ESQUEMA en sí,
+    // que es lo que contenía la regla.
+    //
+    // ⚠ Cobertura honesta: el camino de servidor NO aplica hoy este esquema al leer
+    // (serverRepository.ts:48 castea sin validar). Registrado como BL-021 — este test prueba que
+    // la regla es correcta, NO que la implementación viva la aplique.
     const blobs = [
       { version: 4, budgets: {}, actuals: { "c-viaje": { ene: -999 } }, movements: [] },
       { version: 4, budgets: {}, actuals: { "c-viaje": { ene: 100.5 } }, movements: [] },
       { version: 4, budgets: { [RETIROS_PLAN_ID]: { ene: -5 } }, actuals: {}, movements: [] },
     ];
     for (const blob of blobs) {
-      const storage = makeStorage({ [STORAGE_KEYS.nodes]: nodesBlob(NODES), [STORAGE_KEYS.budget]: JSON.stringify(blob) });
-      const loaded = await new LocalStorageRepository(storage).load("local");
-      expect(loaded, JSON.stringify(blob)).toBeNull(); // → el caller siembra (NFR-003)
+      expect(persistedBudgetSchema.safeParse(blob).success, JSON.stringify(blob)).toBe(false);
     }
+    // Y un blob conforme sí pasa: el esquema no rechaza por rechazar.
+    expect(persistedBudgetSchema.safeParse({ version: 4, budgets: {}, actuals: { "c-viaje": { ene: 100 } }, movements: [] }).success).toBe(true);
   });
 });
 

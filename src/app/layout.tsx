@@ -20,7 +20,7 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: "Ledger — Presupuesto 2026",
-  description: "Finanzas personales contra presupuesto. App web responsive, single-user (localStorage).",
+  description: "Finanzas personales contra presupuesto. App web responsive: entras con tu cuenta desde cualquier dispositivo y ves siempre la misma información.",
 };
 
 export const viewport: Viewport = {

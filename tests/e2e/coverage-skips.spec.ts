@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/fixtures";
 
 // TCs sembrados en 03_TEST_CASES.json que no tenían spec real (aparecían como skip en verify-run).
 // Cada test embebe su TC id en el título para que aitri verify-run lo mapee.

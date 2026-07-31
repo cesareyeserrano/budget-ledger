@@ -8,9 +8,7 @@ import {
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
-import { LocalStorageRepository, type LedgerRepository } from "@/data/repository";
 import { ServerRepository } from "@/data/serverRepository";
-import { SERVER_MODE } from "@/lib/serverMode";
 import { STORAGE_KEYS } from "@/domain/types";
 import { currentMonthKey } from "@/domain/months";
 
@@ -23,8 +21,9 @@ interface LedgerStore {
   toast: string | null;
   /** El toast vigente ofrece «Deshacer» (retiro de reserva con undo de un nivel, FR-1003/ADR-07). */
   toastUndo: boolean;
-  /** Aviso no bloqueante cuando falla la persistencia local (quota/indisponible). */
-  storageError: "quota" | null;
+  /** Aviso no bloqueante cuando el guardado no llegó a la fuente de verdad (red caída / 5xx).
+   *  Antes señalaba la cuota de localStorage; ese disparador murió con el modo retirado (FR-1103). */
+  storageError: "network" | null;
   showToast: (msg: string) => void;
   /**
    * Edita una celda transfer de la grilla (modelo v4: el APORTE del mes): valida en el dominio y
@@ -63,13 +62,16 @@ interface LedgerStore {
 const OWNER = "local";
 
 /**
- * Punto de swap (FR-011 raíz / FR-508). En modo servidor devuelve la impl de servidor; en modo
- * localStorage (default) la existente — mismo contrato LedgerRepository, sin tocar el dominio.
+ * ÚNICO punto de construcción del repositorio (FR-1101). Ya no hay swap: Postgres es la única
+ * fuente de verdad, así que no queda decisión de producto que encapsular — solo el guard de SSR.
+ * La fábrica aparte (data/makeRepo.ts) se retiró: dos puntos con criterios distintos fue el defecto
+ * que esta feature corrige (ADR-02).
+ *
+ * @aitri-trace FR-ID: FR-1101, US-ID: US-1101, AC-ID: AC-1101b, TC-ID: TC-SFU-101h
  */
-function makeRepo(): LedgerRepository | null {
-  if (typeof window === "undefined") return null;
-  if (SERVER_MODE) return new ServerRepository();
-  return new LocalStorageRepository(window.localStorage);
+function makeRepo(): ServerRepository | null {
+  if (typeof window === "undefined") return null; // SSR: el gate aún no montó
+  return new ServerRepository();
 }
 
 /** Ventana (ms) en la que un guardado idéntico se considera doble-tap y no se duplica (FR-212). */
@@ -77,13 +79,21 @@ const DOUBLE_TAP_MS = 600;
 
 export const useLedgerStore = create<LedgerStore>((set, get) => {
   const repo = makeRepo();
+  /**
+   * `save` devuelve false en DOS casos distintos y cada uno pide una respuesta distinta:
+   *   · 409 stale  → re-hidratar para converger (ADR-06/FR-508). `conflicted` lo distingue.
+   *   · red / 5xx  → el cambio NO llegó a la fuente de verdad: avisar sin bloquear (FR-212).
+   * Antes ambos caían en resync — un fallo de red disparaba un resync que también fallaba y el
+   * usuario no se enteraba de nada. El StorageBanner se re-apunta aquí (decisión del usuario
+   * 2026-07-30): su disparador de cuota de localStorage desapareció con el modo retirado.
+   *
+   * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
+   */
   const persist = (data: LedgerState) => {
-    // Si la persistencia falla (p. ej. quota local, o conflicto/red en servidor), aviso no bloqueante.
     void repo?.save(OWNER, data).then((ok) => {
       if (ok === false) {
-        // En servidor un false puede ser un 409 (stale): re-hidratar para converger (ADR-06/FR-508).
-        if (SERVER_MODE) void get().resync();
-        else set({ storageError: "quota" });
+        if (repo.conflicted) void get().resync();
+        else set({ storageError: "network" });
       }
     });
   };
@@ -184,19 +194,26 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         set({ hydrated: true });
         return;
       }
-      // Split de almacenamiento (FR-509): en servidor, localStorage NUNCA guarda datos financieros;
-      // se retiran las llaves financieras legadas del uso cliente-puro previo (limpieza, no migración).
-      if (SERVER_MODE && typeof window !== "undefined") {
+      // Split de almacenamiento (FR-509, completado por FR-1104): localStorage NUNCA guarda datos
+      // financieros. La limpieza es INCONDICIONAL (ADR-05): un navegador con restos del modo
+      // retirado queda limpio al primer arranque, que es lo único que garantiza "cero claves
+      // ledger.* tras cualquier flujo" tras descartar la ruta de importación. Es quirúrgica: toca
+      // el espacio ledger.* y jamás las preferencias del dispositivo (theme, ancho de columna).
+      //
+      // @aitri-trace FR-ID: FR-1104, US-ID: US-1104, AC-ID: AC-1104a, TC-ID: TC-SFU-104f
+      if (typeof window !== "undefined") {
         try {
           window.localStorage.removeItem(STORAGE_KEYS.nodes);
           window.localStorage.removeItem(STORAGE_KEYS.budget);
         } catch {
-          // localStorage indisponible: los datos financieros no dependen de él.
+          // localStorage indisponible: los datos financieros no dependen de él (TC-SFU-104e).
         }
       }
       let loaded: LedgerState | null = null;
       try {
-        loaded = await repo.load(OWNER);
+        // ServerRepository.load() no recibe ownerId: el dueño lo resuelve el servidor desde la
+        // sesión. Antes se pasaba OWNER porque la variable estaba tipada como la interfaz.
+        loaded = await repo.load();
       } catch {
         // Servidor inalcanzable / no autenticado: no se cae a datos locales (no existen). El gate
         // muestra login o un error de conexión; marcamos hidratado para no bloquear el render.
@@ -213,8 +230,23 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     resync: async () => {
       if (!repo) return;
       try {
-        const loaded = await repo.load(OWNER);
-        if (loaded) set({ data: loaded });
+        const before = get().data;
+        const loaded = await repo.load();
+        if (!loaded) return;
+        // BG-011: la ventana de undo de un retiro (ADR-07) se valida por igualdad de REFERENCIA
+        // sobre `data`. El sync en vivo la mataba: tras persistir el retiro, el servidor publica el
+        // evento, resync trae un objeto NUEVO, y el «Deshacer» del toast se auto-descartaba en
+        // silencio — el usuario pulsaba un botón que no hacía nada.
+        //
+        // Si nadie mutó localmente (la referencia vigente sigue siendo la que produjo el retiro),
+        // el resync solo nos devuelve NUESTRA propia escritura: eso no es una mutación ajena, así
+        // que la ventana se re-apunta al estado recién cargado en vez de morir. Se respeta la
+        // intención de ADR-07 —el undo vale solo si nada mutó tras el retiro— sin castigarlo por
+        // el eco de su propio guardado.
+        if (reserveUndo && before === reserveUndo.afterData) {
+          reserveUndo = { ...reserveUndo, afterData: loaded };
+        }
+        set({ data: loaded });
       } catch {
         // Ignorar: una recarga o el próximo evento re-sincronizan (FR-510).
       }
@@ -279,9 +311,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   };
 });
 
-// Seam de test (solo modo servidor): expone el store para que los e2e observen el estado en vivo
-// (actualizado por el sync SSE) sin recargar. No-op en modo localStorage y en SSR.
-if (SERVER_MODE && typeof window !== "undefined") {
+// Seam de test: expone el store para que los e2e observen el estado en vivo (actualizado por el
+// sync SSE) sin recargar. Incondicional tras retirar el flag; sigue siendo no-op en SSR.
+if (typeof window !== "undefined") {
   (window as unknown as { __ledgerStore?: typeof useLedgerStore }).__ledgerStore = useLedgerStore;
 }
 

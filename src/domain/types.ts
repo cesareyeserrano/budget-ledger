@@ -80,10 +80,6 @@ export const STORAGE_KEYS = {
   budget: "ledger.budget.v4",
 } as const;
 
-/** Claves de formatos previos. Se leen UNA vez para migrar y se eliminan.
- *  v2 = aportes sin journal de retiros (identidad de celdas); v3 = saldos con arrastre (se
- *  deshace el acumulado y los deltas negativos pasan al journal). */
-export const LEGACY_BUDGET_KEYS = { v2: "ledger.budget.v2", v3: "ledger.budget.v3" } as const;
-
-/** Nombre de la categoría del sistema que recibe categorías borradas (una por tipo). */
-export const UNASSIGNED_NAME = "Sin asignar";
+// LEGACY_BUDGET_KEYS (ledger.budget.v2/v3) se retiró con el almacén de localStorage
+// (feature servidor-fuente-unica, FR-1104): eran claves de ESE almacén. La CONVERSIÓN v3→v4
+// sigue viva en domain/migrate.ts, marcada por la columna `dataVersion` en Postgres.

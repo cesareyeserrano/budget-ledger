@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/fixtures";
 
 // Flujos críticos de UI (FR-006/009/010/012). Cada test embebe su TC id para verify-run.
 

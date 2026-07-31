@@ -1,0 +1,555 @@
+{
+  "project_name": "T-Ledger — servidor-fuente-unica",
+  "project_summary": {
+    "description": "Retira el modo 'localStorage como almacén de datos' heredado del MVP v1 y deja Postgres como única fuente de verdad. Elimina el interruptor NEXT_PUBLIC_LEDGER_SERVER_MODE y el segundo punto de construcción del repositorio, hace obligatoria la sesión en toda la app, y restringe localStorage a preferencias del dispositivo (tema, ancho de columna). Completa la intención ya declarada en FR-509 del feature backend, que hoy convive con el modo que la contradice.",
+    "north_star_kpi": "0 claves `ledger.*` en localStorage y 0 referencias a SERVER_MODE en src/ tras cualquier flujo completo de la app",
+    "jtbd": "Como usuario que entra desde el escritorio y desde el celular, quiero ver exactamente la misma información en ambos, para llevar un solo presupuesto y no dos verdades que nadie reconcilia.",
+    "guardrail_metric": "Cero regresión: los 544 tests verdes de las 10 features ya entregadas siguen pasando contra Postgres, y las preferencias de navegador (tema, ancho de columna) siguen persistiendo."
+  },
+  "functional_requirements": [
+    {
+      "id": "FR-1101",
+      "title": "Punto único de construcción del repositorio, sin ramas por modo",
+      "description": "La app construye su repositorio de datos en un solo lugar del código. Se elimina el interruptor NEXT_PUBLIC_LEDGER_SERVER_MODE (src/lib/serverMode.ts) y desaparece la bifurcación de src/state/store.ts:69-73. El módulo huérfano src/data/makeRepo.ts —hoy un segundo punto de swap que decide con OTRO criterio (`authenticated` en vez de `SERVER_MODE`) y que ningún código de producción invoca— se unifica en ese punto único o se elimina. No queda ninguna rama de runtime que pueda devolver un almacén distinto de Postgres.",
+      "priority": "MUST",
+      "type": "architecture",
+      "acceptance_criteria": [
+        "Buscar `SERVER_MODE` en src/ devuelve 0 resultados; el archivo src/lib/serverMode.ts no existe (happy)",
+        "Existe exactamente UN punto en src/ que construye una implementación de LedgerRepository; no hay dos módulos con criterios distintos (happy)",
+        "En SSR (sin window) la construcción del repositorio no lanza y la app renderiza el gate de login (edge)",
+        "Ninguna ruta de código puede devolver LocalStorageRepository como almacén de datos del usuario (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1102",
+      "title": "Sesión obligatoria en toda la app",
+      "description": "LoginGate (src/components/auth/LoginGate.tsx:66) deja de ser passthrough: hoy, con el interruptor apagado, renderiza el shell sin pedir sesión. Tras esta feature no existe camino que muestre el shell ni lea/escriba datos financieros sin una sesión válida. La hidratación de src/app/page.tsx:18-19 deja de bifurcar por modo y ocurre siempre tras autenticar.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Dado un usuario sin sesión, al abrir cualquier ruta ve el formulario de login y no el shell de la app (happy)",
+        "Dado un usuario sin sesión, no se emite ninguna petición de datos financieros ni se lee ningún dato del usuario (happy)",
+        "Dada una sesión que expira estando la app abierta, la app vuelve al login sin exponer datos en pantalla (edge)",
+        "No existe variable de entorno, flag ni parámetro que permita saltarse el gate de login (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1103",
+      "title": "Postgres es la única fuente de verdad de los datos del usuario",
+      "description": "Todo dato del usuario —nodos de la jerarquía, presupuesto, ejecutado, movimientos y reservas— se persiste exclusivamente en Postgres a través de ServerRepository. Se retira LocalStorageRepository del camino de producción (src/state/store.ts:72). El mismo usuario, entrando desde otro dispositivo, ve el mismo estado.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Un dato guardado desde un navegador es visible al iniciar sesión con la misma cuenta desde otro navegador o dispositivo (happy)",
+        "Tras guardar cualquier dato del usuario, la escritura se refleja en Postgres y no en localStorage (happy)",
+        "Si la red o el servidor fallan al guardar, la app avisa de forma no bloqueante y NO cae de vuelta a localStorage (edge)",
+        "Ninguna clave de datos financieros se escribe en localStorage bajo ningún flujo, incluido el fallo de red (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1104",
+      "title": "localStorage queda restringido a preferencias del dispositivo",
+      "description": "localStorage conserva únicamente preferencias del navegador —el tema (clave `theme`, src/app/providers.tsx:8) y el ancho de la columna de categorías (src/lib/gridWidth.ts:19-33)— y ninguna clave del espacio `ledger.*`. Se retiran las constantes STORAGE_KEYS de datos (`ledger.nodes.v1`, `ledger.budget.v4`, src/domain/types.ts:75-81) del camino de escritura. Esto completa el split que FR-509 (feature backend) ya declaraba pero que convivía con el modo contrario.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Tras un flujo completo (login, editar celda, registrar movimiento, operar reserva, recargar), localStorage no contiene ninguna clave que empiece por `ledger.` (happy)",
+        "El tema y el ancho de columna siguen guardándose en localStorage y sobreviven a recargar (happy)",
+        "Con localStorage deshabilitado o lleno, los datos del usuario siguen guardándose y leyéndose sin degradación (edge)",
+        "Ningún módulo de src/ escribe una clave `ledger.*` en localStorage (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1105",
+      "title": "Retiro declarado del código de migración local y de sus ramas asociadas",
+      "description": "Con el repositorio de localStorage fuera del camino de producción, su maquinaria de migración deja de tener llamador: stripLegacyUnassigned (src/data/repository.ts:52, único llamador) y la lectura de LEGACY_BUDGET_KEYS. El retiro debe quedar DECLARADO, no silenciado, porque el path de servidor nunca tuvo migración equivalente (src/server/data/ledgerRepo.ts:53,:223 lee y reescribe `system` desde Postgres): al irse stripLegacyUnassigned, nodos `system` heredados que existieran en Postgres quedan sin migración. El usuario confirmó que no hay usuarios reales, por lo que se acepta; la decisión y su alcance quedan registrados. Debe decidirse explícitamente el destino de la migración v3→v4 (src/domain/migrate.ts, cubierta por tests/integration/reserve-migration.test.ts): re-apuntada al path de servidor o retirada con justificación.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "El código de migración de localStorage sin llamador queda retirado, y el diseño registra por escrito qué se retiró y por qué es aceptable (happy)",
+        "La decisión sobre la migración v3→v4 queda explícita en el diseño: re-apuntada a Postgres o retirada con justificación, nunca omitida por descuido (happy)",
+        "Si quedan ramas que consultan el flag `system`, el diseño declara si siguen siendo alcanzables en el path de servidor o se retiran con ellas (edge)",
+        "No queda código de migración de localStorage sin llamador ni referenciado por ningún test (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1106",
+      "title": "La cobertura de test apunta al camino que corre en producción",
+      "description": "Hoy TC-BE-027h —el test de FR-508, el requisito del punto de swap— ejercita src/data/makeRepo.ts, un módulo que producción nunca invoca: pasa en verde sin verificar la decisión real. Tras esta feature, el test del punto de construcción del repositorio ejercita el único camino que corre. Los ~25 usos de LocalStorageRepository repartidos en tests/integration/persistence.test.ts, feature-stack.test.ts, reserve-migration.test.ts y backend/repo-sync.test.ts se re-apuntan a Postgres o se retiran con justificación explícita por archivo.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "El test del punto de construcción del repositorio importa y ejercita el módulo que producción usa (happy)",
+        "Ningún test de integración construye LocalStorageRepository como almacén de datos del usuario (happy)",
+        "Cada archivo de test re-apuntado o retirado tiene su decisión registrada; ninguno desaparece en silencio (edge)",
+        "Romper deliberadamente la construcción del repositorio hace fallar su test (negativo — hoy no falla, ese es el defecto)"
+      ]
+    },
+    {
+      "id": "FR-1107",
+      "title": "La descripción pública de la app refleja que es multi-dispositivo con cuenta",
+      "description": "src/app/layout.tsx:23 describe la app como 'App web responsive, single-user (localStorage)', que tras esta feature es falso y además es el texto que ven buscadores y previsualizaciones al compartir el enlace. Se actualiza para describir una app de servidor, con cuenta, accesible desde varios dispositivos.",
+      "priority": "SHOULD",
+      "type": "UX",
+      "acceptance_criteria": [
+        "La metadata de la app no menciona localStorage como mecanismo de persistencia (happy)",
+        "La descripción menciona el acceso con cuenta desde varios dispositivos (happy)"
+      ]
+    },
+    {
+      "id": "FR-1108",
+      "title": "La pantalla de login y el control de logout adoptan el sistema de diseño del producto",
+      "description": "FR-1102 convierte el login en la puerta de entrada obligatoria de todos los usuarios en todos los dispositivos. Hoy AuthForm (src/components/auth/AuthForm.tsx:42-110) es la única pantalla de la app maquetada con estilos inline y elementos sin clases del sistema: <main style={{...}}>, <input> y <button> pelados, y el mensaje de error con un hex literal de respaldo (var(--error, #c0392b)). El control de logout (src/components/auth/LoginGate.tsx:54) está igual. Ambos adoptan el estándar YA establecido del producto — los tokens verificados contra el prototipo del cliente, la escala canónica de control de la feature control-size-scale (FR-801: alturas 32/40/48px) y las reglas de contraste, tipografía y superficies de la feature ux-consistency. No se inventa estética nueva ni se rediseña el flujo: es adopción del estándar existente. Absorbe BL-011 del backlog. Los data-testid actuales (auth-form, auth-name, auth-email, auth-password, auth-error, auth-submit, auth-google, auth-toggle, logout) se conservan intactos: los e2e de la feature backend dependen de ellos.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "AuthForm y el control de logout no contienen ninguna declaración de estilo inline (0 atributos style=) (happy)",
+        "Toda altura efectiva de control en la pantalla de login pertenece a {32, 40, 48}px, la escala canónica de FR-801 (happy)",
+        "Todo texto de la pantalla de login alcanza un contraste ≥4.5:1 contra su fondo, en tema claro y oscuro (happy)",
+        "Superficies, bordes y radios se resuelven por token del sistema (--bg-card, --border, --radius-*), sin ningún hex literal en el componente (happy)",
+        "Cada control interactivo tiene indicador de foco visible y objetivo táctil ≥48px en móvil a 375px (edge)",
+        "Los 9 data-testid existentes siguen presentes y con el mismo nombre; los e2e de auth de la feature backend siguen pasando (edge)",
+        "El rediseño no altera el flujo: mismos campos, mismo cambio login/registro, mismos mensajes de error, mismo comportamiento del botón de Google deshabilitado (negativo)"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1101",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las preferencias legítimas de navegador siguen funcionando y persistiendo: el tema (clave `theme`, src/app/providers.tsx:8, default 'Sistema') y el ancho de la columna de categorías (src/lib/gridWidth.ts:19-33). Son preferencias del dispositivo, no datos del usuario, y esta feature no las toca.",
+      "acceptance_criteria": "Cambiar el tema y el ancho de columna, recargar, y comprobar que ambos persisten; el default del tema sigue siendo 'Sistema'. TC-UXC-352e y TC-UXC-355e siguen pasando."
+    },
+    {
+      "id": "NFR-1102",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El flujo de login existente (feature backend, better-auth) sigue intacto: credenciales válidas entran, inválidas no, y la sesión sobrevive a recargar la página. Esta feature elimina el camino que saltaba el gate, no rediseña la autenticación.",
+      "acceptance_criteria": "Login con credenciales válidas entra al shell; con inválidas no entra y muestra error; tras recargar con sesión válida el usuario sigue dentro. Los TCs de auth de la feature backend siguen pasando."
+    },
+    {
+      "id": "NFR-1103",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El sync en vivo contra la base de datos (FR-511) sigue convergiendo, incluido el resync ante un 409 stale (src/state/store.ts:85, ADR-06). Al retirar la bifurcación por modo, la rama que hoy está guardada tras `if (SERVER_MODE)` debe quedar como comportamiento incondicional, no perderse con el flag.",
+      "acceptance_criteria": "Una escritura que devuelve 409 dispara re-hidratación y el estado converge; el sync en vivo sigue actualizando la vista sin recargar. Los TCs de sync de la feature backend siguen pasando."
+    },
+    {
+      "id": "NFR-1104",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Toda la funcionalidad de las 10 features ya entregadas sigue operando contra Postgres: grilla de 12 meses, transferencias/reservas modelo v4, balance, promote/demote de nodos, temas, y consistencia UX.",
+      "acceptance_criteria": "La suite completa del proyecto (544 tests verdes al inicio de esta feature) sigue pasando contra Postgres, sin tests retirados salvo los declarados explícitamente en FR-1106."
+    },
+    {
+      "id": "NFR-1105",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El modelo v4 de reservas y su semántica (celdas = aportes del mes, retiros por journal) permanecen intactos en el path de servidor. Retirar la migración de localStorage no puede alterar cómo el servidor lee ni escribe reservas.",
+      "acceptance_criteria": "Los 67 TCs de la feature transferencias siguen pasando; los aportes y retiros leídos desde Postgres conservan la semántica v4."
+    },
+    {
+      "id": "NFR-1106",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "Ningún dato financiero queda accesible sin sesión válida: ni renderizado en el cliente, ni servido por una ruta de API, ni residente en el almacenamiento del navegador tras cerrar sesión.",
+      "acceptance_criteria": "Sin sesión, las rutas de API de datos responden 401 y no devuelven contenido del usuario; tras cerrar sesión no queda ninguna clave `ledger.*` en localStorage."
+    },
+    {
+      "id": "NFR-1107",
+      "category": "Maintainability",
+      "priority": "SHOULD",
+      "requirement": "La eliminación del modo debe reducir superficie de código, no moverla: al cerrar la feature no quedan módulos, flags, ramas ni variables de entorno huérfanas del modo retirado.",
+      "acceptance_criteria": "Buscar `SERVER_MODE`, `LEDGER_SERVER_MODE` y `LocalStorageRepository` en src/ devuelve 0 resultados; la variable NEXT_PUBLIC_LEDGER_SERVER_MODE deja de ser necesaria para arrancar la app y se retira de la documentación de despliegue."
+    },
+    {
+      "id": "NFR-1108",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "La suite sigue corriendo en CI contra Postgres tras retirar el modo. tests/e2e-backend/helpers/globalSetup.ts, que hoy configura el interruptor, debe seguir levantando el entorno de test sin él.",
+      "acceptance_criteria": "El job de CI arranca la base, corre la suite completa y falla con exit code distinto de 0 ante cualquier test roto, sin depender de NEXT_PUBLIC_LEDGER_SERVER_MODE."
+    }
+  ],
+  "no_go_zone": [
+    "Ruta de importación o migración de datos desde localStorage hacia la cuenta — el usuario confirmó (2026-07-30) que no hay usuarios reales (release 0.0.1-beta, la única data viva es la de dev en Postgres); lo que quede en algún navegador se descarta a conciencia. No se diseña merge, ni import, ni export previo.",
+    "Modificación del modelo de dominio (src/domain/) y del esquema de Postgres — esta feature retira un camino de persistencia, no cambia qué se persiste.",
+    "Rediseño de la autenticación — better-auth y el flujo de login se quedan como están; esta feature solo elimina el camino que los saltaba. FR-1108 cambia el ASPECTO de la pantalla de login, nunca su comportamiento.",
+    "Recuperación de contraseña y verificación de email — registrado como BL-020 (P1) el 2026-07-30 al inventariar el login: hoy quien olvida su contraseña queda fuera sin camino de vuelta, y Google (única alternativa) está apagado. Es funcionalidad real (envío de correo, tokens de un solo uso, expiración), no acabado; va por su propia feature y NO se cuela en ésta.",
+    "Endurecimiento de la sesión y de la postura de seguridad del despliegue (cookie httpOnly, HSTS, cabeceras) — se evalúa aparte vía `aitri audit security` y NFR-511 del feature backend (TC-BE-077h, pendiente de verificación manual sobre TLS).",
+    "Optimización de la escritura al servidor — la serialización de escrituras (BL-010) y la escritura incremental del ledger (BL-017) son su propia feature.",
+    "Modo demo o de invitado sin cuenta — descartado explícitamente por el usuario al elegir 'retirarlo del todo' frente a 'conservarlo como modo demo'.",
+    "Multiusuario real, libros compartidos y roles — sigue fuera de alcance como en el proyecto padre; esta feature no lo habilita."
+  ],
+  "constraints": [
+    "El proyecto ya está en release 0.0.1-beta con 5/5 fases aprobadas y 10 features entregadas; esta feature no puede romper ninguna (NFR-1104).",
+    "La bifurcación por SERVER_MODE está entrelazada con lógica que SÍ debe sobrevivir (resync ante 409 en store.ts:85, borrado de claves ledger.* en store.ts:187-194): retirar el flag exige preservar esas ramas como incondicionales, no borrarlas con él.",
+    "El entorno de desarrollo corre en modo servidor contra Postgres vía docker-compose.dev.yml; la suite debe seguir corriendo ahí."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas — la feature es sustractiva: elimina un camino de persistencia existente.",
+    "Next.js 15, TypeScript, better-auth y Drizzle/Postgres ya en uso; no se introduce ni se reemplaza ninguna pieza."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas, operando desde varios dispositivos (escritorio para planear, móvil para capturar)",
+      "tech_level": "Medio; usa la app a diario desde más de un navegador y espera continuidad entre ellos",
+      "goal": "Ver el mismo presupuesto sin importar desde dónde entre, y que sus datos financieros estén resguardados tras una cuenta",
+      "pain_point": "Hoy existe un modo en el que sus finanzas quedan atrapadas en el navegador donde las capturó: no aparecen en el celular, y son legibles por cualquier script de la página"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1101",
+      "requirement_id": "FR-1101",
+      "as_a": "desarrollador que mantiene la app",
+      "i_want": "un único lugar donde se decide y construye el repositorio de datos",
+      "so_that": "no existan dos criterios que se contradigan ni un modo que pueda devolver un almacén equivocado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1101a",
+          "given": "el código fuente de la app",
+          "when": "busco `SERVER_MODE` en src/",
+          "then": "no hay ningún resultado y el archivo src/lib/serverMode.ts ya no existe"
+        },
+        {
+          "id": "AC-1101b",
+          "given": "el código fuente de la app",
+          "when": "busco los módulos que construyen un LedgerRepository",
+          "then": "encuentro exactamente uno, y no coexisten dos con criterios distintos"
+        },
+        {
+          "id": "AC-1101c",
+          "given": "el renderizado en servidor, donde no existe `window`",
+          "when": "se evalúa la construcción del repositorio",
+          "then": "no lanza excepción y la app renderiza el gate de login"
+        }
+      ]
+    },
+    {
+      "id": "US-1102",
+      "requirement_id": "FR-1102",
+      "as_a": "usuario dueño de sus finanzas",
+      "i_want": "que la app exija mi sesión siempre",
+      "so_that": "nadie que abra la app en un dispositivo vea o modifique mi presupuesto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1102a",
+          "given": "un visitante sin sesión iniciada",
+          "when": "abre cualquier ruta de la app",
+          "then": "ve el formulario de login y en ningún momento el shell con datos"
+        },
+        {
+          "id": "AC-1102b",
+          "given": "un visitante sin sesión iniciada",
+          "when": "se observa el tráfico de red y el almacenamiento del navegador",
+          "then": "no se pide ni se escribe ningún dato financiero"
+        },
+        {
+          "id": "AC-1102c",
+          "given": "una sesión que expira con la app abierta",
+          "when": "el usuario intenta seguir operando",
+          "then": "la app vuelve al login sin dejar datos visibles en pantalla"
+        }
+      ]
+    },
+    {
+      "id": "US-1103",
+      "requirement_id": "FR-1103",
+      "as_a": "usuario que entra desde el escritorio y desde el celular",
+      "i_want": "que mis datos vivan en la base de datos y no en el navegador",
+      "so_that": "vea exactamente lo mismo desde cualquier dispositivo y no acabe con dos presupuestos distintos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1103a",
+          "given": "un movimiento guardado desde el navegador A",
+          "when": "inicio sesión con la misma cuenta en el navegador B",
+          "then": "el movimiento está ahí, con el mismo monto y la misma categoría"
+        },
+        {
+          "id": "AC-1103b",
+          "given": "cualquier edición de dato del usuario",
+          "when": "se completa el guardado",
+          "then": "el cambio está en Postgres y no se escribió ninguna clave de datos en localStorage"
+        },
+        {
+          "id": "AC-1103c",
+          "given": "el servidor caído o sin red",
+          "when": "el usuario intenta guardar",
+          "then": "recibe un aviso no bloqueante y la app NO cae de vuelta a guardar en localStorage"
+        }
+      ]
+    },
+    {
+      "id": "US-1104",
+      "requirement_id": "FR-1104",
+      "as_a": "usuario preocupado por su privacidad",
+      "i_want": "que el navegador solo recuerde mis preferencias visuales, no mis finanzas",
+      "so_that": "un script malicioso en la página no pueda leer mi presupuesto completo en texto plano",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1104a",
+          "given": "un recorrido completo (login, editar celda, registrar movimiento, operar reserva, recargar)",
+          "when": "inspecciono localStorage",
+          "then": "no existe ninguna clave que empiece por `ledger.`"
+        },
+        {
+          "id": "AC-1104b",
+          "given": "un tema y un ancho de columna elegidos por el usuario",
+          "when": "recarga la página",
+          "then": "ambas preferencias se conservan, porque siguen viviendo en localStorage por diseño"
+        },
+        {
+          "id": "AC-1104c",
+          "given": "un navegador con localStorage deshabilitado o lleno",
+          "when": "el usuario opera la app",
+          "then": "sus datos se guardan y se leen igual, sin degradación ni pérdida"
+        }
+      ]
+    },
+    {
+      "id": "US-1105",
+      "requirement_id": "FR-1105",
+      "as_a": "desarrollador que mantiene la app",
+      "i_want": "que el retiro del código de migración local quede declarado y no silenciado",
+      "so_that": "quien lea el proyecto después entienda qué se retiró, qué quedó sin migración y por qué se aceptó",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1105a",
+          "given": "el código de migración de localStorage que se queda sin llamador",
+          "when": "se retira",
+          "then": "el diseño registra por escrito qué se eliminó y por qué es aceptable sin usuarios reales"
+        },
+        {
+          "id": "AC-1105b",
+          "given": "la migración v3→v4 de reservas y su test de integración",
+          "when": "se decide su destino",
+          "then": "la decisión queda explícita —re-apuntada a Postgres o retirada con justificación— y nunca omitida en silencio"
+        },
+        {
+          "id": "AC-1105c",
+          "given": "las ramas que consultan el flag `system` en la UI y en el dominio",
+          "when": "desaparece stripLegacyUnassigned, hoy su único saneador",
+          "then": "el diseño declara si siguen siendo alcanzables desde Postgres o se retiran junto con él"
+        }
+      ]
+    },
+    {
+      "id": "US-1106",
+      "requirement_id": "FR-1106",
+      "as_a": "desarrollador que confía en la suite de tests",
+      "i_want": "que el test del punto de construcción del repositorio ejercite el código que de verdad corre",
+      "so_that": "un fallo real me lo diga el test en vez de pasar en verde sobre un módulo muerto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1106a",
+          "given": "el test que cubre el punto de construcción del repositorio",
+          "when": "reviso qué importa",
+          "then": "importa el módulo que producción usa, no un huérfano"
+        },
+        {
+          "id": "AC-1106b",
+          "given": "la construcción del repositorio rota a propósito",
+          "when": "corro su test",
+          "then": "el test falla (hoy pasa en verde: ese es exactamente el defecto que se corrige)"
+        },
+        {
+          "id": "AC-1106c",
+          "given": "los 4 archivos de test que hoy usan LocalStorageRepository",
+          "when": "se cierran",
+          "then": "cada uno quedó re-apuntado a Postgres o retirado con justificación registrada, ninguno desapareció en silencio"
+        }
+      ]
+    },
+    {
+      "id": "US-1107",
+      "requirement_id": "FR-1107",
+      "as_a": "persona que recibe el enlace de la app",
+      "i_want": "que su descripción diga lo que la app realmente es",
+      "so_that": "no lea 'single-user (localStorage)' sobre una app de servidor con cuenta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1107a",
+          "given": "la metadata de la app",
+          "when": "la inspecciono",
+          "then": "no menciona localStorage como mecanismo de persistencia y sí el acceso con cuenta desde varios dispositivos"
+        }
+      ]
+    },
+    {
+      "id": "US-1108",
+      "requirement_id": "FR-1108",
+      "as_a": "usuario que ahora debe iniciar sesión cada vez que entra",
+      "i_want": "que la pantalla de login se vea parte de la misma app",
+      "so_that": "la primera impresión no sea un formulario suelto y desalineado del resto del producto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1108a",
+          "given": "el código de AuthForm y del control de logout",
+          "when": "lo inspecciono",
+          "then": "no queda ninguna declaración de estilo inline ni ningún color en hex literal; todo resuelve por token del sistema"
+        },
+        {
+          "id": "AC-1108b",
+          "given": "la pantalla de login renderizada a 375px y a 1440px",
+          "when": "mido sus controles",
+          "then": "cada altura efectiva pertenece a {32,40,48}px y cada objetivo táctil mide ≥48px en móvil"
+        },
+        {
+          "id": "AC-1108c",
+          "given": "la pantalla de login en tema claro y en tema oscuro",
+          "when": "mido el contraste de cada texto contra su fondo",
+          "then": "todos alcanzan ≥4.5:1, incluido el mensaje de error y el enlace de cambio login/registro"
+        },
+        {
+          "id": "AC-1108d",
+          "given": "los e2e de autenticación de la feature backend",
+          "when": "corren contra la pantalla rediseñada",
+          "then": "siguen pasando, porque los 9 data-testid se conservaron con el mismo nombre"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo planteó textualmente en sesión el 2026-07-30: 'la app va a estar alojada en un servidor, el usuario accede por cualquier dispositivo, en cualquier dispositivo puede ver su información. por tanto la data va por base de datos y algunas configuraciones de navegación por localstorage: modo dark, cosas colapsadas, sesiones etc.' Verificado contra el código: el modo contrario existe y guarda finanzas en el navegador (src/lib/serverMode.ts:10, src/domain/types.ts:75-81).",
+    "users": "El usuario definió el acceso multi-dispositivo en la misma frase ('el usuario accede por cualquier dispositivo'). La persona single-user se hereda del proyecto padre y no cambia.",
+    "baseline": "Medido directamente sobre el código el 2026-07-30, no recordado: 12 referencias a SERVER_MODE en 5 archivos de src/ + globalSetup.ts; 1 uso de LocalStorageRepository en producción (store.ts:72) y ~25 en 4 archivos de test; dos puntos de swap con criterios distintos (store.ts:69 usa SERVER_MODE, data/makeRepo.ts:24 usa `authenticated`).",
+    "success_metric": "Deriva de una decisión explícita del usuario en sesión: ante la pregunta de si el modo localStorage-como-datos seguía siendo un caso de uso real, eligió 'No — retirarlo del todo' frente a conservarlo como modo demo. Las métricas (0 referencias a SERVER_MODE, 0 claves `ledger.*`, login siempre) son la expresión mecánica y verificable de esa decisión.",
+    "no_go_zone": "El usuario confirmó explícitamente el punto de mayor riesgo: ante la pregunta sobre qué pasa con datos previos en el navegador, eligió 'No importa — no hay usuarios reales', descartando ruta de importación. El descarte del modo demo proviene de la misma decisión anterior. El resto del no-go zone (dominio, esquema, auth, optimización de escritura) delimita alcance para no arrastrar trabajo de otras features."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Un solo punto donde se construye el repositorio, sin ramas por modo",
+      "disposition": "FR-1101"
+    },
+    {
+      "need": "Eliminar el interruptor NEXT_PUBLIC_LEDGER_SERVER_MODE",
+      "disposition": "FR-1101"
+    },
+    {
+      "need": "Resolver los dos puntos de swap que discrepan (BL-012)",
+      "disposition": "FR-1101"
+    },
+    {
+      "need": "La app exige sesión siempre; LoginGate deja de ser passthrough",
+      "disposition": "FR-1102"
+    },
+    {
+      "need": "Postgres como única fuente de verdad de los datos del usuario",
+      "disposition": "FR-1103"
+    },
+    {
+      "need": "Ver la misma información desde cualquier dispositivo",
+      "disposition": "FR-1103"
+    },
+    {
+      "need": "localStorage solo para preferencias del dispositivo; cero claves ledger.*",
+      "disposition": "FR-1104"
+    },
+    {
+      "need": "Conservar tema y ancho de columna como preferencias legítimas",
+      "disposition": "NFR-1101"
+    },
+    {
+      "need": "Retirar la migración de localStorage dejando declarada la asimetría con el servidor (BL-018, 2ª mitad)",
+      "disposition": "FR-1105"
+    },
+    {
+      "need": "Decidir el destino de la migración v3→v4 y su test",
+      "disposition": "FR-1105"
+    },
+    {
+      "need": "Eliminar el pass falso de TC-BE-027h sobre el módulo huérfano",
+      "disposition": "FR-1106"
+    },
+    {
+      "need": "Re-apuntar o retirar los ~25 usos de LocalStorageRepository en tests",
+      "disposition": "FR-1106"
+    },
+    {
+      "need": "Actualizar la descripción pública de la app",
+      "disposition": "FR-1107"
+    },
+    {
+      "need": "La pantalla de login y el logout adoptan el sistema de diseño del producto (BL-011)",
+      "disposition": "FR-1108"
+    },
+    {
+      "need": "Conservar los data-testid de auth para no romper los e2e de la feature backend",
+      "disposition": "FR-1108"
+    },
+    {
+      "need": "Recuperación de contraseña y verificación de email",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "No romper el login existente",
+      "disposition": "NFR-1102"
+    },
+    {
+      "need": "No romper el sync en vivo ni el resync ante 409",
+      "disposition": "NFR-1103"
+    },
+    {
+      "need": "No romper las 10 features ya entregadas",
+      "disposition": "NFR-1104"
+    },
+    {
+      "need": "No alterar el modelo v4 de reservas en el path de servidor",
+      "disposition": "NFR-1105"
+    },
+    {
+      "need": "Ningún dato financiero accesible sin sesión",
+      "disposition": "NFR-1106"
+    },
+    {
+      "need": "No dejar módulos, flags ni variables huérfanas del modo retirado",
+      "disposition": "NFR-1107"
+    },
+    {
+      "need": "La suite sigue corriendo en CI contra Postgres sin el interruptor",
+      "disposition": "NFR-1108"
+    },
+    {
+      "need": "Importar o migrar datos previos de localStorage a la cuenta",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Modo demo o de invitado sin cuenta",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Endurecer la sesión (cookie httpOnly, HSTS, cabeceras)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rediseñar la autenticación",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar el modelo de dominio o el esquema de Postgres",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Serializar las escrituras al servidor (BL-010)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Escritura incremental del ledger (BL-017)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multiusuario real, libros compartidos y roles",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\n\nRetirar el modo \"localStorage como almacén de datos\" y dejar Postgres como única fuente de verdad;\n`localStorage` queda exclusivamente para preferencias del navegador.\n\n## Problem / Why\n\n[confirmado por el usuario, 2026-07-30]\n\nLa app se aloja en un servidor y el usuario entra **desde cualquier dispositivo**, esperando ver su\nmisma información en todos. Hoy el proyecto conserva un modo alterno, heredado del MVP v1, en el que\nlos datos financieros viven en el navegador:\n\n- `NEXT_PUBLIC_LEDGER_SERVER_MODE` (`src/lib/serverMode.ts:10`) decide, en tiempo de arranque, si la\n  app guarda en Postgres o en `localStorage`.\n- Con el interruptor apagado, `ledger.nodes.v1` y `ledger.budget.v4` (`src/domain/types.ts:75-81`)\n  guardan **las finanzas completas** — nodos, presupuesto y ejecutado — en el navegador, y\n  `LoginGate` (`src/components/auth/LoginGate.tsx:66`) se vuelve un passthrough: no pide sesión.\n\nEse modo es incompatible con el producto por dos razones:\n\n1. **No sincroniza.** Un dato en `localStorage` vive en ESE navegador. El usuario entra desde el\n   celular y no está; edita en dos dispositivos y quedan dos verdades que nadie reconcilia.\n2. **No es seguro.** `localStorage` es legible por cualquier JavaScript de la página. Ante un XSS o\n   una dependencia comprometida, el presupuesto completo se va en texto plano.\n\nEl proyecto **ya declaró la intención correcta** en FR-509 (`src/state/store.ts:187-194`: \"en\nservidor, localStorage NUNCA guarda datos financieros\", y borra activamente las claves `ledger.*`).\nLo que falta no es construir el split — es **retirar el modo que lo contradice**.\n\n## Target Users\n\n[confirmado] Usuario único autenticado que opera su presupuesto desde varios dispositivos\n(escritorio y móvil). No desbloquea tipos de usuario nuevos: elimina un modo sin cuenta que no\ncorrespondía al producto.\n\n## New Behavior\n\n- El sistema debe construir el repositorio de datos en **un solo** lugar, sin ramas por modo.\n- El sistema debe exigir sesión válida **siempre**: sin login no renderiza el shell ni lee datos.\n- El sistema debe persistir **todo dato del usuario** (nodos, presupuesto, ejecutado, movimientos,\n  reservas) exclusivamente en Postgres.\n- El sistema debe mantener en `localStorage` **solo preferencias del dispositivo** (tema, ancho de\n  columna) y ninguna clave `ledger.*`.\n- El sistema debe describirse públicamente como app de servidor multi-dispositivo\n  (`src/app/layout.tsx:23` hoy dice \"single-user (localStorage)\").\n\n## Success Criteria\n\n1. Dado el código fuente, cuando se busca `SERVER_MODE` en `src/`, entonces hay **0** resultados.\n2. Dado cualquier flujo completo de la app, cuando se inspecciona `localStorage`, entonces **no\n   existe ninguna clave `ledger.*`**.\n3. Dado un usuario sin sesión, cuando abre cualquier ruta, entonces ve el login y **no** se lee ni\n   escribe dato financiero alguno.\n4. Dado FR-508, cuando corre su test, entonces ejercita el **único** punto de construcción del\n   repositorio que usa producción (hoy TC-BE-027h prueba un módulo huérfano — pass falso).\n5. Dada la suite completa contra Postgres, cuando corre, entonces sigue en verde.\n\n## Touch Points\n\nMODIFICA:\n- `src/lib/serverMode.ts` — se elimina (el interruptor deja de existir).\n- `src/state/store.ts:69-73, 85, 187-194, 284` — swap, resync y el borrado de claves `ledger.*`.\n- `src/data/makeRepo.ts` — punto de swap huérfano; se unifica o se elimina (absorbe **BL-012**).\n- `src/data/repository.ts` — `LocalStorageRepository` y `stripLegacyUnassigned:52`.\n- `src/components/auth/LoginGate.tsx:66` — deja de ser passthrough.\n- `src/app/page.tsx:18-19` — la hidratación deja de bifurcar por modo.\n- `src/lib/authClient.ts` — comentarios/contrato ligados al modo.\n- `src/app/layout.tsx:23` — descripción pública desactualizada.\n- Tests: `tests/integration/persistence.test.ts`, `feature-stack.test.ts`,\n  `reserve-migration.test.ts`, `backend/repo-sync.test.ts` (~25 usos de `LocalStorageRepository`),\n  y `tests/e2e-backend/helpers/globalSetup.ts`.\n- FRs existentes tocados: **FR-011** (persistencia tras interfaz), **FR-508** (punto de swap),\n  **FR-509** (split de almacenamiento — esta feature lo completa), **FR-014** (andamiaje\n  multiusuario).\n\n## Must Not Break (Regression Boundary)\n\n- El split de almacenamiento (FR-509) sigue cumpliéndose: tras cualquier flujo, cero claves\n  `ledger.*` en `localStorage`.\n- Las preferencias de navegador siguen funcionando y persistiendo: tema\n  (`src/app/providers.tsx:8`, clave `theme`, default \"Sistema\") y ancho de columna\n  (`src/lib/gridWidth.ts:19-33`).\n- El flujo de login existente sigue igual: credenciales válidas entran, inválidas no, y la sesión\n  sobrevive a recargar.\n- El sync en vivo contra la BD (FR-511) sigue convergiendo, incluido el `resync` ante 409 stale\n  (`src/state/store.ts:85`, ADR-06).\n- Toda la funcionalidad de las 10 features ya entregadas sigue en verde contra Postgres\n  (grilla, transferencias/reservas, balance, promote/demote, temas, UX).\n- El modelo v4 de reservas y su migración siguen intactos en el path de servidor.\n\n## Out of Scope\n\n[confirmado por el usuario]\n\n- **Sin ruta de importación de datos de `localStorage`.** El usuario confirmó que no hay usuarios\n  reales (release `0.0.1-beta`; la única data viva es la de dev en Postgres). Lo que quede en algún\n  navegador se descarta a conciencia — no se diseña merge ni import ni export previo.\n- **No se toca el modelo de dominio** ni el esquema de Postgres.\n- **No se rediseña la autenticación.** better-auth y el flujo de login se quedan como están; esta\n  feature solo elimina el camino que los saltaba. (Endurecer la sesión —cookie `httpOnly`, HSTS— se\n  evalúa aparte, vía `aitri audit security` / NFR-511.)\n- **No se optimiza la escritura al servidor.** La serialización de escrituras (BL-010) y la\n  escritura incremental del ledger (BL-017) son su propia feature.\n\n## Notas de alcance\n\n- Ojo con `tests/integration/reserve-migration.test.ts`: cubre la migración v3→v4, lógica real. Hay\n  que decidir explícitamente si sobrevive sin el repo de localStorage o se re-apunta a Postgres.\n- Al retirar el path de localStorage desaparece `stripLegacyUnassigned` (`src/data/repository.ts:52`,\n  hoy su único llamador). Eso deja sin migración a los nodos `system` heredados que pudieran existir\n  en Postgres — el path de servidor nunca tuvo la suya (`src/server/data/ledgerRepo.ts:53, :223`).\n  Sin usuarios reales es aceptable, pero debe quedar **declarado**, no silenciado: cierra la 2ª\n  mitad de **BL-018**, cuya premisa (\"ramas `system` inalcanzables\") era falsa justamente por esta\n  asimetría.\n"
+}

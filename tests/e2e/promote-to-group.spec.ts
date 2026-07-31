@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
 
 // Feature promote-to-group — e2e. Cada test embebe su TC id para el mapeo de aitri verify-run.
 // dnd-kit usa PointerSensor (distancia de activación): el arrastre se simula con pasos de mouse.

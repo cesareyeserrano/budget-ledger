@@ -1,4 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
+import { seedLedger, readLedger } from "./helpers/seed";
+import type { LedgerNode } from "@/domain/types";
 
 // Feature transferencias · modelo v4 — el registro móvil opera De→A (FR-1005), la captura de
 // gasto/ingreso no pasa por las reglas (NFR-1002) y los táctiles ≥48px (NFR-1006).
@@ -26,24 +28,18 @@ const BASE = {
 };
 
 async function gotoRegister(page: Page, nodes = NODES, data = BASE) {
-  await page.addInitScript(
-    ({ nodes, budgets, actuals }) => {
-      if (localStorage.getItem("ledger.nodes.v1")) return;
-      localStorage.setItem(
-        "ledger.nodes.v1",
-        JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
-      );
-      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements: [] }));
-    },
-    { nodes, budgets: data.budgets, actuals: data.actuals }
-  );
+  await seedLedger(page, {
+    nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) as unknown as LedgerNode[],
+    budgets: data.budgets,
+    actuals: data.actuals,
+  });
   await page.setViewportSize(MOBILE);
   await page.goto("/");
   await expect(page.getByTestId("mobile-shell")).toBeVisible();
 }
 
 async function persisted(page: Page): Promise<{ actuals: CellMap; movements: { from?: string; to?: string; note?: string | null; month: string; target: string; amount: number }[] }> {
-  return page.evaluate(() => JSON.parse(localStorage.getItem("ledger.budget.v4") ?? "null"));
+  return (await readLedger(page)) as never;
 }
 
 test.describe("FR-1005 — el registro opera Reservas con De→A", () => {

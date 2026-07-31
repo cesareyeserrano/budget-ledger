@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
+import { mutateNodes } from "./helpers/seed";
 
 // Feature ux-consistency — refinamiento profesional del acabado. Los TCs visuales afirman VALORES
 // computados reales (tokens/superficies/sombras/fuentes/radios/contraste), no presencia de nodos.
@@ -336,13 +337,9 @@ test("TC-UXC-309f: categoría con icono desconocido usa fallback sin romper el r
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await gotoDesk(page, "light");
-  await page.evaluate(() => {
-    const raw = localStorage.getItem("ledger.nodes.v1");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    const cat = data.nodes.find((n: { level: string; system?: boolean }) => n.level === "category" && !n.system);
+  await mutateNodes(page, (nodes) => {
+    const cat = nodes.find((n) => n.level === "category" && !n.system);
     if (cat) cat.icon = "__nope__";
-    localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
   });
   await page.reload();
   await expect(page.getByTestId("budget-grid")).toBeVisible();
@@ -449,13 +446,11 @@ test("TC-UXC-313h: a 1440px la rueda (deltaY>0) sobre la grilla incrementa su sc
 test("TC-UXC-313e: la rueda sobre la fila de categorías que desborda incrementa su scrollLeft", async ({ page }) => {
   await gotoMobile(page, "light");
   // inyecta categorías de Gasto para forzar desborde horizontal de la fila
-  await page.evaluate(() => {
-    const raw = localStorage.getItem("ledger.nodes.v1");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    const grp = data.nodes.find((n: { type: string; level: string }) => n.type === "expense" && n.level === "group");
-    for (let i = 0; i < 16; i++) data.nodes.push({ id: `c-wheel-${i}`, ownerId: "local", type: "expense", level: "category", parentId: grp.id, name: `Cat ${i}`, icon: "tag", order: 100 + i });
-    localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
+  await mutateNodes(page, (nodes) => {
+    const grp = nodes.find((n) => n.type === "expense" && n.level === "group")!;
+    for (let i = 0; i < 16; i++) {
+      nodes.push({ id: `c-wheel-${i}`, ownerId: "local", type: "expense", level: "category", parentId: grp.id, name: `Cat ${i}`, icon: "tag", order: 100 + i });
+    }
   });
   await page.reload();
   const row = page.getByTestId("category-row");

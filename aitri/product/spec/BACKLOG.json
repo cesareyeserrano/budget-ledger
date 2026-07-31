@@ -172,6 +172,22 @@
       "problem": "La operación de retiros quedó unificada en la fila «Retiros del mes» del Balance (decisión 2026-07-29), pero al usuario no le resulta amigable operar desde ahí abajo.",
       "status": "open",
       "createdAt": "2026-07-30T14:25:30.238Z"
+    },
+    {
+      "id": "BL-020",
+      "title": "Recuperación de contraseña y verificación de email (login sin camino de vuelta)",
+      "priority": "P1",
+      "problem": "Ningún FR cubre recuperar la contraseña ni verificar el email. Un usuario que olvida su contraseña queda fuera de la app sin camino de vuelta, y Google (la única alternativa de acceso) está apagado con NEXT_PUBLIC_GOOGLE_ENABLED=false. Con la feature servidor-fuente-unica el login pasa a ser obligatorio para todos (FR-1102), así que esto deja de ser incómodo y pasa a bloqueante. Hallazgo del 2026-07-30 al inventariar el login: el núcleo de auth está sólido (argon2id en parámetros OWASP, sesiones en BD que el logout invalida, cookies HttpOnly/Secure/SameSite, rate limit de 5 intentos/min), lo que falta es el flujo de recuperación. Es funcionalidad real —envío de correo, tokens de un solo uso, expiración, plantillas— NO acabado visual: debe ir por su propia feature (aitri feature init), no colarse dentro de otra. Relacionado: FR-501, FR-502 (feature backend).",
+      "status": "open",
+      "createdAt": "2026-07-30T22:18:29.415Z"
+    },
+    {
+      "id": "BL-021",
+      "title": "ServerRepository no valida la forma de la respuesta de la API (NFR-003 más débil que el camino retirado)",
+      "priority": "P2",
+      "problem": "Hallazgo del 2026-07-30 al re-cimentar los tests en la feature servidor-fuente-unica. LocalStorageRepository validaba el payload con Zod (persistedNodesSchema/persistedBudgetSchema) y ante datos corruptos devolvia null sin lanzar, de modo que la app recuperaba a semilla: eso era NFR-003 ('recuperacion segura'). ServerRepository, que es ahora el UNICO camino, hace 'const body = await res.json() as { revision: number; state: LedgerState }' en serverRepository.ts:48 — un CAST, no una validacion. Consecuencias: (1) JSON malformado lanza en vez de degradar; hydrate() lo atrapa y no rompe la app, pero el usuario ve un estado vacio sin explicacion. (2) JSON sintacticamente valido con forma equivocada se acepta ENTERO sin verificar, y entra al store como si fuera un LedgerState valido. La interfaz LedgerRepository sigue prometiendo 'Nunca lanza por datos corruptos', promesa que la unica implementacion viva no cumple. Mitigacion parcial existente: la API valida con Zod en la ESCRITURA, asi que una respuesta mal formada implica un bug del servidor, no datos de usuario corruptos. Arreglo propuesto: validar el cuerpo de load() con un schema de LedgerState y devolver null ante no-conformidad, alineando el comportamiento con el contrato declarado.",
+      "status": "open",
+      "createdAt": "2026-07-31T00:07:27.791Z"
     }
   ]
 }

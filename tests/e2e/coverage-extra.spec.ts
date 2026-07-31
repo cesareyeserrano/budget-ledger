@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/fixtures";
 
 // TCs declarados en 03_TEST_CASES.json que faltaban implementar como specs reales.
 // Cubren AC-012 (FR-006), AC-019 (FR-010) y AC-024 (FR-012) + NFR-004.
@@ -37,7 +37,7 @@ test("TC-010e: un movimiento capturado en pantalla pequeña se refleja en la gri
   // BL-003: confirmación por el overlay del registro, ya no por 'Recientes'
   await expect(page.getByTestId("confirm-overlay")).toContainText("$77.777");
   await expect(page.getByTestId("confirm-overlay")).toHaveCount(0, { timeout: 4000 });
-  // cambiar a escritorio: mismos datos vía localStorage, sin importar/exportar
+  // cambiar a escritorio: mismos datos desde el servidor, sin importar/exportar
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.reload();
   const grid = page.getByTestId("budget-grid");

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
 
 // Feature control-size-scale — e2e (FR-801/802, NFR-801..803). Mide la altura efectiva de los
 // controles (boundingBox) y lee los tokens de :root. Escala: sm=32 / md=40 / lg=48.

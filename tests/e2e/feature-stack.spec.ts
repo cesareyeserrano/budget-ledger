@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
+import { mutateNodes } from "./helpers/seed";
 
 // Feature stack-upgrade-theme — registro móvil MVP + tema zinc + stack. Cada test embebe su TC id.
 
@@ -204,12 +205,9 @@ test("TC-SUT-227e: un tipo sin categorías muestra la guía a crearlas en escrit
   // Re-derivado por feature transferencias (FR-1005): el tipo Reserva ya no usa CategoryRow — su
   // estado vacío propio lo cubre TC-TRF-105e; este TC conserva su propósito (la guía del selector
   // de categorías) sobre un tipo que SÍ lo usa.
-  await page.evaluate(() => {
-    const raw = localStorage.getItem("ledger.nodes.v1");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    data.nodes = data.nodes.filter((n: { type: string; level: string }) => !(n.type === "expense" && (n.level === "category" || n.level === "sub" || n.level === "group")));
-    localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
+  await mutateNodes(page, (nodes) => {
+    const vaciar = nodes.filter((n) => n.type === "expense" && (n.level === "category" || n.level === "sub" || n.level === "group"));
+    for (const n of vaciar) nodes.splice(nodes.indexOf(n), 1);
   });
   await page.reload();
   await page.getByTestId("type-expense").click();
@@ -271,13 +269,14 @@ test("TC-SUT-239f: con monto=0 el botón Guardar está deshabilitado; con monto 
   await expect(page.getByTestId("confirm-overlay")).toHaveCount(0); // BL-003: sin overlay ⇒ no se creó el movimiento
 });
 
-test("TC-SUT-240e: fallo de almacenamiento (quota) muestra el StorageBanner y el form sigue usable", async ({ page }) => {
-  await page.addInitScript(() => {
-    const orig = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (k: string, v: string) {
-      if (k === "ledger.budget.v4") { const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; }
-      return orig.call(this, k, v);
-    };
+test("TC-SUT-240e: un fallo de guardado en el servidor muestra el StorageBanner y el form sigue usable", async ({ page }) => {
+  // El disparador cambió con el almacén (feature servidor-fuente-unica): antes era una
+  // QuotaExceededError de localStorage; ahora es que la escritura NO llegue a la fuente de verdad.
+  // La garantía verificada es la misma —aviso no bloqueante, formulario usable— y ahora cubre un
+  // caso REAL: hasta este cambio, una caída de red perdía el cambio en silencio.
+  await page.route("**/api/v1/ledger", (route) => {
+    if (route.request().method() === "PUT") return route.abort("failed");
+    return route.fallback();
   });
   await gotoMobile(page);
   await page.getByTestId("amount-input").fill("50000");

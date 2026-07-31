@@ -1,4 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
+import { seedLedger, readLedger } from "./helpers/seed";
+import type { LedgerNode } from "@/domain/types";
 
 // Feature transferencias · modelo v4 — la grilla habla APORTES del mes; los retiros se operan y
 // corrigen en la fila «Retiros del mes» del Balance. Valores COMPUTADOS reales. Prefijo TC-TRF4-*.
@@ -27,18 +29,16 @@ const BASE = {
   movements: [] as Mov[],
 };
 
+// Siembra por la API autenticada (feature servidor-fuente-unica, FR-1104): localStorage dejó de
+// almacenar datos financieros. El PUT es un snapshot completo, así que cada test parte de un
+// estado conocido — el aislamiento entre tests paralelos lo da la cuenta por worker (fixtures.ts).
 async function seed(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: Mov[] }) {
-  await page.addInitScript(
-    ({ nodes, budgets, actuals, movements }) => {
-      if (localStorage.getItem("ledger.nodes.v1")) return; // idempotente entre navegaciones
-      localStorage.setItem(
-        "ledger.nodes.v1",
-        JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
-      );
-      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements }));
-    },
-    { nodes: NODES, budgets: data.budgets, actuals: data.actuals, movements: data.movements ?? [] }
-  );
+  await seedLedger(page, {
+    nodes: NODES.map((n) => ({ ...n, ownerId: "local", icon: null })) as unknown as LedgerNode[],
+    budgets: data.budgets,
+    actuals: data.actuals,
+    movements: (data.movements ?? []) as unknown as Parameters<typeof seedLedger>[1]["movements"],
+  });
 }
 
 async function gotoGrid(page: Page, data: { budgets: CellMap; actuals: CellMap; movements?: Mov[] } = BASE) {
@@ -56,7 +56,9 @@ const reserveCell = (page: Page, name: string, monthIdx: number, plane: "budget"
   rowByName(page, name).getByTestId("cell-leaf").nth(monthIdx * 2 + (plane === "actual" ? 1 : 0));
 
 async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] }> {
-  return page.evaluate(() => JSON.parse(localStorage.getItem("ledger.budget.v4") ?? "null"));
+  // Se lee del SERVIDOR, que es la fuente de verdad (FR-1103) — antes se leía ledger.budget.v4.
+  const state = await readLedger(page);
+  return state as unknown as { budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] };
 }
 
 /** Un retiro ya operado, para las fixtures que lo necesitan. */

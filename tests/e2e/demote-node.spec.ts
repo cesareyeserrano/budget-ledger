@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
 
 // Feature demote-node — e2e (FR-701). Bajar un grupo de nivel arrastrándolo dentro de otro grupo
 // (→categoría) o de una categoría (→subcategoría), siempre del mismo tipo. Cada test embebe su TC id

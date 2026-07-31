@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildSeed } from "@/domain/seed";
 import { addMovement } from "@/domain/mutations";
-import { LocalStorageRepository } from "@/data/repository";
-import { STORAGE_KEYS } from "@/domain/types";
+import { InMemoryRepository } from "../helpers/inMemoryRepository";
+import { STORAGE_KEYS, type Movement, type LedgerNode } from "@/domain/types";
 
 const root = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
@@ -95,33 +95,38 @@ describe("FR-213 — tipografía", () => {
 
 // ── NFR-202 · persistencia sobre las claves ledger.* ────────────────────────
 describe("NFR-202 — persistencia", () => {
-  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note) sobre ledger.budget.v4", async () => {
-    const store = memStorage();
-    const repo = new LocalStorageRepository(store);
+  // Re-cimentado por servidor-fuente-unica (FR-1106 / ADR-03): estos dos TCs usaban
+  // LocalStorageRepository como doble de conveniencia — no probaban localStorage, probaban que un
+  // round-trip conserva los deltas y que las preferencias no colisionan. El doble ahora es
+  // InMemoryRepository (tests/helpers), y la coexistencia se verifica en su forma FUERTE: ya no es
+  // "theme convive con ledger.*", es "theme sobrevive y ledger.* NO EXISTE" (FR-1104).
+  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note)", async () => {
+    const repo = new InMemoryRepository();
     const seed = buildSeed("local");
-    const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
+    const cat = seed.nodes.find((n: LedgerNode) => n.type === "expense" && n.level === "category" && !n.system)!;
     const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, month: "jun", date: "2026-06-05T09:00", note: "almuerzo" });
     await repo.save("local", withMv);
-    // "recarga": nueva instancia lee del mismo storage
-    const reloaded = await new LocalStorageRepository(store).load("local");
+    // "recarga": se relee del repositorio, sin compartir el objeto en memoria
+    const reloaded = await repo.load("local");
     expect(reloaded).not.toBeNull();
-    const mv = reloaded!.movements.find((m) => m.target === cat.id && m.amount === 50000)!;
+    const mv = reloaded!.movements.find((m: Movement) => m.target === cat.id && m.amount === 50000)!;
     expect(mv).toBeTruthy();
     expect(mv.date).toBe("2026-06-05T09:00"); // el delta sobrevive a la recarga
     expect(mv.note).toBe("almuerzo");
-    expect(store._map.has("ledger.budget.v4")).toBe(true);
+    expect(repo.saveCount).toBe(1);
   });
 
-  it("TC-SUT-248e: la clave 'theme' no colisiona con ledger.* y ambas coexisten", async () => {
+  it("TC-SUT-248e: 'theme' sobrevive un ciclo de persistencia y no se escribe ninguna clave ledger.*", async () => {
     const store = memStorage();
     store.setItem("theme", "dark"); // la escribiría next-themes
-    const repo = new LocalStorageRepository(store);
+    const repo = new InMemoryRepository();
     await repo.save("local", buildSeed("local"));
-    expect(store.getItem("theme")).toBe("dark"); // intacta
-    expect(await repo.load("local")).not.toBeNull(); // datos legibles
-    expect([...store._map.keys()].filter((k) => k.startsWith("ledger."))).toEqual(
-      expect.arrayContaining([STORAGE_KEYS.nodes, STORAGE_KEYS.budget])
-    );
+    expect(store.getItem("theme")).toBe("dark"); // la preferencia del dispositivo, intacta
+    expect(await repo.load("local")).not.toBeNull(); // y los datos, legibles
+    // Forma fuerte tras FR-1104: el espacio ledger.* del navegador queda VACÍO, no coexistiendo.
+    expect([...store._map.keys()].filter((k) => k.startsWith("ledger."))).toEqual([]);
+    // Las constantes siguen existiendo (la limpieza necesita sus nombres), solo no se escriben.
+    expect(Object.values(STORAGE_KEYS).every((k) => k.startsWith("ledger."))).toBe(true);
   });
 });
 

@@ -1,4 +1,6 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "./helpers/fixtures";
+import { seedLedger } from "./helpers/seed";
+import type { LedgerNode } from "@/domain/types";
 import { MONTH_KEYS } from "../../src/domain/months";
 
 // Feature balance — el módulo de Balance al pie de la grilla y la separación del bloque
@@ -85,32 +87,27 @@ const NEGATIVE: Leaf[] = [
 ];
 
 /**
- * Siembra localStorage antes de que la app arranque, con los mismos montos en los 12 meses.
- * IDEMPOTENTE: `addInitScript` corre en CADA navegación; sin la guarda, una recarga pisaría lo que
- * el test acaba de editar y TC-BAL-908h sería un falso negativo.
+ * Siembra el ledger de la cuenta del worker por la API autenticada, con los mismos montos en los
+ * 12 meses. Antes se sembraba localStorage con addInitScript, que corría en CADA navegación y
+ * necesitaba una guarda de idempotencia para no pisar lo editado (TC-BAL-908h). Con el PUT de
+ * snapshot esa guarda sobra: se siembra UNA vez, antes de `goto` (FR-1104).
  */
 async function seed(page: Page, leaves: Leaf[]) {
-  await page.addInitScript(
-    ({ nodes, leaves, months }) => {
-      if (localStorage.getItem("ledger.nodes.v1")) return;
-      const budgets: Record<string, Record<string, number>> = {};
-      const actuals: Record<string, Record<string, number>> = {};
-      for (const l of leaves) {
-        budgets[l.id] = {};
-        actuals[l.id] = {};
-        for (const m of months) {
-          budgets[l.id][m] = l.budget;
-          actuals[l.id][m] = l.actual;
-        }
-      }
-      localStorage.setItem(
-        "ledger.nodes.v1",
-        JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
-      );
-      localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets, actuals, movements: [] }));
-    },
-    { nodes: NODES, leaves, months: MONTH_KEYS }
-  );
+  const budgets: Record<string, Record<string, number>> = {};
+  const actuals: Record<string, Record<string, number>> = {};
+  for (const l of leaves) {
+    budgets[l.id] = {};
+    actuals[l.id] = {};
+    for (const m of MONTH_KEYS) {
+      budgets[l.id][m] = l.budget;
+      actuals[l.id][m] = l.actual;
+    }
+  }
+  await seedLedger(page, {
+    nodes: NODES.map((n) => ({ ...n, ownerId: "local", icon: null })) as unknown as LedgerNode[],
+    budgets,
+    actuals,
+  });
 }
 
 async function gotoGrid(page: Page, leaves: Leaf[] = POSITIVE, scheme: "light" | "dark" = "light") {
@@ -671,10 +668,10 @@ test("TC-BAL-911e: el tipo del dominio sigue siendo transfer", async ({ page }) 
   await expect(page.locator('[data-testid="type-total-row"][data-type="transfer"]')).toHaveCount(1);
 
   // y el nodo PERSISTIDO conserva su tipo: cambió la palabra, no el modelo
-  const tipos = await page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem("ledger.nodes.v1")!);
-    return raw.nodes.filter((n: { id: string }) => n.id === "g-ahorro").map((n: { type: string }) => n.type);
-  });
+  // El nodo persistido se consulta al SERVIDOR, que es la fuente de verdad (FR-1103).
+  const res = await page.request.get("/api/v1/ledger");
+  const body = (await res.json()) as { state: { nodes: { id: string; type: string }[] } };
+  const tipos = body.state.nodes.filter((n) => n.id === "g-ahorro").map((n) => n.type);
   expect(tipos).toEqual(["transfer"]);
 });
 

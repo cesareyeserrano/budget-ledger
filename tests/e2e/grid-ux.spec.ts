@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/fixtures";
 
 // Feature grid-ux — e2e. Cada test embebe su TC id para el mapeo de aitri verify-run.
 const DESK = { width: 1440, height: 1250 };

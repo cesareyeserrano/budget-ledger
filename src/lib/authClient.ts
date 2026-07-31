@@ -2,8 +2,8 @@
 /**
  * Module: lib/authClient
  * Purpose: Cliente de Better Auth para el navegador (useSession, signIn, signUp, signOut). Same-origin
- *   por defecto (no baseURL). Solo se usa en modo servidor (SERVER_MODE); en modo localStorage la app
- *   nunca lo invoca.
+ *   por defecto (no baseURL). La app SIEMPRE lo invoca: tras retirar el modo localStorage no existe
+ *   camino que llegue a los datos sin sesión (FR-1102).
  * Dependencies: better-auth/react
  */
 "use client";

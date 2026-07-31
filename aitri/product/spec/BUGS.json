@@ -218,6 +218,30 @@
       "created_at": "2026-07-28T19:57:58.346Z",
       "updated_at": "2026-07-28T19:57:58.346Z",
       "resolution": null
+    },
+    {
+      "id": "BG-011",
+      "title": "El «Deshacer» de un retiro de reserva no funciona en modo servidor (el sync en vivo invalida su ventana)",
+      "description": "",
+      "steps_to_reproduce": [
+        "1. Con sesion iniciada (modo servidor contra Postgres), abrir el Balance. 2. Sacar un monto de una alcancia hacia Disponible (p.ej. 50.000 de Emergencia). 3. Aparece el toast 'Sacaste $50.000 de Emergencia -> Disponible' con el boton Deshacer. 4. Pulsar Deshacer. ESPERADO: el retiro se revierte y la celda vuelve a mostrar '—'. OBTENIDO: no pasa nada; la celda sigue mostrando 50.000 y el movimiento sigue persistido."
+      ],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-07-31T00:54:25.946Z",
+      "updated_at": "2026-07-31T00:56:04.643Z",
+      "resolution": "Arreglado en resync() (src/state/store.ts): si nadie mutó localmente —la referencia vigente de data sigue siendo la que produjo el retiro— la ventana de undo se RE-APUNTA al estado recién cargado en vez de morir. Un resync que devuelve nuestra propia escritura no es una mutación ajena, así que respetar ADR-07 no exige castigar al undo por el eco de su propio guardado. Verificado: TC-TRF4-014h pasa, y la suite completa de transferencias queda 14/14 contra Postgres con sesión real (antes 13/14).",
+      "fix_commit_sha": "246cc33aea1c5593d0a86af9341423532270deb3",
+      "fix_at": "2026-07-31T00:56:04.643Z"
     }
   ]
 }
