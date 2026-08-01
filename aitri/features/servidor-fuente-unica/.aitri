@@ -1,35 +1,22 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 3,
   "approvedPhases": [
     1,
     "ux",
-    2,
-    3,
-    4
+    2
   ],
   "completedPhases": [
     1,
     "ux",
     2,
-    3,
-    4
+    3
   ],
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T02:57:13.021Z",
+  "updatedAt": "2026-08-01T03:03:04.456Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T22:42:18.280Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-30T22:45:50.769Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-07-30T22:50:25.922Z",
       "event": "approved",
@@ -124,14 +111,29 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-08-01T03:02:01.781Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-01T03:03:04.440Z",
+      "event": "completed",
+      "phase": 3
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "4"
+  ],
   "artifactHashes": {
     "1": "73c77d6ab97376cec1f19a312be5c721c970121e26ec10bf8e89a1b075870fa6",
     "2": "9ec5639d027e77834280433d973a36e510e275fb5f47c98966fe112bf5952453",
-    "3": "763340ac09679b8d31fc96b2df9e43a91afc584cff595223d977806f80a51b8a",
-    "4": "0d6f1f1cb42691267a509f901daf8196ae129163fafb4b81ad734ed2f71a6518",
+    "3": "9b86309f18324502126569f99fe9f3e53df7852f63c56eed68b3720128f33817",
     "ux": "25c7851966acea725795165568055cedd6421d67ead0b5ae2affa52f2008c66a"
   },
   "verifyPassed": false,
@@ -176,14 +178,5 @@
       "FR-1107",
       "FR-1108"
     ]
-  },
-  "verifyResultsHash": "112bdebfc28dba68add97c10254a0212f523dcc7421bfe75b4d4cc3b4bfe400c",
-  "verifyRanAt": "2026-08-01T02:57:13.007Z",
-  "lastVerifyRun": {
-    "passed": 48,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-08-01T02:57:13.007Z"
   }
 }

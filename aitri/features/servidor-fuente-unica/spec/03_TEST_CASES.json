@@ -2,10 +2,13 @@
   "test_plan": {
     "strategy": "Feature sustractiva: el riesgo no es que lo nuevo falle, es que al retirar el flag de rollout se pierda lógica viva que vivía dentro de sus ramas (RISK-1 del TRD). Por eso el peso de la suite está en REGRESIÓN, no en funcionalidad nueva. Tres decisiones de diseño de pruebas: (1) Los criterios estáticos de FR-1101/NFR-1107 —'grep SERVER_MODE en src/ devuelve 0'— NO se escriben como test: leer el código fuente como texto viola la regla Behavior-vs-Implementation del pipeline. Se declaran como quality_gate `no-legacy-mode` (scripts/no-legacy-mode.sh, exit≠0 si aparece SERVER_MODE, LEDGER_SERVER_MODE o LocalStorageRepository en src/), que corre en cada verify y es honesto sobre ser una comprobación estática. Los TCs de esos requisitos verifican la CONSECUENCIA observable: que solo existe el camino de servidor. (2) Los tres bloques de lógica sepultados bajo el flag (resync ante 409, limpieza de claves ledger.*, seam __ledgerStore) tienen cada uno su TC negativo dedicado, porque ninguno falla de forma ruidosa si se pierde. (3) Los tests que hoy usan LocalStorageRepository como doble de conveniencia pasan a InMemoryRepository (fake en tests/, ADR-03); los que verifican persistencia real apuntan a ServerRepository contra Postgres.",
     "coverage_goal": "100% de los 8 FRs y los 8 NFRs con happy/edge/negative. Cobertura de línea ≥80% en los módulos tocados (state/store.ts, components/auth/*, data/*). Los 5 NFR de categoría Regression llevan set completo por ser MUST duro.",
-    "test_types": ["unit", "integration", "e2e"]
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
   },
   "test_cases": [
-
     {
       "id": "TC-SFU-101h",
       "requirement_id": "FR-1101",
@@ -15,7 +18,10 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["jsdom con window definido", "fetch interceptado para registrar las llamadas"],
+      "preconditions": [
+        "jsdom con window definido",
+        "fetch interceptado para registrar las llamadas"
+      ],
       "given": "el store recién inicializado en el navegador, sin ninguna variable NEXT_PUBLIC_LEDGER_SERVER_MODE definida en el entorno",
       "when": "se invoca setLeafAmount('leaf-mercado','ene','budget',250000) y se espera a que la persistencia resuelva",
       "then": "se emitió exactamente 1 petición PUT a '/api/v1/ledger' cuyo cuerpo contiene budgets['leaf-mercado'].ene === 250000, y window.localStorage.length no aumentó",
@@ -27,7 +33,12 @@
         "Assert localStorage.length sin cambio"
       ],
       "expected_result": "1 PUT a /api/v1/ledger con budgets['leaf-mercado'].ene=250000; cero escrituras en localStorage",
-      "test_data": { "leafId": "leaf-mercado", "month": "ene", "kind": "budget", "value": 250000 }
+      "test_data": {
+        "leafId": "leaf-mercado",
+        "month": "ene",
+        "kind": "budget",
+        "value": 250000
+      }
     },
     {
       "id": "TC-SFU-101e",
@@ -38,7 +49,9 @@
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Entorno node sin globalThis.window"],
+      "preconditions": [
+        "Entorno node sin globalThis.window"
+      ],
       "given": "el módulo state/store importado con typeof window === 'undefined'",
       "when": "se importa el módulo y se lee useLedgerStore.getState()",
       "then": "el import no lanza ninguna excepción, getState().hydrated === false y al invocar hydrate() queda hydrated === true sin emitir ninguna petición fetch",
@@ -61,7 +74,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage real y vacío"],
+      "preconditions": [
+        "jsdom con localStorage real y vacío"
+      ],
       "given": "process.env.NEXT_PUBLIC_LEDGER_SERVER_MODE definido en 'false' y localStorage vacío",
       "when": "se inicializa el store y se ejecuta addMovement({type:'expense',catId:'cat-mercado',amount:15000,month:'ene'})",
       "then": "la escritura sigue saliendo por PUT '/api/v1/ledger' y localStorage.getItem('ledger.nodes.v1') === null y localStorage.getItem('ledger.budget.v4') === null",
@@ -73,9 +88,11 @@
         "Assert ambas claves ledger.* siguen en null"
       ],
       "expected_result": "El flag ya no existe: la escritura va al servidor y localStorage queda intacto",
-      "test_data": { "NEXT_PUBLIC_LEDGER_SERVER_MODE": "false", "amount": 15000 }
+      "test_data": {
+        "NEXT_PUBLIC_LEDGER_SERVER_MODE": "false",
+        "amount": 15000
+      }
     },
-
     {
       "id": "TC-SFU-102h",
       "requirement_id": "FR-1102",
@@ -85,7 +102,10 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Navegador sin cookie de sesión", "App servida en modo servidor contra Postgres"],
+      "preconditions": [
+        "Navegador sin cookie de sesión",
+        "App servida en modo servidor contra Postgres"
+      ],
       "given": "un navegador sin cookie de sesión de better-auth",
       "when": "se navega a '/' y se espera a que la red quede en reposo",
       "then": "existe el elemento [data-testid='auth-form'] y NO existe ningún [data-testid='budget-grid'] ni [data-testid='desktop-shell'] en el DOM",
@@ -108,7 +128,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Sesión iniciada con admin@admin.com y grilla visible"],
+      "preconditions": [
+        "Sesión iniciada con admin@admin.com y grilla visible"
+      ],
       "given": "la app abierta con sesión válida y la grilla mostrando la categoría 'Mercado'",
       "when": "se borra la cookie de sesión desde el contexto del navegador y se dispara una operación que llama a la API (editar una celda a 90000)",
       "then": "la API responde 401, el DOM vuelve a mostrar [data-testid='auth-form'], y el texto 'Mercado' ya no está presente en el documento",
@@ -120,7 +142,9 @@
         "Assert auth-form visible y 'Mercado' ausente del DOM"
       ],
       "expected_result": "401 → vuelve al login; ningún dato financiero visible",
-      "test_data": { "amount": 90000 }
+      "test_data": {
+        "amount": 90000
+      }
     },
     {
       "id": "TC-SFU-102f",
@@ -131,7 +155,10 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Navegador sin cookie de sesión", "Grabación de peticiones activa"],
+      "preconditions": [
+        "Navegador sin cookie de sesión",
+        "Grabación de peticiones activa"
+      ],
       "given": "un navegador sin sesión con un listener que registra toda petición saliente",
       "when": "se navega a '/', se espera networkidle y se cambia el tema a oscuro",
       "then": "cero peticiones a rutas que empiecen por '/api/v1/' (ledger, movements, sync) y localStorage no contiene ninguna clave que empiece por 'ledger.'",
@@ -145,7 +172,6 @@
       "expected_result": "0 peticiones a /api/v1/* y 0 claves ledger.* sin sesión",
       "test_data": {}
     },
-
     {
       "id": "TC-SFU-103h",
       "requirement_id": "FR-1103",
@@ -155,7 +181,10 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Postgres levantado", "Cuenta admin@admin.com existente"],
+      "preconditions": [
+        "Postgres levantado",
+        "Cuenta admin@admin.com existente"
+      ],
       "given": "el usuario admin@admin.com con sesión en el contexto de navegador A",
       "when": "en A registra un movimiento de gasto por 37500 en 'Mercado' mes 'ene', y luego se abre un contexto de navegador B totalmente limpio y se inicia sesión con la misma cuenta",
       "then": "en B, sin recargar más de una vez, el movimiento de 37500 en 'Mercado'/'ene' está presente en la lista de recientes",
@@ -166,7 +195,11 @@
         "Assert movimiento 37500 visible en B"
       ],
       "expected_result": "El movimiento de 37500 creado en A es visible en B",
-      "test_data": { "amount": 37500, "category": "Mercado", "month": "ene" }
+      "test_data": {
+        "amount": 37500,
+        "category": "Mercado",
+        "month": "ene"
+      }
     },
     {
       "id": "TC-SFU-103e",
@@ -177,7 +210,9 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage real y vacío"],
+      "preconditions": [
+        "jsdom con localStorage real y vacío"
+      ],
       "given": "el store hidratado y fetch configurado para rechazar con TypeError('Failed to fetch') en el PUT",
       "when": "se ejecuta setLeafAmount('leaf-mercado','feb','actual',64000)",
       "then": "la promesa no lanza al llamador, el store expone el aviso no bloqueante, y localStorage.getItem('ledger.budget.v4') sigue siendo null",
@@ -189,7 +224,9 @@
         "Assert ledger.budget.v4 sigue en null"
       ],
       "expected_result": "Fallo de red avisado sin excepción y sin ninguna escritura de respaldo en localStorage",
-      "test_data": { "amount": 64000 }
+      "test_data": {
+        "amount": 64000
+      }
     },
     {
       "id": "TC-SFU-103f",
@@ -200,7 +237,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage instrumentado para registrar cada setItem"],
+      "preconditions": [
+        "jsdom con localStorage instrumentado para registrar cada setItem"
+      ],
       "given": "localStorage con setItem envuelto en un espía que registra cada clave escrita",
       "when": "se ejecutan en secuencia createNode('Ocio'), setLeafAmount('leaf-ocio','mar','budget',80000), addMovement({amount:12000}) y una operación de reserva de 50000",
       "then": "ninguna clave registrada por el espía empieza por 'ledger.'; las únicas claves admitidas son 'theme' y la de ancho de columna",
@@ -211,9 +250,14 @@
         "Assert que ninguna empieza por 'ledger.'"
       ],
       "expected_result": "0 claves ledger.* escritas en 4 flujos distintos de datos del usuario",
-      "test_data": { "montos": [80000, 12000, 50000] }
+      "test_data": {
+        "montos": [
+          80000,
+          12000,
+          50000
+        ]
+      }
     },
-
     {
       "id": "TC-SFU-104h",
       "requirement_id": "FR-1104",
@@ -223,7 +267,10 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Postgres levantado", "Navegador limpio"],
+      "preconditions": [
+        "Postgres levantado",
+        "Navegador limpio"
+      ],
       "given": "un navegador limpio y la cuenta admin@admin.com",
       "when": "se recorre login → editar una celda a 120000 → registrar un movimiento de 9000 → operar una reserva de 40000 → recargar la página",
       "then": "Object.keys(localStorage).filter(k => k.startsWith('ledger.')).length === 0",
@@ -236,7 +283,11 @@
         "Assert 0 claves con prefijo ledger."
       ],
       "expected_result": "0 claves con prefijo 'ledger.' tras el recorrido completo",
-      "test_data": { "celda": 120000, "movimiento": 9000, "reserva": 40000 }
+      "test_data": {
+        "celda": 120000,
+        "movimiento": 9000,
+        "reserva": 40000
+      }
     },
     {
       "id": "TC-SFU-104e",
@@ -247,7 +298,9 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["jsdom con localStorage cuyo setItem y removeItem lanzan QuotaExceededError"],
+      "preconditions": [
+        "jsdom con localStorage cuyo setItem y removeItem lanzan QuotaExceededError"
+      ],
       "given": "un localStorage cuyos setItem y removeItem lanzan QuotaExceededError en cada llamada",
       "when": "se hidrata el store y se ejecuta setLeafAmount('leaf-mercado','abr','budget',175000)",
       "then": "hydrate() completa con hydrated===true, se emite el PUT a '/api/v1/ledger' con el monto 175000, y no se propaga ninguna excepción al llamador",
@@ -258,7 +311,9 @@
         "Assert hydrated===true, PUT emitido y sin excepción"
       ],
       "expected_result": "Los datos del usuario se guardan aunque localStorage sea inservible",
-      "test_data": { "amount": 175000 }
+      "test_data": {
+        "amount": 175000
+      }
     },
     {
       "id": "TC-SFU-104f",
@@ -269,7 +324,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage sembrado con restos del modo anterior"],
+      "preconditions": [
+        "jsdom con localStorage sembrado con restos del modo anterior"
+      ],
       "given": "localStorage sembrado con ledger.nodes.v1='[{\"id\":\"viejo\"}]' y ledger.budget.v4='{\"viejo\":{\"ene\":1}}' antes de arrancar",
       "when": "se ejecuta hydrate()",
       "then": "tras hidratar, localStorage.getItem('ledger.nodes.v1') === null y localStorage.getItem('ledger.budget.v4') === null, mientras que localStorage.getItem('theme') conserva su valor previo",
@@ -280,9 +337,10 @@
         "Assert theme sigue valiendo 'dark'"
       ],
       "expected_result": "Restos ledger.* eliminados; la preferencia theme intacta",
-      "test_data": { "theme": "dark" }
+      "test_data": {
+        "theme": "dark"
+      }
     },
-
     {
       "id": "TC-SFU-105h",
       "requirement_id": "FR-1105",
@@ -313,7 +371,9 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Postgres con un nodo sembrado {id:'g-legado', name:'Sin asignar', system:true}"],
+      "preconditions": [
+        "Postgres con un nodo sembrado {id:'g-legado', name:'Sin asignar', system:true}"
+      ],
       "given": "un nodo con system=true llamado 'Sin asignar' sembrado directamente en Postgres",
       "when": "se hidrata el store desde el servidor y se intenta renameNode('g-legado','Otro') y deleteNode('g-legado')",
       "then": "el nombre del nodo sigue siendo 'Sin asignar' y el nodo sigue presente en state.data.nodes tras ambas operaciones",
@@ -324,7 +384,10 @@
         "Assert nombre inalterado y nodo presente"
       ],
       "expected_result": "Los guards !node.system siguen protegiendo datos legados que ya nadie sanea",
-      "test_data": { "nodeId": "g-legado", "name": "Sin asignar" }
+      "test_data": {
+        "nodeId": "g-legado",
+        "name": "Sin asignar"
+      }
     },
     {
       "id": "TC-SFU-105f",
@@ -335,7 +398,10 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage sembrado con el formato v3", "Postgres con un ledger marcado dataVersion=3"],
+      "preconditions": [
+        "jsdom con localStorage sembrado con el formato v3",
+        "Postgres con un ledger marcado dataVersion=3"
+      ],
       "given": "localStorage con la clave legada ledger.budget.v3='{\"c-alcancia\":{\"ene\":50000}}' y, por separado, un ledger en Postgres del mismo usuario marcado con dataVersion=3 y una celda transfer de saldo 130000 en 'mar'",
       "when": "se ejecuta hydrate() y a continuación se carga el ledger desde el servidor",
       "then": "el estado NO contiene los 50000 de la clave v3 de localStorage (ese llamador se retiró), Y el ledger de Postgres SÍ queda convertido a v4 por ensureV4InTx con su marca dataVersion=4 — la conversión de dominio no se retiró, solo su llamador local",
@@ -347,9 +413,11 @@
         "Assert que el ledger de Postgres quedó con dataVersion=4 y celdas convertidas a aportes"
       ],
       "expected_result": "El llamador de localStorage está retirado; la conversión v3→v4 del servidor sigue operando (ADR-04 corregido)",
-      "test_data": { "localStorage_v3": 50000, "postgres_saldo_mar": 130000 }
+      "test_data": {
+        "localStorage_v3": 50000,
+        "postgres_saldo_mar": 130000
+      }
     },
-
     {
       "id": "TC-SFU-106h",
       "requirement_id": "FR-1106",
@@ -359,7 +427,10 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Postgres levantado", "Sesión válida en el cliente de test"],
+      "preconditions": [
+        "Postgres levantado",
+        "Sesión válida en el cliente de test"
+      ],
       "given": "un ServerRepository construido igual que lo construye state/store",
       "when": "se ejecuta save('local', estado con budgets['leaf-mercado'].may=310000) y a continuación load('local') con una instancia nueva",
       "then": "el estado devuelto por load contiene budgets['leaf-mercado'].may === 310000, demostrando ida y vuelta real contra Postgres",
@@ -370,7 +441,9 @@
         "Assert may===310000"
       ],
       "expected_result": "Round-trip real contra Postgres con el monto exacto 310000",
-      "test_data": { "amount": 310000 }
+      "test_data": {
+        "amount": 310000
+      }
     },
     {
       "id": "TC-SFU-106e",
@@ -392,7 +465,9 @@
         "load('otro-owner') y assert null"
       ],
       "expected_result": "El fake respeta el contrato: round-trip por owner y null para owner desconocido",
-      "test_data": { "amount": 25000 }
+      "test_data": {
+        "amount": 25000
+      }
     },
     {
       "id": "TC-SFU-106f",
@@ -403,7 +478,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con fetch interceptado"],
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
       "given": "el store inicializado con la construcción del repositorio forzada a devolver null (simulando la rotura)",
       "when": "se ejecuta setLeafAmount('leaf-mercado','jul','budget',55000) y se espera",
       "then": "no se emite ninguna petición PUT a '/api/v1/ledger' y la aserción del test falla, demostrando que el test detecta la rotura en vez de pasar en verde sobre un módulo huérfano",
@@ -413,9 +490,10 @@
         "Assert que la ausencia de PUT es detectada por el test"
       ],
       "expected_result": "La rotura del punto de construcción es detectada (el pass falso de TC-BE-027h queda eliminado)",
-      "test_data": { "amount": 55000 }
+      "test_data": {
+        "amount": 55000
+      }
     },
-
     {
       "id": "TC-SFU-107h",
       "requirement_id": "FR-1107",
@@ -451,7 +529,11 @@
       "given": "la app servida",
       "when": "se lee meta[name='description']",
       "then": "el texto no contiene ninguna de las subcadenas 'single-user', 'sin cuenta' ni 'offline'",
-      "steps": ["Navegar a /", "Leer la descripción", "Assert que no contiene las 3 subcadenas"],
+      "steps": [
+        "Navegar a /",
+        "Leer la descripción",
+        "Assert que no contiene las 3 subcadenas"
+      ],
       "expected_result": "Ninguna promesa de uso sin cuenta en la metadata",
       "test_data": {}
     },
@@ -468,11 +550,14 @@
       "given": "la app servida",
       "when": "se busca la subcadena exacta 'single-user (localStorage)' en el head del documento",
       "then": "no aparece ninguna coincidencia",
-      "steps": ["Navegar a /", "Buscar la cadena exacta en el head", "Assert 0 coincidencias"],
+      "steps": [
+        "Navegar a /",
+        "Buscar la cadena exacta en el head",
+        "Assert 0 coincidencias"
+      ],
       "expected_result": "0 coincidencias del texto obsoleto",
       "test_data": {}
     },
-
     {
       "id": "TC-SFU-108h",
       "requirement_id": "FR-1108",
@@ -482,7 +567,9 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["Navegador sin sesión, pantalla de acceso visible"],
+      "preconditions": [
+        "Navegador sin sesión, pantalla de acceso visible"
+      ],
       "given": "la pantalla de acceso renderizada sin sesión",
       "when": "se recorren [data-testid='auth-form'] y todos sus descendientes leyendo su atributo style",
       "then": "ningún elemento tiene atributo style no vacío, y el color computado del mensaje de error resuelve al valor de la variable CSS --error del tema activo (no a un hex ajeno como #c0392b)",
@@ -504,7 +591,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Pantalla de acceso visible"],
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
       "given": "la pantalla de acceso a viewport 1440px y luego a 375px",
       "when": "se mide la altura efectiva de auth-email, auth-password, auth-submit y auth-google en ambos viewports",
       "then": "a 1440px cada altura pertenece a {32,40,48} y vale 40; a 375px cada altura vale 48 (objetivo táctil WCAG 2.5.5)",
@@ -515,7 +604,12 @@
         "Assert cada altura === 48"
       ],
       "expected_result": "40px en escritorio y 48px en móvil, sin valores fuera de la escala",
-      "test_data": { "viewports": ["1440x900", "375x812"] }
+      "test_data": {
+        "viewports": [
+          "1440x900",
+          "375x812"
+        ]
+      }
     },
     {
       "id": "TC-SFU-108f",
@@ -526,7 +620,9 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Pantalla de acceso visible"],
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
       "given": "la pantalla de acceso rediseñada",
       "when": "se consultan los 9 selectores auth-form, auth-email, auth-password, auth-submit, auth-google, auth-toggle, auth-error (tras un fallo), auth-name (tras cambiar a registro) y logout (tras iniciar sesión)",
       "then": "los 9 existen; al enviar admin@admin.com con contraseña 'incorrecta' el texto de auth-error es exactamente 'Credenciales inválidas'; y auth-google tiene el atributo disabled con GOOGLE_ENABLED=false",
@@ -538,9 +634,43 @@
         "Iniciar sesión y verificar logout"
       ],
       "expected_result": "9 testids presentes, textos de error literales y Google deshabilitado — cero regresión de contrato",
-      "test_data": { "email": "admin@admin.com", "password": "incorrecta" }
+      "test_data": {
+        "email": "admin@admin.com",
+        "password": "incorrecta"
+      }
     },
-
+    {
+      "id": "TC-SFU-108c",
+      "requirement_id": "FR-1108",
+      "user_story_id": "US-1108",
+      "ac_id": "AC-1108c",
+      "title": "TC-SFU-108c: todo texto de la pantalla de acceso alcanza 4.5:1 de contraste en ambos temas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Navegador sin sesión, pantalla de acceso visible",
+        "El esquema de color del sistema se emula en 'light' y en 'dark' (el default del tema es 'Sistema')"
+      ],
+      "given": "la pantalla de acceso renderizada sin sesión, primero con el sistema en tema claro y después en oscuro",
+      "when": "se recorre [data-testid='auth-form'] y todos sus descendientes que tengan texto propio, y de cada uno se calcula la razón de contraste WCAG entre su color computado y el fondo realmente pintado detrás (el primer ancestro con alpha > 0)",
+      "then": "ningún elemento con texto propio queda por debajo de 4.5:1 en ninguno de los dos temas — se mide sobre el DOM real y no sobre los tokens, porque un token correcto compuesto sobre el fondo equivocado sigue siendo ilegible",
+      "steps": [
+        "Emular colorScheme 'light' y abrir la pantalla de acceso sin sesión",
+        "Recorrer auth-form y descendientes con nodo de texto propio y visibles",
+        "Calcular luminancia relativa de color y del fondo opaco efectivo, y su razón de contraste",
+        "Assert que la lista de elementos por debajo de 4.5:1 está vacía",
+        "Repetir el recorrido completo con colorScheme 'dark'"
+      ],
+      "expected_result": "0 textos por debajo de 4.5:1 en tema claro y 0 en tema oscuro",
+      "test_data": {
+        "umbral": 4.5,
+        "temas": [
+          "light",
+          "dark"
+        ]
+      }
+    },
     {
       "id": "TC-SFU-201h",
       "requirement_id": "NFR-1101",
@@ -550,7 +680,9 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Sesión iniciada, escritorio 1440px"],
+      "preconditions": [
+        "Sesión iniciada, escritorio 1440px"
+      ],
       "given": "la app con sesión iniciada y tema en 'Sistema'",
       "when": "se cambia el tema a oscuro, se arrastra el ancho de la columna de categorías a 320px y se recarga la página",
       "then": "tras recargar, el elemento raíz conserva la clase 'dark' y el ancho de la columna de categorías sigue siendo 320px",
@@ -562,7 +694,9 @@
         "Assert ancho de columna 320px"
       ],
       "expected_result": "Ambas preferencias del dispositivo sobreviven a la recarga",
-      "test_data": { "width": 320 }
+      "test_data": {
+        "width": 320
+      }
     },
     {
       "id": "TC-SFU-201e",
@@ -573,11 +707,17 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Navegador limpio sin clave theme"],
+      "preconditions": [
+        "Navegador limpio sin clave theme"
+      ],
       "given": "un navegador sin la clave 'theme' en localStorage",
       "when": "se abre la app e inicia sesión",
       "then": "el control de tema muestra la opción 'Sistema' como seleccionada",
-      "steps": ["Limpiar localStorage", "Abrir la app y entrar", "Assert control de tema en 'Sistema'"],
+      "steps": [
+        "Limpiar localStorage",
+        "Abrir la app y entrar",
+        "Assert control de tema en 'Sistema'"
+      ],
       "expected_result": "Default 'Sistema' preservado (TC-UXC-352e sigue vigente)",
       "test_data": {}
     },
@@ -590,7 +730,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con localStorage sembrado"],
+      "preconditions": [
+        "jsdom con localStorage sembrado"
+      ],
       "given": "localStorage con theme='dark', la clave de ancho de columna en '320' y ledger.nodes.v1 sembrada",
       "when": "se ejecuta hydrate() y por tanto la rutina de limpieza",
       "then": "ledger.nodes.v1 queda en null mientras theme sigue valiendo 'dark' y la clave de ancho sigue valiendo '320'",
@@ -601,9 +743,11 @@
         "Assert theme='dark' y ancho='320' intactos"
       ],
       "expected_result": "La limpieza es quirúrgica: solo toca el espacio ledger.*",
-      "test_data": { "theme": "dark", "width": "320" }
+      "test_data": {
+        "theme": "dark",
+        "width": "320"
+      }
     },
-
     {
       "id": "TC-SFU-202h",
       "requirement_id": "NFR-1102",
@@ -613,13 +757,22 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Postgres levantado, cuenta admin@admin.com existente"],
+      "preconditions": [
+        "Postgres levantado, cuenta admin@admin.com existente"
+      ],
       "given": "la pantalla de acceso y la cuenta admin@admin.com con su contraseña de dev",
       "when": "se completan email y contraseña correctos y se pulsa auth-submit",
       "then": "el shell queda visible (existe [data-testid='logout']) y auth-form desaparece del DOM",
-      "steps": ["Abrir el login", "Introducir credenciales válidas", "Enviar", "Assert logout visible y auth-form ausente"],
+      "steps": [
+        "Abrir el login",
+        "Introducir credenciales válidas",
+        "Enviar",
+        "Assert logout visible y auth-form ausente"
+      ],
       "expected_result": "Login válido entra al shell",
-      "test_data": { "email": "admin@admin.com" }
+      "test_data": {
+        "email": "admin@admin.com"
+      }
     },
     {
       "id": "TC-SFU-202e",
@@ -630,11 +783,17 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "critical",
-      "preconditions": ["Sesión recién iniciada"],
+      "preconditions": [
+        "Sesión recién iniciada"
+      ],
       "given": "una sesión válida recién iniciada con el shell visible",
       "when": "se recarga la página con F5 y se espera networkidle",
       "then": "el shell sigue visible ([data-testid='logout'] presente) y no reaparece auth-form",
-      "steps": ["Iniciar sesión", "Recargar", "Assert logout presente y auth-form ausente"],
+      "steps": [
+        "Iniciar sesión",
+        "Recargar",
+        "Assert logout presente y auth-form ausente"
+      ],
       "expected_result": "La sesión persiste en la cookie tras recargar",
       "test_data": {}
     },
@@ -647,7 +806,9 @@
       "type": "e2e",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Pantalla de acceso visible"],
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
       "given": "la pantalla de acceso",
       "when": "se envía admin@admin.com con la contraseña 'noesesta'",
       "then": "auth-error muestra exactamente 'Credenciales inválidas', auth-form sigue presente, no aparece logout, y el valor de auth-email sigue siendo 'admin@admin.com'",
@@ -658,9 +819,11 @@
         "Assert que el email escrito se conserva"
       ],
       "expected_result": "Rechazo con mensaje literal y sin perder lo escrito",
-      "test_data": { "email": "admin@admin.com", "password": "noesesta" }
+      "test_data": {
+        "email": "admin@admin.com",
+        "password": "noesesta"
+      }
     },
-
     {
       "id": "TC-SFU-203h",
       "requirement_id": "NFR-1103",
@@ -670,7 +833,9 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["jsdom con fetch interceptado"],
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
       "given": "el store hidratado con version=7 y un servidor que responde 409 al PUT y devuelve version=9 con budgets['leaf-mercado'].ago=99000 en el GET siguiente",
       "when": "se ejecuta setLeafAmount('leaf-mercado','ago','budget',15000) y el PUT recibe 409",
       "then": "se emite un GET a '/api/v1/ledger' posterior al PUT y el estado del store queda con budgets['leaf-mercado'].ago === 99000 (el valor del servidor), no 15000",
@@ -682,7 +847,10 @@
         "Assert estado converge a 99000"
       ],
       "expected_result": "409 → resync → el estado converge al del servidor",
-      "test_data": { "local": 15000, "servidor": 99000 }
+      "test_data": {
+        "local": 15000,
+        "servidor": 99000
+      }
     },
     {
       "id": "TC-SFU-203e",
@@ -693,7 +861,9 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "critical",
-      "preconditions": ["Dos contextos de navegador con la misma cuenta"],
+      "preconditions": [
+        "Dos contextos de navegador con la misma cuenta"
+      ],
       "given": "dos contextos A y B con sesión de admin@admin.com y la grilla visible en ambos",
       "when": "en A se edita la celda 'Mercado'/'sep' a 88000 y se espera hasta 5s en B sin recargar",
       "then": "en B la celda 'Mercado'/'sep' muestra 88000 sin que se haya recargado la página",
@@ -704,7 +874,9 @@
         "Assert celda en B con 88000 y sin recarga"
       ],
       "expected_result": "El stream SSE propaga el cambio a B sin recargar",
-      "test_data": { "amount": 88000 }
+      "test_data": {
+        "amount": 88000
+      }
     },
     {
       "id": "TC-SFU-203f",
@@ -715,7 +887,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["jsdom con fetch interceptado"],
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
       "given": "el mismo escenario de 409 que TC-SFU-203h pero contando las peticiones emitidas",
       "when": "el PUT responde 409",
       "then": "el número de GET a '/api/v1/ledger' posteriores al 409 es exactamente 1 — si fuera 0, el estado quedaría con el valor local 15000 y la aserción falla",
@@ -726,9 +900,10 @@
         "Assert que el estado no conserva 15000"
       ],
       "expected_result": "La ausencia de resync es detectada — este es el TC que blinda RISK-1",
-      "test_data": { "local": 15000 }
+      "test_data": {
+        "local": 15000
+      }
     },
-
     {
       "id": "TC-SFU-204h",
       "requirement_id": "NFR-1104",
@@ -738,13 +913,22 @@
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Sesión iniciada, escritorio 1440px"],
+      "preconditions": [
+        "Sesión iniciada, escritorio 1440px"
+      ],
       "given": "la grilla de presupuesto con sesión válida",
       "when": "se edita la hoja 'Mercado' del mes 'oct' a 143000 y se recarga la página",
       "then": "la celda muestra 143000 tras la recarga y el roll-up de su categoría padre incluye ese valor",
-      "steps": ["Editar Mercado/oct a 143000", "Recargar", "Assert celda 143000", "Assert roll-up del padre actualizado"],
+      "steps": [
+        "Editar Mercado/oct a 143000",
+        "Recargar",
+        "Assert celda 143000",
+        "Assert roll-up del padre actualizado"
+      ],
       "expected_result": "Edición y roll-up persisten contra Postgres",
-      "test_data": { "amount": 143000 }
+      "test_data": {
+        "amount": 143000
+      }
     },
     {
       "id": "TC-SFU-204e",
@@ -755,11 +939,18 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Sesión iniciada con una categoría 'Ocio' con una subcategoría"],
+      "preconditions": [
+        "Sesión iniciada con una categoría 'Ocio' con una subcategoría"
+      ],
       "given": "la categoría 'Ocio' con la subcategoría 'Cine' bajo ella",
       "when": "se promueve 'Ocio' a grupo y luego se degrada de vuelta a categoría",
       "then": "'Cine' sigue siendo descendiente de 'Ocio' en ambos pasos y no aparece ningún nodo huérfano en state.data.nodes",
-      "steps": ["Promover Ocio a grupo", "Assert Cine sigue bajo Ocio", "Degradar Ocio", "Assert sin huérfanos"],
+      "steps": [
+        "Promover Ocio a grupo",
+        "Assert Cine sigue bajo Ocio",
+        "Degradar Ocio",
+        "Assert sin huérfanos"
+      ],
       "expected_result": "Las features promote-to-group y demote-node siguen íntegras",
       "test_data": {}
     },
@@ -782,9 +973,10 @@
         "Assert que reserve-migration.test.ts sigue existiendo y ahora ejercita el camino de servidor"
       ],
       "expected_result": "0 archivos de test retirados: la corrección de ADR-04 salvó la cobertura de la migración",
-      "test_data": { "retirados_declarados": [] }
+      "test_data": {
+        "retirados_declarados": []
+      }
     },
-
     {
       "id": "TC-SFU-205h",
       "requirement_id": "NFR-1105",
@@ -794,7 +986,9 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Postgres levantado, sesión válida"],
+      "preconditions": [
+        "Postgres levantado, sesión válida"
+      ],
       "given": "una hoja transfer 'c-alcancia' sin datos previos",
       "when": "se registra un aporte de 200000 en 'jul' y un retiro de 50000 en 'ago', y se recarga desde el servidor",
       "then": "la celda de 'jul' vale 200000 (aporte del mes, no saldo acumulado), la de 'ago' vale 0, y el journal contiene un retiro de 50000",
@@ -805,7 +999,10 @@
         "Assert celda jul=200000, celda ago=0, journal con retiro 50000"
       ],
       "expected_result": "Semántica v4 intacta: celdas = aportes del mes, retiros por journal",
-      "test_data": { "aporte": 200000, "retiro": 50000 }
+      "test_data": {
+        "aporte": 200000,
+        "retiro": 50000
+      }
     },
     {
       "id": "TC-SFU-205e",
@@ -816,13 +1013,22 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Postgres levantado, sesión válida"],
+      "preconditions": [
+        "Postgres levantado, sesión válida"
+      ],
       "given": "un mes 'jul' con flujo neto de +500000 y un aporte a reserva de 200000",
       "when": "se consulta el Balance del mes tras recargar desde el servidor",
       "then": "available === 300000 y reservedBalance === 200000",
-      "steps": ["Sembrar flujo +500000 y aporte 200000 en jul", "Recargar", "Assert available=300000 y reservedBalance=200000"],
+      "steps": [
+        "Sembrar flujo +500000 y aporte 200000 en jul",
+        "Recargar",
+        "Assert available=300000 y reservedBalance=200000"
+      ],
       "expected_result": "El Balance sigue derivando correctamente (conservación total)",
-      "test_data": { "flujo": 500000, "aporte": 200000 }
+      "test_data": {
+        "flujo": 500000,
+        "aporte": 200000
+      }
     },
     {
       "id": "TC-SFU-205f",
@@ -833,7 +1039,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Postgres con un estado de reservas conocido"],
+      "preconditions": [
+        "Postgres con un estado de reservas conocido"
+      ],
       "given": "un estado de reservas en Postgres con c-alcancia: jul=200000 y un retiro de 50000 en el journal",
       "when": "se ejecuta un ciclo completo load → save → load sin ninguna edición intermedia",
       "then": "el estado final es idénticamente igual al inicial: jul=200000, journal con el mismo retiro de 50000, y ningún campo perdido ni añadido",
@@ -843,9 +1051,11 @@
         "Assert igualdad profunda con el estado inicial"
       ],
       "expected_result": "Round-trip idempotente: la migración retirada no tocaba este camino",
-      "test_data": { "aporte": 200000, "retiro": 50000 }
+      "test_data": {
+        "aporte": 200000,
+        "retiro": 50000
+      }
     },
-
     {
       "id": "TC-SFU-206h",
       "requirement_id": "NFR-1106",
@@ -855,7 +1065,9 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Servidor levantado"],
+      "preconditions": [
+        "Servidor levantado"
+      ],
       "given": "un cliente HTTP sin cookie de sesión",
       "when": "se solicitan GET /api/v1/ledger, GET /api/v1/movements y PUT /api/v1/ledger con un cuerpo válido",
       "then": "las tres respuestas tienen status 401 y ninguno de los cuerpos contiene las claves 'nodes', 'budgets' ni 'movements'",
@@ -876,11 +1088,18 @@
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "critical",
-      "preconditions": ["Sesión iniciada con datos visibles"],
+      "preconditions": [
+        "Sesión iniciada con datos visibles"
+      ],
       "given": "una sesión con la grilla mostrando la categoría 'Mercado'",
       "when": "se pulsa [data-testid='logout'] y se espera a que aparezca auth-form",
       "then": "Object.keys(localStorage).filter(k => k.startsWith('ledger.')).length === 0 y el texto 'Mercado' no está en el documento",
-      "steps": ["Cerrar sesión", "Esperar auth-form", "Assert 0 claves ledger.*", "Assert 'Mercado' ausente"],
+      "steps": [
+        "Cerrar sesión",
+        "Esperar auth-form",
+        "Assert 0 claves ledger.*",
+        "Assert 'Mercado' ausente"
+      ],
       "expected_result": "Cierre de sesión limpio: sin datos en almacenamiento ni en pantalla",
       "test_data": {}
     },
@@ -893,15 +1112,22 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Servidor levantado"],
+      "preconditions": [
+        "Servidor levantado"
+      ],
       "given": "un cliente con una cookie de sesión de valor inventado 'better-auth.session_token=deadbeef'",
       "when": "se solicita GET /api/v1/ledger",
       "then": "la respuesta tiene status 401 y el cuerpo no contiene ninguna clave 'nodes'",
-      "steps": ["Enviar cookie inventada", "Solicitar /api/v1/ledger", "Assert 401 y cuerpo sin datos"],
+      "steps": [
+        "Enviar cookie inventada",
+        "Solicitar /api/v1/ledger",
+        "Assert 401 y cuerpo sin datos"
+      ],
       "expected_result": "Token inválido rechazado con 401",
-      "test_data": { "cookie": "better-auth.session_token=deadbeef" }
+      "test_data": {
+        "cookie": "better-auth.session_token=deadbeef"
+      }
     },
-
     {
       "id": "TC-SFU-207h",
       "requirement_id": "NFR-1107",
@@ -911,11 +1137,17 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
-      "preconditions": ["scripts/no-legacy-mode.sh presente y ejecutable"],
+      "preconditions": [
+        "scripts/no-legacy-mode.sh presente y ejecutable"
+      ],
       "given": "el árbol src/ tras completar la feature",
       "when": "se ejecuta scripts/no-legacy-mode.sh",
       "then": "el script termina con exit code 0 y no imprime ninguna ruta de src/",
-      "steps": ["Ejecutar el script", "Assert exit code 0", "Assert salida sin rutas"],
+      "steps": [
+        "Ejecutar el script",
+        "Assert exit code 0",
+        "Assert salida sin rutas"
+      ],
       "expected_result": "exit 0: sin restos del modo retirado",
       "test_data": {}
     },
@@ -928,11 +1160,17 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "medium",
-      "preconditions": ["Directorio temporal de prueba"],
+      "preconditions": [
+        "Directorio temporal de prueba"
+      ],
       "given": "un archivo temporal en tests/ que contiene la cadena 'LocalStorageRepository' y otro en docs con 'SERVER_MODE'",
       "when": "se ejecuta scripts/no-legacy-mode.sh",
       "then": "el script sigue terminando con exit code 0, porque su alcance es exclusivamente src/",
-      "steps": ["Crear los dos archivos fuera de src/", "Ejecutar el script", "Assert exit 0"],
+      "steps": [
+        "Crear los dos archivos fuera de src/",
+        "Ejecutar el script",
+        "Assert exit 0"
+      ],
       "expected_result": "El gate no produce falsos positivos fuera de src/",
       "test_data": {}
     },
@@ -945,7 +1183,9 @@
       "type": "integration",
       "scenario": "negative",
       "priority": "critical",
-      "preconditions": ["Directorio temporal de prueba"],
+      "preconditions": [
+        "Directorio temporal de prueba"
+      ],
       "given": "un archivo temporal src/__probe__.ts que contiene la línea 'export const SERVER_MODE = true;'",
       "when": "se ejecuta scripts/no-legacy-mode.sh",
       "then": "el script termina con exit code distinto de 0 e imprime la ruta src/__probe__.ts",
@@ -956,9 +1196,10 @@
         "Borrar el archivo de prueba"
       ],
       "expected_result": "El gate detecta la reintroducción del flag (si no falla aquí, no protege nada)",
-      "test_data": { "probe": "src/__probe__.ts" }
+      "test_data": {
+        "probe": "src/__probe__.ts"
+      }
     },
-
     {
       "id": "TC-SFU-208h",
       "requirement_id": "NFR-1108",
@@ -968,7 +1209,9 @@
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
-      "preconditions": ["Entorno de CI con Postgres levantado"],
+      "preconditions": [
+        "Entorno de CI con Postgres levantado"
+      ],
       "given": "el entorno de test con la variable NEXT_PUBLIC_LEDGER_SERVER_MODE ausente del entorno",
       "when": "se ejecuta el globalSetup de la suite e2e-backend y arranca la app",
       "then": "el servidor arranca, GET '/' responde 200 y el globalSetup no consulta ni define esa variable",
@@ -989,11 +1232,17 @@
       "type": "integration",
       "scenario": "edge_case",
       "priority": "high",
-      "preconditions": ["Build de producción disponible"],
+      "preconditions": [
+        "Build de producción disponible"
+      ],
       "given": "el proceso de la app arrancado con DATABASE_URL y BETTER_AUTH_* definidas pero sin NEXT_PUBLIC_LEDGER_SERVER_MODE",
       "when": "se solicita GET '/'",
       "then": "la respuesta es 200 y el HTML contiene el formulario de acceso (no una pantalla de error de configuración)",
-      "steps": ["Arrancar sin la variable", "GET /", "Assert 200 y presencia del formulario"],
+      "steps": [
+        "Arrancar sin la variable",
+        "GET /",
+        "Assert 200 y presencia del formulario"
+      ],
       "expected_result": "La variable dejó de ser necesaria para arrancar",
       "test_data": {}
     },
@@ -1010,7 +1259,12 @@
       "given": "un test temporal que ejecuta expect(1).toBe(2)",
       "when": "se corre el comando de la suite declarado en el proyecto",
       "then": "el comando termina con exit code distinto de 0 y el nombre del test roto aparece en la salida",
-      "steps": ["Añadir el test que falla", "Correr la suite", "Assert exit != 0 y test nombrado", "Retirar el test"],
+      "steps": [
+        "Añadir el test que falla",
+        "Correr la suite",
+        "Assert exit != 0 y test nombrado",
+        "Retirar el test"
+      ],
       "expected_result": "El pipeline sigue siendo capaz de fallar (sin continue-on-error)",
       "test_data": {}
     }

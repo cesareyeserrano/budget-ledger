@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-01T02:57:13.005Z",
+  "executed_at": "2026-08-01T03:02:01.779Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,32 +8,32 @@
     {
       "tc_id": "TC-SFU-101h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-101h: el store construye un ServerRepository y sus escrituras salen por la API 73ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-101h: el store construye un ServerRepository y sus escrituras salen por la API 114ms"
     },
     {
       "tc_id": "TC-SFU-101e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > FR-1101 — construcción del repositorio en SSR > TC-SFU-101e: en SSR (sin window) la construcción del repositorio devuelve null sin lanzar 30ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > FR-1101 — construcción del repositorio en SSR > TC-SFU-101e: en SSR (sin window) la construcción del repositorio devuelve null sin lanzar 25ms"
     },
     {
       "tc_id": "TC-SFU-101f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-101f: ninguna variable de entorno reactiva un repositorio de localStorage 46ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-101f: ninguna variable de entorno reactiva un repositorio de localStorage 41ms"
     },
     {
       "tc_id": "TC-SFU-102h",
       "status": "pass",
-      "notes": "✓  172 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:87:5 › TC-SFU-102h: sin sesión, cualquier ruta muestra el formulario y nunca el shell (172ms)"
+      "notes": "✓  172 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:87:5 › TC-SFU-102h: sin sesión, cualquier ruta muestra el formulario y nunca el shell (161ms)"
     },
     {
       "tc_id": "TC-SFU-102e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1102 — una sesión que muere devuelve al login sin dejar datos en pantalla > TC-SFU-102e-store: un 401 al guardar descarta los datos en memoria y marca la sesión caída 65ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1102 — una sesión que muere devuelve al login sin dejar datos en pantalla > TC-SFU-102e-store: un 401 al guardar descarta los datos en memoria y marca la sesión caída 56ms"
     },
     {
       "tc_id": "TC-SFU-102f",
       "status": "pass",
-      "notes": "✓  174 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:127:5 › TC-SFU-102f: sin sesión no se emite ninguna petición de datos financieros (253ms)"
+      "notes": "✓  174 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:127:5 › TC-SFU-102f: sin sesión no se emite ninguna petición de datos financieros (257ms)"
     },
     {
       "tc_id": "TC-SFU-103h",
@@ -43,12 +43,12 @@
     {
       "tc_id": "TC-SFU-103e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-103e: si el guardado falla por red, avisa y NO cae de vuelta a localStorage 81ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-103e: si el guardado falla por red, avisa y NO cae de vuelta a localStorage 58ms"
     },
     {
       "tc_id": "TC-SFU-103f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-103f: ningún flujo de datos del usuario escribe una clave ledger.* en localStorage 46ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-103f: ningún flujo de datos del usuario escribe una clave ledger.* en localStorage 34ms"
     },
     {
       "tc_id": "TC-SFU-104h",
@@ -58,7 +58,7 @@
     {
       "tc_id": "TC-SFU-104e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-104e: con localStorage inutilizable los datos del usuario siguen guardándose 36ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1103 / FR-1104 — Postgres única fuente; localStorage solo preferencias > TC-SFU-104e: con localStorage inutilizable los datos del usuario siguen guardándose 29ms"
     },
     {
       "tc_id": "TC-SFU-104f",
@@ -88,92 +88,92 @@
     {
       "tc_id": "TC-SFU-106e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > FR-1105 / FR-1106 — el contrato sobrevive al retiro de la implementación local > TC-SFU-106e: el fake InMemoryRepository satisface el mismo contrato que el real 1ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > FR-1105 / FR-1106 — el contrato sobrevive al retiro de la implementación local > TC-SFU-106e: el fake InMemoryRepository satisface el mismo contrato que el real 0ms"
     },
     {
       "tc_id": "TC-SFU-106f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-106f: romper la construcción del repositorio hace fallar su test (hoy no falla) 71ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > FR-1101 — punto único de construcción del repositorio > TC-SFU-106f: romper la construcción del repositorio hace fallar su test (hoy no falla) 78ms"
     },
     {
       "tc_id": "TC-SFU-107h",
       "status": "pass",
-      "notes": "✓  177 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:237:5 › TC-SFU-107h: la metadata describe una app con cuenta y multi-dispositivo (116ms)"
+      "notes": "✓  177 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:237:5 › TC-SFU-107h: la metadata describe una app con cuenta y multi-dispositivo (105ms)"
     },
     {
       "tc_id": "TC-SFU-107e",
       "status": "pass",
-      "notes": "✓  178 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:246:5 › TC-SFU-107e: la descripción tampoco promete acceso sin cuenta (109ms)"
+      "notes": "✓  178 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:246:5 › TC-SFU-107e: la descripción tampoco promete acceso sin cuenta (115ms)"
     },
     {
       "tc_id": "TC-SFU-107f",
       "status": "pass",
-      "notes": "✓  179 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:256:5 › TC-SFU-107f: no queda el texto obsoleto 'single-user (localStorage)' (106ms)"
+      "notes": "✓  179 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:256:5 › TC-SFU-107f: no queda el texto obsoleto 'single-user (localStorage)' (109ms)"
     },
     {
       "tc_id": "TC-SFU-108h",
       "status": "pass",
-      "notes": "✓  180 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:266:5 › TC-SFU-108h: la pantalla de acceso no usa estilos inline ni colores en hex literal (233ms)"
+      "notes": "✓  180 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:266:5 › TC-SFU-108h: la pantalla de acceso no usa estilos inline ni colores en hex literal (218ms)"
     },
     {
       "tc_id": "TC-SFU-108e",
       "status": "pass",
-      "notes": "✓  181 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:293:5 › TC-SFU-108e: los controles del login usan la escala canónica 32/40/48 (219ms)"
+      "notes": "✓  181 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:293:5 › TC-SFU-108e: los controles del login usan la escala canónica 32/40/48 (156ms)"
     },
     {
       "tc_id": "TC-SFU-108f",
       "status": "pass",
-      "notes": "✓  182 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:326:5 › TC-SFU-108f: el rediseño conserva los 9 data-testid y no altera el flujo (399ms)"
+      "notes": "✓  182 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:326:5 › TC-SFU-108f: el rediseño conserva los 9 data-testid y no altera el flujo (382ms)"
     },
     {
       "tc_id": "TC-SFU-201h",
       "status": "pass",
-      "notes": "✓  183 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:355:5 › TC-SFU-201h: el tema y el ancho de columna siguen persistiendo tras recargar (471ms)"
+      "notes": "✓  183 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:355:5 › TC-SFU-201h: el tema y el ancho de columna siguen persistiendo tras recargar (455ms)"
     },
     {
       "tc_id": "TC-SFU-201e",
       "status": "pass",
-      "notes": "✓  184 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:386:5 › TC-SFU-201e: el default del tema sigue siendo 'Sistema' (376ms)"
+      "notes": "✓  184 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:386:5 › TC-SFU-201e: el default del tema sigue siendo 'Sistema' (393ms)"
     },
     {
       "tc_id": "TC-SFU-201f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1101 — las preferencias del dispositivo siguen en localStorage > TC-SFU-201f: la limpieza de ledger.* no borra las claves de preferencias 13ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1101 — las preferencias del dispositivo siguen en localStorage > TC-SFU-201f: la limpieza de ledger.* no borra las claves de preferencias 11ms"
     },
     {
       "tc_id": "TC-SFU-202h",
       "status": "pass",
-      "notes": "✓  185 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:410:5 › TC-SFU-202h: el login con credenciales válidas sigue entrando (276ms)"
+      "notes": "✓  185 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:410:5 › TC-SFU-202h: el login con credenciales válidas sigue entrando (275ms)"
     },
     {
       "tc_id": "TC-SFU-202e",
       "status": "pass",
-      "notes": "✓  186 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:425:5 › TC-SFU-202e: la sesión sobrevive a recargar la página (336ms)"
+      "notes": "✓  186 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:425:5 › TC-SFU-202e: la sesión sobrevive a recargar la página (344ms)"
     },
     {
       "tc_id": "TC-SFU-202f",
       "status": "pass",
-      "notes": "✓  187 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:443:5 › TC-SFU-202f: credenciales inválidas no entran y muestran el error literal (240ms)"
+      "notes": "✓  187 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:443:5 › TC-SFU-202f: credenciales inválidas no entran y muestran el error literal (235ms)"
     },
     {
       "tc_id": "TC-SFU-203h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1103 — conflicto por revisión: 409 → resync → convergencia > TC-SFU-203h: un 409 stale dispara resync y el estado converge 75ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1103 — conflicto por revisión: 409 → resync → convergencia > TC-SFU-203h: un 409 stale dispara resync y el estado converge 61ms"
     },
     {
       "tc_id": "TC-SFU-203e",
       "status": "pass",
-      "notes": "✓  188 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:461:5 › TC-SFU-203e: el sync en vivo sigue actualizando la vista sin recargar (475ms)"
+      "notes": "✓  188 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:461:5 › TC-SFU-203e: el sync en vivo sigue actualizando la vista sin recargar (500ms)"
     },
     {
       "tc_id": "TC-SFU-203f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1103 — conflicto por revisión: 409 → resync → convergencia > TC-SFU-203f: si se pierde el resync tras 409, el estado queda divergente y el test lo detecta 55ms"
+      "notes": "✓ |app| tests/integration/servidor-fuente-unica.test.ts > NFR-1103 — conflicto por revisión: 409 → resync → convergencia > TC-SFU-203f: si se pierde el resync tras 409, el estado queda divergente y el test lo detecta 59ms"
     },
     {
       "tc_id": "TC-SFU-204h",
       "status": "pass",
-      "notes": "✓  189 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:490:5 › TC-SFU-204h: la grilla de 12 meses sigue operando contra Postgres (390ms)"
+      "notes": "✓  189 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:490:5 › TC-SFU-204h: la grilla de 12 meses sigue operando contra Postgres (393ms)"
     },
     {
       "tc_id": "TC-SFU-204e",
@@ -188,27 +188,27 @@
     {
       "tc_id": "TC-SFU-205h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205h: el modelo v4 de reservas conserva su semántica contra Postgres 38ms"
+      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205h: el modelo v4 de reservas conserva su semántica contra Postgres 40ms"
     },
     {
       "tc_id": "TC-SFU-205e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205e: el saldo disponible del Balance sigue derivando de los saldos resueltos 37ms"
+      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205e: el saldo disponible del Balance sigue derivando de los saldos resueltos 35ms"
     },
     {
       "tc_id": "TC-SFU-205f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205f: retirar la migración local no altera lo que el servidor lee ni escribe 42ms"
+      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1105 — la semántica v4 de reservas sobrevive al camino de servidor > TC-SFU-205f: retirar la migración local no altera lo que el servidor lee ni escribe 41ms"
     },
     {
       "tc_id": "TC-SFU-206h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1106 — las rutas de datos siguen cerradas sin sesión válida > TC-SFU-206h: las rutas de datos responden 401 sin cookie de sesión 36ms"
+      "notes": "✓ |backend| tests/integration/backend/servidor-fuente-unica.test.ts > NFR-1106 — las rutas de datos siguen cerradas sin sesión válida > TC-SFU-206h: las rutas de datos responden 401 sin cookie de sesión 34ms"
     },
     {
       "tc_id": "TC-SFU-206e",
       "status": "pass",
-      "notes": "✓  191 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:572:5 › TC-SFU-206e: tras cerrar sesión no queda dato financiero en el navegador (390ms)"
+      "notes": "✓  191 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:572:5 › TC-SFU-206e: tras cerrar sesión no queda dato financiero en el navegador (410ms)"
     },
     {
       "tc_id": "TC-SFU-206f",
@@ -218,32 +218,32 @@
     {
       "tc_id": "TC-SFU-207h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207h: el gate no-legacy-mode pasa cuando el código está limpio 41ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207h: el gate no-legacy-mode pasa cuando el código está limpio 31ms"
     },
     {
       "tc_id": "TC-SFU-207e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207e: el gate ignora tests y documentación, solo mira src/ 55ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207e: el gate ignora tests y documentación, solo mira src/ 42ms"
     },
     {
       "tc_id": "TC-SFU-207f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207f: el gate falla si alguien reintroduce el flag en src/ 50ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1107 — gate estático no-legacy-mode > TC-SFU-207f: el gate falla si alguien reintroduce el flag en src/ 37ms"
     },
     {
       "tc_id": "TC-SFU-208h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208h: la suite e2e arranca sin definir NEXT_PUBLIC_LEDGER_SERVER_MODE 1ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208h: la suite e2e arranca sin definir NEXT_PUBLIC_LEDGER_SERVER_MODE 0ms"
     },
     {
       "tc_id": "TC-SFU-208e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208e: la app arranca sin la variable en el entorno de ejecución 50ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208e: la app arranca sin la variable en el entorno de ejecución 37ms"
     },
     {
       "tc_id": "TC-SFU-208f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0 1166ms"
+      "notes": "✓ |app| tests/unit/servidor-fuente-unica.test.ts > NFR-1108 — arranque y CI sin el flag retirado > TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0 1191ms"
     }
   ],
   "fr_coverage": [
@@ -563,7 +563,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-01T02:55:58.191Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-01T03:00:47.898Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
     },
     {
       "name": "smoke",
@@ -579,7 +579,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "nica-TC-S-20562--funcionando-tras-el-retiro-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:514:5 › TC-SFU-204e: promote y demote de nodos siguen funcionando tras el retiro \n  265 passed (1.2m)\n\n2026-08-01T02:56:51.600Z WARN [Better Auth]: User not found\n2026-08-01T02:56:52.049Z WARN [Better Auth]: User not found\n2026-08-01T02:56:53.770Z WARN [Better Auth]: User not found\n(node:42691) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "output": ".ts:688:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (97ms)\n  ✓  264 [chromium] › tests/e2e/ux-consistency.spec.ts:637:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  268 passed (1.2m)\n\n2026-08-01T03:01:40.064Z WARN [Better Auth]: User not found\n2026-08-01T03:01:40.495Z WARN [Better Auth]: User not found\n2026-08-01T03:01:42.318Z WARN [Better Auth]: User not found\n(node:45013) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ]
 }

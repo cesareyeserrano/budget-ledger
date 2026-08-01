@@ -593,15 +593,16 @@ test("TC-SFU-206e: tras cerrar sesión no queda dato financiero en el navegador"
 });
 
 /**
- * AC-1108c — el contraste de la pantalla de acceso, en ambos temas.
+ * TC-SFU-108c / AC-1108c — el contraste de la pantalla de acceso, en ambos temas.
  *
- * Este criterio se quedó SIN TC en la fase 3 (sus tres TCs cubren AC-1108a/b/d), y `verify-run` lo
- * señala como el único AC sin test de la feature. La cobertura se añade aquí porque un criterio de
- * un FR MUST sobre una pantalla recién re-estilada es justo lo que regresa en silencio; el TC que
- * lo acredite formalmente exige re-abrir la fase 3, que es decisión del humano.
+ * El criterio se había quedado sin TC en la fase 3 (sus tres TCs cubrían AC-1108a/b/d) y
+ * verify-complete lo bloqueó: todo AC declarado exige un TC que lo trace. Se mide sobre el DOM
+ * REAL —color efectivo contra el fondo pintado detrás— y no sobre los tokens: un token correcto
+ * compuesto sobre el fondo equivocado sigue siendo ilegible.
  */
 for (const scheme of ["light", "dark"] as const) {
-  test(`AC-1108c: todo texto de la pantalla de acceso alcanza 4.5:1 en tema ${scheme}`, async ({ browser }) => {
+  test(`TC-SFU-108c: todo texto de la pantalla de acceso alcanza 4.5:1 en tema ${scheme}`, async ({ browser }) => {
+    // @aitri-tc TC-SFU-108c
     const ctx = await browser.newContext({
       baseURL: E2E_BASE,
       viewport: DESK,
