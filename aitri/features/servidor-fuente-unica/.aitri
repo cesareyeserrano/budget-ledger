@@ -4,7 +4,8 @@
     1,
     "ux",
     2,
-    3
+    3,
+    4
   ],
   "completedPhases": [
     1,
@@ -16,19 +17,9 @@
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T02:52:10.482Z",
+  "updatedAt": "2026-08-01T02:57:13.021Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T22:42:11.279Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-30T22:42:13.674Z",
-      "event": "started",
-      "phase": 2
-    },
     {
       "at": "2026-07-30T22:42:18.280Z",
       "event": "started",
@@ -119,6 +110,20 @@
       "at": "2026-08-01T02:52:10.468Z",
       "event": "completed",
       "phase": 4
+    },
+    {
+      "at": "2026-08-01T02:54:11.777Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-01T02:57:13.007Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -151,6 +156,16 @@
       "FR-1107",
       "FR-1108"
     ],
+    "4": [
+      "FR-1101",
+      "FR-1102",
+      "FR-1103",
+      "FR-1104",
+      "FR-1105",
+      "FR-1106",
+      "FR-1107",
+      "FR-1108"
+    ],
     "ux": [
       "FR-1101",
       "FR-1102",
@@ -161,5 +176,14 @@
       "FR-1107",
       "FR-1108"
     ]
+  },
+  "verifyResultsHash": "112bdebfc28dba68add97c10254a0212f523dcc7421bfe75b4d4cc3b4bfe400c",
+  "verifyRanAt": "2026-08-01T02:57:13.007Z",
+  "lastVerifyRun": {
+    "passed": 48,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-08-01T02:57:13.007Z"
   }
 }

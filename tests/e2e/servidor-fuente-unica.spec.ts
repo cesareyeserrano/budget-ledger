@@ -591,3 +591,72 @@ test("TC-SFU-206e: tras cerrar sesión no queda dato financiero en el navegador"
     await ctx.close();
   }
 });
+
+/**
+ * AC-1108c — el contraste de la pantalla de acceso, en ambos temas.
+ *
+ * Este criterio se quedó SIN TC en la fase 3 (sus tres TCs cubren AC-1108a/b/d), y `verify-run` lo
+ * señala como el único AC sin test de la feature. La cobertura se añade aquí porque un criterio de
+ * un FR MUST sobre una pantalla recién re-estilada es justo lo que regresa en silencio; el TC que
+ * lo acredite formalmente exige re-abrir la fase 3, que es decisión del humano.
+ */
+for (const scheme of ["light", "dark"] as const) {
+  test(`AC-1108c: todo texto de la pantalla de acceso alcanza 4.5:1 en tema ${scheme}`, async ({ browser }) => {
+    const ctx = await browser.newContext({
+      baseURL: E2E_BASE,
+      viewport: DESK,
+      storageState: { cookies: [], origins: [] },
+      colorScheme: scheme,
+    });
+    const page = await ctx.newPage();
+    try {
+      await page.goto("/");
+      const form = page.getByTestId("auth-form");
+      await expect(form).toBeVisible();
+
+      // Se mide sobre el DOM real: color efectivo del texto contra el fondo pintado detrás, subiendo
+      // por los ancestros hasta encontrar uno con fondo opaco (el propio elemento suele ser
+      // transparente). Solo elementos con texto propio.
+      const bajos = await form.evaluate((root) => {
+        const lum = (c: string) => {
+          const m = c.match(/\d+(\.\d+)?/g) ?? ["0", "0", "0"];
+          const [r, g, b] = [Number(m[0]), Number(m[1]), Number(m[2])].map((v) => {
+            const x = v / 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const fondoDe = (el: Element): string => {
+          let cur: Element | null = el;
+          while (cur) {
+            const bg = getComputedStyle(cur).backgroundColor;
+            const alpha = bg.startsWith("rgba") ? Number(bg.match(/[\d.]+/g)![3]) : 1;
+            if (alpha > 0) return bg;
+            cur = cur.parentElement;
+          }
+          return "rgb(255, 255, 255)";
+        };
+        const malos: { texto: string; ratio: number }[] = [];
+        for (const el of [root, ...Array.from(root.querySelectorAll("*"))]) {
+          const propio = Array.from(el.childNodes)
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent?.trim() ?? "")
+            .join("");
+          if (!propio) continue;
+          const s = getComputedStyle(el);
+          if (s.visibility === "hidden" || s.display === "none") continue;
+          const l1 = lum(s.color);
+          const l2 = lum(fondoDe(el));
+          const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+          const ratio = (hi + 0.05) / (lo + 0.05);
+          if (ratio < 4.5) malos.push({ texto: propio.slice(0, 40), ratio: Math.round(ratio * 100) / 100 });
+        }
+        return malos;
+      });
+
+      expect(bajos, `textos por debajo de 4.5:1 en tema ${scheme}: ${JSON.stringify(bajos)}`).toEqual([]);
+    } finally {
+      await ctx.close();
+    }
+  });
+}
