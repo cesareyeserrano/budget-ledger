@@ -208,7 +208,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -216,10 +216,19 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-07-28T19:57:58.346Z",
-      "updated_at": "2026-08-01T04:00:46.202Z",
-      "resolution": "Causa: nextSeq() (src/domain/ids.ts) solo era monotónico DENTRO del proceso — _seq arrancaba en 0 en cada carga de página, así que el primer movimiento de una sesión nueva nacía con createdAt 1 y se ordenaba delante de los de sesiones anteriores; GET /api/v1/movements ordena por createdAt descendente y ahí se veía. Fix: seedSeq()/seedSeqFrom() elevan el suelo de la secuencia con el máximo createdAt ya persistido (movimientos Y observaciones de celda, que comparten la secuencia), y el store lo llama en hydrate() y en doResync() — los dos puntos donde adopta datos de la fuente de verdad. Se evita Date.now() a propósito para no volver no deterministas los tests de dominio. Verificado: 7 tests nuevos (5 de dominio + 2 de cableado del store); neutralizando el fix caen 4 de los 7, así que muerden de verdad. typecheck y lint limpios, suite 332/332.",
+      "updated_at": "2026-08-01T04:08:31.967Z",
+      "resolution": "Verificado con 7 tests nuevos que corren en cada verify: tests/domain/seq-monotonic.test.ts (5, incluido el bug tal como se reportó y los bordes de seedSeq) y tests/integration/seq-seed-on-load.test.ts (2, que prueban que hydrate() y doResync() LLAMAN al helper — sin eso el fix sería correcto y el bug seguiría vivo). Comprobación anti-pass-falso: neutralizando seedSeq caen 4 de los 7. Suite completa 332/332 unit+integration y 268/268 e2e sin reintentos; typecheck y lint limpios.",
       "fix_commit_sha": "217d3631d53223430d5c9f0e9b962884f55a4147",
-      "fix_at": "2026-08-01T04:00:46.202Z"
+      "fix_at": "2026-08-01T04:00:46.202Z",
+      "close_commit_sha": "0bc76738171038e072e478eea7e1f1c2db19ba3d",
+      "close_at": "2026-08-01T04:08:31.967Z",
+      "files_changed": [
+        "src/domain/ids.ts",
+        "src/domain/mutations.ts",
+        "src/state/store.ts",
+        "tests/domain/seq-monotonic.test.ts",
+        "tests/integration/seq-seed-on-load.test.ts"
+      ]
     },
     {
       "id": "BG-011",
