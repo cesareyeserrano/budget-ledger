@@ -1,67 +1,26 @@
 {
-  "currentPhase": 3,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
-    2
+    2,
+    3,
+    4
   ],
   "completedPhases": [
     1,
     "ux",
     2,
-    3
+    3,
+    4,
+    5
   ],
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T03:03:04.456Z",
+  "updatedAt": "2026-08-01T03:13:46.941Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T22:50:25.922Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-30T22:50:29.556Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:28:53.952Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:28:54.038Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:29:00.158Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:35:54.293Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:40:22.037Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-30T23:40:24.916Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-30T23:45:51.828Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-07-31T19:15:36.516Z",
       "event": "approved",
@@ -125,18 +84,69 @@
       "at": "2026-08-01T03:03:04.440Z",
       "event": "completed",
       "phase": 3
+    },
+    {
+      "at": "2026-08-01T03:04:57.330Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-01T03:05:01.083Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-01T03:05:14.886Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-01T03:05:17.932Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-01T03:05:20.169Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-01T03:08:15.086Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-01T03:08:19.080Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-01T03:08:25.095Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-01T03:13:46.926Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
-  "cascadedPhases": [
-    "4"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "73c77d6ab97376cec1f19a312be5c721c970121e26ec10bf8e89a1b075870fa6",
     "2": "9ec5639d027e77834280433d973a36e510e275fb5f47c98966fe112bf5952453",
     "3": "9b86309f18324502126569f99fe9f3e53df7852f63c56eed68b3720128f33817",
+    "4": "0d6f1f1cb42691267a509f901daf8196ae129163fafb4b81ad734ed2f71a6518",
+    "5": "a74a8b61b0a13b55d6e3f546e26180f23fe553f7cbc34805c3b847165cbd3b72",
     "ux": "25c7851966acea725795165568055cedd6421d67ead0b5ae2affa52f2008c66a"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-1101",
@@ -178,5 +188,24 @@
       "FR-1107",
       "FR-1108"
     ]
+  },
+  "verifyResultsHash": "f96f8d129805e9e7adcd879f6d9597e8717320d6d4dcc0b1006b99c6b00d90fb",
+  "verifyRanAt": "2026-08-01T03:08:15.086Z",
+  "lastVerifyRun": {
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-08-01T03:08:15.086Z"
+  },
+  "verifySummary": {
+    "total": 49,
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
   }
 }

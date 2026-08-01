@@ -15,7 +15,6 @@ COPY . .
 ENV DATABASE_URL=postgres://build:build@localhost:5432/build
 ENV BETTER_AUTH_SECRET=build-time-placeholder-secret-000000
 ENV BETTER_AUTH_URL=http://localhost:3000
-ENV NEXT_PUBLIC_LEDGER_SERVER_MODE=true
 # next/font auto-aloja Fira Code en build (sin peticiones externas en runtime — NFR-004, BG-001).
 RUN npm run build
 

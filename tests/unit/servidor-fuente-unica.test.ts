@@ -192,9 +192,15 @@ describe("NFR-1108 — arranque y CI sin el flag retirado", () => {
     const r = spawnSync("node", ["scripts/check-env.mjs"], { cwd: ROOT, encoding: "utf8", env });
     expect(r.status, `${r.stdout ?? ""}${r.stderr ?? ""}`).toBe(0);
 
-    // Y ninguna configuración de despliegue la sigue exigiendo.
-    const ejemplo = path.join(ROOT, ".env.example");
-    if (existsSync(ejemplo)) expect(readFileSync(ejemplo, "utf8")).not.toContain("NEXT_PUBLIC_LEDGER_SERVER_MODE");
+    // Y ninguna configuración de DESPLIEGUE la sigue fijando. El Dockerfile es el punto ciego que
+    // de verdad importa: el gate no-legacy-mode solo mira src/, así que un `ENV ...=true` ahí
+    // resucitaba el flag en cada imagen construida sin que nada lo detectara.
+    const asignacion = /NEXT_PUBLIC_LEDGER_SERVER_MODE\s*[:=]\s*\S/;
+    for (const rel of ["Dockerfile", "docker-compose.yml", "docker-compose.dev.yml", ".env.example"]) {
+      const abs = path.join(ROOT, rel);
+      if (!existsSync(abs)) continue;
+      expect(readFileSync(abs, "utf8"), `${rel} sigue fijando el flag retirado`).not.toMatch(asignacion);
+    }
   });
 
   it("TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0", { timeout: 120_000 }, () => {

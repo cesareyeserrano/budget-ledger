@@ -26,8 +26,9 @@ services:
   app:
     build:
       context: .
-      # El build inlinea NEXT_PUBLIC_LEDGER_SERVER_MODE=true (modo servidor). El entrypoint del
-      # Dockerfile corre las migraciones (idempotentes) antes de servir.
+      # Ya no se inlinea ningún flag de modo: el interruptor de rollout se retiró y Postgres es la
+      # única fuente de verdad (NFR-1107). El entrypoint del Dockerfile corre las migraciones
+      # (idempotentes) antes de servir.
     image: t-ledger-dev:latest
     container_name: ledger-dev-app
     restart: unless-stopped
