@@ -42,6 +42,46 @@ export function nextSeq(): number {
   return _seq;
 }
 
+/**
+ * Eleva el suelo de la secuencia. La monotonía de `nextSeq()` era solo INTRA-proceso: `_seq`
+ * arrancaba en 0 en cada carga de página, así que el primer movimiento de una sesión nueva nacía
+ * con `createdAt: 1` y se ordenaba ANTES que los de la sesión anterior — que es lo que exponía
+ * `GET /api/v1/movements` al ordenar por `createdAt` descendente (BG-010). Sembrar el suelo con el
+ * máximo ya persistido restaura el orden real entre sesiones sin recurrir a `Date.now()`, que
+ * volvería no deterministas los tests de dominio.
+ *
+ * @param floor Valor mínimo que debe superar la próxima llamada a `nextSeq()`.
+ * @throws Nunca — un valor no finito o menor que el actual se ignora.
+ */
+export function seedSeq(floor: number): void {
+  if (Number.isFinite(floor) && floor > _seq) _seq = Math.floor(floor);
+}
+
+/**
+ * Siembra el suelo a partir de un estado recién cargado de la fuente de verdad. Recorre
+ * movimientos Y observaciones de celda: ambos consumen la MISMA secuencia, así que ignorar las
+ * observaciones dejaría el suelo bajo y reabriría el bug por la otra puerta.
+ *
+ * Tipado estructural a propósito: `ids.ts` no importa nada en runtime (existe para que
+ * `reserve.ts` comparta la secuencia sin crear un ciclo con `mutations.ts`).
+ *
+ * @param state Estado cargado; `movements`/`cellNotes` pueden faltar (deltas aditivos).
+ * @throws Nunca.
+ */
+export function seedSeqFrom(state: {
+  movements?: readonly { createdAt: number }[];
+  cellNotes?: Record<string, Partial<Record<string, readonly { createdAt: number }[]>>>;
+}): void {
+  let max = 0;
+  for (const m of state.movements ?? []) if (m.createdAt > max) max = m.createdAt;
+  for (const byMonth of Object.values(state.cellNotes ?? {})) {
+    for (const list of Object.values(byMonth ?? {})) {
+      for (const n of list ?? []) if (n.createdAt > max) max = n.createdAt;
+    }
+  }
+  seedSeq(max);
+}
+
 /** Reinicia la secuencia (solo tests). */
 export function __resetSeq(): void {
   _seq = 0;

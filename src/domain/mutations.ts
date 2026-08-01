@@ -3,11 +3,11 @@
 import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "./types";
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote } from "./validation";
-import { uid, nextSeq, __resetSeq } from "./ids";
+import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
 import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp } from "./reserve";
 
 // Compat: estos símbolos vivieron aquí; ahora los comparten reserve/ids sin ciclo de imports.
-export { normalizeNote, __resetSeq };
+export { normalizeNote, __resetSeq, seedSeq, seedSeqFrom };
 
 function clone(state: LedgerState): LedgerState {
   return {

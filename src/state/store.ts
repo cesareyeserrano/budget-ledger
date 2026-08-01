@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
-  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveRetiro, setPlannedRetiro,
+  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveRetiro, setPlannedRetiro, seedSeqFrom,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -101,6 +101,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const before = get().data;
       const loaded = await repo.load();
       if (!loaded) return;
+      // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
+      // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
+      seedSeqFrom(loaded);
       // BG-011: la ventana de undo de un retiro (ADR-07) se valida por igualdad de REFERENCIA
       // sobre `data`. Si nadie mutó localmente, el resync solo devuelve NUESTRA propia escritura:
       // la ventana se re-apunta al estado recién cargado en vez de morir.
@@ -304,6 +307,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         else set({ hydrated: true });
         return;
       }
+      // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
+      // esta sesión reutilizaba `createdAt` bajos y se colaba delante de las anteriores en el orden
+      // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.
+      if (loaded) seedSeqFrom(loaded);
       // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
       const data = loaded ?? buildSeed(OWNER);
       if (!loaded) await repo.save(OWNER, data);
