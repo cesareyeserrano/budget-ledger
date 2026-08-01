@@ -5,7 +5,8 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -18,14 +19,9 @@
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T03:17:05.947Z",
+  "updatedAt": "2026-08-01T03:43:50.260Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-31T19:16:09.779Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-07-31T19:22:06.583Z",
       "event": "approved",
@@ -140,6 +136,13 @@
       "phase": "verify",
       "passed": 49,
       "failed": 0
+    },
+    {
+      "at": "2026-08-01T03:43:50.244Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -183,6 +186,16 @@
       "FR-1107",
       "FR-1108"
     ],
+    "5": [
+      "FR-1101",
+      "FR-1102",
+      "FR-1103",
+      "FR-1104",
+      "FR-1105",
+      "FR-1106",
+      "FR-1107",
+      "FR-1108"
+    ],
     "ux": [
       "FR-1101",
       "FR-1102",
@@ -212,5 +225,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-08-01T03:43:50.243Z"
+    }
+  ]
 }
