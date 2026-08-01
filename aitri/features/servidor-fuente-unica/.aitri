@@ -18,20 +18,9 @@
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T03:13:46.941Z",
+  "updatedAt": "2026-08-01T03:17:05.947Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-31T19:15:36.516Z",
-      "event": "approved",
-      "phase": 2,
-      "afterDrift": true
-    },
-    {
-      "at": "2026-07-31T19:16:04.773Z",
-      "event": "started",
-      "phase": 3
-    },
     {
       "at": "2026-07-31T19:16:09.779Z",
       "event": "completed",
@@ -135,6 +124,22 @@
       "at": "2026-08-01T03:13:46.926Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-08-01T03:17:01.628Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-01T03:17:05.933Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -189,14 +194,14 @@
       "FR-1108"
     ]
   },
-  "verifyResultsHash": "f96f8d129805e9e7adcd879f6d9597e8717320d6d4dcc0b1006b99c6b00d90fb",
-  "verifyRanAt": "2026-08-01T03:08:15.086Z",
+  "verifyResultsHash": "f6edfaff02af138592b71e1a28c5b99f4f92d814f79b64ef378feff8c5e59d96",
+  "verifyRanAt": "2026-08-01T03:17:01.628Z",
   "lastVerifyRun": {
     "passed": 49,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-01T03:08:15.086Z"
+    "at": "2026-08-01T03:17:01.628Z"
   },
   "verifySummary": {
     "total": 49,
