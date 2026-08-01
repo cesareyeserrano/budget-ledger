@@ -25,7 +25,7 @@ const inputVariants = cva(
       size: {
         default: "h-(--control-md) text-[0.8rem]",
         sm: "h-(--control-sm) text-[0.72rem]",
-        touch: "h-(--control-lg) max-[760px]:h-(--control-lg) text-[0.85rem]",
+        touch: "h-(--control-md) max-[760px]:h-(--control-lg) text-[0.85rem]",
       },
     },
     defaultVariants: { size: "default" },

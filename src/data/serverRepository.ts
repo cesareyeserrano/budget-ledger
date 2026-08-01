@@ -13,6 +13,7 @@ import type { LedgerRepository } from "./repository";
 
 const OK = 200;
 const NO_CONTENT = 204;
+const UNAUTHORIZED = 401;
 const CONFLICT = 409;
 
 export class ServerRepository implements LedgerRepository {
@@ -20,6 +21,13 @@ export class ServerRepository implements LedgerRepository {
   private revision = 0;
   /** true tras un 409/refetch: el caller debería re-hidratar. */
   public conflicted = false;
+  /**
+   * true tras un 401: la sesión murió (expiró o fue revocada desde otro dispositivo). Se distingue
+   * del resto de fallos porque exige una respuesta DISTINTA — volver al login (FR-1102) — y no
+   * "reintenta luego". Antes caía en el mismo `false` que un 5xx y la app se quedaba mostrando las
+   * finanzas del usuario en una pantalla ya sin sesión.
+   */
+  public unauthorized = false;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -42,12 +50,17 @@ export class ServerRepository implements LedgerRepository {
       this.revision = 0;
       return null;
     }
+    if (res.status === UNAUTHORIZED) {
+      this.unauthorized = true;
+      throw new Error("load falló: HTTP 401 (sesión inválida)");
+    }
     if (res.status !== OK) {
       throw new Error(`load falló: HTTP ${res.status}`);
     }
     const body = (await res.json()) as { revision: number; state: LedgerState };
     this.revision = body.revision;
     this.conflicted = false;
+    this.unauthorized = false;
     return body.state;
   }
 
@@ -63,6 +76,10 @@ export class ServerRepository implements LedgerRepository {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ baseRevision: this.revision, state }),
       });
+      if (res.status === UNAUTHORIZED) {
+        this.unauthorized = true;
+        return false;
+      }
       if (res.status === CONFLICT) {
         const body = (await res.json().catch(() => ({}))) as { revision?: number };
         if (typeof body.revision === "number") this.revision = body.revision;
@@ -73,6 +90,7 @@ export class ServerRepository implements LedgerRepository {
       const body = (await res.json()) as { revision: number };
       this.revision = body.revision;
       this.conflicted = false;
+      this.unauthorized = false;
       return true;
     } catch {
       // Fallo de red: no propagar; el estado en memoria sigue válido y la fuente de verdad no recibió parcial.

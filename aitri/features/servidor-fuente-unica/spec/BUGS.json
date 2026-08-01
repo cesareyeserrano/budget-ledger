@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "Una sesión expirada dejaba las finanzas en pantalla (el 401 se trataba como fallo de red)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": "FR-1102",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-01T02:33:03.391Z",
+      "updated_at": "2026-08-01T02:33:08.081Z",
+      "resolution": "ServerRepository distingue el 401 (nuevo flag unauthorized) del 5xx/red; el store lo convierte en sessionExpired, descarta los datos en memoria y corta la cola de escrituras; LoginGate prioriza sessionExpired sobre el session cacheado de useSession y vuelve al AuthForm; un login válido cierra el episodio via clearSessionExpired. Verificado por TC-SFU-102e (e2e) y 3 TCs de integración.",
+      "fix_commit_sha": "85a4c2b10fdd86433633d6f0026365e17b485710",
+      "fix_at": "2026-08-01T02:33:08.081Z"
+    }
+  ]
+}

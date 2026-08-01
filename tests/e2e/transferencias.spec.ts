@@ -61,6 +61,19 @@ async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellM
   return state as unknown as { budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] };
 }
 
+/**
+ * Cuenta los movimientos del servidor esperando a que converja.
+ *
+ * La UI se actualiza en el acto y la persistencia va detrás (fire-and-forget), así que leer el
+ * servidor justo después de una acción es una carrera: la aserción de pantalla ya pasó y el PUT
+ * puede seguir en vuelo. Desde que las escrituras se serializan (BL-010), el PUT del «Deshacer»
+ * además espera su turno tras el de la operación que deshace, y la ventana se ensanchó lo bastante
+ * como para fallar ~1 de cada 3 corridas.
+ */
+async function expectMovementCount(page: Page, n: number): Promise<void> {
+  await expect.poll(async () => (await persisted(page)).movements.length, { timeout: 10_000 }).toBe(n);
+}
+
 /** Un retiro ya operado, para las fixtures que lo necesitan. */
 const retiro = (from: string, month: string, amount: number, note?: string): Mov => ({
   id: `mv-${from}-${month}`, ownerId: "local", type: "transfer", catId: from, subId: null, target: from,
@@ -210,7 +223,7 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
     await expect(toast).toContainText("Sacaste $50.000 de Emergencia → Disponible");
     await page.getByTestId("toast-undo").click();
     await expect(page.getByTestId("withdraw-cell").nth(5)).toHaveText("—");
-    expect((await persisted(page)).movements).toHaveLength(0);
+    await expectMovementCount(page, 0);
   });
 
   test("TC-TRF4-014e: eliminar un retiro del historial restaura el saldo derivado", async ({ page }) => {
@@ -224,7 +237,7 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
     await page.getByTestId("withdraw-delete-mv-c-viaje-jun").click();
 
     await expect(page.getByTestId("withdraw-cell").nth(5)).toHaveText("—");
-    expect((await persisted(page)).movements).toHaveLength(0);
+    await expectMovementCount(page, 0);
     // El saldo derivado se restauró: el desplegable (el popover sigue abierto) ofrece $100.000.
     await expect(page.getByTestId("withdraw-source").locator("option", { hasText: "Ahorro · Viaje — $100.000" })).toHaveCount(1);
   });

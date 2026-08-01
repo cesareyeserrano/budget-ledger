@@ -24,7 +24,11 @@ export class InMemoryRepository implements LedgerRepository {
   public saveCount = 0;
 
   async load(ownerId: string): Promise<LedgerState | null> {
-    return this.byOwner.get(ownerId) ?? null;
+    const guardado = this.byOwner.get(ownerId);
+    // Copia también AL LEER: ServerRepository devuelve un objeto recién parseado en cada load, así
+    // que devolver la referencia viva dejaba al fake fuera del contrato — un test podía mutar lo
+    // "persistido" a través de lo que acababa de leer y no enterarse.
+    return guardado ? structuredClone(guardado) : null;
   }
 
   async save(ownerId: string, state: LedgerState): Promise<boolean> {

@@ -17,6 +17,7 @@
 "use client";
 import { useState } from "react";
 import { signIn, signUp } from "@/lib/authClient";
+import { useLedgerStore } from "@/state/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -41,6 +42,10 @@ export function AuthForm() {
           : await signIn.email({ email, password });
       if (res.error) {
         setError(mode === "register" ? "No se pudo crear la cuenta" : "Credenciales inválidas");
+      } else {
+        // Si se llegó aquí por una sesión caducada, hay que cerrar ese episodio explícitamente: el
+        // gate reentra a la MISMA cuenta, así que el userId no cambia y nada más lo despertaría.
+        useLedgerStore.getState().clearSessionExpired();
       }
       // En éxito, useSession() del gate detecta la sesión y monta la app.
     } catch {
@@ -128,7 +133,7 @@ export function AuthForm() {
           type="submit"
           disabled={busy}
           aria-busy={busy}
-          className="h-(--control-lg) border-primary bg-primary text-(--primary-foreground) hover:border-primary"
+          className="h-(--control-md) max-[760px]:h-(--control-lg) border-primary bg-primary text-(--primary-foreground) hover:border-primary"
         >
           {busy
             ? mode === "register" ? "Creando cuenta…" : "Entrando…"
@@ -142,7 +147,7 @@ export function AuthForm() {
           disabled={!GOOGLE_ENABLED || busy}
           title={GOOGLE_ENABLED ? "Entrar con Google" : "Google no configurado"}
           onClick={() => signIn.social({ provider: "google" })}
-          className="h-(--control-lg)"
+          className="h-(--control-md) max-[760px]:h-(--control-lg)"
         >
           Continuar con Google
         </Button>

@@ -27,12 +27,13 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const hydrate = useLedgerStore((s) => s.hydrate);
   const resync = useLedgerStore((s) => s.resync);
+  const sessionExpired = useLedgerStore((s) => s.sessionExpired);
   const syncRef = useRef<SyncClient | null>(null);
 
   const userId = session?.user?.id ?? null;
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || sessionExpired) return;
     // Autenticado: hidrata desde el servidor y abre el stream SSE para el sync en vivo (FR-511).
     // Esta es la ÚNICA entrada de hidratación de la app (ADR-06).
     void hydrate();
@@ -43,10 +44,15 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       client.stop();
       syncRef.current = null;
     };
-  }, [userId, hydrate, resync]);
+    // `sessionExpired` es dependencia a propósito: al caducar corta el stream SSE (la limpieza del
+    // efecto), y al cerrarse el episodio tras un login válido vuelve a hidratar aunque el userId
+    // sea el mismo — que es el caso normal, porque el usuario reentra a su propia cuenta.
+  }, [userId, sessionExpired, hydrate, resync]);
 
   if (isPending) return <AuthPending />;
-  if (!session) return <AuthForm />;
+  // La sesión caducada tiene prioridad sobre el `session` cacheado: useSession solo consulta al
+  // montar, así que sigue devolviendo la sesión muerta y sin esto el shell se quedaría en pantalla.
+  if (!session || sessionExpired) return <AuthForm />;
 
   return <>{children}</>;
 }

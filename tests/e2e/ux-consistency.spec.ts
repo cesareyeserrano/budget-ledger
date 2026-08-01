@@ -355,13 +355,14 @@ test("TC-UXC-310h: calendario e IconPicker usan Popover con foco y sombra --shad
   await expect(pop).toBeVisible();
   const shadow = await pop.evaluate((el) => getComputedStyle(el).boxShadow);
   expect(shadow).not.toBe("none");
-  const focusInside = await pop.evaluate((el) => el.contains(document.activeElement));
-  expect(focusInside).toBe(true);
+  // Radix mueve el foco DESPUÉS de montar el overlay: leerlo una sola vez justo tras abrirlo es una
+  // carrera que solo se ve bajo la carga de la suite completa (aislado siempre llegaba a tiempo).
+  await expect.poll(() => pop.evaluate((el) => el.contains(document.activeElement))).toBe(true);
   await gotoDesk(page, "light");
   await page.locator('button[aria-label="Cambiar ícono"]').first().click();
-  await expect(page.getByTestId("icon-picker")).toBeVisible();
-  const iconFocus = await page.getByTestId("icon-picker").evaluate((el) => el.contains(document.activeElement));
-  expect(iconFocus).toBe(true);
+  const picker = page.getByTestId("icon-picker");
+  await expect(picker).toBeVisible();
+  await expect.poll(() => picker.evaluate((el) => el.contains(document.activeElement))).toBe(true);
 });
 
 test("TC-UXC-310e: el overlay cierra por Escape y por click fuera", async ({ page }) => {

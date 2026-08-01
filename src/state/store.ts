@@ -24,6 +24,13 @@ interface LedgerStore {
   /** Aviso no bloqueante cuando el guardado no llegó a la fuente de verdad (red caída / 5xx).
    *  Antes señalaba la cuota de localStorage; ese disparador murió con el modo retirado (FR-1103). */
   storageError: "network" | null;
+  /**
+   * La sesión murió estando la app abierta (expiró o la revocaron desde otro dispositivo). El gate
+   * vuelve al login y los datos en memoria se descartan: FR-1102 exige no dejarlos en pantalla.
+   */
+  sessionExpired: boolean;
+  /** Cierra el episodio de sesión caída tras un login válido; el gate vuelve a hidratar. */
+  clearSessionExpired: () => void;
   showToast: (msg: string) => void;
   /**
    * Edita una celda transfer de la grilla (modelo v4: el APORTE del mes): valida en el dominio y
@@ -102,8 +109,22 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       }
       set({ data: loaded });
     } catch {
-      // Ignorar: una recarga o el próximo evento re-sincronizan (FR-510).
+      // Un 401 aquí es la otra vía por la que se descubre una sesión muerta: el sync en vivo
+      // dispara resync y el GET rebota. El resto de fallos se ignoran — una recarga o el próximo
+      // evento re-sincronizan (FR-510).
+      if (repo.unauthorized) onSessionExpired();
     }
+  };
+
+  /**
+   * La sesión dejó de ser válida: se descarta lo pendiente y se BORRAN los datos en memoria. No
+   * basta con enrutar al login — mientras el estado siga en el store, cualquier render posterior
+   * volvería a pintar las finanzas de una sesión que ya no existe (FR-1102, criterio edge).
+   */
+  const onSessionExpired = () => {
+    pendingSave = null;
+    reserveUndo = null;
+    set({ data: buildSeed(OWNER), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
   };
 
   const drainSaves = async () => {
@@ -126,6 +147,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
          */
         const ok = await repo.save(OWNER, data);
         if (ok !== false) continue;
+        if (repo.unauthorized) {
+          onSessionExpired();
+          return;
+        }
         if (repo.conflicted) {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
@@ -163,6 +188,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     toast: null,
     toastUndo: false,
     storageError: null,
+    sessionExpired: false,
+    clearSessionExpired: () => {
+      if (repo) repo.unauthorized = false;
+      set({ sessionExpired: false, storageError: null });
+    },
     showToast: (msg) => {
       set({ toast: msg, toastUndo: false });
       setTimeout(() => {
@@ -242,6 +272,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         set({ hydrated: true });
         return;
       }
+      // Entrar de nuevo cierra el episodio anterior: sin esto, el gate seguiría en el login tras
+      // un re-login válido.
+      repo.unauthorized = false;
+      set({ sessionExpired: false });
       // Split de almacenamiento (FR-509, completado por FR-1104): localStorage NUNCA guarda datos
       // financieros. La limpieza es INCONDICIONAL (ADR-05): un navegador con restos del modo
       // retirado queda limpio al primer arranque, que es lo único que garantiza "cero claves
@@ -263,9 +297,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // sesión. Antes se pasaba OWNER porque la variable estaba tipada como la interfaz.
         loaded = await repo.load();
       } catch {
-        // Servidor inalcanzable / no autenticado: no se cae a datos locales (no existen). El gate
-        // muestra login o un error de conexión; marcamos hidratado para no bloquear el render.
-        set({ hydrated: true });
+        // Servidor inalcanzable / no autenticado: no se cae a datos locales (no existen). Un 401
+        // es concluyente —la sesión no sirve— y devuelve al login; el resto marca hidratado para
+        // no bloquear el render, que es lo que el gate necesita para pintar el error de conexión.
+        if (repo.unauthorized) onSessionExpired();
+        else set({ hydrated: true });
         return;
       }
       // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
