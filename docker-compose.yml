@@ -39,6 +39,9 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - LEDGER_ALLOWED_ORIGINS=${LEDGER_ALLOWED_ORIGINS:-}
+      # BG-013: este compose asume el nginx de DEPLOYMENT.md, que REEMPLAZA X-Forwarded-For.
+      # Si sirves sin ese proxy delante, déjalo en false o el rate-limit del login no limita.
+      - LEDGER_TRUST_PROXY=${LEDGER_TRUST_PROXY:-true}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 30s

@@ -91,8 +91,26 @@ en vivo. Host-agnóstico (NFR-510): la Pi es solo un laboratorio.
 
 ## Configuración (12-factor, todo por entorno)
 `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID/SECRET` (opcionales),
-`LEDGER_ALLOWED_ORIGINS`. Validadas fail-fast al arranque (`src/server/env.ts` + `scripts/check-env.mjs`):
-un valor requerido faltante aborta el boot nombrando la variable (NFR-510). Ver `.env.example`.
+`LEDGER_ALLOWED_ORIGINS`, `LEDGER_TRUST_PROXY`. Validadas fail-fast al arranque (`src/server/env.ts`
++ `scripts/check-env.mjs`): un valor requerido faltante aborta el boot nombrando la variable
+(NFR-510). Ver `.env.example`.
+
+### `LEDGER_TRUST_PROXY` — decide si el anti-fuerza-bruta funciona (BG-013 / RQ-SEC-003)
+
+El rate-limit de `/sign-in/email` (5 intentos/60s, NFR-512) agrupa por IP. De dónde sale esa IP lo
+decide esta variable, y es una decisión de seguridad, no de comodidad:
+
+- **`false` (por defecto)** — la IP es la de la conexión TCP. El cliente no puede elegirla, así que
+  el límite siempre limita. Es lo correcto si sirves la app **directamente**, sin proxy delante.
+- **`true`** — la IP se lee de `X-Forwarded-For`. Úsalo **solo** si delante hay un proxy que
+  **reemplaza** ese header, como el `proxy_set_header X-Forwarded-For $remote_addr` de la sección
+  Nginx de arriba.
+
+Ponerlo en `true` sin ese proxy —o con uno que use `$proxy_add_x_forwarded_for`, que **anexa**—
+apaga el anti-fuerza-bruta por completo: el atacante manda su propio `X-Forwarded-For` y lo rota en
+cada intento, estrenando bucket cada vez. El login seguiría respondiendo con normalidad y nada en
+los logs delataría que el límite dejó de existir. Ante la duda, `false`: como mucho pierdes
+granularidad si varios usuarios comparten IP de salida.
 
 ## Migraciones
 `drizzle-kit` versiona SQL en `drizzle/`. El entrypoint corre `drizzle-kit migrate` (idempotente)

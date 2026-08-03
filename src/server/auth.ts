@@ -70,8 +70,12 @@ function buildAuth() {
       secure: e.NODE_ENV === "production",
       sameSite: "lax",
     },
-    // IP para el rate-limit por origen (NFR-512): confía en x-forwarded-for del reverse proxy.
-    ipAddress: { ipAddressHeaders: ["x-forwarded-for"] },
+    // IP para el rate-limit por origen (NFR-512). BG-013: la confianza en x-forwarded-for es ahora
+    // CONDICIONAL. Antes era incondicional, así que un despliegue sin reverse proxy —o con uno que
+    // anexa en vez de reemplazar— dejaba que el cliente rotara el header y estrenara bucket en cada
+    // intento: el límite de 5/60s existía y no limitaba nada. Sin `LEDGER_TRUST_PROXY=true` no se
+    // declara ninguna cabecera y Better Auth cae a la IP de la conexión, que el cliente no elige.
+    ...(e.trustProxy ? { ipAddress: { ipAddressHeaders: ["x-forwarded-for"] } } : {}),
   },
   // Rate limit del login (NFR-512): global suave + regla estricta en /sign-in/email.
   rateLimit: {

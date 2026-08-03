@@ -42,6 +42,13 @@ grep -q "httpOnly:[[:space:]]*true" "$AUTH"; check "NFR-512: la cookie de sesió
 grep -q "sameSite:" "$AUTH";                 check "NFR-512: la cookie de sesión perdió sameSite en $AUTH (es la defensa CSRF efectiva)" $?
 grep -q '"/sign-in/email"' "$AUTH";          check "NFR-512: desapareció el rate-limit de /sign-in/email en $AUTH (fuerza bruta sin tope)" $?
 grep -q '"/sign-up/email"' "$AUTH";          check "RQ-SEC-004: desapareció el rate-limit de /sign-up/email en $AUTH (creación masiva de cuentas)" $?
+# BG-013/RQ-SEC-003: la IP del rate-limit no puede salir de un header que el cliente controla salvo
+# que se afirme que hay un proxy saneándolo. Una declaración incondicional apaga el anti-fuerza-bruta
+# sin que nada lo delate, así que el gate exige la guarda.
+if grep -q "ipAddressHeaders" "$AUTH"; then
+  grep -q "e.trustProxy ? { ipAddress:" "$AUTH"
+  check "BG-013: $AUTH declara ipAddressHeaders SIN la guarda de trustProxy — el rate-limit del login se llavea por un header que el cliente elige" $?
+fi
 
 # ── compose de desarrollo: la BD y su visor NO salen a la red ────────────────
 # RQ-SEC-006: pgweb no tiene login. Publicado en 0.0.0.0 era un navegador completo de la base de
