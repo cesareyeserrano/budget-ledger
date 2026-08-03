@@ -8,8 +8,21 @@
  *   localStorage (FR-509).
  * Dependencies: @/domain (tipos), @/data/repository (interfaz LedgerRepository)
  */
+import { z } from "zod";
 import type { LedgerState } from "@/domain";
+import { ledgerStateSchema } from "@/server/schemas";
 import type { LedgerRepository } from "./repository";
+
+/**
+ * Forma de la respuesta de GET /api/v1/ledger. Reutiliza `ledgerStateSchema` —el MISMO esquema con
+ * el que la API valida la escritura— a propósito: un esquema propio aquí derivaría del otro con el
+ * tiempo y el contrato dejaría de ser uno solo. `server/schemas` no importa nada de servidor (solo
+ * zod y el dominio compartido) y su propio módulo se declara como el contrato cliente/servidor.
+ */
+const ledgerResponseSchema = z.object({
+  revision: z.number().int().gte(0),
+  state: ledgerStateSchema,
+});
 
 const OK = 200;
 const NO_CONTENT = 204;
@@ -28,6 +41,13 @@ export class ServerRepository implements LedgerRepository {
    * finanzas del usuario en una pantalla ya sin sesión.
    */
   public unauthorized = false;
+  /**
+   * true cuando el servidor respondió 200 pero el cuerpo NO tiene la forma del contrato (BG-012).
+   * Es distinto de `null por 204` y hay que distinguirlo: 204 significa "usuario nuevo, siembra";
+   * un cuerpo ilegible significa "no sé qué hay ahí arriba, NO siembres encima". Confundirlos
+   * sobrescribiría datos reales con la semilla.
+   */
+  public malformed = false;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -37,7 +57,17 @@ export class ServerRepository implements LedgerRepository {
 
   /**
    * Carga el snapshot del ledger del usuario autenticado.
-   * @returns el estado, o null si el servidor devolvió 204 (usuario nuevo → el caller siembra)
+   *
+   * El cuerpo se VALIDA, no se castea (BG-012). Antes hacía `as { revision, state }`, que no
+   * comprueba nada: un JSON malformado lanzaba en medio de `hydrate()` y uno sintácticamente válido
+   * con la forma equivocada entraba entero al store como si fuera un LedgerState. El contrato de
+   * `LedgerRepository` promete "Nunca lanza por datos corruptos" y esta es la única implementación
+   * viva, así que la promesa la tiene que cumplir aquí (NFR-003 — lo que sí hacía la ruta de
+   * localStorage que se retiró).
+   *
+   * @returns el estado, o null si el servidor devolvió 204 (usuario nuevo → el caller siembra) o si
+   *   el cuerpo no cumple el contrato (en ese caso `malformed` queda en true — el caller NO debe
+   *   sembrar, ver la nota de esa propiedad)
    * @throws Error si el servidor responde un estado inesperado (p. ej. 401/5xx) — el caller lo maneja
    */
   async load(): Promise<LedgerState | null> {
@@ -48,6 +78,7 @@ export class ServerRepository implements LedgerRepository {
     });
     if (res.status === NO_CONTENT) {
       this.revision = 0;
+      this.malformed = false;
       return null;
     }
     if (res.status === UNAUTHORIZED) {
@@ -57,11 +88,22 @@ export class ServerRepository implements LedgerRepository {
     if (res.status !== OK) {
       throw new Error(`load falló: HTTP ${res.status}`);
     }
-    const body = (await res.json()) as { revision: number; state: LedgerState };
-    this.revision = body.revision;
+    // `.catch(() => undefined)`: un cuerpo que ni siquiera es JSON no debe lanzar aquí — el
+    // contrato dice que esta función no lanza por datos corruptos, y `undefined` no valida.
+    const raw: unknown = await res.json().catch(() => undefined);
+    const parsed = ledgerResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      // Degrada en vez de romper. NO se toca `revision`: la que teníamos sigue siendo la última
+      // buena conocida, y pisarla con 0 haría que el próximo PUT saliera con una base falsa y se
+      // llevara un 409 evitable.
+      this.malformed = true;
+      return null;
+    }
+    this.revision = parsed.data.revision;
     this.conflicted = false;
     this.unauthorized = false;
-    return body.state;
+    this.malformed = false;
+    return parsed.data.state;
   }
 
   /**

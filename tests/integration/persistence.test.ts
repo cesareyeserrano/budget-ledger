@@ -64,13 +64,16 @@ describe("FR-011 / NFR-003 persistencia", () => {
   });
 
   // @aitri-tc TC-011f
-  it("TC-011f: una respuesta malformada no rompe la app (el caller la absorbe)", async () => {
-    // El camino de servidor LANZA ante JSON malformado (a diferencia del local, que devolvía null).
-    // Lo que se garantiza es que el fallo es capturable y no corrompe nada: hydrate() lo atrapa
-    // y marca hydrated para no bloquear el render (store.ts).
+  it("TC-011f: una respuesta malformada no lanza y devuelve null (el caller siembra)", async () => {
+    // Restaurado a lo que el AC-022 aprobado siempre pidió: «load NO lanza excepción y devuelve
+    // null». La versión anterior de ESTE test afirmaba lo contrario (`rejects`) porque se reescribió
+    // para encajar con el camino de servidor cuando se adoptó — el código se apartó del contrato y
+    // el test se movió detrás. BG-012 devuelve ambos a su sitio.
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{corrupto::", { status: 200 })));
     const repo = new ServerRepository();
-    await expect(repo.load()).rejects.toBeInstanceOf(Error);
+    await expect(repo.load()).resolves.toBeNull();
+    // Y se distingue de un 204: `malformed` le dice al caller que NO siembre encima (ver BG-012).
+    expect(repo.malformed).toBe(true);
   });
 
   // @aitri-tc TC-103h

@@ -12,8 +12,19 @@ import { useLedgerStore } from "@/state/store";
  * —el servidor no recibió el cambio— antes quedaba en SILENCIO: se disparaba un resync que
  * también fallaba y el usuario no se enteraba.
  *
+ * BG-012 añade un segundo motivo: el servidor respondió, pero con un cuerpo que no cumple el
+ * contrato. Merece su propio texto — decirle "no pudimos guardar" a quien tiene un problema de
+ * LECTURA lo mandaría a reintentar un guardado que nunca falló.
+ *
  * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
  */
+const MENSAJE: Record<"network" | "malformed", string> = {
+  network:
+    "No pudimos guardar el último cambio en el servidor. Tus datos en pantalla siguen intactos; vuelve a intentarlo cuando se restablezca la conexión.",
+  malformed:
+    "El servidor respondió algo que no pudimos leer, así que no cargamos nada encima de tus datos. No edites hasta que vuelva a responder bien: recarga en un momento.",
+};
+
 export function StorageBanner() {
   const reason = useLedgerStore((s) => s.storageError);
   if (!reason) return null;
@@ -25,7 +36,7 @@ export function StorageBanner() {
       style={{ color: "var(--error)", borderColor: "var(--error)" }}
     >
       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-      <span>No pudimos guardar el último cambio en el servidor. Tus datos en pantalla siguen intactos; vuelve a intentarlo cuando se restablezca la conexión.</span>
+      <span>{MENSAJE[reason]}</span>
     </div>
   );
 }

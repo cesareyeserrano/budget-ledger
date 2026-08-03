@@ -21,9 +21,11 @@ interface LedgerStore {
   toast: string | null;
   /** El toast vigente ofrece «Deshacer» (retiro de reserva con undo de un nivel, FR-1003/ADR-07). */
   toastUndo: boolean;
-  /** Aviso no bloqueante cuando el guardado no llegó a la fuente de verdad (red caída / 5xx).
-   *  Antes señalaba la cuota de localStorage; ese disparador murió con el modo retirado (FR-1103). */
-  storageError: "network" | null;
+  /** Aviso no bloqueante. "network": el guardado no llegó a la fuente de verdad (red caída / 5xx);
+   *  antes señalaba la cuota de localStorage, disparador que murió con el modo retirado (FR-1103).
+   *  "malformed": el servidor respondió pero con un cuerpo que no cumple el contrato (BG-012) —
+   *  no se sembró nada encima y lo que hay en pantalla no es de fiar. */
+  storageError: "network" | "malformed" | null;
   /**
    * La sesión murió estando la app abierta (expiró o la revocaron desde otro dispositivo). El gate
    * vuelve al login y los datos en memoria se descartan: FR-1102 exige no dejarlos en pantalla.
@@ -100,7 +102,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     try {
       const before = get().data;
       const loaded = await repo.load();
-      if (!loaded) return;
+      if (!loaded) {
+        // BG-012: en un resync, `null` nunca es "usuario nuevo" —ya hidratamos antes—, así que un
+        // cuerpo ilegible es lo único que lo explica. Se conserva el estado en pantalla, que es el
+        // último bueno conocido, y se avisa: en silencio el usuario seguiría editando sobre datos
+        // que el servidor ya no confirma.
+        if (repo.malformed) set({ storageError: "malformed" });
+        return;
+      }
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
       // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
       seedSeqFrom(loaded);
@@ -305,6 +314,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // no bloquear el render, que es lo que el gate necesita para pintar el error de conexión.
         if (repo.unauthorized) onSessionExpired();
         else set({ hydrated: true });
+        return;
+      }
+      // BG-012: `null` tiene DOS causas y solo una autoriza a sembrar. Un 204 es "usuario nuevo".
+      // Un cuerpo que no cumple el contrato es "no sé qué hay en el servidor": sembrar ahí
+      // ESCRIBIRÍA la semilla encima de datos reales — el fallo de un bug del servidor se
+      // convertiría en pérdida de datos del usuario. Se marca el aviso y no se persiste nada.
+      if (!loaded && repo.malformed) {
+        set({ hydrated: true, storageError: "malformed" });
         return;
       }
       // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
