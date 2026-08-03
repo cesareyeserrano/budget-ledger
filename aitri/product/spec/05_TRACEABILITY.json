@@ -80,7 +80,7 @@
       "id": "FR-014",
       "title": "Andamiaje de datos para multiusuario y APIs externas (SHOULD)",
       "level": "functionally_present",
-      "evidence": "SHOULD sin test automatizado. El andamiaje existe en código: ownerId en entidades y capa de repositorio única (LocalStorageRepository) preparada para swap a backend. No activado en v1 (no_go_zone)."
+      "evidence": "SHOULD sin test automatizado dedicado. El andamiaje se CONSUMIÓ: ownerId sigue en las entidades y la capa de repositorio única existe, pero su implementación ya no es LocalStorageRepository —la feature servidor-fuente-unica la retiró y el gate estático no-legacy-mode prohíbe que el nombre reaparezca en src/— sino ServerRepository contra la API. Es decir, lo que en v1 era andamiaje inactivo hoy está en producción y se ejercita indirectamente en toda la suite de persistencia y backend."
     },
     {
       "id": "FR-015",
@@ -110,7 +110,7 @@
       "id": "NFR-004",
       "title": "Security: offline single-user, sin peticiones HTTP externas, validación de monto",
       "level": "production_ready",
-      "evidence": "TC-104e verifica CERO peticiones externas en runtime (BG-001 corregido: Fira Code auto-alojada con next/font). Monto validado numérico no negativo antes de persistir."
+      "evidence": "Lo verificable del enunciado sigue en verde: TC-104e comprueba CERO peticiones externas en runtime (BG-001 corregido, Fira Code auto-alojada con next/font) y el monto se valida numérico no negativo antes de persistir. PERO el enunciado de la NFR está OBSOLETO (RQ-SEC-007 en AUDIT_REPORT.md): describe una app «offline single-user sin backend, sin auth y sin secretos», y desde la feature backend hay superficie de red, sesión, secretos y PII. La protección real existe y se verifica —NFR-512 y NFR-1106 en las features, más el gate security-config— pero vive fuera de esta NFR. Corregir la redacción en la próxima re-derivación de la Fase 1 de la raíz; no se sube ni se baja el nivel porque lo que esta NFR mide sí se cumple."
     },
     {
       "id": "NFR-005",
@@ -158,6 +158,32 @@
     "smoke.sh",
     ".github/workflows/ci.yml"
   ],
-  "verification_summary": "54/54 tests pasando (0 fallos, 0 skip). Gates: typecheck, lint, coverage, smoke y e2e todos en verde. Sin bugs activos. BL-003 aplicado: la lista 'Recientes' se retiró del móvil; FR-001 se verifica ahora por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
-  "version_source": "team"
+  "verification_summary": "54/54 TCs de la raíz pasando (30 unit + 24 e2e; 0 fallos, 0 skip). Suite completa del repositorio: 332/332 unit+integration y 268/268 e2e sin reintentos. Quality gates 6/6 en verde: typecheck, lint, coverage, smoke, e2e y —nuevo en esta re-derivación— security-config, que re-verifica en cada ciclo la postura endurecida (headers y poweredByHeader, httpOnly/sameSite, rate-limits de login y registro, bindings a loopback de la BD de desarrollo, ausencia de .env versionado y npm audit sin altas/críticas). Sin bugs activos: BG-010 y BG-011 cerrados con evidencia de runner. BL-003 aplicado: la lista «Recientes» se retiró del móvil; FR-001 se verifica por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
+  "version_source": "team",
+  "compliance_gaps": [
+    {
+      "id": "SEC-GATE",
+      "severity": "resolved",
+      "gap": "El proyecto declaraba NFRs de seguridad pero ningún quality_gate re-verificaba la postura, así que un retroceso de configuración pasaba desapercibido entre ciclos.",
+      "mitigation": "CERRADO en esta re-derivación. scripts/security-config.sh existe y está declarado como quality_gate required en 04_BUILD_REPORT.json; corrió en este verify con exit 0. Verificado en ambos sentidos: falla al revertir poweredByHeader o el binding de pgweb."
+    },
+    {
+      "id": "MUT-GATE",
+      "severity": "advisory",
+      "gap": "No hay gate de mutación declarado. Un test que pasa puede ser falso —mocks o aserciones débiles— y eso es lo único que un verify en verde no puede detectar por sí solo.",
+      "mitigation": "Decisión explícita del humano (2026-08-02): no montar Stryker por ahora. Razones: cubriría solo los 332 tests de vitest y deja fuera los 268 e2e de Playwright, donde vive buena parte de la verificación real; y el coste por corrida es alto. Señal parcial en su lugar: verify-run no marcó ningún TC de baja confianza (0 con ≤1 aserción), existen TCs anti-pass-falso deliberados (TC-SFU-106f, TC-SFU-207f), y los fixes de esta sesión se validaron neutralizando el código para comprobar que los tests caían. Revisar la decisión si algún bug se cuela por un camino que los tests supuestamente cubrían."
+    },
+    {
+      "id": "REQ-STALE",
+      "severity": "advisory",
+      "gap": "Dos entradas de compliance describían un sistema anterior al backend: NFR-004 (app offline sin auth ni secretos) y FR-014 (andamiaje sobre LocalStorageRepository, retirado por servidor-fuente-unica).",
+      "mitigation": "La evidencia de ambas queda corregida en este artefacto. El texto de origen en 01_REQUIREMENTS.json sigue obsoleto y solo se arregla re-derivando la Fase 1 de la raíz; agrúpese con la corrección de redacción del AC de FR-001 que ya registra AUDIT_REPORT.md."
+    },
+    {
+      "id": "EVID-STALE",
+      "severity": "advisory",
+      "gap": "Seis TCs (TC-101h/e/f de rendimiento y TC-106h/e/f de smoke y CI) llegan al deploy gate como manual tras un skip del runner, apoyados en evidencia medida el 2026-07-02 — anterior al backend, la autenticación y el SSE.",
+      "mitigation": "La evidencia es real y no circular (test-evidence/*.txt, con mediciones de 250ms y 21ms contra umbrales de 2000ms y 150ms, 7-8x de holgura), pero se tomó sobre una app sin round-trips de red. TC-106h quedó además cubierto de forma automatizada por el gate de smoke y por TC-UXC-356h/f. Pendiente: re-medir TC-101e/h contra la app actual para que los overrides se apoyen en evidencia vigente."
+    }
+  ]
 }
