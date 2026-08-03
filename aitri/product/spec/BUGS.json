@@ -349,7 +349,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -357,10 +357,22 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-08-03T19:32:17.944Z",
-      "updated_at": "2026-08-03T20:19:56.502Z",
-      "resolution": "La confianza en x-forwarded-for pasa a ser condicional: sin LEDGER_TRUST_PROXY=true no se declara ninguna cabecera de IP y Better Auth cae a la IP de la conexión, que el cliente no elige. Antes era incondicional, así que un despliegue sin reverse proxy —o con uno que anexa en vez de reemplazar— dejaba que el atacante rotara el header y estrenara bucket en cada intento: el límite de 5/60s existía sin limitar nada, y ni la app ni los logs lo delataban. Solo el literal 'true' activa la confianza: '1', 'yes', 'TRUE' o un espacio de más fallan hacia el lado seguro, porque encenderla por un typo es justo el fallo que esto evita. DEPLOYMENT.md documenta ahora qué se rompe al activarla sin el proxy correcto (antes solo decía cómo configurar nginx), .env.example trae el default seguro y docker-compose.yml la pone en true porque asume ese nginx. security-config.sh gana un check que rechaza una declaración de ipAddressHeaders sin la guarda. 13 tests en tests/integration/backend/trust-proxy.test.ts. HALLAZGO APARTE del mismo ciclo: el gate destapó 2 vulnerabilidades high nuevas (undici — desincronización de respuestas, divulgación entre usuarios, inyección CRLF y de cookies; brace-expansion — DoS). Resueltas con npm audit fix sin roturas: 6 paquetes, solo package-lock.json, y npm audit vuelve a 0. Suite 357/357 unit y 268/268 e2e.",
+      "updated_at": "2026-08-03T20:23:28.996Z",
+      "resolution": "Verificado en verify-run: 7/7 gates en verde, 54/54 TCs y 'every acceptance criterion has a passing test'. Los 13 tests de trust-proxy.test.ts corren en cada ciclo y el check nuevo de security-config.sh re-verifica la guarda; comprobado sobre copias en scratchpad que con guarda pasa y sin guarda falla.",
       "fix_commit_sha": "6b1785a5606f608941985a4ad71864e5c643af20",
-      "fix_at": "2026-08-03T20:19:56.502Z"
+      "fix_at": "2026-08-03T20:19:56.502Z",
+      "close_commit_sha": "4edb135ea1c979934c33d54ce3d1f44df46b53bc",
+      "close_at": "2026-08-03T20:23:28.996Z",
+      "files_changed": [
+        ".env.example",
+        "DEPLOYMENT.md",
+        "docker-compose.yml",
+        "package-lock.json",
+        "scripts/security-config.sh",
+        "src/server/auth.ts",
+        "src/server/env.ts",
+        "tests/integration/backend/trust-proxy.test.ts"
+      ]
     }
   ]
 }
