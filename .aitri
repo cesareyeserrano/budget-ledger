@@ -6,7 +6,8 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     "discovery",
@@ -22,17 +23,9 @@
   "aitriVersion": "2.2.0-rc.4",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-08-03T01:10:21.446Z",
+  "updatedAt": "2026-08-03T03:50:18.034Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-28T21:01:45.860Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 1,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
     {
       "at": "2026-07-28T21:05:35.297Z",
       "event": "verify-run",
@@ -178,6 +171,13 @@
       "at": "2026-08-03T01:10:21.413Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-08-03T03:50:17.991Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "team"
     }
   ],
   "cascadedPhases": [],
@@ -288,6 +288,11 @@
       "version": "0.0.1-beta",
       "version_source": "team",
       "at": "2026-07-23T22:08:54.458Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "team",
+      "at": "2026-08-03T03:50:17.990Z"
     }
   ],
   "verifyResultsHash": "fd0a8aed7245773f80649b6faebf108b42f0af21cfe0e2059d19fa06855c46ca",
