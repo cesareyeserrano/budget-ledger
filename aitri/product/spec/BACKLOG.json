@@ -187,8 +187,9 @@
       "title": "ServerRepository no valida la forma de la respuesta de la API (NFR-003 más débil que el camino retirado)",
       "priority": "P2",
       "problem": "Hallazgo del 2026-07-30 al re-cimentar los tests en la feature servidor-fuente-unica. LocalStorageRepository validaba el payload con Zod (persistedNodesSchema/persistedBudgetSchema) y ante datos corruptos devolvia null sin lanzar, de modo que la app recuperaba a semilla: eso era NFR-003 ('recuperacion segura'). ServerRepository, que es ahora el UNICO camino, hace 'const body = await res.json() as { revision: number; state: LedgerState }' en serverRepository.ts:48 — un CAST, no una validacion. Consecuencias: (1) JSON malformado lanza en vez de degradar; hydrate() lo atrapa y no rompe la app, pero el usuario ve un estado vacio sin explicacion. (2) JSON sintacticamente valido con forma equivocada se acepta ENTERO sin verificar, y entra al store como si fuera un LedgerState valido. La interfaz LedgerRepository sigue prometiendo 'Nunca lanza por datos corruptos', promesa que la unica implementacion viva no cumple. Mitigacion parcial existente: la API valida con Zod en la ESCRITURA, asi que una respuesta mal formada implica un bug del servidor, no datos de usuario corruptos. Arreglo propuesto: validar el cuerpo de load() con un schema de LedgerState y devolver null ante no-conformidad, alineando el comportamiento con el contrato declarado.",
-      "status": "open",
-      "createdAt": "2026-07-31T00:07:27.791Z"
+      "status": "closed",
+      "createdAt": "2026-07-31T00:07:27.791Z",
+      "closedAt": "2026-08-03T16:23:57.590Z"
     }
   ]
 }

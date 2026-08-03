@@ -318,7 +318,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -326,10 +326,19 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-08-03T15:55:14.340Z",
-      "updated_at": "2026-08-03T16:15:16.324Z",
-      "resolution": "load() valida el cuerpo con ledgerResponseSchema —que envuelve el MISMO ledgerStateSchema con el que la API valida la escritura, para que el contrato sea uno solo y no derive— en vez de castearlo. Ante no-conformidad devuelve null sin lanzar, cumpliendo la promesa 'Nunca lanza por datos corruptos' de LedgerRepository (NFR-003). El matiz que decide el diseño: null tenía DOS causas y solo una autoriza a sembrar. Un 204 es 'usuario nuevo'; un cuerpo ilegible es 'no sé qué hay en el servidor', y sembrar ahí habría escrito buildSeed ENCIMA de datos reales — el fix ingenuo convertía un bug del servidor en pérdida de datos del usuario. Por eso ServerRepository expone malformed y el store lo consulta: hydrate() no persiste nada y avisa; doResync() conserva el estado en pantalla y avisa; StorageBanner recibe un mensaje propio (decirle 'no pudimos guardar' a quien tiene un problema de lectura lo mandaría a reintentar un guardado que nunca falló). Tampoco se pisa la revisión conocida, para no provocar un 409 autoinfligido. HALLAZGO COLATERAL: TC-011f afirmaba que load() debía RECHAZAR, lo contrario de su AC-022 aprobado ('load NO lanza excepción y devuelve null'). El test se había reescrito para encajar con el código cuando se adoptó el camino de servidor. Restaurado a su contrato. Verificado: 12 tests nuevos; revirtiendo el fix caen 10 de 12, y los 2 que sobreviven son los que describen lo que no debía cambiar. Suite 344/344 unit y 268/268 e2e; typecheck, lint y security-config limpios.",
+      "updated_at": "2026-08-03T16:23:49.564Z",
+      "resolution": "Verificado en verify-run: 6/6 quality gates en verde (typecheck, lint, coverage, smoke, security-config, e2e), 54/54 TCs de la raíz y 'every acceptance criterion has a passing test'. Los 12 tests de tests/integration/response-validation.test.ts corren en cada ciclo, y TC-011f vuelve a afirmar su AC-022.",
       "fix_commit_sha": "7f1e9986800a617613f41583e757d3dcf8403606",
-      "fix_at": "2026-08-03T16:15:16.324Z"
+      "fix_at": "2026-08-03T16:15:16.324Z",
+      "close_commit_sha": "41253fa9acc851e34574986e87533df974a58be6",
+      "close_at": "2026-08-03T16:23:49.564Z",
+      "files_changed": [
+        "src/components/register/StorageBanner.tsx",
+        "src/data/serverRepository.ts",
+        "src/state/store.ts",
+        "tests/integration/persistence.test.ts",
+        "tests/integration/response-validation.test.ts"
+      ]
     }
   ]
 }
