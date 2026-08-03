@@ -6,8 +6,7 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     "discovery",
@@ -23,65 +22,9 @@
   "aitriVersion": "2.2.0-rc.5",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-08-03T16:23:49.438Z",
+  "updatedAt": "2026-08-03T17:09:13.784Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T15:55:17.030Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-30T15:55:20.307Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-30T16:37:18.087Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 20,
-      "method": "git",
-      "baseRefFrom": "a01ae8946a62a2967ad08414a0f00f7d36a50ff8",
-      "baseRefTo": "246cc33aea1c5593d0a86af9341423532270deb3"
-    },
-    {
-      "at": "2026-07-31T15:16:33.304Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 37,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-08-01T03:24:50.263Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 1,
-      "method": "git"
-    },
-    {
-      "at": "2026-08-01T03:32:43.574Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-01T03:32:46.592Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0
-    },
     {
       "at": "2026-08-01T03:38:06.975Z",
       "event": "reconcile-resolved",
@@ -176,6 +119,54 @@
       "phase": "verify",
       "passed": 54,
       "failed": 0
+    },
+    {
+      "at": "2026-08-03T16:35:10.881Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-03T16:35:15.479Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-03T17:04:50.978Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
+    },
+    {
+      "at": "2026-08-03T17:08:03.882Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-03T17:08:08.501Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-03T17:08:42.764Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-03T17:09:13.769Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
@@ -183,8 +174,8 @@
     "1": "41d7dca0a0e0a364b64b6c33fdb85a7a59e58bd1f86c046d64a4ce9308120ff2",
     "2": "1d7692f8981c196fa504947f5314e65f898eaeef7d078c756b2d17d3dd1d284d",
     "3": "4db8f3dfe6df35e2146ec4b55ac7e16b8d1d63a3cc0979bbbfd3ddf9bf87b666",
-    "4": "23a89af7d29ae3a7728044a6f8b102a2d2b22501a1a909faa5ec267b9db46d7d",
-    "5": "0d3db29e5f461266ecbbfd304e42855cc77acdf08d9514b9e3ea1f49bd66dc91",
+    "4": "fa062e9748b87273014a398bc4d83115ad6595a8c773712a7cc155109a374add",
+    "5": "a7af41043cac59283740953459e2cc45f9e3a45fe4e63b7746704f9d5c2f11cf",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "23d9e0b907d3fe71410248e7b08a4511c48b5b22ec3ece13c31f49912e675788"
   },
@@ -298,14 +289,14 @@
       "at": "2026-08-03T04:07:48.859Z"
     }
   ],
-  "verifyResultsHash": "a604be39e202d4887c2927040045544244bcb5ff34c107b408d96c042c74ba98",
-  "verifyRanAt": "2026-08-03T16:23:43.852Z",
+  "verifyResultsHash": "e9d1c09ce104648648e038daf36c57387fac5fcaaca2e818e2007adc91ea0d5c",
+  "verifyRanAt": "2026-08-03T17:08:03.882Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-03T16:23:43.852Z"
+    "at": "2026-08-03T17:08:03.882Z"
   },
   "verifySummary": {
     "total": 54,

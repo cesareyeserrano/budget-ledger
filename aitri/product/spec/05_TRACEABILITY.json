@@ -62,7 +62,7 @@
       "id": "FR-011",
       "title": "Persistencia local (localStorage) con recuperación segura",
       "level": "production_ready",
-      "evidence": "3 tests (TC-011h/e/f): sobrevive recarga; recuperación ante JSON corrupto sin pantalla en blanco."
+      "evidence": "3 tests (TC-011h/e/f): sobrevive recarga; recuperación ante JSON corrupto sin pantalla en blanco. BG-012 (2026-08-03): la única implementación viva del contrato —ServerRepository— ya no CASTEA la respuesta del servidor, la VALIDA con el mismo esquema con el que la API valida la escritura, y devuelve null sin lanzar ante no-conformidad, cumpliendo la promesa «Nunca lanza por datos corruptos» de la interfaz. Distingue un 204 (usuario nuevo → sembrar) de un cuerpo ilegible (no sembrar): confundirlos habría escrito la semilla encima de datos reales. 12 tests en tests/integration/response-validation.test.ts."
     },
     {
       "id": "FR-012",
@@ -104,7 +104,7 @@
       "id": "NFR-003",
       "title": "Reliability: persistencia robusta, recupera de estado corrupto",
       "level": "production_ready",
-      "evidence": "Integration TC-011* : datos sobreviven recarga; JSON inválido → estado semilla sin excepción."
+      "evidence": "Integration TC-011* : datos sobreviven recarga; JSON inválido → estado semilla sin excepción. Re-verificado tras BG-012: la «recuperación segura» que el AC-022 exige volvió a cumplirse en la ruta de servidor, que es la única viva desde que se retiró la de localStorage. TC-011f afirmaba lo CONTRARIO de su propio AC aprobado («load NO lanza excepción y devuelve null»): el test se había reescrito para encajar con el código al adoptar el camino de servidor, de modo que el AC quedó documentando algo que nadie verificaba. Restaurado a su contrato."
     },
     {
       "id": "NFR-004",
@@ -158,14 +158,14 @@
     "smoke.sh",
     ".github/workflows/ci.yml"
   ],
-  "verification_summary": "54/54 TCs de la raíz pasando (30 unit + 24 e2e; 0 fallos, 0 skip). Suite completa del repositorio: 332/332 unit+integration y 268/268 e2e sin reintentos. Quality gates 6/6 en verde: typecheck, lint, coverage, smoke, e2e y —nuevo en esta re-derivación— security-config, que re-verifica en cada ciclo la postura endurecida (headers y poweredByHeader, httpOnly/sameSite, rate-limits de login y registro, bindings a loopback de la BD de desarrollo, ausencia de .env versionado y npm audit sin altas/críticas). Sin bugs activos: BG-010 y BG-011 cerrados con evidencia de runner. BL-003 aplicado: la lista «Recientes» se retiró del móvil; FR-001 se verifica por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
+  "verification_summary": "54/54 TCs de la raíz pasando (30 unit + 24 e2e; 0 fallos, 0 skip) y «every acceptance criterion has a passing test». Suite completa del repositorio: 344/344 unit+integration y 268/268 e2e sin reintentos. Quality gates 7/7 en verde: typecheck, lint, coverage, smoke, security-config, secret-scan y e2e. Los dos gates de seguridad se declararon en ciclos consecutivos y ambos se verificaron en ambos sentidos antes de declararse —security-config falla al revertir poweredByHeader o el binding de pgweb; secret-scan sale con exit 1 ante una clave AWS plantada en src/— para no declarar gates decorativos. Sin bugs activos: BG-010, BG-011 y BG-012 cerrados con evidencia. BL-003 aplicado: la lista «Recientes» se retiró del móvil; FR-001 se verifica por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
   "version_source": "team",
   "compliance_gaps": [
     {
       "id": "SEC-GATE",
       "severity": "resolved",
       "gap": "El proyecto declaraba NFRs de seguridad pero ningún quality_gate re-verificaba la postura, así que un retroceso de configuración pasaba desapercibido entre ciclos.",
-      "mitigation": "CERRADO en esta re-derivación. scripts/security-config.sh existe y está declarado como quality_gate required en 04_BUILD_REPORT.json; corrió en este verify con exit 0. Verificado en ambos sentidos: falla al revertir poweredByHeader o el binding de pgweb."
+      "mitigation": "CERRADO. Los DOS gates que el AC de BL-015 exigía están declarados como required en 04_BUILD_REPORT.json y corren en cada verify: scripts/security-config.sh (postura de configuración — headers, poweredByHeader, cookies httpOnly/sameSite, rate-limits de login y registro, bindings a loopback de la BD de desarrollo, .env sin versionar, npm audit) y scripts/secret-scan.sh (secretos hardcodeados en el árbol, con gitleaks si está disponible y un fallback de patrones si no). Antes vivía solo en .github/workflows/ci.yml, así que ningún ciclo de Aitri lo ejecutaba. Ambos verificados en ambos sentidos antes de declararse."
     },
     {
       "id": "MUT-GATE",
@@ -184,6 +184,12 @@
       "severity": "resolved",
       "gap": "Seis TCs (TC-101h/e/f de rendimiento y TC-106h/e/f de smoke y CI) llegaban al deploy gate como manual tras un skip del runner, apoyados en evidencia medida el 2026-07-02 — anterior al backend, la autenticación y el SSE.",
       "mitigation": "CERRADO para TC-101 (2026-08-02). Re-medidos contra la app ACTUAL —build de producción, Postgres, sesión autenticada, 5 corridas cada uno, aserción sobre el PEOR caso—: TC-101e carga inicial mediana 84ms / peor 287ms contra un umbral de 2000ms (mejor que los 250ms de julio, pese al round-trip de red que antes no existía); TC-101h roll-up del padre mediana 26ms / peor 31ms contra 150ms (ligeramente por encima de los 21ms de julio, coherente con intercalar la persistencia al servidor). El observable de TC-101h se midió sobre cell-parent, no sobre la hoja: el roll-up es lo que NFR-001 promete. Evidencia en test-evidence/TC-101-perf-2026-08-02.txt. TC-101f sigue siendo inspección de diseño (no hay unit que cuente renders), re-confirmada. Para TC-106 la situación es distinta y NO requiere re-medición: TC-106h quedó cubierto de forma automatizada por el gate de smoke y por TC-UXC-356h/f, y TC-106e/f verifican propiedades del propio arnés (que smoke.sh falle si el código no es 200, que ci.yml no ignore un test fallido) que no dependen del rendimiento de la app."
+    },
+    {
+      "id": "UI-AVISO-ESCRITORIO",
+      "severity": "advisory",
+      "gap": "StorageBanner solo está montado en MobileShell, así que en escritorio los avisos de persistencia son invisibles: ni «no pudimos guardar» (red) ni «el servidor respondió algo ilegible» (BG-012) llegan al usuario.",
+      "mitigation": "Preexistente — BG-012 no lo introdujo, solo lo hizo más evidente al añadir un segundo motivo. El estado en pantalla nunca se corrompe y el dato del servidor nunca se sobrescribe, así que no hay pérdida: lo que falta es que el usuario de escritorio se entere. Registrado como BL-022 con criterio de aceptación propio (un e2e por motivo en ambos shells)."
     }
   ]
 }

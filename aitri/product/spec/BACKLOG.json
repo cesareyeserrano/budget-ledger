@@ -135,9 +135,10 @@
       "title": "Declarar los gates de seguridad en 04_BUILD_REPORT.json y crear scripts/security-config.sh",
       "priority": "P2",
       "problem": "quality_gates solo declara typecheck/lint/coverage/smoke/e2e. El escaneo de secretos (scripts/secret-scan.sh, que si existe) y el SCA (npm audit --audit-level=high) solo corren en .github/workflows/ci.yml, asi que aitri verify-run no los ejecuta nunca. Ademas falta el scripts/security-config.sh propuesto al cierre de la seccion Security del AUDIT_REPORT: verificar cabeceras, poweredByHeader:false, CSP sin unsafe-eval, cookies httpOnly/sameSite y el customRule de /sign-up/email. Dos de esas correcciones ya estan en el codigo sin nada que impida revertirlas.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:59:17.721Z",
-      "acceptance": "scripts/security-config.sh existe y sale non-zero si falta cualquiera de las condiciones; secret-scan y security-config declarados como quality_gates required en 04_BUILD_REPORT.json y ejecutados por verify-run."
+      "acceptance": "scripts/security-config.sh existe y sale non-zero si falta cualquiera de las condiciones; secret-scan y security-config declarados como quality_gates required en 04_BUILD_REPORT.json y ejecutados por verify-run.",
+      "closedAt": "2026-08-03T16:35:15.608Z"
     },
     {
       "id": "BL-016",
@@ -190,6 +191,15 @@
       "status": "closed",
       "createdAt": "2026-07-31T00:07:27.791Z",
       "closedAt": "2026-08-03T16:23:57.590Z"
+    },
+    {
+      "id": "BL-022",
+      "title": "StorageBanner solo está montado en MobileShell: en escritorio los avisos de persistencia son invisibles",
+      "priority": "P2",
+      "problem": "src/components/MobileShell.tsx:27 monta <StorageBanner /> y DesktopShell.tsx no monta ninguno. Los dos motivos que el banner cubre son de escritorio tanto como de móvil: 'network' (el guardado no llegó al servidor) y 'malformed' (BG-012: el servidor respondió algo ilegible, no se cargó nada encima y lo que hay en pantalla no es de fiar). En escritorio ambos ocurren en silencio absoluto — el usuario sigue editando sobre datos que el servidor no confirma, que es justo el escenario que BG-012 quería dejar de tener. Preexistente: no lo introdujo BG-012, solo lo hizo más visible al añadir el segundo motivo. Arreglo propuesto: montar StorageBanner en DesktopShell en un sitio que no tape la grilla ni el header (ojo al precedente del LogoutButton, que era fixed y tapaba el ThemeToggle), o extraer el aviso a un layout compartido por ambos shells.",
+      "status": "open",
+      "createdAt": "2026-08-03T16:32:06.988Z",
+      "acceptance": "Con storageError distinto de null, el aviso es visible en escritorio y en móvil; un e2e por cada motivo (network y malformed) comprueba que el texto correcto aparece en ambos shells."
     }
   ]
 }

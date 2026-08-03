@@ -90,6 +90,7 @@
     { "name": "coverage", "command": "npm run coverage", "required": true },
     { "name": "smoke", "command": "./smoke.sh", "required": true, "timeout_ms": 180000 },
     { "name": "security-config", "command": "./scripts/security-config.sh", "required": true, "timeout_ms": 120000 },
+    { "name": "secret-scan", "command": "./scripts/secret-scan.sh", "required": true, "timeout_ms": 120000 },
     { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
   ]
 }
