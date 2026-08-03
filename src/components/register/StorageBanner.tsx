@@ -25,14 +25,19 @@ const MENSAJE: Record<"network" | "malformed", string> = {
     "El servidor respondió algo que no pudimos leer, así que no cargamos nada encima de tus datos. No edites hasta que vuelva a responder bien: recarga en un momento.",
 };
 
-export function StorageBanner() {
+/**
+ * @param className clases del contenedor, para que cada shell lo coloque en su sitio SIN envolverlo
+ *   en un div extra: un envoltorio con márgenes seguiría ocupando espacio cuando el aviso no se
+ *   pinta (el componente devuelve null), y eso mueve el layout sin motivo (BL-022).
+ */
+export function StorageBanner({ className = "" }: { className?: string }) {
   const reason = useLedgerStore((s) => s.storageError);
   if (!reason) return null;
   return (
     <div
       role="alert"
       data-testid="storage-banner"
-      className="flex items-center gap-2 rounded-xl border border-error px-3 py-2 text-sm"
+      className={`flex items-center gap-2 rounded-xl border border-error px-3 py-2 text-sm ${className}`}
       style={{ color: "var(--error)", borderColor: "var(--error)" }}
     >
       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />

@@ -197,9 +197,10 @@
       "title": "StorageBanner solo está montado en MobileShell: en escritorio los avisos de persistencia son invisibles",
       "priority": "P2",
       "problem": "src/components/MobileShell.tsx:27 monta <StorageBanner /> y DesktopShell.tsx no monta ninguno. Los dos motivos que el banner cubre son de escritorio tanto como de móvil: 'network' (el guardado no llegó al servidor) y 'malformed' (BG-012: el servidor respondió algo ilegible, no se cargó nada encima y lo que hay en pantalla no es de fiar). En escritorio ambos ocurren en silencio absoluto — el usuario sigue editando sobre datos que el servidor no confirma, que es justo el escenario que BG-012 quería dejar de tener. Preexistente: no lo introdujo BG-012, solo lo hizo más visible al añadir el segundo motivo. Arreglo propuesto: montar StorageBanner en DesktopShell en un sitio que no tape la grilla ni el header (ojo al precedente del LogoutButton, que era fixed y tapaba el ThemeToggle), o extraer el aviso a un layout compartido por ambos shells.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-08-03T16:32:06.988Z",
-      "acceptance": "Con storageError distinto de null, el aviso es visible en escritorio y en móvil; un e2e por cada motivo (network y malformed) comprueba que el texto correcto aparece en ambos shells."
+      "acceptance": "Con storageError distinto de null, el aviso es visible en escritorio y en móvil; un e2e por cada motivo (network y malformed) comprueba que el texto correcto aparece en ambos shells.",
+      "closedAt": "2026-08-03T21:58:23.410Z"
     }
   ]
 }

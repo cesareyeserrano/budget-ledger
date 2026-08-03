@@ -10,6 +10,7 @@ import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
 import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
+import { StorageBanner } from "./register/StorageBanner";
 import { money } from "./format";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -105,6 +106,13 @@ export function DesktopShell() {
             <Kpi className="min-w-[200px]" label="DISPONIBLE" value={money(kpis.available)} color={kpis.available >= 0 ? "var(--success)" : "var(--error)"} sub={kpis.available >= 0 ? "dentro del plan" : "sobre el plan"} />
           </div>
         )}
+
+        {/* Aviso de persistencia (BL-022). Vivía SOLO en MobileShell, así que en escritorio ni el
+            fallo de guardado ni la respuesta ilegible del servidor (BG-012) llegaban al usuario:
+            seguía editando sobre datos que la fuente de verdad no confirma. Va antes del cuerpo
+            —encima de la grilla y del dashboard— porque es donde se mira al operar, y alineado con
+            los KPIs. No se envuelve en un div: cuando no hay aviso el componente no pinta nada. */}
+        <StorageBanner className="mx-6 mt-3" />
 
         {/* Cuerpo */}
         <div className="flex flex-1 min-h-0">

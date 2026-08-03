@@ -24,7 +24,7 @@ export function MobileShell() {
         </div>
       </div>
       <div className="lx-scroll flex-1 overflow-y-auto px-5 pt-5 pb-6">
-        <div className="mb-3"><StorageBanner /></div>
+        <StorageBanner className="mb-3" />
         <Register />
       </div>
       <Toaster />

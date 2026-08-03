@@ -556,8 +556,12 @@ test("TC-SFU-204e: promote y demote de nodos siguen funcionando tras el retiro",
   await expect(async () => {
     await expect(nodeRow(page, "Ocio")).toHaveAttribute("data-level", "category", { timeout: 1500 });
   }).toPass({ timeout: 15_000 });
-  expect(await parentOf("c-ocio")).toBe("g-esenciales");
-  expect(await parentOf("s-ocio-cine")).toBe("c-ocio");
+  // El DOM refleja el cambio ANTES que el servidor: el store es optimista y persiste en diferido
+  // con coalescencia (BL-010). Leer la API justo después de la aserción del DOM era una carrera —
+  // `parentId` llegaba null 1 de cada 3 corridas, aun con un solo worker. Se espera al servidor,
+  // que es lo que este TC quiere comprobar de verdad.
+  await expect.poll(() => parentOf("c-ocio"), { timeout: 10_000 }).toBe("g-esenciales");
+  await expect.poll(() => parentOf("s-ocio-cine"), { timeout: 10_000 }).toBe("c-ocio");
 
   // Sin huérfanos: todo parentId apunta a un nodo existente y solo los grupos van sin padre.
   const res = await page.request.get("/api/v1/ledger");
