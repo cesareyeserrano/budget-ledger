@@ -181,9 +181,9 @@
     },
     {
       "id": "EVID-STALE",
-      "severity": "advisory",
-      "gap": "Seis TCs (TC-101h/e/f de rendimiento y TC-106h/e/f de smoke y CI) llegan al deploy gate como manual tras un skip del runner, apoyados en evidencia medida el 2026-07-02 — anterior al backend, la autenticación y el SSE.",
-      "mitigation": "La evidencia es real y no circular (test-evidence/*.txt, con mediciones de 250ms y 21ms contra umbrales de 2000ms y 150ms, 7-8x de holgura), pero se tomó sobre una app sin round-trips de red. TC-106h quedó además cubierto de forma automatizada por el gate de smoke y por TC-UXC-356h/f. Pendiente: re-medir TC-101e/h contra la app actual para que los overrides se apoyen en evidencia vigente."
+      "severity": "resolved",
+      "gap": "Seis TCs (TC-101h/e/f de rendimiento y TC-106h/e/f de smoke y CI) llegaban al deploy gate como manual tras un skip del runner, apoyados en evidencia medida el 2026-07-02 — anterior al backend, la autenticación y el SSE.",
+      "mitigation": "CERRADO para TC-101 (2026-08-02). Re-medidos contra la app ACTUAL —build de producción, Postgres, sesión autenticada, 5 corridas cada uno, aserción sobre el PEOR caso—: TC-101e carga inicial mediana 84ms / peor 287ms contra un umbral de 2000ms (mejor que los 250ms de julio, pese al round-trip de red que antes no existía); TC-101h roll-up del padre mediana 26ms / peor 31ms contra 150ms (ligeramente por encima de los 21ms de julio, coherente con intercalar la persistencia al servidor). El observable de TC-101h se midió sobre cell-parent, no sobre la hoja: el roll-up es lo que NFR-001 promete. Evidencia en test-evidence/TC-101-perf-2026-08-02.txt. TC-101f sigue siendo inspección de diseño (no hay unit que cuente renders), re-confirmada. Para TC-106 la situación es distinta y NO requiere re-medición: TC-106h quedó cubierto de forma automatizada por el gate de smoke y por TC-UXC-356h/f, y TC-106e/f verifican propiedades del propio arnés (que smoke.sh falle si el código no es 200, que ci.yml no ignore un test fallido) que no dependen del rendimiento de la app."
     }
   ]
 }

@@ -188,26 +188,26 @@
     {
       "tc_id": "TC-101h",
       "status": "pass",
-      "notes": "Medido: edición de hoja → roll-up del padre en 21ms (≤150ms). Contenedor prod :3080.",
+      "notes": "Re-medido 2026-08-02 contra la app actual: desde Enter en la hoja hasta que cambia el texto de cell-parent (el roll-up, no solo la hoja), 5 corridas — mediana 26ms, peor 31ms, umbral 150ms. Ligeramente por encima de los 21ms de julio, coherente con intercalar la persistencia al servidor.",
       "verified_manually": true,
-      "verified_at": "2026-07-02T22:29:52.781Z",
-      "evidence": "test-evidence/TC-101-perf-2026-07-02.txt"
+      "verified_at": "2026-08-03T04:06:05.937Z",
+      "evidence": "test-evidence/TC-101-perf-2026-08-02.txt"
     },
     {
       "tc_id": "TC-101e",
       "status": "pass",
-      "notes": "Medido: carga inicial con datos semilla del año hasta grilla visible en 250ms (≤2s).",
+      "notes": "Re-medido 2026-08-02 contra la app actual (producción + Postgres + sesión, no el modo localStorage de julio): carga inicial hasta grilla visible, 5 corridas — mediana 84ms, peor 287ms, umbral 2000ms. Mejora sobre los 250ms de julio pese al round-trip de red.",
       "verified_manually": true,
-      "verified_at": "2026-07-02T22:29:52.857Z",
-      "evidence": "test-evidence/TC-101-perf-2026-07-02.txt"
+      "verified_at": "2026-08-03T04:06:05.854Z",
+      "evidence": "test-evidence/TC-101-perf-2026-08-02.txt"
     },
     {
       "tc_id": "TC-101f",
       "status": "pass",
-      "notes": "Render granular: selectores de slice Zustand (useLedgerStore((s)=>s.data), s.period, ...); edición re-renderiza solo consumidores del slice, no las 12xN celdas. README §5.",
+      "notes": "Re-confirmado 2026-08-02: sigue siendo inspección de diseño (no hay unit que cuente renders). Los consumidores se suscriben a slices vía selectores Zustand, así que editar una hoja re-renderiza solo el slice afectado, no las 12xN celdas. Sin cambio estructural desde julio; la evidencia se re-emite con la fecha vigente.",
       "verified_manually": true,
-      "verified_at": "2026-07-02T22:29:52.934Z",
-      "evidence": "test-evidence/TC-101-perf-2026-07-02.txt"
+      "verified_at": "2026-08-03T04:06:13.553Z",
+      "evidence": "test-evidence/TC-101-perf-2026-08-02.txt"
     },
     {
       "tc_id": "TC-102h",
