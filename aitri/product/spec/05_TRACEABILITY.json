@@ -20,13 +20,13 @@
       "id": "FR-002",
       "title": "CRUD de jerarquía de 3 niveles bajo 3 tipos fijos",
       "level": "production_ready",
-      "evidence": "3 tests unit (TC-002h/e/f): crear/renombrar/borrar, traslado de montos a 1ª subcategoría, tipos y 'Sin asignar' inmutables."
+      "evidence": "3 tests unit (TC-002h/e/f): crear/renombrar/borrar, traslado de montos a la 1ª subcategoría, y tipos fijos + un nodo con hijos no borrable. La cláusula sobre 'Sin asignar' se retiró del FR (la categoría del sistema ya no existe); los guards `!node.system` se conservan como defensa ante datos heredados (FR-1105) y TC-002f los cubre."
     },
     {
       "id": "FR-003",
-      "title": "Borrado de categoría → subcategoría de 'Sin asignar' (por GRUPO, sin huérfanos)",
+      "title": "Borrado seguro: bloqueado hasta vaciar el nodo (sin huérfanos)",
       "level": "production_ready",
-      "evidence": "3 tests unit (TC-003h/e/f): categoría con movimientos → sub de 'Sin asignar' de su GRUPO; hoja sin movimientos borrada directo; grupo no vacío bloqueado. Corregido de 'por tipo' a 'por grupo' (D-2)."
+      "evidence": "3 tests unit (TC-003h/e/f): una categoría con datos vigentes devuelve {blocked:'has_data'} sin mutar; una hoja sin datos se borra directo con sus montos; un nodo con hijos devuelve {blocked:'has_children'}. Re-derivado 2026-08-04: el FR describía el mecanismo 'Sin asignar' del brief, RETIRADO por decisión del usuario (feature `grid-ux`, FR-110) — GAP-4 del AUDIT_REPORT. Existe además cobertura real de BG-006 (un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos) en tests/domain/categories.test.ts, hoy sin TC-ID asignado."
     },
     {
       "id": "FR-004",
@@ -60,15 +60,15 @@
     },
     {
       "id": "FR-011",
-      "title": "Persistencia local (localStorage) con recuperación segura",
+      "title": "Persistencia en PostgreSQL como única fuente de verdad, con recuperación segura",
       "level": "production_ready",
-      "evidence": "3 tests (TC-011h/e/f): sobrevive recarga; recuperación ante JSON corrupto sin pantalla en blanco. BG-012 (2026-08-03): la única implementación viva del contrato —ServerRepository— ya no CASTEA la respuesta del servidor, la VALIDA con el mismo esquema con el que la API valida la escritura, y devuelve null sin lanzar ante no-conformidad, cumpliendo la promesa «Nunca lanza por datos corruptos» de la interfaz. Distingue un 204 (usuario nuevo → sembrar) de un cuerpo ilegible (no sembrar): confundirlos habría escrito la semilla encima de datos reales. 12 tests en tests/integration/response-validation.test.ts."
+      "evidence": "3 tests (TC-011h/e/f) contra ServerRepository, el camino REAL de producción: el estado sobrevive a la recarga, una edición de presupuesto se relee, y una respuesta malformada devuelve null sin lanzar marcando `malformed` para no sembrar encima. BG-012 (2026-08-03): la respuesta del servidor ya no se CASTEA, se VALIDA con el mismo esquema con el que la API valida la escritura; distingue un 204 (usuario nuevo → sembrar) de un cuerpo ilegible (no sembrar), y confundirlos habría escrito la semilla sobre datos reales. 12 tests en tests/integration/response-validation.test.ts. Re-derivado 2026-08-04: el título decía 'Persistencia local (localStorage)', que dejó de ser cierto con `servidor-fuente-unica` (FR-1101..FR-1103)."
     },
     {
       "id": "FR-012",
-      "title": "Sistema de diseño César Augusto (tema oscuro mono, tokens)",
+      "title": "Sistema de diseño César Augusto (temas claro/oscuro, tokens)",
       "level": "production_ready",
-      "evidence": "2 e2e (TC-012h/f): tokens exactos vía getComputedStyle; reduced-motion elimina animaciones, sin emoji/gradiente. Deuda: verificación en navegador (CI/verify)."
+      "evidence": "2 e2e (TC-012h/f): los tokens resuelven a la paleta vigente vía getComputedStyle en el tema activo; reduced-motion elimina animaciones y no hay emoji/gradiente. Re-derivado 2026-08-04: el FR exigía 'tema oscuro único (sin modo claro)', superado por `stack-upgrade-theme` (FR-201/202/204/205), que entregó claro/oscuro/sistema con toggle y AA en ambos temas — GAP-6 del AUDIT_REPORT. Deuda: la verificación es en navegador (CI/verify)."
     },
     {
       "id": "FR-013",
@@ -78,9 +78,9 @@
     },
     {
       "id": "FR-014",
-      "title": "Andamiaje de datos para multiusuario y APIs externas (SHOULD)",
+      "title": "Acceso a datos por repositorio único y modelo con propietario (base del multiusuario, ya activada)",
       "level": "functionally_present",
-      "evidence": "SHOULD sin test automatizado dedicado. El andamiaje se CONSUMIÓ: ownerId sigue en las entidades y la capa de repositorio única existe, pero su implementación ya no es LocalStorageRepository —la feature servidor-fuente-unica la retiró y el gate estático no-legacy-mode prohíbe que el nombre reaparezca en src/— sino ServerRepository contra la API. Es decir, lo que en v1 era andamiaje inactivo hoy está en producción y se ejercita indirectamente en toda la suite de persistencia y backend."
+      "evidence": "SHOULD sin test automatizado dedicado EN LA RAÍZ, y es deliberado: la funcionalidad que antes era andamiaje hoy vive y se verifica en la feature `backend` (FR-501..FR-504, FR-507, 85 tests), así que duplicar el gate aquí no añadiría señal. Lo que este FR afirma sigue siendo cierto y observable: `ownerId` está en las entidades y filtra todo el contrato, y el acceso pasa por un repositorio único —ya no LocalStorageRepository (retirado por `servidor-fuente-unica`; el gate estático no-legacy-mode impide que el nombre reaparezca en src/) sino ServerRepository contra la API. Re-derivado 2026-08-04: el FR decía 'sin activar en v1' — GAP-5 del AUDIT_REPORT."
     },
     {
       "id": "FR-015",
@@ -104,19 +104,19 @@
       "id": "NFR-003",
       "title": "Reliability: persistencia robusta, recupera de estado corrupto",
       "level": "production_ready",
-      "evidence": "Integration TC-011* : datos sobreviven recarga; JSON inválido → estado semilla sin excepción. Re-verificado tras BG-012: la «recuperación segura» que el AC-022 exige volvió a cumplirse en la ruta de servidor, que es la única viva desde que se retiró la de localStorage. TC-011f afirmaba lo CONTRARIO de su propio AC aprobado («load NO lanza excepción y devuelve null»): el test se había reescrito para encajar con el código al adoptar el camino de servidor, de modo que el AC quedó documentando algo que nadie verificaba. Restaurado a su contrato."
+      "evidence": "Integration TC-011*/TC-103*: los datos sobreviven a la recarga y una respuesta ilegible no deja pantalla en blanco ni siembra encima. Re-verificado tras BG-012: la «recuperación segura» que exige AC-022 volvió a cumplirse en la ruta de servidor, la única viva desde que se retiró la de localStorage. TC-011f afirmaba lo CONTRARIO de su propio AC aprobado («load NO lanza excepción y devuelve null»): el test se había reescrito para encajar con el código al adoptar el camino de servidor, de modo que el AC quedó documentando algo que nadie verificaba. Restaurado a su contrato."
     },
     {
       "id": "NFR-004",
-      "title": "Security: offline single-user, sin peticiones HTTP externas, validación de monto",
+      "title": "Security: app de servidor autenticada — sesión, aislamiento por ownerId, validación de entrada",
       "level": "production_ready",
-      "evidence": "Lo verificable del enunciado sigue en verde: TC-104e comprueba CERO peticiones externas en runtime (BG-001 corregido, Fira Code auto-alojada con next/font) y el monto se valida numérico no negativo antes de persistir. PERO el enunciado de la NFR está OBSOLETO (RQ-SEC-007 en AUDIT_REPORT.md): describe una app «offline single-user sin backend, sin auth y sin secretos», y desde la feature backend hay superficie de red, sesión, secretos y PII. La protección real existe y se verifica —NFR-512 y NFR-1106 en las features, más el gate security-config— pero vive fuera de esta NFR. Corregir la redacción en la próxima re-derivación de la Fase 1 de la raíz; no se sube ni se baja el nivel porque lo que esta NFR mide sí se cumple."
+      "evidence": "RQ-SEC-007 RESUELTO el 2026-08-04: el enunciado de la NFR describía una app «offline single-user sin backend, sin auth y sin secretos», que dejó de existir con la feature `backend`. Re-escrito para la arquitectura vigente: Better Auth con argon2id, sesión que identifica al usuario en cada request y gating de la API sin sesión válida (FR-501..FR-504, NFR-512), aislamiento por ownerId en todo /api/v1 (FR-507), validación Zod de la entrada antes de castearla (BG-012), y secretos por entorno verificados por los quality gates `secret-scan` y `security-config` en cada verify-run. Lo verificable en la raíz sigue en verde: TC-104e comprueba cero peticiones a hosts EXTERNOS en runtime y TC-104h/f validan el monto. Hallazgos P2 abiertos y justificados en AUDIT_REPORT.md: RQ-SEC-001 (CSP con unsafe-inline), RQ-SEC-008 (Origin como defensa en profundidad), RQ-SEC-009 (SSE sin cota por usuario)."
     },
     {
       "id": "NFR-005",
       "title": "Regression: sin huérfanos; total padre == suma de hojas (drag/borrado)",
       "level": "production_ready",
-      "evidence": "unit TC-105h/e/f: tras borrado y reparent, cero huérfanos y totales cuadran."
+      "evidence": "unit TC-105h/e/f: tras un borrado y tras un reparent, cero huérfanos y los totales de padre cuadran con la suma de sus hojas. Re-derivado 2026-08-04: el enunciado citaba la reasignación a 'Sin asignar'; el invariante es el mismo, pero hoy se sostiene porque el borrado solo procede sobre nodos ya sin hijos y sin datos (FR-003)."
     },
     {
       "id": "NFR-006",
@@ -176,8 +176,8 @@
     {
       "id": "REQ-STALE",
       "severity": "advisory",
-      "gap": "Dos entradas de compliance describían un sistema anterior al backend: NFR-004 (app offline sin auth ni secretos) y FR-014 (andamiaje sobre LocalStorageRepository, retirado por servidor-fuente-unica).",
-      "mitigation": "La evidencia de ambas queda corregida en este artefacto. El texto de origen en 01_REQUIREMENTS.json sigue obsoleto y solo se arregla re-derivando la Fase 1 de la raíz; agrúpese con la corrección de redacción del AC de FR-001 que ya registra AUDIT_REPORT.md."
+      "gap": "[RESUELTO 2026-08-04] Dos entradas de compliance describían un sistema anterior al backend: NFR-004 (app offline sin auth ni secretos) y FR-014 (andamiaje sobre LocalStorageRepository, retirado por servidor-fuente-unica). Se corrigieron en la re-derivación de la Fase 1 raíz, junto con FR-003 (GAP-4), FR-011, FR-012 (GAP-6) y el no_go_zone (GAP-5).",
+      "mitigation": "Cerrado: la Fase 1 raíz se re-derivó y las cinco fases posteriores se re-aprobaron sobre ella."
     },
     {
       "id": "EVID-STALE",

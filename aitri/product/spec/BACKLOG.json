@@ -108,9 +108,10 @@
       "title": "Unificar el punto de swap del repositorio: data/makeRepo.ts es codigo muerto",
       "priority": "P2",
       "problem": "src/data/makeRepo.ts solo lo usa tests/integration/backend/repo-sync.test.ts:18, que es el test que acredita TC-BE-027h. La app usa la funcion local makeRepo() de src/state/store.ts:46, con otra firma (decide por SERVER_MODE, no por autenticacion). El TC verifica un camino que el producto no ejecuta, y las dos decisiones de swap pueden divergir sin que ningun test lo note.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:59:17.500Z",
-      "acceptance": "O el store consume data/makeRepo.ts (y TC-BE-027h pasa a verificar el camino real), o se borra el modulo y el TC se reapunta al store. Un solo punto de decision de swap en el arbol."
+      "acceptance": "O el store consume data/makeRepo.ts (y TC-BE-027h pasa a verificar el camino real), o se borra el modulo y el TC se reapunta al store. Un solo punto de decision de swap en el arbol.",
+      "closedAt": "2026-08-04T03:10:40.426Z"
     },
     {
       "id": "BL-013",

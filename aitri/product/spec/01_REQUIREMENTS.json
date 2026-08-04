@@ -1,48 +1,48 @@
 {
   "project_name": "Ledger (T-Ledger)",
-  "project_summary": "Ledger es una APP WEB de finanzas personales single-user que registra movimientos de dinero contra un presupuesto anual, con una taxonomía de 3 niveles gestionada por el usuario (Grupo → Categoría → Subcategoría) bajo 3 tipos fijos (Gasto/Ingreso/Transferencia). Es una sola app web responsive (Next.js 15 + Tailwind v4 + shadcn/ui): en pantalla pequeña (móvil, v1) muestra SOLO el módulo de registro de movimientos (versión compacta); en pantalla grande (escritorio) es la app completa (registro + grilla de 12 meses con Presupuestado/Ejecutado + dashboard). No es mobile-first ni app nativa: es web. Persistencia en localStorage (v1). Tema oscuro único, tipografía mono, sistema de diseño César Augusto. North Star KPI: recorrer el flujo end-to-end completo en escritorio (registrar → gestionar categorías → editar presupuesto → ver dashboard) con datos coherentes entre superficies y cero bugs (demo funcional completa). JTBD: llevar mis finanzas personales contra un presupuesto capturando movimientos rápido y planeando/analizando el año sobre los mismos datos. Guardrail metric: al editar una celda (hoja) de la grilla, los totales de los ancestros se recalculan por roll-up de forma perceptiblemente inmediata (≤150ms) con la jerarquía semilla completa cargada. Nota de alcance: se ELIMINÓ la distribución proporcional al editar un nodo padre (se editan las hojas; los padres se calculan por roll-up); al borrar una categoría con movimientos ésta se convierte en subcategoría de una categoría fija 'Sin asignar' (una por grupo), y su contenido se reorganiza por arrastrar-y-soltar hacia categorías reales (FR-015).",
+  "project_summary": "Ledger es una APP WEB de finanzas personales single-user AUTENTICADO que registra movimientos de dinero contra un presupuesto anual, con una taxonomía de 3 niveles gestionada por el usuario (Grupo → Categoría → Subcategoría) bajo 3 tipos fijos (Gasto/Ingreso/Transferencia). Es una sola app web responsive (Next.js 15 + Tailwind v4 + shadcn/ui): en pantalla pequeña (móvil, v1) muestra SOLO el módulo de registro de movimientos (versión compacta); en pantalla grande (escritorio) es la app completa (registro + grilla de 12 meses con Presupuestado/Ejecutado + dashboard). No es mobile-first ni app nativa: es web. Persistencia en PostgreSQL como ÚNICA fuente de verdad, tras el contrato /api/v1 filtrado por ownerId (features `backend` y `servidor-fuente-unica`); localStorage guarda solo preferencias del navegador. Temas claro/oscuro con preferencia del sistema y toggle en la UI (feature `stack-upgrade-theme`), tipografía mono, sistema de diseño César Augusto. North Star KPI: recorrer el flujo end-to-end completo en escritorio (registrar → gestionar categorías → editar presupuesto → ver dashboard) con datos coherentes entre superficies y cero bugs (demo funcional completa). JTBD: llevar mis finanzas personales contra un presupuesto capturando movimientos rápido y planeando/analizando el año sobre los mismos datos. Guardrail metric: al editar una celda (hoja) de la grilla, los totales de los ancestros se recalculan por roll-up de forma perceptiblemente inmediata (≤150ms) con la jerarquía semilla completa cargada. Nota de alcance: se ELIMINÓ la distribución proporcional al editar un nodo padre (se editan las hojas; los padres se calculan por roll-up); el borrado de un nodo con datos vigentes o con hijos se BLOQUEA hasta vaciarlo (feature `grid-ux`, FR-110; la categoría fija 'Sin asignar' se RETIRÓ por decisión del usuario), y el contenido se saca antes por arrastrar-y-soltar hacia categorías reales (FR-015).",
   "functional_requirements": [
     {
       "id": "FR-001",
       "title": "Registrar movimiento (módulo de captura; única vista en móvil compacto v1)",
-      "description": "App WEB. El usuario captura un movimiento eligiendo tipo (Gasto/Ingreso/Transferencia), categoría, subcategoría opcional, mes y monto, y lo guarda. La entrada de monto es un input estándar de formulario web (NO hay teclado numérico ad-hoc). Este módulo es la ÚNICA vista en pantalla pequeña (móvil responsive) en v1; en escritorio está disponible como sección/panel dentro de la app completa. Al guardar, el amount se suma al Ejecutado de la hoja destino (target = subId si existe, si no catId) en el mes elegido, se recalculan roll-ups y se muestra un toast. El botón 'Guardar' está deshabilitado si monto=0 o no hay categoría.",
+      "description": "App WEB. El usuario captura un movimiento eligiendo tipo (Gasto/Ingreso/Transferencia), categoría, subcategoría opcional, mes y monto, y lo guarda. La entrada de monto es un input estándar de formulario web (NO hay teclado numérico ad-hoc). Este módulo es la ÚNICA vista en pantalla pequeña (móvil responsive) en v1; en escritorio está disponible como sección/panel dentro de la app completa. Al guardar, el amount se suma al Ejecutado de la hoja destino (target = subId si existe, si no catId) en el mes elegido, se recalculan roll-ups y se muestra un overlay de confirmación a pantalla completa (ConfirmOverlay, FR-212). El botón 'Guardar' está deshabilitado si monto=0 o no hay categoría.",
       "priority": "MUST",
       "type": "logic",
       "acceptance_criteria": [
-        "Dado tipo+categoría+mes seleccionados y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000 y se muestra el toast de confirmación",
+        "Dado tipo+categoría+mes seleccionados y monto=50000, al guardar el Ejecutado de la hoja destino en ese mes aumenta en exactamente 50000 y se muestra el overlay de confirmación a pantalla completa (ConfirmOverlay) con el monto y el signo del tipo",
         "Con monto=0 o sin categoría seleccionada, el botón 'Guardar movimiento' está deshabilitado y no se crea ningún movimiento (negativo)",
         "Si la categoría elegida tiene subcategorías, el selector de subcategoría aparece; si no tiene, no se muestra (edge)",
         "El monto se ingresa por un input estándar de formulario web; no existe un teclado numérico ad-hoc en pantalla (regla de plataforma)",
-        "Tras guardar con éxito, el campo de monto se limpia a 0 y se muestra un toast de confirmación que se autodescarta en ~2s"
+        "Tras guardar con éxito, el campo de monto se limpia a 0 y el overlay de confirmación se autodescarta en ~2000ms (FR-212)"
       ]
     },
     {
       "id": "FR-002",
       "title": "Gestión de categorías: CRUD de jerarquía de 3 niveles bajo 3 tipos fijos",
-      "description": "El usuario crea, renombra y borra Grupos, Categorías y Subcategorías (jerarquía editable) bajo los 3 tipos FIJOS Gasto/Ingreso/Transferencia (D-1: los tipos NO son editables; son el eje de signo). Una Categoría contiene Subcategorías o es hoja por sí misma; una Subcategoría siempre es hoja. Al crear la primera subcategoría de una categoría-hoja, los montos de la categoría se trasladan a esa primera subcategoría para que los totales no caigan. La jerarquía se muestra como acordeones expandibles y alimenta los selectores de la pantalla de registro, filtrados por el tipo activo. Persiste en la clave localStorage de la jerarquía. (La categoría 'Sin asignar' —una por grupo, ver FR-003— es gestionada por el sistema: no se renombra ni se borra, pero SÍ admite edición de montos y reorganización de su contenido por arrastre, ver FR-015. La reubicación de nodos por arrastrar-y-soltar se especifica en FR-015.)",
+      "description": "El usuario crea, renombra y borra Grupos, Categorías y Subcategorías (jerarquía editable) bajo los 3 tipos FIJOS Gasto/Ingreso/Transferencia (D-1: los tipos NO son editables; son el eje de signo). Una Categoría contiene Subcategorías o es hoja por sí misma; una Subcategoría siempre es hoja. Al crear la primera subcategoría de una categoría-hoja, los montos de la categoría se trasladan a esa primera subcategoría para que los totales no caigan. La jerarquía se muestra como acordeones expandibles y alimenta los selectores de la pantalla de registro, filtrados por el tipo activo. La jerarquía persiste en PostgreSQL a través del repositorio único (FR-011). (La categoría fija 'Sin asignar' se RETIRÓ por decisión del usuario — ver FR-003. Los nodos marcados como del sistema (`system`) ya no se crean por ningún camino; los guards que impiden renombrarlos y borrarlos SE CONSERVAN como única defensa ante datos heredados que pudieran existir en la base, porque su saneador se retiró a conciencia con el camino local (feature `servidor-fuente-unica`, FR-1105). La reubicación de nodos por arrastrar-y-soltar se especifica en FR-015.)",
       "priority": "MUST",
       "type": "logic",
       "acceptance_criteria": [
         "Al crear un Grupo 'Estilo de vida' bajo el tipo Gasto, aparece en la lista de grupos de Gasto y queda disponible como padre para nuevas categorías (happy)",
         "Al crear la primera subcategoría de una categoría-hoja con Presupuestado=800000, ese monto se traslada íntegro a la nueva subcategoría y el total de la categoría permanece en 800000 (edge)",
         "No es posible crear, renombrar ni eliminar un Tipo (Gasto/Ingreso/Transferencia): son fijos y no exponen acciones de edición/borrado (negativo)",
-        "La categoría 'Sin asignar' (una por grupo) no expone acciones de renombrar ni borrar, aunque sus montos sí son editables (negativo — gestionada por el sistema)",
+        "Un nodo marcado como del sistema (`system`) —solo posible en datos heredados— no expone acciones de renombrar ni borrar: es la defensa que queda tras retirar su saneador (negativo, FR-1105)",
         "Renombrar cualquier nodo editable (edición en línea) actualiza su nombre en todas las superficies que lo referencian tras confirmar",
-        "Los cambios en la jerarquía persisten tras recargar la página"
+        "Los cambios en la jerarquía persisten en el servidor y se leen idénticos tras recargar la página"
       ]
     },
     {
       "id": "FR-003",
-      "title": "Borrado de categoría → subcategoría de 'Sin asignar' (por grupo, sin huérfanos)",
-      "description": "Al borrar un nodo se aplica el flujo: una hoja sin movimientos se borra directo; una Categoría CON movimientos NO se destruye: se CONVIERTE en una subcategoría dentro de la categoría fija 'Sin asignar' del MISMO GRUPO, conservando sus movimientos agrupados bajo su nombre (no se pierde historial); un Grupo con categorías está BLOQUEADO hasta mover/eliminar sus categorías. La categoría 'Sin asignar' es UNA por GRUPO, gestionada por el sistema: no se renombra ni se borra, pero sus montos son editables y su contenido se reorganiza por arrastre (FR-015). Solo se MUESTRA cuando tiene datos. Desde 'Sin asignar' el usuario reubica esas subcategorías a categorías reales por arrastrar-y-soltar (FR-015). Al borrar una hoja se eliminan también sus entradas en budgets/actuals. Ningún movimiento queda huérfano: todo movimiento sigue resolviendo un target válido tras la operación.",
+      "title": "Borrado seguro: bloqueado hasta vaciar el nodo (sin pérdida silenciosa, sin huérfanos)",
+      "description": "Al borrar un nodo se aplica la regla vigente (feature `grid-ux`, FR-110, que SUSTITUYE el mecanismo 'Sin asignar' del brief original — retirado por decisión del usuario): un nodo CON HIJOS (grupo con categorías, o categoría con subcategorías) está BLOQUEADO hasta mover o borrar sus hijos, tenga o no montos propios (BG-002); un nodo CON DATOS VIGENTES — Presupuestado o Ejecutado > 0 en cualquier mes de su subárbol, en cualquier nivel incluido el grupo-hoja — está BLOQUEADO hasta vaciar todas sus celdas (BG-001); un nodo sin hijos y sin datos se borra directo, junto con sus entradas en budgets/actuals y sus movimientos históricos. La señal de 'tiene datos' es el monto VIGENTE en las celdas, NO el journal de movimientos: un nodo cuyas celdas se vaciaron a 0 puede borrarse aunque haya registrado movimientos, porque el journal es inmutable y si no sería imposible eliminarlo nunca (BG-006). La vía para vaciar un nodo antes de borrarlo es sacar su contenido con el reparent por arrastre de FR-015. La UI no ofrece la acción cuando no aplica (el gate canDeleteNode apaga el control). Ningún movimiento queda huérfano: todo movimiento superviviente sigue resolviendo un target válido tras la operación.",
       "priority": "MUST",
       "type": "logic",
       "acceptance_criteria": [
-        "Al borrar la categoría 'Café' (grupo Esenciales, tipo Gasto) que tiene N movimientos, 'Café' pasa a ser una subcategoría dentro de 'Sin asignar' del grupo Esenciales, con sus N movimientos agrupados bajo ella (happy)",
-        "Tras la conversión, los N movimientos siguen resolviendo un target válido (la subcategoría 'Café' dentro de 'Sin asignar' de su grupo) y su Ejecutado por mes se contabiliza en 'Sin asignar'; ningún movimiento queda huérfano (invariante)",
-        "La categoría 'Sin asignar' de un grupo solo se muestra cuando tiene datos; si un grupo nunca recibió una categoría borrada, 'Sin asignar' no aparece (edge)",
-        "Al intentar borrar un Grupo que aún contiene categorías, la acción se bloquea y no se elimina nada (negativo)",
-        "Borrar una hoja sin movimientos la elimina directo junto con sus entradas en budgets y actuals (edge)"
+        "Al intentar borrar una categoría con Presupuestado o Ejecutado > 0 en algún mes, la acción se bloquea con motivo 'has_data' y no se elimina nada (happy del guardrail)",
+        "Al intentar borrar un nodo que aún tiene hijos (grupo con categorías, o categoría con subcategorías), se bloquea con motivo 'has_children' aunque el nodo no tenga montos propios (negativo)",
+        "Un nodo sin hijos y con todas sus celdas en 0 se borra, junto con sus entradas en budgets y actuals (edge)",
+        "Un nodo cuyas celdas se vaciaron a 0 pero que registró movimientos históricos SÍ se puede borrar: la señal es el monto vigente, no el journal (BG-006, edge)",
+        "Tras cualquier borrado, todo movimiento superviviente sigue resolviendo un target válido: cero huérfanos (invariante)"
       ]
     },
     {
@@ -114,25 +114,27 @@
     },
     {
       "id": "FR-011",
-      "title": "Persistencia local de datos (localStorage) con recuperación segura",
-      "description": "Toda la jerarquía, budgets, actuals y movements persisten en localStorage (v1). Los datos sobreviven a recargas y reinicios del navegador. Ante datos ausentes se genera el estado semilla (FR-013); ante datos corruptos/no parseables la app no debe romper: se recupera a un estado válido (semilla) sin pantalla en blanco. El modelo de datos deja el andamiaje (campo de propietario/scope) para multiusuario futuro sin activarlo en v1.",
+      "title": "Persistencia en PostgreSQL como única fuente de verdad, con recuperación segura",
+      "description": "Toda la jerarquía, budgets, actuals, movements y reservas persisten en PostgreSQL tras el contrato `/api/v1`, filtrado por `ownerId` (feature `backend`, FR-507; feature `servidor-fuente-unica`, FR-1101..FR-1103 — SUSTITUYE la persistencia en localStorage del brief original). El acceso pasa por un repositorio único (`ServerRepository`) construido en un solo punto (`state/store.ts`, FR-1101). `localStorage` guarda EXCLUSIVAMENTE preferencias del navegador (tema, ancho de columna) y ninguna clave `ledger.*` (FR-509). Los datos sobreviven a recargas, a reinicios del navegador y al cambio de dispositivo. Ante ausencia de datos se genera el estado semilla (FR-013); ante un guardado que no llega o una respuesta ilegible la app avisa al usuario en vez de presentar como guardado lo que no lo está (BG-012, BL-022).",
       "priority": "MUST",
       "type": "persistence",
       "acceptance_criteria": [
         "Tras registrar movimientos y recargar la página, los movimientos, budgets y actuals se conservan idénticos (happy — sobrevive a reinicio)",
-        "Con la clave de localStorage conteniendo JSON inválido, al abrir la app se recupera al estado semilla sin lanzar excepción ni renderizar pantalla en blanco (negativo/corrupción)",
-        "Una edición de Presupuestado en la grilla persiste y se lee correctamente tras recargar (edge — query devuelve el registro escrito)"
+        "Tras cualquier flujo completo de la app, no existe ninguna clave `ledger.*` en localStorage (negativo — split de almacenamiento, FR-509)",
+        "El mismo usuario autenticado desde otro dispositivo ve los mismos datos (multi-dispositivo — la razón de ser de la fuente única)",
+        "Ante un guardado que no alcanza el servidor o una respuesta ilegible, la app muestra el aviso de persistencia y no presenta el dato como confirmado (negativo, BG-012/BL-022)",
+        "Una edición de Presupuestado en la grilla persiste y se lee correctamente tras recargar (edge)"
       ]
     },
     {
       "id": "FR-012",
-      "title": "Sistema de diseño César Augusto (tema oscuro mono, tokens exactos)",
-      "description": "La UI implementa el sistema de diseño César Augusto: tema oscuro único (sin modo claro), tipografía mono (Fira Code) en todo el producto, bordes sobre rellenos (el hover cambia el color del borde, no el fondo, salvo selección con relleno alpha del acento), sin gradientes/glassmorphism/glow/emoji. Se cargan los tokens exactos de la spec §2 (colores, tipografía, espaciado base 4px, radios, sombras rgba negro, motion con prefers-reduced-motion respetado). En v1 los tweaks (acento/densidad/varianza) quedan fijos en los valores base (comfortable + subtle + acento acero #4a7fa5).",
+      "title": "Sistema de diseño César Augusto (temas claro/oscuro, tipografía mono, tokens exactos)",
+      "description": "La UI implementa el sistema de diseño César Augusto: temas claro y oscuro, con la preferencia del sistema por defecto y un toggle en la UI (feature `stack-upgrade-theme`, FR-201/FR-205 — SUSTITUYE el 'tema oscuro único' del brief original); los tokens de color son theme-aware (FR-202) y el color por tipo cumple AA en AMBOS temas (FR-204), tipografía mono (Fira Code) en todo el producto, bordes sobre rellenos (el hover cambia el color del borde, no el fondo, salvo selección con relleno alpha del acento), sin gradientes/glassmorphism/glow/emoji. Se cargan los tokens exactos de la spec §2 (colores, tipografía, espaciado base 4px, radios, sombras rgba negro, motion con prefers-reduced-motion respetado). En v1 los tweaks (acento/densidad/varianza) quedan fijos en los valores base (comfortable + subtle + acento acero #4a7fa5).",
       "priority": "MUST",
       "type": "visual",
       "acceptance_criteria": [
-        "Los CSS custom properties definidos coinciden con los tokens de la spec (--bg #080c12, --primary #4a7fa5, --success #10b981, --warning #f59e0b, --error #ef4444, --font-mono Fira Code)",
-        "El contraste de texto primario (--fg #e8edf5) sobre fondo (--bg #080c12) es ≥4.5:1",
+        "Los CSS custom properties definidos coinciden con los tokens theme-aware de la feature `stack-upgrade-theme` (FR-202, paleta zinc neutra) y se resuelven a los valores correctos en cada tema",
+        "El contraste de texto primario sobre el fondo es ≥4.5:1 en AMBOS temas (claro y oscuro)",
         "Con prefers-reduced-motion activo, todas las animaciones/transiciones se reducen a ~0.001ms (negativo — sin movimiento)",
         "No se renderiza ningún emoji, gradiente ni glow en ninguna superficie; los íconos son de línea currentColor (negativo/regla dura)",
         "El módulo de registro renderiza sin desbordes a 375px (móvil); la app completa (registro + grilla + dashboard) renderiza sin desbordes a 768px y 1440px, reflejando la composición de los mockups"
@@ -152,24 +154,24 @@
     },
     {
       "id": "FR-014",
-      "title": "Andamiaje de datos para multiusuario y APIs externas (sin activar en v1)",
-      "description": "El modelo de datos y la capa de acceso a datos se estructuran para admitir en el futuro multiusuario (diferentes libros / libro compartido) y conexiones API externas, sin implementar auth ni endpoints en v1. Concretamente: las entidades persistidas admiten un identificador de propietario/libro (ownerId/bookId opcional, default único en v1) y el acceso a datos pasa por una capa/repositorio único que en el futuro pueda apuntar a un backend (Supabase) sin reescribir la UI.",
+      "title": "Acceso a datos por repositorio único y modelo con propietario (base del multiusuario, ya activada)",
+      "description": "El modelo de datos y la capa de acceso se estructuran con un identificador de propietario (`ownerId`) y un repositorio único, de modo que la UI no conoce el almacén. En el brief original esto era ANDAMIAJE sin activar; la feature `backend` lo ACTIVÓ: registro e inicio de sesión reales (FR-501/FR-502), sesión que identifica al usuario en cada request (FR-503), gating de la API sin sesión válida (FR-504) y contrato `/api/v1` filtrado por usuario (FR-507). La feature `servidor-fuente-unica` (FR-1101) dejó un único punto de construcción del repositorio. Este FR permanece como el requisito de ESTRUCTURA; la funcionalidad de autenticación se especifica y se verifica en los FR-5xx de la feature `backend`, no aquí — por eso sigue SHOULD en la raíz: no duplica el gate de la feature.",
       "priority": "SHOULD",
       "type": "persistence",
       "acceptance_criteria": [
-        "Las entidades persistidas (nodes, budgets, actuals, movements) incluyen un campo de propietario/libro (ownerId o bookId) con un valor por defecto único en v1",
-        "Toda lectura/escritura de datos pasa por una capa de repositorio única (no acceso directo a localStorage disperso en componentes), de modo que sustituir la implementación por un backend no requiere cambiar la UI",
-        "En v1 no existe pantalla de login ni llamadas HTTP externas en runtime (negativo — andamiaje, no funcionalidad)"
+        "Las entidades persistidas incluyen `ownerId` y toda consulta del contrato lo filtra (aislamiento por usuario)",
+        "Toda lectura/escritura de datos pasa por un repositorio único; ningún componente accede al almacén directamente",
+        "Sin sesión válida no se lee ni se escribe dato financiero alguno (FR-504 de la feature `backend`)"
       ]
     },
     {
       "id": "FR-015",
       "title": "Reorganizar categorías/subcategorías por arrastrar-y-soltar (reparent)",
-      "description": "El usuario reubica nodos de la jerarquía arrastrando-y-soltando. Una subcategoría (p. ej. una que quedó dentro de 'Sin asignar' tras un borrado, FR-003) o una categoría se puede arrastrar y soltar: (a) sobre otra categoría → se convierte en subcategoría de ésta; o (b) en la zona de un grupo → se promueve a categoría nueva de ese grupo. Los GRUPOS y los TIPOS no se mueven ni se crean por arrastre, y no se puede soltar un nodo fuera de su tipo. Al reubicar, los movimientos viajan con el nodo (siguen resolviendo su target) y los roll-ups de origen y destino se recalculan; cero huérfanos. Este es el mecanismo con el que el usuario vacía 'Sin asignar' llevando su contenido a categorías reales. (Reordenar por posición/sort dentro de un mismo padre queda fuera de v1 — ver no_go_zone.)",
+      "description": "El usuario reubica nodos de la jerarquía arrastrando-y-soltando. Una subcategoría o una categoría se puede arrastrar y soltar: (a) sobre otra categoría → se convierte en subcategoría de ésta; o (b) en la zona de un grupo → se promueve a categoría nueva de ese grupo. Los GRUPOS y los TIPOS no se mueven ni se crean por arrastre, y no se puede soltar un nodo fuera de su tipo. Al reubicar, los movimientos viajan con el nodo (siguen resolviendo su target) y los roll-ups de origen y destino se recalculan; cero huérfanos. Este es también el mecanismo con el que el usuario VACÍA un nodo para poder borrarlo (FR-003): saca su contenido a categorías reales y solo entonces el borrado deja de estar bloqueado. (Reordenar por posición/sort dentro de un mismo padre queda fuera de v1 — ver no_go_zone.)",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "Arrastrar una subcategoría desde 'Sin asignar' y soltarla sobre otra categoría del mismo tipo la reubica como subcategoría de ésta; sus movimientos viajan y los roll-ups de origen y destino se recalculan y reflejan en ≤150ms (happy)",
+        "Arrastrar una subcategoría y soltarla sobre otra categoría del mismo tipo la reubica como subcategoría de ésta; sus movimientos viajan y los roll-ups de origen y destino se recalculan y reflejan en ≤150ms (happy)",
         "Durante el arrastre se muestra feedback visual del destino válido (drop target resaltado) en ≤100ms del hover sobre un objetivo válido (affordance)",
         "Soltar una subcategoría en la zona de un grupo del mismo tipo la promueve a categoría nueva de ese grupo (edge)",
         "No se puede arrastrar/soltar un Grupo ni un Tipo, ni crear un grupo por arrastre, ni soltar un nodo en un tipo distinto al suyo: el soltar se rechaza y la jerarquía queda intacta (negativo)",
@@ -187,7 +189,7 @@
     {
       "role": "Autor / revisor técnico del portafolio",
       "tech_level": "high",
-      "goal": "Demostrar una app web coherente end-to-end con decisiones técnicas defendibles (andamiaje multiusuario/API, sistema de diseño propio) y un README que explique el porqué",
+      "goal": "Demostrar una app web coherente end-to-end con decisiones técnicas defendibles (autenticación y API propia ya entregadas, sistema de diseño propio) y un README que explique el porqué",
       "pain_point": "Necesita que el flujo completo funcione sin bugs y que la arquitectura muestre criterio, no solo que 'corra'"
     }
   ],
@@ -203,7 +205,7 @@
           "id": "AC-001",
           "given": "el módulo Registrar con tipo Gasto, categoría Comida y mes Junio seleccionados",
           "when": "escribo 50000 en el input de monto y pulso Guardar movimiento",
-          "then": "el Ejecutado de Comida en Junio aumenta en 50000, aparece un toast de confirmación y el campo de monto se limpia a 0"
+          "then": "el Ejecutado de Comida en Junio aumenta en 50000, aparece el overlay de confirmación (ConfirmOverlay) y el campo de monto se limpia a 0"
         },
         {
           "id": "AC-002",
@@ -228,9 +230,9 @@
         },
         {
           "id": "AC-004",
-          "given": "los 3 tipos Gasto/Ingreso/Transferencia y la categoría 'Sin asignar'",
-          "when": "busco una acción para editar o borrar un tipo o la categoría 'Sin asignar'",
-          "then": "no existe tal acción: los tipos son fijos y 'Sin asignar' la gestiona el sistema"
+          "given": "los 3 tipos Gasto/Ingreso/Transferencia y un nodo marcado como del sistema en datos heredados",
+          "when": "busco una acción para editar o borrar un tipo o ese nodo del sistema",
+          "then": "no existe tal acción: los tipos son fijos y los nodos del sistema conservan su guard (FR-1105)"
         }
       ]
     },
@@ -238,14 +240,14 @@
       "id": "US-003",
       "requirement_id": "FR-003",
       "as_a": "dueño de mi historial",
-      "i_want": "que al borrar una categoría con movimientos, éstos se conserven",
-      "so_that": "no pierdo el historial de mis movimientos",
+      "i_want": "que no se pueda borrar una categoría que todavía tiene datos o subcategorías dentro",
+      "so_that": "no pierdo historial por un borrado accidental",
       "acceptance_criteria": [
         {
           "id": "AC-005",
-          "given": "la categoría 'Café' (grupo 'Esenciales', tipo Gasto) con 3 movimientos",
-          "when": "borro la categoría 'Café'",
-          "then": "'Café' pasa a ser una subcategoría dentro de 'Sin asignar' del grupo Esenciales, con sus 3 movimientos agrupados, sin dejar huérfanos"
+          "given": "la categoría 'Café' (grupo 'Esenciales', tipo Gasto) con Ejecutado > 0",
+          "when": "intento borrar la categoría 'Café'",
+          "then": "la acción se bloquea con motivo 'has_data' y nada se elimina; para borrarla debo vaciar sus celdas o sacar su contenido con FR-015"
         },
         {
           "id": "AC-006",
@@ -364,8 +366,8 @@
       "id": "US-011",
       "requirement_id": "FR-011",
       "as_a": "usuario que vuelve a la app",
-      "i_want": "que mis datos persistan localmente y no se rompan si algo se corrompe",
-      "so_that": "no pierdo mi información entre sesiones",
+      "i_want": "que mis datos vivan en el servidor y estén igual desde cualquier dispositivo",
+      "so_that": "no pierdo información entre sesiones ni entre dispositivos",
       "acceptance_criteria": [
         {
           "id": "AC-021",
@@ -375,9 +377,9 @@
         },
         {
           "id": "AC-022",
-          "given": "la clave de localStorage con JSON inválido",
-          "when": "abro la app",
-          "then": "se recupera al estado semilla sin lanzar excepción ni mostrar pantalla en blanco"
+          "given": "una respuesta de la API ilegible o un guardado que no alcanza el servidor",
+          "when": "uso la app",
+          "then": "se muestra el aviso de persistencia y no se presenta como guardado lo que no lo está, sin excepción no capturada ni pantalla en blanco"
         }
       ]
     },
@@ -427,14 +429,14 @@
       "id": "US-015",
       "requirement_id": "FR-015",
       "as_a": "dueño de mi taxonomía",
-      "i_want": "arrastrar y soltar subcategorías para reubicarlas, incluidas las que quedaron en 'Sin asignar'",
-      "so_that": "reorganizo mi jerarquía y vacío 'Sin asignar' llevando su contenido a categorías reales",
+      "i_want": "arrastrar y soltar categorías y subcategorías para reubicarlas",
+      "so_that": "reorganizo mi jerarquía y puedo vaciar un nodo para poder borrarlo",
       "acceptance_criteria": [
         {
           "id": "AC-029",
-          "given": "una subcategoría 'Café' dentro de 'Sin asignar' de su grupo con sus movimientos",
+          "given": "una subcategoría 'Café' con sus movimientos",
           "when": "la arrastro y la suelto sobre la categoría 'Restaurantes' del mismo tipo",
-          "then": "'Café' queda como subcategoría de 'Restaurantes', sus movimientos viajan con ella y los roll-ups de 'Sin asignar' y de 'Restaurantes' se recalculan sin dejar huérfanos"
+          "then": "'Café' queda como subcategoría de 'Restaurantes', sus movimientos viajan con ella y los roll-ups de origen y destino se recalculan sin dejar huérfanos"
         },
         {
           "id": "AC-030",
@@ -461,19 +463,19 @@
     {
       "id": "NFR-003",
       "category": "Reliability",
-      "requirement": "La persistencia local es robusta: los datos sobreviven a recargas y la app se recupera de estado corrupto sin romperse.",
-      "acceptance_criteria": "Los datos persisten tras reinicio del navegador; ante localStorage con JSON inválido la app se recupera al estado semilla sin excepción no capturada ni pantalla en blanco"
+      "requirement": "La persistencia es robusta: los datos sobreviven a recargas y a cambios de dispositivo, y la app no se rompe ante una respuesta del servidor ausente, ilegible o inesperada — avisa y conserva la fuente de verdad intacta (BG-012, BL-022). Ante ausencia de datos genera el estado semilla (FR-013).",
+      "acceptance_criteria": "Los datos persisten tras reinicio del navegador y se ven idénticos desde otro dispositivo; ante una respuesta de la API inválida o ilegible la app no lanza excepción no capturada ni muestra pantalla en blanco, y avisa al usuario en vez de dar por guardado lo que no lo está"
     },
     {
       "id": "NFR-004",
       "category": "Security",
-      "requirement": "App web single-user offline sin backend, sin auth, sin secretos y sin PII enviada por red en v1: no hay superficie de red que proteger. La única entrada de usuario (montos) se valida como numérica no negativa antes de persistir. (Auth/red se abordan en Fase 2 junto con el backend.)",
-      "acceptance_criteria": "El campo de monto rechaza entradas no numéricas y valores negativos (no se persiste un movimiento inválido); no se realiza ninguna petición HTTP externa en runtime en v1"
+      "requirement": "App web de SERVIDOR con usuarios autenticados: SÍ hay superficie de red, secretos y datos personales que proteger. La postura vigente la especifican y la verifican las features, no este artefacto: autenticación Better Auth con hashing argon2id, sesión que identifica al usuario en cada request y gating de la API sin sesión válida (feature `backend`, FR-501..FR-504 y NFR-512); aislamiento por `ownerId` en todo el contrato `/api/v1` (FR-507); validación de la entrada de la API antes de castearla (BG-012). Los secretos se gestionan por entorno y nunca viven en el repositorio — el quality gate `secret-scan` lo comprueba en cada `verify-run`, y `security-config` comprueba la configuración de despliegue. `localStorage` no guarda dato financiero alguno (FR-509). La entrada de montos se valida como numérica no negativa antes de persistir. Los hallazgos abiertos y su justificación viven en `AUDIT_REPORT.md` (RQ-SEC-001, RQ-SEC-008, RQ-SEC-009). SUSTITUYE la redacción original, que describía una app offline sin backend (RQ-SEC-007).",
+      "acceptance_criteria": "Sin sesión válida, ninguna ruta de `/api/v1` acepta ni devuelve datos y la UI no renderiza el shell; el campo de monto rechaza entradas no numéricas y negativas (no se persiste un movimiento inválido); los quality gates `secret-scan` y `security-config` pasan en cada `verify-run`"
     },
     {
       "id": "NFR-005",
       "category": "Regression",
-      "requirement": "Invariantes de integridad del dominio que NO deben romperse: ningún movimiento queda huérfano tras un borrado (la categoría borrada pasa a subcategoría de 'Sin asignar' de su grupo) ni tras una reubicación por arrastre (FR-015), y todo total de nodo padre iguala la suma de sus descendientes-hoja.",
+      "requirement": "Invariantes de integridad del dominio que NO deben romperse: ningún movimiento queda huérfano tras un borrado (que solo procede sobre nodos ya sin hijos y sin datos vigentes, FR-003) ni tras una reubicación por arrastre (FR-015), y todo total de nodo padre iguala la suma de sus descendientes-hoja.",
       "acceptance_criteria": "Tras cualquier operación de borrado o de reubicación (drag-drop) de categorías/subcategorías, todo movimiento resuelve un target válido (cero huérfanos); para todo nodo padre, Presupuestado(padre) == suma(Presupuestado hojas descendientes)"
     },
     {
@@ -487,27 +489,28 @@
     "Distribución proporcional al editar un nodo padre — ELIMINADO del alcance: en la grilla se editan solo las hojas y los padres se calculan por roll-up; no existe la edición de un total padre que se reparta hacia abajo",
     "Presupuesto y Dashboard en pantalla pequeña (móvil) — en v1 la vista compacta móvil muestra SOLO el módulo de registro; grilla y dashboard son de escritorio (ampliar la experiencia móvil → posterior)",
     "Teclado numérico ad-hoc en pantalla — el monto se ingresa por input estándar de formulario web (es una app web, no app móvil nativa)",
-    "Multiusuario real / login funcional / libros compartidos — en v1 solo se deja el ANDAMIAJE de datos (FR-014); auth se implementa en Fase 2",
-    "APIs externas / conexiones HTTP para registros o consultas — solo andamiaje en v1 (FR-014); implementación en Fase 2",
+    "Libros COMPARTIDOS / varios usuarios colaborando sobre el MISMO libro — la autenticación y el aislamiento por usuario SÍ se entregaron (feature `backend`, FR-501..FR-504, FR-507: cada cuenta ve solo su libro); compartir un libro entre cuentas sigue fuera de alcance",
+    "Integraciones con APIs de TERCEROS (bancos, pasarelas, importadores automáticos) — el contrato `/api/v1` entregado (feature `backend`, FR-507) es la API propia de la app para su propio cliente; conectar servicios externos sigue fuera de alcance",
     "Multi-año y multi-moneda — v1 es single-year (2026) y single-currency (COP); selector multi-año y conversión de moneda quedan para Fase 2",
-    "Backend / base de datos (Supabase, PostgreSQL) — v1 persiste solo en localStorage; el backend llega en Fase 2",
+    "Importar/migrar datos desde localStorage o entre instalaciones — retirado a conciencia (feature `servidor-fuente-unica`, FR-1105: no hay usuarios reales). NOTA: el backend y PostgreSQL ya NO están fuera de alcance — la feature `backend` los entregó y `servidor-fuente-unica` (FR-1101..FR-1103) los dejó como única fuente de verdad",
     "Reordenar por POSICIÓN (sort/orden manual dentro de un mismo padre) y arrastrar GRUPOS/TIPOS — fuera de v1 (Fase 5). En v1 el arrastrar-y-soltar SOLO reubica (reparent) categorías/subcategorías a categorías o grupos del mismo tipo (FR-015), no reordena posiciones ni mueve grupos",
     "Exportación de datos (CSV/otros) — post-MVP (Fase 5)",
     "Tweaks (acento/densidad/varianza) expuestos como preferencias de usuario — en v1 quedan fijos en comfortable + subtle + acento acero #4a7fa5 (Fase 5)",
-    "Modo claro / theming alternativo — el producto es tema oscuro único por diseño",
-    "App nativa móvil — es una web app responsive en navegador"
+    "Temas alternativos más allá del par claro/oscuro (paletas adicionales, theming por usuario). NOTA: el modo claro ya NO está fuera de alcance — la feature `stack-upgrade-theme` (FR-201/FR-205) entregó claro/oscuro/sistema con toggle en la UI",
+    "App nativa móvil — es una web app responsive en navegador",
+    "Categoría fija 'Sin asignar' por grupo — RETIRADA por decisión del usuario (feature `grid-ux`, que la sustituye por FR-110, 'borrado seguro: bloquear si hay datos'). El borrado ya no reasigna a un contenedor del sistema: se bloquea hasta vaciar el nodo, y el contenido se saca antes con el reparent de FR-015"
   ],
   "constraints": [
     "Plataforma: APP WEB responsive (no app nativa, no mobile-first). Móvil v1 = solo módulo de registro; escritorio = app completa",
     "Stack fijo: Next.js 15, Tailwind CSS v4, shadcn/ui, Recharts, Lucide, TypeScript",
-    "Tema oscuro único (sin modo claro), tipografía mono Fira Code, sistema de diseño César Augusto con tokens exactos de la spec §2",
+    "Temas claro y oscuro (preferencia del sistema por defecto, toggle en la UI), tipografía mono Fira Code, sistema de diseño César Augusto. SUSTITUYE el 'tema oscuro único' del brief — feature `stack-upgrade-theme`, FR-201/FR-205",
     "Moneda COP y UI en español; código e identificadores en inglés",
-    "Persistencia v1 en localStorage con claves versionadas (jerarquía, budgets, actuals, movements)",
+    "Persistencia en PostgreSQL como única fuente de verdad, tras el contrato `/api/v1` filtrado por `ownerId`. SUSTITUYE 'localStorage v1' del brief — features `backend` y `servidor-fuente-unica` (FR-1101..FR-1103); `localStorage` queda solo para preferencias del navegador (FR-509)",
     "Breakpoint responsive de referencia: 760px (ajustable en diseño)",
     "Hosting inicial: Next.js en Docker sobre Ultron (Raspberry Pi 5, 8GB RAM) con Nginx como reverse proxy; preparar para hosting profesional",
     "El README debe explicar decisiones técnicas, no solo cómo correr el proyecto",
     "D-1 resuelto: los 3 tipos (Gasto/Ingreso/Transferencia) son FIJOS como eje de signo; los Grupos editables son la capa adicional (Opción A)",
-    "D-2 resuelto: al borrar una categoría con movimientos ésta se convierte en subcategoría de una categoría fija 'Sin asignar' (UNA por GRUPO; auto, no renombrable/borrable, montos editables, visible solo con datos)",
+    "D-2 REVERTIDO: la categoría fija 'Sin asignar' se retiró por decisión del usuario. La regla vigente es el borrado seguro — bloqueado mientras el nodo tenga hijos o datos vigentes (feature `grid-ux`, FR-110), con el reparent de FR-015 como vía para vaciarlo",
     "D-4 resuelto: distribución proporcional ELIMINADA — se editan hojas, padres por roll-up",
     "D-7 (parcial en v1): arrastrar-y-soltar reubica (reparent) categorías/subcategorías a categorías o grupos del mismo tipo (FR-015); NO reordena posiciones ni mueve grupos/tipos (eso es Fase 5)"
   ],
@@ -518,7 +521,7 @@
     "Recharts (gráficos del dashboard)",
     "Lucide (íconos de línea)",
     "TypeScript",
-    "localStorage (v1); capa de repositorio preparada para Supabase en Fase 2"
+    "PostgreSQL + Drizzle tras un repositorio único (features `backend` y `servidor-fuente-unica`); Better Auth para sesión. SUSTITUYE 'localStorage v1 / Supabase en Fase 2' del brief: el backend se construyó sobre Postgres propio, no Supabase"
   ],
   "idea_provenance": {
     "problem": "confirmed",
@@ -553,15 +556,15 @@
       "disposition": "FR-002"
     },
     {
-      "need": "Borrado: categoría con movimientos se convierte en subcategoría de 'Sin asignar' de su grupo; guardrail de grupo no vacío (sin huérfanos)",
+      "need": "Borrado sin pérdida de datos: no se destruye un nodo que aún contiene datos vigentes o hijos (guardrail, cero huérfanos) — necesidad SC-4 del discovery",
       "disposition": "FR-003"
     },
     {
-      "need": "Categoría 'Sin asignar' una por grupo: auto, no renombrable/borrable, montos editables, visible solo con datos",
-      "disposition": "FR-003"
+      "need": "Categoría 'Sin asignar' una por grupo: auto, no renombrable/borrable, montos editables, visible solo con datos — el brief la pedía; el usuario la RETIRÓ (feature `grid-ux`, sustituida por FR-110)",
+      "disposition": "out_of_scope"
     },
     {
-      "need": "Reorganizar (reparent) categorías/subcategorías por arrastrar-y-soltar; mecanismo para vaciar 'Sin asignar'",
+      "need": "Reorganizar (reparent) categorías/subcategorías por arrastrar-y-soltar; mecanismo para vaciar un nodo antes de borrarlo",
       "disposition": "FR-015"
     },
     {
@@ -589,7 +592,7 @@
       "disposition": "FR-010"
     },
     {
-      "need": "Persistencia en localStorage y recuperación ante corrupción",
+      "need": "Persistencia de datos y recuperación ante corrupción — el brief la pedía en localStorage; el usuario la trasladó al servidor (feature `servidor-fuente-unica`)",
       "disposition": "FR-011"
     },
     {
@@ -601,7 +604,7 @@
       "disposition": "FR-013"
     },
     {
-      "need": "Andamiaje de datos para multiusuario y APIs externas (sin activar en v1)",
+      "need": "Andamiaje de datos para multiusuario y APIs externas — el brief lo pedía sin activar; el usuario lo ACTIVÓ (feature `backend`, FR-501..FR-507)",
       "disposition": "FR-014"
     },
     {
@@ -657,7 +660,7 @@
       "disposition": "NFR-003"
     },
     {
-      "need": "Postura de seguridad (offline single-user) y validación de entrada",
+      "need": "Postura de seguridad y validación de entrada — el brief la describía offline single-user; hoy es una app de servidor autenticada (RQ-SEC-007)",
       "disposition": "NFR-004"
     },
     {
