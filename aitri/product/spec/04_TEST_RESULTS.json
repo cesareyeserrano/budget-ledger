@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-04T20:44:42.969Z",
+  "executed_at": "2026-08-05T11:46:28.933Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -13,7 +13,7 @@
     {
       "tc_id": "TC-001e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001e: addMovement con subId suma a la hoja subId, no a la categoría 3ms"
+      "notes": "✓ |app| tests/domain/movement.test.ts > FR-001 registrar movimiento > TC-001e: addMovement con subId suma a la hoja subId, no a la categoría 1ms"
     },
     {
       "tc_id": "TC-001f",
@@ -23,7 +23,7 @@
     {
       "tc_id": "TC-002h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002h: crear grupo y categoría bajo un tipo aparecen en la jerarquía 3ms"
+      "notes": "✓ |app| tests/domain/categories.test.ts > FR-002 CRUD de categorías > TC-002h: crear grupo y categoría bajo un tipo aparecen en la jerarquía 2ms"
     },
     {
       "tc_id": "TC-002e",
@@ -58,27 +58,27 @@
     {
       "tc_id": "TC-004e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004e: Ejecutado directo en categoría-hoja se cuenta en el grupo 1ms"
+      "notes": "✓ |app| tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004e: Ejecutado directo en categoría-hoja se cuenta en el grupo 0ms"
     },
     {
       "tc_id": "TC-004f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004f: Presupuestado del padre === suma de hojas (invariante, sin setter de padre) 1ms"
+      "notes": "✓ |app| tests/domain/rollup-sign.test.ts > FR-004 roll-up > TC-004f: Presupuestado del padre === suma de hojas (invariante, sin setter de padre) 0ms"
     },
     {
       "tc_id": "TC-006h",
       "status": "pass",
-      "notes": "✓   75 [chromium] › tests/e2e/critical.spec.ts:63:5 › TC-006h: la grilla renderiza con columna categoría sticky y 12 meses (168ms)"
+      "notes": "✓   75 [chromium] › tests/e2e/critical.spec.ts:63:5 › TC-006h: la grilla renderiza con columna categoría sticky y 12 meses (167ms)"
     },
     {
       "tc_id": "TC-006e",
       "status": "pass",
-      "notes": "✓   67 [chromium] › tests/e2e/coverage-skips.spec.ts:7:5 › TC-006e: editar una celda-hoja Pres. y confirmar con Enter fija el nuevo valor (268ms)"
+      "notes": "✓   67 [chromium] › tests/e2e/coverage-skips.spec.ts:7:5 › TC-006e: editar una celda-hoja Pres. y confirmar con Enter fija el nuevo valor (255ms)"
     },
     {
       "tc_id": "TC-006f",
       "status": "pass",
-      "notes": "✓   62 [chromium] › tests/e2e/coverage-extra.spec.ts:6:5 › TC-006f: Escape cancela la edición y la celda de un nodo padre no es editable (325ms)"
+      "notes": "✓   62 [chromium] › tests/e2e/coverage-extra.spec.ts:6:5 › TC-006f: Escape cancela la edición y la celda de un nodo padre no es editable (303ms)"
     },
     {
       "tc_id": "TC-008h",
@@ -98,7 +98,7 @@
     {
       "tc_id": "TC-009h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009h: balance del mes = ingresos − gastos ejecutados 2ms"
+      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-009 dashboard > TC-009h: balance del mes = ingresos − gastos ejecutados 0ms"
     },
     {
       "tc_id": "TC-009e",
@@ -108,12 +108,12 @@
     {
       "tc_id": "TC-009f",
       "status": "pass",
-      "notes": "✓   76 [chromium] › tests/e2e/critical.spec.ts:74:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (234ms)"
+      "notes": "✓   76 [chromium] › tests/e2e/critical.spec.ts:74:5 › TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos (213ms)"
     },
     {
       "tc_id": "TC-010h",
       "status": "pass",
-      "notes": "✓   73 [chromium] › tests/e2e/critical.spec.ts:33:5 › TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla (201ms)"
+      "notes": "✓   73 [chromium] › tests/e2e/critical.spec.ts:33:5 › TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla (222ms)"
     },
     {
       "tc_id": "TC-010e",
@@ -123,12 +123,12 @@
     {
       "tc_id": "TC-010f",
       "status": "pass",
-      "notes": "✓   68 [chromium] › tests/e2e/coverage-skips.spec.ts:23:5 › TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil (solo Registrar) (153ms)"
+      "notes": "✓   68 [chromium] › tests/e2e/coverage-skips.spec.ts:23:5 › TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil (solo Registrar) (141ms)"
     },
     {
       "tc_id": "TC-011h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011h: los datos persisten tras recargar 7ms"
+      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-011h: los datos persisten tras recargar 14ms"
     },
     {
       "tc_id": "TC-011e",
@@ -143,17 +143,17 @@
     {
       "tc_id": "TC-012h",
       "status": "pass",
-      "notes": "✓   72 [chromium] › tests/e2e/critical.spec.ts:5:5 › TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema claro) (114ms)"
+      "notes": "✓   72 [chromium] › tests/e2e/critical.spec.ts:5:5 › TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema claro) (111ms)"
     },
     {
       "tc_id": "TC-012e",
       "status": "pass",
-      "notes": "✓   69 [chromium] › tests/e2e/coverage-skips.spec.ts:30:5 › TC-012e: el contraste de texto primario sobre el fondo es ≥ 4.5:1 (112ms)"
+      "notes": "✓   69 [chromium] › tests/e2e/coverage-skips.spec.ts:30:5 › TC-012e: el contraste de texto primario sobre el fondo es ≥ 4.5:1 (117ms)"
     },
     {
       "tc_id": "TC-012f",
       "status": "pass",
-      "notes": "✓   65 [chromium] › tests/e2e/coverage-extra.spec.ts:63:5 › TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradiente (160ms)"
+      "notes": "✓   65 [chromium] › tests/e2e/coverage-extra.spec.ts:63:5 › TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradiente (162ms)"
     },
     {
       "tc_id": "TC-013h",
@@ -173,17 +173,17 @@
     {
       "tc_id": "TC-015h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría 9ms"
+      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría 3ms"
     },
     {
       "tc_id": "TC-015e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015e: soltar en la zona de un grupo la promueve a categoría nueva 1ms"
+      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015e: soltar en la zona de un grupo la promueve a categoría nueva 0ms"
     },
     {
       "tc_id": "TC-015f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015f: soltar en otro tipo se rechaza (feature demote-node: un grupo ya SÍ se puede mover, pero nunca cruza de tipo) 6ms"
+      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > FR-015 reparent por drag-and-drop > TC-015f: soltar en otro tipo se rechaza (feature demote-node: un grupo ya SÍ se puede mover, pero nunca cruza de tipo) 1ms"
     },
     {
       "tc_id": "TC-101h",
@@ -212,22 +212,22 @@
     {
       "tc_id": "TC-102h",
       "status": "pass",
-      "notes": "✓   70 [chromium] › tests/e2e/coverage-skips.spec.ts:55:5 › TC-102h: la app renderiza sin desborde horizontal a 375, 768 y 1440px (262ms)"
+      "notes": "✓   70 [chromium] › tests/e2e/coverage-skips.spec.ts:55:5 › TC-102h: la app renderiza sin desborde horizontal a 375, 768 y 1440px (321ms)"
     },
     {
       "tc_id": "TC-102e",
       "status": "pass",
-      "notes": "✓   71 [chromium] › tests/e2e/coverage-skips.spec.ts:71:5 › TC-102e: los controles clave son accesibles por teclado con foco visible (144ms)"
+      "notes": "✓   71 [chromium] › tests/e2e/coverage-skips.spec.ts:71:5 › TC-102e: los controles clave son accesibles por teclado con foco visible (171ms)"
     },
     {
       "tc_id": "TC-102f",
       "status": "pass",
-      "notes": "✓   66 [chromium] › tests/e2e/coverage-extra.spec.ts:80:5 › TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms (162ms)"
+      "notes": "✓   66 [chromium] › tests/e2e/coverage-extra.spec.ts:80:5 › TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms (155ms)"
     },
     {
       "tc_id": "TC-103h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103h: robustez — estado con 2 movimientos + 1 edición sobrevive a reinicio 2ms"
+      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103h: robustez — estado con 2 movimientos + 1 edición sobrevive a reinicio 1ms"
     },
     {
       "tc_id": "TC-103e",
@@ -237,7 +237,7 @@
     {
       "tc_id": "TC-103f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103f: un estado HTTP inesperado lanza en vez de devolver datos a medias 2ms"
+      "notes": "✓ |app| tests/integration/persistence.test.ts > FR-011 / NFR-003 persistencia > TC-103f: un estado HTTP inesperado lanza en vez de devolver datos a medias 1ms"
     },
     {
       "tc_id": "TC-104h",
@@ -247,17 +247,17 @@
     {
       "tc_id": "TC-104e",
       "status": "pass",
-      "notes": "✓   64 [chromium] › tests/e2e/coverage-extra.spec.ts:48:5 › TC-104e: no se realizan peticiones HTTP externas en runtime (v1 offline) (671ms)"
+      "notes": "✓   64 [chromium] › tests/e2e/coverage-extra.spec.ts:48:5 › TC-104e: no se realizan peticiones HTTP externas en runtime (v1 offline) (656ms)"
     },
     {
       "tc_id": "TC-104f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/movement.test.ts > NFR-004 validación de monto > TC-104f: rechaza no numérico y negativo (no persiste) 0ms"
+      "notes": "✓ |app| tests/domain/movement.test.ts > NFR-004 validación de monto > TC-104f: rechaza no numérico y negativo (no persiste) 1ms"
     },
     {
       "tc_id": "TC-105h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105h: tras borrar categoría con movimientos, cero huérfanos 0ms"
+      "notes": "✓ |app| tests/domain/move-dashboard-seed.test.ts > NFR-005 regresión — invariantes de integridad > TC-105h: tras borrar categoría con movimientos, cero huérfanos 1ms"
     },
     {
       "tc_id": "TC-105e",
@@ -652,7 +652,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-04T20:43:21.894Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-05T11:44:59.095Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
     },
     {
       "name": "smoke",
@@ -660,7 +660,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "[smoke] arrancando la app en :3210\n[smoke] GET / -> 200\n[smoke] OK"
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "security-config",
@@ -684,7 +684,7 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "output": "ts:688:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (104ms)\n  ✓  268 [chromium] › tests/e2e/ux-consistency.spec.ts:637:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  272 passed (1.3m)\n\n2026-08-04T20:44:19.956Z WARN [Better Auth]: User not found\n2026-08-04T20:44:20.438Z WARN [Better Auth]: User not found\n2026-08-04T20:44:22.094Z WARN [Better Auth]: User not found\n(node:38863) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "output": "ts:688:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (106ms)\n  ✓  268 [chromium] › tests/e2e/ux-consistency.spec.ts:637:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  272 passed (1.3m)\n\n2026-08-05T11:46:06.484Z WARN [Better Auth]: User not found\n2026-08-05T11:46:06.950Z WARN [Better Auth]: User not found\n2026-08-05T11:46:08.704Z WARN [Better Auth]: User not found\n(node:60554) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ]
 }

@@ -149,7 +149,40 @@ describe("NFR-207 — CI/CD", () => {
 
   it("TC-SUT-263e: el smoke arranca la app y exige 200 en '/'", () => {
     expect(smokeSh).toMatch(/localhost:\$PORT\//);
-    expect(smokeSh).toContain('"200"');
     expect(smokeSh).toContain("npm run start");
+    // La comprobación de 200 en '/' sigue siendo el corazón del gate; cambió su forma (antes una
+    // comparación literal contra "200", ahora el helper check_code que se reutiliza por ruta).
+    expect(smokeSh).toMatch(/check_code\s+"\/"\s+200/);
+  });
+
+  // BG-014 / RQ-SEC-010 — el gate acreditó durante cuatro semanas un build del 9 de julio porque
+  // solo recompilaba si faltaba BUILD_ID. Estas tres propiedades son las que impiden que vuelva a
+  // pasar; se comprueban sobre el texto del script porque ejecutarlo aquí costaría un build entero
+  // (el gate ya lo ejecuta de verdad en cada verify-run).
+  it("BG-014: el smoke recompila si hay fuentes más recientes que el build", () => {
+    expect(smokeSh).toMatch(/find\s+src\s+next\.config\.mjs\s+package\.json\s+-newer/);
+    expect(smokeSh).toContain('"$NEXT_DIST_DIR/BUILD_ID"');
+  });
+
+  it("BG-014: el smoke aborta si el puerto ya está ocupado por otro proceso", () => {
+    expect(smokeSh).toMatch(/lsof[^\n]*iTCP:"\$PORT"[^\n]*LISTEN/);
+    expect(smokeSh).toMatch(/ya está ocupado/);
+  });
+
+  it("BG-014: el smoke verifica el gating de la API y los headers de seguridad, no solo '/'", () => {
+    for (const r of ["/api/v1/ledger", "/api/v1/movements", "/api/v1/sync/stream"]) {
+      expect(smokeSh).toContain(r);
+    }
+    expect(smokeSh).toMatch(/check_code\s+"\$r"\s+401/);
+    for (const h of [
+      "Content-Security-Policy",
+      "Strict-Transport-Security",
+      "X-Content-Type-Options",
+      "X-Frame-Options",
+      "Referrer-Policy",
+    ]) {
+      expect(smokeSh).toContain(h);
+    }
+    expect(smokeSh).toContain("X-Powered-By");
   });
 });

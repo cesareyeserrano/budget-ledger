@@ -373,6 +373,28 @@
         "src/server/env.ts",
         "tests/integration/backend/trust-proxy.test.ts"
       ]
+    },
+    {
+      "id": "BG-014",
+      "title": "El gate smoke acredita un build obsoleto: smoke.sh solo recompila si falta BUILD_ID",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-05T04:09:40.140Z",
+      "updated_at": "2026-08-05T11:46:46.620Z",
+      "resolution": "smoke.sh recompila si src/, next.config.mjs o package.json son mas recientes que BUILD_ID (find -newer), aborta si el puerto ya esta ocupado (era el fallo que hacia medir un proceso ajeno), detecta que el servidor murio al arrancar, y amplia la verificacion de 'GET / -> 200' a 12 comprobaciones: / y /health a 200, las 4 rutas de /api/v1 a 401 sin sesion, los 5 headers de seguridad presentes y X-Powered-By ausente. Comprobado que los sondeos no dependen de Postgres (app arrancada contra una BD inexistente: 401 y headers igual), asi que el gate no se vuelve fragil. Probado en ambos sentidos: pasa las 12 y falla con exit 1 con el puerto ocupado. Regresion en tests/integration/feature-stack.test.ts (3 tests BG-014) y TC-SUT-263e actualizado a la nueva forma conservando su intencion.",
+      "fix_commit_sha": "9bfe75195905996aa06fc7063a1907d3bd72d950",
+      "fix_at": "2026-08-05T11:46:43.502Z"
     }
   ]
 }

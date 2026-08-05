@@ -202,6 +202,14 @@
       "createdAt": "2026-08-03T16:32:06.988Z",
       "acceptance": "Con storageError distinto de null, el aviso es visible en escritorio y en móvil; un e2e por cada motivo (network y malformed) comprueba que el texto correcto aparece en ambos shells.",
       "closedAt": "2026-08-03T21:58:23.410Z"
+    },
+    {
+      "id": "BL-023",
+      "title": "El servidor de desarrollo publica en todas las interfaces (next dev sin -H)",
+      "priority": "P1",
+      "problem": "package.json define 'dev': 'next dev -p 3100' y next dev liga a 0.0.0.0 por defecto: la app de desarrollo queda alcanzable desde toda la red local. Verificado durante la auditoria del 2026-08-05: curl http://192.168.1.8:3100/ devolvio 200 con el proceso vivo desde hacia 3 dias. Como el BETTER_AUTH_SECRET de desarrollo esta versionado en el repositorio, quien alcance ese puerto puede forjar una sesion valida contra esa instancia. Es el hermano de RQ-SEC-006, que ato los contenedores a loopback pero dejo fuera el proceso de Next. Arreglo: 'dev': 'next dev -H 127.0.0.1 -p 3100', con un 'dev:lan' aparte y explicito para el caso de probar desde el movil, y una comprobacion en scripts/security-config.sh para que no se revierta en silencio. Ver RQ-SEC-011 en AUDIT_REPORT.md.",
+      "status": "open",
+      "createdAt": "2026-08-05T04:09:48.373Z"
     }
   ]
 }

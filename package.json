@@ -4,7 +4,8 @@
   "private": true,
   "description": "Ledger \u2014 app web de finanzas personales contra presupuesto (single-user, localStorage v1)",
   "scripts": {
-    "dev": "next dev -p 3100",
+    "dev": "next dev -H 127.0.0.1 -p 3100",
+    "dev:lan": "next dev -H 0.0.0.0 -p 3100",
     "db:up": "docker compose -f docker-compose.dev.yml up -d db db-viewer",
     "db:down": "docker compose -f docker-compose.dev.yml down",
     "db:migrate": "DATABASE_URL=postgres://ledger:ledger@localhost:5432/ledger node scripts/migrate.mjs",

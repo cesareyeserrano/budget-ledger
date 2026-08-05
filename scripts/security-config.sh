@@ -59,6 +59,17 @@ if [ -f "$COMPOSE" ]; then
   ! grep -qE '^\s*-\s*"8081:8081"' "$COMPOSE"; check "RQ-SEC-006: $COMPOSE publica pgweb —sin login— en 0.0.0.0 (usa \"127.0.0.1:8081:8081\")" $?
 fi
 
+# ── servidor de desarrollo: tampoco sale a la red ────────────────────────────
+# RQ-SEC-011 / BL-023: `next dev` liga a 0.0.0.0 por defecto. La instancia de desarrollo quedaba
+# alcanzable desde toda la LAN (verificado el 2026-08-05: 200 desde la IP de red, viva 3 días) y el
+# secreto de desarrollo está versionado, así que quien llegara podía forjar una sesión válida.
+# El script `dev:lan` existe para el caso deliberado de probar desde el móvil; el default, no.
+PKG=package.json
+if [ -f "$PKG" ]; then
+  grep -qE '"dev"[[:space:]]*:[[:space:]]*"next dev -H 127\.0\.0\.1' "$PKG"
+  check "RQ-SEC-011: el script \"dev\" de $PKG no liga a 127.0.0.1 (usa \"next dev -H 127.0.0.1\"; para la LAN existe dev:lan)" $?
+fi
+
 # ── secretos: ningún .env real versionado ────────────────────────────────────
 ENVS=$(git ls-files 2>/dev/null | grep -E '(^|/)\.env' | grep -v '\.env\.example$' || true)
 [ -z "$ENVS" ]; check "Secretos: hay ficheros .env versionados en git: $ENVS" $?

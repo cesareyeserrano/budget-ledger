@@ -20,27 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.2.0-rc.5",
+  "aitriVersion": "2.2.0-rc.6",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-08-04T20:45:23.238Z",
+  "updatedAt": "2026-08-05T11:46:46.682Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-04T19:55:40.179Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-04T20:24:59.604Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-04T20:30:39.219Z",
-      "event": "started",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-04T20:33:48.410Z",
       "event": "completed",
@@ -133,6 +118,31 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "team"
+    },
+    {
+      "at": "2026-08-05T11:41:45.253Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-05T11:46:28.935Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-05T11:46:46.667Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -224,10 +234,10 @@
     ]
   },
   "upgradeFindings": [],
-  "coverageAuditLastAt": "2026-07-28T19:41:52.498Z",
+  "coverageAuditLastAt": "2026-08-04T22:29:55.965Z",
   "auditLastAt": "2026-07-28T19:32:55.678Z",
-  "coverageAuditReqHash": "41d7dca0a0e0a364b64b6c33fdb85a7a59e58bd1f86c046d64a4ce9308120ff2",
-  "securityAuditLastAt": "2026-08-01T04:09:46.611Z",
+  "coverageAuditReqHash": "866a0d351e96f8c9a9541ffc135edc7415b6fa3cc9ce61a8ed6008edca1d95e7",
+  "securityAuditLastAt": "2026-08-05T01:33:05.648Z",
   "releaseHistory": [
     {
       "version": "1.0.0",
@@ -265,14 +275,14 @@
       "at": "2026-08-04T20:45:23.223Z"
     }
   ],
-  "verifyResultsHash": "6e7a06fdbccbd770ddb2824d77dbe3f8e59f702f070306e99471d2d462efdac6",
-  "verifyRanAt": "2026-08-04T20:44:42.972Z",
+  "verifyResultsHash": "14d5fdc476df0de607f7bd0e3b0cea7dfa4ad4da970d673af4c79a4a48f1a894",
+  "verifyRanAt": "2026-08-05T11:46:28.935Z",
   "lastVerifyRun": {
     "passed": 54,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-04T20:44:42.972Z"
+    "at": "2026-08-05T11:46:28.935Z"
   },
   "verifySummary": {
     "total": 54,
