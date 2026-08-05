@@ -1407,6 +1407,143 @@
       "automation": "manual",
       "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
       "downgraded_from": "skip"
+    },
+    {
+      "id": "TC-016h",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-031",
+      "title": "Franja Resumen en modo Mes: presupuestado, ejecutado, % y disponible del tipo Gasto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con hojas de tipo Gasto cuyo Presupuestado agregado en 'jun' es 800000 y su Ejecutado 200000"
+      ],
+      "given": "un periodo {mode:'month', month:'jun'} sobre ese estado",
+      "when": "se computan las cifras de la franja de indicadores",
+      "then": "presupuestado=800000, ejecutado=200000, pct=25 y available=600000 exactamente",
+      "steps": [
+        "Construir el estado con los montos declarados",
+        "Invocar el cómputo de la franja con el periodo de junio",
+        "Comparar las cuatro cifras"
+      ],
+      "expected_result": "{presupuestado:800000, ejecutado:200000, pct:25, available:600000} — available es la resta exacta y pct el entero redondeado",
+      "test_data": {
+        "month": "jun",
+        "budget": 800000,
+        "actual": 200000,
+        "expected_pct": 25,
+        "expected_available": 600000
+      }
+    },
+    {
+      "id": "TC-016e",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-031",
+      "title": "Bordes de la franja: presupuesto 0 no divide por cero, disponible 0 es 'dentro del plan', y Mes→Año reagrega los 12 meses",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con Presupuestado 0 y Ejecutado 0 en el mes elegido",
+        "Estado con Presupuestado 500000 y Ejecutado 500000 en el mes elegido",
+        "Estado con montos repartidos en varios meses del año"
+      ],
+      "given": "los tres estados de borde",
+      "when": "se computan las cifras de la franja en cada uno",
+      "then": "con presupuesto 0 el pct es 0 y no aparece NaN ni Infinity; con presupuesto igual al ejecutado available es exactamente 0 (no negativo, por tanto 'dentro del plan'); en modo Año las cifras agregan los 12 meses y no solo el mes en foco",
+      "steps": [
+        "Computar con presupuesto 0 y comprobar pct===0 y Number.isFinite en las cuatro cifras",
+        "Computar con 500000/500000 y comprobar available===0",
+        "Computar el mismo estado en modo month y en modo year y comprobar que el anual es la suma de los doce"
+      ],
+      "expected_result": "pct===0 sin NaN/Infinity; available===0 en el empate; el agregado anual iguala la suma de los doce meses",
+      "test_data": {
+        "zero_budget": 0,
+        "tie_budget": 500000,
+        "tie_actual": 500000
+      }
+    },
+    {
+      "id": "TC-016f",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-032",
+      "title": "La franja agrega SOLO tipo Gasto y un disponible negativo señala 'sobre el plan'",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con montos de Gasto y, además, montos de Ingreso y de Transferencia en el mismo mes"
+      ],
+      "given": "ese estado con los tres tipos poblados",
+      "when": "se computan las cifras de la franja y luego se añaden más montos de Ingreso y Transferencia",
+      "then": "ninguna de las cuatro cifras cambia al mover Ingresos o Transferencias; y cuando el Ejecutado de Gasto supera al Presupuestado, available es negativo (la señal de 'sobre el plan')",
+      "steps": [
+        "Computar la franja sobre el estado base",
+        "Aumentar Ingreso y Transferencia del mismo mes",
+        "Re-computar y comprobar que las cuatro cifras son idénticas",
+        "Aumentar el Ejecutado de Gasto por encima del Presupuestado y comprobar available<0"
+      ],
+      "expected_result": "las cifras son invariantes ante Ingreso/Transferencia; con ejecutado>presupuestado available<0",
+      "test_data": {
+        "budget": 300000,
+        "actual": 400000,
+        "expected_available": -100000
+      }
+    },
+    {
+      "id": "TC-003g",
+      "requirement_id": "FR-003",
+      "user_story_id": "US-003",
+      "ac_id": "AC-005",
+      "title": "BG-006: un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Una subcategoría con movimientos registrados en su journal y todas sus celdas de Presupuestado/Ejecutado puestas a 0"
+      ],
+      "given": "ese nodo vaciado pero con historia en el journal",
+      "when": "se intenta borrarlo",
+      "then": "el borrado procede (la señal es el monto vigente, no el journal) y sus movimientos se retiran con él sin dejar huérfanos",
+      "steps": [
+        "Registrar movimientos sobre la subcategoría",
+        "Poner a 0 todas sus celdas",
+        "Invocar el borrado",
+        "Comprobar que el nodo desaparece y que ningún movimiento superviviente apunta a un target inexistente"
+      ],
+      "expected_result": "deleteNode no devuelve blocked; el nodo ya no está en state.nodes; cero movimientos huérfanos",
+      "test_data": {
+        "bug": "BG-006"
+      }
+    },
+    {
+      "id": "TC-106g",
+      "requirement_id": "NFR-006",
+      "title": "BG-014: el gate smoke no acredita un build obsoleto ni un proceso ajeno, y verifica el contrato de servicio",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El script del gate de smoke presente en la raíz del repositorio"
+      ],
+      "given": "el gate de smoke tal como lo ejecuta verify-run",
+      "when": "se inspecciona el contrato que el gate se obliga a cumplir",
+      "then": "recompila si alguna fuente es más reciente que el BUILD_ID (no solo si falta), aborta si el puerto ya está ocupado por otro proceso, y verifica el gating 401 de las rutas de datos y los cinco headers de seguridad además del 200 en '/'",
+      "steps": [
+        "Comprobar la condición de recompilación por antigüedad del build",
+        "Comprobar la guarda de puerto ocupado",
+        "Comprobar que el gate sondea las rutas de /api/v1 esperando 401 y los cinco headers"
+      ],
+      "expected_result": "las tres propiedades están presentes en el gate: recompilación por mtime, guarda de puerto, y verificación de gating + headers",
+      "test_data": {
+        "bug": "BG-014"
+      },
+      "user_story_id": "US-013",
+      "ac_id": "AC-025"
     }
   ]
 }

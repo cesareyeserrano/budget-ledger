@@ -41,12 +41,26 @@
     "tests/domain/hardening.test.ts",
     "tests/integration/persistence.test.ts",
     "tests/e2e/critical.spec.ts",
-    "tests/e2e/reparent.spec.ts"
+    "tests/e2e/reparent.spec.ts",
+    "tests/domain/summary-kpis.test.ts"
   ],
-  "files_modified": [],
-  "setup_commands": ["npm install"],
+  "files_modified": [
+    "src/domain/dashboard.ts",
+    "src/components/DesktopShell.tsx",
+    "smoke.sh",
+    "package.json",
+    "scripts/security-config.sh",
+    "tests/integration/feature-stack.test.ts",
+    "tests/domain/categories.test.ts"
+  ],
+  "setup_commands": [
+    "npm install"
+  ],
   "environment_variables": [
-    { "name": "PORT", "default": "3000" }
+    {
+      "name": "PORT",
+      "default": "3000"
+    }
   ],
   "technical_debt": [
     {
@@ -76,21 +90,114 @@
   ],
   "test_runner": "npm run test:run",
   "test_files": [
-    "tests/domain/movement.test.ts",
+    "tests/domain/backend-regression.test.ts",
+    "tests/domain/balance.test.ts",
+    "tests/domain/budget-state-aa.test.ts",
+    "tests/domain/budget-state.test.ts",
     "tests/domain/categories.test.ts",
-    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/demote-node.test.ts",
+    "tests/domain/gridWidth.test.ts",
+    "tests/domain/hardening.test.ts",
     "tests/domain/move-dashboard-seed.test.ts",
-    "tests/integration/persistence.test.ts",
+    "tests/domain/movement.test.ts",
+    "tests/domain/period-default.test.ts",
+    "tests/domain/promote-to-group.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/rollup-perf.test.ts",
+    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/seq-monotonic.test.ts",
+    "tests/e2e-backend/auth-flow.spec.ts",
+    "tests/e2e-backend/cross-device.spec.ts",
+    "tests/e2e-backend/grid-regression.spec.ts",
+    "tests/e2e-backend/live-sync.spec.ts",
+    "tests/e2e-backend/storage-split.spec.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/control-size-scale.spec.ts",
+    "tests/e2e/coverage-extra.spec.ts",
+    "tests/e2e/coverage-skips.spec.ts",
     "tests/e2e/critical.spec.ts",
-    "tests/e2e/reparent.spec.ts"
+    "tests/e2e/demote-node.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e/grid-ux.spec.ts",
+    "tests/e2e/promote-to-group.spec.ts",
+    "tests/e2e/reparent.spec.ts",
+    "tests/e2e/servidor-fuente-unica.spec.ts",
+    "tests/e2e/storage-banner.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/ux-consistency.spec.ts",
+    "tests/integration/backend/api.test.ts",
+    "tests/integration/backend/auth.test.ts",
+    "tests/integration/backend/config.test.ts",
+    "tests/integration/backend/foundation.test.ts",
+    "tests/integration/backend/oauth.test.ts",
+    "tests/integration/backend/perf.test.ts",
+    "tests/integration/backend/repo-sync.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/integration/backend/security.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/integration/backend/trust-proxy.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/integration/reserve-closure.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/response-validation.test.ts",
+    "tests/integration/seq-seed-on-load.test.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/integration/ux-consistency.test.ts",
+    "tests/integration/write-serialization.test.ts",
+    "tests/unit/backend-gates.test.ts",
+    "tests/unit/feature-stack.test.ts",
+    "tests/unit/servidor-fuente-unica.test.ts",
+    "tests/unit/ux-consistency.test.ts"
   ],
   "quality_gates": [
-    { "name": "typecheck", "command": "npm run typecheck", "required": true },
-    { "name": "lint", "command": "npm run lint", "required": true },
-    { "name": "coverage", "command": "npm run coverage", "required": true },
-    { "name": "smoke", "command": "./smoke.sh", "required": true, "timeout_ms": 180000 },
-    { "name": "security-config", "command": "./scripts/security-config.sh", "required": true, "timeout_ms": 120000 },
-    { "name": "secret-scan", "command": "./scripts/secret-scan.sh", "required": true, "timeout_ms": 120000 },
-    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "timeout_ms": 900000,
+      "note": "900s: la suite incluye TC-BE-084h, que ejecuta npm audit (llamada de red real) y bajo la carga del e2e en paralelo ha llegado a 287s por si solo. Con el default de 300s el gate salia error por timeout de forma no determinista. Ver BL-024."
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "security-config",
+      "command": "./scripts/security-config.sh",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "./scripts/secret-scan.sh",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "timeout_ms": 600000
+    }
   ]
 }

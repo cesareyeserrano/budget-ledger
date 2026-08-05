@@ -23,6 +23,41 @@ function months(period: Period): MonthKey[] {
   return period.mode === "month" ? [period.month] : MONTH_KEYS;
 }
 
+/** Las tres cifras de la franja «Resumen» del escritorio (FR-016), todas del tipo Gasto. */
+export interface SummaryKpis {
+  /** Presupuestado agregado del tipo Gasto en el alcance del filtro. */
+  presupuestado: number;
+  /** Ejecutado agregado del tipo Gasto en el alcance del filtro. */
+  ejecutado: number;
+  /** Porcentaje consumido del presupuesto, entero. 0 si no hay presupuesto (no divide por cero). */
+  pct: number;
+  /** Presupuestado − Ejecutado. Negativo = sobre el plan. */
+  available: number;
+}
+
+/**
+ * Cifras de la franja «Resumen» (FR-016). DERIVADA, nunca almacenada — misma decisión que los
+ * roll-ups (ADR-02): sin estado propio no puede desincronizarse de la grilla.
+ *
+ * Vivía como un useMemo dentro de DesktopShell, que es justamente por qué el requisito no tenía
+ * test: la lógica no era alcanzable sin montar el componente. Extraída aquí, se verifica como el
+ * resto del dominio.
+ *
+ * Solo agrega el tipo `expense`: es lo que hace comparable el par «presupuestado vs disponible»
+ * del plan de gasto — un Ingreso o una Transferencia no lo alteran.
+ *
+ * @aitri-trace domain:summary — FR-016, TC-016h/TC-016e/TC-016f
+ */
+export function summaryKpis(state: LedgerState, period: Period): SummaryKpis {
+  const exp = typeTotals(state, "expense", months(period));
+  return {
+    presupuestado: exp.budget,
+    ejecutado: exp.actual,
+    pct: exp.budget > 0 ? Math.round((exp.actual / exp.budget) * 100) : 0,
+    available: exp.budget - exp.actual,
+  };
+}
+
 export function dashboardMetrics(state: LedgerState, period: Period): DashboardVM {
   const ms = months(period);
   const inc = typeTotals(state, "income", ms);

@@ -215,6 +215,8 @@ Realización por MUST FR — método, contrato I/O y comportamiento ante fallo. 
 
 - **FR-015 · Reparent por drag-drop** — *Método:* `moveNode(state, nodeId, dest, overflow=blockPolicy)` reubica un subárbol validando tipo y techo de 3 niveles; el manejo de desborde es una estrategia enchufable. *I/O:* `dest = {kind:'category'|'group'|'root', …}` → `{state}` o `{rejected:'cross_type'|'invalid_target'|'would_overflow'}`. *Fallo:* mover entre tipos distintos o desbordar el techo se rechaza sin mutar ni perder movimientos (cero huérfanos, NFR-602).
 
+- **FR-016 · Franja de indicadores «Resumen»** — *Método:* `DesktopShell` deriva las tres cifras en un `useMemo` sobre `typeTotals(data, "expense", months)`, donde `months` es `[period.month]` en modo Mes y los 12 en modo Año; `available = budget − actual` y `pct = budget > 0 ? Math.round(actual/budget*100) : 0`. **Derivada, nunca almacenada** — misma decisión que los roll-ups (ADR-02): no hay estado propio de la franja, así que no puede desincronizarse de la grilla. *I/O:* `(data, period)` → `{presupuestado, ejecutado, pct, available}`. *Fallo:* presupuesto 0 ⇒ `pct = 0` por la guarda explícita, sin división por cero ni `NaN`; período sin datos ⇒ las tres cifras en 0, no error. *Alcance:* solo tipo `expense` — Ingresos y Transferencias no entran en el agregado, que es lo que hace comparable el par «presupuestado vs disponible» del plan de gasto. *Acoplamiento con el filtro:* el `period` gobierna ÚNICAMENTE este cómputo; `BudgetGrid` no lo consume y sigue renderizando los 12 meses (§7.2 de la spec autoritativa).
+
 ## Security Design
 
 Superficie real (NFR-004, re-derivada): **app de servidor con usuarios autenticados** — hay endpoints, sesión,

@@ -159,17 +159,19 @@ describe("NFR-207 — CI/CD", () => {
   // solo recompilaba si faltaba BUILD_ID. Estas tres propiedades son las que impiden que vuelva a
   // pasar; se comprueban sobre el texto del script porque ejecutarlo aquí costaría un build entero
   // (el gate ya lo ejecuta de verdad en cada verify-run).
-  it("BG-014: el smoke recompila si hay fuentes más recientes que el build", () => {
+  // @aitri-tc TC-106g
+  it("TC-106g: BG-014 — el smoke no acredita un build obsoleto ni un proceso ajeno, y verifica el contrato de servicio", () => {
+    // (a) Recompila por antigüedad del build, no solo si falta BUILD_ID. Era la causa raíz:
+    //     el gate acreditó durante cuatro semanas un build anterior a la feature `backend`.
     expect(smokeSh).toMatch(/find\s+src\s+next\.config\.mjs\s+package\.json\s+-newer/);
     expect(smokeSh).toContain('"$NEXT_DIST_DIR/BUILD_ID"');
-  });
 
-  it("BG-014: el smoke aborta si el puerto ya está ocupado por otro proceso", () => {
+    // (b) Aborta si el puerto está ocupado, en vez de sondear el proceso que ya responde ahí.
     expect(smokeSh).toMatch(/lsof[^\n]*iTCP:"\$PORT"[^\n]*LISTEN/);
     expect(smokeSh).toMatch(/ya está ocupado/);
-  });
 
-  it("BG-014: el smoke verifica el gating de la API y los headers de seguridad, no solo '/'", () => {
+    // (c) Verifica el contrato real de servicio: gating 401 de las rutas de datos y los cinco
+    //     headers de seguridad, no solo el 200 en '/'.
     for (const r of ["/api/v1/ledger", "/api/v1/movements", "/api/v1/sync/stream"]) {
       expect(smokeSh).toContain(r);
     }

@@ -83,11 +83,11 @@
 | Overlay de confirmación (`ConfirmOverlay`) | default (visible ~2000ms) · resto n/a | Pantalla completa: check + monto con el signo y color del tipo; autodescarte ~2000ms; respeta reduced-motion | H1 |
 | Aviso de persistencia (`StorageBanner`) | default (oculto) · **error (visible: guardado no confirmado o respuesta ilegible)** · resto n/a | Montado en ambos shells, móvil y escritorio (BL-022); no bloquea la edición, avisa | H1, H9 |
 
-### Pantalla: Presupuesto — grilla escritorio — FR-006, FR-004, FR-008
+### Pantalla: Presupuesto — grilla escritorio — FR-006, FR-004, FR-008, FR-016
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| Barra de controles (toggle Mes/Año, selector de mes, toggle Resumen/Dashboard) | default (Mes, mes en curso) · disabled · empty (n/a) · error (n/a) · loading | Filtro afecta solo tarjetas de resumen; la grilla siempre muestra 12 meses | H4, H7 |
-| Franja de indicadores (Presupuestado / Ejecutado %/ Disponible) | default · empty (montos 0) · loading (skeleton) · error (n/a) · disabled (n/a) | Disponible: --success si ≥0, --error si <0 | H1 |
+| Barra de controles (toggle Mes/Año, selector de mes, toggle Resumen/Dashboard) | default (Mes, mes en curso) · disabled · empty (n/a) · error (n/a) · loading | El filtro Mes/Año gobierna SOLO la franja de indicadores; la grilla siempre muestra los 12 meses (FR-016) | H4, H7 |
+| **Franja de indicadores «Resumen» — FR-016** (PRESUPUESTO · GASTOS / EJECUTADO con % / DISPONIBLE) | default · empty (montos 0 → 0%, sin división por cero) · loading (skeleton) · error (n/a) · disabled (n/a) | Tres cifras del tipo **Gasto** en el alcance del filtro. Subtítulos: alcance («Junio 2026» / «Año 2026») · «N% del presupuesto» (entero) · «dentro del plan» / «sobre el plan». DISPONIBLE = Presupuestado − Ejecutado, en `--success` si ≥ 0 —incluido el 0 exacto— y `--error` si es negativo. Ingresos y Transferencias no alteran ninguna de las tres | H1 |
 | Columna categoría sticky (240px) | default · empty ("sin categorías, crea una") · loading · error (n/a) · disabled (n/a) | Filas Tipo→Grupo→Categoría→Subcategoría; chevron expandir; indent 16px/nivel | H6, H4 |
 | Celda Pres./Ejec. de HOJA | default · editing (input inline) · error (valor inválido → descarta) · empty (— o 0) · disabled (celda de padre = no editable) | Clic abre input; Enter/blur confirma; Escape cancela; Ejec. colorea por varianza | H3 (Escape=undo), H5 |
 | Fila de total por Tipo | default (no editable, sin acciones) · resto n/a | Fondo --bg-elevated, texto color del tipo, peso 600–700 | H8 |

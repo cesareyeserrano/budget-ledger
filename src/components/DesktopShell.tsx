@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Plus, X, Wallet } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel, currentMonthKey } from "@/domain/months";
-import { typeTotals } from "@/domain/rollup";
+import { summaryKpis } from "@/domain/dashboard";
 import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
@@ -27,13 +27,9 @@ export function DesktopShell() {
   const [view, setView] = useState<View>("budget");
   const [panel, setPanel] = useState(false);
 
-  const kpis = useMemo(() => {
-    const months = period.mode === "month" ? [period.month] : MONTHS.map((m) => m.k);
-    const exp = typeTotals(data, "expense", months);
-    const available = exp.budget - exp.actual;
-    const pct = exp.budget > 0 ? Math.round((exp.actual / exp.budget) * 100) : 0;
-    return { presupuestado: exp.budget, ejecutado: exp.actual, pct, available };
-  }, [data, period]);
+  // FR-016 — la franja «Resumen». El cómputo vive en el dominio (summaryKpis), no aquí: aquí no era
+  // alcanzable por un test sin montar el componente, y por eso el requisito no tenía verificación.
+  const kpis = useMemo(() => summaryKpis(data, period), [data, period]);
 
   const scopeLabel = period.mode === "month" ? `${monthLabel(period.month)} 2026` : "Año 2026";
 

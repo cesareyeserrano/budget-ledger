@@ -70,7 +70,8 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
   // BG-006: una categoría/sub VACIADA (ejecutado en 0 en todos los meses) debe poder borrarse,
   // aunque tenga movimientos históricos en el journal (el journal es inmutable y antes la
   // bloqueaba para siempre). Al borrarla, sus movimientos se retiran para no dejar huérfanos.
-  it("BG-006: categoría vaciada (ejecutado en 0) se puede borrar aunque tenga movimientos históricos", () => {
+  // @aitri-tc TC-003g
+  it("TC-003g: BG-006 — categoría vaciada (ejecutado en 0) se puede borrar aunque tenga movimientos históricos", () => {
     let s = seedWithMovements();
     expect(canDeleteNode(s, "c-cafe")).toBe(false); // con ejecutado > 0 sigue bloqueada
     // el usuario la vacía: pone el ejecutado en 0 en los meses que tenían monto

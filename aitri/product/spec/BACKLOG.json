@@ -146,9 +146,10 @@
       "title": "Actualizar files_created y test_files de 04_BUILD_REPORT.json",
       "priority": "P3",
       "problem": "aitri/product/spec/04_BUILD_REPORT.json cita en files_created src/components/MovementForm.tsx y src/components/RecentList.tsx, ambos borrados (los reemplazaron register/ y BL-003). test_files sigue enumerando los 7 archivos de la primera build cuando la suite real son 33. El artefacto es la referencia de quien llega nuevo al proyecto y describe un arbol que no existe.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:59:31.898Z",
-      "acceptance": "files_created y test_files regenerados contra el arbol actual; ningun archivo citado inexistente."
+      "acceptance": "files_created y test_files regenerados contra el arbol actual; ningun archivo citado inexistente.",
+      "closedAt": "2026-08-05T15:02:02.897Z"
     },
     {
       "id": "BL-017",
@@ -210,6 +211,14 @@
       "problem": "package.json define 'dev': 'next dev -p 3100' y next dev liga a 0.0.0.0 por defecto: la app de desarrollo queda alcanzable desde toda la red local. Verificado durante la auditoria del 2026-08-05: curl http://192.168.1.8:3100/ devolvio 200 con el proceso vivo desde hacia 3 dias. Como el BETTER_AUTH_SECRET de desarrollo esta versionado en el repositorio, quien alcance ese puerto puede forjar una sesion valida contra esa instancia. Es el hermano de RQ-SEC-006, que ato los contenedores a loopback pero dejo fuera el proceso de Next. Arreglo: 'dev': 'next dev -H 127.0.0.1 -p 3100', con un 'dev:lan' aparte y explicito para el caso de probar desde el movil, y una comprobacion en scripts/security-config.sh para que no se revierta en silencio. Ver RQ-SEC-011 en AUDIT_REPORT.md.",
       "status": "open",
       "createdAt": "2026-08-05T04:09:48.373Z"
+    },
+    {
+      "id": "BL-024",
+      "title": "Un test unitario hace npm audit por red y vuelve no determinista el gate coverage",
+      "priority": "P2",
+      "problem": "TC-BE-084h (tests/unit/backend-gates.test.ts:62) ejecuta 'npm audit --audit-level=high' contra la red dentro de la suite unitaria. Bajo la carga del e2e en paralelo llego a tardar 287s en el verify-run del 2026-08-05 y agoto el timeout de 300s del gate coverage, que salio 'error' (exit_code null) siendo required. Se subio el timeout a 900s como parche, pero la causa sigue: un test unitario no deberia depender de la red. Ademas es REDUNDANTE: scripts/security-config.sh ya corre el mismo 'npm audit --audit-level=high' como quality gate, asi que la comprobacion de postura no se pierde si el test deja de hacer la llamada. Arreglo propuesto: que TC-BE-084h verifique solo que el CI declara el gate SCA (la parte de contrato, que es instantanea) y delegar la ejecucion real a security-config.sh; o darle su propio timeout y marcarlo como test lento fuera del camino de coverage.",
+      "status": "open",
+      "createdAt": "2026-08-05T17:02:56.131Z"
     }
   ]
 }

@@ -26,7 +26,7 @@
       "id": "FR-003",
       "title": "Borrado seguro: bloqueado hasta vaciar el nodo (sin huérfanos)",
       "level": "production_ready",
-      "evidence": "3 tests unit (TC-003h/e/f): una categoría con datos vigentes devuelve {blocked:'has_data'} sin mutar; una hoja sin datos se borra directo con sus montos; un nodo con hijos devuelve {blocked:'has_children'}. Re-derivado 2026-08-04: el FR describía el mecanismo 'Sin asignar' del brief, RETIRADO por decisión del usuario (feature `grid-ux`, FR-110) — GAP-4 del AUDIT_REPORT. Existe además cobertura real de BG-006 (un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos) en tests/domain/categories.test.ts, hoy sin TC-ID asignado."
+      "evidence": "3 tests unit (TC-003h/e/f): una categoría con datos vigentes devuelve {blocked:'has_data'} sin mutar; una hoja sin datos se borra directo con sus montos; un nodo con hijos devuelve {blocked:'has_children'}. Re-derivado 2026-08-04: el FR describía el mecanismo 'Sin asignar' del brief, RETIRADO por decisión del usuario (feature `grid-ux`, FR-110) — GAP-4 del AUDIT_REPORT. Existe además cobertura real de BG-006 (un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos) en tests/domain/categories.test.ts, hoy sin TC-ID asignado. AÑADIDO 2026-08-05: TC-003g cubre BG-006 (un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos, porque la señal es el monto vigente y no el journal inmutable). El test existía y pasaba en cada verify desde el arreglo del bug, pero sin @aitri-tc no contaba para cobertura."
     },
     {
       "id": "FR-004",
@@ -89,6 +89,12 @@
       "evidence": "3 e2e (TC-015h/e/f) + unit (TC-105e/f, moveNode): reparent a categoría/grupo del mismo tipo; rechazo cross-type; cero huérfanos. Deuda: el arrastre real requiere navegador (CI/verify)."
     },
     {
+      "id": "FR-016",
+      "title": "Franja de indicadores «Resumen» en escritorio (Presupuestado / Ejecutado con % / Disponible)",
+      "level": "production_ready",
+      "evidence": "3 tests unit pasando (TC-016h/e/f, tests/domain/summary-kpis.test.ts) sobre summaryKpis() en src/domain/dashboard.ts. TC-016h: en modo Mes las cuatro cifras son exactas (800000/200000 → pct 25, available 600000). TC-016e: presupuesto 0 ⇒ pct 0 sin NaN/Infinity, empate ⇒ available exactamente 0 (frontera de «dentro del plan»), y Mes→Año agrega los 12 meses. TC-016f: Ingresos y Transferencias del mismo mes no alteran ninguna cifra, y ejecutado>presupuestado ⇒ available negativo. Los tres se validaron por MUTACIÓN: quitar la guarda de división por cero mata TC-016e, y cambiar el tipo agregado de expense a income mata los tres. ORIGEN: la superficie existía desde el principio pero su cómputo vivía en un useMemo de DesktopShell, inalcanzable para un test sin montar el componente — por eso llegó a producción sin requisito ni verificación (auditoría 2026-08-05, GAP-9). El usuario decidió crear el requisito; la lógica se extrajo al dominio."
+    },
+    {
       "id": "NFR-001",
       "title": "Performance: edición/roll-up ≤150ms; carga ≤2s",
       "level": "production_ready",
@@ -122,7 +128,7 @@
       "id": "NFR-006",
       "title": "CI/CD y arranque (smoke) de la imagen",
       "level": "production_ready",
-      "evidence": ".github/workflows/ci.yml corre suite completa (typecheck+unit+build+e2e) en push/PR a main; smoke.sh arranca la app y verifica / → 200; Dockerfile con HEALTHCHECK."
+      "evidence": ".github/workflows/ci.yml corre suite completa (typecheck+unit+build+e2e) en push/PR a main; smoke.sh arranca la app y verifica / → 200; Dockerfile con HEALTHCHECK. AÑADIDO 2026-08-05: TC-106g cubre BG-014 — el gate smoke acreditó durante cuatro semanas un build del 9 de julio (solo recompilaba si faltaba BUILD_ID) y podía sondear un proceso ajeno si el puerto estaba ocupado. El TC verifica las tres propiedades que lo impiden: recompilación por mtime de las fuentes, guarda de puerto ocupado, y verificación del gating 401 de las 4 rutas de datos más los 5 headers de seguridad además del 200 en '/'."
     }
   ],
   "technical_debt_inherited": [
@@ -158,7 +164,7 @@
     "smoke.sh",
     ".github/workflows/ci.yml"
   ],
-  "verification_summary": "54/54 TCs de la raíz pasando (30 unit + 24 e2e; 0 fallos, 0 skip) y «every acceptance criterion has a passing test». Suite completa del repositorio: 344/344 unit+integration y 268/268 e2e sin reintentos. Quality gates 7/7 en verde: typecheck, lint, coverage, smoke, security-config, secret-scan y e2e. Los dos gates de seguridad se declararon en ciclos consecutivos y ambos se verificaron en ambos sentidos antes de declararse —security-config falla al revertir poweredByHeader o el binding de pgweb; secret-scan sale con exit 1 ante una clave AWS plantada en src/— para no declarar gates decorativos. Sin bugs activos: BG-010, BG-011 y BG-012 cerrados con evidencia. BL-003 aplicado: la lista «Recientes» se retiró del móvil; FR-001 se verifica por el overlay de confirmación + reset del monto (TC-001h), y las regresiones de otras features se re-anclaron al mismo observable.",
+  "verification_summary": "59/59 TCs de la raíz pasando (35 unit + 24 e2e; 0 fallos, 0 skip) y «every acceptance criterion has a passing test» sobre 26 criterios. Suite completa del repositorio: 567 TCs agregados sin reintentos. Quality gates 7/7 en verde: typecheck, lint, coverage, smoke, security-config, secret-scan y e2e (advisory). Re-derivación del 2026-08-05: +5 TCs sobre los 54 previos — TC-016h/e/f (FR-016, requisito nuevo), TC-003g (BG-006) y TC-106g (BG-014). Los dos últimos son tests que YA corrían y pasaban pero no llevaban @aitri-tc, así que no contaban para cobertura; ahora sí. El gate `coverage` subió su timeout a 900s: TC-BE-084h ejecuta npm audit por red dentro de la suite y bajo la carga del e2e llegó a 287s por sí solo, agotando el default de 300s y haciendo no determinista un gate required (BL-024 registra la causa y el arreglo, que es delegar esa comprobación a security-config.sh, donde ya se hace).",
   "version_source": "team",
   "compliance_gaps": [
     {
@@ -190,6 +196,12 @@
       "severity": "advisory",
       "gap": "StorageBanner solo está montado en MobileShell, así que en escritorio los avisos de persistencia son invisibles: ni «no pudimos guardar» (red) ni «el servidor respondió algo ilegible» (BG-012) llegan al usuario.",
       "mitigation": "Preexistente — BG-012 no lo introdujo, solo lo hizo más evidente al añadir un segundo motivo. El estado en pantalla nunca se corrompe y el dato del servidor nunca se sobrescribe, así que no hay pérdida: lo que falta es que el usuario de escritorio se entere. Registrado como BL-022 con criterio de aceptación propio (un e2e por motivo en ambos shells)."
+    },
+    {
+      "id": "FR-016-NO-E2E",
+      "severity": "accepted",
+      "gap": "FR-016 se verifica en el nivel de dominio (summaryKpis), no de UI: ningún TC comprueba que DesktopShell renderice esas cifras en pantalla ni sus colores --success/--error.",
+      "mitigation": "Aceptado. La lógica —que es donde estaban los bordes sin cubrir (división por cero, empate en 0, contaminación por otros tipos)— queda verificada y validada por mutación. El renderizado es una línea por KPI sobre el componente Kpi compartido, ya cubierto por TC-UXC-308h. Si la franja gana comportamiento propio en el diseño posterior que el usuario dejó abierto, ahí corresponde un e2e."
     }
   ]
 }
