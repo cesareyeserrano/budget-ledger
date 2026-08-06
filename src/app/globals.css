@@ -38,6 +38,28 @@
   --control-sm: 32px;
   --control-md: 40px;
   --control-lg: 48px;
+
+  /* refinamiento-ui FR-1206: ESCALA DE ESPACIADO sobre base 4 px. La spec original del sistema
+     la declaraba y la implementación nunca la trajo, así que cada componente eligió su gap a mano:
+     se medían 9 valores distintos, con 6, 10 y 14 px fuera de rejilla. Declararla en @theme hace
+     que Tailwind genere sus utilidades (gap-1, p-3…) sobre estos valores. */
+  /* refinamiento-ui FR-1206: tamaños de la escala expuestos como utilidades de TAMAÑO PURO.
+     Los 18 tamaños ad-hoc caían todos en dos escalones (0.72/0.74/0.75 → caption; 0.8/0.85 → label).
+     Se exponen así, y no como las clases de rol .caption/.label, porque esas además fijan el PESO:
+     sustituirlas a ciegas habría cambiado el aspecto de botones, tabs y selects. */
+  --text-caption: 0.75rem;
+  --text-label: 0.8125rem;
+
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+
+  /* refinamiento-ui FR-1206 — NOTA: la escala de MOTION ya estaba declarada en :root
+     (--duration-fast/normal/slow y --ease-snap/soft). Lo que faltaba no era declararla sino
+     CONSUMIRLA: había duraciones escritas a mano en los componentes. No se duplica aquí. */
 }
 
 /* ── Sistema de diseño ZINC neutro + acento dinámico por tipo (FR-202/FR-204).
@@ -73,25 +95,39 @@
   --border-hover: #d3d3d9;
 
   /* Semántico — tonos calmados, alineados con los acentos de tipo */
-  --success: #2f7d53;         /* forest green (Ingreso favorable) */
-  --warning: #b45309;         /* amber-700 — umbral "cerca del límite", 5.0:1 */
-  --error: #c4453e;           /* brick red — error de aplicación (StorageBanner, dashboard, registro) */
+  --success: var(--favorable);  /* alias — el rol canónico es --favorable (FR-1201) */
+  --warning: var(--alert-soft); /* alias — el rol canónico es --alert-soft (FR-1201) */
+  --error: var(--alert-strong); /* La validación de entrada PERTENECE a la familia de alerta:
+                                   señala excepción, no clasifica (FR-1201). Alias, no token propio. */
 
   /* budget-state-color FR-401/NFR-403: estado de sobre-consumo, uso EXCLUSIVO de la grilla.
      Se AGREGAN (ADR-03) en vez de redefinir --warning/--error, que se usan en toda la app.
      Mismo hue, luminancia bajada lo justo para cumplir AA (≥4.5:1) sobre las CUATRO superficies
      de la grilla — la peor en claro es la celda del mes resaltado de una fila padre (#e4e4e6). */
-  --state-warning: #9e4708;   /* ámbar "te pasaste poco" (>100 % y <120 %) — peor caso 4.92:1 */
-  --state-over: #ad3932;      /* rojo  "te pasaste mucho" (≥120 %)          — peor caso 4.85:1 */
+  --state-warning: var(--alert-soft);   /* alias — el rol canónico es --alert-soft (FR-1201) */
+  --state-over: var(--alert-strong);    /* alias — el rol canónico es --alert-strong (FR-1201) */
+
+  /* refinamiento-ui FR-1201 — ROLES CANÓNICOS. El rojo, el ámbar y el verde dejan de tener
+     un token por consumidor y pasan a tener uno por SIGNIFICADO. De cada grupo colisionado se
+     conserva el valor con MEJOR contraste verificado, así que la unificación sube el contraste
+     o lo deja igual; nunca lo baja. Medido antes: el rojo tenía 5 significados y en tema oscuro
+     los cinco eran el mismo #ec6a66.
+       alert-strong ← --state-over, --error-strong, --error, y el --type-expense de la grilla
+       alert-soft   ← --state-warning, --warning
+       favorable    ← --success-strong, --success, y el --type-income de la grilla
+     Los --type-* SIGUEN declarados porque el REGISTRO los consume (regla de campos perceptuales,
+     NFR-1203): allí el color codifica la selección activa, no una clasificación. */
+  --alert-strong: #ad3932;    /* excepción grave: sobre-consumo ≥120 %, saldo negativo, error — 4.85:1 */
+  --alert-soft:   #9e4708;    /* excepción leve: >100 % y <120 %, cerca del límite — 4.92:1 */
+  --favorable:    #2d7650;    /* situación buena: saldo sano, ingreso sobre plan — 4.87:1 */
 
   /* balance FR-905/NFR-906: cifras de RESULTADO del módulo de Balance (Saldo disponible/total).
      Mismo motivo y misma solución que los --state-*: medido, --success y --error se quedan cortos
      sobre la superficie HUNDIDA del módulo (#f1f1f3 → 4.45:1 y 4.36:1, bajo el mínimo AA de 4.5).
      Se AGREGAN en vez de redefinir --success/--error, que usa toda la app (card DISPONIBLE,
      StorageBanner, dashboard, registro). Mismo hue, luminancia bajada lo justo. */
-  --success-strong: #2d7650;  /* verde "saldo sano"     — 4.87:1 sobre --bg-sunken */
-  --error-strong: #ad3932;    /* rojo  "saldo negativo" — 5.46:1 sobre --bg-sunken. Coincide con
-                                 --state-over a propósito: rojo = problema en toda la grilla (H4). */
+  --success-strong: var(--favorable);   /* alias — el rol canónico es --favorable (FR-1201) */
+  --error-strong: var(--alert-strong);  /* alias — el rol canónico es --alert-strong (FR-1201) */
 
   /* Colores por tipo de movimiento (identidad cromática, FR-204). ux-consistency: los valores se
      AFINAN (permitido por NFR-302) a tonos DESATURADOS — ladrillo / bosque / acero — para eliminar
@@ -149,19 +185,24 @@
   --border-hover: #43434c;
 
   /* Semántico en oscuro: MÁS claros y MENOS saturados que en claro (evita vibración óptica). */
-  --success: #5fbe82;
-  --warning: #e0a458;
-  --error: #ec6a66;
+  --success: var(--favorable);
+  --warning: var(--alert-soft);
+  --error: var(--alert-strong);
 
   /* budget-state-color: en oscuro los tonos existentes YA pasaban AA sobre las cuatro superficies
      (peor caso: la celda resaltada de una hoja, #212123 → ámbar 7.36:1, rojo 5.22:1). */
-  --state-warning: #e0a458;
-  --state-over: #ec6a66;
+  --state-warning: var(--alert-soft);
+  --state-over: var(--alert-strong);
+
+  /* refinamiento-ui FR-1201 — roles canónicos, tema oscuro. */
+  --alert-strong: #ec6a66;
+  --alert-soft:   #e0a458;
+  --favorable:    #5fbe82;
 
   /* balance: en oscuro los tonos BASE ya pasan sobre la superficie hundida (#0f0f12 → verde
      8.36:1, rojo 6.21:1), así que la variante coincide con su token base: cero cambio visual. */
-  --success-strong: #5fbe82;
-  --error-strong: #ec6a66;
+  --success-strong: var(--favorable);
+  --error-strong: var(--alert-strong);
 
   /* Acentos por tipo en oscuro: mismo hue, aclarados y desaturados (~20-40% menos saturación). */
   --type-expense: #ec6a66;    /* 5.6:1 sobre la superficie */

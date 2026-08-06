@@ -1,0 +1,388 @@
+{
+  "project_name": "refinamiento-ui — sistema visual del escritorio (parte 1 de 2)",
+  "project_summary": "Corrige la ENTROPÍA DE COMPOSICIÓN del front de escritorio. Diagnóstico de tres pasadas (código + la pantalla real con los datos del usuario, capturada a 1024/1440/1920 en ambos temas): la pantalla es un ensamblaje de piezas correctas diseñadas por separado — cada feature resolvió bien lo suyo y ninguna revisó el conjunto, así que el rojo acabó con 5 significados (los cinco el MISMO hex en oscuro), la escala tipográfica volvió a tener 18 tamaños ad-hoc tras haberlos eliminado, hay 4 rótulos compitiendo por decir dónde estás y 2 leyendas más un pie de ayuda explicando la interfaz. Mirando la pantalla aparecieron además: 240px de chrome (31% de la altura a 1024) ocupados por tres tarjetas que muestran $0, y ~30 em-dashes de «sin dato» pintados del color de su categoría — la variable perceptual más fuerte del producto gastada en la ausencia de información. ALCANCE (decisión del usuario, opción B, 2026-08-06): esta feature toma los sistemas VISUALES, mecánicos y de bajo riesgo (tokens, rótulos, retiradas). La interacción de fila, la composición del registro y el layout adaptativo se aparcan para una SEGUNDA feature porque tocan el arrastrar-y-soltar, territorio de tres features y donde vivió BUG-1. North Star: el rojo nunca clasifica, sólo señala excepción. Guardrail: cero pérdida de funcionalidad y cero regresión del dominio.",
+  "technology_preferences": [
+    "Sin dependencias nuevas: Tailwind v4, tokens CSS custom properties y los componentes de ui/ que ya existen",
+    "No se introduce ningún color nuevo: la feature UNIFICA tokens existentes y retira usos. El usuario rechazó explícitamente añadir un hue de estructura"
+  ],
+  "constraints": [
+    "Decisión de color del usuario (2026-08-05), tomada sobre el comparador visual: la identidad de bloque NO usa hue propio —«prefiero blancos, color neutro»— y los glifos son LATERALES (← → ⇄), no verticales. La grilla queda con cero color de identidad",
+    "El REGISTRO conserva su propagación de color por tipo. Regla acordada con el usuario (2026-08-06): en el registro hay UN tipo activo a la vez y no se muestra estado, así que el color codifica la SELECCIÓN EN CURSO sobre controles activos; en la grilla conviven los tres tipos y el estado es la información buscada, así que codifica ESTADO. Campos perceptuales distintos, tareas distintas: es una regla, no una inconsistencia, y se documenta como tal",
+    "La marca no cromática de gravedad (› / ››) se conserva y sigue derivándose del MISMO BudgetState que el color (ADR-02 del padre, WCAG 1.4.1)",
+    "Contraste AA (≥4,5:1) en AMBOS temas, incluido el peor caso de celda resaltada sobre fila hundida",
+    "No se toca cálculo, dominio ni modelo de datos: esta feature es presentación"
+  ],
+  "no_go_zone": [
+    "El DASHBOARD — fuera por decisión explícita del usuario (2026-08-05: «no tengamos en cuenta el dashboard acá»). Sus 7 indicadores (FR-009 del padre) quedan exactamente como están",
+    "Ampliar la experiencia móvil — el móvil sigue mostrando SOLO el registro (FR-010 del padre)",
+    "Cambiar cálculos, roll-ups, reglas de negocio o el modelo de datos — esta feature es presentación e interacción",
+    "Introducir un hue de estructura para la identidad de bloque — el usuario lo rechazó explícitamente el 2026-08-05 tras verlo en el comparador; la identidad la portan el glifo lateral, el peso y la banda",
+    "APARCADO PARA LA SEGUNDA FEATURE, no descartado — INTERACCIÓN DE FILA: separar el asa de arrastre del rótulo (hoy todo el rótulo es asa con cursor-grab y a la vez zona de clic) y consolidar los hasta 5 objetivos de 13 px que conviven en hover. Se aparta porque toca el arrastrar-y-soltar de FR-015 / promote-to-group / demote-node, donde vivió BUG-1",
+    "APARCADO PARA LA SEGUNDA FEATURE — COMPOSICIÓN DEL REGISTRO: el signo separado ~180 px del monto por el flex-1 text-center de AmountDisplay, «Guardar» cortado en el panel de escritorio a 900 px de alto, la copia de desarrollador «NUEVO · OPCIONAL EN DESKTOP», y si el panel lateral es el sitio correcto. Su COLOR sí se decide aquí (se conserva); su composición no",
+    "APARCADO PARA LA SEGUNDA FEATURE — LAYOUT ADAPTATIVO: a 1920 sobran ~170 px bajo el Balance, a 1024 el Balance queda casi entero bajo el pliegue, y la altura del chrome es fija en ambos casos",
+    "Retirar el color por tipo del REGISTRO — el usuario decidió conservarlo bajo la regla de campos perceptuales distintos (2026-08-06)",
+    "Introducir una paleta o un hue nuevos — la feature sólo unifica tokens existentes y retira usos"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales (el mismo usuario del producto)",
+      "tech_level": "mid",
+      "goal": "Sentarse a revisar y ajustar el presupuesto del año en la grilla y detectar de un vistazo dónde se está desviando, sin tener que descifrar qué significa cada color",
+      "pain_point": "El mismo rojo significa «esto es un gasto», «te pasaste mucho», «tu saldo es negativo» y «tu entrada es inválida»; la pantalla dedica 240 px de su altura a tres tarjetas que muestran $0; y hasta los guiones de «sin dato» están pintados del color de su categoría"
+    },
+    {
+      "role": "Autor / revisor técnico del portafolio",
+      "tech_level": "high",
+      "goal": "Que el rediseño deje el árbol más limpio de lo que lo encontró: sin componentes ni tokens huérfanos, y sin trazas internas viajando al bundle del navegador",
+      "pain_point": "FR-303 eliminó ~17 tamaños tipográficos ad-hoc y hoy hay 18; no existen escalas de espaciado ni de motion, así que cada componente elige su gap y su duración a mano; y queda un módulo huérfano que filtra trazas internas al bundle del navegador"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1201",
+      "title": "El rojo y el ámbar sólo señalan excepción; nunca clasifican",
+      "description": "Los hues de alerta dejan de codificar cualquier cosa que no sea «esto exige tu atención». Se retira su uso como IDENTIDAD DE TIPO. Los tokens colisionados se unifican conservando en cada grupo el valor con MEJOR contraste verificado: `--type-expense`, `--state-over` y `--error-strong` colapsan en un token único de alerta grave; `--warning` y `--state-warning` en uno de alerta leve; `--type-income`, `--success` y `--success-strong` en uno de situación favorable. El `--error` de VALIDACIÓN DE ENTRADA (monto inválido, nota que excede, operación rechazada) pertenece a la familia de alerta y SE MANTIENE: es una convención universal y señala excepción, no clasifica — por eso el criterio no es «un solo significado» sino «nunca clasifica». Motivo medido: el rojo tiene CINCO significados (identidad de gasto, sobre-consumo ≥120 %, saldo negativo, error de aplicación y validación de entrada) y en tema oscuro los cinco son el mismo `#ec6a66`; el verde tiene tres y los tres son `#5fbe82`. No eran colores distintos con significados distintos: era el mismo píxel haciendo cinco trabajos. El REGISTRO queda fuera de esta retirada por la regla de campos perceptuales (ver constraints). ACOTACIÓN (decisión del usuario, opción A, 2026-08-06): la comprobación de colisión se acota a tokens que COEXISTEN en una misma superficie. `--type-expense` y el token de alerta comparten valor en tema oscuro y así se quedan: nunca aparecen juntos en pantalla, y separarlos obligaría a cambiar el aspecto del registro que NFR-1203 manda conservar y a re-verificar AA sin ganancia para el usuario. El invariante que sí se hace cumplir por gate es «ningún `--type-*` se usa fuera de `register/`».",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Auditando cada uso de rojo en `src/` fuera del registro, todos señalan excepción y ninguno clasifica una categoría — línea base medida: 5 significados, de los cuales 1 clasifica (happy)",
+        "Lo mismo para el verde: señala situación favorable y no identidad de tipo — línea base medida: 3 significados, de los cuales 1 clasifica",
+        "Ningún par de tokens que COEXISTAN en una misma superficie comparte valor hexadecimal con significados distintos, en ninguno de los dos temas (negativo — es la colisión que originó la feature, acotada al campo donde ocurría). El rojo de identidad del registro y el de alerta comparten valor en oscuro y quedan FUERA del criterio por decisión del usuario (opción A, 2026-08-06): no coinciden jamás en pantalla, son campos perceptuales distintos",
+        "Ningún elemento de la grilla ni del módulo de Balance deriva su color del tipo del nodo (negativo)",
+        "El rojo de validación de entrada se conserva y sigue señalando entrada inválida (regresión — es convención universal, no una omisión)",
+        "Todo texto coloreado conserva ≥4,5:1 sobre su superficie en ambos temas, incluido el peor caso de celda resaltada sobre fila hundida (boundary)",
+        "El registro conserva intacta su propagación de color por tipo (regresión — regla acordada, no excepción olvidada)"
+      ]
+    },
+    {
+      "id": "FR-1202",
+      "title": "La identidad de bloque es NEUTRA y se distingue por glifo lateral",
+      "description": "El encabezado de cada bloque de tipo (INGRESOS / GASTOS / RESERVAS) NO lleva hue propio: se pinta en tinta neutra (`--fg`), igual que el resto de la grilla. Se distingue del cuerpo por peso tipográfico, la banda estructural que ya existe y su GLIFO. Los glifos pasan de verticales a LATERALES: ← Ingreso (entra), → Gasto (sale), ⇄ Reserva (va y vuelve). DECISIÓN DEL USUARIO (2026-08-05), tomada al ver el comparador: rechazó el azul de estructura que el agente había propuesto —«los nombres de los tipos quedaron azules, prefiero blancos, color neutro»— y pidió las flechas laterales en lugar de verticales. Es la variante de reserva que ya estaba registrada en idea_gaps, y simplifica el resultado: NO se introduce ningún token de color nuevo, y la grilla queda con CERO color de identidad. El color de tipo se retira además de las filas de nodo, de las celdas de dato y de los íconos de nodo, que pasan a tinta neutra.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Las tres filas de total por tipo se pintan en tinta neutra (--fg): ninguna lleva hue propio ni de estructura (happy)",
+        "Cada bloque se distingue por su glifo lateral —← Ingreso, → Gasto, ⇄ Reserva— y por peso tipográfico, no por color",
+        "Ninguna fila de nodo ni ninguna celda de dato lleva color derivado del tipo: la tinta es neutra salvo que exprese estado (edge)",
+        "Los íconos de nodo se pintan en tinta neutra, no en color de tipo (negativo respecto al comportamiento anterior)",
+        "En la vista de Presupuesto, el número de elementos coloreados por identidad de tipo es 0 — línea base: uno por fila de nodo más las tres filas de total",
+        "No se declara ningún token de color nuevo para esta feature (invariante — la decisión del usuario lo hace innecesario)"
+      ]
+    },
+    {
+      "id": "FR-1203",
+      "title": "La marca no cromática de gravedad se conserva y se refuerza",
+      "description": "Los glifos `›` (>100 % y <120 %) y `››` (≥120 %) siguen derivándose del MISMO `budgetState(b, e)` que el color, desde una única tabla indexada por estado, de modo que el canal redundante de WCAG 1.4.1 no pueda contradecir al color (ADR-02 del padre). Al liberarse el color de la identidad de tipo, este canal pasa a ser el portador principal de gravedad y puede reforzarse con peso tipográfico progresivo sin competir con nada. Un Ingreso que supera su presupuesto sigue SIN marca: superar un ingreso planeado es bueno (NFR-402 del padre).",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Color y glifo de una celda de gasto se derivan de la misma llamada a budgetState con las mismas entradas: no existe una segunda condición que mantener en sincronía (invariante)",
+        "Una celda de gasto al 132 % muestra `››` y una al 108 % muestra `›`; una al 95 % no muestra glifo (happy + edge)",
+        "Una celda de Ingreso con ejecutado por encima del presupuesto no muestra glifo alguno (negativo)",
+        "Simulando visión sin distinción rojo-verde, el estado de cada celda sigue siendo identificable por glifo y peso (accesibilidad)"
+      ]
+    },
+    {
+      "id": "FR-1204",
+      "title": "El chrome devuelve a los datos el espacio que ocupa",
+      "description": "Medido EN PANTALLA: encabezado + barra de controles + franja de resumen suman 240 px antes del primer dato — el 31 % de la altura útil a 1024×768, donde el módulo de Balance queda casi entero bajo el pliegue (3 de sus 8 filas visibles). Y ese espacio lo ocupan tres tarjetas que muestran $0, $0, $0, de ~630 px de ancho cada una a 1920. Se comprime la franja y se consolidan las dos barras. Además se corrigen las redundancias medidas: (a) el <h1> dice «Presupuesto» mientras la pestaña de la MISMA vista dice «Resumen» — un solo nombre por vista; (b) la etiqueta de alcance («Agosto 2026») se imprime dos veces, en la barra de controles y como subtítulo de la primera tarjeta — una sola vez; (c) la marca «Ledger» con su ícono de billetera se retira de AMBOS shells por decisión del usuario; (d) los controles se agrupan por CLASE —navegación, trabajo, preferencia, cuenta— porque hoy los cuatro comparten fila, y por eso «Salir» se siente arbitrario (nota: la pantalla de acceso y el botón YA adoptan el sistema de diseño, lo entregó servidor-fuente-unica FR-1108; BL-011 está obsoleto y debe cerrarse — lo que queda es la UBICACIÓN); (e) la tercera tarjeta se rotula RESTANTE en vez de DISPONIBLE, que colisiona con el «Saldo disponible» del Balance en la misma pantalla midiendo otra cosa. Re-deriva FR-016 del padre.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "La altura de chrome sobre el primer dato baja de 240 px; a 1024×768 el módulo de Balance muestra más filas que las 3 actuales (happy — es la medición que originó el requisito)",
+        "Una vista se nombra igual en su título y en su pestaña: no hay dos rótulos distintos para la misma vista (negativo)",
+        "La etiqueta de alcance del periodo aparece exactamente una vez en la pantalla (boundary)",
+        "La marca y su ícono de billetera no se renderizan en ningún shell (negativo)",
+        "El control de cuenta no comparte grupo visual con navegación, trabajo ni preferencia, e indica a qué cuenta pertenece la sesión",
+        "No queda en la vista más de un elemento rotulado «disponible» con cálculos distintos (invariante)",
+        "El cálculo de las tres cifras del resumen no cambia: sigue siendo el del tipo Gasto en el alcance del filtro (regresión de FR-016 del padre)"
+      ]
+    },
+    {
+      "id": "FR-1205",
+      "title": "La interfaz se explica sola y no afirma lo que no sabe",
+      "description": "Hoy la pantalla lleva DOS leyendas —la del encabezado (Presupuestado/Ejecutado) y la StateLegend del pie— más un pie de ayuda de tres líneas que enseña a usar la grilla. Se retira el pie de ayuda por decisión del usuario («hay unas ayudas escritas abajo, sobra») y queda una sola leyenda, la del código de estado vigente. Además el pie AFIRMA sobre los datos algo que no deriva de ellos: «Ene–May ejecutado · Jun en curso · Jul–Dic proyectado» es literalmente la tabla FACTOR de domain/seed.ts, así que con datos reales —o al avanzar el año— miente con el peso de una leyenda del producto. Cierra BL-013. Regla general que instala: ningún texto fijo afirma nada sobre los datos del usuario; o se deriva del estado real, o no existe.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Queda una sola leyenda en la vista de Presupuesto, y explica el código de estado vigente (happy)",
+        "El pie de ayuda que enseña los gestos de la grilla ya no se renderiza (negativo — decisión del usuario)",
+        "Con un ejecutado en un mes distinto a los de la semilla, ningún texto fijo afirma un reparto de meses que los datos no tienen (negativo — BL-013)",
+        "Ningún texto de la interfaz deriva su contenido de domain/seed.ts (invariante)"
+      ]
+    },
+    {
+      "id": "FR-1206",
+      "title": "Las escalas que faltan se declaran, y la deriva tipográfica se cierra",
+      "priority": "MUST",
+      "type": "visual",
+      "description": "El sistema tiene escala tipográfica con roles y escala de altura de control. NO tiene escala de espaciado ni de motion, y la spec original sí las definía. Consecuencia medida: 9 valores de gap distintos en src/components/ (2, 4, 6, 8, 10, 12, 14, 16 y 24 px — los de 6, 10 y 14 fuera de la rejilla de 4 px) y tres duration-[130ms] escritos a mano. Se declaran ambas escalas como tokens y se llevan los usos a ellas. En tipografía el problema es otro: la escala EXISTE y funciona (157 usos), pero el comentario que la introdujo dice que «reemplaza los ~17 tamaños ad-hoc» y hoy hay 18 en 6 ficheros. No falló la escala — falló que nada impide saltársela.",
+      "acceptance_criteria": [
+        "Existe una escala de espaciado declarada como tokens sobre base 4 px, y todo gap de src/components/ sale de ella (happy)",
+        "Existe una escala de motion declarada (duraciones y curvas) y ningún componente escribe una duración a mano (negativo)",
+        "El número de tamaños tipográficos ad-hoc text-[…rem] en src/components/ es 0 — línea base medida: 18 en 6 ficheros (boundary)",
+        "Ningún valor de espaciado usado queda fuera de la rejilla de 4 px (negativo — hoy hay tres: 6, 10 y 14 px)"
+      ]
+    },
+    {
+      "id": "FR-1207",
+      "title": "Retiro del código y los tokens que dejan de usarse",
+      "description": "Se retira el código y los tokens que dejan de tener consumidor. INVENTARIO MEDIDO el 2026-08-05 con un grafo de imports real sobre los 80 módulos de `src/` (un primer barrido por grep dio decenas de falsos positivos y se descartó): el ÚNICO módulo huérfano del árbol es `src/components/useResolvedTheme.ts` — sin un solo importador, y además uno de los dos ficheros que filtran trazas `@aitri-trace` al bundle servido al navegador, así que retirarlo cierra la mitad de ese hallazgo abierto. También sobra el export `CATEGORY_ICONS` de `NodeIcon.tsx`. El resto del árbol está vivo: la limpieza a nivel de ARCHIVO es pequeña, y lo que de verdad sobra son elementos de UI que no se ganan su sitio (FR-1209). A esto se suman los tokens que el rediseño deje sin uso, cuyo inventario se cierra en la Fase 4 contra el árbol real. NOTA: los `--color-*` de globals.css NO son huérfanos — son mapeos `@theme` de Tailwind consumidos por clases utilitarias, no por `var()`; un barrido ingenuo los marca y sería un error retirarlos.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "`src/components/useResolvedTheme.ts` ya no existe y el grafo de imports no lo referencia",
+        "`CATEGORY_ICONS` ya no se exporta, o tiene al menos un consumidor real",
+        "Ningún token declarado en globals.css queda sin uso tras el rediseño, comprobando TANTO `var(--x)` como su consumo por clases utilitarias de Tailwind (edge — el barrido ingenuo produce falsos positivos)",
+        "Tras `npm run build`, el bundle de cliente ya no contiene la traza de este módulo (cierra la mitad del hallazgo abierto)",
+        "Un grafo de imports sobre `src/` devuelve cero módulos huérfanos (invariante)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1201",
+      "requirement_id": "FR-1201",
+      "as_a": "dueño de mis finanzas revisando el año",
+      "i_want": "que cada color de la grilla signifique una sola cosa",
+      "so_that": "puedo confiar en lo que veo sin tener que recordar qué significa el rojo en cada sitio",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1201",
+          "given": "la grilla con gastos dentro del plan y uno sobre-consumido",
+          "when": "recorro la pantalla en cualquiera de los dos temas",
+          "then": "el único elemento rojo es el que está sobre-consumido: ni el bloque de gastos ni ningún ícono de tipo comparten ese hue"
+        }
+      ]
+    },
+    {
+      "id": "US-1202",
+      "requirement_id": "FR-1202",
+      "as_a": "dueño de mis finanzas revisando el año",
+      "i_want": "ubicar de un vistazo dónde empieza cada bloque al hacer scroll",
+      "so_that": "no pierdo el hilo de qué estoy mirando en una grilla de 12 meses",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1202",
+          "given": "la grilla con los tres bloques y la jerarquía expandida",
+          "when": "hago scroll vertical",
+          "then": "los encabezados de INGRESOS, GASTOS y RESERVAS se distinguen del resto por su hue de estructura y su glifo (↑ ↓ ↔), y ninguna fila de nodo compite con ellos por color"
+        }
+      ]
+    },
+    {
+      "id": "US-1204",
+      "requirement_id": "FR-1204",
+      "as_a": "dueño de mi taxonomía",
+      "i_want": "que la columna de categorías responda a lo que su cursor promete",
+      "so_that": "no arrastro cuando quería expandir ni me quedo esperando cuando quería mover",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1204",
+          "given": "una fila de categoría con su asa de arrastre",
+          "when": "hago clic sobre el nombre y luego arrastro desde el asa",
+          "then": "el clic expande y el arrastre reubica: cada zona hace exactamente lo que su cursor anuncia, y la jerarquía queda intacta si suelto en un destino inválido"
+        }
+      ]
+    },
+    {
+      "id": "US-1206",
+      "requirement_id": "FR-1206",
+      "as_a": "dueño de mis finanzas leyendo el resumen",
+      "i_want": "que dos cifras distintas no se llamen igual en la misma pantalla",
+      "so_that": "no dudo de si una de las dos está mal calculada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1206",
+          "given": "la vista de Presupuesto con el resumen y el módulo de Balance visibles",
+          "when": "leo ambos",
+          "then": "ninguna pareja de cifras con cálculos distintos comparte rótulo"
+        }
+      ]
+    },
+    {
+      "id": "US-1203",
+      "requirement_id": "FR-1203",
+      "as_a": "usuario que no distingue bien el rojo del verde (≈1 de cada 12 hombres)",
+      "i_want": "leer la gravedad de un desvío sin depender del color",
+      "so_that": "la grilla me sirve igual que a cualquier otro",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1203",
+          "given": "la grilla con un gasto al 132 % de su presupuesto y otro al 108 %",
+          "when": "la miro sin poder distinguir el rojo del ámbar",
+          "then": "sigo identificando cuál es más grave por su glifo (›› frente a ›) y por su peso tipográfico, y un ingreso por encima de su plan no lleva ninguna marca"
+        }
+      ]
+    },
+    {
+      "id": "US-1205",
+      "requirement_id": "FR-1205",
+      "as_a": "dueño de mi taxonomía trabajando en la grilla",
+      "i_want": "acertar el control que quiero pulsar a la primera",
+      "so_that": "no borro por error lo que quería renombrar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1205",
+          "given": "el puntero sobre una fila de categoría",
+          "when": "aparecen sus acciones",
+          "then": "hay como mucho dos objetivos simultáneos, cada uno de al menos 24×24 px, y crear/renombrar/borrar siguen siendo alcanzables, con el borrado pidiendo confirmación"
+        }
+      ]
+    },
+    {
+      "id": "US-1207",
+      "requirement_id": "FR-1207",
+      "as_a": "revisor técnico del portafolio",
+      "i_want": "que el rediseño no deje código ni tokens huérfanos",
+      "so_that": "quien lea el árbol después sepa qué está vivo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1207",
+          "given": "el árbol tras el rediseño",
+          "when": "busco consumidores de cada componente y de cada token de color",
+          "then": "no queda ninguno sin uso — useResolvedTheme.ts retirado incluido — y el build no filtra su traza @aitri-trace al bundle del navegador"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1201",
+      "category": "Regression",
+      "requirement": "El dominio no se toca: los roll-ups, el invariante padre == Σ hojas, el guardrail de borrado seguro y el reparent conservan exactamente su comportamiento. Esta feature es presentación e interacción.",
+      "acceptance_criteria": "Toda la suite de dominio del padre y de las features previas sigue pasando sin modificar un solo test de cálculo; tras cualquier borrado o reubicación, cero movimientos huérfanos y Presupuestado(padre) == suma(Presupuestado hojas)"
+    },
+    {
+      "id": "NFR-1202",
+      "category": "Regression",
+      "requirement": "La edición inline de celdas de hoja conserva su contrato completo: clic abre el input, Enter confirma, Escape cancela sin cambios, blur confirma; los nodos padre siguen sin ser editables; la columna sticky y el scroll horizontal de los 12 meses siguen funcionando.",
+      "acceptance_criteria": "Los TCs de FR-006 del padre y los de grid-ux siguen pasando sin cambios de aserción"
+    },
+    {
+      "id": "NFR-1203",
+      "category": "Regression",
+      "requirement": "El registro móvil conserva intacta su propagación de color por tipo (FR-203/FR-204 de stack-upgrade-theme): al elegir Gasto, Ingreso o Transferencia, el monto, el signo y el botón Guardar se siguen tiñendo del color del tipo. Esta feature no lo toca.",
+      "acceptance_criteria": "En el registro móvil, seleccionar cada tipo sigue propagando su color al monto, al signo y al botón Guardar, exactamente como antes de esta feature"
+    },
+    {
+      "id": "NFR-1204",
+      "category": "Usability",
+      "requirement": "Contraste AA (≥4,5:1) para todo texto sobre su superficie en AMBOS temas, incluido el peor caso de la celda del mes resaltado sobre una fila hundida; y prefers-reduced-motion respetado en cualquier transición nueva.",
+      "acceptance_criteria": "Medido sobre las superficies reales de la grilla en claro y oscuro, ningún par texto/fondo baja de 4,5:1; con prefers-reduced-motion activo las transiciones se reducen a ~0,001 ms"
+    },
+    {
+      "id": "NFR-1205",
+      "category": "Performance",
+      "requirement": "El rediseño no degrada el guardrail de edición: editar una celda de hoja sigue reflejando los roll-ups de todos sus ancestros en ≤150 ms con la jerarquía semilla completa cargada.",
+      "acceptance_criteria": "La medición de NFR-001 del padre sigue por debajo de 150 ms tras el rediseño"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo enunció el 2026-08-05: «necesitamos revisar bien todo el diseño del front… había que limpiar cosas que no se usan, y sobre todo trabajar la parte core, las grillas. Actualmente no están muy user friendly. Hay que analizar y diseñar basado en fintech products». Las causas concretas están MEDIDAS sobre el código en feature_context/analisis-fintech-grilla.md",
+    "users": "Heredado del producto padre: el mismo Dueño de sus finanzas personales; la feature no abre un tipo de usuario nuevo",
+    "baseline": "Medida el 2026-08-05 sobre src/app/globals.css y src/components/BudgetGrid.tsx: rojo con 4 significados, verde 3, ámbar 2, y colapso de tokens al mismo valor en tema oscuro; rótulo de fila con arrastre y clic simultáneos; hasta 5 objetivos de 13px en hover",
+    "success_metric": "Acordado con el usuario tras corregir el criterio original: la primera redacción decía «el rojo codifica 1 significado», inalcanzable porque el rojo de validación es una convención universal que debe conservarse. Criterio vigente: EL ROJO NUNCA CLASIFICA, SÓLO SEÑALA EXCEPCIÓN.",
+    "no_go_zone": "El usuario excluyó explícitamente el dashboard el 2026-08-05 («no tengamos en cuenta el dashboard acá»). El resto de exclusiones se derivan de la decisión B+ que el usuario tomó y de los límites del producto padre"
+  },
+  "idea_gaps": [
+    "[LÍMITE DEL ANÁLISIS] Las capturas se tomaron sobre el ledger real del usuario, que hoy tiene 3 grupos con 1 categoría cada uno. La grilla NUNCA se vio con jerarquía profunda, que es donde la densidad se pone a prueba. No bloquea esta feature —ninguno de sus 7 FR cambia la densidad— pero condiciona a la segunda.",
+    "[ASSUMPTION] FR-1204 no fija CÓMO se comprime la franja de resumen: fija el resultado medible (menos de 240 px de chrome, más filas de Balance a 1024) y deja la forma a la fase UX.",
+    "[ASSUMPTION] FR-1204 asume que la tarjeta se renombra a «RESTANTE» sin tocar su cálculo. El usuario escribió el 2026-07-27 que estas tarjetas «todavía no están trabajadas a fondo»: si prefiere redefinir qué miden, cambia el alcance.",
+    "[RESUELTO] BL-011 está obsoleto: se verificó que AuthForm y LogoutButton ya adoptan el sistema de diseño (servidor-fuente-unica FR-1108). Debe cerrarse."
+  ],
+  "coverage_map": [
+    {
+      "need": "El color de la grilla significa demasiadas cosas — «el uso de colores no me convence» (usuario, 2026-07-27) y su diagnóstico preparado en aitri/BACKLOG.md",
+      "disposition": "FR-1201"
+    },
+    {
+      "need": "Ubicar dónde empieza cada bloque sin que el color de identidad compita con el de estado — decisión B+ del usuario (2026-08-05)",
+      "disposition": "FR-1202"
+    },
+    {
+      "need": "No perder la accesibilidad no cromática del estado al reasignar el color (WCAG 1.4.1)",
+      "disposition": "FR-1203"
+    },
+    {
+      "need": "La grilla no es user friendly: la columna de categorías promete arrastre en toda su superficie y responde a clic en la mitad de sus píxeles",
+      "disposition": "FR-1204"
+    },
+    {
+      "need": "Cinco objetivos de 13 px superpuestos en una fila de 34 px durante el hover",
+      "disposition": "FR-1205"
+    },
+    {
+      "need": "«DISPONIBLE» de la tarjeta choca con «Saldo disponible» del Balance en la misma pantalla — hallazgo diferido por el usuario el 2026-07-27 hasta el rediseño del resumen",
+      "disposition": "FR-1206"
+    },
+    {
+      "need": "«Había que limpiar cosas que no se usan» (usuario, 2026-08-05)",
+      "disposition": "FR-1207"
+    },
+    {
+      "need": "«Revisar bien TODO el diseño del front» — el dashboard queda excluido por decisión explícita del usuario",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rediseñar el registro móvil — B+ no lo obliga; su acento dinámico por tipo se conserva",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que el rediseño no rompa el dominio ni el contrato de edición de la grilla",
+      "disposition": "NFR-1201"
+    },
+    {
+      "need": "Accesibilidad y contraste en ambos temas tras reasignar el color",
+      "disposition": "NFR-1204"
+    },
+    {
+      "need": "Que el rediseño no degrade el guardrail de ≤150 ms",
+      "disposition": "NFR-1205"
+    },
+    {
+      "need": "240 px de chrome (31 % de la altura a 1024) ocupados por tres tarjetas que muestran $0 — hallazgo de pantalla (2026-08-06)",
+      "disposition": "FR-1204"
+    },
+    {
+      "need": "«Hay algo que dice Ledger, tiene un ícono de billetera, eso sobra» y «el botón salir está medio random» (usuario, 2026-08-05)",
+      "disposition": "FR-1204"
+    },
+    {
+      "need": "«Hay unas ayudas escritas abajo, sobra» (usuario) y dos leyendas en la misma pantalla",
+      "disposition": "FR-1205"
+    },
+    {
+      "need": "El pie afirma la tabla de factores de la semilla (BL-013)",
+      "disposition": "FR-1205"
+    },
+    {
+      "need": "No existen escalas de espaciado ni de motion; la deriva tipográfica volvió a 18 tamaños ad-hoc",
+      "disposition": "FR-1206"
+    },
+    {
+      "need": "El color pintado sobre los em-dashes de «sin dato» — hallazgo de pantalla",
+      "disposition": "FR-1202"
+    },
+    {
+      "need": "Interacción de fila (asa y consolidación de controles) — aparcada para la segunda feature",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Composición del registro (signo, «Guardar» cortado, copia de desarrollador, sitio del panel) — aparcada para la segunda feature",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Layout adaptativo (vacío a 1920, Balance bajo el pliegue a 1024) — aparcado para la segunda feature",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- Semilla redactada por el agente el 2026-08-05 a partir de lo que el usuario\n     declaró en sesión. Lo marcado [CONFIRMADO] son sus palabras; lo marcado\n     [ASSUMPTION] lo infirió el agente y debe confirmarse antes de `run-phase 1`. -->\n\n## Feature\n\nRediseñar el front del producto tomando como núcleo **las grillas**, que hoy no son suficientemente usables, partiendo de un análisis de cómo resuelven esto los productos fintech — y aprovechar el paso para retirar lo que ya no se usa.\n\n## Problem / Why\n\n**[CONFIRMADO — el usuario, 2026-08-05]:** *\"necesitamos revisar bien todo el diseño del front… había que limpiar cosas que no se usan, y sobre todo trabajar la parte core, las grillas. Actualmente no están muy user friendly. Hay que analizar y diseñar basado en fintech products.\"*\n\nLa grilla es **la** superficie del producto en escritorio: es donde el usuario planea el año, edita el plan y lee el resultado. Todo lo demás (registro, balance) alimenta o resume lo que pasa ahí. Que sea la pieza menos usable es, por tanto, el problema de producto más caro que queda abierto.\n\nHay tres diagnósticos ya escritos que son insumo directo de esta feature, no hallazgos nuevos:\n\n1. **El color no informa — significa tres cosas a la vez.** (`aitri/BACKLOG.md`, propuesta preparada el 2026-07-27 a pedido del usuario.) Conviven tres sistemas en la misma superficie: identidad de tipo (gasto rojo / ingreso verde / transferencia azul), estado de presupuesto (ámbar >100 %, rojo ≥120 %) y balance (verde ≥0, rojo <0). Resultado: **el rojo significa \"esto es un gasto\", \"te pasaste mucho\" y \"estás en negativo\"** según dónde esté. Es el origen literal del *\"el uso de colores no me convence\"* del usuario.\n\n2. **El resumen del encabezado nunca se trabajó a fondo**, y su rótulo choca: la tarjeta dice `DISPONIBLE` (presupuesto de gastos − ejecutado) y el módulo de Balance dice `Saldo disponible` (saldo anterior + flujo − reservas) en la misma pantalla sin scroll. Los dos números son correctos; el choque es de nombre. El usuario lo difirió el 2026-07-27 precisamente hasta que se rediseñara el resumen — es decir, hasta esta feature.\n\n3. **Densidad de interacción sin jerarquía declarada.** `BudgetGrid.tsx` son 559 líneas con 22 manejadores de interacción (clic, doble clic, teclado, arrastre, hover). Cada uno se añadió por una feature distinta y ninguna revisó el conjunto: no existe un documento que diga qué gesto hace qué, ni cuál es primario.\n\n**Limpieza — dos casos ya confirmados por inspección (2026-08-05):**\n- `src/components/useResolvedTheme.ts` — archivo entero **sin un solo consumidor** en `src/` ni en `tests/`. Además es uno de los dos ficheros que filtran trazas `@aitri-trace` al bundle servido al navegador (hallazgo abierto en `aitri/BACKLOG.md`): borrarlo cierra la mitad de ese hallazgo sin trabajo extra.\n- `CATEGORY_ICONS` en `src/components/NodeIcon.tsx` — export sin consumidores.\n- El inventario completo de lo retirable es trabajo de la Fase 1 de esta feature, no de esta semilla.\n\n## Target Users\n\n**[CONFIRMADO — heredado del producto]:** el mismo usuario principal del proyecto raíz — *Dueño de sus finanzas personales*, nivel técnico medio, que en escritorio planea y analiza el año. No se abre un tipo de usuario nuevo.\n\nMatiz relevante para el diseño: su momento de uso en la grilla es **periódico y de sesión larga** (sentarse a revisar y ajustar), no de captura rápida. Eso favorece densidad de información sobre simplicidad — al revés que el módulo de registro.\n\n## New Behavior\n\nDerivado de la decisión 1 (cerrada) y de los tres supuestos:\n\n- El sistema debe reservar el **rojo y el ámbar exclusivamente para el estado** (sobre-consumo del presupuesto y saldo negativo): ningún otro concepto puede usarlos.\n- El sistema debe codificar la **identidad de bloque con un hue de estructura único** para los tres tipos, distinguiéndolos por su glifo (↑ ingreso, ↓ gasto, ↔ reserva), y retirar el color de tipo de filas, celdas e íconos de nodo.\n- El sistema debe unificar los tokens de alerta hoy duplicados (`--type-expense`, `--state-over`, `--error-strong`, `--error`) en uno solo, y los de situación favorable (`--type-income`, `--success`, `--success-strong`) en otro.\n- El sistema debe conservar la **marca no cromática** de gravedad (`›` / `››`) derivada del mismo `BudgetState` que el color (FR-402, WCAG 1.4.1), y puede reforzarla ahora que no compite con la identidad de tipo.\n- El sistema debe separar el **asa de arrastre** del cuerpo del rótulo de fila, de modo que ninguna zona acepte arrastre y clic como gestos primarios simultáneos, y el cursor prometa lo que la zona hace.\n- El sistema debe consolidar los controles de fila que hoy aparecen en hover (`+`, renombrar, borrar, y luego `✓`/`✗`) para que no convivan cinco objetivos de 13 px en una fila de 34 px.\n- El sistema debe renombrar la tarjeta `DISPONIBLE` del resumen para que no comparta rótulo con el `Saldo disponible` del Balance, sin alterar su cálculo.\n- El sistema debe conservar **toda** la funcionalidad existente de la grilla: esto es un rediseño de presentación e interacción, no una reducción de capacidades.\n- El código, los componentes y los tokens que dejen de usarse tras el rediseño deben retirarse, no quedar huérfanos.\n\n## Success Criteria\n\n**[ASSUMPTION — propuesto por el agente el 2026-08-05, pendiente de confirmación del usuario al aprobar la Fase 1.]** Dos criterios, ambos verificables por inspección del código, sin instrumentación ni línea base que hoy no existe:\n\n1. **Un color, un significado.** Given los tokens de `globals.css` y sus usos en `src/components/`, when se audita cuántos conceptos distintos codifica cada hue, then el rojo codifica **1** (estado de alerta) y el verde **1** (situación favorable). Línea base medida el 2026-08-05: **rojo 4, verde 3, ámbar 2** — y en tema oscuro los miembros de cada grupo son el MISMO valor hexadecimal.\n2. **Cero superficies con dos gestos primarios.** Given la columna de categorías, when se inspecciona qué gesto responde cada zona, then ninguna zona acepta arrastre y clic como acciones primarias simultáneas. Línea base: el rótulo de fila completo es asa de arrastre (`cursor-grab`) y a la vez zona de clic para expandir, renombrar y elegir ícono.\n\nCriterio de cierre cualitativo, subordinado a los dos anteriores: el usuario recorre la grilla y confirma que las fricciones nombradas en el análisis desaparecieron.\n\n## Touch Points\n\n**MODIFICA:** `src/components/BudgetGrid.tsx` (el núcleo) · `src/components/DesktopShell.tsx` (resumen del encabezado y barra de controles) · `src/components/ReserveCells.tsx` y `BalanceModule.tsx` (comparten superficie y código de color) · `src/app/globals.css` y los tokens `--type-*` / `--state-*` · `src/components/NodeIcon.tsx`.\n\n**RETIRA:** `src/components/useResolvedTheme.ts` y el resto del inventario de limpieza.\n\n**FRs del padre que toca:** FR-006 (grilla), FR-008 (tipo → signo/color/varianza), FR-012 (sistema de diseño), **FR-016** (franja de indicadores — creada hoy; documenta el diseño vigente, así que este rediseño la re-deriva).\n\n**Features cerradas cuyo alcance toca:** `budget-state-color` (FR-401/402/404), `ux-consistency` (FR-311 y los `--type-*-fill`), `stack-upgrade-theme` (FR-204, `typeColorVar`), `grid-ux` (FR-103/104/107/108/112). Ninguna se re-abre: esta feature las supersede donde corresponda y lo deja registrado.\n\n## Must Not Break (Regression Boundary)\n\n- **FR-004 / NFR-005** — los roll-ups y el invariante `padre == Σ hojas` no se tocan: esto es presentación, no cálculo.\n- **FR-006** — la edición inline de hojas (Enter confirma, Escape cancela, blur confirma), la columna sticky y el scroll horizontal de 12 meses siguen funcionando.\n- **FR-015 / FR-601 / FR-701** — el arrastrar-y-soltar (reparent, promoción y degradación) sigue operativo; si el rediseño cambia su afordancia, sigue existiendo.\n- **FR-003** — el guardrail de borrado seguro no se debilita por un cambio de UI.\n- **FR-402 (`budget-state-color`)** — la marca **no cromática** de las celdas pasadas (WCAG 1.4.1) debe sobrevivir: si el color deja de codificar categoría, la accesibilidad no puede depender de que el color vuelva.\n- **NFR-002 / FR-204** — contraste AA en **ambos** temas, claro y oscuro.\n- **FR-010** — el móvil sigue mostrando SOLO el registro; esta feature no lo amplía.\n- **NFR-001** — el guardrail de ≤150 ms al editar una hoja no se degrada por el rediseño.\n\n## Out of Scope\n\n- **El dashboard.** [CONFIRMADO — el usuario, 2026-08-05: *\"no tengamos en cuenta el dashboard acá\"*.] Sus 7 indicadores (FR-009) quedan como están.\n- **Ampliar el móvil** — sigue siendo solo registro (FR-010 del padre).\n- **Cambiar cálculos, reglas de negocio o el modelo de datos** — si el rediseño exige un dato que hoy no existe, es otra feature.\n- **[ASSUMPTION]** Rediseñar el módulo de registro y la pantalla de login — el registro se rehízo hace poco (`stack-upgrade-theme`) y el login tiene su propio ítem (BL-011). Confirmar si entran o no.\n\n---\n\n## Decisiones — estado al 2026-08-05\n\n### 1. Asignación del color — **CERRADA. Opción B+** [CONFIRMADO por el usuario]\n\nEl usuario eligió B (\"conservar el color de tipo solo en el encabezado de bloque\") y aceptó la corrección del agente a **B+**, porque B tal cual **no resolvía la colisión**: en tema oscuro el punto de `GASTOS` (`--type-expense`) y la celda sobre-consumida (`--state-over`) son ambos `#ec6a66`. B bajaba la frecuencia de la colisión, no la eliminaba.\n\n**B+ en concreto — cada canal con un solo trabajo:**\n\n| Canal | Codifica | Tokens |\n|---|---|---|\n| Hue de **estructura** | dónde empieza cada bloque | azul acero, igual para los tres tipos; el glifo (↑ ↓ ↔) distingue cuál |\n| **Alerta** | estado: sobre-consumo, saldo negativo | `--state-warning`, `--state-over` (y los `--error*` unificados con ellos) |\n| **Acento** | interacción: foco, edición, destino de arrastre, mes en foco | el acento tinta ya existente |\n| **Superficie** | qué es editable | `--bg` (hoja) vs `--bg-sunken` (estructura) — patrón vigente, se conserva |\n\nRazones registradas: (a) la colisión que dañaba estaba **en la celda**, y B+ la elimina igual que A; (b) **no obliga a tocar el registro móvil**, que hoy propaga el color de tipo como acento dinámico (FR-203) — eso mantiene el alcance acotado; (c) el azul acero ya existe en el sistema (`--type-transfer`) y ya está verificado AA en ambos temas, así que no hay paleta que inventar.\n\nCoste aceptado: los tres bloques dejan de distinguirse por hue y pasan a distinguirse por glifo y rótulo. Variante de reserva si el azul molesta en ejecución: la misma estructura con la identidad en tinta neutra.\n\nEvidencia: `feature_context/analisis-fintech-grilla.md` y `feature_context/colisiones-de-color.html`.\n\n### 2. Rótulo y semántica del resumen — **[ASSUMPTION]**\n\n**Supuesto del agente:** se **renombra la tarjeta**, sin tocar su cálculo. `DISPONIBLE` pasa a decir lo que de verdad mide — «Presupuesto restante» o «Sin ejecutar» —, de modo que deje de colisionar con el `Saldo disponible` del Balance, que mide otra cosa («cuánta plata tengo»).\n\nEs la opción más barata que resuelve el choque, y no cierra la puerta a replantear el resumen entero más adelante. **Re-deriva FR-016** del padre, cuyos AC nombran los rótulos actuales.\n\n**Confirmar al aprobar la Fase 1.** Las otras dos salidas siguen disponibles: redefinir qué mide la tarjeta, o replantear el resumen completo (que es lo que el usuario difirió el 2026-07-27 al decir que estas tarjetas «todavía no están trabajadas a fondo»).\n\n### 3. Criterio de éxito — **[ASSUMPTION]**\n\nVer *Success Criteria*. Propuesto por el agente: **1 significado por color** (línea base rojo 4 / verde 3) y **cero superficies con dos gestos primarios**. Ambos auditables leyendo el código, sin instrumentación.\n\n### 4. Alcance del resto del front — **[ASSUMPTION]**\n\n**Supuesto del agente**, por el lado conservador:\n\n- **Pantalla de login (BL-011): ENTRA.** Es independiente del resto, barata, y es lo primero que ve un usuario en modo servidor. Hoy está maquetada con estilos inline y controles sin clase — contradice FR-012 del padre.\n- **Registro móvil: NO entra.** B+ no lo obliga: al conservar identidad de tipo (aunque sea estructural), el acento dinámico del registro no queda contradictorio. Con la opción A sí habría entrado.\n- **Limpieza de lo no usado: ENTRA**, en cualquier caso.\n\n**Confirmar al aprobar la Fase 1.**\n\n---\n\n**Nota de método:** el análisis fintech que el usuario pidió está en `feature_context/` y fue insumo de la decisión 1, no su sustituto. Los tres supuestos de arriba los marcó el agente como tales para que el gate de provenance de la Fase 1 los rastree en `idea_gaps` — no son decisiones tomadas en silencio.\n"
+}

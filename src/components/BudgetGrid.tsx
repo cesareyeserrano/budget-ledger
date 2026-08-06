@@ -1,17 +1,17 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import type { LedgerNode, MonthKey, NodeLevel, NodeType } from "@/domain/types";
 import { MONTHS } from "@/domain/months";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
-import { budgetState, type BudgetState } from "@/domain/budgetState";
+import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { planTechoMonths } from "@/domain/reserve";
 import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
-import { cellNum, typeColorVar } from "./format";
+import { cellNum } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
 import { BalanceModule } from "./BalanceModule";
@@ -27,10 +27,13 @@ import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
  * del mes", "Saldo reservado"), así que la grilla y el balance hablan igual. El tipo del dominio
  * sigue siendo `transfer` — cambia el rótulo, no el modelo.
  */
-const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowDown }[] = [
-  { id: "income", label: "INGRESOS", Icon: ArrowUp },
-  { id: "expense", label: "GASTOS", Icon: ArrowDown },
-  { id: "transfer", label: "RESERVAS", Icon: ArrowUpDown },
+// refinamiento-ui FR-1202: glifos LATERALES (decisión del usuario sobre el comparador visual).
+// ← entra · → sale · ⇄ va y vuelve. Son el canal que distingue los bloques ahora que el color
+// de identidad se retiró: la forma carga lo que antes cargaba el hue.
+const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowLeft }[] = [
+  { id: "income", label: "INGRESOS", Icon: ArrowLeft },
+  { id: "expense", label: "GASTOS", Icon: ArrowRight },
+  { id: "transfer", label: "RESERVAS", Icon: ArrowRightLeft },
 ];
 
 // La geometría (ancho de la columna categoría vía --cat-w, sub-celda de mes de 108px, base sticky)
@@ -46,8 +49,8 @@ interface Row { node: LedgerNode | null; type: NodeType; depth: number; leaf: bo
  */
 const STATE_COLOR: Record<BudgetState, string> = {
   within: "var(--fg)",
-  over_soft: "var(--state-warning)",
-  over_hard: "var(--state-over)",
+  over_soft: "var(--alert-soft)",
+  over_hard: "var(--alert-strong)",
 };
 const STATE_GLYPH: Record<BudgetState, "" | "›" | "››"> = {
   within: "",
@@ -80,11 +83,17 @@ function stateGlyph(state: BudgetState): "" | "›" | "››" {
  *
  * @aitri-trace FR-ID: FR-401, US-ID: US-401, AC-ID: AC-401, TC-ID: TC-BSC-402h, TC-BSC-452h, TC-BSC-452e
  */
+/** Token de cada rol semántico. La regla vive en el dominio (cellTone); aquí solo se resuelve. */
+const TONE_TOKEN: Record<CellTone, string> = {
+  neutral: "var(--fg)",
+  muted: "var(--fg-secondary)",
+  favorable: "var(--favorable)",
+  "alert-soft": "var(--alert-soft)",
+  "alert-strong": "var(--alert-strong)",
+};
+
 function ejecColor(type: NodeType, b: number, e: number): string {
-  if (!e) return "var(--fg-secondary)";
-  if (type === "expense") return STATE_COLOR[budgetState(b, e)];
-  if (type === "income") return e >= b ? "var(--success)" : "var(--warning)";
-  return "var(--accent-light)";
+  return TONE_TOKEN[cellTone(type, b, e)];
 }
 
 /**
@@ -100,8 +109,7 @@ function ejecColor(type: NodeType, b: number, e: number): string {
  * @aitri-trace FR-ID: FR-402, US-ID: US-402, AC-ID: AC-402, TC-ID: TC-BSC-402e, TC-BSC-402f, TC-BSC-452f
  */
 function ejecGlyph(type: NodeType, b: number, e: number): "" | "›" | "››" {
-  if (!e || type !== "expense") return "";
-  return stateGlyph(budgetState(b, e));
+  return cellGlyph(type, b, e);
 }
 
 export function BudgetGrid() {
@@ -205,7 +213,7 @@ export function BudgetGrid() {
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
       <div ref={scrollRef} className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
-        <div className="w-max min-w-full text-[0.74rem]">
+        <div className="w-max min-w-full text-caption">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
             <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[76px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
@@ -298,8 +306,8 @@ export function BudgetGrid() {
       {/* FR-015: preview flotante del nodo en arrastre (feedback claro de "estoy moviendo esto") */}
       <DragOverlay dropAnimation={null}>
         {dragNode ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-card border border-accent shadow-lg text-[0.8rem] text-fg cursor-grabbing" style={{ boxShadow: "var(--shadow-lg)" }}>
-            <NodeIcon name={dragNode.icon} level={dragNode.level} size={14} color={dragNode.level === "sub" ? "var(--fg-muted)" : typeColorVar(dragNode.type)} />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-card border border-accent shadow-lg text-label text-fg cursor-grabbing" style={{ boxShadow: "var(--shadow-lg)" }}>
+            <NodeIcon name={dragNode.icon} level={dragNode.level} size={14} color={dragNode.level === "sub" ? "var(--fg-muted)" : "var(--fg-secondary)"} />
             {dragNode.name}
           </div>
         ) : null}
@@ -309,9 +317,12 @@ export function BudgetGrid() {
 }
 
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop }: { type: NodeType; label: string; Icon: typeof ArrowDown; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean }) {
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean }) {
   const data = useLedgerStore((s) => s.data);
-  const color = typeColorVar(type);
+  // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
+  // rechazó el hue de estructura al verlo ("prefiero blancos, color neutro"), así que la grilla
+  // queda con cero color de identidad y el canal cromático se libera para el estado.
+  const color = "var(--fg)";
   const [hover, setHover] = useState(false);
   // FR-601: la fila de tipo es destino de promoción a grupo. Solo el tipo COMPATIBLE con el nodo
   // arrastrado muestra la afordancia (prevención de error / cross-type, H5).
@@ -412,18 +423,18 @@ function NodeRow(props: {
             <IconPicker
               value={node.icon}
               onChange={(icon) => props.setIcon(icon)}
-              color={typeColorVar(node.type)}
+              color="var(--fg-secondary)"
               trigger={
                 <button aria-label="Cambiar ícono" title="Cambiar ícono" className="inline-flex flex-none cursor-pointer bg-transparent border-0 p-0 rounded-(--radius-sm) outline-none focus-visible:ring-1 focus-visible:ring-accent data-[state=open]:ring-1 data-[state=open]:ring-accent">
-                  <NodeIcon name={node.icon} level={node.level} size={15} color={typeColorVar(node.type)} />
+                  <NodeIcon name={node.icon} level={node.level} size={15} color="var(--fg-secondary)" />
                 </button>
               }
             />
           ) : (
-            <span className="inline-flex flex-none"><NodeIcon name={node.icon} level={node.level} size={node.level === "sub" ? 13 : 15} color={node.level === "sub" ? "var(--fg-muted)" : typeColorVar(node.type)} /></span>
+            <span className="inline-flex flex-none"><NodeIcon name={node.icon} level={node.level} size={node.level === "sub" ? 13 : 15} color={node.level === "sub" ? "var(--fg-muted)" : "var(--fg-secondary)"} /></span>
           )}
           {naming ? (
-            <input autoFocus aria-label="Nombre" value={nameVal} onChange={(e) => setNameVal(e.target.value)} onBlur={() => props.commitName(nameVal)} onKeyDown={(e) => { if (e.key === "Enter") props.commitName(nameVal); if (e.key === "Escape") props.commitName(node.name); }} className="flex-1 min-w-0 bg-card border border-accent rounded-md text-fg px-2 py-1 text-[0.8rem] outline-none" />
+            <input autoFocus aria-label="Nombre" value={nameVal} onChange={(e) => setNameVal(e.target.value)} onBlur={() => props.commitName(nameVal)} onKeyDown={(e) => { if (e.key === "Enter") props.commitName(nameVal); if (e.key === "Escape") props.commitName(node.name); }} className="flex-1 min-w-0 bg-card border border-accent rounded-md text-fg px-2 py-1 text-label outline-none" />
           ) : (
             <span onClick={props.onToggle} className={cn("flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap", row.expandable && !canDrag && "cursor-pointer")}>{node.name}</span>
           )}
@@ -486,7 +497,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
   if (props.editing) {
     return (
       <div className={cn(CELL_W, "py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
-        <input autoFocus aria-label="Editar valor" value={props.editVal} onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))} onBlur={props.commit} onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }} className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-[0.74rem] text-right px-1.5 py-1 outline-none" />
+        <input autoFocus aria-label="Editar valor" value={props.editVal} onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))} onBlur={props.commit} onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }} className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none" />
       </div>
     );
   }
@@ -517,11 +528,18 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
       onClick={onClick}
       data-testid={clickable ? "cell-leaf" : "cell-parent"}
       className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable ? "cursor-text" : "cursor-default")}
-      style={{ color: color ?? (muted ? "var(--fg-secondary)" : "var(--fg)"), fontWeight: bold ? 500 : weight ?? 400, background: cellSurface(sunken, highlight) }}
+      style={{
+        // refinamiento-ui FR-1202: un valor 0 se pinta como "—" y significa «aquí no hay nada».
+        // Antes heredaba el color del tipo, así que la pantalla llegaba a tener ~30 guiones rojos,
+        // verdes y azules gastando el canal más fuerte en la AUSENCIA de información.
+        color: !value ? "var(--fg-muted)" : (color ?? (muted ? "var(--fg-secondary)" : "var(--fg)")),
+        fontWeight: bold ? 500 : weight ?? 400,
+        background: cellSurface(sunken, highlight),
+      }}
     >
       {/* Canal redundante de WCAG 1.4.1 (FR-402): aria-hidden porque el dato ya lo portan el monto
           y el Pres. adyacente. flex-none para que nunca empuje al monto fuera de la celda. */}
-      {glyph ? <span aria-hidden="true" className="flex-none mr-1 text-[0.75rem] leading-none">{glyph}</span> : null}
+      {glyph ? <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">{glyph}</span> : null}
       {cellNum(value)}
     </div>
   );

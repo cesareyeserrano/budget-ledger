@@ -8,7 +8,7 @@
 //               deriva de `computeBalanceSeries` sobre los montos que el usuario ya tecleó arriba.
 // Dependencias: lucide-react (el ícono del encabezado), @/state/store (el estado del ledger),
 //               @/domain/balance (el cálculo puro),
-//               @/domain/months (el orden de las columnas), ./format (cellNum, typeColorVar),
+//               @/domain/months (el orden de las columnas), ./format (cellNum),
 //               ./gridLayout (la geometría compartida con BudgetGrid), @/lib/utils (cn).
 
 import { Component, useMemo, useState, type ReactNode } from "react";
@@ -18,7 +18,7 @@ import { MONTHS } from "@/domain/months";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
 import { reserveAportes, reserveRetiros } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
-import { cellNum, typeColorVar } from "./format";
+import { cellNum } from "./format";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import type { LedgerState, MonthKey } from "@/domain/types";
@@ -100,9 +100,11 @@ const RULE: Record<NonNullable<RowSpec["rule"]>, string> = {
  * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-935h, TC-BAL-935f, TC-BAL-956e
  */
 function balanceColor(spec: RowSpec, value: number): string {
-  if (spec.alarms && value < 0) return "var(--error-strong)";
-  if (spec.tone === "reserve") return typeColorVar("transfer");
-  if (spec.tone === "result") return "var(--success-strong)";
+  if (spec.alarms && value < 0) return "var(--alert-strong)";
+  // refinamiento-ui FR-1201: el reservado dejaba de ser azul por ser del tipo `transfer` — eso era
+  // identidad, no estado. Ahora se distingue por su fila, su rótulo y su signo, como el resto.
+  if (spec.tone === "reserve") return "var(--fg-secondary)";
+  if (spec.tone === "result") return "var(--favorable)";
   return "var(--fg-secondary)";
 }
 
@@ -308,7 +310,7 @@ function BalanceRows() {
               spec.bottomLine && "label"
             )}
             style={{
-              color: spec.tone === "reserve" ? typeColorVar("transfer") : spec.tone === "result" ? "var(--fg)" : "var(--fg-secondary)",
+              color: spec.tone === "reserve" ? "var(--fg-secondary)" : spec.tone === "result" ? "var(--fg)" : "var(--fg-secondary)",
               fontWeight: spec.weight,
             }}
           >

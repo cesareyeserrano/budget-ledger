@@ -37,16 +37,23 @@ describe("FR-201/FR-202 — tema y tokens", () => {
 
   it("TC-SUT-204h: tokens de color claros exactos en :root", () => {
     const root = globalsCss.split(/\.dark\s*\{/)[0];
-    for (const [tok, hex] of [["--bg", "#f7f7f8"], ["--bg-card", "#ffffff"], ["--primary", "#1c1c1f"], ["--fg", "#1c1c1f"], ["--fg-secondary", "#55555d"], ["--border", "#e3e3e7"], ["--error", "#c4453e"]] as const) {
+    for (const [tok, hex] of [["--bg", "#f7f7f8"], ["--bg-card", "#ffffff"], ["--primary", "#1c1c1f"], ["--fg", "#1c1c1f"], ["--fg-secondary", "#55555d"], ["--border", "#e3e3e7"]] as const) {
       expect(root).toContain(`${tok}: ${hex}`);
     }
+    // refinamiento-ui FR-1201: --error dejó de ser un token propio y pasó a ser ALIAS del rol de
+    // alerta. La validación de entrada señala excepción, igual que el sobre-consumo: es el MISMO
+    // mensaje, así que comparte token en vez de tener un rojo casi idéntico y distinto.
+    expect(root).toContain("--error: var(--alert-strong)");
+    expect(root).toContain("--alert-strong: #ad3932");
   });
 
   it("TC-SUT-205e: tokens de color oscuros exactos bajo .dark", () => {
     const dark = globalsCss.slice(globalsCss.indexOf(".dark"));
-    for (const [tok, hex] of [["--bg", "#131316"], ["--bg-card", "#1b1b1f"], ["--primary", "#f4f4f5"], ["--fg", "#f4f4f5"], ["--fg-secondary", "#b4b4bb"], ["--border", "#33333a"], ["--error", "#ec6a66"]] as const) {
+    for (const [tok, hex] of [["--bg", "#131316"], ["--bg-card", "#1b1b1f"], ["--primary", "#f4f4f5"], ["--fg", "#f4f4f5"], ["--fg-secondary", "#b4b4bb"], ["--border", "#33333a"]] as const) {
       expect(dark).toContain(`${tok}: ${hex}`);
     }
+    expect(dark).toContain("--error: var(--alert-strong)");
+    expect(dark).toContain("--alert-strong: #ec6a66");
   });
 });
 

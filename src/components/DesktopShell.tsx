@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Plus, X, Wallet } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel, currentMonthKey } from "@/domain/months";
 import { summaryKpis } from "@/domain/dashboard";
@@ -15,7 +15,6 @@ import { money } from "./format";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
-import { Kpi } from "./ui/Kpi";
 
 type View = "budget" | "dashboard";
 
@@ -36,18 +35,12 @@ export function DesktopShell() {
   return (
     <div className="lx-desktop w-full" style={{ background: "var(--bg)" }}>
       <div className="w-full overflow-hidden flex flex-col relative" style={{ height: "100vh" }}>
-        {/* Header — cabecera con intención (FR-304): marca discreta + UN título; el año va como pill abajo */}
-        <div className="flex items-center justify-between px-6 pt-3 pb-3 border-b border-border gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span data-testid="topbar-brand" className="flex items-center gap-2">
-              <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-(--radius-sm) bg-primary" style={{ color: "var(--primary-foreground)" }}>
-                <Wallet size={13} />
-              </span>
-              <span className="label text-fg-secondary">Ledger</span>
-            </span>
-            <span className="h-4 w-px bg-border" aria-hidden />
-            <h1 data-testid="page-title" className="title text-fg">{view === "budget" ? "Presupuesto" : "Dashboard"}</h1>
-          </div>
+        {/* Header — refinamiento-ui FR-1204. Fuera la marca y su billetera (decisión del usuario) y
+            fuera el <h1>: decía «Presupuesto» mientras la pestaña de la MISMA vista decía «Resumen»,
+            dos nombres para lo mismo a pocos píxeles. La pestaña activa ES el nombre de la vista.
+            Los controles se agrupan por CLASE — navegación · trabajo | preferencia · cuenta — porque
+            antes los cuatro compartían fila y por eso «Salir» se leía como arbitrario. */}
+        <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border px-6 py-2">
           <div className="flex items-center gap-3">
             <Tabs value={view} onValueChange={(v) => setView(v as View)}>
               <TabsList>
@@ -58,16 +51,22 @@ export function DesktopShell() {
             <Button onClick={() => setPanel((p) => !p)}>
               <Plus size={15} /> Nuevo movimiento
             </Button>
+          </div>
+          {/* Preferencia y cuenta, separadas del grupo de trabajo por un divisor explícito */}
+          <div className="flex items-center gap-2">
             <ThemeToggle />
+            <span className="h-4 w-px bg-border" aria-hidden />
             <LogoutButton />
           </div>
         </div>
 
-        {/* Controles */}
-        <div className="flex items-center justify-between gap-4 px-6 pt-3.5 flex-wrap">
-          <div className="flex items-center gap-3">
-            {/* Año/periodo como control segmentado discreto (FR-304), con el MISMO radio que las tabs Resumen/Dashboard */}
-            {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso (antes: "jun" fijo) */}
+        {/* Controles + resumen en UNA fila — FR-1204. Antes eran dos: la barra de periodo y una
+            franja de tres tarjetas de 110 px que mostraban $0, $0, $0. Entre encabezado, controles y
+            tarjetas el chrome ocupaba 240 px antes del primer dato: el 31 % de la altura a 1024×768,
+            donde el módulo de Balance quedaba casi entero bajo el pliegue. */}
+        <div className="flex items-center justify-between gap-4 px-6 py-2 flex-wrap border-b border-border">
+          <div className="flex items-center gap-2">
+            {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso */}
             <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentMonthKey() } : { mode: "year" })}>
               <TabsList data-testid="period-pill">
                 <TabsTrigger value="month">Mes</TabsTrigger>
@@ -77,31 +76,31 @@ export function DesktopShell() {
             {period.mode === "month" && (
               <div className="w-[130px]">
                 <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as typeof period.month })}>
-                  <SelectTrigger aria-label="Mes" className="py-1.5 label"><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Mes" className="py-1 label"><SelectValue /></SelectTrigger>
                   <SelectContent>{MONTHS.map((m) => <SelectItem key={m.k} value={m.k}>{m.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
-            <span className="caption text-fg-muted">{scopeLabel}</span>
+            {/* La etiqueta de alcance aparece UNA sola vez: antes estaba aquí y otra vez como
+                subtítulo de la primera tarjeta. */}
+            <span data-testid="scope-label" className="caption text-fg-muted">{scopeLabel}</span>
           </div>
           {view === "budget" && (
-            <div className="flex items-center gap-3.5 caption text-fg-muted">
-              {/* BL-005: solo el par Presupuestado/Ejecutado. El "sobre presupuesto" dejó de ser un
-                  rojo único; su código de 3 estados vive en el StateLegend del pie de la grilla. */}
-              <LegendDot border /> Presupuestado
-              <LegendDot fill="var(--accent)" /> Ejecutado
+            <div data-testid="summary-strip" className="flex items-center gap-4 flex-wrap tabular">
+              <SummaryFigure label="PRESUPUESTO" value={money(kpis.presupuestado)} />
+              <span className="h-4 w-px bg-border" aria-hidden />
+              <SummaryFigure label="EJECUTADO" value={money(kpis.ejecutado)} note={`${kpis.pct}%`} />
+              <span className="h-4 w-px bg-border" aria-hidden />
+              {/* «DISPONIBLE» colisionaba con el «Saldo disponible» del Balance en la MISMA pantalla
+                  midiendo otra cosa (presupuesto restante frente a plata que tienes). Se renombra. */}
+              <SummaryFigure
+                label="RESTANTE"
+                value={money(kpis.available)}
+                color={kpis.available >= 0 ? "var(--favorable)" : "var(--alert-strong)"}
+              />
             </div>
           )}
         </div>
-
-        {/* KPIs (solo Budget) */}
-        {view === "budget" && (
-          <div className="flex gap-3.5 px-6 pt-3.5 pb-1 flex-wrap">
-            <Kpi className="min-w-[200px]" label="PRESUPUESTO · GASTOS" value={money(kpis.presupuestado)} color="var(--fg)" sub={scopeLabel} />
-            <Kpi className="min-w-[200px]" label="EJECUTADO" value={money(kpis.ejecutado)} color="var(--accent-light)" sub={`${kpis.pct}% del presupuesto`} />
-            <Kpi className="min-w-[200px]" label="DISPONIBLE" value={money(kpis.available)} color={kpis.available >= 0 ? "var(--success)" : "var(--error)"} sub={kpis.available >= 0 ? "dentro del plan" : "sobre el plan"} />
-          </div>
-        )}
 
         {/* Aviso de persistencia (BL-022). Vivía SOLO en MobileShell, así que en escritorio ni el
             fallo de guardado ni la respuesta ilegible del servidor (BG-012) llegaban al usuario:
@@ -140,30 +139,25 @@ export function DesktopShell() {
   );
 }
 
-/** FR-107: pie de ayuda de la grilla + leyenda de meses (solo escritorio). Sin mención a reparto (D-4). */
+/**
+ * Pie de la grilla — refinamiento-ui FR-1205. Queda SOLO la leyenda del código de estado.
+ *
+ * Se retiraron dos cosas por decisión del usuario («hay unas ayudas escritas abajo, sobra»):
+ * las tres líneas que enseñaban a usar la grilla, y la afirmación «Ene–May ejecutado · Jun en
+ * curso · Jul–Dic proyectado», que era literalmente la tabla FACTOR de `domain/seed.ts` — con
+ * datos reales, o al avanzar el año, mentía con el peso de una leyenda del producto (BL-013).
+ *
+ * Regla que instala: ningún texto fijo afirma nada sobre los datos del usuario. O se deriva del
+ * estado real, o no existe.
+ */
 function GridFooter() {
   return (
-    <div className="py-3 border-t border-border caption text-fg-muted leading-[1.7] flex-none">
-      <div>
-        Clic en una celda <b className="text-fg-secondary font-medium">Pres.</b> o <b className="text-fg-secondary font-medium">Ejec.</b> para editar
-        {" · "}Pasa el cursor sobre una fila para <b className="text-fg-secondary font-medium">agregar</b>, <b className="text-fg-secondary font-medium">renombrar</b> o <b className="text-fg-secondary font-medium">eliminar</b>
-        {" · "}Arrastra el borde de la columna para ampliarla.
-      </div>
-      <div>
-        <b className="text-fg-secondary font-medium">Ene–May</b> ejecutado · <b className="text-fg-secondary font-medium">Jun</b> en curso · <b className="text-fg-secondary font-medium">Jul–Dic</b> proyectado.
-      </div>
+    <div className="py-2 border-t border-border caption text-fg-muted flex-none">
       <StateLegend />
     </div>
   );
 }
 
-/**
- * FR-403: el código de estado se explica UNA sola vez, aquí en el pie. Cada estado nombra su COLOR
- * y su GLIFO, de modo que la leyenda sirva también a quien no distingue ámbar de rojo. Se rechazó
- * un icono de información por fila: sería ruido y escondería el dato tras una interacción.
- *
- * @aitri-trace FR-ID: FR-403, US-ID: US-403, AC-ID: AC-403, TC-ID: TC-BSC-403h, TC-BSC-403e, TC-BSC-403f
- */
 function StateLegend() {
   return (
     <div data-testid="grid-legend" className="flex items-center gap-3.5 flex-wrap">
@@ -179,6 +173,21 @@ function StateLegend() {
         <span className="tabular" style={{ color: "var(--state-over)" }}>››</span> Te pasaste mucho
       </span>
     </div>
+  );
+}
+
+/**
+ * Una cifra del resumen, compacta. Sustituye a la tarjeta `Kpi`, que se conserva intacta para el
+ * dashboard: allí una tarjeta por indicador tiene sentido, aquí tres tarjetas de 110 px para tres
+ * cifras no lo tenía.
+ */
+function SummaryFigure({ label, value, note, color }: { label: string; value: string; note?: string; color?: string }) {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="eyebrow">{label}</span>
+      <span className="label" style={color ? { color } : undefined}>{value}</span>
+      {note && <span className="caption text-fg-muted">{note}</span>}
+    </span>
   );
 }
 

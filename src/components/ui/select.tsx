@@ -16,7 +16,7 @@ export const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // control-size-scale FR-802: altura del token md (40) en vez de py-2.5 ad-hoc.
-      "flex h-(--control-md) w-full items-center justify-between rounded-(--radius-sm) border border-border bg-elevated px-3 text-[0.85rem] text-fg outline-none data-[state=open]:border-accent focus:border-accent",
+      "flex h-(--control-md) w-full items-center justify-between rounded-(--radius-sm) border border-border bg-elevated px-3 text-label text-fg outline-none data-[state=open]:border-accent focus:border-accent",
       className
     )}
     {...props}
@@ -59,7 +59,7 @@ export const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       // FR-314: se retira la variante malformada data-[highlighted:bg-elevated]; el highlight usa --bg-sunken (distinto del content).
-      "relative flex cursor-pointer select-none items-center rounded-(--radius-sm) py-1.5 pl-7 pr-2 text-[0.8rem] text-fg outline-none data-[highlighted]:bg-sunken",
+      "relative flex cursor-pointer select-none items-center rounded-(--radius-sm) py-1.5 pl-7 pr-2 text-label text-fg outline-none data-[highlighted]:bg-sunken",
       className
     )}
     {...props}

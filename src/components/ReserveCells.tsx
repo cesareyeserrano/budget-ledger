@@ -94,7 +94,7 @@ export function ReserveLeafCell(props: {
         />
       )}
       {planWarn ? (
-        <span aria-hidden="true" className="flex-none mr-1 text-[0.75rem] leading-none">
+        <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">
           {PLAN_WARN_GLYPH}
         </span>
       ) : null}
@@ -174,7 +174,7 @@ export function ReserveCellEditor(props: {
           if (e.key === "Enter") commit();
           if (e.key === "Escape") props.onClose(); // restaura el valor previo: nada se persistió
         }}
-        className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-[0.74rem] text-right px-1.5 py-1 outline-none"
+        className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
       />
 
       <div className="absolute left-0 top-full z-20 flex flex-col items-start gap-1 min-w-[230px]">
@@ -338,7 +338,7 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
               setEditing(false);
             }
           }}
-          className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-[0.74rem] text-right px-1.5 py-1 outline-none"
+          className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />
         {block && (
           <div
@@ -373,7 +373,7 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
       className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text bg-sunken", sep && "border-l-2 border-l-border-strong")}
       style={{ color: uncovered ? "var(--state-warning)" : "var(--fg-secondary)" }}
     >
-      {uncovered && <span aria-hidden="true" className="flex-none mr-1 text-[0.75rem] leading-none">!</span>}
+      {uncovered && <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">!</span>}
       {cellNum(value)}
     </div>
   );
@@ -442,7 +442,7 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
         >
           {/* Canal no cromático (WCAG 1.4.1): mismo glifo ›/›› de los gastos al retirar de más. */}
           {total > 0 && RETIRO_STATE_GLYPH[overState] ? (
-            <span aria-hidden="true" className="flex-none mr-1 text-[0.75rem] leading-none">{RETIRO_STATE_GLYPH[overState]}</span>
+            <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">{RETIRO_STATE_GLYPH[overState]}</span>
           ) : null}
           {cellNum(total)}
         </button>

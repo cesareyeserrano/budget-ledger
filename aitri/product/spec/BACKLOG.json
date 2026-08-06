@@ -99,9 +99,10 @@
       "title": "Aplicar el sistema de diseno a AuthForm y al boton de logout",
       "priority": "P2",
       "problem": "src/components/auth/AuthForm.tsx:42-110 esta maquetado con style inline y inputs/buttons sin clase: sin tokens, sin los componentes ui/ (Button, Card), sin estados de foco. LoginGate.tsx:52-59 dibuja el boton Salir como un button fixed con opacity 0.7 y ningun estilo. En modo servidor es la primera pantalla que ve el usuario y contradice FR-012 y el trabajo de ux-consistency. Ningun TC cubre su fidelidad visual.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:58:59.286Z",
-      "acceptance": "AuthForm y el logout usan Card/Button/Input del sistema y tokens theme-aware, con foco visible (NFR-002), en claro y oscuro."
+      "acceptance": "AuthForm y el logout usan Card/Button/Input del sistema y tokens theme-aware, con foco visible (NFR-002), en claro y oscuro.",
+      "closedAt": "2026-08-06T19:58:46.804Z"
     },
     {
       "id": "BL-012",

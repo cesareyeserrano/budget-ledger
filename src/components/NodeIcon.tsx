@@ -79,7 +79,7 @@ export const ICON_CATALOG: { name: string; Icon: LucideIcon }[] = Object.entries
 );
 
 /** Íconos elegibles al crear/editar una categoría (compat: consumidores previos). */
-export const CATEGORY_ICONS = ICON_CATALOG.map((e) => e.name);
+const CATEGORY_ICONS = ICON_CATALOG.map((e) => e.name);
 
 /**
  * Ícono de un nodo con fallback consistente (FR-309): sub → CornerDownRight; nombre desconocido o

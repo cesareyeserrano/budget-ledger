@@ -109,7 +109,7 @@ export function ReserveRow({ data, month, value, onChange, error = false }: Prop
                 aria-pressed={active}
                 data-testid={`${rowKind === "from" ? "de" : "a"}-${o.id}`}
                 onClick={() => pick(rowKind, o.id)}
-                className="flex min-h-(--control-lg) shrink-0 flex-col items-center justify-center gap-0.5 rounded-(--radius-md) border px-3 py-1.5 transition-all duration-[130ms]"
+                className="flex min-h-(--control-lg) shrink-0 flex-col items-center justify-center gap-0.5 rounded-(--radius-md) border px-3 py-1.5 transition-all duration-(--duration-normal)"
                 style={active ? SELECTED : DEFAULT}
               >
                 <span className="flex items-center gap-1 text-xs font-medium">

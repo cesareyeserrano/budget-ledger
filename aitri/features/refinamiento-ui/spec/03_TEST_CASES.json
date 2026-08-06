@@ -1,0 +1,832 @@
+{
+  "test_plan": {
+    "strategy": "Pirámide sobre un núcleo de dominio puro, igual que el padre. UNIT para las funciones que deciden color y glifo (ejecColor, balanceColor, el glifo de estado) — es donde vive la lógica de FR-1201 y FR-1203. E2E (Playwright) para lo que sólo se puede afirmar sobre la pantalla renderizada: colores computados, conteos de elementos, altura de chrome, presencia de textos. INTEGRATION para los invariantes de ÁRBOL (escalas, tamaños ad-hoc, grafo de imports, bundle), que se verifican leyendo el repositorio. DECISIÓN DE COBERTURA: los invariantes de árbol se verifican DOS veces a propósito — como TC y como quality gate (scripts/design-tokens.sh). El TC prueba que la regla se cumple hoy; el gate impide que deje de cumplirse mañana, que es lo que le pasó a FR-303. Los TCs del gate se prueban en AMBOS sentidos (pasa limpio y falla ante el infractor) porque un gate que nunca se vio fallar no está verificado — es la lección de BG-014.",
+    "coverage_goal": "Cada MUST FR con happy, edge y negativo. Los tres NFR de regresión con happy y negativo. Contraste medido en ambos temas.",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "coverage_decisions": [
+      "NO se escriben TCs para la interacción de fila, la composición del registro ni el layout adaptativo: están aparcados para la segunda feature y no forman parte de este alcance.",
+      "NO se escriben TCs de fidelidad visual pixel a pixel. El riesgo visual se cubre repitiendo las 14 capturas de feature_context/ tras implementar y comparándolas contra la línea base — es revisión humana, no test.",
+      "El dashboard queda sin TCs nuevos: está fuera de alcance por decisión del usuario y sus TCs actuales no deben cambiar."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-RUI-001h",
+      "requirement_id": "FR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "ejecColor devuelve alerta por ESTADO, nunca por tipo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con un gasto al 132 % de su presupuesto y un ingreso por encima del suyo"
+      ],
+      "given": "las funciones de color de la grilla tras el rediseño",
+      "when": "se pide el color del Ejecutado de cada celda",
+      "then": "el gasto sobre-consumido devuelve el token de alerta grave y el ingreso sobre plan el favorable; ninguno devuelve un token --type-*",
+      "steps": [
+        "Construir el estado",
+        "Invocar ejecColor para el gasto y para el ingreso",
+        "Comprobar los tokens devueltos"
+      ],
+      "expected_result": "ejecColor(expense,300000,400000) === el token de alerta grave; ejecColor(income,b,e>=b) === el favorable; ninguna devolución contiene 'type-'",
+      "test_data": {
+        "gasto": {
+          "b": 300000,
+          "e": 400000
+        },
+        "ingreso": {
+          "b": 100000,
+          "e": 120000
+        }
+      }
+    },
+    {
+      "id": "TC-RUI-001e",
+      "requirement_id": "FR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "balanceColor deja de teñir las filas de reserva con el color de tipo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un RowSpec de tono reserve con valor positivo, y otro de tono result con valor negativo"
+      ],
+      "given": "el módulo de Balance tras el rediseño",
+      "when": "se pide el color de una fila de reserva y el de un resultado negativo",
+      "then": "la fila de reserva devuelve tinta neutra —ya no typeColorVar('transfer')— y el resultado negativo devuelve el token de alerta",
+      "steps": [
+        "Invocar balanceColor con tono reserve",
+        "Invocar balanceColor con tono result y valor < 0",
+        "Comparar"
+      ],
+      "expected_result": "el tono reserve NO devuelve un token --type-*; el resultado negativo devuelve el token de alerta grave"
+    },
+    {
+      "id": "TC-RUI-001f",
+      "requirement_id": "FR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "El gate falla si se usa el color de tipo fuera del registro",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "El gate scripts/design-tokens.sh presente y ejecutable"
+      ],
+      "given": "un árbol donde un componente fuera de register/ invoca typeColorVar",
+      "when": "se ejecuta el gate de tokens",
+      "then": "sale con código distinto de 0 y nombra el fichero infractor; con el árbol limpio sale 0",
+      "steps": [
+        "Ejecutar el gate sobre el árbol limpio y comprobar exit 0",
+        "Introducir un uso de typeColorVar en un componente fuera de register/",
+        "Re-ejecutar y comprobar exit != 0",
+        "Revertir"
+      ],
+      "expected_result": "exit 0 con el árbol limpio y exit != 0 con el uso infractor — probado en AMBOS sentidos"
+    },
+    {
+      "id": "TC-RUI-002h",
+      "requirement_id": "FR-1202",
+      "user_story_id": "US-1202",
+      "ac_id": "AC-1202",
+      "title": "Los encabezados de bloque van en tinta neutra con glifo lateral",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en escritorio con los tres bloques visibles"
+      ],
+      "given": "la vista de Presupuesto",
+      "when": "se inspeccionan las tres filas de total por tipo",
+      "then": "las tres se pintan con la tinta neutra --fg y cada una lleva su glifo lateral (← Ingreso, → Gasto, ⇄ Reserva); ninguna lleva hue propio",
+      "steps": [
+        "Cargar la vista",
+        "Leer el color computado del rótulo de cada fila de tipo",
+        "Comprobar el glifo de cada una"
+      ],
+      "expected_result": "los tres rótulos resuelven al mismo color neutro y cada bloque muestra su glifo lateral"
+    },
+    {
+      "id": "TC-RUI-002e",
+      "requirement_id": "FR-1202",
+      "user_story_id": "US-1202",
+      "ac_id": "AC-1202",
+      "title": "La celda sin dato se pinta atenuada, no con el color de su categoría",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un mes sin datos en los tres tipos"
+      ],
+      "given": "la grilla con celdas vacías",
+      "when": "se inspecciona el color computado de los em-dash",
+      "then": "todos resuelven a la tinta atenuada --fg-muted; ninguno resuelve a un color de tipo",
+      "steps": [
+        "Localizar celdas con '—' de los tres tipos",
+        "Leer su color computado",
+        "Comparar contra --fg-muted y contra los --type-*"
+      ],
+      "expected_result": "todos los em-dash comparten el color atenuado y ninguno coincide con --type-expense/income/transfer"
+    },
+    {
+      "id": "TC-RUI-002f",
+      "requirement_id": "FR-1202",
+      "user_story_id": "US-1202",
+      "ac_id": "AC-1202",
+      "title": "Ningún elemento de la grilla deriva su color del tipo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App cargada con la jerarquía expandida"
+      ],
+      "given": "la vista de Presupuesto completa",
+      "when": "se cuentan los elementos cuyo color computado coincide con algún token --type-*",
+      "then": "el conteo es 0 — línea base medida antes del rediseño: los 3 encabezados, todas las filas de nodo y ~30 em-dash",
+      "steps": [
+        "Recorrer filas, celdas e íconos de la grilla y del Balance",
+        "Comparar cada color computado contra los tres --type-*",
+        "Contar coincidencias"
+      ],
+      "expected_result": "0 elementos con color de tipo en la grilla y en el Balance"
+    },
+    {
+      "id": "TC-RUI-003h",
+      "requirement_id": "FR-1203",
+      "user_story_id": "US-1203",
+      "ac_id": "AC-1203",
+      "title": "El glifo de gravedad corresponde al umbral",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con gastos al 132 %, al 108 % y al 95 % de su presupuesto"
+      ],
+      "given": "las tres celdas",
+      "when": "se pide su glifo",
+      "then": "132 % devuelve '››', 108 % devuelve '›' y 95 % devuelve cadena vacía",
+      "steps": [
+        "Invocar el glifo para cada uno de los tres casos",
+        "Comparar"
+      ],
+      "expected_result": "'››', '›' y '' respectivamente",
+      "test_data": {
+        "casos": [
+          {
+            "b": 100,
+            "e": 132,
+            "g": "››"
+          },
+          {
+            "b": 100,
+            "e": 108,
+            "g": "›"
+          },
+          {
+            "b": 100,
+            "e": 95,
+            "g": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "TC-RUI-003e",
+      "requirement_id": "FR-1203",
+      "user_story_id": "US-1203",
+      "ac_id": "AC-1203",
+      "title": "Color y glifo salen de la MISMA evaluación de estado",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un barrido de ratios ejecutado/presupuestado alrededor de los umbrales 100 % y 120 %"
+      ],
+      "given": "las funciones de color y de glifo de la grilla",
+      "when": "se evalúan ambas sobre las mismas entradas en todo el barrido",
+      "then": "para cada entrada, el estado implícito en el color y el implícito en el glifo coinciden: no existe ninguna entrada donde uno indique desvío y el otro no",
+      "steps": [
+        "Recorrer ratios de 90 % a 140 % en pasos pequeños",
+        "Para cada uno, derivar estado del color y estado del glifo",
+        "Comprobar que coinciden en todos"
+      ],
+      "expected_result": "cero discrepancias en todo el barrido — es el invariante de ADR-02 del padre, que el rediseño no puede romper"
+    },
+    {
+      "id": "TC-RUI-003f",
+      "requirement_id": "FR-1203",
+      "user_story_id": "US-1203",
+      "ac_id": "AC-1203",
+      "title": "Un ingreso por encima de su plan no lleva marca",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Un ingreso con ejecutado por encima de su presupuesto"
+      ],
+      "given": "esa celda",
+      "when": "se pide su glifo",
+      "then": "devuelve cadena vacía: superar un ingreso planeado es bueno y no es un desvío que marcar",
+      "steps": [
+        "Invocar el glifo con type=income y e > b",
+        "Comprobar"
+      ],
+      "expected_result": "cadena vacía"
+    },
+    {
+      "id": "TC-RUI-004h",
+      "requirement_id": "FR-1204",
+      "user_story_id": "US-1204",
+      "ac_id": "AC-1204",
+      "title": "El chrome cede altura y el Balance gana filas visibles",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada a 1024x768 con datos"
+      ],
+      "given": "la vista de Presupuesto a 1024x768",
+      "when": "se mide la altura desde el borde superior hasta el primer dato y se cuentan las filas visibles del Balance",
+      "then": "la altura de chrome es menor que la línea base de 240 px y se ven más de 3 filas del módulo de Balance",
+      "steps": [
+        "Fijar el viewport a 1024x768",
+        "Medir el offset vertical del primer dato",
+        "Contar filas del Balance dentro del viewport"
+      ],
+      "expected_result": "chrome < 240 px y filas de Balance visibles > 3",
+      "test_data": {
+        "viewport": {
+          "w": 1024,
+          "h": 768
+        },
+        "baseline_chrome_px": 240,
+        "baseline_balance_rows": 3
+      }
+    },
+    {
+      "id": "TC-RUI-004e",
+      "requirement_id": "FR-1204",
+      "user_story_id": "US-1204",
+      "ac_id": "AC-1204",
+      "title": "La vista tiene un solo nombre y el periodo aparece una sola vez",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en escritorio, vista de Presupuesto"
+      ],
+      "given": "el encabezado y la barra de controles",
+      "when": "se cuentan las apariciones del nombre de la vista y de la etiqueta de alcance",
+      "then": "el nombre de la vista aparece una sola vez —no hay dos rótulos distintos para la misma vista— y la etiqueta de alcance aparece exactamente una vez",
+      "steps": [
+        "Contar los textos que nombran la vista activa",
+        "Contar las apariciones de la etiqueta de alcance"
+      ],
+      "expected_result": "un solo nombre de vista y exactamente una etiqueta de alcance — línea base: dos nombres distintos y la etiqueta dos veces"
+    },
+    {
+      "id": "TC-RUI-004f",
+      "requirement_id": "FR-1204",
+      "user_story_id": "US-1204",
+      "ac_id": "AC-1204",
+      "title": "La marca no se renderiza en ninguno de los dos shells",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en escritorio y en móvil"
+      ],
+      "given": "ambos shells",
+      "when": "se busca la marca y su ícono de billetera",
+      "then": "no están presentes en el DOM en ninguno de los dos, y el control de cuenta no comparte grupo con las acciones de trabajo",
+      "steps": [
+        "Cargar el shell de escritorio y buscar la marca",
+        "Cargar el shell móvil y buscar la marca",
+        "Comprobar el agrupamiento del control de cuenta"
+      ],
+      "expected_result": "cero coincidencias de la marca en ambos shells"
+    },
+    {
+      "id": "TC-RUI-005h",
+      "requirement_id": "FR-1205",
+      "user_story_id": "US-1205",
+      "ac_id": "AC-1205",
+      "title": "Queda una sola leyenda en pantalla",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en la vista de Presupuesto"
+      ],
+      "given": "la pantalla completa",
+      "when": "se cuentan las leyendas",
+      "then": "hay exactamente una, y explica el código de estado nombrando color y glifo",
+      "steps": [
+        "Contar los bloques de leyenda de la vista",
+        "Comprobar que la que queda nombra color y glifo"
+      ],
+      "expected_result": "una sola leyenda — línea base: dos (la del encabezado y la del pie)"
+    },
+    {
+      "id": "TC-RUI-005e",
+      "requirement_id": "FR-1205",
+      "user_story_id": "US-1205",
+      "ac_id": "AC-1205",
+      "title": "Con datos propios, ningún texto afirma el reparto de la semilla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con ejecutado en un mes distinto a los que la semilla marca como ejecutados"
+      ],
+      "given": "la vista de Presupuesto con esos datos",
+      "when": "se lee todo el texto fijo de la pantalla",
+      "then": "ningún texto afirma un reparto de meses ejecutado/en curso/proyectado que los datos no tengan",
+      "steps": [
+        "Cargar datos con ejecutado en un mes fuera del rango de la semilla",
+        "Recorrer el texto fijo de la pantalla",
+        "Buscar afirmaciones sobre el reparto de meses"
+      ],
+      "expected_result": "cero afirmaciones sobre el reparto de meses — cierra BL-013"
+    },
+    {
+      "id": "TC-RUI-005f",
+      "requirement_id": "FR-1205",
+      "user_story_id": "US-1205",
+      "ac_id": "AC-1205",
+      "title": "El pie de ayuda ya no se renderiza",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "App cargada en la vista de Presupuesto"
+      ],
+      "given": "el pie de la grilla",
+      "when": "se buscan las instrucciones de uso",
+      "then": "no están presentes: la interfaz no se explica por escrito",
+      "steps": [
+        "Buscar el texto de ayuda de gestos en el DOM"
+      ],
+      "expected_result": "cero coincidencias del pie de ayuda"
+    },
+    {
+      "id": "TC-RUI-006h",
+      "requirement_id": "FR-1206",
+      "user_story_id": "US-1206",
+      "ac_id": "AC-1206",
+      "title": "Las escalas de espaciado y motion están declaradas y se consumen",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "globals.css tras el rediseño"
+      ],
+      "given": "el sistema de diseño",
+      "when": "se inspeccionan los tokens declarados",
+      "then": "existen los tokens de espaciado sobre base 4 px y los de duración y curva, y los componentes los consumen",
+      "steps": [
+        "Leer los tokens declarados",
+        "Comprobar que existen las dos familias",
+        "Comprobar que hay consumidores"
+      ],
+      "expected_result": "ambas escalas declaradas y con consumo real"
+    },
+    {
+      "id": "TC-RUI-006e",
+      "requirement_id": "FR-1206",
+      "user_story_id": "US-1206",
+      "ac_id": "AC-1206",
+      "title": "Cero tamaños tipográficos ad-hoc",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El árbol de src/components/ tras el rediseño"
+      ],
+      "given": "los componentes",
+      "when": "se cuentan los tamaños de fuente escritos a mano",
+      "then": "el conteo es 0 — línea base medida: 18 en 6 ficheros, exactamente los que FR-303 dijo haber eliminado",
+      "steps": [
+        "Barrer src/components/ buscando tamaños ad-hoc",
+        "Contar"
+      ],
+      "expected_result": "0 ocurrencias",
+      "test_data": {
+        "baseline": 18,
+        "ficheros_baseline": 6
+      }
+    },
+    {
+      "id": "TC-RUI-006f",
+      "requirement_id": "FR-1206",
+      "user_story_id": "US-1206",
+      "ac_id": "AC-1206",
+      "title": "El gate falla ante un valor fuera de escala",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "El gate scripts/design-tokens.sh presente"
+      ],
+      "given": "un árbol donde un componente usa un espaciado o una duración fuera de las escalas",
+      "when": "se ejecuta el gate",
+      "then": "sale con código distinto de 0 y nombra el infractor; con el árbol limpio sale 0",
+      "steps": [
+        "Ejecutar el gate limpio y comprobar exit 0",
+        "Introducir un gap fuera de escala",
+        "Re-ejecutar y comprobar exit != 0",
+        "Revertir"
+      ],
+      "expected_result": "probado en AMBOS sentidos: pasa limpio y falla ante el valor fuera de escala"
+    },
+    {
+      "id": "TC-RUI-007h",
+      "requirement_id": "FR-1207",
+      "user_story_id": "US-1207",
+      "ac_id": "AC-1207",
+      "title": "El árbol no tiene módulos huérfanos",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "El árbol de src/ tras el rediseño"
+      ],
+      "given": "el grafo de imports de src/",
+      "when": "se calcula qué módulos no importa nadie, excluyendo las rutas de Next",
+      "then": "el conteo de huérfanos es 0 — línea base medida: 1 (useResolvedTheme.ts)",
+      "steps": [
+        "Construir el grafo de imports",
+        "Excluir las rutas del router",
+        "Contar huérfanos"
+      ],
+      "expected_result": "0 módulos huérfanos"
+    },
+    {
+      "id": "TC-RUI-007e",
+      "requirement_id": "FR-1207",
+      "user_story_id": "US-1207",
+      "ac_id": "AC-1207",
+      "title": "Los tokens de Tailwind NO se confunden con huérfanos",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "globals.css con sus mapeos @theme"
+      ],
+      "given": "el barrido de tokens sin consumidor",
+      "when": "se comprueba tanto var(--x) como el consumo por clases utilitarias",
+      "then": "los mapeos @theme de Tailwind NO se reportan como huérfanos: un barrido que sólo mire var() los marcaría y retirarlos rompería el tema entero",
+      "steps": [
+        "Ejecutar el barrido de tokens",
+        "Comprobar que ningún --color-* aparece en la lista de huérfanos"
+      ],
+      "expected_result": "cero falsos positivos sobre los mapeos @theme — es la trampa registrada en el TRD"
+    },
+    {
+      "id": "TC-RUI-007f",
+      "requirement_id": "FR-1207",
+      "user_story_id": "US-1207",
+      "ac_id": "AC-1207",
+      "title": "El bundle de cliente ya no lleva la traza del módulo retirado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Build de producción limpio"
+      ],
+      "given": "el bundle servido al navegador",
+      "when": "se busca la traza interna del módulo retirado",
+      "then": "no aparece: retirar useResolvedTheme cierra la mitad del hallazgo de fuga de trazas",
+      "steps": [
+        "Compilar en producción",
+        "Buscar la traza en los chunks estáticos"
+      ],
+      "expected_result": "cero coincidencias de la traza de useResolvedTheme en el bundle"
+    },
+    {
+      "id": "TC-RUI-101h",
+      "requirement_id": "NFR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: el dominio queda intacto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "toda la suite de dominio del padre y de las features previas",
+      "when": "se ejecuta tras el rediseño",
+      "then": "pasa entera sin modificar una sola aserción de cálculo",
+      "steps": [
+        "Ejecutar la suite de dominio",
+        "Comprobar que ningún test de cálculo se tocó"
+      ],
+      "expected_result": "suite de dominio verde y cero aserciones de cálculo modificadas"
+    },
+    {
+      "id": "TC-RUI-101f",
+      "requirement_id": "NFR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: ningún invariante del dominio se rompe",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "operaciones de borrado y de reubicación tras el rediseño",
+      "when": "se comprueban los invariantes",
+      "then": "cero movimientos huérfanos y Presupuestado(padre) == suma de sus hojas",
+      "steps": [
+        "Ejecutar borrado y reparent",
+        "Comprobar huérfanos y totales"
+      ],
+      "expected_result": "cero huérfanos y totales cuadrados"
+    },
+    {
+      "id": "TC-RUI-102h",
+      "requirement_id": "NFR-1202",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: el contrato de edición de la grilla se conserva",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "una celda de hoja",
+      "when": "se hace clic, se escribe y se confirma con Enter, y en otro intento se cancela con Escape",
+      "then": "Enter confirma, Escape cancela sin cambios, blur confirma, y los nodos padre siguen sin abrir input",
+      "steps": [
+        "Editar una hoja y confirmar con Enter",
+        "Editar y cancelar con Escape",
+        "Hacer clic en una celda de padre"
+      ],
+      "expected_result": "el contrato completo se conserva"
+    },
+    {
+      "id": "TC-RUI-102f",
+      "requirement_id": "NFR-1202",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: el arrastrar-y-soltar sigue operativo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "un nodo arrastrado a un destino inválido y otro a uno válido",
+      "when": "se sueltan",
+      "then": "el válido reubica y el inválido se rechaza dejando la jerarquía intacta — esta feature no toca la interacción, aparcada para la segunda",
+      "steps": [
+        "Arrastrar a un destino de otro tipo y comprobar el rechazo",
+        "Arrastrar a un destino válido y comprobar la reubicación"
+      ],
+      "expected_result": "rechazo sin mutar y reubicación correcta"
+    },
+    {
+      "id": "TC-RUI-103h",
+      "requirement_id": "NFR-1203",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: el registro conserva su color por tipo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "el registro",
+      "when": "se selecciona cada uno de los tres tipos",
+      "then": "el monto, el signo y el botón Guardar se siguen tiñendo del color del tipo elegido, exactamente como antes",
+      "steps": [
+        "Seleccionar Gasto, luego Ingreso, luego Reserva",
+        "Leer el color del monto, del signo y del botón en cada caso"
+      ],
+      "expected_result": "la propagación de color por tipo se conserva intacta en los tres"
+    },
+    {
+      "id": "TC-RUI-103f",
+      "requirement_id": "NFR-1203",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: el registro NO adopta la tinta neutra de la grilla",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "el registro tras el rediseño",
+      "when": "se comprueba que su color no fue retirado por error",
+      "then": "sus controles activos siguen usando el color del tipo: la retirada se acota a la grilla y al Balance",
+      "steps": [
+        "Comprobar que el segmento activo del toggle sigue relleno con el color del tipo"
+      ],
+      "expected_result": "el color del registro NO fue retirado — es la regla de campos perceptuales, no un olvido"
+    },
+    {
+      "id": "TC-RUI-104h",
+      "requirement_id": "NFR-1204",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Contraste AA en ambos temas tras la unificación",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "las superficies de la grilla en tema claro y oscuro",
+      "when": "se mide el contraste de cada par texto/fondo",
+      "then": "ninguno baja de 4,5:1, incluido el peor caso de celda del mes resaltado sobre fila hundida",
+      "steps": [
+        "Medir contraste en claro",
+        "Medir en oscuro",
+        "Comprobar el peor caso"
+      ],
+      "expected_result": "todos los pares ≥ 4,5:1 en ambos temas"
+    },
+    {
+      "id": "TC-RUI-104f",
+      "requirement_id": "NFR-1204",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "La unificación no baja el contraste de ningún par",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "los tres roles de color unificados",
+      "when": "se comparan sus contrastes contra los de los tokens que sustituyen",
+      "then": "ninguno empeora: de cada grupo se conservó la variante con mejor contraste verificado",
+      "steps": [
+        "Comparar cada rol nuevo contra los tokens que sustituye"
+      ],
+      "expected_result": "el contraste sube o queda igual en los tres roles; nunca baja"
+    },
+    {
+      "id": "TC-RUI-105h",
+      "requirement_id": "NFR-1205",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "El guardrail de edición no se degrada",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "la jerarquía semilla completa cargada",
+      "when": "se edita una celda de hoja y se mide el reflejo de los roll-ups",
+      "then": "sigue por debajo de 150 ms",
+      "steps": [
+        "Cargar la semilla",
+        "Editar una hoja",
+        "Medir el tiempo hasta el recálculo de los ancestros"
+      ],
+      "expected_result": "≤150 ms — el mismo guardrail de NFR-001 del padre"
+    },
+    {
+      "id": "TC-RUI-101e",
+      "requirement_id": "NFR-1201",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: los casos borde del dominio siguen resolviendo igual",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "los casos borde que el producto ya tenía cubiertos — nodo vaciado a 0 con journal, reparent sobre categoría-hoja con montos, presupuesto 0",
+      "when": "se ejecutan tras el rediseño",
+      "then": "todos devuelven exactamente lo mismo que antes: el rediseño es de presentación y no puede alterar un solo veredicto del dominio",
+      "steps": [
+        "Ejecutar los casos borde de borrado, reparent y roll-up",
+        "Comparar veredictos contra los esperados previos"
+      ],
+      "expected_result": "cero diferencias de comportamiento en los casos borde del dominio"
+    },
+    {
+      "id": "TC-RUI-102e",
+      "requirement_id": "NFR-1202",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: sticky y scroll horizontal se conservan",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "la grilla a un ancho menor que el de sus 12 meses",
+      "when": "se hace scroll vertical y horizontal",
+      "then": "la columna de categoría permanece fija a la izquierda y los encabezados de mes permanecen arriba, igual que antes del rediseño",
+      "steps": [
+        "Reducir el viewport por debajo del ancho total",
+        "Hacer scroll en ambos ejes",
+        "Comprobar la columna y los encabezados"
+      ],
+      "expected_result": "columna sticky y encabezados sticky conservados"
+    },
+    {
+      "id": "TC-RUI-103e",
+      "requirement_id": "NFR-1203",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "Regresión: cambiar de tipo en el registro conserva su comportamiento",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "el registro con un monto escrito y una categoría elegida",
+      "when": "se cambia el tipo activo",
+      "then": "el monto se conserva y la categoría se deselecciona, exactamente como antes; y el color se propaga al tipo nuevo",
+      "steps": [
+        "Escribir un monto y elegir categoría",
+        "Cambiar de tipo",
+        "Comprobar monto, categoría y color"
+      ],
+      "expected_result": "monto conservado, categoría deseleccionada y color propagado al tipo nuevo"
+    },
+    {
+      "id": "TC-RUI-104e",
+      "requirement_id": "NFR-1204",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "El peor caso de contraste sigue siendo el medido",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "la celda del mes resaltado sobre una fila hundida — el peor caso declarado",
+      "when": "se mide su contraste en ambos temas",
+      "then": "se mantiene en o por encima de 4,5:1 y sigue siendo el par más ajustado de la grilla",
+      "steps": [
+        "Localizar la celda del mes en foco en una fila de estructura",
+        "Medir su contraste en claro y en oscuro"
+      ],
+      "expected_result": "≥4,5:1 en ambos temas en el peor caso"
+    },
+    {
+      "id": "TC-RUI-105e",
+      "requirement_id": "NFR-1205",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "El guardrail se sostiene con la jerarquía expandida",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "la semilla completa con todos los niveles expandidos",
+      "when": "se edita una hoja profunda y se mide el recálculo",
+      "then": "sigue por debajo de 150 ms: el rediseño no añade trabajo por celda — de hecho retira llamadas de color por fila",
+      "steps": [
+        "Expandir toda la jerarquía",
+        "Editar una hoja del nivel más profundo",
+        "Medir"
+      ],
+      "expected_result": "≤150 ms con la jerarquía completamente expandida"
+    },
+    {
+      "id": "TC-RUI-105f",
+      "requirement_id": "NFR-1205",
+      "user_story_id": "US-1201",
+      "ac_id": "AC-1201",
+      "title": "El rediseño no introduce trabajo de render por celda",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Suite completa del repositorio"
+      ],
+      "given": "las funciones de color de la grilla tras el rediseño",
+      "when": "se cuentan las invocaciones por fila renderizada",
+      "then": "no aumentan respecto a la línea base: retirar el color de tipo elimina llamadas, no las añade",
+      "steps": [
+        "Contar invocaciones de las funciones de color por fila antes y después"
+      ],
+      "expected_result": "el número de invocaciones por fila no aumenta"
+    }
+  ]
+}

@@ -23,9 +23,9 @@ const inputVariants = cva(
       // control-size-scale FR-801: alturas SOLO desde la escala canónica.
       // El login sube a --control-lg (48px) bajo 760px por objetivo táctil WCAG 2.5.5.
       size: {
-        default: "h-(--control-md) text-[0.8rem]",
-        sm: "h-(--control-sm) text-[0.72rem]",
-        touch: "h-(--control-md) max-[760px]:h-(--control-lg) text-[0.85rem]",
+        default: "h-(--control-md) text-label",
+        sm: "h-(--control-sm) text-caption",
+        touch: "h-(--control-md) max-[760px]:h-(--control-lg) text-label",
       },
     },
     defaultVariants: { size: "default" },
