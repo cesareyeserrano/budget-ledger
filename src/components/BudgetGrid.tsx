@@ -108,7 +108,7 @@ function ejecColor(type: NodeType, b: number, e: number): string {
  *
  * @aitri-trace FR-ID: FR-402, US-ID: US-402, AC-ID: AC-402, TC-ID: TC-BSC-402e, TC-BSC-402f, TC-BSC-452f
  */
-function ejecGlyph(type: NodeType, b: number, e: number): "" | "›" | "››" {
+function ejecGlyph(type: NodeType, b: number, e: number): "" | "‹" | "›" | "››" {
   return cellGlyph(type, b, e);
 }
 

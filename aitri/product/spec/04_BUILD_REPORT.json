@@ -188,6 +188,13 @@
       "timeout_ms": 120000
     },
     {
+      "name": "design-tokens",
+      "command": "./scripts/design-tokens.sh",
+      "required": true,
+      "timeout_ms": 120000,
+      "note": "refinamiento-ui ADR-01: convierte las reglas visuales en codigo de salida. Existe porque FR-303 elimino ~17 tamanos ad-hoc, se aprobo y se verifico, y al medirlo habia 18."
+    },
+    {
       "name": "secret-scan",
       "command": "./scripts/secret-scan.sh",
       "required": true,

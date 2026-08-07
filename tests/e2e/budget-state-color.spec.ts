@@ -21,8 +21,12 @@ const STATE_OVER = "rgb(173, 57, 50)"; // --state-over claro (#ad3932)
 const FG = "rgb(28, 28, 31)"; // --fg claro
 const BG = "rgb(247, 247, 248)"; // --bg (fila hoja)
 const BG_SUNKEN = "rgb(241, 241, 243)"; // --bg-sunken (fila de estructura)
-const SUCCESS = "rgb(47, 125, 83)"; // --success claro
-const WARNING = "rgb(180, 83, 9)"; // --warning claro (Ingreso corto — NO es --state-warning)
+const SUCCESS = "rgb(45, 118, 80)"; // --favorable claro (#2d7650) — refinamiento-ui FR-1201 unificó
+                                    // --success/--success-strong/--type-income en un solo rol.
+const WARNING = STATE_WARNING; // refinamiento-ui FR-1201: --warning y --state-warning eran dos ámbares
+                               // casi idénticos para el MISMO mensaje («excepción leve»). Ahora comparten
+                               // el rol --alert-soft: un ingreso corto y un gasto algo pasado son ambos
+                               // «atención, poco». Por eso el ingreso corto ganó su marca «‹» (ver 453f).
 const TYPE_EXPENSE = "rgb(196, 69, 62)"; // --type-expense claro
 
 // ── contraste WCAG calculado a partir de los valores REALES del navegador ──────────────────────
@@ -380,7 +384,12 @@ test("TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warnin
 
   const short = ejecCell(rowByName(page, "Salario"), PLAIN_INDEX); // 2.000.000 / 3.000.000
   expect(await colorOf(short)).toBe(WARNING);
-  expect(await colorOf(short)).not.toBe(STATE_WARNING); // NO es el token de estado de presupuesto
+  // refinamiento-ui FR-1201: este TC afirmaba que el ámbar del ingreso corto era un token DISTINTO
+  // del ámbar de sobre-consumo. Eran dos valores casi idénticos para el mismo mensaje («excepción
+  // leve»), así que se unificaron. La distinción no se pierde: se mudó del HUE a la FORMA — el
+  // ingreso corto lleva «‹» (te quedaste corto) y el gasto pasado «›» (te pasaste).
+  expect((await short.textContent())!).toContain("‹");
+  expect((await short.textContent())!).not.toContain("›");
 
   const over = ejecCell(rowByName(page, "Bonos"), PLAIN_INDEX); // 1.300.000 / 1.000.000
   expect(await colorOf(over)).toBe(SUCCESS);
@@ -408,6 +417,7 @@ test("TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto 
   expect((await cell.textContent())!).not.toContain("›");
   expect(await colorOf(cell)).toBe(SUCCESS);
   expect(await colorOf(cell)).not.toBe(STATE_OVER);
+  expect((await cell.textContent())!).not.toContain("‹"); // superarlo es bueno: tampoco marca de «corto»
 });
 
 // ══ NFR-403 · AA sobre la app real + WCAG 1.4.1 ════════════════════════════════════════════════
@@ -447,7 +457,10 @@ test("TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: to
         const c = getComputedStyle(el).color;
         if (c !== warning && c !== over) continue;
         colored++;
-        if (!(el.textContent ?? "").includes("›")) withoutGlyph++;
+        // El vocabulario de marcas creció con refinamiento-ui: «›»/«››» = te pasaste, «‹» = te
+        // quedaste corto (ingreso). El INVARIANTE no cambia: coloreada ⇒ lleva marca.
+        const txt = el.textContent ?? "";
+        if (!txt.includes("›") && !txt.includes("‹")) withoutGlyph++;
       }
       return { colored, withoutGlyph };
     },
@@ -485,7 +498,9 @@ test("TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Reciente
   expect(groupActual).toContain("855.000");
 
   // el filtro Mes/Año recalcula los KPIs (el año agrega los 12 meses), y volver a Mes los restituye
-  const budgetKpi = page.getByTestId("kpi").first().locator(".display");
+  // refinamiento-ui FR-1204: las tres tarjetas de 110 px que mostraban $0 se sustituyeron por una
+  // franja compacta — ocupaban el 31 % de la altura a 1024 y dejaban el Balance bajo el pliegue.
+  const budgetKpi = page.getByTestId("summary-value").first();
   const kpiMonth = await budgetKpi.textContent();
   await page.getByTestId("period-pill").getByRole("tab", { name: "Año" }).click();
   const kpiYear = await budgetKpi.textContent();

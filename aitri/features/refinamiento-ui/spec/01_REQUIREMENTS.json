@@ -71,15 +71,16 @@
     },
     {
       "id": "FR-1203",
-      "title": "La marca no cromática de gravedad se conserva y se refuerza",
-      "description": "Los glifos `›` (>100 % y <120 %) y `››` (≥120 %) siguen derivándose del MISMO `budgetState(b, e)` que el color, desde una única tabla indexada por estado, de modo que el canal redundante de WCAG 1.4.1 no pueda contradecir al color (ADR-02 del padre). Al liberarse el color de la identidad de tipo, este canal pasa a ser el portador principal de gravedad y puede reforzarse con peso tipográfico progresivo sin competir con nada. Un Ingreso que supera su presupuesto sigue SIN marca: superar un ingreso planeado es bueno (NFR-402 del padre).",
+      "title": "La marca no cromática cubre TODA celda coloreada",
+      "description": "Los glifos `›` (>100 % y <120 %) y `››` (≥120 %) siguen derivándose del MISMO `budgetState(b, e)` que el color, desde una única tabla indexada por estado, de modo que el canal redundante de WCAG 1.4.1 no pueda contradecir al color (ADR-02 del padre). Al liberarse el color de la identidad de tipo, este canal pasa a ser el portador principal de gravedad y puede reforzarse con peso tipográfico progresivo sin competir con nada. Un Ingreso que supera su presupuesto sigue SIN marca: superar un ingreso planeado es bueno (NFR-402 del padre). AMPLIACIÓN DESCUBIERTA EN IMPLEMENTACIÓN (2026-08-06): al unificar los tokens, el INGRESO POR DEBAJO de su plan pasó a compartir el ámbar con el sobre-consumo — correcto, porque ambos son «excepción leve» — pero los ingresos nunca llevaban glifo. Resultado: una celda COLOREADA SIN canal no cromático, justo lo que WCAG 1.4.1 prohíbe. Lo detectó TC-BSC-453f, un test de `budget-state-color` que audita exactamente ese invariante. Se corrige ampliando el vocabulario de marcas: «›»/«››» siguen significando «te pasaste» y se añade «‹» para «te quedaste corto». Un ingreso por ENCIMA de su plan sigue sin marca: superarlo es bueno y no pide acción (NFR-402). El invariante que la feature instala, y que ahora se verifica por barrido completo, es: TODA celda coloreada con un rol de alerta lleva marca.",
       "priority": "MUST",
       "type": "visual",
       "acceptance_criteria": [
         "Color y glifo de una celda de gasto se derivan de la misma llamada a budgetState con las mismas entradas: no existe una segunda condición que mantener en sincronía (invariante)",
         "Una celda de gasto al 132 % muestra `››` y una al 108 % muestra `›`; una al 95 % no muestra glifo (happy + edge)",
-        "Una celda de Ingreso con ejecutado por encima del presupuesto no muestra glifo alguno (negativo)",
-        "Simulando visión sin distinción rojo-verde, el estado de cada celda sigue siendo identificable por glifo y peso (accesibilidad)"
+        "Simulando visión sin distinción rojo-verde, el estado de cada celda sigue siendo identificable por glifo y peso (accesibilidad)",
+        "Un ingreso por DEBAJO de su plan lleva la marca «‹» y un ingreso por encima no lleva ninguna (happy + negativo)",
+        "INVARIANTE, barrido sobre los tres tipos y ratios de 0 % a 200 %: toda celda cuyo rol sea de alerta lleva marca no cromática (WCAG 1.4.1)"
       ]
     },
     {

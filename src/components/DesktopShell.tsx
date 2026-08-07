@@ -15,6 +15,7 @@ import { money } from "./format";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
+import { Kpi } from "./ui/Kpi";
 
 type View = "budget" | "dashboard";
 
@@ -42,6 +43,12 @@ export function DesktopShell() {
             antes los cuatro compartían fila y por eso «Salir» se leía como arbitrario. */}
         <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border px-6 py-2">
           <div className="flex items-center gap-3">
+            {/* El <h1> vuelve VISUALMENTE OCULTO. Al retirarlo por duplicar el rótulo de la pestaña,
+                la página de escritorio se quedó sin ningún encabezado: el esquema de encabezados
+                desaparecía para un lector de pantalla. Se resuelve la duplicación VISUAL sin
+                sacrificar la semántica — la pestaña activa nombra la vista en pantalla, el h1 la
+                nombra para quien no la ve. */}
+            <h1 data-testid="page-title" className="title sr-only">{view === "budget" ? "Resumen" : "Dashboard"}</h1>
             <Tabs value={view} onValueChange={(v) => setView(v as View)}>
               <TabsList>
                 <TabsTrigger value="budget">Resumen</TabsTrigger>
@@ -87,13 +94,12 @@ export function DesktopShell() {
           </div>
           {view === "budget" && (
             <div data-testid="summary-strip" className="flex items-center gap-4 flex-wrap tabular">
-              <SummaryFigure label="PRESUPUESTO" value={money(kpis.presupuestado)} />
-              <span className="h-4 w-px bg-border" aria-hidden />
-              <SummaryFigure label="EJECUTADO" value={money(kpis.ejecutado)} note={`${kpis.pct}%`} />
-              <span className="h-4 w-px bg-border" aria-hidden />
+              <Kpi compact label="PRESUPUESTO" value={money(kpis.presupuestado)} />
+              <Kpi compact label="EJECUTADO" value={money(kpis.ejecutado)} sub={`${kpis.pct}%`} />
               {/* «DISPONIBLE» colisionaba con el «Saldo disponible» del Balance en la MISMA pantalla
                   midiendo otra cosa (presupuesto restante frente a plata que tienes). Se renombra. */}
-              <SummaryFigure
+              <Kpi
+                compact
                 label="RESTANTE"
                 value={money(kpis.available)}
                 color={kpis.available >= 0 ? "var(--favorable)" : "var(--alert-strong)"}
@@ -173,21 +179,6 @@ function StateLegend() {
         <span className="tabular" style={{ color: "var(--state-over)" }}>››</span> Te pasaste mucho
       </span>
     </div>
-  );
-}
-
-/**
- * Una cifra del resumen, compacta. Sustituye a la tarjeta `Kpi`, que se conserva intacta para el
- * dashboard: allí una tarjeta por indicador tiene sentido, aquí tres tarjetas de 110 px para tres
- * cifras no lo tenía.
- */
-function SummaryFigure({ label, value, note, color }: { label: string; value: string; note?: string; color?: string }) {
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="eyebrow">{label}</span>
-      <span className="label" style={color ? { color } : undefined}>{value}</span>
-      {note && <span className="caption text-fg-muted">{note}</span>}
-    </span>
   );
 }
 

@@ -20,7 +20,9 @@ const BG_SUNKEN = "rgb(241, 241, 243)"; // --bg-sunken claro
 // HUNDIDA, los tonos base se quedan en 4.45:1 y 4.36:1, bajo el mínimo AA de 4.5.
 const SUCCESS_STRONG = "rgb(45, 118, 80)"; // --success-strong claro (#2d7650) — 4.87:1
 const ERROR_STRONG = "rgb(173, 57, 50)"; //   --error-strong claro   (#ad3932) — 5.46:1
-const TRANSFER = "rgb(47, 109, 180)"; //      --type-transfer claro  (#2f6db4)
+const TRANSFER = "rgb(85, 85, 93)"; // --fg-secondary claro (#55555d). refinamiento-ui FR-1201: las filas de
+                   // reserva del Balance dejaron de teñirse con el color de su TIPO — eso era
+                   // identidad, no estado. Se distinguen por su fila, su rótulo y su signo.
 const FG_SECONDARY = "rgb(85, 85, 93)"; //    --fg-secondary claro
 
 // ── contraste WCAG calculado a partir de los valores REALES del navegador ──────────────────────
@@ -533,7 +535,8 @@ test("TC-BAL-953f: Ingreso y Transferencia conservan su semántica de color", as
 
   // un ingreso por debajo de su presupuesto sigue en --warning (NO en --state-warning)
   const ingreso = gridEjec(rowByName(page, "Salario"), PLAIN.index);
-  expect(await colorOf(ingreso)).toBe("rgb(180, 83, 9)"); // --warning claro (#b45309)
+  expect(await colorOf(ingreso)).toBe("rgb(158, 71, 8)"); // --alert-soft (#9e4708): --warning y
+  // --state-warning se unificaron en un solo rol de excepción leve (refinamiento-ui FR-1201).
 
   // Re-derivado por feature transferencias (FR-1002): la celda transfer es un SALDO explícito →
   // tinta plena --fg; los umbrales/estados de gasto siguen sin afectarla.

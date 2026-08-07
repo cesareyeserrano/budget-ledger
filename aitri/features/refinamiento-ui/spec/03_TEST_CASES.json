@@ -827,6 +827,31 @@
         "Contar invocaciones de las funciones de color por fila antes y después"
       ],
       "expected_result": "el número de invocaciones por fila no aumenta"
+    },
+    {
+      "id": "TC-RUI-003i",
+      "requirement_id": "FR-1203",
+      "user_story_id": "US-1203",
+      "ac_id": "AC-1203",
+      "title": "INVARIANTE — toda celda coloreada con rol de alerta lleva marca no cromática",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Los tres tipos y un barrido de ratios ejecutado/presupuestado de 0 % a 200 %"
+      ],
+      "given": "el espacio completo de combinaciones tipo × ratio",
+      "when": "se piden el rol de color y la marca de cada una",
+      "then": "no existe ninguna combinación cuyo rol sea de alerta y no lleve marca — el verde «favorable» queda exento porque es la excepción sana y no pide acción",
+      "steps": [
+        "Recorrer los tres tipos",
+        "Para cada uno, barrer ratios de 0 % a 200 %",
+        "Comprobar rol y marca en cada punto"
+      ],
+      "expected_result": "cero combinaciones coloreadas-sin-marca. Es el defecto que la unificación de tokens introdujo y que TC-BSC-453f detectó en el e2e",
+      "test_data": {
+        "origen": "defecto detectado en implementación el 2026-08-06"
+      }
     }
   ]
 }

@@ -153,7 +153,11 @@ test("TC-UXC-303f: no queda ningún font-[450] en el DOM del escritorio", async 
 // ── FR-304 · cabecera con intención ────────────────────────────────────────────
 test("TC-UXC-304h: escritorio — marca discreta + un único título (no doble LEDGER)", async ({ page }) => {
   await gotoDesk(page, "light");
-  await expect(page.getByTestId("topbar-brand")).toHaveCount(1);
+  // refinamiento-ui FR-1204 SUPERSEDE la parte de «marca discreta» de FR-304: el usuario pidió
+  // retirarla explícitamente («hay algo que dice Ledger, tiene un icono de billetera, eso sobra»).
+  // Lo que FR-304 protegía de verdad —UN solo rótulo de vista, sin el patrón LEDGER + título
+  // grande— sigue vigente y se afirma igual.
+  await expect(page.getByTestId("topbar-brand")).toHaveCount(0);
   await expect(page.getByTestId("page-title")).toHaveCount(1);
   const title = await page.getByTestId("page-title").textContent();
   expect(title).not.toContain("LEDGER");
@@ -295,9 +299,15 @@ test("TC-UXC-308h: dashboard y escritorio usan el MISMO Kpi (mismo padding y reg
     return { pad: `${s.paddingTop}|${s.paddingRight}|${s.paddingBottom}|${s.paddingLeft}`, font: v.fontFamily };
   });
   const deskKpi = await readKpi();
+  const deskCompact = await page.getByTestId("kpi").first().getAttribute("data-compact");
   await page.getByRole("tab", { name: "Dashboard" }).click();
   const dashKpi = await readKpi();
-  expect(dashKpi.pad).toBe(deskKpi.pad);
+  // refinamiento-ui FR-1204 SUPERSEDE la igualdad de PADDING: la franja del escritorio se comprimió
+  // porque tres tarjetas ocupaban 240 px de chrome para mostrar tres cifras, dejando el módulo de
+  // Balance bajo el pliegue a 1024. Lo que FR-308 protegía —que no haya DOS componentes duplicados—
+  // sigue en pie y es lo que se afirma: el mismo Kpi en ambas superficies, en dos densidades.
+  expect(deskCompact).toBe("true");
+  expect(await page.getByTestId("kpi").first().getAttribute("data-compact")).toBeNull();
   expect(/DM.?Mono/i.test(deskKpi.font)).toBe(true);
   expect(/DM.?Mono/i.test(dashKpi.font)).toBe(true);
 });

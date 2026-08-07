@@ -46,6 +46,24 @@ describe("FR-1201 — el color señala excepción, nunca categoría", () => {
 });
 
 describe("FR-1203 — la marca no cromática de gravedad", () => {
+  // @aitri-tc TC-RUI-003i
+  it("TC-RUI-003i: INVARIANTE — toda celda coloreada lleva marca no cromática", () => {
+    // Es la propiedad que WCAG 1.4.1 exige y que la unificación de tokens estuvo a punto de romper.
+    // Se barre el espacio completo: tres tipos × ratios alrededor de los dos umbrales.
+    for (const type of ["expense", "income", "transfer"] as const) {
+      for (let pct = 0; pct <= 200; pct += 5) {
+        const b = 1000;
+        const e = Math.round((b * pct) / 100);
+        const coloreada = ["favorable", "alert-soft", "alert-strong"].includes(cellTone(type, b, e));
+        const conMarca = cellGlyph(type, b, e) !== "";
+        // Un verde «favorable» es la excepción sana y no necesita marca: no pide acción.
+        if (coloreada && cellTone(type, b, e) !== "favorable") {
+          expect(conMarca, `${type} al ${pct}%: coloreada sin marca`).toBe(true);
+        }
+      }
+    }
+  });
+
   // @aitri-tc TC-RUI-003h
   it("TC-RUI-003h: el glifo corresponde al umbral", () => {
     expect(cellGlyph("expense", 100, 132)).toBe("››"); // ≥120 %
@@ -80,7 +98,10 @@ describe("FR-1203 — la marca no cromática de gravedad", () => {
   it("TC-RUI-003f: un ingreso por encima de su plan no lleva marca", () => {
     // Superar un ingreso planeado es BUENO: marcarlo sería decir que algo va mal.
     expect(cellGlyph("income", 100000, 250000)).toBe("");
-    expect(cellGlyph("income", 100000, 50000)).toBe("");
+    // Pero quedarse CORTO sí es una excepción leve, y al unificar los tokens pasó a compartir el
+    // ámbar con el sobre-consumo. Sin marca quedaba una celda coloreada sin canal no cromático:
+    // el defecto que TC-BSC-453f detectó. «‹» = te quedaste corto, espejo de «›» = te pasaste.
+    expect(cellGlyph("income", 100000, 50000)).toBe("‹");
     // La reserva tampoco expresa desvío.
     expect(cellGlyph("transfer", 100000, 500000)).toBe("");
     // Ni una celda sin ejecutado, sea del tipo que sea.

@@ -87,8 +87,21 @@ export function cellTone(type: "expense" | "income" | "transfer", budget: number
  *
  * @aitri-trace FR-ID: FR-1203, US-ID: US-1203, AC-ID: AC-1203, TC-ID: TC-RUI-003h, TC-RUI-003f
  */
-export function cellGlyph(type: "expense" | "income" | "transfer", budget: number, actual: number): "" | "\u203a" | "\u203a\u203a" {
-  if (!actual || type !== "expense") return "";
-  const st = budgetState(budget, actual);
-  return st === "over_soft" ? "\u203a" : st === "over_hard" ? "\u203a\u203a" : "";
+export function cellGlyph(
+  type: "expense" | "income" | "transfer",
+  budget: number,
+  actual: number
+): "" | "\u2039" | "\u203a" | "\u203a\u203a" {
+  if (!actual) return "";
+  if (type === "expense") {
+    const st = budgetState(budget, actual);
+    return st === "over_soft" ? "\u203a" : st === "over_hard" ? "\u203a\u203a" : "";
+  }
+  // Un INGRESO por debajo de su plan también es una excepción leve, y al unificar los tokens pasó a
+  // compartir el ámbar con el sobre-consumo. Sin marca propia quedaba una celda COLOREADA SIN canal
+  // no cromático — exactamente lo que WCAG 1.4.1 prohíbe, y lo que TC-BSC-453f detectó.
+  // El vocabulario es coherente: «›» apunta a que te pasaste, «‹» a que te quedaste corto.
+  if (type === "income" && actual < budget) return "\u2039";
+  // Superar un ingreso planeado es BUENO: no lleva marca (NFR-402 de budget-state-color).
+  return "";
 }

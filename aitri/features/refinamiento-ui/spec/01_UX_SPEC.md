@@ -17,7 +17,7 @@ Esta spec **no re-inventa el sistema de diseño del producto: lo corrige donde e
 | Canal | Trabajo único | Nunca expresa |
 |---|---|---|
 | **Forma + peso** (glifo lateral `←` `→` `⇄`, mayúsculas, banda) | dónde empieza cada bloque de tipo | estado |
-| **Alerta** (rojo / ámbar) | excepción: sobre-consumo, saldo negativo, entrada inválida | identidad de tipo o categoría |
+| **Alerta** (rojo / ámbar) | excepción: sobre-consumo, ingreso corto, saldo negativo, entrada inválida | identidad de tipo o categoría |
 | **Favorable** (verde) | situación buena: saldo sano, ingreso sobre plan | identidad de tipo |
 | **Acento** (tinta) | interacción: foco, edición, mes en foco, destino de arrastre | estado |
 | **Superficie** (`--bg` vs `--bg-sunken`) | qué es editable | jerarquía o tipo |
@@ -33,7 +33,8 @@ Esta spec **no re-inventa el sistema de diseño del producto: lo corrige donde e
 2. La pantalla está **casi monocroma**: tinta neutra en filas, celdas, íconos de nodo y encabezados de bloque.
 3. Los **tres encabezados** se distinguen por peso, banda y glifo lateral: `←` INGRESOS · `→` GASTOS · `⇄` RESERVAS.
 4. Los **guiones de «sin dato» están atenuados**, no pintados del color de su categoría. Hoy hay ~30 coloreados en una pantalla de 1920.
-5. El **único color saturado** aparece en las celdas Ejec. con desvío: ámbar `›` entre 100 % y 120 %, rojo `››` a partir de 120 %.
+5. El **único color saturado** aparece en las celdas Ejec. con desvío: ámbar `›` entre 100 % y 120 %, rojo `››` a partir de 120 %, y ámbar `‹` en un ingreso por debajo de su plan.
+   **Regla que gobierna el par color↔forma:** toda celda coloreada con un rol de alerta lleva marca. Descubierto implementando: al unificar los tokens, el ingreso corto heredó el ámbar del sobre-consumo y se quedó sin marca — una celda coloreada sin canal no cromático, que es lo que WCAG 1.4.1 prohíbe. Lo detectó TC-BSC-453f.
 6. **Exit:** lo coloreado es exactamente lo que exige acción.
 
 ### Flujo B — Situarse en la pantalla · FR-1204
