@@ -2,7 +2,7 @@
   "name": "t-ledger",
   "version": "0.0.1-beta",
   "private": true,
-  "description": "Ledger \u2014 app web de finanzas personales contra presupuesto (single-user, localStorage v1)",
+  "description": "Ledger — app web de finanzas personales contra presupuesto (single-user, localStorage v1)",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3100",
     "dev:lan": "next dev -H 0.0.0.0 -p 3100",
@@ -11,7 +11,7 @@
     "db:migrate": "DATABASE_URL=postgres://ledger:ledger@localhost:5432/ledger node scripts/migrate.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
@@ -49,6 +49,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
     "@playwright/test": "^1.50.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testcontainers/postgresql": "^12.0.4",

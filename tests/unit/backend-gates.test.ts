@@ -61,10 +61,34 @@ describe("NFR-503 — CI corre la suite completa en push a main", () => {
 describe("NFR-513 — gates de seguridad automatizados", () => {
   it("TC-BE-084h: el CI ejecuta un gate SCA (npm audit) que falla ante vuln alta/crítica", () => {
     // @aitri-tc TC-BE-084h
+    //
+    // BL-024 — este TC EJECUTABA `npm audit` contra la red desde la suite unitaria. Bajo la carga
+    // del e2e en paralelo llegó a tardar 287 s y agotó el timeout del gate `coverage`, que salió
+    // en error siendo required: un test unitario tumbaba un gate por una llamada de red. Peor aún,
+    // ponía la suite a merced de lo que el registro de npm publicara esa noche — rojo un lunes por
+    // la mañana sin que nadie hubiera tocado el código.
+    //
+    // Lo que este TC afirma NO se relaja, se coloca donde corresponde. NFR-513 pide que exista un
+    // gate SCA automatizado, y eso es una propiedad del CONTRATO: que el gate esté declarado,
+    // cableado y sea bloqueante. Se comprueba aquí, en milisegundos y sin red. La EJECUCIÓN real
+    // del audit sigue ocurriendo en cada verify-run, en scripts/security-config.sh, que es un
+    // quality_gate required — de hecho fue ese camino el que cazó GHSA-2v37-7h3g-55p8 (nanoid).
+    //
+    // La versión anterior era además más débil de lo que parecía: afirmaba que el árbol está
+    // limpio HOY, no que el gate funcione. Un gate desconectado seguía pasando mientras no hubiera
+    // vulnerabilidades; ahora un gate desconectado falla aquí.
     const yml = ci();
     expect(yml).toMatch(/npm audit --audit-level=high/);
-    // El gate SCA pasa hoy (sin vulns high/critical); fallaría (exit≠0) si apareciera una.
-    expect(runExit("npm", ["audit", "--audit-level=high"])).toBe(0);
+
+    // el script del gate contiene de verdad la invocación — el CI no apunta a un cascarón
+    const gate = readFileSync(path.join(ROOT, "scripts", "security-config.sh"), "utf8");
+    expect(gate).toMatch(/npm audit --audit-level=high/);
+
+    // y está declarado como gate BLOQUEANTE, que es lo que hace que una vuln detenga el despliegue
+    const build = JSON.parse(readFileSync(path.join(ROOT, "aitri/product/spec/04_BUILD_REPORT.json"), "utf8"));
+    const sca = build.quality_gates.find((g: { name: string }) => g.name === "security-config");
+    expect(sca, "el gate security-config no está declarado en 04_BUILD_REPORT.json").toBeDefined();
+    expect(sca.required).toBe(true);
   });
 
   it("TC-BE-085e: el gate de secretos detecta un secreto plantado y pasa el árbol limpio", () => {

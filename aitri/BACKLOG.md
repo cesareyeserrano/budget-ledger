@@ -61,6 +61,15 @@ Registro de por qué se cerró cada uno — `aitri backlog done` no guarda motiv
 
 ---
 
+## Entradas cerradas por quedar obsoletas (la premisa cambió, no el trabajo)
+
+- **BL-018 — «Limpiar los restos de "Sin asignar"». CERRADO el 2026-08-12 SIN cambios de código.** Sus dos premisas se invirtieron con la feature `servidor-fuente-unica`, que es posterior a la entrada:
+  1. Decía que `UNASSIGNED_NAME` estaba sin uso y había que borrarlo. **Ya no existe**: se eliminó en su momento. Cero coincidencias en `src/` y `tests/`.
+  2. Decía que `stripLegacyUnassigned` **debía conservarse** porque migra datos de versiones anteriores. Es al revés: se retiró a conciencia, y está documentado en `src/data/repository.ts:8-14` — solo corría en el camino local, que dejó de existir.
+  3. Decía que las ramas `!node.system` eran inalcanzables y había que retirarlas. **Es justo lo contrario**: al desaparecer el saneador, esos guards pasaron a ser la ÚNICA defensa ante un nodo `system` legado que llegue desde Postgres (la columna existe en el esquema, así que puede llegar). Y no son inalcanzables: `tests/integration/backend/servidor-fuente-unica.test.ts:105-122` crea un nodo legado, lo pasa por Postgres, comprueba que sobrevive al round-trip y que renombrar y borrar lo rechazan.
+
+  Seguir la entrada al pie de la letra habría borrado la última protección contra datos legados. Su acceptance admitía «retiradas **o justificadas**», y están justificadas en código con referencia a ADR-04 y FR-1105. Lección para el backlog: una entrada escrita antes de una feature grande puede describir un mundo que ya no existe — verificar la premisa antes de ejecutar el acceptance.
+
 ## Hallazgos abiertos (registrados durante otro trabajo)
 
 - ~~**backend/BG-001 — `TC-BE-084h` falla: `npm audit --audit-level=high` sale con exit 1.**~~ **RESUELTO Y CERRADO el 2026-07-28.** La salida estaba donde no habíamos mirado: `minimatch@10.2.6` declara `brace-expansion: ^5.0.8`, o sea está hecho para la versión parcheada. Con los overrides `brace-expansion ^5.0.8` + `minimatch ^10.2.6`: audit en 0 vulnerabilidades, TC-BE-084h pasa, suite completa 243/243 y cobertura 94.46%. El intento del 2026-07-25 (forzar solo brace-expansion) falló porque minimatch CJS hacía `require(...).default`; faltaba subir también minimatch. Registro original abajo. Detectado el 2026-07-25 durante el build de la feature `balance` (no lo causa esa feature).

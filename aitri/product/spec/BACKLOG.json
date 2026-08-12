@@ -167,9 +167,10 @@
       "title": "Limpiar los restos de 'Sin asignar' (UNASSIGNED_NAME sin uso, ramas system inalcanzables)",
       "priority": "P3",
       "problem": "src/domain/types.ts:63 exporta UNASSIGNED_NAME sin ningun consumidor en src/ ni tests/. Ningun camino crea ya nodos system, asi que las ramas gateadas por node.system en mutations.ts (canRename/canDelete/deleteNode/moveNode) y en BudgetGrid.tsx son inalcanzables. stripLegacyUnassigned (src/data/repository.ts:11-22) SI debe quedarse: migra datos guardados por versiones anteriores.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:59:32.043Z",
-      "acceptance": "UNASSIGNED_NAME eliminado y las ramas system retiradas o justificadas; stripLegacyUnassigned intacto. Hacerlo junto con la re-derivacion de FR-003 (GAP-4 del AUDIT_REPORT)."
+      "acceptance": "UNASSIGNED_NAME eliminado y las ramas system retiradas o justificadas; stripLegacyUnassigned intacto. Hacerlo junto con la re-derivacion de FR-003 (GAP-4 del AUDIT_REPORT).",
+      "closedAt": "2026-08-12T20:06:55.113Z"
     },
     {
       "id": "BL-019",
