@@ -1,0 +1,69 @@
+{
+  "feature": "refinamiento-ui",
+  "summary": "Sistema visual del escritorio (parte 1 de 2), sin dependencias nuevas y sin tocar dominio ni modelo de datos. El canal cromático deja de clasificar y pasa a señalar sólo excepción: los pares de tokens de estado se unifican en tres roles canónicos (--favorable, --alert-soft, --alert-strong), conservando en cada par el valor con MEJOR contraste medido, y la identidad de bloque pierde su hue —queda neutra, distinguida por glifo lateral y peso—. Toda celda coloreada conserva marca no cromática (WCAG 1.4.1), ampliada con «‹» para el ingreso corto. El chrome baja de 240 px a 128 px antes del primer dato y se retira todo texto fijo que afirmaba algo sobre los datos del usuario o repetía lo que ya decía el control de al lado. Un gate ejecutable (design-tokens.sh) convierte las reglas visuales en código de salida.",
+  "files_created": [
+    "scripts/design-tokens.sh (ADR-01: convierte las reglas visuales en un gate ejecutable — color por significado, escalas respetadas, cero huérfanos)",
+    "tests/domain/refinamiento-ui.test.ts (FR-1201/1203 + NFR-1201/1205: rol de celda, invariante de marca no cromática y regresión del dominio)",
+    "tests/domain/summary-kpis.test.ts (FR-1204: el cómputo de la franja de indicadores baja al dominio para ser alcanzable por un test)",
+    "tests/integration/design-tokens.test.ts (FR-1206/1207: escalas declaradas, deriva tipográfica cerrada y cero tokens huérfanos)",
+    "tests/e2e/refinamiento-ui.spec.ts (FR-1202/1204/1205 + NFR-1202/1203/1204: identidad de bloque, chrome, textos retirados, las tres regresiones y el contraste medido en ambos temas)"
+  ],
+  "files_modified": [
+    "src/app/globals.css (FR-1201/1206: tres roles canónicos de estado sustituyen a los pares --success/--success-strong, --warning/--state-warning y --error/--error-strong; escalas de radio y tipografía declaradas)",
+    "src/components/BudgetGrid.tsx (FR-1201/1202/1203: TONE_TOKEN resuelve el rol que decide el dominio; la fila de tipo pierde su color de identidad; GLYPH_TITLE cuelga la clave del estado del propio glifo)",
+    "src/components/DesktopShell.tsx (FR-1204/1205: chrome 240→128 px, controles agrupados por clase, franja de indicadores compacta; retirados la marca, el pie de ayuda, la leyenda de meses y la leyenda de estado)",
+    "src/components/MobileShell.tsx (FR-1204: el <h1> del móvil se alinea con la escala tipográfica declarada)",
+    "src/components/BalanceModule.tsx (FR-1201: cifras de resultado pasan a los roles canónicos)",
+    "src/components/ReserveCells.tsx (FR-1202: la reserva pierde su hue de identidad)",
+    "src/components/NodeIcon.tsx (FR-1202: los iconos de nivel usan tinta neutra)",
+    "src/components/register/CategoryRow.tsx (NFR-1203: el registro CONSERVA su propagación de color por tipo — regla de campos perceptuales, no inconsistencia)",
+    "src/components/register/ReserveRow.tsx (NFR-1203: idem)",
+    "src/components/ui/Kpi.tsx (FR-1204: variante compact en el componente ya consolidado por ux-consistency FR-308, en vez de un componente paralelo; data-testid kpi-value como ancla estable)",
+    "src/components/ui/button.tsx (FR-1206: escala de control declarada)",
+    "src/components/ui/input.tsx (FR-1206: idem)",
+    "src/components/ui/select.tsx (FR-1206: idem)",
+    "src/components/ui/tabs.tsx (FR-1206: idem)",
+    "src/domain/budgetState.ts (FR-1201/1203: cellTone y cellGlyph — la regla de color sale del componente al dominio, donde un test puede alcanzarla)",
+    "src/domain/dashboard.ts (FR-1204: summaryKpis alimenta la franja de indicadores)",
+    "src/components/useResolvedTheme.ts — ELIMINADO (FR-1207: retiro del código que deja de usarse)"
+  ],
+  "test_runner": "npm run test:run",
+  "test_files": [
+    "tests/domain/refinamiento-ui.test.ts",
+    "tests/domain/summary-kpis.test.ts",
+    "tests/integration/design-tokens.test.ts",
+    "tests/e2e/refinamiento-ui.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "npm run coverage", "required": true },
+    { "name": "design-tokens", "command": "npm run gate:design-tokens", "required": true, "timeout_ms": 120000 },
+    { "name": "security-config", "command": "npm run gate:security-config", "required": true, "timeout_ms": 120000 },
+    { "name": "secret-scan", "command": "npm run gate:secret-scan", "required": true, "timeout_ms": 120000 },
+    { "name": "smoke", "command": "npm run gate:smoke", "required": true, "timeout_ms": 180000 },
+    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 900000 }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1204",
+      "substitution": "El criterio de aceptación pedía DOS cosas: chrome < 240 px Y más de 3 filas del módulo de Balance visibles a 1024×768. Se entrega la primera (240 → 128 px, verificada por TC-RUI-004h). La segunda NO se entrega.",
+      "reason": "Medido a 1024×768, el reparto vertical es 128 px de chrome + 76 de cabecera de grilla + 408 de DATOS (12 filas de categorías) y sólo entonces el Balance. Los píxeles que empujan el Balance bajo el pliegue son categorías del usuario, que crecen con lo que él cree — no superficie que se pueda recortar. Ponerle un techo a la grilla para forzar la métrica sería pelear contra su comportamiento natural (decisión del usuario, 2026-08-12). El TC conserva su id y se re-encuadra sobre lo que el requisito significa de verdad —quitar lo que no aporta—: chrome < 240, cero franjas fijas de ayuda y cero rótulos repetidos en el chrome. Registrado y cerrado como BG-001; la composición del módulo de Balance queda en BL-025 para la parte 2.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-1205",
+      "substitution": "La clave del código de estado deja de ser una franja visible al pie de la grilla y pasa a ser el atributo `title` de cada glifo (GLYPH_TITLE en BudgetGrid). Esto supersede la FORMA de FR-403 de budget-state-color, un requisito aprobado de otro feature.",
+      "reason": "La franja cobraba 35 px fijos a todos los usuarios para explicar un vocabulario de tres símbolos que se aprende la primera vez (decisión del usuario, 2026-08-12). La INTENCIÓN de FR-403 no se deroga: sus tres TCs conservan su id y se re-encuadran sobre la nueva forma —que la clave exista y cubra el vocabulario, que no se repita como chrome por fila, y que no haya iconos de ayuda por la grilla—. El canal no cromático de WCAG 1.4.1 nunca fue la leyenda, es el glifo, y sigue verificado por TC-RUI-003i barriendo los tres tipos de 0 % a 200 %.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": [
+    "LOS GATES DE SCRIPT SE DECLARAN COMO `npm run gate:*`, NO COMO `./script.sh`. En alcance de feature, Aitri ejecuta los quality_gates con cwd = el directorio del feature (aitri/features/refinamiento-ui/), no la raíz del repo — es deliberado, para que el descubrimiento de tests no se escape al proyecto padre. Con `./scripts/design-tokens.sh` los cuatro gates de script fallaban con «the gate's tool was not found», que se lee como «no instalado» cuando en realidad era la ruta. Los comandos npm no tienen ese problema porque npm sube hasta el package.json y ejecuta desde la raíz. Se añadieron cuatro envoltorios (gate:design-tokens, gate:security-config, gate:secret-scan, gate:smoke) en vez de rutas relativas tipo ../../../: el mismo comando vale en ambos alcances, sobrevive a mover directorios y un humano puede correrlo a mano. Alternativa descartada: poner required:false, que es lo que hicieron features anteriores — habría dejado sin gate justamente al design-tokens, que es el que hace cumplir las reglas de ESTA feature.",
+    "HALLAZGO DE PROCESO — 21 de los 37 TCs de la fase 3 no se habían escrito. El código de FR-1202, FR-1204, FR-1205 y de los cuatro NFR de regresión estaba implementado, pero sin ningún test que lo respaldara: la fase 4 se había dado por avanzada sobre una cobertura que no existía. Se escribieron los 21 (18 e2e + 3 unitarios de dominio) antes de completar la fase. Dos de las aserciones nuevas de roll-up pasaban EN VACÍO —indexaban AmountMap como clave plana `id|mes` cuando es anidado, así que comparaban 0 contra 0— y lo cazó el typecheck, no la ejecución; se corrigieron y se añadió un guardián que falla si la semilla dejara de sembrar montos.",
+    "DEFECTO WCAG PROPIO, cazado por un test ajeno escrito semanas antes (TC-BSC-453f): al unificar los tokens, el ingreso por debajo de su plan heredó el ámbar del sobre-consumo, pero los ingresos nunca llevaban glifo. Quedaba una celda COLOREADA SIN canal no cromático. Se resolvió ampliando el vocabulario en vez de revertir la unificación: «›»/«››» = te pasaste, «‹» = te quedaste corto. TC-RUI-003i barre los tres tipos y ratios de 0 % a 200 % comprobando que ninguna celda coloreada queda sin marca.",
+    "REGRESIÓN DE ACCESIBILIDAD introducida y corregida dentro del propio feature: al retirar el <h1> por duplicar el rótulo de la pestaña, la página de escritorio se quedó sin NINGÚN encabezado y el esquema desaparecía para un lector de pantalla. Vuelve visualmente oculto — se resuelve la duplicación visual sin sacrificar la semántica. Efecto colateral que costó tres tests: sr-only conserva caja de 1×1, así que Playwright lo da por visible y los locators por texto lo prefieren al control real (TC-UXC-310e agotaba 60 s de reintentos contra un hit-target imposible; TC-801e/802h medían 1 px; TC-802f pasaba EN FALSO). Los locators afectados pasan a identificar por rol.",
+    "El REGISTRO conserva deliberadamente su propagación de color por tipo (NFR-1203). No es una inconsistencia con la grilla: en el registro hay UN tipo activo a la vez y no se muestra estado, así que el color codifica la SELECCIÓN EN CURSO; en la grilla conviven los tres tipos y el estado es la información buscada, así que codifica ESTADO. Campos perceptuales distintos, tareas distintas. TC-RUI-103f existe precisamente para que nadie «corrija» el registro por coherencia superficial.",
+    "AJENO Y RESUELTO durante la fase: dos vulnerabilidades altas en dependencias transitivas — GHSA-5p4m-2wfm-xmqj en js-yaml (vía eslint) y GHSA-2v37-7h3g-55p8 en nanoid (vía postcss). Ambas cerradas con bump de parche; `npm audit` queda en 0 vulnerabilidades. El gate SCA (TC-BE-084h) las detectó, que es exactamente su trabajo."
+  ]
+}

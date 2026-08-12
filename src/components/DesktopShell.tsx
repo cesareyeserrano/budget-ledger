@@ -31,7 +31,11 @@ export function DesktopShell() {
   // alcanzable por un test sin montar el componente, y por eso el requisito no tenía verificación.
   const kpis = useMemo(() => summaryKpis(data, period), [data, period]);
 
-  const scopeLabel = period.mode === "month" ? `${monthLabel(period.month)} 2026` : "Año 2026";
+  // Sólo el AÑO. Decía «Agosto 2026» a diez píxeles del selector que ya dice «Agosto», y «Año 2026»
+  // junto a la pestaña «Año» ya activa: en ambos modos repetía la palabra que tenía al lado. Lo
+  // único que aporta esta etiqueta —y que no dice ningún otro control— es el año, así que es lo
+  // único que queda. Misma regla que ya se aplicó al <h1> contra la pestaña de vista.
+  const scopeLabel = "2026";
 
   return (
     <div className="lx-desktop w-full" style={{ background: "var(--bg)" }}>
@@ -122,7 +126,6 @@ export function DesktopShell() {
               // px-6 en el contenedor (fuera del scroll) → la grilla se alinea con los KPIs y el sticky no se rompe
               <div className="flex-1 min-h-0 flex flex-col px-6">
                 <BudgetGrid />
-                <GridFooter />
               </div>
             ) : <Dashboard />}
           </div>
@@ -145,43 +148,18 @@ export function DesktopShell() {
   );
 }
 
-/**
- * Pie de la grilla — refinamiento-ui FR-1205. Queda SOLO la leyenda del código de estado.
+/*
+ * El pie de la grilla YA NO EXISTE — refinamiento-ui FR-1205, decisión del usuario (2026-08-12).
  *
- * Se retiraron dos cosas por decisión del usuario («hay unas ayudas escritas abajo, sobra»):
- * las tres líneas que enseñaban a usar la grilla, y la afirmación «Ene–May ejecutado · Jun en
- * curso · Jul–Dic proyectado», que era literalmente la tabla FACTOR de `domain/seed.ts` — con
- * datos reales, o al avanzar el año, mentía con el peso de una leyenda del producto (BL-013).
+ * Cayó en tres tandas, todas por el mismo criterio: un texto fijo que no se deriva del estado no
+ * se gana su sitio. Primero las tres líneas que enseñaban a usar la grilla («hay unas ayudas
+ * escritas abajo, sobra»). Luego «Ene–May ejecutado · Jun en curso · Jul–Dic proyectado», que era
+ * la tabla FACTOR de `domain/seed.ts` escrita a mano y por tanto mentía en cuanto había datos
+ * reales (BL-013). Ahora la leyenda del código de estado, que era lo último que quedaba.
  *
- * Regla que instala: ningún texto fijo afirma nada sobre los datos del usuario. O se deriva del
- * estado real, o no existe.
+ * La leyenda era FR-403 de budget-state-color, un requisito aprobado, así que NO se borra su
+ * intención: la clave se muda al `title` de cada glifo en BudgetGrid (ver GLYPH_TITLE). La
+ * explicación pasa a estar donde está lo explicado, y deja de cobrar 35 px fijos a todo el mundo
+ * para enseñar tres símbolos que se aprenden una vez. El canal no cromático de WCAG 1.4.1 nunca
+ * fue la leyenda — es el glifo, y sigue intacto.
  */
-function GridFooter() {
-  return (
-    <div className="py-2 border-t border-border caption text-fg-muted flex-none">
-      <StateLegend />
-    </div>
-  );
-}
-
-function StateLegend() {
-  return (
-    <div data-testid="grid-legend" className="flex items-center gap-3.5 flex-wrap">
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--fg)" /> Dentro del presupuesto
-      </span>
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--state-warning)" />
-        <span className="tabular" style={{ color: "var(--state-warning)" }}>›</span> Te pasaste poco
-      </span>
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--state-over)" />
-        <span className="tabular" style={{ color: "var(--state-over)" }}>››</span> Te pasaste mucho
-      </span>
-    </div>
-  );
-}
-
-function LegendDot({ fill, border }: { fill?: string; border?: boolean }) {
-  return <span className="inline-block w-[9px] h-[9px] rounded-[3px]" style={{ background: fill ?? "var(--bg-sunken)", border: border ? "1px solid var(--border-hover)" : undefined }} />;
-}

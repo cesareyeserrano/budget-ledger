@@ -17,6 +17,10 @@
     "coverage": "vitest run --coverage",
     "test:run": "vitest run",
     "test:watch": "vitest",
+    "gate:design-tokens": "./scripts/design-tokens.sh",
+    "gate:security-config": "./scripts/security-config.sh",
+    "gate:secret-scan": "./scripts/secret-scan.sh",
+    "gate:smoke": "./smoke.sh",
     "test:e2e": "playwright test",
     "test:e2e:backend": "playwright test --config playwright.backend.config.ts",
     "test:backend:full": "vitest run --reporter verbose && npm run test:e2e:backend"

@@ -130,7 +130,6 @@ async function gotoGrid(page: Page, scheme: "light" | "dark" = "light") {
   // filtro en un mes FIJO: el resaltado (y con él la peor superficie de AA) deja de depender de la fecha real
   await page.getByLabel("Mes").click();
   await page.getByRole("option", { name: PICKED.label, exact: true }).click();
-  await expect(page.getByTestId("grid-legend")).toBeVisible();
   await expandEducacion(page);
 }
 
@@ -218,33 +217,43 @@ test("TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transfere
   }
 });
 
-// ══ FR-403 · leyenda ═══════════════════════════════════════════════════════════════════════════
+// ══ FR-403 · la clave del código de estado ═════════════════════════════════════════════════════
+// SUPERSEDIDO en su FORMA por refinamiento-ui FR-1205 (decisión del usuario, 2026-08-12): la clave
+// era una franja fija al pie de la grilla y pasa a ser el `title` de cada glifo. Cobraba 35 px
+// permanentes a todo el mundo para explicar tres símbolos que se aprenden la primera vez.
+// Lo que FR-403 protegía se sigue afirmando entero, sólo que sobre la nueva forma: que la clave
+// EXISTA y cubra el vocabulario completo, que no se repita como chrome por fila, y que no haya
+// iconos de ayuda sembrados por la grilla. El canal no cromático de WCAG 1.4.1 nunca fue la
+// leyenda —es el glifo— y lo verifica TC-RUI-003i barriendo los tres tipos de 0 % a 200 %.
 
-test("TC-BSC-403h: el pie de la grilla contiene la leyenda con los tres estados, su color y su glifo", async ({ page }) => {
+test("TC-BSC-403h: la clave acompaña al glifo y cubre el vocabulario de estado", async ({ page }) => {
   // @aitri-tc TC-BSC-403h
   await gotoGrid(page);
-  const legend = page.getByTestId("grid-legend");
+  const glyphs = page.getByTestId("cell-glyph");
+  expect(await glyphs.count(), "la semilla debe producir celdas con marca").toBeGreaterThan(0);
 
-  const text = (await legend.textContent())!.toLowerCase();
-  expect(text).toContain("dentro del presupuesto");
-  expect(text).toContain("te pasaste poco");
-  expect(text).toContain("te pasaste mucho");
-  expect(text).toContain("›");
-  expect(text).toContain("››");
+  // cada marca visible lleva su explicación colgada, y ninguna se queda muda
+  const pares = await glyphs.evaluateAll((els) =>
+    els.map((e) => ({ g: (e.textContent ?? "").trim(), t: (e.getAttribute("title") ?? "").toLowerCase() }))
+  );
+  for (const { g, t } of pares) expect(t, `el glifo "${g}" no explica nada`).not.toBe("");
 
-  // un punto de color por estado, con el color computado real de cada token
-  const dots = legend.locator("span[style*='background']");
-  await expect(dots).toHaveCount(3);
-  expect(await bgOf(dots.nth(0))).toBe(FG);
-  expect(await bgOf(dots.nth(1))).toBe(STATE_WARNING);
-  expect(await bgOf(dots.nth(2))).toBe(STATE_OVER);
+  // y el vocabulario dice lo que corresponde a cada umbral
+  const dicc = new Map(pares.map((p) => [p.g, p.t]));
+  if (dicc.has("›")) expect(dicc.get("›")).toContain("te pasaste poco");
+  if (dicc.has("››")) expect(dicc.get("››")).toContain("te pasaste mucho");
+  if (dicc.has("‹")) expect(dicc.get("‹")).toContain("te quedaste corto");
+  expect([...dicc.keys()].length, "ningún umbral quedó representado").toBeGreaterThan(0);
 });
 
-test("TC-BSC-403e: la leyenda aparece exactamente una vez, no por fila", async ({ page }) => {
+test("TC-BSC-403e: la clave no se repite como chrome — ni franja fija ni bloque por fila", async ({ page }) => {
   // @aitri-tc TC-BSC-403e
   await gotoGrid(page);
   expect(await page.getByTestId("node-row").count()).toBeGreaterThanOrEqual(6);
-  await expect(page.getByTestId("grid-legend")).toHaveCount(1); // no se repite por fila
+  // la franja del pie ya no existe: la explicación no ocupa superficie propia
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
+  // y no reapareció como texto visible dentro de las filas
+  await expect(page.getByTestId("budget-grid").getByText(/te pasaste (poco|mucho)/i)).toHaveCount(0);
 });
 
 test("TC-BSC-403f: no existe ningún icono de información por fila", async ({ page }) => {
@@ -252,8 +261,8 @@ test("TC-BSC-403f: no existe ningún icono de información por fila", async ({ p
   await gotoGrid(page);
   const infoIcons = page.getByTestId("budget-grid").locator('[aria-label*="info" i], [title*="info" i], [aria-label*="ayuda" i], [title*="ayuda" i]');
   await expect(infoIcons).toHaveCount(0);
-  // la única explicación del código de estado vive en el pie
-  await expect(page.getByTestId("grid-legend")).toHaveCount(1);
+  // la explicación del código vive en UN solo sitio: el propio glifo, no un adorno junto a él
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
 });
 
 // ══ FR-404 · superficie de estructura ══════════════════════════════════════════════════════════
@@ -500,7 +509,10 @@ test("TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Reciente
   // el filtro Mes/Año recalcula los KPIs (el año agrega los 12 meses), y volver a Mes los restituye
   // refinamiento-ui FR-1204: las tres tarjetas de 110 px que mostraban $0 se sustituyeron por una
   // franja compacta — ocupaban el 31 % de la altura a 1024 y dejaban el Balance bajo el pliegue.
-  const budgetKpi = page.getByTestId("summary-value").first();
+  // Apuntaba a `summary-value`, el testid de SummaryFigure — un componente que existió sólo entre
+  // dos commits de esta misma tanda y se retiró al ver que re-duplicaba lo que FR-308 consolidó. El
+  // ancla correcta es el Kpi único, acotado a la franja para nombrar la cifra que se quiere leer.
+  const budgetKpi = page.getByTestId("summary-strip").getByTestId("kpi-value").first();
   const kpiMonth = await budgetKpi.textContent();
   await page.getByTestId("period-pill").getByRole("tab", { name: "Año" }).click();
   const kpiYear = await budgetKpi.textContent();

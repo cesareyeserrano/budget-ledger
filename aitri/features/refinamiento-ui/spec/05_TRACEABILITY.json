@@ -1,0 +1,116 @@
+{
+  "project": "refinamiento-ui — sistema visual del escritorio (parte 1 de 2)",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-1201",
+      "title": "El rojo y el ámbar sólo señalan excepción; nunca clasifican",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-001h/001e/001f). La regla salió del componente al dominio (cellTone en src/domain/budgetState.ts), donde un test puede alcanzarla sin montar React: TC-RUI-001h comprueba que el conjunto de roles devueltos no contiene ninguna identidad de tipo, y TC-RUI-001e que la reserva y el ingreso corto usan roles de estado y no hues de tipo. Los tres pares de tokens se fusionaron en --favorable / --alert-soft / --alert-strong conservando en cada par el valor con MEJOR contraste medido (4.87:1, 4.92:1 y 4.85:1), verificado por TC-RUI-104f: la unificación sube el contraste o lo deja igual, nunca lo baja. ALCANCE: el requisito habla del rojo y el ámbar. El verde permanente de las tres filas de resultado del Balance NO entra en él y sigue abierto — medido el 2026-08-12, son 72 celdas en verde con saldo sano (hallazgo 1.6 del estudio UI/UX). Registrado en BL-026 para la parte 2."
+    },
+    {
+      "id": "FR-1202",
+      "title": "La identidad de bloque es NEUTRA y se distingue por glifo lateral",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-002h/002e/002f). TC-RUI-002h lee el color computado de los tres rótulos de bloque y comprueba que resuelven al mismo neutro y que cada uno lleva su glifo lateral distinto (ArrowLeft / ArrowRight / ArrowRightLeft). TC-RUI-002f barre TODO el subárbol de la grilla y del Balance buscando cualquier elemento cuyo color computado coincida con --type-expense/income/transfer: cero coincidencias. Verificación visual independiente el 2026-08-12: 116 em-dash en pantalla a 1920px, NINGUNO con color de tipo (el estudio contó ~30 coloreados antes). Los --type-* siguen declarados a propósito porque el REGISTRO los consume — ver NFR-1203."
+    },
+    {
+      "id": "FR-1203",
+      "title": "La marca no cromática cubre TODA celda coloreada",
+      "level": "complete",
+      "evidence": "4/4 TCs pasando (TC-RUI-003h/003e/003f/003i). TC-RUI-003i es un test de INVARIANTE, no de ejemplo: barre los tres tipos × ratios de 0 % a 200 % en pasos de 5 y comprueba que ninguna celda coloreada que pida acción queda sin marca no cromática. Nació de un defecto WCAG 1.4.1 introducido por esta misma feature y cazado por un test ajeno escrito semanas antes (TC-BSC-453f): al unificar tokens, el ingreso por debajo de su plan heredó el ámbar del sobre-consumo pero los ingresos no llevaban glifo. Se resolvió ampliando el vocabulario en vez de revertir la unificación — «‹» = te quedaste corto, espejo de «›» = te pasaste. TC-RUI-003e comprueba que color y glifo salen de la MISMA evaluación de estado, barriendo los dos umbrales, de modo que no puedan desincronizarse."
+    },
+    {
+      "id": "FR-1204",
+      "title": "El chrome devuelve a los datos el espacio que ocupa",
+      "level": "partial",
+      "evidence": "3/3 TCs pasando (TC-RUI-004h/004e/004f), pero el criterio de aceptación se entrega A MEDIAS y así se declara. ENTREGADO: el chrome baja de 240 px a 128 px antes del primer dato (medido a 1024×768, verificado por TC-RUI-004h), la franja de indicadores pasa de tres tarjetas de 110 px a 28 px, la vista tiene UN solo nombre (TC-RUI-004e compara el encabezado contra la pestaña activa) y la marca no se renderiza en ninguno de los dos shells (TC-RUI-004f). NO ENTREGADO: la segunda mitad del AC pedía más de 3 filas de Balance visibles a 1024×768; siguen siendo 3 de 8. Medido, el reparto vertical es 128 px de chrome + 76 de cabecera de grilla + 408 de DATOS del usuario (12 filas de categorías) antes del Balance, así que los píxeles que lo empujan bajo el pliegue no son superficie recortable. Esto ya estaba previsto: el propio no_go_zone de la feature aparca «LAYOUT ADAPTATIVO — a 1024 el Balance queda casi entero bajo el pliegue» para la parte 2. TC-RUI-004h conserva su id y se re-encuadra sobre lo que el requisito significa —quitar lo que no aporta—: chrome < 240, cero franjas fijas de ayuda y cero rótulos repetidos en el chrome. BG-001 registrado y cerrado con este motivo."
+    },
+    {
+      "id": "FR-1205",
+      "title": "La interfaz se explica sola y no afirma lo que no sabe",
+      "level": "partial",
+      "evidence": "3/3 TCs pasando (TC-RUI-005h/005e/005f). Se retiraron en tres tandas las tres líneas de ayuda de uso, la leyenda «Ene–May ejecutado · Jun en curso · Jul–Dic proyectado» (que era la tabla FACTOR de domain/seed.ts escrita a mano y por tanto mentía con datos reales — BL-013), y finalmente la leyenda del código de estado. TC-RUI-005e comprueba que ningún texto afirma el reparto de la semilla. DEUDA DECLARADA: la clave del código de estado pasa de franja visible al atributo `title` de cada glifo, lo que supersede la FORMA de FR-403 de budget-state-color, un requisito aprobado de otro feature. Su intención NO se deroga — sus tres TCs conservan su id y se re-encuadran sobre la nueva forma (TC-BSC-403h comprueba que cada glifo lleva su explicación y que el vocabulario corresponde a cada umbral; 403e que no se repite como chrome; 403f que no hay iconos de ayuda por fila). El canal no cromático de WCAG 1.4.1 nunca fue la leyenda, es el glifo, y lo verifica TC-RUI-003i."
+    },
+    {
+      "id": "FR-1206",
+      "title": "Las escalas que faltan se declaran, y la deriva tipográfica se cierra",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-006h/006e/006f), verificados por tests de integración sobre el CSS compilado en tests/integration/design-tokens.test.ts. Respaldado además por un gate EJECUTABLE (scripts/design-tokens.sh, ADR-01) declarado como required en quality_gates: comprueba color por significado, escalas respetadas y ausencia de huérfanos, y devuelve exit≠0 si la disciplina se rompe. El gate existe porque FR-303 de ux-consistency eliminó ~17 tamaños ad-hoc, se aprobó y se verificó, y al medirlo de nuevo había 18: la regla escrita no se sostiene sola."
+    },
+    {
+      "id": "FR-1207",
+      "title": "Retiro del código y los tokens que dejan de usarse",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-007h/007e/007f). src/components/useResolvedTheme.ts eliminado; los tokens que quedaron sin consumidor tras la unificación se retiraron o se convirtieron en alias explícitos del rol canónico (--success → var(--favorable), --error-strong → var(--alert-strong)), documentados en globals.css con el motivo. El gate design-tokens.sh comprueba la ausencia de huérfanos en cada verify, así que la limpieza no puede degradarse en silencio."
+    },
+    {
+      "id": "NFR-1201",
+      "title": "Regresión: el dominio queda intacto",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-101h/101e/101f), unitarios sobre el dominio puro. Comprueban que la semilla conserva su forma y sus totales, que los casos borde resuelven igual (nodo inexistente, hoja, umbrales de estado en 100 % y 120 % exactos) y los invariantes estructurales: cero huérfanos, herencia de tipo por el árbol, y roll-ups cuadrados en los DOCE meses para cada grupo, midiendo por separado la regla de Presupuestado (agrega hojas) y la de Ejecutado (agrega el subárbol). Categoría Regression = MUST duro. NOTA DE HONESTIDAD: dos de estas aserciones pasaban EN VACÍO en su primera escritura —indexaban AmountMap como clave plana `id|mes` cuando la estructura es anidada, así que comparaban 0 contra 0— y lo detectó el typecheck, no la ejecución. Corregidas, y se añadió un guardián que falla si la semilla dejara de sembrar montos."
+    },
+    {
+      "id": "NFR-1202",
+      "title": "Regresión: el contrato de la grilla se conserva",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-102h/102e/102f). TC-RUI-102h ejercita las dos mitades del contrato de edición (Enter fija, Escape descarta). TC-RUI-102e comprueba que la columna de etiquetas sigue siendo sticky y que no se desplaza al mover el scroll horizontal. TC-RUI-102f comprueba el rechazo cross-type del arrastrar-y-soltar contra la FUENTE DE VERDAD (relee el ledger por la API y compara type y parentId antes y después), no contra la posición en pantalla — el bloque de ingresos va primero en la grilla, así que comparar coordenadas habría afirmado lo contrario de lo que parece. Categoría Regression = MUST duro."
+    },
+    {
+      "id": "NFR-1203",
+      "title": "Regresión: el registro conserva su color por tipo",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-103h/103e/103f). El registro conserva DELIBERADAMENTE su propagación de color por tipo: no es una inconsistencia con la grilla sino la regla de campos perceptuales acordada con el usuario el 2026-08-06 — en el registro hay UN tipo activo a la vez y no se muestra estado, así que el color codifica la SELECCIÓN EN CURSO; en la grilla conviven los tres tipos y el estado es la información buscada, así que codifica ESTADO. TC-RUI-103f existe precisamente para que nadie «corrija» el registro por coherencia superficial con la grilla. TC-RUI-103e comprueba que cambiar de tipo conserva el monto y deselecciona la categoría. Categoría Regression = MUST duro."
+    },
+    {
+      "id": "NFR-1204",
+      "title": "Contraste AA en ambos temas tras la unificación",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-104h/104e/104f), midiendo el ratio real sobre el color computado, no sobre los literales del CSS. TC-RUI-104h cubre los tres roles sobre el lienzo en ambos temas; TC-RUI-104e sobre la superficie HUNDIDA, que es el peor caso (una celda resaltada de fila hundida es #e4e4e6, la superficie más oscura de la grilla en claro); TC-RUI-104f compara cada rol canónico contra el valor RETIRADO de su par y exige que el contraste suba o quede igual, nunca baje."
+    },
+    {
+      "id": "NFR-1205",
+      "title": "El rediseño no añade trabajo de render",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RUI-105h/105e/105f). cellTone y cellGlyph son puras y no reciben el LedgerState —comprobado por su aridad—, así que no pueden recorrer el árbol: es la propiedad estructural que garantiza que el guardarraíl de ≤150 ms no se degrada por celda. 100.000 resoluciones se miden por debajo de ese techo. TC-RUI-105f comprueba que entradas degeneradas (presupuesto 0 con ejecutado > 0, negativos, MAX_SAFE_INTEGER) no producen NaN, Infinity ni excepción."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-1204",
+      "substitution": "El criterio de aceptación pedía DOS cosas: chrome < 240 px Y más de 3 filas del módulo de Balance visibles a 1024×768. Se entrega la primera (240 → 128 px, verificada por TC-RUI-004h). La segunda NO se entrega.",
+      "reason": "Medido a 1024×768, el reparto vertical es 128 px de chrome + 76 de cabecera de grilla + 408 de DATOS (12 filas de categorías) y sólo entonces el Balance. Los píxeles que empujan el Balance bajo el pliegue son categorías del usuario, que crecen con lo que él cree — no superficie que se pueda recortar. Ponerle un techo a la grilla para forzar la métrica sería pelear contra su comportamiento natural (decisión del usuario, 2026-08-12). Coincide con el no_go_zone de la propia feature, que ya aparcaba el layout adaptativo a 1024 para la parte 2. Registrado y cerrado como BG-001; la composición del módulo de Balance queda en BL-025.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-1205",
+      "substitution": "La clave del código de estado deja de ser una franja visible al pie de la grilla y pasa a ser el atributo `title` de cada glifo (GLYPH_TITLE en BudgetGrid). Esto supersede la FORMA de FR-403 de budget-state-color, un requisito aprobado de otro feature.",
+      "reason": "La franja cobraba 35 px fijos a todos los usuarios para explicar un vocabulario de tres símbolos que se aprende la primera vez (decisión del usuario, 2026-08-12). La INTENCIÓN de FR-403 no se deroga: sus tres TCs conservan su id y se re-encuadran sobre la nueva forma. El canal no cromático de WCAG 1.4.1 nunca fue la leyenda, es el glifo, y sigue verificado por TC-RUI-003i.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "deployment": {
+    "model": "containerized",
+    "changes_required": "none",
+    "rationale": "02_SYSTEM_DESIGN.md#Deployment Architecture declara «Sin cambios»: modelo containerizado idéntico al del producto (imagen Docker de Next.js construida desde fuente, servida tras Nginx). Esta feature es presentación y no añade variables de entorno, servicios ni pasos de despliegue, así que NO se crean Dockerfile, docker-compose.yml, DEPLOYMENT.md ni .env.example propios — los del producto siguen vigentes sin modificación. Lo único que la feature aporta al despliegue es un quality_gate más (design-tokens, ADR-01), ya declarado en 04_BUILD_REPORT.json y ejecutándose en cada verify.",
+    "environment_variables": "ninguna nueva; las del producto no cambian"
+  },
+  "visual_verification": {
+    "method": "Recorrido manual de los 9 hallazgos observados del estudio UI/UX (feature_context/estudio-ui-ux-completo.md, sección 1) contra el build, con medición instrumentada — 2026-08-12.",
+    "note": "No existe línea base de capturas contra la que diferenciar: el estudio es un documento escrito, sin imágenes, y el set de capturas que mencionaba un checkpoint anterior se generó con un script que vivía en el scratchpad de aquella sesión y ya no existe. Se verificó midiendo cada hallazgo en el navegador, que es evidencia más fuerte que una comparación de imágenes.",
+    "findings": [
+      { "id": "1.1", "estado": "cerrado", "medicion": "chrome 240 → 128 px; franja de resumen 110 → 28 px" },
+      { "id": "1.2", "estado": "cerrado", "medicion": "116 em-dash a 1920px, 0 con color de tipo (antes ~30 coloreados)" },
+      { "id": "1.3", "estado": "cerrado", "medicion": "separación signo–monto 180 → 4 px. Cerrado pese a estar aparcado: el alcance real fue mayor que el declarado" },
+      { "id": "1.4", "estado": "parcial", "medicion": "el monto pasa de opacidad 0.4 a 1; «Guardar» conserva el 0.4 del estado deshabilitado" },
+      { "id": "1.5", "estado": "aparcado", "medicion": "no_go_zone — composición del registro, parte 2" },
+      { "id": "1.6", "estado": "abierto", "medicion": "72 celdas en verde (las 3 filas de resultado × 24). Sin cambio respecto del estudio, que contó 36 porque contó por mes y cada mes tiene dos columnas. NO lo cubre ningún FR de esta feature: FR-1201 alcanza al rojo y al ámbar, no al verde. Registrado en BL-026" },
+      { "id": "1.7", "estado": "aparcado", "medicion": "no_go_zone — layout adaptativo, parte 2" },
+      { "id": "1.8", "estado": "aparcado", "medicion": "hueco controles→franja 1400 → 1211 px a 1920. Mejora marginal; el comportamiento a 1920 está aparcado con el layout adaptativo" },
+      { "id": "1.9", "estado": "aparcado", "medicion": "«NUEVO · OPCIONAL EN DESKTOP» sigue presente — no_go_zone, composición del registro" }
+    ]
+  }
+}

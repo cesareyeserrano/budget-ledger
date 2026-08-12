@@ -220,6 +220,22 @@
       "problem": "TC-BE-084h (tests/unit/backend-gates.test.ts:62) ejecuta 'npm audit --audit-level=high' contra la red dentro de la suite unitaria. Bajo la carga del e2e en paralelo llego a tardar 287s en el verify-run del 2026-08-05 y agoto el timeout de 300s del gate coverage, que salio 'error' (exit_code null) siendo required. Se subio el timeout a 900s como parche, pero la causa sigue: un test unitario no deberia depender de la red. Ademas es REDUNDANTE: scripts/security-config.sh ya corre el mismo 'npm audit --audit-level=high' como quality gate, asi que la comprobacion de postura no se pierde si el test deja de hacer la llamada. Arreglo propuesto: que TC-BE-084h verifique solo que el CI declara el gate SCA (la parte de contrato, que es instantanea) y delegar la ejecucion real a security-config.sh; o darle su propio timeout y marcarlo como test lento fuera del camino de coverage.",
       "status": "open",
       "createdAt": "2026-08-05T17:02:56.131Z"
+    },
+    {
+      "id": "BL-025",
+      "title": "Balance: agrupar los sumandos bajo su resultado",
+      "priority": "P2",
+      "problem": "Las 8 filas del modulo de Balance se presentan planas, pero tres de ellas ('Flujo del mes', 'Reservas del mes', 'Retiros del mes') son los SUMANDOS que componen 'Disponible del mes', y otras tres son resultados. Nada en la presentacion lo indica, asi que la aritmetica del modulo no se lee de un vistazo: el usuario ve ocho cifras al mismo nivel y tiene que reconstruir mentalmente cual sale de cuales. Idea del usuario (2026-08-12) al revisar el rediseno en localhost. Ningun FR de refinamiento-ui lo cubre: sus siete requisitos son color, glifo, chrome, textos, escalas y retirada de codigo. Material para la parte 2 del rediseno, junto con interaccion de fila, composicion del registro y layout adaptativo.",
+      "status": "open",
+      "createdAt": "2026-08-12T12:55:32.405Z"
+    },
+    {
+      "id": "BL-026",
+      "title": "Balance: el verde senala la normalidad, no la excepcion (hallazgo 1.6 del estudio)",
+      "priority": "P2",
+      "problem": "Las tres filas de RESULTADO del modulo de Balance (Disponible del mes, Saldo disponible, Saldo total) se pintan de --favorable en las doce columnas: 72 celdas verdes simultaneas con un saldo sano. Medido el 2026-08-12 a 1920px. El propio codigo del modulo declara que 'un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo', y luego lo aplica solo a medias. Cuando el saldo se ponga negativo, el rojo tendra que destacar sobre un fondo ya saturado de color. Es el hallazgo 1.6 del estudio UI/UX y NO lo cerro refinamiento-ui: su FR-1201 se titula 'el rojo y el ambar solo senalan excepcion' y no alcanza al verde. Sub-hallazgo del mismo sitio: 6 de esas celdas verdes son em-dash '—', es decir tinta gastada en la AUSENCIA de dato, que es el mismo defecto que el hallazgo 1.2 corrigio en la grilla. Ningun test lo caza porque TC-RUI-002f comprueba colores de TIPO y --favorable no lo es. Material para la parte 2, junto a BL-025.",
+      "status": "open",
+      "createdAt": "2026-08-12T15:15:32.765Z"
     }
   ]
 }

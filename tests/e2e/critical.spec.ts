@@ -23,9 +23,14 @@ test("TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema cla
   // ux-consistency FR-301/FR-311: lienzo off-white + acentos desaturados (mismo hue, sin vibración).
   expect(expand(tokens.bg)).toBe("#f7f7f8"); // lienzo (antes #ffffff) para profundidad
   expect(tokens.primary).toBe("#1c1c1f");
-  expect(tokens.success).toBe("#2f7d53");
-  expect(tokens.warning).toBe("#b45309");
-  expect(tokens.error).toBe("#c4453e");
+  // refinamiento-ui FR-1201 fusiona los pares de estado en tres roles canónicos —favorable,
+  // alert-soft y alert-strong—, y en cada par conserva el valor con MEJOR contraste medido. Los
+  // literales de abajo son los nuevos: la unificación sube el contraste o lo deja igual, nunca lo
+  // baja (4.87:1, 4.92:1 y 4.85:1). El invariante que este TC protege no se relaja.
+  // --type-transfer queda fuera de la fusión: los --type-* siguen vivos para el registro (NFR-1203).
+  expect(tokens.success).toBe("#2d7650");
+  expect(tokens.warning).toBe("#9e4708");
+  expect(tokens.error).toBe("#ad3932");
   expect(tokens.transfer).toBe("#2f6db4"); // Transferencia: azul acero (FR-204)
   expect(tokens.font).toContain("Inter"); // FR-213: Inter reemplaza Lexend
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cellTone, cellGlyph, budgetState } from "@/domain/budgetState";
+import { buildSeed, rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode, MONTH_KEYS } from "@/domain";
 
 /**
  * refinamiento-ui — el color deja de clasificar y pasa a señalar sólo excepción.
@@ -106,6 +107,87 @@ describe("FR-1203 — la marca no cromática de gravedad", () => {
     expect(cellGlyph("transfer", 100000, 500000)).toBe("");
     // Ni una celda sin ejecutado, sea del tipo que sea.
     expect(cellGlyph("expense", 100000, 0)).toBe("");
+  });
+});
+
+/**
+ * NFR-1201 — la feature es PRESENTACIÓN. El acuerdo explícito con el usuario es que no se toca
+ * cálculo, dominio ni modelo de datos. Estos tres TCs son el cinturón: si un cambio visual se
+ * filtrara al dominio, aquí se ve, y no en una revisión visual meses después.
+ */
+describe("NFR-1201 — regresión: el dominio queda intacto", () => {
+  // @aitri-tc TC-RUI-101h
+  it("TC-RUI-101h: la semilla conserva su forma y sus totales", () => {
+    const s = buildSeed();
+    // La estructura sembrada no cambió con el rediseño: tres bloques, y cada uno sus categorías.
+    const groups = s.nodes.filter((n) => n.level === "group");
+    expect(groups.map((g) => g.name).sort()).toEqual(["Ahorro", "Esenciales", "Trabajo"]);
+    expect(new Set(groups.map((g) => g.type))).toEqual(new Set(["expense", "income", "transfer"]));
+
+    // Comida conserva sus tres subcategorías, que es el único nodo de profundidad 3 de la semilla.
+    const comida = s.nodes.find((n) => n.name === "Comida")!;
+    expect(childrenOf(s.nodes, comida.id).map((c) => c.name).sort()).toEqual(["Café", "Mercado", "Restaurantes"]);
+
+    // El roll-up de un padre sigue siendo la suma de sus hojas — la regla de cálculo del producto.
+    // budgets es Record<nodeId, Partial<Record<MonthKey, number>>>: anidado, no una clave compuesta.
+    const month = MONTH_KEYS[0];
+    const suma = leafDescendants(s.nodes, comida.id)
+      .reduce((acc, id) => acc + (s.budgets[id]?.[month] ?? 0), 0);
+    expect(suma, "la semilla debe presupuestar Comida").toBeGreaterThan(0);
+    expect(rollupBudget(s, comida.id, month)).toBe(suma);
+  });
+
+  // @aitri-tc TC-RUI-101e
+  it("TC-RUI-101e: los casos borde del dominio siguen resolviendo igual", () => {
+    const s = buildSeed();
+    // Nodo inexistente: no lanza, devuelve el neutro del dominio.
+    expect(findNode(s.nodes, "no-existe")).toBeUndefined();
+    expect(childrenOf(s.nodes, "no-existe")).toEqual([]);
+    expect(leafDescendants(s.nodes, "no-existe")).toEqual([]);
+
+    // Una hoja es su propio descendiente-hoja, y su subárbol mide 0 (0 = hoja, 1 = tiene hijos).
+    const vivienda = s.nodes.find((n) => n.name === "Vivienda")!;
+    expect(leafDescendants(s.nodes, vivienda.id)).toEqual([vivienda.id]);
+    expect(subtreeDepth(s.nodes, vivienda.id)).toBe(0);
+    // Comida sí tiene hijos: el otro extremo del mismo contrato, que es la pieza de "cabida" de FR-702.
+    expect(subtreeDepth(s.nodes, s.nodes.find((n) => n.name === "Comida")!.id)).toBe(1);
+
+    // El umbral de estado no se movió con la unificación de tokens: sigue en 100 % y 120 % exactos.
+    expect(budgetState(1000, 1000)).toBe("within");
+    expect(budgetState(1000, 1001)).toBe("over_soft");
+    expect(budgetState(1000, 1200)).toBe("over_hard");
+  });
+
+  // @aitri-tc TC-RUI-101f
+  it("TC-RUI-101f: ningún invariante estructural se rompe — cero huérfanos y totales cuadrados", () => {
+    const s = buildSeed();
+    const ids = new Set(s.nodes.map((n) => n.id));
+
+    // Cero huérfanos: todo parentId apunta a un nodo que existe.
+    const huerfanos = s.nodes.filter((n) => n.parentId !== null && !ids.has(n.parentId));
+    expect(huerfanos.map((n) => n.name)).toEqual([]);
+
+    // Un hijo nunca cambia de tipo respecto de su padre: el tipo se hereda por el árbol.
+    for (const n of s.nodes) {
+      if (n.parentId) expect(findNode(s.nodes, n.parentId)!.type).toBe(n.type);
+    }
+
+    // Totales cuadrados en los DOCE meses. Presupuestado agrega HOJAS y Ejecutado agrega el
+    // SUBÁRBOL completo (una categoría-hoja puede llevar monto directo): son dos reglas distintas
+    // y el test las mide por separado, que es justo donde una regresión se escondería.
+    let comprobados = 0;
+    for (const m of MONTH_KEYS) {
+      for (const g of s.nodes.filter((n) => n.level === "group")) {
+        const sumaB = leafDescendants(s.nodes, g.id).reduce((a, id) => a + (s.budgets[id]?.[m] ?? 0), 0);
+        const sumaA = subtreeIds(s.nodes, g.id).reduce((a, id) => a + (s.actuals[id]?.[m] ?? 0), 0);
+        expect(rollupBudget(s, g.id, m), `${g.name} presupuesto ${m}`).toBe(sumaB);
+        expect(rollupActual(s, g.id, m), `${g.name} ejecutado ${m}`).toBe(sumaA);
+        if (sumaB > 0) comprobados++;
+      }
+    }
+    // El guardián del guardián: si la semilla dejara de sembrar montos, lo de arriba compararía
+    // ceros contra ceros y pasaría sin verificar nada.
+    expect(comprobados, "ningún grupo tenía presupuesto: el test estaría pasando en vacío").toBeGreaterThan(0);
   });
 });
 

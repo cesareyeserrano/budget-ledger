@@ -92,6 +92,20 @@ const TONE_TOKEN: Record<CellTone, string> = {
   "alert-strong": "var(--alert-strong)",
 };
 
+/**
+ * La clave del código de estado, colgada del propio glifo.
+ *
+ * Vivía en una franja fija al pie de la grilla (FR-403 de budget-state-color). Ocupaba 35 px
+ * permanentes para explicar un vocabulario de tres símbolos que se aprende la primera vez, así que
+ * la explicación se acerca a lo que explica: se lee posándose sobre la marca, y sólo quien la
+ * necesita paga por ella. El canal no cromático de WCAG 1.4.1 NO cambia — sigue siendo el glifo.
+ */
+const GLYPH_TITLE: Record<string, string> = {
+  "›": "Te pasaste poco: por encima de lo planeado, menos del 120 %",
+  "››": "Te pasaste mucho: 120 % de lo planeado o más",
+  "‹": "Te quedaste corto: por debajo de lo planeado",
+};
+
 function ejecColor(type: NodeType, b: number, e: number): string {
   return TONE_TOKEN[cellTone(type, b, e)];
 }
@@ -539,7 +553,7 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
     >
       {/* Canal redundante de WCAG 1.4.1 (FR-402): aria-hidden porque el dato ya lo portan el monto
           y el Pres. adyacente. flex-none para que nunca empuje al monto fuera de la celda. */}
-      {glyph ? <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">{glyph}</span> : null}
+      {glyph ? <span data-testid="cell-glyph" aria-hidden="true" title={GLYPH_TITLE[glyph]} className="flex-none mr-1 text-caption leading-none">{glyph}</span> : null}
       {cellNum(value)}
     </div>
   );

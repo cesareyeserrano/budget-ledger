@@ -168,10 +168,12 @@ test("TC-206h: al cambiar a 'Año', el KPI 'Ejecutado' agrega y es > 0", async (
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
   await page.getByRole("tab", { name: "Año" }).click();
-  const val = await page.evaluate(() => {
-    const label = [...document.querySelectorAll("div")].find((d) => d.textContent?.trim() === "EJECUTADO");
-    return label?.nextElementSibling?.textContent ?? "";
-  });
+  // Leía el KPI buscando un <div> con texto «EJECUTADO» y saltando a su hermano. La variante compacta
+  // de FR-1204 compone con <span>, así que la búsqueda devolvía vacío y el parseo daba 0 — el KPI
+  // agregaba bien todo el tiempo. Se lee por el ancla del componente, que no depende de la etiqueta
+  // HTML ni del orden de hermanos.
+  const ejecutado = page.getByTestId("kpi").filter({ hasText: "EJECUTADO" }).getByTestId("kpi-value");
+  const val = (await ejecutado.textContent()) ?? "";
   const digits = (val.match(/[\d.]+/) ?? ["0"])[0].replace(/\./g, "");
   expect(parseInt(digits || "0")).toBeGreaterThan(0);
 });
@@ -186,17 +188,32 @@ test("TC-206f: el arranque abre en el MES EN CURSO, no en 'Año' (FR-312)", asyn
   await expect(page.getByLabel("Mes")).toContainText(clockMonth);
 });
 
-// ---------- FR-107 — pie de ayuda ----------
-test("TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses", async ({ page }) => {
+// ---------- FR-107 — pie de la grilla · SUPERSEDIDO por refinamiento-ui FR-1205 ----------
+// FR-107 pedía un pie con tres líneas de ayuda de uso y la leyenda «Ene–May ejecutado · Jun en curso
+// · Jul–Dic proyectado». El usuario pidió retirar las ayudas («sobra»), y la leyenda de meses cayó
+// por BL-013: era la tabla FACTOR de seed.ts escrita a mano, de modo que con datos reales —o al
+// pasar de año— afirmaba algo falso con el peso de una leyenda del producto. En una tercera tanda
+// (2026-08-12) cae también la leyenda del código de estado, y con ella el pie ENTERO: su clave se
+// muda al `title` de cada glifo, donde sólo la paga quien la consulta.
+// Los TCs conservan su id y se re-encuadran sobre lo que el FR protegía de verdad: que la grilla
+// sea legible sin ayudas escritas, y que la clave de lectura exista en alguna parte.
+test("TC-207h: la grilla se lee sin ayudas escritas, y la clave sigue disponible", async ({ page }) => {
   await page.setViewportSize(DESK);
   await page.goto("/");
-  await expect(page.getByText(/Arrastra el borde de la columna/)).toBeVisible();
-  await expect(page.getByText(/Ene–May.*Jul–Dic proyectado/)).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+  // ningún texto fijo de ayuda bajo la grilla
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
+  await expect(page.getByText(/Arrastra el borde de la columna/)).toHaveCount(0);
+  await expect(page.getByText(/Ene–May.*Jul–Dic proyectado/)).toHaveCount(0);
+  // pero la clave no desapareció del producto: viaja con la marca que explica
+  const glyphs = page.getByTestId("cell-glyph");
+  if (await glyphs.count()) await expect(glyphs.first()).toHaveAttribute("title", /te (pasaste|quedaste)/i);
 });
 
-test("TC-207e: el pie no se renderiza a 375px (móvil)", async ({ page }) => {
+test("TC-207e: el móvil no arrastra ninguna ayuda escrita de la grilla", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/");
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
   await expect(page.getByText(/Arrastra el borde de la columna/)).toHaveCount(0);
 });
 
@@ -268,8 +285,10 @@ test("TC-209i: tokens de color zinc y contraste ≥4.5:1 (tema claro)", async ({
   });
   // ux-consistency FR-301/FR-311: tokens afinados (desaturados) — el gate real es el ratio AA de abajo.
   expect(tokens.primary).toBe("#1c1c1f");
-  expect(tokens.success).toBe("#2f7d53");
-  expect(tokens.error).toBe("#c4453e");
+  // FR-1201: --success y --success-strong se fusionan en --favorable, conservando #2d7650, el más
+  // accesible de los dos (4.87:1). La aserción de contraste de abajo sigue siendo el guardián real.
+  expect(tokens.success).toBe("#2d7650");
+  expect(tokens.error).toBe("#ad3932");
   expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
 
@@ -469,7 +488,11 @@ test("TC-205e: al alternar a Dashboard y volver, la pestaña sigue en 'Resumen'"
   await expect(page.getByTestId("page-title")).toHaveText("Dashboard");
 
   await page.getByRole("tab", { name: "Resumen" }).click();
-  await expect(page.getByTestId("page-title")).toHaveText("Presupuesto");
+  // El encabezado decía «Presupuesto» mientras la pestaña de la MISMA vista decía «Resumen»: dos
+  // nombres para lo mismo a pocos píxeles. FR-1204 los unifica en el nombre que ya usaba la pestaña.
+  // Lo que este TC protege —que la etiqueta en inglés no vuelva tras el ciclo— se sigue afirmando
+  // abajo intacto.
+  await expect(page.getByTestId("page-title")).toHaveText("Resumen");
 
   // El cambio de texto es ESTABLE: ni el ciclo de ida y vuelta ni el re-render
   // reintroducen la etiqueta en inglés.

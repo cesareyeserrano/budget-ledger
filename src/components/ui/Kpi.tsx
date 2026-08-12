@@ -33,7 +33,7 @@ export function Kpi({ label, value, color, sub, className, compact = false }: Kp
         )}
       >
         <span className="eyebrow">{label}</span>
-        <span className="tabular label" style={color ? { color } : undefined}>
+        <span data-testid="kpi-value" className="tabular label" style={color ? { color } : undefined}>
           {value}
         </span>
         {sub && <span className="caption text-fg-muted">{sub}</span>}
@@ -49,7 +49,7 @@ export function Kpi({ label, value, color, sub, className, compact = false }: Kp
       )}
     >
       <div className="eyebrow mb-1.5">{label}</div>
-      <div className="tabular display" style={color ? { color } : undefined}>
+      <div data-testid="kpi-value" className="tabular display" style={color ? { color } : undefined}>
         {value}
       </div>
       {sub && <div className="caption mt-1 text-fg-muted">{sub}</div>}

@@ -6,8 +6,7 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     "discovery",
@@ -15,27 +14,16 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.2.0-rc.6",
+  "aitriVersion": "2.2.0-rc.8",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-08-05T17:25:07.291Z",
+  "updatedAt": "2026-08-12T14:34:14.850Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-05T14:55:24.095Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-05T14:55:51.745Z",
-      "event": "completed",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-05T14:55:51.851Z",
       "event": "approved",
@@ -137,19 +125,34 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "team"
+    },
+    {
+      "at": "2026-08-10T12:15:54.111Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 26,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-08-12T14:34:14.825Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
     "1": "537d8854e625cf1a5ec967e0d5f90c1bc089b0385ad5fd4740c52bf2b9f8b588",
     "2": "f8c048dceed08d1265807ca33c56987dc26fb4fa78693705275a7c1f17c5e9e3",
     "3": "c13864398c2b275e235c8fe99b221924e163efea3e2e972a2336dec3f59519ca",
-    "4": "ac993bb06c16232c1503c33ea841eca0a7f1460f60d3efbbdfa26e71dff62e98",
-    "5": "73064ee32e05064165457653ded9fcdcb9527c4eab6ae97a05af7143a7b9d511",
+    "4": "2659600787ad529594bec9ab299649f85475e051e258802d3050336897775322",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "766fc5457a5b19e998866e69e44cc870bb67fa1b60621d01194fc3b769a3fd4c"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -279,25 +282,6 @@
       "at": "2026-08-05T17:25:07.266Z"
     }
   ],
-  "verifyResultsHash": "49c544c940cc5f9624bcd37cf1a6344fab9bfc87cf422f86616ea4bca0f1ec71",
-  "verifyRanAt": "2026-08-05T17:07:34.157Z",
   "verifyRanRef": "8c06c738b1fd70716cf1d67df426110db714430c",
-  "verifyRanDirty": true,
-  "lastVerifyRun": {
-    "passed": 59,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-08-05T17:07:34.157Z"
-  },
-  "verifySummary": {
-    "total": 59,
-    "passed": 59,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 6
-  }
+  "verifyRanDirty": true
 }

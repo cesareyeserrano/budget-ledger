@@ -383,7 +383,11 @@ test("TC-UXC-310e: el overlay cierra por Escape y por click fuera", async ({ pag
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
   await page.locator('button[aria-label="Cambiar ícono"]').first().click();
   await expect(page.getByTestId("icon-picker")).toBeVisible();
-  await page.getByTestId("page-title").click(); // click en un elemento fuera del popover
+  // El «fuera» tiene que ser una superficie FÍSICA. Antes se clicaba `page-title`, que dejó de serlo
+  // al volver el <h1> visualmente oculto: sr-only conserva caja de 1×1, así que Playwright lo da por
+  // visible y entra en el chequeo de accionabilidad, pero el tablist lo cubre y el hit-target nunca
+  // cuadra — 118 reintentos hasta agotar el minuto. El overlay no tenía nada que ver.
+  await page.getByTestId("scope-label").click(); // inerte, visible y fuera del popover
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
 });
 
