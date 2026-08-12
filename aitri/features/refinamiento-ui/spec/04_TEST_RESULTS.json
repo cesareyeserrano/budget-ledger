@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-12T15:00:11.097Z",
+  "executed_at": "2026-08-12T17:12:07.267Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,7 +8,7 @@
     {
       "tc_id": "TC-RUI-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1201 — el color señala excepción, nunca categoría > TC-RUI-001h: el rol de la celda sale del ESTADO, no del tipo 7ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1201 — el color señala excepción, nunca categoría > TC-RUI-001h: el rol de la celda sale del ESTADO, no del tipo 2ms"
     },
     {
       "tc_id": "TC-RUI-001e",
@@ -18,22 +18,22 @@
     {
       "tc_id": "TC-RUI-001f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1201 — el gate impide que el color vuelva a clasificar > TC-RUI-001f: el gate pasa limpio y FALLA si el color de tipo sale del registro 1089ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1201 — el gate impide que el color vuelva a clasificar > TC-RUI-001f: el gate pasa limpio y FALLA si el color de tipo sale del registro 1242ms"
     },
     {
       "tc_id": "TC-RUI-002h",
       "status": "pass",
-      "notes": "✓  170 [chromium] › tests/e2e/refinamiento-ui.spec.ts:75:5 › TC-RUI-002h: los encabezados de bloque van en tinta neutra con glifo lateral (287ms)"
+      "notes": "✓  170 [chromium] › tests/e2e/refinamiento-ui.spec.ts:75:5 › TC-RUI-002h: los encabezados de bloque van en tinta neutra con glifo lateral (279ms)"
     },
     {
       "tc_id": "TC-RUI-002e",
       "status": "pass",
-      "notes": "✓  171 [chromium] › tests/e2e/refinamiento-ui.spec.ts:101:5 › TC-RUI-002e: la celda sin dato se pinta atenuada, no con el color de su categoría (341ms)"
+      "notes": "✓  171 [chromium] › tests/e2e/refinamiento-ui.spec.ts:101:5 › TC-RUI-002e: la celda sin dato se pinta atenuada, no con el color de su categoría (280ms)"
     },
     {
       "tc_id": "TC-RUI-002f",
       "status": "pass",
-      "notes": "✓  172 [chromium] › tests/e2e/refinamiento-ui.spec.ts:122:5 › TC-RUI-002f: ningún elemento de la grilla deriva su color del tipo (331ms)"
+      "notes": "✓  172 [chromium] › tests/e2e/refinamiento-ui.spec.ts:122:5 › TC-RUI-002f: ningún elemento de la grilla deriva su color del tipo (286ms)"
     },
     {
       "tc_id": "TC-RUI-003h",
@@ -43,7 +43,7 @@
     {
       "tc_id": "TC-RUI-003e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003e: color y glifo salen de la MISMA evaluación de estado 4ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003e: color y glifo salen de la MISMA evaluación de estado 2ms"
     },
     {
       "tc_id": "TC-RUI-003f",
@@ -53,92 +53,92 @@
     {
       "tc_id": "TC-RUI-004h",
       "status": "pass",
-      "notes": "✓  173 [chromium] › tests/e2e/refinamiento-ui.spec.ts:142:5 › TC-RUI-004h: el chrome cede altura y no queda superficie que no aporte (316ms)"
+      "notes": "✓  173 [chromium] › tests/e2e/refinamiento-ui.spec.ts:142:5 › TC-RUI-004h: el chrome cede altura y no queda superficie que no aporte (278ms)"
     },
     {
       "tc_id": "TC-RUI-004e",
       "status": "pass",
-      "notes": "✓  174 [chromium] › tests/e2e/refinamiento-ui.spec.ts:189:5 › TC-RUI-004e: la vista tiene un solo nombre y el periodo aparece una sola vez (301ms)"
+      "notes": "✓  174 [chromium] › tests/e2e/refinamiento-ui.spec.ts:189:5 › TC-RUI-004e: la vista tiene un solo nombre y el periodo aparece una sola vez (275ms)"
     },
     {
       "tc_id": "TC-RUI-004f",
       "status": "pass",
-      "notes": "✓  175 [chromium] › tests/e2e/refinamiento-ui.spec.ts:201:5 › TC-RUI-004f: la marca no se renderiza en ninguno de los dos shells (414ms)"
+      "notes": "✓  175 [chromium] › tests/e2e/refinamiento-ui.spec.ts:201:5 › TC-RUI-004f: la marca no se renderiza en ninguno de los dos shells (335ms)"
     },
     {
       "tc_id": "TC-RUI-005h",
       "status": "pass",
-      "notes": "✓  176 [chromium] › tests/e2e/refinamiento-ui.spec.ts:210:5 › TC-RUI-005h: queda una sola leyenda en pantalla (325ms)"
+      "notes": "✓  176 [chromium] › tests/e2e/refinamiento-ui.spec.ts:210:5 › TC-RUI-005h: queda una sola leyenda en pantalla (277ms)"
     },
     {
       "tc_id": "TC-RUI-005e",
       "status": "pass",
-      "notes": "✓  177 [chromium] › tests/e2e/refinamiento-ui.spec.ts:232:5 › TC-RUI-005e: con datos propios, ningún texto afirma el reparto de la semilla (339ms)"
+      "notes": "✓  177 [chromium] › tests/e2e/refinamiento-ui.spec.ts:232:5 › TC-RUI-005e: con datos propios, ningún texto afirma el reparto de la semilla (307ms)"
     },
     {
       "tc_id": "TC-RUI-005f",
       "status": "pass",
-      "notes": "✓  178 [chromium] › tests/e2e/refinamiento-ui.spec.ts:243:5 › TC-RUI-005f: el pie de ayuda ya no se renderiza (336ms)"
+      "notes": "✓  178 [chromium] › tests/e2e/refinamiento-ui.spec.ts:243:5 › TC-RUI-005f: el pie de ayuda ya no se renderiza (308ms)"
     },
     {
       "tc_id": "TC-RUI-006h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006h: la escala semántica de espaciado y la de motion están declaradas y se consumen 39ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006h: la escala semántica de espaciado y la de motion están declaradas y se consumen 43ms"
     },
     {
       "tc_id": "TC-RUI-006e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006e: cero tamaños tipográficos ad-hoc y cero duraciones a mano 50ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006e: cero tamaños tipográficos ad-hoc y cero duraciones a mano 43ms"
     },
     {
       "tc_id": "TC-RUI-006f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006f: el gate FALLA si se reintroduce un tamaño ad-hoc 776ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006f: el gate FALLA si se reintroduce un tamaño ad-hoc 730ms"
     },
     {
       "tc_id": "TC-RUI-007h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007h: el grafo de imports no deja ningún módulo huérfano 92ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007h: el grafo de imports no deja ningún módulo huérfano 80ms"
     },
     {
       "tc_id": "TC-RUI-007e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007e: los mapeos @theme de Tailwind NO son huérfanos 43ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007e: los mapeos @theme de Tailwind NO son huérfanos 42ms"
     },
     {
       "tc_id": "TC-RUI-007f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007f: ningún token de color declarado queda sin consumidor 55ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007f: ningún token de color declarado queda sin consumidor 60ms"
     },
     {
       "tc_id": "TC-RUI-101h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101h: la semilla conserva su forma y sus totales 13ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101h: la semilla conserva su forma y sus totales 1ms"
     },
     {
       "tc_id": "TC-RUI-101f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101f: ningún invariante estructural se rompe — cero huérfanos y totales cuadrados 3ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101f: ningún invariante estructural se rompe — cero huérfanos y totales cuadrados 2ms"
     },
     {
       "tc_id": "TC-RUI-102h",
       "status": "pass",
-      "notes": "✓  179 [chromium] › tests/e2e/refinamiento-ui.spec.ts:251:5 › TC-RUI-102h: regresión — el contrato de edición de la grilla se conserva (556ms)"
+      "notes": "✓  179 [chromium] › tests/e2e/refinamiento-ui.spec.ts:251:5 › TC-RUI-102h: regresión — el contrato de edición de la grilla se conserva (536ms)"
     },
     {
       "tc_id": "TC-RUI-102f",
       "status": "pass",
-      "notes": "✓  181 [chromium] › tests/e2e/refinamiento-ui.spec.ts:285:5 › TC-RUI-102f: regresión — el arrastrar-y-soltar sigue operativo (672ms)"
+      "notes": "✓  181 [chromium] › tests/e2e/refinamiento-ui.spec.ts:285:5 › TC-RUI-102f: regresión — el arrastrar-y-soltar sigue operativo (649ms)"
     },
     {
       "tc_id": "TC-RUI-103h",
       "status": "pass",
-      "notes": "✓  182 [chromium] › tests/e2e/refinamiento-ui.spec.ts:307:5 › TC-RUI-103h: regresión — el registro conserva su color por tipo (745ms)"
+      "notes": "✓  182 [chromium] › tests/e2e/refinamiento-ui.spec.ts:307:5 › TC-RUI-103h: regresión — el registro conserva su color por tipo (700ms)"
     },
     {
       "tc_id": "TC-RUI-103f",
       "status": "pass",
-      "notes": "✓  184 [chromium] › tests/e2e/refinamiento-ui.spec.ts:337:5 › TC-RUI-103f: regresión — el registro NO adopta la tinta neutra de la grilla (634ms)"
+      "notes": "✓  184 [chromium] › tests/e2e/refinamiento-ui.spec.ts:337:5 › TC-RUI-103f: regresión — el registro NO adopta la tinta neutra de la grilla (618ms)"
     },
     {
       "tc_id": "TC-RUI-104h",
@@ -148,37 +148,37 @@
     {
       "tc_id": "TC-RUI-104f",
       "status": "pass",
-      "notes": "✓  187 [chromium] › tests/e2e/refinamiento-ui.spec.ts:376:5 › TC-RUI-104f: la unificación no baja el contraste de ningún par (269ms)"
+      "notes": "✓  187 [chromium] › tests/e2e/refinamiento-ui.spec.ts:376:5 › TC-RUI-104f: la unificación no baja el contraste de ningún par (272ms)"
     },
     {
       "tc_id": "TC-RUI-105h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105h: resolver el rol de una celda es O(1) y no toca el estado 6ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105h: resolver el rol de una celda es O(1) y no toca el estado 2ms"
     },
     {
       "tc_id": "TC-RUI-101e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101e: los casos borde del dominio siguen resolviendo igual 1ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101e: los casos borde del dominio siguen resolviendo igual 0ms"
     },
     {
       "tc_id": "TC-RUI-102e",
       "status": "pass",
-      "notes": "✓  180 [chromium] › tests/e2e/refinamiento-ui.spec.ts:271:5 › TC-RUI-102e: regresión — sticky y scroll horizontal se conservan (342ms)"
+      "notes": "✓  180 [chromium] › tests/e2e/refinamiento-ui.spec.ts:271:5 › TC-RUI-102e: regresión — sticky y scroll horizontal se conservan (329ms)"
     },
     {
       "tc_id": "TC-RUI-103e",
       "status": "pass",
-      "notes": "✓  183 [chromium] › tests/e2e/refinamiento-ui.spec.ts:320:5 › TC-RUI-103e: regresión — cambiar de tipo conserva el monto y deselecciona la categoría (696ms)"
+      "notes": "✓  183 [chromium] › tests/e2e/refinamiento-ui.spec.ts:320:5 › TC-RUI-103e: regresión — cambiar de tipo conserva el monto y deselecciona la categoría (678ms)"
     },
     {
       "tc_id": "TC-RUI-104e",
       "status": "pass",
-      "notes": "✓  186 [chromium] › tests/e2e/refinamiento-ui.spec.ts:363:5 › TC-RUI-104e: el peor caso de contraste sigue siendo el medido (367ms)"
+      "notes": "✓  186 [chromium] › tests/e2e/refinamiento-ui.spec.ts:363:5 › TC-RUI-104e: el peor caso de contraste sigue siendo el medido (362ms)"
     },
     {
       "tc_id": "TC-RUI-105e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105e: el rol es estable — la misma entrada da siempre la misma salida 23ms"
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105e: el rol es estable — la misma entrada da siempre la misma salida 4ms"
     },
     {
       "tc_id": "TC-RUI-105f",
@@ -348,7 +348,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-12T14:44:41.534Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-12T17:10:06.038Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
     },
     {
       "name": "design-tokens",
@@ -386,9 +386,9 @@
       "name": "e2e",
       "command": "npm run test:e2e",
       "required": false,
-      "status": "error",
-      "exit_code": null,
-      "output": "026-08-12T14:46:22.994Z] GET /api/v1/ledger 200 (5ms) rid=00mw\n[2026-08-12T14:46:23.014Z] PUT /api/v1/ledger 200 (18ms) rid=00mx\n  ✘  210 [chromium] › tests/e2e/servidor-fuente-unica.spec.ts:608:7 › TC-SFU-108c: todo texto de la pantalla de acceso alcanza 4.5:1 en tema light (13.8m)\n\n2026-08-12T14:46:18.470Z WARN [Better Auth]: User not found\n2026-08-12T14:46:19.218Z WARN [Better Auth]: User not found\n2026-08-12T14:46:21.355Z WARN [Better Auth]: User not found\n\n[aitri] gate did not finish within 900000ms — raise \"timeout_ms\" on this gate if it legitimately needs longer (e.g. mutation testing)."
+      "status": "pass",
+      "exit_code": 0,
+      "output": "tests/e2e/ux-consistency.spec.ts:694:5 › TC-UXC-356h: la app responde 200 en '/' (289ms)\n  ✓  290 [chromium] › tests/e2e/ux-consistency.spec.ts:702:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (180ms)\n\n  290 passed (1.7m)\n\n2026-08-12T17:11:40.006Z WARN [Better Auth]: User not found\n2026-08-12T17:11:40.754Z WARN [Better Auth]: User not found\n2026-08-12T17:11:42.462Z WARN [Better Auth]: User not found\n(node:31064) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ]
 }

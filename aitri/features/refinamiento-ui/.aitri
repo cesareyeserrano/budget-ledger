@@ -19,19 +19,9 @@
   "projectName": "refinamiento-ui",
   "createdAt": "2026-08-05T18:06:40.720Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-12T15:23:03.447Z",
+  "updatedAt": "2026-08-12T17:12:15.533Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-07T00:48:02.448Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-07T00:48:02.538Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-08-07T00:48:02.633Z",
       "event": "approved",
@@ -133,6 +123,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-08-12T17:12:07.341Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-12T17:12:15.512Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -192,16 +198,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "7a7fef6921fd502e590d9f864b5a5152ba635498",
-  "verifyRanDirty": true,
-  "verifyResultsHash": "a0c69b17e81e8375546d5561e16eb0198436971a47139c0b3e7e63974164142e",
-  "verifyRanAt": "2026-08-12T15:00:11.103Z",
+  "verifyRanRef": "7923965a11b3cf1d20b95b8dd415dfb4ad4f531a",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "ec66d899ccb81d384d2cebac1b34332e06c666cf9336a6ae653f5bbfcbe32a17",
+  "verifyRanAt": "2026-08-12T17:12:07.270Z",
   "lastVerifyRun": {
     "passed": 37,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-12T15:00:11.103Z"
+    "at": "2026-08-12T17:12:07.270Z"
   },
   "verifySummary": {
     "total": 37,
