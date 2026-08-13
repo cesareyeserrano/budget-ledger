@@ -13,7 +13,7 @@ test("TC-BE-030h: el tema persiste en localStorage tras recargar", async ({ page
   const themeBefore = await page.evaluate(() => localStorage.getItem("theme"));
   expect(themeBefore).toBeTruthy();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
   const themeAfter = await page.evaluate(() => localStorage.getItem("theme"));
   expect(themeAfter).toBe(themeBefore); // la preferencia sobrevive la recarga desde localStorage
 });
@@ -25,7 +25,7 @@ test("TC-BE-031e: tras guardar movimientos, localStorage no contiene datos finan
   expect(await createMovementViaApi(page, 5000)).toBe(201);
   expect(await createMovementViaApi(page, 7000, "jul")).toBe(201);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
 
   const ls = await dumpLocalStorage(page);
   // No hay llaves financieras.

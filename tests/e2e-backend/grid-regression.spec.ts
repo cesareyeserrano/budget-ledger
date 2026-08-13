@@ -26,7 +26,7 @@ test("TC-BE-068h: guardar un movimiento suma a Ejecutado y se refleja en la gril
   const after = await actualFor(page, "s-comida-mercado", "jun");
   expect(after).toBe(before + 5000);
   // La grilla sigue montada y funcional (misma superficie visible).
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
   await expect(page.getByText("GASTOS").first()).toBeVisible();
 });
 

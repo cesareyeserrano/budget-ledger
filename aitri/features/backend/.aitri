@@ -17,29 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-16T19:33:29.985Z",
+  "updatedAt": "2026-08-13T16:23:09.344Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-15T18:22:01.703Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-15T19:01:05.701Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-15T19:08:33.991Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-15T23:48:49.502Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-07-16T00:27:56.972Z",
       "event": "approved",
@@ -140,6 +120,40 @@
       "phase": "verify",
       "passed": 85,
       "failed": 0
+    },
+    {
+      "at": "2026-08-13T03:15:35.855Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-13T04:44:09.333Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-13T16:22:32.881Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-13T16:23:09.333Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -215,15 +229,17 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "2418c1baeee626af04d3970e2a7b0c43e48909298f7ead513960d488b4f405e9",
-  "verifyRanAt": "2026-07-16T19:26:34.290Z",
+  "verifyResultsHash": "a1bc25fd0cd69e069dca275b070c8393d842e31ac92a638fbd3173189fc79b9e",
+  "verifyRanAt": "2026-08-13T16:22:32.836Z",
   "lastVerifyRun": {
     "passed": 85,
     "failed": 0,
     "skipped": 1,
     "manual": 0,
-    "at": "2026-07-16T19:26:34.290Z"
+    "at": "2026-08-13T16:22:32.836Z"
   },
+  "verifyRanRef": "e22e28ee7c91b47695bc068b9cc7d55a0afc53e7",
+  "verifyRanDirty": true,
   "verifySummary": {
     "total": 86,
     "passed": 85,

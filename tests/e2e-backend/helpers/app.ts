@@ -16,9 +16,23 @@ export function uniqueEmail(prefix = "user"): string {
 
 export const PASSWORD = "Contra$eña123";
 
-/** Espera a que la grilla (shell autenticado) esté montada. */
+/**
+ * Espera a que la grilla (shell autenticado) esté montada.
+ *
+ * Se ancla al TESTID de la grilla, no al texto del encabezado. Antes esperaba
+ * `getByRole("heading", { name: "Presupuesto" })`, y cuando refinamiento-ui FR-1204 renombró ese
+ * <h1> a «Resumen» —porque decía «Presupuesto» mientras la pestaña de la MISMA vista decía
+ * «Resumen»— los 15 tests que pasan por aquí se quedaron 45 s esperando un encabezado que ya no
+ * existe con ese nombre. Y no lo detectó nadie: esta suite corre con su propia configuración
+ * (`playwright.backend.config.ts` sobre `tests/e2e-backend`), así que `npx playwright test` —que
+ * solo mira `tests/e2e`— seguía en verde.
+ *
+ * Lección: la señal de «la app está lista» de una suite de BACKEND no debe depender de la copia de
+ * la interfaz. Que el encabezado exista y diga lo correcto es una propiedad de accesibilidad, y la
+ * verifican los TCs de la suite principal (TC-205e y TC-RUI-004e), que es su sitio.
+ */
 export async function waitForGrid(page: Page): Promise<void> {
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId("budget-grid")).toBeVisible({ timeout: 45_000 });
 }
 
 /** Envía el form y, tras la respuesta de auth, recarga para leer la sesión limpia desde la cookie. */

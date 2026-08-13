@@ -23,7 +23,7 @@ test("TC-BE-033h: un movimiento del dispositivo 1 aparece en el dispositivo 2 tr
     expect(await createMovementViaApi(page, 5000)).toBe(201);
     // Dispositivo 2 recarga y lo ve; el dataset (nº de movimientos) coincide.
     await d2.page.reload();
-    await expect(d2.page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+    await expect(d2.page.getByTestId("budget-grid")).toBeVisible();
     expect(await hasMovementAmount(d2.page, 5000)).toBe(true);
     expect(await movementCount(d2.page)).toBe(await movementCount(page));
   } finally {
@@ -39,7 +39,7 @@ test("TC-BE-034e: un cambio en el dispositivo 2 se ve en el dispositivo 1 tras r
   try {
     expect(await createMovementViaApi(d2.page, 4321)).toBe(201); // dispositivo 2 escribe
     await page.reload(); // dispositivo 1 recarga
-    await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
     expect(await hasMovementAmount(page, 4321)).toBe(true);
   } finally {
     await d2.ctx.close();
@@ -56,7 +56,7 @@ test("TC-BE-035f: un usuario distinto que recarga no ve el movimiento de otro", 
   try {
     await register(betoPage, uniqueEmail("beto"));
     await betoPage.reload();
-    await expect(betoPage.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+    await expect(betoPage.getByTestId("budget-grid")).toBeVisible();
     expect(await hasMovementAmount(betoPage, 5000)).toBe(false);
   } finally {
     await betoCtx.close();
