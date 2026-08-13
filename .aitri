@@ -23,28 +23,9 @@
   "aitriVersion": "2.2.0-rc.8",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-08-13T17:11:05.212Z",
+  "updatedAt": "2026-08-13T17:14:57.508Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-05T17:02:59.527Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-05T17:02:59.654Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-05T17:07:34.198Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-05T17:22:16.110Z",
       "event": "verify-complete",
@@ -160,6 +141,30 @@
     },
     {
       "at": "2026-08-13T17:11:05.200Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-13T17:11:33.826Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 6,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-08-13T17:14:57.400Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-13T17:14:57.496Z",
       "event": "verify-complete",
       "phase": "verify",
       "passed": 59,
@@ -311,16 +316,16 @@
       "at": "2026-08-12T15:43:48.700Z"
     }
   ],
-  "verifyRanRef": "213ea198a10538b12513c2b138a326337f854f05",
+  "verifyRanRef": "9070161dd63be42259da859558cbe9461d2a861d",
   "verifyRanDirty": false,
-  "verifyResultsHash": "f97b37dd84b910409b70a19f78f267d5e72c40c67d7c27310080341e403a3a5e",
-  "verifyRanAt": "2026-08-13T17:11:05.074Z",
+  "verifyResultsHash": "a28a51845ce0ffb39e84d71717bc0f634eb4f5028e90e5aa4ac28f5ff0e07bac",
+  "verifyRanAt": "2026-08-13T17:14:57.371Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-13T17:11:05.074Z"
+    "at": "2026-08-13T17:14:57.371Z"
   },
   "verifySummary": {
     "total": 59,
