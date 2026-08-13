@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-13T16:27:20.617Z",
+  "executed_at": "2026-08-13T16:33:17.057Z",
   "test_runner": "npm run test:backend:full",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,132 +8,132 @@
     {
       "tc_id": "TC-BE-001h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-001h: registro válido crea la cuenta y emite una sesión 49ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-001h: registro válido crea la cuenta y emite una sesión 38ms"
     },
     {
       "tc_id": "TC-BE-002f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-002f: login con contraseña incorrecta se rechaza 401 sin sesión ni enumeración 72ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-002f: login con contraseña incorrecta se rechaza 401 sin sesión ni enumeración 61ms"
     },
     {
       "tc_id": "TC-BE-003f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-003f: registro con email ya existente se rechaza y no crea segunda cuenta 40ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-003f: registro con email ya existente se rechaza y no crea segunda cuenta 31ms"
     },
     {
       "tc_id": "TC-BE-004e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-004e: la contraseña persiste como hash argon2id, nunca en texto plano 72ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-004e: la contraseña persiste como hash argon2id, nunca en texto plano 52ms"
     },
     {
       "tc_id": "TC-BE-005f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-005f: inyección SQL en el email es parametrizada, no altera la tabla user 39ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-501 — registro e inicio de sesión con email+contraseña > TC-BE-005f: inyección SQL en el email es parametrizada, no altera la tabla user 30ms"
     },
     {
       "tc_id": "TC-BE-006h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — Google OAuth happy path (IdP mockeado) > TC-BE-006h: un flujo OAuth de Google exitoso crea la cuenta y emite sesión 49ms"
+      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — Google OAuth happy path (IdP mockeado) > TC-BE-006h: un flujo OAuth de Google exitoso crea la cuenta y emite sesión 36ms"
     },
     {
       "tc_id": "TC-BE-007e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — Google OAuth happy path (IdP mockeado) > TC-BE-007e: reingreso con la misma cuenta de Google conserva el mismo ownerId 41ms"
+      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — Google OAuth happy path (IdP mockeado) > TC-BE-007e: reingreso con la misma cuenta de Google conserva el mismo ownerId 30ms"
     },
     {
       "tc_id": "TC-BE-008f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-008f: callback denegado por el usuario no crea sesión ni responde 5xx 17ms"
+      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-008f: callback denegado por el usuario no crea sesión ni responde 5xx 15ms"
     },
     {
       "tc_id": "TC-BE-009f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión 17ms"
+      "notes": "✓ |backend| tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión 14ms"
     },
     {
       "tc_id": "TC-BE-010h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-010h: un request autenticado resuelve un userId no vacío 39ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-010h: un request autenticado resuelve un userId no vacío 29ms"
     },
     {
       "tc_id": "TC-BE-011f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-011f: un request sin sesión no resuelve ningún usuario 17ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-011f: un request sin sesión no resuelve ningún usuario 13ms"
     },
     {
       "tc_id": "TC-BE-012f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-012f: tras logout la misma sesión ya no resuelve 40ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-012f: tras logout la misma sesión ya no resuelve 31ms"
     },
     {
       "tc_id": "TC-BE-013e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-013e: una sesión con token manipulado no resuelve a ningún usuario 34ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > FR-503 — sesión que identifica al usuario y logout que invalida > TC-BE-013e: una sesión con token manipulado no resuelve a ningún usuario 30ms"
     },
     {
       "tc_id": "TC-BE-014h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-014h: ruta de datos con sesión válida devuelve 200 con los datos del usuario 102ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-014h: ruta de datos con sesión válida devuelve 200 con los datos del usuario 97ms"
     },
     {
       "tc_id": "TC-BE-015f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-015f: ruta de datos sin sesión válida devuelve 401 y cero datos 14ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-015f: ruta de datos sin sesión válida devuelve 401 y cero datos 16ms"
     },
     {
       "tc_id": "TC-BE-016e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-016e: token manipulado devuelve 401 y no ejecuta la escritura 20ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-504 — gating de la API > TC-BE-016e: token manipulado devuelve 401 y no ejecuta la escritura 15ms"
     },
     {
       "tc_id": "TC-BE-017h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-017h: GET del usuario A no devuelve ningún registro de B 84ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-017h: GET del usuario A no devuelve ningún registro de B 71ms"
     },
     {
       "tc_id": "TC-BE-018f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-018f: A lee por id un movimiento de B → 404 sin filtrar contenido 70ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-018f: A lee por id un movimiento de B → 404 sin filtrar contenido 62ms"
     },
     {
       "tc_id": "TC-BE-019f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-019f: A intenta borrar un movimiento de B → 404 y el dato de B queda intacto 71ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-019f: A intenta borrar un movimiento de B → 404 y el dato de B queda intacto 65ms"
     },
     {
       "tc_id": "TC-BE-020e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-020e: el ownerId sale de la sesión; un ?ownerId=B en el query se ignora 85ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-505 — aislamiento por ownerId > TC-BE-020e: el ownerId sale de la sesión; un ?ownerId=B en el query se ignora 75ms"
     },
     {
       "tc_id": "TC-BE-021h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-021h: un movimiento guardado es legible con los mismos valores por su ownerId 42ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-021h: un movimiento guardado es legible con los mismos valores por su ownerId 30ms"
     },
     {
       "tc_id": "TC-BE-022e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-022e: nodo, presupuesto y ejecutado persisten cada uno con su ownerId 36ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-022e: nodo, presupuesto y ejecutado persisten cada uno con su ownerId 23ms"
     },
     {
       "tc_id": "TC-BE-023f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-023f: una escritura de dominio sin ownerId es rechazada por constraint 25ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-506 — esquema y persistencia por usuario > TC-BE-023f: una escritura de dominio sin ownerId es rechazada por constraint 14ms"
     },
     {
       "tc_id": "TC-BE-024h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-024h: POST a /api/v1/movements persiste y es legible después 56ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-024h: POST a /api/v1/movements persiste y es legible después 48ms"
     },
     {
       "tc_id": "TC-BE-025e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-025e: los movimientos viven bajo /api/v1; no hay ruta sin versión 47ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-025e: los movimientos viven bajo /api/v1; no hay ruta sin versión 42ms"
     },
     {
       "tc_id": "TC-BE-026f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-026f: payload malformado se rechaza 422 y no persiste nada 48ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > FR-507 — API versionada, filtrada por usuario > TC-BE-026f: payload malformado se rechaza 422 y no persiste nada 42ms"
     },
     {
       "tc_id": "TC-BE-027h",
@@ -153,37 +153,37 @@
     {
       "tc_id": "TC-BE-030h",
       "status": "pass",
-      "notes": "✓  14 [chromium] › tests/e2e-backend/storage-split.spec.ts:8:5 › TC-BE-030h: el tema persiste en localStorage tras recargar (349ms)"
+      "notes": "✓  14 [chromium] › tests/e2e-backend/storage-split.spec.ts:8:5 › TC-BE-030h: el tema persiste en localStorage tras recargar (366ms)"
     },
     {
       "tc_id": "TC-BE-031e",
       "status": "pass",
-      "notes": "✓  15 [chromium] › tests/e2e-backend/storage-split.spec.ts:21:5 › TC-BE-031e: tras guardar movimientos, localStorage no contiene datos financieros (351ms)"
+      "notes": "✓  15 [chromium] › tests/e2e-backend/storage-split.spec.ts:21:5 › TC-BE-031e: tras guardar movimientos, localStorage no contiene datos financieros (347ms)"
     },
     {
       "tc_id": "TC-BE-032f",
       "status": "pass",
-      "notes": "✓   4 [chromium] › tests/e2e-backend/auth-flow.spec.ts:55:5 › TC-BE-032f: localStorage nunca contiene credenciales ni contraseñas (312ms)"
+      "notes": "✓   4 [chromium] › tests/e2e-backend/auth-flow.spec.ts:55:5 › TC-BE-032f: localStorage nunca contiene credenciales ni contraseñas (273ms)"
     },
     {
       "tc_id": "TC-BE-033h",
       "status": "pass",
-      "notes": "✓   5 [chromium] › tests/e2e-backend/cross-device.spec.ts:16:5 › TC-BE-033h: un movimiento del dispositivo 1 aparece en el dispositivo 2 tras recargar (620ms)"
+      "notes": "✓   5 [chromium] › tests/e2e-backend/cross-device.spec.ts:16:5 › TC-BE-033h: un movimiento del dispositivo 1 aparece en el dispositivo 2 tras recargar (558ms)"
     },
     {
       "tc_id": "TC-BE-034e",
       "status": "pass",
-      "notes": "✓   6 [chromium] › tests/e2e-backend/cross-device.spec.ts:34:5 › TC-BE-034e: un cambio en el dispositivo 2 se ve en el dispositivo 1 tras recargar (592ms)"
+      "notes": "✓   6 [chromium] › tests/e2e-backend/cross-device.spec.ts:34:5 › TC-BE-034e: un cambio en el dispositivo 2 se ve en el dispositivo 1 tras recargar (574ms)"
     },
     {
       "tc_id": "TC-BE-035f",
       "status": "pass",
-      "notes": "✓   7 [chromium] › tests/e2e-backend/cross-device.spec.ts:49:5 › TC-BE-035f: un usuario distinto que recarga no ve el movimiento de otro (673ms)"
+      "notes": "✓   7 [chromium] › tests/e2e-backend/cross-device.spec.ts:49:5 › TC-BE-035f: un usuario distinto que recarga no ve el movimiento de otro (611ms)"
     },
     {
       "tc_id": "TC-BE-036h",
       "status": "pass",
-      "notes": "✓  11 [chromium] › tests/e2e-backend/live-sync.spec.ts:25:5 › TC-BE-036h: un cambio en el dispositivo 1 se refleja en el dispositivo 2 sin recarga (≤5s) (808ms)"
+      "notes": "✓  11 [chromium] › tests/e2e-backend/live-sync.spec.ts:25:5 › TC-BE-036h: un cambio en el dispositivo 1 se refleja en el dispositivo 2 sin recarga (≤5s) (824ms)"
     },
     {
       "tc_id": "TC-BE-037f",
@@ -203,67 +203,67 @@
     {
       "tc_id": "TC-BE-040h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-040h: los datos sobreviven a un reinicio del proceso del servidor 36ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-040h: los datos sobreviven a un reinicio del proceso del servidor 28ms"
     },
     {
       "tc_id": "TC-BE-041e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-041e: un dump→wipe→restore recupera los datos sin pérdida (restore en otro host) 70ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-041e: un dump→wipe→restore recupera los datos sin pérdida (restore en otro host) 48ms"
     },
     {
       "tc_id": "TC-BE-042f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/config.test.ts > FR-512 / NFR-510 — arranque fail-fast por variable faltante > TC-BE-042f: falta DATABASE_URL → el arranque falla explícito nombrando la variable 22ms"
+      "notes": "✓ |backend| tests/integration/backend/config.test.ts > FR-512 / NFR-510 — arranque fail-fast por variable faltante > TC-BE-042f: falta DATABASE_URL → el arranque falla explícito nombrando la variable 20ms"
     },
     {
       "tc_id": "TC-BE-043h",
       "status": "pass",
-      "notes": "✓   1 [chromium] › tests/e2e-backend/auth-flow.spec.ts:8:5 › TC-BE-043h: un usuario recién registrado ve un ledger propio y utilizable, sin datos de otros (578ms)"
+      "notes": "✓   1 [chromium] › tests/e2e-backend/auth-flow.spec.ts:8:5 › TC-BE-043h: un usuario recién registrado ve un ledger propio y utilizable, sin datos de otros (375ms)"
     },
     {
       "tc_id": "TC-BE-044e",
       "status": "pass",
-      "notes": "✓   2 [chromium] › tests/e2e-backend/auth-flow.spec.ts:18:5 › TC-BE-044e: el ledger inicial no arrastra datos financieros del localStorage previo (304ms)"
+      "notes": "✓   2 [chromium] › tests/e2e-backend/auth-flow.spec.ts:18:5 › TC-BE-044e: el ledger inicial no arrastra datos financieros del localStorage previo (306ms)"
     },
     {
       "tc_id": "TC-BE-045f",
       "status": "pass",
-      "notes": "✓   3 [chromium] › tests/e2e-backend/auth-flow.spec.ts:34:5 › TC-BE-045f: dos cuentas nuevas obtienen ledgers independientes (691ms)"
+      "notes": "✓   3 [chromium] › tests/e2e-backend/auth-flow.spec.ts:34:5 › TC-BE-045f: dos cuentas nuevas obtienen ledgers independientes (612ms)"
     },
     {
       "tc_id": "TC-BE-046h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-046h: la contraseña se almacena con hash fuerte verificable, nunca en texto plano 50ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-046h: la contraseña se almacena con hash fuerte verificable, nunca en texto plano 42ms"
     },
     {
       "tc_id": "TC-BE-047f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-047f: inyección SQL en un campo de auth no altera datos (parametrizado) 43ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-047f: inyección SQL en un campo de auth no altera datos (parametrizado) 30ms"
     },
     {
       "tc_id": "TC-BE-048f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-048f: A no puede leer por id un movimiento de B (autorización horizontal) 74ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-048f: A no puede leer por id un movimiento de B (autorización horizontal) 63ms"
     },
     {
       "tc_id": "TC-BE-049e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-049e: ningún secreto aparece hardcodeado en el árbol de fuentes 15ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-049e: ningún secreto aparece hardcodeado en el árbol de fuentes 12ms"
     },
     {
       "tc_id": "TC-BE-050h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-050h: un request emite una línea [ts] METHOD /path STATUS 49ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-050h: un request emite una línea [ts] METHOD /path STATUS 42ms"
     },
     {
       "tc_id": "TC-BE-051e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-051e: un request rechazado (401) también queda registrado con su status 16ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-051e: un request rechazado (401) también queda registrado con su status 14ms"
     },
     {
       "tc_id": "TC-BE-052f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-052f: un request con error (422) también emite su línea de log 48ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-502 — log estructurado por request > TC-BE-052f: un request con error (422) también emite su línea de log 39ms"
     },
     {
       "tc_id": "TC-BE-053h",
@@ -278,27 +278,27 @@
     {
       "tc_id": "TC-BE-055f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-503 — CI corre la suite completa en push a main > TC-BE-055f: un test que falla hace fallar el runner (exit ≠ 0) 1307ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-503 — CI corre la suite completa en push a main > TC-BE-055f: un test que falla hace fallar el runner (exit ≠ 0) 1390ms"
     },
     {
       "tc_id": "TC-BE-056h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-056h: GET /health devuelve 200 { status: 'ok' } 23ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-056h: GET /health devuelve 200 { status: 'ok' } 12ms"
     },
     {
       "tc_id": "TC-BE-057e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-057e: /health responde sin autenticación 20ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-057e: /health responde sin autenticación 13ms"
     },
     {
       "tc_id": "TC-BE-058f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-058f: /health no expone datos de usuario 37ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-504 — healthcheck > TC-BE-058f: /health no expone datos de usuario 35ms"
     },
     {
       "tc_id": "TC-BE-059h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-059h: un registro escrito sigue legible tras reiniciar el proceso 40ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-059h: un registro escrito sigue legible tras reiniciar el proceso 27ms"
     },
     {
       "tc_id": "TC-BE-060e",
@@ -308,27 +308,27 @@
     {
       "tc_id": "TC-BE-061f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-061f: un reinicio no pierde ninguno de los registros previos 37ms"
+      "notes": "✓ |backend| tests/integration/backend/foundation.test.ts > FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio > TC-BE-061f: un reinicio no pierde ninguno de los registros previos 28ms"
     },
     {
       "tc_id": "TC-BE-062h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-062h: una lectura del ledger de un usuario típico responde en ≤500ms 177ms"
+      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-062h: una lectura del ledger de un usuario típico responde en ≤500ms 173ms"
     },
     {
       "tc_id": "TC-BE-063e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-063e: una escritura confirma en ≤500ms y el roll-up del cliente se mantiene ≤150ms 30ms"
+      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-063e: una escritura confirma en ≤500ms y el roll-up del cliente se mantiene ≤150ms 28ms"
     },
     {
       "tc_id": "TC-BE-064f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-064f: el presupuesto de 500ms es una aserción dura, no advisory 56ms"
+      "notes": "✓ |backend| tests/integration/backend/perf.test.ts > NFR-506 — presupuesto de latencia > TC-BE-064f: el presupuesto de 500ms es una aserción dura, no advisory 53ms"
     },
     {
       "tc_id": "TC-BE-065h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/backend-regression.test.ts > NFR-507 — el dominio no cambia su lógica de cálculo > TC-BE-065h: rollup/dashboard/budgetState dan resultados idénticos al baseline para la semilla 1ms"
+      "notes": "✓ |app| tests/domain/backend-regression.test.ts > NFR-507 — el dominio no cambia su lógica de cálculo > TC-BE-065h: rollup/dashboard/budgetState dan resultados idénticos al baseline para la semilla 3ms"
     },
     {
       "tc_id": "TC-BE-066e",
@@ -343,17 +343,17 @@
     {
       "tc_id": "TC-BE-068h",
       "status": "pass",
-      "notes": "✓   8 [chromium] › tests/e2e-backend/grid-regression.spec.ts:19:5 › TC-BE-068h: guardar un movimiento suma a Ejecutado y se refleja en la grilla (520ms)"
+      "notes": "✓   8 [chromium] › tests/e2e-backend/grid-regression.spec.ts:19:5 › TC-BE-068h: guardar un movimiento suma a Ejecutado y se refleja en la grilla (501ms)"
     },
     {
       "tc_id": "TC-BE-069e",
       "status": "pass",
-      "notes": "✓   9 [chromium] › tests/e2e-backend/grid-regression.spec.ts:33:5 › TC-BE-069e: cambiar Mes/Año recalcula los indicadores igual que el baseline (660ms)"
+      "notes": "✓   9 [chromium] › tests/e2e-backend/grid-regression.spec.ts:33:5 › TC-BE-069e: cambiar Mes/Año recalcula los indicadores igual que el baseline (679ms)"
     },
     {
       "tc_id": "TC-BE-070f",
       "status": "pass",
-      "notes": "✓  10 [chromium] › tests/e2e-backend/grid-regression.spec.ts:48:5 › TC-BE-070f: guardar con monto 0 no crea movimiento (igual que hoy) (798ms)"
+      "notes": "✓  10 [chromium] › tests/e2e-backend/grid-regression.spec.ts:48:5 › TC-BE-070f: guardar con monto 0 no crea movimiento (igual que hoy) (801ms)"
     },
     {
       "tc_id": "TC-BE-071h",
@@ -363,7 +363,7 @@
     {
       "tc_id": "TC-BE-072e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-509 — la suite y las verificaciones estáticas permanecen verdes > TC-BE-072e: typecheck y lint terminan con exit 0 19504ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-509 — la suite y las verificaciones estáticas permanecen verdes > TC-BE-072e: typecheck y lint terminan con exit 0 0ms"
     },
     {
       "tc_id": "TC-BE-073f",
@@ -383,7 +383,7 @@
     {
       "tc_id": "TC-BE-076f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/config.test.ts > FR-512 / NFR-510 — arranque fail-fast por variable faltante > TC-BE-076f: falta BETTER_AUTH_SECRET → arranque abortado explícito, sin fallback silencioso 42ms"
+      "notes": "✓ |backend| tests/integration/backend/config.test.ts > FR-512 / NFR-510 — arranque fail-fast por variable faltante > TC-BE-076f: falta BETTER_AUTH_SECRET → arranque abortado explícito, sin fallback silencioso 39ms"
     },
     {
       "tc_id": "TC-BE-077h",
@@ -393,42 +393,42 @@
     {
       "tc_id": "TC-BE-078e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/security.test.ts > NFR-511 — cifrado en reposo (credenciales + contrato de volumen) > TC-BE-078e: las credenciales no quedan legibles en claro; el cifrado en reposo está en el contrato 46ms"
+      "notes": "✓ |backend| tests/integration/backend/security.test.ts > NFR-511 — cifrado en reposo (credenciales + contrato de volumen) > TC-BE-078e: las credenciales no quedan legibles en claro; el cifrado en reposo está en el contrato 39ms"
     },
     {
       "tc_id": "TC-BE-079f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-079f: sin la sesión correspondiente no se leen los datos financieros de un usuario 66ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-079f: sin la sesión correspondiente no se leen los datos financieros de un usuario 70ms"
     },
     {
       "tc_id": "TC-BE-080h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-080h: la cookie de sesión tiene HttpOnly y SameSite (y Secure en producción) 37ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-080h: la cookie de sesión tiene HttpOnly y SameSite (y Secure en producción) 30ms"
     },
     {
       "tc_id": "TC-BE-081f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-081f: tras 5 logins fallidos desde un origen, el 6º se limita (429) 125ms"
+      "notes": "✓ |backend| tests/integration/backend/auth.test.ts > NFR-501 / NFR-512 — endurecimiento de credenciales y sesión > TC-BE-081f: tras 5 logins fallidos desde un origen, el 6º se limita (429) 96ms"
     },
     {
       "tc_id": "TC-BE-082e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-082e: la config de headers emite HSTS y X-Content-Type-Options: nosniff 19ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-082e: la config de headers emite HSTS y X-Content-Type-Options: nosniff 14ms"
     },
     {
       "tc_id": "TC-BE-083f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-083f: una petición mutante con Origin no permitido se rechaza (no '*') 45ms"
+      "notes": "✓ |backend| tests/integration/backend/api.test.ts > NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, secretos > TC-BE-083f: una petición mutante con Origin no permitido se rechaza (no '*') 38ms"
     },
     {
       "tc_id": "TC-BE-084h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-513 — gates de seguridad automatizados > TC-BE-084h: el CI ejecuta un gate SCA (npm audit) que falla ante vuln alta/crítica 1ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-513 — gates de seguridad automatizados > TC-BE-084h: el CI ejecuta un gate SCA (npm audit) que falla ante vuln alta/crítica 0ms"
     },
     {
       "tc_id": "TC-BE-085e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-513 — gates de seguridad automatizados > TC-BE-085e: el gate de secretos detecta un secreto plantado y pasa el árbol limpio 171ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-513 — gates de seguridad automatizados > TC-BE-085e: el gate de secretos detecta un secreto plantado y pasa el árbol limpio 166ms"
     },
     {
       "tc_id": "TC-BE-086f",
@@ -938,7 +938,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-13T16:27:16.564Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-08-13T16:33:12.942Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
     },
     {
       "name": "sca",
