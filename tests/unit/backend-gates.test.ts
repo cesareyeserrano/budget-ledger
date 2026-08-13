@@ -132,9 +132,38 @@ describe("NFR-509 — la suite y las verificaciones estáticas permanecen verdes
 
   it("TC-BE-072e: typecheck y lint terminan con exit 0", () => {
     // @aitri-tc TC-BE-072e
-    expect(runExit("npm", ["run", "typecheck"])).toBe(0);
-    expect(runExit("npm", ["run", "lint"])).toBe(0);
-  }, 60_000);
+    //
+    // BL-027 — este TC EJECUTABA `npm run typecheck` y `npm run lint` como subprocesos. Medido:
+    // 21.191 ms, el 96 % del tiempo de todo este fichero. Y es DUPLICACIÓN pura: los dos están
+    // declarados como quality_gates required, así que verify-run ya los corre y ya bloquea el
+    // despliegue si fallan. Ejecutarlos otra vez aquí no añadía ninguna señal.
+    //
+    // El coste no era sólo tiempo. Bajo la carga del e2e, estos subprocesos se ahogan y el worker
+    // de vitest pierde el RPC («Timeout calling onTaskUpdate»), de modo que un gate required salía
+    // rojo por contención de CPU y no por el código. Peor: cuando Aitri mata el runner por timeout,
+    // los workers quedan HUÉRFANOS y siguen consumiendo la máquina — el 2026-08-13 cinco de ellos
+    // llevaban 11 horas vivos y dejaron el equipo inutilizable. El bucle se alimenta solo: tests
+    // lentos → timeout → huérfanos → máquina más lenta → más timeouts.
+    //
+    // Se comprueba el CONTRATO, que es lo que este TC significa de verdad: que ambas verificaciones
+    // estén cableadas como gates bloqueantes. La ejecución vive donde corresponde.
+    //
+    // NOTA: TC-BE-055f SÍ conserva su subproceso a propósito. Cuesta 566 ms y es lo único que
+    // demuestra que un test en rojo tumba el runner; eso no lo cubre ningún gate.
+    const build = JSON.parse(readFileSync(path.join(ROOT, "aitri/product/spec/04_BUILD_REPORT.json"), "utf8"));
+    const gates: { name: string; command: string; required?: boolean }[] = build.quality_gates;
+
+    for (const name of ["typecheck", "lint"]) {
+      const gate = gates.find((g) => g.name === name);
+      expect(gate, `el gate ${name} no está declarado en 04_BUILD_REPORT.json`).toBeDefined();
+      expect(gate!.required, `el gate ${name} no es bloqueante`).toBe(true);
+    }
+
+    // y los scripts que esos gates invocan existen de verdad — el gate no apunta a un comando fantasma
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    expect(pkg.scripts.typecheck).toBeTruthy();
+    expect(pkg.scripts.lint).toBeTruthy();
+  });
 
   it("TC-BE-073f: la suite es falsable — el cálculo del dominio es sensible a su entrada", () => {
     // @aitri-tc TC-BE-073f

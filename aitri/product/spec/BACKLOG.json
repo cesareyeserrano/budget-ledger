@@ -247,8 +247,9 @@
       "title": "La suite unitaria lanza subprocesos pesados y se vuelve no determinista bajo carga",
       "priority": "P2",
       "problem": "tests/unit/backend-gates.test.ts ejecuta procesos pesados DENTRO de la suite unitaria: TC-BE-072e lanza 'npm run typecheck' y 'npm run lint' como subprocesos, y TC-BE-071h arranca una instancia completa de vitest en un directorio temporal. Aislado no molesta —coverage pasa en 53s— pero cuando el gate coverage corre junto al e2e de backend (Docker + testcontainers + dos servidores Next), esos subprocesos se ahogan: el 2026-08-13 el gate coverage del feature backend salio en fail con 'vitest-worker: Timeout calling onTaskUpdate', un fallo de RPC del worker que NO es un fallo de codigo. Es el mismo patron que BL-024, que ya se cerro quitando la llamada de red de TC-BE-084h: aquel arreglo trato un ofensor, quedan estos dos. Consecuencia: un gate required puede salir rojo por contencion de recursos y no por el codigo, que es exactamente el tipo de senal que ensena a la gente a re-ejecutar en vez de investigar. Arreglo propuesto: que TC-BE-072e y TC-BE-071h verifiquen el CONTRATO (que los scripts existan y esten declarados) en vez de EJECUTARLO, delegando la ejecucion real a los quality_gates, que ya corren typecheck y lint por separado — mismo razonamiento y misma solucion que se aplico en BL-024.",
-      "status": "open",
-      "createdAt": "2026-08-13T03:20:01.080Z"
+      "status": "closed",
+      "createdAt": "2026-08-13T03:20:01.080Z",
+      "closedAt": "2026-08-13T16:30:56.561Z"
     }
   ]
 }
