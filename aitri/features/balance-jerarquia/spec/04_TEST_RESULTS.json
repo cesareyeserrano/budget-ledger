@@ -1,0 +1,365 @@
+{
+  "executed_at": "2026-08-25T22:47:54.313Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-BJE-001h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001h: ROWS declara la cascada y ningún resultado precede a sus sumandos 3ms"
+    },
+    {
+      "tc_id": "TC-BJE-001e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001e: cada resultado va precedido por el conjunto COMPLETO de sus sumandos 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-001f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001f: el invariante RECHAZA el orden anterior — sin esto, 001h estaría vacío 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-002h",
+      "status": "pass",
+      "notes": "✓   12 [chromium] › tests/e2e/balance-jerarquia.spec.ts:374:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002h: ocho filas, las mismas ocho etiquetas, en el orden de la cascada (387ms)"
+    },
+    {
+      "tc_id": "TC-BJE-002f",
+      "status": "pass",
+      "notes": "✓   13 [chromium] › tests/e2e/balance-jerarquia.spec.ts:383:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002f: un mes sin datos conserva el orden y no colapsa ninguna fila (457ms)"
+    },
+    {
+      "tc_id": "TC-BJE-003h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1402 — la sangría transporta la jerarquía > TC-BJE-003h: todo sumando está estrictamente más adentro que su resultado 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-003f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1402 — la sangría transporta la jerarquía > TC-BJE-003f: el invariante RECHAZA los ocho márgenes iguales del estado anterior 0ms"
+    },
+    {
+      "tc_id": "TC-BJE-004h",
+      "status": "pass",
+      "notes": "✓   15 [chromium] › tests/e2e/balance-jerarquia.spec.ts:412:7 › FR-1402 — la sangría renderizada › TC-BJE-004h: a 1440 px el paddingLeft es 14 + nivel*16, con cuatro valores distintos (407ms)"
+    },
+    {
+      "tc_id": "TC-BJE-004e",
+      "status": "pass",
+      "notes": "✓   16 [chromium] › tests/e2e/balance-jerarquia.spec.ts:422:7 › FR-1402 — la sangría renderizada › TC-BJE-004e: a 1024 px el paso baja a 12 px y ninguna etiqueta se trunca (501ms)"
+    },
+    {
+      "tc_id": "TC-BJE-005h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005h: un resultado sano devuelve neutro, nunca --favorable 2ms"
+    },
+    {
+      "tc_id": "TC-BJE-005e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005e: un resultado de EXACTAMENTE cero se pinta neutro, ni favorable ni alerta 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-005f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005f: un negativo con alarmas SÍ devuelve alerta — la excepción sigue viva 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-006h",
+      "status": "pass",
+      "notes": "✓    2 [chromium] › tests/e2e/balance-jerarquia.spec.ts:117:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006h: con balance sano, CERO celdas usan --favorable en los doce meses (778ms)"
+    },
+    {
+      "tc_id": "TC-BJE-006e",
+      "status": "pass",
+      "notes": "✓    1 [chromium] › tests/e2e/balance-jerarquia.spec.ts:132:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006e: con el módulo PLEGADO, el encabezado del Saldo total también es neutro (719ms)"
+    },
+    {
+      "tc_id": "TC-BJE-006f",
+      "status": "pass",
+      "notes": "✓    3 [chromium] › tests/e2e/balance-jerarquia.spec.ts:148:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006f: plegado y con el total NEGATIVO, el encabezado conserva alerta y sus tres canales (489ms)"
+    },
+    {
+      "tc_id": "TC-BJE-007h",
+      "status": "pass",
+      "notes": "✓    4 [chromium] › tests/e2e/balance-jerarquia.spec.ts:172:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007h: las celdas sin dato se pintan en --fg-muted, no en el color de su fila (645ms)"
+    },
+    {
+      "tc_id": "TC-BJE-007e",
+      "status": "pass",
+      "notes": "✓    5 [chromium] › tests/e2e/balance-jerarquia.spec.ts:200:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007e: un mes sin movimientos propios no introduce ninguna marca de color (387ms)"
+    },
+    {
+      "tc_id": "TC-BJE-007f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1404 — una celda sin dato nunca lleva el color de su fila > TC-BJE-007f: una celda con valor CERO y una sin dato se tratan igual, y ninguna toma color de fila 1ms"
+    },
+    {
+      "tc_id": "TC-BJE-008h",
+      "status": "pass",
+      "notes": "✓    6 [chromium] › tests/e2e/balance-jerarquia.spec.ts:249:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008h: con restante positivo, los tres chips comparten color (353ms)"
+    },
+    {
+      "tc_id": "TC-BJE-008e",
+      "status": "pass",
+      "notes": "✓    7 [chromium] › tests/e2e/balance-jerarquia.spec.ts:261:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008e: un restante de EXACTAMENTE cero se pinta neutro, no verde (395ms)"
+    },
+    {
+      "tc_id": "TC-BJE-008f",
+      "status": "pass",
+      "notes": "✓    8 [chromium] › tests/e2e/balance-jerarquia.spec.ts:274:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008f: con restante negativo, el chip es el ÚNICO elemento coloreado de la franja (454ms)"
+    },
+    {
+      "tc_id": "TC-BJE-009h",
+      "status": "pass",
+      "notes": "✓   17 [chromium] › tests/e2e/balance-jerarquia.spec.ts:458:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009h: las cifras son las mismas que antes del reordenamiento, comparadas por CLAVE (515ms)"
+    },
+    {
+      "tc_id": "TC-BJE-009f",
+      "status": "pass",
+      "notes": "✓   19 [chromium] › tests/e2e/balance-jerarquia.spec.ts:492:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009f: la suite de dominio del balance sigue verde sin tocar un test de cálculo (376ms)"
+    },
+    {
+      "tc_id": "TC-BJE-010h",
+      "status": "pass",
+      "notes": "✓    9 [chromium] › tests/e2e/balance-jerarquia.spec.ts:294:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010h: un valor negativo conserva color, signo y glifo a la vez (467ms)"
+    },
+    {
+      "tc_id": "TC-BJE-010f",
+      "status": "pass",
+      "notes": "✓   11 [chromium] › tests/e2e/balance-jerarquia.spec.ts:333:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010f: ningún texto del módulo baja de 4,5:1, en ambos temas (527ms)"
+    },
+    {
+      "tc_id": "TC-BJE-011h",
+      "status": "pass",
+      "notes": "✓   20 [chromium] › tests/e2e/balance-jerarquia.spec.ts:512:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011h: plegar por el chevron sigue ocultando exactamente Saldo reservado y Saldo total (436ms)"
+    },
+    {
+      "tc_id": "TC-BJE-011f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > NFR-1403 — el plegado sobrevive al reordenamiento > TC-BJE-011f: TAIL_FROM se deriva por búsqueda y sigue a 'available' en cualquier orden 0ms"
+    },
+    {
+      "tc_id": "TC-BJE-012h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012h: el gate pasa limpio sobre el árbol tras la feature 239ms"
+    },
+    {
+      "tc_id": "TC-BJE-012f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012f: FALLA si se reintroduce --favorable en BalanceModule o en DesktopShell 513ms"
+    },
+    {
+      "tc_id": "TC-BJE-013h",
+      "status": "pass",
+      "notes": "✓   14 [chromium] › tests/e2e/balance-jerarquia.spec.ts:392:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-013h: el orden de lectura accesible coincide con el declarado (451ms)"
+    },
+    {
+      "tc_id": "TC-BJE-009e",
+      "status": "pass",
+      "notes": "✓   18 [chromium] › tests/e2e/balance-jerarquia.spec.ts:475:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009e: el ARRASTRE entre meses sobrevive al reordenamiento (343ms)"
+    },
+    {
+      "tc_id": "TC-BJE-010e",
+      "status": "pass",
+      "notes": "✓   10 [chromium] › tests/e2e/balance-jerarquia.spec.ts:311:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010e: con un mes FILTRADO, el módulo conserva su superficie y su contraste (627ms)"
+    },
+    {
+      "tc_id": "TC-BJE-011e",
+      "status": "pass",
+      "notes": "✓   21 [chromium] › tests/e2e/balance-jerarquia.spec.ts:527:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011e: el SEGUNDO nivel de plegado resume en el encabezado, y en neutro (408ms)"
+    },
+    {
+      "tc_id": "TC-BJE-012e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012e: NO se dispara por los usos legítimos de Dashboard ni de la grilla 171ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-1401",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-1402",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-1403",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-1404",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-1405",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-1401a",
+      "fr_id": "FR-1401",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1401b",
+      "fr_id": "FR-1401",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1402a",
+      "fr_id": "FR-1402",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1402b",
+      "fr_id": "FR-1402",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1403a",
+      "fr_id": "FR-1403",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1403b",
+      "fr_id": "FR-1403",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1404a",
+      "fr_id": "FR-1404",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1405a",
+      "fr_id": "FR-1405",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-1405b",
+      "fr_id": "FR-1405",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 34,
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    }
+  ]
+}
