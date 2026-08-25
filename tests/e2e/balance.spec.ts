@@ -18,7 +18,11 @@ const PLAIN = { key: "feb", index: MONTH_KEYS.indexOf("feb") };
 const BG_SUNKEN = "rgb(241, 241, 243)"; // --bg-sunken claro
 // El módulo usa las variantes AA-seguras, no --success/--error: medidos sobre la superficie
 // HUNDIDA, los tonos base se quedan en 4.45:1 y 4.36:1, bajo el mínimo AA de 4.5.
+// balance-jerarquia ADR-02: `--success-strong` DEJÓ DE USARSE en el módulo. Se conserva la
+// constante porque los TCs de esta suite ahora afirman su AUSENCIA — que es justo lo que hay que
+// vigilar. Ver la revocación declarada en aitri/features/balance-jerarquia/spec/02_SYSTEM_DESIGN.md
 const SUCCESS_STRONG = "rgb(45, 118, 80)"; // --success-strong claro (#2d7650) — 4.87:1
+const FG = "rgb(28, 28, 31)"; // --fg claro — el neutro de un RESULTADO tras balance-jerarquia FR-1403
 const ERROR_STRONG = "rgb(173, 57, 50)"; //   --error-strong claro   (#ad3932) — 5.46:1
 const TRANSFER = "rgb(85, 85, 93)"; // --fg-secondary claro (#55555d). refinamiento-ui FR-1201: las filas de
                    // reserva del Balance dejaron de teñirse con el color de su TIPO — eso era
@@ -165,19 +169,36 @@ const typeLabel = (page: Page, name: RegExp) =>
 
 // ══ FR-905 · el código de color de los resultados ══════════════════════════════════════════════
 
-test("TC-BAL-935h: un resultado sano (≥0) se pinta en verde (--success-strong)", async ({ page }) => {
+/**
+ * CRITERIO REVOCADO Y SUSTITUIDO — balance-jerarquia ADR-02 (2026-08-25).
+ *
+ * Este TC afirmaba «un resultado sano (≥0) se pinta en verde (--success-strong)», criterio de
+ * FR-905/AC-905 aprobado y verde desde la feature `balance`. El usuario lo revocó el 2026-08-25 con
+ * evidencia medida: tres filas de resultado en verde a lo ancho de doce meses (72 celdas con un
+ * balance sano, captura del 2026-08-24). El verde había dejado de ser señal para ser el fondo del
+ * módulo, y el rojo que sí exigía atención competía contra él y perdía.
+ *
+ * Lo sustituye FR-1403: neutro por defecto, color sólo en la excepción. El TC CONSERVA SU ID para
+ * no perder la traza histórica, e invierte su aserción: ahora vigila que el verde NO vuelva.
+ * El resto de FR-905 —qué cifras muestra el módulo y su aritmética— sigue íntegramente vigente, y
+ * este mismo test lo sigue comprobando (los dos `readBal` de abajo no han cambiado).
+ */
+test("TC-BAL-935h: un resultado sano (≥0) se pinta NEUTRO — el verde quedó revocado (ADR-02)", async ({ page }) => {
   // @aitri-tc TC-BAL-935h
   await gotoGrid(page, POSITIVE);
 
   const disponible = balCell(balRow(page, "available"), PICKED.index, "actual");
   const total = balCell(balRow(page, "total"), PICKED.index, "actual");
 
+  // La aritmética NO cambia: es el guardrail de balance-jerarquia (NFR-1401).
   expect(await readBal(page, "available", PICKED.index, "actual")).toBe(600_000);
   expect(await readBal(page, "total", PICKED.index, "actual")).toBe(700_000);
 
-  // ambos en el verde de "saldo sano" — la variante AA-segura del verde del producto
-  expect(await colorOf(disponible)).toBe(SUCCESS_STRONG);
-  expect(await colorOf(total)).toBe(SUCCESS_STRONG);
+  // Lo que cambia es el color: neutro pleno, y el verde retirado del módulo.
+  expect(await colorOf(disponible)).toBe(FG);
+  expect(await colorOf(total)).toBe(FG);
+  expect(await colorOf(disponible)).not.toBe(SUCCESS_STRONG);
+  expect(await colorOf(total)).not.toBe(SUCCESS_STRONG);
 
   // un positivo no lleva signo ni marca: un número sin signo ya es positivo
   for (const c of [disponible, total]) {
@@ -388,7 +409,9 @@ test("TC-BAL-956h: el módulo usa la superficie y tipografía existentes (sin to
   // los colores usados son los tokens existentes, ninguno inventado
   expect(await colorOf(balCell(balRow(page, "flow"), PLAIN.index, "actual"))).toBe(FG_SECONDARY);
   expect(await colorOf(balCell(balRow(page, "reservedBalance"), PLAIN.index, "actual"))).toBe(TRANSFER);
-  expect(await colorOf(balCell(balRow(page, "total"), PLAIN.index, "actual"))).toBe(SUCCESS_STRONG);
+  // balance-jerarquia FR-1403 (ADR-02): el bottom-line era --success-strong y pasa a neutro pleno.
+  // Sigue siendo un token EXISTENTE del producto, que es lo que este TC vigila: cero inventados.
+  expect(await colorOf(balCell(balRow(page, "total"), PLAIN.index, "actual"))).toBe(FG);
 });
 
 test("TC-BAL-956e: las cifras del balance cumplen contraste AA sobre --bg-sunken", async ({ browser }) => {
@@ -599,7 +622,11 @@ test("TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo"
 
   await page.getByLabel("Colapsar saldos").click();
 
-  expect(await filasVisibles(page)).toEqual(["prevAvailable", "flow", "reserved", "retiros", "monthAvailable", "available"]);
+  // balance-jerarquia FR-1401: la CONDUCTA de este TC no cambia —el chevron sigue ocultando las dos
+  // filas de abajo, ni una más ni una menos— pero enumeraba el orden en línea, y el orden ahora
+  // sigue la cascada: `prevAvailable` pasó del primer puesto al quinto, junto a `monthAvailable`,
+  // porque los dos son sumandos de `Saldo disponible`.
+  expect(await filasVisibles(page)).toEqual(["flow", "reserved", "retiros", "monthAvailable", "prevAvailable", "available"]);
   await expect(balRow(page, "reservedBalance")).toHaveCount(0);
   await expect(balRow(page, "total")).toHaveCount(0);
 });

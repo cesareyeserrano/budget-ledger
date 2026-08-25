@@ -9,9 +9,11 @@
 // Dependencias: lucide-react (el ícono del encabezado), @/state/store (el estado del ledger),
 //               @/domain/balance (el cálculo puro),
 //               @/domain/months (el orden de las columnas), ./format (cellNum),
-//               ./gridLayout (la geometría compartida con BudgetGrid), @/lib/utils (cn).
+//               ./gridLayout (la geometría compartida con BudgetGrid), @/lib/utils (cn),
+//               ./exceptionColor (la regla de color, ADR-01), ./balanceRows (la tabla de
+//               filas y sus invariantes de cascada, ADR-04).
 
-import { Component, useMemo, useState, type ReactNode } from "react";
+import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS } from "@/domain/months";
@@ -19,6 +21,8 @@ import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/ba
 import { reserveAportes, reserveRetiros } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum } from "./format";
+import { exceptionColor } from "./exceptionColor";
+import { ROWS, indentFor, type RowSpec } from "./balanceRows";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import type { LedgerState, MonthKey } from "@/domain/types";
@@ -34,50 +38,38 @@ const NEGATIVE_MARK = "‹‹";
 /** El signo menos tipográfico (U+2212), no el guion del teclado: alinea con las cifras tabulares. */
 const MINUS = "−";
 
-/** Cómo se comporta cada una de las siete filas: es la tabla que gobierna color, peso y alarma. */
-interface RowSpec {
-  /** Clave estable para los tests y para `data-row`. `reserved` pinta SOLO los aportes del mes y
-   *  `retiros` las bajadas — dos filas de un solo signo (FR-1009). `monthAvailable` es lo que el
-   *  MES dejó disponible (flujo − aportes + retiros), sin el arrastre — la cuenta que el usuario
-   *  hacía mentalmente (observación 2026-07-29). */
-  key: keyof Pick<MonthBalance, "prevAvailable" | "flow" | "reserved" | "available" | "reservedBalance" | "total"> | "retiros" | "monthAvailable";
-  label: string;
-  /**
-   * Signo que encabeza la fila. Es lo que convierte la columna en una CUENTA CORRIDA legible de
-   * arriba abajo, en vez de seis cifras sueltas cuyo encadenamiento hay que adivinar. En particular
-   * hace VISIBLE que las reservas se restan de lo disponible: la plata que va a la alcancía se ve
-   * salir, con su signo, en vez de quedar escondida dentro de otra cifra.
-   */
-  op: "" | "+" | "−" | "=";
-  /** `result` se colorea por signo (verde/rojo); `reserve` va en azul; `input` queda neutro. */
-  tone: "input" | "result" | "reserve";
-  /** La fila puede levantar la alarma de negativo (color de error + signo + marca). */
-  alarms: boolean;
-  weight: number;
-  /** Regla horizontal ANTES de la fila: cierra el bloque de insumos y anuncia el resultado. */
-  rule?: "soft" | "strong";
-  /** Fila del bottom-line: cuerpo mayor, además de su regla fuerte. */
-  bottomLine?: boolean;
-}
+/**
+ * Ancho a partir del cual el paso de sangría se reduce (FR-1402).
+ *
+ * INCLUSIVO en 1024: el spec fija «a 1024 px el paso baja a 12», así que la consulta es
+ * `max-width: 1024px` y no `1023.98px`. Arrancó exclusiva y el TC-BJE-004e lo cazó midiendo 62 px
+ * donde el spec pedía 50. Es la misma trampa que registró TC-REC-055e con `max-[760px]` de Tailwind
+ * v4, que compila a `width < 760px`: el límite se lee como inclusivo y se implementa como exclusivo.
+ */
+const NARROW_QUERY = "(max-width: 1024px)";
 
 /**
- * Las seis filas, en el orden del spec. Las tres primeras son insumos/contexto (atenuados) y las
- * tres últimas son los resultados (destacados) — la jerarquía visual es lo que hace legible el
- * módulo de un vistazo.
+ * ¿Estamos por debajo de 1024 px? Decide el paso de sangría de la columna de etiquetas.
+ *
+ * Arranca en `false` porque en el servidor no hay `matchMedia`: el primer render usa el paso de
+ * escritorio y el efecto lo corrige de inmediato. Es seguro — la sangría es presentación pura, así
+ * que un frame con el paso ancho no cambia ninguna cifra ni ningún estado.
+ *
+ * @returns `true` si el viewport está por debajo del punto de ruptura.
+ *
+ * @aitri-trace FR-ID: FR-1402, US-ID: US-1402, AC-ID: AC-1402b, TC-ID: TC-BJE-004e
  */
-const ROWS: RowSpec[] = [
-  { key: "prevAvailable", label: "Saldo mes anterior", op: "", tone: "input", alarms: true, weight: 400 },
-  { key: "flow", label: "Flujo del mes", op: "+", tone: "input", alarms: false, weight: 400 },
-  { key: "reserved", label: "Reservas del mes", op: "−", tone: "input", alarms: false, weight: 400 },
-  // FR-1009 · la idea original del usuario: los retiros como fila propia (operados; en Pres., el
-  // retiro planeado). Siempre presente (0 en meses sin retiros) para no mover el layout.
-  { key: "retiros", label: "Retiros del mes", op: "+", tone: "reserve", alarms: false, weight: 400 },
-  // Lo que el MES dejó disponible (sin arrastre): flujo − aportes + retiros. Evita la cuenta mental.
-  { key: "monthAvailable", label: "Disponible del mes", op: "=", tone: "result", alarms: true, weight: 600, rule: "soft" },
-  { key: "available", label: "Saldo disponible", op: "=", tone: "result", alarms: true, weight: 600, rule: "soft" },
-  { key: "reservedBalance", label: "Saldo reservado", op: "+", tone: "reserve", alarms: false, weight: 600 },
-  { key: "total", label: "Saldo total", op: "=", tone: "result", alarms: true, weight: 600, rule: "strong", bottomLine: true },
-];
+function useNarrowIndent(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return narrow;
+}
 
 /** Clases del borde superior que separa cada resultado de sus insumos. */
 const RULE: Record<NonNullable<RowSpec["rule"]>, string> = {
@@ -88,24 +80,32 @@ const RULE: Record<NonNullable<RowSpec["rule"]>, string> = {
 /**
  * Color de una cifra del balance según su fila y su signo.
  *
- * El color es ESCASO a propósito (principio heredado de budget-state-color): el verde se reserva a
- * los dos resultados sanos, el rojo a lo que puede quedar negativo, el azul liga el reservado al
- * tipo Transferencia, y todo lo demás queda neutro. Un verde en cada insumo positivo sería ruido
- * permanente y dejaría de significar algo.
+ * El color es ESCASO a propósito (principio heredado de budget-state-color): el rojo señala lo que
+ * quedó negativo y TODO LO DEMÁS es neutro. Un color en cada cifra positiva sería ruido permanente
+ * y dejaría de significar algo.
+ *
+ * balance-jerarquia FR-1403: esa frase estaba escrita aquí desde el principio, y la línea siguiente
+ * la incumplía —`if (spec.tone === "result") return "var(--favorable)"`— pintando de verde las tres
+ * filas de resultado en las doce columnas: 72 celdas verdes con un balance sano, medido a 1920px el
+ * 2026-08-24. El verde había dejado de ser señal para ser el fondo del módulo, y el único dato que
+ * sí exigía atención competía contra él. Ahora la regla vive en `exceptionColor` y se aplica de
+ * verdad; los resultados se distinguen por PESO y SANGRÍA, no por color.
  *
  * @param spec Fila a la que pertenece la celda.
  * @param value Valor de la celda.
  * @returns La variable CSS del color, lista para `style`.
  *
- * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-935h, TC-BAL-935f, TC-BAL-956e
+ * @aitri-trace FR-ID: FR-1403, US-ID: US-1403, AC-ID: AC-1403a, TC-ID: TC-BJE-005h, TC-BJE-006h, TC-BJE-005f
  */
 function balanceColor(spec: RowSpec, value: number): string {
-  if (spec.alarms && value < 0) return "var(--alert-strong)";
+  // La excepción manda: si está en rojo, se ve, sea cual sea la fila.
+  if (spec.alarms && value < 0) return exceptionColor(value, { alarms: true });
+  // Un SUMANDO es contexto: atenuado, para que los resultados destaquen sin gastar color.
   // refinamiento-ui FR-1201: el reservado dejaba de ser azul por ser del tipo `transfer` — eso era
   // identidad, no estado. Ahora se distingue por su fila, su rótulo y su signo, como el resto.
-  if (spec.tone === "reserve") return "var(--fg-secondary)";
-  if (spec.tone === "result") return "var(--favorable)";
-  return "var(--fg-secondary)";
+  if (spec.tone !== "result") return "var(--fg-secondary)";
+  // Un RESULTADO sano: neutro pleno. Destaca sobre el sumando por contraste y peso, no por hue.
+  return exceptionColor(value, { alarms: spec.alarms });
 }
 
 /** Aportes y retiros del mes por plano — el desdoble de `reserved` en dos filas de un solo signo. */
@@ -174,7 +174,15 @@ function BalanceCell({ spec, value, sep, rule }: { spec: RowSpec; value: number;
         rule && RULE[rule],
         spec.bottomLine && "label"
       )}
-      style={{ color: balanceColor(spec, value), fontWeight: spec.weight }}
+      style={{
+        // FR-1404: una celda SIN DATO se pinta neutra, nunca con el color de su fila. `cellNum`
+        // resuelve `!n → "—"`, así que la comprobación de contenido va ANTES que la de color: de
+        // otro modo el guion hereda el tono de la fila y la pantalla acaba gastando su canal más
+        // fuerte en la AUSENCIA de información. Es el mismo patrón que la grilla ya aplica
+        // (BudgetGrid.tsx, refinamiento-ui FR-1202); aquí se replica, no se redefine.
+        color: !value ? "var(--fg-muted)" : balanceColor(spec, value),
+        fontWeight: spec.weight,
+      }}
     >
       {negative ? MINUS : ""}
       {cellNum(Math.abs(value))}
@@ -193,7 +201,13 @@ function BalanceCell({ spec, value, sep, rule }: { spec: RowSpec; value: number;
  * @param sep La celda abre un mes (lleva el filete divisor de columna).
  * @returns La celda del encabezado.
  *
- * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-935h
+ * balance-jerarquia FR-1403: esta celda usaba `var(--success-strong)` —alias de `--favorable`—, así
+ * que PLEGAR el módulo hacía REAPARECER el verde que la fila acababa de perder. Era la misma cifra
+ * pintada de verde por una segunda puerta, y es la superficie que la primera redacción de los FR
+ * pasó por alto: sólo existe estando plegado, así que no salía en ninguna captura del módulo. La
+ * encontró la auditoría de uniformidad del 2026-08-25.
+ *
+ * @aitri-trace FR-ID: FR-1403, US-ID: US-1403, AC-ID: AC-1403a, TC-ID: TC-BJE-006e, TC-BJE-006f, TC-BJE-011e
  */
 function HeaderTotalCell({ value, sep }: { value: number; sep?: boolean }) {
   const negative = value < 0;
@@ -205,7 +219,13 @@ function HeaderTotalCell({ value, sep }: { value: number; sep?: boolean }) {
         "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border border-t border-t-border-strong whitespace-nowrap bg-sunken cursor-default",
         sep && "border-l-2 border-l-border-strong"
       )}
-      style={{ color: negative ? "var(--error-strong)" : "var(--success-strong)", fontWeight: 600 }}
+      style={{
+        // Mismo trato que `BalanceCell`: sin dato → neutro atenuado; con dato → la regla única.
+        // Plegar debe RESUMIR, no perder la señal: un total negativo conserva aquí sus tres
+        // canales (color, signo y glifo), igual que desplegado.
+        color: !value ? "var(--fg-muted)" : exceptionColor(value, { alarms: true }),
+        fontWeight: 600,
+      }}
     >
       {negative ? MINUS : ""}
       {cellNum(Math.abs(value))}
@@ -239,6 +259,11 @@ function BalanceRows() {
   // "cuánto puedo gastar", que es la lectura compacta útil.
   const TAIL_FROM = ROWS.findIndex((r) => r.key === "available") + 1;
   const visible = open ? (tailOpen ? ROWS : ROWS.slice(0, TAIL_FROM)) : [];
+  // FR-1402: por debajo de 1024 px el paso de sangría baja a 12 px — con 16 la etiqueta más larga
+  // del nivel más profundo se trunca. Se resuelve en JS y no con una media query en CSS para que la
+  // fórmula tenga UN SOLO domicilio (`indentFor`); duplicarla en la hoja de estilos es exactamente
+  // el patrón de tres copias divergentes que esta feature vino a eliminar.
+  const narrow = useNarrowIndent();
 
   // El módulo NO sigue el resaltado del mes filtrado: su superficie es uniformemente la hundida.
   // Es deliberado — el tinte del filtro oscurece la celda hasta #e4e4e6 en tema claro, donde los
@@ -305,12 +330,18 @@ function BalanceRows() {
             className={cn(
               STICKY_BASE,
               LABEL_W,
-              "bg-sunken border-b border-border pl-3.5 pr-2.5",
+              "bg-sunken border-b border-border pr-2.5",
               rule && RULE[rule],
               spec.bottomLine && "label"
             )}
             style={{
-              color: spec.tone === "reserve" ? "var(--fg-secondary)" : spec.tone === "result" ? "var(--fg)" : "var(--fg-secondary)",
+              // FR-1402: la SANGRÍA es el canal que transporta la jerarquía. El `pl-3.5` fijo que
+              // había aquí dejaba las ocho etiquetas en el mismo margen, así que nada anidaba nada
+              // —y por eso subir pesos o engrosar reglas (que ya existían desde 5a05a17) no
+              // resolvió BL-025. El valor sale de `indentFor`, único domicilio de la fórmula, que
+              // es la MISMA del árbol de la grilla: `14 + nivel * 16` (BudgetGrid.tsx).
+              paddingLeft: indentFor(spec.level, narrow),
+              color: spec.tone === "result" ? "var(--fg)" : "var(--fg-secondary)",
               fontWeight: spec.weight,
             }}
           >

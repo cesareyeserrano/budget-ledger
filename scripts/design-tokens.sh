@@ -61,6 +61,29 @@ PY
 # como muertos y retirarlos rompería el tema entero. El gate comprueba que siguen declarados.
 grep -q -- "--color-card:" src/app/globals.css; check "FR-1207: faltan los mapeos @theme de Tailwind — no son huérfanos, se usan por clase" $?
 
+# ── 7. El verde señala EXCEPCIÓN, no normalidad (balance-jerarquia FR-1403/FR-1405, ADR-03) ──
+# POR QUÉ: `--favorable` sobrevivió a refinamiento-ui pintando tres filas enteras del Balance y el
+# chip RESTANTE de la franja superior — verde permanente que ya no señalaba nada. Ningún test lo
+# cazaba: TC-RUI-002f comprueba colores de TIPO, y --favorable no lo es.
+#
+# Es una LISTA NEGRA con excepciones declaradas, no una lista blanca de ficheros vigilados. Un
+# componente NUEVO queda cubierto por defecto en vez de excluido por defecto — que es exactamente
+# cómo se escapó el chip RESTANTE, que nadie estaba mirando.
+#
+# Excepciones legítimas, las dos en el no_go_zone de la feature:
+#   · Dashboard.tsx  — el usuario lo excluyó en refinamiento-ui; sus gráficas usan el verde con otra
+#                      función (series de datos, no estado).
+#   · BudgetGrid.tsx — su `favorable` sale de `cellTone` y es CONDICIONAL al cumplimiento del plan
+#                      del ingreso: cambia de estado, luego sí señala algo. Territorio de
+#                      budget-state-color FR-401.
+# Se ignoran las líneas de COMENTARIO: los dos ficheros corregidos documentan por escrito el token
+# que retiraron, y un barrido ingenuo leería esa documentación como una infracción.
+verde=$(grep -rn 'var(--favorable)\|var(--success)\|var(--success-strong)' src/components/ 2>/dev/null \
+        | grep -v '^src/components/Dashboard\.tsx:' \
+        | grep -v '^src/components/BudgetGrid\.tsx:' \
+        | grep -vE ':[0-9]+: *(\*|//|\{/\*)' || true)
+[ -z "$verde" ]; check "FR-1403/FR-1405: verde de normalidad fuera de sus dos excepciones: ${verde//$'\n'/ | }" $?
+
 if [ ${#FALLOS[@]} -gt 0 ]; then
   echo "❌ design-tokens: el sistema visual retrocedió (${#FALLOS[@]} comprobación(es))"
   for f in "${FALLOS[@]}"; do echo "   · $f"; done

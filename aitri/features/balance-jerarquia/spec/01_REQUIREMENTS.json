@@ -1,0 +1,330 @@
+{
+  "project_name": "balance-jerarquia",
+  "project_summary": "El modulo de Balance no deja leer su propia aritmetica. Presenta OCHO filas planas al mismo nivel, pero esas ocho filas son dos niveles de aritmetica encadenada (Disponible del mes = Flujo − Reservas + Retiros; Saldo disponible = Saldo mes anterior + Disponible del mes; Saldo total = Saldo disponible + Saldo reservado). El orden actual CONTRADICE esa aritmetica: 'Saldo reservado' es sumando de 'Saldo total' pero esta colocado DESPUES de un resultado, asi que cualquier agrupacion visual se rompe ahi; y todas las etiquetas comparten margen izquierdo, asi que nada anida nada. DATO QUE DEFINE EL ALCANCE: los operadores + − =, las reglas horizontales y los pesos 400/600 YA EXISTEN desde el commit 5a05a17 (2026-07-28), y el usuario escribio la queja el 2026-08-12 MIRANDO esa version — un intento que solo suba enfasis tipografico ya fracaso. El defecto es de ORDEN y ANIDAMIENTO, no de enfasis. En paralelo, las tres filas de resultado se pintan --favorable de forma incondicional en las doce columnas (BalanceModule.tsx:107): medido a 1920px, tres filas enteras verdes a lo ancho del modulo, con el efecto de que el unico dato que grita algo —un retiro excedido en rojo— compite contra ellas y pierde. El propio codigo declara en las lineas 91-94 que 'un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo' y trece lineas mas abajo lo incumple. NORTH STAR KPI: el usuario identifica, sin ayuda y sin reconstruir la cuenta mentalmente, de que cifras sale cada resultado. JTBD: 'cuando me siento a mirar mi balance del mes, quiero ver de un vistazo cuanto tengo y de donde sale, para decidir sin hacer cuentas de cabeza'. GUARDRAIL: las cifras no cambian ni una unidad — esta feature cambia como se PRESENTA el calculo, jamas el calculo. ALCANCE (decision del usuario, 2026-08-24): se conservan las ocho filas; cambian su orden, su anidamiento y su color. Fuera: BL-019, tocar la aritmetica, anadir o quitar filas. AMPLIACION DE ALCANCE (decision del usuario, 2026-08-25, tras auditar la uniformidad de la pantalla completa): la regla 'color solo en excepcion' se aplica tambien a las DOS superficies que la primera version dejaba fuera y que la dejaban aplicada a medias — el encabezado del modulo plegado (HeaderTotalCell, BalanceModule.tsx:208, que pinta el MISMO Saldo total de verde por otra puerta) y el chip RESTANTE de la franja superior (DesktopShell.tsx:109, verde permanente siempre que el restante no sea negativo). Sin las dos, la pantalla quedaria con dos criterios de color simultaneos, que es exactamente la incoherencia que la feature existe para eliminar. En el mismo movimiento se corrige una inconsistencia de ritmo que el propio diseno habia introducido: el paso de sangria baja de 20 px a 16 px para igualar el del arbol de la grilla (BudgetGrid.tsx:427), que vive en la MISMA columna sticky justo encima del modulo.",
+  "technology_preferences": [
+    "Sin dependencias nuevas: Tailwind v4, los tokens CSS custom properties existentes y los componentes de ui/ que ya estan en el proyecto",
+    "Cambio acotado a src/components/BalanceModule.tsx (ROWS, balanceColor, BalanceCell, RULE). src/domain/balance.ts es de solo LECTURA en esta feature"
+  ],
+  "constraints": [
+    "Decision de color del usuario (2026-08-24), tomada sobre la captura del modulo real a 1920px: NEUTRO POR DEFECTO. Ninguna fila de resultado lleva verde; los resultados se distinguen por PESO y SANGRIA, nunca por color. El unico color que sobrevive en el modulo es el rojo de la excepcion",
+    "Decision de alcance del usuario (2026-08-24): el conjunto de ocho filas se conserva intacto — no se anaden ni se quitan filas. Solo cambian orden, anidamiento y color",
+    "La solucion NO puede consistir en subir pesos o engrosar reglas: eso ya existe desde 5a05a17 y el usuario lo evaluo insuficiente el 2026-08-12",
+    "Paso de sangria de 16 px por nivel (0/16/32/48), decision del usuario del 2026-08-25: IGUALA el del arbol de la grilla (BudgetGrid.tsx:427, `paddingLeft: 14 + row.depth * 16`), que ocupa la misma columna sticky justo encima del modulo. Dos ritmos de sangria distintos en una misma columna son perceptibles y serian una divergencia frente al estandar del producto"
+  ],
+  "no_go_zone": [
+    "BL-019 — el rediseno de COMO SE OPERA un retiro. Toca el mismo modulo pero es diseno de interaccion, no presentacion. Fuera por decision del usuario (2026-08-24)",
+    "Cambiar la aritmetica o el significado de cualquier fila. Cada celda debe seguir mostrando exactamente el mismo numero que hoy",
+    "Anadir filas nuevas o quitar filas existentes del modulo de Balance",
+    "BL-009 (memoizar los roll-ups de la grilla) y BL-017 (escritura incremental del ledger) — los dos items de rendimiento del backlog",
+    "Todo lo de login y registro, incluido BL-028 (verificacion de email), despriorizado por el usuario el 2026-08-24",
+    "Elegir proveedor SMTP de produccion",
+    "El DASHBOARD y sus cinco usos de `--success` — fuera por decision previa del propio usuario en la feature refinamiento-ui ('no tengamos en cuenta el dashboard aca'), reafirmada el 2026-08-25. Sus graficas usan el verde con otra funcion",
+    "El `favorable` de la grilla (BudgetGrid.tsx:90, via `cellTone`) — queda fuera porque NO es verde permanente: es CONDICIONAL al cumplimiento del plan del ingreso, luego cambia de estado y si senala algo. Ademas es territorio de budget-state-color FR-401 y tocarlo reabriria una feature aprobada",
+    "El resto de BudgetGrid: su arbol, sus celdas y su em-dash. El em-dash de la grilla YA esta resuelto (BudgetGrid.tsx:546, refinamiento-ui FR-1202) y no necesita cambio"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueno de sus finanzas personales (el mismo y unico usuario del producto)",
+      "tech_level": "mid",
+      "goal": "Sentarse a mirar el balance del mes y responder 'cuanto tengo y de donde sale' de un vistazo, sin reconstruir la cuenta de cabeza",
+      "pain_point": "Ve ocho cifras al mismo nivel y tiene que deducir cual sale de cuales; un sumando esta colocado entre dos resultados, asi que ni siquiera el orden le ayuda. Encima tres filas enteras estan pintadas de verde permanente, de modo que el color ya no le senala nada y el unico dato que si exige atencion se pierde entre ellas"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1401",
+      "title": "El orden de las filas del Balance sigue la aritmetica: ningun sumando queda entre dos resultados",
+      "description": "Las ocho filas se reordenan para que cada resultado vaya precedido INMEDIATAMENTE por los sumandos de los que sale, sin nada intercalado. Hoy la secuencia es: Saldo mes anterior (contexto), Flujo del mes (+), Reservas del mes (−), Retiros del mes (+), Disponible del mes (=), Saldo disponible (=), Saldo reservado (+), Saldo total (=). El defecto concreto es que 'Saldo reservado' es sumando de 'Saldo total' pero esta colocado despues del resultado 'Saldo disponible', de modo que la lectura de arriba abajo encuentra un sumando huerfano entre dos resultados y cualquier agrupacion se rompe ahi. La aritmetica real que el orden debe reflejar tiene dos niveles: (1) Disponible del mes = Flujo del mes − Reservas del mes + Retiros del mes; (2) Saldo disponible = Saldo mes anterior + Disponible del mes; (3) Saldo total = Saldo disponible + Saldo reservado. El conjunto de filas NO cambia (constraint del usuario): cambia el orden en que se presentan. NOTA DE ALCANCE: este FR fija el INVARIANTE de orden, no una secuencia concreta — la secuencia exacta se decide en la fase de UX sobre la pantalla real, porque una propuesta anterior basada solo en enfasis tipografico ya se evaluo insuficiente.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Recorriendo el modulo de arriba abajo, entre dos filas de resultado consecutivas no aparece ninguna fila de sumando (happy) — linea base medida el 2026-08-24: 'Saldo reservado' viola esta regla hoy",
+        "Cada fila de resultado esta precedida, sin ninguna fila intermedia, por el conjunto completo de sumandos que la componen segun la aritmetica declarada (happy)",
+        "El modulo sigue mostrando exactamente ocho filas, con las mismas ocho etiquetas de hoy (regresion — el usuario acoto que no se anaden ni quitan filas)",
+        "Cada celda muestra exactamente el mismo numero que antes del reordenamiento, para los doce meses y en ambos planos Pres./Ejec. (regresion — el guardrail de la feature)",
+        "Con un mes sin ningun dato, el orden es el mismo y no se colapsa ninguna fila (edge)"
+      ]
+    },
+    {
+      "id": "FR-1402",
+      "title": "Los sumandos se anidan visualmente bajo el resultado que componen",
+      "description": "La jerarquia de dos niveles de la aritmetica se hace visible mediante SANGRIA, ademas del peso y las reglas horizontales que ya existen. Hoy las ocho etiquetas comparten el mismo margen izquierdo, asi que nada anida nada: los operadores + − = viven en una columna estrecha aparte y las etiquetas arrancan todas en la misma x. DATO QUE ACOTA LA SOLUCION: los operadores, las reglas (rule: soft|strong), los pesos (400 para sumandos, 600 para resultados) y el bottomLine YA EXISTEN desde el commit 5a05a17 del 2026-07-28; el usuario escribio la queja el 2026-08-12 mirando exactamente esa version y aun asi le parecio plana, y el modulo no se ha tocado desde el 2026-08-06. Por tanto un incremento de esos mismos canales NO satisface este requisito: hace falta un canal de anidamiento que hoy no se usa (sangria), y la decision de cuanta y como se toma en la fase de UX sobre la pantalla real.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El margen izquierdo de la etiqueta de un sumando es estrictamente mayor que el de la etiqueta del resultado que compone, medido en px (happy) — linea base medida el 2026-08-24: los ocho margenes son identicos",
+        "Existen al menos dos niveles de sangria distintos en el modulo, correspondientes a los dos niveles de la aritmetica encadenada (happy)",
+        "La solucion no se apoya UNICAMENTE en peso tipografico ni en el grosor de las reglas: esos canales ya estaban presentes cuando el usuario evaluo el modulo como plano el 2026-08-12 (negativo — es la restriccion que define la feature)",
+        "Con el modulo plegado en sus dos niveles, la sangria de las filas que siguen visibles se mantiene coherente y no deja etiquetas colgando (edge)",
+        "A 1024px de ancho la sangria sigue siendo perceptible y ninguna etiqueta se trunca ni desborda su columna (boundary)",
+        "El plegado en dos niveles —el modulo entero y, dentro, sus insumos— sigue funcionando igual que hoy (regresion)"
+      ]
+    },
+    {
+      "id": "FR-1403",
+      "title": "Neutro por defecto: ninguna cifra de resultado se colorea — ni en fila ni en el encabezado plegado",
+      "description": "Se retira el verde permanente de las filas de resultado. Hoy BalanceModule.tsx:107 hace 'if (spec.tone === \"result\") return \"var(--favorable)\"' de forma INCONDICIONAL, asi que las tres filas de resultado (Disponible del mes, Saldo disponible, Saldo total) se pintan de --favorable en las doce columnas. Medido a 1920px el 2026-08-24: tres filas enteras verdes a lo ancho del modulo. El efecto es que el verde deja de ser senal y pasa a ser el fondo del modulo, y el unico dato que si exige atencion —un retiro excedido, en rojo— tiene que competir contra el y pierde. DECISION DEL USUARIO (2026-08-24, tomada sobre la captura): neutro por defecto. Los resultados se distinguen de los sumandos por PESO y SANGRIA, nunca por color. El unico color que sobrevive en el modulo es el rojo del valor negativo en las filas con alarms, que conserva sus tres canales. Esta es la regla que el propio codigo ya declara en las lineas 91-94 —'un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo'— y que la linea 107 incumple: la feature la aplica de verdad. Contexto de por que sobrevivio: refinamiento-ui no lo cerro, porque su FR-1201 se titula 'el rojo y el ambar solo senalan excepcion' y no alcanza al verde. AMPLIACION (2026-08-25): la regla alcanza tambien a `HeaderTotalCell` (BalanceModule.tsx:208), la celda que muestra el Saldo total CUANDO EL MODULO ESTA PLEGADO. Hoy usa `var(--success-strong)`, que es alias de `--favorable`: es el MISMO Saldo total pintado de verde por una segunda puerta, de modo que plegar el modulo hace REAPARECER el verde que la fila acaba de perder. No es una superficie nueva ni una ampliacion opcional — es un agujero dentro de la propia feature, detectado al auditar la uniformidad de la pantalla.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Con un balance sano (todos los resultados positivos), el modulo no contiene ninguna celda pintada de --favorable en los doce meses y en ambos planos (happy) — linea base medida el 2026-08-24 a 1920px: tres filas completas en --favorable",
+        "Un valor negativo en una fila con alarms sigue pintandose con el color de alerta, y es el UNICO elemento coloreado del modulo en ese estado (happy — es el efecto buscado: el rojo ya no compite contra nada)",
+        "Con el modulo PLEGADO y un balance sano, la celda de encabezado que muestra el Saldo total del mes se pinta neutra, no favorable, en los doce meses y en ambos planos (happy) — linea base: hoy usa `var(--success-strong)`",
+        "Con el modulo PLEGADO y un Saldo total negativo, la celda de encabezado conserva el color de alerta y sus tres canales (regresion — plegar debe RESUMIR, no perder la senal)",
+        "Las filas de resultado siguen siendo distinguibles de los sumandos sin recurrir al color, por peso y sangria (happy)",
+        "Un resultado de valor exactamente cero se pinta neutro, no favorable ni de alerta (boundary)",
+        "El tratamiento neutro del Saldo reservado que fijo refinamiento-ui FR-1201 se conserva: no vuelve a ser azul por identidad de tipo (regresion)",
+        "Todo texto del modulo conserva >=4,5:1 de contraste sobre su superficie en ambos temas, incluida la fila hundida (regresion — WCAG 1.4.3)"
+      ]
+    },
+    {
+      "id": "FR-1404",
+      "title": "Una celda sin dato nunca lleva el color de su fila",
+      "description": "El em-dash de 'sin dato' se pinta siempre en el color neutro, nunca en el color de la fila a la que pertenece. Hoy BalanceCell aplica 'style={{ color: balanceColor(spec, value) }}' sin mirar si la celda va a pintar una cifra o un em-dash, de modo que hay GUIONES VERDES en el modulo: tinta de 'esto va bien' gastada en la AUSENCIA de informacion. Es visible en la captura del 2026-08-24, en las ultimas columnas de 'Disponible del mes'. Es exactamente el mismo defecto que el hallazgo 1.2 ya corrigio en la grilla, reaparecido en el modulo de Balance porque aquel arreglo no alcanzo hasta aqui.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Ninguna celda cuyo contenido renderizado sea el em-dash de 'sin dato' lleva un color distinto del neutro, en los doce meses y en ambos planos (happy) — linea base medida el 2026-08-24: hay em-dashes en --favorable en la fila 'Disponible del mes'",
+        "Una celda con valor cero (que SI es un dato) se distingue de una celda sin dato: la primera muestra la cifra, la segunda el em-dash neutro (boundary)",
+        "Un mes entero sin datos presenta todas sus celdas en neutro, sin una sola marca de color (edge)",
+        "Las celdas que si tienen dato conservan el color que les corresponde segun FR-1403 (regresion)"
+      ]
+    },
+    {
+      "id": "FR-1405",
+      "title": "El indicador RESTANTE de la franja superior deja de ser verde permanente",
+      "description": "El chip `RESTANTE` de la franja de indicadores (DesktopShell.tsx:109) hoy hace `color={kpis.available >= 0 ? 'var(--favorable)' : 'var(--alert-strong)'}`: se pinta de verde SIEMPRE que el restante no sea negativo, que es la inmensa mayoria del tiempo. Es exactamente el defecto de BL-026 en otro componente. Pasa a la misma regla que el modulo de Balance: NEUTRO por defecto, color solo cuando el valor es negativo. MOTIVO DE SU INCLUSION (decision del usuario, 2026-08-25): el chip y el modulo de Balance conviven en la MISMA pantalla y miden cosas emparentadas — de hecho `RESTANTE` se llamaba `DISPONIBLE` y se renombro precisamente porque colisionaba con el `Saldo disponible` del Balance. Dejar el chip verde mientras el modulo pasa a neutro dejaria la pantalla principal con DOS criterios de color simultaneos, que es la incoherencia que esta feature existe para eliminar. Los otros dos chips de la franja (PRESUPUESTO y EJECUTADO) ya son neutros: el cambio ALINEA el tercero con sus hermanos, no introduce un estilo nuevo.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Con un restante positivo o cero, el chip RESTANTE se pinta con el mismo color neutro que los chips PRESUPUESTO y EJECUTADO — cero uso de `--favorable` en la franja superior (happy) — linea base: hoy es `--favorable` siempre que `available >= 0`",
+        "Con un restante negativo, el chip conserva `--alert-strong` y sigue siendo el unico elemento coloreado de la franja (happy — es la senal que si debe destacar)",
+        "Un restante de exactamente cero se pinta neutro, no favorable (boundary — hoy `>= 0` lo pinta verde)",
+        "Los chips PRESUPUESTO y EJECUTADO no cambian de aspecto (regresion — ya eran neutros)",
+        "El texto del chip conserva >=4,5:1 de contraste sobre la superficie de la franja en ambos temas (regresion — WCAG 1.4.3)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1401",
+      "requirement_id": "FR-1401",
+      "as_a": "dueno de mis finanzas mirando el balance del mes",
+      "i_want": "que las filas esten en el orden en que se hace la cuenta",
+      "so_that": "puedo seguir el calculo leyendo de arriba abajo, sin saltar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1401a",
+          "given": "el modulo de Balance con datos en varios meses",
+          "when": "lo leo de arriba abajo",
+          "then": "cada resultado aparece justo despues de los sumandos que lo componen, y no encuentro ningun sumando suelto entre dos resultados"
+        },
+        {
+          "id": "AC-1401b",
+          "given": "el modulo reordenado",
+          "when": "comparo cada celda con el valor que mostraba antes del cambio",
+          "then": "todas las cifras son identicas en los doce meses y en ambos planos"
+        }
+      ]
+    },
+    {
+      "id": "US-1402",
+      "requirement_id": "FR-1402",
+      "as_a": "dueno de mis finanzas mirando el balance del mes",
+      "i_want": "ver de un vistazo que cifras se suman para dar cual",
+      "so_that": "no tengo que reconstruir la cuenta de cabeza cada vez",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1402a",
+          "given": "el modulo de Balance",
+          "when": "miro la columna de etiquetas",
+          "then": "los sumandos estan visiblemente sangrados respecto al resultado que componen, y distingo los dos niveles de la cuenta sin leer los numeros"
+        },
+        {
+          "id": "AC-1402b",
+          "given": "la pantalla a 1024px de ancho",
+          "when": "miro el modulo",
+          "then": "la sangria sigue siendo perceptible y ninguna etiqueta se trunca"
+        }
+      ]
+    },
+    {
+      "id": "US-1403",
+      "requirement_id": "FR-1403",
+      "as_a": "dueno de mis finanzas revisando si algo va mal",
+      "i_want": "que el color aparezca solo cuando hay algo que mirar",
+      "so_that": "cuando veo color se que exige mi atencion, en vez de ignorarlo por costumbre",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1403a",
+          "given": "un balance sano, con todos los resultados positivos",
+          "when": "recorro el modulo entero en los doce meses",
+          "then": "no encuentro una sola celda verde: los resultados destacan por peso y sangria, no por color"
+        },
+        {
+          "id": "AC-1403b",
+          "given": "un mes con el saldo total negativo",
+          "when": "miro el modulo",
+          "then": "esa cifra es el unico elemento coloreado de todo el modulo, y la veo al instante porque no compite contra nada"
+        }
+      ]
+    },
+    {
+      "id": "US-1404",
+      "requirement_id": "FR-1404",
+      "as_a": "dueno de mis finanzas mirando meses que aun no tienen datos",
+      "i_want": "que un hueco se vea como un hueco",
+      "so_that": "no confundo la ausencia de dato con una cifra que va bien",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1404a",
+          "given": "meses futuros sin datos cargados",
+          "when": "miro sus celdas en las filas de resultado",
+          "then": "los guiones estan en color neutro, sin ninguna marca de color"
+        }
+      ]
+    },
+    {
+      "id": "US-1405",
+      "requirement_id": "FR-1405",
+      "as_a": "dueno de mis finanzas mirando la pantalla principal",
+      "i_want": "que el color signifique lo mismo arriba y abajo",
+      "so_that": "no tengo que aprender dos codigos de color en una sola pantalla",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1405a",
+          "given": "un restante positivo y un balance sano",
+          "when": "miro la pantalla completa, de la franja de indicadores al modulo de Balance",
+          "then": "no encuentro un solo elemento verde: arriba y abajo rigen la misma regla"
+        },
+        {
+          "id": "AC-1405b",
+          "given": "un restante negativo",
+          "when": "miro la franja superior",
+          "then": "el chip RESTANTE es el unico elemento coloreado de la franja y lo veo al instante"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1401",
+      "category": "Regression",
+      "requirement": "La aritmetica y las cifras no cambian. Esta feature altera UNICAMENTE como se presenta el calculo (orden de filas, sangria y color); src/domain/balance.ts no se toca y ninguna celda cambia de valor. Es el guardrail declarado de la feature.",
+      "acceptance_criteria": "Toda la suite de dominio y de balance de las features previas sigue pasando sin modificar un solo test de calculo; comparando el modulo antes y despues del cambio, las 168 celdas renderizadas muestran cifras identicas en los doce meses y en ambos planos"
+    },
+    {
+      "id": "NFR-1402",
+      "category": "Regression",
+      "requirement": "La accesibilidad no cromatica se conserva. El valor negativo sigue senalado por TRES canales simultaneos —color, signo y glifo— tal como exige WCAG 1.4.1, y el contraste de todo texto coloreado se mantiene en >=4,5:1 sobre su superficie en ambos temas. Retirar el verde no puede degradar el unico canal de estado que queda.",
+      "acceptance_criteria": "Un valor negativo presenta a la vez el color de alerta, el signo menos y el glifo de forma; ningun texto del modulo baja de 4,5:1 sobre su superficie en tema claro ni en tema oscuro, incluido el peor caso de celda sobre fila hundida"
+    },
+    {
+      "id": "NFR-1403",
+      "category": "Regression",
+      "requirement": "El plegado en dos niveles del modulo —el modulo entero, y dentro de el sus insumos, con el chevron viviendo en 'Saldo disponible'— sigue funcionando exactamente igual tras el reordenamiento de filas. El reordenamiento no puede dejar el chevron plegando un conjunto de filas distinto del que pliega hoy.",
+      "acceptance_criteria": "Plegar el modulo deja visible el encabezado con el Saldo total del mes; plegar los insumos deja visibles las cifras de resultado; ambos estados se comportan igual que antes del cambio y ninguna etiqueta queda colgando sin su nivel de sangria"
+    },
+    {
+      "id": "NFR-1404",
+      "category": "Maintainability",
+      "requirement": "La regla de color queda protegida por un test que falla si una fila de resultado vuelve a pintarse de forma permanente. Motivo: el verde incondicional sobrevivio a la feature refinamiento-ui precisamente porque ningun test lo cazaba — TC-RUI-002f comprueba colores de TIPO y --favorable no es un color de tipo. Sin un test que apunte a esta regla concreta, la regresion es cuestion de tiempo. La misma proteccion cubre las dos superficies anadidas el 2026-08-25 (el encabezado del modulo plegado y el chip RESTANTE): son precisamente las que sobrevivieron a la primera redaccion de los FR por no estar a la vista, asi que son las que mas necesitan un test que las fije.",
+      "acceptance_criteria": "Existe al menos un test automatizado que afirma que, con un balance sano, ninguna celda del modulo usa --favorable; revirtiendo BalanceModule.tsx:107 a su forma actual, ese test falla (verificado por mutacion, no solo por corrida verde); revirtiendo BalanceModule.tsx:208 a `var(--success-strong)` o DesktopShell.tsx:109 a `var(--favorable)`, falla al menos un test en cada caso"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Diagnostico presentado al usuario el 2026-08-24 sobre la captura del modulo real y CONFIRMADO por el explicitamente ('si, es el orden y el anidamiento'), eligiendo esa opcion frente a 'es solo el peso visual'. Procede de BL-025 y BL-026, ambas escritas por el usuario el 2026-08-12 revisando el rediseno en localhost. Las causas concretas estan MEDIDAS sobre el codigo (BalanceModule.tsx:63-107, 165-185) y sobre la pantalla real (feature_context/estado-actual-1920px-2026-08-24.png)",
+    "users": "Heredado del producto padre: el mismo Dueno de sus finanzas personales, unico usuario del producto. La feature no abre un tipo de usuario nuevo",
+    "baseline": "Medida por el agente el 2026-08-24 a 1920px sobre el servidor de desarrollo del propio usuario, con su ledger real: tres filas de resultado en --favorable a lo ancho de los doce meses, em-dashes coloreados en 'Disponible del mes', y ocho etiquetas compartiendo el mismo margen izquierdo. Fechada ademas por git: la jerarquia existente (operadores, reglas, pesos) entro en 5a05a17 el 2026-07-28 y el modulo no se toca desde el 2026-08-06, asi que el usuario juzgo EXACTAMENTE esta version",
+    "success_metric": "El usuario eligio la regla de color el 2026-08-24 entre tres opciones presentadas con maqueta, optando por 'neutro; color solo en excepcion'. El criterio de exito (poder decir que cifra sale de que cifras) se le presento redactado y lo confirmo junto con el alcance",
+    "no_go_zone": "Confirmado por el usuario el 2026-08-24 en dos decisiones separadas: dejar BL-019 fuera al elegir 'BL-025 + BL-026' frente a 'los tres del Balance', y confirmar explicitamente el alcance ('si, tal como esta') que excluye tocar la aritmetica y anadir o quitar filas. La despriorizacion de login/BL-028 es instruccion suya del mismo dia"
+  },
+  "idea_gaps": [
+    "[LIMITE DE LA MEDICION] La captura base se tomo sobre el ledger real del usuario, que hoy tiene varios meses vacios y cifras pequenas. El modulo NUNCA se ha visto con los doce meses llenos de datos densos, que es donde el reordenamiento y la sangria se ponen realmente a prueba. No bloquea la feature —ninguno de sus cuatro FR depende de la densidad— pero conviene revisar la fase de UX contra un mes cargado antes de aprobar el diseno",
+    "[DECISION DIFERIDA A UX, deliberadamente] FR-1401 fija el INVARIANTE de orden (ningun sumando entre dos resultados) pero no la secuencia concreta de las ocho filas; FR-1402 fija que debe existir sangria pero no cuanta. Se difiere a proposito: la propuesta anterior fallo por disenarse sin mirar la pantalla, y el usuario debe validar la secuencia y la sangria sobre el modulo real antes de implementar",
+    "[ASSUMPTION] Se asume que retirar todo el verde no deja al usuario sin ninguna senal de 'esto va bien' que eche de menos. El usuario eligio esta opcion sobre maqueta ASCII, no sobre la pantalla real. Si al ver el resultado echa en falta una senal de salud, la via es un FR nuevo, no reabrir este",
+    "[APRENDIZAJE DE LA AUDITORIA, 2026-08-25] La primera redaccion de estos FR se escribio leyendo el modulo de Balance en aislamiento y dejo fuera DOS superficies que rompian la misma regla: el encabezado del propio modulo plegado y el chip RESTANTE de la franja superior. Ninguna aparecia en BL-025 ni en BL-026, y ninguna se ve en la captura del modulo — la primera porque solo existe estando PLEGADO, la segunda porque vive fuera del recorte. Las encontro el usuario al pedir explicitamente que el diseno quedara uniforme en toda la pantalla. Leccion aplicable a la fase de build y a las features siguientes: una regla de color hay que auditarla por GREP DEL TOKEN en todo `src/`, no leyendo el componente que la motivo."
+  ],
+  "coverage_map": [
+    {
+      "need": "BL-025: los sumandos no estan agrupados bajo su resultado; las ocho filas se presentan planas y hay que reconstruir mentalmente cual sale de cuales",
+      "disposition": "FR-1402"
+    },
+    {
+      "need": "El orden de las filas contradice la aritmetica: 'Saldo reservado' es un sumando colocado entre dos resultados, lo que rompe cualquier agrupacion (hallazgo del analisis del 2026-08-24, confirmado por el usuario)",
+      "disposition": "FR-1401"
+    },
+    {
+      "need": "BL-026: las tres filas de resultado se pintan de verde de forma incondicional en las doce columnas, de modo que el verde deja de significar algo y el rojo pierde fuerza",
+      "disposition": "FR-1403"
+    },
+    {
+      "need": "BL-026 sub-hallazgo: hay em-dashes coloreados — tinta de estado gastada en la ausencia de dato",
+      "disposition": "FR-1404"
+    },
+    {
+      "need": "El Saldo total reaparece en verde al PLEGAR el modulo: HeaderTotalCell usa --success-strong, alias de --favorable (hallazgo de la auditoria de uniformidad, 2026-08-25). Es la misma cifra por otra puerta",
+      "disposition": "FR-1403"
+    },
+    {
+      "need": "El chip RESTANTE de la franja superior es verde permanente siempre que el restante no sea negativo — el defecto de BL-026 fuera del modulo (auditoria de uniformidad, 2026-08-25)",
+      "disposition": "FR-1405"
+    },
+    {
+      "need": "Dos ritmos de sangria distintos en la misma columna sticky: la grilla sangra a 16 px por nivel y el diseno del Balance proponia 20 px (auditoria de uniformidad, 2026-08-25)",
+      "disposition": "FR-1402"
+    },
+    {
+      "need": "Las cifras y la aritmetica no pueden cambiar: la feature es de presentacion (guardrail declarado por el usuario)",
+      "disposition": "NFR-1401"
+    },
+    {
+      "need": "No degradar la accesibilidad no cromatica (WCAG 1.4.1) ni el contraste al retirar el verde",
+      "disposition": "NFR-1402"
+    },
+    {
+      "need": "El plegado en dos niveles debe sobrevivir al reordenamiento de filas",
+      "disposition": "NFR-1403"
+    },
+    {
+      "need": "BL-026: ningun test caza el verde permanente — por eso sobrevivio a refinamiento-ui",
+      "disposition": "NFR-1404"
+    },
+    {
+      "need": "BL-019: rediseno de como se opera un retiro",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Anadir o quitar filas del modulo de Balance",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "BL-009 (memoizar roll-ups) y BL-017 (escritura incremental del ledger)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "BL-028: verificacion de email en el registro",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Elegir proveedor SMTP de produccion para que los correos salgan a buzones reales",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Los cinco usos de --success del Dashboard",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "El `favorable` condicional de la grilla (BudgetGrid.tsx:90, via cellTone) — cambia de estado, no es verde permanente",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\n\n**balance-jerarquia — el modulo de Balance debe dejar leer su propia aritmetica.**\n\nParte 2 del rediseno del modulo de Balance. Cubre dos entradas del backlog que tocan LAS\nMISMAS FILAS del mismo componente (`src/components/BalanceModule.tsx`): **BL-025** (agrupar\nlos sumandos bajo su resultado) y **BL-026** (el verde senala la normalidad, no la\nexcepcion). Se hacen juntas porque separarlas obliga a reescribir dos veces la misma tabla\ny a pagar dos cascadas de pipeline.\n\nEvidencia visual del estado actual, medida a 1920px el 2026-08-24:\n`feature_context/estado-actual-1920px-2026-08-24.png`.\n\n## Problem / Why\n\n[CONFIRMADO por el usuario 2026-08-24]\n\nEl modulo presenta OCHO filas planas al mismo nivel, pero esas ocho filas son en realidad\n**dos niveles de aritmetica encadenada**:\n\n    Disponible del mes = Flujo del mes − Reservas del mes + Retiros del mes\n    Saldo disponible   = Saldo mes anterior + Disponible del mes\n    Saldo total        = Saldo disponible + Saldo reservado\n\nLa presentacion plana no puede expresar ese encadenamiento, y el ORDEN ACTUAL DE LAS FILAS\nlo contradice de forma directa:\n\n    Saldo mes anterior     contexto\n  + Flujo del mes          sumando\n  − Reservas del mes       sumando\n  + Retiros del mes        sumando\n  = Disponible del mes     RESULTADO\n  = Saldo disponible       RESULTADO\n  + Saldo reservado        sumando   <-- un sumando ENTRE dos resultados\n  = Saldo total            RESULTADO\n\n`Saldo reservado` es sumando de `Saldo total`, pero esta colocado despues de un resultado.\nCualquier agrupacion visual se rompe justo ahi. Ademas todas las etiquetas comparten el\nmismo margen izquierdo, asi que nada anida nada.\n\n**Por que no basta con mas enfasis — dato clave, ya se intento y fracaso.** Los operadores\n`+ − =`, las reglas horizontales (`rule: soft|strong`) y los pesos (400 vs 600) YA EXISTEN:\nentraron el 2026-07-28 en el commit `5a05a17`. El usuario escribio BL-025 el 2026-08-12\nmirando en localhost esa misma version, y aun asi le parecio plana. El modulo no se ha\ntocado desde el 2026-08-06. Conclusion: el defecto NO es falta de enfasis tipografico — es\nque el orden de las filas no sigue la aritmetica. Una solucion que solo suba pesos o\nengrose lineas ya se probo y no resolvio el problema.\n\n**El verde (BL-026).** Las tres filas de resultado se pintan `--favorable` de forma\nINCONDICIONAL en las doce columnas — `BalanceModule.tsx:107`,\n`if (spec.tone === \"result\") return \"var(--favorable)\"`. Medido a 1920px: tres filas enteras\nverdes a lo ancho de todo el modulo. El verde deja de ser senal y pasa a ser el fondo del\nmodulo: cuando un saldo se ponga negativo, el rojo tendra que destacar sobre una superficie\nya saturada de color. En la captura se ve el sintoma: el unico dato que grita algo —el\n`›› 300` rojo de Retiros en julio— compite contra tres filas verdes y pierde.\n\nEl propio codigo declara la regla correcta y luego la incumple. `BalanceModule.tsx:91-94`:\n\"Un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo\".\nTrece lineas mas abajo, la 107 hace exactamente eso con los resultados.\n\n**Sub-hallazgo, mismo sitio:** `BalanceCell` aplica `style={{ color: balanceColor(...) }}`\nsin mirar si la celda pinta una cifra o un em-dash, asi que hay GUIONES VERDES — tinta de\n\"esto va bien\" gastada en la AUSENCIA de dato. Es el mismo defecto que el hallazgo 1.2 ya\ncorrigio en la grilla.\n\n**Por que ningun test lo caza:** `TC-RUI-002f` comprueba colores de TIPO, y `--favorable` no\nes un color de tipo. `refinamiento-ui` tampoco lo cerro: su FR-1201 se titula \"el rojo y el\nambar solo senalan excepcion\" y no alcanza al verde.\n\n## Target Users\n\n[CONFIRMADO — es el unico usuario del producto]\n\nEl propio usuario del ledger, leyendo su balance mensual de un vistazo para responder\n\"cuanto tengo y de donde sale\". No es un contable: no reconstruye la cuenta mentalmente,\nnecesita que la tabla se la muestre.\n\n## New Behavior\n\n1. **El orden de las filas sigue la aritmetica.** Ningun sumando queda intercalado entre dos\n   resultados. Cada resultado va precedido, inmediatamente, por los sumandos de los que sale.\n\n2. **Los sumandos se anidan bajo su resultado.** La jerarquia se expresa con SANGRIA ademas\n   de con peso y reglas — hoy todas las etiquetas comparten margen izquierdo y nada anida\n   nada. Los dos niveles de aritmetica se distinguen a la vista.\n\n3. **Neutro por defecto; el color solo en la excepcion.** [CONFIRMADO por el usuario\n   2026-08-24] Ninguna fila de resultado se pinta de verde. Los resultados se distinguen de\n   los sumandos por PESO y SANGRIA, nunca por color. El unico color que queda en el modulo\n   es el rojo del saldo negativo, que conserva sus tres canales (color + signo + glifo,\n   WCAG 1.4.1). Es la regla que el codigo ya declara en las lineas 91-94 y que la 107\n   incumple: esta feature la aplica de verdad. Efecto buscado: con cero verdes permanentes,\n   un rojo no compite contra nada y se ve al instante.\n\n4. **Una celda sin dato no lleva color.** El em-dash se pinta siempre en el color neutro,\n   nunca en el color de su fila.\n\n## Success Criteria\n\n[CONFIRMADO por el usuario 2026-08-24]\n\nQue el usuario pueda decir, mirando el modulo sin ayuda, que cifra sale de que cifras.\nMedible:\n\n- Ninguna fila de resultado lleva color cuando su valor es sano (cero celdas `--favorable`\n  en el modulo con un balance positivo, medido a 1920px sobre los 12 meses).\n- Ninguna celda cuyo contenido sea em-dash lleva un color distinto del neutro.\n- El orden de las filas no intercala ningun sumando entre dos resultados.\n- Un saldo negativo sigue senalado por los tres canales a la vez (color, signo y glifo).\n\n## Touch Points\n\n- `src/components/BalanceModule.tsx` — `ROWS`, `balanceColor()`, `BalanceCell`, `RULE`.\n- `src/domain/balance.ts` — solo LECTURA. La aritmetica no se toca.\n- Tests existentes del modulo: `TC-BAL-935h`, `TC-BAL-935f`, `TC-BAL-956e`, `TC-BAL-908h`,\n  `TC-BAL-951e`, `TC-BAL-956h`, `TC-TRF-109h`, `TC-TRF-109e` — hay que revisar cuales\n  afirman el color verde actual y actualizarlos con la regla nueva.\n\n## Must Not Break (Regression Boundary)\n\n- **La aritmetica y las cifras.** Esta feature cambia como se PRESENTA el calculo, jamas el\n  calculo. Cada celda debe seguir mostrando exactamente el mismo numero que hoy.\n- La convencion de signo vigente: los positivos NO llevan `+`; solo el negativo se marca, y\n  con tres canales a la vez (color, signo y forma) — WCAG 1.4.1, el canal no cromatico.\n- El plegado en dos niveles: el modulo entero, y dentro sus insumos.\n- El rojo de alarma en las filas con `alarms: true` cuando el valor es negativo.\n- El tratamiento neutro del `Saldo reservado` que ya fijo `refinamiento-ui` FR-1201 (dejo de\n  ser azul por identidad de tipo).\n- El encabezado plegado que muestra el Saldo total del mes (FR-905).\n\n## Out of Scope\n\n[CONFIRMADO por el usuario 2026-08-24]\n\n- **BL-019** (rediseno de como se OPERA un retiro). Toca el mismo modulo pero es diseno de\n  interaccion, no presentacion.\n- **Cambiar la aritmetica o el significado de cualquier fila.**\n- **Anadir filas nuevas o quitar filas existentes.** El conjunto de ocho filas se conserva;\n  solo cambia su orden, su anidamiento y su color.\n- Los dos items de rendimiento del backlog: BL-009 (memoizar roll-ups) y BL-017 (escritura\n  incremental).\n- Todo lo de login/registro — BL-028 (verificacion de email), despriorizado por el usuario\n  el 2026-08-24.\n- Elegir proveedor SMTP de produccion.\n"
+}

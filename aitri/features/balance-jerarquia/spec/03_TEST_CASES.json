@@ -1,0 +1,1071 @@
+{
+  "test_plan": {
+    "strategy": "Piramide, como el padre. UNIT para las funciones puras que deciden orden, nivel y color (exceptionColor, el validador de invariantes de ROWS) — es donde vive la logica. E2E (Playwright) para lo unico que no se puede afirmar sin renderizar: colores computados, paddingLeft computado, conteos de celdas, truncamiento y el orden del DOM. INTEGRATION para el gate, que se verifica leyendo el repositorio. DECISION DE COBERTURA DELIBERADA: los invariantes de orden y de sangria se comprueban DOS veces —como TC unitario sobre ROWS y como TC e2e sobre el pixel renderizado— porque son fallos distintos: ROWS puede estar bien y el CSS no aplicarse, y al reves. Y el gate se prueba en AMBOS sentidos (pasa limpio en TC-BJE-012h, falla ante el infractor en TC-BJE-012f) porque un gate que nunca se vio fallar no esta verificado — leccion de BG-014. ANTI-FALSO-VERDE: los tres TC terminados en `f` de los invariantes (001f, 003f) alimentan el ESTADO ANTERIOR de la feature al validador y exigen que lo RECHACE; sin ellos, un validador que devolviera siempre ok:true dejaria verdes a 001h y 003h sin comprobar nada.",
+    "coverage_goal": "Cada MUST FR con happy, edge y negativo. Los cuatro NFR con happy y negativo. Colores medidos en los DOS temas; sangria medida en 1440 y en 1024. El guardrail de la aritmetica comprobado celda a celda (192).",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "type_coverage_matrix": [
+      {
+        "requirement_id": "FR-1401",
+        "type": "UX",
+        "unit": "MUST",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "El orden es dato (ROWS) y ademas render: se verifica en los dos niveles porque puede fallar en cada uno por separado"
+      },
+      {
+        "requirement_id": "FR-1402",
+        "type": "UX",
+        "unit": "MUST",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "El nivel es dato; el paddingLeft resultante y el truncamiento solo existen renderizados"
+      },
+      {
+        "requirement_id": "FR-1403",
+        "type": "visual",
+        "unit": "MUST",
+        "integration": "SHOULD",
+        "e2e": "MUST",
+        "reason": "La regla es una funcion pura (unit); el color efectivo sobre 192 celdas y en dos temas exige e2e; el gate la fija en el arbol"
+      },
+      {
+        "requirement_id": "FR-1404",
+        "type": "visual",
+        "unit": "SHOULD",
+        "e2e": "MUST",
+        "integration": "n/a",
+        "reason": "Depende del contenido renderizado de la celda, no solo de la funcion de color"
+      },
+      {
+        "requirement_id": "FR-1405",
+        "type": "visual",
+        "unit": "n/a",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "La decision vive en el llamante (DesktopShell) y solo se puede afirmar comparando los tres chips renderizados"
+      },
+      {
+        "requirement_id": "NFR-1401",
+        "type": "Regression",
+        "unit": "MUST",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "Guardrail de la feature: suite de dominio intacta + comparacion celda a celda contra la referencia"
+      },
+      {
+        "requirement_id": "NFR-1402",
+        "type": "Regression",
+        "unit": "n/a",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "Contraste y canales redundantes solo son medibles sobre el render real"
+      },
+      {
+        "requirement_id": "NFR-1403",
+        "type": "Regression",
+        "unit": "MUST",
+        "integration": "n/a",
+        "e2e": "MUST",
+        "reason": "TAIL_FROM es dato derivado (unit); el efecto del plegado es render (e2e)"
+      },
+      {
+        "requirement_id": "NFR-1404",
+        "type": "Maintainability",
+        "unit": "n/a",
+        "integration": "MUST",
+        "e2e": "n/a",
+        "reason": "El gate es un proceso con codigo de salida: se verifica ejecutandolo, en los dos sentidos"
+      }
+    ],
+    "coverage_decisions": [
+      "NO se escriben TCs para el Dashboard ni para sus cinco usos de --success: esta en el no_go_zone por decision del usuario, y sus TCs actuales NO deben cambiar.",
+      "NO se escriben TCs para el `favorable` de la grilla (BudgetGrid.tsx:90): es condicional al cumplimiento del plan, sigue siendo un estado legitimo y es territorio de budget-state-color FR-401.",
+      "NO se escriben TCs para el em-dash de la GRILLA: ya lo cubre refinamiento-ui FR-1202 y su TC vigente. Esta feature lo replica en el Balance, no lo redefine.",
+      "NO se escriben TCs de fidelidad visual pixel a pixel de la escalera. El riesgo de que la sangria vuelva a parecer insuficiente es de JUICIO del usuario, no mecanico: se cubre repitiendo la captura de feature_context/ tras implementar y comparandola. Los TCs afirman la medida (paddingLeft), no la impresion.",
+      "NO se escriben TCs para BL-019, la operacion de retiros: no_go_zone.",
+      "NO se escribe TC de rendimiento: el modulo es de tamano fijo (192 celdas) y no escala con los datos; BL-009 esta en el no_go_zone.",
+      "SE EXCLUYE deliberadamente un TC de 'la fila de resultado se distingue del sumando': es la impresion que FR-1403 promete y no hay medida objetiva de 'se distingue'. Se cubre indirectamente por TC-BJE-003h (nivel) y TC-BJE-004h (paddingLeft), que miden los dos canales que producen esa distincion."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-BJE-001h",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401a",
+      "title": "ROWS declara el orden de la cascada: ningun sumando entre dos resultados",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "La constante ROWS de src/components/BalanceModule.tsx"
+      ],
+      "given": "la tabla ROWS tras el reordenamiento",
+      "when": "se recorre de indice 0 a 7 leyendo el campo `tone` de cada fila",
+      "then": "la secuencia de claves es exactamente flow, reserved, retiros, monthAvailable, prevAvailable, available, reservedBalance, total; y entre dos entradas consecutivas con tone==='result' no aparece ninguna entrada con tone!=='result'",
+      "steps": [
+        "Importar ROWS",
+        "Mapear a la lista de `key`",
+        "Comparar contra la secuencia esperada",
+        "Recorrer buscando pares de result consecutivos con algo intercalado"
+      ],
+      "expected_result": "ROWS.map(r=>r.key) === ['flow','reserved','retiros','monthAvailable','prevAvailable','available','reservedBalance','total']; cero sumandos intercalados entre resultados consecutivos",
+      "test_data": {
+        "orden_esperado": [
+          "flow",
+          "reserved",
+          "retiros",
+          "monthAvailable",
+          "prevAvailable",
+          "available",
+          "reservedBalance",
+          "total"
+        ],
+        "orden_anterior_defectuoso": [
+          "prevAvailable",
+          "flow",
+          "reserved",
+          "retiros",
+          "monthAvailable",
+          "available",
+          "reservedBalance",
+          "total"
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-001e",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401a",
+      "title": "Cada resultado va precedido por el conjunto COMPLETO de sus sumandos, sin filas intermedias",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "ROWS con el campo `level` declarado"
+      ],
+      "given": "la cascada declarada: monthAvailable=flow-reserved+retiros; available=prevAvailable+monthAvailable; total=available+reservedBalance",
+      "when": "para cada fila con tone==='result' se recogen las filas contiguas inmediatamente anteriores cuyo level es mayor que el suyo",
+      "then": "monthAvailable recoge exactamente {flow,reserved,retiros}; available recoge exactamente {monthAvailable,prevAvailable}; total recoge exactamente {available,reservedBalance}",
+      "steps": [
+        "Para cada resultado, retroceder mientras level>level(resultado)",
+        "Comparar el conjunto recogido con el declarado en la aritmetica"
+      ],
+      "expected_result": "Los tres conjuntos recogidos coinciden exactamente con los sumandos de la aritmetica; ninguna recogida se detiene por encontrar una fila de level menor o igual antes de completar su conjunto",
+      "test_data": {
+        "monthAvailable": [
+          "flow",
+          "reserved",
+          "retiros"
+        ],
+        "available": [
+          "monthAvailable",
+          "prevAvailable"
+        ],
+        "total": [
+          "available",
+          "reservedBalance"
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-001f",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401a",
+      "title": "El invariante de orden RECHAZA el orden anterior (proteccion anti-regresion)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "El validador de orden usado por TC-BJE-001h, expuesto como funcion pura"
+      ],
+      "given": "el orden ANTERIOR a esta feature, donde reservedBalance (sumando) esta entre available y total (ambos resultados)",
+      "when": "se pasa ese orden al validador de invariante",
+      "then": "el validador devuelve un fallo que nombra la fila infractora: 'reservedBalance es un sumando situado entre los resultados available y total'",
+      "steps": [
+        "Construir el array con el orden viejo",
+        "Invocar el validador",
+        "Comprobar que falla y que el mensaje nombra reservedBalance"
+      ],
+      "expected_result": "El validador devuelve {ok:false, offender:'reservedBalance'}; NO devuelve ok:true. Si este caso pasara, el test de TC-BJE-001h seria vacio",
+      "test_data": {
+        "orden_viejo": [
+          "prevAvailable",
+          "flow",
+          "reserved",
+          "retiros",
+          "monthAvailable",
+          "available",
+          "reservedBalance",
+          "total"
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-002h",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401a",
+      "title": "El modulo renderiza ocho filas, con las mismas ocho etiquetas, en el orden nuevo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Sesion iniciada",
+        "Ledger con datos en al menos tres meses"
+      ],
+      "given": "la pantalla principal con el modulo de Balance desplegado",
+      "when": "se leen en orden de DOM los data-testid='balance-label'",
+      "then": "hay exactamente 8 y su texto es, en orden: 'Flujo del mes','Reservas del mes','Retiros del mes','Disponible del mes','Saldo mes anterior','Saldo disponible','Saldo reservado','Saldo total'",
+      "steps": [
+        "Entrar",
+        "Localizar balance-module",
+        "Recoger los 8 rotulos en orden de DOM",
+        "Comparar textos"
+      ],
+      "expected_result": "count===8 y la lista de textos coincide exactamente; ninguna etiqueta se anadio ni se retiro respecto de hoy (el no_go_zone lo prohibe)",
+      "test_data": {
+        "etiquetas": [
+          "Flujo del mes",
+          "Reservas del mes",
+          "Retiros del mes",
+          "Disponible del mes",
+          "Saldo mes anterior",
+          "Saldo disponible",
+          "Saldo reservado",
+          "Saldo total"
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-002f",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401b",
+      "title": "Un mes SIN ningun dato conserva el orden y no colapsa ninguna fila",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Un mes futuro sin celdas ni movimientos (p. ej. diciembre en un ledger que llega a agosto)"
+      ],
+      "given": "el modulo de Balance mostrando un mes completamente vacio",
+      "when": "se leen los rotulos y el numero de filas de ese mes",
+      "then": "siguen siendo 8 filas en el mismo orden, con em-dash en sus celdas; NINGUNA fila se oculta ni cambia de posicion",
+      "steps": [
+        "Situar la vista en el mes vacio",
+        "Contar filas",
+        "Comprobar el orden",
+        "Comprobar que las celdas muestran em-dash"
+      ],
+      "expected_result": "8 filas, mismo orden que TC-BJE-002h, celdas con '—'. Si alguna fila desapareciera, el layout se moveria entre meses y la lectura vertical se romperia",
+      "test_data": {
+        "mes_vacio": "2026-12"
+      }
+    },
+    {
+      "id": "TC-BJE-003h",
+      "requirement_id": "FR-1402",
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a",
+      "title": "Todo sumando tiene un `level` estrictamente mayor que el del resultado que compone",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "ROWS con el campo level"
+      ],
+      "given": "los niveles declarados: flow/reserved/retiros=3, monthAvailable/prevAvailable=2, available/reservedBalance=1, total=0",
+      "when": "se comprueba cada par (sumando, su resultado) de la cascada",
+      "then": "3>2 para los tres primeros contra monthAvailable; 2>1 para monthAvailable y prevAvailable contra available; 1>0 para available y reservedBalance contra total",
+      "steps": [
+        "Leer ROWS",
+        "Para cada pareja de la cascada comparar levels",
+        "Comprobar la desigualdad estricta en las tres"
+      ],
+      "expected_result": "Las tres comparaciones son estrictamente mayores. Ademas el conjunto de levels distintos es {0,1,2,3}: exactamente CUATRO niveles, porque la cascada tiene tres eslabones",
+      "test_data": {
+        "levels": {
+          "flow": 3,
+          "reserved": 3,
+          "retiros": 3,
+          "monthAvailable": 2,
+          "prevAvailable": 2,
+          "available": 1,
+          "reservedBalance": 1,
+          "total": 0
+        }
+      }
+    },
+    {
+      "id": "TC-BJE-003f",
+      "requirement_id": "FR-1402",
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a",
+      "title": "El invariante de sangria RECHAZA el estado actual, donde los ocho margenes son iguales",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "El validador de niveles de TC-BJE-003h como funcion pura"
+      ],
+      "given": "el estado ANTERIOR a esta feature: las ocho filas con level=0 (margen izquierdo identico, medido el 2026-08-24)",
+      "when": "se pasa ese conjunto al validador",
+      "then": "el validador falla porque ningun sumando supera estrictamente a su resultado: devuelve {ok:false} nombrando el primer par que empata",
+      "steps": [
+        "Construir ROWS con todos los level a 0",
+        "Invocar el validador",
+        "Comprobar que falla"
+      ],
+      "expected_result": "{ok:false} con al menos un par empatado nombrado. Si pasara, el criterio 'la solucion no se apoya solo en peso ni en reglas' quedaria sin verificar",
+      "test_data": {
+        "levels_planos": 0
+      }
+    },
+    {
+      "id": "TC-BJE-004h",
+      "requirement_id": "FR-1402",
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a",
+      "title": "El paddingLeft renderizado es 14 + level*16 y produce cuatro valores distintos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Viewport de 1440 px",
+        "Sesion iniciada"
+      ],
+      "given": "el modulo de Balance renderizado a 1440 px",
+      "when": "se lee el paddingLeft computado de los ocho data-testid='balance-label'",
+      "then": "los valores son 62,62,62,46,46,30,30,14 px — es decir 14 + level*16 — y el conjunto de valores distintos tiene tamano 4",
+      "steps": [
+        "Entrar a 1440px",
+        "getComputedStyle(paddingLeft) de los 8 rotulos",
+        "Comparar con la formula",
+        "Contar valores distintos"
+      ],
+      "expected_result": "[62,62,62,46,46,30,30,14]; new Set(valores).size===4. El paso de 16 px coincide con el del arbol de la grilla (BudgetGrid.tsx:427)",
+      "test_data": {
+        "base": 14,
+        "step": 16,
+        "esperado": [
+          62,
+          62,
+          62,
+          46,
+          46,
+          30,
+          30,
+          14
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-004e",
+      "requirement_id": "FR-1402",
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402b",
+      "title": "A 1024 px el paso baja a 12 px y ninguna etiqueta se trunca",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Viewport de 1024 px"
+      ],
+      "given": "el modulo de Balance a 1024 px de ancho",
+      "when": "se leen el paddingLeft computado y el desbordamiento de cada rotulo",
+      "then": "los valores son 50,50,50,38,38,26,26,14 px (14 + level*12) y para los ocho rotulos scrollWidth <= clientWidth (cero truncamiento)",
+      "steps": [
+        "Fijar viewport 1024x800",
+        "Leer paddingLeft de los 8",
+        "Comparar scrollWidth con clientWidth de cada rotulo"
+      ],
+      "expected_result": "[50,50,50,38,38,26,26,14]; ningun rotulo con scrollWidth>clientWidth. La etiqueta mas larga en el nivel mas profundo es 'Reservas del mes'",
+      "test_data": {
+        "step_1024": 12,
+        "esperado": [
+          50,
+          50,
+          50,
+          38,
+          38,
+          26,
+          26,
+          14
+        ],
+        "etiqueta_critica": "Reservas del mes"
+      }
+    },
+    {
+      "id": "TC-BJE-005h",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "exceptionColor devuelve neutro para un resultado sano — nunca --favorable",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "src/components/exceptionColor.ts"
+      ],
+      "given": "la funcion exceptionColor",
+      "when": "se invoca con 300000, con 1 y con 2800000, todos con alarms:true",
+      "then": "las tres devoluciones son 'var(--fg)' y ninguna contiene la subcadena 'favorable' ni 'success'",
+      "steps": [
+        "Invocar exceptionColor(300000,{alarms:true})",
+        "Idem con 1 y 2800000",
+        "Comprobar la cadena devuelta"
+      ],
+      "expected_result": "exceptionColor(300000,{alarms:true})==='var(--fg)'; ninguna devolucion contiene 'favorable' ni 'success'",
+      "test_data": {
+        "valores": [
+          300000,
+          1,
+          2800000
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-005e",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "Un resultado de valor EXACTAMENTE cero se pinta neutro, ni favorable ni alerta",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "exceptionColor"
+      ],
+      "given": "un Saldo total de exactamente 0",
+      "when": "se pide su color",
+      "then": "devuelve 'var(--fg)' — no 'var(--favorable)' (que es lo que hoy daria la condicion >=0) ni 'var(--alert-strong)'",
+      "steps": [
+        "Invocar exceptionColor(0,{alarms:true})",
+        "Comparar con los tres tokens posibles"
+      ],
+      "expected_result": "exceptionColor(0,{alarms:true})==='var(--fg)'. Es el borde exacto que la condicion actual `available >= 0` pinta de verde",
+      "test_data": {
+        "valor": 0
+      }
+    },
+    {
+      "id": "TC-BJE-005f",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403b",
+      "title": "Un valor negativo en fila con alarmas SI devuelve alerta (la excepcion sigue viva)",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "exceptionColor"
+      ],
+      "given": "un Saldo total de -600000 en una fila con alarms:true",
+      "when": "se pide su color",
+      "then": "devuelve exactamente 'var(--alert-strong)'",
+      "steps": [
+        "Invocar exceptionColor(-600000,{alarms:true})",
+        "Comprobar el token"
+      ],
+      "expected_result": "'var(--alert-strong)'. Si devolviera neutro, la feature habria retirado la senal en vez del ruido — el fallo mas grave posible aqui",
+      "test_data": {
+        "valor": -600000
+      }
+    },
+    {
+      "id": "TC-BJE-006h",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "Con un balance sano, CERO celdas del modulo usan --favorable en los doce meses",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Ledger con todos los resultados positivos",
+        "Viewport 1920 px",
+        "Ambos temas"
+      ],
+      "given": "el modulo de Balance desplegado con un balance sano",
+      "when": "se lee el color computado de TODAS las celdas data-testid='balance-cell' y se cuentan las que igualan --favorable",
+      "then": "el conteo es 0 en tema claro (rgb(45,118,80)) y 0 en tema oscuro (rgb(95,190,130))",
+      "steps": [
+        "Cargar con balance sano",
+        "Recoger todas las balance-cell",
+        "getComputedStyle(color) de cada una",
+        "Contar coincidencias con el verde en ambos temas"
+      ],
+      "expected_result": "0 celdas verdes. Linea base medida el 2026-08-24: tres filas completas x 12 meses x 2 planos en --favorable",
+      "test_data": {
+        "favorable_claro": "rgb(45, 118, 80)",
+        "favorable_oscuro": "rgb(95, 190, 130)",
+        "linea_base_celdas_verdes": 72
+      }
+    },
+    {
+      "id": "TC-BJE-006e",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "Con el modulo PLEGADO, el encabezado del Saldo total tambien es neutro",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Balance sano",
+        "Modulo plegado"
+      ],
+      "given": "el modulo de Balance plegado, mostrando su encabezado con el Saldo total del mes",
+      "when": "se lee el color computado de data-testid='balance-header-cell' en los doce meses",
+      "then": "ninguna usa --favorable; todas usan 'var(--fg)' resuelto",
+      "steps": [
+        "Plegar el modulo",
+        "Recoger las balance-header-cell",
+        "Comprobar su color"
+      ],
+      "expected_result": "0 celdas de encabezado en --favorable. Es la superficie que la primera redaccion de los FR dejo fuera: hoy usa var(--success-strong), alias de --favorable, asi que al plegar REAPARECIA el verde",
+      "test_data": {
+        "selector": "balance-header-cell"
+      }
+    },
+    {
+      "id": "TC-BJE-006f",
+      "requirement_id": "FR-1403",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403b",
+      "title": "Con el modulo plegado y el total NEGATIVO, el encabezado conserva la alerta y sus tres canales",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Un mes con Saldo total negativo",
+        "Modulo plegado"
+      ],
+      "given": "el modulo plegado sobre un mes con Saldo total de -600.000",
+      "when": "se lee la celda de encabezado de ese mes",
+      "then": "su color es --alert-strong, su texto empieza por el signo menos y contiene el glifo de forma con aria-hidden='true'",
+      "steps": [
+        "Preparar el mes negativo",
+        "Plegar",
+        "Leer color, texto y glifo del encabezado"
+      ],
+      "expected_result": "color===rgb(173,57,50) en claro; textContent empieza por '−'; existe el span[aria-hidden=true] del glifo. Plegar debe RESUMIR, no perder la senal",
+      "test_data": {
+        "total": -600000,
+        "alert_claro": "rgb(173, 57, 50)"
+      }
+    },
+    {
+      "id": "TC-BJE-007h",
+      "requirement_id": "FR-1404",
+      "user_story_id": "US-1404",
+      "ac_id": "AC-1404a",
+      "title": "Una celda sin dato se pinta en --fg-muted, no en el color de su fila",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Meses futuros sin datos"
+      ],
+      "given": "la fila 'Disponible del mes' (tone result) con meses sin datos",
+      "when": "se leen las celdas cuyo textContent es exactamente el em-dash",
+      "then": "todas tienen color --fg-muted resuelto: rgb(107,107,115) en claro y rgb(155,155,163) en oscuro",
+      "steps": [
+        "Localizar las celdas con '—'",
+        "getComputedStyle(color)",
+        "Comparar con --fg-muted en ambos temas"
+      ],
+      "expected_result": "Todas las celdas em-dash en --fg-muted. Linea base 2026-08-24: las ultimas celdas de 'Disponible del mes' eran guiones VERDES",
+      "test_data": {
+        "muted_claro": "rgb(107, 107, 115)",
+        "muted_oscuro": "rgb(155, 155, 163)"
+      }
+    },
+    {
+      "id": "TC-BJE-007e",
+      "requirement_id": "FR-1404",
+      "user_story_id": "US-1404",
+      "ac_id": "AC-1404a",
+      "title": "Un mes ENTERO sin datos no presenta una sola marca de color",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Un mes completamente vacio"
+      ],
+      "given": "un mes sin ninguna celda ni movimiento",
+      "when": "se leen las 16 celdas de ese mes (8 filas x 2 planos)",
+      "then": "las 16 estan en --fg-muted: cero en --favorable, cero en --alert-strong, cero en --fg",
+      "steps": [
+        "Situarse en el mes vacio",
+        "Recoger sus 16 celdas",
+        "Comprobar que todas son --fg-muted"
+      ],
+      "expected_result": "16/16 en --fg-muted. Ni una sola marca de color donde no hay informacion",
+      "test_data": {
+        "celdas_por_mes": 16
+      }
+    },
+    {
+      "id": "TC-BJE-007f",
+      "requirement_id": "FR-1404",
+      "user_story_id": "US-1404",
+      "ac_id": "AC-1404a",
+      "title": "Una celda con valor CERO se distingue de una celda sin dato",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "cellNum / format.ts y la logica de color de BalanceCell"
+      ],
+      "given": "dos celdas de la misma fila de resultado: una con valor 0 y otra sin dato",
+      "when": "se calculan su contenido y su color",
+      "then": "la semantica vigente del producto se conserva: format.ts resuelve !n -> '—', asi que AMBAS muestran em-dash y AMBAS son --fg-muted; lo que NO puede ocurrir es que una de las dos lleve el color de la fila",
+      "steps": [
+        "Renderizar celda con 0 y celda sin dato",
+        "Comparar textContent y color de las dos"
+      ],
+      "expected_result": "Ambas '—' y ambas --fg-muted. Esta feature NO cambia la semantica 'cero es ausencia' (es la vigente): solo deja de colorearla. Si alguna saliera con el color de fila, FR-1404 estaria incumplido",
+      "test_data": {
+        "valores": [
+          0,
+          null
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-008h",
+      "requirement_id": "FR-1405",
+      "user_story_id": "US-1405",
+      "ac_id": "AC-1405a",
+      "title": "Con restante positivo, el chip RESTANTE es del mismo color que PRESUPUESTO y EJECUTADO",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Ledger con presupuesto 1.500.000 y ejecutado 1.200.000 (restante 300.000)"
+      ],
+      "given": "la franja data-testid='summary-strip' con un restante positivo",
+      "when": "se leen los colores computados de los tres valores de la franja",
+      "then": "los tres son identicos; ninguno es --favorable; el conjunto de colores distintos de la franja tiene tamano 1",
+      "steps": [
+        "Entrar",
+        "Leer el color del valor de PRESUPUESTO, EJECUTADO y RESTANTE",
+        "Comparar los tres"
+      ],
+      "expected_result": "color(RESTANTE)===color(PRESUPUESTO)===color(EJECUTADO); ninguno igual a --favorable. Linea base: hoy RESTANTE es verde siempre que available>=0",
+      "test_data": {
+        "presupuesto": 1500000,
+        "ejecutado": 1200000,
+        "restante": 300000
+      }
+    },
+    {
+      "id": "TC-BJE-008e",
+      "requirement_id": "FR-1405",
+      "user_story_id": "US-1405",
+      "ac_id": "AC-1405a",
+      "title": "Un restante de EXACTAMENTE cero se pinta neutro (hoy la condicion >=0 lo pinta verde)",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Ledger donde ejecutado iguala al presupuesto: restante 0"
+      ],
+      "given": "la franja superior con RESTANTE en 0",
+      "when": "se lee el color computado del valor del chip",
+      "then": "es el mismo neutro que PRESUPUESTO, y NO --favorable",
+      "steps": [
+        "Preparar el ledger con restante exacto 0",
+        "Leer el color del chip"
+      ],
+      "expected_result": "neutro, no verde. Es el borde exacto: la condicion actual `kpis.available >= 0` incluye el cero y lo pinta de verde",
+      "test_data": {
+        "presupuesto": 1200000,
+        "ejecutado": 1200000,
+        "restante": 0
+      }
+    },
+    {
+      "id": "TC-BJE-008f",
+      "requirement_id": "FR-1405",
+      "user_story_id": "US-1405",
+      "ac_id": "AC-1405b",
+      "title": "Con restante NEGATIVO, el chip es el unico elemento coloreado de la franja",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Ledger con ejecutado por encima del presupuesto: restante -200.000"
+      ],
+      "given": "la franja superior con RESTANTE negativo",
+      "when": "se leen los colores de los tres valores",
+      "then": "RESTANTE es --alert-strong y los otros dos siguen en neutro: exactamente UN elemento coloreado en la franja",
+      "steps": [
+        "Preparar el sobre-consumo",
+        "Leer los tres colores",
+        "Contar cuantos difieren del neutro"
+      ],
+      "expected_result": "color(RESTANTE)===--alert-strong; exactamente 1 de 3 difiere del neutro. Si los otros cambiaran, la senal volveria a competir",
+      "test_data": {
+        "presupuesto": 1000000,
+        "ejecutado": 1200000,
+        "restante": -200000
+      }
+    },
+    {
+      "id": "TC-BJE-009h",
+      "requirement_id": "NFR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401b",
+      "title": "Las 192 celdas del modulo muestran exactamente las mismas cifras que antes del cambio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Una instantanea de referencia de los valores por (fila, mes, plano) tomada antes del cambio"
+      ],
+      "given": "el mismo ledger antes y despues del reordenamiento",
+      "when": "se recogen las 8x12x2 celdas indexadas por clave de fila, mes y plano",
+      "then": "cada valor coincide con la referencia; la comparacion es por CLAVE, no por posicion, precisamente porque las posiciones cambiaron",
+      "steps": [
+        "Cargar la referencia",
+        "Recoger las celdas indexando por data-row + mes + plano",
+        "Comparar valor a valor"
+      ],
+      "expected_result": "192/192 coinciden. Es el guardrail declarado de la feature: cambia como se presenta el calculo, jamas el calculo",
+      "test_data": {
+        "filas": 8,
+        "meses": 12,
+        "planos": 2,
+        "total": 192
+      }
+    },
+    {
+      "id": "TC-BJE-009f",
+      "requirement_id": "NFR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401b",
+      "title": "La suite de dominio de balance sigue verde sin modificar un solo test de calculo",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "tests/domain de las features balance y transferencias, sin editar"
+      ],
+      "given": "computeBalanceSeries y computeReserveFlows tras la feature",
+      "when": "se ejecuta la suite de dominio existente tal cual",
+      "then": "pasa entera sin que se haya tocado ningun fichero de tests/domain relativo al calculo del balance",
+      "steps": [
+        "git diff sobre tests/domain — debe estar vacio para los tests de calculo",
+        "Ejecutar la suite"
+      ],
+      "expected_result": "Suite verde y diff vacio en los tests de calculo. Si hubiera que editar un test de dominio, la feature habria salido de su alcance (src/domain/balance.ts es de solo lectura)",
+      "test_data": {
+        "ruta": "tests/domain/"
+      }
+    },
+    {
+      "id": "TC-BJE-010h",
+      "requirement_id": "NFR-1402",
+      "title": "Un valor negativo conserva los TRES canales: color, signo y glifo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Un mes con Disponible del mes en -1.000.000"
+      ],
+      "given": "una celda de resultado con valor negativo",
+      "when": "se inspeccionan su color, su texto y sus hijos",
+      "then": "color===--alert-strong; textContent empieza por el signo menos; existe un span[aria-hidden='true'] con el glifo de forma",
+      "steps": [
+        "Localizar la celda negativa",
+        "Comprobar los tres canales por separado"
+      ],
+      "expected_result": "Los tres presentes a la vez. Retirar el verde no puede degradar el unico canal de estado que queda (WCAG 1.4.1)",
+      "test_data": {
+        "valor": -1000000
+      },
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403b"
+    },
+    {
+      "id": "TC-BJE-010f",
+      "requirement_id": "NFR-1402",
+      "title": "Ningun texto del modulo baja de 4,5:1 sobre la superficie hundida, en ambos temas",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Ambos temas",
+        "Modulo desplegado con datos, huecos y un negativo"
+      ],
+      "given": "las celdas y rotulos del modulo sobre --bg-sunken",
+      "when": "se calcula el contraste de cada color de texto usado contra el fondo real de su celda",
+      "then": "todos los pares son >=4,5:1 en claro y en oscuro; el peor caso medido es --alert-strong (4,85:1 claro)",
+      "steps": [
+        "Recoger los colores de texto distintos y el fondo",
+        "Calcular el ratio WCAG de cada par",
+        "Comprobar el minimo"
+      ],
+      "expected_result": "min(ratios)>=4.5 en ambos temas. La retirada del verde SUBE el contraste medio: --favorable (4,87:1) era el par mas flojo de las filas de resultado y lo sustituye --fg (15,8:1)",
+      "test_data": {
+        "umbral": 4.5,
+        "peor_caso_esperado": 4.85
+      },
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a"
+    },
+    {
+      "id": "TC-BJE-011h",
+      "requirement_id": "NFR-1403",
+      "title": "Plegar por el chevron sigue ocultando EXACTAMENTE 'Saldo reservado' y 'Saldo total'",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Modulo desplegado"
+      ],
+      "given": "el chevron que vive en la fila 'Saldo disponible'",
+      "when": "se pulsa para plegar la cola",
+      "then": "quedan visibles 6 filas terminando en 'Saldo disponible', y las ocultas son exactamente 'Saldo reservado' y 'Saldo total'",
+      "steps": [
+        "Contar filas visibles antes (8)",
+        "Pulsar el chevron",
+        "Contar y comprobar cuales quedan"
+      ],
+      "expected_result": "6 visibles; ocultas exactamente {reservedBalance,total}. Las MISMAS dos que hoy — la vista plegada sigue terminando en 'cuanto puedo gastar'",
+      "test_data": {
+        "visibles_plegado": 6,
+        "ocultas": [
+          "reservedBalance",
+          "total"
+        ]
+      },
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a"
+    },
+    {
+      "id": "TC-BJE-011f",
+      "requirement_id": "NFR-1403",
+      "title": "TAIL_FROM se sigue derivando por busqueda, no por indice escrito a mano",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "El calculo de TAIL_FROM en BalanceModule.tsx"
+      ],
+      "given": "la constante TAIL_FROM",
+      "when": "se compara su valor con ROWS.findIndex(r=>r.key==='available')+1 y se reordena ROWS artificialmente",
+      "then": "TAIL_FROM sigue apuntando una posicion despues de 'available' en cualquier orden; NO es el literal 6 ni el literal 7",
+      "steps": [
+        "Comprobar que TAIL_FROM===findIndex+1 con el orden nuevo (===6)",
+        "Permutar ROWS y recomprobar que sigue el indice de available"
+      ],
+      "expected_result": "TAIL_FROM===6 con el orden nuevo, y sigue a 'available' tras permutar. Si estuviera escrito a mano, el reordenamiento habria roto el plegado en silencio",
+      "test_data": {
+        "tail_from_esperado": 6
+      },
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a"
+    },
+    {
+      "id": "TC-BJE-012h",
+      "requirement_id": "NFR-1404",
+      "title": "El gate design-tokens.sh pasa limpio sobre el arbol tras la feature",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "La comprobacion nueva anadida a scripts/design-tokens.sh"
+      ],
+      "given": "el repositorio con la feature implementada",
+      "when": "se ejecuta ./scripts/design-tokens.sh",
+      "then": "termina con codigo de salida 0",
+      "steps": [
+        "Ejecutar el gate",
+        "Comprobar el codigo de salida"
+      ],
+      "expected_result": "exit 0. Comprueba ademas las reglas que ya vigilaba: color por tipo solo en el registro, cero tamanos ad-hoc, escalas declaradas",
+      "test_data": {
+        "comando": "./scripts/design-tokens.sh",
+        "exit_esperado": 0
+      },
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a"
+    },
+    {
+      "id": "TC-BJE-012f",
+      "requirement_id": "NFR-1404",
+      "title": "El gate FALLA si se reintroduce --favorable en BalanceModule o en DesktopShell",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Copia de trabajo desechable del arbol"
+      ],
+      "given": "el arbol tras la feature",
+      "when": "se inyecta 'var(--favorable)' en src/components/BalanceModule.tsx y, en una segunda pasada, en src/components/DesktopShell.tsx, ejecutando el gate tras cada inyeccion",
+      "then": "el gate termina con codigo distinto de 0 en AMBOS casos y su mensaje nombra el fichero infractor",
+      "steps": [
+        "Copiar el arbol",
+        "Inyectar el token en BalanceModule.tsx y ejecutar el gate",
+        "Revertir; inyectarlo en DesktopShell.tsx y ejecutar",
+        "Comprobar exit!=0 y el mensaje en los dos"
+      ],
+      "expected_result": "exit!=0 las dos veces, nombrando el fichero. UN GATE QUE NUNCA SE VIO FALLAR NO ESTA VERIFICADO — es la leccion de BG-014, donde el gate de smoke acreditaba un build de hacia cuatro semanas",
+      "test_data": {
+        "ficheros": [
+          "src/components/BalanceModule.tsx",
+          "src/components/DesktopShell.tsx"
+        ],
+        "token": "var(--favorable)"
+      },
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a"
+    },
+    {
+      "id": "TC-BJE-013h",
+      "requirement_id": "FR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401a",
+      "title": "El orden de lectura accesible coincide con el orden declarado en ROWS",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "Modulo desplegado"
+      ],
+      "given": "el arbol de accesibilidad del modulo de Balance",
+      "when": "se recorre en orden de DOM el texto accesible de las ocho filas",
+      "then": "la secuencia coincide exactamente con ROWS.map(r=>r.label); ningun aria-label ni tabindex depende del indice de fila",
+      "steps": [
+        "Recoger el texto accesible en orden de DOM",
+        "Comparar con ROWS",
+        "Comprobar que no hay tabindex numerico en las filas"
+      ],
+      "expected_result": "Secuencia identica a ROWS. El orden nuevo MEJORA la lectura secuencial: cada resultado se anuncia despues de sus sumandos (flag de riesgo 3 del TRD)",
+      "test_data": {
+        "filas": 8
+      }
+    },
+    {
+      "id": "TC-BJE-009e",
+      "requirement_id": "NFR-1401",
+      "user_story_id": "US-1401",
+      "ac_id": "AC-1401b",
+      "title": "El ARRASTRE entre meses sobrevive al reordenamiento",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Ledger con datos encadenados en al menos cuatro meses consecutivos"
+      ],
+      "given": "la cadena de arrastre: el 'Saldo mes anterior' de cada mes es el 'Saldo disponible' del mes previo",
+      "when": "se recorren cuatro meses consecutivos leyendo esas dos filas",
+      "then": "para cada par de meses consecutivos, valor('prevAvailable', mes N) === valor('available', mes N-1), en ambos planos",
+      "steps": [
+        "Recoger prevAvailable y available de los cuatro meses",
+        "Comparar cada par consecutivo"
+      ],
+      "expected_result": "Las tres igualdades se cumplen en Pres. y en Ejec. Es el caso limite del guardrail: 'prevAvailable' es la fila que MAS se mueve en el reordenamiento (del puesto 1 al 5), asi que es donde un error de indexacion romperia la cadena sin que ninguna celda se vea vacia",
+      "test_data": {
+        "meses": [
+          "2026-06",
+          "2026-07",
+          "2026-08",
+          "2026-09"
+        ]
+      }
+    },
+    {
+      "id": "TC-BJE-010e",
+      "requirement_id": "NFR-1402",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "Con un mes FILTRADO, el modulo conserva su superficie uniforme y no pierde contraste",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Un mes seleccionado en el filtro de la grilla",
+        "Tema claro"
+      ],
+      "given": "la grilla resalta el mes filtrado, pero el modulo de Balance NO sigue ese resaltado — decision deliberada, porque el tinte oscurece la celda hasta #e4e4e6 y los colores perderian AA",
+      "when": "se lee el fondo computado de las celdas del mes filtrado dentro del modulo de Balance",
+      "then": "su fondo sigue siendo --bg-sunken sin mezcla de --accent, y el contraste de su texto sigue >=4,5:1",
+      "steps": [
+        "Filtrar por un mes",
+        "Leer el background de las celdas de ese mes en el Balance",
+        "Comprobar que no hay color-mix con --accent",
+        "Recalcular el contraste"
+      ],
+      "expected_result": "background===--bg-sunken resuelto, sin tinte; contraste >=4,5:1. Es el caso limite donde el contraste podria degradarse sin que ningun token haya cambiado (regresion vigente que la feature no debe romper)",
+      "test_data": {
+        "fondo_esperado_claro": "rgb(241, 241, 243)",
+        "umbral": 4.5
+      }
+    },
+    {
+      "id": "TC-BJE-011e",
+      "requirement_id": "NFR-1403",
+      "user_story_id": "US-1402",
+      "ac_id": "AC-1402a",
+      "title": "El SEGUNDO nivel de plegado —el modulo entero— sigue resumiendo en su encabezado",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Modulo desplegado con datos"
+      ],
+      "given": "el plegado en DOS niveles: el modulo entero, y dentro de el su cola",
+      "when": "se pliega el MODULO COMPLETO (no la cola)",
+      "then": "desaparecen las ocho filas y aparece la celda de encabezado con el Saldo total del mes, en color NEUTRO segun FR-1403",
+      "steps": [
+        "Plegar el modulo entero",
+        "Comprobar que hay 0 balance-row visibles",
+        "Comprobar que aparecen las balance-header-cell",
+        "Leer su color"
+      ],
+      "expected_result": "0 filas visibles; encabezado presente con el Saldo total; color neutro, no --favorable. Es el cruce exacto de NFR-1403 con FR-1403: el unico estado en que HeaderTotalCell se pinta, y por eso el que la primera redaccion de los FR paso por alto",
+      "test_data": {
+        "filas_visibles": 0
+      }
+    },
+    {
+      "id": "TC-BJE-012e",
+      "requirement_id": "NFR-1404",
+      "user_story_id": "US-1403",
+      "ac_id": "AC-1403a",
+      "title": "El gate NO se dispara por los usos LEGITIMOS de --favorable (sin falsos positivos)",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El arbol tras la feature, con sus usos legitimos intactos"
+      ],
+      "given": "--favorable sigue usandose legitimamente en src/components/register/ y en src/components/Dashboard.tsx, ambos en el no_go_zone",
+      "when": "se ejecuta el gate sin tocar esos ficheros",
+      "then": "termina en 0: la comprobacion nueva se acota a BalanceModule.tsx, DesktopShell.tsx y exceptionColor.ts, y NO marca el registro ni el Dashboard",
+      "steps": [
+        "Comprobar que Dashboard.tsx conserva sus usos de --success",
+        "Ejecutar el gate",
+        "Comprobar exit 0"
+      ],
+      "expected_result": "exit 0 con los usos legitimos presentes. Un gate que fallara aqui obligaria a retirar color que el usuario decidio conservar — seria peor que no tenerlo, porque presionaria a salirse del no_go_zone",
+      "test_data": {
+        "ficheros_legitimos": [
+          "src/components/register/",
+          "src/components/Dashboard.tsx"
+        ]
+      }
+    }
+  ]
+}

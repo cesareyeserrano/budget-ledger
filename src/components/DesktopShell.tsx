@@ -12,6 +12,7 @@ import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
 import { StorageBanner } from "./register/StorageBanner";
 import { money } from "./format";
+import { exceptionColor } from "./exceptionColor";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
@@ -102,11 +103,19 @@ export function DesktopShell() {
               <Kpi compact label="EJECUTADO" value={money(kpis.ejecutado)} sub={`${kpis.pct}%`} />
               {/* «DISPONIBLE» colisionaba con el «Saldo disponible» del Balance en la MISMA pantalla
                   midiendo otra cosa (presupuesto restante frente a plata que tienes). Se renombra. */}
+              {/* balance-jerarquia FR-1405: era `available >= 0 ? --favorable : --alert-strong`,
+                  o sea VERDE PERMANENTE salvo en números rojos — el mismo defecto que BL-026
+                  denunció en el Balance, aquí arriba y fuera de aquella captura. Dejarlo verde
+                  mientras el Balance pasaba a neutro habría dejado la pantalla con DOS criterios
+                  de color a la vez. Ahora los tres chips obedecen la misma regla: este cambio
+                  ALINEA el tercero con sus hermanos, no introduce un estilo nuevo.
+                  Nota del borde: `>= 0` pintaba de verde un restante de EXACTAMENTE cero.
+                  `exceptionColor` usa `< 0` estricto, así que el cero cae a neutro. */}
               <Kpi
                 compact
                 label="RESTANTE"
                 value={money(kpis.available)}
-                color={kpis.available >= 0 ? "var(--favorable)" : "var(--alert-strong)"}
+                color={exceptionColor(kpis.available)}
               />
             </div>
           )}

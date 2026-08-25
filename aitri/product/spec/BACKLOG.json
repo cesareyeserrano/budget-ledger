@@ -186,8 +186,9 @@
       "title": "Recuperación de contraseña y verificación de email (login sin camino de vuelta)",
       "priority": "P1",
       "problem": "Ningún FR cubre recuperar la contraseña ni verificar el email. Un usuario que olvida su contraseña queda fuera de la app sin camino de vuelta, y Google (la única alternativa de acceso) está apagado con NEXT_PUBLIC_GOOGLE_ENABLED=false. Con la feature servidor-fuente-unica el login pasa a ser obligatorio para todos (FR-1102), así que esto deja de ser incómodo y pasa a bloqueante. Hallazgo del 2026-07-30 al inventariar el login: el núcleo de auth está sólido (argon2id en parámetros OWASP, sesiones en BD que el logout invalida, cookies HttpOnly/Secure/SameSite, rate limit de 5 intentos/min), lo que falta es el flujo de recuperación. Es funcionalidad real —envío de correo, tokens de un solo uso, expiración, plantillas— NO acabado visual: debe ir por su propia feature (aitri feature init), no colarse dentro de otra. Relacionado: FR-501, FR-502 (feature backend).",
-      "status": "open",
-      "createdAt": "2026-07-30T22:18:29.415Z"
+      "status": "closed",
+      "createdAt": "2026-07-30T22:18:29.415Z",
+      "closedAt": "2026-08-24T22:19:38.113Z"
     },
     {
       "id": "BL-021",
@@ -250,6 +251,27 @@
       "status": "closed",
       "createdAt": "2026-08-13T03:20:01.080Z",
       "closedAt": "2026-08-13T16:30:56.561Z"
+    },
+    {
+      "id": "BL-028",
+      "title": "Verificacion de email en el registro (mitad no entregada de BL-020)",
+      "priority": "P3",
+      "problem": "BL-020 pedia recuperacion de contrasena Y verificacion de email. La recuperacion se entrego completa el 2026-08-14 (feature recuperar-acceso, 5/5 fases, 87/87 TC) y BL-020 se cerro por eso el 2026-08-24. La verificacion de email NO se hizo: quedo out_of_scope por decision del usuario el 2026-08-13, con el riesgo declarado y aceptado de que quien se registre con un correo mal escrito queda irrecuperable — no puede entrar (no sabe la contrasena de una cuenta que no es suya) ni recuperar (el enlace va a un buzon que no controla). Despriorizado a P3 el 2026-08-24 por decision del usuario: el foco vuelve al core (modulo de Balance), y el login se retoma despues. Nota de entorno: en dev los correos van a Mailpit (localhost:8025), no a buzones reales, y no hay proveedor SMTP de produccion elegido — sin esa decision la verificacion tampoco funcionaria fuera de la maquina de desarrollo.",
+      "status": "open",
+      "createdAt": "2026-08-24T22:19:48.561Z",
+      "files": "src/server/auth.ts, src/server/mail/, src/components/auth/AuthForm.tsx",
+      "acceptance": "Un registro con correo no verificado queda en estado limitado hasta confirmar el enlace; el correo de verificacion sale por el mismo transporte que la recuperacion; existe un camino para reenviarlo."
+    },
+    {
+      "id": "BL-029",
+      "title": "El resumen plegado del Balance deberia mostrar Saldo disponible, no Saldo total (y ser configurable)",
+      "priority": "P2",
+      "problem": "Al plegar el modulo de Balance, su encabezado muestra el SALDO TOTAL del mes (HeaderTotalCell, src/components/BalanceModule.tsx, FR-905 de la feature balance). El usuario lo reviso el 2026-08-25 y prefiere que muestre el SALDO DISPONIBLE. El argumento es correcto y el propio codigo lo respalda sin cumplirlo: el comentario del plegado dice que existe para dar 'la vista compacta de cuanto tengo', pero Saldo total INCLUYE el Saldo reservado — plata ya apartada que el usuario no va a gastar. Si se pliega el modulo para responder 'cuanto puedo gastar', la cifra correcta es Saldo disponible. Coherencia adicional: el chevron interno, que vive en la fila 'Saldo disponible', ya pliega la cola dejando la cuenta terminando ahi justamente por esa razon — asi que los dos niveles de plegado hoy responden preguntas distintas sin motivo. NO se metio en la feature balance-jerarquia por decision del usuario del 2026-08-25: es cambio de comportamiento sobre un FR aprobado (FR-905) y meterlo a mitad del build habria cascadeado UX, arquitectura, tests y la aprobacion de EP-01. En codigo es UNA linea (series[m.k].budget.total -> .available); lo que cuesta es la decision y su cascada.",
+      "status": "open",
+      "createdAt": "2026-08-25T17:11:31.579Z",
+      "files": "src/components/BalanceModule.tsx, tests/e2e/balance.spec.ts",
+      "behavior": "SEGUNDA PARTE, pedida por el usuario el 2026-08-25: hacerlo CONFIGURABLE a futuro (que el usuario elija que cifra resume el modulo plegado). Eso ya no es una linea: necesita preferencia persistida, sitio donde ajustarla y decidir su alcance (por usuario, global). Conviene tratarlo como fase 2 de este item, o como feature propia.",
+      "acceptance": "Plegado, el encabezado del modulo muestra el Saldo disponible del mes; un saldo negativo conserva sus tres canales (color, signo, glifo); el color obedece la regla de balance-jerarquia FR-1403 (neutro por defecto). Los TCs de la feature balance que afirman el Saldo total en el encabezado se actualizan con revocacion declarada, como se hizo con TC-BAL-935h."
     }
   ]
 }

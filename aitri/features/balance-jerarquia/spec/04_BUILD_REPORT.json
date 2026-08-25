@@ -1,0 +1,95 @@
+{
+  "feature": "balance-jerarquia",
+  "summary": "El modulo de Balance deja leer su propia aritmetica, y el color pasa a senalar solo la excepcion en TODA la pantalla principal. Tres movimientos: (1) las ocho filas se reordenan en ESCALERA —cada resultado precedido por sus sumandos, con cuatro niveles de sangria de 16 px, el mismo paso del arbol de la grilla— de modo que la forma coincide con la cascada aritmetica de tres eslabones que el modulo calcula; (2) se retira `--favorable` del modulo, de su encabezado plegado y del chip RESTANTE de la franja superior, dejando el rojo del negativo como UNICO color de la pantalla; (3) la regla queda cerrada por gate, en lista negra con excepciones declaradas. Cero dependencias nuevas, cero tokens nuevos, cero cambios en el dominio: `src/domain/balance.ts` no se toco y las 192 celdas muestran las mismas cifras que antes.",
+  "files_created": [
+    "src/components/exceptionColor.ts",
+    "src/components/balanceRows.ts",
+    "tests/domain/balance-jerarquia-color.test.ts",
+    "tests/domain/balance-jerarquia-orden.test.ts",
+    "tests/e2e/balance-jerarquia.spec.ts"
+  ],
+  "files_modified": [
+    "src/components/BalanceModule.tsx",
+    "src/components/DesktopShell.tsx",
+    "scripts/design-tokens.sh",
+    "tests/integration/design-tokens.test.ts",
+    "tests/e2e/balance.spec.ts"
+  ],
+  "test_runner": "npx vitest run && npx playwright test",
+  "test_files": [
+    "tests/domain/balance-jerarquia-color.test.ts",
+    "tests/domain/balance-jerarquia-orden.test.ts",
+    "tests/integration/design-tokens.test.ts",
+    "tests/e2e/balance-jerarquia.spec.ts",
+    "tests/e2e/balance.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1401",
+      "substitution": "El PRIMER criterio de aceptacion de FR-1401 —«entre dos filas de resultado consecutivas no aparece ninguna fila de sumando»— es INSATISFACIBLE y no se implementa tal cual. En su lugar el invariante que se hace cumplir es la CONTIGUIDAD leida sobre los niveles (`validateContiguity`): cada resultado va precedido por el conjunto COMPLETO de sus sumandos directos, que es el SEGUNDO criterio del mismo FR y el que captura la intencion. `validateCascadeOrder` comprueba la mitad que si es satisfacible: ningun resultado se calcula antes que sus insumos y la cadena va en orden.",
+      "reason": "En cualquier escalera cada resultado va precedido de su bloque de sumandos, luego entre dos resultados consecutivos SIEMPRE hay sumandos — los dos criterios del FR se contradicen. Medido el 2026-08-25: el orden ANTERIOR (el defectuoso) deja 1 sumando entre resultados consecutivos y la escalera deja 2, o sea que el criterio premia al defecto sobre la cura. La INTENCION de FR-1401 («el orden sigue la aritmetica») no cambia y lo construido la cumple; lo que quedo mal redactado es un criterio en el artefacto. Decision del usuario (2026-08-25): desviacion declarada en vez de re-derivar la fase 1, que habria cascadeado UX, arquitectura y tests para reescribir una frase. Precedente del proyecto: TC-REC-055e, tambien por premisa falsa del caso aprobado.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1404",
+      "substitution": "TC-BJE-007e afirmaba «un mes entero sin datos presenta TODAS sus celdas en em-dash». El test verifica en su lugar que un mes sin MOVIMIENTOS PROPIOS no introduce ninguna marca de color: lo sin dato va atenuado, lo arrastrado va neutro, cero verde y cero alerta.",
+      "reason": "La premisa del caso aprobado era FALSA: por el ARRASTRE, un mes sin movimientos propios sigue mostrando cifras — «Saldo mes anterior», «Saldo disponible» y «Saldo total» se acarrean del mes previo. Un mes con todo en em-dash solo existe antes del primer dato del ledger. Lo que el TC queria proteger sigue verificado y con el mismo rigor; lo que cambia es la premisa, no el criterio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1402",
+      "substitution": "La tabla `ROWS` y sus invariantes se extrajeron de `BalanceModule.tsx` a un modulo nuevo, `src/components/balanceRows.ts`. El TRD listaba los cambios dentro de `BalanceModule.tsx`.",
+      "reason": "Es la CONSECUENCIA directa de ADR-04, no un cambio de diseno: si `level` es dato declarado para que «un test pueda afirmar que todo sumando esta mas adentro que su resultado SIN RENDERIZAR NADA», la tabla tiene que ser importable sin arrastrar React ni el store de Zustand. `BalanceModule.tsx` sigue siendo el unico sitio que la pinta. Precedente en el repo: `reserveText.ts`, helper pequeno colocado junto a sus consumidores.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1403",
+      "substitution": "El criterio dice «ninguna celda del modulo». Se verifica sobre SIETE de las ocho filas: la fila «Retiros del mes» no usa `BalanceCell`.",
+      "reason": "Esa fila es OPERABLE desde la unificacion del 2026-07-29 y monta `PlannedWithdrawCell`/`WithdrawCell`, con sus propios testids. Su rediseno es BL-019, que esta en el no_go_zone de esta feature por decision del usuario. Verificado aparte: esas celdas NO usan `--favorable` ni sus alias, asi que no dejan verde huerfano — el criterio se cumple de hecho en las ocho filas, y se comprueba mecanicamente en siete.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-1403",
+      "substitution": "El TC de la feature `balance` TC-BAL-909e enumeraba en linea el orden de las filas visibles tras plegar, y se actualizo.",
+      "reason": "Su CONDUCTA no cambia —el chevron sigue ocultando exactamente «Saldo reservado» y «Saldo total»— pero listaba el orden, y el orden ahora sigue la cascada: `prevAvailable` paso del primer puesto al quinto. No es una revocacion de criterio sino la actualizacion de un dato que el propio FR-1401 manda cambiar.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": "REVOCACION DECLARADA (ADR-02): el criterio de FR-905/AC-905 de la feature `balance` —«un resultado sano se pinta en verde»— queda REVOCADO desde el 2026-08-25 por decision del usuario, con evidencia medida (tres filas de resultado en --favorable a lo ancho de doce meses, captura del 2026-08-24 a 1920px). Lo sustituye FR-1403. `TC-BAL-935h` CONSERVA SU ID e invierte su asercion, de «se pinta en verde» a «se pinta neutro y el verde no vuelve»; `TC-BAL-956h` cambia su ultima asercion de `--success-strong` a `--fg`. Los dos llevan la revocacion escrita encima. El resto de FR-905 —que cifras muestra el modulo y su aritmetica— sigue integramente vigente. ---- DOS DEFECTOS QUE LOS TESTS CAZARON Y QUE UNA REVISION DE CODIGO HABRIA DEJADO PASAR: (1) `validateContiguity` recogia NIETOS como si fueran hijos — al retroceder por nivel se llevaba las filas de nivel 3 al calcular el bloque de `available` (nivel 1), que reclamaba cinco sumandos en vez de dos; corregido filtrando al nivel inmediatamente inferior. (2) El punto de ruptura de la sangria era `max-width: 1023.98px`, EXCLUSIVO, y el spec fija «a 1024 px el paso baja a 12»: a 1024 exactos media 62 px donde debia medir 50. Es la MISMA trampa que ya registro TC-REC-055e con `max-[760px]` de Tailwind v4, que compila a `width < 760px` — el limite se enuncia inclusivo y se implementa exclusivo. Este proyecto ya se tropezo con ella una vez. ---- EL GATE SE VERIFICO EN TRES SENTIDOS, ejecutandolo de verdad: pasa limpio (exit 0); falla nombrando fichero y linea al inyectar `var(--favorable)` en BalanceModule.tsx y, por separado, en DesktopShell.tsx (exit 1); y NO se dispara por los usos legitimos de Dashboard.tsx ni de BudgetGrid.tsx (exit 0). Esta escrito como LISTA NEGRA con excepciones declaradas, no como lista blanca de ficheros vigilados: un componente nuevo queda cubierto por defecto en vez de excluido por defecto, que es exactamente como se escapo el chip RESTANTE. Ignora las lineas de comentario a proposito, porque los dos ficheros corregidos documentan por escrito el token que retiraron. ---- BACKLOG ABIERTO DURANTE EL BUILD: BL-029, el resumen plegado del modulo deberia mostrar «Saldo disponible» y no «Saldo total» (y ser configurable a futuro). Es cambio de comportamiento sobre FR-905, se enruto al backlog por decision del usuario del 2026-08-25 en vez de cascadear la feature a mitad del build."
+}

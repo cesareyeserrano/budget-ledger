@@ -150,3 +150,52 @@ describe("FR-1207 — retiro de lo que no tiene consumidor", () => {
     expect(orphanTokens, `tokens sin consumidor: ${orphanTokens.join(", ")}`).toHaveLength(0);
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// balance-jerarquia NFR-1404 — el verde de normalidad queda cerrado por gate (ADR-03)
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+describe("NFR-1404 — el gate impide que el verde permanente vuelva", () => {
+  const writeFile = (p: string, s: string) => require("node:fs").writeFileSync(p, s);
+
+  // @aitri-tc TC-BJE-012h
+  it("TC-BJE-012h: el gate pasa limpio sobre el árbol tras la feature", () => {
+    expect(runGate()).toBe(0);
+  });
+
+  // @aitri-tc TC-BJE-012f
+  it("TC-BJE-012f: FALLA si se reintroduce --favorable en BalanceModule o en DesktopShell", () => {
+    // Los DOS ficheros, uno a uno. Arreglar uno y olvidar el otro es literalmente el defecto que
+    // originó esta feature: la regla estaba escrita tres veces y dos copias se quedaron en verde.
+    for (const rel of ["src/components/BalanceModule.tsx", "src/components/DesktopShell.tsx"]) {
+      const victim = resolve(root, rel);
+      const original = readFileSync(victim, "utf8");
+      try {
+        // Se inyecta en CÓDIGO, no en un comentario: el gate ignora los comentarios a propósito
+        // (los dos ficheros documentan por escrito el token que retiraron).
+        writeFile(victim, `${original}\nconst __MUTANTE__ = "var(--favorable)";\n`);
+        expect(runGate(), `el gate no cazó --favorable en ${rel}`).not.toBe(0);
+      } finally {
+        writeFile(victim, original);
+      }
+    }
+    // Y queda restaurado.
+    expect(runGate()).toBe(0);
+  });
+
+  // @aitri-tc TC-BJE-012e
+  it("TC-BJE-012e: NO se dispara por los usos legítimos de Dashboard ni de la grilla", () => {
+    // Las dos excepciones declaradas siguen usando el token, y el gate pasa. Un gate con falsos
+    // positivos aquí sería PEOR que no tenerlo: presionaría a retirar color que el usuario decidió
+    // conservar, saliéndose del no_go_zone que él mismo fijó.
+    const dashboard = read("src/components/Dashboard.tsx");
+    const grid = read("src/components/BudgetGrid.tsx");
+    expect(dashboard).toContain("var(--success)"); // gráficas: el verde es una serie, no un estado
+    expect(grid).toContain("var(--favorable)"); // cellTone: CONDICIONAL al cumplimiento del plan
+    expect(runGate()).toBe(0);
+
+    // Y el gate tampoco confunde documentación con infracción: los dos ficheros corregidos nombran
+    // por escrito el token que retiraron, y siguen pasando.
+    expect(read("src/components/BalanceModule.tsx")).toContain("--success-strong");
+    expect(read("src/components/DesktopShell.tsx")).toContain("--favorable");
+  });
+});
