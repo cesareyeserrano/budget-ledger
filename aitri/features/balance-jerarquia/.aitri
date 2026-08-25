@@ -17,30 +17,9 @@
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-25T22:33:21.158Z",
+  "updatedAt": "2026-08-25T22:39:00.678Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-24T22:46:28.968Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-08-24T22:46:33.041Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-24T22:46:38.095Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-24T22:52:08.344Z",
-      "event": "completed",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-25T12:11:50.694Z",
       "event": "completed",
@@ -120,6 +99,30 @@
       "at": "2026-08-25T22:33:21.126Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-08-25T22:38:05.342Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 13,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-25T22:38:46.092Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-25T22:39:00.499Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-25T22:39:00.654Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
   "cascadedPhases": [],
@@ -127,7 +130,7 @@
     "1": "49f0fba731449d97110198bddbb4cc48b11040d289f040d8546170a476523659",
     "2": "c65d0619962f6907d7c27063a4027a3f3617b47ee54cf3f7a2f105613dd3eab4",
     "3": "9e22b1ff693ed348a5f50275928dcc1b3752e0c723dfad1c63d39e160d8262d0",
-    "4": "b4bb6641610b3e65d2988ec1e0cc67c3b4ae0993beca1406f4183f518ffb5a3f",
+    "4": "b16c8cad3efae9ac4ce445858dc4f6d2f42537808dc6ce562aad910181c91638",
     "ux": "b746f98d9b792054c440d1e336e57ec4db08ed316a9e0f559f1d4c63c3df6651"
   },
   "verifyPassed": false,
@@ -160,5 +163,7 @@
       "FR-1404",
       "FR-1405"
     ]
-  }
+  },
+  "verifyRanRef": "bae19a0cedf545134d4492323f567850c4bfdccb",
+  "verifyRanDirty": true
 }
