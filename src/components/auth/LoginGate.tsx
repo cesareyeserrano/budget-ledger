@@ -16,21 +16,33 @@
  * @aitri-trace FR-ID: FR-1102, US-ID: US-1102, AC-ID: AC-1102a, TC-ID: TC-SFU-102h
  */
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { AuthPending } from "./AuthPending";
+import { RequestResetForm } from "./RequestResetForm";
 import { useLedgerStore } from "@/state/store";
 import { SyncClient } from "@/data/syncClient";
 import { useSession } from "@/lib/authClient";
 
 export function LoginGate({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
+  // Vista sin sesión: acceso o solicitud de recuperación. Se conmuta por estado de cliente, sin
+  // cambiar de dirección ni recargar — igual que AuthForm conmuta entre login y registro (FR-1302).
+  // El parámetro ?recuperar=1 permite volver aquí desde /recuperar tras un enlace muerto.
+  const [showReset, setShowReset] = useState(false);
   const hydrate = useLedgerStore((s) => s.hydrate);
   const resync = useLedgerStore((s) => s.resync);
   const sessionExpired = useLedgerStore((s) => s.sessionExpired);
   const syncRef = useRef<SyncClient | null>(null);
 
   const userId = session?.user?.id ?? null;
+
+  useEffect(() => {
+    // Llegada desde /recuperar con un enlace muerto: abre directamente la solicitud.
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("recuperar")) {
+      setShowReset(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!userId || sessionExpired) return;
@@ -52,7 +64,13 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   if (isPending) return <AuthPending />;
   // La sesión caducada tiene prioridad sobre el `session` cacheado: useSession solo consulta al
   // montar, así que sigue devolviendo la sesión muerta y sin esto el shell se quedaría en pantalla.
-  if (!session || sessionExpired) return <AuthForm />;
+  if (!session || sessionExpired) {
+    return showReset ? (
+      <RequestResetForm onBack={() => setShowReset(false)} />
+    ) : (
+      <AuthForm onForgotPassword={() => setShowReset(true)} />
+    );
+  }
 
   return <>{children}</>;
 }

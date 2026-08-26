@@ -91,9 +91,38 @@ en vivo. Host-agnóstico (NFR-510): la Pi es solo un laboratorio.
 
 ## Configuración (12-factor, todo por entorno)
 `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID/SECRET` (opcionales),
-`LEDGER_ALLOWED_ORIGINS`, `LEDGER_TRUST_PROXY`. Validadas fail-fast al arranque (`src/server/env.ts`
-+ `scripts/check-env.mjs`): un valor requerido faltante aborta el boot nombrando la variable
-(NFR-510). Ver `.env.example`.
+`LEDGER_ALLOWED_ORIGINS`, `LEDGER_TRUST_PROXY`, `SMTP_*` (opcionales, ver abajo). Validadas
+fail-fast al arranque (`src/server/env.ts` + `scripts/check-env.mjs`): un valor requerido faltante
+aborta el boot nombrando la variable (NFR-510). Ver `.env.example`.
+
+### `SMTP_*` — habilitan la recuperación de contraseña (feature `recuperar-acceso`, FR-1311)
+
+Cinco variables, **las cinco o ninguna**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
+`SMTP_FROM`. Una configuración a medias cuenta como no configurada — es preferible a fallar a mitad
+de un envío, cuando alguien ya está bloqueado fuera.
+
+**Su ausencia NO aborta el arranque** (NFR-510, artefacto portable): la app funciona con normalidad
+y solo el flujo de recuperación queda apagado, igual que Google. En ese estado la pantalla de
+solicitud muestra su aviso y `POST /api/v1/recovery/request` responde `503 RECOVERY_UNAVAILABLE`.
+
+Sin correo configurado, **quien olvide su contraseña no tiene camino de vuelta**: es exactamente el
+problema que esta feature existe para resolver. Si el despliegue tiene usuarios reales, configúralas.
+
+- `SMTP_PASSWORD` debe ser una **contraseña de aplicación**, nunca la de la cuenta de correo.
+- Ninguna lleva prefijo `NEXT_PUBLIC_`: son credenciales de servidor y el gate `security-config`
+  falla si alguna alcanza el bundle del navegador.
+- El envío sale del **proceso servidor**. El cliente conserva sus cero peticiones externas (NFR-1304).
+- Puerto `465` usa TLS implícito; `587` y `1025` van por STARTTLS o en claro (desarrollo).
+- Timeouts acotados (conexión 5 s, saludo 5 s, socket 10 s): un SMTP que acepta y calla no deja la
+  petición colgada.
+
+**Comprobar que funciona tras desplegar:** solicita una recuperación para una cuenta real y observa
+la respuesta. `200` = enviado · `502` = el servidor SMTP no responde (mira el log, lleva el motivo
+técnico) · `503` = faltan variables.
+
+**En desarrollo** no hace falta un SMTP real: `npm run mail:up` levanta Mailpit (SMTP en `1025`,
+bandeja web en `http://localhost:8025`, ambos atados a loopback). Apunta las cinco variables ahí y
+los correos se quedan en esa bandeja sin salir a Internet.
 
 ### `LEDGER_TRUST_PROXY` — decide si el anti-fuerza-bruta funciona (BG-013 / RQ-SEC-003)
 

@@ -80,6 +80,38 @@ if command -v npm >/dev/null 2>&1; then
   check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas" $?
 fi
 
+# ── recuperación de contraseña: postura del flujo (NFR-1306) ─────────────────
+# Cuatro propiedades ESTÁTICAS que ningún test verde detecta si retroceden. Se comprueban aquí, y no
+# en un test, por la misma razón que el resto de este gate: son propiedades de la configuración, y un
+# test que lee configuración como texto probaría el código, no lo que produce.
+if [ -f "$AUTH" ]; then
+  # 1) La expiración del secreto no puede alargarse en silencio. 1800 s = 30 min (FR-1304), que es
+  #    además lo que el correo le promete al usuario.
+  grep -qE 'resetPasswordTokenExpiresIn:[[:space:]]*RESET_TOKEN_TTL_SECONDS' "$AUTH"
+  check "NFR-1306: $AUTH no fija resetPasswordTokenExpiresIn (el secreto usaría la hora por defecto de la librería, no los 30 min prometidos)" $?
+  grep -qE 'RESET_TOKEN_TTL_SECONDS[[:space:]]*=[[:space:]]*1_?800' "$AUTH"
+  check "NFR-1306: RESET_TOKEN_TTL_SECONDS ya no vale 1800 s en $AUTH (FR-1304 promete 30 minutos en pantalla y en el correo)" $?
+
+  # 2) Cambiar la contraseña DEBE cerrar las sesiones abiertas (FR-1309). Si esto se apaga, un
+  #    acceso robado sobrevive a la recuperación — y la recuperación deja de servir para lo que
+  #    más importa: recuperar una cuenta comprometida.
+  grep -qE 'revokeSessionsOnPasswordReset:[[:space:]]*true' "$AUTH"
+  check "NFR-1306/FR-1309: $AUTH no invalida las sesiones al recuperar (revokeSessionsOnPasswordReset debe ser true)" $?
+
+  # 3) El endpoint de recuperación debe seguir acotado, como el login (NFR-1303).
+  grep -qE '"/request-password-reset":[[:space:]]*\{' "$AUTH"
+  check "NFR-1303: $AUTH no acota /request-password-reset (sería el único endpoint de credenciales sin límite)" $?
+fi
+
+# 4) Ninguna credencial SMTP puede alcanzar el navegador: NEXT_PUBLIC_ es el único prefijo que Next
+#    inlinea al cliente, y el módulo de correo debe seguir marcado como exclusivo de servidor.
+! grep -rqE 'NEXT_PUBLIC_SMTP' src 2>/dev/null
+check "NFR-1306: hay una variable NEXT_PUBLIC_SMTP_* en src/ — las credenciales de correo llegarían al navegador" $?
+if [ -f src/server/mail/mailer.ts ]; then
+  grep -qE '^import "server-only";' src/server/mail/mailer.ts
+  check "NFR-1304: src/server/mail/mailer.ts perdió la marca server-only — nodemailer podría acabar en el bundle del cliente" $?
+fi
+
 if [ ${#FALLOS[@]} -gt 0 ]; then
   echo "❌ security-config: la postura de seguridad retrocedió (${#FALLOS[@]} comprobación(es))"
   for f in "${FALLOS[@]}"; do echo "   · $f"; done

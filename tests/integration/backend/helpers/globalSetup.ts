@@ -9,6 +9,7 @@
  */
 import type { GlobalSetupContext } from "vitest/node";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+import { GenericContainer, type StartedTestContainer, Wait } from "testcontainers";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -17,10 +18,15 @@ import path from "node:path";
 declare module "vitest" {
   interface ProvidedContext {
     databaseUrl: string;
+    /** Host:puerto SMTP de Mailpit, y URL base de su API HTTP para leer los mensajes entregados. */
+    smtpHost: string;
+    smtpPort: string;
+    mailpitApi: string;
   }
 }
 
 let container: StartedPostgreSqlContainer | undefined;
+let mailpit: StartedTestContainer | undefined;
 
 export default async function setup({ provide }: GlobalSetupContext): Promise<() => Promise<void>> {
   container = await new PostgreSqlContainer("postgres:16-alpine").start();
@@ -33,7 +39,21 @@ export default async function setup({ provide }: GlobalSetupContext): Promise<()
 
   provide("databaseUrl", url);
 
+  // Mailpit: servidor SMTP REAL para los tests de envío (feature recuperar-acceso). No es un mock —
+  // los tests afirman sobre el mensaje ENTREGADO (destinatario, cuerpo, enlace) leyéndolo por su API
+  // HTTP. Un doble de nodemailer habría pasado los mismos tests con el transporte roto.
+  mailpit = await new GenericContainer("axllent/mailpit:latest")
+    .withExposedPorts(1025, 8025)
+    .withEnvironment({ MP_SMTP_AUTH_ACCEPT_ANY: "1", MP_SMTP_AUTH_ALLOW_INSECURE: "1" })
+    .withWaitStrategy(Wait.forListeningPorts())
+    .start();
+
+  provide("smtpHost", mailpit.getHost());
+  provide("smtpPort", String(mailpit.getMappedPort(1025)));
+  provide("mailpitApi", `http://${mailpit.getHost()}:${mailpit.getMappedPort(8025)}`);
+
   return async () => {
     await container?.stop();
+    await mailpit?.stop();
   };
 }

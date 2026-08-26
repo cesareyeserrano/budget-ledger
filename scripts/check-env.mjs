@@ -32,4 +32,18 @@ if (process.env.NODE_ENV === "production") {
   }
 }
 
+// SMTP (FR-1311): mismo criterio que Google — su ausencia NO aborta el arranque (NFR-510), solo se
+// avisa, y el flujo de recuperación queda no disponible. Se avisa en TODOS los entornos, no solo en
+// producción: un dev que no entiende por qué no llega el correo merece verlo en el arranque.
+const SMTP_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"];
+const smtpPresent = SMTP_VARS.filter((n) => process.env[n]);
+if (smtpPresent.length === 0) {
+  console.warn("[boot] Aviso: recuperación de contraseña deshabilitada (sin configuración SMTP).");
+} else if (smtpPresent.length < SMTP_VARS.length) {
+  const faltan = SMTP_VARS.filter((n) => !process.env[n]);
+  console.warn(
+    `[boot] Aviso: configuración SMTP INCOMPLETA (faltan ${faltan.join(", ")}); la recuperación de contraseña queda deshabilitada.`
+  );
+}
+
 console.log("[boot] Variables de entorno requeridas presentes.");

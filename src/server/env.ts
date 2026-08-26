@@ -26,6 +26,21 @@ const baseSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   // Orígenes permitidos para CORS (NFR-512). Coma-separado. Por defecto solo el propio origen.
   LEDGER_ALLOWED_ORIGINS: z.string().optional(),
+  // SMTP para el envío del enlace de recuperación (feature recuperar-acceso, FR-1311). TODAS
+  // opcionales a propósito: su ausencia NO aborta el arranque, igual que Google (NFR-510, artefacto
+  // portable). Sin ellas la app opera con normalidad y solo el flujo de recuperación se declara no
+  // disponible (503). Ninguna lleva prefijo NEXT_PUBLIC_: son credenciales de servidor.
+  SMTP_HOST: z.string().optional(),
+  // Se valida como numérico SI está presente: un puerto no numérico aborta el arranque nombrando la
+  // variable, en vez de caer a un default silencioso (FR-1311, TC-REC-050f).
+  SMTP_PORT: z
+    .string()
+    .regex(/^\d+$/, "SMTP_PORT debe ser un número de puerto")
+    .refine((v) => Number(v) >= 1 && Number(v) <= 65535, "SMTP_PORT debe estar entre 1 y 65535")
+    .optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
   // ¿Hay delante un reverse proxy que SANEA X-Forwarded-For? (BG-013 / RQ-SEC-003.) Solo si se
   // declara "true" se llavea el rate-limit por ese header. Por defecto NO se confía: un cliente
   // puede enviar el header que quiera, y rotarlo daba un bucket nuevo por intento — el límite de
@@ -41,6 +56,12 @@ export type Env = z.infer<typeof baseSchema> & {
   googleEnabled: boolean;
   /** true solo si LEDGER_TRUST_PROXY === "true". Cualquier otro valor (o su ausencia) es false. */
   trustProxy: boolean;
+  /**
+   * true solo si las CINCO variables SMTP están presentes. Misma regla que googleEnabled: una
+   * configuración a medias no habilita nada — enviar con host pero sin remitente falla en el peor
+   * momento (cuando alguien ya está bloqueado fuera), así que se decide al arrancar.
+   */
+  smtpEnabled: boolean;
 };
 
 /**
@@ -70,7 +91,12 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   // Confiar en el header por un typo de configuración es exactamente el fallo que esto evita, y
   // fallar hacia el lado seguro (rate-limit por IP de conexión) nunca deja a nadie desprotegido.
   const trustProxy = env.LEDGER_TRUST_PROXY === "true";
-  return { ...env, allowedOrigins, googleEnabled, trustProxy };
+  // FR-1311: las cinco o ninguna. Parcial cuenta como no configurado, y el flujo se declara no
+  // disponible en vez de fallar a mitad de un envío.
+  const smtpEnabled = Boolean(
+    env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD && env.SMTP_FROM
+  );
+  return { ...env, allowedOrigins, googleEnabled, trustProxy, smtpEnabled };
 }
 
 let cached: Env | null = null;
@@ -79,4 +105,13 @@ let cached: Env | null = null;
 export function env(): Env {
   if (!cached) cached = parseEnv();
   return cached;
+}
+
+/**
+ * Descarta el entorno memorizado. SOLO para tests que necesitan ejercer dos configuraciones
+ * distintas en el mismo proceso (p. ej. con y sin SMTP, FR-1311). En producción nunca se llama:
+ * el entorno de un proceso no cambia mientras vive.
+ */
+export function __resetEnvForTests(): void {
+  cached = null;
 }

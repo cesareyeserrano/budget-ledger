@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 
 const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
 
-export function AuthForm() {
+export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void } = {}) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -151,6 +151,21 @@ export function AuthForm() {
         >
           Continuar con Google
         </Button>
+
+        {/* Salida hacia la recuperación (FR-1301). Solo en modo login: al CREAR una cuenta no hay
+            contraseña que recuperar. Mismo patrón visual que auth-toggle — enlace secundario, sin
+            borde ni fondo — para no competir con la acción primaria (H7). */}
+        {mode === "login" && onForgotPassword && (
+          <button
+            type="button"
+            data-testid="auth-forgot"
+            onClick={onForgotPassword}
+            disabled={busy}
+            className="caption cursor-pointer border-none bg-transparent p-1 text-fg-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        )}
 
         <div className="h-px bg-border" />
 

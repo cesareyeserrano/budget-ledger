@@ -15,4 +15,13 @@ process.env.BETTER_AUTH_URL ??= "http://localhost:3100";
 // El happy path real de Google (006h/007e) NO se automatiza — se verifica manual con evidencia.
 process.env.GOOGLE_CLIENT_ID ??= "test-google-client-id";
 process.env.GOOGLE_CLIENT_SECRET ??= "test-google-client-secret";
+// SMTP apuntando al Mailpit efímero del globalSetup (feature recuperar-acceso, FR-1311). Las cinco
+// variables, porque una configuración parcial cuenta como no configurada.
+process.env.SMTP_HOST ??= inject("smtpHost");
+process.env.SMTP_PORT ??= inject("smtpPort");
+process.env.SMTP_USER ??= "ledger-test";
+process.env.SMTP_PASSWORD ??= "ledger-test-password";
+process.env.SMTP_FROM ??= "Ledger <no-reply@ledger.test>";
+// URL de la API HTTP de Mailpit: los tests leen por aquí el mensaje REALMENTE entregado.
+process.env.MAILPIT_API ??= inject("mailpitApi");
 // vitest ya fija NODE_ENV="test" en los workers; no lo reasignamos (es de solo-lectura en @types/node).

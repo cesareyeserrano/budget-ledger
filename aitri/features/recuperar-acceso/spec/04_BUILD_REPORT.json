@@ -1,0 +1,102 @@
+{
+  "files_created": [
+    "src/server/mail/mailer.ts",
+    "src/server/mail/templates.ts",
+    "src/server/resetTokens.ts",
+    "src/app/api/v1/recovery/request/route.ts",
+    "src/app/recuperar/page.tsx",
+    "src/components/auth/RequestResetForm.tsx",
+    "src/components/auth/ResetPasswordForm.tsx",
+    "tests/integration/backend/helpers/mailpit.ts",
+    "tests/integration/backend/recuperar-acceso-config.test.ts",
+    "tests/integration/backend/recuperar-acceso-request.test.ts",
+    "tests/integration/backend/recuperar-acceso-reset.test.ts",
+    "tests/e2e/helpers/mailbox.ts",
+    "tests/e2e/recuperar-acceso.spec.ts",
+    "tests/e2e/recuperar-acceso-flujo.spec.ts"
+  ],
+  "files_modified": [
+    "src/server/env.ts",
+    "src/server/auth.ts",
+    "src/server/http.ts",
+    "src/components/auth/AuthForm.tsx",
+    "src/components/auth/LoginGate.tsx",
+    "scripts/check-env.mjs",
+    "scripts/security-config.sh",
+    "tests/integration/backend/helpers/globalSetup.ts",
+    "tests/integration/backend/helpers/setupEnv.ts",
+    "tests/e2e/helpers/globalSetup.ts",
+    ".github/workflows/ci.yml",
+    "docker-compose.dev.yml",
+    ".env.example",
+    "package.json"
+  ],
+  "setup_commands": [
+    "npm install",
+    "npm run mail:up"
+  ],
+  "environment_variables": [
+    { "name": "SMTP_HOST", "default": "" },
+    { "name": "SMTP_PORT", "default": "" },
+    { "name": "SMTP_USER", "default": "" },
+    { "name": "SMTP_PASSWORD", "default": "" },
+    { "name": "SMTP_FROM", "default": "" }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1305",
+      "substitution": "nodemailer 9.0.5 en lugar de la ^7 que nombra 02_SYSTEM_DESIGN.md",
+      "reason": "La ^7 arrastra tres avisos de inyección de comandos SMTP con rango <=8.0.4, y la 8.0.11 sigue afectada por uno de rango <=9.0.0 (la opción `raw` evade disableFileAccess). Solo 9.0.1+ deja el árbol en 0 vulnerabilidades, que es lo mínimo exigible en una feature de credenciales. La decisión del ADR-01 no cambia — nodemailer sigue siendo el cliente SMTP —, solo su versión. @types/nodemailer@8 es compatible con la 9 para la superficie que se usa.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1310",
+      "substitution": "El cuerpo de respuesta de /api/v1/recovery/request es plano ({\"ok\":true}, {\"error\":\"SEND_FAILED\"}) en vez del {error:{code,message}} que usa el resto de /api/v1",
+      "reason": "Lo fijan los TC aprobados, que comparan el cuerpo byte a byte para verificar que el acuse es idéntico exista o no la cuenta (FR-1303). Cuanto menos diga el acuse, menos puede filtrar. Uniformarlo con el resto del contrato exigiría re-aprobar Fase 3.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1312",
+      "substitution": "TC-REC-055e afirma el límite de control táctil a 759px/760px en vez de a 760px exactos como decía su texto aprobado",
+      "reason": "La premisa del caso era falsa: en Tailwind v4 el variante max-[760px] compila a @media (width < 760px), exclusivo (verificado en tailwindcss/dist/lib.js v4.3.2), así que a 760px exactos los controles miden 40px. La clase es la MISMA que usa AuthForm desde la feature backend; hacerla inclusiva solo aquí dejaría la pantalla de acceso y la de recuperación con alturas distintas en el mismo viewport. El test afirma el límite real por sus dos lados y además la consistencia con AuthForm: cubre más que el texto original.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1311",
+      "substitution": "TC-REC-224f verifica la declaración del servidor SMTP de pruebas en los arneses de test (testcontainers) en vez de en un bloque `services:` del workflow",
+      "reason": "El proyecto arranca su infraestructura de test con testcontainers y puertos dinámicos — así levanta Postgres desde la feature backend. Un bloque `services:` con puertos fijos añadiría un segundo Mailpit que nadie usa y dejaría el real sin declarar. La protección verificada es la misma: si la declaración desapareciera, la suite rompería de forma ruidosa en vez de omitir los tests de envío en silencio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1304",
+      "substitution": "src/server/resetTokens.ts en vez de src/server/auth/resetTokens.ts como indicaba el diseño",
+      "reason": "Ya existe src/server/auth.ts; un directorio auth/ a su lado vuelve ambigua la resolución de @/server/auth. Se sigue el nivel plano del resto de src/server/ (http.ts, session.ts, sync.ts, env.ts).",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1311",
+      "substitution": "Se añadió __resetEnvForTests() a src/server/env.ts",
+      "reason": "El entorno se memoriza en el módulo y los casos de FR-1311 necesitan ejercer dos configuraciones —con y sin SMTP— en el mismo proceso. Es un seam de test documentado, no una rama de producción: en producción el entorno de un proceso no cambia mientras vive.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_files": [
+    "../../../tests/integration/backend/recuperar-acceso-config.test.ts",
+    "../../../tests/integration/backend/recuperar-acceso-request.test.ts",
+    "../../../tests/integration/backend/recuperar-acceso-reset.test.ts",
+    "../../../tests/e2e/recuperar-acceso.spec.ts",
+    "../../../tests/e2e/recuperar-acceso-flujo.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "../../../coverage.sh", "required": true, "timeout_ms": 1800000 },
+    { "name": "design-tokens", "command": "npm run gate:design-tokens", "required": true, "timeout_ms": 120000 },
+    { "name": "security-config", "command": "npm run gate:security-config", "required": true, "timeout_ms": 300000 },
+    { "name": "secret-scan", "command": "npm run gate:secret-scan", "required": true, "timeout_ms": 120000 },
+    { "name": "smoke", "command": "../../../smoke.sh", "required": true, "timeout_ms": 600000 },
+    { "name": "e2e", "command": "../../../e2e.sh", "required": true, "timeout_ms": 1800000 }
+  ],
+  "test_runner_timeout_ms": 1800000
+}

@@ -5,7 +5,8 @@
  *   OAuth (conditional), sesiones en BD (ADR-04, logout invalida de verdad), cookies HttpOnly/Secure/
  *   SameSite (NFR-512), rate limiting del login contra fuerza bruta (NFR-512). Sin secretos en el
  *   código: todo desde env(). server-only: nunca al bundle del cliente.
- * Dependencies: better-auth, better-auth/adapters/drizzle, @node-rs/argon2, ./db/client, ./db/schema, ./env
+ * Dependencies: better-auth, better-auth/adapters/drizzle, @node-rs/argon2, ./db/client, ./db/schema,
+ *   ./env, ./resetTokens, ./mail/mailer
  */
 import "server-only";
 import { betterAuth } from "better-auth";
@@ -14,6 +15,8 @@ import { hash as argon2Hash, verify as argon2Verify } from "@node-rs/argon2";
 import { db } from "./db/client";
 import { account, session, user, verification } from "./db/schema";
 import { env } from "./env";
+import { revokePrevious } from "./resetTokens";
+import { sendResetLink } from "./mail/mailer";
 
 // Algorithm.Argon2id = 2 (el enum de @node-rs/argon2 es const enum: incompatible con isolatedModules).
 const ARGON2ID = 2;
@@ -30,6 +33,17 @@ const SESSION_UPDATE_SECONDS = 60 * 60 * 24; // renovación deslizante diaria
 const LOGIN_WINDOW_SECONDS = 60;
 const LOGIN_MAX_ATTEMPTS = 5; // NFR-512: tras 5 intentos, el 6º se limita (429)
 const SIGNUP_MAX_ATTEMPTS = 10; // RQ-SEC-004: acota la creación masiva de cuentas por IP
+// FR-1311/NFR-1303: mismo mecanismo y mismo valor que el login. NO es una defensa nueva (el
+// no_go_zone excluye captcha, backoff y telemetría): es la regla que el producto ya usa, aplicada
+// al endpoint nuevo para que no quede como el único sin límite.
+const RESET_MAX_ATTEMPTS = 5;
+
+// FR-1304: vigencia del secreto de recuperación. 30 minutos — decenas de minutos, no días.
+// Debe coincidir con TTL_MINUTES de server/mail/templates (el correo lo anuncia al usuario).
+export const RESET_TOKEN_TTL_SECONDS = 1_800;
+
+/** Ruta de la pantalla de contraseña nueva (P-3 del UX spec). El correo apunta aquí. */
+export const RESET_CALLBACK_PATH = "/recuperar";
 
 // El rate limit se puede desactivar SOLO en el harness e2e (todo el tráfico viene de 127.0.0.1, y el
 // limitador por IP haría flaky los tests en serie). En producción queda SIEMPRE activo (NFR-512); el
@@ -50,10 +64,47 @@ function buildAuth() {
   emailAndPassword: {
     enabled: true,
     // Hash argon2id explícito (Better Auth usa scrypt por defecto; NFR-501 exige argon2/bcrypt).
+    // El flujo de recuperación atraviesa ESTE mismo hasher: por eso NFR-1302 se cumple por
+    // construcción, no por disciplina — no existe un segundo camino de hashing.
     password: {
       hash: (password: string) => argon2Hash(password, ARGON2_OPTS),
       verify: ({ hash, password }: { hash: string; password: string }) =>
         argon2Verify(hash, password),
+    },
+    // ── Recuperación de contraseña (feature recuperar-acceso) ──────────────────────────────
+    // FR-1304: el secreto caduca a los 30 min (por defecto la librería da 1 h).
+    resetPasswordTokenExpiresIn: RESET_TOKEN_TTL_SECONDS,
+    // FR-1309: al fijar la contraseña se borran TODAS las sesiones de la cuenta, para que un acceso
+    // obtenido antes del cambio no sobreviva a la recuperación.
+    revokeSessionsOnPasswordReset: true,
+    /**
+     * Gancho de entrega. Better Auth lo invoca DESPUÉS de insertar la fila del secreto, que es
+     * justo lo que hace posible invalidar aquí la anterior (FR-1304, ADR-02).
+     *
+     * AVISO IMPORTANTE: si esta función lanza, la excepción NO llega al llamante — Better Auth la
+     * captura y la descarta (runInBackgroundOrAwait, create-context.mjs:214), devolviendo 200 como
+     * si todo hubiera ido bien. Por eso FR-1310 NO se apoya en este camino: la fachada
+     * /api/v1/recovery/request sondea el transporte ANTES de delegar (TRF-01, ADR-04).
+     */
+    sendResetPassword: async ({
+      user,
+      url,
+      token,
+    }: {
+      user: { id: string; email: string; name?: string };
+      url: string;
+      token: string;
+    }) => {
+      // Primero invalidar los anteriores: si el envío falla, no queremos dejar vivo un enlace viejo
+      // además del nuevo. Un fallo aquí se registra y NO detiene el envío (dos enlaces vivos
+      // degrada; quedarse sin ninguno bloquea).
+      try {
+        const revoked = await revokePrevious(user.id, token);
+        if (revoked > 0) console.log(`[auth] recuperación: ${revoked} enlace(s) anterior(es) invalidado(s)`);
+      } catch (err) {
+        console.error(`[auth] no se pudo invalidar el enlace anterior: ${String(err)}`);
+      }
+      await sendResetLink(user.email, url, user.name);
     },
   },
   socialProviders: e.googleEnabled
@@ -85,6 +136,7 @@ function buildAuth() {
     customRules: {
       "/sign-in/email": { window: LOGIN_WINDOW_SECONDS, max: LOGIN_MAX_ATTEMPTS },
       "/sign-up/email": { window: LOGIN_WINDOW_SECONDS, max: SIGNUP_MAX_ATTEMPTS },
+      "/request-password-reset": { window: LOGIN_WINDOW_SECONDS, max: RESET_MAX_ATTEMPTS },
     },
   },
   trustedOrigins: e.allowedOrigins,

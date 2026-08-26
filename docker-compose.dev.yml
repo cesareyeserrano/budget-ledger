@@ -70,5 +70,19 @@ services:
     ports:
       - "127.0.0.1:8081:8081"
 
+  # Buzón de correo de DESARROLLO (feature recuperar-acceso, FR-1305). Captura todo lo que la app
+  # envía y no deja salir nada a Internet: el enlace de recuperación se lee en http://localhost:8025
+  # en vez de en un buzón real. Ambos puertos atados a loopback, igual que la BD (RQ-SEC-006).
+  mail:
+    image: axllent/mailpit:latest
+    container_name: ledger-dev-mail
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP — apunta aquí SMTP_HOST/SMTP_PORT en .env.local
+      - "127.0.0.1:8025:8025" # bandeja web + API HTTP que consultan los tests
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
 volumes:
   ledger_devdata:

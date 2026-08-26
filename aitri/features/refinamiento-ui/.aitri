@@ -19,19 +19,9 @@
   "projectName": "refinamiento-ui",
   "createdAt": "2026-08-05T18:06:40.720Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-12T17:12:15.533Z",
+  "updatedAt": "2026-08-13T17:45:17.668Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-07T00:48:02.633Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-07T00:48:02.758Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-08-07T00:48:02.839Z",
       "event": "approved",
@@ -139,6 +129,22 @@
       "phase": "verify",
       "passed": 37,
       "failed": 0
+    },
+    {
+      "at": "2026-08-13T17:45:13.524Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-13T17:45:17.657Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -198,16 +204,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "7923965a11b3cf1d20b95b8dd415dfb4ad4f531a",
+  "verifyRanRef": "04023f8ba2223ed908568085f84753fbfacab801",
   "verifyRanDirty": false,
-  "verifyResultsHash": "ec66d899ccb81d384d2cebac1b34332e06c666cf9336a6ae653f5bbfcbe32a17",
-  "verifyRanAt": "2026-08-12T17:12:07.270Z",
+  "verifyResultsHash": "4ddd1c62832df04bce8d96b7a5c4251c956fc697768e81e9c43a594b2ef42bb9",
+  "verifyRanAt": "2026-08-13T17:45:13.488Z",
   "lastVerifyRun": {
     "passed": 37,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-12T17:12:07.270Z"
+    "at": "2026-08-13T17:45:13.488Z"
   },
   "verifySummary": {
     "total": 37,

@@ -25,6 +25,10 @@ export const HTTP = {
   CONFLICT: 409,
   TOO_MANY: 429,
   SERVER_ERROR: 500,
+  /** El envío del correo de recuperación no pudo completarse (FR-1310). */
+  BAD_GATEWAY: 502,
+  /** La recuperación por correo no está configurada en este despliegue (FR-1311). */
+  SERVICE_UNAVAILABLE: 503,
 } as const;
 
 export interface ApiContext<T> {

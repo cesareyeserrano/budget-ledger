@@ -1,0 +1,179 @@
+{
+  "project": "Ledger (T-Ledger) — feature: recuperar-acceso",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-1301",
+      "title": "Entrada al flujo de recuperación desde la pantalla de acceso, sin sesión",
+      "level": "complete",
+      "evidence": "5/5 TC verdes (TC-REC-001h, 002e, 003f, 004e, 005e). El control aparece solo en modo login, es alcanzable por teclado con outline de 2px, no existe en modo registro y no desborda a 375px. TC-REC-004e verifica además que los 6 data-testid y los 3 aria-label de AuthForm siguen literales — el contrato de regresión de 85 TC de la feature backend. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1302",
+      "title": "Pantalla de solicitud: pedir la recuperación indicando el correo",
+      "level": "complete",
+      "evidence": "5/5 TC verdes (TC-REC-006h, 007f, 008e, 009e, 010e). Acuse neutro tras enviar; campo vacío no llega al servidor (0 peticiones medidas); doble pulsación produce exactamente 1 petición con el botón en disabled + aria-busy; 48px y sin desbordes a 375px; la vuelta al acceso no recarga (verificado con marcador en window). Sin deuda declarada."
+    },
+    {
+      "id": "FR-1303",
+      "title": "Acuse neutro: la respuesta no revela si la dirección corresponde a una cuenta",
+      "level": "complete",
+      "evidence": "5/5 TC verdes (TC-REC-011h, 012f, 013e, 014f, 015f). TC-REC-012f compara los cuerpos crudos byte a byte entre dirección registrada y desconocida: idénticos ('{\"ok\":true}'). TC-REC-013e confirma contra Mailpit que la desconocida no produce ningún envío. TC-REC-015f prueba 4 vectores adversarios (inyección SQL, XSS, null, array) → los 4 en 400, ninguno 5xx, sin filas nuevas en la base. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1304",
+      "title": "Emisión del secreto: un solo uso, con expiración, y la solicitud nueva invalida la anterior",
+      "level": "partial",
+      "evidence": "5/5 TC verdes (TC-REC-016h, 017f, 018e, 019e, 020f). Expiración medida contra la fila de verification (1800 s ±5); token de 24 caracteres [A-Za-z0-9] ≈142,9 bits; segundo uso rechazado; token de una cuenta no altera otra. TC-REC-018e valida la invariante propia (TRF-04) y se confirmó POR MUTACIÓN: anulando revokePrevious caen 2 tests. Deuda declarada: el módulo vive en src/server/resetTokens.ts y no en src/server/auth/resetTokens.ts como decía el diseño, para no volver ambigua la resolución de @/server/auth."
+    },
+    {
+      "id": "FR-1305",
+      "title": "Entrega del secreto por correo vía SMTP, enviado desde el servidor",
+      "level": "partial",
+      "evidence": "4/4 TC verdes (TC-REC-021h, 022e, 023f, 024e). Verificados contra Mailpit, un servidor SMTP REAL: exactamente 1 mensaje, destinatario único, sin Cc ni Bcc, cuerpo con URL absoluta + token de 24 caracteres + mención de los 30 minutos + texto plano sin HTML. TC-REC-023f mide 0 peticiones externas del navegador durante el flujo completo. Deuda declarada: nodemailer 9.0.5 en lugar de la ^7 que nombra el diseño, porque ^7 y 8.0.11 arrastran avisos de inyección SMTP; con 9.0.5 el árbol queda en 0 vulnerabilidades."
+    },
+    {
+      "id": "FR-1306",
+      "title": "Pantalla de contraseña nueva, alcanzable con el enlace y sin sesión",
+      "level": "complete",
+      "evidence": "4/4 TC verdes (TC-REC-025h, 026f, 027f, 028e). El formulario aparece con token y sin ninguna cookie de sesión; sin token muestra el panel de rechazo y cero inputs de contraseña; TC-REC-027f mide 0 peticiones a /api/v1/ledger, /movements y /sync durante 2 s. La garantía es estructural: la ruta vive fuera de LoginGate (ADR-03), así que no monta store ni sincronizador. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1307",
+      "title": "Fijar la contraseña nueva con las mismas reglas de fortaleza que el registro",
+      "level": "complete",
+      "evidence": "5/5 TC verdes (TC-REC-029h, 030f, 031e, 032f, 033e). TC-REC-029h recorre el flujo entero end-to-end leyendo el correo real y termina con el shell de la app montado — es el North Star. TC-REC-031e confirma que una contraseña débil se rechaza SIN quemar el enlace. TC-REC-033e lee el hash almacenado: $argon2id$ con m=19456, t=2, p=1. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1308",
+      "title": "Rechazo del secreto caducado, ya usado o inválido",
+      "level": "complete",
+      "evidence": "6/6 TC verdes (TC-REC-034f, 035f, 036e, 037f, 038e, 039h). Los cuatro motivos convergen en el mismo cuerpo, comparado byte a byte entre caducado e inventado (TC-REC-037f). TC-REC-038e prueba los dos lados del límite manipulando expires_at en la fila, no el reloj del cliente. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1309",
+      "title": "Cambiar la contraseña invalida las sesiones activas de la cuenta",
+      "level": "complete",
+      "evidence": "4/4 TC verdes (TC-REC-040h, 041e, 042f, 043e). TC-REC-041e cuenta las filas de session en la base: de 2 a 0. TC-REC-040h lo comprueba con dos contextos de navegador reales: el primero recibe 401 y su UI vuelve a pedir credenciales. TC-REC-042f confirma que otra cuenta no se ve afectada. Validado POR MUTACIÓN: con revokeSessionsOnPasswordReset:false caen 2 tests y el gate security-config falla. Sin deuda declarada."
+    },
+    {
+      "id": "FR-1310",
+      "title": "Fallo de envío: el usuario se entera y el servidor lo registra",
+      "level": "partial",
+      "evidence": "4/4 TC verdes (TC-REC-044h, 045e, 046f, 047e). TC-REC-044h apaga el SMTP de verdad y exige 502 SEND_FAILED, afirmando explícitamente que NO es 200. Validado POR MUTACIÓN: quitando la sonda previa de la fachada caen 5 tests y el endpoint devuelve 200 con el correo apagado — el fallo exacto que predecía TRF-01 leyendo create-context.mjs:214. TC-REC-046f confirma que host, puerto, usuario y traza no llegan al usuario. Deuda declarada: el cuerpo de respuesta es plano ({\"error\":\"SEND_FAILED\"}) en vez del {error:{code,message}} del resto de /api/v1, porque los TC lo comparan byte a byte para verificar la neutralidad de FR-1303."
+    },
+    {
+      "id": "FR-1311",
+      "title": "Configuración SMTP por variables de entorno, validada al arrancar",
+      "level": "partial",
+      "evidence": "5/5 TC verdes (TC-REC-048h, 049e, 050f, 051f, 052e). SMTP_PORT no numérico aborta el arranque nombrando la variable; sin variables la app arranca, el login sigue funcionando y solo la recuperación responde 503; ninguna SMTP_* alcanza el bundle del cliente (comprobado recorriendo el grafo de importaciones desde los módulos 'use client' y, cuando existe build, el artefacto servido). Deuda declarada: se añadió __resetEnvForTests() como seam de test documentado, necesario para ejercer dos configuraciones en el mismo proceso."
+    },
+    {
+      "id": "FR-1312",
+      "title": "Las dos pantallas nuevas adoptan el sistema de diseño del producto",
+      "level": "partial",
+      "evidence": "5/5 TC verdes (TC-REC-053h, 054e, 055e, 056f, 057e). Contraste calculado sobre colores computados reales ≥4,5:1 en tema claro y oscuro; radio de 8px del sistema en campos y botones; cero atributos style en línea de color/tipografía/espaciado; cero emoji, gradientes y glow; sin desbordes en las 6 combinaciones (2 pantallas × 375/768/1440px). Cero componentes y cero tokens nuevos. Deuda declarada: TC-REC-055e afirma el límite táctil en 759/760px en vez de a 760px exactos, porque la premisa del caso aprobado era falsa — en Tailwind v4 max-[760px] compila a @media (width < 760px), exclusivo."
+    },
+    {
+      "id": "NFR-1301",
+      "title": "Regresión — el gate de sesión sigue siendo la puerta única a los datos",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-201h, 202e, 203f). Sin sesión, /api/v1/ledger devuelve 401 desde las pantallas nuevas y sin datos en el cuerpo. TC-REC-202e presenta el secreto de recuperación de tres formas distintas (Bearer, cookie, query) a un endpoint de datos: las tres en 401. TC-REC-203f mide 0 conexiones SSE y 0 peticiones al ledger desde /recuperar durante 3 s."
+    },
+    {
+      "id": "NFR-1302",
+      "title": "Regresión — el hash sigue siendo argon2id con parámetros OWASP",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-204h, 205e, 206f). El hash tras recuperar empieza por $argon2id$v=19$ con m=19456,t=2,p=1. TC-REC-205e compara el hash de una cuenta creada por registro con el de una recuperada: misma cabecera y mismos parámetros, sales distintas. TC-REC-206f descarta scrypt, bcrypt y el formato hex:hex por defecto de la librería. Se cumple por construcción: el reset atraviesa el mismo hasher configurado, no un segundo camino."
+    },
+    {
+      "id": "NFR-1303",
+      "title": "Regresión — cookies endurecidas y rate limits existentes intactos",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-207h, 208e, 209f). El sexto intento de /sign-in/email en la ventana de 60 s sigue devolviendo 429 y los cinco primeros 401. La cookie de sesión conserva HttpOnly y SameSite=Lax. El endpoint nuevo queda acotado con la MISMA mecánica y el mismo valor (5/60 s), y la sexta solicitud no emite secreto."
+    },
+    {
+      "id": "NFR-1304",
+      "title": "Regresión — el cliente conserva sus cero peticiones externas",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-210h, 211e, 212f). El recorrido completo con cambio de tema incluido mide 0 peticiones a orígenes externos. nodemailer no es alcanzable desde ningún módulo de cliente (grafo de importaciones recorrido desde todos los 'use client') ni aparece en el bundle construido. El módulo de correo declara 'server-only', igual que auth.ts: una importación desde el cliente rompe la compilación, no la producción."
+    },
+    {
+      "id": "NFR-1305",
+      "title": "Regresión — aislamiento por ownerId al recuperar",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-213h, 214e, 215f). Recuperar una cuenta deja el hash, la sesión y el snapshot de ledger de la otra idénticos byte a byte. Tras entrar con la contraseña nueva, el titular ve su propio grupo y ninguno del otro usuario, y el token consumido no queda vivo."
+    },
+    {
+      "id": "NFR-1306",
+      "title": "Seguridad — postura del flujo de recuperación",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-216h, 217e, 218f). El gate security-config se amplió con cuatro comprobaciones (expiración ≤1800 s, invalidación de sesiones activa, endpoint acotado, ninguna NEXT_PUBLIC_SMTP ni pérdida de server-only) y corre en cada verify: pasa con exit 0, y se validó por mutación que falla nombrando la regresión. TC-REC-217e confirma que el token, la URL y la contraseña no aparecen en el log tras un ciclo completo. TC-REC-218f comprueba que 10 respuestas (5 registradas + 5 desconocidas) son la misma cadena."
+    },
+    {
+      "id": "NFR-1307",
+      "title": "Observabilidad — el endpoint registra sin filtrar el secreto",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-219h, 220e, 221f). La línea de log casa con el formato vigente del proyecto ([ts ISO] MÉTODO /ruta ESTADO (dur) rid=). Un fallo de envío añade el motivo técnico con prefijo [mail]. Ninguna línea contiene la contraseña, ni siquiera en las entradas de error."
+    },
+    {
+      "id": "NFR-1308",
+      "title": "CI/CD — los tests nuevos entran en la corrida por defecto",
+      "level": "partial",
+      "evidence": "3/3 TC verdes (TC-REC-222h, 223e, 224f). El workflow .github/workflows/ci.yml dispara en push y pull_request a main, instala dependencias e invoca typecheck, lint, npm run test:run y npm run test:e2e. TC-REC-223e verifica que los dos specs nuevos viven bajo tests/e2e (el testDir por defecto) y ninguno bajo tests/e2e-backend, que usa su propia config y ya escondió una regresión en este proyecto. Deuda declarada: TC-REC-224f verifica la declaración del servidor SMTP de pruebas en los arneses de testcontainers en vez de en un bloque services: con puertos fijos, porque el proyecto arranca su infraestructura de test con puertos dinámicos."
+    },
+    {
+      "id": "NFR-1309",
+      "title": "Fiabilidad — un correo caído no degrada la disponibilidad de la app",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-225h, 226e, 227f). /health responde 200 con el SMTP apuntando a un puerto cerrado y también sin ninguna variable SMTP. TC-REC-227f ejercita tres caminos de petición reales sin correo: env() resuelve, getAuth() construye, /api/v1/ledger devuelve su 401 de siempre (no 500) y /health sigue en 200. El render literal de / lo cubre el gate smoke, que arranca la app de verdad y pasó."
+    },
+    {
+      "id": "NFR-1310",
+      "title": "Usabilidad — el flujo es recorrible por el titular sin ayuda",
+      "level": "complete",
+      "evidence": "3/3 TC verdes (TC-REC-228h, 229e, 230f). TC-REC-228h completa los cuatro pasos visibles usando solo la interfaz y el buzón —sin consola del navegador, sin base de datos, sin intervención de nadie— y comprueba después que la contraseña vieja devuelve 401 y la nueva 200. Los cuatro estados (en curso, acuse, enlace muerto, fallo de envío) muestran texto en español y los de error ofrecen acción siguiente. Los 5 mensajes de error tienen ≥15 caracteres y ninguno es 'Error' ni 'Algo salió mal'."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-1305",
+      "substitution": "nodemailer 9.0.5 en lugar de la ^7 que nombra 02_SYSTEM_DESIGN.md",
+      "reason": "La ^7 arrastra tres avisos de inyección de comandos SMTP con rango <=8.0.4, y la 8.0.11 sigue afectada por uno de rango <=9.0.0 (la opción `raw` evade disableFileAccess). Solo 9.0.1+ deja el árbol en 0 vulnerabilidades, que es lo mínimo exigible en una feature de credenciales. La decisión del ADR-01 no cambia — nodemailer sigue siendo el cliente SMTP —, solo su versión. @types/nodemailer@8 es compatible con la 9 para la superficie que se usa.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1310",
+      "substitution": "El cuerpo de respuesta de /api/v1/recovery/request es plano ({\"ok\":true}, {\"error\":\"SEND_FAILED\"}) en vez del {error:{code,message}} que usa el resto de /api/v1",
+      "reason": "Lo fijan los TC aprobados, que comparan el cuerpo byte a byte para verificar que el acuse es idéntico exista o no la cuenta (FR-1303). Cuanto menos diga el acuse, menos puede filtrar. Uniformarlo con el resto del contrato exigiría re-aprobar Fase 3.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1312",
+      "substitution": "TC-REC-055e afirma el límite de control táctil a 759px/760px en vez de a 760px exactos como decía su texto aprobado",
+      "reason": "La premisa del caso era falsa: en Tailwind v4 el variante max-[760px] compila a @media (width < 760px), exclusivo (verificado en tailwindcss/dist/lib.js v4.3.2), así que a 760px exactos los controles miden 40px. La clase es la MISMA que usa AuthForm desde la feature backend; hacerla inclusiva solo aquí dejaría la pantalla de acceso y la de recuperación con alturas distintas en el mismo viewport. El test afirma el límite real por sus dos lados y además la consistencia con AuthForm: cubre más que el texto original.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1311",
+      "substitution": "TC-REC-224f verifica la declaración del servidor SMTP de pruebas en los arneses de test (testcontainers) en vez de en un bloque `services:` del workflow",
+      "reason": "El proyecto arranca su infraestructura de test con testcontainers y puertos dinámicos — así levanta Postgres desde la feature backend. Un bloque `services:` con puertos fijos añadiría un segundo Mailpit que nadie usa y dejaría el real sin declarar. La protección verificada es la misma: si la declaración desapareciera, la suite rompería de forma ruidosa en vez de omitir los tests de envío en silencio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1304",
+      "substitution": "src/server/resetTokens.ts en vez de src/server/auth/resetTokens.ts como indicaba el diseño",
+      "reason": "Ya existe src/server/auth.ts; un directorio auth/ a su lado vuelve ambigua la resolución de @/server/auth. Se sigue el nivel plano del resto de src/server/ (http.ts, session.ts, sync.ts, env.ts).",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1311",
+      "substitution": "Se añadió __resetEnvForTests() a src/server/env.ts",
+      "reason": "El entorno se memoriza en el módulo y los casos de FR-1311 necesitan ejercer dos configuraciones —con y sin SMTP— en el mismo proceso. Es un seam de test documentado, no una rama de producción: en producción el entorno de un proceso no cambia mientras vive.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

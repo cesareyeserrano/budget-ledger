@@ -14,6 +14,7 @@
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres, @playwright/test
  */
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { GenericContainer, Wait } from "testcontainers";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { request as playwrightRequest } from "@playwright/test";
@@ -66,6 +67,16 @@ export default async function globalSetup(): Promise<void> {
   await migrate(drizzle(migrationClient), { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
   await migrationClient.end();
 
+  // Servidor SMTP de pruebas (feature recuperar-acceso). La app lo necesita configurado para que el
+  // flujo de recuperación esté disponible; sin él la fachada respondería 503 y los specs del flujo
+  // verificarían la pantalla de "no disponible" en vez del camino real.
+  const mailpit = await new GenericContainer("axllent/mailpit:latest")
+    .withExposedPorts(1025, 8025)
+    .withEnvironment({ MP_SMTP_AUTH_ACCEPT_ANY: "1", MP_SMTP_AUTH_ALLOW_INSECURE: "1" })
+    .withWaitStrategy(Wait.forListeningPorts())
+    .start();
+  const mailpitApi = `http://${mailpit.getHost()}:${mailpit.getMappedPort(8025)}`;
+
   // Ya no se inlinea ningún NEXT_PUBLIC_LEDGER_SERVER_MODE: el modo desapareció (FR-1101).
   const buildEnv = {
     ...process.env,
@@ -77,7 +88,14 @@ export default async function globalSetup(): Promise<void> {
     // Todo el tráfico viene de 127.0.0.1: el rate limit por IP haría flaky la suite en serie.
     // Se desactiva SOLO aquí; en producción queda activo (NFR-512).
     LEDGER_RATE_LIMIT_DISABLED: "true",
+    SMTP_HOST: mailpit.getHost(),
+    SMTP_PORT: String(mailpit.getMappedPort(1025)),
+    SMTP_USER: "ledger-e2e",
+    SMTP_PASSWORD: "ledger-e2e-password",
+    SMTP_FROM: "Ledger <no-reply@ledger.test>",
   };
+  // Los specs leen el buzón por esta URL (se propaga a los workers vía process.env).
+  process.env.MAILPIT_API = mailpitApi;
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 
   const app = spawn("npx", ["next", "start", "-p", String(E2E_PORT)], {
@@ -87,7 +105,7 @@ export default async function globalSetup(): Promise<void> {
     detached: false,
   });
 
-  writeFileSync(STATE_FILE, JSON.stringify({ pid: app.pid, databaseUrl }));
+  writeFileSync(STATE_FILE, JSON.stringify({ pid: app.pid, databaseUrl, mailpitApi }));
   await waitForHealth(E2E_BASE, 180_000);
 
   // Registra UNA cuenta por worker y guarda su cookie como storageState propio.

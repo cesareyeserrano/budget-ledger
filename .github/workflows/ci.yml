@@ -53,7 +53,10 @@ jobs:
         run: npm run test:run
       - name: Build
         run: npm run build
-      - name: E2E (Playwright — app en modo localStorage)
+      # La suite e2e y la de integración del backend levantan Postgres Y Mailpit por testcontainers
+      # (Docker del runner). Mailpit es un servidor SMTP real: los tests del flujo de recuperación
+      # afirman sobre el mensaje ENTREGADO, no sobre "se llamó a sendMail".
+      - name: E2E (Playwright — app autenticada contra Postgres efímero)
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e
