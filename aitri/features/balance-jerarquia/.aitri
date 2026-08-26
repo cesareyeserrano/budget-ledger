@@ -1,50 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-25T22:47:54.421Z",
+  "updatedAt": "2026-08-26T16:38:39.695Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-25T15:28:52.069Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-25T15:28:55.893Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-25T15:31:42.994Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-25T15:44:10.696Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-25T15:44:13.221Z",
-      "event": "started",
-      "phase": 3
-    },
     {
       "at": "2026-08-25T15:44:21.279Z",
       "event": "started",
@@ -131,6 +108,39 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-08-26T01:16:04.577Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T01:16:13.228Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-26T01:16:16.314Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-26T01:19:03.159Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-26T16:38:39.639Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -139,9 +149,10 @@
     "2": "c65d0619962f6907d7c27063a4027a3f3617b47ee54cf3f7a2f105613dd3eab4",
     "3": "9e22b1ff693ed348a5f50275928dcc1b3752e0c723dfad1c63d39e160d8262d0",
     "4": "698b6a6fc3407fc9571615b6891fe34f6c6517b7be01f14243572799720dce82",
+    "5": "2974a3401828f0cb32030d35a9b7e0196094b551218c417f9d420b4aa97a7406",
     "ux": "b746f98d9b792054c440d1e336e57ec4db08ed316a9e0f559f1d4c63c3df6651"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-1401",
@@ -164,6 +175,13 @@
       "FR-1404",
       "FR-1405"
     ],
+    "5": [
+      "FR-1401",
+      "FR-1402",
+      "FR-1403",
+      "FR-1404",
+      "FR-1405"
+    ],
     "ux": [
       "FR-1401",
       "FR-1402",
@@ -172,15 +190,32 @@
       "FR-1405"
     ]
   },
-  "verifyRanRef": "906c60e7c79f9cd97662d292303a25c744286d92",
-  "verifyRanDirty": true,
-  "verifyResultsHash": "14312b45a417da8ab5d582d1a20304722bc39e59cc8917b9af5f06aa10099f90",
-  "verifyRanAt": "2026-08-25T22:47:54.317Z",
+  "verifyRanRef": "8038df976b5200fff96c2e27a3e535c5b1d704cd",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "c4a983db5e8c94d4ed8d74019fc221660a9111320cc21096d79a5c12f420e868",
+  "verifyRanAt": "2026-08-26T01:16:04.504Z",
   "lastVerifyRun": {
     "passed": 34,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-25T22:47:54.317Z"
-  }
+    "at": "2026-08-26T01:16:04.504Z"
+  },
+  "verifySummary": {
+    "total": 34,
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-08-26T16:38:39.635Z"
+    }
+  ]
 }
