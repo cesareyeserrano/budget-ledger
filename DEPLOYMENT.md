@@ -95,6 +95,33 @@ en vivo. Host-agnóstico (NFR-510): la Pi es solo un laboratorio.
 fail-fast al arranque (`src/server/env.ts` + `scripts/check-env.mjs`): un valor requerido faltante
 aborta el boot nombrando la variable (NFR-510). Ver `.env.example`.
 
+### Recuperar el acceso — por terminal (la via vigente)
+
+**Decision del 2026-08-27:** la recuperacion del despliegue se hace por SSH, no por correo.
+
+```bash
+# en Ultron, desde la carpeta del proyecto
+DATABASE_URL=postgres://... npm run user:reset-password -- <email>
+# genera una contrasena aleatoria y la imprime. Con una tuya:
+DATABASE_URL=postgres://... npm run user:reset-password -- <email> "MiClave-2026!"
+```
+
+Invalida TODAS las sesiones de esa cuenta, igual que hace el flujo por correo (FR-1309): un acceso
+obtenido antes del cambio no sobrevive al cambio.
+
+**Por que no por correo.** El flujo por correo esta construido y verificado (feature
+`recuperar-acceso`, 87 TCs), pero enviarlo de verdad exige un relay externo, y solo hay dos
+combinaciones que no acaban en spam: remitente `@gmail.com` enviado por Gmail, o remitente de un
+dominio propio enviado por un transaccional. Sin dominio, y sin querer entregar credenciales de
+envio de la cuenta personal, ninguna encajaba. La via por terminal no depende de terceros, no
+expone nada a internet y no tiene cuota que agotar.
+
+**Limitacion aceptada:** solo la usa quien tenga acceso a la maquina. Un familiar bloqueado depende
+del administrador. Para un ledger de cuentas conocidas es un intercambio razonable.
+
+**El flujo por correo queda DORMIDO, no borrado.** Sin las variables SMTP responde 503 y la pantalla
+lo avisa; basta configurarlas el dia que haya un dominio propio.
+
 ### `SMTP_*` — habilitan la recuperación de contraseña (feature `recuperar-acceso`, FR-1311)
 
 Cinco variables, **las cinco o ninguna**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
