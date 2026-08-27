@@ -1,44 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-27T16:15:01.435Z",
+  "updatedAt": "2026-08-27T16:15:35.851Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-25T22:38:05.342Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 21,
-      "failed": 0,
-      "skipped": 13,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-25T22:38:46.092Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-25T22:39:00.499Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-08-25T22:39:00.654Z",
       "event": "approved",
@@ -157,16 +140,32 @@
       "phase": "verify",
       "passed": 34,
       "failed": 0
+    },
+    {
+      "at": "2026-08-27T16:15:35.597Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-27T16:15:35.725Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-27T16:15:35.828Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
-  "cascadedPhases": [
-    "5"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "49f0fba731449d97110198bddbb4cc48b11040d289f040d8546170a476523659",
     "2": "c65d0619962f6907d7c27063a4027a3f3617b47ee54cf3f7a2f105613dd3eab4",
     "3": "9e22b1ff693ed348a5f50275928dcc1b3752e0c723dfad1c63d39e160d8262d0",
     "4": "e1a125c42419c040530f221b94c86a4c738ad678e8c714c041b83438eb5c9ac2",
+    "5": "bb307840cb2d2e3c13f0dba7bf01ef3a0e341e176598814879d61e6a3e2b5c2a",
     "ux": "b746f98d9b792054c440d1e336e57ec4db08ed316a9e0f559f1d4c63c3df6651"
   },
   "verifyPassed": true,
@@ -214,6 +213,11 @@
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-08-26T16:38:39.635Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-08-27T16:15:35.827Z"
     }
   ],
   "verifyResultsHash": "80e69c1b927d476757eea7a6421dccf196a4c8a97fe05860d79935659a64674d",
