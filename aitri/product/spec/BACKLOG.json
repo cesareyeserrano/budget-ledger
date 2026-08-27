@@ -232,16 +232,18 @@
       "title": "Balance: agrupar los sumandos bajo su resultado",
       "priority": "P2",
       "problem": "Las 8 filas del modulo de Balance se presentan planas, pero tres de ellas ('Flujo del mes', 'Reservas del mes', 'Retiros del mes') son los SUMANDOS que componen 'Disponible del mes', y otras tres son resultados. Nada en la presentacion lo indica, asi que la aritmetica del modulo no se lee de un vistazo: el usuario ve ocho cifras al mismo nivel y tiene que reconstruir mentalmente cual sale de cuales. Idea del usuario (2026-08-12) al revisar el rediseno en localhost. Ningun FR de refinamiento-ui lo cubre: sus siete requisitos son color, glifo, chrome, textos, escalas y retirada de codigo. Material para la parte 2 del rediseno, junto con interaccion de fila, composicion del registro y layout adaptativo.",
-      "status": "open",
-      "createdAt": "2026-08-12T12:55:32.405Z"
+      "status": "closed",
+      "createdAt": "2026-08-12T12:55:32.405Z",
+      "closedAt": "2026-08-27T19:41:01.183Z"
     },
     {
       "id": "BL-026",
       "title": "Balance: el verde senala la normalidad, no la excepcion (hallazgo 1.6 del estudio)",
       "priority": "P2",
       "problem": "Las tres filas de RESULTADO del modulo de Balance (Disponible del mes, Saldo disponible, Saldo total) se pintan de --favorable en las doce columnas: 72 celdas verdes simultaneas con un saldo sano. Medido el 2026-08-12 a 1920px. El propio codigo del modulo declara que 'un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo', y luego lo aplica solo a medias. Cuando el saldo se ponga negativo, el rojo tendra que destacar sobre un fondo ya saturado de color. Es el hallazgo 1.6 del estudio UI/UX y NO lo cerro refinamiento-ui: su FR-1201 se titula 'el rojo y el ambar solo senalan excepcion' y no alcanza al verde. Sub-hallazgo del mismo sitio: 6 de esas celdas verdes son em-dash '—', es decir tinta gastada en la AUSENCIA de dato, que es el mismo defecto que el hallazgo 1.2 corrigio en la grilla. Ningun test lo caza porque TC-RUI-002f comprueba colores de TIPO y --favorable no lo es. Material para la parte 2, junto a BL-025.",
-      "status": "open",
-      "createdAt": "2026-08-12T15:15:32.765Z"
+      "status": "closed",
+      "createdAt": "2026-08-12T15:15:32.765Z",
+      "closedAt": "2026-08-27T19:41:01.231Z"
     },
     {
       "id": "BL-027",
