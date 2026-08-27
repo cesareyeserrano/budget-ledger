@@ -19,7 +19,16 @@ import { countResetTokens } from "@/server/resetTokens";
 import { __resetEnvForTests, env } from "@/server/env";
 import { __resetMailerForTests } from "@/server/mail/mailer";
 import { POST as recoveryPOST } from "@/app/api/v1/recovery/request/route";
+import { __resetRateLimitForTests } from "@/server/rateLimit";
 import { getSessionUser } from "@/server/session";
+
+// BG-015: la fachada de recuperación pasó a estar acotada a 5/min POR CORREO, además de por IP.
+// El arnés rota IPs (`nextIp`), lo que bastaba contra un límite por IP pero no contra uno por
+// correo: sin esta limpieza, los casos de este fichero se agotan el cupo entre ellos y fallan por
+// el límite en vez de por lo que prueban. NO se apaga el limitador con
+// LEDGER_RATE_LIMIT_DISABLED porque TC-REC-209f necesita que esté ENCENDIDO.
+beforeEach(() => __resetRateLimitForTests());
+
 
 const ROOT = process.cwd();
 const ORIGIN = "http://localhost:3100";

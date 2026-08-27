@@ -17,10 +17,19 @@ import { truncateAll, closeTestDb, testDb } from "./helpers/db";
 import { clearMailbox, waitForMessages, messageText, extractResetLink } from "./helpers/mailpit";
 import { account, session as sessionTable, verification } from "@/server/db/schema";
 import { POST as recoveryPOST } from "@/app/api/v1/recovery/request/route";
+import { __resetRateLimitForTests } from "@/server/rateLimit";
 import { GET as ledgerGET } from "@/app/api/v1/ledger/route";
 import { getSessionUser } from "@/server/session";
 import { saveLedger } from "@/server/data/ledgerRepo";
 import { buildSeed, createNode } from "@/domain";
+
+// BG-015: la fachada de recuperación pasó a estar acotada a 5/min POR CORREO, además de por IP.
+// El arnés rota IPs (`nextIp`), lo que bastaba contra un límite por IP pero no contra uno por
+// correo: sin esta limpieza, los casos de este fichero se agotan el cupo entre ellos y fallan por
+// el límite en vez de por lo que prueban. NO se apaga el limitador con
+// LEDGER_RATE_LIMIT_DISABLED porque TC-REC-209f necesita que esté ENCENDIDO.
+beforeEach(() => __resetRateLimitForTests());
+
 
 const ORIGIN = "http://localhost:3100";
 const PASSWORD = "Contra$eña123";

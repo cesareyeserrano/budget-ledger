@@ -395,6 +395,30 @@
       "resolution": "smoke.sh recompila si src/, next.config.mjs o package.json son mas recientes que BUILD_ID (find -newer), aborta si el puerto ya esta ocupado (era el fallo que hacia medir un proceso ajeno), detecta que el servidor murio al arrancar, y amplia la verificacion de 'GET / -> 200' a 12 comprobaciones: / y /health a 200, las 4 rutas de /api/v1 a 401 sin sesion, los 5 headers de seguridad presentes y X-Powered-By ausente. Comprobado que los sondeos no dependen de Postgres (app arrancada contra una BD inexistente: 401 y headers igual), asi que el gate no se vuelve fragil. Probado en ambos sentidos: pasa las 12 y falla con exit 1 con el puerto ocupado. Regresion en tests/integration/feature-stack.test.ts (3 tests BG-014) y TC-SUT-263e actualizado a la nueva forma conservando su intencion.",
       "fix_commit_sha": "9bfe75195905996aa06fc7063a1907d3bd72d950",
       "fix_at": "2026-08-05T11:46:43.502Z"
+    },
+    {
+      "id": "BG-015",
+      "title": "El endpoint publico de recuperacion NO tiene rate limit: la mitigacion declarada prueba otra ruta",
+      "description": "",
+      "steps_to_reproduce": [
+        "1. Arrancar la app con SMTP configurado. 2. curl -X POST /api/v1/recovery/request -d '{\"email\":\"<cuenta real>\"}' doce veces seguidas. 3. Observado: 200 las doce veces y doce correos entregados. Esperado segun NFR-1303: 429 a partir de la sexta dentro de la misma ventana de 60s."
+      ],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-27T16:43:43.692Z",
+      "updated_at": "2026-08-27T17:08:27.188Z",
+      "resolution": "Se anade un limitador propio a la fachada publica: src/server/rateLimit.ts (ventana deslizante en memoria) invocado en src/app/api/v1/recovery/request/route.ts ANTES de sondear el SMTP y mucho antes de mirar la cuenta. DOS dimensiones: por IP —la que declara NFR-1303, solo disponible detras de un proxy de confianza, respetando la regla de BG-013 de no creerse x-forwarded-for sin LEDGER_TRUST_PROXY— y por CORREO, que es la unica que funciona sin proxy y la que de verdad protege la cuota del proveedor. El correo se cuenta EXISTA O NO la cuenta y normalizado a minusculas: contarlo solo para las cuentas reales convertiria el 429 en la fuga de enumeracion que FR-1303 prohibe, y no normalizar dejaria esquivar el limite con un shift. Valor y ventana identicos al login (5/60s), asi que no es una defensa nueva: es la regla que el producto ya usa, aplicada por fin donde se declaraba. VERIFICADO POR MUTACION, no solo por corrida verde: anulando la comprobacion en la ruta caen 3 de los 8 tests nuevos (los que atacan el endpoint real); los otros 5 prueban el modulo por separado y siguen verdes, que es lo correcto. MEDIDO contra el dev server: antes 12 peticiones daban 200 las 12 con 12 correos; ahora las 5 primeras pasan y de la sexta en adelante devuelven 429, y un correo distinto no queda bloqueado por el anterior. DANO COLATERAL RESUELTO: el arnes de integracion rotaba IPs (nextIp), lo que bastaba contra un limite por IP pero no contra uno por correo — 29 tests existentes empezaron a fallar por agotarse el cupo entre ellos. Se anade beforeEach(__resetRateLimitForTests) a los dos ficheros que postean a la fachada. NO se apaga el limitador con LEDGER_RATE_LIMIT_DISABLED en esa suite porque TC-REC-209f necesita que este ENCENDIDO. Suite completa: 457/457, exit 0. PENDIENTE DECLARADO, no incluido: 5/min NO acota la cuota DIARIA (son 7.200/dia desde una sola IP). Un tope por cuenta al dia es comportamiento NUEVO y va por pipeline, no por bug-fix.",
+      "fix_commit_sha": "6c1dc49c56cc31e8c3c1869b4069bab4df731c4f",
+      "fix_at": "2026-08-27T17:08:27.188Z"
     }
   ]
 }
