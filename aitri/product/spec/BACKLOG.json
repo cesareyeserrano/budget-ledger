@@ -308,6 +308,15 @@
       "createdAt": "2026-08-27T19:42:30.291Z",
       "files": "src/server/auth.ts, src/server/mail/, src/components/auth/AuthForm.tsx",
       "acceptance": "Requiere PRIMERO un dominio propio y SMTP activo. Despues: un registro con correo no verificado queda en estado limitado hasta confirmar el enlace, y existe un camino para reenviarlo."
+    },
+    {
+      "id": "BL-033",
+      "title": "Registrar en el pipeline el reset por terminal y el correo dormido (auditoria 2026-08-27, GAP-13/GAP-14)",
+      "priority": "P3",
+      "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27 — no se atrapa por ahora.] La auditoria de requisitos del 2026-08-27 encontro dos huecos de REGISTRO (no de alcance) en la recuperacion de acceso. GAP-14: el reset por terminal (npm run user:reset-password, scripts/reset-password.mjs, DEPLOYMENT.md:104) es hoy la UNICA via operativa —el flujo por correo responde 503 sin variables SMTP— y no tiene FR, ni AC, ni TC en ningun pipeline; solo se verifico a mano. Ademas ningun artefacto declara que el correo quedo dormido, asi que los 12 FR MUST de recuperar-acceso describen un camino que la configuracion desplegada no ofrece. GAP-13: la feature entera (12 FR MUST, 10 NFRs, el unico endpoint publico sin autenticar del sistema) no aparece en el coverage_map ni en NFR-004 de la raiz, a diferencia de backend, servidor-fuente-unica y stack-upgrade-theme, que si estan plegados. Ninguno bloquea el despliegue ni pierde alcance: el producto hace lo correcto, lo que falta es que el artefacto lo diga. Se retoma el dia que haya dominio propio y SMTP, junto con BL-031 y BL-032.",
+      "status": "open",
+      "createdAt": "2026-08-27T20:26:17.226Z",
+      "acceptance": "El no_go_zone de recuperar-acceso declara el flujo por correo DORMIDO (citando la decision del 2026-08-27); el reset por terminal tiene FR propio con su TC (automatizado o manual verificado); el coverage_map raiz y NFR-004 registran la feature con el formato ya usado para FR-011 y FR-014"
     }
   ]
 }
