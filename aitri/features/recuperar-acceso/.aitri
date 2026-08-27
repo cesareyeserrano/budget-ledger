@@ -19,19 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-27T16:15:01.117Z",
+  "updatedAt": "2026-08-27T19:52:52.003Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-13T19:43:13.412Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-13T19:49:47.937Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-08-13T21:59:34.247Z",
       "event": "approved",
@@ -147,6 +137,22 @@
       "phase": "verify",
       "passed": 87,
       "failed": 0
+    },
+    {
+      "at": "2026-08-27T19:52:49.742Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-27T19:52:51.992Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -230,16 +236,16 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "7a303da0dfec51daee1a7dc944869b93e0e0edad61268295550c8d0271beb444",
-  "verifyRanAt": "2026-08-26T22:43:25.026Z",
-  "verifyRanRef": "9af3f81d3a61f998053fb7ab9c10a230a68f99fd",
+  "verifyResultsHash": "78e211a1be2bc341db1ac550b1a9b25576a511ee816ef1cc7f63ef9df952ac9e",
+  "verifyRanAt": "2026-08-27T19:52:49.706Z",
+  "verifyRanRef": "acae3d51cb5f67f7c23b211e5c66233775f74f1a",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 87,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-26T22:43:25.026Z"
+    "at": "2026-08-27T19:52:49.706Z"
   },
   "verifyPassed": true,
   "releaseHistory": [
