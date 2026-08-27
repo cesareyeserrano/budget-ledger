@@ -19,35 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-14T20:58:23.419Z",
+  "updatedAt": "2026-08-27T16:15:01.117Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-13T18:15:20.774Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-13T19:18:31.723Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-08-13T19:18:51.718Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-13T19:32:13.301Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-13T19:42:51.876Z",
-      "event": "approved",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-13T19:43:13.412Z",
       "event": "started",
@@ -130,6 +104,49 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-08-26T20:56:00.360Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T21:06:28.814Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 82,
+      "failed": 5,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T22:08:03.391Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 33,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T22:43:25.113Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-27T16:15:01.096Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -213,18 +230,25 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "1f8767603b9a8ed1d6c14eb64585046b0879142a9704c8c1309cde54ad28c168",
-  "verifyRanAt": "2026-08-14T20:43:14.941Z",
-  "verifyRanRef": "04023f8ba2223ed908568085f84753fbfacab801",
-  "verifyRanDirty": true,
+  "verifyResultsHash": "7a303da0dfec51daee1a7dc944869b93e0e0edad61268295550c8d0271beb444",
+  "verifyRanAt": "2026-08-26T22:43:25.026Z",
+  "verifyRanRef": "9af3f81d3a61f998053fb7ab9c10a230a68f99fd",
+  "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 87,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-14T20:43:14.941Z"
+    "at": "2026-08-26T22:43:25.026Z"
   },
   "verifyPassed": true,
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-08-14T20:58:23.388Z"
+    }
+  ],
   "verifySummary": {
     "total": 87,
     "passed": 87,
@@ -234,12 +258,5 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  },
-  "releaseHistory": [
-    {
-      "version": "0.0.1-beta",
-      "version_source": "manifest",
-      "at": "2026-08-14T20:58:23.388Z"
-    }
-  ]
+  }
 }

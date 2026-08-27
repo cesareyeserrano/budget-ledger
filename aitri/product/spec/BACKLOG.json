@@ -272,6 +272,17 @@
       "files": "src/components/BalanceModule.tsx, tests/e2e/balance.spec.ts",
       "behavior": "SEGUNDA PARTE, pedida por el usuario el 2026-08-25: hacerlo CONFIGURABLE a futuro (que el usuario elija que cifra resume el modulo plegado). Eso ya no es una linea: necesita preferencia persistida, sitio donde ajustarla y decidir su alcance (por usuario, global). Conviene tratarlo como fase 2 de este item, o como feature propia.",
       "acceptance": "Plegado, el encabezado del modulo muestra el Saldo disponible del mes; un saldo negativo conserva sus tres canales (color, signo, glifo); el color obedece la regla de balance-jerarquia FR-1403 (neutro por defecto). Los TCs de la feature balance que afirman el Saldo total en el encabezado se actualizan con revocacion declarada, como se hizo con TC-BAL-935h."
+    },
+    {
+      "id": "BL-030",
+      "title": "TC-REC-040h es flaky: 15s de espera a Mailpit no bastan bajo carga de suite completa",
+      "priority": "P2",
+      "problem": "El 2026-08-26, re-verificando recuperar-acceso, TC-REC-040h fallo en la primera pasada y paso en el reintento — Playwright lo clasifica como 'flaky'. Error: 'no llego ningun correo a flujo-1819-2@example.com en 15000ms', en tests/e2e/helpers/mailbox.ts:60. NO es un defecto del producto: el test comprueba FR-1309 (revocacion de sesiones tras recuperar contrasena) y pasa en aislamiento en 1.3 segundos. Lo que falla es el arnes: bajo la carga de la suite completa (344 e2e en paralelo mas los contenedores de testcontainers), Mailpit tarda mas de los 15 s que espera el helper. Consecuencia practica: aitri verify-run registra el TC como 'fail' aunque Playwright lo de por bueno tras el reintento, asi que verify-complete BLOQUEA y obliga a re-correr toda la verificacion de la feature. Es una falsa alarma cara: cada aparicion cuesta unos 4 minutos de re-corrida y hace dudar de una mitigacion de seguridad que esta bien.",
+      "status": "open",
+      "createdAt": "2026-08-26T20:57:45.278Z",
+      "files": "tests/e2e/helpers/mailbox.ts",
+      "behavior": "Arreglo propuesto, de una linea: subir el timeout de waitForResetLink de 15000 a 45000 ms. Es espera MAXIMA, no fija — el bucle sondea cada 200 ms y sale en cuanto llega el correo, asi que subirlo NO ralentiza las corridas sanas (hoy resuelve en ~1 s). Alternativa complementaria si reaparece: dar a Mailpit su propio contenedor por worker, como ya hacen los tests de backend con Postgres.",
+      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas. La espera del helper deja de ser el factor limitante."
     }
   ]
 }

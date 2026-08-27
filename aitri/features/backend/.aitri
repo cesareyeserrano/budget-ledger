@@ -17,23 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-13T16:33:17.204Z",
+  "updatedAt": "2026-08-26T20:48:19.661Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-16T01:11:07.763Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-16T01:23:28.433Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 82,
-      "failed": 0,
-      "skipped": 4,
-      "manual": 0
-    },
     {
       "at": "2026-07-16T13:07:54.199Z",
       "event": "started",
@@ -161,6 +147,22 @@
       "phase": "verify",
       "passed": 85,
       "failed": 0
+    },
+    {
+      "at": "2026-08-26T20:48:09.741Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T20:48:19.639Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -236,16 +238,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "46fd69749decf07195c67108e4e1188d85b08b30d98c355b2b6785ed0ff53257",
-  "verifyRanAt": "2026-08-13T16:33:17.060Z",
+  "verifyResultsHash": "5b2b7d6dd9b4fa78112db512ab01b76aecd9ed41ad5eaa21989d7e120d1dfb4f",
+  "verifyRanAt": "2026-08-26T20:48:09.672Z",
   "lastVerifyRun": {
     "passed": 85,
     "failed": 0,
     "skipped": 1,
     "manual": 0,
-    "at": "2026-08-13T16:33:17.060Z"
+    "at": "2026-08-26T20:48:09.672Z"
   },
-  "verifyRanRef": "0ef908fc72c803a36ced215d0cf723bf34a6f466",
+  "verifyRanRef": "9af3f81d3a61f998053fb7ab9c10a230a68f99fd",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 86,

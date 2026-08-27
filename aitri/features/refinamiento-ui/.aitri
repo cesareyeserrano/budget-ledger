@@ -19,29 +19,9 @@
   "projectName": "refinamiento-ui",
   "createdAt": "2026-08-05T18:06:40.720Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-13T17:45:17.668Z",
+  "updatedAt": "2026-08-27T16:15:01.276Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-07T00:48:02.839Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-08-11T20:09:11.756Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-12T14:00:48.636Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-12T14:02:38.564Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-08-12T14:38:50.905Z",
       "event": "verify-run",
@@ -145,6 +125,40 @@
       "phase": "verify",
       "passed": 37,
       "failed": 0
+    },
+    {
+      "at": "2026-08-26T21:16:18.799Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T22:33:27.833Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 18,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-26T22:49:28.702Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-27T16:15:01.254Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -204,16 +218,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "04023f8ba2223ed908568085f84753fbfacab801",
+  "verifyRanRef": "9af3f81d3a61f998053fb7ab9c10a230a68f99fd",
   "verifyRanDirty": false,
-  "verifyResultsHash": "4ddd1c62832df04bce8d96b7a5c4251c956fc697768e81e9c43a594b2ef42bb9",
-  "verifyRanAt": "2026-08-13T17:45:13.488Z",
+  "verifyResultsHash": "12e7eab9489de550733c4b9d98c298b02aa0c8d8723df257af9a493512a5dc21",
+  "verifyRanAt": "2026-08-26T22:49:28.610Z",
   "lastVerifyRun": {
     "passed": 37,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-13T17:45:13.488Z"
+    "at": "2026-08-26T22:49:28.610Z"
   },
   "verifySummary": {
     "total": 37,
