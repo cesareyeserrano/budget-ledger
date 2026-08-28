@@ -129,7 +129,7 @@ test.describe("FR-1403 — el módulo deja de pintar verde permanente", () => {
   });
 
   // @aitri-tc TC-BJE-006e
-  test("TC-BJE-006e: con el módulo PLEGADO, el encabezado del Saldo total también es neutro", async ({ page }) => {
+  test("TC-BJE-006e: con el módulo PLEGADO, la cifra del encabezado también es neutra", async ({ page }) => {
     await goto(page, POSITIVE, "light");
     // Plegar el módulo entero: es el ÚNICO estado en que HeaderTotalCell se pinta, y por eso la
     // primera redacción de los FR lo pasó por alto.
@@ -145,7 +145,7 @@ test.describe("FR-1403 — el módulo deja de pintar verde permanente", () => {
   });
 
   // @aitri-tc TC-BJE-006f
-  test("TC-BJE-006f: plegado y con el total NEGATIVO, el encabezado conserva alerta y sus tres canales", async ({ page }) => {
+  test("TC-BJE-006f: plegado y con la cifra NEGATIVA, el encabezado conserva alerta y sus tres canales", async ({ page }) => {
     await goto(page, NEGATIVE, "light");
     await page.getByRole("button", { name: "Colapsar balance" }).click();
 
@@ -528,7 +528,9 @@ test.describe("NFR-1401 / NFR-1403 — el guardrail y el plegado", () => {
     await goto(page, POSITIVE, "light");
     await page.getByRole("button", { name: "Colapsar balance" }).click();
 
-    // Desaparecen las ocho filas y aparece el encabezado con el Saldo total del mes.
+    // Desaparecen las ocho filas y aparece el encabezado con el Saldo DISPONIBLE del mes
+    // (feature `resumen-plegado`, FR-1501, que revocó ese punto de FR-909; la conducta que este
+    // TC afirma —el color neutro del encabezado— no depende de cuál de las dos cifras se muestre).
     await expect(page.getByTestId("balance-row")).toHaveCount(0);
     const header = page.getByTestId("balance-header-cell");
     await expect(header.first()).toBeVisible();

@@ -1,0 +1,213 @@
+{
+  "project_name": "resumen-plegado — el Balance plegado resume con el Saldo disponible",
+  "project_summary": "El módulo de Balance se pliega con el chevron de su encabezado y, plegado, deja una sola línea por mes con dos celdas (Presupuestado y Ejecutado). Hoy esas celdas muestran el SALDO TOTAL (FR-909 de la feature `balance`), que es `Saldo disponible + Saldo reservado`. El reservado es plata que el usuario ya apartó en sus alcancías y no piensa gastar, así que la cifra que resume el mes responde «cuánto tengo» cuando la pregunta que motiva el gesto de plegar es «cuánto puedo gastar». Medido en el libro de prueba del usuario el 2026-08-27: junio muestra 2.500 plegado cuando lo gastable son 2.300 — los otros 200 están en la alcancía «Reservas». La feature cambia esa cifra por el SALDO DISPONIBLE en las dos celdas de cada mes y no toca nada más. **North Star KPI:** el número que asoma el módulo plegado es el mismo que la fila «Saldo disponible» de ese mes y plano, en los 12 meses (verificable celda a celda). **JTBD:** cuando cierro el Balance para dejar la grilla despejada, quiero que la línea que queda me diga cuánto puedo gastar este mes, para no confundir mi margen con mi patrimonio. **Guardrail:** nada más del módulo cambia — ni la aritmética, ni las ocho filas desplegadas, ni el cierre en Saldo total, ni la regla de color neutro-por-defecto, ni el plegado en dos niveles.",
+  "technology_preferences": [
+    "Sin dependencias nuevas. El cálculo ya existe: `computeBalanceSeries` (src/domain/balance.ts) entrega las seis cifras por mes y plano, `available` entre ellas. La feature elige cuál se pinta."
+  ],
+  "constraints": [
+    "Decisión del usuario (2026-08-25, origen de BL-029; ratificada el 2026-08-27 tras revisar el módulo con sus propios números): plegado, el encabezado muestra el Saldo disponible.",
+    "Decisión del usuario (2026-08-27): cambian LAS DOS celdas de cada mes —Presupuestado y Ejecutado—, cada una con el disponible de SU plano. Dos celdas contiguas que asomaran filas distintas responderían preguntas distintas.",
+    "REVOCACIÓN DECLARADA de FR-909 (feature `balance`), en un solo punto: donde dice «plegado el encabezado SIGUE mostrando el Saldo total de cada mes y plano» ahora rige el Saldo disponible. El resto de FR-909 —los dos niveles de plegado, el chevron interno que corta en «Saldo disponible», el estado local no persistido, los cuatro bloques tratados como pares— queda vigente sin cambios. La revocación se declara aquí y en el TC re-derivado, como se hizo con TC-BAL-935h; no se deja implícita.",
+    "FR-905 (feature `balance`) NO se toca: define las seis cifras derivadas y las seis se siguen calculando igual.",
+    "Seguridad: no aplica superficie nueva. La feature no añade entrada de usuario, ni ruta, ni dato persistido — cambia qué cifra ya calculada se pinta en una celda de solo lectura. La postura vigente (NFR-004 raíz, gate de sesión FR-504/FR-1102) queda intacta y sin tocar.",
+    "CI/CD: hereda el pipeline del proyecto (NFR-006 raíz) — la suite completa y los quality gates corren en cada push, sin configuración propia de esta feature."
+  ],
+  "no_go_zone": [
+    "Hacerlo CONFIGURABLE (que el usuario elija qué cifra resume el módulo plegado) — es la segunda mitad de BL-029 y necesita preferencia persistida, decidir su alcance (por cuenta o global) y un sitio donde ajustarla; hoy no existe pantalla de ajustes. Fuera por decisión del usuario del 2026-08-27; queda como feature propia si algún día se pide.",
+    "Mostrar las DOS cifras a la vez en la línea plegada (`disponible · total`) — se propuso el 2026-08-27 y el usuario eligió la cifra única: duplicar números por mes en la fila más compacta la vuelve más densa que el módulo abierto.",
+    "Cambiar la aritmética, el significado, el orden o el número de las filas del módulo desplegado. Cada celda desplegada sigue mostrando exactamente el mismo número que hoy.",
+    "Que la fila «Saldo reservado» pase a ser por alcancía en vez de global — el usuario la revisó el 2026-08-27 y decidió dejarla como está.",
+    "BL-019, el rediseño de CÓMO se opera un retiro — toca el mismo módulo pero es diseño de interacción; sigue abierto y aparte.",
+    "El módulo de Balance en móvil — sigue siendo de escritorio (FR-010 raíz), esta feature no lo cambia.",
+    "Persistir el estado plegado/desplegado del módulo — sigue siendo local y efímero, como decidió FR-909."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales (el mismo y único usuario del producto)",
+      "tech_level": "mid",
+      "goal": "Plegar el Balance para dejar la grilla despejada y conservar, en la línea que queda, la respuesta a «cuánto puedo gastar este mes»",
+      "pain_point": "La línea que queda le muestra el patrimonio (disponible + lo que ya apartó en alcancías), así que sobreestima su margen justo en la vista que existe para leerlo de un vistazo. En su libro, junio dice 2.500 cuando puede gastar 2.300"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1501",
+      "title": "Plegado, el encabezado del Balance muestra el Saldo disponible del mes (ambos planos)",
+      "description": "Cuando el usuario pliega el módulo de Balance con el chevron de su encabezado, el sistema muestra en cada una de las 24 celdas del encabezado (12 meses × 2 planos) el SALDO DISPONIBLE de ese mes en ese plano —`series[mes][plano].available`— en lugar del Saldo total. Cada celda usa el disponible de SU propio plano: la de Presupuestado el del plan, la de Ejecutado el de la realidad. El tratamiento visual de esa cifra —color, signo y glifo— se especifica en FR-1502. Con el módulo desplegado no cambia nada: la escalera de ocho filas sigue igual y su fila de cierre sigue siendo «Saldo total». REVOCA, solo en este punto, la regla de FR-909 (feature `balance`) que fijaba el Saldo total como cifra del encabezado plegado.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con el libro de prueba en junio (Saldo disponible Ejec. 2.300, Saldo reservado 200, Saldo total 2.500), plegar el módulo deja el encabezado de junio mostrando 2.300 en su celda de Ejecutado — no 2.500 (happy)",
+        "El número de cada celda del encabezado plegado es idéntico, celda a celda en los 12 meses y los 2 planos, al que muestra la fila «Saldo disponible» del módulo desplegado (invariante verificable sobre las 24 celdas)",
+        "La celda de Presupuestado muestra el disponible de SU plano: en un mes donde el plan y la realidad difieren (junio del libro de prueba: Pres. 2.500, Ejec. 2.300), las dos celdas muestran valores distintos, cada uno de su plano (edge)",
+        "En un mes sin reservas (Saldo reservado = 0) la cifra plegada es idéntica a la que se mostraba antes del cambio, porque disponible y total coinciden (edge — el cambio no altera lo que ya era correcto)",
+        "Plegado, siguen existiendo exactamente 24 celdas de encabezado (12 meses × 2 planos) y 0 filas de balance visibles — la estructura del plegado no cambia (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1502",
+      "title": "La cifra plegada conserva la señal: color de la regla única, y negativo con sus tres canales",
+      "description": "Cuando el módulo está plegado, el sistema pinta cada celda del encabezado con el mismo tratamiento que ya aplica hoy, ahora sobre el Saldo disponible: si el mes no tiene dato, neutro atenuado (`--fg-muted`); si lo tiene, la regla única de color del producto (feature `balance-jerarquia`, FR-1403 — neutro por defecto: ninguna cifra de resultado se colorea, el color solo señala la excepción; FR-1404 — una celda sin dato nunca lleva el color de su fila); y si el Saldo disponible es negativo, la celda conserva sus TRES canales de señal —color de excepción, signo − y glifo—, los mismos que muestra la fila «Saldo disponible» desplegada. Plegar RESUME el módulo; no degrada la señal ni la deja dependiendo solo del color.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con un Saldo disponible negativo, la celda plegada de ese mes expone los tres canales: color de excepción, signo − y glifo, verificables por separado (negativo/accesibilidad)",
+        "Con un Saldo disponible ≥ 0, incluido el valor exacto 0, la celda plegada NO lleva color de excepción — neutro por defecto, FR-1403 (boundary)",
+        "En un mes sin dato, la celda plegada se pinta con `--fg-muted` y no hereda el color de la fila (edge, FR-1404)",
+        "El contraste del texto de la celda plegada es ≥ 4,5:1 en los temas claro y oscuro, igual que el resto del módulo"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1501",
+      "requirement_id": "FR-1501",
+      "as_a": "dueño de mis finanzas mirando la grilla de presupuesto en escritorio",
+      "i_want": "que al plegar el módulo de Balance la línea que queda me diga el saldo disponible del mes",
+      "so_that": "leo de un vistazo cuánto puedo gastar y no confundo mi margen con el dinero que ya aparté en alcancías",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1501a",
+          "given": "el libro de prueba, con junio en Saldo disponible Ejec. 2.300, Saldo reservado 200 y Saldo total 2.500, y el módulo de Balance desplegado",
+          "when": "el usuario pulsa el chevron «Colapsar balance»",
+          "then": "el encabezado de junio muestra 2.300 en su celda de Ejecutado, y ninguna celda del encabezado muestra 2.500 para junio"
+        },
+        {
+          "id": "AC-1501b",
+          "given": "el módulo desplegado y la fila «Saldo disponible» a la vista",
+          "when": "se compara cada una de sus 24 celdas con las 24 del encabezado tras plegar",
+          "then": "los 24 pares coinciden exactamente, mes a mes y plano a plano"
+        },
+        {
+          "id": "AC-1501c",
+          "given": "un mes cuyo Saldo disponible es negativo",
+          "when": "el usuario pliega el módulo",
+          "then": "la celda de ese mes muestra el signo −, el glifo de negativo y el color de excepción, los mismos tres canales que la fila desplegada"
+        },
+        {
+          "id": "AC-1501d",
+          "given": "el módulo plegado",
+          "when": "el usuario lo vuelve a desplegar",
+          "then": "reaparecen las ocho filas en su orden y sangría actuales y la fila de cierre sigue siendo «Saldo total» con su valor de siempre"
+        }
+      ]
+    },
+    {
+      "id": "US-1502",
+      "requirement_id": "FR-1502",
+      "as_a": "dueño de mis finanzas leyendo el Balance plegado",
+      "i_want": "que un saldo disponible negativo se note aunque el módulo esté cerrado",
+      "so_that": "un mes en rojo no se me pasa por haber plegado el módulo, y lo distingo sin depender del color",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1502a",
+          "given": "un mes cuyo Saldo disponible es negativo y el módulo plegado",
+          "when": "el usuario mira la celda de ese mes",
+          "then": "la celda muestra el signo −, el glifo de negativo y el color de excepción — los tres canales presentes"
+        },
+        {
+          "id": "AC-1502b",
+          "given": "un mes cuyo Saldo disponible es exactamente 0 y el módulo plegado",
+          "when": "el usuario mira la celda de ese mes",
+          "then": "la celda no lleva color de excepción: se pinta neutra, como manda FR-1403"
+        },
+        {
+          "id": "AC-1502c",
+          "given": "un mes sin dato y el módulo plegado",
+          "when": "el usuario mira la celda de ese mes",
+          "then": "la celda se pinta con --fg-muted y no toma el color de la fila"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1501",
+      "category": "Regression",
+      "requirement": "El módulo DESPLEGADO no cambia en nada: conserva sus ocho filas, su orden, su sangría por nivel (14 + nivel × 16 px) y su fila de cierre «Saldo total» (FR-905, FR-1009, y la escalera de `balance-jerarquia` FR-1401/FR-1402). El plegado en DOS niveles se mantiene: el chevron interno de «Saldo disponible» sigue ocultando exactamente «Saldo reservado» y «Saldo total», ni una fila más ni una menos, y el estado sigue siendo local y no persistido.",
+      "acceptance_criteria": "Desplegado, se ven 8 filas de balance en el orden vigente y `total` es la última; tras pulsar «Colapsar saldos» quedan visibles exactamente flow, reserved, retiros, monthAvailable, prevAvailable y available, y desaparecen reservedBalance y total; recargar la página devuelve el módulo a su estado por defecto"
+    },
+    {
+      "id": "NFR-1502",
+      "category": "Regression",
+      "requirement": "La aritmética del balance no cambia. `src/domain/balance.ts` no se modifica: para todo mes y plano se sigue cumpliendo `Saldo total = Saldo disponible + Saldo reservado`, y el arrastre entre meses sigue abriendo ambos planos con el cierre EJECUTADO real del mes previo (FR-906, FR-907, FR-1009). Esta feature solo elige cuál de las cifras ya calculadas se pinta al plegar.",
+      "acceptance_criteria": "Los TCs de dominio de las features `balance` y `transferencias` pasan sin modificación; en los 12 meses y los 2 planos, total − disponible − reservado = 0"
+    },
+    {
+      "id": "NFR-1503",
+      "category": "Regression",
+      "requirement": "El módulo de Balance sigue siendo de escritorio: no se renderiza en el shell móvil de v1 (FR-010 raíz), ni plegado ni desplegado.",
+      "acceptance_criteria": "A 375 px de ancho no existe ningún nodo `balance-module` ni `balance-header-cell` en el DOM"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo planteó el 2026-08-25 (BL-029, registrado con sus palabras) y lo ratificó en la sesión del 2026-08-27 tras ver el módulo explicado con sus propios números",
+    "users": "Es el único usuario del producto, ya definido en el discovery raíz y en las features previas del módulo de Balance",
+    "baseline": "Medido sobre los datos reales del usuario el 2026-08-27 (cuenta admin@admin.com): junio muestra plegado 2.500 cuando el disponible es 2.300, con 200 en la alcancía «Reservas»; el código que lo produce es BalanceModule.tsx:316-317",
+    "success_metric": "El usuario confirmó el 2026-08-27 que la cifra correcta plegada es el Saldo disponible, y que cambian las dos celdas (Pres. y Ejec.)",
+    "no_go_zone": "El usuario decidió el 2026-08-27 dejar lo configurable fuera (segunda mitad de BL-029), descartó mostrar las dos cifras juntas, y decidió no tocar la fila «Saldo reservado»"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Plegado, el encabezado del Balance debe resumir el mes con el Saldo disponible en vez del Saldo total",
+      "disposition": "FR-1501"
+    },
+    {
+      "need": "El cambio aplica a las dos celdas de cada mes, cada una con el disponible de su propio plano",
+      "disposition": "FR-1501"
+    },
+    {
+      "need": "Un valor negativo conserva sus tres canales de señal al plegar (color, signo, glifo)",
+      "disposition": "FR-1502"
+    },
+    {
+      "need": "El color obedece la regla vigente de `balance-jerarquia` (neutro por defecto)",
+      "disposition": "FR-1502"
+    },
+    {
+      "need": "El módulo desplegado y su plegado en dos niveles no cambian; el cierre sigue siendo Saldo total",
+      "disposition": "NFR-1501"
+    },
+    {
+      "need": "La aritmética del balance y el arrastre entre meses no cambian",
+      "disposition": "NFR-1502"
+    },
+    {
+      "need": "El Balance sigue sin renderizarse en móvil v1",
+      "disposition": "NFR-1503"
+    },
+    {
+      "need": "Declarar explícitamente la revocación parcial de FR-909 (feature `balance`) y re-derivar TC-BAL-909h",
+      "disposition": "FR-1501"
+    },
+    {
+      "need": "Hacer configurable qué cifra resume el módulo plegado",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Mostrar disponible y total a la vez en la línea plegada",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rediseñar cómo se opera un retiro (BL-019)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que la fila «Saldo reservado» sea por alcancía en vez de global",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Persistir el estado plegado del módulo",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nCuando el módulo de Balance se pliega, su encabezado pasa a resumir el mes con el **Saldo disponible** en vez del Saldo total.\n\n## Problem / Why\nEl módulo de Balance se pliega con su chevron y, plegado, deja una sola línea por mes con dos celdas\n(Presupuestado y Ejecutado). Hoy esas celdas muestran el **Saldo total**, que es `Saldo disponible + Saldo\nreservado`. El reservado es plata que el usuario ya apartó en sus alcancías y que no va a gastar, así que\nel número que resume el mes responde «cuánto tengo» cuando la pregunta que se hace al plegar es **«cuánto\npuedo gastar»**.\n\nCon datos reales del libro de prueba, junio muestra hoy 2.500 plegado cuando lo gastable son 2.300: los 200\nrestantes están en una alcancía. El resumen sobreestima el margen justo en el gesto que existe para leerlo\nrápido.\n\nHay además una incoherencia interna entre los dos niveles de plegado. El chevron INTERNO ya corta la\nescalera exactamente en la fila «Saldo disponible» —esconde el reservado y el total— porque esa es la cifra\nde cierre útil. El chevron del módulo, que es el plegado MÁS compacto de los dos, muestra la otra. Los dos\ngestos responden preguntas distintas sin motivo.\n\nConfirmado con el usuario el 2026-08-25 (origen del ítem BL-029) y ratificado el 2026-08-27 tras revisar el\nmódulo con sus propios números.\n\n## Target Users\nEl mismo y único usuario del producto: el dueño de sus finanzas, en escritorio, leyendo la grilla de\npresupuesto. No habilita usuarios nuevos.\n\n## New Behavior\nThe system must mostrar, en el encabezado del módulo de Balance cuando está PLEGADO, el **Saldo disponible**\ndel mes en lugar del Saldo total, en las DOS celdas de cada mes: la del plano Presupuestado y la del plano\nEjecutado (ambas asoman la misma fila de la escalera; mezclar cifras distintas en dos celdas contiguas haría\nque respondieran preguntas diferentes).\n\nThe system must conservar en esa cifra los tres canales de señal que ya tiene el encabezado cuando el valor\nes negativo: color, signo y glifo — plegar RESUME, no pierde la señal.\n\nThe system must respetar la regla de color vigente del producto (feature `balance-jerarquia`, FR-1403:\nneutro por defecto, el color solo señala la excepción), la misma que aplica hoy la celda del encabezado.\n\n## Success Criteria\nGiven un mes con reservas (junio del libro de prueba: disponible 2.300, reservado 200, total 2.500), when el\nusuario pliega el módulo de Balance, then el encabezado de junio muestra 2.300 en la celda de Ejecutado\n—no 2.500—, y la celda de Presupuestado muestra el disponible de ese plano por la misma regla.\n\nGiven un mes sin reservas, when el usuario pliega el módulo, then la cifra no cambia respecto de la actual,\nporque sin reservado el disponible y el total coinciden.\n\nGiven un mes cuyo Saldo disponible es negativo, when el usuario pliega el módulo, then la cifra conserva\ncolor, signo y glifo, igual que la fila «Saldo disponible» desplegada.\n\nGiven el módulo DESPLEGADO, when el usuario lo mira, then la escalera de ocho filas sigue idéntica y el\nSaldo total sigue siendo la fila de cierre — esta feature solo cambia lo que se asoma al plegar.\n\n## Touch Points\nMODIFICA:\n- `src/components/BalanceModule.tsx` — las dos llamadas a `HeaderTotalCell` del encabezado plegado\n  (hoy `series[m.k].budget.total` y `series[m.k].actual.total`).\n- **FR-909 de la feature `balance`** — es el requisito aprobado que fija la cifra del encabezado plegado:\n  «plegado el encabezado SIGUE mostrando el **Saldo total** de cada mes y plano — plegar resume, no borra».\n  Esta feature REVOCA esa parte y la sustituye por el Saldo disponible; el resto de FR-909 (los dos niveles\n  de plegado, el chevron interno, el estado local no persistido, los cuatro bloques como pares) queda\n  intacto. La revocación se declara explícitamente, como se hizo con TC-BAL-935h — no implícita.\n- **TC-BAL-909h** (`tests/e2e/balance.spec.ts:599`) — afirma hoy que el número del encabezado plegado es el\n  MISMO que mostraba la fila «Saldo total». Hay que re-derivarlo contra la fila «Saldo disponible», con la\n  revocación citada en el propio test.\n- **FR-905 de la feature `balance`** — NO se toca: define las seis cifras derivadas, y las seis se siguen\n  calculando igual. Esta feature solo elige cuál de ellas se asoma al plegar.\n\nNO toca: el dominio (`src/domain/balance.ts` no cambia — las seis cifras ya se calculan todas), la\npersistencia, el contrato de la API, ni el módulo desplegado.\n\n## Must Not Break (Regression Boundary)\n- El módulo DESPLEGADO conserva sus ocho filas, su orden, su sangría por nivel y su fila de cierre\n  «Saldo total» (FR-905, FR-1009 y la escalera de `balance-jerarquia`).\n- La aritmética del balance no cambia: `Saldo total = Saldo disponible + Saldo reservado` sigue cumpliéndose\n  mes a mes y el arrastre entre meses sigue tomando el cierre real del mes previo (FR-906, FR-907).\n- El chevron interno sigue cortando la escalera en «Saldo disponible» y el chevron del módulo sigue\n  plegando y desplegando como hoy.\n- La regla de color de `balance-jerarquia` (FR-1403) sigue siendo la única que decide el color de la cifra.\n- El módulo de Balance sigue sin renderizarse en móvil v1.\n\n## Out of Scope\n- **Hacerlo configurable** (que el usuario elija qué cifra resume el módulo plegado) — es la segunda mitad\n  de BL-029 y necesita preferencia persistida, decidir su alcance (por cuenta o global) y un sitio donde\n  ajustarla; hoy no existe pantalla de ajustes. Queda como feature propia si algún día se pide.\n- Mostrar las dos cifras a la vez (`disponible · total`) en la línea plegada — se consideró y se descartó el\n  2026-08-27: duplica los números por mes en la fila más compacta.\n- Rediseñar dónde se opera un retiro — es BL-019, abierto y aparte.\n- Cambiar qué muestra la fila «Saldo reservado» o hacerla por alcancía — el usuario decidió el 2026-08-27\n  dejarla global tal como está.\n"
+}

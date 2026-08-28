@@ -270,11 +270,12 @@
       "title": "El resumen plegado del Balance deberia mostrar Saldo disponible, no Saldo total (y ser configurable)",
       "priority": "P2",
       "problem": "Al plegar el modulo de Balance, su encabezado muestra el SALDO TOTAL del mes (HeaderTotalCell, src/components/BalanceModule.tsx, FR-905 de la feature balance). El usuario lo reviso el 2026-08-25 y prefiere que muestre el SALDO DISPONIBLE. El argumento es correcto y el propio codigo lo respalda sin cumplirlo: el comentario del plegado dice que existe para dar 'la vista compacta de cuanto tengo', pero Saldo total INCLUYE el Saldo reservado — plata ya apartada que el usuario no va a gastar. Si se pliega el modulo para responder 'cuanto puedo gastar', la cifra correcta es Saldo disponible. Coherencia adicional: el chevron interno, que vive en la fila 'Saldo disponible', ya pliega la cola dejando la cuenta terminando ahi justamente por esa razon — asi que los dos niveles de plegado hoy responden preguntas distintas sin motivo. NO se metio en la feature balance-jerarquia por decision del usuario del 2026-08-25: es cambio de comportamiento sobre un FR aprobado (FR-905) y meterlo a mitad del build habria cascadeado UX, arquitectura, tests y la aprobacion de EP-01. En codigo es UNA linea (series[m.k].budget.total -> .available); lo que cuesta es la decision y su cascada.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-08-25T17:11:31.579Z",
       "files": "src/components/BalanceModule.tsx, tests/e2e/balance.spec.ts",
       "behavior": "SEGUNDA PARTE, pedida por el usuario el 2026-08-25: hacerlo CONFIGURABLE a futuro (que el usuario elija que cifra resume el modulo plegado). Eso ya no es una linea: necesita preferencia persistida, sitio donde ajustarla y decidir su alcance (por usuario, global). Conviene tratarlo como fase 2 de este item, o como feature propia.",
-      "acceptance": "Plegado, el encabezado del modulo muestra el Saldo disponible del mes; un saldo negativo conserva sus tres canales (color, signo, glifo); el color obedece la regla de balance-jerarquia FR-1403 (neutro por defecto). Los TCs de la feature balance que afirman el Saldo total en el encabezado se actualizan con revocacion declarada, como se hizo con TC-BAL-935h."
+      "acceptance": "Plegado, el encabezado del modulo muestra el Saldo disponible del mes; un saldo negativo conserva sus tres canales (color, signo, glifo); el color obedece la regla de balance-jerarquia FR-1403 (neutro por defecto). Los TCs de la feature balance que afirman el Saldo total en el encabezado se actualizan con revocacion declarada, como se hizo con TC-BAL-935h.",
+      "closedAt": "2026-08-28T16:28:01.475Z"
     },
     {
       "id": "BL-030",
@@ -317,6 +318,15 @@
       "status": "open",
       "createdAt": "2026-08-27T20:26:17.226Z",
       "acceptance": "El no_go_zone de recuperar-acceso declara el flujo por correo DORMIDO (citando la decision del 2026-08-27); el reset por terminal tiene FR propio con su TC (automatizado o manual verificado); el coverage_map raiz y NFR-004 registran la feature con el formato ya usado para FR-011 y FR-014"
+    },
+    {
+      "id": "BL-034",
+      "title": "Hacer configurable que cifra resume el Balance plegado (segunda mitad de BL-029)",
+      "priority": "P3",
+      "problem": "BL-029 tenia dos mitades. La primera —que plegado se muestre el Saldo disponible en vez del Saldo total— se entrego el 2026-08-28 con la feature resumen-plegado (FR-1501/FR-1502, 20/20 TCs). La segunda sigue pendiente por decision del usuario del 2026-08-27: que sea EL USUARIO quien elija que cifra resume el modulo plegado. No es una linea de codigo como la primera: necesita una preferencia persistida, decidir su alcance (por cuenta o global) y un sitio donde ajustarla — hoy el producto no tiene pantalla de ajustes, asi que la feature arrastra crear esa superficie o meter el control en el propio encabezado. El punto de extension esta identificado y es uno solo: el MONTHS.map de BalanceModule.tsx que hoy elige el campo `available`, documentado en el ADR-01 de la feature (se descarto parametrizar HeaderTotalCell por adelantado: andamiaje especulativo sin segundo llamador).",
+      "status": "open",
+      "createdAt": "2026-08-28T16:28:27.855Z",
+      "acceptance": "El usuario elige entre Saldo disponible y Saldo total para el encabezado plegado; la eleccion persiste entre sesiones y dispositivos con el alcance que se decida; el valor por defecto sigue siendo Saldo disponible"
     }
   ]
 }

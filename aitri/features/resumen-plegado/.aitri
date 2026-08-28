@@ -1,0 +1,226 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "resumen-plegado",
+  "createdAt": "2026-08-27T21:01:10.927Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-08-28T16:27:56.072Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-08-28T01:25:59.204Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T01:42:52.203Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-28T01:42:55.634Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-28T01:42:55.741Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-28T01:42:55.820Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-28T01:42:55.962Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-28T02:03:12.946Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T02:08:32.426Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T02:12:25.301Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-28T02:12:25.476Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-08-28T02:36:02.123Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T05:16:23.147Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T07:12:41.598Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T09:19:12.880Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T10:59:03.980Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T15:36:10.664Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-08-28T15:36:20.868Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0
+    },
+    {
+      "at": "2026-08-28T15:36:24.191Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-28T15:37:34.846Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-08-28T16:27:56.055Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "df1936da22edf36c6bddae0b570d21e1983268ef466af5cc55388f07ff602afe",
+    "2": "61a9efd69b90629606637d1a84405b0819697a76e1434ec66114f054fa412f30",
+    "3": "9c0c2de6f1f960d31f5ab962164187c004c160729452b30890214951e3c96b40",
+    "4": "7b5ad72fcc6d0b6c3b47b6fe1bdb0933a03aac050b424e22b0d37f4d04cdc7d0",
+    "5": "a4a58f97c3accc6be0753a7745f314a1aaa891aba8bdb617917dc44d65219598",
+    "ux": "a406cb6f914c2e1fc14f961d519aa179f0b341ffed89bc204647ce38d676a4f7"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-1501",
+      "FR-1502"
+    ],
+    "3": [
+      "FR-1501",
+      "FR-1502"
+    ],
+    "4": [
+      "FR-1501",
+      "FR-1502"
+    ],
+    "5": [
+      "FR-1501",
+      "FR-1502"
+    ],
+    "ux": [
+      "FR-1501",
+      "FR-1502"
+    ]
+  },
+  "verifyRanRef": "5d60159e7459660e49388d0fac081d2a53bdcd56",
+  "verifyRanDirty": true,
+  "verifyPassed": true,
+  "verifyResultsHash": "b3af85ee3a75067429d9d7033f66528edfeeada0a4d0d3adc2a9d260cee1ad10",
+  "verifyRanAt": "2026-08-28T15:36:10.581Z",
+  "lastVerifyRun": {
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-08-28T15:36:10.581Z"
+  },
+  "verifySummary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-08-28T16:27:56.055Z"
+    }
+  ]
+}

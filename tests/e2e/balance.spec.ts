@@ -596,23 +596,37 @@ test("TC-BAL-955e: en móvil solo existe el registro (ni grilla ni balance)", as
 const filasVisibles = (page: Page) =>
   page.getByTestId("balance-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-row")));
 
-test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo total", async ({ page }) => {
+// REVOCACIÓN DECLARADA (feature `resumen-plegado`, FR-1501, 2026-08-27): FR-909 fijaba que
+// «plegado el encabezado SIGUE mostrando el Saldo total de cada mes y plano». El usuario lo
+// revocó en ESE punto —el Saldo total incluye el reservado, plata ya apartada, así que resumía
+// «cuánto tengo» y no «cuánto puedo gastar»— y ahora rige el Saldo disponible. El resto de FR-909
+// sigue vigente y lo siguen afirmando TC-BAL-909e y TC-BAL-909f.
+//
+// La aserción NO se afloja al re-derivarla: sigue comparando el número del encabezado contra el
+// de una fila REAL del módulo leída antes de plegar, solo que contra «Saldo disponible». Y se
+// refuerza: el fixture separa disponible de total (POSITIVE reserva 100.000/mes), así que el TC
+// falla tanto si el encabezado muestra el total como si mostrara cualquier otra fila.
+test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo disponible", async ({ page }) => {
   // @aitri-tc TC-BAL-909h
   await gotoGrid(page, POSITIVE);
 
-  const totalJulioAntes = await readBal(page, "total", MONTH_KEYS.indexOf("jul"), "actual");
-  expect(totalJulioAntes).toBeGreaterThan(0); // el caso sería vacío si no hubiera datos
+  const jul = MONTH_KEYS.indexOf("jul");
+  const disponibleAntes = await readBal(page, "available", jul, "actual");
+  const totalAntes = await readBal(page, "total", jul, "actual");
+  expect(disponibleAntes).toBeGreaterThan(0); // el caso sería vacío si no hubiera datos
+  expect(totalAntes).not.toBe(disponibleAntes); // y sería ciego si las dos cifras coincidieran
 
   await page.getByLabel("Colapsar balance").click();
 
-  // plegar RESUME: cero filas, pero el encabezado sigue diciendo el bottom-line de cada mes/plano
+  // plegar RESUME: cero filas, pero el encabezado sigue diciendo una cifra por mes y plano
   expect(await filasVisibles(page)).toEqual([]);
   const celdas = page.getByTestId("balance-header-cell");
   await expect(celdas).toHaveCount(MONTH_KEYS.length * 2); // 24 = 12 meses × 2 planos
 
-  // y el número es el MISMO que mostraba la fila Saldo total antes de plegar
-  const julEjec = amountOf(await celdas.nth(MONTH_KEYS.indexOf("jul") * 2 + 1).textContent());
-  expect(julEjec).toBe(totalJulioAntes);
+  // y el número es el MISMO que mostraba la fila Saldo disponible antes de plegar
+  const julEjec = amountOf(await celdas.nth(jul * 2 + 1).textContent());
+  expect(julEjec).toBe(disponibleAntes);
+  expect(julEjec).not.toBe(totalAntes);
 });
 
 test("TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo", async ({ page }) => {

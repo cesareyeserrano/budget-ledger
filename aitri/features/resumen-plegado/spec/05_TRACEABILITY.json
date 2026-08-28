@@ -1,0 +1,74 @@
+{
+  "project": "resumen-plegado",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-1501",
+      "title": "Plegado, el encabezado del Balance muestra el Saldo disponible del mes (ambos planos)",
+      "level": "complete",
+      "evidence": "7/7 TCs pasando (TC-RSP-001h/002e/003e/004f/005e/006h/007e). La verificación no se apoya en un número esperado escrito a mano: TC-RSP-002e compara las 24 celdas del encabezado plegado contra las 24 de la fila «Saldo disponible» leídas del DOM antes de plegar, y exige igualdad elemento a elemento. TC-RSP-004f hace la comprobación complementaria sobre las 24 celdas contra la fila «Saldo total» y exige DESIGUALDAD en las 24 — el fixture reserva 100.000/mes justamente para que las dos cifras difieran en todos los meses; sin esa separación el TC sería ciego. TC-RSP-007e es el más discriminante: un fixture donde el disponible cae a −100.000 mientras el total sigue en +100.000, así que las dos cifras difieren en SIGNO y la celda no puede estar mostrando la otra por casualidad. TC-RSP-003e fija que cada celda usa el disponible de SU plano (Pres. 600.000 vs Ejec. 200.000 en el mismo mes), TC-RSP-005e que sin reservas la cifra no cambia respecto del comportamiento anterior, y TC-RSP-006h que desplegar devuelve la escalera con su cierre en Saldo total."
+    },
+    {
+      "id": "FR-1502",
+      "title": "La cifra plegada conserva la señal: color de la regla única, y negativo con sus tres canales",
+      "level": "complete",
+      "evidence": "4/4 TCs pasando (TC-RSP-010h/011e/012f/013h). Todos afirman ESTILO COMPUTADO del navegador, no clases ni presencia de nodos: TC-RSP-010h exige los tres canales sobre un disponible negativo (color rgb(173,57,50) = --alert-strong, signo − y glifo ‹‹), TC-RSP-012f la ausencia de los tres sobre un valor sano (color rgb(28,28,31) = --fg), TC-RSP-011e el borde del CERO EXACTO —que con `available` es más frecuente que con `total`— comprobando que se pinta --fg-muted y nunca el color de excepción, coherente con TC-BJE-005e, y TC-RSP-013h calcula el contraste WCAG real contra el fondo computado en los cuatro cruces (sano/negativo × claro/oscuro), todos ≥4,5:1."
+    },
+    {
+      "id": "NFR-1501",
+      "title": "Regresión — el módulo desplegado y su plegado en dos niveles no cambian",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RSP-020h/021e/022f). TC-RSP-020h afirma las ocho filas por su clave `data-row` en el orden exacto de la cascada, cerrando en `total`; TC-RSP-021e que el chevron interno sigue ocultando exactamente `reservedBalance` y `total`, ni una fila más ni una menos; TC-RSP-022f que el estado plegado no se persiste (tras recargar vuelven las ocho filas y no queda clave alguna de plegado en localStorage). Los TCs de la feature `balance` que gobiernan el resto de FR-909 (TC-BAL-909e y TC-BAL-909f) siguen pasando sin modificación."
+    },
+    {
+      "id": "NFR-1502",
+      "title": "Regresión — la aritmética del balance no cambia",
+      "level": "complete",
+      "evidence": "3/3 TCs unitarios pasando (TC-RSP-030h/031e/032f) sobre `computeBalanceSeries`, más la suite de dominio de `balance` y `transferencias` intacta. TC-RSP-030h comprueba la reconciliación total = disponible + reservado en las 24 combinaciones mes×plano con desviación exactamente 0 (aritmética entera, sin tolerancia); TC-RSP-031e que ambos planos siguen abriendo el mes con el cierre EJECUTADO real del previo (ADR-03 de `balance`) usando un fixture donde los planos cierran distinto —600.000 vs 200.000—, que es la única forma de que el TC pueda fallar; TC-RSP-032f el caso de retiro NETO (reservas del mes negativas), donde además ninguna alcancía queda en rojo. `src/domain/balance.ts` no aparece en files_modified: el dominio no se tocó."
+    },
+    {
+      "id": "NFR-1503",
+      "title": "Regresión — el módulo de Balance sigue siendo de escritorio",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-RSP-040h/041f/042e). A 1440px el encabezado plegado tiene sus 24 celdas y cero filas; a 375px no existe ningún nodo `balance-module` ni `balance-header-cell`; y TC-RSP-042e fija el BORDE del breakpoint del producto —a 760px no se renderiza, a 761px sí—, de modo que un desplazamiento accidental del umbral falla el test en vez de pasar desapercibido."
+    }
+  ],
+  "technical_debt_inherited": [],
+  "deployment": {
+    "model": "containerized",
+    "changes_required": "none",
+    "rationale": "02_SYSTEM_DESIGN.md#Deployment Architecture lo declara sin cambios: mismo modelo containerizado del producto (Next.js en Docker sobre Ultron con Nginx delante). La feature no añade variables de entorno, ni servicios, ni migraciones, ni dependencias, ni pasos de build — cambia DOS expresiones de un componente de cliente dentro del bundle que ya existe. No se crean Dockerfile, docker-compose.yml, DEPLOYMENT.md ni .env.example propios: los del producto siguen vigentes sin tocar. REVERSIÓN: revertir los commits, sin más. No hay estado persistido que migrar de vuelta, que es la propiedad de un cambio puramente presentacional: `data_version` sigue en 4 y ninguna fila de la base cambia de forma.",
+    "verified": "Los SEIS quality_gates pasaron en la corrida de verify-run del 2026-08-28, todos exit 0: typecheck, lint, design-tokens, security-config, secret-scan y smoke. El gate `smoke` arranca el producto y comprueba que sus rutas responden sin errores de servidor, así que lo verificado es la aplicación ensamblada, no solo sus unidades. La suite e2e completa (361 tests, todas las features) corrió en la misma pasada con exit 0 y acreditó los 17 TCs e2e de esta feature. CAMBIO DE MANIFIESTO respecto de las features anteriores: se RETIRA el quality_gate `e2e` que ellas declaraban. La razón que lo justificaba —que sin él Aitri lanzaba Playwright en paralelo y el timeout mataba la suite— resultó ser un diagnóstico incompleto: el 2026-08-28 se identificó la causa real (BG-016) y con ella corregida basta la corrida que Aitri lanza sola, que además ACREDITA los ids, cosa que un gate por exit code no puede hacer. `test_runner_timeout_ms` queda declarado en 30 min porque ese mismo valor acota esa corrida."
+  },
+  "visual_verification": {
+    "method": "Medición instrumentada sobre el DOM real en los dos temas, dentro de la propia suite e2e — no captura de pantalla. Cada aserción visual lee `getComputedStyle` del navegador (color del texto, color de fondo heredado) y, para el contraste, calcula el ratio WCAG a partir de esos valores REALES, no de los hex del spec. Es el método que la feature `balance` ya había fijado para este módulo, y el que hace que un cambio de token se note aunque nadie mire la pantalla.",
+    "baseline": "Los valores de referencia son los del sistema de diseño vigente, verificados contra los tokens del producto: --fg #1c1c1f, --fg-muted #6b6b73 y --alert-strong #ad3932 en claro; sus equivalentes en oscuro.",
+    "result": "Sin captura de pantalla nueva: la feature no altera ni un píxel de la caja de la celda (mismo ancho, alto, tipografía, peso, fondo y bordes) — cambia el NÚMERO que contiene. Lo que sí se midió: los cuatro contrastes ≥4,5:1 (TC-RSP-013h), los tres canales del negativo (TC-RSP-010h), la ausencia de color en el valor sano (TC-RSP-012f) y el cero exacto en neutro (TC-RSP-011e).",
+    "findings": [
+      {
+        "id": "cifra del encabezado plegado",
+        "estado": "cambiado a conciencia",
+        "medicion": "junio del libro de prueba pasa de 2.500 (Saldo total) a 2.300 (Saldo disponible); en un mes sin reservas la cifra no cambia"
+      },
+      {
+        "id": "caja de la celda",
+        "estado": "intacta",
+        "medicion": "`HeaderTotalCell` no aparece en el diff: misma firma, mismo `min-h-[34px]`, mismo `CELL_W`, mismos bordes y mismo `bg-sunken`"
+      },
+      {
+        "id": "regla de color (FR-1403 de balance-jerarquia)",
+        "estado": "intacta",
+        "medicion": "TC-BJE-006e y TC-BJE-011e siguen pasando sin tocar sus aserciones: cero celdas del encabezado en --favorable, en los doce meses"
+      }
+    ]
+  }
+}

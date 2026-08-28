@@ -312,9 +312,19 @@ function BalanceRows() {
               <div className={cn(CELL_W, "min-h-[34px] bg-sunken border-b border-border border-t border-t-border-strong")} />
             </div>
           ) : (
+            // Feature `resumen-plegado`, FR-1501: plegado, el encabezado resume con el SALDO
+            // DISPONIBLE, no con el Saldo total. REVOCA en este punto a FR-909 de la feature
+            // `balance` («plegado el encabezado SIGUE mostrando el Saldo total»); el resto de
+            // FR-909 —los dos niveles de plegado, el chevron interno, el estado local no
+            // persistido, los cuatro bloques como pares— sigue vigente. El porqué: el Saldo total
+            // INCLUYE el reservado, plata ya apartada en alcancías que no se va a gastar, así que
+            // resumía «cuánto tengo» cuando la pregunta que motiva plegar es «cuánto puedo
+            // gastar». Además alinea los dos niveles de plegado: el chevron interno ya cortaba la
+            // escalera justo en «Saldo disponible». Decisión del usuario, 2026-08-25 (BL-029),
+            // ratificada el 2026-08-27. Cada celda usa el disponible de SU plano.
             <div key={m.k} className="flex">
-              <HeaderTotalCell value={series[m.k].budget.total} sep />
-              <HeaderTotalCell value={series[m.k].actual.total} />
+              <HeaderTotalCell value={series[m.k].budget.available} sep />
+              <HeaderTotalCell value={series[m.k].actual.available} />
             </div>
           )
         )}
