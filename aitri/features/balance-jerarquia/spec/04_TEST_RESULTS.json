@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-27T20:00:55.266Z",
+  "executed_at": "2026-08-28T16:52:37.629Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,7 +8,7 @@
     {
       "tc_id": "TC-BJE-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001h: ROWS declara la cascada y ningún resultado precede a sus sumandos 2ms"
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001h: ROWS declara la cascada y ningún resultado precede a sus sumandos 4ms"
     },
     {
       "tc_id": "TC-BJE-001e",
@@ -18,17 +18,17 @@
     {
       "tc_id": "TC-BJE-001f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001f: el invariante RECHAZA el orden anterior — sin esto, 001h estaría vacío 0ms"
+      "notes": "✓ |app| tests/domain/balance-jerarquia-orden.test.ts > FR-1401 — el orden sigue la aritmética > TC-BJE-001f: el invariante RECHAZA el orden anterior — sin esto, 001h estaría vacío 1ms"
     },
     {
       "tc_id": "TC-BJE-002h",
       "status": "pass",
-      "notes": "✓   12 [chromium] › tests/e2e/balance-jerarquia.spec.ts:374:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002h: ocho filas, las mismas ocho etiquetas, en el orden de la cascada (193ms)"
+      "notes": "✓   12 [chromium] › tests/e2e/balance-jerarquia.spec.ts:374:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002h: ocho filas, las mismas ocho etiquetas, en el orden de la cascada (192ms)"
     },
     {
       "tc_id": "TC-BJE-002f",
       "status": "pass",
-      "notes": "✓   13 [chromium] › tests/e2e/balance-jerarquia.spec.ts:383:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002f: un mes sin datos conserva el orden y no colapsa ninguna fila (186ms)"
+      "notes": "✓   13 [chromium] › tests/e2e/balance-jerarquia.spec.ts:383:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-002f: un mes sin datos conserva el orden y no colapsa ninguna fila (187ms)"
     },
     {
       "tc_id": "TC-BJE-003h",
@@ -43,22 +43,22 @@
     {
       "tc_id": "TC-BJE-004h",
       "status": "pass",
-      "notes": "✓   15 [chromium] › tests/e2e/balance-jerarquia.spec.ts:412:7 › FR-1402 — la sangría renderizada › TC-BJE-004h: a 1440 px el paddingLeft es 14 + nivel*16, con cuatro valores distintos (194ms)"
+      "notes": "✓   15 [chromium] › tests/e2e/balance-jerarquia.spec.ts:412:7 › FR-1402 — la sangría renderizada › TC-BJE-004h: a 1440 px el paddingLeft es 14 + nivel*16, con cuatro valores distintos (200ms)"
     },
     {
       "tc_id": "TC-BJE-004e",
       "status": "pass",
-      "notes": "✓   16 [chromium] › tests/e2e/balance-jerarquia.spec.ts:422:7 › FR-1402 — la sangría renderizada › TC-BJE-004e: a 1024 px el paso baja a 12 px y ninguna etiqueta se trunca (200ms)"
+      "notes": "✓   16 [chromium] › tests/e2e/balance-jerarquia.spec.ts:422:7 › FR-1402 — la sangría renderizada › TC-BJE-004e: a 1024 px el paso baja a 12 px y ninguna etiqueta se trunca (212ms)"
     },
     {
       "tc_id": "TC-BJE-005h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005h: un resultado sano devuelve neutro, nunca --favorable 2ms"
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005h: un resultado sano devuelve neutro, nunca --favorable 1ms"
     },
     {
       "tc_id": "TC-BJE-005e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005e: un resultado de EXACTAMENTE cero se pinta neutro, ni favorable ni alerta 1ms"
+      "notes": "✓ |app| tests/domain/balance-jerarquia-color.test.ts > FR-1403 — neutro por defecto; el color sólo en la excepción > TC-BJE-005e: un resultado de EXACTAMENTE cero se pinta neutro, ni favorable ni alerta 0ms"
     },
     {
       "tc_id": "TC-BJE-005f",
@@ -68,27 +68,27 @@
     {
       "tc_id": "TC-BJE-006h",
       "status": "pass",
-      "notes": "✓    2 [chromium] › tests/e2e/balance-jerarquia.spec.ts:117:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006h: con balance sano, CERO celdas usan --favorable en los doce meses (480ms)"
+      "notes": "✓    2 [chromium] › tests/e2e/balance-jerarquia.spec.ts:117:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006h: con balance sano, CERO celdas usan --favorable en los doce meses (522ms)"
     },
     {
       "tc_id": "TC-BJE-006e",
       "status": "pass",
-      "notes": "✓    1 [chromium] › tests/e2e/balance-jerarquia.spec.ts:132:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006e: con el módulo PLEGADO, el encabezado del Saldo total también es neutro (457ms)"
+      "notes": "✓    1 [chromium] › tests/e2e/balance-jerarquia.spec.ts:132:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006e: con el módulo PLEGADO, la cifra del encabezado también es neutra (505ms)"
     },
     {
       "tc_id": "TC-BJE-006f",
       "status": "pass",
-      "notes": "✓    3 [chromium] › tests/e2e/balance-jerarquia.spec.ts:148:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006f: plegado y con el total NEGATIVO, el encabezado conserva alerta y sus tres canales (235ms)"
+      "notes": "✓    3 [chromium] › tests/e2e/balance-jerarquia.spec.ts:148:7 › FR-1403 — el módulo deja de pintar verde permanente › TC-BJE-006f: plegado y con la cifra NEGATIVA, el encabezado conserva alerta y sus tres canales (239ms)"
     },
     {
       "tc_id": "TC-BJE-007h",
       "status": "pass",
-      "notes": "✓    4 [chromium] › tests/e2e/balance-jerarquia.spec.ts:172:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007h: las celdas sin dato se pintan en --fg-muted, no en el color de su fila (319ms)"
+      "notes": "✓    4 [chromium] › tests/e2e/balance-jerarquia.spec.ts:172:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007h: las celdas sin dato se pintan en --fg-muted, no en el color de su fila (307ms)"
     },
     {
       "tc_id": "TC-BJE-007e",
       "status": "pass",
-      "notes": "✓    5 [chromium] › tests/e2e/balance-jerarquia.spec.ts:200:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007e: un mes sin movimientos propios no introduce ninguna marca de color (211ms)"
+      "notes": "✓    5 [chromium] › tests/e2e/balance-jerarquia.spec.ts:200:7 › FR-1404 — el em-dash no gasta color › TC-BJE-007e: un mes sin movimientos propios no introduce ninguna marca de color (213ms)"
     },
     {
       "tc_id": "TC-BJE-007f",
@@ -98,42 +98,42 @@
     {
       "tc_id": "TC-BJE-008h",
       "status": "pass",
-      "notes": "✓    6 [chromium] › tests/e2e/balance-jerarquia.spec.ts:249:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008h: con restante positivo, los tres chips comparten color (198ms)"
+      "notes": "✓    6 [chromium] › tests/e2e/balance-jerarquia.spec.ts:249:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008h: con restante positivo, los tres chips comparten color (202ms)"
     },
     {
       "tc_id": "TC-BJE-008e",
       "status": "pass",
-      "notes": "✓    7 [chromium] › tests/e2e/balance-jerarquia.spec.ts:261:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008e: un restante de EXACTAMENTE cero se pinta neutro, no verde (193ms)"
+      "notes": "✓    7 [chromium] › tests/e2e/balance-jerarquia.spec.ts:261:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008e: un restante de EXACTAMENTE cero se pinta neutro, no verde (202ms)"
     },
     {
       "tc_id": "TC-BJE-008f",
       "status": "pass",
-      "notes": "✓    8 [chromium] › tests/e2e/balance-jerarquia.spec.ts:274:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008f: con restante negativo, el chip es el ÚNICO elemento coloreado de la franja (198ms)"
+      "notes": "✓    8 [chromium] › tests/e2e/balance-jerarquia.spec.ts:274:7 › FR-1405 — arriba y abajo, la misma regla › TC-BJE-008f: con restante negativo, el chip es el ÚNICO elemento coloreado de la franja (205ms)"
     },
     {
       "tc_id": "TC-BJE-009h",
       "status": "pass",
-      "notes": "✓   17 [chromium] › tests/e2e/balance-jerarquia.spec.ts:458:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009h: las cifras son las mismas que antes del reordenamiento, comparadas por CLAVE (184ms)"
+      "notes": "✓   17 [chromium] › tests/e2e/balance-jerarquia.spec.ts:458:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009h: las cifras son las mismas que antes del reordenamiento, comparadas por CLAVE (198ms)"
     },
     {
       "tc_id": "TC-BJE-009f",
       "status": "pass",
-      "notes": "✓   19 [chromium] › tests/e2e/balance-jerarquia.spec.ts:492:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009f: la suite de dominio del balance sigue verde sin tocar un test de cálculo (189ms)"
+      "notes": "✓   19 [chromium] › tests/e2e/balance-jerarquia.spec.ts:492:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009f: la suite de dominio del balance sigue verde sin tocar un test de cálculo (195ms)"
     },
     {
       "tc_id": "TC-BJE-010h",
       "status": "pass",
-      "notes": "✓    9 [chromium] › tests/e2e/balance-jerarquia.spec.ts:294:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010h: un valor negativo conserva color, signo y glifo a la vez (183ms)"
+      "notes": "✓    9 [chromium] › tests/e2e/balance-jerarquia.spec.ts:294:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010h: un valor negativo conserva color, signo y glifo a la vez (189ms)"
     },
     {
       "tc_id": "TC-BJE-010f",
       "status": "pass",
-      "notes": "✓   11 [chromium] › tests/e2e/balance-jerarquia.spec.ts:333:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010f: ningún texto del módulo baja de 4,5:1, en ambos temas (295ms)"
+      "notes": "✓   11 [chromium] › tests/e2e/balance-jerarquia.spec.ts:333:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010f: ningún texto del módulo baja de 4,5:1, en ambos temas (286ms)"
     },
     {
       "tc_id": "TC-BJE-011h",
       "status": "pass",
-      "notes": "✓   20 [chromium] › tests/e2e/balance-jerarquia.spec.ts:512:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011h: plegar por el chevron sigue ocultando exactamente Saldo reservado y Saldo total (227ms)"
+      "notes": "✓   20 [chromium] › tests/e2e/balance-jerarquia.spec.ts:512:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011h: plegar por el chevron sigue ocultando exactamente Saldo reservado y Saldo total (234ms)"
     },
     {
       "tc_id": "TC-BJE-011f",
@@ -143,37 +143,37 @@
     {
       "tc_id": "TC-BJE-012h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012h: el gate pasa limpio sobre el árbol tras la feature 198ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012h: el gate pasa limpio sobre el árbol tras la feature 99ms"
     },
     {
       "tc_id": "TC-BJE-012f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012f: FALLA si se reintroduce --favorable en BalanceModule o en DesktopShell 764ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012f: FALLA si se reintroduce --favorable en BalanceModule o en DesktopShell 379ms"
     },
     {
       "tc_id": "TC-BJE-013h",
       "status": "pass",
-      "notes": "✓   14 [chromium] › tests/e2e/balance-jerarquia.spec.ts:392:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-013h: el orden de lectura accesible coincide con el declarado (194ms)"
+      "notes": "✓   14 [chromium] › tests/e2e/balance-jerarquia.spec.ts:392:7 › FR-1401 — el orden renderizado sigue la aritmética › TC-BJE-013h: el orden de lectura accesible coincide con el declarado (199ms)"
     },
     {
       "tc_id": "TC-BJE-009e",
       "status": "pass",
-      "notes": "✓   18 [chromium] › tests/e2e/balance-jerarquia.spec.ts:475:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009e: el ARRASTRE entre meses sobrevive al reordenamiento (197ms)"
+      "notes": "✓   18 [chromium] › tests/e2e/balance-jerarquia.spec.ts:475:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-009e: el ARRASTRE entre meses sobrevive al reordenamiento (189ms)"
     },
     {
       "tc_id": "TC-BJE-010e",
       "status": "pass",
-      "notes": "✓   10 [chromium] › tests/e2e/balance-jerarquia.spec.ts:311:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010e: con un mes FILTRADO, el módulo conserva su superficie y su contraste (347ms)"
+      "notes": "✓   10 [chromium] › tests/e2e/balance-jerarquia.spec.ts:311:7 › NFR-1402 — tres canales y contraste AA › TC-BJE-010e: con un mes FILTRADO, el módulo conserva su superficie y su contraste (360ms)"
     },
     {
       "tc_id": "TC-BJE-011e",
       "status": "pass",
-      "notes": "✓   21 [chromium] › tests/e2e/balance-jerarquia.spec.ts:527:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011e: el SEGUNDO nivel de plegado resume en el encabezado, y en neutro (216ms)"
+      "notes": "✓   21 [chromium] › tests/e2e/balance-jerarquia.spec.ts:527:7 › NFR-1401 / NFR-1403 — el guardrail y el plegado › TC-BJE-011e: el SEGUNDO nivel de plegado resume en el encabezado, y en neutro (223ms)"
     },
     {
       "tc_id": "TC-BJE-012e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012e: NO se dispara por los usos legítimos de Dashboard ni de la grilla 114ms"
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > NFR-1404 — el gate impide que el verde permanente vuelva > TC-BJE-012e: NO se dispara por los usos legítimos de Dashboard ni de la grilla 112ms"
     }
   ],
   "fr_coverage": [
@@ -367,7 +367,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "EC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  344 passed (1.5m)\n\n2026-08-27T20:00:25.052Z WARN [Better Auth]: User not found\n2026-08-27T20:00:25.502Z WARN [Better Auth]: User not found\n2026-08-27T20:00:27.303Z WARN [Better Auth]: User not found\n2026-08-27T20:00:48.252Z WARN [Better Auth]: Invalid password\n2026-08-27T20:00:49.892Z WARN [Better Auth]: Reset Password: User not found\n(node:53409) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "output": "] › tests/e2e/recuperar-acceso.spec.ts:235:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  361 [chromium] › tests/e2e/recuperar-acceso.spec.ts:435:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  361 passed (1.5m)\n\n(node:96921) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ]
 }

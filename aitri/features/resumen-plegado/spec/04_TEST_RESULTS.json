@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-08-28T15:36:10.577Z",
+  "executed_at": "2026-08-28T16:32:12.120Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,102 +8,102 @@
     {
       "tc_id": "TC-RSP-001h",
       "status": "pass",
-      "notes": "✓  211 [chromium] › tests/e2e/resumen-plegado.spec.ts:160:5 › TC-RSP-001h: plegado, la celda de Ejecutado muestra el Saldo disponible y no el Saldo total (345ms)"
+      "notes": "✓  212 [chromium] › tests/e2e/resumen-plegado.spec.ts:160:5 › TC-RSP-001h: plegado, la celda de Ejecutado muestra el Saldo disponible y no el Saldo total (207ms)"
     },
     {
       "tc_id": "TC-RSP-002e",
       "status": "pass",
-      "notes": "✓  212 [chromium] › tests/e2e/resumen-plegado.spec.ts:175:5 › TC-RSP-002e: las 24 celdas del encabezado plegado coinciden con la fila «Saldo disponible» (413ms)"
+      "notes": "✓  213 [chromium] › tests/e2e/resumen-plegado.spec.ts:175:5 › TC-RSP-002e: las 24 celdas del encabezado plegado coinciden con la fila «Saldo disponible» (243ms)"
     },
     {
       "tc_id": "TC-RSP-003e",
       "status": "pass",
-      "notes": "✓  213 [chromium] › tests/e2e/resumen-plegado.spec.ts:197:5 › TC-RSP-003e: cada celda usa el disponible de SU plano (306ms)"
+      "notes": "✓  214 [chromium] › tests/e2e/resumen-plegado.spec.ts:197:5 › TC-RSP-003e: cada celda usa el disponible de SU plano (210ms)"
     },
     {
       "tc_id": "TC-RSP-004f",
       "status": "pass",
-      "notes": "✓  214 [chromium] › tests/e2e/resumen-plegado.spec.ts:210:5 › TC-RSP-004f: el Saldo total ya no aparece en ninguna celda del encabezado plegado (407ms)"
+      "notes": "✓  215 [chromium] › tests/e2e/resumen-plegado.spec.ts:210:5 › TC-RSP-004f: el Saldo total ya no aparece en ninguna celda del encabezado plegado (266ms)"
     },
     {
       "tc_id": "TC-RSP-005e",
       "status": "pass",
-      "notes": "✓  215 [chromium] › tests/e2e/resumen-plegado.spec.ts:228:5 › TC-RSP-005e: sin reservas, la cifra plegada es la misma que antes del cambio (326ms)"
+      "notes": "✓  216 [chromium] › tests/e2e/resumen-plegado.spec.ts:228:5 › TC-RSP-005e: sin reservas, la cifra plegada es la misma que antes del cambio (225ms)"
     },
     {
       "tc_id": "TC-RSP-006h",
       "status": "pass",
-      "notes": "✓  216 [chromium] › tests/e2e/resumen-plegado.spec.ts:241:5 › TC-RSP-006h: desplegar devuelve la escalera intacta con su cierre en Saldo total (384ms)"
+      "notes": "✓  217 [chromium] › tests/e2e/resumen-plegado.spec.ts:241:5 › TC-RSP-006h: desplegar devuelve la escalera intacta con su cierre en Saldo total (263ms)"
     },
     {
       "tc_id": "TC-RSP-007e",
       "status": "pass",
-      "notes": "✓  217 [chromium] › tests/e2e/resumen-plegado.spec.ts:253:5 › TC-RSP-007e: con disponible negativo y total positivo, la celda plegada muestra el negativo (377ms)"
+      "notes": "✓  218 [chromium] › tests/e2e/resumen-plegado.spec.ts:253:5 › TC-RSP-007e: con disponible negativo y total positivo, la celda plegada muestra el negativo (220ms)"
     },
     {
       "tc_id": "TC-RSP-010h",
       "status": "pass",
-      "notes": "✓  218 [chromium] › tests/e2e/resumen-plegado.spec.ts:273:5 › TC-RSP-010h: un disponible negativo conserva color, signo y glifo en la celda plegada (372ms)"
+      "notes": "✓  219 [chromium] › tests/e2e/resumen-plegado.spec.ts:273:5 › TC-RSP-010h: un disponible negativo conserva color, signo y glifo en la celda plegada (213ms)"
     },
     {
       "tc_id": "TC-RSP-011e",
       "status": "pass",
-      "notes": "✓  219 [chromium] › tests/e2e/resumen-plegado.spec.ts:287:5 › TC-RSP-011e: un disponible de exactamente 0 se pinta neutro, sin color de excepción (361ms)"
+      "notes": "✓  220 [chromium] › tests/e2e/resumen-plegado.spec.ts:287:5 › TC-RSP-011e: un disponible de exactamente 0 se pinta neutro, sin color de excepción (222ms)"
     },
     {
       "tc_id": "TC-RSP-012f",
       "status": "pass",
-      "notes": "✓  220 [chromium] › tests/e2e/resumen-plegado.spec.ts:298:5 › TC-RSP-012f: un valor positivo no lleva color de excepción ni glifo de negativo (337ms)"
+      "notes": "✓  221 [chromium] › tests/e2e/resumen-plegado.spec.ts:298:5 › TC-RSP-012f: un valor positivo no lleva color de excepción ni glifo de negativo (226ms)"
     },
     {
       "tc_id": "TC-RSP-013h",
       "status": "pass",
-      "notes": "✓  221 [chromium] › tests/e2e/resumen-plegado.spec.ts:311:5 › TC-RSP-013h: contraste ≥4.5:1 de la cifra plegada en claro y en oscuro, sana y negativa (771ms)"
+      "notes": "✓  222 [chromium] › tests/e2e/resumen-plegado.spec.ts:311:5 › TC-RSP-013h: contraste ≥4.5:1 de la cifra plegada en claro y en oscuro, sana y negativa (522ms)"
     },
     {
       "tc_id": "TC-RSP-020h",
       "status": "pass",
-      "notes": "✓  222 [chromium] › tests/e2e/resumen-plegado.spec.ts:326:5 › TC-RSP-020h: el módulo desplegado conserva sus ocho filas, en orden, cerrando en Saldo total (306ms)"
+      "notes": "✓  223 [chromium] › tests/e2e/resumen-plegado.spec.ts:326:5 › TC-RSP-020h: el módulo desplegado conserva sus ocho filas, en orden, cerrando en Saldo total (196ms)"
     },
     {
       "tc_id": "TC-RSP-021e",
       "status": "pass",
-      "notes": "✓  223 [chromium] › tests/e2e/resumen-plegado.spec.ts:334:5 › TC-RSP-021e: el chevron interno sigue ocultando exactamente Saldo reservado y Saldo total (390ms)"
+      "notes": "✓  224 [chromium] › tests/e2e/resumen-plegado.spec.ts:334:5 › TC-RSP-021e: el chevron interno sigue ocultando exactamente Saldo reservado y Saldo total (219ms)"
     },
     {
       "tc_id": "TC-RSP-022f",
       "status": "pass",
-      "notes": "✓  224 [chromium] › tests/e2e/resumen-plegado.spec.ts:346:5 › TC-RSP-022f: el estado plegado no se persiste — recargar devuelve el módulo desplegado (457ms)"
+      "notes": "✓  225 [chromium] › tests/e2e/resumen-plegado.spec.ts:346:5 › TC-RSP-022f: el estado plegado no se persiste — recargar devuelve el módulo desplegado (298ms)"
     },
     {
       "tc_id": "TC-RSP-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-030h: total = disponible + reservado en los 12 meses y los 2 planos 9ms"
+      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-030h: total = disponible + reservado en los 12 meses y los 2 planos 1ms"
     },
     {
       "tc_id": "TC-RSP-031e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-031e: ambos planos abren el mes con el cierre EJECUTADO real del mes previo 1ms"
+      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-031e: ambos planos abren el mes con el cierre EJECUTADO real del mes previo 0ms"
     },
     {
       "tc_id": "TC-RSP-032f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-032f: un mes con retiro neto no rompe la reconciliación ni deja la alcancía en rojo 1ms"
+      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-032f: un mes con retiro neto no rompe la reconciliación ni deja la alcancía en rojo 0ms"
     },
     {
       "tc_id": "TC-RSP-040h",
       "status": "pass",
-      "notes": "✓  225 [chromium] › tests/e2e/resumen-plegado.spec.ts:362:5 › TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y ninguna fila (325ms)"
+      "notes": "✓  226 [chromium] › tests/e2e/resumen-plegado.spec.ts:362:5 › TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y ninguna fila (197ms)"
     },
     {
       "tc_id": "TC-RSP-041f",
       "status": "pass",
-      "notes": "✓  226 [chromium] › tests/e2e/resumen-plegado.spec.ts:371:5 › TC-RSP-041f: a 375px el módulo de Balance no se renderiza (280ms)"
+      "notes": "✓  227 [chromium] › tests/e2e/resumen-plegado.spec.ts:371:5 › TC-RSP-041f: a 375px el módulo de Balance no se renderiza (171ms)"
     },
     {
       "tc_id": "TC-RSP-042e",
       "status": "pass",
-      "notes": "✓  227 [chromium] › tests/e2e/resumen-plegado.spec.ts:379:5 › TC-RSP-042e: el breakpoint no se mueve — 760px sin módulo, 761px con módulo (336ms)"
+      "notes": "✓  228 [chromium] › tests/e2e/resumen-plegado.spec.ts:379:5 › TC-RSP-042e: el breakpoint no se mueve — 760px sin módulo, 761px con módulo (213ms)"
     }
   ],
   "fr_coverage": [
