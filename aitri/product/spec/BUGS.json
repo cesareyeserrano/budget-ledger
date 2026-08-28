@@ -431,6 +431,30 @@
         "tests/integration/backend/recuperar-acceso-request.test.ts",
         "tests/integration/backend/recuperar-acceso-reset.test.ts"
       ]
+    },
+    {
+      "id": "BG-016",
+      "title": "El servidor e2e sobrevive al globalTeardown: cuelga verify-run y ocupa el puerto 3220",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "closed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-28T07:15:57.425Z",
+      "updated_at": "2026-08-28T16:28:01.422Z",
+      "resolution": "globalSetup arranca la app con detached:true (grupo de procesos propio) y globalTeardown pasa a matar el GRUPO con process.kill(-pid), escalando a SIGKILL y confirmando la muerte con la señal 0 antes de darse por satisfecho. Se añade ademas un guardia de puerto ANTES de compilar —la misma leccion que smoke.sh aprendio en BG-014—: si alguien ya responde /health en el 3220 se aborta con un mensaje que dice como cerrarlo, en vez de esperar 180s por un health que nunca seria el nuestro. Verificado: la suite corrida por PIPE (la condicion en la que Aitri la lanza) termina con los 17 TCs en verde y 'lsof -ti :3220' vacio despues; antes dejaba un next-server vivo en cada corrida.",
+      "fix_commit_sha": "5d60159e7459660e49388d0fac081d2a53bdcd56",
+      "fix_at": "2026-08-28T08:22:44.898Z",
+      "close_commit_sha": "5d60159e7459660e49388d0fac081d2a53bdcd56",
+      "close_at": "2026-08-28T16:28:01.422Z"
     }
   ]
 }

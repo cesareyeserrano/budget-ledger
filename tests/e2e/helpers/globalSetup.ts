@@ -20,13 +20,15 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { request as playwrightRequest } from "@playwright/test";
 import postgres from "postgres";
 import { spawn, execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, openSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
 export const E2E_PORT = Number(process.env.E2E_PORT ?? 3220);
 export const E2E_BASE = `http://localhost:${E2E_PORT}`;
 export const STATE_FILE = path.join(os.tmpdir(), "ledger-e2e-state.json");
+/** Log del servidor de la suite. Ver BG-016: NO puede ir al stdio heredado. */
+export const APP_LOG = path.join(os.tmpdir(), "ledger-e2e-app.log");
 
 /**
  * UNA CUENTA POR WORKER — no es un lujo, es corrección.
@@ -44,6 +46,23 @@ export const E2E_PASSWORD = "Ledger-e2e-2026!";
 export const e2eEmail = (worker: number) => `e2e-w${worker}@ledger.test`;
 export const storageStatePath = (worker: number) =>
   path.join(os.tmpdir(), `ledger-e2e-storage-state-w${worker}.json`);
+
+/**
+ * ¿Hay alguien escuchando ya en el puerto de la suite? (BG-016)
+ *
+ * Es la MISMA lección que `smoke.sh` aprendió en BG-014: con el puerto ocupado por otro proceso,
+ * `next start` muere con EADDRINUSE y lo que respondía a los curl era el servidor ajeno. Aquí el
+ * síntoma era distinto pero igual de caro: se esperaban 180 s por un `/health` que nunca iba a ser
+ * el nuestro, y el diagnóstico quedaba enterrado bajo un timeout genérico. Fallar en voz alta.
+ */
+async function portIsBusy(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -96,17 +115,54 @@ export default async function globalSetup(): Promise<void> {
   };
   // Los specs leen el buzón por esta URL (se propaga a los workers vía process.env).
   process.env.MAILPIT_API = mailpitApi;
+  // BG-016: comprobar ANTES de compilar. Si el puerto ya sirve, hay un servidor ajeno vivo (casi
+  // siempre un huérfano de una corrida anterior interrumpida) y esta suite mediría ESE proceso.
+  if (await portIsBusy(E2E_BASE)) {
+    throw new Error(
+      `El puerto ${E2E_PORT} ya está ocupado por otro proceso que responde /health.\n` +
+        `Casi seguro es un servidor huérfano de una corrida e2e anterior (BG-016).\n` +
+        `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
+        `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
+    );
+  }
+
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 
+  // BG-016 — `detached: true` NO es cosmético: crea un GRUPO DE PROCESOS propio para que el
+  // teardown pueda matarlo entero con `kill(-pid)`. Antes se guardaba el PID de `npx`, que lanza
+  // `next-server` como HIJO suyo: matar a npx dejaba vivo al nieto, y ese nieto (a) se quedaba con
+  // el puerto, tumbando la corrida siguiente con EADDRINUSE, y (b) conservaba el PIPE de stdout
+  // heredado, así que el `spawnSync` con el que Aitri lanza Playwright para acreditar los TC ids
+  // nunca veía el EOF y se colgaba hasta agotar su timeout — 30 min, reportados como «E2E dispatch
+  // killed», con los TCs e2e en `skip` y la suite entera en verde. Verde que no acredita.
+  // BG-016 — el servidor escribe a su PROPIO archivo, nunca al stdio heredado.
+  //
+  // Con `stdio: "inherit"` la app escribía una línea de log por petición en el mismo descriptor que
+  // heredaba de quien lanzó la suite. Desde una terminal (o con la salida redirigida a un archivo)
+  // eso es inofensivo. Pero `aitri verify-run` lanza Playwright con `spawnSync` y stdio de PIPE, y
+  // ahí el mismo log convierte una corrida de 2 minutos en uno de más de 30: medido el 2026-08-28,
+  // la suite completa tarda 2:07 con la salida a un archivo y no terminaba en 30 min por pipe.
+  // Aitri la mataba por timeout, marcaba los TCs e2e como `skip` y dejaba la suite ENTERA EN VERDE
+  // sin acreditar nada — verde que no acredita, el síntoma más caro de todos.
+  //
+  // El log no se pierde: queda en APP_LOG y el fallo de arranque lo cita, que es cuando se lee.
+  const appLog = openSync(APP_LOG, "w");
   const app = spawn("npx", ["next", "start", "-p", String(E2E_PORT)], {
     cwd: process.cwd(),
     env: { ...buildEnv, NODE_ENV: "production" },
-    stdio: "inherit",
-    detached: false,
+    stdio: ["ignore", appLog, appLog],
+    detached: true,
   });
+  // El grupo queda adjunto al proceso de Playwright igualmente: sin `unref()`, un fallo del
+  // teardown no deja la suite colgada esperando al hijo.
+  app.unref();
 
   writeFileSync(STATE_FILE, JSON.stringify({ pid: app.pid, databaseUrl, mailpitApi }));
-  await waitForHealth(E2E_BASE, 180_000);
+  try {
+    await waitForHealth(E2E_BASE, 180_000);
+  } catch (e) {
+    throw new Error(`${(e as Error).message}\nLog del servidor: ${APP_LOG}`);
+  }
 
   // Registra UNA cuenta por worker y guarda su cookie como storageState propio.
   // Se hace por API (no por UI) a propósito: si el formulario de acceso se rompiera, queremos que
