@@ -327,6 +327,18 @@
       "status": "open",
       "createdAt": "2026-08-28T16:28:27.855Z",
       "acceptance": "El usuario elige entre Saldo disponible y Saldo total para el encabezado plegado; la eleccion persiste entre sesiones y dispositivos con el alcance que se decida; el valor por defecto sigue siendo Saldo disponible"
+    },
+    {
+      "id": "BL-035",
+      "title": "Rastro del proposito de un retiro: que un gasto se pueda cargar contra la alcancia que lo financio",
+      "priority": "P3",
+      "problem": "Hoy ahorrar para algo y pagarlo son DOS actos que la app no relaciona. El retiro manda la plata a Disponible (un sentinel, no un rubro: reserve.ts:27) y el gasto se anota aparte contra su rubro de gasto; la tabla movement no tiene ningun campo que ligue un movimiento expense con una hoja transfer, asi que el proposito de la alcancia se evapora en el momento de sacarla. Consecuencias: (1) no se puede preguntar 'lo que aparte para UK termino en UK'; (2) si el usuario olvida el segundo paso, la plata aparece como disponible y desaparece del relato — le paso al usuario el 2026-08-29, perdio el rastro de 15M en una sola sesion. DECISION DEL USUARIO 2026-08-29: NO se rehace el modelo. La observacion del usuario es correcta —la aritmetica ya cuadra y el dinero esta bien—, y cargar gastos contra sobres (envelope budgeting) es cirugia que toca transferencias, balance, balance-jerarquia y resumen-plegado, las cuatro cerradas. Se opto por la via barata: capturar el 'para que' como NOTA en el retiro, que da el rastro sin tocar el modelo, y que va dentro de BL-019. Esta entrada queda como el registro de la idea completa por si algun dia la nota no basta.",
+      "status": "open",
+      "createdAt": "2026-08-29T18:30:45.414Z",
+      "files": "src/domain/reserve.ts, src/domain/types.ts, src/domain/balance.ts",
+      "behavior": "Un gasto puede declarar que alcancia lo financio, y el balance puede reportar cuanto de cada alcancia termino en que rubro.",
+      "decisions": "2026-08-29: diferido conscientemente. El usuario objeto —con razon— que mandar el retiro a Disponible ya deja la plata lista para el gasto; lo unico que se pierde es el vinculo, y para eso basta la nota (BL-019). No abrir esta feature salvo que el rastro por nota se demuestre insuficiente.",
+      "acceptance": "Dado un ahorro en una alcancia y un gasto pagado con el, el usuario puede ver que ese gasto se financio con esa alcancia sin reconstruirlo de memoria."
     }
   ]
 }

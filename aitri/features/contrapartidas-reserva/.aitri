@@ -1,0 +1,147 @@
+{
+  "currentPhase": 4,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3
+  ],
+  "projectName": "contrapartidas-reserva",
+  "createdAt": "2026-08-29T23:52:28.928Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-08-30T00:52:02.108Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-08-29T23:57:28.049Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-29T23:57:36.614Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-30T00:01:26.628Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-30T00:08:47.457Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-30T00:17:37.852Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-30T00:17:40.230Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-08-30T00:19:53.612Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-30T00:26:46.697Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-30T00:29:53.117Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-30T00:35:45.149Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-30T00:39:08.824Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-30T00:43:36.703Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-30T00:44:22.849Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-30T00:50:13.765Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-30T00:51:34.020Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-30T00:52:02.108Z",
+      "event": "started",
+      "phase": 4
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "84b2c3cff64c4aea8950ea6b0e62b1b9de4d79983bd9db9bb89bc7741e6b3d34",
+    "2": "c98c968b405796298186c0b05f3c42216f2a931da69afb1bce7b5778fa5175a3",
+    "3": "a9033e8af9879a6d92de0099f2be7e7ecd8127b577df6322c9e0cd0298aa73b8",
+    "ux": "d0351e0cc28adfa22e4d390a4a2cca2ac20239cb86d6574f077737ee16eba7c7"
+  },
+  "coverageAuditLastAt": "2026-08-30T00:04:03.598Z",
+  "coverageAuditReqHash": "3b83903e70506c304a95f248319c0bbf9841a1594a2f89ff58e5c81221f07018",
+  "frSnapshots": {
+    "2": [
+      "FR-1601",
+      "FR-1602",
+      "FR-1603",
+      "FR-1604",
+      "FR-1605",
+      "FR-1606",
+      "FR-1607",
+      "FR-1608",
+      "FR-1609"
+    ],
+    "3": [
+      "FR-1601",
+      "FR-1602",
+      "FR-1603",
+      "FR-1604",
+      "FR-1605",
+      "FR-1606",
+      "FR-1607",
+      "FR-1608",
+      "FR-1609"
+    ],
+    "ux": [
+      "FR-1601",
+      "FR-1602",
+      "FR-1603",
+      "FR-1604",
+      "FR-1605",
+      "FR-1606",
+      "FR-1607",
+      "FR-1608",
+      "FR-1609"
+    ]
+  }
+}
