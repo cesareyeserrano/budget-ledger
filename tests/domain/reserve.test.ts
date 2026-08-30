@@ -155,7 +155,18 @@ describe("FR-1003 · editar la celda corrige el aporte", () => {
 // ══ FR-1004 · applyReserveOp ══════════════════════════════════════════════════════════════════
 
 describe("FR-1004 · operación De→A y su integridad estructural", () => {
-  it("TC-TRF4-004h: guardar suma celda+journal; sacar solo journal; mover suma destino+journal", () => {
+  // REVOCACIÓN DECLARADA (feature contrapartidas-reserva, FR-1601, 2026-08-29): de FR-1004 se
+  // revoca UN punto —«mover suma la celda destino»— y solo ese; el resto de FR-1004 (journal con
+  // ambos extremos, target, integridad estructural en traslados y borrados) sigue vigente y lo
+  // siguen protegiendo TC-TRF4-004e y TC-TRF4-004f. Motivo: esa escritura era la anotación SIN
+  // contrapartida (sumaba en el destino, nada salía del origen), de modo que la cuenta de reservas
+  // solo podía crecer y la grilla y el Balance discrepaban.
+  //
+  // El TC se re-deriva contra el contrato nuevo SIN aflojarlo: donde antes exigía una celda de
+  // 10.000, ahora exige que NO exista celda alguna Y que el saldo derivado del destino sea
+  // igualmente 10.000 — la misma cifra observable por la vía correcta. Es estrictamente más fuerte:
+  // el aserto viejo pasaba con solo escribir la celda; este exige además que el journal la sostenga.
+  it("TC-TRF4-004h: guardar suma celda+journal; sacar solo journal; mover SOLO journal (FR-1601)", () => {
     // @aitri-tc TC-TRF4-004h
     const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer" }, { id: "c-fondo", type: "transfer" }]);
 
@@ -171,7 +182,11 @@ describe("FR-1004 · operación De→A y su integridad estructural", () => {
 
     const m = applyReserveOp(r.state, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 10_000 });
     if (!("state" in m)) throw new Error("mover rechazado");
-    expect(m.state.actuals["c-fondo"].ene).toBe(10_000);
+    // El mover NO escribe celda: ni la del destino ni la del origen (FR-1601).
+    expect(m.state.actuals["c-fondo"]?.ene ?? 0).toBe(0);
+    expect(m.state.actuals["c-viaje"].ene).toBe(50_000);
+    // …y aun así la plata llegó: el saldo derivado del destino sube por el journal (FR-1602).
+    expect(resolvedBalance(m.state, "c-fondo", "dic", "actual")).toBe(10_000);
     expect(m.movement).toMatchObject({ from: "c-viaje", to: "c-fondo", target: "c-fondo" });
     expect(m.state.movements.every((mv) => mv.target !== AVAILABLE_ID)).toBe(true);
     expect(resolvedBalance(m.state, "c-viaje", "dic", "actual")).toBe(20_000); // 50−20−10
@@ -317,17 +332,33 @@ describe("FR-1007 · regla PISO", () => {
     expect(s).toEqual(frozen);
   });
 
-  it("TC-TRF4-114f: el dominio rechaza el sobre-retiro y removeReserveRetiro solo borra retiros puros", () => {
+  // REVOCACIÓN DECLARADA (feature contrapartidas-reserva, FR-1609, 2026-08-29): la cláusula
+  // «un MOVER no es eliminable» cae, y CAE POR SU PROPIO MOTIVO. La justificaba el paréntesis que
+  // esta versión del test llevaba escrito —«su aporte tocó celdas»—: bajo el modelo viejo borrar el
+  // movimiento habría dejado la plata duplicada en el destino y resucitada en el origen. Con
+  // FR-1601 el mover ya NO escribe celda, así que la premisa desapareció y eliminarlo restaura por
+  // construcción, igual que un retiro puro. El resto del TC —el rechazo del sobre-retiro por PISO y
+  // el no-op ante un id inexistente— sigue intacto y se comprueba igual.
+  it("TC-TRF4-114f: el dominio rechaza el sobre-retiro; un id inexistente es no-op y un MOVER SÍ es eliminable (FR-1609)", () => {
     // @aitri-tc TC-TRF4-114f
     const base = makeState([income({ ene: 500_000 }), { id: "c-viaje", type: "transfer", actual: { ene: 250_000 } }, { id: "c-fondo", type: "transfer" }]);
     const over = applyReserveOp(base, { from: "c-viaje", to: AVAILABLE_ID, month: "jun", amount: 999_999 });
     expect("rejected" in over && over.rejected !== "invalid_target" && !over.rejected.ok && over.rejected.limit === 250_000).toBe(true);
 
-    // removeReserveRetiro: id inexistente = no-op; un MOVER A→B no es eliminable (su aporte tocó celdas).
     const m = applyReserveOp(base, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 10_000 });
     if (!("state" in m)) throw new Error("mover rechazado");
+    // id inexistente: sigue siendo no-op y devuelve el MISMO objeto (sin clonar).
     expect(removeReserveRetiro(m.state, "no-existe")).toBe(m.state);
-    expect(removeReserveRetiro(m.state, m.movement.id)).toBe(m.state);
+    // El mover ahora SÍ se elimina, y devuelve los dos saldos a lo previo al mover.
+    const limpio = removeReserveRetiro(m.state, m.movement.id);
+    expect(limpio).not.toBe(m.state);
+    expect(limpio.movements.some((mv) => mv.id === m.movement.id)).toBe(false);
+    expect(resolvedBalance(limpio, "c-viaje", "dic", "actual")).toBe(250_000);
+    expect(resolvedBalance(limpio, "c-fondo", "dic", "actual")).toBe(0);
+    // Un APORTE desde Disponible NO es eliminable por esta vía: ese sí escribió celda (FR-1003).
+    const ap = applyReserveOp(base, { from: AVAILABLE_ID, to: "c-fondo", month: "ene", amount: 5_000 });
+    if (!("state" in ap)) throw new Error("aporte rechazado");
+    expect(removeReserveRetiro(ap.state, ap.movement.id)).toBe(ap.state);
   });
 });
 

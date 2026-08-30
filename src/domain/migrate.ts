@@ -142,3 +142,68 @@ export function migrateStateV3toV4(state: LedgerState): LedgerState {
   );
   return { ...state, budgets, actuals, movements: [...syntheticMovements, ...state.movements] };
 }
+
+// -- v4 -> v5 - contrapartidas (feature contrapartidas-reserva, FR-1604) ------------------------
+
+/** Residuo de la conversión: la celda no alcanzaba a cubrir el mover que se le resta. */
+export interface CounterpartyResidue {
+  leafId: string;
+  month: MonthKey;
+  /** Lo que faltaba para poder restar entero (la celda se acota a 0). */
+  shortfall: number;
+}
+
+export interface MigratedV5 {
+  state: LedgerState;
+  residues: CounterpartyResidue[];
+}
+
+/**
+ * v4 a v5: quita de la celda del destino lo que el modelo v4 le había sumado por cada MOVER.
+ *
+ * En v4 un mover alcancía a alcancía escribía su llegada en la celda del destino Y se journalizaba.
+ * Desde FR-1601 solo se journaliza, y `resolvedSeries` recoge la llegada del journal; si las celdas
+ * viejas conservaran esa suma, cada mover ya guardado se contaría DOS veces y los saldos derivados
+ * se inflarían. Esta conversión las devuelve a su significado único: lo apartado desde Disponible.
+ *
+ * **La idempotencia la da el MARCADOR de versión, no la aritmética.** Restar dos veces sería
+ * incorrecto — es la misma carga estructural que ya tiene v3 a v4, y por eso el llamador estampa el
+ * marcador en la MISMA transacción (ADR-02).
+ *
+ * Caso patológico ([RISK-1] del diseño): si el usuario editó a la baja la celda del destino DESPUÉS
+ * del mover, la resta daría negativo y `amount_cell` declara `CHECK (amount >= 0)`. Se acota a 0 y
+ * el faltante se devuelve como residuo para que el desvío quede VISIBLE en el log, en vez de
+ * corromper la fila o reventar la restricción.
+ *
+ * @param state Estado en semántica v4 (no se muta).
+ * @returns El estado convertido y los residuos detectados (vacío en el caso normal).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1604, US-ID: US-1604, AC-ID: AC-1610, TC-ID: TC-CPR-024h
+ */
+export function migrateStateV4toV5(state: LedgerState): MigratedV5 {
+  const porCelda = new Map<string, number>();
+  for (const m of state.movements) {
+    if (m.type !== "transfer") continue;
+    if (!m.from || !m.to) continue;
+    if (m.from === AVAILABLE || m.to === AVAILABLE) continue; // solo los MOVERES escribían celda
+    if (!MONTH_KEYS.includes(m.month)) continue;
+    const k = `${m.to} ${m.month}`;
+    porCelda.set(k, (porCelda.get(k) ?? 0) + m.amount);
+  }
+  if (porCelda.size === 0) return { state, residues: [] };
+
+  const actuals: AmountMap = structuredClone(state.actuals);
+  const residues: CounterpartyResidue[] = [];
+  for (const [k, total] of porCelda) {
+    const sep = k.lastIndexOf(" ");
+    const leafId = k.slice(0, sep);
+    const month = k.slice(sep + 1) as MonthKey;
+    const actual = actuals[leafId]?.[month] ?? 0;
+    const restante = actual - total;
+    actuals[leafId] = { ...(actuals[leafId] ?? {}) };
+    actuals[leafId][month] = Math.max(0, restante);
+    if (restante < 0) residues.push({ leafId, month, shortfall: -restante });
+  }
+  return { state: { ...state, actuals }, residues };
+}

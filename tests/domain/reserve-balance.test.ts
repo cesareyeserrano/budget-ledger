@@ -167,14 +167,83 @@ describe("NFR-1001 · conservación bajo el modelo v4", () => {
 
   it("TC-TRF4-151f: mutación centinela: solo los retiros reales cuentan como retiros", () => {
     // @aitri-tc TC-TRF4-151f
-    const s = makeState([{ id: "c-gasto", type: "expense" }, { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } }]);
+    const s = makeState([{ id: "c-gasto", type: "expense" }, { id: "c-viaje", type: "transfer", actual: { ene: 200_000 } }, { id: "c-uk", type: "transfer" }]);
     const weird: Movement[] = [
       { id: "w-1", ownerId: "local", type: "expense", catId: "c-gasto", subId: null, target: "c-gasto", amount: 10_000, month: "feb", createdAt: 1, from: "c-viaje", to: AVAILABLE_ID },
       { id: "w-2", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 15_000, month: "feb", createdAt: 2 }, // viejo, sin from
       { id: "w-3", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 30_000, month: "feb", createdAt: 3, from: "c-viaje", to: AVAILABLE_ID }, // retiro REAL
+      // BG-001 — el agujero que este centinela tenía: un MOVER alcancía→alcancía sale de una
+      // alcancía igual que un retiro, pero jamás baja a Disponible. Antes se colaba aquí.
+      { id: "w-4", ownerId: "local", type: "transfer", catId: "c-uk", subId: null, target: "c-uk", amount: 40_000, month: "feb", createdAt: 4, from: "c-viaje", to: "c-uk" },
     ];
     s.movements.push(...weird);
-    expect(reserveRetiros(s, "feb", "actual")).toBe(30_000); // solo el retiro real
-    expect(resolvedBalance(s, "c-viaje", "feb", "actual")).toBe(170_000);
+    expect(reserveRetiros(s, "feb", "actual")).toBe(30_000); // solo el retiro real, sin el mover
+    expect(resolvedBalance(s, "c-viaje", "feb", "actual")).toBe(130_000); // el mover SÍ vacía el origen
+  });
+});
+
+/**
+ * BG-001 — un mover alcancía→alcancía se contaba a la vez como reserva (su llegada vive en la
+ * celda del destino) y como retiro (sale de una alcancía real), así que el Balance anunciaba una
+ * bajada a Disponible que nunca ocurrió y una reserva que era plata ya reservada. El usuario lo
+ * encontró el 2026-08-29 con un mover de 9.200.300: veía el mismo dinero como retirado y como
+ * reservado, sin forma de conciliarlo.
+ */
+describe("BG-001 · el mover alcancía→alcancía no es ni reserva ni retiro", () => {
+  it("BG-001a: el mover no aparece en «Reservas del mes» ni en «Retiros del mes», y el neto no cambia", () => {
+    const base = makeState([
+      { id: "c-ingreso", type: "income" },
+      { id: "c-viaje", type: "transfer" },
+      { id: "c-uk", type: "transfer" },
+    ]);
+    let s = addMovement(base, { type: "income", catId: "c-ingreso", amount: 500_000, month: "jul" });
+    s = op(s, { from: AVAILABLE_ID, to: "c-viaje", month: "jul", amount: 200_000 });
+
+    // Sin el mover: jul reserva 200.000 y no retira nada.
+    expect(reserveAportes(s, "jul", "actual")).toBe(200_000);
+    expect(reserveRetiros(s, "jul", "actual")).toBe(0);
+    const netoAntes = reserveNet(s, "jul", "actual");
+    const julAntes = computeBalanceSeries(s).jul.actual;
+
+    // El mover NO es plata nueva ni plata que baja: solo cambia de caja dentro de las reservas.
+    s = op(s, { from: "c-viaje", to: "c-uk", month: "jul", amount: 150_000 });
+    expect(s.actuals["c-uk"]?.jul ?? 0).toBe(0); // FR-1601: el mover NO escribe la celda del destino
+    expect(reserveAportes(s, "jul", "actual")).toBe(200_000); // no infla las reservas
+    expect(reserveRetiros(s, "jul", "actual")).toBe(0); // ni inventa un retiro
+
+    // El neto y las tres cifras del Balance salen EXACTAMENTE iguales que antes del mover.
+    expect(reserveNet(s, "jul", "actual")).toBe(netoAntes);
+    const julDespues = computeBalanceSeries(s).jul.actual;
+    expect([julDespues.available, julDespues.reservedBalance, julDespues.total])
+      .toEqual([julAntes.available, julAntes.reservedBalance, julAntes.total]);
+
+    // La plata se movió de verdad entre las dos alcancías.
+    expect(resolvedBalance(s, "c-viaje", "jul", "actual")).toBe(50_000);
+    expect(resolvedBalance(s, "c-uk", "jul", "actual")).toBe(150_000);
+    assertConservation(s);
+  });
+
+  it("BG-001b: un retiro real sigue contando aunque haya moveres en el mismo mes", () => {
+    const base = makeState([
+      { id: "c-ingreso", type: "income" },
+      { id: "c-viaje", type: "transfer" },
+      { id: "c-uk", type: "transfer" },
+    ]);
+    let s = addMovement(base, { type: "income", catId: "c-ingreso", amount: 500_000, month: "jul" });
+    s = op(s, { from: AVAILABLE_ID, to: "c-viaje", month: "jul", amount: 300_000 });
+    s = op(s, { from: "c-viaje", to: "c-uk", month: "jul", amount: 100_000 }); // mover
+    s = op(s, { from: "c-uk", to: AVAILABLE_ID, month: "jul", amount: 40_000 }); // retiro REAL
+
+    expect(reserveAportes(s, "jul", "actual")).toBe(300_000);
+    expect(reserveRetiros(s, "jul", "actual")).toBe(40_000); // el retiro, no el mover
+    expect(reserveNet(s, "jul", "actual")).toBe(260_000);
+    const jul = computeBalanceSeries(s).jul.actual;
+    expect([jul.available, jul.reservedBalance, jul.total]).toEqual([240_000, 260_000, 500_000]);
+    assertConservation(s);
+  });
+
+  it("BG-001c: el plano Pres. no conoce moveres (solo existen en el ejecutado)", () => {
+    const base = makeState([{ id: "c-viaje", type: "transfer", budget: { jul: 100_000 } }, { id: "c-uk", type: "transfer" }]);
+    expect(reserveAportes(base, "jul", "budget")).toBe(100_000);
   });
 });

@@ -98,28 +98,80 @@ export function reserveLeafIds(state: LedgerState): string[] {
 // que un par (mapa, journal) dado es inmutable de facto y sus series se computan una sola vez.
 const seriesMemo = new WeakMap<AmountMap, WeakMap<Movement[], Map<string, readonly number[]>>>();
 
-/** Σ retiros del journal de una hoja, por mes (movimientos transfer con from = la hoja). */
-function retirosByMonth(movements: Movement[], leafId: string): number[] {
-  const out = new Array<number>(12).fill(0);
-  for (const m of movements) {
-    if (m.type === "transfer" && m.from === leafId) {
-      const idx = MONTH_KEYS.indexOf(m.month);
-      if (idx >= 0) out[idx] += m.amount;
+/** Entradas y salidas del journal de UNA hoja, por mes. Doce posiciones cada una. */
+interface LeafFlows {
+  /** Σ de lo que ENTRA por journal: moveres cuyo `to` es esta hoja (ADR-01). */
+  in: number[];
+  /** Σ de lo que SALE por journal: retiros a Disponible y moveres cuyo `from` es esta hoja. */
+  out: number[];
+}
+
+// Índice del journal memoizado por IDENTIDAD del array de movimientos: cada mutación lo clona, así
+// que la invalidación es automática. Cuelga de la MISMA identidad que `seriesMemo` usa como clave
+// interna — no de una clave propia, que es el defecto que [RISK-2] del diseño señala.
+const journalIndexMemo = new WeakMap<Movement[], Map<string, LeafFlows>>();
+
+/**
+ * Índice `{in, out}` por hoja en UNA sola pasada sobre el journal (ADR-05).
+ *
+ * Sustituye al `retirosByMonth` anterior, que recorría el journal ENTERO por cada hoja consultada:
+ * con H hojas el coste era O(H×M) y crecía con el uso. Aquí una pasada O(M) llena las doce
+ * posiciones de todas las hojas a la vez, así que el término nuevo que FR-1602 necesita no sale
+ * gratis: sale más barato que lo que había (NFR-1608).
+ *
+ * El sentinel Disponible NUNCA es una clave del índice: no es una hoja y no tiene serie.
+ *
+ * @param movements Journal completo (no se muta).
+ * @returns Mapa hoja → {in, out}; una hoja sin movimientos simplemente no está.
+ * @throws Nunca. Un mes fuera de la escala se ignora.
+ */
+function journalIndex(movements: Movement[]): Map<string, LeafFlows> {
+  const cached = journalIndexMemo.get(movements);
+  if (cached) return cached;
+  const index = new Map<string, LeafFlows>();
+  const flowsOf = (id: string): LeafFlows => {
+    let f = index.get(id);
+    if (!f) {
+      f = { in: new Array<number>(12).fill(0), out: new Array<number>(12).fill(0) };
+      index.set(id, f);
     }
+    return f;
+  };
+  for (const m of movements) {
+    if (m.type !== "transfer") continue;
+    const idx = MONTH_KEYS.indexOf(m.month);
+    if (idx < 0) continue;
+    // SALIDA: cualquier movimiento que sale de una hoja real — retiro a Disponible o mover.
+    if (m.from && !isAvailable(m.from)) flowsOf(m.from).out[idx] += m.amount;
+    // ENTRADA: solo el MOVER. Un aporte desde Disponible entra por la CELDA, no por el journal
+    // (FR-1601: el mover dejó de escribir celda; el aporte sigue escribiéndola).
+    if (m.to && !isAvailable(m.to) && m.from && !isAvailable(m.from)) flowsOf(m.to).in[idx] += m.amount;
   }
-  return out;
+  journalIndexMemo.set(movements, index);
+  return index;
 }
 
 /**
- * Serie DERIVADA del saldo de una alcancía: saldo[m] = Σ aportes(celdas)[1..m] − Σ retiros
- * (journal)[1..m]. En Pres. no hay retiros (no se planean en v1): la trayectoria del plan es el
- * acumulado de los aportes planeados.
+ * Serie DERIVADA del saldo de una alcancía (FR-1602):
+ *
+ *     saldo[m] = Σ celdas[1..m] + Σ moveres que ENTRAN[1..m] − Σ movimientos que SALEN[1..m]
+ *
+ * El término de entradas es lo que esta feature añade. Antes las llegadas de un mover viajaban
+ * dentro de la celda del destino, que es justo la anotación sin contrapartida que el usuario
+ * detectó: la celda solo crecía y nada salía del origen. Ahora el mover se anota en el journal por
+ * sus dos extremos y la celda vuelve a significar UNA cosa —lo apartado desde Disponible—, así que
+ * la entrada tiene que llegar por aquí para que el saldo no cambie de valor (NFR-1603).
+ *
+ * En Pres. no hay journal (no se planean retiros ni moveres en v1): la trayectoria del plan sigue
+ * siendo el acumulado de los aportes planeados.
  *
  * @param state Estado del ledger (no se muta).
  * @param leafId Hoja transfer (una hoja desconocida deriva [0×12]).
  * @param plane Plano a leer.
  * @returns Serie readonly de 12 saldos derivados. Referencia estable para el mismo estado.
  * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1602, US-ID: US-1602, AC-ID: AC-1604, TC-ID: TC-CPR-009h
  */
 export function resolvedSeries(state: LedgerState, leafId: string, plane: Plane): readonly number[] {
   const map = plane === "budget" ? state.budgets : state.actuals;
@@ -138,12 +190,12 @@ export function resolvedSeries(state: LedgerState, leafId: string, plane: Plane)
   if (!series) {
     seriesComputes += 1;
     const cells = map[leafId];
-    const retiros = plane === "actual" ? retirosByMonth(state.movements, leafId) : null;
+    const flows = plane === "actual" ? journalIndex(state.movements).get(leafId) : undefined;
     const out: number[] = [];
     let running = 0;
     for (let i = 0; i < MONTH_KEYS.length; i++) {
       running += cells?.[MONTH_KEYS[i]] ?? 0;
-      if (retiros) running -= retiros[i];
+      if (flows) running += flows.in[i] - flows.out[i];
       out.push(running);
     }
     series = out;
@@ -169,10 +221,16 @@ export function resolvedTypeTotal(state: LedgerState, month: MonthKey, plane: Pl
 }
 
 /**
- * Aportes del mes = Σ de las CELDAS transfer del mes (lo tecleado en la grilla + lo guardado por
- * el registro, que también escribe la celda). La fila «− Reservas del mes» del Balance.
+ * Aportes del mes = Σ de las CELDAS transfer del mes. Vuelve a ser cierto SIN correcciones: desde
+ * FR-1601 un mover ya no escribe la celda del destino, así que la celda solo contiene lo apartado
+ * desde Disponible. La resta compensatoria `reserveMovers` que introdujo el arreglo parcial de
+ * BG-001 queda RETIRADA — compensaba la contrapartida que faltaba en vez de anotarla, y con la
+ * anotación puesta ya no tiene nada que compensar.
  *
- * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h
+ * La fila «− Reservas del mes» del Balance y el roll-up del grupo «Reservas» de la grilla leen
+ * ahora la MISMA cifra, que es lo que FR-1603 exige.
+ *
+ * @aitri-trace FR-ID: FR-1603, US-ID: US-1603, AC-ID: AC-1607, TC-ID: TC-CPR-016h
  */
 export function reserveAportes(state: LedgerState, month: MonthKey, plane: Plane): number {
   return typeTotals(state, "transfer", [month])[plane];
@@ -186,16 +244,25 @@ export function reserveAportes(state: LedgerState, month: MonthKey, plane: Plane
 export const RETIROS_PLAN_ID = "@retiros";
 
 /**
- * Retiros del mes. Ejecutado: Σ de las operaciones del journal que SACAN de una alcancía ese mes
- * (from = hoja real). Presupuestado: el retiro PLANEADO del mes (fila Retiros · Pres.).
- * La fila «+ Retiros del mes» del Balance.
+ * Retiros del mes. Ejecutado: Σ de las operaciones del journal que BAJAN de una alcancía a
+ * Disponible ese mes (from = hoja real Y to = Disponible). Presupuestado: el retiro PLANEADO del
+ * mes (fila Retiros · Pres.). La fila «+ Retiros del mes» del Balance.
  *
- * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009b, TC-ID: TC-TRF-109e
+ * El extremo `to` es parte de la definición, no un detalle (BG-001): antes bastaba con que el
+ * movimiento SALIERA de una alcancía, así que un mover alcancía→alcancía se contaba como retiro y
+ * la fila anunciaba una bajada a Disponible que jamás ocurrió —la plata seguía reservada, en otra
+ * caja—. El usuario lo encontró con un mover de 9.200.300 que aparecía a la vez como retiro y
+ * como saldo reservado, sin forma de conciliar las dos cifras. Ver `reserveMovers`.
+ *
+ * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009b, TC-ID: TC-TRF-109e, TC-TRF4-151f
  */
 export function reserveRetiros(state: LedgerState, month: MonthKey, plane: Plane): number {
   if (plane === "budget") return state.budgets[RETIROS_PLAN_ID]?.[month] ?? 0;
   return state.movements.reduce(
-    (sum, m) => (m.type === "transfer" && m.month === month && m.from && !isAvailable(m.from) ? sum + m.amount : sum),
+    (sum, m) =>
+      m.type === "transfer" && m.month === month && m.from && !isAvailable(m.from) && isAvailable(m.to)
+        ? sum + m.amount
+        : sum,
     0
   );
 }
@@ -241,21 +308,63 @@ export function setPlannedRetiro(
   return { state: next };
 }
 
+/** ¿El movimiento es una operación de reserva CORREGIBLE — retiro puro o mover? */
+function isRemovableReserveOp(mv: Movement | undefined): mv is Movement {
+  if (!mv || mv.type !== "transfer") return false;
+  // Tiene que SALIR de una hoja real. Un aporte (from = Disponible) no entra aquí: ese sí escribió
+  // celda, así que quitar su movimiento NO restauraría nada — se corrige editando la celda (FR-1003).
+  return !!mv.from && !isAvailable(mv.from);
+}
+
 /**
- * Elimina un RETIRO del journal (corrección de un error del usuario). Solo aplica a retiros puros
- * (from = alcancía, to = Disponible): como el retiro nunca tocó celdas, quitar el movimiento
- * restaura el saldo derivado por construcción — no hay nada más que revertir. Siempre permitido:
- * el estado resultante es exactamente el previo al error.
+ * Elimina una operación de reserva del journal — retiro puro (from = alcancía, to = Disponible) o
+ * MOVER (ambos extremos reales). Corrección de un error del usuario.
  *
- * @returns El estado sin el movimiento, o el MISMO estado si el id no es un retiro eliminable.
+ * Que el mover sea eliminable es consecuencia directa de FR-1601: al dejar de escribir la celda del
+ * destino, quitar la entrada del journal restaura el saldo derivado POR CONSTRUCCIÓN — exactamente
+ * el mismo argumento que ya sostenía la eliminación de un retiro. Antes era imposible: la llegada
+ * vivía en la celda, así que borrar el movimiento habría dejado la plata duplicada en el destino y
+ * resucitada en el origen. Por eso el usuario tenía un mover de 9.200.300 ATRAPADO, que solo podía
+ * neutralizar haciendo el mover inverso a mano (mitad de corrección de BG-001).
+ *
+ * Siempre permitido: el estado resultante es exactamente el previo al error.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param movementId Id del movimiento a eliminar.
+ * @returns El estado sin el movimiento, o el MISMO estado si el id no es una operación eliminable
+ *          (inexistente, de otro tipo, o un aporte desde Disponible).
  * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1609, US-ID: US-1609, AC-ID: AC-1627, TC-ID: TC-CPR-057h
  */
-export function removeReserveRetiro(state: LedgerState, movementId: string): LedgerState {
+export function removeReserveOp(state: LedgerState, movementId: string): LedgerState {
   const mv = state.movements.find((m) => m.id === movementId);
-  if (!mv || mv.type !== "transfer" || !mv.from || isAvailable(mv.from) || !isAvailable(mv.to)) return state;
+  if (!isRemovableReserveOp(mv)) return state;
   const next = cloneState(state);
   next.movements = next.movements.filter((m) => m.id !== movementId);
   return next;
+}
+
+/** @deprecated Nombre anterior de `removeReserveOp`, que ahora acepta también moveres (FR-1609). */
+export const removeReserveRetiro = removeReserveOp;
+
+/**
+ * Las operaciones de reserva de un mes que el usuario puede CORREGIR: retiros a Disponible y
+ * moveres entre alcancías, en el orden del journal.
+ *
+ * Antes la lista solo consideraba retiros puros, así que un mover ni siquiera se mostraba — no era
+ * que fallara al borrarlo: es que no aparecía. La superficie de corrección lo lista ahora
+ * identificándolo por sus DOS extremos, que es lo que lo distingue de un retiro (FR-1609/AC-1628).
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param month Mes a listar.
+ * @returns Movimientos del mes, en orden de journal. Vacío si no hay ninguno.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1609, US-ID: US-1609, AC-ID: AC-1628, TC-ID: TC-CPR-058h
+ */
+export function monthReserveOps(state: LedgerState, month: MonthKey): readonly Movement[] {
+  return state.movements.filter((m) => m.month === month && isRemovableReserveOp(m));
 }
 
 /** Movimiento neto de reservas del mes = aportes − retiros. Puede ser negativo (retiro neto). */
@@ -298,8 +407,86 @@ function buildCandidate(state: LedgerState, plane: Plane, writes: CellWrite[], e
   };
 }
 
+// Memoización del barrido de techo por IDENTIDAD del journal, y dentro por la del mapa del plano.
+// Misma técnica que `journalIndex`: cada mutación clona esos arrays/objetos, así que la
+// invalidación es automática y no hay clave que mantener a mano.
+type TechoScan = { excess: number[]; margin: number[]; delta: number[] };
+const techoMemo = new WeakMap<Movement[], WeakMap<AmountMap, Partial<Record<Plane, TechoScan>>>>();
+
+/** `techoScanRaw` memoizado — el encabezado de mes lo consulta doce veces por render. */
+function techoScan(state: LedgerState, plane: Plane): TechoScan {
+  let byMap = techoMemo.get(state.movements);
+  if (!byMap) { byMap = new WeakMap(); techoMemo.set(state.movements, byMap); }
+  const map = plane === "budget" ? state.budgets : state.actuals;
+  let byPlane = byMap.get(map);
+  if (!byPlane) { byPlane = {}; byMap.set(map, byPlane); }
+  let scan = byPlane[plane];
+  if (!scan) { scan = techoScanRaw(state, plane); byPlane[plane] = scan; }
+  return scan;
+}
+
+/** Un mes cuyas reservas netas superan su margen: el mes, su margen y por cuánto se pasó. */
+export interface TechoBreach {
+  month: MonthKey;
+  margin: number;
+  excess: number;
+}
+
+/**
+ * Cuánto QUEDA por reservar en un mes: el margen menos lo ya reservado neto. Es exactamente el
+ * número que el dominio devuelve como `limit` al rechazar por techo, así que es el que el editor de
+ * celda debe mostrar como «Máx.» (FR-1605).
+ *
+ * No confundir con `availableMargin`, que devuelve el margen BRUTO del mes (disponible previo +
+ * flujo) sin descontar lo ya reservado. Mostrar ese al usuario le prometería sitio que no tiene:
+ * en agosto de 2026 el margen bruto era 10.200.000 y lo que quedaba, 1.000.000. El indicador y el
+ * rechazo tienen que decir la MISMA cifra o la incoherencia que esta feature cierra reaparece por
+ * otra puerta.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param month Mes a consultar.
+ * @returns Lo reservable que queda, nunca negativo (0 si el mes ya está por encima del techo).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1605, US-ID: US-1605, AC-ID: AC-1613, TC-ID: TC-CPR-030h
+ */
+export function reserveHeadroom(state: LedgerState, month: MonthKey): number {
+  const scan = techoScan(state, "actual");
+  const i = MONTH_KEYS.indexOf(month);
+  if (i < 0) return 0;
+  return Math.max(0, scan.margin[i] - scan.delta[i]);
+}
+
+/**
+ * Los meses cuyas reservas netas superan el margen de ese mes (FR-1606).
+ *
+ * Sale del MISMO barrido que decide los bloqueos (`techoScan`), no de un cálculo paralelo (ADR-03):
+ * si la señal y el bloqueo se calcularan por separado podrían discrepar, que es exactamente la
+ * clase de defecto que esta feature existe para cerrar.
+ *
+ * Por qué hace falta: el techo se comprueba al ESCRIBIR una reserva, y nada lo re-valida después.
+ * Bajar un ingreso ya registrado —corregir un error de tecleo, algo que debe seguir permitiéndose—
+ * deja el mes por encima del techo en silencio, y a partir de ahí el margen de todos los meses
+ * siguientes queda en 0 y ninguna celda de reserva acepta un peso más. El usuario se topaba con una
+ * app que rechazaba todo sin decir por qué (BG-002 de la feature transferencias).
+ *
+ * @param state Estado del ledger (no se muta).
+ * @returns Los meses excedidos en orden de calendario; vacío en un estado sano.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1606, US-ID: US-1606, AC-ID: AC-1616, TC-ID: TC-CPR-036h
+ */
+export function techoBreaches(state: LedgerState): readonly TechoBreach[] {
+  const scan = techoScan(state, "actual");
+  const out: TechoBreach[] = [];
+  for (let i = 0; i < MONTH_KEYS.length; i++) {
+    if (scan.excess[i] > 0) out.push({ month: MONTH_KEYS[i], margin: scan.margin[i], excess: scan.excess[i] });
+  }
+  return out;
+}
+
 /** Serie de excesos de techo y márgenes por mes de un estado, en un plano. */
-function techoScan(state: LedgerState, plane: Plane): { excess: number[]; margin: number[]; delta: number[] } {
+function techoScanRaw(state: LedgerState, plane: Plane): { excess: number[]; margin: number[]; delta: number[] } {
   const excess: number[] = [];
   const margin: number[] = [];
   const delta: number[] = [];
@@ -478,9 +665,17 @@ export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResu
     ...(op.note !== undefined ? { note: normalizeNote(op.note) } : {}),
   };
 
-  // Candidato: el aporte del destino se escribe en su celda; el retiro entra por el journal.
+  // Candidato. Solo el APORTE desde Disponible escribe celda (FR-1601). Antes bastaba con que el
+  // destino fuese real, así que un MOVER también la escribía — y esa era la anotación sin
+  // contrapartida: sumaba en el destino y no restaba en ningún sitio, de modo que la cuenta de
+  // reservas solo podía crecer. Ahora el mover se journaliza por sus dos extremos y nada más; su
+  // llegada la recoge `journalIndex` al derivar el saldo.
+  //
+  // No se contempló el doble asiento en celdas (restar en el origen) porque `amount_cell` declara
+  // CHECK (amount >= 0): exigiría celdas negativas, un cambio de esquema y romper FR-1003 —«la
+  // celda es el aporte del mes»—. Ver ADR-01.
   const writes: CellWrite[] = [];
-  if (!toIsAvailable) {
+  if (!toIsAvailable && fromIsAvailable) {
     const current = state.actuals[op.to]?.[op.month] ?? 0;
     writes.push({ leafId: op.to, month: op.month, value: current + amount });
   }

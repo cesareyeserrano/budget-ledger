@@ -14,11 +14,14 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "@/domain";
-import { addMovement, migrateStateV3toV4, type NewMovement } from "@/domain";
+import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
  *  Historia: 2 = aportes sin journal de retiros · 3 = saldos con arrastre (revertido) · 4 = vigente. */
 const DATA_VERSION_FLOWS = 4;
+// Feature contrapartidas-reserva (FR-1604): el mover deja de escribir la celda del destino, asi
+// que las celdas de un ledger v4 llevan dentro llegadas que ahora vienen del journal. v5 las quita.
+const DATA_VERSION_COUNTERPARTY = 5;
 const DATA_VERSION_BALANCES = 3;
 
 /** Límite de filas por INSERT para no exceder el tope de parámetros de Postgres. */
@@ -101,7 +104,7 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
   if (!head) return null;
 
   // En modo servidor el DUEÑO de las migraciones de formato es el servidor — lazy, aquí.
-  if (head.dataVersion < DATA_VERSION_FLOWS) {
+  if (head.dataVersion < DATA_VERSION_COUNTERPARTY) {
     return migrateLedgerToV4(ownerId);
   }
 
@@ -159,7 +162,7 @@ async function migrateLedgerToV4(ownerId: string): Promise<LoadResult | null> {
  * un POST sobre un ledger v3 sin migrar leería saldos como aportes).
  */
 async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, state: LedgerState): Promise<LedgerState> {
-  if (dataVersion >= DATA_VERSION_FLOWS) return state;
+  if (dataVersion >= DATA_VERSION_COUNTERPARTY) return state;
 
   // v2 = identidad (aportes ya); v3 = deshacer saldos + retiros sintetizados al journal.
   const migratedState: LedgerState = dataVersion === DATA_VERSION_BALANCES ? migrateStateV3toV4(state) : state;
@@ -202,12 +205,40 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
       });
     }
   }
+  // ── v4 -> v5 (FR-1604): quitar de la celda del destino la llegada de cada MOVER ──────────────
+  // Solo corre si el ledger venia por debajo de v5. Las celdas que cambian se reescriben una a una
+  // (no un replace masivo): el conjunto afectado es pequeno —una fila por destino y mes con mover—
+  // y asi la conversion no toca ni una celda que no le corresponda.
+  const { state: v5State, residues } = migrateStateV4toV5(migratedState);
+  if (residues.length > 0) {
+    // [RISK-1] del diseno: la celda del destino se edito a la baja DESPUES del mover, asi que la
+    // resta no cabia. Se acoto a 0 y el desvio se deja VISIBLE en vez de silencioso.
+    console.warn(
+      `[migracion v5] owner=${ownerId}: ${residues.length} celda(s) no cubrian su mover; acotadas a 0. ` +
+        residues.map((r) => `${r.leafId}/${r.month} falto ${r.shortfall}`).join(" | ")
+    );
+  }
+  for (const [leafId, months] of Object.entries(v5State.actuals)) {
+    for (const [month, amount] of Object.entries(months ?? {})) {
+      if (amount == null) continue;
+      const previo = migratedState.actuals[leafId]?.[month as keyof typeof months];
+      if (previo === amount) continue;
+      await tx
+        .insert(amountCell)
+        .values({ ownerId, nodeId: leafId, month, kind: "actual", amount })
+        .onConflictDoUpdate({
+          target: [amountCell.ownerId, amountCell.nodeId, amountCell.month, amountCell.kind],
+          set: { amount },
+        });
+    }
+  }
+
   await tx
     .update(ledger)
-    .set({ dataVersion: DATA_VERSION_FLOWS, updatedAt: new Date() })
+    .set({ dataVersion: DATA_VERSION_COUNTERPARTY, updatedAt: new Date() })
     .where(eq(ledger.ownerId, ownerId));
 
-  return migratedState;
+  return v5State;
 }
 
 /** Inserta las filas derivadas de un LedgerState dentro de una transacción (owner ya fijado). */
@@ -315,10 +346,10 @@ export async function saveLedger(
     if (head) {
       await tx
         .update(ledger)
-        .set({ revision, updatedAt: new Date(), dataVersion: DATA_VERSION_FLOWS })
+        .set({ revision, updatedAt: new Date(), dataVersion: DATA_VERSION_COUNTERPARTY })
         .where(eq(ledger.ownerId, ownerId));
     } else {
-      await tx.insert(ledger).values({ ownerId, revision, updatedAt: new Date(), dataVersion: DATA_VERSION_FLOWS });
+      await tx.insert(ledger).values({ ownerId, revision, updatedAt: new Date(), dataVersion: DATA_VERSION_COUNTERPARTY });
     }
     return { ok: true, revision };
   });
