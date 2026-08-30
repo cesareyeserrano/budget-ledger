@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
-  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveRetiro, setPlannedRetiro, seedSeqFrom,
+  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, setPlannedRetiro, seedSeqFrom,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -47,7 +47,8 @@ interface LedgerStore {
   applyReserveWithdrawal: (from: string, month: MonthKey, amount: number, note?: string | null) => ReserveOpResult;
   /** Revierte el último retiro de reserva (un nivel; se descarta con cualquier mutación posterior). */
   undoLastReserveOp: () => void;
-  /** Corrige un error: elimina un retiro del journal (el saldo se restaura por construcción). */
+  /** Corrige un error: elimina un RETIRO o un MOVER del journal (el saldo se restaura por
+   *  construcción — FR-1609; antes solo aceptaba retiros puros y un mover quedaba atrapado). */
   removeReserveWithdrawal: (movementId: string) => void;
   /** Retiro PLANEADO de un mes. Rechaza superar lo reservado planeado (con el límite para la UI). */
   setPlannedRetiro: (month: MonthKey, value: number) => { ok: true } | { ok: false; limit: number };
@@ -252,8 +253,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     removeReserveWithdrawal: (movementId) => {
       const prev = get().data;
-      const data = removeReserveRetiro(prev, movementId);
-      if (data === prev) return; // no era un retiro eliminable
+      const data = removeReserveOp(prev, movementId); // FR-1609: acepta retiros puros Y moveres
+      if (data === prev) return; // no era una operación eliminable
       reserveUndo = null;
       set({ data });
       persist(data);

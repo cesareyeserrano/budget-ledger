@@ -1,7 +1,7 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft } from "lucide-react";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import type { LedgerNode, MonthKey, NodeLevel, NodeType } from "@/domain/types";
 import { MONTHS } from "@/domain/months";
@@ -9,9 +9,9 @@ import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { planTechoMonths } from "@/domain/reserve";
-import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
-import { cellNum } from "./format";
+import { planTechoMonths, techoBreaches, type TechoBreach } from "@/domain/reserve";
+import { ReserveCellEditor, ReserveLeafCell, RowWithdrawAction } from "./ReserveCells";
+import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
 import { BalanceModule } from "./BalanceModule";
@@ -128,6 +128,7 @@ function ejecGlyph(type: NodeType, b: number, e: number): "" | "‹" | "›" | "
 
 export function BudgetGrid() {
   const data = useLedgerStore((s) => s.data);
+  const hydrated = useLedgerStore((s) => s.hydrated);
   const setLeafAmount = useLedgerStore((s) => s.setLeafAmount);
   const deleteNode = useLedgerStore((s) => s.deleteNode);
   const renameNode = useLedgerStore((s) => s.renameNode);
@@ -179,6 +180,15 @@ export function BudgetGrid() {
     if (idx > 0) scrollRef.current.scrollLeft = idx * 216;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // solo al montar: después el usuario controla el scroll libremente
+
+  // FR-1606: los meses cuyas reservas superan el margen. UNA derivación por render — el selector
+  // está memoizado en el dominio, así que las doce columnas leen un mapa ya calculado.
+  const breachByMonth = useMemo(() => {
+    const out: Partial<Record<MonthKey, TechoBreach>> = {};
+    if (!hydrated) return out; // durante la hidratación no se pinta: un falso positivo sería peor
+    for (const b of techoBreaches(data)) out[b.month] = b;
+    return out;
+  }, [data, hydrated]);
 
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
@@ -254,9 +264,21 @@ export function BudgetGrid() {
                   return (
                     <div
                       key={m.k}
-                      className={cn(CELL_W, "flex items-center justify-center h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong", active && "font-semibold")}
+                      className={cn(CELL_W, "flex items-center justify-center gap-1 h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong", active && "font-semibold")}
                       style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
                     >
+                      {breachByMonth[m.k] ? (
+                        <span
+                          data-testid="techo-mark"
+                          data-month={m.k}
+                          title={`${m.label}: reservas ${money(breachByMonth[m.k]!.excess)} por encima del margen del mes`}
+                          aria-label={`${m.label}: reservas ${money(breachByMonth[m.k]!.excess)} por encima del margen del mes`}
+                          className="flex-none inline-flex"
+                          style={{ color: "var(--alert-strong)" }}
+                        >
+                          <TriangleAlert size={13} aria-hidden="true" />
+                        </span>
+                      ) : null}
                       {m.label}
                     </div>
                   );
@@ -467,6 +489,11 @@ function NodeRow(props: {
               {/* #4: solo mostrar borrar si el nodo es realmente borrable (grupo vacío; categoría/sub sin datos) */}
               {canDeleteNode(data, node.id) && (
                 <button aria-label="Borrar" onClick={() => setConfirmDel(true)} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Trash2 size={13} /></button>
+              )}
+              {/* FR-1607 — sacar desde la propia alcancía. Solo en hojas transfer: es el único sitio
+                  donde «sacar de aquí» significa algo. Cierra BL-019. */}
+              {node.type === "transfer" && row.leaf && (
+                <RowWithdrawAction leafId={node.id} month={props.highlightMonth ?? MONTHS[0].k} />
               )}
             </span>
           )}

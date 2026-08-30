@@ -14,13 +14,13 @@
 //               filas y sus invariantes de cascada, ADR-04).
 
 import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Scale, ChevronDown, ChevronRight } from "lucide-react";
+import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import { MONTHS } from "@/domain/months";
+import { MONTHS, monthLabel } from "@/domain/months";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
-import { reserveAportes, reserveRetiros } from "@/domain/reserve";
+import { reserveAportes, reserveRetiros, techoBreaches } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
-import { cellNum } from "./format";
+import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
 import { ROWS, indentFor, type RowSpec } from "./balanceRows";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
@@ -451,6 +451,50 @@ export function BalanceModule() {
   return (
     <BalanceBoundary>
       <BalanceRows />
+      <TechoBanner />
     </BalanceBoundary>
+  );
+}
+
+/**
+ * Franja de detalle del techo roto (FR-1606).
+ *
+ * La marca del encabezado de mes avisa DONDE se trabaja; esta franja explica QUÉ pasó y qué
+ * consecuencia tiene. Hasta ahora la única señal de que las reservas superaban lo disponible era un
+ * «Saldo disponible» negativo al pie — que es exactamente lo que el usuario no vio, mientras la app
+ * le rechazaba toda escritura sin decirle por qué.
+ *
+ * No ofrece corrección automática a propósito: cuál de los dos lados está mal —la reserva o el
+ * ingreso— solo lo sabe el usuario. Y no bloquea nada: bajar un ingreso mal tecleado se sigue
+ * permitiendo; lo que deja de ser es silencioso.
+ *
+ * `role="status"` — se anuncia sin robar el foco a quien está tecleando.
+ *
+ * @aitri-trace FR-ID: FR-1606, US-ID: US-1606, AC-ID: AC-1616, TC-ID: TC-CPR-037h
+ */
+function TechoBanner() {
+  const data = useLedgerStore((s) => s.data);
+  const hydrated = useLedgerStore((s) => s.hydrated);
+  const breaches = useMemo(() => (hydrated ? techoBreaches(data) : []), [data, hydrated]);
+  if (breaches.length === 0) return null;
+  return (
+    <div
+      data-testid="techo-banner"
+      role="status"
+      className="flex flex-col gap-1 mx-3 my-2 px-3 py-2 rounded-(--radius-sm) border text-caption"
+      style={{ borderColor: "var(--alert-strong)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)", color: "var(--fg)" }}
+    >
+      {breaches.map((b) => (
+        <div key={b.month} className="flex items-start gap-2" data-month={b.month}>
+          <span className="flex-none mt-[1px]" style={{ color: "var(--alert-strong)" }} aria-hidden="true">
+            <TriangleAlert size={14} />
+          </span>
+          <span>
+            <strong>{monthLabel(b.month)}:</strong> reservas <span className="tabular">{money(b.excess)}</span> por
+            encima del margen del mes — los meses siguientes quedan sin margen.
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }

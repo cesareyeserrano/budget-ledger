@@ -21,6 +21,8 @@ import {
   findNode,
   isAvailable,
   plannedRetiroLimit,
+  reserveHeadroom,
+  monthReserveOps,
   reserveLeafIds,
   reserveRetiros,
   resolvedBalance,
@@ -34,7 +36,7 @@ import { cellNum, money } from "./format";
 import { CELL_W } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Trash2 } from "lucide-react";
+import { ArrowDownToLine, Trash2 } from "lucide-react";
 
 /** Marca de forma del aviso de plan: canal no cromático PROPIO — ≠ ›/›› y ≠ ‹‹ (WCAG 1.4.1). */
 const PLAN_WARN_GLYPH = "!";
@@ -125,9 +127,17 @@ export function ReserveCellEditor(props: {
   const map = plane === "budget" ? data.budgets : data.actuals;
   const current = map[leafId]?.[month] ?? 0;
   const [val, setVal] = useState(String(current || 0));
+  // FR-1605: cuanto queda por reservar este mes, VISIBLE antes de teclear. Es `reserveHeadroom`, no
+  // `availableMargin`: aquel devuelve el margen BRUTO del mes y prometeria sitio que no hay (en el
+  // agosto del usuario, 10.200.000 frente a los 1.000.000 reales). Este es el mismo numero que el
+  // dominio devuelve como `limit` al rechazar, asi que el indicador y el rechazo no pueden discrepar.
+  const headroom = plane === "actual" ? reserveHeadroom(data, month) : null;
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // Se pasa del margen? Se evalua MIENTRAS teclea, no al confirmar: la senal llega antes del rechazo.
+  const excede = headroom !== null && Math.max(0, Math.round(Number(val) || 0)) - current > headroom;
 
   /** Bloqueo: el editor queda abierto con el valor rechazado seleccionado («corrige o Escape»). */
   function fail(msg: string) {
@@ -155,6 +165,7 @@ export function ReserveCellEditor(props: {
 
   return (
     <div ref={rootRef} className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
+      <div className="flex items-center gap-1.5">
       <input
         ref={inputRef}
         autoFocus
@@ -174,8 +185,19 @@ export function ReserveCellEditor(props: {
           if (e.key === "Enter") commit();
           if (e.key === "Escape") props.onClose(); // restaura el valor previo: nada se persistió
         }}
-        className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
+        className="tabular w-full min-w-0 bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
       />
+      {headroom !== null && (
+        <span
+          data-testid="reserve-max"
+          title={`Lo que queda por reservar en ${monthLabel(month).toLowerCase()}`}
+          className="flex-none tabular text-caption leading-none whitespace-nowrap"
+          style={{ color: excede ? "var(--alert-strong)" : "var(--fg-muted)" }}
+        >
+          Máx. {money(headroom)}
+        </span>
+      )}
+      </div>
 
       <div className="absolute left-0 top-full z-20 flex flex-col items-start gap-1 min-w-[230px]">
         {block && (
@@ -384,13 +406,26 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
  * retiro planeado (›/›› + ámbar/rojo al pasarse — misma regla que los gastos) y abre el mini-form
  * al clic: origen en lista desplegable con todas las alcancías y eliminación de retiros (corrección).
  */
-export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean }) {
+export function WithdrawCell({
+  month,
+  sep,
+  fixedFrom,
+  trigger,
+}: {
+  month: MonthKey;
+  sep?: boolean;
+  /** Origen ya resuelto: la puerta desde la fila de la alcancía (FR-1607). Sin él, desplegable. */
+  fixedFrom?: string;
+  /** Disparador alternativo. Sin él, la celda Ejec. de la fila «Retiros del mes». */
+  trigger?: React.ReactNode;
+}) {
   const data = useLedgerStore((s) => s.data);
   const withdraw = useLedgerStore((s) => s.applyReserveWithdrawal);
   const removeWithdrawal = useLedgerStore((s) => s.removeReserveWithdrawal);
   const [open, setOpen] = useState(false);
-  const [fromId, setFromId] = useState<string>("");
+  const [fromId, setFromId] = useState<string>(fixedFrom ?? "");
   const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const leaves = reserveLeafIds(data);
@@ -403,20 +438,21 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
   const planned = reserveRetiros(data, month, "budget");
   const overState = budgetState(planned, total);
 
-  // Los retiros YA operados este mes — con eliminación para corregir un error (observación 4).
-  const monthRetiros = data.movements.filter(
-    (m) => m.type === "transfer" && m.month === month && m.from && !isAvailable(m.from) && isAvailable(m.to)
-  );
+  // Las operaciones del mes ya registradas — retiros Y MOVERES (FR-1609). El mover se identifica
+  // por sus DOS extremos; antes ni siquiera se listaba, así que quedaba atrapado sin forma de
+  // corregirlo desde la interfaz.
+  const monthOps = monthReserveOps(data, month);
 
   function reset() {
-    setFromId("");
+    setFromId(fixedFrom ?? "");
     setAmount("");
+    setNote("");
     setError(null);
   }
 
   function save() {
     if (!fromId || parsed <= 0) return;
-    const res = withdraw(fromId, month, parsed);
+    const res = withdraw(fromId, month, parsed, note.trim() === "" ? null : note.trim());
     if ("rejected" in res) {
       setError(
         res.rejected === "invalid_target" || res.rejected.ok
@@ -432,6 +468,7 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <PopoverTrigger asChild>
+        {trigger ?? (
         <button
           data-testid="withdraw-cell"
           data-month={month}
@@ -446,13 +483,26 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
           ) : null}
           {cellNum(total)}
         </button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-96 p-3 flex flex-col gap-2 text-[12px]" align="end">
         <span className="font-medium" style={{ color: "var(--fg)" }}>
-          Sacar en {monthLabel(month).toLowerCase()} → Disponible
+          {fixedFrom ? `Sacar de «${leafPathLabel(data, fixedFrom)}» → Disponible` : `Sacar en ${monthLabel(month).toLowerCase()} → Disponible`}
         </span>
 
-        {/* Origen: lista desplegable con TODAS las alcancías (jerarquía aplanada) y su saldo. */}
+        {/* Origen. Con `fixedFrom` viene RESUELTO (puerta de la fila): el usuario ya sabía de cuál
+            alcancía sacaba, así que volver a preguntárselo en una lista era el trabajo de más que
+            BL-019 señalaba. Sin él, el desplegable de siempre (puerta del Balance, vista del mes). */}
+        {fixedFrom ? (
+          <span data-testid="withdraw-source-fixed" className="flex items-center justify-between gap-2 px-1.5 py-1.5 rounded-(--radius-sm) border border-border">
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
+              {leafPathLabel(data, fixedFrom)}
+            </span>
+            <span className="flex-none tabular" style={{ color: "var(--fg-muted)" }}>
+              {money(resolvedBalance(data, fixedFrom, month, "actual"))}
+            </span>
+          </span>
+        ) : (
         <select
           aria-label="Sacar de"
           data-testid="withdraw-source"
@@ -469,6 +519,7 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
             </option>
           ))}
         </select>
+        )}
 
         <div className="flex items-center gap-2">
           <input
@@ -486,6 +537,18 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
             </span>
           )}
         </div>
+        {/* FR-1608 — el «¿para qué?». El dominio ya aceptaba la nota y la UI la descartaba: sin ella,
+            ahorrar para algo y pagarlo son dos actos que la app no relaciona. Opcional siempre. */}
+        <input
+          aria-label="¿Para qué? (opcional)"
+          data-testid="withdraw-note"
+          value={note}
+          maxLength={CELL_NOTE_MAX}
+          placeholder="¿Para qué? (opcional)"
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent"
+          style={{ color: "var(--fg)" }}
+        />
         {error && (
           <span role="alert" data-testid="withdraw-error" style={{ color: "var(--error)" }}>{error}</span>
         )}
@@ -504,29 +567,39 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
           </button>
         </div>
 
-        {/* Retiros del mes ya operados: eliminar = corregir (el saldo se restaura solo). */}
-        {monthRetiros.length > 0 && (
+        {/* Operaciones del mes: eliminar = corregir (el saldo se restaura por construcción). Desde
+            FR-1609 la lista incluye los MOVERES, que antes no aparecían — y por eso no había forma
+            de deshacer uno equivocado salvo hacer el mover inverso a mano. */}
+        {monthOps.length > 0 ? (
           <div className="flex flex-col gap-1 border-t border-border pt-2" data-testid="withdraw-history">
-            <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Retiros de este mes</span>
+            <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Operaciones de este mes</span>
             <ul className="flex flex-col gap-0.5">
-              {monthRetiros.map((mv) => (
-                <li key={mv.id} className="flex items-center gap-2">
+              {monthOps.map((mv) => {
+                const esMover = !isAvailable(mv.to);
+                return (
+                <li key={mv.id} className="flex items-center gap-2" data-testid={esMover ? "op-mover" : "op-retiro"}>
                   <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
-                    {leafPathLabel(data, mv.from!)} — <span className="tabular">{money(mv.amount)}</span>
+                    {leafPathLabel(data, mv.from!)} → {esMover ? leafPathLabel(data, mv.to!) : "Disponible"}
+                    {" — "}<span className="tabular">{money(mv.amount)}</span>
                     {mv.note ? <span style={{ color: "var(--fg-muted)" }}> · {mv.note}</span> : null}
                   </span>
                   <button
-                    aria-label="Eliminar retiro"
+                    aria-label={esMover ? "Eliminar movimiento entre alcancías" : "Eliminar retiro"}
                     data-testid={`withdraw-delete-${mv.id}`}
-                    title="Eliminar este retiro (corrige el error; el saldo de la alcancía se restaura)"
+                    title="Eliminar esta operación (corrige el error; los saldos se restauran)"
                     onClick={() => removeWithdrawal(mv.id)}
                     className="flex-none cursor-pointer border-0 bg-transparent p-[3px] rounded-md text-fg-muted hover:text-fg"
                   >
                     <Trash2 size={13} />
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+          </div>
+        ) : (
+          <div className="border-t border-border pt-2" data-testid="withdraw-history-empty" style={{ color: "var(--fg-muted)" }}>
+            Sin operaciones este mes
           </div>
         )}
       </PopoverContent>
@@ -534,3 +607,44 @@ export function WithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean })
   );
 }
 
+
+
+/**
+ * Acción «Sacar» de la fila de una alcancía (FR-1607, cierra BL-019).
+ *
+ * Segunda puerta al MISMO retiro, con el origen ya resuelto. La primera —la fila «Retiros del mes»
+ * al pie del Balance— sigue existiendo y operando igual: es la vista del mes y el sitio donde se
+ * corrigen operaciones pasadas. Lo que se añade es la puerta corta: el usuario que está mirando una
+ * alcancía no debería tener que bajar al final de la grilla y volver a elegirla en un desplegable
+ * que las lista todas.
+ *
+ * Comparte el popover con la otra puerta (ADR-04): dos implementaciones habrían divergido, y el
+ * contrato exige que los movimientos que producen sean indistinguibles.
+ *
+ * Aparece con hover Y con `focus-within` — alcanzable por teclado, no solo con el ratón.
+ *
+ * @aitri-trace FR-ID: FR-1607, US-ID: US-1607, AC-ID: AC-1620, TC-ID: TC-CPR-044h
+ */
+export function RowWithdrawAction({ leafId, month }: { leafId: string; month: MonthKey }) {
+  const data = useLedgerStore((s) => s.data);
+  const saldo = resolvedBalance(data, leafId, month, "actual");
+  const vacia = saldo <= 0;
+
+  const boton = (
+    <button
+      data-testid="row-withdraw"
+      data-leaf={leafId}
+      disabled={vacia}
+      title={vacia ? "Sin saldo que sacar" : `Sacar de «${leafPathLabel(data, leafId)}» (${money(saldo)} disponible)`}
+      aria-label={`Sacar de ${leafPathLabel(data, leafId)}`}
+      className="flex-none cursor-pointer border-0 bg-transparent p-[3px] rounded-md text-fg-muted hover:text-fg disabled:cursor-default disabled:opacity-40"
+    >
+      <ArrowDownToLine size={13} />
+    </button>
+  );
+
+  // Sin saldo el control se muestra INERTE en vez de desaparecer: que exista y explique por qué no
+  // se puede es más informativo que un hueco donde a veces hay algo (H1 visibilidad del estado).
+  if (vacia) return boton;
+  return <WithdrawCell month={month} fixedFrom={leafId} trigger={boton} />;
+}
