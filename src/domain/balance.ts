@@ -12,7 +12,7 @@
 import type { LedgerState, MonthKey } from "./types";
 import { typeTotals } from "./rollup";
 import { MONTH_KEYS } from "./months";
-import { reserveDelta, type Plane } from "./reserve";
+import { reserveDelta, type Plane, reserveAportes } from "./reserve";
 
 /** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad.
  *  (El origen del tipo vive en reserve.ts — feature transferencias — para evitar ciclos.) */
@@ -69,6 +69,45 @@ const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
  */
 export function reserveNet(state: LedgerState, month: MonthKey, plane: Plane): number {
   return reserveDelta(state, month, plane);
+}
+
+/**
+ * De dónde salió lo reservado en un mes: del flujo propio (ingresos − gastos) o del acumulado que
+ * traía (FR-1810).
+ *
+ * Reporte del usuario, textual: «está diciendo que el mes quedamos debiendo y no es correcto…
+ * reservas del mes, sin contar lo que sacamos del acumulado». Cuando la fila «Reservas del mes»
+ * resta el bruto completo del flujo, un mes que reservó 1.500 con flujo de 1.000 muestra
+ * «Disponible del mes −500» con alarma — una deuda que no existe, porque los 500 salieron del
+ * cierre del mes anterior. El desglose carga cada peso a su fuente:
+ *
+ *     delFlujo     = max(0, min(aportes, flujo))     → se resta del flujo del mes
+ *     delAcumulado = aportes − delFlujo              → se resta del saldo del mes anterior
+ *
+ * La suma reconstruye el bruto, así que la cascada completa cierra exactamente igual que la fórmula
+ * vigente (verificado por partida doble en TC-TDF-101e). En un estado imposible (reservas por
+ * encima de flujo + acumulado) el negativo aflora en «Saldo disponible» — donde el hueco es real —
+ * y con flujo negativo por gastos el «Disponible del mes» sí queda en deuda, que también es real.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param month Mes a desglosar.
+ * @param plane Plano a leer.
+ * @returns Los dos componentes, ambos ≥ 0.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-100h, TC-TDF-102f
+ */
+export function reserveSplit(
+  state: LedgerState,
+  month: MonthKey,
+  plane: Plane
+): { delFlujo: number; delAcumulado: number } {
+  const income = typeTotals(state, "income", [month]);
+  const expense = typeTotals(state, "expense", [month]);
+  const flujo = plane === "budget" ? income.budget - expense.budget : income.actual - expense.actual;
+  const aportes = reserveAportes(state, month, plane);
+  const delFlujo = Math.max(0, Math.min(aportes, flujo));
+  return { delFlujo, delAcumulado: aportes - delFlujo };
 }
 
 /**

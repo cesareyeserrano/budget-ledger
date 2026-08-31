@@ -14,7 +14,8 @@ import type { MonthBalance } from "@/domain/balance";
 export type RowKey =
   | keyof Pick<MonthBalance, "prevAvailable" | "flow" | "reserved" | "available" | "reservedBalance" | "total">
   | "retiros"
-  | "monthAvailable";
+  | "monthAvailable"
+  | "reservedCarry";
 
 export interface RowSpec {
   key: RowKey;
@@ -57,19 +58,24 @@ export interface RowSpec {
  * es literalmente la fila de encima:
  *
  *     Flujo del mes            +   nivel 3
- *     Reservas del mes         −   nivel 3
+ *     Reservas del mes         −   nivel 3   ← SOLO lo que salió del flujo (FR-1810)
  *     Retiros del mes          +   nivel 3
- *   = Disponible del mes           nivel 2   ← flujo − reservas + retiros
+ *   = Disponible del mes           nivel 2   ← flujo − reservas del flujo + retiros
  *     Saldo mes anterior       +   nivel 2
- *   = Saldo disponible             nivel 1   ← disponible del mes + saldo mes anterior
+ *     Reservas del acumulado   −   nivel 2   ← lo que salió del ahorro que traía (FR-1810)
+ *   = Saldo disponible             nivel 1   ← disponible del mes + saldo anterior − res. del acumulado
  *     Saldo reservado          +   nivel 1
  *   = Saldo total                  nivel 0   ← saldo disponible + saldo reservado
  *
- * El CONJUNTO de filas no cambia (decisión del usuario, 2026-08-24): no se añade ni se quita
- * ninguna. Cambian su orden, su nivel y su color.
+ * (La decisión del 2026-08-24 de no añadir filas fue REVISADA por el propio usuario el 2026-08-31
+ * con FR-1810: «Reservas del acumulado» entra para que el mes no aparezca debiendo lo que salió
+ * del ahorro.)
  */
 export const ROWS: RowSpec[] = [
   { key: "flow", label: "Flujo del mes", op: "+", tone: "input", alarms: false, weight: 400, level: 3 },
+  // FR-1810 — pasa a cargar SOLO lo reservado que salió del FLUJO del mes. Lo que salió del
+  // acumulado va en su propia fila, restando en el bloque del saldo anterior: así el mes no
+  // aparece «debiendo» plata que en realidad salió del ahorro (reporte del usuario, 2026-08-31).
   { key: "reserved", label: "Reservas del mes", op: "−", tone: "input", alarms: false, weight: 400, level: 3 },
   // FR-1009 · la idea original del usuario: los retiros como fila propia (operados; en Pres., el
   // retiro planeado). Siempre presente (0 en meses sin retiros) para no mover el layout.
@@ -79,6 +85,9 @@ export const ROWS: RowSpec[] = [
   // El arrastre. Pasa de abrir el módulo (donde era contexto suelto) a ser lo que la aritmética dice
   // que es: el otro sumando de `Saldo disponible`. Por eso estrena el `+` que antes no tenía.
   { key: "prevAvailable", label: "Saldo mes anterior", op: "+", tone: "input", alarms: true, weight: 400, level: 2 },
+  // FR-1810 — lo reservado que salió del ACUMULADO. Vive junto a su fuente: se resta del saldo del
+  // mes anterior, no del flujo del mes. Vacía («—») en los meses que caben en su propio flujo.
+  { key: "reservedCarry", label: "Reservas del acumulado", op: "−", tone: "reserve", alarms: false, weight: 400, level: 2 },
   { key: "available", label: "Saldo disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 1, rule: "soft" },
   { key: "reservedBalance", label: "Saldo reservado", op: "+", tone: "reserve", alarms: false, weight: 600, level: 1 },
   { key: "total", label: "Saldo total", op: "=", tone: "result", alarms: true, weight: 600, level: 0, rule: "strong", bottomLine: true },
@@ -93,7 +102,7 @@ export const ROWS: RowSpec[] = [
  */
 export const CASCADE: ReadonlyArray<{ result: RowKey; summands: readonly RowKey[] }> = [
   { result: "monthAvailable", summands: ["flow", "reserved", "retiros"] },
-  { result: "available", summands: ["monthAvailable", "prevAvailable"] },
+  { result: "available", summands: ["monthAvailable", "prevAvailable", "reservedCarry"] },
   { result: "total", summands: ["available", "reservedBalance"] },
 ];
 

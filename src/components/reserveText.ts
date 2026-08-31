@@ -19,7 +19,8 @@ import { money } from "./format";
  *
  * @param state Estado (para resolver nombres de alcancías).
  * @param verdict Veredicto ok:false del dominio.
- * @param ctx Mes de la edición (decide si el bloqueo es "en cadena") y monto intentado.
+ * @param ctx Mes de la edición (decide si el bloqueo es "en cadena"), monto intentado y, para el
+ *            editor de celda, el TOTAL que la celda admite (la cifra del «Máx.»).
  * @returns El mensaje listo para la franja/guía.
  *
  * @aitri-trace FR-ID: FR-1006, US-ID: US-1006, AC-ID: AC-1006, TC-ID: TC-TRF-103f
@@ -27,13 +28,19 @@ import { money } from "./format";
 export function blockMessage(
   state: LedgerState,
   verdict: Extract<ReserveVerdict, { ok: false }>,
-  ctx: { editedMonth: MonthKey; attempted?: number }
+  ctx: { editedMonth: MonthKey; attempted?: number; maxTotal?: number }
 ): string {
   const chained = verdict.month !== ctx.editedMonth;
   if (verdict.rule === "techo") {
-    if (chained) return `Bloquea en ${monthLabel(verdict.month).toLowerCase()}: tu margen ese mes es ${money(verdict.limit)}`;
+    if (chained) return `Bloquea en ${monthLabel(verdict.month).toLowerCase()}: ese mes solo caben ${money(verdict.limit)} más`;
+    // Si el llamador dice el TOTAL que la celda admite (el mismo «Máx.» del indicador), el mensaje
+    // habla en ese total: el usuario tecleó un total, no un incremento, y mostrarle «margen $0»
+    // junto a un «Máx. $1.000» eran dos números distintos para el mismo límite (auditoría
+    // 2026-08-31). Sin total (operaciones del registro, donde el monto SÍ es un delta), habla del
+    // cupo que cabe.
+    if (ctx.maxTotal !== undefined) return `Esta celda admite hasta ${money(ctx.maxTotal)} este mes`;
     const attempted = ctx.attempted !== undefined ? money(ctx.attempted) : "ese monto";
-    return `No puedes reservar ${attempted}: tu margen este mes es ${money(verdict.limit)}`;
+    return `No puedes reservar ${attempted}: este mes solo caben ${money(verdict.limit)} más`;
   }
   const name = labelOfEnd(state, verdict.leafId);
   if (chained) {

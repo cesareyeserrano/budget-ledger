@@ -228,7 +228,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     applyReserveWithdrawal: (from, month, amount, note) => {
       const prev = get().data;
-      const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, month, amount, ...(note !== undefined ? { note } : {}) });
+      // FR-1802 — el retiro nace CON fecha: la lista de operaciones la muestra y la edición la
+      // conserva. Antes los retiros de la grilla nacían sin ella (solo el Registrar móvil la pasaba).
+      const date = new Date().toISOString().slice(0, 16);
+      const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, month, amount, date, ...(note !== undefined ? { note } : {}) });
       if ("rejected" in result) return result;
       // Retiro: red mínima para un gesto rápido — toast 6s con Deshacer (un nivel).
       reserveUndo = { prevData: prev, afterData: result.state };

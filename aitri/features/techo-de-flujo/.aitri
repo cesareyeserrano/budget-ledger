@@ -1,5 +1,5 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 3,
   "approvedPhases": [
     1,
     "ux",
@@ -15,49 +15,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-31T20:58:30.178Z",
+  "updatedAt": "2026-08-31T22:53:53.764Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-31T19:59:08.750Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-31T20:00:25.206Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-31T20:00:35.222Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-31T20:19:26.229Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-08-31T20:36:21.515Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T20:36:24.196Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T20:37:15.275Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-31T20:37:15.379Z",
-      "event": "approved",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-31T20:37:15.480Z",
       "event": "completed",
@@ -117,13 +77,53 @@
       "at": "2026-08-31T20:58:30.177Z",
       "event": "started",
       "phase": 4
+    },
+    {
+      "at": "2026-08-31T22:53:25.243Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T22:53:25.386Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T22:53:25.498Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T22:53:25.677Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T22:53:25.868Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T22:53:26.062Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T22:53:53.620Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-31T22:53:53.735Z",
+      "event": "approved",
+      "phase": 3
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "fbb74e65178d8ab916db4cf9fa68de52998b7b6773addd425b97b2100f77eac3",
+    "1": "025e6bd810870bf40fa192420e736af08760a4181eb14d93e5d292bf93beaaea",
     "2": "39b05aae033e077fa1c965e69bad0a0a7f6ca61271e5dc72c17524b0ec600686",
-    "3": "6d9436917c307d5e0cc6da8f350e5bb9282d655350941c40f1addb59fd316b1e",
+    "3": "1358e7c7de6036b335c12cd673eaec816496b33813aa6c9b31698a4d644d5a39",
     "ux": "98009bdb0f94fe2ed6442337d0bbe81b340d791d3f8f8c4b0221b1b450759e52"
   },
   "frSnapshots": {
@@ -136,7 +136,8 @@
       "FR-1806",
       "FR-1807",
       "FR-1808",
-      "FR-1809"
+      "FR-1809",
+      "FR-1810"
     ],
     "3": [
       "FR-1801",
@@ -147,7 +148,8 @@
       "FR-1806",
       "FR-1807",
       "FR-1808",
-      "FR-1809"
+      "FR-1809",
+      "FR-1810"
     ],
     "ux": [
       "FR-1801",
@@ -158,7 +160,8 @@
       "FR-1806",
       "FR-1807",
       "FR-1808",
-      "FR-1809"
+      "FR-1809",
+      "FR-1810"
     ]
   },
   "verifyPassed": false

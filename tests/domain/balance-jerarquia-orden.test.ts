@@ -42,15 +42,20 @@ describe("FR-1401 — el orden sigue la aritmética", () => {
       "retiros",
       "monthAvailable",
       "prevAvailable",
+      "reservedCarry",
       "available",
       "reservedBalance",
       "total",
     ]);
     expect(validateCascadeOrder(ROWS)).toEqual({ ok: true });
 
-    // El conjunto de filas NO cambia: son las mismas ocho de siempre (no_go_zone del usuario).
-    expect(ROWS).toHaveLength(8);
-    expect([...ROWS.map((r) => r.key)].sort()).toEqual([...ORDEN_VIEJO.map((r) => r.key)].sort());
+    // FR-1810 (2026-08-31): el usuario REVISÓ su decisión de no añadir filas — entra «Reservas del
+    // acumulado» para que el mes no aparezca debiendo lo que salió del ahorro. Nueve filas: las
+    // ocho de siempre más esa, y ninguna de las viejas desaparece.
+    expect(ROWS).toHaveLength(9);
+    expect([...ROWS.map((r) => r.key)].sort()).toEqual(
+      [...ORDEN_VIEJO.map((r) => r.key), "reservedCarry"].sort()
+    );
   });
 
   // @aitri-tc TC-BJE-001e
@@ -127,10 +132,10 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
     expect(INDENT_STEP).toBe(16);
     expect(indentFor(0)).toBe(14);
     expect(indentFor(3)).toBe(62);
-    expect(ROWS.map((r) => indentFor(r.level))).toEqual([62, 62, 62, 46, 46, 30, 30, 14]);
+    expect(ROWS.map((r) => indentFor(r.level))).toEqual([62, 62, 62, 46, 46, 46, 30, 30, 14]);
     // Y el paso estrecho, por debajo de 1024 px.
     expect(INDENT_STEP_NARROW).toBe(12);
-    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([50, 50, 50, 38, 38, 26, 26, 14]);
+    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([50, 50, 50, 38, 38, 38, 26, 26, 14]);
   });
 });
 
@@ -139,8 +144,8 @@ describe("NFR-1403 — el plegado sobrevive al reordenamiento", () => {
   it("TC-BJE-011f: TAIL_FROM se deriva por búsqueda y sigue a 'available' en cualquier orden", () => {
     const tailFrom = (rows: readonly RowSpec[]) => rows.findIndex((r) => r.key === "available") + 1;
 
-    // En el orden nuevo, `available` está en el índice 5 → corta en 6.
-    expect(tailFrom(ROWS)).toBe(6);
+    // Con «Reservas del acumulado» (FR-1810), `available` está en el índice 6 → corta en 7.
+    expect(tailFrom(ROWS)).toBe(7);
     // Y lo que queda oculto son EXACTAMENTE las mismas dos filas que antes de la feature.
     expect(ROWS.slice(tailFrom(ROWS)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);
     expect(ORDEN_VIEJO.slice(tailFrom(ORDEN_VIEJO)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);

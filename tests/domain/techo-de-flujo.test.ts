@@ -28,7 +28,7 @@ import {
   planTechoMonths,
   plannedRetiroLimit,
 } from "@/domain/reserve";
-import { computeBalanceSeries } from "@/domain/balance";
+import { computeBalanceSeries, reserveSplit } from "@/domain/balance";
 import { addMovement, setLeafAmount } from "@/domain/mutations";
 import { MONTH_KEYS } from "@/domain/months";
 import type { AmountMap, LedgerNode, LedgerState, MonthKey, NodeType } from "@/domain/types";
@@ -631,5 +631,97 @@ describe("NFR-1803 · gastos e ingresos conservan su comportamiento", () => {
     const b = computeBalanceSeries(conReservas).ene.actual;
     expect(b.flow).toBe(a.flow); // el flujo del mes (ingresos − gastos) es idéntico
     expect(b.total).toBe(a.total); // y el total tampoco cambia: reservar no crea ni destruye
+  });
+});
+
+// ── FR-1810 · El desglose del Balance: cada peso a su fuente ───────────────────────────────────
+
+describe("FR-1810 · el Balance desglosa las reservas por fuente", () => {
+  // @aitri-tc TC-TDF-100h
+  it("TC-TDF-100h: el caso del usuario — el mes queda en 0 y el acumulado muestra su uso", () => {
+    let s = base({ ene: 1000, feb: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    s = sacar(s, "A", "ene", 500).state; // enero cierra con 500
+    s = llevar(s, "A", "feb", 1500);
+
+    const split = reserveSplit(s, "feb", "actual");
+    expect(split).toEqual({ delFlujo: 1000, delAcumulado: 500 });
+    const feb = computeBalanceSeries(s).feb.actual;
+    // «Disponible del mes» = flujo − reservas del flujo + retiros = 1.000 − 1.000 + 0 = 0.
+    expect(feb.flow - split.delFlujo + 0).toBe(0);
+    // «Saldo disponible» = disponible del mes + saldo anterior − reservas del acumulado = 0.
+    expect(0 + feb.prevAvailable - split.delAcumulado).toBe(0);
+    expect(feb.available).toBe(0); // y coincide con la fórmula vigente
+  });
+
+  // @aitri-tc TC-TDF-101e
+  it("TC-TDF-101e: la cascada desglosada cierra por partida doble bajo la secuencia mixta", () => {
+    // Reusa la infraestructura de la secuencia determinista (semilla 1801).
+    const prng = (seed: number) => {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    const rand = prng(1801);
+    let s = base({ ene: 5000, feb: 3000, mar: 4000 });
+    for (let i = 0; i < 60; i++) {
+      const month = MONTH_KEYS[Math.floor(rand() * 12)];
+      const amount = Math.floor(rand() * 900) + 100;
+      const kind = rand();
+      if (kind < 0.4) {
+        const r = applyReserveOp(s, { from: AVAILABLE_ID, to: rand() < 0.5 ? "A" : "B", month, amount });
+        if ("state" in r) s = r.state;
+      } else if (kind < 0.7) {
+        const r = applyReserveOp(s, { from: rand() < 0.5 ? "A" : "B", to: AVAILABLE_ID, month, amount });
+        if ("state" in r) s = r.state;
+      } else {
+        s = setLeafAmount(s, "c-gasto", month, "actual", Math.floor(amount / 3));
+      }
+      // Partida doble en cada paso y cada mes: el desglose reconstruye el bruto, y la cascada
+      // desglosada produce el MISMO «Saldo disponible» que la fórmula vigente.
+      const series = computeBalanceSeries(s);
+      for (const mk of MONTH_KEYS) {
+        const split = reserveSplit(s, mk, "actual");
+        const b = series[mk].actual;
+        const brutos = reserveLeafIds(s).reduce((acc, id) => acc + (s.actuals[id]?.[mk] ?? 0), 0);
+        expect(split.delFlujo + split.delAcumulado, `bruto/${mk}`).toBe(brutos);
+        const saldo = b.flow - split.delFlujo + retirosDe(s, mk) + b.prevAvailable - split.delAcumulado;
+        expect(saldo, `saldo/${mk}`).toBe(b.available);
+      }
+    }
+    function retirosDe(st: LedgerState, mk: MonthKey): number {
+      return st.movements.reduce(
+        (acc, m) =>
+          m.type === "transfer" && m.month === mk && m.from && m.from !== AVAILABLE_ID && m.to === AVAILABLE_ID
+            ? acc + m.amount
+            : acc,
+        0
+      );
+    }
+  });
+
+  // @aitri-tc TC-TDF-102f
+  it("TC-TDF-102f: los negativos REALES conservan su alarma en la fila donde viven", () => {
+    // (a) Sobregasto de gastos: «Disponible del mes» queda en deuda de verdad.
+    let a = base({ ene: 500 });
+    a = setLeafAmount(a, "c-gasto", "ene", "actual", 700); // flujo −200
+    const sa = reserveSplit(a, "ene", "actual");
+    const fa = computeBalanceSeries(a).ene.actual;
+    expect(fa.flow - sa.delFlujo + 0).toBe(-200); // negativo real: la alarma ahí es correcta
+
+    // (b) Estado legado imposible: el hueco aflora en «Saldo disponible», no en el mes.
+    let b = base({ ene: 1000 });
+    b = llevar(b, "A", "ene", 1000);
+    b = { ...b, actuals: { ...b.actuals, A: { ...b.actuals["A"], ene: 1500 } } };
+    const sb = reserveSplit(b, "ene", "actual");
+    expect(sb).toEqual({ delFlujo: 1000, delAcumulado: 500 });
+    const fb = computeBalanceSeries(b).ene.actual;
+    expect(fb.flow - sb.delFlujo + 0).toBe(0); // el mes no miente…
+    expect(0 + fb.prevAvailable - sb.delAcumulado).toBe(-500); // …y el hueco real está aquí
+    expect(fb.available).toBe(-500);
   });
 });

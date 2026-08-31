@@ -166,7 +166,14 @@ export function ReserveCellEditor(props: {
     }
     const verdict = validateReserveWrite(data, { leafId, month, plane, newAmount: value });
     if (!verdict.ok) {
-      fail(blockMessage(data, verdict, { editedMonth: month, attempted: value - current }));
+      fail(
+        blockMessage(data, verdict, {
+          editedMonth: month,
+          attempted: value - current,
+          // El mismo TOTAL que el indicador «Máx.» muestra: un solo número para el mismo límite.
+          ...(headroom !== null ? { maxTotal: headroom } : {}),
+        })
+      );
       return;
     }
     applyReserveEdit(leafId, month, plane, value);
@@ -658,6 +665,10 @@ function OpRow({ mv }: { mv: Movement }) {
   return (
     <li className="flex flex-col gap-0.5" data-testid={esMover ? "op-mover" : "op-retiro"}>
       <div className="flex items-center gap-2">
+        {/* La fecha del movimiento (los creados antes de FR-1802 pueden no tenerla: hueco, no "hoy"). */}
+        <span className="flex-none tabular w-[38px]" style={{ color: "var(--fg-muted)" }}>
+          {mv.date ? `${mv.date.slice(8, 10)}/${mv.date.slice(5, 7)}` : "—"}
+        </span>
         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
           {leafPathLabel(data, mv.from!)} → {esMover ? leafPathLabel(data, mv.to!) : "Disponible"}
           {mv.note ? <span style={{ color: "var(--fg-muted)" }}> · {mv.note}</span> : null}

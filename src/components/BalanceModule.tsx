@@ -17,8 +17,8 @@ import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel } from "@/domain/months";
-import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
-import { reserveAportes, reserveRetiros, monthIssues, monthCarryUsage, type MonthIssue } from "@/domain/reserve";
+import { computeBalanceSeries, type MonthBalance, type Plane, reserveSplit } from "@/domain/balance";
+import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
@@ -148,10 +148,20 @@ function computeReserveFlows(data: LedgerState): ReserveFlows {
  *
  * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h
  */
-function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: number; retiros: number }): number {
-  if (key === "reserved") return flows.aportes;
+function cellValue(
+  m: MonthBalance,
+  key: RowSpec["key"],
+  flows: { aportes: number; retiros: number },
+  split: { delFlujo: number; delAcumulado: number }
+): number {
+  // FR-1810 — cada peso reservado se carga a su FUENTE: «Reservas del mes» solo lo que salió del
+  // flujo, «Reservas del acumulado» lo que salió del ahorro que traía. Así el mes no aparece
+  // «debiendo» plata que no le salió a él (el −500 falso que el usuario reportó), y los negativos
+  // que quedan son deudas reales: sobregasto en «Disponible del mes», hueco en «Saldo disponible».
+  if (key === "reserved") return split.delFlujo;
+  if (key === "reservedCarry") return split.delAcumulado;
   if (key === "retiros") return flows.retiros;
-  if (key === "monthAvailable") return m.flow - m.reserved; // reserved es neto: flujo − aportes + retiros
+  if (key === "monthAvailable") return m.flow - split.delFlujo + flows.retiros;
   return m[key];
 }
 
@@ -161,14 +171,12 @@ function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: numbe
  * Convención de signo (decisión del usuario): los positivos NO llevan `+` — un número sin signo es
  * positivo. Solo el negativo se marca, y con tres canales a la vez (color, signo y forma).
  */
-function BalanceCell({ spec, value, sep, rule, active, explained }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"]; active?: boolean; explained?: boolean }) {
+function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"]; active?: boolean }) {
   const negative = value < 0;
-  // FR-1804 — un «Disponible del mes» negativo NO es un problema cuando el mes se completó del saldo
-  // que traía: la plata existía y estaba ahí. Alarmar por él confunde justo lo que la observación
-  // automática explica, y la alarma que SÍ importa —el sobregiro real— vive en «Saldo disponible»,
-  // que en ese caso no es negativo. Reportado por el usuario: «me sale que tengo −500 disponible,
-  // pero eso es error porque estoy tomando del acumulado del mes».
-  const alarms = spec.alarms && !explained;
+  // Con el desglose de FR-1810 los negativos de esta cascada son SIEMPRE deudas reales (sobregasto
+  // o hueco), así que la alarma vuelve a ser incondicional — el «−500 falso» se arregló de raíz,
+  // no apagando la señal.
+  const alarms = spec.alarms;
   const showMark = negative && alarms;
   return (
     <div
@@ -295,10 +303,10 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // nuevo por llamada dispararía el "getSnapshot should be cached".
   const series = useMemo(() => computeBalanceSeries(data), [data]);
   const reserveFlows = useMemo(() => computeReserveFlows(data), [data]);
-  // Meses cuyo «Disponible del mes» negativo se explica por el saldo anterior (FR-1804).
-  const carryByMonth = useMemo(() => {
-    const out: Partial<Record<MonthKey, boolean>> = {};
-    for (const m of MONTHS) if (monthCarryUsage(data, m.k, "actual")) out[m.k] = true;
+  // FR-1810: el desglose por fuente de lo reservado, por mes y plano.
+  const splits = useMemo(() => {
+    const out = {} as Record<MonthKey, { budget: ReturnType<typeof reserveSplit>; actual: ReturnType<typeof reserveSplit> }>;
+    for (const m of MONTHS) out[m.k] = { budget: reserveSplit(data, m.k, "budget"), actual: reserveSplit(data, m.k, "actual") };
     return out;
   }, [data]);
 
@@ -412,8 +420,8 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
               </div>
             ) : (
               <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
-                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
-                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual)} rule={rule} active={highlightMonth === m.k} explained={spec.key === "monthAvailable" && carryByMonth[m.k]} />
+                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget, splits[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
+                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual, splits[m.k].actual)} rule={rule} active={highlightMonth === m.k} />
               </div>
             )
           )}

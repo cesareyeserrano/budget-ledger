@@ -114,6 +114,29 @@ Las dos pruebas rojas se arreglaron SIN relajar lo que verifican: conservan sus 
 conversión de celdas y sobre el 422 del POST; solo cambia la constante del marcador (4 → 5), que es
 el final de la cadena vigente desde que `contrapartidas-reserva` añadió el paso v4→v5.
 
+## Evidencia — FR-1810 y auditoría de operaciones (2026-08-31)
+
+La auditoría completa de operaciones (23 comprobaciones) confirmó cinco errores reales; los cinco
+quedaron corregidos y la suite completa está en **555 pasan, 0 fallan**. typecheck y lint limpios.
+
+1. **El desglose del Balance (FR-1810, propuesta del propio usuario).** `reserveSplit` en
+   `src/domain/balance.ts` carga cada peso reservado a su fuente: `delFlujo = max(0, min(aportes,
+   flujo))` a «Reservas del mes», el resto a la fila nueva «Reservas del acumulado» (resta en el
+   bloque del saldo anterior). La cascada cierra por partida doble (TC-TDF-101e, secuencia de 60
+   pasos) y el «−500 falso» desaparece de raíz — el hack `explained` que apagaba la alarma se
+   RETIRÓ y la alarma vuelve a ser incondicional (todo negativo restante es deuda real).
+2. **Register mostraba el margen BRUTO** (`availableMargin`): pasó a `reserveHeadroom` con el
+   rótulo «Cupo del mes».
+3. **El mensaje de bloqueo hablaba del incremento** cuando el editor compara el TOTAL: variante
+   `maxTotal` en `blockMessage` («Esta celda admite hasta $X este mes»).
+4. **Los retiros de la grilla nacían sin fecha**: el store pasa la fecha del día.
+5. **La lista de operaciones no mostraba fecha**: columna dd/mm en `OpRow`.
+
+Verificado además en el navegador sobre los datos reales (retiro planeado en enero, ejecutado en
+febrero, gasto sin presupuesto): el retiro aparece como «Disponible del mes 500» sin alarma falsa;
+las marcas rojas restantes son la señal estándar de ejecutado-sin-plan. El salto del plano
+Presupuesto entre meses NO es error: es el re-anclaje al cierre real (ADR-03 de balance.ts).
+
 ## Notas de ejecución
 - **El TC que manda:** TC-TDF-020f (eliminar el retiro se rechaza) es el que prueba que el arreglo
   del defecto crítico está puesto. Si pasa por accidente —sin implementar la regla de déficit—, el

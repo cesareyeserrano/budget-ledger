@@ -164,6 +164,21 @@
         "Una observación vacía o de más de 280 caracteres se rechaza sin alterar las observaciones vigentes de esa celda",
         "Las observaciones de una celda son suyas: escribir en la celda de marzo no altera las de febrero ni las de otra fila"
       ]
+    },
+    {
+      "id": "FR-1810",
+      "title": "El Balance desglosa de dónde salió cada reserva: del flujo del mes o del acumulado",
+      "description": "Cuando un mes reserva más de lo que su propio flujo deja, el Balance separa las dos fuentes: «Reservas del mes» pasa a cargar SOLO lo que salió del flujo (ingresos − gastos del mes), y una fila nueva «Reservas del acumulado» carga lo que salió del saldo del mes anterior, restando en el bloque del acumulado. Reporte del usuario, textual: «está diciendo que el mes quedamos debiendo y no es correcto… reservas del mes (sin contar lo que sacamos del acumulado)». Hoy la fila resta el bruto completo del flujo, así que su febrero (entran 1.000, reserva 1.500 tomando 500 del cierre de enero) muestra «Disponible del mes −500» con alarma: una deuda que no existe. Con el desglose, el mes queda en 0, el acumulado muestra su uso, y la alarma vuelve a significar solo lo que debe: un negativo real. La cascada completa sigue cerrando con la fórmula vigente (verificado en cuatro casos, incluido el estado legado y el sobregasto).",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Con saldo anterior 500, flujo 1.000 y 1.500 reservados: «Reservas del mes» dice 1.000, «Reservas del acumulado» dice 500, «Disponible del mes» dice 0 SIN alarma, y «Saldo disponible» dice 0",
+        "En un mes cuyas reservas caben en su flujo, «Reservas del acumulado» muestra el guion de vacío y las demás filas quedan idénticas a hoy",
+        "En un estado legado imposible (reservas por encima de flujo + acumulado), el negativo y su alarma aparecen en «Saldo disponible» — donde está el hueco real",
+        "Con sobregasto de gastos (flujo negativo), «Disponible del mes» sí queda negativo con alarma: esa deuda es real",
+        "Para cualquier estado: la cascada desglosada produce exactamente el mismo «Saldo disponible» que la fórmula vigente (saldo anterior + flujo − reservas netas)",
+        "Las validaciones de la cascada (orden, contigüidad, sangrías) pasan con la fila nueva declarada"
+      ]
     }
   ],
   "user_stories": [
@@ -469,6 +484,39 @@
           "then": "ninguna de esas celdas muestra indicador: la observación pertenece a su celda"
         }
       ]
+    },
+    {
+      "id": "US-1810",
+      "requirement_id": "FR-1810",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el Balance distinga lo que aparté del mes y lo que aparté de mi ahorro acumulado",
+      "so_that": "no me diga que el mes quedó debiendo cuando en realidad usé lo que ya tenía guardado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1839",
+          "given": "enero cerró con 500 y en febrero entran 1.000 y reservo 1.500",
+          "when": "miro el Balance de febrero",
+          "then": "«Reservas del mes» dice 1.000, «Reservas del acumulado» dice 500, «Disponible del mes» dice 0 sin alarma y «Saldo disponible» dice 0"
+        },
+        {
+          "id": "AC-1840",
+          "given": "un mes que reserva 300 de un flujo de 1.000",
+          "when": "miro su Balance",
+          "then": "«Reservas del acumulado» está vacía y todo lo demás es idéntico a hoy"
+        },
+        {
+          "id": "AC-1841",
+          "given": "un mes con gastos mayores que ingresos",
+          "when": "miro «Disponible del mes»",
+          "then": "es negativo CON alarma — esa deuda sí es real"
+        },
+        {
+          "id": "AC-1842",
+          "given": "cualquier secuencia de operaciones",
+          "when": "comparo el «Saldo disponible» desglosado contra la fórmula saldo anterior + flujo − reservas netas",
+          "then": "coinciden al peso en los doce meses"
+        }
+      ]
     }
   ],
   "non_functional_requirements": [
@@ -717,6 +765,22 @@
     {
       "need": "La observación automática del mes vive en la celda del total de Reservas (una celda como cualquier otra)",
       "disposition": "FR-1804"
+    },
+    {
+      "need": "El Balance no puede decir que el mes quedó debiendo cuando tomó del acumulado: desglose de las dos fuentes",
+      "disposition": "FR-1810"
+    },
+    {
+      "need": "El Registrar muestra el cupo real del mes, no el margen bruto",
+      "disposition": "FR-1808"
+    },
+    {
+      "need": "El mensaje de rechazo del editor habla del TOTAL que la celda admite, con la misma cifra que el «Máx.»",
+      "disposition": "FR-1808"
+    },
+    {
+      "need": "Los retiros hechos desde la grilla llevan fecha, y la lista de operaciones la muestra",
+      "disposition": "FR-1802"
     }
   ],
   "original_brief": "# techo-de-flujo — el cupo de reservas es del mes, y los retiros no lo recargan\n\n_Semilla capturada en sesión con el usuario, 2026-08-31. Todas las decisiones de este documento\nson SUYAS y textuales (elegidas entre opciones o formuladas por él, verificadas con ejemplos\nejecutados sobre el dominio real y sobre su app con sus propios datos — NADA de aquí es\nsuposición del agente salvo lo marcado [ASSUMPTION]). Sustituye a la feature\n`movimientos-internos` (descartada: sus premisas de discovery quedaron revocadas por el propio\nusuario al re-probar la app) y cierra el trabajo a medias de `contrapartidas-reserva`._\n\n## Problem / Why\n\nEl usuario lo encontró operando SU app, y se reprodujo paso a paso con sus números:\n\n1. Enero: ingresan 1.000. Reserva 1.000. Retira 500 del bolsillo.\n2. La app le vuelve a ofrecer 500 de cupo — el retiro **recargó** el margen del mes.\n3. Teclea 1.500 en la celda de reservas de enero y **la app lo acepta**: enero queda con 1.500\n   reservados sobre 1.000 que ingresaron. Sus palabras: «según eso enero reservó 1500… está mal.\n   recordá que solo se puede reservar de lo que quede en el flujo del mes».\n4. Intenta corregir **eliminando el retiro** → disponible −500, triángulo rojo, y ningún mes\n   siguiente acepta nada (el encierro).\n\nCausa raíz, acordada con él: **el cupo del mes se calcula con las reservas NETAS (aportes −\nretiros), y debe calcularse con las BRUTAS (solo aportes)**. Un retiro devuelve la plata a la\ncuenta, pero NO devuelve cupo de reserva del mes.\n\nAgravante verificado en código: eliminar un retiro no valida absolutamente nada\n(`removeReserveOp` borra el movimiento y ya) — la puerta de corrección es justamente la que\nproduce el estado imposible.\n\n## Target Users\n\nDueño del presupuesto — usuario único del producto, nivel técnico medio. Es quien encontró el\ndefecto operando la app con datos reales. No habilita tipos de usuario nuevos.\n\n## New Behavior\n\n### 1. La regla del techo (cerrada con el usuario, en sus palabras)\n\n> «el techo para reservas = ingresos del mes − gastos del mes + Saldo mes anterior. correcto?» — Sí.\n\n- **Techo del mes** = ingresos del mes − gastos del mes + saldo con que CERRÓ el mes anterior.\n- Cada reserva del mes lo **consume** (bruto). Los retiros del mes **no lo devuelven**.\n- El **arrastre entre meses se conserva** (confirmado: «si solo reservo 300 en enero, el acumulado\n  disponible para febrero son 700, puedo disponer de esos para reservarlos total o parcialmente»).\n  Lo retirado en enero SÍ cuenta para el cierre de enero y por tanto para el techo de febrero:\n  reservar 1.500 en febrero (1.000 del mes + 500 del cierre de enero) es legítimo.\n- Con esta regla el paso 3 del problema se bloquea de raíz y el paso 4 deja de poder ocurrir.\n\n### 2. El retiro se EDITA (decisión del usuario, «de acuerdo» explícito)\n\n> «si retiré 500, pero ahora de esos 500 que retiré quiero volver a guardar 200, debería poder\n> dejarme editar los 500 a 300. hoy día tendría que eliminar ese movimiento y registrar uno por 300.»\n\n- En «Operaciones de este mes», el monto de cada retiro es **editable directamente**: teclear 300\n  donde decía 500; **teclear 0 lo elimina**. Sustituye a los botones de borrar (que se retiran).\n- Es NECESARIO con la regla nueva: si el cupo del mes quedó en 0, editar el retiro a la baja es la\n  única forma de devolver plata al bolsillo dentro del mismo mes — y la celda no se infla.\n- Toda edición de retiro se valida con la misma regla de cadena (piso del bolsillo + techo);\n  eliminar (0) también — cierra el bug del paso 4. [ASSUMPTION: la validación de la edición del\n  MOVER en esa lista sigue la misma regla; el usuario decidió sobre retiros, el mover se asimila]\n\n### 3. Interfaz — decisiones pieza a pieza (dictadas por el usuario sobre el inventario del 2026-08-30)\n\nSE QUEDA:\n- Triángulo en el encabezado del mes + franja al pie del Balance — **ampliando su alcance**: dejan\n  de ser solo «techo excedido» y pasan a señalar **cualquier error registrado en el mes** (lista\n  de errores por mes, hoy con un tipo, extensible).\n- Campo «¿Para qué? (opcional)» del retiro. (Revierte el descarte del discovery de\n  movimientos-internos; aquella premisa murió con esa feature.)\n- «Operaciones de este mes» (lista que incluye moveres) y su estado vacío «Sin operaciones este mes».\n\nSE QUITA:\n- «Máx. N» del editor de celda (además tapaba el input: la celda mide 108px). El rechazo con la\n  cifra real queda como red.\n- Botón «Sacar» de la fila del bolsillo, su estado «Sin saldo que sacar» y el título con origen\n  fijo del formulario. Sacar vive en la fila «Retiros del mes», que se muda (ver abajo).\n- Botones de eliminar de la lista de operaciones y su tooltip (los sustituye el monto editable).\n\n### 4. La grilla se reorganiza en segmentos (boceto del usuario)\n\n```\nINGRESOS\nGASTOS\n(espacio)\nRESERVAS          ← con la fila «Retiros del mes» AL FINAL del segmento\n(espacio)\nBALANCE\n```\n\n- Reservas SALE del segmento donde hoy convive con ingresos y gastos.\n- La fila «Retiros del mes» (la puerta para sacar, con su desplegable de origen) pasa al final del\n  segmento de Reservas — cerca de los bolsillos, resolviendo la queja BL-019 por el camino simple.\n- Si los bolsillos crecen, los grupos se pliegan (reusar el plegado de `resumen-plegado`) para que\n  la fila de retiros quede a la vista y no enterrada.\n- Restricción técnica acordada: los 12 meses siguen siendo UN solo riel de columnas alineadas y un\n  solo scroll — los segmentos se separan verticalmente, no en grillas independientes.\n\n### 5. Observación automática del mes (forma cerrada con el usuario: «perfecto»)\n\nCuando lo reservado en un mes supera su flujo (ingresos − gastos) y se completa del saldo\nanterior, la app escribe UNA observación de mes, por el mecanismo de observaciones existente\n(FR-1012), p. ej.: **«De los 1.500 reservados este mes, 500 salieron del saldo de enero»**.\n\n- **Se actualiza sola, no acumula historial**: si la reserva baja y ya cabe en el flujo, la nota\n  desaparece. (Las observaciones hoy son solo-agregar: esta necesita reemplazarse.)\n- **Es del MES, no de un movimiento**: con varios bolsillos la atribución sería arbitraria, y las\n  reservas tecleadas en la celda no son «un movimiento», así que un log por movimiento las perdería.\n\n## Success Criteria\n\n- **Dado** enero con ingreso 1.000, reservados 1.000 y un retiro de 500, **cuando** intento\n  reservar 1 peso más en enero, **entonces** se rechaza: el cupo de enero es 0 (el retiro no lo\n  recargó) y el mensaje dice cuánto cabía.\n- **Dado** ese mismo enero, **cuando** miro febrero con ingreso de 1.000, **entonces** el techo de\n  febrero es 1.500 (1.000 del mes + 500 del cierre de enero) y reservar 1.500 se acepta.\n- **Dado** enero con ingreso 1.000 y solo 300 reservados, **cuando** febrero no tiene ingresos,\n  **entonces** puedo reservar hasta 700 en febrero (el sobrante se arrastra, total o parcialmente).\n- **Dado** un retiro de 500 en la lista de operaciones, **cuando** edito su monto a 300,\n  **entonces** el bolsillo queda con 200 más, la celda de reservas NO cambia, y el journal muestra\n  el retiro en 300; **cuando** lo edito a 0, **entonces** el movimiento desaparece.\n- **Dado** un retiro cuya edición o eliminación dejaría un mes en estado imposible, **cuando** lo\n  intento, **entonces** se rechaza nombrando el mes — nunca queda un disponible negativo por esa vía.\n- **Dado** un mes cuyas reservas se completaron del saldo anterior, **cuando** lo consulto,\n  **entonces** veo la observación automática con las dos cifras; **cuando** bajo la reserva y ya\n  cabe en el flujo, **entonces** la observación desaparece.\n- **Dado** la grilla, **cuando** la miro, **entonces** Reservas es un segmento separado de\n  Ingresos/Gastos, con «Retiros del mes» al final, y los 12 meses comparten un solo riel alineado.\n- **Dado** el editor de celda de un bolsillo, **cuando** lo abro, **entonces** no existe el\n  indicador «Máx.»; y en la fila del bolsillo no existe el botón «Sacar».\n- **Dado** el proyecto tras esta feature, **cuando** corre la suite completa, **entonces** los 2\n  tests hoy rojos por el estampado v5 (TC-SFU-105f y TC-TRF4-010e) quedan verdes.\n\n## Out of Scope\n\n- **Cierre de mes** (impedir editar meses cerrados): es BL-036, feature aparte — re-confirmado por\n  el usuario esta sesión («eso es el cierre de mes que hay que implementar»).\n- **El modelo de celdas NO cambia**: la celda = lo reservado del mes; el Balance desdobla\n  reservas/retiros; el saldo por bolsillo es derivado. Revalidado expresamente por el usuario\n  («no veo que mienta… eso lo sabe el balance»).\n- **Se conservan** del código existente: el mover bolsillo→bolsillo anotado por sus dos extremos,\n  `journalIndex`, la eliminación de moveres, y la migración v4→v5 (ya estampada en su base real,\n  `data_version=5` — no puede retirarse).\n- **Gastos e Ingresos no cambian de comportamiento.**\n- Editar ingresos/gastos de meses pasados sigue permitido con señal (no se bloquea aquí — lo\n  congelará el cierre de mes).\n\n## Notas de deuda que esta feature recoge\n\n- Los 2 tests que el commit del 2026-08-30 dejó rojos (esperan `data_version=4` con el estampado\n  ya en 5): `tests/integration/backend/servidor-fuente-unica.test.ts` (TC-SFU-105f) y\n  `reserve-server.test.ts` (TC-TRF4-010e).\n- De `contrapartidas-reserva` (descartada) faltaban pruebas de integración y e2e: las que apliquen\n  al comportamiento que SE CONSERVA deben quedar cubiertas por el plan de pruebas de esta feature.\n"
