@@ -2,9 +2,10 @@
 "use client";
 import { create } from "zustand";
 import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
+import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
-  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, setPlannedRetiro, seedSeqFrom,
+  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, seedSeqFrom,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -49,7 +50,10 @@ interface LedgerStore {
   undoLastReserveOp: () => void;
   /** Corrige un error: elimina un RETIRO o un MOVER del journal (el saldo se restaura por
    *  construcción — FR-1609; antes solo aceptaba retiros puros y un mover quedaba atrapado). */
-  removeReserveWithdrawal: (movementId: string) => void;
+  /** FR-1803: eliminar ahora VALIDA. Devuelve el rechazo para que la UI nombre el mes afectado. */
+  removeReserveWithdrawal: (movementId: string) => { ok: true } | { ok: false; rejected: ReserveVerdict };
+  /** FR-1802: corrige el monto de una operación; 0 la elimina. */
+  editReserveOp: (movementId: string, amount: number) => { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
   /** Retiro PLANEADO de un mes. Rechaza superar lo reservado planeado (con el límite para la UI). */
   setPlannedRetiro: (month: MonthKey, value: number) => { ok: true } | { ok: false; limit: number };
   /** Observación manual de una celda de reserva (FR-1012). true si se guardó. */
@@ -253,11 +257,24 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     removeReserveWithdrawal: (movementId) => {
       const prev = get().data;
-      const data = removeReserveOp(prev, movementId); // FR-1609: acepta retiros puros Y moveres
-      if (data === prev) return; // no era una operación eliminable
+      const result = removeReserveOp(prev, movementId);
+      if ("rejected" in result) return { ok: false, rejected: result.rejected };
+      if (result.state === prev) return { ok: true }; // no era una operación eliminable: no-op
       reserveUndo = null;
-      set({ data });
-      persist(data);
+      set({ data: result.state });
+      persist(result.state);
+      return { ok: true };
+    },
+
+    editReserveOp: (movementId, amount) => {
+      const prev = get().data;
+      const result = editReserveOp(prev, movementId, amount);
+      if ("rejected" in result) return { ok: false, rejected: result.rejected };
+      if (result.state === prev) return { ok: true }; // mismo monto: no-op
+      reserveUndo = null;
+      set({ data: result.state });
+      persist(result.state);
+      return { ok: true };
     },
 
     setPlannedRetiro: (month, value) => {

@@ -3,7 +3,8 @@
  * mes, Saldo reservado acumulado) y NFR-1001 (conservación bajo secuencias mixtas).
  */
 import { describe, it, expect } from "vitest";
-import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, removeReserveRetiro, resolvedBalance, reserveAportes, reserveLeafIds, reserveRetiros, setPlannedRetiro } from "@/domain/reserve";
+import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, resolvedBalance, reserveAportes, reserveLeafIds, reserveRetiros, setPlannedRetiro } from "@/domain/reserve";
+import { removeOrFail, removeIfAllowed } from "../helpers/reserve";
 import { addMovement } from "@/domain/mutations";
 import { computeBalanceSeries, reserveNet } from "@/domain/balance";
 import { MONTH_KEYS } from "@/domain/months";
@@ -133,7 +134,7 @@ describe("NFR-1001 · conservación bajo el modelo v4", () => {
         const r = setPlannedRetiro(s, month, Math.floor(amount / 2));
         if ("state" in r) { s = r.state; accepted++; }
       } else if (kind < 0.9 && retiros.length > 0) {
-        s = removeReserveRetiro(s, retiros.pop()!);
+        s = removeIfAllowed(s, retiros.pop()!);
         accepted++;
       } else {
         s = addMovement(s, { type: rand() < 0.5 ? "expense" : "income", catId: rand() < 0.5 ? "c-gasto" : "c-ingreso", amount: 40_000, month });

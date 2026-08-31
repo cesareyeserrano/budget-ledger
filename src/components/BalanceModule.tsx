@@ -18,7 +18,7 @@ import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel } from "@/domain/months";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
-import { reserveAportes, reserveRetiros, techoBreaches } from "@/domain/reserve";
+import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
@@ -475,7 +475,7 @@ export function BalanceModule() {
 function TechoBanner() {
   const data = useLedgerStore((s) => s.data);
   const hydrated = useLedgerStore((s) => s.hydrated);
-  const breaches = useMemo(() => (hydrated ? techoBreaches(data) : []), [data, hydrated]);
+  const breaches = useMemo<readonly MonthIssue[]>(() => (hydrated ? monthIssues(data) : []), [data, hydrated]);
   if (breaches.length === 0) return null;
   return (
     <div

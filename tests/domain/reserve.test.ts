@@ -11,11 +11,11 @@ import {
   AVAILABLE_ID,
   applyReserveCellEdit,
   applyReserveOp,
-  removeReserveRetiro,
   resolvedBalance,
   reserveRetiros,
   validateReserveWrite,
 } from "@/domain/reserve";
+import { removeOrFail, removeIfAllowed } from "../helpers/reserve";
 import { addMovement, createNode, deleteNode, moveNode, setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
 import { MONTH_KEYS } from "@/domain/months";
@@ -97,7 +97,7 @@ describe("FR-1001 · saldo derivado por alcancía", () => {
         const r = applyReserveCellEdit(s, { leafId: a, month, plane: "actual", newAmount: amount });
         attempt = "rejected" in r ? r : { state: r.state, movement: null };
       } else if (retiroIds.length > 0) {
-        s = removeReserveRetiro(s, retiroIds.pop()!);
+        s = removeIfAllowed(s, retiroIds.pop()!);
         attempt = null;
       } else attempt = null;
       if (attempt && "state" in attempt) {
@@ -348,9 +348,9 @@ describe("FR-1007 · regla PISO", () => {
     const m = applyReserveOp(base, { from: "c-viaje", to: "c-fondo", month: "ene", amount: 10_000 });
     if (!("state" in m)) throw new Error("mover rechazado");
     // id inexistente: sigue siendo no-op y devuelve el MISMO objeto (sin clonar).
-    expect(removeReserveRetiro(m.state, "no-existe")).toBe(m.state);
+    expect(removeOrFail(m.state, "no-existe")).toBe(m.state);
     // El mover ahora SÍ se elimina, y devuelve los dos saldos a lo previo al mover.
-    const limpio = removeReserveRetiro(m.state, m.movement.id);
+    const limpio = removeOrFail(m.state, m.movement.id);
     expect(limpio).not.toBe(m.state);
     expect(limpio.movements.some((mv) => mv.id === m.movement.id)).toBe(false);
     expect(resolvedBalance(limpio, "c-viaje", "dic", "actual")).toBe(250_000);
@@ -358,7 +358,7 @@ describe("FR-1007 · regla PISO", () => {
     // Un APORTE desde Disponible NO es eliminable por esta vía: ese sí escribió celda (FR-1003).
     const ap = applyReserveOp(base, { from: AVAILABLE_ID, to: "c-fondo", month: "ene", amount: 5_000 });
     if (!("state" in ap)) throw new Error("aporte rechazado");
-    expect(removeReserveRetiro(ap.state, ap.movement.id)).toBe(ap.state);
+    expect(removeOrFail(ap.state, ap.movement.id)).toBe(ap.state);
   });
 });
 

@@ -9,7 +9,7 @@ import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { planTechoMonths, techoBreaches, type TechoBreach } from "@/domain/reserve";
+import { planTechoMonths, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { ReserveCellEditor, ReserveLeafCell, RowWithdrawAction } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
@@ -184,9 +184,9 @@ export function BudgetGrid() {
   // FR-1606: los meses cuyas reservas superan el margen. UNA derivación por render — el selector
   // está memoizado en el dominio, así que las doce columnas leen un mapa ya calculado.
   const breachByMonth = useMemo(() => {
-    const out: Partial<Record<MonthKey, TechoBreach>> = {};
+    const out: Partial<Record<MonthKey, MonthIssue>> = {};
     if (!hydrated) return out; // durante la hidratación no se pinta: un falso positivo sería peor
-    for (const b of techoBreaches(data)) out[b.month] = b;
+    for (const b of monthIssues(data)) out[b.month] = b;
     return out;
   }, [data, hydrated]);
 

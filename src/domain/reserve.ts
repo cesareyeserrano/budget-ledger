@@ -316,37 +316,124 @@ function isRemovableReserveOp(mv: Movement | undefined): mv is Movement {
   return !!mv.from && !isAvailable(mv.from);
 }
 
+/** Resultado de eliminar o editar una operación: el estado nuevo, o el rechazo de la cadena. */
+export type ReserveOpChangeResult = { state: LedgerState } | { rejected: ReserveVerdict };
+
+/** Las hojas reales que una operación toca: un retiro aporta una, un MOVER aporta dos. */
+function affectedLeavesOf(mv: Movement): string[] {
+  return [mv.from, mv.to].filter((id): id is string => !!id && !isAvailable(id));
+}
+
+/**
+ * Traduce un bloqueo de cadena a veredicto, re-mapeando el `limit` del piso al saldo REAL.
+ *
+ * El piso llega con el saldo NEGATIVO resultante; el usuario necesita saber cuánto HAY, no cuánto
+ * faltaría — sin este re-mapeo el mensaje diría «solo tiene −500». Es el mismo re-mapeo que ya hace
+ * `applyReserveOp`.
+ *
+ * `libera` es lo que la propia operación devuelve al bolsillo al sustituirse: al EDITAR un retiro,
+ * su monto viejo deja de aplicarse, así que el máximo al que se puede subir es el saldo actual MÁS
+ * lo que ese retiro ya sacaba. Sin sumarlo, un retiro de 200 sobre un bolsillo que tenía 300 diría
+ * «solo tiene 100» cuando admite hasta 300 (AC-1810).
+ */
+function verdictOf(state: LedgerState, mv: Movement, blocking: ReserveWarning, libera = 0): ReserveVerdict {
+  if (blocking.rule === "piso" && blocking.leafId) {
+    const saldo = resolvedBalance(state, blocking.leafId, mv.month, "actual");
+    // `libera` solo cuenta para la hoja de la que la operación SACA (su origen).
+    const credito = blocking.leafId === mv.from ? libera : 0;
+    return {
+      ok: false,
+      rule: "piso",
+      month: blocking.month,
+      leafId: blocking.leafId,
+      limit: Math.max(0, saldo + credito),
+    };
+  }
+  return { ok: false, rule: blocking.rule, month: blocking.month, leafId: blocking.leafId, limit: blocking.limit };
+}
+
 /**
  * Elimina una operación de reserva del journal — retiro puro (from = alcancía, to = Disponible) o
  * MOVER (ambos extremos reales). Corrección de un error del usuario.
  *
- * Que el mover sea eliminable es consecuencia directa de FR-1601: al dejar de escribir la celda del
- * destino, quitar la entrada del journal restaura el saldo derivado POR CONSTRUCCIÓN — exactamente
- * el mismo argumento que ya sostenía la eliminación de un retiro. Antes era imposible: la llegada
- * vivía en la celda, así que borrar el movimiento habría dejado la plata duplicada en el destino y
- * resucitada en el origen. Por eso el usuario tenía un mover de 9.200.300 ATRAPADO, que solo podía
- * neutralizar haciendo el mover inverso a mano (mitad de corrección de BG-001).
+ * VALIDA en cadena, y esa es la corrección de fondo de esta feature. Antes eliminaba siempre, con el
+ * argumento de que «el estado resultante es exactamente el previo al error» — falso en cuanto hay
+ * escrituras posteriores que dependían de ese retiro. Por esa puerta el usuario llegó a un
+ * disponible de −500 y al encierro, intentando CORREGIRSE (AC-1809).
  *
- * Siempre permitido: el estado resultante es exactamente el previo al error.
+ * Bajo el consumo bruto de FR-1801, quitar un retiro no cambia el consumo de su mes —luego tampoco
+ * su exceso de techo—, así que quien lo detecta es la regla de DÉFICIT: el arrastre del mes no puede
+ * quedar más negativo de lo que ya estaba (ADR-06).
  *
  * @param state Estado del ledger (no se muta).
  * @param movementId Id del movimiento a eliminar.
- * @returns El estado sin el movimiento, o el MISMO estado si el id no es una operación eliminable
- *          (inexistente, de otro tipo, o un aporte desde Disponible).
+ * @returns `{state}` sin el movimiento, o `{rejected}` nombrando el mes que quedaría sin respaldo.
+ *          Un id inexistente, de otro tipo, o un aporte desde Disponible devuelve `{state}` con el
+ *          estado INTACTO (no es un error: no hay nada que eliminar).
  * @throws Nunca.
  *
- * @aitri-trace FR-ID: FR-1609, US-ID: US-1609, AC-ID: AC-1627, TC-ID: TC-CPR-057h
+ * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
  */
-export function removeReserveOp(state: LedgerState, movementId: string): LedgerState {
+export function removeReserveOp(state: LedgerState, movementId: string): ReserveOpChangeResult {
   const mv = state.movements.find((m) => m.id === movementId);
-  if (!isRemovableReserveOp(mv)) return state;
-  const next = cloneState(state);
-  next.movements = next.movements.filter((m) => m.id !== movementId);
-  return next;
+  if (!isRemovableReserveOp(mv)) return { state };
+  const cand = cloneState(state);
+  cand.movements = cand.movements.filter((m) => m.id !== movementId);
+  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv));
+  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking) };
+  return { state: cand };
 }
 
-/** @deprecated Nombre anterior de `removeReserveOp`, que ahora acepta también moveres (FR-1609). */
-export const removeReserveRetiro = removeReserveOp;
+/**
+ * Cambia el MONTO de una operación de reserva conservando su identidad (FR-1802).
+ *
+ * Es la vía que la regla del techo hace necesaria: con el cupo del mes agotado, devolver plata al
+ * bolsillo registrando un aporte nuevo se rechazaría —y además inflaría la celda—, así que la
+ * corrección natural es bajar el retiro que la sacó. Palabras del usuario: «si retiré 500, pero
+ * ahora de esos 500 quiero volver a guardar 200, debería poder editar los 500 a 300».
+ *
+ * El movimiento se muta EN SITIO (mismo id, mismo createdAt, misma fecha, mismos extremos, misma
+ * posición en el journal): es una corrección, no una operación nueva. Eliminar y recrear lo movería
+ * al principio de la lista y le borraría la fecha (ADR-03).
+ *
+ * `newAmount === 0` delega en `removeReserveOp` para no duplicar la regla de eliminación.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param movementId Id de la operación a corregir.
+ * @param newAmount Monto nuevo; 0 elimina la operación.
+ * @returns `{state, movement}` con el movimiento corregido (o `movement: null` si se eliminó), o
+ *          `{rejected}`: `"invalid_target"` si el monto es inválido o el id no es corregible, o el
+ *          veredicto de la cadena nombrando el mes afectado.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1805, TC-ID: TC-TDF-010h, TC-TDF-012e
+ */
+export function editReserveOp(
+  state: LedgerState,
+  movementId: string,
+  newAmount: number
+): { state: LedgerState; movement: Movement | null } | { rejected: ReserveVerdict | "invalid_target" } {
+  const mv = state.movements.find((m) => m.id === movementId);
+  if (!isRemovableReserveOp(mv)) return { rejected: "invalid_target" };
+
+  const value = Math.round(Number(newAmount));
+  if (!Number.isFinite(value) || value < 0) return { rejected: "invalid_target" };
+
+  if (value === 0) {
+    const removed = removeReserveOp(state, movementId);
+    return "rejected" in removed ? { rejected: removed.rejected } : { state: removed.state, movement: null };
+  }
+  if (value === mv.amount) return { state, movement: mv }; // no-op
+
+  const cand = cloneState(state);
+  const idx = cand.movements.findIndex((m) => m.id === movementId);
+  const corregido: Movement = { ...cand.movements[idx], amount: value };
+  cand.movements[idx] = corregido; // en SITIO: conserva id, fecha, extremos y posición
+
+  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv));
+  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking, mv.amount) };
+  return { state: cand, movement: corregido };
+}
 
 /**
  * Las operaciones de reserva de un mes que el usuario puede CORREGIR: retiros a Disponible y
@@ -410,7 +497,7 @@ function buildCandidate(state: LedgerState, plane: Plane, writes: CellWrite[], e
 // Memoización del barrido de techo por IDENTIDAD del journal, y dentro por la del mapa del plano.
 // Misma técnica que `journalIndex`: cada mutación clona esos arrays/objetos, así que la
 // invalidación es automática y no hay clave que mantener a mano.
-type TechoScan = { excess: number[]; margin: number[]; delta: number[] };
+type TechoScan = { excess: number[]; margin: number[]; consumo: number[]; arrastre: number[]; deficit: number[] };
 const techoMemo = new WeakMap<Movement[], WeakMap<AmountMap, Partial<Record<Plane, TechoScan>>>>();
 
 /** `techoScanRaw` memoizado — el encabezado de mes lo consulta doce veces por render. */
@@ -423,13 +510,6 @@ function techoScan(state: LedgerState, plane: Plane): TechoScan {
   let scan = byPlane[plane];
   if (!scan) { scan = techoScanRaw(state, plane); byPlane[plane] = scan; }
   return scan;
-}
-
-/** Un mes cuyas reservas netas superan su margen: el mes, su margen y por cuánto se pasó. */
-export interface TechoBreach {
-  month: MonthKey;
-  margin: number;
-  excess: number;
 }
 
 /**
@@ -454,42 +534,154 @@ export function reserveHeadroom(state: LedgerState, month: MonthKey): number {
   const scan = techoScan(state, "actual");
   const i = MONTH_KEYS.indexOf(month);
   if (i < 0) return 0;
-  return Math.max(0, scan.margin[i] - scan.delta[i]);
+  return Math.max(0, scan.margin[i] - scan.consumo[i]);
 }
 
 /**
- * Los meses cuyas reservas netas superan el margen de ese mes (FR-1606).
+ * El TOTAL máximo que admite UNA celda de bolsillo, que es lo que su editor muestra como «Máx.»
+ * (FR-1808).
  *
- * Sale del MISMO barrido que decide los bloqueos (`techoScan`), no de un cálculo paralelo (ADR-03):
+ * No confundir con `reserveHeadroom`, que devuelve el INCREMENTO que aún cabe en el mes. La celda
+ * contiene un total, no un delta: una celda que ya vale 1.000 en un mes con el cupo agotado admite
+ * perfectamente que se la baje a 800, y mostrarle «Máx. 0» pintaría en rojo una escritura válida.
+ * El total tecleable es el cupo del mes descontando lo que consumen las DEMÁS celdas:
+ *
+ *     cellHeadroom = margen(m) − (consumo(m) − valorActualDeEstaCelda)
+ *
+ * En el registro de operaciones el monto SÍ es un delta, y allí el número correcto sigue siendo
+ * `reserveHeadroom`.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param leafId Hoja transfer cuya celda se edita.
+ * @param month Mes de la celda.
+ * @param plane Plano de la celda.
+ * @returns El total máximo tecleable, nunca negativo.
+ * @throws Nunca. Hoja o mes desconocidos devuelven 0.
+ *
+ * @aitri-trace FR-ID: FR-1808, US-ID: US-1808, AC-ID: AC-1830, TC-ID: TC-TDF-070h, TC-TDF-072f
+ */
+export function cellHeadroom(state: LedgerState, leafId: string, month: MonthKey, plane: Plane): number {
+  const scan = techoScan(state, plane);
+  const i = MONTH_KEYS.indexOf(month);
+  if (i < 0) return 0;
+  const map = plane === "budget" ? state.budgets : state.actuals;
+  const actual = map[leafId]?.[month] ?? 0;
+  return Math.max(0, scan.margin[i] - (scan.consumo[i] - actual));
+}
+
+/** Lo que un mes tomó del saldo que traía, cuando sus reservas no cupieron en su propio flujo. */
+export interface CarryUsage {
+  /** Lo reservado en el mes (bruto). */
+  reservado: number;
+  /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
+  delSaldoAnterior: number;
+  /** El mes de cuyo cierre salió — el que la observación nombra. */
+  mesAnterior: MonthKey;
+}
+
+/**
+ * La observación automática del mes (FR-1804): cuánto de lo reservado salió del saldo anterior.
+ *
+ * Es una DERIVACIÓN, no un dato almacenado (ADR-02): por eso se reescribe sola cuando la reserva
+ * cambia, desaparece cuando vuelve a caber en el flujo del mes, y no puede pisar jamás una
+ * observación escrita a mano.
+ *
+ * Se acota al arrastre REALMENTE disponible: un mes que reservó por encima de su techo (estado
+ * legado) no tomó del saldo anterior lo que no había, así que anunciarlo sería mentir. Ese mes
+ * lleva en su lugar la marca de error de FR-1806.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param month Mes a describir.
+ * @param plane Plano a leer.
+ * @returns El uso del saldo anterior, o null si el mes cupo en su flujo, no tenía saldo previo del
+ *          que tomar, o es el primero de la escala (sin mes anterior que nombrar).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1804, US-ID: US-1804, AC-ID: AC-1813, TC-ID: TC-TDF-030h, TC-TDF-033e
+ */
+export function monthCarryUsage(state: LedgerState, month: MonthKey, plane: Plane): CarryUsage | null {
+  const i = MONTH_KEYS.indexOf(month);
+  if (i <= 0) return null; // enero no tiene mes anterior que nombrar
+  const scan = techoScan(state, plane);
+  const income = typeTotals(state, "income", [month]);
+  const expense = typeTotals(state, "expense", [month]);
+  const flujo = plane === "budget" ? income.budget - expense.budget : income.actual - expense.actual;
+  const reservado = scan.consumo[i];
+  const disponiblePrevio = Math.max(0, scan.arrastre[i - 1]);
+  const delSaldoAnterior = Math.min(reservado - flujo, disponiblePrevio);
+  if (delSaldoAnterior <= 0) return null;
+  return { reservado, delSaldoAnterior, mesAnterior: MONTH_KEYS[i - 1] };
+}
+
+/** Un error registrado en un mes. Discriminado por `kind` para admitir tipos nuevos sin tocar la UI. */
+export type MonthIssue = { kind: "techo"; month: MonthKey; margin: number; excess: number };
+
+/**
+ * Los errores registrados en cada mes (FR-1806). Hoy un solo tipo —el mes cuyas reservas superan su
+ * margen—, discriminado por `kind` para que un tipo nuevo no obligue a tocar las dos superficies
+ * que la consumen (la marca del encabezado y la franja del Balance).
+ *
+ * Sale del MISMO barrido que decide los bloqueos (`techoScan`), no de un cálculo paralelo (ADR-01):
  * si la señal y el bloqueo se calcularan por separado podrían discrepar, que es exactamente la
- * clase de defecto que esta feature existe para cerrar.
+ * clase de defecto que este trabajo existe para cerrar.
  *
  * Por qué hace falta: el techo se comprueba al ESCRIBIR una reserva, y nada lo re-valida después.
  * Bajar un ingreso ya registrado —corregir un error de tecleo, algo que debe seguir permitiéndose—
- * deja el mes por encima del techo en silencio, y a partir de ahí el margen de todos los meses
- * siguientes queda en 0 y ninguna celda de reserva acepta un peso más. El usuario se topaba con una
- * app que rechazaba todo sin decir por qué (BG-002 de la feature transferencias).
+ * deja el mes por encima del techo en silencio, y a partir de ahí ninguna celda de reserva acepta
+ * un peso más. El usuario se topaba con una app que rechazaba todo sin decir por qué.
  *
  * @param state Estado del ledger (no se muta).
- * @returns Los meses excedidos en orden de calendario; vacío en un estado sano.
+ * @returns Los errores en orden de calendario; vacío en un estado sano.
  * @throws Nunca.
  *
- * @aitri-trace FR-ID: FR-1606, US-ID: US-1606, AC-ID: AC-1616, TC-ID: TC-CPR-036h
+ * @aitri-trace FR-ID: FR-1806, US-ID: US-1806, AC-ID: AC-1821, TC-ID: TC-TDF-050h, TC-TDF-051f
  */
-export function techoBreaches(state: LedgerState): readonly TechoBreach[] {
+export function monthIssues(state: LedgerState): readonly MonthIssue[] {
   const scan = techoScan(state, "actual");
-  const out: TechoBreach[] = [];
+  const out: MonthIssue[] = [];
   for (let i = 0; i < MONTH_KEYS.length; i++) {
-    if (scan.excess[i] > 0) out.push({ month: MONTH_KEYS[i], margin: scan.margin[i], excess: scan.excess[i] });
+    if (scan.excess[i] > 0) {
+      out.push({ kind: "techo", month: MONTH_KEYS[i], margin: scan.margin[i], excess: scan.excess[i] });
+    }
   }
   return out;
 }
 
-/** Serie de excesos de techo y márgenes por mes de un estado, en un plano. */
-function techoScanRaw(state: LedgerState, plane: Plane): { excess: number[]; margin: number[]; delta: number[] } {
+/**
+ * Barrido de los 12 meses de un plano. Publica TRES series porque el techo y el arrastre dejaron de
+ * ser la misma cuenta (FR-1801, ADR-01):
+ *
+ *     margen(m)   = max(0, arrastre(m−1) + flujo(m))
+ *     consumo(m)  = lo que el mes GASTA de su cupo
+ *     arrastre(m) = arrastre(m−1) + flujo(m) − neto(m)      (neto = aportes − retiros)
+ *     excess(m)   = max(0, consumo − margen)     → gobierna las escrituras de aporte
+ *     deficit(m)  = max(0, −arrastre)            → gobierna las operaciones sobre retiros
+ *
+ * En Ejecutado el consumo son los aportes BRUTOS: un retiro devuelve la plata a la cuenta, pero NO
+ * devuelve cupo del mes. Regla del usuario (2026-08-31): «el techo para reservas = ingresos del mes
+ * − gastos del mes + Saldo mes anterior». Con el consumo NETO que había antes, reservar 1.000 de un
+ * ingreso de 1.000 y retirar 500 volvía a ofrecer 500 de cupo y dejaba teclear 1.500 en el mes.
+ *
+ * En Presupuestado el consumo sigue siendo el NETO (ADR-08): la operación que motivó la regla
+ * —retirar y volver a reservar el mismo mes— no existe en el plan, donde el retiro planeado es una
+ * cifra y no un journal. El aviso del plan conserva así su comportamiento exacto (NFR-1803).
+ *
+ * `deficit` es la serie que hace falta para que la validación vea las operaciones sobre retiros:
+ * bajo consumo bruto, quitar o bajar un retiro NO cambia el consumo de su mes —luego tampoco su
+ * exceso— pero sí empeora el arrastre. Se mide sobre `arrastre` ANTES del acote a 0 de `margen`,
+ * que es justo lo que oculta un disponible negativo.
+ *
+ * @aitri-trace FR-ID: FR-1801, US-ID: US-1801, AC-ID: AC-1801, TC-ID: TC-TDF-001h, TC-TDF-006e
+ */
+function techoScanRaw(
+  state: LedgerState,
+  plane: Plane
+): { excess: number[]; margin: number[]; consumo: number[]; arrastre: number[]; deficit: number[] } {
   const excess: number[] = [];
   const margin: number[] = [];
-  const delta: number[] = [];
+  const consumo: number[] = [];
+  const arrastre: number[] = [];
+  const deficit: number[] = [];
   let availActual = 0;
   for (let i = 0; i < MONTH_KEYS.length; i++) {
     const m = MONTH_KEYS[i];
@@ -499,21 +691,25 @@ function techoScanRaw(state: LedgerState, plane: Plane): { excess: number[]; mar
     const deltaActual = reserveDelta(state, m, "actual");
     if (plane === "actual") {
       const mar = Math.max(0, availActual + flowActual);
+      const gasta = reserveAportes(state, m, "actual"); // BRUTO: el retiro no devuelve cupo
       margin.push(mar);
-      delta.push(deltaActual);
-      excess.push(Math.max(0, deltaActual - mar));
+      consumo.push(gasta);
+      excess.push(Math.max(0, gasta - mar));
     } else {
       const flowBudget = income.budget - expense.budget;
-      const deltaBudget = reserveDelta(state, m, "budget");
+      const deltaBudget = reserveDelta(state, m, "budget"); // NETO en el plan (ADR-08)
       const mar = Math.max(0, availActual + flowBudget);
       margin.push(mar);
-      delta.push(deltaBudget);
+      consumo.push(deltaBudget);
       excess.push(Math.max(0, deltaBudget - mar));
     }
     // Solo la cadena ejecutada acumula (ADR-03): ambos planos abren en el cierre real previo.
+    // El arrastre usa el NETO en los dos planos: la plata retirada sí volvió a la cuenta.
     availActual = availActual + flowActual - deltaActual;
+    arrastre.push(availActual);
+    deficit.push(Math.max(0, -availActual));
   }
-  return { excess, margin, delta };
+  return { excess, margin, consumo, arrastre, deficit };
 }
 
 interface ChainResult {
@@ -522,15 +718,25 @@ interface ChainResult {
 }
 
 /**
- * Corre techo global + piso por alcancía sobre los 12 meses del estado candidato.
+ * Corre las TRES reglas sobre los 12 meses del estado candidato.
  *
- * Techo: neto del mes (aportes − retiros) ≤ max(0, disponiblePrevio + flujo). Bloquea (o avisa,
- * en Pres.) solo donde el candidato EMPEORA al base — los datos históricos pueden violar el techo
- * legítimamente y no deben bloquear ediciones ajenas.
+ * Piso (absoluto): el saldo DERIVADO de cada alcancía afectada queda ≥ 0 en los 12 meses — bajar un
+ * aporte de febrero que deja en rojo los retiros ya operados de octubre se bloquea nombrando a
+ * octubre («Viaje quedaría en −50.000»).
  *
- * Piso: el saldo DERIVADO de cada alcancía afectada queda ≥ 0 en los 12 meses del candidato —
- * bajar un aporte de febrero que deja en rojo los retiros ya operados de octubre se bloquea
- * nombrando a octubre («Viaje quedaría en −50.000»).
+ * Techo (no empeora): consumo del mes ≤ max(0, disponiblePrevio + flujo). Gobierna las escrituras
+ * de APORTE. Bloquea solo donde el candidato empeora al base — los datos históricos pueden violar
+ * el techo legítimamente y no deben bloquear ediciones ajenas.
+ *
+ * Déficit (no empeora): el arrastre del mes no puede quedar más negativo que en el base. Gobierna
+ * las operaciones sobre RETIROS, que el techo no puede ver: bajo consumo bruto (FR-1801) quitar o
+ * bajar un retiro no altera el consumo de su mes —luego tampoco su exceso—, así que sin esta regla
+ * eliminar el retiro de un mes ya excedido se aceptaría y dejaría el disponible negativo, que es
+ * exactamente el encierro que la feature existe para cerrar (ADR-06). No es absoluta porque el
+ * sobregasto real (gastos > ingresos) deja el arrastre negativo de forma legítima y no debe
+ * bloquear nada (NFR-1803).
+ *
+ * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
  */
 function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affectedLeaves: string[]): ChainResult {
   const violations: ReserveWarning[] = [];
@@ -556,8 +762,27 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
       violations.push({
         rule: "techo",
         month: MONTH_KEYS[i],
-        limit: Math.max(0, candScan.margin[i] - baseScan.delta[i]),
+        // Lo que SÍ cabía: el margen del mes menos lo que el base ya consumía. Sale de la MISMA
+        // serie que `reserveHeadroom` publica como «Máx.», así que indicador y rechazo no pueden
+        // decir cifras distintas (FR-1808/AC-1834).
+        limit: Math.max(0, candScan.margin[i] - baseScan.consumo[i]),
       });
+    }
+  }
+
+  // Déficit: ninguna operación puede dejar el disponible de un mes peor de lo que ya estaba.
+  // Es la regla que ve lo que el techo no ve (ADR-06). Solo Ejecutado: el plan no tiene arrastre
+  // propio (ambos planos abren en el cierre real, ADR-03).
+  if (plane === "actual") {
+    for (let i = 0; i < MONTH_KEYS.length; i++) {
+      if (candScan.deficit[i] > baseScan.deficit[i]) {
+        violations.push({
+          rule: "techo",
+          month: MONTH_KEYS[i],
+          // Lo que el mes puede soportar sin empeorar: lo que hoy queda antes de caer en negativo.
+          limit: Math.max(0, baseScan.arrastre[i]),
+        });
+      }
     }
   }
 

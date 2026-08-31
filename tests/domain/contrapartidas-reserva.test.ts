@@ -21,11 +21,12 @@ import {
   reserveLeafIds,
   reserveRetiros,
   resolvedBalance,
-  techoBreaches,
+  monthIssues,
   validateReserveWrite,
   __resetReservePerfCounters,
   __reservePerfCounters,
 } from "@/domain/reserve";
+import { removeOrFail, removeIfAllowed } from "../helpers/reserve";
 import { addMovement, createNode, deleteNode, setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
 import { rollupActual } from "@/domain/rollup";
@@ -367,27 +368,27 @@ describe("FR-1606 · la señal de techo roto", () => {
     return setLeafAmount(s, "c-ingreso", "ago", "actual", 16_000_000);
   }
 
-  it("TC-CPR-036h: techoBreaches identifica el mes, el margen y el exceso exactos", () => {
+  it("TC-CPR-036h: monthIssues identifica el mes, el margen y el exceso exactos", () => {
     // @aitri-tc TC-CPR-036h
-    expect(techoBreaches(techoRoto())).toEqual([{ month: "ago", margin: 16_000_000, excess: 15_000_000 }]);
+    expect(monthIssues(techoRoto())).toEqual([{ kind: "techo", month: "ago", margin: 16_000_000, excess: 15_000_000 }]);
   });
 
   it("TC-CPR-040e: bajar el ingreso se ACEPTA y la señal aparece como consecuencia", () => {
     // @aitri-tc TC-CPR-040e
     let s = makeState([{ id: "c-ingreso", type: "income", actual: { ago: 32_000_000 } }, { id: "A", type: "transfer" }]);
     s = op(s, { from: AVAILABLE_ID, to: "A", month: "ago", amount: 31_000_000 });
-    expect(techoBreaches(s)).toEqual([]); // estado sano de partida
+    expect(monthIssues(s)).toEqual([]); // estado sano de partida
     const bajado = setLeafAmount(s, "c-ingreso", "ago", "actual", 16_000_000);
     expect(bajado.actuals["c-ingreso"].ago).toBe(16_000_000); // NO se bloquea corregir la realidad
-    expect(techoBreaches(bajado)).toHaveLength(1);
-    expect(techoBreaches(bajado)[0]).toMatchObject({ month: "ago", excess: 15_000_000 });
+    expect(monthIssues(bajado)).toHaveLength(1);
+    expect(monthIssues(bajado)[0]).toMatchObject({ month: "ago", excess: 15_000_000 });
   });
 
   it("TC-CPR-041e: corregir la reserva hace desaparecer la señal", () => {
     // @aitri-tc TC-CPR-041e
     const roto = techoRoto();
     const sano = setLeafAmount(roto, "A", "ago", "actual", 16_000_000);
-    expect(techoBreaches(sano)).toEqual([]);
+    expect(monthIssues(sano)).toEqual([]);
   });
 
   it("TC-CPR-043f: la señal no bloquea — con el techo roto se puede operar A LA BAJA", () => {
@@ -416,7 +417,7 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
     // @aitri-tc TC-CPR-058h
     const { s0, s1, id } = conMover();
     const totalAntes = computeBalanceSeries(s0).jul.actual.total;
-    const limpio = removeReserveOp(s1, id);
+    const limpio = removeOrFail(s1, id);
     expect(resolvedBalance(limpio, "A", "jul", "actual")).toBe(200_000);
     expect(resolvedBalance(limpio, "B", "jul", "actual")).toBe(0);
     expect(computeBalanceSeries(limpio).jul.actual.total).toBe(totalAntes);
@@ -438,7 +439,7 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
     const { s1, id } = conMover();
     const celdas = deep(s1.actuals);
     const otros = s1.movements.filter((m) => m.id !== id).map((m) => m.id);
-    const limpio = removeReserveOp(s1, id);
+    const limpio = removeOrFail(s1, id);
     expect(limpio.actuals).toEqual(celdas);
     expect(limpio.movements.map((m) => m.id)).toEqual(otros);
   });
@@ -446,7 +447,7 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
   it("TC-CPR-061f: id inexistente o mover huérfano — estado intacto, sin lanzar", () => {
     // @aitri-tc TC-CPR-061f
     const { s1, id } = conMover();
-    expect(removeReserveOp(s1, "no-existe")).toBe(s1);
+    expect(removeOrFail(s1, "no-existe")).toBe(s1);
     const sinDestino = deleteNode(s1, "B");
     if (!("state" in sinDestino)) throw new Error("borrado bloqueado");
     expect(() => removeReserveOp(sinDestino.state, id)).not.toThrow();
@@ -459,7 +460,7 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
     for (let i = 0; i < 50; i++) {
       const r = applyReserveOp(s, { from: "A", to: "B", month: "jul", amount: 150_000 });
       if (!("state" in r)) throw new Error(`mover ${i} rechazado`);
-      s = removeReserveOp(r.state, r.movement.id);
+      s = removeOrFail(r.state, r.movement.id);
     }
     expect(resolvedBalance(s, "A", "jul", "actual")).toBe(200_000);
     expect(resolvedBalance(s, "B", "jul", "actual")).toBe(0);
@@ -470,7 +471,7 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
     // @aitri-tc TC-CPR-063f
     const s = addMovement(base(), { type: "expense", catId: "c-gasto", amount: 50_000, month: "jul" });
     const gasto = s.movements.find((m) => m.type === "expense")!;
-    expect(removeReserveOp(s, gasto.id)).toBe(s);
+    expect(removeOrFail(s, gasto.id)).toBe(s);
     expect(s.movements.some((m) => m.id === gasto.id)).toBe(true);
   });
 });
@@ -492,7 +493,7 @@ describe("NFR-1601/1602 · conservación y Σ de derivados", () => {
       else if (kind < 0.62) { const a = applyReserveOp(s, { from: "A", to: "B", month, amount }); if ("state" in a) s = a.state; }
       else if (kind < 0.72) { const a = applyReserveOp(s, { from: "B", to: "A", month, amount }); if ("state" in a) s = a.state; }
       else if (kind < 0.82) { const a = applyReserveCellEdit(s, { leafId: "B", month, plane: "actual", newAmount: amount }); if ("state" in a) s = a.state; }
-      else if (kind < 0.9 && retiros.length) { s = removeReserveOp(s, retiros.pop()!); }
+      else if (kind < 0.9 && retiros.length) { s = removeIfAllowed(s, retiros.pop()!); }
       else { s = addMovement(s, { type: r() < 0.5 ? "expense" : "income", catId: r() < 0.5 ? "c-gasto" : "c-ingreso", amount: 20_000, month }); }
     }
     return s;
@@ -644,7 +645,7 @@ describe("NFR-1603/1604/1605/1606 · lo que NO puede cambiar", () => {
     const antes = computeBalanceSeries(s0).jul.actual;
     const r = applyReserveOp(s0, { from: "A", to: AVAILABLE_ID, month: "jul", amount: 50_000 });
     if (!("state" in r)) throw new Error("retiro rechazado");
-    const limpio = removeReserveOp(r.state, r.movement.id);
+    const limpio = removeOrFail(r.state, r.movement.id);
     const despues = computeBalanceSeries(limpio).jul.actual;
     expect(resolvedBalance(limpio, "A", "jul", "actual")).toBe(200_000);
     expect([despues.available, despues.reservedBalance, despues.total]).toEqual([antes.available, antes.reservedBalance, antes.total]);
@@ -657,7 +658,7 @@ describe("NFR-1603/1604/1605/1606 · lo que NO puede cambiar", () => {
     if (!("state" in r1)) throw new Error("retiro 1 rechazado");
     const r2 = applyReserveOp(r1.state, { from: "A", to: AVAILABLE_ID, month: "jul", amount: 50_000 });
     if (!("state" in r2)) throw new Error("retiro 2 rechazado");
-    const limpio = removeReserveOp(r2.state, r1.movement.id);
+    const limpio = removeOrFail(r2.state, r1.movement.id);
     expect(resolvedBalance(limpio, "A", "jul", "actual")).toBe(150_000);
     expect(monthReserveOps(limpio, "jul")).toHaveLength(1);
   });
@@ -667,8 +668,8 @@ describe("NFR-1603/1604/1605/1606 · lo que NO puede cambiar", () => {
     const s0 = op(base(), { from: AVAILABLE_ID, to: "A", month: "jul", amount: 200_000 });
     const r = applyReserveOp(s0, { from: "A", to: AVAILABLE_ID, month: "jul", amount: 50_000 });
     if (!("state" in r)) throw new Error("retiro rechazado");
-    const una = removeReserveOp(r.state, r.movement.id);
-    const dos = removeReserveOp(una, r.movement.id);
+    const una = removeOrFail(r.state, r.movement.id);
+    const dos = removeOrFail(una, r.movement.id);
     expect(dos).toBe(una);
     expect(resolvedBalance(dos, "A", "jul", "actual")).toBe(200_000);
   });
