@@ -1,15 +1,17 @@
 {
-  "currentPhase": "discovery",
+  "currentPhase": 1,
   "approvedPhases": [
-    "discovery"
+    "discovery",
+    1
   ],
   "completedPhases": [
-    "discovery"
+    "discovery",
+    1
   ],
   "projectName": "movimientos-internos",
   "createdAt": "2026-08-31T01:46:51.527Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-31T03:35:42.526Z",
+  "updatedAt": "2026-08-31T13:56:03.958Z",
   "driftPhases": [],
   "events": [
     {
@@ -46,10 +48,27 @@
       "at": "2026-08-31T03:35:42.489Z",
       "event": "approved",
       "phase": "discovery"
+    },
+    {
+      "at": "2026-08-31T13:31:16.720Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T13:34:39.435Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T13:56:03.928Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
+    "1": "f377e43407683cee6879f9188a74dac64d2d5d412c3babc5667e025d7f018dbe",
     "discovery": "87f225c7e0bb4de6792898ebf754ab3111c870aa78ea91ddf607fc9bea25b278"
   }
 }

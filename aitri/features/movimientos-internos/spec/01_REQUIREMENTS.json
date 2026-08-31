@@ -1,0 +1,681 @@
+{
+  "project_name": "T-Ledger — movimientos-internos",
+  "project_summary": "El usuario tiene una cuenta y, dentro, BOLSILLOS para separar plata de su dinero disponible: cuando le sobra de ingresos menos gastos lleva el sobrante a un bolsillo, y cuando lo necesita lo trae de vuelta. Es lo que hace hoy en Excel y es el producto de bolsillos que su banco ya le da. La app modela esos bolsillos con la forma de una categoría de presupuesto, y de ahí sale el defecto de fondo que él delimitó: LA CELDA DE UN BOLSILLO SOLO CUENTA LO QUE ENTRA — mete 500.000, saca 200.000, y la celda dice 500.000. La usa como registro y está hecha para presupuestar. NORTH STAR (puerta de aceptación): la fila de un bolsillo dice la verdad de su mes —lo que entró y lo que salió— y no existe ningún estado alcanzable en que lo apartado supere lo que hay. JTBD: «saber cuánto puedo gastar sin tocar lo que tengo apartado, y poder apartar o recuperar plata sin pelearme con la app». GUARDRAIL: la conservación total(m) = total(m−1) + flujo(m) y la igualdad Saldo reservado = Σ saldos de bolsillos no pueden empeorar; Gastos e Ingresos no cambian de comportamiento. LA SIMPLIFICACIÓN QUE MANDA: el movimiento bolsillo→bolsillo NO EXISTE («nunca, siempre paso por la cuenta principal»), y con él desaparece de raíz toda la contabilidad de contrapartidas entre bolsillos que motivó el trabajo anterior.",
+  "functional_requirements": [
+    {
+      "id": "FR-1701",
+      "title": "Dos operaciones internas y solo dos: llevar al bolsillo y traer de vuelta",
+      "description": "Cuando el usuario mueve plata dentro de su cuenta, el sistema ofrece exactamente dos operaciones: llevar de la cuenta principal (Disponible) a un bolsillo, y traer de un bolsillo a la cuenta principal. La operación bolsillo→bolsillo SE RETIRA del producto: el usuario confirmó que nunca la usa («nunca — siempre paso por la cuenta principal»); si necesita pasar plata de un bolsillo a otro, trae a la principal y de ahí lleva al otro, que son dos operaciones simples. Retirarla elimina de raíz la contabilidad de contrapartidas entre bolsillos.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Llevar 300.000 de la cuenta principal al bolsillo A deja el bolsillo con 300.000 más y el disponible con 300.000 menos",
+        "Traer 100.000 del bolsillo A a la cuenta principal deja el bolsillo con 100.000 menos y el disponible con 100.000 más",
+        "En ninguna superficie del producto se puede iniciar un movimiento cuyos dos extremos sean bolsillos",
+        "Un intento programático de mover de bolsillo a bolsillo se rechaza sin mutar el estado",
+        "Tras cualquiera de las dos operaciones, el Saldo total del mes es idéntico al de antes: un movimiento interno no crea ni destruye dinero"
+      ]
+    },
+    {
+      "id": "FR-1702",
+      "title": "Solo se mueve plata que existe — en los dos sentidos",
+      "description": "Cuando el usuario intenta un movimiento interno mayor que lo que hay en el origen, el sistema no lo realiza. Regla del usuario, textual: «solo se puede reservar o transferir dinero disponible. si no hay dinero disponible, ¿qué se transfiere? pues nada! ese es el techo». No es una regla de negocio que frena: es que esa plata no existe. Aplica simétricamente: no se puede llevar al bolsillo más de lo disponible, ni traer del bolsillo más de lo que tiene.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con 1.000.000 disponible, intentar llevar 1.500.000 a un bolsillo no se realiza y el disponible sigue exactamente en 1.000.000",
+        "Con un bolsillo en 500.000, intentar traer 800.000 no se realiza y el bolsillo sigue exactamente en 500.000",
+        "Con un bolsillo en 0, no se puede traer nada de él",
+        "El límite exacto SÍ se acepta: con 1.000.000 disponible, llevar exactamente 1.000.000 se realiza y el disponible queda en 0",
+        "El rechazo dice cuánto hay realmente disponible en el origen, no solo que no se puede"
+      ]
+    },
+    {
+      "id": "FR-1703",
+      "title": "Ninguna edición puede dejar un movimiento posterior sin respaldo",
+      "description": "Cuando una edición de un mes ya registrado haría imposible un movimiento posterior, el sistema no la permite y nombra el movimiento que quedaría sin respaldo. Ejemplo del usuario: en agosto mete 1.000 en un bolsillo, en septiembre saca los 1.000, y después corrige agosto a 400 — septiembre quedaría habiendo sacado 1.000 de un bolsillo que solo tenía 400. Preguntado si la app debería permitirlo, respondió: «no. no debería». Hoy la regla se aplica al editar un bolsillo pero NO al editar un ingreso, y por esa puerta el usuario quedó dos veces con más plata apartada de la que tenía, sin poder escribir en ningún mes siguiente. La regla es UNA y aplica a toda edición.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Bajar el aporte de agosto de 1.000 a 400 cuando en septiembre se sacaron 1.000 se rechaza, y el mensaje nombra septiembre",
+        "Bajar un INGRESO de agosto por debajo de lo que ya se llevó a bolsillos ese mes se rechaza — es la puerta por la que el usuario se encerró",
+        "Bajar un ingreso que NO deja ningún movimiento sin respaldo se acepta con normalidad: corregir la realidad no se bloquea salvo que rompa algo",
+        "Un rechazo deja el estado exactamente igual que antes del intento: ni celdas ni movimientos cambian",
+        "No existe ninguna secuencia de ediciones aceptadas que lleve a un estado donde lo apartado supere lo que hay"
+      ]
+    },
+    {
+      "id": "FR-1704",
+      "title": "La fila de un bolsillo dice lo que pasó en el mes: lo que entró y lo que salió",
+      "description": "Cuando el usuario consulta un bolsillo en un mes, el sistema muestra por separado lo que ENTRÓ y lo que SALIÓ, ambas cifras en positivo. Es el defecto de fondo que el usuario delimitó: hoy la celda solo cuenta lo que entra, así que si mete 500.000 y saca 200.000 dice 500.000 — «es como un log manual» que no puede representar lo que registra. Él descartó las dos alternativas: el neto con signo («un movimiento negativo que no me gusta») y ocultar las salidas, que contradecía su propio ejemplo de agosto, donde el retiro sí restaba. La solución elegida es la que el producto YA usa en el Balance, que desdobla el mes en «Reservas del mes» y «Retiros del mes» precisamente para no escribir un negativo.",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Con 2.000.000 llevados el 5 de agosto y 500.000 traídos de vuelta el 15, agosto muestra 2.000.000 entrando y 500.000 saliendo, y el acumulado queda en 1.500.000",
+        "En un mes donde solo sale plata (500.000 traídos de vuelta, nada llevado), se muestra la salida de 500.000 y la entrada en 0",
+        "Ninguna de las dos cifras se muestra jamás con signo negativo",
+        "En un mes sin movimientos, ambas cifras son 0 y el acumulado arrastra el del mes anterior",
+        "Para cualquier mes: acumulado del mes = acumulado del mes anterior + lo que entró − lo que salió"
+      ]
+    },
+    {
+      "id": "FR-1705",
+      "title": "El saldo de un bolsillo se arrastra de un mes al siguiente",
+      "description": "Cuando el usuario consulta un bolsillo en un mes sin movimientos, el sistema muestra el saldo que traía del mes anterior. Palabras del usuario: «el saldo de julio luego va a agosto y luego sep y así… si no toco nada más en agosto, septiembre tiene un acumulado de 1.500.000, pero las reservas de septiembre son 0 hasta que haga algún movimiento». El acumulado y el movimiento del mes son DOS cifras distintas y las dos importan.",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Un bolsillo con 1.500.000 al cierre de agosto y sin movimientos en septiembre muestra 1.500.000 de acumulado en septiembre y 0 de movimiento del mes",
+        "Ese mismo bolsillo arrastra 1.500.000 hasta diciembre si no se vuelve a tocar",
+        "Un bolsillo recién creado muestra 0 en los doce meses sin lanzar ningún error",
+        "Tras traer 500.000 de vuelta en septiembre, el acumulado de septiembre es 1.000.000 y el de agosto sigue siendo 1.500.000 — el pasado no se altera"
+      ]
+    },
+    {
+      "id": "FR-1706",
+      "title": "Todo movimiento interno queda registrado y se puede deshacer, venga de donde venga",
+      "description": "Cuando el usuario realiza un movimiento interno, el sistema lo registra con su fecha y le permite eliminarlo después, con independencia de la superficie desde la que lo hizo. Hoy meter plata no deja rastro (es teclear un número: sin fecha, sin poder deshacer) y sacarla sí (es un movimiento): la misma clase de acto, con memoria en un caso y sin memoria en el otro. Eliminar un movimiento devuelve los saldos exactamente a como estaban antes de hacerlo.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Llevar 300.000 a un bolsillo deja un registro con su fecha, igual que traerlo de vuelta",
+        "Eliminar un movimiento devuelve el saldo del bolsillo y el disponible a los valores exactos previos a ese movimiento",
+        "Los movimientos de un mes se pueden consultar, y cada uno dice qué bolsillo y en qué sentido",
+        "Un movimiento persiste tras recargar la página: viaja a la fuente de verdad, no queda en memoria",
+        "Intentar eliminar un movimiento inexistente o ya eliminado deja el estado intacto y no lanza"
+      ]
+    },
+    {
+      "id": "FR-1707",
+      "title": "El plan mensual por bolsillo se conserva",
+      "description": "Cuando el usuario planea cuánto va a apartar, el sistema le permite escribir una cifra por bolsillo y por mes en el plano Presupuestado. Confirmado por el usuario: «sí puedo presupuestar movimientos internos», y con el reparto por bolsillo, no una cifra global. La grilla NO cambia de estructura — «no hay que cambiar la grilla para esto, tenemos presupuesto y ejecutado, eso está bien» —: el plan sigue tecleándose donde se teclea hoy.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Se puede escribir un plan de 300.000 para el bolsillo A en marzo y de 200.000 para el bolsillo B, y ambos persisten",
+        "El plan de un bolsillo y lo realmente movido en ese mes son visibles y comparables",
+        "El plan NO altera ningún saldo real ni ningún movimiento: es una intención, no un hecho",
+        "Un plan con valor no numérico o negativo se rechaza sin alterar el plan vigente"
+      ]
+    },
+    {
+      "id": "FR-1708",
+      "title": "La fila agregada del tipo Reservas deja de mostrar un total",
+      "description": "Cuando el usuario mira la fila del tipo Reservas en la grilla, el sistema no muestra ahí ninguna cifra: queda como rótulo que agrupa los bolsillos. Hoy muestra la suma del mes, que el Balance ya reporta, y el usuario razonó que el sitio correcto es el Balance «porque puedo ver cuánto tengo disponible + lo reservado = total», donde la cifra está dentro de una cuenta y significa algo. Tener el mismo número en dos sitios calculado por caminos distintos es lo que produjo el defecto que abrió esta investigación. DECISIÓN PROVISIONAL declarada por el usuario («mientras tanto»): confirmar al revisar el diseño.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "La fila del tipo Reservas no muestra ninguna cifra ni en Presupuestado ni en Ejecutado",
+        "Las filas de Gastos e Ingresos SIGUEN mostrando su total: ahí la suma del mes sí es la cifra que importa",
+        "El Balance sigue mostrando lo movido en el mes y el acumulado, sin cambio",
+        "Ninguna cifra de reservas aparece calculada en dos sitios del producto a la vez"
+      ]
+    },
+    {
+      "id": "FR-1709",
+      "title": "Operar bolsillos es posible por completo en móvil",
+      "description": "Cuando el usuario está en un dispositivo donde la grilla no se renderiza (bajo 760px, donde el producto solo muestra Registrar), el sistema le permite llevar plata a un bolsillo y traerla de vuelta. El usuario lo señaló al hablar de cómo apartar: «también tenemos la versión móvil». En móvil el formulario no es el camino largo del escritorio: es el único camino, así que tiene que bastarse solo.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 375px de ancho se puede llevar plata a un bolsillo y traerla de vuelta, de principio a fin",
+        "A 375px el saldo del bolsillo y lo disponible se ven ANTES de teclear el monto",
+        "A 375px no hay desbordes horizontales: el ancho del documento no supera el del viewport",
+        "Un movimiento hecho en móvil produce un registro indistinguible de uno hecho en escritorio",
+        "A 375px un intento de mover más de lo que hay se rechaza con el mismo mensaje que en escritorio"
+      ]
+    },
+    {
+      "id": "FR-1710",
+      "title": "Retirar el código y los artefactos del modelo descartado — cero código muerto",
+      "description": "Cuando esta feature termine, el repositorio no contiene ninguna función, componente, prueba ni artefacto que sirva al modelo que el usuario descartó. Es REQUISITO EXPLÍCITO suyo: «en esta feature pon como requisito limpiar lo del código que se introdujo anteriormente». La feature previa `contrapartidas-reserva` entregó código para una operación —bolsillo→bolsillo— que el producto ya no tiene, y para una señal —«estás por encima del techo»— de un estado que deja de ser alcanzable. Dejarlo en el árbol haría que un lector futuro lo tomara por vigente.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "No existe en el código ninguna función exportada que dé soporte a la operación bolsillo→bolsillo ni a su contrapartida en el saldo derivado",
+        "No existe la señal de «por encima del techo» (ni el selector de dominio, ni la marca del encabezado de mes, ni la franja del Balance)",
+        "No existen la acción «Sacar» de la fila con su popover de origen fijo ni el campo de nota del retiro, que el usuario descartó («no es necesario el motivo»)",
+        "No queda ninguna prueba que verifique comportamientos retirados: ni el archivo de casos de la feature previa ni las revocaciones que metió en pruebas ajenas",
+        "La feature `contrapartidas-reserva` queda cerrada formalmente, no como fases a medias que parezcan vigentes",
+        "Tras la limpieza, typecheck y lint pasan con cero errores y la suite completa queda verde"
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de T-Ledger)",
+      "tech_level": "mid",
+      "goal": "Saber cuánto puede gastar sin tocar lo que tiene apartado, y poder apartar o recuperar plata sin pelearse con la app",
+      "pain_point": "La app le pide pensar en categorías y meses cuando él piensa en sitios donde está la plata. Hoy resuelve esta parte en Excel, en paralelo. Y dos veces quedó sin poder escribir nada en ningún mes, sin que la app le dijera por qué."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1701",
+      "requirement_id": "FR-1701",
+      "as_a": "dueño del presupuesto",
+      "i_want": "llevar plata a un bolsillo y traerla de vuelta, y nada más",
+      "so_that": "separar lo que no me debo gastar sea tan simple como en mi banco",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1701",
+          "given": "disponible 1.000.000 y el bolsillo A en 0",
+          "when": "llevo 300.000 al bolsillo A",
+          "then": "A queda en 300.000, el disponible en 700.000 y el Saldo total no cambia"
+        },
+        {
+          "id": "AC-1702",
+          "given": "el bolsillo A en 300.000",
+          "when": "traigo 100.000 de vuelta",
+          "then": "A queda en 200.000, el disponible sube 100.000 y el Saldo total sigue igual"
+        },
+        {
+          "id": "AC-1703",
+          "given": "dos bolsillos A y B",
+          "when": "se intenta un movimiento con A y B como extremos",
+          "then": "se rechaza sin mutar el estado, y ninguna pantalla ofrece esa operación"
+        }
+      ]
+    },
+    {
+      "id": "US-1702",
+      "requirement_id": "FR-1702",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app no me deje mover plata que no tengo",
+      "so_that": "mis números no digan nunca algo imposible",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1704",
+          "given": "disponible 1.000.000",
+          "when": "intento llevar 1.500.000 a un bolsillo",
+          "then": "no se realiza, el disponible sigue en 1.000.000 y el mensaje dice que solo hay 1.000.000"
+        },
+        {
+          "id": "AC-1705",
+          "given": "el bolsillo A en 500.000",
+          "when": "intento traer 800.000",
+          "then": "no se realiza y A sigue en 500.000"
+        },
+        {
+          "id": "AC-1706",
+          "given": "disponible 1.000.000",
+          "when": "llevo exactamente 1.000.000",
+          "then": "se realiza y el disponible queda en 0"
+        }
+      ]
+    },
+    {
+      "id": "US-1703",
+      "requirement_id": "FR-1703",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que corregir un mes viejo no me deje descuadrado",
+      "so_that": "no vuelva a quedarme sin poder escribir nada durante meses",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1707",
+          "given": "agosto con 1.000 llevados al bolsillo y septiembre con 1.000 traídos de vuelta",
+          "when": "intento bajar agosto a 400",
+          "then": "se rechaza y el mensaje nombra septiembre"
+        },
+        {
+          "id": "AC-1708",
+          "given": "agosto con un ingreso de 16.000.000 del que ya se llevaron 15.000.000 a bolsillos",
+          "when": "intento bajar ese ingreso a 10.000.000",
+          "then": "se rechaza — es la puerta por la que quedé encerrado"
+        },
+        {
+          "id": "AC-1709",
+          "given": "un ingreso de agosto del que no se ha llevado nada",
+          "when": "lo bajo a la mitad",
+          "then": "se acepta con normalidad: corregir la realidad no se bloquea salvo que rompa algo"
+        }
+      ]
+    },
+    {
+      "id": "US-1704",
+      "requirement_id": "FR-1704",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la fila del bolsillo diga lo que pasó ese mes",
+      "so_that": "no tenga que reconstruir de memoria por qué cambió el acumulado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1710",
+          "given": "un bolsillo donde el 5 de agosto llevé 2.000.000 y el 15 traje 500.000",
+          "when": "miro agosto",
+          "then": "veo 2.000.000 entrando y 500.000 saliendo, y el acumulado en 1.500.000"
+        },
+        {
+          "id": "AC-1711",
+          "given": "un septiembre donde solo traje 500.000 de vuelta",
+          "when": "miro septiembre",
+          "then": "veo la salida de 500.000, la entrada en 0, y ningún número con signo negativo en pantalla"
+        },
+        {
+          "id": "AC-1712",
+          "given": "cualquier mes",
+          "when": "comparo con el mes anterior",
+          "then": "acumulado = acumulado anterior + lo que entró − lo que salió"
+        }
+      ]
+    },
+    {
+      "id": "US-1705",
+      "requirement_id": "FR-1705",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el saldo del bolsillo siga ahí aunque no lo toque",
+      "so_that": "pueda ver cuánto llevo apartado en cualquier mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1713",
+          "given": "un bolsillo con 1.500.000 al cierre de agosto",
+          "when": "miro septiembre sin haber operado",
+          "then": "el acumulado es 1.500.000 y el movimiento del mes es 0"
+        },
+        {
+          "id": "AC-1714",
+          "given": "ese bolsillo sin más operaciones",
+          "when": "miro diciembre",
+          "then": "sigue en 1.500.000"
+        },
+        {
+          "id": "AC-1715",
+          "given": "un bolsillo recién creado",
+          "when": "miro los doce meses",
+          "then": "todos muestran 0 y no se produce ningún error"
+        }
+      ]
+    },
+    {
+      "id": "US-1706",
+      "requirement_id": "FR-1706",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que meter plata deje el mismo rastro que sacarla",
+      "so_that": "pueda deshacer un error sin importar cómo lo hice",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1716",
+          "given": "un bolsillo en 0",
+          "when": "llevo 300.000",
+          "then": "queda un registro con su fecha, igual que si hubiera traído plata de vuelta"
+        },
+        {
+          "id": "AC-1717",
+          "given": "ese movimiento registrado",
+          "when": "lo elimino",
+          "then": "el bolsillo y el disponible vuelven exactamente a los valores previos"
+        },
+        {
+          "id": "AC-1718",
+          "given": "un movimiento recién hecho",
+          "when": "recargo la página",
+          "then": "el movimiento sigue ahí"
+        },
+        {
+          "id": "AC-1719",
+          "given": "un movimiento ya eliminado",
+          "when": "intento eliminarlo otra vez",
+          "then": "el estado queda intacto y no se lanza ningún error"
+        }
+      ]
+    },
+    {
+      "id": "US-1707",
+      "requirement_id": "FR-1707",
+      "as_a": "dueño del presupuesto",
+      "i_want": "planear cuánto voy a apartar en cada bolsillo",
+      "so_that": "pueda comparar lo que quería apartar con lo que aparté",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1720",
+          "given": "los bolsillos A y B",
+          "when": "escribo 300.000 para A y 200.000 para B en marzo",
+          "then": "ambos planes persisten y son visibles junto a lo realmente movido"
+        },
+        {
+          "id": "AC-1721",
+          "given": "un plan escrito para marzo",
+          "when": "consulto los saldos y movimientos reales",
+          "then": "ninguno ha cambiado: el plan es una intención, no un hecho"
+        },
+        {
+          "id": "AC-1722",
+          "given": "un plan vigente de 300.000",
+          "when": "intento escribir un valor negativo o no numérico",
+          "then": "se rechaza y el plan sigue en 300.000"
+        }
+      ]
+    },
+    {
+      "id": "US-1708",
+      "requirement_id": "FR-1708",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la misma cifra no esté en dos sitios",
+      "so_that": "no tenga que averiguar cuál de las dos es la buena",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1723",
+          "given": "un mes con movimientos en varios bolsillos",
+          "when": "miro la fila del tipo Reservas",
+          "then": "no muestra ninguna cifra, ni en Presupuestado ni en Ejecutado"
+        },
+        {
+          "id": "AC-1724",
+          "given": "ese mismo mes",
+          "when": "miro las filas de Gastos e Ingresos",
+          "then": "siguen mostrando su total: ahí la suma del mes sí es lo que importa"
+        },
+        {
+          "id": "AC-1725",
+          "given": "ese mismo mes",
+          "when": "reviso todo el producto",
+          "then": "ninguna cifra de reservas aparece calculada en dos sitios a la vez"
+        }
+      ]
+    },
+    {
+      "id": "US-1709",
+      "requirement_id": "FR-1709",
+      "as_a": "dueño del presupuesto con el teléfono en la mano",
+      "i_want": "poder apartar plata sin abrir el computador",
+      "so_that": "registrar el movimiento cuando ocurre, no cuando llego a casa",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1726",
+          "given": "un viewport de 375×667",
+          "when": "llevo 300.000 a un bolsillo",
+          "then": "completo la operación y el saldo del bolsillo sube 300.000"
+        },
+        {
+          "id": "AC-1727",
+          "given": "ese mismo viewport",
+          "when": "abro la operación",
+          "then": "veo el saldo del bolsillo y lo disponible antes de teclear el monto, y el ancho del documento no supera 375px"
+        },
+        {
+          "id": "AC-1728",
+          "given": "ese mismo viewport y un disponible de 100.000",
+          "when": "intento llevar 500.000",
+          "then": "se rechaza con el mismo mensaje que en escritorio"
+        }
+      ]
+    },
+    {
+      "id": "US-1710",
+      "requirement_id": "FR-1710",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que no quede en el proyecto código de un modelo que descarté",
+      "so_that": "nadie lo lea dentro de unos meses creyendo que sigue vigente",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1729",
+          "given": "el código tras terminar esta feature",
+          "when": "se busca soporte a la operación bolsillo→bolsillo o a la señal de techo roto",
+          "then": "no existe ninguno"
+        },
+        {
+          "id": "AC-1730",
+          "given": "las pruebas tras terminar esta feature",
+          "when": "se buscan casos que verifiquen comportamientos retirados",
+          "then": "no queda ninguno, ni en archivo propio ni injertado en pruebas ajenas"
+        },
+        {
+          "id": "AC-1731",
+          "given": "el proyecto tras la limpieza",
+          "when": "se corren typecheck, lint y la suite completa",
+          "then": "los tres pasan con cero errores"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1701",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La conservación se mantiene: total(m) = total(m−1) + flujo(m) en ambos planos, para cualquier estado alcanzable. Un movimiento interno no crea ni destruye dinero",
+      "acceptance_criteria": "Una secuencia determinista de ≥100 operaciones mixtas (llevar, traer, editar celdas, eliminar movimientos, gastos e ingresos) satisface la igualdad en los doce meses y en los dos planos tras cada paso"
+    },
+    {
+      "id": "NFR-1702",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El Saldo reservado del Balance sigue siendo igual a la Σ de los saldos de todos los bolsillos, mes a mes",
+      "acceptance_criteria": "Para cada uno de los doce meses, el Saldo reservado coincide al peso con la suma de los saldos de los bolsillos, sobre cualquier estado alcanzable"
+    },
+    {
+      "id": "NFR-1703",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Gastos e Ingresos no cambian de comportamiento: se siguen tecleando, sumando y agregando como hoy, y su presencia en la grilla es idéntica",
+      "acceptance_criteria": "Los roll-ups de gasto e ingreso, sus totales por tipo y el flujo del mes dan resultados idénticos a los del baseline para el mismo estado"
+    },
+    {
+      "id": "NFR-1704",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las migraciones de formato existentes siguen siendo idempotentes y no se re-aplican sobre un ledger ya marcado",
+      "acceptance_criteria": "Un ledger sembrado en cada versión histórica migra al modelo vigente con el mismo resultado aplicando la cadena una o dos veces"
+    },
+    {
+      "id": "NFR-1705",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El módulo de Balance conserva su cascada y sus filas de un solo signo: ningún importe se muestra como doble negativo",
+      "acceptance_criteria": "Las filas del Balance siguen el orden y los signos vigentes, y ningún importe se renderiza con un signo menos delante de una fila ya restada"
+    },
+    {
+      "id": "NFR-1706",
+      "category": "Usability",
+      "priority": "MUST",
+      "requirement": "En toda superficie donde se opere un movimiento interno, el límite aplicable (lo disponible o el saldo del bolsillo) se ve ANTES de teclear el monto, nunca por mensaje de error",
+      "acceptance_criteria": "En cada superficie que permita mover plata, el límite del origen es visible sin haber tecleado ningún valor"
+    },
+    {
+      "id": "NFR-1707",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "El pipeline ejecuta la suite completa declarada del proyecto —incluidas las pruebas e2e— en cada push a la rama principal",
+      "acceptance_criteria": "El workflow de CI contiene un disparador push sobre la rama principal y pasos que invocan los comandos de suite unitaria y e2e declarados en package.json"
+    },
+    {
+      "id": "NFR-1708",
+      "category": "Performance",
+      "requirement": "Derivar los saldos y los movimientos del mes de todos los bolsillos no empeora el coste medido vigente",
+      "acceptance_criteria": "El guardrail de rendimiento existente sigue por debajo de su umbral con el mismo escenario"
+    },
+    {
+      "id": "NFR-1709",
+      "category": "Security",
+      "requirement": "Not applicable: la feature opera sobre el dominio y las superficies del usuario ya autenticado. No añade ni modifica rutas HTTP, no toca autenticación ni sesiones, no maneja secretos ni datos de terceros y no acepta entrada de red nueva. La ausencia de validación de invariantes en el servidor sigue registrada como BG-002 de la feature backend, fuera de este alcance",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    },
+    {
+      "id": "NFR-1710",
+      "category": "Observability",
+      "requirement": "Not applicable: la feature no añade ni modifica ninguna ruta HTTP ni proceso de fondo. El registro por petición del proyecto no se altera",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    },
+    {
+      "id": "NFR-1711",
+      "category": "Reliability",
+      "requirement": "Healthcheck: no aplica. El endpoint de salud del proyecto ya existe y esta feature no introduce ningún servicio nuevo que deba reportar estado",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    }
+  ],
+  "no_go_zone": [
+    "Mover plata directamente de un bolsillo a otro: CONFIRMADO por el usuario, «nunca — siempre paso por la cuenta principal». Se RETIRA del producto; si necesita pasar de un bolsillo a otro, trae a la principal y de ahí lleva al otro",
+    "Metas por bolsillo (importe objetivo, fecha límite, progreso): CONFIRMADO, «sin meta: solo voy metiendo»",
+    "Gastar directamente desde un bolsillo: el usuario confirmó DOS VECES que sigue haciéndolo en dos pasos — traer a la principal y registrar el gasto aparte. Es BL-035, diferida",
+    "Nota o motivo por movimiento: CONFIRMADO, «no es necesario el motivo» — el bolsillo de destino ya dice para qué",
+    "Cierre de mes: idea del usuario para impedir editar hacia atrás, que él mismo decidió sacar a feature aparte porque congelaría también gastos e ingresos. Registrada como BL-036",
+    "Rediseñar la estructura de la grilla: CONFIRMADO, «no hay que cambiar la grilla para esto. tenemos presupuesto y ejecutado. eso está bien». Lo que se rehace son las operaciones, no la disposición",
+    "Aplanar la jerarquía de bolsillos: CONFIRMADO, siguen siendo agrupables como hoy",
+    "Migrar los datos de reservas del usuario: CONFIRMADO, «empezar de cero: son datos de prueba». Ya se borraron el 2026-08-30. Gastos e Ingresos no se tocaron",
+    "Arreglar los nombres por defecto duplicados: el usuario lo reconoce como error real pero no grave, «lo podemos ver luego»",
+    "Rediseñar el retiro PLANEADO del plano Presupuestado: no se discutió en discovery y no se decide aquí",
+    "Multiusuario, roles o permisos: el producto sigue siendo de un solo usuario"
+  ],
+  "constraints": [
+    "La grilla de presupuesto conserva su estructura: dos planos, doce meses y jerarquía agrupable",
+    "La capa de dominio es PURA: sin React, DOM, IO ni red",
+    "El producto no renderiza la grilla por debajo de 760px: a 375px solo existe la pantalla Registrar",
+    "La migración v4→v5 de la feature previa YA se ejecutó sobre la base del usuario y dejó su marcador estampado: retirar su código sin más dejaría los datos marcados con una versión que el código ya no conoce"
+  ],
+  "technology_preferences": [
+    "TypeScript + Next.js 15 + React (stack vigente)",
+    "Postgres como única fuente de verdad",
+    "Vitest para dominio e integración; Playwright para e2e"
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "00_DISCOVERY.md aprobado, construido en entrevista con el usuario el 2026-08-30. El modelo de bolsillos y el defecto de fondo son suyos y textuales",
+    "users": "Producto de usuario único, establecido desde el proyecto raíz; el usuario es el único operador y resuelve hoy esta parte en Excel",
+    "baseline": "Medido sobre su base de datos real el 2026-08-29 y el 2026-08-30, y verificado ejecutando el dominio: la discrepancia grilla/Balance, el encierro por techo reproducido exacto en cinco cifras, y los seis contenedores con cifras de resto de su última prueba",
+    "success_metric": "Derivada del ejemplo NUMÉRICO que el propio usuario planteó (agosto: 2.000.000 dentro, 500.000 fuera, acumulado 1.500.000; septiembre: 500.000 fuera, acumulado 1.000.000) y de las once resoluciones del discovery, que él aprobó",
+    "no_go_zone": "Las once resoluciones del discovery, todas decisiones suyas y citadas textualmente"
+  },
+  "idea_gaps": [
+    "success_metric: el usuario aportó el ejemplo numérico que gobierna FR-1704 y FR-1705, y aprobó el discovery, pero no revisó una a una las siete métricas escritas. Conviene repasarlas con él en el gate de aprobación",
+    "El plan cuando no cuadra: si en Presupuestado planea apartar más de lo que su propio plan de ingresos menos gastos deja libre, no está decidido si la app avisa o lo impide. Se le preguntó dos veces y las dos respondió que no entendía la pregunta; se traslada a Diseño para plantearla sobre una pantalla concreta",
+    "Subtotales dentro de la jerarquía de bolsillos: FR-1708 quita la cifra del tipo Reservas, pero no está decidido si un grupo intermedio debe mostrar el suyo",
+    "FR-1708 recoge una decisión que el usuario marcó como PROVISIONAL («mientras tanto»), igual que el número de filas por bolsillo que impone FR-1704 («sería ver la C, pero ok»). Confirmar ambas al revisar el diseño",
+    "Qué hacer con el marcador de versión que dejó la migración de la feature previa: es una restricción declarada, pero la solución se decide en Diseño"
+  ],
+  "coverage_map": [
+    {
+      "need": "Llevar plata de la cuenta principal a un bolsillo",
+      "disposition": "FR-1701"
+    },
+    {
+      "need": "Traer plata de un bolsillo de vuelta a la cuenta principal",
+      "disposition": "FR-1701"
+    },
+    {
+      "need": "El movimiento bolsillo→bolsillo se retira del producto",
+      "disposition": "FR-1701"
+    },
+    {
+      "need": "Un movimiento interno no cambia cuánto dinero hay en total",
+      "disposition": "FR-1701"
+    },
+    {
+      "need": "Solo se puede llevar al bolsillo lo que haya disponible (el techo)",
+      "disposition": "FR-1702"
+    },
+    {
+      "need": "Solo se puede traer del bolsillo lo que tenga (sacar de más)",
+      "disposition": "FR-1702"
+    },
+    {
+      "need": "Una edición vieja no puede dejar sin respaldo un movimiento posterior",
+      "disposition": "FR-1703"
+    },
+    {
+      "need": "La regla del respaldo aplica también al editar un ingreso, no solo un bolsillo",
+      "disposition": "FR-1703"
+    },
+    {
+      "need": "Corregir un ingreso que no rompe nada se sigue permitiendo",
+      "disposition": "FR-1703"
+    },
+    {
+      "need": "La celda del bolsillo solo cuenta lo que entra — el defecto de fondo",
+      "disposition": "FR-1704"
+    },
+    {
+      "need": "Mostrar entradas y salidas por separado, sin números negativos",
+      "disposition": "FR-1704"
+    },
+    {
+      "need": "El saldo del bolsillo se arrastra de un mes al siguiente",
+      "disposition": "FR-1705"
+    },
+    {
+      "need": "El acumulado y el movimiento del mes son dos cifras distintas y ambas importan",
+      "disposition": "FR-1705"
+    },
+    {
+      "need": "Meter plata debe dejar el mismo rastro que sacarla",
+      "disposition": "FR-1706"
+    },
+    {
+      "need": "Poder deshacer un movimiento y que los saldos vuelvan exactos",
+      "disposition": "FR-1706"
+    },
+    {
+      "need": "Presupuestar los movimientos internos, con una cifra por bolsillo",
+      "disposition": "FR-1707"
+    },
+    {
+      "need": "La misma cifra no puede estar calculada en dos sitios",
+      "disposition": "FR-1708"
+    },
+    {
+      "need": "Operar bolsillos en móvil, donde no hay grilla",
+      "disposition": "FR-1709"
+    },
+    {
+      "need": "Retirar el código y los artefactos del modelo descartado",
+      "disposition": "FR-1710"
+    },
+    {
+      "need": "El límite se ve antes de operar, no por mensaje de error",
+      "disposition": "NFR-1706"
+    },
+    {
+      "need": "La conservación del dinero no puede romperse",
+      "disposition": "NFR-1701"
+    },
+    {
+      "need": "El Saldo reservado sigue siendo la suma de los bolsillos",
+      "disposition": "NFR-1702"
+    },
+    {
+      "need": "Gastos e Ingresos no cambian de comportamiento",
+      "disposition": "NFR-1703"
+    },
+    {
+      "need": "Mover de un bolsillo a otro directamente",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Metas por bolsillo con importe objetivo y fecha",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Gastar directamente desde un bolsillo (envelope budgeting)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Nota o motivo por movimiento interno",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cierre de mes que impida editar hacia atrás",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Rediseñar la estructura de la grilla",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Aplanar la jerarquía de bolsillos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Migrar los datos de reservas existentes",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Arreglar los nombres por defecto duplicados",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- Este documento describe el PROBLEMA, no la solución. La solución se decide en discovery,\n     con el usuario. Dos intentos previos fallaron por asumir la solución antes de entender. -->\n\n## Feature\nRepensar cómo se operan las reservas y los movimientos internos: mover dinero entre\n«disponible» y «no disponible» dentro del propio sistema del usuario.\n\n## Problem / Why\n\n**Diagnóstico del usuario, 2026-08-30, sus palabras:**\n\n> «hay que repensar absolutamente todo de cómo operar reservas y movimientos internos. está mal\n> diseñado como lo tenemos.»\n\n> «en la parte de transferencias lo usamos para registrar cualquier transferencia, es como un log\n> manual. y hacemos operaciones en otro lado. además donde registramos las transferencias, las\n> sumamos. y no sé si eso esté bien.»\n\n> «el objetivo es poder hacer movimientos internos para poner dinero disponible o no disponible.\n> eso es movimiento puramente interno.»\n\n**Qué hay hoy.** Las reservas viven como un TIPO más de la grilla de presupuesto, con la misma\nforma que Gastos e Ingresos: grupos, categorías, subcategorías, doce celdas mensuales, planos\nPresupuestado y Ejecutado, y roll-ups que las suman. Y las tres operaciones posibles tienen\ninterfaces y mecanismos de guardado distintos:\n\n| Operación | Cómo se guarda | Dónde se opera |\n|---|---|---|\n| Apartar (Disponible → alcancía) | escribiendo en la celda | grilla |\n| Sacar (alcancía → Disponible) | movimiento en el journal | fila «Retiros del mes» del Balance |\n| Mover (alcancía → alcancía) | movimiento en el journal | solo el Registro |\n\n**Lo que el usuario señala como sospechoso** —y hay que verificar en discovery, no dar por\nsentado—: que el sitio donde se REGISTRAN las transferencias sea también el sitio donde se SUMAN,\ny que las operaciones ocurran en otro lado.\n\n**Síntomas observados sobre datos reales (verificados, no reportados):**\n- La misma cifra existe en dos sitios: el roll-up del grupo «Reservas» en la grilla y la fila\n  «Reservas del mes» del Balance. Poder discrepar fue un bug real (BG-001); que puedan discrepar\n  es lo que está por decidir si es correcto.\n- Apartar no deja rastro: no lleva fecha, ni nota, ni se puede deshacer — es teclear un número.\n  Sacar y mover sí. La misma clase de acto, con memoria en un caso y sin memoria en el otro.\n- La grilla no muestra lo que SALIÓ de una alcancía: la celda es «lo apartado ese mes». Los\n  retiros solo se ven en el Balance.\n- El techo bloquea al teclear en Ejecutado, y cuando se supera —cosa que se logra bajando un\n  ingreso ya registrado— el usuario queda sin poder escribir en NINGUNA celda de reserva de\n  ningún mes siguiente. Le pasó dos veces, el 2026-08-29 y el 2026-08-30.\n- En su última prueba quedaron seis hojas con el mismo nombre por defecto y cifras de resto\n  (4.501, 4.494, 3.993.005) — huella de intentar mover plata y no conseguir lo que quería.\n\n## Target Users\nEl usuario único del producto (single-user). No habilita tipos de usuario nuevos.\n\n## New Behavior\n_Pendiente de discovery. No se declara ninguna conducta antes de entender el problema._\n\n## Success Criteria\n_Pendiente de discovery._\n\n## Touch Points\nAlcance probable, a confirmar: el TIPO `transfer` del árbol de presupuesto, la grilla, el módulo\nde Balance, el Registro, y el dominio de reservas (`src/domain/reserve.ts`). Toca decisiones de\nproducto tomadas el 2026-07-29 (el modelo v4: «la celda transfer es el aporte del mes»), así que\npuede revocar FR aprobados de la feature `transferencias` — señaladamente FR-1003 (editar la celda\ncorrige el aporte) y FR-1006 (techo bloqueante en Ejecutado).\n\n## Must Not Break (Regression Boundary)\n_Pendiente de discovery, salvo lo que ya es innegociable:_\n- La conservación: `total(m) = total(m−1) + flujo(m)`. Un movimiento interno no crea ni destruye\n  dinero, así que el Saldo total no puede moverse por ninguna de estas operaciones.\n- `Saldo reservado` sigue siendo igual a la Σ de los saldos de las alcancías.\n- Gastos e Ingresos no cambian de comportamiento.\n\n## Out of Scope\n- Cargar un gasto contra la alcancía que lo financió (envelope budgeting): BL-035, diferido por\n  decisión del usuario el 2026-08-29. **Puede reabrirse si el rediseño lo hace natural** — pero no\n  se asume.\n- Los nombres por defecto duplicados («Nueva subcategoría» ×6): el usuario lo calificó de error\n  real pero **no grave**, a ver después.\n- El input de la celda de reserva sin sitio para escribir: consecuencia del indicador «Máx.» que\n  añadió `contrapartidas-reserva`; el usuario lo calificó de **trivial**. Desaparece o se rehace\n  según lo que decida el rediseño.\n\n## Preguntas que discovery debe responder\n1. ¿Qué es una alcancía? El usuario CONFIRMÓ el 2026-08-30 que **sí debe poder presupuestarse**.\n   ¿Es entonces una línea de plan Y un bote con saldo a la vez?\n2. ¿Dónde se teclea el plan de una reserva? ¿En la grilla junto a Gastos e Ingresos, o en una\n   superficie propia? — el usuario respondió: «eso hay que diseñarlo bien para saber la respuesta».\n3. ¿Lo ejecutado sigue siendo una celda que se escribe, o se deriva de los movimientos?\n4. ¿Apartar, sacar y mover son tres operaciones o una sola con dos extremos?\n5. ¿El techo avisa o frena?\n6. ¿Cómo convive con el módulo de Balance, que ya dice disponible, reservado y total?\n\n## Notes\n**Relación con `contrapartidas-reserva`.** Esa feature nació creyendo que el problema era un bug\n—el mover no tenía contrapartida— y entregó la mitad del dominio: el movimiento interno se anota\npor sus dos extremos, el saldo derivado recoge las entradas del journal, y la migración v4→v5 ya\ncorrió sobre los datos del usuario. Eso es cierto bajo cualquier diseño futuro y se conserva.\nSu mitad de UI (indicador de margen, señal de techo, «Sacar» en la fila, nota del retiro) queda\nPARADA: son respuestas al modelo que esta feature va a repensar.\n\n**Por qué se empieza por discovery y no por requisitos.** Dos intentos previos de entender el\nproblema fallaron, ambos por inferir en vez de preguntar: primero se dio una hipótesis por causa\n(el usuario la refutó con «no tienes certeza, investiga bien primero») y después se propuso una\nsolución sobre un diagnóstico equivocado (el usuario: «no estás analizando bien... olvida todo»).\nEl entendimiento tiene que quedar escrito y confirmado por él ANTES de que exista un solo FR.\n"
+}
