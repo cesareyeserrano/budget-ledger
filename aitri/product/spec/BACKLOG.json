@@ -339,6 +339,17 @@
       "behavior": "Un gasto puede declarar que alcancia lo financio, y el balance puede reportar cuanto de cada alcancia termino en que rubro.",
       "decisions": "2026-08-29: diferido conscientemente. El usuario objeto —con razon— que mandar el retiro a Disponible ya deja la plata lista para el gasto; lo unico que se pierde es el vinculo, y para eso basta la nota (BL-019). No abrir esta feature salvo que el rastro por nota se demuestre insuficiente.",
       "acceptance": "Dado un ahorro en una alcancia y un gasto pagado con el, el usuario puede ver que ese gasto se financio con esa alcancia sin reconstruirlo de memoria."
+    },
+    {
+      "id": "BL-036",
+      "title": "Cierre de mes: congelar un mes ya cerrado para que no se pueda editar hacia atras",
+      "priority": "P2",
+      "problem": "Editar un mes viejo puede dejar sin respaldo un movimiento posterior. Ejemplo del usuario: en agosto mete 1.000 en un bolsillo, en septiembre saca los 1.000, y despues corrige agosto a 400 — septiembre queda habiendo sacado 1.000 de un bolsillo que solo tenia 400. Hoy la app valida ese caso para los bolsillos (bloquea nombrando el mes que revienta) pero NO para los ingresos, y por esa puerta el usuario quedo dos veces con mas plata apartada de la que tenia, sin poder escribir nada en ningun mes siguiente. IDEA DEL USUARIO, 2026-08-30: «necesitamos implementar un cierre de mes que no deje editar cosas viejas despues del cierre». Es mejor que validar caso por caso porque la regla es PREDECIBLE: antes de cerrar editas libre, despues de cerrar no se toca — en vez de que la app te bloquee a veces si y a veces no, por un motivo que vive en otro mes.",
+      "status": "open",
+      "createdAt": "2026-08-31T03:34:00.188Z",
+      "behavior": "Un mes puede cerrarse. Un mes cerrado no admite ediciones de ninguna clase: ni gastos, ni ingresos, ni movimientos internos.",
+      "decisions": "2026-08-30: el usuario decidio que va como FEATURE APARTE, no dentro de movimientos-internos. Razon: un cierre de mes no afecta solo a las reservas — congela tambien gastos e ingresos — y arrastra decisiones propias (quien cierra, si se puede reabrir, que pasa con los meses futuros). Mientras tanto, movimientos-internos resuelve el caso concreto impidiendo la edicion que dejaria un movimiento sin respaldo.",
+      "acceptance": "Dado un mes cerrado, cuando el usuario intenta editar cualquier celda o movimiento de ese mes, entonces la app no lo permite y explica que el mes esta cerrado."
     }
   ]
 }
