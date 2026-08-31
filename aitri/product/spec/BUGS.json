@@ -455,6 +455,28 @@
       "fix_at": "2026-08-28T08:22:44.898Z",
       "close_commit_sha": "5d60159e7459660e49388d0fac081d2a53bdcd56",
       "close_at": "2026-08-28T16:28:01.422Z"
+    },
+    {
+      "id": "BG-017",
+      "title": "Traslado al crear el primer hijo (FR-604): las CELDAS del padre-hoja se mueven al hijo pero los MOVIMIENTOS de ingreso/gasto del diario NO se re-apuntan (solo los transfer, mutations.ts repointReserveMovements) — queda un movimiento apuntando a un nodo que ya no es hoja. Como ninguna pantalla muestra el diario de ingresos/gastos, la desincronización es invisible: 'movimiento fantasma' (caso real: ingreso de 6.500.000/ago contra el grupo Trabajo, detectado 2026-08-31 solo mirando la BD). Arreglo: re-apuntar también catId/subId/target de ingresos/gastos en el traslado",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "fixed",
+      "fr": "FR-604",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-31T17:02:53.736Z",
+      "updated_at": "2026-08-31T17:08:37.858Z",
+      "resolution": "repointReserveMovements → repointMovements: se retira el filtro por tipo, en la función y en sus 4 invocaciones (createNode + las 3 ramas de moveNode). El journal ahora sigue a las celdas en TODO tipo; from/to solo existen en transfer y se ignoran solos en ingresos/gastos. Regresión: tests/domain/categories.test.ts 'BG-017' — verificada falsable (falla al reponer el filtro). typecheck y lint limpios; 514/516 de la suite (los 2 fallos son preexistentes: esperan data_version=4 y contrapartidas-reserva ya estampa 5).",
+      "fix_commit_sha": "5775271425c9829c78a6e478f0ce299995303d8a",
+      "fix_at": "2026-08-31T17:08:37.858Z"
     }
   ]
 }

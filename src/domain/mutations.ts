@@ -134,9 +134,10 @@ export function createNode(state: LedgerState, input: NewNode): LedgerState {
       next.actuals[id] = { ...(state.actuals[input.parentId] ?? {}) };
       delete next.budgets[input.parentId];
       delete next.actuals[input.parentId];
-      // Los movimientos de reserva siguen a las celdas — sin esto el saldo del hijo renace
-      // sin sus retiros (saldo fantasma, hallazgo adversarial 1).
-      if (input.type === "transfer") repointReserveMovements(next, input.parentId, id);
+      // Los movimientos siguen a las celdas, en TODO tipo — sin esto el saldo de una reserva
+      // renace sin sus retiros (hallazgo adversarial 1) y un ingreso/gasto queda apuntando a un
+      // nodo que ya no es hoja, invisible en la app y vivo en la BD (BG-017).
+      repointMovements(next, input.parentId, id);
     }
   }
   return next;
@@ -349,17 +350,25 @@ function mergeMonthMapForType(
 }
 
 /**
- * Cuando el traslado FR-604 mueve las CELDAS de una hoja transfer a otro nodo, sus movimientos de
- * reserva del journal deben SEGUIR a las celdas (hallazgos adversariales 1-2, 2026-07-29): si los
- * retiros quedan apuntando al nodo cedente, el saldo derivado del receptor renace completo —
- * saldo fantasma del que se puede volver a sacar (se fabrica plata). Re-apunta from/to/target.
+ * Cuando el traslado FR-604 mueve las CELDAS de una hoja a otro nodo, sus movimientos del journal
+ * deben SEGUIR a las celdas, sea cual sea el tipo:
+ * · transfer (hallazgos adversariales 1-2, 2026-07-29): si los retiros quedan apuntando al nodo
+ *   cedente, el saldo derivado del receptor renace completo — saldo fantasma del que se puede
+ *   volver a sacar (se fabrica plata).
+ * · expense/income (BG-017): la celda viaja al hijo pero el movimiento se quedaba apuntando a un
+ *   nodo que ya no es hoja. Ninguna pantalla muestra ese journal, así que el desfase entre lo que
+ *   la grilla dice y lo que la BD guarda quedaba INVISIBLE — un movimiento fantasma (caso real:
+ *   un ingreso de 6.500.000 contra el grupo «Trabajo», hallado solo mirando la base).
+ * Re-apunta from/to (solo los tienen las reservas) y target/catId/subId (todos los tipos).
+ *
+ * @aitri-trace FR-ID: FR-604, US-ID: US-604, AC-ID: AC-604a, TC-ID: TC-604h
  */
-function repointReserveMovements(next: LedgerState, cedingId: string, receivingId: string): void {
+function repointMovements(next: LedgerState, cedingId: string, receivingId: string): void {
   const receiver = findNode(next.nodes, receivingId);
   const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;
   const subId = receiver && receiver.level === "sub" ? receivingId : null;
   next.movements = next.movements.map((m) => {
-    if (m.type !== "transfer" || (m.from !== cedingId && m.to !== cedingId && m.target !== cedingId)) return m;
+    if (m.from !== cedingId && m.to !== cedingId && m.target !== cedingId) return m;
     const nm = { ...m };
     if (nm.from === cedingId) nm.from = receivingId;
     if (nm.to === cedingId) nm.to = receivingId;
@@ -448,8 +457,8 @@ export function moveNode(
       next.actuals[target] = mergeMonthMapForType(node.type, state.actuals[dest.id], next.actuals[target]);
       delete next.budgets[dest.id];
       delete next.actuals[dest.id];
-      // Los movimientos de reserva del destino cedente siguen a sus celdas (hallazgo adversarial 2).
-      if (node.type === "transfer") repointReserveMovements(next, dest.id, target);
+      // Los movimientos del destino cedente siguen a sus celdas (hallazgo adversarial 2, BG-017).
+      repointMovements(next, dest.id, target);
     }
     return { state: next };
   }
@@ -480,8 +489,8 @@ export function moveNode(
       next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
       delete next.budgets[dest.id];
       delete next.actuals[dest.id];
-      // Los movimientos de reserva del destino cedente siguen a sus celdas (hallazgo adversarial 2).
-      if (node.type === "transfer") repointReserveMovements(next, dest.id, id);
+      // Los movimientos del destino cedente siguen a sus celdas (hallazgo adversarial 2, BG-017).
+      repointMovements(next, dest.id, id);
     }
     return { state: next };
   }
@@ -500,8 +509,8 @@ export function moveNode(
     next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
     delete next.budgets[dest.id];
     delete next.actuals[dest.id];
-    // Los movimientos de reserva del grupo-hoja cedente siguen a sus celdas (hallazgo adversarial 2).
-    if (node.type === "transfer") repointReserveMovements(next, dest.id, id);
+    // Los movimientos del grupo-hoja cedente siguen a sus celdas (hallazgo adversarial 2, BG-017).
+    repointMovements(next, dest.id, id);
   }
   return { state: next };
 }

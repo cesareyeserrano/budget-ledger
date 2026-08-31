@@ -201,4 +201,38 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     expect(next.actuals[grp.id]).toBeUndefined();
     expect(next.budgets[grp.id]).toBeUndefined();
   });
+
+  // BG-017 (FR-604): el traslado al ganar el primer hijo movía las CELDAS al hijo pero dejaba los
+  // MOVIMIENTOS de ingreso/gasto apuntando al padre — que ya no es hoja. Como ninguna pantalla
+  // muestra ese journal, el desfase entre la grilla y la BD era invisible: un movimiento fantasma
+  // (caso real 2026-08-31: un ingreso de 6.500.000 contra el grupo «Trabajo», visible solo en la
+  // base). El journal debe seguir a las celdas en TODO tipo, no solo en transfer.
+  it("BG-017: al crear el primer hijo, los movimientos de ingreso siguen a las celdas (sin fantasmas)", () => {
+    let s = buildSeed("local");
+    s = createNode(s, { level: "group", parentId: null, type: "income", name: "Trabajo BG017" });
+    const grupo = s.nodes.find((n) => n.name === "Trabajo BG017")!;
+    // Registrar contra el grupo-hoja: la app lo ofrece mientras no tenga categorías (FR-603).
+    s = addMovement(s, { type: "income", catId: grupo.id, subId: null, month: "ago", amount: 6_500_000 });
+    const mvId = s.movements[0].id;
+    expect(s.actuals[grupo.id]?.ago).toBe(6_500_000);
+
+    // El grupo gana su primera categoría → las celdas se trasladan al hijo.
+    s = createNode(s, { level: "category", parentId: grupo.id, type: "income", name: "Salario BG017" });
+    const salario = s.nodes.find((n) => n.name === "Salario BG017")!;
+    expect(s.actuals[salario.id]?.ago).toBe(6_500_000);
+    expect(s.actuals[grupo.id]).toBeUndefined();
+
+    // El movimiento tiene que haber seguido a la celda: apuntar al hijo, no al grupo.
+    const mv = s.movements.find((m) => m.id === mvId)!;
+    expect(mv.target).toBe(salario.id);
+    expect(mv.catId).toBe(salario.id);
+    expect(mv.subId).toBeNull();
+    expect(s.movements.some((m) => m.target === grupo.id)).toBe(false);
+
+    // Y tras vaciar la celda del hijo, no queda ningún movimiento apuntando a un nodo no-hoja:
+    // lo que la grilla muestra (0) es lo que el journal respalda.
+    s = setLeafAmount(s, salario.id, "ago", "actual", 0);
+    const huerfanos = s.movements.filter((m) => !isLeaf(findNode(s.nodes, m.target)!, s.nodes));
+    expect(huerfanos).toEqual([]);
+  });
 });
