@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX_PREVIEW — techo-de-flujo</title>
+<style>
+  /* Autocontenido: cero peticiones externas (sin CDN, sin fuentes web, sin imágenes). */
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 20px 64px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #ececed; color: #1c1c1f; line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; font-weight: 600; }
+  h2 { font-size: 1rem; margin: 0 0 12px; font-weight: 600; }
+  .sub { margin: 0; color: #55555d; font-size: .9rem; max-width: 78ch; }
+  .banner {
+    padding: 8px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600;
+    background: #fff5d6; border: 1px solid #e0c04a; color: #6b5200;
+  }
+
+  /* Dos paneles, cada uno fija SU paleta: la comparación no depende del tema del visor. */
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 20px; }
+  .panel { border-radius: 12px; padding: 20px; border: 1px solid rgba(128,128,128,.35); }
+  .panel h2 { letter-spacing: .04em; text-transform: uppercase; font-size: .72rem; opacity: .75; }
+
+  .panel.light {
+    --bg:#f7f7f8; --bg-card:#ffffff; --bg-elevated:#ffffff; --bg-sunken:#f1f1f3;
+    --accent:#1c1c1f; --fg:#1c1c1f; --fg-secondary:#55555d; --fg-muted:#6b6b73;
+    --border:#e3e3e7; --border-strong:#d3d3d9; --alert-strong:#ad3932;
+    --shadow-md: 0 4px 12px rgb(0 0 0 / .08);
+    background:#f7f7f8; color:#1c1c1f;
+  }
+  .panel.dark {
+    --bg:#131316; --bg-card:#1b1b1f; --bg-elevated:#26262b; --bg-sunken:#0f0f12;
+    --accent:#f4f4f5; --fg:#f4f4f5; --fg-secondary:#b4b4bb; --fg-muted:#9b9ba3;
+    --border:#33333a; --border-strong:#43434c; --alert-strong:#ec6a66;
+    --shadow-md: 0 4px 12px rgb(0 0 0 / .5);
+    background:#131316; color:#f4f4f5;
+  }
+
+  .sw { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .sw-row { display: flex; align-items: center; gap: 10px; font-size: .78rem; }
+  .chip { width: 34px; height: 22px; border-radius: 5px; border: 1px solid var(--border-strong); flex: none; }
+  .sw-name { width: 116px; flex: none; font-weight: 500; }
+  .sw-hex { font-family: ui-monospace, "SF Mono", Menlo, monospace; width: 74px; flex: none; opacity: .85; }
+  .sw-why { color: var(--fg-secondary); font-size: .74rem; }
+  .aa {
+    font-family: ui-monospace, monospace; font-size: .68rem; padding: 1px 6px; border-radius: 999px;
+    border: 1px solid currentColor; flex: none;
+  }
+
+  .scale-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .scale-tag { font-family: ui-monospace, monospace; font-size: .68rem; color: var(--fg-muted); width: 128px; flex: none; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .spacing { display: flex; align-items: flex-end; gap: 12px; margin-top: 4px; }
+  .sp { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .66rem; color: var(--fg-muted); }
+  .sp i { display: block; background: var(--accent); opacity: .55; width: 12px; }
+
+  /* ── Composición ilustrativa: la grilla a escala real ─────────────── */
+  .demo { background: var(--bg); border-radius: 10px; padding: 14px; overflow-x: auto; }
+  .g { display: inline-flex; flex-direction: column; min-width: min-content; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+  .g + .g { margin-top: 24px; }         /* --spacing-6: la separación entre segmentos */
+  .r { display: flex; border-top: 1px solid var(--border); min-height: 30px; }
+  .r:first-child { border-top: 0; }
+  .lbl { width: 150px; flex: none; display: flex; align-items: center; padding: 0 10px; font-size: .72rem; color: var(--fg-secondary); }
+  .lbl.tipo { font-weight: 600; color: var(--fg); }
+  .c {
+    width: 108px; flex: none; position: relative; padding: 4px 8px;
+    border-left: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end;
+    font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: .72rem; color: var(--fg);
+  }
+  .c.head { background: var(--bg-sunken); color: var(--fg-muted); justify-content: space-between; }
+  .c.activa { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .c.edit { padding: 4px; }
+  .inp {
+    width: 100%; min-width: 0; text-align: right;
+    font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: .72rem;
+    background: var(--bg-elevated); color: var(--fg);
+    border: 1px solid var(--accent); border-radius: 8px; padding: 3px 6px;
+  }
+  .maxlab {
+    position: absolute; left: 0; top: 100%; margin-top: 4px; z-index: 3;
+    font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: .66rem;
+    white-space: nowrap; padding: 3px 7px; border-radius: 8px;
+    background: var(--bg-elevated); border: 1px solid var(--border); box-shadow: var(--shadow-md);
+    color: var(--fg-muted);
+  }
+  .maxlab.mal { color: var(--alert-strong); border-color: var(--alert-strong); }
+  .warn { color: var(--alert-strong); font-size: .8rem; line-height: 1; }
+  .franja {
+    display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 8px 10px;
+    border: 1px solid var(--alert-strong); border-radius: 8px;
+    background: var(--bg-card); box-shadow: var(--shadow-md); font-size: .72rem; color: var(--fg);
+  }
+  .obs {
+    margin-top: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); font-size: .72rem; color: var(--fg-muted);
+  }
+  .oplist { margin-top: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated); }
+  .oplist h4 { margin: 0 0 6px; font-size: .72rem; font-weight: 600; color: var(--fg-secondary); }
+  .op { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: var(--fg); padding: 3px 0; }
+  .op .fecha { color: var(--fg-muted); width: 44px; flex: none; font-family: ui-monospace, monospace; }
+  .op .quien { flex: 1; }
+  .op input {
+    width: 78px; text-align: right; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;
+    font-size: .72rem; background: var(--bg-card); color: var(--fg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 2px 5px;
+  }
+  .caption { font-size: .68rem; color: var(--fg-muted); margin-top: 8px; }
+
+  .gaps { background: #fff; border: 1px solid #d3d3d9; border-radius: 10px; padding: 16px; font-size: .84rem; }
+  .gaps ul { margin: 8px 0 0; padding-left: 20px; }
+  footer { font-size: .78rem; color: #55555d; border-top: 1px solid #d3d3d9; padding-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>UX_PREVIEW — techo-de-flujo</h1>
+    <p class="sub">Manual visual del spec: los tokens que la feature consume y las tres piezas nuevas
+      renderizadas a escala real (celda de 108&nbsp;px). Ningún token es nuevo — todos vienen de
+      <code>globals.css</code> y de los roles canónicos de <code>refinamiento-ui</code> FR-1201.</p>
+  </header>
+
+  <div class="panels">
+    <!-- ══════════ CLARO ══════════ -->
+    <section class="panel light">
+      <h2>Tema claro</h2>
+      <div class="sw">
+        <div class="sw-row"><span class="chip" style="background:#f7f7f8"></span><span class="sw-name">--bg</span><span class="sw-hex">#f7f7f8</span><span class="sw-why">lienzo de la grilla</span></div>
+        <div class="sw-row"><span class="chip" style="background:#ffffff"></span><span class="sw-name">--bg-card</span><span class="sw-hex">#ffffff</span><span class="sw-why">superficie de los tres segmentos</span></div>
+        <div class="sw-row"><span class="chip" style="background:#ffffff"></span><span class="sw-name">--bg-elevated</span><span class="sw-hex">#ffffff</span><span class="sw-why">recuadro del «Máx.», popover — flota por sombra</span></div>
+        <div class="sw-row"><span class="chip" style="background:#f1f1f3"></span><span class="sw-name">--bg-sunken</span><span class="sw-hex">#f1f1f3</span><span class="sw-why">encabezado de meses (aloja la marca de error)</span></div>
+        <div class="sw-row"><span class="chip" style="background:#1c1c1f"></span><span class="sw-name">--fg</span><span class="sw-hex">#1c1c1f</span><span class="aa">AA 16.4</span><span class="sw-why">cifras y montos editables</span></div>
+        <div class="sw-row"><span class="chip" style="background:#55555d"></span><span class="sw-name">--fg-secondary</span><span class="sw-hex">#55555d</span><span class="aa">AA 7.3</span><span class="sw-why">rótulos de fila</span></div>
+        <div class="sw-row"><span class="chip" style="background:#6b6b73"></span><span class="sw-name">--fg-muted</span><span class="sw-hex">#6b6b73</span><span class="aa">AA 4.93</span><span class="sw-why">«Máx.» normal, observación del mes</span></div>
+        <div class="sw-row"><span class="chip" style="background:#ad3932"></span><span class="sw-name">--alert-strong</span><span class="sw-hex">#ad3932</span><span class="aa">AA 5.76</span><span class="sw-why">«Máx.» al pasarse, marca y franja de error</span></div>
+        <div class="sw-row"><span class="chip" style="background:#1c1c1f"></span><span class="sw-name">--accent</span><span class="sw-hex">#1c1c1f</span><span class="sw-why">borde del input; sombreado de mes activo al 8%</span></div>
+        <div class="sw-row"><span class="chip" style="background:#e3e3e7"></span><span class="sw-name">--border</span><span class="sw-hex">#e3e3e7</span><span class="sw-why">separación de celdas y campos</span></div>
+      </div>
+
+      <h2>Escala tipográfica</h2>
+      <div class="scale-row"><span class="scale-tag">--text-label · 13px</span><span>Etiquetas del popover</span></div>
+      <div class="scale-row"><span class="scale-tag">--text-caption · 12px</span><span class="mono">1.500.000 &nbsp;celdas y montos</span></div>
+      <div class="scale-row"><span class="scale-tag">caption · 11px</span><span class="mono" style="color:#6b6b73">Máx. 10.200.000</span></div>
+      <p class="caption">Mono con <code>tabular-nums</code> en toda cifra, para que las columnas alineen.</p>
+
+      <h2 style="margin-top:18px">Espaciado y radios</h2>
+      <div class="spacing">
+        <div class="sp"><i style="height:4px"></i>--spacing-1<br>4px</div>
+        <div class="sp"><i style="height:24px"></i>--spacing-6<br>24px</div>
+        <div class="sp"><i style="height:8px;width:22px;border-radius:8px"></i>--radius-sm<br>8px</div>
+      </div>
+      <p class="caption">4px separa el «Máx.» del input; 24px separa los tres segmentos de la grilla.</p>
+    </section>
+
+    <!-- ══════════ OSCURO ══════════ -->
+    <section class="panel dark">
+      <h2>Tema oscuro</h2>
+      <div class="sw">
+        <div class="sw-row"><span class="chip" style="background:#131316"></span><span class="sw-name">--bg</span><span class="sw-hex">#131316</span><span class="sw-why">lienzo de la grilla</span></div>
+        <div class="sw-row"><span class="chip" style="background:#1b1b1f"></span><span class="sw-name">--bg-card</span><span class="sw-hex">#1b1b1f</span><span class="sw-why">superficie de los tres segmentos</span></div>
+        <div class="sw-row"><span class="chip" style="background:#26262b"></span><span class="sw-name">--bg-elevated</span><span class="sw-hex">#26262b</span><span class="sw-why">recuadro del «Máx.», popover</span></div>
+        <div class="sw-row"><span class="chip" style="background:#0f0f12"></span><span class="sw-name">--bg-sunken</span><span class="sw-hex">#0f0f12</span><span class="sw-why">encabezado de meses</span></div>
+        <div class="sw-row"><span class="chip" style="background:#f4f4f5"></span><span class="sw-name">--fg</span><span class="sw-hex">#f4f4f5</span><span class="aa">AA 15.8</span><span class="sw-why">cifras y montos editables</span></div>
+        <div class="sw-row"><span class="chip" style="background:#b4b4bb"></span><span class="sw-name">--fg-secondary</span><span class="sw-hex">#b4b4bb</span><span class="aa">AA 9.1</span><span class="sw-why">rótulos de fila</span></div>
+        <div class="sw-row"><span class="chip" style="background:#9b9ba3"></span><span class="sw-name">--fg-muted</span><span class="sw-hex">#9b9ba3</span><span class="aa">AA 6.72</span><span class="sw-why">«Máx.» normal, observación del mes</span></div>
+        <div class="sw-row"><span class="chip" style="background:#ec6a66"></span><span class="sw-name">--alert-strong</span><span class="sw-hex">#ec6a66</span><span class="aa">AA 6.02</span><span class="sw-why">«Máx.» al pasarse, marca y franja</span></div>
+        <div class="sw-row"><span class="chip" style="background:#f4f4f5"></span><span class="sw-name">--accent</span><span class="sw-hex">#f4f4f5</span><span class="sw-why">borde del input; sombreado de mes activo</span></div>
+        <div class="sw-row"><span class="chip" style="background:#33333a"></span><span class="sw-name">--border</span><span class="sw-hex">#33333a</span><span class="sw-why">separación de celdas y campos</span></div>
+      </div>
+
+      <h2>Escala tipográfica</h2>
+      <div class="scale-row"><span class="scale-tag">--text-label · 13px</span><span>Etiquetas del popover</span></div>
+      <div class="scale-row"><span class="scale-tag">--text-caption · 12px</span><span class="mono">1.500.000 &nbsp;celdas y montos</span></div>
+      <div class="scale-row"><span class="scale-tag">caption · 11px</span><span class="mono" style="color:#9b9ba3">Máx. 10.200.000</span></div>
+      <p class="caption">Idéntica escala en ambos temas: solo cambian los colores.</p>
+
+      <h2 style="margin-top:18px">Espaciado y radios</h2>
+      <div class="spacing">
+        <div class="sp"><i style="height:4px"></i>--spacing-1<br>4px</div>
+        <div class="sp"><i style="height:24px"></i>--spacing-6<br>24px</div>
+        <div class="sp"><i style="height:8px;width:22px;border-radius:8px"></i>--radius-sm<br>8px</div>
+      </div>
+    </section>
+  </div>
+
+  <p class="banner">ILUSTRATIVO — no vinculante; el spec es el contrato.</p>
+
+  <div class="panels">
+    <section class="panel light">
+      <h2>Composición en contexto — tema claro</h2>
+      <div class="demo">
+        <!-- Segmento 1 -->
+        <div class="g">
+          <div class="r">
+            <div class="lbl"></div>
+            <div class="c head">Feb</div>
+            <div class="c head activa">Mar <span class="warn" title="Marzo: reservas 500 por encima del margen">▲</span></div>
+            <div class="c head">Abr</div>
+          </div>
+          <div class="r"><div class="lbl tipo">Ingresos</div><div class="c">1.000.000</div><div class="c activa">1.000.000</div><div class="c">0</div></div>
+          <div class="r"><div class="lbl tipo">Gastos</div><div class="c">250.000</div><div class="c activa">0</div><div class="c">0</div></div>
+        </div>
+        <!-- Segmento 2 -->
+        <div class="g">
+          <div class="r"><div class="lbl tipo">Reservas</div><div class="c"></div><div class="c activa"></div><div class="c"></div></div>
+          <div class="r">
+            <div class="lbl">Alcancía · Ejec.</div>
+            <div class="c">250.000</div>
+            <div class="c edit activa">
+              <input class="inp" value="1.500.000" readonly aria-label="Reserva de marzo">
+              <span class="maxlab mal">Máx. 1.000.000</span>
+            </div>
+            <div class="c">0</div>
+          </div>
+          <div class="r"><div class="lbl">Viaje · Ejec.</div><div class="c">0</div><div class="c activa">0</div><div class="c">0</div></div>
+          <div class="r"><div class="lbl tipo">Retiros del mes</div><div class="c">0</div><div class="c activa">500.000</div><div class="c">0</div></div>
+        </div>
+        <!-- Segmento 3 -->
+        <div class="g">
+          <div class="r"><div class="lbl tipo">Balance</div><div class="c">750.000</div><div class="c activa">0</div><div class="c">0</div></div>
+        </div>
+
+        <div class="franja"><span class="warn">▲</span><span><b>Marzo:</b> reservas 500.000 por encima del margen del mes — los meses siguientes quedan sin margen.</span></div>
+        <div class="obs">De los 1.500.000 reservados este mes, 500.000 salieron del saldo de febrero.</div>
+        <div class="oplist">
+          <h4>Operaciones de este mes</h4>
+          <div class="op"><span class="fecha">15/03</span><span class="quien">Alcancía → Disponible</span><input value="500.000" readonly aria-label="Monto del retiro"></div>
+          <div class="op"><span class="fecha">22/03</span><span class="quien">Alcancía → Viaje</span><input value="100.000" readonly aria-label="Monto del movimiento"></div>
+        </div>
+        <p class="caption">El «Máx.» flota bajo el input sin robarle ancho · la columna del mes activo se sombrea en los tres bloques · los montos de la lista son editables (0 elimina).</p>
+      </div>
+    </section>
+
+    <section class="panel dark">
+      <h2>Composición en contexto — tema oscuro</h2>
+      <div class="demo">
+        <div class="g">
+          <div class="r">
+            <div class="lbl"></div>
+            <div class="c head">Feb</div>
+            <div class="c head activa">Mar <span class="warn" title="Marzo: reservas 500 por encima del margen">▲</span></div>
+            <div class="c head">Abr</div>
+          </div>
+          <div class="r"><div class="lbl tipo">Ingresos</div><div class="c">1.000.000</div><div class="c activa">1.000.000</div><div class="c">0</div></div>
+          <div class="r"><div class="lbl tipo">Gastos</div><div class="c">250.000</div><div class="c activa">0</div><div class="c">0</div></div>
+        </div>
+        <div class="g">
+          <div class="r"><div class="lbl tipo">Reservas</div><div class="c"></div><div class="c activa"></div><div class="c"></div></div>
+          <div class="r">
+            <div class="lbl">Alcancía · Ejec.</div>
+            <div class="c">250.000</div>
+            <div class="c edit activa">
+              <input class="inp" value="800.000" readonly aria-label="Reserva de marzo">
+              <span class="maxlab">Máx. 1.000.000</span>
+            </div>
+            <div class="c">0</div>
+          </div>
+          <div class="r"><div class="lbl">Viaje · Ejec.</div><div class="c">0</div><div class="c activa">0</div><div class="c">0</div></div>
+          <div class="r"><div class="lbl tipo">Retiros del mes</div><div class="c">0</div><div class="c activa">500.000</div><div class="c">0</div></div>
+        </div>
+        <div class="g">
+          <div class="r"><div class="lbl tipo">Balance</div><div class="c">750.000</div><div class="c activa">200.000</div><div class="c">0</div></div>
+        </div>
+        <div class="obs">Sin observación automática: lo reservado cabe en el flujo del mes.</div>
+        <div class="oplist">
+          <h4>Operaciones de este mes</h4>
+          <div class="op"><span class="fecha">15/03</span><span class="quien">Alcancía → Disponible</span><input value="500.000" readonly aria-label="Monto del retiro"></div>
+        </div>
+        <p class="caption">Mismo diseño en oscuro: el «Máx.» dentro del límite va en <code>--fg-muted</code>, sin alerta.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="gaps">
+    <b>Nota honesta de lo que este preview NO muestra:</b>
+    <ul>
+      <li>Los estados <i>loading</i> y <i>empty</i> de cada componente: están descritos en el spec, pero renderizarlos aquí duplicaría el documento sin ayudar a juzgar los tokens.</li>
+      <li>La pantalla <b>Registrar</b> (375px): esta feature no la modifica, así que no se ilustra.</li>
+      <li>El comportamiento a 768px: la disposición es la misma que a 1440px con menos meses visibles.</li>
+      <li>Los triángulos de alerta se dibujan aquí con el carácter ▲; en la app son el icono <code>TriangleAlert</code> de lucide, con el mismo color.</li>
+      <li>Las cifras de contraste son las MEDIDAS declaradas en el spec, no calculadas en vivo por esta página.</li>
+    </ul>
+  </section>
+
+  <footer>Generado desde 01_UX_SPEC.md — no vinculante; el spec es el contrato.</footer>
+</div>
+</body>
+</html>

@@ -1,8 +1,101 @@
 {
+  "currentPhase": 2,
+  "approvedPhases": [
+    1,
+    "ux"
+  ],
+  "completedPhases": [
+    1,
+    "ux"
+  ],
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
-  "currentPhase": 0,
-  "approvedPhases": [],
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-31T18:29:46.095Z"
+  "updatedAt": "2026-08-31T20:00:35.222Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-08-31T19:16:49.669Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:17:59.839Z",
+      "event": "started",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:34:28.276Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:39:26.767Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:48:51.124Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:54:36.783Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T19:54:36.937Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-08-31T19:55:52.180Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T19:55:57.404Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T19:56:00.176Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T19:59:08.750Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:00:25.206Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:00:35.222Z",
+      "event": "started",
+      "phase": 2
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "510068277f195957a14b45bc83a301283dab9f03cabe678dac6a88337e0fd5f5",
+    "ux": "eb1e746839a3b467592af494296c20516ec106423e28a838586e9e4ded60e649"
+  },
+  "frSnapshots": {
+    "ux": [
+      "FR-1801",
+      "FR-1802",
+      "FR-1803",
+      "FR-1804",
+      "FR-1805",
+      "FR-1806",
+      "FR-1807",
+      "FR-1808"
+    ]
+  }
 }
