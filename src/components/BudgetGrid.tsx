@@ -1,7 +1,7 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert } from "lucide-react";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import type { LedgerNode, LedgerState, MonthKey, NodeLevel, NodeType } from "@/domain/types";
 import { MONTHS, monthLabel } from "@/domain/months";
@@ -11,6 +11,7 @@ import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { planTechoMonths, monthIssues, monthCarryUsage, type MonthIssue } from "@/domain/reserve";
 import { CellNotesSection, ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
@@ -436,30 +437,19 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
         // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
         // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
         const t = typeTotals(data, type, [m.k]);
-        // FR-1804: la observación automática del mes cuelga de la celda del TOTAL de Reservas —
-        // es del MES y de ningún bolsillo, así que atribuirla a uno concreto sería arbitrario
-        // cuando hay varios. Se DERIVA del estado (no se almacena): por eso se reescribe sola
-        // cuando la reserva cambia y desaparece cuando vuelve a caber en el flujo del mes.
-        const carry = type === "transfer" ? monthCarryUsage(data, m.k, "actual") : null;
         return (
           <div key={m.k} className="flex">
             {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
             <Cell value={t.budget} sep bold color={color} sunken highlight={highlightMonth === m.k} />
-            <Cell
-              value={t.actual}
-              bold
-              color={color}
-              sunken
-              highlight={highlightMonth === m.k}
-              notes={carry ? 1 : 0}
-              carryNote={carry ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${monthLabel(carry.mesAnterior).toLowerCase()}.` : undefined}
-            />
+            <Cell value={t.actual} bold color={color} sunken highlight={highlightMonth === m.k} />
           </div>
         );
       })}
     </div>
   );
 }
+
+
 
 /** Nº de observaciones de una celda — el indicador que la marca (FR-1809). */
 function useNotesOf(data: LedgerState) {
@@ -667,14 +657,15 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
     >
       {/* Canal redundante de WCAG 1.4.1 (FR-402): aria-hidden porque el dato ya lo portan el monto
           y el Pres. adyacente. flex-none para que nunca empuje al monto fuera de la celda. */}
-      {/* FR-1809: la celda con observaciones lo dice con un punto, igual que las de bolsillos.
-          Sin observaciones no hay marca: la grilla no gana ruido donde no hay nada anotado. */}
+      {/* FR-1809: la celda con observaciones lo dice con un marcador. En ÁMBAR y no en gris, y con
+          más cuerpo que el punto de 4px que había: el usuario pidió «algún elemento más visible».
+          Sin observaciones no hay marca — la grilla no gana ruido donde no hay nada anotado. */}
       {notes ? (
         <span
           data-testid="note-dot"
           aria-hidden="true"
-          className="absolute right-[3px] top-[3px] h-[4px] w-[4px] rounded-full"
-          style={{ background: "var(--fg-muted)" }}
+          className="absolute right-[2px] top-[2px] h-[7px] w-[7px] rounded-full border"
+          style={{ background: "var(--alert-soft)", borderColor: "var(--bg)" }}
         />
       ) : null}
       {glyph ? <span data-testid="cell-glyph" aria-hidden="true" title={GLYPH_TITLE[glyph]} className="flex-none mr-1 text-caption leading-none">{glyph}</span> : null}

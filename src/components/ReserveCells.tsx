@@ -22,6 +22,7 @@ import {
   isAvailable,
   plannedRetiroLimit,
   cellHeadroom,
+  monthCarryUsage,
   monthReserveOps,
   reserveLeafIds,
   reserveRetiros,
@@ -36,6 +37,7 @@ import { cellNum, money } from "./format";
 import { CELL_W } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Info } from "lucide-react";
 
 
 /** Marca de forma del aviso de plan: canal no cromático PROPIO — ≠ ›/›› y ≠ ‹‹ (WCAG 1.4.1). */
@@ -64,6 +66,9 @@ export function ReserveLeafCell(props: {
 
   // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
   const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month) : [];
+  // FR-1804 — y la automática, si esta celda aportó en un mes que se completó del saldo anterior.
+  const carry =
+    props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual") : null;
 
   const color = planWarn
     ? "var(--state-warning)"
@@ -74,9 +79,11 @@ export function ReserveLeafCell(props: {
         : "var(--fg-secondary)";
   const title = planWarn
     ? `Este plan supera tu margen de ${monthLabel(props.month).toLowerCase()}`
-    : observations.length > 0
-      ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
-      : undefined;
+    : carry
+      ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${monthLabel(carry.mesAnterior).toLowerCase()}.`
+      : observations.length > 0
+        ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
+        : undefined;
 
   return (
     <div
@@ -87,12 +94,12 @@ export function ReserveLeafCell(props: {
       className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
       style={{ color, background: props.highlight ? "color-mix(in srgb, var(--accent) 6%, var(--bg))" : "var(--bg)" }}
     >
-      {observations.length > 0 && (
+      {(observations.length > 0 || carry) && (
         <span
           data-testid="note-dot"
           aria-hidden="true"
-          className="absolute right-[3px] top-[3px] h-[4px] w-[4px] rounded-full"
-          style={{ background: "var(--fg-muted)" }}
+          className="absolute right-[2px] top-[2px] h-[7px] w-[7px] rounded-full border"
+          style={{ background: "var(--alert-soft)", borderColor: "var(--bg)" }}
         />
       )}
       {planWarn ? (
@@ -252,13 +259,29 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Mon
   const addNote = useLedgerStore((s) => s.addCellNote);
   const [draft, setDraft] = useState("");
   const observations = cellObservations(data, leafId, month);
+  // FR-1804 — la observación AUTOMÁTICA del mes, en la celda donde se reservó (que es donde el
+  // usuario la busca). Se muestra solo si ESTA celda aportó ese mes: es información del mes, pero
+  // aparece donde la acción ocurrió, no en la fila de total. La escribe la app y se deriva del
+  // estado, así que se reescribe sola y desaparece cuando el mes vuelve a caber en su flujo.
+  const aporto = (data.actuals[leafId]?.[month] ?? 0) > 0;
+  const carry = aporto ? monthCarryUsage(data, month, "actual") : null;
   const over = draft.length > CELL_NOTE_MAX;
   const canAdd = draft.trim().length > 0 && !over;
 
   return (
     <div data-testid="cell-notes" className="flex flex-col gap-1 text-[12px]">
       <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Observaciones</span>
-      {observations.length === 0 ? (
+      {carry ? (
+        <div data-testid="carry-note" className="flex items-start gap-1.5 rounded-(--radius-xs) px-1.5 py-1" style={{ background: "color-mix(in srgb, var(--alert-soft) 8%, transparent)" }}>
+          <Info size={12} className="flex-none mt-[2px]" style={{ color: "var(--alert-soft)" }} aria-hidden="true" />
+          <span style={{ color: "var(--fg)" }}>
+            De los <span className="tabular">{money(carry.reservado)}</span> reservados este mes,{" "}
+            <span className="tabular">{money(carry.delSaldoAnterior)}</span> salieron del saldo de{" "}
+            {monthLabel(carry.mesAnterior).toLowerCase()}.
+          </span>
+        </div>
+      ) : null}
+      {observations.length === 0 && !carry ? (
         <span data-testid="cell-notes-empty" style={{ color: "var(--fg-muted)" }}>Sin observaciones este mes</span>
       ) : (
         <ul className="flex flex-col gap-0.5">

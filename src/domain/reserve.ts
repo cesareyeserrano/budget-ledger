@@ -961,11 +961,14 @@ export function labelOfEnd(state: LedgerState, id: string | null | undefined): s
 
 // ── Observaciones por celda ────────────────────────────────────────────────────────────────────
 
-/** Observación legible desde una celda: manual (cellNotes) o derivada (nota de una operación De→A). */
+/**
+ * Observación legible desde una celda: manual (`cellNotes`), derivada de una operación De→A, o
+ * AUTOMÁTICA del mes (FR-1804 — el uso del saldo anterior, que la app escribe y mantiene sola).
+ */
 export interface CellObservation {
   createdAt: number;
   text: string;
-  source: "manual" | "movement";
+  source: "manual" | "movement" | "auto";
 }
 
 /**
