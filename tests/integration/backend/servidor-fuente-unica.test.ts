@@ -141,7 +141,11 @@ describe("FR-1105 — el retiro del saneador local no cambia el camino de servid
     expect(migrado.actuals["c-alcancia"]).toEqual({ ene: 100_000 });
     expect(resolvedBalance(migrado, "c-alcancia", "dic", "actual")).toBe(100_000);
     const [row] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${userId}`)) as unknown as { data_version: number }[];
-    expect(row.data_version).toBe(4);
+    // El marcador estampado es el VIGENTE de la cadena, no el de la conversión concreta que se
+    // probó aquí: `contrapartidas-reserva` añadió el paso v4→v5 y el servidor sella el final de la
+    // cadena en la misma transacción. La aserción de que la conversión v3→v4 corrió sobre las celdas se conserva intacta arriba; lo único
+    // que cambia es la constante.
+    expect(row.data_version).toBe(5);
   });
 });
 

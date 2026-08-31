@@ -993,7 +993,16 @@ export const CELL_NOTE_MAX = 280;
  * Añade una observación MANUAL a una celda. Rechaza texto vacío o de más de 280 caracteres SIN
  * truncar — el exceso es un error del input, no algo que se recorta en silencio.
  *
+ * FR-1809: la celda puede ser de CUALQUIER tipo. Hasta esta feature solo las de bolsillos las
+ * admitían, así que un gasto o un ingreso no se podía anotar; el usuario lo pidió expresamente
+ * («todas las celdas deberían tener observaciones opcionales»). El almacenamiento ya era genérico
+ * —`cellNotes` mapea nodo→mes→notas y la tabla `cell_note` no restringe el tipo—, así que esto
+ * amplía el ALCANCE, no el modelo. La guarda pasa a exigir una hoja existente: los nodos padre son
+ * roll-up y no tienen celda propia que anotar.
+ *
  * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1809, US-ID: US-1809, AC-ID: AC-1835, TC-ID: TC-TDF-080h, TC-TDF-083e
  */
 export function addCellNote(
   state: LedgerState,
@@ -1001,7 +1010,8 @@ export function addCellNote(
   month: MonthKey,
   text: string
 ): { state: LedgerState } | { rejected: "invalid_note" | "invalid_target" } {
-  if (!isReserveLeaf(state, leafId) || !MONTH_KEYS.includes(month)) return { rejected: "invalid_target" };
+  const node = findNode(state.nodes, leafId);
+  if (!node || !isLeaf(node, state.nodes) || !MONTH_KEYS.includes(month)) return { rejected: "invalid_target" };
   const trimmed = text.trim();
   if (trimmed.length === 0 || trimmed.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
   const next = cloneState(state);

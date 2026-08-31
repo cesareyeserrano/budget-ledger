@@ -3,14 +3,14 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import type { LedgerNode, MonthKey, NodeLevel, NodeType } from "@/domain/types";
-import { MONTHS } from "@/domain/months";
+import type { LedgerNode, LedgerState, MonthKey, NodeLevel, NodeType } from "@/domain/types";
+import { MONTHS, monthLabel } from "@/domain/months";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { planTechoMonths, monthIssues, type MonthIssue } from "@/domain/reserve";
-import { ReserveCellEditor, ReserveLeafCell, RowWithdrawAction } from "./ReserveCells";
+import { planTechoMonths, monthIssues, monthCarryUsage, type MonthIssue } from "@/domain/reserve";
+import { CellNotesSection, ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
@@ -436,16 +436,34 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
         // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
         // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
         const t = typeTotals(data, type, [m.k]);
+        // FR-1804: la observación automática del mes cuelga de la celda del TOTAL de Reservas —
+        // es del MES y de ningún bolsillo, así que atribuirla a uno concreto sería arbitrario
+        // cuando hay varios. Se DERIVA del estado (no se almacena): por eso se reescribe sola
+        // cuando la reserva cambia y desaparece cuando vuelve a caber en el flujo del mes.
+        const carry = type === "transfer" ? monthCarryUsage(data, m.k, "actual") : null;
         return (
           <div key={m.k} className="flex">
             {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
             <Cell value={t.budget} sep bold color={color} sunken highlight={highlightMonth === m.k} />
-            <Cell value={t.actual} bold color={color} sunken highlight={highlightMonth === m.k} />
+            <Cell
+              value={t.actual}
+              bold
+              color={color}
+              sunken
+              highlight={highlightMonth === m.k}
+              notes={carry ? 1 : 0}
+              carryNote={carry ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${monthLabel(carry.mesAnterior).toLowerCase()}.` : undefined}
+            />
           </div>
         );
       })}
     </div>
   );
+}
+
+/** Nº de observaciones de una celda — el indicador que la marca (FR-1809). */
+function useNotesOf(data: LedgerState) {
+  return (nodeId: string, month: MonthKey) => (data.cellNotes?.[nodeId]?.[month] ?? []).length;
 }
 
 function NodeRow(props: {
@@ -470,6 +488,7 @@ function NodeRow(props: {
   const { row, naming } = props;
   const node = row.node!;
   const data = useLedgerStore((s) => s.data);
+  const notesOf = useNotesOf(data);
   const [hover, setHover] = useState(false);
   const [nameVal, setNameVal] = useState(node.name);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -541,11 +560,6 @@ function NodeRow(props: {
               {canDeleteNode(data, node.id) && (
                 <button aria-label="Borrar" onClick={() => setConfirmDel(true)} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Trash2 size={13} /></button>
               )}
-              {/* FR-1607 — sacar desde la propia alcancía. Solo en hojas transfer: es el único sitio
-                  donde «sacar de aquí» significa algo. Cierra BL-019. */}
-              {node.type === "transfer" && row.leaf && (
-                <RowWithdrawAction leafId={node.id} month={props.highlightMonth ?? MONTHS[0].k} />
-              )}
             </span>
           )}
         </div>
@@ -575,8 +589,8 @@ function NodeRow(props: {
           const act = rollupActual(data, node.id, m.k);
           return (
             <div key={m.k} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} onStart={() => row.leaf && props.startEdit(m.k, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} onStart={() => row.leaf && props.startEdit(m.k, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m.k} onStart={() => row.leaf && props.startEdit(m.k, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m.k} notes={notesOf(node.id, m.k)} onStart={() => row.leaf && props.startEdit(m.k, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
@@ -585,17 +599,37 @@ function NodeRow(props: {
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: MonthKey; notes?: number; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   if (props.editing) {
     return (
-      <div className={cn(CELL_W, "py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
-        <input autoFocus aria-label="Editar valor" value={props.editVal} onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))} onBlur={props.commit} onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }} className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none" />
+      <div ref={rootRef} className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
+        <input
+          autoFocus
+          aria-label="Editar valor"
+          value={props.editVal}
+          onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))}
+          onBlur={(e) => {
+            // El foco que se queda DENTRO del editor (las observaciones) no comitea la celda —
+            // mismo patrón que ya usa el editor de bolsillos.
+            if (rootRef.current?.contains(e.relatedTarget as Node)) return;
+            props.commit();
+          }}
+          onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }}
+          className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
+        />
+        {/* FR-1809: cualquier celda admite observación, no solo las de bolsillos. */}
+        {props.nodeId && props.month && (
+          <div className="absolute left-0 top-full z-20 mt-1 min-w-[230px] rounded-(--radius-sm) border border-border bg-elevated p-2" style={{ boxShadow: "var(--shadow-md)" }}>
+            <CellNotesSection leafId={props.nodeId} month={props.month} />
+          </div>
+        )}
       </div>
     );
   }
   // FR-404: la fila NO editable (!leaf) lleva la superficie hundida — el MISMO predicado que gobierna
   // la edición, así la afordancia no puede desalinearse del comportamiento (ADR-05).
-  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
+  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} notes={props.notes} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
 }
 
 /**
@@ -614,12 +648,14 @@ function cellSurface(sunken: boolean | undefined, highlight: boolean | undefined
   return highlight ? `color-mix(in srgb, var(--accent) 6%, ${base})` : base;
 }
 
-function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, onClick, clickable }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; onClick?: () => void; clickable?: boolean }) {
+function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, notes, carryNote, onClick, clickable }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; notes?: number; carryNote?: string; onClick?: () => void; clickable?: boolean }) {
   return (
     <div
       onClick={onClick}
       data-testid={clickable ? "cell-leaf" : "cell-parent"}
-      className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable ? "cursor-text" : "cursor-default")}
+      title={carryNote}
+      {...(carryNote ? { "data-carry-note": carryNote } : {})}
+      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable ? "cursor-text" : "cursor-default")}
       style={{
         // refinamiento-ui FR-1202: un valor 0 se pinta como "—" y significa «aquí no hay nada».
         // Antes heredaba el color del tipo, así que la pantalla llegaba a tener ~30 guiones rojos,
@@ -631,6 +667,16 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
     >
       {/* Canal redundante de WCAG 1.4.1 (FR-402): aria-hidden porque el dato ya lo portan el monto
           y el Pres. adyacente. flex-none para que nunca empuje al monto fuera de la celda. */}
+      {/* FR-1809: la celda con observaciones lo dice con un punto, igual que las de bolsillos.
+          Sin observaciones no hay marca: la grilla no gana ruido donde no hay nada anotado. */}
+      {notes ? (
+        <span
+          data-testid="note-dot"
+          aria-hidden="true"
+          className="absolute right-[3px] top-[3px] h-[4px] w-[4px] rounded-full"
+          style={{ background: "var(--fg-muted)" }}
+        />
+      ) : null}
       {glyph ? <span data-testid="cell-glyph" aria-hidden="true" title={GLYPH_TITLE[glyph]} className="flex-none mr-1 text-caption leading-none">{glyph}</span> : null}
       {cellNum(value)}
     </div>

@@ -38,7 +38,7 @@ _Plan fresco (primera generación, 2026-08-31). Fuente: `01_REQUIREMENTS.json` (
   Why here:    Consume el dominio de EP-01 (cellHeadroom, reserveHeadroom) y es la mitad visible de
                la regla nueva.
 
-## EP-03 — Corregir operaciones, observaciones y avisos del mes   [status: pending]
+## EP-03 — Corregir operaciones, observaciones y avisos del mes   [status: done]
   Delivers:    US-1806, US-1809 (y las superficies de US-1802/1803/1804)
   FRs:         FR-1806, FR-1809
   Makes pass:  TC-TDF-034h, TC-TDF-050h, TC-TDF-051f, TC-TDF-052e, TC-TDF-080h, TC-TDF-081h,
@@ -52,7 +52,7 @@ _Plan fresco (primera generación, 2026-08-31). Fuente: `01_REQUIREMENTS.json` (
   Why here:    Necesita el dominio de EP-01 (editReserveOp, monthCarryUsage, monthIssues) y la
                grilla de EP-02 (donde viven las celdas y la fila mudada).
 
-## EP-04 — Limpieza, deuda y cierre   [status: pending]
+## EP-04 — Limpieza, deuda y cierre   [status: done]
   Delivers:    US-1807
   FRs:         FR-1807, NFR-1805, NFR-1808
   Makes pass:  TC-TDF-060h, TC-TDF-061f, TC-TDF-062e, TC-TDF-241h, TC-TDF-242e, TC-TDF-243f,
@@ -96,6 +96,23 @@ documentada (el tinte hunde el contraste). Al medirlo, solo `--fg-muted` cae —
 porcentaje de tinte lo salva, porque ya parte de 4,68:1. Se resuelve elevando el guion de las celdas
 en cero a `--fg-secondary` SOLO en la columna activa: 5,60:1, AA. La columna que el usuario mira se
 lee mejor, no peor.
+
+## Evidencia — EP-03 y EP-04 (2026-08-31)
+`npm run test:run` → **552 pasan, 0 fallan** (57 archivos), incluidas las DOS que llevaban un día
+rojas por el marcador de versión. typecheck y lint limpios.
+
+Verificado además en el navegador sobre datos reales:
+- La nota automática del mes se renderiza: «De los $900 reservados este mes, $500 salieron del saldo
+  de enero.»
+- El campo de observaciones aparece en una celda de GASTO (antes solo existía en las de bolsillos).
+
+Barrido de limpieza (FR-1807), todos a cero: `techoBreaches`, `TechoBreach`, `removeReserveRetiro`,
+`RowWithdrawAction`, `fixedFrom`, `withdraw-source-fixed`, «Sin saldo que sacar» y `withdraw-delete`.
+El e2e que usaba el botón de borrar se migró al monto editable, que es la vía nueva de corrección.
+
+Las dos pruebas rojas se arreglaron SIN relajar lo que verifican: conservan sus aserciones sobre la
+conversión de celdas y sobre el 422 del POST; solo cambia la constante del marcador (4 → 5), que es
+el final de la cadena vigente desde que `contrapartidas-reserva` añadió el paso v4→v5.
 
 ## Notas de ejecución
 - **El TC que manda:** TC-TDF-020f (eliminar el retiro se rechaza) es el que prueba que el arreglo

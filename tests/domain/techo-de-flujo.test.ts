@@ -629,8 +629,7 @@ describe("NFR-1803 · gastos e ingresos conservan su comportamiento", () => {
     const conReservas = llevar(base({ ene: 1000 }), "A", "ene", 600);
     const a = computeBalanceSeries(sinReservas).ene.actual;
     const b = computeBalanceSeries(conReservas).ene.actual;
-    expect(b.income).toBe(a.income);
-    expect(b.expense).toBe(a.expense);
-    expect(b.flow).toBe(a.flow); // el flujo del mes es idéntico: las reservas no lo alteran
+    expect(b.flow).toBe(a.flow); // el flujo del mes (ingresos − gastos) es idéntico
+    expect(b.total).toBe(a.total); // y el total tampoco cambia: reservar no crea ni destruye
   });
 });

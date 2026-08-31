@@ -233,8 +233,11 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
     await expect(page.getByTestId("withdraw-cell").nth(5)).toContainText("40.000");
     await page.getByTestId("withdraw-cell").nth(5).click();
     const history = page.getByTestId("withdraw-history");
-    await expect(history).toContainText("Ahorro · Viaje — $40.000");
-    await page.getByTestId("withdraw-delete-mv-c-viaje-jun").click();
+    await expect(history).toContainText("Ahorro · Viaje");
+    // FR-1802: el botón de borrar se retiró — la corrección es teclear el monto, y 0 elimina.
+    const monto = page.getByTestId("op-amount-mv-c-viaje-jun");
+    await monto.fill("0");
+    await monto.press("Enter");
 
     await expect(page.getByTestId("withdraw-cell").nth(5)).toHaveText("—");
     await expectMovementCount(page, 0);
