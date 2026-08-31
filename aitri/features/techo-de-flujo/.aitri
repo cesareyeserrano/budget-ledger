@@ -1,65 +1,23 @@
 {
-  "currentPhase": 2,
+  "currentPhase": 3,
   "approvedPhases": [
     1,
-    "ux"
+    "ux",
+    2,
+    3
   ],
   "completedPhases": [
     1,
-    "ux"
+    "ux",
+    2,
+    3
   ],
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-31T20:00:35.222Z",
+  "updatedAt": "2026-08-31T20:58:26.708Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-31T19:16:49.669Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:17:59.839Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:34:28.276Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:39:26.767Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:48:51.124Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:54:36.783Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-08-31T19:54:36.937Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-08-31T19:55:52.180Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-08-31T19:55:57.404Z",
-      "event": "started",
-      "phase": "ux"
-    },
     {
       "at": "2026-08-31T19:56:00.176Z",
       "event": "started",
@@ -79,14 +37,118 @@
       "at": "2026-08-31T20:00:35.222Z",
       "event": "started",
       "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:19:26.229Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:36:21.515Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T20:36:24.196Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T20:37:15.275Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:37:15.379Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:37:15.480Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:37:19.052Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:43:25.747Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-31T20:48:53.255Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T20:48:53.382Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-08-31T20:48:53.489Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:48:53.597Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-08-31T20:48:53.707Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:48:53.811Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-08-31T20:48:53.916Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-08-31T20:58:26.675Z",
+      "event": "approved",
+      "phase": 3
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "510068277f195957a14b45bc83a301283dab9f03cabe678dac6a88337e0fd5f5",
-    "ux": "eb1e746839a3b467592af494296c20516ec106423e28a838586e9e4ded60e649"
+    "1": "fbb74e65178d8ab916db4cf9fa68de52998b7b6773addd425b97b2100f77eac3",
+    "2": "39b05aae033e077fa1c965e69bad0a0a7f6ca61271e5dc72c17524b0ec600686",
+    "3": "6d9436917c307d5e0cc6da8f350e5bb9282d655350941c40f1addb59fd316b1e",
+    "ux": "98009bdb0f94fe2ed6442337d0bbe81b340d791d3f8f8c4b0221b1b450759e52"
   },
   "frSnapshots": {
+    "2": [
+      "FR-1801",
+      "FR-1802",
+      "FR-1803",
+      "FR-1804",
+      "FR-1805",
+      "FR-1806",
+      "FR-1807",
+      "FR-1808",
+      "FR-1809"
+    ],
+    "3": [
+      "FR-1801",
+      "FR-1802",
+      "FR-1803",
+      "FR-1804",
+      "FR-1805",
+      "FR-1806",
+      "FR-1807",
+      "FR-1808",
+      "FR-1809"
+    ],
     "ux": [
       "FR-1801",
       "FR-1802",
@@ -95,7 +157,9 @@
       "FR-1805",
       "FR-1806",
       "FR-1807",
-      "FR-1808"
+      "FR-1808",
+      "FR-1809"
     ]
-  }
+  },
+  "verifyPassed": false
 }

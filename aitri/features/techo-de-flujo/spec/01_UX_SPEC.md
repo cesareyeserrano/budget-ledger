@@ -73,6 +73,18 @@ Persona única: **Dueño del presupuesto** (usuario único, tech mid).
 - **Camino de error:** no aplica (no hay entrada del usuario). Las observaciones escritas a mano
   conviven con ella y nunca se pisan.
 
+### F4b — Anotar una observación en cualquier celda (escritorio, FR-1809)
+- **Entrada:** el usuario abre una celda cualquiera de la grilla — gasto, ingreso o bolsillo, en
+  cualquiera de los dos planos.
+- **Pasos:** escribe el texto en el campo de observación y confirma.
+- **Salida:** la celda pasa a mostrar el indicador de observación; el texto se lee al abrirlo y
+  sobrevive a la recarga.
+- **Camino de error:** un texto vacío o de más de 280 caracteres no se guarda y las observaciones
+  vigentes de esa celda no cambian; el motivo aparece junto al campo.
+- **Estado vacío:** una celda sin observaciones no muestra indicador — la grilla no gana ruido donde
+  no hay nada anotado.
+- **Acción primaria:** confirmar. **Escape:** Esc cierra sin guardar.
+
 ### F5 — Ver y resolver un error del mes (escritorio, FR-1806)
 - **Entrada:** el usuario ve una marca de alerta en el encabezado de un mes.
 - **Pasos:** al pasar el ratón lee el resumen; baja al Balance y la franja detalla el error nombrando
@@ -102,8 +114,9 @@ documento no supera el del viewport.
 | **Fila «Retiros del mes»** (SE MUDA, FR-1805) | **default**: última fila del segmento de Reservas, con su cifra por mes · **empty**: 0 en el mes sin retiros · **error**: mensaje inline del dominio, el popover no se cierra · **loading/disabled**: n/a | Es la puerta para sacar (F2). Al plegarse los grupos de bolsillos permanece visible sin scroll adicional | H6, H7 eficiencia: la acción está donde está el dato |
 | **Sombreado de la columna del mes activo** (SE AMPLÍA, FR-1805) | **default**: la columna del mes activo con `color-mix(--accent 8%)` · **empty/loading/error/disabled**: n/a | Hoy existe en la grilla y NO en el Balance; pasa a atravesar los tres bloques con el mismo tratamiento, y se mueve en los tres a la vez al cambiar de mes | H4 consistencia, H1 |
 | **Marca de error en el encabezado del mes** (SE AMPLÍA, FR-1806) | **default**: sin marca · **error**: icono `TriangleAlert` en `--alert-strong` con `title`/`aria-label` que resume el error · resto: n/a | Deja de saber solo de «techo excedido»: se alimenta de la lista de errores del mes, hoy con un tipo y abierta a otros. Icono + texto: el color no es el único canal | H1, H9 recuperación |
-| **Observación automática del mes** (NUEVO, FR-1804) | **default**: indicador de observación en el mes, con el texto al abrirlo · **empty**: sin observación no hay indicador · **loading/error/disabled**: n/a | Reusa el mecanismo de observaciones por celda (FR-1012). Se reescribe sola y desaparece cuando la reserva cabe en el flujo; jamás pisa las observaciones escritas a mano, que se listan aparte | H2 lenguaje del usuario, H10 ayuda contextual |
-| Celdas de Gastos e Ingresos | sin cambio | sin cambio | — |
+| **Observación automática del mes** (NUEVO, FR-1804) | **default**: indicador de observación en la celda del mes de la fila **total de Reservas**, con el texto al abrirlo · **empty**: sin observación no hay indicador · **loading/error/disabled**: n/a | Vive en la celda del TOTAL de Reservas porque es del MES y de ningún bolsillo — atribuirla a uno concreto sería arbitrario con varios bolsillos. Usa el mismo indicador que cualquier otra observación (FR-1809), así que no inventa vocabulario visual. Se reescribe sola y desaparece cuando la reserva cabe en el flujo; jamás pisa las escritas a mano, que se listan aparte | H2 lenguaje del usuario, H10 ayuda contextual, H4 consistencia |
+| **Observación en cualquier celda** (AMPLÍA `CellNotesSection`, FR-1809) | **default**: campo de texto opcional al abrir la celda; con observaciones, la celda muestra su indicador · **empty**: sin observaciones no hay indicador ni ruido visual · **error**: texto vacío o >280 caracteres → no se guarda y el motivo aparece junto al campo · **loading**: durante la persistencia el campo queda inerte · **disabled**: n/a | Hoy solo las celdas de bolsillos las admiten; pasan a estar en TODAS (gastos, ingresos y reservas, en los dos planos). El almacenamiento ya es genérico por nodo y mes: es extender el alcance, no un modelo nuevo | H6 reconocimiento, H10 ayuda y documentación |
+| Celdas de Gastos e Ingresos | ganan el indicador y el campo de observación (FR-1809); el resto sin cambio | Su edición, sus roll-ups y su presencia en la grilla no cambian (NFR-1803) | H4 |
 
 ### Pantalla: Balance (panel de escritorio)
 
