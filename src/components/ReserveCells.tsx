@@ -21,7 +21,7 @@ import {
   findNode,
   isAvailable,
   plannedRetiroLimit,
-  reserveHeadroom,
+  cellHeadroom,
   monthReserveOps,
   reserveLeafIds,
   reserveRetiros,
@@ -127,17 +127,20 @@ export function ReserveCellEditor(props: {
   const map = plane === "budget" ? data.budgets : data.actuals;
   const current = map[leafId]?.[month] ?? 0;
   const [val, setVal] = useState(String(current || 0));
-  // FR-1605: cuanto queda por reservar este mes, VISIBLE antes de teclear. Es `reserveHeadroom`, no
-  // `availableMargin`: aquel devuelve el margen BRUTO del mes y prometeria sitio que no hay (en el
-  // agosto del usuario, 10.200.000 frente a los 1.000.000 reales). Este es el mismo numero que el
-  // dominio devuelve como `limit` al rechazar, asi que el indicador y el rechazo no pueden discrepar.
-  const headroom = plane === "actual" ? reserveHeadroom(data, month) : null;
+  // FR-1808: el TOTAL máximo que esta celda admite, visible antes de teclear.
+  //
+  // Es `cellHeadroom`, no `reserveHeadroom`: aquel devuelve el INCREMENTO que aún cabe en el mes, y
+  // la celda contiene un TOTAL. Una celda que vale 1.000 en un mes con el cupo agotado admite
+  // perfectamente que se la baje a 800; mostrarle «Máx. 0» y pintarla en rojo sería mentirle sobre
+  // una escritura válida (TC-TDF-072f).
+  const headroom = plane === "actual" ? cellHeadroom(data, leafId, month, plane) : null;
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Se pasa del margen? Se evalua MIENTRAS teclea, no al confirmar: la senal llega antes del rechazo.
-  const excede = headroom !== null && Math.max(0, Math.round(Number(val) || 0)) - current > headroom;
+  // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
+  // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
+  const excede = headroom !== null && Math.max(0, Math.round(Number(val) || 0)) > headroom;
 
   /** Bloqueo: el editor queda abierto con el valor rechazado seleccionado («corrige o Escape»). */
   function fail(msg: string) {
@@ -165,7 +168,6 @@ export function ReserveCellEditor(props: {
 
   return (
     <div ref={rootRef} className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
-      <div className="flex items-center gap-1.5">
       <input
         ref={inputRef}
         autoFocus
@@ -187,19 +189,28 @@ export function ReserveCellEditor(props: {
         }}
         className="tabular w-full min-w-0 bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
       />
-      {headroom !== null && (
-        <span
-          data-testid="reserve-max"
-          title={`Lo que queda por reservar en ${monthLabel(month).toLowerCase()}`}
-          className="flex-none tabular text-caption leading-none whitespace-nowrap"
-          style={{ color: excede ? "var(--alert-strong)" : "var(--fg-muted)" }}
-        >
-          Máx. {money(headroom)}
-        </span>
-      )}
-      </div>
 
+      {/* FR-1808 — el «Máx.» FUERA del flujo horizontal: la celda mide 108px y con las cifras reales
+          del usuario («Máx. 10.200.000») el input se quedaba sin sitio para escribir. Va absolute
+          bajo el input, donde ya vive el mensaje de rechazo, así que no consume ancho ni desplaza
+          las celdas vecinas (AC-1833). Forma elegida por el usuario sobre una comparación
+          renderizada a escala real. */}
       <div className="absolute left-0 top-full z-20 flex flex-col items-start gap-1 min-w-[230px]">
+        {headroom !== null && (
+          <span
+            data-testid="reserve-max"
+            title={`El máximo que admite esta celda en ${monthLabel(month).toLowerCase()}`}
+            className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
+            style={{
+              color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
+              borderColor: excede ? "var(--alert-strong)" : "var(--border)",
+              background: "var(--bg-elevated)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
+            Máx. {money(headroom)}
+          </span>
+        )}
         {block && (
           <div
             data-testid="reserve-block"

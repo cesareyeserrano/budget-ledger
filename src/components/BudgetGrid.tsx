@@ -14,7 +14,7 @@ import { ReserveCellEditor, ReserveLeafCell, RowWithdrawAction } from "./Reserve
 import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
-import { BalanceModule } from "./BalanceModule";
+import { BalanceModule, RetirosRow } from "./BalanceModule";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
@@ -30,6 +30,20 @@ import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
 // refinamiento-ui FR-1202: glifos LATERALES (decisión del usuario sobre el comparador visual).
 // ← entra · → sale · ⇄ va y vuelve. Son el canal que distingue los bloques ahora que el color
 // de identidad se retiró: la forma carga lo que antes cargaba el hue.
+/**
+ * Tarjeta de un bloque de la grilla (FR-1805): fondo, borde y esquinas propias.
+ *
+ * SIN `overflow-hidden`, aunque recortaría las esquinas: un ancestro con overflow crea un contexto
+ * de scroll nuevo y ROMPE el `position: sticky` de la columna de rótulos, que se va con el scroll
+ * horizontal y desaparece de la vista (verificado con una captura). Las esquinas se redondean sobre
+ * las filas extremas, que da el mismo efecto sin tocar el sticky.
+ */
+const SEGMENT = [
+  "rounded-(--radius-md) border border-border bg-card shadow-[var(--shadow-sm)]",
+  "[&>*:first-child>*:first-child]:rounded-tl-(--radius-md)",
+  "[&>*:last-child>*:first-child]:rounded-bl-(--radius-md)",
+].join(" ");
+
 const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowLeft }[] = [
   { id: "income", label: "INGRESOS", Icon: ArrowLeft },
   { id: "expense", label: "GASTOS", Icon: ArrowRight },
@@ -165,6 +179,12 @@ export function BudgetGrid() {
   }
 
   const rows = useMemo(() => buildRows(data.nodes, expanded), [data.nodes, expanded]);
+  // FR-1805 — la grilla se lee en TRES bloques: Ingresos+Gastos · Reservas · Balance. Se separan
+  // en VERTICAL dentro del MISMO contenedor de scroll (ADR-04), así que los doce meses siguen
+  // siendo un solo riel de columnas alineadas y con un solo scroll: enero de Gastos y enero de
+  // Reservas caen en la misma columna por construcción, sin nada que sincronizar.
+  const segmentoFlujo = useMemo(() => rows.filter((r) => r.type !== "transfer"), [rows]);
+  const segmentoReservas = useMemo(() => rows.filter((r) => r.type === "transfer"), [rows]);
   const highlightMonth = period.mode === "month" ? period.month : null;
   // FR-1008: meses del plan que superan su techo — estado del PLAN (no de una edición); las celdas
   // Pres. de hojas que aportan en esos meses llevan «!» + ámbar.
@@ -234,6 +254,52 @@ export function BudgetGrid() {
   }
   const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
+  /** Render de una fila del árbol — compartido por los dos segmentos de la grilla. */
+  function renderRow(row: Row, i: number) {
+    if (row.node === null) {
+      const t = TYPE_ORDER.find((x) => x.id === row.type)!;
+      // FR-904/banda: filete fuerte al inicio de cada bloque de tipo. El primero de cada segmento
+      // no lo lleva: el encabezado sticky (segmento 1) o la separación (segmento 2) ya cierran.
+      return (
+        <Fragment key={`t-${row.type}`}>
+          <TypeTotalRow
+            type={row.type}
+            label={t.label}
+            Icon={t.Icon}
+            highlightMonth={highlightMonth}
+            activeType={dragNode?.type ?? null}
+            isExpanded={expanded[`type:${row.type}`] !== false}
+            onToggle={() => toggle(`type:${row.type}`)}
+            onAddGroup={() => onAddGroup(row.type)}
+            bandTop={i > 0}
+          />
+        </Fragment>
+      );
+    }
+    return (
+      <NodeRow
+        key={row.node.id}
+        row={row}
+        editing={editing}
+        editVal={editVal}
+        naming={namingId === row.node.id}
+        highlightMonth={highlightMonth}
+        onToggle={() => toggle(row.node!.id)}
+        isExpanded={!!expanded[row.node.id]}
+        startEdit={(mk, field, cur) => { setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0)); }}
+        setEditVal={setEditVal}
+        commitEdit={commitEdit}
+        cancelEdit={() => setEditing(null)}
+        startNaming={() => setNamingId(row.node!.id)}
+        commitName={(name) => { renameNode(row.node!.id, name); setNamingId(null); }}
+        setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
+        onDelete={() => deleteNode(row.node!.id)}
+        onAddChild={() => onAddChild(row.node!)}
+        planWarnMonths={planWarnMonths}
+      />
+    );
+  }
+
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
       <div ref={scrollRef} className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
@@ -295,48 +361,33 @@ export function BudgetGrid() {
             </div>
           </div>
 
-          {rows.map((row, i) => {
-            if (row.node === null) {
-              const t = TYPE_ORDER.find((x) => x.id === row.type)!;
-              // FR-904/banda: filete fuerte al inicio de cada bloque. El primero no lo lleva —
-              // el encabezado sticky ya cierra por arriba.
-              const typeRow = <TypeTotalRow type={row.type} label={t.label} Icon={t.Icon} highlightMonth={highlightMonth} activeType={dragNode?.type ?? null} isExpanded={expanded[`type:${row.type}`] !== false} onToggle={() => toggle(`type:${row.type}`)} onAddGroup={() => onAddGroup(row.type)} bandTop={i > 0} />;
-              // FR-904: Transferencia no es flujo (ingreso/gasto) sino movimiento de reserva, y el
-              // espaciado lo dice antes que cualquier rótulo.
-              return <Fragment key={`t-${row.type}`}>{typeRow}</Fragment>;
-            }
-            return (
-              <NodeRow
-                key={row.node.id}
-                row={row}
-                editing={editing}
-                editVal={editVal}
-                naming={namingId === row.node.id}
-                highlightMonth={highlightMonth}
-                onToggle={() => toggle(row.node!.id)}
-                isExpanded={!!expanded[row.node.id]}
-                startEdit={(mk, field, cur) => { setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0)); }}
-                setEditVal={setEditVal}
-                commitEdit={commitEdit}
-                cancelEdit={() => setEditing(null)}
-                startNaming={() => setNamingId(row.node!.id)}
-                commitName={(name) => { renameNode(row.node!.id, name); setNamingId(null); }}
-                setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
-                onDelete={() => deleteNode(row.node!.id)}
-                onAddChild={() => onAddChild(row.node!)}
-                planWarnMonths={planWarnMonths}
-              />
-            );
-          })}
+          {/* ── Los TRES bloques ─────────────────────────────────────────────────────────
+              Cada uno es una TARJETA —fondo, borde y esquinas redondeadas— separada de la
+              siguiente por --spacing-6. Viven dentro del MISMO contenedor de scroll (ADR-04), así
+              que los doce meses siguen siendo un solo riel alineado: la tarjeta hereda el ancho del
+              contenido (`w-max`), no el del viewport, y por eso su borde derecho acompaña al scroll.
+              La separación es ESPACIO y forma, nunca color de categoría (regla de refinamiento-ui
+              FR-1201: el color codifica estado). */}
+          <div className={SEGMENT}>
+            {segmentoFlujo.map((row, i) => renderRow(row, i))}
+          </div>
 
-          {/* Cierra la última banda de tipos: sin esto, el bloque quedaría abierto por abajo.
-              (La operación de retiros vive en la fila «Retiros del mes» del Balance — unificada
-              por decisión del usuario 2026-07-29: una sola fila, sin duplicar.) */}
-          <div aria-hidden="true" className="border-b border-b-border-strong" />
+          <div aria-hidden="true" style={{ height: "var(--spacing-6, 24px)" }} />
 
-          {/* FR-905/906/907/908: el balance va al pie, DENTRO del contenedor de scroll, para que
-              comparta la rejilla de columnas y la columna de rótulos sticky con la grilla. */}
-          <BalanceModule />
+          <div className={SEGMENT}>
+            {segmentoReservas.map((row, i) => renderRow(row, i))}
+            {/* FR-1805: la puerta para SACAR, al final del bloque y junto a los bolsillos. */}
+            <RetirosRow highlightMonth={highlightMonth} />
+          </div>
+
+          <div aria-hidden="true" style={{ height: "var(--spacing-6, 24px)" }} />
+
+          {/* El Balance va DENTRO del contenedor de scroll para compartir la rejilla de columnas y
+              la columna de rótulos sticky (FR-905/906/907/908). Recibe el mes activo para que el
+              sombreado atraviese los tres bloques (AC-1828): hoy no lo tenía. */}
+          <div className={SEGMENT}>
+            <BalanceModule highlightMonth={highlightMonth} />
+          </div>
         </div>
       </div>
       {/* FR-015: preview flotante del nodo en arrastre (feedback claro de "estoy moviendo esto") */}
@@ -589,7 +640,10 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
 function initialExpanded(nodes: LedgerNode[]): Record<string, boolean> {
   const e: Record<string, boolean> = {};
   for (const t of TYPE_ORDER) e[`type:${t.id}`] = true;
-  for (const n of nodes) if (n.level === "group") e[n.id] = true;
+  // FR-1805/AC-1820: los grupos de BOLSILLOS arrancan plegados. Con seis bolsillos son doce filas
+  // que dejaban la fila «Retiros del mes» —la puerta para sacar— fuera de la vista. Gastos e
+  // Ingresos conservan su comportamiento (abiertos), que es donde el usuario teclea a diario.
+  for (const n of nodes) if (n.level === "group") e[n.id] = n.type !== "transfer";
   return e;
 }
 

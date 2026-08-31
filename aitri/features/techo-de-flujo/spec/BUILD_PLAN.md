@@ -22,7 +22,7 @@ _Plan fresco (primera generación, 2026-08-31). Fuente: `01_REQUIREMENTS.json` (
   Why here:    Es la capa que todo lo demás consume, y donde vive el defecto crítico. Nada de la UI
                puede probarse antes de que la regla sea correcta.
 
-## EP-02 — La grilla en tres bloques y el «Máx.» que cabe   [status: pending]
+## EP-02 — La grilla en tres bloques y el «Máx.» que cabe   [status: done]
   Delivers:    US-1805, US-1808
   FRs:         FR-1805, FR-1808
   Makes pass:  TC-TDF-040h, TC-TDF-041h, TC-TDF-042e, TC-TDF-043e, TC-TDF-044h, TC-TDF-045f,
@@ -77,6 +77,25 @@ Dos correcciones que los tests destaparon durante la épica:
 - Los bucles de propiedad de la suite vieja asumían que eliminar siempre tiene éxito. Con FR-1803
   puede rechazarse legítimamente: se añadió `removeIfAllowed` a `tests/helpers/reserve.ts` (un
   rechazo no muta, así que la propiedad se sigue cumpliendo).
+
+## Evidencia — EP-02 (2026-08-31)
+`npm run test:run` → **550 pasan, 2 fallan** (los dos preexistentes del marcador de versión, que
+recoge EP-04). typecheck y lint limpios. Verificado ADEMÁS con capturas del navegador sobre los
+datos reales del usuario, que destaparon tres defectos que ninguna prueba habría visto:
+
+- **`overflow-hidden` en la tarjeta rompía la columna sticky de rótulos.** Un ancestro con overflow
+  crea un contexto de scroll nuevo, así que la columna se iba con el scroll horizontal y
+  DESAPARECÍA de la vista. Las esquinas se redondean ahora sobre las filas extremas.
+- **El Balance tenía su propio separador de 32px**, que dentro de su tarjeta dejaba una franja
+  blanca vacía. Retirado: la separación la da el espacio entre tarjetas.
+- **El resaltado del mes no llegaba al Balance**: sus celdas llevan `bg-sunken`, que tapa el fondo
+  del contenedor. Se pinta en la celda.
+
+Y una decisión de accesibilidad medida: el módulo de Balance NO seguía el resaltado por una razón
+documentada (el tinte hunde el contraste). Al medirlo, solo `--fg-muted` cae —a 4,01:1— y ningún
+porcentaje de tinte lo salva, porque ya parte de 4,68:1. Se resuelve elevando el guion de las celdas
+en cero a `--fg-secondary` SOLO en la columna activa: 5,60:1, AA. La columna que el usuario mira se
+lee mejor, no peor.
 
 ## Notas de ejecución
 - **El TC que manda:** TC-TDF-020f (eliminar el retiro se rechaza) es el que prueba que el arreglo

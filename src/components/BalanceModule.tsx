@@ -22,7 +22,7 @@ import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
-import { ROWS, indentFor, type RowSpec } from "./balanceRows";
+import { ROWS, indentFor, type RowSpec, type RowKey } from "./balanceRows";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import type { LedgerState, MonthKey } from "@/domain/types";
@@ -161,7 +161,7 @@ function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: numbe
  * Convención de signo (decisión del usuario): los positivos NO llevan `+` — un número sin signo es
  * positivo. Solo el negativo se marca, y con tres canales a la vez (color, signo y forma).
  */
-function BalanceCell({ spec, value, sep, rule }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"] }) {
+function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"]; active?: boolean }) {
   const negative = value < 0;
   const showMark = negative && spec.alarms;
   return (
@@ -180,7 +180,16 @@ function BalanceCell({ spec, value, sep, rule }: { spec: RowSpec; value: number;
         // otro modo el guion hereda el tono de la fila y la pantalla acaba gastando su canal más
         // fuerte en la AUSENCIA de información. Es el mismo patrón que la grilla ya aplica
         // (BudgetGrid.tsx, refinamiento-ui FR-1202); aquí se replica, no se redefine.
-        color: !value ? "var(--fg-muted)" : balanceColor(spec, value),
+        //
+        // El resaltado del mes activo se pinta AQUÍ y no en el contenedor: la celda lleva
+        // `bg-sunken`, que taparía cualquier fondo del padre (AC-1828).
+        background: active ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined,
+        // En la columna del MES ACTIVO el guion sube a `--fg-secondary`. Medido: `--fg-muted` sobre
+        // el fondo hundido ya está en 4,68:1, así que el tinte del resaltado —sea cual sea su
+        // porcentaje— lo hunde por debajo de AA (4,01:1 al 8%). Elevarlo lo deja en 5,60:1: la
+        // columna que el usuario está mirando se lee MEJOR, no peor. Es la razón por la que este
+        // módulo no seguía el resaltado; con esto ya puede (FR-1805/AC-1828).
+        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : balanceColor(spec, value),
         fontWeight: spec.weight,
       }}
     >
@@ -209,7 +218,7 @@ function BalanceCell({ spec, value, sep, rule }: { spec: RowSpec; value: number;
  *
  * @aitri-trace FR-ID: FR-1403, US-ID: US-1403, AC-ID: AC-1403a, TC-ID: TC-BJE-006e, TC-BJE-006f, TC-BJE-011e
  */
-function HeaderTotalCell({ value, sep }: { value: number; sep?: boolean }) {
+function HeaderTotalCell({ value, sep, active }: { value: number; sep?: boolean; active?: boolean }) {
   const negative = value < 0;
   return (
     <div
@@ -223,7 +232,8 @@ function HeaderTotalCell({ value, sep }: { value: number; sep?: boolean }) {
         // Mismo trato que `BalanceCell`: sin dato → neutro atenuado; con dato → la regla única.
         // Plegar debe RESUMIR, no perder la señal: un total negativo conserva aquí sus tres
         // canales (color, signo y glifo), igual que desplegado.
-        color: !value ? "var(--fg-muted)" : exceptionColor(value, { alarms: true }),
+        background: active ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined,
+        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : exceptionColor(value, { alarms: true }),
         fontWeight: 600,
       }}
     >
@@ -247,7 +257,7 @@ function HeaderTotalCell({ value, sep }: { value: number; sep?: boolean }) {
  *
  * @aitri-trace FR-ID: FR-908, US-ID: US-908, AC-ID: AC-908, TC-ID: TC-BAL-908h, TC-BAL-951e, TC-BAL-956h
  */
-function BalanceRows() {
+function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   const data = useLedgerStore((s) => s.data);
   // Plegado en dos niveles, como la grilla: el módulo entero y, dentro, sus INSUMOS. Plegar los
   // insumos deja las tres cifras de resultado — la vista compacta de "cuánto tengo". No se
@@ -258,7 +268,12 @@ function BalanceRows() {
   // total—, que es lo que hace cualquier control de árbol. Plegado deja la cuenta terminando en
   // "cuánto puedo gastar", que es la lectura compacta útil.
   const TAIL_FROM = ROWS.findIndex((r) => r.key === "available") + 1;
-  const visible = open ? (tailOpen ? ROWS : ROWS.slice(0, TAIL_FROM)) : [];
+  // FR-1805 — la fila «Retiros del mes» se RENDERIZA en el segmento de Reservas de la grilla, junto
+  // a los bolsillos, que es donde el usuario la busca (resuelve BL-019 por el camino simple). Sigue
+  // declarada en ROWS y sigue siendo sumando de «Disponible del mes» en CASCADE: la aritmética del
+  // Balance no cambia, solo su punto de montaje (ADR-07). Por eso se filtra aquí y no allí.
+  const enOtroSegmento = (k: RowKey) => k === "retiros";
+  const visible = (open ? (tailOpen ? ROWS : ROWS.slice(0, TAIL_FROM)) : []).filter((r) => !enOtroSegmento(r.key));
   // FR-1402: por debajo de 1024 px el paso de sangría baja a 12 px — con 16 la etiqueta más larga
   // del nivel más profundo se trunca. Se resuelve en JS y no con una media query en CSS para que la
   // fórmula tenga UN SOLO domicilio (`indentFor`); duplicarla en la hoja de estilos es exactamente
@@ -277,11 +292,9 @@ function BalanceRows() {
 
   return (
     <div data-testid="balance-module">
-      {/* Corte de BLOQUE, no de fila. Es aire VACÍO —sin fondo ni línea— para que la grilla de los
-          tres tipos termine ahí y el balance se lea como una tabla aparte. Un separador con línea
-          (como el de Transferencias) se lee como "un renglón saltado" dentro de la misma tabla;
-          el vacío rompe la continuidad de la superficie, que es lo que separa dos bloques. */}
-      <div data-testid="balance-separator" aria-hidden="true" className="h-8" />
+      {/* El corte de bloque lo da ahora la SEPARACIÓN ENTRE TARJETAS de la grilla (FR-1805): el
+          Balance es uno de los tres bloques y su tarjeta ya lo separa del de Reservas. El
+          separador propio de 32px que había aquí dejaba una franja vacía DENTRO de la tarjeta. */}
       <div className="flex">
         {/* Encabezado de MÓDULO PAR de GASTOS/INGRESOS/TRANSFERENCIAS: misma estructura (hueco de
             chevron + ícono + rótulo en mayúsculas), mismo peso y mismo cuerpo. Antes usaba la
@@ -322,9 +335,9 @@ function BalanceRows() {
             // gastar». Además alinea los dos niveles de plegado: el chevron interno ya cortaba la
             // escalera justo en «Saldo disponible». Decisión del usuario, 2026-08-25 (BL-029),
             // ratificada el 2026-08-27. Cada celda usa el disponible de SU plano.
-            <div key={m.k} className="flex">
-              <HeaderTotalCell value={series[m.k].budget.available} sep />
-              <HeaderTotalCell value={series[m.k].actual.available} />
+            <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
+              <HeaderTotalCell value={series[m.k].budget.available} sep active={highlightMonth === m.k} />
+              <HeaderTotalCell value={series[m.k].actual.available} active={highlightMonth === m.k} />
             </div>
           )
         )}
@@ -381,14 +394,14 @@ function BalanceRows() {
             spec.key === "retiros" ? (
               // La fila «Retiros del mes» es OPERABLE (unificación 2026-07-29): Pres. edita el
               // retiro planeado; Ejec. abre el mini-form de sacar/corregir y gradúa el sobre-retiro.
-              <div key={m.k} className="flex">
+              <div key={m.k} className="flex" data-month={m.k}>
                 <PlannedWithdrawCell month={m.k} sep />
                 <WithdrawCell month={m.k} />
               </div>
             ) : (
-              <div key={m.k} className="flex">
-                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget)} sep rule={rule} />
-                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual)} rule={rule} />
+              <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
+                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
+                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual)} rule={rule} active={highlightMonth === m.k} />
               </div>
             )
           )}
@@ -447,10 +460,10 @@ class BalanceBoundary extends Component<{ children: ReactNode }, { failed: boole
  *
  * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-935h, TC-BAL-956h
  */
-export function BalanceModule() {
+export function BalanceModule({ highlightMonth }: { highlightMonth?: MonthKey | null }) {
   return (
     <BalanceBoundary>
-      <BalanceRows />
+      <BalanceRows highlightMonth={highlightMonth ?? null} />
       <TechoBanner />
     </BalanceBoundary>
   );
@@ -493,6 +506,51 @@ function TechoBanner() {
             <strong>{monthLabel(b.month)}:</strong> reservas <span className="tabular">{money(b.excess)}</span> por
             encima del margen del mes — los meses siguientes quedan sin margen.
           </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * La fila «Retiros del mes», montada en el segmento de RESERVAS de la grilla (FR-1805).
+ *
+ * Vive aquí y no en `BudgetGrid` porque su layout es el de una fila del Balance —sangría, rótulo
+ * sticky, par de celdas Pres./Ejec.— y duplicarlo allí las haría divergir. Sigue declarada en
+ * `ROWS` y sigue siendo sumando de «Disponible del mes» en `CASCADE`: lo único que cambió es dónde
+ * se dibuja (ADR-07).
+ *
+ * Es la puerta para SACAR: Pres. edita el retiro planeado, Ejec. abre el mini-form de sacar y
+ * corregir. Al mudarla junto a los bolsillos resuelve BL-019 —«no me resulta amigable operar desde
+ * el pie del Balance»— sin necesidad del botón por fila que esta feature retira.
+ *
+ * @aitri-trace FR-ID: FR-1805, US-ID: US-1805, AC-ID: AC-1818, TC-ID: TC-TDF-041h
+ */
+export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null }) {
+  const spec = ROWS.find((r) => r.key === "retiros")!;
+  const narrow = useNarrowIndent();
+  return (
+    <div className="flex" data-testid="balance-row" data-row="retiros">
+      <div
+        data-testid="balance-label"
+        className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pr-2.5")}
+        style={{
+          paddingLeft: indentFor(spec.level, narrow),
+          color: "var(--fg-secondary)",
+          fontWeight: spec.weight,
+        }}
+      >
+        <span className="w-3.5 flex-none" aria-hidden="true" />
+        <span className="w-2.5 flex-none text-center tabular" style={{ color: "var(--fg-secondary)", fontWeight: 400 }}>
+          {spec.op}
+        </span>
+        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
+      </div>
+      {MONTHS.map((m) => (
+        <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}
+             style={highlightMonth === m.k ? { background: "color-mix(in srgb, var(--accent) 8%, transparent)" } : undefined}>
+          <PlannedWithdrawCell month={m.k} sep />
+          <WithdrawCell month={m.k} />
         </div>
       ))}
     </div>
