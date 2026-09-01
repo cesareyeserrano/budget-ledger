@@ -31,6 +31,15 @@ export function blockMessage(
   ctx: { editedMonth: MonthKey; attempted?: number; maxTotal?: number }
 ): string {
   const chained = verdict.month !== ctx.editedMonth;
+  if (verdict.rule === "deficit") {
+    // El déficit protege plata que otros meses YA usaron — al subir un aporte (la usarán los gastos
+    // siguientes) o al bajar un retiro (la usaron las reservas siguientes). El vocabulario de
+    // «caben $X más» era de aporte y mentía al usuario que bajaba un retiro (auditoría 2026-09-01).
+    const mes = monthLabel(verdict.month).toLowerCase();
+    return verdict.limit > 0
+      ? `Bloquea en ${mes}: ${mes} ya usa esa plata — el margen es ${money(verdict.limit)}`
+      : `Bloquea en ${mes}: ${mes} ya usa esa plata`;
+  }
   if (verdict.rule === "techo") {
     if (chained) return `Bloquea en ${monthLabel(verdict.month).toLowerCase()}: ese mes solo caben ${money(verdict.limit)} más`;
     // Si el llamador dice el TOTAL que la celda admite (el mismo «Máx.» del indicador), el mensaje

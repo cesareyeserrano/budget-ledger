@@ -260,12 +260,14 @@ function HeaderTotalCell({ value, sep, active }: { value: number; sep?: boolean;
         // Plegar debe RESUMIR, no perder la señal: un total negativo conserva aquí sus tres
         // canales (color, signo y glifo), igual que desplegado.
         background: active ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined,
-        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : exceptionColor(value, { alarms: true }),
+        // Plegado RESUME la fila «Disponible ahora», que pinta su cero explícito — resumirla con el
+        // guion de «sin datos» contradecía a la fila que resume (auditoría 2026-09-01).
+        color: !value ? "var(--fg-secondary)" : exceptionColor(value, { alarms: true }),
         fontWeight: 600,
       }}
     >
       {negative ? MINUS : ""}
-      {cellNum(Math.abs(value))}
+      {value === 0 ? "0" : cellNum(Math.abs(value))}
       {negative ? <span aria-hidden="true" className="flex-none ml-1 leading-none">{NEGATIVE_MARK}</span> : null}
     </div>
   );
@@ -571,8 +573,8 @@ function TechoBanner() {
  *
  * Vive aquí y no en `BudgetGrid` porque su layout es el de una fila del Balance —sangría, rótulo
  * sticky, par de celdas Pres./Ejec.— y duplicarlo allí las haría divergir. Su spec es `RETIROS_ROW`,
- * declarada FUERA de `ROWS`: desde FR-1810 el retiro no es una fila de la cascada del Balance, sino
- * que va neteado dentro de «Guardado en alcancías» (ADR-09, que revoca ADR-07 en este punto).
+ * declarada FUERA de `ROWS`: esta fila es la puerta OPERABLE; su reflejo de solo lectura en el
+ * Balance es la fila «Sacado de alcancías» (FR-1810 v3 · ADR-09, que revoca ADR-07 en este punto).
  *
  * Es la puerta para SACAR: Pres. edita el retiro planeado, Ejec. abre el mini-form de sacar y
  * corregir. Al mudarla junto a los bolsillos resuelve BL-019 —«no me resulta amigable operar desde

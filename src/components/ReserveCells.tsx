@@ -22,6 +22,7 @@ import {
   isAvailable,
   plannedRetiroLimit,
   cellHeadroom,
+  maxWithdrawal,
   monthCarryUsage,
   monthReserveOps,
   reserveLeafIds,
@@ -267,10 +268,12 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Mon
   const [draft, setDraft] = useState("");
   const observations = cellObservations(data, leafId, month);
   // FR-1804 — la observación AUTOMÁTICA del mes, en la celda donde se reservó (que es donde el
-  // usuario la busca). Se muestra solo si ESTA celda aportó ese mes: es información del mes, pero
-  // aparece donde la acción ocurrió, no en la fila de total. La escribe la app y se deriva del
-  // estado, así que se reescribe sola y desaparece cuando el mes vuelve a caber en su flujo.
-  const aporto = (data.actuals[leafId]?.[month] ?? 0) > 0;
+  // usuario la busca). Se muestra solo si ESTA celda es un BOLSILLO y aportó ese mes: con FR-1809
+  // esta sección vive también en celdas de gasto e ingreso, y sin la guarda de tipo la nota de
+  // reservas aparecía al editar un GASTO cualquiera (auditoría 2026-09-01) — «de los $600
+  // reservados…» en una celda que no reservó nada.
+  const esBolsillo = findNode(data.nodes, leafId)?.type === "transfer";
+  const aporto = esBolsillo && (data.actuals[leafId]?.[month] ?? 0) > 0;
   const carry = aporto ? monthCarryUsage(data, month, "actual") : null;
   const over = draft.length > CELL_NOTE_MAX;
   const canAdd = draft.trim().length > 0 && !over;
@@ -472,7 +475,10 @@ export function WithdrawCell({
 
   const leaves = reserveLeafIds(data);
   const parsed = Math.round(Number(amount) || 0);
-  const saldo = fromId ? resolvedBalance(data, fromId, month, "actual") : null;
+  // El tope NO es el saldo del mes: si un mes posterior ya retiró de esa misma plata, el saldo
+  // sobreestima (auditoría 2026-09-01: mostraba Máx. $1.000 donde solo cabían $200). `maxWithdrawal`
+  // mira la serie completa — la misma cuenta que el dominio va a validar.
+  const saldo = fromId ? maxWithdrawal(data, fromId, month) : null;
   const canSave = fromId !== "" && parsed > 0 && (saldo === null || parsed <= saldo);
 
   // Sobre-retiro: ejecutado vs planeado, misma graduación que los gastos (observación 1).

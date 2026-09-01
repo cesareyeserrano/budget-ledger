@@ -34,17 +34,26 @@ export function isAvailable(id: string | null | undefined): boolean {
 
 /** Aviso de plan (Pres.) o componente de bloqueo (Ejecutado). */
 export interface ReserveWarning {
-  rule: "techo" | "piso";
+  /**
+   * `deficit` era antes un "techo" disfrazado (auditoría 2026-09-01, hallazgo 5): el mensaje decía
+   * «caben $X más» a un usuario que estaba BAJANDO un retiro. Son reglas distintas con causas
+   * distintas — el techo protege el cupo del mes; el déficit protege la plata que los meses
+   * siguientes YA usaron — y el texto solo puede ser honesto si sabe cuál habló.
+   */
+  rule: "techo" | "piso" | "deficit";
   month: MonthKey;
   leafId?: string;
-  /** techo: margen restante del mes; piso: el saldo que tiene (mes editado) o quedaría (cadena). */
+  /**
+   * techo/deficit: el INCREMENTO máximo que la operación admite (operativo: `limit` se acepta y
+   * `limit + 1` se rechaza). piso: el saldo que tiene (mes editado) o quedaría (cadena).
+   */
   limit: number;
 }
 
 /** Veredicto de una escritura de reserva. En Pres. SIEMPRE ok (avisa, no bloquea). */
 export type ReserveVerdict =
   | { ok: true; warnings: ReserveWarning[] }
-  | { ok: false; rule: "techo" | "piso"; month: MonthKey; leafId?: string; limit: number };
+  | { ok: false; rule: "techo" | "piso" | "deficit"; month: MonthKey; leafId?: string; limit: number };
 
 /** Edición de celda transfer (grilla): el valor tecleado es el APORTE nuevo de ese mes. */
 export interface ReserveEdit {
@@ -337,7 +346,13 @@ function affectedLeavesOf(mv: Movement): string[] {
  * «solo tiene 100» cuando admite hasta 300 (AC-1810).
  */
 function verdictOf(state: LedgerState, mv: Movement, blocking: ReserveWarning, libera = 0): ReserveVerdict {
-  if (blocking.rule === "piso" && blocking.leafId) {
+  // El re-mapeo aplica SOLO cuando el mes que bloquea es el de la propia operación: ahí el usuario
+  // necesita saber cuánto HAY (saldo + lo que la operación libera). Cuando el bloqueo está en OTRO
+  // mes, el `limit` crudo de la cadena ya es el residual de ESE mes bajo el candidato — que es
+  // exactamente lo que el mensaje encadenado afirma («quedaría en −$X»). Re-mapearlo con el saldo
+  // del mes de la operación producía cifras con magnitud y signo equivocados (auditoría 2026-09-01,
+  // hallazgo crítico: «quedaría en −$1.000» cuando el residual real era −$1).
+  if (blocking.rule === "piso" && blocking.leafId && blocking.month === mv.month) {
     const saldo = resolvedBalance(state, blocking.leafId, mv.month, "actual");
     // `libera` solo cuenta para la hoja de la que la operación SACA (su origen).
     const credito = blocking.leafId === mv.from ? libera : 0;
@@ -416,8 +431,10 @@ export function editReserveOp(
   const mv = state.movements.find((m) => m.id === movementId);
   if (!isRemovableReserveOp(mv)) return { rejected: "invalid_target" };
 
-  const value = Math.round(Number(newAmount));
-  if (!Number.isFinite(value) || value < 0) return { rejected: "invalid_target" };
+  // Entero exacto o nada: `Math.round` convertía un 0.4 accidental en el sentinel «0 = eliminar»
+  // y una edición inválida BORRABA la operación (auditoría 2026-09-01).
+  if (!Number.isInteger(newAmount) || newAmount < 0) return { rejected: "invalid_target" };
+  const value = newAmount;
 
   if (value === 0) {
     const removed = removeReserveOp(state, movementId);
@@ -534,7 +551,37 @@ export function reserveHeadroom(state: LedgerState, month: MonthKey): number {
   const scan = techoScan(state, "actual");
   const i = MONTH_KEYS.indexOf(month);
   if (i < 0) return 0;
-  return Math.max(0, scan.margin[i] - scan.consumo[i]);
+  return chainedAporteSlack(scan, i, "actual");
+}
+
+/**
+ * El incremento máximo de APORTE que un mes admite viendo la cadena COMPLETA — el mismo número que
+ * `chainCheck` aceptaría (auditoría 2026-09-01, hallazgo crítico: el «Máx.» solo miraba su mes y
+ * prometía cupo que las reglas encadenadas rechazaban, hasta el extremo de anunciar $1.000 donde no
+ * cabía $1).
+ *
+ * Un aporte de Δ en el mes `i` sube el consumo de `i` y BAJA el arrastre de `i..dic` — luego acota:
+ *   · techo del propio mes:      Δ ≤ margen(i) − consumo(i)      (si el mes ya excede, 0)
+ *   · techo de cada mes k > i:   Δ ≤ margen(k) − consumo(k)      — solo si margen(k) > 0: con
+ *     margen 0 el exceso de k no puede empeorar por más que baje el arrastre (max(0,·) ya saturó)
+ *   · déficit de cada mes k ≥ i: Δ ≤ arrastre(k)                 (si ya es negativo, 0: nada puede
+ *     empeorarlo — sobregasto legado, NFR-1803)
+ * El mínimo de todo eso es exacto: se acepta tal cual y se rechaza con un peso más, y así lo fija
+ * la prueba de propiedad contra el validador real.
+ *
+ * En el plano Presupuestado no hay término de déficit ni techo encadenado: el arrastre del barrido
+ * es el REAL (ADR-03) y una escritura del plan no lo mueve, así que solo acota su propio mes.
+ */
+function chainedAporteSlack(scan: TechoScan, i: number, plane: Plane): number {
+  let cupo = Math.max(0, scan.margin[i] - scan.consumo[i]);
+  if (plane !== "actual") return cupo;
+  for (let k = i + 1; k < MONTH_KEYS.length; k++) {
+    if (scan.margin[k] > 0) cupo = Math.min(cupo, Math.max(0, scan.margin[k] - scan.consumo[k]));
+  }
+  for (let k = i; k < MONTH_KEYS.length; k++) {
+    cupo = Math.min(cupo, Math.max(0, scan.arrastre[k]));
+  }
+  return cupo;
 }
 
 /**
@@ -566,12 +613,41 @@ export function cellHeadroom(state: LedgerState, leafId: string, month: MonthKey
   if (i < 0) return 0;
   const map = plane === "budget" ? state.budgets : state.actuals;
   const actual = map[leafId]?.[month] ?? 0;
-  return Math.max(0, scan.margin[i] - (scan.consumo[i] - actual));
+  // El total admisible es lo que la celda YA vale (bajarla siempre se puede) más el incremento que
+  // la cadena completa acepta — no solo el del propio mes (auditoría 2026-09-01).
+  return actual + chainedAporteSlack(scan, i, plane);
+}
+
+/**
+ * El monto máximo que se puede SACAR de una alcancía en un mes — el que el mini-form debe anunciar
+ * como «Máx.» (auditoría 2026-09-01: mostraba el saldo del mes, que sobreestima cuando meses
+ * posteriores ya retiraron de esa misma plata).
+ *
+ * Un retiro de Δ en el mes `m` baja el saldo de la alcancía en `m..dic`, así que el tope es el
+ * MÍNIMO de su serie de saldos de ahí en adelante. Es la única regla que un retiro puede romper: el
+ * techo no ve retiros (consumo bruto, FR-1801) y el déficit solo MEJORA al sacar (la plata vuelve a
+ * la cuenta). También vale para el origen de un MOVER, que enfrenta el mismo piso.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param leafId Alcancía de origen.
+ * @param month Mes de la operación.
+ * @returns El máximo extraíble, nunca negativo. Hoja o mes desconocidos devuelven 0.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1806, TC-ID: TC-TDF-011h
+ */
+export function maxWithdrawal(state: LedgerState, leafId: string, month: MonthKey): number {
+  const i = MONTH_KEYS.indexOf(month);
+  if (i < 0) return 0;
+  const series = resolvedSeries(state, leafId, "actual");
+  let tope = Infinity;
+  for (let k = i; k < MONTH_KEYS.length; k++) tope = Math.min(tope, series[k]);
+  return Math.max(0, Number.isFinite(tope) ? tope : 0);
 }
 
 /** Lo que un mes tomó del saldo que traía, cuando sus reservas no cupieron en su propio flujo. */
 export interface CarryUsage {
-  /** Lo reservado en el mes (bruto). */
+  /** Lo reservado en el mes: bruto en Ejecutado; en el plan es el neto (ADR-08). */
   reservado: number;
   /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
   delSaldoAnterior: number;
@@ -607,8 +683,14 @@ export function monthCarryUsage(state: LedgerState, month: MonthKey, plane: Plan
   const expense = typeTotals(state, "expense", [month]);
   const flujo = plane === "budget" ? income.budget - expense.budget : income.actual - expense.actual;
   const reservado = scan.consumo[i];
+  // Sin reservas no hay nada que explicar — antes un mes con solo GASTOS producía
+  // {reservado: 0, delSaldoAnterior: 300}: un desglose imposible (auditoría 2026-09-01).
+  if (reservado <= 0) return null;
   const disponiblePrevio = Math.max(0, scan.arrastre[i - 1]);
-  const delSaldoAnterior = Math.min(reservado - flujo, disponiblePrevio);
+  // Lo que salió del saldo anterior jamás puede exceder lo reservado: primero se atribuye al flujo
+  // del mes lo que quepa (un flujo NEGATIVO no financia nada: se acota a 0, no infla el término).
+  const delFlujo = Math.max(0, Math.min(reservado, flujo));
+  const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
   return { reservado, delSaldoAnterior, mesAnterior: MONTH_KEYS[i - 1] };
 }
@@ -762,10 +844,11 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
       violations.push({
         rule: "techo",
         month: MONTH_KEYS[i],
-        // Lo que SÍ cabía: el margen del mes menos lo que el base ya consumía. Sale de la MISMA
-        // serie que `reserveHeadroom` publica como «Máx.», así que indicador y rechazo no pueden
-        // decir cifras distintas (FR-1808/AC-1834).
-        limit: Math.max(0, candScan.margin[i] - baseScan.consumo[i]),
+        // Lo que SÍ cabía en ese mes ANTES del intento: margen menos consumo, ambos del BASE.
+        // Con `candScan.margin` (auditoría 2026-09-01, hallazgo «caben $0 cuando caben $300») el
+        // margen ya venía castigado por el propio intento cuando el mes ofensor era otro: el
+        // número quedaba restado por el delta y casi siempre clavado en 0.
+        limit: Math.max(0, baseScan.margin[i] - baseScan.consumo[i]),
       });
     }
   }
@@ -777,7 +860,7 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
     for (let i = 0; i < MONTH_KEYS.length; i++) {
       if (candScan.deficit[i] > baseScan.deficit[i]) {
         violations.push({
-          rule: "techo",
+          rule: "deficit",
           month: MONTH_KEYS[i],
           // Lo que el mes puede soportar sin empeorar: lo que hoy queda antes de caer en negativo.
           limit: Math.max(0, baseScan.arrastre[i]),
@@ -787,6 +870,16 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
   }
 
   violations.sort((a, b) => MONTH_KEYS.indexOf(a.month) - MONTH_KEYS.indexOf(b.month));
+
+  // El `limit` que se ANUNCIA tiene que ser operativo: aceptarse tal cual y rechazarse con un peso
+  // más. Techo y déficit acotan el MISMO delta de la operación, así que si varias violaciones
+  // conviven, la cifra honesta es el mínimo entre todas — anunciar la del primer mes ofensor
+  // prometería un monto que otra violación rechazaría.
+  const deltas = violations.filter((v) => v.rule !== "piso");
+  if (deltas.length > 1) {
+    const minimo = Math.min(...deltas.map((v) => v.limit));
+    for (const v of deltas) v.limit = minimo;
+  }
 
   if (plane === "budget") {
     // Pres. AVISA sin bloquear; además marca TODO mes del plan que excede su techo.

@@ -233,3 +233,51 @@ de auth promete aislar el bucket de rate-limit por IP con `x-forwarded-for`, per
 cabecera sólo se honra con `LEDGER_TRUST_PROXY=true`, que en pruebas no está puesta —correctamente—.
 Los 29 tests del fichero comparten un solo bucket y los últimos agotan el cupo (`signUp` devuelve
 sesión nula). Verificado: el diff de esta feature no toca ningún fichero de auth, correo ni sesión.
+
+## Evidencia — Pase adversarial sobre el dinero y sus correcciones (2026-09-01)
+
+A petición del usuario («necesito garantizar que sea correcto… es dinero, quizá un pase
+adversarial»), TRES auditores independientes atacaron las cuentas con lentes distintos: aritmética
+del dominio, coherencia UI↔dominio, y fronteras/persistencia. Cada afirmación de carga se verificó
+ADEMÁS con ejecuciones propias antes de darla por buena.
+
+**El titular:** el núcleo aritmético resistió — un fuzz de 6.000 pasos con 8 invariantes al peso
+(conservación, arrastre, identidad FR-1810, piso, NaN) dio CERO violaciones, y 2.637 rechazos
+verificados como no-mutantes. Lo roto estaba en la capa de EXPLICACIÓN: los límites e indicadores
+que se anuncian al usuario. Corregido en esta ronda (cada fix con test de regresión que falla con
+el código anterior):
+
+1. **El «Máx.»/«Cupo del mes» ignoraban las reglas encadenadas** — llegaban a prometer $1.000 donde
+   el dominio no aceptaba $1. `reserveHeadroom`/`cellHeadroom` derivan ahora de
+   `chainedAporteSlack`: techo del mes + techo de los meses siguientes (con la salvedad probada del
+   margen saturado en 0) + déficit. Propiedad fijada: lo anunciado se acepta y +1 se rechaza.
+2. **El piso encadenado inventaba una cifra** («quedaría en −$1.000» donde el residual era −$1):
+   `verdictOf` re-mapeaba con el saldo del mes de la OPERACIÓN; ahora solo re-mapea (con `libera`)
+   cuando el mes que bloquea es el propio, y el encadenado conserva el residual del mes ofensor.
+3. **El techo encadenado decía «caben $0» cuando cabían $300**: el límite usaba el margen del
+   candidato ya castigado por el intento; ahora sale del BASE, y si conviven varias violaciones de
+   delta el límite anunciado es el mínimo — operativo por construcción.
+4. **La regla de déficit hablaba disfrazada de techo** («caben $X más» a quien BAJABA un retiro):
+   gana su propio discriminante `rule:"deficit"` y su mensaje («{mes} ya usa esa plata»).
+5. **El mini-form de Sacar y Registrar prometían el saldo del mes** cuando meses posteriores ya
+   habían retirado de esa plata: nace `maxWithdrawal` (mínimo de la serie desde el mes) y ambas
+   superficies lo consumen.
+6. **`monthCarryUsage` desglosaba imposibles** con flujo negativo ({reservado:100, delSaldo:400};
+   {reservado:0, delSaldo:300}): sin reservas → null, y lo del saldo anterior se acota a lo
+   reservado con el flujo negativo acotado a 0.
+7. **La nota automática de reservas aparecía en editores de GASTO/INGRESO** (gate sin tipo tras
+   FR-1809): ahora exige hoja transfer.
+8. **`editReserveOp(id, 0.4)` redondeaba a 0 y ELIMINABA la operación**: entero exacto o
+   `invalid_target`.
+9. **`money(-500)` imprimía «$-500»** (tercer formato distinto del mismo negativo): ahora «−$500»,
+   como el Balance. Y el encabezado PLEGADO del Balance resume «Disponible ahora 0» como «0», no
+   como el guion de «sin datos».
+
+Suite completa tras las correcciones: **567 pasan, 0 fallan** (57 archivos), typecheck y lint
+limpios. Los contraejemplos del pase se re-ejecutaron todos con el resultado corregido.
+
+**Fuera del alcance de esta feature, registrado sin arreglar:** BG-019 (borrar alcancía con saldo
+derivado no avisa), BG-020 (retiro planeado huérfano → reservado presupuestado negativo sin aviso),
+BG-021 (sin tope de monto: pérdida de precisión >2^53 y 500 en vez de 422), BG-022 (cuatro flecos:
+parseAmount laxo, seq del servidor, mes inválido runtime, setPlannedRetiro silencioso). Ninguno
+alcanzable desde la UI actual. BG-018 (rate-limit en tests) ya estaba registrado.

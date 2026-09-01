@@ -18,6 +18,7 @@ import {
   applyReserveOp,
   cellHeadroom,
   editReserveOp,
+  maxWithdrawal,
   monthCarryUsage,
   monthIssues,
   removeReserveOp,
@@ -883,5 +884,131 @@ describe("FR-1810 · el Balance en tres bloques", () => {
     // Y el positivo, para que el rechazo no sea un "siempre false".
     expect(validateContiguity(ROWS)).toEqual({ ok: true });
     expect(validateCascadeOrder(ROWS)).toEqual({ ok: true });
+  });
+});
+
+// ── Auditoría adversarial 2026-09-01 · regresiones de la capa de explicación ───────────────────
+
+/**
+ * El pase adversarial (tres auditores independientes + verificación propia) encontró que el núcleo
+ * aritmético resistía pero la capa de EXPLICACIÓN mentía: límites calculados sobre el mes
+ * equivocado, indicadores ciegos a las reglas encadenadas, y un desglose imposible. Cada test de
+ * este bloque FALLA con el código anterior a la corrección — son los contraejemplos del pase,
+ * convertidos en regresión.
+ */
+describe("auditoría 2026-09-01 · los límites anunciados son operativos", () => {
+  it("el piso encadenado reporta el residual del MES OFENSOR, no un saldo de otro mes", () => {
+    // Contraejemplo E4: editar el retiro de enero con otro retiro posterior en febrero.
+    let s = base({ ene: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    const r1 = sacar(s, "A", "ene", 200);
+    s = r1.state;
+    s = sacar(s, "A", "feb", 700).state; // saldos: ene 800 … feb 100
+
+    const e = editReserveOp(s, r1.id, 301);
+    if (!("rejected" in e) || e.rejected === "invalid_target") expect.fail("debió rechazar con veredicto");
+    // Antes: limit 1000 (saldo de ENERO + libera) y el mensaje decía «quedaría en −$1.000».
+    // El residual real de febrero con el retiro en 301 es 100 − (301 − 200) = −1.
+    expect(e.rejected).toMatchObject({ rule: "piso", month: "feb", limit: -1 });
+
+    // Y el máximo operativo se acepta tal cual: 300 pasa, 301 acaba de fallar.
+    const ok = editReserveOp(s, r1.id, 300);
+    expect("state" in ok).toBe(true);
+  });
+
+  it("reserveHeadroom y cellHeadroom ven la cadena: lo que anuncian se acepta, y +1 se rechaza", () => {
+    // (a) E1: febrero vive del arrastre de enero → en enero no cabe NI UN peso.
+    let a = base({ ene: 1000 });
+    a = llevar(a, "A", "feb", 1000);
+    expect(reserveHeadroom(a, "ene")).toBe(0); // antes: 1.000, y el dominio rechazaba hasta 1
+    expect(cellHeadroom(a, "A", "ene", "actual")).toBe(0);
+    expect("rejected" in applyReserveOp(a, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 1 })).toBe(true);
+
+    // (b) E15: un gasto YA tecleado en febrero come cupo de enero (regla de déficit).
+    let b = base({ ene: 1000 });
+    b = setLeafAmount(b, "c-gasto", "feb", "actual", 300);
+    expect(reserveHeadroom(b, "ene")).toBe(700); // antes: 1.000
+    expect("state" in applyReserveOp(b, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 700 })).toBe(true);
+    expect("rejected" in applyReserveOp(b, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 701 })).toBe(true);
+
+    // (c) Propiedad general: en estados variados, el cupo anunciado ES el máximo aceptado.
+    const estados: LedgerState[] = [a, b];
+    let c = base({ ene: 1000, feb: 800, mar: 1200 });
+    c = llevar(c, "A", "feb", 900);
+    estados.push(c);
+    for (const st of estados) {
+      for (const mk of ["ene", "feb", "mar"] as MonthKey[]) {
+        const h = reserveHeadroom(st, mk);
+        if (h > 0) {
+          expect("state" in applyReserveOp(st, { from: AVAILABLE_ID, to: "A", month: mk, amount: h }), `${mk} acepta su cupo ${h}`).toBe(true);
+        }
+        expect("rejected" in applyReserveOp(st, { from: AVAILABLE_ID, to: "A", month: mk, amount: h + 1 }), `${mk} rechaza cupo+1`).toBe(true);
+      }
+    }
+  });
+
+  it("el techo encadenado anuncia lo que cabía ANTES del intento — «caben $300», no «caben $0»", () => {
+    // Contraejemplo E5: feb reservó 1.200 sobre 500 propios; guardar 500 en enero desborda a feb.
+    let s = base({ ene: 1000, feb: 500 });
+    s = llevar(s, "A", "feb", 1200);
+    const r = applyReserveOp(s, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 500 });
+    if (!("rejected" in r)) expect.fail("debió rechazar");
+    expect(r.rejected).toMatchObject({ rule: "techo", month: "feb", limit: 300 }); // antes: limit 0
+    expect("state" in applyReserveOp(s, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 300 })).toBe(true);
+    expect("rejected" in applyReserveOp(s, { from: AVAILABLE_ID, to: "A", month: "ene", amount: 400 })).toBe(true);
+  });
+
+  it("la regla de déficit habla con su propio nombre, no disfrazada de techo", () => {
+    // Bajar un retiro cuya plata ya usaron los meses siguientes (familia AC-1809).
+    let s = base({ ene: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    const r = sacar(s, "A", "ene", 600);
+    s = r.state;
+    s = setLeafAmount(s, "c-gasto", "feb", "actual", 600); // febrero gasta lo que el retiro devolvió
+    const e = editReserveOp(s, r.id, 300);
+    if (!("rejected" in e)) return expect.fail("debió rechazar con veredicto");
+    const rej = e.rejected;
+    if (rej === "invalid_target" || rej.ok) return expect.fail("debió ser un veredicto de bloqueo");
+    // Antes llegaba como rule:"techo" y el mensaje decía «ese mes solo caben $0 más» a un usuario
+    // que estaba BAJANDO un retiro.
+    expect(rej.rule).toBe("deficit");
+  });
+
+  it("maxWithdrawal es el mínimo de la serie: lo que anuncia se saca, y +1 se rechaza", () => {
+    // Contraejemplo E3: saldo de enero 1.000, pero marzo ya retiró 800 de esa plata.
+    let s = base({ ene: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    s = sacar(s, "A", "mar", 800).state;
+    expect(maxWithdrawal(s, "A", "ene")).toBe(200); // el saldo de enero (1.000) sobreestimaba
+    expect("state" in applyReserveOp(s, { from: "A", to: AVAILABLE_ID, month: "ene", amount: 200 })).toBe(true);
+    expect("rejected" in applyReserveOp(s, { from: "A", to: AVAILABLE_ID, month: "ene", amount: 201 })).toBe(true);
+    // Sin retiros posteriores, coincide con el saldo — el caso simple no cambia.
+    let t = base({ ene: 1000 });
+    t = llevar(t, "A", "ene", 1000);
+    expect(maxWithdrawal(t, "A", "ene")).toBe(1000);
+  });
+
+  it("monthCarryUsage jamás desglosa más de lo reservado, y sin reservas devuelve null", () => {
+    // Un mes con SOLO gastos producía {reservado: 0, delSaldoAnterior: 300}.
+    let a = base({ ene: 1000 });
+    a = setLeafAmount(a, "c-gasto", "feb", "actual", 300);
+    expect(monthCarryUsage(a, "feb", "actual")).toBeNull();
+
+    // Y con flujo negativo, lo del saldo anterior se acota a lo reservado: nunca «de $100, $400».
+    let b = llevar(a, "A", "feb", 100);
+    const carry = monthCarryUsage(b, "feb", "actual");
+    expect(carry).not.toBeNull();
+    expect(carry!.delSaldoAnterior).toBeLessThanOrEqual(carry!.reservado);
+    expect(carry).toMatchObject({ reservado: 100, delSaldoAnterior: 100 });
+  });
+
+  it("editar a un monto no entero se rechaza — antes 0.4 se redondeaba a 0 y ELIMINABA", () => {
+    let s = base({ ene: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    const r = sacar(s, "A", "ene", 500);
+    const e = editReserveOp(r.state, r.id, 0.4);
+    expect("rejected" in e && e.rejected === "invalid_target").toBe(true);
+    // La operación sigue viva e intacta.
+    expect(r.state.movements.find((m) => m.id === r.id)?.amount).toBe(500);
   });
 });

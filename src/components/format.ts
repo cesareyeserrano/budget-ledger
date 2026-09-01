@@ -1,7 +1,12 @@
 import type { NodeType } from "@/domain/types";
 
 export function money(n: number | undefined): string {
-  return "$" + (n ?? 0).toLocaleString("es-CO");
+  const v = n ?? 0;
+  // El negativo lleva el signo DELANTE del `$` y con el menos tipográfico (U+2212), igual que el
+  // módulo de Balance. `toLocaleString` a secas producía «$-500» — signo descolocado y un tercer
+  // formato distinto para la misma clase de cifra (auditoría 2026-09-01).
+  if (v < 0) return "−$" + Math.abs(v).toLocaleString("es-CO");
+  return "$" + v.toLocaleString("es-CO");
 }
 
 /** En la grilla, 0 se muestra como em-dash (como el prototipo). */

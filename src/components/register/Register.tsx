@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NodeType } from "@/domain/types";
 import { useLedgerStore } from "@/state/store";
-import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, reserveHeadroom, resolvedBalance } from "@/domain/reserve";
+import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, maxWithdrawal, reserveHeadroom } from "@/domain/reserve";
 import { parsePesos } from "@/lib/money";
 import { nowForInput, monthKeyFromDate } from "@/lib/date";
 import { money } from "@/components/format";
@@ -66,7 +66,9 @@ export function Register() {
     // margen promete plata que el dominio va a rechazar (en el enero del usuario: margen 1.000,
     // cupo 0). El número mostrado es exactamente el que el rechazo usa como límite.
     if (isAvailable(ends.from)) return { label: "Cupo del mes", value: reserveHeadroom(data, month) };
-    return { label: "Máx.", value: resolvedBalance(data, ends.from, month, "actual") };
+    // Sacar o mover DESDE una alcancía: el tope es lo extraíble viendo la serie completa, no el
+    // saldo del mes — un retiro posterior ya pudo usar esa plata (auditoría 2026-09-01).
+    return { label: "Máx.", value: maxWithdrawal(data, ends.from, month) };
   }, [isReserve, ends.from, data, month]);
   const overLimit = reserveLimit !== null && amount > reserveLimit.value;
 
