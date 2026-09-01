@@ -4,7 +4,7 @@ import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType }
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
-import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp } from "./reserve";
+import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, resolvedSeries, reserveLeafIds } from "./reserve";
 
 // Compat: estos símbolos vivieron aquí; ahora los comparten reserve/ids sin ciclo de imports.
 export { normalizeNote, __resetSeq, seedSeq, seedSeqFrom };
@@ -191,46 +191,16 @@ function nodeHasData(state: LedgerState, nodeId: string): boolean {
   return false;
 }
 
-export type DeleteBlock = "has_children" | "has_data";
+export type DeleteBlock = "has_children" | "has_data" | "has_operations";
 export type DeleteResult = { state: LedgerState } | { blocked: DeleteBlock };
 
 /**
- * ¿Se puede borrar este nodo? (para gatear el ícono 🗑 en la UI — no mostrar borrar si no aplica)
- * - system: no.
- * - cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías): no —
- *   hay que mover/borrar los hijos primero (BG-002). Un padre nunca se borra con hijos, tenga
- *   o no valores propios; para eliminarlo debe quedar sin hijos Y sin valores.
- * - cualquier nodo con valores vigentes (presupuestado o ejecutado): no — se debe vaciar
- *   primero (BG-001/BG-006). Aplica a TODOS los niveles: grupo-hoja (que también almacena
- *   montos, FR-603), categoría y subcategoría.
+ * El estado que resultaría de borrar `id`: nodos fuera, movimientos reescritos y montos limpiados.
+ *
+ * Se extrae de `deleteNode` para que la guarda de BG-023 pueda MEDIR el efecto del borrado antes de
+ * decidir, en vez de intentar predecirlo con una lista de formas.
  */
-export function canDeleteNode(state: LedgerState, id: string): boolean {
-  const node = findNode(state.nodes, id);
-  if (!node || node.system) return false;
-  if (childrenOf(state.nodes, id).length > 0) return false;
-  return !nodeHasData(state, id);
-}
-
-export function deleteNode(state: LedgerState, id: string): DeleteResult {
-  const node = findNode(state.nodes, id);
-  if (!node || node.system) return { state };
-
-  // cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías) →
-  // bloqueado hasta mover/borrar sus hijos (FR-110/BG-002); un padre no se borra con hijos
-  if (childrenOf(state.nodes, id).length > 0) {
-    return { blocked: "has_children" };
-  }
-
-  // cualquier nodo CON valores (presupuestado o ejecutado; grupo-hoja, categoría o sub) →
-  // bloqueado (hay que vaciarlo primero; cero pérdida silenciosa — BG-001/BG-006)
-  if (nodeHasData(state, id)) return { blocked: "has_data" };
-
-  // sin datos → borrado directo del subárbol, sus montos y sus movimientos históricos
-  // (BG-006: sin esto quedarían movimientos huérfanos apuntando a nodos inexistentes en Recientes)
-  // Feature transferencias: un movimiento de reserva referencia la alcancía por from O to. Si el
-  // DESTINO de un mover A→B se borra pero A sigue viva, el retiro de A debe SOBREVIVIR — borrarlo
-  // resucitaría el saldo de A sin operación alguna (hallazgo adversarial 3). Ese movimiento se
-  // convierte en retiro a Disponible (la plata salió de A; el destino dejó de existir).
+function rewriteForDelete(state: LedgerState, id: string): LedgerState {
   const ids = new Set(subtreeIds(state.nodes, id));
   const next = clone(state);
   next.nodes = next.nodes.filter((n) => !ids.has(n.id));
@@ -254,6 +224,91 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
     delete next.budgets[nid];
     delete next.actuals[nid];
   }
+  return next;
+}
+
+/**
+ * ¿Borrar este nodo cambiaría el saldo de algún bolsillo que SOBREVIVE?
+ *
+ * BG-023. Borrar reescribe el journal, y esa reescritura cuenta dos historias distintas según el
+ * lado: un mover ENTRANTE al nodo borrado se convierte en retiro a Disponible (la plata vuelve a la
+ * cuenta), mientras uno SALIENTE se elimina (la plata se le quita a su destino). Cuando el nodo
+ * tiene los dos lados, las dos historias hablan del MISMO peso y el resultado es plata fabricada:
+ * verificado —aporte a B → mover B→A → mover A→C → retirar de C y gastarlo deja los libros en 0;
+ * borrar A (saldo 0, sin celdas) da disponible +500.000 y deja a C en −500.000, sin ninguna señal.
+ *
+ * La comprobación es CONDUCTUAL, no una lista de formas: se construye el candidato y se mide si
+ * algún bolsillo superviviente cambia de saldo. Enumerar formas («destino + origen», «destino +
+ * retiro»…) obliga a acertar todas, y medir el efecto atrapa también las que nadie previó. Medido:
+ * borrar un bolsillo que solo RECIBIÓ devuelve su plata a Disponible sin tocar a nadie (coherente,
+ * y es la decisión que TC-CPR-013f y TC-TRF4-104e fijan), y el caso «recibió y retiró» tampoco
+ * mueve nada. Solo la composición de los dos lados vivos corrompe, y es la única que se bloquea.
+ *
+ * @returns `true` si el borrado alteraría a un tercero — el caso que debe bloquearse.
+ */
+function deleteWouldCorrupt(state: LedgerState, id: string, candidate: LedgerState): boolean {
+  const borrados = new Set(subtreeIds(state.nodes, id));
+  for (const leafId of reserveLeafIds(state)) {
+    if (borrados.has(leafId)) continue;
+    const antes = resolvedSeries(state, leafId, "actual");
+    const despues = resolvedSeries(candidate, leafId, "actual");
+    if (antes.some((v, i) => v !== despues[i])) return true;
+  }
+  return false;
+}
+
+/**
+ * ¿Se puede borrar este nodo? (para gatear el ícono 🗑 en la UI — no mostrar borrar si no aplica)
+ * - system: no.
+ * - cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías): no —
+ *   hay que mover/borrar los hijos primero (BG-002). Un padre nunca se borra con hijos, tenga
+ *   o no valores propios; para eliminarlo debe quedar sin hijos Y sin valores.
+ * - cualquier nodo con valores vigentes (presupuestado o ejecutado): no — se debe vaciar
+ *   primero (BG-001/BG-006). Aplica a TODOS los niveles: grupo-hoja (que también almacena
+ *   montos, FR-603), categoría y subcategoría.
+ */
+export function canDeleteNode(state: LedgerState, id: string): boolean {
+  return deleteBlockReason(state, id) === null;
+}
+
+/**
+ * El motivo por el que un nodo NO se puede borrar, o `null` si sí se puede.
+ *
+ * Se publica aparte de `canDeleteNode` para que la UI pueda DECIR el motivo en vez de limitarse a
+ * esconder el ícono: «tiene operaciones» y «tiene valores» piden acciones distintas del usuario.
+ */
+export function deleteBlockReason(state: LedgerState, id: string): DeleteBlock | null {
+  const node = findNode(state.nodes, id);
+  if (!node || node.system) return "has_children";
+  if (childrenOf(state.nodes, id).length > 0) return "has_children";
+  if (nodeHasData(state, id)) return "has_data";
+  // BG-023 — la única puerta de escritura que no pasaba por ninguna regla. Se resuelve
+  // construyendo el candidato y midiendo su efecto sobre terceros.
+  const d = rewriteForDelete(state, id);
+  if (deleteWouldCorrupt(state, id, d)) return "has_operations";
+  return null;
+}
+
+export function deleteNode(state: LedgerState, id: string): DeleteResult {
+  const node = findNode(state.nodes, id);
+  if (!node || node.system) return { state };
+
+  // cualquier nodo CON HIJOS (grupo con categorías, o categoría con subcategorías) →
+  // bloqueado hasta mover/borrar sus hijos (FR-110/BG-002); un padre no se borra con hijos
+  if (childrenOf(state.nodes, id).length > 0) {
+    return { blocked: "has_children" };
+  }
+
+  // cualquier nodo CON valores (presupuestado o ejecutado; grupo-hoja, categoría o sub) →
+  // bloqueado (hay que vaciarlo primero; cero pérdida silenciosa — BG-001/BG-006)
+  if (nodeHasData(state, id)) return { blocked: "has_data" };
+
+  // sin datos → borrado del subárbol, sus montos y sus movimientos históricos (BG-006), salvo que
+  // la reescritura alterara a un tercero (BG-023).
+  const next = rewriteForDelete(state, id);
+  // BG-023 — la misma medida que publica `deleteBlockReason`: si el borrado alteraría el saldo de
+  // un bolsillo que sobrevive, no se hace. Aquí y no solo en la consulta, porque ESTA es la puerta.
+  if (deleteWouldCorrupt(state, id, next)) return { blocked: "has_operations" };
   return { state: next };
 }
 

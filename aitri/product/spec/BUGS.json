@@ -577,6 +577,48 @@
       "created_at": "2026-09-01T15:18:39.199Z",
       "updated_at": "2026-09-01T15:18:39.199Z",
       "resolution": null
+    },
+    {
+      "id": "BG-023",
+      "title": "Borrar un bolsillo intermedio vacio fabrica disponible y deja a un tercero en negativo, sin senal",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-01T16:15:09.236Z",
+      "updated_at": "2026-09-01T16:30:19.158Z",
+      "resolution": "Guarda CONDUCTUAL en deleteNode y deleteBlockReason: se construye el estado candidato (rewriteForDelete, extraida de deleteNode) y se bloquea con 'has_operations' si el borrado alteraria el saldo de cualquier bolsillo SUPERVIVIENTE. Medir el efecto en vez de enumerar formas fue deliberado: mi primera guarda (bloquear cualquier nodo con movimientos transfer vivos) era demasiado ancha y rompia tres tests que fijan decisiones anteriores (TC-CPR-013f, TC-CPR-061f, TC-TRF4-104e: borrar el destino de un mover lo convierte en retiro). Medido empiricamente: borrar un bolsillo que solo RECIBIO devuelve su plata a Disponible sin tocar a nadie (coherente), y 'recibio y retiro' no mueve nada; SOLO la composicion recibe+entrega corrompe (disponible +500 y un tercero en -500). Se bloquea exactamente esa. No revive BG-006: la guarda mide saldos de BOLSILLOS, asi que gastos e ingresos con journal historico siguen borrables. Tests de regresion en techo-de-flujo.test.ts (3 casos, incluidos los dos permitidos y el de BG-006). Suite 570/570.",
+      "fix_commit_sha": "3fd728d58409edd1ed3e556911a758f1f9466131",
+      "fix_at": "2026-09-01T16:30:19.158Z"
+    },
+    {
+      "id": "BG-024",
+      "title": "La fusion de bolsillos deja moveres A->A vivos y editables",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-01T16:15:09.285Z",
+      "updated_at": "2026-09-01T16:15:09.285Z",
+      "resolution": null
     }
   ]
 }

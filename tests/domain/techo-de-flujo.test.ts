@@ -32,7 +32,7 @@ import {
   plannedRetiroLimit,
 } from "@/domain/reserve";
 import { computeBalanceSeries, type Plane } from "@/domain/balance";
-import { addMovement, setLeafAmount } from "@/domain/mutations";
+import { addMovement, canDeleteNode, deleteBlockReason, deleteNode, setLeafAmount } from "@/domain/mutations";
 import { MONTH_KEYS } from "@/domain/months";
 import {
   ROWS,
@@ -1010,5 +1010,82 @@ describe("auditoría 2026-09-01 · los límites anunciados son operativos", () =
     expect("rejected" in e && e.rejected === "invalid_target").toBe(true);
     // La operación sigue viva e intacta.
     expect(r.state.movements.find((m) => m.id === r.id)?.amount).toBe(500);
+  });
+});
+
+// ── BG-023 · la puerta de borrado que no pasaba por ninguna regla ──────────────────────────────
+
+describe("BG-023 · borrar un bolsillo no puede alterar a un tercero", () => {
+  /** El fixture de este bloque necesita TRES bolsillos: origen, intermedio y destino. */
+  function baseTres(ing: Partial<Record<MonthKey, number>> = {}): LedgerState {
+    return makeState([
+      { id: "c-ingreso", type: "income", actual: ing },
+      { id: "c-gasto", type: "expense" },
+      { id: "A", type: "transfer" },
+      { id: "B", type: "transfer" },
+      { id: "C", type: "transfer" },
+    ]);
+  }
+
+  /** Aportar desde Disponible a un bolsillo concreto. */
+  function aportar(s: LedgerState, to: string, month: MonthKey, amount: number): LedgerState {
+    const r = applyReserveOp(s, { from: AVAILABLE_ID, to, month, amount });
+    if (!("state" in r)) return expect.fail(`aporte rechazado: ${JSON.stringify(r.rejected)}`);
+    return r.state;
+  }
+
+  /** Mover entre bolsillos, fallando ruidosamente si el dominio lo rechaza. */
+  function mover(s: LedgerState, from: string, to: string, month: MonthKey, amount: number): LedgerState {
+    const r = applyReserveOp(s, { from, to, month, amount });
+    if (!("state" in r)) return expect.fail(`mover rechazado: ${JSON.stringify(r.rejected)}`);
+    return r.state;
+  }
+
+  it("el bolsillo INTERMEDIO no se borra: hacerlo fabricaba disponible y dejaba a un tercero en rojo", () => {
+    // El escenario de la auditoría del modelo, con todas sus operaciones aceptadas.
+    let s = baseTres({ ene: 500 });
+    s = aportar(s, "B", "ene", 500);
+    s = mover(s, "B", "A", "ene", 500); // A solo RECIBE…
+    s = mover(s, "A", "C", "ene", 500); // …y PASA: es un paso intermedio, saldo 0 y sin celda
+    s = sacar(s, "C", "feb", 500).state;
+    s = setLeafAmount(s, "c-gasto", "feb", "actual", 500);
+
+    // Los libros están perfectos y A no tiene celda ni saldo.
+    const antes = computeBalanceSeries(s).dic.actual;
+    expect(antes.available).toBe(0);
+    expect(antes.reservedBalance).toBe(0);
+    expect(s.actuals["A"]?.ene ?? 0).toBe(0);
+
+    // Antes: canDeleteNode decía true y el borrado daba disponible 500 con C en −500, sin señal.
+    expect(canDeleteNode(s, "A")).toBe(false);
+    expect(deleteBlockReason(s, "A")).toBe("has_operations");
+    const d = deleteNode(s, "A");
+    expect("blocked" in d && d.blocked).toBe("has_operations");
+  });
+
+  it("el bloqueo mide el EFECTO, no la forma: lo que no altera a nadie se sigue borrando", () => {
+    // (a) Un bolsillo que solo RECIBIÓ: su plata vuelve a Disponible sin tocar a ningún tercero.
+    //     Es la decisión que ya fijaban TC-CPR-013f y TC-TRF4-104e, y sigue viva.
+    let a = baseTres({ ene: 500 });
+    a = aportar(a, "B", "ene", 500);
+    a = mover(a, "B", "A", "ene", 500);
+    expect(deleteBlockReason(a, "A")).toBeNull();
+
+    // (b) Recibió y retiró: los dos efectos se cancelan, nada cambia, se borra.
+    let b = baseTres({ ene: 500 });
+    b = aportar(b, "B", "ene", 500);
+    b = mover(b, "B", "A", "ene", 500);
+    b = sacar(b, "A", "feb", 500).state;
+    expect(deleteBlockReason(b, "A")).toBeNull();
+  });
+
+  it("el bloqueo NO alcanza a gastos e ingresos con journal histórico (no revive BG-006)", () => {
+    // BG-006: un movimiento de gasto/ingreso bloqueaba el borrado para siempre, porque el journal
+    // es inmutable y no hay pantalla para quitarlo. La guarda nueva mide saldos de BOLSILLOS.
+    let s = base({ ene: 1000 });
+    s = addMovement(s, { type: "expense", catId: "c-gasto", subId: null, amount: 300, month: "ene" });
+    s = setLeafAmount(s, "c-gasto", "ene", "actual", 0); // el usuario vació la celda
+    expect(s.movements.some((m) => m.type === "expense")).toBe(true);
+    expect(canDeleteNode(s, "c-gasto")).toBe(true); // sigue borrable, como fijó BG-006
   });
 });

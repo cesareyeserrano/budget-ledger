@@ -350,6 +350,30 @@
       "behavior": "Un mes puede cerrarse. Un mes cerrado no admite ediciones de ninguna clase: ni gastos, ni ingresos, ni movimientos internos.",
       "decisions": "2026-08-30: el usuario decidio que va como FEATURE APARTE, no dentro de movimientos-internos. Razon: un cierre de mes no afecta solo a las reservas — congela tambien gastos e ingresos — y arrastra decisiones propias (quien cierra, si se puede reabrir, que pasa con los meses futuros). Mientras tanto, movimientos-internos resuelve el caso concreto impidiendo la edicion que dejaria un movimiento sin respaldo.",
       "acceptance": "Dado un mes cerrado, cuando el usuario intenta editar cualquier celda o movimiento de ese mes, entonces la app no lo permite y explica que el mes esta cerrado."
+    },
+    {
+      "id": "BL-037",
+      "title": "Decision de modelo: el ciclo retirar-para-gastar no debe castigarse como exceso",
+      "priority": "P1",
+      "problem": "El ciclo prescrito retirar-para-gastar deja el mes marcado como error permanente y congela la plata fresca del mes (y, sin holgura, tambien los aportes de meses anteriores)",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:40.993Z"
+    },
+    {
+      "id": "BL-038",
+      "title": "Decision de modelo: el no-empeora es un trinquete — corregir la correccion queda prohibido",
+      "priority": "P1",
+      "problem": "En un mes con violacion tolerada, toda edicion que mejora es irreversible: un dedazo vuelve irrecuperable el valor verdadero y el journal queda mintiendo",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:41.035Z"
+    },
+    {
+      "id": "BL-039",
+      "title": "Decision de modelo: el plan aprueba lo imposible y rechaza lo legitimo",
+      "priority": "P2",
+      "problem": "El techo del plan bendice planes inejecutables (consumo neto 0) y rechaza planes legitimos (retirar de ahorro real; ahorrar un mes para aportar el siguiente queda en ambar)",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:41.076Z"
     }
   ]
 }

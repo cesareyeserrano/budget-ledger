@@ -6,7 +6,7 @@ import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
   addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, seedSeqFrom,
-  type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult,
+  type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
 import { ServerRepository } from "@/data/serverRepository";
@@ -64,7 +64,7 @@ interface LedgerStore {
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
-  deleteNode: (id: string) => "ok" | "has_children" | "has_data";
+  deleteNode: (id: string) => "ok" | DeleteBlock;
   moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target" | "would_overflow";
   setLeafAmount: (leafId: string, month: MonthKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
