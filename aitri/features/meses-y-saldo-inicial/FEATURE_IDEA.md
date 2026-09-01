@@ -26,6 +26,30 @@ antes de cerrar la Fase 1._
    que se muestre — con ese nombre: «saldo inicial».
 5. **Una página de configuraciones** donde vivan éste y los demás ajustes.
 
+## Qué ES el saldo inicial (confirmado por el usuario, 2026-09-01)
+
+> «Para mí el saldo inicial es la primera entrada en la app en la historia del usuario. Vendría
+> siendo, digamos, en ese mes, lo que hoy día es saldo del mes anterior.»
+
+Es decir: **el saldo de APERTURA del historial**, no un campo por mes. Ocupa la casilla que hoy
+ocupa «Saldo del mes anterior» en el primer mes que el usuario tiene, y solo cambia su rótulo:
+allí se llama «Saldo inicial».
+
+Consecuencia directa sobre el dominio: hoy `computeBalanceSeries` abre en `ZERO_CARRY` («el mes 1
+no tiene mes previo: abre en 0/0»). Con esto, abre en el saldo declarado. Es un cambio pequeño y
+localizado — el resto de la cascada no se entera.
+
+### El riesgo que hay que cerrar en el diseño: el saldo inicial NO puede flotar
+
+Si el saldo inicial se ata a «el primer mes con información», entonces **teclear un dato en un mes
+anterior lo movería de sitio en silencio** y recalcularía toda la serie hacia adelante. El usuario
+empieza en junio, declara su saldo inicial, y meses después registra algo de marzo: de golpe marzo
+pasa a ser el primer mes y hereda una apertura que no le corresponde.
+
+Propuesta a confirmar: el saldo inicial se ancla a un **mes declarado** («empiezo a usar la app en
+junio de 2026»), no al primero que tenga datos. Los meses anteriores a ese ancla no forman parte del
+historial del usuario.
+
 ## Lo que esto REVOCA (decisión anterior del propio proyecto)
 
 La feature `balance` declaró esto en su `no_go_zone`, textual:
@@ -60,8 +84,10 @@ misma idea. Conviene decidir el ORDEN antes de diseñar cualquiera de las dos.
 2. **¿El saldo inicial es UNA cifra o varias?** Si al empezar ya tiene plata en la cuenta *y* algo
    apartado en alcancías, un solo número no lo representa. ¿Saldo disponible inicial + saldo por
    bolsillo, o solo el disponible?
-3. **¿Dónde vive el saldo inicial una vez configurado?** ¿Es un dato del usuario (una sola vez) o
-   puede cambiarse después? Si cambia, mueve TODA la serie de saldos hacia adelante.
+3. **¿Se puede corregir después de declararlo?** Cambiarlo mueve TODA la serie de saldos hacia
+   adelante, así que no es una edición cualquiera. ¿Se fija una sola vez, o se puede corregir con un
+   aviso claro de lo que arrastra?
+3b. **¿Se ancla a un mes declarado?** (Ver «el saldo inicial NO puede flotar», arriba.)
 4. **¿Esto es una feature o dos?** La página de configuraciones es una superficie propia y podría
    crecer sola. Se captura junta porque el saldo inicial necesita dónde vivir, pero el usuario debe
    decidir si se parte.
