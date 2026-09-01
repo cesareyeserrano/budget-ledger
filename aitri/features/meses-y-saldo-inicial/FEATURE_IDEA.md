@@ -1,0 +1,76 @@
+# FEATURE_IDEA — meses-y-saldo-inicial
+
+_Capturado el 2026-09-01 de las palabras del usuario. Lo que sigue es SU planteamiento, no una
+reinterpretación; las preguntas abiertas van marcadas aparte al final y deben confirmarse con él
+antes de cerrar la Fase 1._
+
+## El problema, en sus palabras
+
+> «Grilla por meses: problema — están quemados los meses a mostrar, y además si el usuario empieza a
+> usar la app en junio, le quedan los meses de enero a mayo vacíos haciendo ruido.»
+
+> «Se debe poder dar la opción de saldo inicial o configurar saldo inicial, porque si un usuario
+> quiere iniciar a usar la app y ya tiene dinero pero no tiene los rubros, debería poder tener la
+> opción de saldo inicial, que vendría siendo el saldo mes anterior que tenemos hoy día, solo que en
+> ese caso sería saldo inicial.»
+
+> «Adicional se propone crear una página de configuraciones, para poner allí todo lo que sea
+> configurable o personalizaciones.»
+
+## Su propuesta
+
+1. **Solo mostrar los meses con información.** La grilla deja de tener los doce meses quemados.
+2. **Cuando haya mucha historia, poder seleccionarlos desde el selector de año.**
+3. **A futuro, poder mostrar al menos 12 o 24 meses hacia adelante.**
+4. **Saldo inicial configurable**, que ocupa el lugar del «Saldo del mes anterior» en el primer mes
+   que se muestre — con ese nombre: «saldo inicial».
+5. **Una página de configuraciones** donde vivan éste y los demás ajustes.
+
+## Lo que esto REVOCA (decisión anterior del propio proyecto)
+
+La feature `balance` declaró esto en su `no_go_zone`, textual:
+
+> «Saldo inicial manual del mes 1: DECIDIDO que el mes 1 arranca en 0 (no hay mes anterior). No se
+> construye un campo de saldo inicial editable.»
+
+Y el código lo documenta en `src/domain/balance.ts`: *«No existe un saldo inicial manual (decisión
+de producto, no_go_zone)»*.
+
+El usuario está revocando esa decisión con una razón nueva y concreta que antes no estaba sobre la
+mesa: **quien empieza a usar la app a mitad de año ya tiene dinero, y hoy no tiene forma de
+decírselo.** La revocación es legítima, pero debe quedar registrada como tal —no colada— y el
+`no_go_zone` de esta feature tiene que decir explícitamente que la supersede.
+
+## Su relación con `cierre-de-mes` (BL-036)
+
+El usuario priorizó `cierre-de-mes` en la misma conversación, y las dos tocan el modelo temporal:
+
+- `cierre-de-mes` congela el pasado (y, según su propio análisis, permitiría **retirar** buena parte
+  de la maquinaria del techo — BL-037 y BL-038 quedarían disueltos).
+- Ésta cambia **qué meses existen** en la vista y de dónde sale el saldo de apertura.
+
+Si un mes cerrado no se toca, «el saldo inicial» y «el cierre del último mes cerrado» son casi la
+misma idea. Conviene decidir el ORDEN antes de diseñar cualquiera de las dos.
+
+## Preguntas abiertas — CONFIRMAR con el usuario antes de cerrar Fase 1
+
+1. **¿Qué meses se muestran exactamente?** «Los que tienen información» deja fuera dos casos que
+   seguro hacen falta: el **mes corriente** aunque esté vacío (hay que poder teclear en él) y
+   **algún mes futuro** para planear. ¿Cuál es la regla mínima?
+2. **¿El saldo inicial es UNA cifra o varias?** Si al empezar ya tiene plata en la cuenta *y* algo
+   apartado en alcancías, un solo número no lo representa. ¿Saldo disponible inicial + saldo por
+   bolsillo, o solo el disponible?
+3. **¿Dónde vive el saldo inicial una vez configurado?** ¿Es un dato del usuario (una sola vez) o
+   puede cambiarse después? Si cambia, mueve TODA la serie de saldos hacia adelante.
+4. **¿Esto es una feature o dos?** La página de configuraciones es una superficie propia y podría
+   crecer sola. Se captura junta porque el saldo inicial necesita dónde vivir, pero el usuario debe
+   decidir si se parte.
+5. **¿Orden respecto de `cierre-de-mes`?** Ver la sección anterior.
+
+## Fuera de alcance (propuesto, a confirmar)
+
+- El cierre de mes en sí (BL-036) — es su propia feature.
+- Cambiar el modelo de reservas (BL-037 / BL-038), que el usuario decidió congelar a la espera del
+  cierre de mes.
+- Multi-año real: hoy la escala es de doce meses de un año. Mostrar «24 meses a futuro» puede exigir
+  cruzar el año, y eso es un cambio de modelo mayor que hay que dimensionar aparte.

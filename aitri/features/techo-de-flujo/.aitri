@@ -17,19 +17,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-01T21:48:32.343Z",
+  "updatedAt": "2026-09-01T22:00:17.704Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T16:00:01.384Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-01T16:00:01.430Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-09-01T16:00:01.492Z",
       "event": "approved",
@@ -141,6 +131,22 @@
       "phase": "verify",
       "passed": 58,
       "failed": 0
+    },
+    {
+      "at": "2026-09-01T22:00:17.451Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-01T22:00:17.672Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -202,24 +208,24 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "a52769bdfd4391c3da1dc437b14cc409ed7a6240",
-  "verifyRanDirty": true,
-  "verifyResultsHash": "d18fc52e64219a84413dfc96510ee55a7a35074b42f6d4d282b5bb4fac8fb731",
-  "verifyRanAt": "2026-09-01T21:48:24.023Z",
+  "verifyRanRef": "edf97e0cb5e484d1161213b8f632c8172b3628d1",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "667609fda45fb78fed9a352155891f3daa0c8aad33b151ea1c31448a2362a6a2",
+  "verifyRanAt": "2026-09-01T22:00:17.364Z",
   "lastVerifyRun": {
-    "passed": 58,
+    "passed": 62,
     "failed": 0,
-    "skipped": 21,
+    "skipped": 17,
     "manual": 0,
-    "at": "2026-09-01T21:48:24.023Z"
+    "at": "2026-09-01T22:00:17.364Z"
   },
   "verifySummary": {
     "total": 79,
-    "passed": 58,
+    "passed": 62,
     "failed": 0,
-    "skipped": 21,
+    "skipped": 17,
     "skipped_e2e": 3,
-    "skipped_no_marker": 18,
+    "skipped_no_marker": 14,
     "manual": 0,
     "manual_verified": 0
   }
