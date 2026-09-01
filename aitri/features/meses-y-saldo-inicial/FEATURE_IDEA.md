@@ -76,22 +76,55 @@ El usuario priorizó `cierre-de-mes` en la misma conversación, y las dos tocan 
 Si un mes cerrado no se toca, «el saldo inicial» y «el cierre del último mes cerrado» son casi la
 misma idea. Conviene decidir el ORDEN antes de diseñar cualquiera de las dos.
 
+## Respuestas del usuario (2026-09-01) — decisiones tomadas
+
+**El historial empieza donde el usuario empieza.** > «Si inicio en junio, ¿por qué querría meter
+algo en marzo? Eso no se puede, la historia comienza en junio. Si el usuario quiere iniciar su
+historia en marzo estando en junio, tendrá que transcribir su historia manualmente empezando en
+marzo.» ⇒ El ancla queda resuelta: no hay meses anteriores al de inicio, así que el saldo inicial no
+puede flotar. El riesgo descrito arriba queda cerrado por decisión de producto, no por código.
+
+**El saldo inicial es UN solo número.** > «Inicio con $X y con eso comienzo a registrar todo.»
+Las alcancías arrancan vacías; si al empezar ya tenía algo apartado, lo declara como parte del
+disponible y lo reserva después.
+
+**Y observa que podría no hacer falta nada:** > «Incluso puede ser un ingreso normal y no
+tendríamos que hacer nada… si crea un rubro único para todo o usa uno como salario; en ese caso
+servirían los comentarios de las celdas.»
+*Contrapunto a resolver en Fase 1:* aritméticamente funciona, pero **miente sobre el resultado del
+mes** — el mes de arranque mostraría como INGRESO plata que el usuario ya tenía, y «Resultado del
+mes» existe justamente para decir si el patrimonio creció. Un campo de apertura propio mantiene esa
+cifra honesta. Sirve como solución provisional mientras la feature no exista.
+
+**Corregible mientras el mes esté abierto.** > «Sí, siempre y cuando el mes esté abierto. Si se
+cerró no se podría, a menos que en la feature de cerrar mes incluyamos reapertura para arreglar
+cosas, y tendríamos que ver cómo se audita.» ⇒ Depende de `cierre-de-mes`, y la reapertura auditada
+se apunta como alcance de ESA feature.
+
+**Qué meses se ven.** > «Solo se ven los meses con datos y a futuro; es decir, no se muestra pasado
+sin datos. Sí meses futuros sin datos, se va a usar.» ⇒ Pasado vacío: oculto. Futuro vacío: visible
+(es donde se planea).
+
+## Hallazgo de alcance: «12 o 24 meses a futuro» es OTRA feature
+
+Verificado en el código: **el año no existe en el modelo.** `MonthKey` son doce literales
+(`"ene"…"dic"`), `AmountMap` indexa por ellos, y el esquema de base de datos no tiene ninguna columna
+de año. Todo el ledger es un único año implícito.
+
+Por eso hay que separar dos cosas que en el enunciado van juntas:
+
+- **Ocultar el pasado vacío y mostrar el futuro DENTRO del año** → presentación pura, sin tocar el
+  modelo ni la base. Pequeño.
+- **Mostrar 12–24 meses hacia adelante cruzando el año** → exige meter el año en el modelo, migrar
+  los datos y revisar todas las derivaciones y reglas. Es una feature propia y grande (multi-año).
+
 ## Preguntas abiertas — CONFIRMAR con el usuario antes de cerrar Fase 1
 
-1. **¿Qué meses se muestran exactamente?** «Los que tienen información» deja fuera dos casos que
-   seguro hacen falta: el **mes corriente** aunque esté vacío (hay que poder teclear en él) y
-   **algún mes futuro** para planear. ¿Cuál es la regla mínima?
-2. **¿El saldo inicial es UNA cifra o varias?** Si al empezar ya tiene plata en la cuenta *y* algo
-   apartado en alcancías, un solo número no lo representa. ¿Saldo disponible inicial + saldo por
-   bolsillo, o solo el disponible?
-3. **¿Se puede corregir después de declararlo?** Cambiarlo mueve TODA la serie de saldos hacia
-   adelante, así que no es una edición cualquiera. ¿Se fija una sola vez, o se puede corregir con un
-   aviso claro de lo que arrastra?
-3b. **¿Se ancla a un mes declarado?** (Ver «el saldo inicial NO puede flotar», arriba.)
-4. **¿Esto es una feature o dos?** La página de configuraciones es una superficie propia y podría
-   crecer sola. Se captura junta porque el saldo inicial necesita dónde vivir, pero el usuario debe
-   decidir si se parte.
-5. **¿Orden respecto de `cierre-de-mes`?** Ver la sección anterior.
+1. **¿Se parte la feature?** Recomendación técnica pendiente de su visto bueno: (a) grilla dinámica
+   dentro del año —presentación pura, alivio inmediato—, (b) saldo inicial y página de
+   configuración DESPUÉS de `cierre-de-mes`, (c) multi-año como feature propia.
+2. **¿Qué ve un usuario NUEVO, sin ningún dato?** Con la regla «solo meses con datos», su grilla
+   estaría vacía. Propuesta: mostrar siempre el mes de inicio declarado y los futuros.
 
 ## Fuera de alcance (propuesto, a confirmar)
 
