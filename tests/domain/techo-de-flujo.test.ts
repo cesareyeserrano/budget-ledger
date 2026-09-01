@@ -14,7 +14,9 @@
 import { describe, it, expect } from "vitest";
 import {
   AVAILABLE_ID,
+  addCellNote,
   applyReserveCellEdit,
+  cellObservations,
   applyReserveOp,
   cellHeadroom,
   editReserveOp,
@@ -25,6 +27,7 @@ import {
   reserveAportes,
   reserveRetiros,
   reserveHeadroom,
+  resolvedSeries,
   reserveLeafIds,
   resolvedBalance,
   setPlannedRetiro,
@@ -1087,5 +1090,113 @@ describe("BG-023 · borrar un bolsillo no puede alterar a un tercero", () => {
     s = setLeafAmount(s, "c-gasto", "ene", "actual", 0); // el usuario vació la celda
     expect(s.movements.some((m) => m.type === "expense")).toBe(true);
     expect(canDeleteNode(s, "c-gasto")).toBe(true); // sigue borrable, como fijó BG-006
+  });
+});
+
+// ── FR-1807 y FR-1809 · la superficie retirada y el alcance de las observaciones ───────────────
+
+describe("FR-1807 · lo retirado no vuelve por la puerta de atrás", () => {
+  // @aitri-tc TC-TDF-060h
+  it("TC-TDF-060h: el dominio y la UI no exportan ninguna de las piezas retiradas", async () => {
+    // La limpieza se comprueba sobre la SUPERFICIE EXPORTADA, no leyendo el código: un símbolo
+    // puede seguir definido y muerto, pero si nadie lo puede importar no puede resucitar por uso.
+    const dominio = await import("@/domain/reserve");
+    const filas = await import("@/components/balanceRows");
+    for (const retirado of ["techoBreaches", "removeReserveRetiro", "reserveSplit"]) {
+      expect(Object.keys(dominio), `${retirado} sigue exportado`).not.toContain(retirado);
+    }
+    // El desglose de la v2 de FR-1810 y su invariante también se fueron: la estructura correcta
+    // necesitaba MENOS aparato que la equivocada.
+    for (const retirado of ["BREAKDOWN", "validateBreakdown"]) {
+      expect(Object.keys(filas), `${retirado} sigue exportado`).not.toContain(retirado);
+    }
+    // Y las claves de fila que el usuario declaró ilegibles no existen en la tabla.
+    for (const clave of ["reserved", "reservedCarry", "monthAvailable", "toAvailable", "flow"]) {
+      expect(ROWS.map((r) => r.key)).not.toContain(clave);
+    }
+    // Falsabilidad: lo que SÍ debe existir, existe — si no, este test pasaría por un import roto.
+    expect(Object.keys(dominio)).toContain("monthIssues");
+    expect(Object.keys(filas)).toContain("MIRROR");
+  });
+});
+
+describe("FR-1809 · una observación pertenece a SU celda", () => {
+  // @aitri-tc TC-TDF-083e
+  it("TC-TDF-083e: la observación no se filtra a otro mes ni a otra fila", () => {
+    let s = base({ ene: 1000, feb: 1000 });
+    s = llevar(s, "A", "ene", 400);
+    s = llevar(s, "B", "ene", 200);
+
+    const r = addCellNote(s, "A", "ene", "la cuota del curso");
+    if ("rejected" in r) return expect.fail(`la nota se rechazó: ${r.rejected}`);
+    s = r.state;
+
+    // Está donde se escribió…
+    expect(cellObservations(s, "A", "ene").map((o) => o.text)).toContain("la cuota del curso");
+    // …y en ningún otro sitio: ni en el mes siguiente de la misma hoja…
+    expect(cellObservations(s, "A", "feb")).toHaveLength(0);
+    // …ni en la misma casilla de otra hoja…
+    expect(cellObservations(s, "B", "ene")).toHaveLength(0);
+    // …ni en una hoja de otro tipo.
+    expect(cellObservations(s, "c-gasto", "ene")).toHaveLength(0);
+
+    // Y una segunda nota en OTRA celda no arrastra la primera.
+    const r2 = addCellNote(s, "B", "ene", "el regalo");
+    if ("rejected" in r2) return expect.fail("la segunda nota se rechazó");
+    expect(cellObservations(r2.state, "B", "ene").map((o) => o.text)).toEqual(["el regalo"]);
+    expect(cellObservations(r2.state, "A", "ene").map((o) => o.text)).toEqual(["la cuota del curso"]);
+  });
+});
+
+// ── Las regresiones MUST que el gate de despliegue exige acreditadas ───────────────────────────
+
+describe("NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos", () => {
+  // @aitri-tc TC-TDF-231h
+  it("TC-TDF-231h: «Saldo reservado» coincide al peso con la suma de los bolsillos, mes a mes", () => {
+    let s = base({ ene: 1000, feb: 800, mar: 1200 });
+    s = llevar(s, "A", "ene", 600);
+    s = llevar(s, "B", "feb", 300);
+    const mv = applyReserveOp(s, { from: "A", to: "B", month: "mar", amount: 200 }); // mover
+    if (!("state" in mv)) return expect.fail("el mover se rechazó");
+    s = sacar(mv.state, "B", "mar", 100).state;
+
+    const serie = computeBalanceSeries(s);
+    for (const mk of MONTH_KEYS) {
+      const suma = reserveLeafIds(s).reduce(
+        (acc, id) => acc + resolvedSeries(s, id, "actual")[MONTH_KEYS.indexOf(mk)],
+        0,
+      );
+      expect(serie[mk].actual.reservedBalance, `${mk}: reservado vs Σ bolsillos`).toBe(suma);
+    }
+    // Y el mover queda anotado por sus DOS extremos, que es lo que esta regresión protege.
+    const elMover = s.movements.find((m) => m.from === "A" && m.to === "B");
+    expect(elMover, "el mover debe existir con sus dos extremos").toBeTruthy();
+    expect(elMover!.amount).toBe(200);
+  });
+});
+
+describe("NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada", () => {
+  // @aitri-tc TC-TDF-251h
+  it("TC-TDF-251h: la cuenta cierra aunque la fila operable viva fuera, y sin dobles negativos", () => {
+    let s = base({ ene: 1000, feb: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    s = sacar(s, "A", "ene", 400).state;
+
+    for (const plane of ["budget", "actual"] as const) {
+      for (const mk of MONTH_KEYS) {
+        const m = computeBalanceSeries(s)[mk][plane];
+        const aportes = reserveAportes(s, mk, plane);
+        const retiros = reserveRetiros(s, mk, plane);
+        // La cuenta del bolsillo cierra con las cifras BRUTAS, con la fila operable fuera del módulo.
+        expect(m.prevAvailable + m.flow - aportes + retiros, `${mk}/${plane}`).toBe(m.available);
+        // Un solo signo por fila: ninguna magnitud bruta puede ser negativa, así que la pantalla
+        // no puede componer un «− Reservas −X» de doble negativo.
+        expect(aportes, `${mk}/${plane} aportes`).toBeGreaterThanOrEqual(0);
+        expect(retiros, `${mk}/${plane} retiros`).toBeGreaterThanOrEqual(0);
+      }
+    }
+    // Y la fila operable NO está en la tabla del Balance: su reflejo de solo lectura sí.
+    expect(ROWS.map((r) => r.key)).not.toContain("retiros");
+    expect(ROWS.map((r) => r.key)).toContain("toWithdrawals");
   });
 });

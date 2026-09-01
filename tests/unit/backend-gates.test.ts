@@ -179,3 +179,26 @@ describe("NFR-509 — la suite y las verificaciones estáticas permanecen verdes
     expect(rollupBudget(mutated, "g-esenciales", "jun")).not.toBe(real);
   });
 });
+
+// ── NFR-1808 (feature techo-de-flujo) · la suite COMPLETA corre en cada push a main ────────────
+
+describe("NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal", () => {
+  // @aitri-tc TC-TDF-271h
+  it("TC-TDF-271h: el workflow dispara en push a main y corre las dos suites, sin excusas", () => {
+    const yml = readFileSync(path.resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+
+    // Disparador y rama.
+    expect(yml).toMatch(/on:/);
+    expect(yml).toMatch(/push:/);
+    expect(yml).toMatch(/branches:\s*\[\s*main\s*\]/);
+
+    // Las DOS suites declaradas en package.json, no una.
+    expect(yml, "la suite unitaria debe correr en CI").toMatch(/test:run|unit\.sh/);
+    expect(yml, "la suite e2e debe correr en CI").toMatch(/test:e2e|playwright test|e2e\.sh/);
+
+    // Y sin las dos vías clásicas de acreditar un verde falso: un paso que no puede fallar, o una
+    // suite recortada. Es la misma familia de defecto que BG-014 (un gate que nunca se vio fallar).
+    expect(yml, "ningún paso puede llevar continue-on-error").not.toMatch(/continue-on-error:\s*true/);
+    expect(yml, "la suite no puede correr filtrada por -g/--grep").not.toMatch(/--grep|\s-g\s/);
+  });
+});

@@ -17,44 +17,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-01T20:33:23.217Z",
+  "updatedAt": "2026-09-01T21:48:32.343Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T15:59:54.962Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-01T16:00:01.041Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T16:00:01.084Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T16:00:01.151Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T16:00:01.215Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-01T16:00:01.262Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-01T16:00:01.323Z",
-      "event": "approved",
-      "phase": 2
-    },
     {
       "at": "2026-09-01T16:00:01.384Z",
       "event": "started",
@@ -131,14 +96,59 @@
       "failed": 0,
       "skipped": 28,
       "manual": 0
+    },
+    {
+      "at": "2026-09-01T21:30:44.385Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 50,
+      "failed": 0,
+      "skipped": 28,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-01T21:40:42.184Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-01T21:40:42.295Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-01T21:40:52.826Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T21:40:52.986Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T21:48:24.128Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 58,
+      "failed": 0,
+      "skipped": 21,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-01T21:48:32.307Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 58,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "b77049544d3b251c8296fb10c56e357f57d33374e7eb7657f685253afffbdb59",
     "2": "6195829a49cc74af0c0183000d5a6e0be6071d4eb3565da12b273ddbbfaf9a26",
-    "3": "7f41fe0f400b1541d9b8a032cfa93db0f4f940e6537a9b43b538dbe751a444cc",
-    "4": "0ae42fcd80a592e145e2e130517a3f0759da59e36d01f41ccc3da236642860e8",
+    "3": "8c1f296a98d8966fea4dfa980601d9675f7570a668bb39f44b629fed1b7c5346",
+    "4": "e614ddd35c44bcf80dbb38bba0745dd79e31d0f602592f2d1d316c888a6313db",
     "ux": "81a35e341fed43c7bf2a474e2ddb8214a7574102faf0bc9b190fea2b83cf9e16"
   },
   "frSnapshots": {
@@ -191,16 +201,26 @@
       "FR-1810"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "bf31d38db944288c83f9baef54d509b09f178204",
-  "verifyRanDirty": false,
-  "verifyResultsHash": "1844f9babbf6818451ed2f265a2f96f0b4619e3be875e326061fe5db7be2e936",
-  "verifyRanAt": "2026-09-01T20:33:23.066Z",
+  "verifyPassed": true,
+  "verifyRanRef": "a52769bdfd4391c3da1dc437b14cc409ed7a6240",
+  "verifyRanDirty": true,
+  "verifyResultsHash": "d18fc52e64219a84413dfc96510ee55a7a35074b42f6d4d282b5bb4fac8fb731",
+  "verifyRanAt": "2026-09-01T21:48:24.023Z",
   "lastVerifyRun": {
-    "passed": 50,
+    "passed": 58,
     "failed": 0,
-    "skipped": 28,
+    "skipped": 21,
     "manual": 0,
-    "at": "2026-09-01T20:33:23.066Z"
+    "at": "2026-09-01T21:48:24.023Z"
+  },
+  "verifySummary": {
+    "total": 79,
+    "passed": 58,
+    "failed": 0,
+    "skipped": 21,
+    "skipped_e2e": 3,
+    "skipped_no_marker": 18,
+    "manual": 0,
+    "manual_verified": 0
   }
 }

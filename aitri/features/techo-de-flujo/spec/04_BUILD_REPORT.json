@@ -27,12 +27,6 @@
   "environment_variables": [],
   "technical_debt": [
     {
-      "fr_id": "FR-1805",
-      "substitution": "Los TCs de integración del editor (TC-TDF-071e, 073e, 094f, 251h-253f) siguen cubiertos por sus equivalentes de DOMINIO (cellHeadroom, chainCheck) más los e2e nuevos de la grilla en tres bloques, el riel de columnas compartido y el «Máx.» que no se pinta en rojo al bajar una celda.",
-      "reason": "Los e2e escritos cubren lo que solo el navegador puede afirmar (render, posiciones, scroll único, señales). Lo que queda son variantes de la misma regla ya probada en dominio con contraejemplo falsable; duplicarlas en Playwright multiplica el tiempo de suite sin añadir un modo de fallo nuevo.",
-      "effort_to_fix": "low"
-    },
-    {
       "fr_id": "SEC-GATE",
       "substitution": "no security quality_gate declarado",
       "reason": "El proyecto ya corre CodeQL como workflow propio de GitHub Actions (.github/workflows/codeql.yml), fuera de los gates de Aitri, y esta feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red — su NFR de seguridad es una exclusión declarada (NFR-1809).",
@@ -43,7 +37,12 @@
   "test_files": [
     "../../../tests/domain/techo-de-flujo.test.ts",
     "../../../tests/domain/balance-jerarquia-orden.test.ts",
-    "../../../tests/e2e/techo-de-flujo.spec.ts"
+    "../../../tests/e2e/techo-de-flujo.spec.ts",
+    "../../../tests/e2e/balance.spec.ts",
+    "../../../tests/e2e/balance-jerarquia.spec.ts",
+    "../../../tests/e2e/resumen-plegado.spec.ts",
+    "../../../tests/e2e/transferencias.spec.ts",
+    "../../../tests/e2e/transferencias-registro.spec.ts"
   ],
   "test_runner_timeout_ms": 900000,
   "quality_gates": [

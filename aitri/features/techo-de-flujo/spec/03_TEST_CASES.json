@@ -1972,6 +1972,31 @@
       ],
       "expected_result": "Tres rechazos con offender identificado, y ROWS en ok",
       "test_data": {}
+    },
+    {
+      "id": "TC-TDF-063f",
+      "requirement_id": "FR-1807",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1826",
+      "title": "Corregir una operación es editar su monto: no existe ningún botón de borrar",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Enero con un retiro de 500 ya operado"
+      ],
+      "given": "la lista «Operaciones de este mes» del popover de retiros",
+      "when": "se busca una vía de borrado",
+      "then": "el monto de la operación es un campo editable y NO existe ningún botón de borrar ni de eliminar: teclear 0 es el único camino de eliminación",
+      "steps": [
+        "Abrir el popover de retiros de enero",
+        "Comprobar que el monto es editable",
+        "Comprobar que no hay botones de borrar/eliminar"
+      ],
+      "expected_result": "Campo de monto presente; cero botones de borrado",
+      "test_data": {
+        "retiro": 500
+      }
     }
   ]
 }

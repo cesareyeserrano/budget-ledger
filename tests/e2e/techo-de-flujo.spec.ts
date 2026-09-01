@@ -89,6 +89,7 @@ const celdaBalance = (page: Page, row: string, mes: number, plano: 0 | 1) =>
 
 test.describe("FR-1805 · la grilla en tres bloques", () => {
   test("TC-TDF-040h: se renderizan los tres bloques y Reservas NO comparte el de Ingresos y Gastos", async ({ page }) => {
+    // @aitri-tc TC-TDF-040h
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
@@ -115,6 +116,7 @@ test.describe("FR-1805 · la grilla en tres bloques", () => {
   });
 
   test("TC-TDF-041h: la fila «Retiros del mes» cierra el bloque de Reservas, ARRIBA del Balance", async ({ page }) => {
+    // @aitri-tc TC-TDF-041h
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
@@ -135,6 +137,7 @@ test.describe("FR-1805 · la grilla en tres bloques", () => {
   });
 
   test("TC-TDF-042e: los tres bloques comparten UN riel de columnas y UN scroll horizontal", async ({ page }) => {
+    // @aitri-tc TC-TDF-042e
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
@@ -162,6 +165,7 @@ test.describe("FR-1805 · la grilla en tres bloques", () => {
   });
 
   test("TC-TDF-045f: a 375px la grilla NO se renderiza — la vista sigue siendo Registrar", async ({ page }) => {
+    // @aitri-tc TC-TDF-045f
     await page.setViewportSize(MOBILE);
     await seedLedger(page, CASO_USUARIO);
     await page.goto("/");
@@ -249,6 +253,7 @@ test.describe("FR-1810 · el Balance se lee de arriba abajo", () => {
 
 test.describe("FR-1808 · el «Máx.» dice lo que el dominio acepta", () => {
   test("TC-TDF-070h: el indicador se ve ANTES de teclear y no consume ancho del input", async ({ page }) => {
+    // @aitri-tc TC-TDF-070h
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
@@ -265,6 +270,7 @@ test.describe("FR-1808 · el «Máx.» dice lo que el dominio acepta", () => {
   });
 
   test("TC-TDF-072f: bajar una celda con el cupo agotado NO se pinta en rojo", async ({ page }) => {
+    // @aitri-tc TC-TDF-072f
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
@@ -358,5 +364,156 @@ test.describe("FR-1809 y FR-1804 · observaciones", () => {
     await celdaGrilla(page, "Mercado", FEB, 1).click();
     await expect(page.getByTestId("cell-notes")).toBeVisible(); // la sección sí está (FR-1809)…
     await expect(page.getByTestId("carry-note")).toHaveCount(0); // …pero sin la nota de reservas
+  });
+});
+
+test.describe("FR-1805 · el bolsillo que crece y el mes resaltado", () => {
+  /** Seis bolsillos: el caso que motivó plegar los grupos (doce filas enterraban los Retiros). */
+  const SEIS_BOLSILLOS = {
+    nodes: [
+      ...NODES,
+      ...["Viaje", "Emergencia", "Curso", "Regalo", "Moto"].map((name, i) => ({
+        id: `c-b${i}`, ownerId: "local", type: "transfer" as const, level: "category" as const,
+        parentId: "g-res", name, icon: null, order: i + 1,
+      })),
+    ],
+    actuals: { "c-salario": { ene: 1000 } },
+  } as unknown as Parameters<typeof seedLedger>[1];
+
+  test("TC-TDF-043e: con seis bolsillos y el grupo plegado, «Retiros del mes» sigue a la vista", async ({ page }) => {
+    // @aitri-tc TC-TDF-043e
+    await page.setViewportSize(DESK);
+    await abrir(page, SEIS_BOLSILLOS);
+
+    // El usuario pliega su grupo de Reservas — el caso que AC-1820 describe.
+    await filaDe(page, "Reservas").first().getByRole("button", { name: "Expandir" }).first().click();
+    await expect(filaDe(page, "Viaje")).toHaveCount(0); // plegado de verdad
+
+    // La fila de retiros sigue montada, visible y dentro del viewport, sin desplazarse.
+    const retiros = page.getByTestId("retiros-row");
+    await expect(retiros).toBeVisible();
+    const caja = (await retiros.boundingBox())!;
+    expect(caja.y).toBeGreaterThan(0);
+    expect(caja.y + caja.height).toBeLessThanOrEqual(DESK.height);
+  });
+
+  test("TC-TDF-044h: el resaltado del mes atraviesa los tres bloques y se mueve a la vez", async ({ page }) => {
+    // @aitri-tc TC-TDF-044h
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO);
+    await desplegarReservas(page);
+
+    /** Fondo de la celda Ejec. de un mes en cada uno de los tres bloques. */
+    const fondos = async (mes: number) => {
+      const bg = (l: ReturnType<typeof page.locator>) => l.evaluate((el) => getComputedStyle(el).backgroundColor);
+      return {
+        gasto: await bg(celdaGrilla(page, "Mercado", mes, 1)),
+        reserva: await bg(celdaGrilla(page, "Alcancía", mes, 1)),
+        balance: await bg(celdaBalance(page, "monthResult", mes, 1)),
+      };
+    };
+
+    await page.getByLabel("Mes").click();
+    await page.getByRole("option", { name: "Enero", exact: true }).click();
+    const ene = await fondos(ENE);
+    const feb = await fondos(FEB);
+
+    // Los tres bloques resaltan, y se comprueba bloque a bloque contra SU PROPIO mes sin resaltar.
+    // No se exige que los tres den el mismo color: el tinte es el mismo tratamiento (8% de acento)
+    // pero se mezcla sobre superficies base distintas —la grilla y el módulo hundido—, así que el
+    // resultado difiere por construcción. Lo que AC-1828 pide es que el resaltado LLEGUE a los tres.
+    expect(ene.gasto, "el gasto de enero debe resaltar").not.toBe(feb.gasto);
+    expect(ene.reserva, "la reserva de enero debe resaltar").not.toBe(feb.reserva);
+    expect(ene.balance, "el Balance de enero debe resaltar").not.toBe(feb.balance);
+
+    // Al cambiar de mes, el resaltado se MUEVE en los tres a la vez: febrero toma el tratamiento
+    // que tenía enero, y enero recupera el fondo normal.
+    await page.getByLabel("Mes").click();
+    await page.getByRole("option", { name: "Febrero", exact: true }).click();
+    const feb2 = await fondos(FEB);
+    const ene2 = await fondos(ENE);
+    for (const bloque of ["gasto", "reserva", "balance"] as const) {
+      expect(feb2[bloque], `${bloque}: febrero toma el resaltado`).toBe(ene[bloque]);
+      expect(ene2[bloque], `${bloque}: enero lo suelta`).toBe(feb[bloque]);
+    }
+  });
+});
+
+test.describe("FR-1808 · el indicador avisa antes de confirmar y no empuja a nadie", () => {
+  test("TC-TDF-071e: al pasarse, el «Máx.» enrojece ANTES de confirmar", async ({ page }) => {
+    // @aitri-tc TC-TDF-071e
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO);
+    await desplegarReservas(page);
+
+    await celdaGrilla(page, "Alcancía", FEB, 1).click();
+    const max = page.getByTestId("reserve-max");
+    const colorDe = () => max.evaluate((el) => getComputedStyle(el).color);
+    const normal = await colorDe();
+
+    // Se teclea por encima del total admitido. NO se confirma: no hay Enter.
+    await page.locator("input").first().fill("99999999");
+    await expect.poll(colorDe, { timeout: 5000 }).not.toBe(normal);
+
+    // Es el color de alerta, y el rechazo aún no ha ocurrido — la celda no se ha guardado.
+    expect(await colorDe()).toBe("rgb(173, 57, 50)"); // --alert-strong claro
+    await expect(page.getByTestId("reserve-block")).toHaveCount(0);
+  });
+
+  test("TC-TDF-073e: el indicador no tapa ni desplaza las celdas vecinas", async ({ page }) => {
+    // @aitri-tc TC-TDF-073e
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO);
+    await desplegarReservas(page);
+
+    const filaArriba = () => filaDe(page, "Mercado");
+    const yArribaAntes = Math.round((await filaArriba().boundingBox())!.y);
+
+    await celdaGrilla(page, "Alcancía", FEB, 1).click();
+    const max = page.getByTestId("reserve-max");
+    await expect(max).toBeVisible();
+
+    // (a) Las filas AJENAS al editor no se mueven: el indicador no reflow-ea la grilla.
+    expect(Math.round((await filaArriba().boundingBox())!.y)).toBe(yArribaAntes);
+
+    // (b) Y la prueba geométrica de que FLOTA: su caja se sale por debajo de la fila que lo abre,
+    //     superponiéndose a lo que hay debajo en vez de empujarlo. Si estuviera en el flujo, su
+    //     alto quedaría DENTRO de la fila y todo lo de abajo bajaría (AC-1833).
+    const fila = (await filaDe(page, "Alcancía").boundingBox())!;
+    const caja = (await max.boundingBox())!;
+    expect(caja.y).toBeGreaterThanOrEqual(fila.y + fila.height - 2);
+    expect(caja.y + caja.height, "el indicador se sale de su fila: flota").toBeGreaterThan(fila.y + fila.height);
+
+    // (c) Y no tapa el input que lo acompaña: queda por DEBAJO, no encima.
+    const input = (await page.locator("input").first().boundingBox())!;
+    expect(caja.y).toBeGreaterThanOrEqual(input.y + input.height - 2);
+  });
+});
+
+test.describe("FR-1807 · la UI retirada no existe", () => {
+  test("TC-TDF-061f: sin botón «Sacar» en la fila del bolsillo y sin botones de borrar", async ({ page }) => {
+    // @aitri-tc TC-TDF-061f
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO);
+    await desplegarReservas(page);
+
+    // En la fila del bolsillo ya no hay puerta propia para sacar: la única está en «Retiros del mes».
+    await expect(filaDe(page, "Alcancía").getByRole("button", { name: /sacar/i })).toHaveCount(0);
+    await expect(page.getByText("Sin saldo que sacar")).toHaveCount(0);
+    await expect(page.getByTestId("withdraw-source-fixed")).toHaveCount(0);
+  });
+
+  test("TC-TDF-063f: corregir una operación es editar su monto — no hay botón de borrar", async ({ page }) => {
+    // @aitri-tc TC-TDF-063f
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO); // enero tiene un retiro de 500
+
+    await page.getByTestId("retiros-row").locator('[data-testid="withdraw-cell"]').first().click();
+    // La operación del mes se lista con su monto EDITABLE…
+    const monto = page.locator('[data-testid^="op-amount-"]').first();
+    await expect(monto).toBeVisible();
+    // …y no hay ningún botón de borrar en la lista: la corrección es teclear otro monto (0 elimina).
+    await expect(page.getByTestId("withdraw-delete")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /borrar|eliminar/i })).toHaveCount(0);
   });
 });
