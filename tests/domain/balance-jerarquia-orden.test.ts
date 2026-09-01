@@ -2,11 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   ROWS,
   CASCADE,
-  BREAKDOWN,
+  MIRROR,
   validateCascadeOrder,
   validateContiguity,
   validateIndentLevels,
-  validateBreakdown,
   indentFor,
   INDENT_BASE,
   INDENT_STEP,
@@ -31,13 +30,15 @@ import {
  * `ok:true` dejaría verdes todos los casos positivos.
  */
 const ORDEN_PLANO: RowSpec[] = [
-  { key: "available", label: "Disponible", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
+  { key: "available", label: "Disponible ahora", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
   { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
   { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 0 },
-  { key: "toReserves", label: "Guardado en alcancías", block: "reparto", op: "→", tone: "reserve", alarms: false, weight: 400, level: 0 },
-  { key: "toAvailable", label: "Quedó disponible", block: "reparto", op: "→", tone: "input", alarms: false, weight: 400, level: 0 },
+  { key: "prevAvailable", label: "Venía del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 0 },
+  { key: "monthResultCarry", label: "Resultado del mes", block: "disponible", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
+  { key: "toReserves", label: "Guardado en alcancías", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 0 },
+  { key: "toWithdrawals", label: "Sacado de alcancías", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 0 },
   { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 0 },
-  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "", tone: "reserve", alarms: false, weight: 600, level: 0 },
+  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 0 },
   { key: "total", label: "Patrimonio total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
 ];
 
@@ -48,23 +49,28 @@ describe("FR-1401 — el orden sigue la aritmética", () => {
       "income",
       "expense",
       "monthResult",
+      "prevAvailable",
+      "monthResultCarry",
       "toReserves",
-      "toAvailable",
+      "toWithdrawals",
       "available",
       "reservedBalance",
       "total",
     ]);
     expect(validateCascadeOrder(ROWS)).toEqual({ ok: true });
 
-    // FR-1810 (2026-08-31) — la lectura contable que el usuario eligió: OCHO filas en tres bloques.
-    // Ninguna de las cinco que declaró ilegibles sobrevive.
-    expect(ROWS).toHaveLength(8);
-    for (const retirada of ["reserved", "reservedCarry", "prevAvailable", "monthAvailable", "retiros"]) {
+    // FR-1810 v3 (2026-08-31) — DIEZ filas en tres bloques. Ninguna de las que el usuario declaró
+    // ilegibles sobrevive, y tampoco «Quedó disponible», la de la v2 que rechazó por el concepto:
+    // «el acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado».
+    expect(ROWS).toHaveLength(10);
+    for (const retirada of ["reserved", "reservedCarry", "monthAvailable", "toAvailable", "retiros"]) {
       expect(ROWS.map((r) => r.key)).not.toContain(retirada);
     }
     // Y los tres bloques van en su orden, sin intercalarse.
     expect(ROWS.map((r) => r.block)).toEqual([
-      "mes", "mes", "mes", "reparto", "reparto", "cierre", "cierre", "cierre",
+      "mes", "mes", "mes",
+      "disponible", "disponible", "disponible", "disponible", "disponible",
+      "cierre", "cierre",
     ]);
   });
 
@@ -116,16 +122,20 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
     const nivel = (k: string) => ROWS.find((r) => r.key === k)!.level;
     expect(nivel("income")).toBeGreaterThan(nivel("monthResult"));
     expect(nivel("expense")).toBeGreaterThan(nivel("monthResult"));
+    for (const termino of ["prevAvailable", "monthResultCarry", "toReserves", "toWithdrawals"]) {
+      expect(nivel(termino)).toBeGreaterThan(nivel("available"));
+    }
     expect(nivel("available")).toBeGreaterThan(nivel("total"));
     expect(nivel("reservedBalance")).toBeGreaterThan(nivel("total"));
-    // Y las partes del DESGLOSE, que van al revés (debajo de su total) pero igual de adentro.
-    expect(nivel("toReserves")).toBeGreaterThan(nivel("monthResult"));
-    expect(nivel("toAvailable")).toBeGreaterThan(nivel("monthResult"));
 
-    // CUATRO niveles, no dos: los bloques anidan a distinta profundidad y el desglose vive un
-    // escalón por dentro de su total.
-    expect(new Set(ROWS.map((r) => r.level)).size).toBe(4);
-    expect([...new Set(ROWS.map((r) => r.level))].sort()).toEqual([0, 1, 2, 3]);
+    // CINCO niveles, en escalera estricta. `monthResult` tiene un escalón PROPIO: si compartiera el
+    // de los términos del bloque 2, `validateContiguity` lo recogería como término de «Disponible
+    // ahora»; si compartiera el de los saldos, lo recogería como sumando de «Patrimonio total».
+    // Ninguna de las dos es cierta.
+    expect(nivel("monthResult")).not.toBe(nivel("prevAvailable"));
+    expect(nivel("monthResult")).not.toBe(nivel("available"));
+    expect(new Set(ROWS.map((r) => r.level)).size).toBe(5);
+    expect([...new Set(ROWS.map((r) => r.level))].sort()).toEqual([0, 1, 2, 3, 4]);
   });
 
   // @aitri-tc TC-BJE-003f
@@ -144,10 +154,11 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
     expect(INDENT_STEP).toBe(16);
     expect(indentFor(0)).toBe(14);
     expect(indentFor(3)).toBe(62);
-    expect(ROWS.map((r) => indentFor(r.level))).toEqual([62, 62, 46, 62, 62, 30, 30, 14]);
+    expect(indentFor(4)).toBe(78);
+    expect(ROWS.map((r) => indentFor(r.level))).toEqual([78, 78, 62, 46, 46, 46, 46, 30, 30, 14]);
     // Y el paso estrecho, por debajo de 1024 px.
     expect(INDENT_STEP_NARROW).toBe(12);
-    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([50, 50, 38, 50, 50, 26, 26, 14]);
+    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([62, 62, 50, 38, 38, 38, 38, 26, 26, 14]);
   });
 });
 
@@ -156,8 +167,8 @@ describe("NFR-1403 — el plegado sobrevive al reordenamiento", () => {
   it("TC-BJE-011f: TAIL_FROM se deriva por búsqueda y sigue a 'available' en cualquier orden", () => {
     const tailFrom = (rows: readonly RowSpec[]) => rows.findIndex((r) => r.key === "available") + 1;
 
-    // Con la estructura de FR-1810, `available` («Disponible») está en el índice 5 → corta en 6.
-    expect(tailFrom(ROWS)).toBe(6);
+    // Con la estructura de FR-1810 v3, `available` («Disponible ahora») está en el índice 7 → 8.
+    expect(tailFrom(ROWS)).toBe(8);
     // Y lo que queda oculto son EXACTAMENTE las mismas dos filas que antes de la feature.
     expect(ROWS.slice(tailFrom(ROWS)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);
     // (Sobre ORDEN_PLANO no se afirma la cola: es un contra-ejemplo con el orden REVUELTO a

@@ -17,8 +17,8 @@ import { Component, Fragment, useEffect, useMemo, useState, type ReactNode } fro
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel } from "@/domain/months";
-import { computeBalanceSeries, type MonthBalance } from "@/domain/balance";
-import { monthIssues, type MonthIssue } from "@/domain/reserve";
+import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
+import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
@@ -108,31 +108,57 @@ function balanceColor(spec: RowSpec, value: number): string {
   return exceptionColor(value, { alarms: spec.alarms });
 }
 
+/** Aportes y retiros BRUTOS del mes por plano — las dos filas de un solo signo del bloque 2. */
+type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: number }>>;
+
 /**
- * Valor a pintar en una celda: el campo homónimo del balance, o la composición mínima que la fila
- * declara.
+ * Desdoble del movimiento de reservas por mes y plano: `aportes` (subidas de saldo) y `retiros`
+ * (bajadas), ambos ≥ 0 siempre — el neto que usa el dominio es `aportes − retiros`.
  *
- * FR-1810 — la cuenta se lee en tres bloques, y CADA UNO cierra a la vista sin cuenta mental:
+ * FR-1810 v3 los vuelve a necesitar: el Balance publica las dos cifras BRUTAS en filas separadas.
+ * Netearlas ahorraría una fila y produciría «− Guardado en alcancías: −500» en un mes que sólo
+ * retira, que es doble negación.
  *
- *     Ingresos − Gastos            = Resultado del mes
- *     Guardado + Quedó disponible  = Resultado del mes      ← el desglose, no un eslabón nuevo
- *     Disponible + En alcancías    = Patrimonio total
+ * @param data Estado del ledger.
+ * @returns Los dos componentes por mes y plano.
  *
- * Solo `toAvailable` se compone aquí (`flow − reserved`), y no es una fórmula nueva: es exactamente
- * `available − prevAvailable`, el MOVIMIENTO del saldo disponible en el mes. Por eso el
- * encadenamiento entre columnas cierra por construcción (ADR-09) y la reestructuración no puede
- * mover un peso: todo lo demás sale tal cual de `computeBalanceSeries`.
+ * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1840, TC-ID: TC-TDF-101h
+ */
+function computeReserveFlows(data: LedgerState): ReserveFlows {
+  const out = {} as ReserveFlows;
+  for (const m of MONTHS) {
+    out[m.k] = {
+      budget: { aportes: reserveAportes(data, m.k, "budget"), retiros: reserveRetiros(data, m.k, "budget") },
+      actual: { aportes: reserveAportes(data, m.k, "actual"), retiros: reserveRetiros(data, m.k, "actual") },
+    };
+  }
+  return out;
+}
+
+/**
+ * Valor a pintar en una celda: el campo homónimo del balance, o la cifra bruta que la fila declara.
+ *
+ * FR-1810 — la columna se lee como DOS CUENTAS encadenadas, cada una cerrando a la vista:
+ *
+ *     Ingresos − Gastos                                        = Resultado del mes
+ *     Venía + Resultado − Guardado + Sacado                     = Disponible ahora
+ *     Disponible ahora + En alcancías                           = Patrimonio total
+ *
+ * La segunda es la fórmula que el propio usuario enunció, y es idéntica por construcción a la que
+ * el dominio ya calculaba: `prevAvailable + flow − (aportes − retiros) = available`. Por eso la
+ * reestructuración no puede mover un peso — sólo cambia dónde se parte la misma resta (ADR-09).
  *
  * @param m Las cifras del mes en un plano.
  * @param key Fila a leer.
+ * @param flows Aportes y retiros BRUTOS del mes en ese plano.
  * @returns El valor a pintar en la celda.
  *
- * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-100h, TC-TDF-101e
+ * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-100h, TC-TDF-102e
  */
-function cellValue(m: MonthBalance, key: RowSpec["key"]): number {
-  if (key === "monthResult") return m.flow;
-  if (key === "toReserves") return m.reserved;
-  if (key === "toAvailable") return m.flow - m.reserved;
+function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: number; retiros: number }): number {
+  if (key === "monthResult" || key === "monthResultCarry") return m.flow;
+  if (key === "toReserves") return flows.aportes;
+  if (key === "toWithdrawals") return flows.retiros;
   // `retiros` no es una fila del Balance (vive en el segmento de Reservas, ADR-09) y nunca llega.
   if (key === "retiros") return 0;
   return m[key];
@@ -286,6 +312,7 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // estado, NO con un selector de store — Zustand v5 no memoiza selectores y devolver un objeto
   // nuevo por llamada dispararía el "getSnapshot should be cached".
   const series = useMemo(() => computeBalanceSeries(data), [data]);
+  const flows = useMemo(() => computeReserveFlows(data), [data]);
 
   return (
     <div data-testid="balance-module">
@@ -417,21 +444,18 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             )}
             {/* El signo se lee junto al rótulo («más Ingresos», «se fue a Guardado en alcancías»),
                 así que NO va aria-hidden: es parte de la cuenta, no decoración.
-                La flecha del desglose se pinta un punto más pequeña y SIN `tabular`: en la fuente
-                tabular ocupa más que la caja de 10px de los demás signos y empujaba su rótulo fuera
-                de la columna, rompiendo la alineación vertical de las ocho etiquetas. */}
-            <span
-              className={cn("w-2.5 flex-none text-center", op !== "→" && "tabular")}
-              style={{ color: "var(--fg-secondary)", fontWeight: 400, fontSize: op === "→" ? "11px" : undefined }}
-            >
+                Los cuatro signos son de ancho tabular, así que caben en la caja de 10px y las diez
+                etiquetas quedan alineadas. (La v2 necesitaba un `→` que NO cabía y desalineaba su
+                rótulo; con la v3 ese signo desapareció junto con el desglose que lo motivaba.) */}
+            <span className="w-2.5 flex-none text-center tabular" style={{ color: "var(--fg-secondary)", fontWeight: 400 }}>
               {op}
             </span>
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
           </div>
           {MONTHS.map((m) => (
             <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
-              <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key)} sep rule={rule} active={highlightMonth === m.k} />
-              <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key)} rule={rule} active={highlightMonth === m.k} />
+              <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, flows[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
+              <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, flows[m.k].actual)} rule={rule} active={highlightMonth === m.k} />
             </div>
           ))}
         </div>

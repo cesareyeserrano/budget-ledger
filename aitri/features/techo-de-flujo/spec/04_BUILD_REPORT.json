@@ -57,7 +57,7 @@
     },
     {
       "fr_id": "FR-1810",
-      "substitution": "Los TCs de FR-1810 (100h, 101e, 102e, 103e, 104f, 105f, 106f) existen como pruebas de DOMINIO sobre las cifras y los invariantes de la tabla, no como e2e del render de los tres bloques. La estructura renderizada se verificó con capturas del navegador sobre los datos reales del usuario (los tres rótulos, las ocho filas, el −500 sin alarma y el cero explícito de «Disponible»).",
+      "substitution": "Los TCs de FR-1810 (100h, 101h, 102e, 103e, 104e, 105f, 106f, 107f) existen como pruebas de DOMINIO sobre las cifras y los invariantes de la tabla, no como e2e del render de los tres bloques. La estructura renderizada se verificó con capturas del navegador sobre los datos reales del usuario (los tres rótulos, las diez filas, la columna 500 + 1.000 − 1.500 = 0 y el cero explícito de «Disponible ahora»).",
       "reason": "Misma razón que el resto de la deuda e2e de esta feature: cierre de incremento. La aritmética y las relaciones declaradas —donde vive el riesgo real— sí están probadas, incluida la equivalencia contra la fórmula vigente bajo 120 pasos.",
       "effort_to_fix": "medium"
     }

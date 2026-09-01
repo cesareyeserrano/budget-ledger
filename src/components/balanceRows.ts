@@ -11,12 +11,12 @@
 import type { MonthBalance } from "@/domain/balance";
 
 /** Los tres bloques de la lectura contable (FR-1810). Cada uno contesta UNA pregunta. */
-export type BlockKey = "mes" | "reparto" | "cierre";
+export type BlockKey = "mes" | "disponible" | "cierre";
 
 /** Rótulo de cada bloque, en el orden en que se renderizan. */
 export const BLOCKS: ReadonlyArray<{ key: BlockKey; label: string }> = [
   { key: "mes", label: "Resultado del mes" },
-  { key: "reparto", label: "Cómo se repartió" },
+  { key: "disponible", label: "Lo disponible" },
   { key: "cierre", label: "Saldos al cierre" },
 ];
 
@@ -28,10 +28,11 @@ export const BLOCKS: ReadonlyArray<{ key: BlockKey; label: string }> = [
  * fila — un préstamo que un lector futuro leería como una relación que no existe.
  */
 export type RowKey =
-  | keyof Pick<MonthBalance, "income" | "expense" | "available" | "reservedBalance" | "total">
+  | keyof Pick<MonthBalance, "income" | "expense" | "prevAvailable" | "available" | "reservedBalance" | "total">
   | "monthResult"
+  | "monthResultCarry"
   | "toReserves"
-  | "toAvailable"
+  | "toWithdrawals"
   | "retiros";
 
 export interface RowSpec {
@@ -41,13 +42,13 @@ export interface RowSpec {
   block: BlockKey;
   /**
    * Signo que encabeza la fila. Es lo que convierte la columna en una CUENTA CORRIDA legible de
-   * arriba abajo, en vez de ocho cifras sueltas cuyo encadenamiento hay que adivinar.
+   * arriba abajo, en vez de diez cifras sueltas cuyo encadenamiento hay que adivinar.
    *
-   * `→` es el signo del DESGLOSE (bloque «cómo se repartió»): se lee «se fue a», que es la relación
-   * real entre esas filas y el resultado que tienen ENCIMA. No es un sumando de nada posterior, y
-   * por eso no puede llevar `+` ni `−` sin mentir sobre la aritmética (ADR-09).
+   * Sólo hay cuatro, y los cuatro son aritmética honesta. La v2 de FR-1810 necesitó inventar un `→`
+   * («se fue a») porque su bloque del medio era un desglose y sus filas no sumaban a nada posterior;
+   * la v3 no lo necesita, porque ese bloque pasó a ser una cuenta normal.
    */
-  op: "" | "+" | "−" | "=" | "→";
+  op: "" | "+" | "−" | "=";
   /** `result` es una cifra de cierre; `reserve` e `input` son sumandos que la alimentan. */
   tone: "input" | "result" | "reserve";
   /** La fila puede levantar la alarma de negativo (color de alerta + signo + marca). */
@@ -58,11 +59,14 @@ export interface RowSpec {
    * detalle — igual que un estado de resultados. La regla que lo gobierna: **todo sumando tiene un
    * `level` estrictamente mayor que el del resultado que compone** (`validateIndentLevels`).
    *
-   * Son CUATRO niveles y no dos porque la cascada tiene TRES eslabones: `monthAvailable` es a la
-   * vez resultado (de flow/reserved/retiros) y sumando (de `available`), así que debe quedar por
-   * debajo de unos y por encima de otro.
+   * Son CINCO niveles (0..4) desde FR-1810 v3, y la escalera es estricta: cada resultado de la
+   * cascada baja un escalón respecto del anterior, y sus términos van exactamente uno por encima.
+   * `monthResult` necesita un escalón PROPIO (3) que no comparte con nadie — es lo que impide que
+   * la marcha atrás de `validateContiguity` lo recoja como término del bloque «lo disponible»
+   * (si estuviera en el 2) o como sumando de `Patrimonio total` (si estuviera en el 1). Ninguna de
+   * las dos cosas es cierta, y las dos pasarían inadvertidas sin la separación.
    */
-  level: 0 | 1 | 2 | 3;
+  level: 0 | 1 | 2 | 3 | 4;
   /** Regla horizontal ANTES de la fila: cierra el bloque de sumandos y anuncia el resultado. */
   rule?: "soft" | "strong";
   /** Fila del bottom-line: cuerpo mayor, además de su regla fuerte. */
@@ -70,52 +74,65 @@ export interface RowSpec {
 }
 
 /**
- * Las OCHO filas, en tres bloques (FR-1810 · ADR-09).
+ * Las DIEZ filas, en tres bloques (FR-1810 · ADR-09).
  *
- * El usuario declaró la versión anterior ilegible («las operaciones en balance son súper confusas,
- * no se logran leer ni entender bien»), pidió la lectura que haría un contador y eligió ésta. El
- * principio que la gobierna, y del que sale todo lo demás:
+ * Dos principios, uno por bloque, y los dos salieron de una objeción del usuario:
  *
- *     GUARDAR EN UNA ALCANCÍA NO ES UN GASTO. Es mover plata de un bolsillo propio a otro, y el
- *     patrimonio no cambia. Luego las reservas NO restan en la cuenta del mes: no son una salida,
- *     son un DESTINO.
+ *   1. GUARDAR EN UNA ALCANCÍA NO ES UN GASTO. Es mover plata de un bolsillo propio a otro, y el
+ *      patrimonio no cambia. Por eso las reservas no aparecen en el bloque del RESULTADO, que sólo
+ *      mide si el patrimonio creció.
+ *
+ *   2. UN SALDO QUE SE GASTÓ VALE CERO, NO MENOS. La v2 presentaba el bloque del medio como un
+ *      REPARTO del resultado en dos destinos, y en el caso del usuario mostraba «Quedó disponible
+ *      −500». Él lo rechazó por el concepto, no por el rótulo: «no puedes decir que quedó un
+ *      acumulado de menos 500, el acumulado ahí es cero porque te los gastaste, no quedaste
+ *      debiendo acumulado». Tiene razón, y el fallo era estructural: la metáfora del reparto sólo
+ *      se sostiene mientras lo guardado quepa en el resultado del mes — y el caso que motivó esta
+ *      feature entera es justo el contrario. El bloque pasa a ser LA CUENTA del bolsillo
+ *      disponible, término a término.
  *
  *     ── Resultado del mes ─────────────────────────────────────────────
- *       Ingresos                +  nivel 3
- *       Gastos                  −  nivel 3
- *     = Resultado del mes          nivel 2   ← ingresos − gastos. Las reservas NO aparecen aquí.
- *     ── Cómo se repartió ──────────────────────────────────────────────
- *       Guardado en alcancías   →  nivel 3   ← el NETO del mes (apartado − retirado)
- *       Quedó disponible        →  nivel 3   ← resultado − guardado. Negativo = tomó del ahorro.
+ *       Ingresos                  +  nivel 4
+ *       Gastos                    −  nivel 4
+ *     = Resultado del mes         =  nivel 3   ← las reservas NO aparecen aquí
+ *     ── Lo disponible ─────────────────────────────────────────────────
+ *       Venía del mes anterior       nivel 2
+ *       Resultado del mes         +  nivel 2   ← la MISMA cifra, reflejada (ver MIRROR)
+ *       Guardado en alcancías     −  nivel 2   ← BRUTO
+ *       Sacado de alcancías       +  nivel 2   ← BRUTO
+ *     = Disponible ahora          =  nivel 1
  *     ── Saldos al cierre ──────────────────────────────────────────────
- *       Disponible                 nivel 1
- *       En alcancías               nivel 1
- *     = Patrimonio total        =  nivel 0
+ *       En alcancías              +  nivel 1
+ *     = Patrimonio total          =  nivel 0
  *
- * Las cinco filas que desaparecen y por qué:
- *   · «Saldo mes anterior»      → el cierre del mes previo ES la columna de la izquierda.
- *   · «Reservas del acumulado»  → su pregunta la contesta «Quedó disponible» en negativo.
- *   · «Reservas del mes»        → se convierte en «Guardado en alcancías», que no resta.
- *   · «Disponible del mes»      → se convierte en «Quedó disponible», y DEJA DE ALARMAR.
- *   · «Retiros del mes»         → se netea dentro de «Guardado»; la fila OPERABLE sigue viva al
- *                                 final del segmento de Reservas (FR-1805, `RETIROS_ROW`).
+ * Con el caso del usuario (venía 500, entran 1.000, guarda 1.500) la columna se lee
+ * `500 + 1.000 − 1.500 + 0 = 0`. El −500 no se esconde: DEJA DE EXISTIR, porque lo que salió del
+ * saldo de enero se ve salir en su propia línea en vez de deducirse de un número negativo.
  *
- * La alarma sobrevive SOLO en «Disponible» y «Patrimonio total»: ahí un negativo es una deuda real.
- * Un «Quedó disponible» negativo es información —«tu bolsillo disponible bajó porque metiste a la
- * alcancía más de lo que entró»— y pintarlo como deuda es justo el defecto que este FR corrige.
+ * «Guardado» y «Sacado» son BRUTOS y de un solo signo cada uno. Netearlos ahorraría una fila pero
+ * produciría «− Guardado en alcancías: −500» en un mes que sólo retira, que es doble negación — y
+ * dejaría los retiros fuera de la cuenta del Balance, que era la PRIMERA queja del usuario: que la
+ * suma visible no cerraba porque esa fila vivía en otra tarjeta.
+ *
+ * La alarma vive SÓLO en las tres cifras donde un negativo significa deber plata: «Venía del mes
+ * anterior», «Disponible ahora» y «Patrimonio total». Las demás son magnitudes brutas o un
+ * resultado en pérdida, que es información y no una deuda.
  */
 export const ROWS: RowSpec[] = [
-  { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 3 },
-  { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 3 },
-  // Solo ingresos − gastos: lo que de verdad cambió el patrimonio. No alarma en negativo — un mes
-  // en pérdida es información, y la señal de "no puedo pagar" vive en «Disponible» al cierre.
-  { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 2, rule: "soft" },
-  // El NETO: lo apartado menos lo retirado. Negativo en un mes que solo sacó de las alcancías.
-  { key: "toReserves", label: "Guardado en alcancías", block: "reparto", op: "→", tone: "reserve", alarms: false, weight: 400, level: 3 },
-  // Resultado − guardado. Su negativo NO alarma: es la lectura correcta de haber guardado de más.
-  { key: "toAvailable", label: "Quedó disponible", block: "reparto", op: "→", tone: "input", alarms: false, weight: 400, level: 3 },
-  { key: "available", label: "Disponible", block: "cierre", op: "", tone: "result", alarms: true, weight: 600, level: 1, rule: "soft" },
-  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "", tone: "reserve", alarms: false, weight: 600, level: 1 },
+  { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 4 },
+  { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 4 },
+  // Ingresos − gastos: lo que de verdad cambió el patrimonio. No alarma en negativo — un mes en
+  // pérdida es información, y la señal de «no puedo pagar» vive en «Disponible ahora».
+  { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 3, rule: "soft" },
+  // La apertura del bolsillo. Se RESTITUYE (la v2 la había quitado): es un término explícito de la
+  // fórmula que el propio usuario enunció, «ingresos − gastos + saldo mes anterior».
+  { key: "prevAvailable", label: "Venía del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 2 },
+  // El reflejo de `monthResult`: misma cifra, aquí como término de la cuenta. Ver MIRROR.
+  { key: "monthResultCarry", label: "Resultado del mes", block: "disponible", op: "+", tone: "input", alarms: false, weight: 400, level: 2 },
+  { key: "toReserves", label: "Guardado en alcancías", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 2 },
+  { key: "toWithdrawals", label: "Sacado de alcancías", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 2 },
+  { key: "available", label: "Disponible ahora", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 1, rule: "soft" },
+  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 1 },
   { key: "total", label: "Patrimonio total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0, rule: "strong", bottomLine: true },
 ];
 
@@ -131,12 +148,12 @@ export const ROWS: RowSpec[] = [
 export const RETIROS_ROW: RowSpec = {
   key: "retiros",
   label: "Retiros del mes",
-  block: "reparto",
+  block: "disponible",
   op: "+",
   tone: "reserve",
   alarms: false,
   weight: 400,
-  level: 3,
+  level: 2,
 };
 
 /**
@@ -148,20 +165,23 @@ export const RETIROS_ROW: RowSpec = {
  */
 export const CASCADE: ReadonlyArray<{ result: RowKey; summands: readonly RowKey[] }> = [
   { result: "monthResult", summands: ["income", "expense"] },
+  { result: "available", summands: ["prevAvailable", "monthResultCarry", "toReserves", "toWithdrawals"] },
   { result: "total", summands: ["available", "reservedBalance"] },
 ];
 
 /**
- * El DESGLOSE: un total y las partes en que se reparte (FR-1810 · ADR-09).
+ * Las filas que muestran DOS VECES la misma cifra (FR-1810 · ADR-09).
  *
- * Es una relación distinta de la cascada y va en la dirección contraria: en `CASCADE` los sumandos
- * PRECEDEN a su resultado; aquí el total va ARRIBA y sus partes debajo, porque la pregunta que
- * contesta el bloque es «este resultado, ¿a dónde se fue?». Meterlo en `CASCADE` haría fallar a
- * `validateCascadeOrder` por diseño, y dejarlo sin declarar convertiría sus dos filas en huérfanas
- * sin relación comprobable — que es lo que este módulo existe para evitar.
+ * «Resultado del mes» cierra el primer bloque y vuelve como término del segundo — el enlace clásico
+ * entre un estado de resultados y uno de saldos, y lo que permite leer el bloque «lo disponible»
+ * completo sin mirar hacia arriba. Son dos claves y no una porque `CASCADE` y los validadores
+ * buscan por clave, y una clave repetida los rompería.
+ *
+ * Se declara aquí porque es el ÚNICO punto del módulo donde dos filas podrían divergir en silencio:
+ * sin este registro, nada obligaría a que sigan valiendo lo mismo.
  */
-export const BREAKDOWN: ReadonlyArray<{ total: RowKey; parts: readonly RowKey[] }> = [
-  { total: "monthResult", parts: ["toReserves", "toAvailable"] },
+export const MIRROR: ReadonlyArray<{ of: RowKey; shownAgainAs: RowKey }> = [
+  { of: "monthResult", shownAgainAs: "monthResultCarry" },
 ];
 
 /** Resultado de un invariante: si falla, nombra la fila culpable. */
@@ -284,49 +304,6 @@ export function validateIndentLevels(rows: readonly RowSpec[]): Verdict {
           ok: false,
           offender: s,
           reason: `${s} (nivel ${ns}) no está más adentro que su resultado ${result} (nivel ${nr})`,
-        };
-      }
-    }
-  }
-  return { ok: true };
-}
-
-/**
- * FR-1810 — las partes de un desglose van inmediatamente DESPUÉS de su total, contiguas y más
- * adentro que él.
- *
- * Es el invariante espejo de `validateContiguity`, para la relación que va al revés. Sin él, las dos
- * filas del bloque «cómo se repartió» quedarían sin ninguna relación comprobada: se podrían
- * reordenar, separar del resultado que desglosan o poner al mismo nivel, y ningún test lo notaría.
- * Discrimina de verdad — rechaza tanto una parte adelantada a su total como una fila ajena colada
- * entre ambos (TC-TDF-106f).
- *
- * @param rows Filas en el orden a comprobar.
- * @returns `{ok:true}` o el veredicto con la fila infractora.
- *
- * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-105f, TC-TDF-106f
- */
-export function validateBreakdown(rows: readonly RowSpec[]): Verdict {
-  for (const { total, parts } of BREAKDOWN) {
-    const i = rows.findIndex((r) => r.key === total);
-    if (i < 0) return { ok: false, offender: total, reason: `falta la fila ${total}` };
-    for (let k = 0; k < parts.length; k++) {
-      const fila = rows[i + 1 + k];
-      if (!fila) {
-        return { ok: false, offender: parts[k], reason: `${parts[k]} debería seguir a ${total} y no hay fila ahí` };
-      }
-      if (fila.key !== parts[k]) {
-        return {
-          ok: false,
-          offender: fila.key,
-          reason: `tras ${total} se esperaba ${parts[k]} y está ${fila.key}: el desglose no es contiguo`,
-        };
-      }
-      if (!(fila.level > rows[i].level)) {
-        return {
-          ok: false,
-          offender: fila.key,
-          reason: `${fila.key} (nivel ${fila.level}) no está más adentro que su total ${total} (nivel ${rows[i].level})`,
         };
       }
     }

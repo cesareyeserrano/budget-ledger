@@ -477,6 +477,26 @@
       "resolution": "repointReserveMovements → repointMovements: se retira el filtro por tipo, en la función y en sus 4 invocaciones (createNode + las 3 ramas de moveNode). El journal ahora sigue a las celdas en TODO tipo; from/to solo existen en transfer y se ignoran solos en ingresos/gastos. Regresión: tests/domain/categories.test.ts 'BG-017' — verificada falsable (falla al reponer el filtro). typecheck y lint limpios; 514/516 de la suite (los 2 fallos son preexistentes: esperan data_version=4 y contrapartidas-reserva ya estampa 5).",
       "fix_commit_sha": "5775271425c9829c78a6e478f0ce299995303d8a",
       "fix_at": "2026-08-31T17:08:37.858Z"
+    },
+    {
+      "id": "BG-018",
+      "title": "El aislamiento de rate-limit por IP de los tests de auth no funciona desde BG-013",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-01T07:15:07.379Z",
+      "updated_at": "2026-09-01T07:15:07.379Z",
+      "resolution": null
     }
   ]
 }

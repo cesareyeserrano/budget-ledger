@@ -103,13 +103,11 @@ Delta sobre el diagrama raíz (lo no dibujado no cambia):
 - **`ReserveCellEditor`** — el «Máx.» sale del flujo horizontal (absolute bajo el input) y pasa a
   mostrar el **total tecleable**, no el incremento.
 - **`BalanceModule`** — su franja lee `monthIssues`; aplica `highlightMonth`; cede el punto de
-  montaje de la fila «Retiros del mes»; y **reestructura su cascada en tres bloques rotulados**
+  montaje de la fila operable de retiros; y **reestructura su cascada en tres bloques rotulados**
   (FR-1810, ADR-09) leyendo los mismos números que hoy.
-- **`balanceRows.ts`** — `ROWS` pasa de nueve filas a **ocho**, cada una con su `block`; `CASCADE`
-  declara dos eslabones y nace `BREAKDOWN` con `validateBreakdown` para el bloque del reparto, cuya
-  relación va al revés (el total ARRIBA y sus partes debajo). `retiros` sale de ambas estructuras y
-  su rótulo pasa a una spec propia, `RETIROS_ROW`, que consume la fila operable del segmento de
-  Reservas (ADR-09, que revoca ADR-07 en este punto).
+- **`balanceRows.ts`** — `ROWS` pasa de nueve filas a **diez**, cada una con su `block`; `CASCADE`
+  declara tres eslabones, nace `MIRROR` (la fila que se muestra dos veces) y los niveles bajan a
+  tres. El rótulo de la fila operable pasa a una spec propia, `RETIROS_ROW` (ADR-09).
 - **`domain/balance.ts`** — `MonthBalance` **expone** `income` y `expense` (ya se calculaban dentro
   de `computeBalanceSeries`); `reserveSplit` se elimina. La aritmética no cambia.
 - **`register/Register.tsx`** — el límite mostrado pasa de `availableMargin` a `reserveHeadroom`
@@ -491,6 +489,15 @@ SUPERSEDE la decisión de ADR-07 sobre `retiros` en la cascada)*
 se logran leer ni entender bien»), pidió la lectura contable y eligió la estructura de tres bloques.
 El principio: guardar en una alcancía no es un gasto, es mover plata entre bolsillos propios — luego
 las reservas no pueden RESTAR en la cuenta del mes, tienen que aparecer como destino.
+*Revisión v3 (mismo día):* la primera forma del bloque del medio —un REPARTO del resultado en dos
+destinos— se rechazó al verla con datos reales. Mostraba «Quedó disponible −500», y el usuario objetó
+el concepto, no el rótulo: «no puedes decir que quedó un acumulado de menos 500, el acumulado ahí es
+cero porque te los gastaste, no quedaste debiendo acumulado». Tiene razón —**un saldo que se gastó
+vale cero, no menos**— y el fallo era estructural: la metáfora del reparto sólo se sostiene mientras
+lo guardado quepa en el resultado del mes, y el caso que motivó la feature entera es precisamente el
+contrario. El bloque pasa a ser LA CUENTA del bolsillo disponible, término a término, que es la
+fórmula que el propio usuario enunció. El −500 no se esconde: deja de existir, porque lo que salió
+del saldo anterior se ve salir en su propia línea en vez de deducirse de un negativo.
 *Option A — Reestructurar solo la capa de PRESENTACIÓN (`ROWS`/`CASCADE`/`cellValue`), dejando
 `computeBalanceSeries` intacto:* las ocho filas nuevas se leen de campos que la serie ya publica
 (`flow`, `reserved`, `available`, `reservedBalance`, `total`) más `income`/`expense`, que la función
@@ -503,24 +510,36 @@ declarado) a cambio de nada — la reestructuración es un problema de lectura, 
 *Decision:* **A**. La reestructuración NO puede mover un peso, y esa propiedad se prueba comparando
 «Disponible» contra la fórmula vigente en los doce meses (AC-1842).
 *Consequences:*
-  1. `retiros` **sale** de `ROWS` y de `CASCADE`, revocando la Option A de ADR-07. La objeción que
-     entonces la sostenía —«`monthAvailable` quedaría sin uno de sus sumandos declarados»— es ahora
-     vacía: `monthAvailable` deja de existir, y el retiro está contabilizado dentro de «Guardado en
-     alcancías», que es el NETO del mes. La fila operable no se toca: sigue montada al final del
-     segmento de Reservas (FR-1805), leyendo su rótulo de una spec propia (`RETIROS_ROW`) en vez de
-     buscarse dentro de `ROWS`.
-  2. El bloque «cómo se repartió» **no es un eslabón de la cascada**: es un DESGLOSE, y su relación
-     va al revés (el total va ARRIBA y sus partes debajo). Meterlo en `CASCADE` haría fallar
-     `validateCascadeOrder` por diseño. Se declara aparte, en `BREAKDOWN`, con su propio invariante
-     `validateBreakdown`: las partes van inmediatamente después de su total, contiguas y con `level`
-     estrictamente mayor. Así ninguna fila queda huérfana de relación declarada, que es la propiedad
-     que este módulo existe para garantizar.
-  3. `reserveSplit` (FR-1810 v1) y `computeReserveFlows` **se eliminan**: su único consumidor era la
-     cascada vieja. La limpieza sigue la regla de FR-1807 (barrido `grep` de cada símbolo retirado).
-  4. La lectura mes-a-mes del cierre es HORIZONTAL (la columna de la izquierda es el cierre previo).
-     Eso es exacto en el plano Ejecutado y **no** en el Presupuestado, que se re-ancla al cierre real
-     cada mes (ADR-03 de `balance.ts`). Queda declarado como [RISK-8]: es una rareza preexistente que
-     esta feature no introduce ni resuelve.
+  1. `retiros` **sale de la cascada como fila neta y vuelve como fila BRUTA**. La v2 lo neteaba
+     dentro de «Guardado en alcancías»; la v3 lo publica en su propia fila, «Sacado de alcancías»,
+     con su cifra bruta y signo `+`. Esto revoca la Option A de ADR-07 sólo en su mecanismo (la fila
+     ya no es `retiros` sino `toWithdrawals`, y ya no alimenta a `monthAvailable`, que dejó de
+     existir), pero RESTITUYE su intención: el retiro vuelve a estar dentro de la cuenta del Balance,
+     que es lo que ADR-07 protegía. La fila OPERABLE sigue montada al final del segmento de Reservas
+     (FR-1805) con su spec propia `RETIROS_ROW`; la del Balance es su reflejo de sólo lectura.
+  2. **No hay relación inversa que declarar.** La v2 necesitaba un `BREAKDOWN` con su propio
+     invariante porque su bloque del medio era un DESGLOSE (el total arriba, las partes debajo). En la
+     v3 ese bloque es una CUENTA normal —sus términos preceden a su resultado—, así que encaja en
+     `CASCADE` sin excepciones y `BREAKDOWN`/`validateBreakdown` se **eliminan**. Menos maquinaria y
+     un invariante menos que mantener: la estructura correcta necesitaba menos aparato que la
+     equivocada.
+  3. **`monthResult` se muestra DOS veces** (cierre del bloque 1, término del bloque 2). Son dos
+     claves de fila distintas —`monthResult` y `monthResultCarry`— porque `CASCADE` y los validadores
+     buscan por clave y una clave repetida los rompería. Se declara además un `MIRROR` que ata las
+     dos a la misma cifra, con su invariante: sin él, la repetición sería el único punto del módulo
+     donde dos filas podrían divergir en silencio.
+  4. `reserveSplit` **se elimina** (su consumidor era la cascada de la v1) y `computeReserveFlows`
+     **se conserva**: la v3 vuelve a necesitar los aportes y los retiros BRUTOS, que es justo lo que
+     publica. La limpieza sigue la regla de FR-1807 (barrido `grep` de cada símbolo retirado).
+  5. Los NIVELES bajan de cuatro a tres (`0..2`). Con la v3, `monthResult` y `available` son ambos
+     resultados intermedios al mismo nivel (1), y sus términos al 2. No es una simplificación
+     cosmética: si `monthResult` quedara al mismo nivel que los términos del bloque 2, la marcha
+     atrás de `validateContiguity` desde `available` lo recogería como sumando suyo, que no lo es.
+  6. **Se restituye `prevAvailable`** («Venía del mes anterior»), que la v2 había retirado con el
+     argumento de que ese dato es la columna de la izquierda. El argumento vale para un contador y es
+     falso para ESTE usuario, en cuya fórmula declarada esa cifra es un término explícito. Con ello
+     [RISK-8] —la lectura horizontal no es exacta en el plano Presupuestado— **queda cerrado**: la
+     columna ya no depende de mirar a la izquierda, porque publica su propia apertura.
 
 **Riesgos principales:**
 

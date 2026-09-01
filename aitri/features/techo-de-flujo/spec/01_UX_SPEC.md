@@ -123,53 +123,75 @@ documento no supera el del viewport.
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
 | **Franja de errores del mes** (SE AMPLÍA, FR-1806) | **default**: no se renderiza · **error**: una línea por mes con error, con icono, mes y cifra · **empty**: sin errores, ausente · **loading/disabled**: n/a | `role="status"`: se anuncia sin robar el foco a quien teclea. Deriva de la MISMA lista que la marca del encabezado — no puede haber marca sin detalle ni detalle sin marca | H1, H9, H3 control (no corrige por su cuenta) |
-| **Cascada del Balance** (SE REESTRUCTURA, FR-1810) | **default**: ocho filas en tres bloques rotulados · **empty**: un mes sin datos muestra el guion en las ocho · **error**: alarma de negativo SOLO en «Disponible» y «Patrimonio total» · **loading/disabled**: n/a | Transcripción del diseño que el usuario eligió y aprobó («me gusta la estructura», 2026-08-31) tras pedir la lectura contable. Ver el detalle debajo de esta tabla | H2 lenguaje del usuario, H6 reconocimiento, H8 minimalista |
+| **Cascada del Balance** (SE REESTRUCTURA, FR-1810) | **default**: diez filas en tres bloques rotulados · **empty**: un mes sin datos muestra el guion en las de insumo y `0` en las de resultado · **error**: alarma de negativo SOLO en «Venía del mes anterior», «Disponible ahora» y «Patrimonio total» · **loading/disabled**: n/a | Transcripción del diseño que el usuario eligió y aprobó («me gusta la estructura», 2026-08-31) tras pedir la lectura contable. Ver el detalle debajo de esta tabla | H2 lenguaje del usuario, H6 reconocimiento, H8 minimalista |
 
 #### La cascada del Balance, fila a fila (FR-1810 — diseño aprobado por el usuario)
 
-El módulo pasa de nueve filas planas a **ocho en tres bloques**, cada uno con su micro-rótulo en
-mayúsculas pequeñas (`--fg-3`, misma utilidad que los rótulos de tipo, sin regla horizontal propia):
+El módulo pasa a **diez filas en tres bloques**, cada uno con su micro-rótulo en mayúsculas pequeñas
+(`--fg-muted`, sin regla horizontal propia):
 
 | # | Bloque | Fila | Signo | Nivel | ¿Alarma en negativo? |
 |---|---|---|---|---|---|
-| 1 | RESULTADO DEL MES | Ingresos | `+` | 3 | no |
-| 2 | RESULTADO DEL MES | Gastos | `−` | 3 | no |
-| 3 | RESULTADO DEL MES | **Resultado del mes** | `=` | 2 | no |
-| 4 | CÓMO SE REPARTIÓ | Guardado en alcancías | `→` | 3 | **no** |
-| 5 | CÓMO SE REPARTIÓ | Quedó disponible | `→` | 3 | **no** |
-| 6 | SALDOS AL CIERRE | Disponible | ` ` | 1 | **sí** |
-| 7 | SALDOS AL CIERRE | En alcancías | ` ` | 1 | no |
-| 8 | SALDOS AL CIERRE | **Patrimonio total** | `=` | 0 | **sí** |
+| 1 | RESULTADO DEL MES | Ingresos | `+` | 2 | no |
+| 2 | RESULTADO DEL MES | Gastos | `−` | 2 | no |
+| 3 | RESULTADO DEL MES | **Resultado del mes** | `=` | 1 | no |
+| 4 | LO DISPONIBLE | Venía del mes anterior | ` ` | 2 | **sí** |
+| 5 | LO DISPONIBLE | Resultado del mes | `+` | 2 | no |
+| 6 | LO DISPONIBLE | Guardado en alcancías | `−` | 2 | no |
+| 7 | LO DISPONIBLE | Sacado de alcancías | `+` | 2 | no |
+| 8 | LO DISPONIBLE | **Disponible ahora** | `=` | 1 | **sí** |
+| 9 | SALDOS AL CIERRE | En alcancías | `+` | 1 | no |
+| 10 | SALDOS AL CIERRE | **Patrimonio total** | `=` | 0 | **sí** |
 
-**Por qué así.** Guardar en una alcancía no es un gasto: es mover plata de un bolsillo propio a otro,
-y el patrimonio no cambia. Por eso las reservas salen del bloque del resultado (bloque 1, que sólo
-mide si el patrimonio creció) y aparecen en el bloque 2 como **destino**, no como resta.
+**El principio que gobierna el bloque 1.** Guardar en una alcancía no es un gasto: es mover plata de
+un bolsillo propio a otro, y el patrimonio no cambia. Por eso las reservas NO aparecen en el
+resultado del mes, que sólo mide si el patrimonio creció.
 
-**El signo `→` es nuevo y es deliberado.** Las filas 4 y 5 no son sumandos que alimentan un resultado
-posterior: son el **desglose** del resultado que está ARRIBA de ellas. `→` se lee «se fue a», que es
-exactamente la relación, y las distingue de los `+`/`−` de la cascada sin inventar un color.
+**El principio que gobierna el bloque 2, y por qué se rediseñó.** La versión anterior presentaba
+este bloque como un REPARTO del resultado en dos destinos, y mostraba «Quedó disponible −500» en el
+caso del usuario. Él lo rechazó, textual: *«no puedes decir que quedó un acumulado de menos 500, el
+acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado»*. Es correcto, y el
+defecto era de fondo: **un saldo que se gastó vale cero, no menos**, y la metáfora del reparto sólo
+se sostiene mientras lo guardado quepa en el resultado del mes. El bloque pasa a ser LA CUENTA del
+bolsillo disponible, término a término:
 
-**Estados que desaparecen y qué los sustituye:**
+```
+    Venía del mes anterior      500
+  + Resultado del mes         1.000
+  − Guardado en alcancías     1.500
+  + Sacado de alcancías           —
+  = Disponible ahora              0        ← el −500 no se esconde: deja de existir
+```
 
-- «Saldo mes anterior» → sobra: el cierre del mes previo es literalmente la columna de la izquierda.
-- «Reservas del acumulado» → sobra: su pregunta la contesta «Quedó disponible» en negativo.
-- «Disponible del mes» → pasa a llamarse «Quedó disponible» y deja de alarmar.
-- «Retiros del mes» → sale de la cascada (se netea en «Guardado en alcancías»); la fila OPERABLE
-  sigue viva al final del segmento de Reservas (FR-1805), que es donde el usuario la pidió.
+Es literalmente la fórmula que el propio usuario enunció: «el techo para reservas = ingresos del mes
+− gastos del mes + saldo mes anterior».
 
-**El caso que motivó el rediseño** (datos reales del usuario, plano Ejecutado): febrero con 1.000 de
-ingreso, 0 de gasto y 1.500 guardados muestra «Resultado del mes 1.000 · Guardado en alcancías 1.500 ·
-Quedó disponible −500». Ese −500 **no lleva alarma**: no es una deuda, es la lectura correcta de «tu
-bolsillo disponible bajó 500 porque metiste a la alcancía más de lo que entró», y los saldos al cierre
-lo confirman (Disponible 0, En alcancías 2.000). Es el mismo número que antes salía en rojo diciendo
-que el mes «quedaba debiendo».
+**«Guardado» y «Sacado» son BRUTOS y de un solo signo.** Un mes que aporta 1.000 y retira 500 muestra
+1.000 y 500, nunca un neto. Así se evita el «− Guardado en alcancías: −500» de doble negación, y los
+retiros vuelven a estar DENTRO de la cuenta del Balance — la primera queja del usuario era que la
+suma visible no cerraba porque esa fila vivía en otra tarjeta. La fila OPERABLE sigue al final del
+segmento de Reservas (FR-1805): la del Balance es su reflejo de sólo lectura.
+
+**«Resultado del mes» aparece en los dos primeros bloques,** con el mismo valor: es la cifra de
+cierre del primero y un término de la cuenta del segundo. Es el enlace clásico entre un estado de
+resultados y uno de saldos, y hace que el bloque 2 se lea completo sin mirar hacia arriba.
+
+**«Venía del mes anterior» se restituye.** La versión anterior lo había retirado argumentando que ese
+dato es la columna de la izquierda. El argumento vale para un contador y es falso para este usuario,
+en cuya fórmula esa cifra es un término explícito.
+
+**Alarma.** Sólo en las tres cifras donde un negativo significa deber plata: «Venía del mes
+anterior», «Disponible ahora» y «Patrimonio total». Ninguna otra fila puede ser negativa por
+construcción (ingresos, gastos, guardado y sacado son magnitudes brutas ≥ 0).
 
 **Convención de signo:** se CONSERVA la vigente (decisión previa del usuario) — el negativo se marca
-con `−`, color de alerta y glifo, y el positivo no lleva `+`. **No** se adoptan los paréntesis
+con `−`, color de alerta y glifo; el positivo no lleva `+`. **No** se adoptan los paréntesis
 contables, que contradirían esa decisión ya tomada.
 
-**Cero explícito:** un resultado que vale 0 muestra `0`, no el guion de vacío — en las filas de
-resultado (3, 6, 8) el cero es información, no ausencia. Las filas de insumo mantienen el guion.
+**Cero explícito:** las filas de RESULTADO (3, 8, 10) pintan `0` cuando valen cero, no el guion de
+vacío — ahí el cero es la respuesta a la pregunta de la fila. Se pinta en `--fg-secondary`: un cero
+repetido en diez meses sin actividad no debe pesar como una cifra con contenido. Las filas de insumo
+conservan el guion.
 
 ### Popover de retiros (desde la fila «Retiros del mes»)
 

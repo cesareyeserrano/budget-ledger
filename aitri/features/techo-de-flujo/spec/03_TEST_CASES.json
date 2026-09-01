@@ -1783,47 +1783,74 @@
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
       "ac_id": "AC-1839",
-      "title": "El caso del usuario: guardar de más deja «Quedó disponible» negativo SIN alarma",
+      "title": "El caso del usuario: la columna se lee 500 + 1.000 − 1.500 y cierra en 0",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "critical",
       "preconditions": [
-        "Febrero con ingresos 1.000, gastos 0 y 1.500 guardados en la alcancía"
+        "Enero cierra con 500 disponibles; febrero tiene 1.000 de ingreso, 0 de gasto y 1.500 guardados"
       ],
-      "given": "el Balance de febrero con la estructura de tres bloques",
-      "when": "se leen «Resultado del mes», «Guardado en alcancías» y «Quedó disponible»",
-      "then": "valen 1.000, 1.500 y −500; la fila «Quedó disponible» tiene alarms=false, así que su negativo no se pinta como deuda",
+      "given": "el bloque «lo disponible» de febrero",
+      "when": "se leen sus cinco filas de arriba abajo",
+      "then": "valen 500, 1.000, 1.500, 0 y «Disponible ahora» 0; NINGUNA fila de la columna vale −500",
       "steps": [
         "Construir el estado",
-        "Leer las tres filas por su clave",
-        "Verificar los tres valores y que la spec de «Quedó disponible» no alarma"
+        "Leer las cinco filas",
+        "Verificar los valores y que ninguna cifra de la columna sea −500"
       ],
-      "expected_result": "1.000 / 1.500 / −500 y alarms=false en la fila del reparto",
+      "expected_result": "500 / 1.000 / 1.500 / — / 0, y cero apariciones de −500",
       "test_data": {
+        "venia": 500,
         "ingresos": 1000,
-        "gastos": 0,
         "guardado": 1500
       }
     },
     {
-      "id": "TC-TDF-101e",
+      "id": "TC-TDF-101h",
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
-      "ac_id": "AC-1842",
-      "title": "Las tres identidades del Balance se sostienen bajo secuencia mixta de 120 pasos",
+      "ac_id": "AC-1840",
+      "title": "«Guardado» y «Sacado» son brutos y de un solo signo, nunca un neto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero aporta 1.000 a la alcancía y retira 500"
+      ],
+      "given": "el bloque «lo disponible» de enero",
+      "when": "se leen «Guardado en alcancías» y «Sacado de alcancías»",
+      "then": "dicen 1.000 y 500 —las cifras brutas— y no un neto de 500; ambas son ≥ 0 en cualquier estado",
+      "steps": [
+        "Construir enero con aporte y retiro",
+        "Leer las dos filas",
+        "Verificar 1.000 y 500",
+        "Recorrer los doce meses comprobando que ninguna de las dos es negativa"
+      ],
+      "expected_result": "1.000 y 500 por separado; ninguna de las dos filas es negativa en ningún mes",
+      "test_data": {
+        "aporte": 1000,
+        "retiro": 500
+      }
+    },
+    {
+      "id": "TC-TDF-102e",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1841",
+      "title": "Las dos cuentas se sostienen en 120 pasos, 12 meses y 2 planos",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "critical",
       "preconditions": [
-        "La secuencia determinista de 120 operaciones (semilla 1801)"
+        "Secuencia determinista de 120 operaciones (semilla 1801), con rechazos tolerados"
       ],
-      "given": "los 120 estados intermedios, en los dos planos",
-      "when": "tras cada paso se evalúan las tres identidades en los doce meses",
-      "then": "(1) Guardado + Quedó = Resultado del mes; (2) Disponible + En alcancías = Patrimonio total; (3) Disponible coincide al peso con saldo anterior + flujo − reservas netas",
+      "given": "los 120 estados intermedios",
+      "when": "tras cada paso se evalúan las cuentas en los doce meses y los dos planos",
+      "then": "(1) Venía + Resultado − Guardado + Sacado = Disponible ahora; (2) Disponible ahora + En alcancías = Patrimonio total; (3) Disponible ahora coincide con saldo anterior + flujo − reservas netas",
       "steps": [
-        "Reutilizar la secuencia determinista",
-        "Tras cada paso evaluar las tres identidades en los 12 meses y 2 planos",
-        "Fallar nombrando el paso, el mes y la identidad rota"
+        "Recorrer la secuencia",
+        "Evaluar las tres identidades tras cada paso",
+        "Fallar nombrando paso, mes, plano e identidad"
       ],
       "expected_result": "120 × 12 × 2 × 3 igualdades exactas; ninguna tolerancia",
       "test_data": {
@@ -1831,102 +1858,71 @@
       }
     },
     {
-      "id": "TC-TDF-102e",
-      "requirement_id": "FR-1810",
-      "user_story_id": "US-1810",
-      "ac_id": "AC-1840",
-      "title": "El cierre de cada mes encadena con el del mes anterior más su fila de reparto",
-      "type": "unit",
-      "scenario": "edge_case",
-      "priority": "critical",
-      "preconditions": [
-        "Enero cierra con Disponible 500 y En alcancías 500; febrero guarda 1.500 sobre un ingreso de 1.000"
-      ],
-      "given": "la serie ejecutada de los doce meses",
-      "when": "se compara cada cierre con el del mes previo más su fila de reparto",
-      "then": "Disponible(m) = Disponible(m−1) + Quedó(m) y En alcancías(m) = En alcancías(m−1) + Guardado(m) en los doce meses; febrero da 0 y 2.000",
-      "steps": [
-        "Construir el estado del usuario",
-        "Recorrer los doce meses encadenando",
-        "Verificar además los valores concretos de febrero"
-      ],
-      "expected_result": "El encadenamiento se cumple en los 12 meses; febrero: Disponible 0, En alcancías 2.000, Patrimonio total 2.000",
-      "test_data": {
-        "ene_disp": 500,
-        "ene_alc": 500,
-        "feb_ingreso": 1000,
-        "feb_guardado": 1500
-      }
-    },
-    {
       "id": "TC-TDF-103e",
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
-      "ac_id": "AC-1841",
-      "title": "Un mes que solo retira muestra «Guardado en alcancías» en negativo",
+      "ac_id": "AC-1842",
+      "title": "«Venía del mes anterior» encadena con el cierre del mes previo, y enero abre en 0",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [
-        "Un mes con ingresos 0, gastos 0 y un retiro de 500 desde la alcancía"
+        "La serie ejecutada del estado del usuario"
       ],
-      "given": "el bloque del reparto de ese mes",
-      "when": "se leen sus dos filas",
-      "then": "«Guardado en alcancías» = −500 y «Quedó disponible» = +500; su suma sigue dando el resultado del mes (0)",
+      "given": "los doce meses en el plano Ejecutado",
+      "when": "se compara «Venía del mes anterior» de cada mes con «Disponible ahora» del anterior",
+      "then": "coinciden en los once pares, y enero abre en 0",
       "steps": [
-        "Construir el mes con solo un retiro",
-        "Leer las dos filas del reparto",
-        "Verificar los signos y el cuadre contra el resultado"
+        "Recorrer los doce meses encadenando",
+        "Verificar enero = 0"
       ],
-      "expected_result": "−500 y +500, que suman 0 = resultado del mes",
-      "test_data": {
-        "retiro": 500
-      }
+      "expected_result": "11 coincidencias exactas y enero en 0",
+      "test_data": {}
     },
     {
-      "id": "TC-TDF-104f",
+      "id": "TC-TDF-104e",
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
-      "ac_id": "AC-1843",
-      "title": "La alarma sobrevive donde la deuda es real y NO donde no la hay",
+      "ac_id": "AC-1839",
+      "title": "«Resultado del mes» vale lo mismo en sus dos apariciones",
       "type": "unit",
-      "scenario": "negative",
-      "priority": "critical",
+      "scenario": "edge_case",
+      "priority": "high",
       "preconditions": [
-        "Tres estados: (a) gastos > ingresos con cierre positivo; (b) legado con 1.500 guardados sobre 1.000 y sin acumulado; (c) el caso del usuario (guardar de más con acumulado suficiente)"
+        "Cualquier estado de la secuencia determinista"
       ],
-      "given": "los tres estados",
-      "when": "se leen las filas que alarman y las que no",
-      "then": "(a) «Resultado del mes» es negativo y NO alarma, y «Disponible» al cierre sigue positivo; (b) «Disponible» al cierre es −500 y SÍ alarma; (c) «Quedó disponible» es −500 y NO alarma, con «Disponible» al cierre en 0",
+      "given": "las dos filas que muestran el resultado del mes",
+      "when": "se leen sus valores en los doce meses y los dos planos",
+      "then": "son idénticos al peso — la repetición es un reflejo, no una segunda cifra que pueda divergir",
       "steps": [
-        "Construir los tres estados",
-        "Leer el valor y la spec de alarma de cada fila implicada",
-        "Verificar que solo (b) produce una alarma"
+        "Leer ambas filas por su clave",
+        "Comparar en 12 meses × 2 planos",
+        "Comprobar además que la relación está DECLARADA en MIRROR"
       ],
-      "expected_result": "Exactamente una alarma en los tres estados, y está en «Disponible» al cierre de (b) — la única deuda verdadera",
+      "expected_result": "24 igualdades exactas y la pareja declarada en MIRROR",
       "test_data": {}
     },
     {
       "id": "TC-TDF-105f",
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
-      "ac_id": "AC-1839",
-      "title": "La estructura declarada: ocho filas, tres bloques, y ninguna de las cinco retiradas",
+      "ac_id": "AC-1843",
+      "title": "La alarma vive SOLO donde un negativo significa deber plata",
       "type": "unit",
       "scenario": "negative",
-      "priority": "high",
+      "priority": "critical",
       "preconditions": [
-        "La tabla ROWS y los invariantes de balanceRows.ts"
+        "Dos estados: (a) gastos > ingresos con acumulado suficiente; (b) legado con 1.500 guardados sobre 1.000 sin acumulado"
       ],
-      "given": "la tabla de filas del Balance",
-      "when": "se validan su tamaño, sus bloques y los cuatro invariantes",
-      "then": "ROWS tiene 8 entradas repartidas en los bloques mes/reparto/cierre; ninguna clave es reserved, reservedCarry, prevAvailable, monthAvailable ni retiros; y validateCascadeOrder, validateContiguity, validateIndentLevels y validateBreakdown devuelven ok",
+      "given": "los dos estados",
+      "when": "se leen los valores y la propiedad de alarma de cada fila",
+      "then": "(a) «Resultado del mes» es negativo y NO alarma, y «Disponible ahora» sigue positivo; (b) «Disponible ahora» es −500 y SÍ alarma; y las filas de insumo bruto (ingresos, gastos, guardado, sacado) no alarman en ningún caso",
       "steps": [
-        "Leer ROWS",
-        "Comprobar tamaño, claves ausentes y reparto por bloque",
-        "Ejecutar los cuatro validadores"
+        "Construir ambos estados",
+        "Verificar valor y alarma de cada fila implicada",
+        "Comprobar que solo las tres filas declaradas pueden alarmar"
       ],
-      "expected_result": "8 filas, 0 claves prohibidas, 4 validadores en ok",
+      "expected_result": "Exactamente una alarma entre los dos estados, en «Disponible ahora» de (b)",
       "test_data": {}
     },
     {
@@ -1934,23 +1930,47 @@
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
       "ac_id": "AC-1839",
-      "title": "validateBreakdown rechaza un desglose cuyas partes no siguen a su total",
+      "title": "La tabla declarada: diez filas, tres bloques, y ninguna fila huérfana de relación",
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [
-        "Una tabla de filas manipulada donde «Quedó disponible» se mueve delante de «Resultado del mes»"
+        "La tabla ROWS y los invariantes de balanceRows.ts"
       ],
-      "given": "esa tabla inválida",
-      "when": "se ejecuta validateBreakdown",
-      "then": "devuelve ok=false nombrando la fila infractora — el invariante discrimina y no es una función que siempre acepta",
+      "given": "la tabla de filas del Balance",
+      "when": "se validan tamaño, bloques, invariantes y cobertura de relaciones",
+      "then": "ROWS tiene 10 entradas en los bloques mes/disponible/cierre; ninguna clave es reserved, reservedCarry, monthAvailable, toAvailable ni retiros; los tres validadores devuelven ok; y toda fila aparece en CASCADE o en MIRROR",
       "steps": [
-        "Copiar ROWS y mover la parte delante de su total",
-        "Ejecutar validateBreakdown",
-        "Verificar ok=false y el offender",
-        "Repetir insertando una fila ajena entre el total y sus partes: también rechaza"
+        "Leer ROWS",
+        "Comprobar tamaño, claves ausentes y reparto por bloque",
+        "Ejecutar los validadores",
+        "Comprobar que ninguna fila queda fuera de las relaciones declaradas"
       ],
-      "expected_result": "ok=false con offender identificado en los dos órdenes inválidos",
+      "expected_result": "10 filas, 0 claves prohibidas, 3 validadores en ok, 0 filas huérfanas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-107f",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1839",
+      "title": "Los invariantes RECHAZAN una tabla mal formada — sin esto, 106f estaría vacío",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Copias de ROWS manipuladas"
+      ],
+      "given": "tres tablas inválidas",
+      "when": "se ejecutan los validadores sobre cada una",
+      "then": "(a) con los diez márgenes iguales, validateIndentLevels y validateContiguity fallan; (b) con un término del bloque 2 movido DESPUÉS de «Disponible ahora», validateCascadeOrder falla nombrándolo; (c) con «Resultado del mes» al mismo nivel que los términos del bloque 2, validateContiguity lo recoge como sumando ajeno y falla",
+      "steps": [
+        "Construir las tres tablas",
+        "Ejecutar los validadores",
+        "Verificar ok=false y el offender en cada una",
+        "Verificar el positivo sobre ROWS para que el rechazo no sea un siempre-false"
+      ],
+      "expected_result": "Tres rechazos con offender identificado, y ROWS en ok",
       "test_data": {}
     }
   ]

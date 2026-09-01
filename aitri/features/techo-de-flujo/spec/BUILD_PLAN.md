@@ -190,3 +190,46 @@ Pendiente de decisión del usuario, ofrecido y fuera de esta feature: el plano *
 re-ancla al cierre real cada mes (ADR-03 de `balance.ts`), así que la lectura horizontal del cierre
 —que es lo que permite retirar «Saldo mes anterior»— no es exacta en esa columna. Declarado como
 [RISK-8]; las dos salidas (marcar el re-anclaje, o mostrar solo Ejecutado) son decisión de producto.
+
+## Evidencia — FR-1810 v3, la cuenta del bolsillo disponible (2026-09-01)
+
+La v2 se rechazó **al verla con datos reales**, y por un motivo conceptual, no de rótulo. Mostraba
+«Quedó disponible −500» y el usuario objetó: *«no puedes decir que quedó un acumulado de menos 500,
+el acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado»*. Tiene razón —**un
+saldo que se gastó vale cero, no menos**— y el fallo era estructural: la metáfora del REPARTO sólo se
+sostiene mientras lo guardado quepa en el resultado del mes, y el caso que motivó la feature entera
+es justo el contrario.
+
+El bloque del medio deja de ser un reparto y pasa a ser LA CUENTA del bolsillo disponible, que es la
+fórmula que el propio usuario enunció días antes:
+
+```
+    Venía del mes anterior      500
+  + Resultado del mes         1.000
+  − Guardado en alcancías     1.500
+  + Sacado de alcancías           —
+  = Disponible ahora              0
+```
+
+El −500 no se esconde: **deja de existir**. Diez filas en tres bloques (de ocho que tenía la v2).
+
+Lo que la implementación destapó, y que el diseño no había previsto:
+- **Conflicto real de niveles.** `monthResult` no puede compartir escalón ni con los términos del
+  bloque 2 (`validateContiguity` lo recogería como término de «Disponible ahora») ni con los saldos
+  de cierre (lo recogería como sumando de «Patrimonio total»). Ninguna de las dos es cierta y ambas
+  pasarían inadvertidas. Necesita un escalón PROPIO: los niveles suben de cuatro a cinco (0..4) en
+  escalera estricta. Lo cazaron los invariantes, no una revisión a ojo.
+- **`BREAKDOWN` y `validateBreakdown` se ELIMINAN.** La v2 los necesitaba porque su bloque del medio
+  era un desglose con la relación invertida; en la v3 ese bloque es una cuenta normal y encaja en
+  `CASCADE` sin excepciones. La estructura correcta necesitaba MENOS aparato que la equivocada.
+- **El signo `→` desaparece** con el desglose que lo motivaba, y con él el defecto de alineación que
+  había obligado a pintarlo más pequeño. Los cuatro signos vuelven a ser de ancho tabular.
+- **`computeReserveFlows` vuelve**: la v3 publica aportes y retiros BRUTOS en filas separadas.
+
+`npx vitest run tests/domain/` → **305 pasan, 0 fallan**. typecheck y lint limpios.
+
+**Cinco fallos en la suite completa NO son de esta feature** (BG-018, registrado): el helper de tests
+de auth promete aislar el bucket de rate-limit por IP con `x-forwarded-for`, pero desde BG-013 esa
+cabecera sólo se honra con `LEDGER_TRUST_PROXY=true`, que en pruebas no está puesta —correctamente—.
+Los 29 tests del fichero comparten un solo bucket y los últimos agotan el cupo (`signUp` devuelve
+sesión nula). Verificado: el diff de esta feature no toca ningún fichero de auth, correo ni sesión.
