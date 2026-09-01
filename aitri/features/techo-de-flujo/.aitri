@@ -1,58 +1,25 @@
 {
-  "currentPhase": 3,
+  "currentPhase": 4,
   "approvedPhases": [
     1,
     "ux",
     2,
-    3
+    3,
+    4
   ],
   "completedPhases": [
     1,
     "ux",
     2,
-    3
+    3,
+    4
   ],
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-01T16:00:01.508Z",
+  "updatedAt": "2026-09-01T19:16:56.291Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T03:38:52.356Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-01T03:38:52.481Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T03:39:21.558Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T03:39:21.674Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-01T03:40:07.684Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-01T03:40:07.803Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-01T03:40:46.894Z",
-      "event": "started",
-      "phase": 3
-    },
     {
       "at": "2026-09-01T03:40:47.029Z",
       "event": "completed",
@@ -117,6 +84,49 @@
       "at": "2026-09-01T16:00:01.492Z",
       "event": "approved",
       "phase": 3
+    },
+    {
+      "at": "2026-09-01T16:59:56.196Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T17:00:39.838Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T17:00:43.524Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T17:31:45.181Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 34,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-01T18:12:41.625Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T18:12:41.803Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T19:16:56.213Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 34,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -124,6 +134,7 @@
     "1": "b77049544d3b251c8296fb10c56e357f57d33374e7eb7657f685253afffbdb59",
     "2": "6195829a49cc74af0c0183000d5a6e0be6071d4eb3565da12b273ddbbfaf9a26",
     "3": "7f41fe0f400b1541d9b8a032cfa93db0f4f940e6537a9b43b538dbe751a444cc",
+    "4": "8bf3d6af91908c3b024603c1f1883ae1c29a0189577617fc5d52ff0c41b66006",
     "ux": "81a35e341fed43c7bf2a474e2ddb8214a7574102faf0bc9b190fea2b83cf9e16"
   },
   "frSnapshots": {
@@ -151,6 +162,18 @@
       "FR-1809",
       "FR-1810"
     ],
+    "4": [
+      "FR-1801",
+      "FR-1802",
+      "FR-1803",
+      "FR-1804",
+      "FR-1805",
+      "FR-1806",
+      "FR-1807",
+      "FR-1808",
+      "FR-1809",
+      "FR-1810"
+    ],
     "ux": [
       "FR-1801",
       "FR-1802",
@@ -164,5 +187,16 @@
       "FR-1810"
     ]
   },
-  "verifyPassed": false
+  "verifyPassed": false,
+  "verifyRanRef": "b2d8e026880ba4d9501a360ab08bbb42fbc43f9d",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "46eb5158760be9bcf7ccdf281945b136af7ce95b45df0ae8abe887a070f74b4f",
+  "verifyRanAt": "2026-09-01T19:16:56.043Z",
+  "lastVerifyRun": {
+    "passed": 44,
+    "failed": 0,
+    "skipped": 34,
+    "manual": 0,
+    "at": "2026-09-01T19:16:56.043Z"
+  }
 }

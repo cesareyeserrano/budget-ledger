@@ -309,3 +309,35 @@ GASTO, y la nota automática solo en el bolsillo que reservó.
   explícito en vez de esconderlo.
 
 Suite unitaria tras los arreglos: **570 pasan, 0 fallan**. typecheck y lint limpios.
+
+## Corrección — el plegado por defecto era una decisión inventada (2026-09-01)
+
+Al correr por primera vez la suite e2e COMPLETA tras esta feature aparecieron dos tests vigentes de
+`transferencias` colgados hasta agotar su tiempo. La primera lectura —contención de recursos, que es
+lo que documenta `playwright.config.ts`— era **falsa**: aislados seguían fallando.
+
+**Causa:** en EP-02 hice que los grupos de bolsillos arrancaran PLEGADOS, leyendo AC-1820 como un
+mandato. No lo es. Dice «**CON** los grupos de bolsillos plegados, la fila Retiros del mes permanece
+visible»: una condición sobre el estado plegado, que la fila cumple por estar al final del segmento
+se pliegue o no. El efecto real era esconder TODOS los bolsillos del usuario al abrir la app —una
+decisión de producto que nadie pidió— y dejar sin encontrar sus filas a `TC-TRF4-002f` y
+`TC-TRF4-003f`, que esperaban un minuto cada intento.
+
+**Revertido:** todos los grupos arrancan abiertos; el plegado lo decide el usuario. El helper
+`desplegarReservas` de la suite nueva se hizo IDEMPOTENTE (el botón se llama «Expandir» en los dos
+estados, así que pulsarlo a ciegas cerraría un grupo abierto), de modo que los tests no dependen del
+estado inicial — justo la decisión que se acaba de revertir.
+
+Otros dos fallos eran aserciones sobre el TEXTO viejo del bloqueo. FR-1808 reescribió esa rama para
+que el mensaje y el indicador «Máx.» digan la MISMA cifra («Esta celda admite hasta $150.000 este
+mes» en vez de «tu margen este mes es $150.000», que convivía con un «Máx. $150.000»). Las dos
+aserciones se actualizaron al texto nuevo SIN debilitarlas: una sigue exigiendo la cifra exacta y la
+otra sigue comprobando que el estado se comunica con texto y no solo con color.
+
+**Medición final:** e2e **344 pasan, 0 fallan, 10,8 min** (antes: 39 min con cuelgues). Unitarias
+**570/570**. typecheck y lint limpios. El `timeout_ms` del gate e2e queda en 30 min sobre una
+medición real, no sobre una suposición.
+
+**Lección registrada:** la deuda e2e declarada durante el build ocultó esta regresión tres épicas.
+Un gate que nunca se vio correr entero no acredita nada — es el mismo patrón de BG-014 que este
+proyecto ya había pagado una vez.

@@ -66,14 +66,16 @@ const filaDe = (page: Page, name: string) =>
   page.getByTestId("node-row").filter({ has: page.getByTestId("row-label").filter({ hasText: name }) });
 
 /**
- * Despliega el grupo de Reservas. Sus grupos arrancan PLEGADOS por decisión de la feature
- * (AC-1820: así la fila «Retiros del mes» queda visible sin desplazarse aunque haya seis
- * bolsillos), de modo que las filas de bolsillo no existen hasta pedirlas.
+ * Garantiza que el grupo de Reservas esté desplegado, esté como esté.
+ *
+ * Es IDEMPOTENTE a propósito: el botón de plegado se llama «Expandir» en los dos estados, así que
+ * pulsarlo a ciegas cerraría un grupo ya abierto. Se comprueba primero si la fila del bolsillo ya
+ * se ve, y solo entonces se pulsa. Así el test no depende de cuál sea el estado inicial — que es
+ * precisamente la decisión de producto que se revirtió al descubrir que escondía los bolsillos.
  */
 async function desplegarReservas(page: Page): Promise<void> {
-  const grupo = filaDe(page, "Reservas").first();
-  const toggle = grupo.getByRole("button", { name: "Expandir" });
-  if (await toggle.count()) await toggle.first().click();
+  if (await filaDe(page, "Alcancía").count()) return;
+  await filaDe(page, "Reservas").first().getByRole("button", { name: "Expandir" }).first().click();
   await expect(filaDe(page, "Alcancía")).toBeVisible();
 }
 

@@ -146,7 +146,12 @@ test.describe("FR-1003 — editar la celda con validación inline", () => {
 
     await expect(input).toBeVisible();
     await expect(input).toBeFocused();
-    await expect(page.getByTestId("reserve-block")).toContainText("No puedes reservar $200.000: tu margen este mes es $150.000");
+    // FR-1808 (feature techo-de-flujo) reescribió esta rama: el editor de celda compara el TOTAL
+    // tecleado, no un incremento, así que el mensaje habla del total que la celda admite — la
+    // MISMA cifra que su indicador «Máx.». Antes decía «tu margen este mes es $150.000» junto a un
+    // «Máx. $150.000»: dos redacciones para el mismo límite. La aserción sigue siendo igual de
+    // fuerte porque nombra la cifra exacta.
+    await expect(page.getByTestId("reserve-block")).toContainText("Esta celda admite hasta $150.000 este mes");
     expect(await input.evaluate((el: HTMLInputElement) => el.selectionEnd! - el.selectionStart!)).toBe(6);
 
     await page.keyboard.press("Escape");
@@ -378,7 +383,10 @@ test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
     await page.getByLabel("Editar valor").fill("999999999");
     await page.keyboard.press("Enter");
     const text = (await page.getByTestId("reserve-block").textContent()) ?? "";
-    expect(text).toMatch(/margen|solo tiene|Bloquea/);
+    // Lo que este TC protege es que el estado se comunique con TEXTO y no solo con color, así que
+    // el patrón admite cualquiera de las redacciones reales del dominio. «admite hasta» entra con
+    // FR-1808 (el editor de celda habla del total tecleable).
+    expect(text).toMatch(/margen|solo tiene|Bloquea|admite hasta/);
     expect(text).toMatch(/\$/);
   });
 });

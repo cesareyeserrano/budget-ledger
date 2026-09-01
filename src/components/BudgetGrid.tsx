@@ -697,10 +697,15 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
 function initialExpanded(nodes: LedgerNode[]): Record<string, boolean> {
   const e: Record<string, boolean> = {};
   for (const t of TYPE_ORDER) e[`type:${t.id}`] = true;
-  // FR-1805/AC-1820: los grupos de BOLSILLOS arrancan plegados. Con seis bolsillos son doce filas
-  // que dejaban la fila «Retiros del mes» —la puerta para sacar— fuera de la vista. Gastos e
-  // Ingresos conservan su comportamiento (abiertos), que es donde el usuario teclea a diario.
-  for (const n of nodes) if (n.level === "group") e[n.id] = n.type !== "transfer";
+  // Todos los grupos arrancan ABIERTOS, incluidos los de bolsillos.
+  //
+  // Durante EP-02 los de tipo `transfer` se hicieron arrancar PLEGADOS leyendo AC-1820 como un
+  // mandato. No lo es: dice «CON los grupos de bolsillos plegados, la fila Retiros del mes sigue
+  // visible» — una condición sobre el estado plegado, que la fila cumple por estar al final del
+  // segmento, se pliegue o no. Arrancar plegado escondía TODOS los bolsillos del usuario nada más
+  // abrir la app (una decisión de producto que nadie pidió) y dejaba sin encontrar sus filas a dos
+  // e2e vigentes de la feature `transferencias`. Revertido: el plegado lo decide el usuario.
+  for (const n of nodes) if (n.level === "group") e[n.id] = true;
   return e;
 }
 

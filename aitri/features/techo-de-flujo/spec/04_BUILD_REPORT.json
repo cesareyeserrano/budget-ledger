@@ -39,21 +39,54 @@
       "effort_to_fix": "low"
     }
   ],
-  "test_runner": "vitest run --root ../../ --reporter verbose",
+  "test_runner": "../../../unit.sh",
   "test_files": [
-    "tests/domain/techo-de-flujo.test.ts"
+    "../../../tests/domain/techo-de-flujo.test.ts",
+    "../../../tests/domain/balance-jerarquia-orden.test.ts",
+    "../../../tests/e2e/techo-de-flujo.spec.ts"
   ],
   "test_runner_timeout_ms": 900000,
   "quality_gates": [
     {
       "name": "typecheck",
-      "command": "npm --prefix ../.. run typecheck",
+      "command": "npm run typecheck",
       "required": true
     },
     {
       "name": "lint",
-      "command": "npm --prefix ../.. run lint",
+      "command": "npm run lint",
       "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "Medido 2026-09-01 tras revertir el plegado por defecto: la suite completa tarda 10,8 min (344 e2e, 0 fallos). Los 39 min y los cuelgues anteriores NO eran contención: eran dos tests esperando filas de bolsillo que el plegado por defecto había hecho desaparecer."
     }
   ]
 }
