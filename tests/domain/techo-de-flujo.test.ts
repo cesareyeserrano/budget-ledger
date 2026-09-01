@@ -762,7 +762,7 @@ describe("FR-1810 · el Balance en tres bloques", () => {
   });
 
   // @aitri-tc TC-TDF-103e
-  it("TC-TDF-103e: «Venía del mes anterior» encadena con el cierre previo, y enero abre en 0", () => {
+  it("TC-TDF-103e: «Saldo del mes anterior» encadena con el cierre previo, y enero abre en 0", () => {
     let s = base({ ene: 1000, feb: 1000 });
     s = llevar(s, "A", "ene", 1000);
     s = sacar(s, "A", "ene", 500).state;
@@ -874,7 +874,7 @@ describe("FR-1810 · el Balance en tres bloques", () => {
 
     // (c) un término del bloque 2 a la profundidad EQUIVOCADA deja de reconocerse como término.
     //     Es el error que obligó a darle a `monthResult` un escalón propio: con las profundidades
-    //     mal repartidas, «Disponible ahora» recoge un conjunto de términos que no es el suyo y
+    //     mal repartidas, «Saldo disponible» recoge un conjunto de términos que no es el suyo y
     //     nadie se enteraría sin este invariante.
     const confundido = ROWS.map((r) => (r.key === "monthResultCarry" ? { ...r, level: 3 as const } : r));
     const vc = validateContiguity(confundido);

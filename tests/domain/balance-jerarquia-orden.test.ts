@@ -30,16 +30,16 @@ import {
  * `ok:true` dejaría verdes todos los casos positivos.
  */
 const ORDEN_PLANO: RowSpec[] = [
-  { key: "available", label: "Disponible ahora", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
+  { key: "available", label: "Saldo disponible", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
   { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
   { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 0 },
-  { key: "prevAvailable", label: "Venía del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 0 },
+  { key: "prevAvailable", label: "Saldo del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 0 },
   { key: "monthResultCarry", label: "Resultado del mes", block: "disponible", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
-  { key: "toReserves", label: "Guardado en alcancías", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 0 },
-  { key: "toWithdrawals", label: "Sacado de alcancías", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 0 },
+  { key: "toReserves", label: "Reservas del mes", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 0 },
+  { key: "toWithdrawals", label: "Retiros de reservas", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 0 },
   { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 0 },
-  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 0 },
-  { key: "total", label: "Patrimonio total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
+  { key: "reservedBalance", label: "Saldo reservado", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 0 },
+  { key: "total", label: "Saldo total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
 ];
 
 describe("FR-1401 — el orden sigue la aritmética", () => {
@@ -130,7 +130,7 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
 
     // CINCO niveles, en escalera estricta. `monthResult` tiene un escalón PROPIO: si compartiera el
     // de los términos del bloque 2, `validateContiguity` lo recogería como término de «Disponible
-    // ahora»; si compartiera el de los saldos, lo recogería como sumando de «Patrimonio total».
+    // ahora»; si compartiera el de los saldos, lo recogería como sumando de «Saldo total».
     // Ninguna de las dos es cierta.
     expect(nivel("monthResult")).not.toBe(nivel("prevAvailable"));
     expect(nivel("monthResult")).not.toBe(nivel("available"));
@@ -167,7 +167,7 @@ describe("NFR-1403 — el plegado sobrevive al reordenamiento", () => {
   it("TC-BJE-011f: TAIL_FROM se deriva por búsqueda y sigue a 'available' en cualquier orden", () => {
     const tailFrom = (rows: readonly RowSpec[]) => rows.findIndex((r) => r.key === "available") + 1;
 
-    // Con la estructura de FR-1810 v3, `available` («Disponible ahora») está en el índice 7 → 8.
+    // Con la estructura de FR-1810 v3, `available` («Saldo disponible») está en el índice 7 → 8.
     expect(tailFrom(ROWS)).toBe(8);
     // Y lo que queda oculto son EXACTAMENTE las mismas dos filas que antes de la feature.
     expect(ROWS.slice(tailFrom(ROWS)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);

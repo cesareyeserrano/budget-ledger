@@ -511,7 +511,7 @@ declarado) a cambio de nada — la reestructuración es un problema de lectura, 
 «Disponible» contra la fórmula vigente en los doce meses (AC-1842).
 *Consequences:*
   1. `retiros` **sale de la cascada como fila neta y vuelve como fila BRUTA**. La v2 lo neteaba
-     dentro de «Guardado en alcancías»; la v3 lo publica en su propia fila, «Sacado de alcancías»,
+     dentro de «Reservas del mes»; la v3 lo publica en su propia fila, «Retiros de reservas»,
      con su cifra bruta y signo `+`. Esto revoca la Option A de ADR-07 sólo en su mecanismo (la fila
      ya no es `retiros` sino `toWithdrawals`, y ya no alimenta a `monthAvailable`, que dejó de
      existir), pero RESTITUYE su intención: el retiro vuelve a estar dentro de la cuenta del Balance,
@@ -535,7 +535,7 @@ declarado) a cambio de nada — la reestructuración es un problema de lectura, 
      resultados intermedios al mismo nivel (1), y sus términos al 2. No es una simplificación
      cosmética: si `monthResult` quedara al mismo nivel que los términos del bloque 2, la marcha
      atrás de `validateContiguity` desde `available` lo recogería como sumando suyo, que no lo es.
-  6. **Se restituye `prevAvailable`** («Venía del mes anterior»), que la v2 había retirado con el
+  6. **Se restituye `prevAvailable`** («Saldo del mes anterior»), que la v2 había retirado con el
      argumento de que ese dato es la columna de la izquierda. El argumento vale para un contador y es
      falso para ESTE usuario, en cuya fórmula declarada esa cifra es un término explícito. Con ello
      [RISK-8] —la lectura horizontal no es exacta en el plano Presupuestado— **queda cerrado**: la

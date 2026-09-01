@@ -89,7 +89,7 @@ export function reserveNet(state: LedgerState, month: MonthKey, plane: Plane): n
  * que se cancela en el total. Guardar reubica la plata, no la crea ni la destruye.
  *
  * Es también lo que sostiene la lectura del Balance reestructurado (FR-1810): «Quedó disponible»
- * (`flow − reserved`) es exactamente `available − prev.available`, y «Guardado en alcancías»
+ * (`flow − reserved`) es exactamente `available − prev.available`, y «Reservas del mes»
  * (`reserved`) es `reservedBalance − prev.reservedBalance`. Las dos filas del bloque del reparto
  * son, literalmente, el movimiento de cada saldo — por eso el encadenamiento mes a mes cierra sin
  * fórmula nueva (ADR-09).

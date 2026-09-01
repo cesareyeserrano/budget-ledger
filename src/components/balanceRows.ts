@@ -15,9 +15,9 @@ export type BlockKey = "mes" | "disponible" | "cierre";
 
 /** Rótulo de cada bloque, en el orden en que se renderizan. */
 export const BLOCKS: ReadonlyArray<{ key: BlockKey; label: string }> = [
-  { key: "mes", label: "Resultado del mes" },
+  { key: "mes", label: "El mes" },
   { key: "disponible", label: "Lo disponible" },
-  { key: "cierre", label: "Saldos al cierre" },
+  { key: "cierre", label: "El cierre" },
 ];
 
 /**
@@ -63,7 +63,7 @@ export interface RowSpec {
    * cascada baja un escalón respecto del anterior, y sus términos van exactamente uno por encima.
    * `monthResult` necesita un escalón PROPIO (3) que no comparte con nadie — es lo que impide que
    * la marcha atrás de `validateContiguity` lo recoja como término del bloque «lo disponible»
-   * (si estuviera en el 2) o como sumando de `Patrimonio total` (si estuviera en el 1). Ninguna de
+   * (si estuviera en el 2) o como sumando de `Saldo total` (si estuviera en el 1). Ninguna de
    * las dos cosas es cierta, y las dos pasarían inadvertidas sin la separación.
    */
   level: 0 | 1 | 2 | 3 | 4;
@@ -91,49 +91,55 @@ export interface RowSpec {
  *      feature entera es justo el contrario. El bloque pasa a ser LA CUENTA del bolsillo
  *      disponible, término a término.
  *
- *     ── Resultado del mes ─────────────────────────────────────────────
+ *     ── El mes ────────────────────────────────────────────────────────
  *       Ingresos                  +  nivel 4
  *       Gastos                    −  nivel 4
  *     = Resultado del mes         =  nivel 3   ← las reservas NO aparecen aquí
  *     ── Lo disponible ─────────────────────────────────────────────────
- *       Venía del mes anterior       nivel 2
+ *       Saldo del mes anterior       nivel 2
  *       Resultado del mes         +  nivel 2   ← la MISMA cifra, reflejada (ver MIRROR)
- *       Guardado en alcancías     −  nivel 2   ← BRUTO
- *       Sacado de alcancías       +  nivel 2   ← BRUTO
- *     = Disponible ahora          =  nivel 1
- *     ── Saldos al cierre ──────────────────────────────────────────────
- *       En alcancías              +  nivel 1
- *     = Patrimonio total          =  nivel 0
+ *       Reservas del mes          −  nivel 2   ← BRUTO
+ *       Retiros de reservas       +  nivel 2   ← BRUTO
+ *     = Saldo disponible          =  nivel 1
+ *     ── El cierre ─────────────────────────────────────────────────────
+ *       Saldo reservado           +  nivel 1
+ *     = Saldo total               =  nivel 0
+ *
+ * Rótulos de la «opción A» (decisión del usuario, 2026-09-01): cada fila usa la palabra que YA
+ * existe en la pantalla —el segmento RESERVAS y su fila «Retiros del mes»— o en la fórmula que el
+ * usuario dictó («saldo del mes anterior»); los tres cierres recuperan los nombres históricos de
+ * la app (Saldo disponible / reservado / total), que nunca fueron la queja. Regla: un FLUJO del
+ * mes jamás lleva la palabra «saldo»; un SALDO siempre.
  *
  * Con el caso del usuario (venía 500, entran 1.000, guarda 1.500) la columna se lee
  * `500 + 1.000 − 1.500 + 0 = 0`. El −500 no se esconde: DEJA DE EXISTIR, porque lo que salió del
  * saldo de enero se ve salir en su propia línea en vez de deducirse de un número negativo.
  *
  * «Guardado» y «Sacado» son BRUTOS y de un solo signo cada uno. Netearlos ahorraría una fila pero
- * produciría «− Guardado en alcancías: −500» en un mes que sólo retira, que es doble negación — y
+ * produciría «− Reservas del mes: −500» en un mes que sólo retira, que es doble negación — y
  * dejaría los retiros fuera de la cuenta del Balance, que era la PRIMERA queja del usuario: que la
  * suma visible no cerraba porque esa fila vivía en otra tarjeta.
  *
  * La alarma vive SÓLO en las tres cifras donde un negativo significa deber plata: «Venía del mes
- * anterior», «Disponible ahora» y «Patrimonio total». Las demás son magnitudes brutas o un
+ * anterior», «Saldo disponible» y «Saldo total». Las demás son magnitudes brutas o un
  * resultado en pérdida, que es información y no una deuda.
  */
 export const ROWS: RowSpec[] = [
   { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 4 },
   { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 4 },
   // Ingresos − gastos: lo que de verdad cambió el patrimonio. No alarma en negativo — un mes en
-  // pérdida es información, y la señal de «no puedo pagar» vive en «Disponible ahora».
+  // pérdida es información, y la señal de «no puedo pagar» vive en «Saldo disponible».
   { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 3, rule: "soft" },
   // La apertura del bolsillo. Se RESTITUYE (la v2 la había quitado): es un término explícito de la
   // fórmula que el propio usuario enunció, «ingresos − gastos + saldo mes anterior».
-  { key: "prevAvailable", label: "Venía del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 2 },
+  { key: "prevAvailable", label: "Saldo del mes anterior", block: "disponible", op: "", tone: "input", alarms: true, weight: 400, level: 2 },
   // El reflejo de `monthResult`: misma cifra, aquí como término de la cuenta. Ver MIRROR.
   { key: "monthResultCarry", label: "Resultado del mes", block: "disponible", op: "+", tone: "input", alarms: false, weight: 400, level: 2 },
-  { key: "toReserves", label: "Guardado en alcancías", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 2 },
-  { key: "toWithdrawals", label: "Sacado de alcancías", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 2 },
-  { key: "available", label: "Disponible ahora", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 1, rule: "soft" },
-  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 1 },
-  { key: "total", label: "Patrimonio total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0, rule: "strong", bottomLine: true },
+  { key: "toReserves", label: "Reservas del mes", block: "disponible", op: "−", tone: "reserve", alarms: false, weight: 400, level: 2 },
+  { key: "toWithdrawals", label: "Retiros de reservas", block: "disponible", op: "+", tone: "reserve", alarms: false, weight: 400, level: 2 },
+  { key: "available", label: "Saldo disponible", block: "disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 1, rule: "soft" },
+  { key: "reservedBalance", label: "Saldo reservado", block: "cierre", op: "+", tone: "reserve", alarms: false, weight: 600, level: 1 },
+  { key: "total", label: "Saldo total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0, rule: "strong", bottomLine: true },
 ];
 
 /**

@@ -1792,7 +1792,7 @@
       ],
       "given": "el bloque «lo disponible» de febrero",
       "when": "se leen sus cinco filas de arriba abajo",
-      "then": "valen 500, 1.000, 1.500, 0 y «Disponible ahora» 0; NINGUNA fila de la columna vale −500",
+      "then": "valen 500, 1.000, 1.500, 0 y «Saldo disponible» 0; NINGUNA fila de la columna vale −500",
       "steps": [
         "Construir el estado",
         "Leer las cinco filas",
@@ -1818,7 +1818,7 @@
         "Enero aporta 1.000 a la alcancía y retira 500"
       ],
       "given": "el bloque «lo disponible» de enero",
-      "when": "se leen «Guardado en alcancías» y «Sacado de alcancías»",
+      "when": "se leen «Reservas del mes» y «Retiros de reservas»",
       "then": "dicen 1.000 y 500 —las cifras brutas— y no un neto de 500; ambas son ≥ 0 en cualquier estado",
       "steps": [
         "Construir enero con aporte y retiro",
@@ -1846,7 +1846,7 @@
       ],
       "given": "los 120 estados intermedios",
       "when": "tras cada paso se evalúan las cuentas en los doce meses y los dos planos",
-      "then": "(1) Venía + Resultado − Guardado + Sacado = Disponible ahora; (2) Disponible ahora + En alcancías = Patrimonio total; (3) Disponible ahora coincide con saldo anterior + flujo − reservas netas",
+      "then": "(1) Venía + Resultado − Guardado + Sacado = Saldo disponible; (2) Saldo disponible + Saldo reservado = Saldo total; (3) Saldo disponible coincide con saldo anterior + flujo − reservas netas",
       "steps": [
         "Recorrer la secuencia",
         "Evaluar las tres identidades tras cada paso",
@@ -1862,7 +1862,7 @@
       "requirement_id": "FR-1810",
       "user_story_id": "US-1810",
       "ac_id": "AC-1842",
-      "title": "«Venía del mes anterior» encadena con el cierre del mes previo, y enero abre en 0",
+      "title": "«Saldo del mes anterior» encadena con el cierre del mes previo, y enero abre en 0",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
@@ -1870,7 +1870,7 @@
         "La serie ejecutada del estado del usuario"
       ],
       "given": "los doce meses en el plano Ejecutado",
-      "when": "se compara «Venía del mes anterior» de cada mes con «Disponible ahora» del anterior",
+      "when": "se compara «Saldo del mes anterior» de cada mes con «Saldo disponible» del anterior",
       "then": "coinciden en los once pares, y enero abre en 0",
       "steps": [
         "Recorrer los doce meses encadenando",
@@ -1916,13 +1916,13 @@
       ],
       "given": "los dos estados",
       "when": "se leen los valores y la propiedad de alarma de cada fila",
-      "then": "(a) «Resultado del mes» es negativo y NO alarma, y «Disponible ahora» sigue positivo; (b) «Disponible ahora» es −500 y SÍ alarma; y las filas de insumo bruto (ingresos, gastos, guardado, sacado) no alarman en ningún caso",
+      "then": "(a) «Resultado del mes» es negativo y NO alarma, y «Saldo disponible» sigue positivo; (b) «Saldo disponible» es −500 y SÍ alarma; y las filas de insumo bruto (ingresos, gastos, guardado, sacado) no alarman en ningún caso",
       "steps": [
         "Construir ambos estados",
         "Verificar valor y alarma de cada fila implicada",
         "Comprobar que solo las tres filas declaradas pueden alarmar"
       ],
-      "expected_result": "Exactamente una alarma entre los dos estados, en «Disponible ahora» de (b)",
+      "expected_result": "Exactamente una alarma entre los dos estados, en «Saldo disponible» de (b)",
       "test_data": {}
     },
     {
@@ -1963,7 +1963,7 @@
       ],
       "given": "tres tablas inválidas",
       "when": "se ejecutan los validadores sobre cada una",
-      "then": "(a) con los diez márgenes iguales, validateIndentLevels y validateContiguity fallan; (b) con un término del bloque 2 movido DESPUÉS de «Disponible ahora», validateCascadeOrder falla nombrándolo; (c) con «Resultado del mes» al mismo nivel que los términos del bloque 2, validateContiguity lo recoge como sumando ajeno y falla",
+      "then": "(a) con los diez márgenes iguales, validateIndentLevels y validateContiguity fallan; (b) con un término del bloque 2 movido DESPUÉS de «Saldo disponible», validateCascadeOrder falla nombrándolo; (c) con «Resultado del mes» al mismo nivel que los términos del bloque 2, validateContiguity lo recoge como sumando ajeno y falla",
       "steps": [
         "Construir las tres tablas",
         "Ejecutar los validadores",

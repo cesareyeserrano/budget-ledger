@@ -168,19 +168,19 @@
     {
       "id": "FR-1810",
       "title": "El Balance se lee en tres bloques, y el bloque del medio es la cuenta del bolsillo disponible",
-      "description": "REVISA la v2 de FR-1810. La v2 presentaba el bloque del medio como un REPARTO del resultado del mes en dos destinos («Guardado en alcancías» + «Quedó disponible»). El usuario lo rechazó por un motivo conceptual, textual: «no puedes decir que quedó un acumulado de menos 500, el acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado». Tiene razón y el defecto es de fondo, no de rótulo: la metáfora del reparto SOLO se sostiene mientras lo guardado quepa en el resultado del mes. Cuando se guarda más —el caso que motivó toda la feature— 1.000 no se reparte en 1.500 y −500, y la fila del sobrante acaba mostrando un negativo que no existe como cantidad: un saldo que se gastó vale CERO, no menos. La corrección: el bloque del medio deja de ser un reparto y pasa a ser LA CUENTA DEL BOLSILLO DISPONIBLE, que es la fórmula que el propio usuario enunció el 2026-08-31 («el techo para reservas = ingresos del mes − gastos del mes + saldo mes anterior»), escrita en pantalla de arriba abajo: «Venía del mes anterior» + «Resultado del mes» − «Guardado en alcancías» + «Sacado de alcancías» = «Disponible ahora». Con eso el −500 no se esconde: DEJA DE EXISTIR, porque los 500 que salieron del saldo de enero se ven salir en su propia línea en vez de deducirse de un número negativo. Vuelven además «Guardado» y «Sacado» como dos filas de un solo signo con su cifra BRUTA (nunca un «− Guardado: −500», que es doble negación), y los retiros vuelven a estar dentro de la cuenta del Balance — la primera queja del usuario era que la suma visible no cerraba porque esa fila vivía en otra tarjeta. Se restituye «Venía del mes anterior», que la v2 había retirado con el argumento de que ese dato es la columna de la izquierda: el argumento era válido para un contador y falso para este usuario, en cuya fórmula esa cifra es un término explícito. Diez filas en tres bloques: RESULTADO DEL MES (3), LO DISPONIBLE (5) y SALDOS AL CIERRE (2). El techo de flujo (FR-1801…1804) no cambia.",
+      "description": "REVISA la v2 de FR-1810. La v2 presentaba el bloque del medio como un REPARTO del resultado del mes en dos destinos («Guardado en alcancías» + «Quedó disponible»). El usuario lo rechazó por un motivo conceptual, textual: «no puedes decir que quedó un acumulado de menos 500, el acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado». Tiene razón y el defecto es de fondo, no de rótulo: la metáfora del reparto SOLO se sostiene mientras lo guardado quepa en el resultado del mes. Cuando se guarda más —el caso que motivó toda la feature— 1.000 no se reparte en 1.500 y −500, y la fila del sobrante acaba mostrando un negativo que no existe como cantidad: un saldo que se gastó vale CERO, no menos. La corrección: el bloque del medio deja de ser un reparto y pasa a ser LA CUENTA DEL BOLSILLO DISPONIBLE, que es la fórmula que el propio usuario enunció el 2026-08-31 («el techo para reservas = ingresos del mes − gastos del mes + saldo mes anterior»), escrita en pantalla de arriba abajo: «Venía del mes anterior» + «Resultado del mes» − «Guardado en alcancías» + «Sacado de alcancías» = «Disponible ahora». Con eso el −500 no se esconde: DEJA DE EXISTIR, porque los 500 que salieron del saldo de enero se ven salir en su propia línea en vez de deducirse de un número negativo. Vuelven además «Guardado» y «Sacado» como dos filas de un solo signo con su cifra BRUTA (nunca un «− Guardado: −500», que es doble negación), y los retiros vuelven a estar dentro de la cuenta del Balance — la primera queja del usuario era que la suma visible no cerraba porque esa fila vivía en otra tarjeta. Se restituye «Venía del mes anterior», que la v2 había retirado con el argumento de que ese dato es la columna de la izquierda: el argumento era válido para un contador y falso para este usuario, en cuya fórmula esa cifra es un término explícito. Diez filas en tres bloques: RESULTADO DEL MES (3), LO DISPONIBLE (5) y SALDOS AL CIERRE (2). El techo de flujo (FR-1801…1804) no cambia. NOMBRES (opción A, elegida por el usuario el 2026-09-01: «me gusta la opción A»): cada fila usa la palabra que YA existe en la pantalla o en su fórmula. Bloques: «El mes», «Lo disponible», «El cierre». Filas: Ingresos · Gastos · = Resultado del mes | Saldo del mes anterior · + Resultado del mes · − Reservas del mes (aportes brutos) · + Retiros de reservas (retiros brutos) · = Saldo disponible | + Saldo reservado · = Saldo total. Regla del vocabulario: un FLUJO del mes jamás lleva la palabra «saldo»; un SALDO siempre. Los tres cierres recuperan los nombres históricos de la app; «Reservas»/«Retiros» calcan el segmento RESERVAS y su fila operable «Retiros del mes».",
       "priority": "MUST",
       "type": "reporting",
       "acceptance_criteria": [
-        "Con «Venía del mes anterior» 500, ingresos 1.000, gastos 0 y 1.500 guardados: la columna se lee 500 + 1.000 − 1.500 + 0 y «Disponible ahora» dice 0 — ninguna fila de la columna muestra −500",
-        "«Guardado en alcancías» y «Sacado de alcancías» muestran cifras BRUTAS y nunca negativas: un mes que aporta 1.000 y retira 500 muestra 1.000 y 500, no un neto de 500",
-        "Para los doce meses y los dos planos: «Venía del mes anterior» + «Resultado del mes» − «Guardado en alcancías» + «Sacado de alcancías» = «Disponible ahora», al peso",
-        "Para los doce meses y los dos planos: «Disponible ahora» + «En alcancías» = «Patrimonio total», al peso",
-        "«Venía del mes anterior» de cada mes es igual a «Disponible ahora» del mes previo en el plano Ejecutado, y 0 en enero",
+        "Con «Saldo del mes anterior» 500, ingresos 1.000, gastos 0 y 1.500 guardados: la columna se lee 500 + 1.000 − 1.500 + 0 y «Saldo disponible» dice 0 — ninguna fila de la columna muestra −500",
+        "«Reservas del mes» y «Retiros de reservas» muestran cifras BRUTAS y nunca negativas: un mes que aporta 1.000 y retira 500 muestra 1.000 y 500, no un neto de 500",
+        "Para los doce meses y los dos planos: «Saldo del mes anterior» + «Resultado del mes» − «Reservas del mes» + «Retiros de reservas» = «Saldo disponible», al peso",
+        "Para los doce meses y los dos planos: «Saldo disponible» + «Saldo reservado» = «Saldo total», al peso",
+        "«Saldo del mes anterior» de cada mes es igual a «Saldo disponible» del mes previo en el plano Ejecutado, y 0 en enero",
         "«Resultado del mes» se muestra en los dos bloques con el MISMO valor: es la cifra de cierre del primero y un término de la cuenta del segundo",
-        "La alarma de negativo aparece SOLO en «Venía del mes anterior», «Disponible ahora» y «Patrimonio total» — las tres cifras donde un negativo significa deber plata de verdad",
-        "El módulo renderiza exactamente diez filas y ninguna se llama «Quedó disponible», «Reservas del mes», «Reservas del acumulado» ni «Disponible del mes»",
-        "Para cualquier estado, «Disponible ahora» coincide al peso con la fórmula vigente (saldo del mes anterior + flujo − reservas netas)",
+        "La alarma de negativo aparece SOLO en «Saldo del mes anterior», «Saldo disponible» y «Saldo total» — las tres cifras donde un negativo significa deber plata de verdad",
+        "El módulo renderiza exactamente diez filas y ninguna se llama «Quedó disponible», «Reservas del acumulado», «Disponible del mes», «Guardado en alcancías» ni «Disponible ahora»",
+        "Para cualquier estado, «Saldo disponible» coincide al peso con la fórmula vigente (saldo del mes anterior + flujo − reservas netas)",
         "Las validaciones declaradas de la cascada (orden, contigüidad y sangrías) pasan con las filas nuevas, y toda fila del módulo participa de una relación declarada"
       ]
     }
@@ -505,19 +505,19 @@
         {
           "id": "AC-1840",
           "given": "enero, donde aporté 1.000 a la alcancía y retiré 500",
-          "when": "miro «Guardado en alcancías» y «Sacado de alcancías»",
+          "when": "miro «Reservas del mes» y «Retiros de reservas»",
           "then": "dicen 1.000 y 500 —las cifras brutas, cada una con su signo propio— y no un neto de 500"
         },
         {
           "id": "AC-1841",
           "given": "cualquier secuencia de operaciones sobre los doce meses",
           "when": "compruebo la cuenta de cada columna",
-          "then": "«Venía» + «Resultado» − «Guardado» + «Sacado» = «Disponible ahora», y «Disponible ahora» + «En alcancías» = «Patrimonio total», al peso"
+          "then": "«Saldo del mes anterior» + «Resultado» − «Guardado» + «Sacado» = «Disponible ahora», y «Disponible ahora» + «Saldo reservado» = «Saldo total», al peso"
         },
         {
           "id": "AC-1842",
           "given": "la serie ejecutada completa",
-          "when": "comparo «Venía del mes anterior» de un mes con «Disponible ahora» del anterior",
+          "when": "comparo «Saldo del mes anterior» de un mes con «Disponible ahora» del anterior",
           "then": "coinciden en los doce meses, y enero abre en 0"
         },
         {

@@ -116,7 +116,7 @@ type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: n
  * (bajadas), ambos ≥ 0 siempre — el neto que usa el dominio es `aportes − retiros`.
  *
  * FR-1810 v3 los vuelve a necesitar: el Balance publica las dos cifras BRUTAS en filas separadas.
- * Netearlas ahorraría una fila y produciría «− Guardado en alcancías: −500» en un mes que sólo
+ * Netearlas ahorraría una fila y produciría «− Reservas del mes: −500» en un mes que sólo
  * retira, que es doble negación.
  *
  * @param data Estado del ledger.
@@ -141,8 +141,8 @@ function computeReserveFlows(data: LedgerState): ReserveFlows {
  * FR-1810 — la columna se lee como DOS CUENTAS encadenadas, cada una cerrando a la vista:
  *
  *     Ingresos − Gastos                                        = Resultado del mes
- *     Venía + Resultado − Guardado + Sacado                     = Disponible ahora
- *     Disponible ahora + En alcancías                           = Patrimonio total
+ *     Venía + Resultado − Guardado + Sacado                     = Saldo disponible
+ *     Saldo disponible + Saldo reservado                           = Saldo total
  *
  * La segunda es la fórmula que el propio usuario enunció, y es idéntica por construcción a la que
  * el dominio ya calculaba: `prevAvailable + flow − (aportes − retiros) = available`. Por eso la
@@ -173,12 +173,12 @@ function cellValue(m: MonthBalance, key: RowSpec["key"], flows: { aportes: numbe
 function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"]; active?: boolean }) {
   const negative = value < 0;
   // FR-1810 — la alarma es una propiedad DECLARADA de cada fila, no una decisión de esta celda.
-  // Solo «Disponible» y «Patrimonio total» la llevan: ahí un negativo es una deuda real. En «Quedó
+  // Solo «Disponible» y «Saldo total» la llevan: ahí un negativo es una deuda real. En «Quedó
   // disponible» el negativo es información («tu bolsillo bajó porque guardaste de más»), y pintarlo
   // como deuda era justo el defecto que este FR corrige.
   const showMark = negative && spec.alarms;
   // FR-1810 — un RESULTADO que vale 0 se pinta «0», no con el guion de vacío: en «Disponible»,
-  // «Resultado del mes» y «Patrimonio total» el cero es la respuesta a la pregunta de la fila, no
+  // «Resultado del mes» y «Saldo total» el cero es la respuesta a la pregunta de la fila, no
   // la ausencia de dato. El usuario leyó ese guion como «sin datos» cuando decía «te quedaste sin
   // plata disponible». Las filas de INSUMO conservan el guion, que ahí sí significa «nada que
   // mostrar».
@@ -260,7 +260,7 @@ function HeaderTotalCell({ value, sep, active }: { value: number; sep?: boolean;
         // Plegar debe RESUMIR, no perder la señal: un total negativo conserva aquí sus tres
         // canales (color, signo y glifo), igual que desplegado.
         background: active ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined,
-        // Plegado RESUME la fila «Disponible ahora», que pinta su cero explícito — resumirla con el
+        // Plegado RESUME la fila «Saldo disponible», que pinta su cero explícito — resumirla con el
         // guion de «sin datos» contradecía a la fila que resume (auditoría 2026-09-01).
         color: !value ? "var(--fg-secondary)" : exceptionColor(value, { alarms: true }),
         fontWeight: 600,
@@ -293,7 +293,7 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // persiste, igual que el plegado de la grilla.
   const [open, setOpen] = useState(true);
   const [tailOpen, setTailOpen] = useState(true);
-  // El chevron vive en "Disponible" y pliega lo que tiene DEBAJO —En alcancías y Patrimonio total—,
+  // El chevron vive en "Disponible" y pliega lo que tiene DEBAJO —Saldo reservado y Saldo total—,
   // que es lo que hace cualquier control de árbol. Plegado deja la cuenta terminando en "cuánto
   // puedo gastar", que es la lectura compacta útil.
   const TAIL_FROM = ROWS.findIndex((r) => r.key === "available") + 1;
@@ -414,7 +414,7 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
               "bg-sunken border-b border-border pr-2.5",
               rule && RULE[rule],
               spec.bottomLine && "label",
-              // La última fila visible cierra la tarjeta — sea «Patrimonio total» o, con la cola
+              // La última fila visible cierra la tarjeta — sea «Saldo total» o, con la cola
               // plegada, «Disponible».
               idx === visible.length - 1 && "rounded-bl-(--radius-md)"
             )}
@@ -444,7 +444,7 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             ) : (
               <span className="w-3.5 flex-none" aria-hidden="true" />
             )}
-            {/* El signo se lee junto al rótulo («más Ingresos», «se fue a Guardado en alcancías»),
+            {/* El signo se lee junto al rótulo («más Ingresos», «se fue a Reservas del mes»),
                 así que NO va aria-hidden: es parte de la cuenta, no decoración.
                 Los cuatro signos son de ancho tabular, así que caben en la caja de 10px y las diez
                 etiquetas quedan alineadas. (La v2 necesitaba un `→` que NO cabía y desalineaba su
@@ -574,7 +574,7 @@ function TechoBanner() {
  * Vive aquí y no en `BudgetGrid` porque su layout es el de una fila del Balance —sangría, rótulo
  * sticky, par de celdas Pres./Ejec.— y duplicarlo allí las haría divergir. Su spec es `RETIROS_ROW`,
  * declarada FUERA de `ROWS`: esta fila es la puerta OPERABLE; su reflejo de solo lectura en el
- * Balance es la fila «Sacado de alcancías» (FR-1810 v3 · ADR-09, que revoca ADR-07 en este punto).
+ * Balance es la fila «Retiros de reservas» (FR-1810 v3 · ADR-09, que revoca ADR-07 en este punto).
  *
  * Es la puerta para SACAR: Pres. edita el retiro planeado, Ejec. abre el mini-form de sacar y
  * corregir. Al mudarla junto a los bolsillos resuelve BL-019 —«no me resulta amigable operar desde
