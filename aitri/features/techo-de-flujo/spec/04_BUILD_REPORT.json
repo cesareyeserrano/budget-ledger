@@ -19,7 +19,8 @@
     "tests/domain/contrapartidas-reserva.test.ts",
     "tests/e2e/transferencias.spec.ts",
     "tests/integration/backend/reserve-server.test.ts",
-    "tests/integration/backend/servidor-fuente-unica.test.ts"
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/domain/balance.test.ts"
   ],
   "setup_commands": [],
   "environment_variables": [],
@@ -53,6 +54,12 @@
       "substitution": "no security quality_gate declarado",
       "reason": "El proyecto ya corre CodeQL como workflow propio de GitHub Actions (.github/workflows/codeql.yml), fuera de los gates de Aitri, y esta feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red — su NFR de seguridad es una exclusión declarada (NFR-1809).",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1810",
+      "substitution": "Los TCs de FR-1810 (100h, 101e, 102e, 103e, 104f, 105f, 106f) existen como pruebas de DOMINIO sobre las cifras y los invariantes de la tabla, no como e2e del render de los tres bloques. La estructura renderizada se verificó con capturas del navegador sobre los datos reales del usuario (los tres rótulos, las ocho filas, el −500 sin alarma y el cero explícito de «Disponible»).",
+      "reason": "Misma razón que el resto de la deuda e2e de esta feature: cierre de incremento. La aritmética y las relaciones declaradas —donde vive el riesgo real— sí están probadas, incluida la equivalencia contra la fórmula vigente bajo 120 pasos.",
+      "effort_to_fix": "medium"
     }
   ],
   "test_runner": "vitest run --root ../../ --reporter verbose",
@@ -61,7 +68,15 @@
   ],
   "test_runner_timeout_ms": 900000,
   "quality_gates": [
-    { "name": "typecheck", "command": "npm --prefix ../.. run typecheck", "required": true },
-    { "name": "lint", "command": "npm --prefix ../.. run lint", "required": true }
+    {
+      "name": "typecheck",
+      "command": "npm --prefix ../.. run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm --prefix ../.. run lint",
+      "required": true
+    }
   ]
 }

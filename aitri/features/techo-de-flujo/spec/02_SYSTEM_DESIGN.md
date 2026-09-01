@@ -69,8 +69,8 @@ Delta sobre el diagrama raíz (lo no dibujado no cambia):
 │                                │  │        · «Retiros del mes» ◄────┼──┼──┤ MUDA
 │                                │  ├──── --spacing-6 ───────────────┤  │  │ aquí
 │                                │  │ SEG-3  BalanceModule            │  │  │
-│                                │  │        (cascada sin la fila     │  │  │
-│                                │  │         retiros, que subió)     │  │  │
+│                                │  │        3 bloques · 8 filas      │  │  │
+│                                │  │        (sin la fila retiros)    │  │  │
 │                                │  └─────────────────────────────────┘  │  │
 │                                │  highlightMonth → los TRES segmentos  │  │
 │                                │  MonthIssueMark en el encabezado      │  │
@@ -103,10 +103,15 @@ Delta sobre el diagrama raíz (lo no dibujado no cambia):
 - **`ReserveCellEditor`** — el «Máx.» sale del flujo horizontal (absolute bajo el input) y pasa a
   mostrar el **total tecleable**, no el incremento.
 - **`BalanceModule`** — su franja lee `monthIssues`; aplica `highlightMonth`; cede el punto de
-  montaje de la fila «Retiros del mes» conservándola en su cascada declarada (ADR-07).
-- **`balanceRows.ts`** — `ROWS` y `CASCADE` **no cambian**; las validaciones de orden pasan a
-  operar sobre el orden RENDERIZADO (segmento de Reservas + Balance), donde `retiros` sigue
-  apareciendo antes que `monthAvailable`.
+  montaje de la fila «Retiros del mes»; y **reestructura su cascada en tres bloques rotulados**
+  (FR-1810, ADR-09) leyendo los mismos números que hoy.
+- **`balanceRows.ts`** — `ROWS` pasa de nueve filas a **ocho**, cada una con su `block`; `CASCADE`
+  declara dos eslabones y nace `BREAKDOWN` con `validateBreakdown` para el bloque del reparto, cuya
+  relación va al revés (el total ARRIBA y sus partes debajo). `retiros` sale de ambas estructuras y
+  su rótulo pasa a una spec propia, `RETIROS_ROW`, que consume la fila operable del segmento de
+  Reservas (ADR-09, que revoca ADR-07 en este punto).
+- **`domain/balance.ts`** — `MonthBalance` **expone** `income` y `expense` (ya se calculaban dentro
+  de `computeBalanceSeries`); `reserveSplit` se elimina. La aritmética no cambia.
 - **`register/Register.tsx`** — el límite mostrado pasa de `availableMargin` a `reserveHeadroom`
   (hoy anuncia el margen bruto, que bajo la regla nueva ya no es lo que el dominio acepta).
 - **`useLedgerStore`** — expone `editReserveOp`, propaga el rechazo de `removeReserveOp`, y pasa la
@@ -122,8 +127,10 @@ Delta sobre el diagrama raíz (lo no dibujado no cambia):
   mapa ya es `nodeId → month → notas[]` y la tabla `cell_note` no restringe el tipo del nodo.
 - Celdas de hojas expense/income y sus roll-ups: **idénticos byte a byte** (NFR-1803).
 - El significado de la celda transfer se conserva: **lo reservado del mes** (no_go_zone).
-- **`ROWS` y `CASCADE` de `balanceRows.ts` no cambian** — ver ADR-07.
 - **El sentinel `@retiros` y el plan de retiros se conservan** con su semántica actual (ver ADR-08).
+- **`computeBalanceSeries` conserva su aritmética íntegra.** FR-1810 reestructura las FILAS que se
+  pintan, no el cálculo: `available`, `reservedBalance` y `total` salen de la misma fórmula de hoy
+  (ver ADR-09). Es la garantía de que la reestructuración no puede mover un peso.
 
 ### Delta — solo derivaciones
 
@@ -302,11 +309,27 @@ F3 → `monthReserveOps` + `editReserveOp`; F4 → `monthCarryUsage`; F5 → `mo
   rojo una celda que solo se está bajando. *I/O:* `(cellHeadroom, valorTecleado)` → color.
   *Fallo:* `cellHeadroom` 0 → abre en `--alert-strong` desde el primer render (AC-1832).
 
+- **FR-1810 · El Balance en tres bloques** — *Método:* capa de presentación únicamente (ADR-09).
+  `computeBalanceSeries` **expone** `income` y `expense` en `MonthBalance` (ya los calcula dentro; es
+  publicarlos, no recalcularlos) y todo lo demás queda igual. `balanceRows.ts` sustituye sus nueve
+  filas por ocho, cada una con su `block` (`"mes" | "reparto" | "cierre"`) para el micro-rótulo, y
+  `CASCADE` pasa a declarar dos eslabones —`monthResult ← {income, expense}` y
+  `total ← {availableClose, reservedClose}`— más un `BREAKDOWN` nuevo,
+  `monthResult → {toReserves, toAvailable}`, con su invariante `validateBreakdown`. `cellValue` mapea:
+  `income→m.income`, `expense→m.expense`, `monthResult→m.flow`, `toReserves→m.reserved`,
+  `toAvailable→m.flow − m.reserved`, `availableClose→m.available`, `reservedClose→m.reservedBalance`,
+  `total→m.total`. Solo `availableClose` y `total` llevan `alarms: true`: un «Quedó disponible»
+  negativo es información, no deuda, y ésa es la corrección que motiva el FR. Las filas de resultado
+  pintan `0` explícito en vez del guion de vacío. *I/O:* `(MonthBalance, RowKey)` → número.
+  *Fallo:* n/a — es derivación total sobre una serie que ya es total; un mes sin datos da ceros.
+
 - **NFRs** — **1801/1802**: el arrastre no cambia de fórmula; protegidos por secuencia determinista.
   **1803**: las rutas de expense/income no se tocan y ninguna escritura suya adquiere validación.
   **1804**: `reservedTotal` y el mover conservan su cálculo; sobre su *eliminabilidad* ver
-  [RISK-5]. **1805**: sin migración nueva. **1806**: la cascada del Balance conserva orden y signos
-  (ADR-07). **1807** (perf): el barrido no gana pasadas; `monthCarryUsage` reusa `reserveAportes`,
+  [RISK-5]. **1805**: sin migración nueva. **1806**: la cascada del Balance
+  conserva su ARITMÉTICA íntegra; sus filas sí se reestructuran, por mandato expreso de FR-1810
+  (ADR-09), y la equivalencia se prueba contra la fórmula vigente en los doce meses (AC-1842).
+  **1807** (perf): el barrido no gana pasadas; `monthCarryUsage` reusa `reserveAportes`,
   que NO está memoizado (`typeTotals` no tiene caché) — se mide en el guardrail y, si hiciera falta,
   se memoiza por identidad como el resto. **1808** (CI): `ci.yml` vigente sin cambios.
 
@@ -462,6 +485,43 @@ que este diseño no tiene mandato para tomar.
 *Consequences:* `techoScanRaw` elige la serie de consumo según el plano; el aviso del plan sigue
 comportándose como hoy. Si más adelante se quiere simetría, es una decisión de producto separada.
 
+**ADR-09 — El Balance se reestructura en tres bloques; la aritmética no se toca** *(FR-1810;
+SUPERSEDE la decisión de ADR-07 sobre `retiros` en la cascada)*
+*Context:* el usuario declaró el Balance ilegible («las operaciones en balance son súper confusas, no
+se logran leer ni entender bien»), pidió la lectura contable y eligió la estructura de tres bloques.
+El principio: guardar en una alcancía no es un gasto, es mover plata entre bolsillos propios — luego
+las reservas no pueden RESTAR en la cuenta del mes, tienen que aparecer como destino.
+*Option A — Reestructurar solo la capa de PRESENTACIÓN (`ROWS`/`CASCADE`/`cellValue`), dejando
+`computeBalanceSeries` intacto:* las ocho filas nuevas se leen de campos que la serie ya publica
+(`flow`, `reserved`, `available`, `reservedBalance`, `total`) más `income`/`expense`, que la función
+ya calcula internamente y solo hay que exponer. Las identidades del bloque nuevo se cumplen por
+construcción, no por una fórmula nueva: `Guardado + Quedó = flujo` porque `Quedó := flujo − reservado`,
+y `Disponible(m) = Disponible(m−1) + Quedó(m)` porque `available := prevAvailable + flujo − reservado`.
+*Option B — Reescribir también el dominio para que produzca las ocho cifras:* introduce una segunda
+fuente de verdad para números que hoy ya son correctos, y pone en riesgo la conservación (guardrail
+declarado) a cambio de nada — la reestructuración es un problema de lectura, no de cálculo.
+*Decision:* **A**. La reestructuración NO puede mover un peso, y esa propiedad se prueba comparando
+«Disponible» contra la fórmula vigente en los doce meses (AC-1842).
+*Consequences:*
+  1. `retiros` **sale** de `ROWS` y de `CASCADE`, revocando la Option A de ADR-07. La objeción que
+     entonces la sostenía —«`monthAvailable` quedaría sin uno de sus sumandos declarados»— es ahora
+     vacía: `monthAvailable` deja de existir, y el retiro está contabilizado dentro de «Guardado en
+     alcancías», que es el NETO del mes. La fila operable no se toca: sigue montada al final del
+     segmento de Reservas (FR-1805), leyendo su rótulo de una spec propia (`RETIROS_ROW`) en vez de
+     buscarse dentro de `ROWS`.
+  2. El bloque «cómo se repartió» **no es un eslabón de la cascada**: es un DESGLOSE, y su relación
+     va al revés (el total va ARRIBA y sus partes debajo). Meterlo en `CASCADE` haría fallar
+     `validateCascadeOrder` por diseño. Se declara aparte, en `BREAKDOWN`, con su propio invariante
+     `validateBreakdown`: las partes van inmediatamente después de su total, contiguas y con `level`
+     estrictamente mayor. Así ninguna fila queda huérfana de relación declarada, que es la propiedad
+     que este módulo existe para garantizar.
+  3. `reserveSplit` (FR-1810 v1) y `computeReserveFlows` **se eliminan**: su único consumidor era la
+     cascada vieja. La limpieza sigue la regla de FR-1807 (barrido `grep` de cada símbolo retirado).
+  4. La lectura mes-a-mes del cierre es HORIZONTAL (la columna de la izquierda es el cierre previo).
+     Eso es exacto en el plano Ejecutado y **no** en el Presupuestado, que se re-ancla al cierre real
+     cada mes (ADR-03 de `balance.ts`). Queda declarado como [RISK-8]: es una rareza preexistente que
+     esta feature no introduce ni resuelve.
+
 **Riesgos principales:**
 
 1. **Estados legados por encima del techo nuevo** — el propio estado del usuario los tiene.
@@ -561,6 +621,19 @@ asumiendo éxito siempre — justo los tests que NFR-1801 exige.
 Mitigation: la migración es parte de FR-1807 y está declarada en su entrada de Implementation
 Approach, con un helper de test que desempaqueta el resultado. Es trabajo mecánico, pero debe
 planificarse: descubrirlo a mitad del build es lo que rompe una estimación.
+Severity: low
+
+[RISK-8] La lectura horizontal del cierre es exacta en Ejecutado y NO en Presupuestado
+Conflict: FR-1810 retira «Saldo mes anterior» porque el cierre del mes previo es la columna de la
+izquierda. Eso es literalmente cierto en el plano Ejecutado. En Presupuestado NO: ADR-03 de
+`balance.ts` re-ancla el plan de cada mes al cierre REAL del anterior, así que la columna Pres. de
+febrero no se encadena con la Pres. de enero. El usuario ya tropezó con el síntoma («Saldo reservado»
+Pres. mostrando 1.000 en febrero) y se le explicó.
+Mitigation: NO se resuelve aquí — es una decisión de producto preexistente (el re-anclaje) que este
+documento no tiene mandato para revocar, y la alternativa (conservar «Saldo mes anterior» solo para
+Pres.) reintroduciría la fila que el usuario pidió quitar. Queda anotado como candidato de backlog:
+o se marca el re-anclaje en la UI, o el Balance muestra solo Ejecutado. Ambas se le ofrecieron al
+usuario y quedaron aparte de esta feature.
 Severity: low
 
 ## Traceability Checklist

@@ -13,16 +13,16 @@
 //               ./exceptionColor (la regla de color, ADR-01), ./balanceRows (la tabla de
 //               filas y sus invariantes de cascada, ADR-04).
 
-import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Component, Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
 import { MONTHS, monthLabel } from "@/domain/months";
-import { computeBalanceSeries, type MonthBalance, type Plane, reserveSplit } from "@/domain/balance";
-import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
+import { computeBalanceSeries, type MonthBalance } from "@/domain/balance";
+import { monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
-import { ROWS, indentFor, type RowSpec, type RowKey } from "./balanceRows";
+import { ROWS, BLOCKS, RETIROS_ROW, indentFor, type RowSpec } from "./balanceRows";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import type { LedgerState, MonthKey } from "@/domain/types";
@@ -108,60 +108,33 @@ function balanceColor(spec: RowSpec, value: number): string {
   return exceptionColor(value, { alarms: spec.alarms });
 }
 
-/** Aportes y retiros del mes por plano — el desdoble de `reserved` en dos filas de un solo signo. */
-type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: number }>>;
-
 /**
- * Desdoble del movimiento de reservas por mes y plano (FR-1009): `aportes` (subidas de saldo) y
- * `retiros` (bajadas), ambos ≥ 0 siempre — el neto `reserved` = aportes − retiros.
+ * Valor a pintar en una celda: el campo homónimo del balance, o la composición mínima que la fila
+ * declara.
  *
- * @param data Estado del ledger.
- * @returns Los dos componentes por mes y plano.
+ * FR-1810 — la cuenta se lee en tres bloques, y CADA UNO cierra a la vista sin cuenta mental:
  *
- * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h, TC-TRF-109e
- */
-function computeReserveFlows(data: LedgerState): ReserveFlows {
-  const out = {} as ReserveFlows;
-  for (const m of MONTHS) {
-    out[m.k] = {
-      budget: { aportes: reserveAportes(data, m.k, "budget"), retiros: reserveRetiros(data, m.k, "budget") },
-      actual: { aportes: reserveAportes(data, m.k, "actual"), retiros: reserveRetiros(data, m.k, "actual") },
-    };
-  }
-  return out;
-}
-
-/**
- * Valor a pintar en una celda: el campo homónimo de la fila, sin componer nada.
+ *     Ingresos − Gastos            = Resultado del mes
+ *     Guardado + Quedó disponible  = Resultado del mes      ← el desglose, no un eslabón nuevo
+ *     Disponible + En alcancías    = Patrimonio total
  *
- * En particular, "Saldo mes anterior" muestra el DISPONIBLE arrastrado, no la suma de los dos
- * componentes. La cuenta corrida del módulo se lee en pantalla (FR-1009, un solo signo por fila):
- *   Saldo disponible = Saldo mes anterior + Flujo del mes − Reservas del mes + Retiros del mes
- *   Saldo total      = Saldo disponible   + Saldo reservado
- * "Reservas del mes" pinta SOLO los aportes y "Retiros del mes" solo las bajadas — jamás un
- * "− Reservas −50" de doble negativo. El neto sigue viviendo en la aritmética (reserved).
+ * Solo `toAvailable` se compone aquí (`flow − reserved`), y no es una fórmula nueva: es exactamente
+ * `available − prevAvailable`, el MOVIMIENTO del saldo disponible en el mes. Por eso el
+ * encadenamiento entre columnas cierra por construcción (ADR-09) y la reestructuración no puede
+ * mover un peso: todo lo demás sale tal cual de `computeBalanceSeries`.
  *
  * @param m Las cifras del mes en un plano.
  * @param key Fila a leer.
- * @param flows Aportes/retiros del mes en el plano (desdoble de `reserved`).
  * @returns El valor a pintar en la celda.
  *
- * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h
+ * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-100h, TC-TDF-101e
  */
-function cellValue(
-  m: MonthBalance,
-  key: RowSpec["key"],
-  flows: { aportes: number; retiros: number },
-  split: { delFlujo: number; delAcumulado: number }
-): number {
-  // FR-1810 — cada peso reservado se carga a su FUENTE: «Reservas del mes» solo lo que salió del
-  // flujo, «Reservas del acumulado» lo que salió del ahorro que traía. Así el mes no aparece
-  // «debiendo» plata que no le salió a él (el −500 falso que el usuario reportó), y los negativos
-  // que quedan son deudas reales: sobregasto en «Disponible del mes», hueco en «Saldo disponible».
-  if (key === "reserved") return split.delFlujo;
-  if (key === "reservedCarry") return split.delAcumulado;
-  if (key === "retiros") return flows.retiros;
-  if (key === "monthAvailable") return m.flow - split.delFlujo + flows.retiros;
+function cellValue(m: MonthBalance, key: RowSpec["key"]): number {
+  if (key === "monthResult") return m.flow;
+  if (key === "toReserves") return m.reserved;
+  if (key === "toAvailable") return m.flow - m.reserved;
+  // `retiros` no es una fila del Balance (vive en el segmento de Reservas, ADR-09) y nunca llega.
+  if (key === "retiros") return 0;
   return m[key];
 }
 
@@ -173,11 +146,17 @@ function cellValue(
  */
 function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value: number; sep?: boolean; rule?: RowSpec["rule"]; active?: boolean }) {
   const negative = value < 0;
-  // Con el desglose de FR-1810 los negativos de esta cascada son SIEMPRE deudas reales (sobregasto
-  // o hueco), así que la alarma vuelve a ser incondicional — el «−500 falso» se arregló de raíz,
-  // no apagando la señal.
-  const alarms = spec.alarms;
-  const showMark = negative && alarms;
+  // FR-1810 — la alarma es una propiedad DECLARADA de cada fila, no una decisión de esta celda.
+  // Solo «Disponible» y «Patrimonio total» la llevan: ahí un negativo es una deuda real. En «Quedó
+  // disponible» el negativo es información («tu bolsillo bajó porque guardaste de más»), y pintarlo
+  // como deuda era justo el defecto que este FR corrige.
+  const showMark = negative && spec.alarms;
+  // FR-1810 — un RESULTADO que vale 0 se pinta «0», no con el guion de vacío: en «Disponible»,
+  // «Resultado del mes» y «Patrimonio total» el cero es la respuesta a la pregunta de la fila, no
+  // la ausencia de dato. El usuario leyó ese guion como «sin datos» cuando decía «te quedaste sin
+  // plata disponible». Las filas de INSUMO conservan el guion, que ahí sí significa «nada que
+  // mostrar».
+  const ceroExplicito = value === 0 && spec.tone === "result";
   return (
     <div
       data-testid="balance-cell"
@@ -203,12 +182,20 @@ function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value:
         // porcentaje— lo hunde por debajo de AA (4,01:1 al 8%). Elevarlo lo deja en 5,60:1: la
         // columna que el usuario está mirando se lee MEJOR, no peor. Es la razón por la que este
         // módulo no seguía el resaltado; con esto ya puede (FR-1805/AC-1828).
-        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : balanceColor({ ...spec, alarms }, value),
+        color: !value
+          ? ceroExplicito
+            ? "var(--fg-secondary)" // DATO, no ausencia: se lee — pero un cero repetido en diez
+              // meses sin actividad no debe pesar como una cifra con contenido, así que se queda un
+              // escalón por debajo del negro pleno de los resultados con valor.
+            : active
+              ? "var(--fg-secondary)"
+              : "var(--fg-muted)"
+          : balanceColor(spec, value),
         fontWeight: spec.weight,
       }}
     >
       {negative ? MINUS : ""}
-      {cellNum(Math.abs(value))}
+      {ceroExplicito ? "0" : cellNum(Math.abs(value))}
       {/* Canal redundante de WCAG 1.4.1: aria-hidden porque el signo ya porta el dato. */}
       {showMark ? <span aria-hidden="true" className="flex-none ml-1 leading-none">{NEGATIVE_MARK}</span> : null}
     </div>
@@ -278,16 +265,13 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // persiste, igual que el plegado de la grilla.
   const [open, setOpen] = useState(true);
   const [tailOpen, setTailOpen] = useState(true);
-  // El chevron vive en "Saldo disponible" y pliega lo que tiene DEBAJO —Saldo reservado y Saldo
-  // total—, que es lo que hace cualquier control de árbol. Plegado deja la cuenta terminando en
-  // "cuánto puedo gastar", que es la lectura compacta útil.
+  // El chevron vive en "Disponible" y pliega lo que tiene DEBAJO —En alcancías y Patrimonio total—,
+  // que es lo que hace cualquier control de árbol. Plegado deja la cuenta terminando en "cuánto
+  // puedo gastar", que es la lectura compacta útil.
   const TAIL_FROM = ROWS.findIndex((r) => r.key === "available") + 1;
-  // FR-1805 — la fila «Retiros del mes» se RENDERIZA en el segmento de Reservas de la grilla, junto
-  // a los bolsillos, que es donde el usuario la busca (resuelve BL-019 por el camino simple). Sigue
-  // declarada en ROWS y sigue siendo sumando de «Disponible del mes» en CASCADE: la aritmética del
-  // Balance no cambia, solo su punto de montaje (ADR-07). Por eso se filtra aquí y no allí.
-  const enOtroSegmento = (k: RowKey) => k === "retiros";
-  const visible = (open ? (tailOpen ? ROWS : ROWS.slice(0, TAIL_FROM)) : []).filter((r) => !enOtroSegmento(r.key));
+  // ADR-09: «Retiros del mes» ya no está en ROWS (vive en el segmento de Reservas), así que aquí no
+  // queda nada que filtrar — la tabla se renderiza tal cual la declara `balanceRows`.
+  const visible = open ? (tailOpen ? ROWS : ROWS.slice(0, TAIL_FROM)) : [];
   // FR-1402: por debajo de 1024 px el paso de sangría baja a 12 px — con 16 la etiqueta más larga
   // del nivel más profundo se trunca. Se resuelve en JS y no con una media query en CSS para que la
   // fórmula tenga UN SOLO domicilio (`indentFor`); duplicarla en la hoja de estilos es exactamente
@@ -302,13 +286,6 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // estado, NO con un selector de store — Zustand v5 no memoiza selectores y devolver un objeto
   // nuevo por llamada dispararía el "getSnapshot should be cached".
   const series = useMemo(() => computeBalanceSeries(data), [data]);
-  const reserveFlows = useMemo(() => computeReserveFlows(data), [data]);
-  // FR-1810: el desglose por fuente de lo reservado, por mes y plano.
-  const splits = useMemo(() => {
-    const out = {} as Record<MonthKey, { budget: ReturnType<typeof reserveSplit>; actual: ReturnType<typeof reserveSplit> }>;
-    for (const m of MONTHS) out[m.k] = { budget: reserveSplit(data, m.k, "budget"), actual: reserveSplit(data, m.k, "actual") };
-    return out;
-  }, [data]);
 
   return (
     <div data-testid="balance-module">
@@ -374,8 +351,32 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
       {visible.map((spec, idx) => {
         const op = spec.op;
         const rule = spec.rule;
+        // FR-1810 — el micro-rótulo del bloque va sobre su PRIMERA fila. Es lo que impide que ocho
+        // filas de nombres parecidos se lean como una lista plana: cada bloque dice qué pregunta
+        // contesta antes de que el ojo llegue a las cifras.
+        const abreBloque = idx === 0 || visible[idx - 1].block !== spec.block;
+        const rotulo = BLOCKS.find((b) => b.key === spec.block)!.label;
         return (
-        <div className="flex" data-testid="balance-row" data-row={spec.key} key={spec.key}>
+        <Fragment key={spec.key}>
+        {abreBloque ? (
+          <div className="flex" data-testid="balance-block" data-block={spec.block} aria-hidden="true">
+            <div
+              className={cn(STICKY_BASE, LABEL_W, "bg-sunken pr-2.5 pt-2.5 pb-0.5 eyebrow")}
+              style={{ paddingLeft: indentFor(0, narrow), color: "var(--fg-muted)" }}
+            >
+              {rotulo}
+            </div>
+            {MONTHS.map((m) => (
+              <div key={m.k} className="flex" data-month={m.k}>
+                <div className={cn(CELL_W, "bg-sunken border-l-2 border-l-border-strong")}
+                     style={{ background: highlightMonth === m.k ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
+                <div className={cn(CELL_W, "bg-sunken")}
+                     style={{ background: highlightMonth === m.k ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex" data-testid="balance-row" data-row={spec.key}>
           <div
             data-testid="balance-label"
             className={cn(
@@ -384,8 +385,8 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
               "bg-sunken border-b border-border pr-2.5",
               rule && RULE[rule],
               spec.bottomLine && "label",
-              // La última fila visible cierra la tarjeta — sea «Saldo total» o, con la cola
-              // plegada, «Saldo disponible».
+              // La última fila visible cierra la tarjeta — sea «Patrimonio total» o, con la cola
+              // plegada, «Disponible».
               idx === visible.length - 1 && "rounded-bl-(--radius-md)"
             )}
             style={{
@@ -399,9 +400,9 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
               fontWeight: spec.weight,
             }}
           >
-            {/* Chevron solo en "Saldo disponible", que pliega los tres insumos de los que sale.
-                En el resto es un hueco INVISIBLE, no ausente: así los rótulos siguen alineados
-                (mismo recurso que usa NodeRow en la grilla). */}
+            {/* Chevron solo en «Disponible», que pliega los saldos que tiene debajo. En el resto es
+                un hueco INVISIBLE, no ausente: así los rótulos siguen alineados (mismo recurso que
+                usa NodeRow en la grilla). */}
             {spec.key === "available" ? (
               <button
                 aria-label={tailOpen ? "Colapsar saldos" : "Expandir saldos"}
@@ -414,29 +415,27 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             ) : (
               <span className="w-3.5 flex-none" aria-hidden="true" />
             )}
-            {/* El signo se lee junto al rótulo ("más Flujo del mes"), así que NO va aria-hidden:
-                es parte de la cuenta, no decoración. */}
-            <span className="w-2.5 flex-none text-center tabular" style={{ color: "var(--fg-secondary)", fontWeight: 400 }}>
+            {/* El signo se lee junto al rótulo («más Ingresos», «se fue a Guardado en alcancías»),
+                así que NO va aria-hidden: es parte de la cuenta, no decoración.
+                La flecha del desglose se pinta un punto más pequeña y SIN `tabular`: en la fuente
+                tabular ocupa más que la caja de 10px de los demás signos y empujaba su rótulo fuera
+                de la columna, rompiendo la alineación vertical de las ocho etiquetas. */}
+            <span
+              className={cn("w-2.5 flex-none text-center", op !== "→" && "tabular")}
+              style={{ color: "var(--fg-secondary)", fontWeight: 400, fontSize: op === "→" ? "11px" : undefined }}
+            >
               {op}
             </span>
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
           </div>
-          {MONTHS.map((m) =>
-            spec.key === "retiros" ? (
-              // La fila «Retiros del mes» es OPERABLE (unificación 2026-07-29): Pres. edita el
-              // retiro planeado; Ejec. abre el mini-form de sacar/corregir y gradúa el sobre-retiro.
-              <div key={m.k} className="flex" data-month={m.k}>
-                <PlannedWithdrawCell month={m.k} sep />
-                <WithdrawCell month={m.k} />
-              </div>
-            ) : (
-              <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
-                <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, reserveFlows[m.k].budget, splits[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
-                <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, reserveFlows[m.k].actual, splits[m.k].actual)} rule={rule} active={highlightMonth === m.k} />
-              </div>
-            )
-          )}
+          {MONTHS.map((m) => (
+            <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
+              <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key)} sep rule={rule} active={highlightMonth === m.k} />
+              <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key)} rule={rule} active={highlightMonth === m.k} />
+            </div>
+          ))}
         </div>
+        </Fragment>
         );
       })}
     </div>
@@ -547,9 +546,9 @@ function TechoBanner() {
  * La fila «Retiros del mes», montada en el segmento de RESERVAS de la grilla (FR-1805).
  *
  * Vive aquí y no en `BudgetGrid` porque su layout es el de una fila del Balance —sangría, rótulo
- * sticky, par de celdas Pres./Ejec.— y duplicarlo allí las haría divergir. Sigue declarada en
- * `ROWS` y sigue siendo sumando de «Disponible del mes» en `CASCADE`: lo único que cambió es dónde
- * se dibuja (ADR-07).
+ * sticky, par de celdas Pres./Ejec.— y duplicarlo allí las haría divergir. Su spec es `RETIROS_ROW`,
+ * declarada FUERA de `ROWS`: desde FR-1810 el retiro no es una fila de la cascada del Balance, sino
+ * que va neteado dentro de «Guardado en alcancías» (ADR-09, que revoca ADR-07 en este punto).
  *
  * Es la puerta para SACAR: Pres. edita el retiro planeado, Ejec. abre el mini-form de sacar y
  * corregir. Al mudarla junto a los bolsillos resuelve BL-019 —«no me resulta amigable operar desde
@@ -558,7 +557,7 @@ function TechoBanner() {
  * @aitri-trace FR-ID: FR-1805, US-ID: US-1805, AC-ID: AC-1818, TC-ID: TC-TDF-041h
  */
 export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null }) {
-  const spec = ROWS.find((r) => r.key === "retiros")!;
+  const spec = RETIROS_ROW;
   const narrow = useNarrowIndent();
   return (
     <div className="flex" data-testid="balance-row" data-row="retiros">

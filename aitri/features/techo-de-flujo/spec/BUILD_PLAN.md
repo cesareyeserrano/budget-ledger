@@ -146,3 +146,47 @@ Presupuesto entre meses NO es error: es el re-anclaje al cierre real (ADR-03 de 
   sombreado atravesando el Balance) antes de seguir.
 - El cierre de mes (BL-036) sigue fuera: esta feature impide romper las cuentas hoy, aquel impedirá
   tocar meses cerrados.
+
+## Evidencia — FR-1810 v2, la lectura contable (2026-08-31)
+
+El usuario declaró el Balance ilegible («las operaciones en balance son súper confusas, no se logran
+leer ni entender bien»), preguntó **«¿qué haría un contador o financiero?»**, se le presentaron tres
+opciones renderizadas con sus propios números y eligió la contable: «me gusta la estructura».
+
+**FR-1810 se REESCRIBIÓ** (Phase 1 re-abierta y la cadena UX→2→3 re-derivada y re-aprobada) porque
+aún no había pasado el gate de deploy: entregar la fila «Reservas del acumulado» que ya habíamos
+decidido quitar habría sido deuda nacida muerta. El principio nuevo: **guardar en una alcancía no es
+un gasto** — es mover plata entre bolsillos propios, así que las reservas dejan de RESTAR en la
+cuenta del mes y pasan a ser un destino.
+
+Nueve filas planas → **ocho en tres bloques rotulados**. Desaparecen «Saldo mes anterior» (el cierre
+previo ES la columna de la izquierda), «Reservas del acumulado» (su pregunta la contesta «Quedó
+disponible» en negativo), «Reservas del mes», «Disponible del mes» y la fila de retiros de la
+cascada. `reserveSplit` y `computeReserveFlows` se eliminan con ellas.
+
+`npm run test:run` → **559 pasan, 0 fallan** (57 archivos). typecheck y lint limpios.
+
+Lo que la implementación destapó, y que el diseño previó a medias:
+- **El bloque del reparto NO es un eslabón de la cascada**: su relación va al revés (el total arriba,
+  las partes debajo). Se declara en `BREAKDOWN` con su propio invariante `validateBreakdown`, que
+  discrimina de verdad — TC-TDF-106f lo comprueba con tres órdenes inválidos distintos.
+- **El fuzz de 120 pasos chocaba con el techo y el piso.** Es la regla funcionando: se hizo tolerante
+  al rechazo (que no muta, así que las identidades siguen valiendo) y se añadió `aplicados > 40`
+  para que no pueda degenerar en silencio a «todo rechazado», que dejaría el test verde sin ejercitar
+  nada.
+- **`MonthBalance` pasa de 7 a 9 campos** (`income`/`expense` se publican): lo cazó TC-BAL-945e, que
+  cuenta los campos. Actualizado con su porqué.
+
+Y dos defectos que solo se vieron RENDERIZADOS, ninguno con test que los cazara:
+- **La flecha `→` desalineaba su rótulo.** En la fuente tabular ocupa más que la caja de 10px de los
+  demás signos, así que empujaba «Guardado en alcancías» y «Quedó disponible» fuera de la columna de
+  las ocho etiquetas. Se pinta sin `tabular` y un punto más pequeña.
+- **El cero de un resultado se pintaba como el guion de vacío.** «Disponible» de febrero vale 0 —esa
+  ES la noticia— y se leía como «sin datos», que es literalmente la queja del usuario. Las filas de
+  RESULTADO pintan `0` explícito; las de insumo conservan el guion. Calibrado a `--fg-secondary`: un
+  cero repetido en diez meses sin actividad no debe pesar como una cifra con contenido.
+
+Pendiente de decisión del usuario, ofrecido y fuera de esta feature: el plano **Presupuestado** se
+re-ancla al cierre real cada mes (ADR-03 de `balance.ts`), así que la lectura horizontal del cierre
+—que es lo que permite retirar «Saldo mes anterior»— no es exacta en esa columna. Declarado como
+[RISK-8]; las dos salidas (marcar el re-anclaje, o mostrar solo Ejecutado) son decisión de producto.

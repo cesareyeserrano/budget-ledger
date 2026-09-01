@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   ROWS,
   CASCADE,
+  BREAKDOWN,
   validateCascadeOrder,
   validateContiguity,
   validateIndentLevels,
+  validateBreakdown,
   indentFor,
   INDENT_BASE,
   INDENT_STEP,
@@ -21,41 +23,49 @@ import {
  * aplicarse, y al revés.
  */
 
-/** El orden ANTERIOR a la feature, tal cual estaba en `main` hasta el 2026-08-25. */
-const ORDEN_VIEJO: RowSpec[] = [
-  { key: "prevAvailable", label: "Saldo mes anterior", op: "", tone: "input", alarms: true, weight: 400, level: 0 },
-  { key: "flow", label: "Flujo del mes", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
-  { key: "reserved", label: "Reservas del mes", op: "−", tone: "input", alarms: false, weight: 400, level: 0 },
-  { key: "retiros", label: "Retiros del mes", op: "+", tone: "reserve", alarms: false, weight: 400, level: 0 },
-  { key: "monthAvailable", label: "Disponible del mes", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
-  { key: "available", label: "Saldo disponible", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
-  { key: "reservedBalance", label: "Saldo reservado", op: "+", tone: "reserve", alarms: false, weight: 600, level: 0 },
-  { key: "total", label: "Saldo total", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
+/**
+ * La tabla PLANA: las filas de hoy con los ocho márgenes iguales y el orden revuelto — la forma que
+ * tenía el módulo antes de esta feature, trasladada a las claves vigentes.
+ *
+ * Es el contra-ejemplo que da poder a los invariantes: sin él, un validador que devolviera siempre
+ * `ok:true` dejaría verdes todos los casos positivos.
+ */
+const ORDEN_PLANO: RowSpec[] = [
+  { key: "available", label: "Disponible", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
+  { key: "income", label: "Ingresos", block: "mes", op: "+", tone: "input", alarms: false, weight: 400, level: 0 },
+  { key: "expense", label: "Gastos", block: "mes", op: "−", tone: "input", alarms: false, weight: 400, level: 0 },
+  { key: "toReserves", label: "Guardado en alcancías", block: "reparto", op: "→", tone: "reserve", alarms: false, weight: 400, level: 0 },
+  { key: "toAvailable", label: "Quedó disponible", block: "reparto", op: "→", tone: "input", alarms: false, weight: 400, level: 0 },
+  { key: "monthResult", label: "Resultado del mes", block: "mes", op: "=", tone: "result", alarms: false, weight: 600, level: 0 },
+  { key: "reservedBalance", label: "En alcancías", block: "cierre", op: "", tone: "reserve", alarms: false, weight: 600, level: 0 },
+  { key: "total", label: "Patrimonio total", block: "cierre", op: "=", tone: "result", alarms: true, weight: 600, level: 0 },
 ];
 
 describe("FR-1401 — el orden sigue la aritmética", () => {
   // @aitri-tc TC-BJE-001h
   it("TC-BJE-001h: ROWS declara la cascada y ningún resultado precede a sus sumandos", () => {
     expect(ROWS.map((r) => r.key)).toEqual([
-      "flow",
-      "reserved",
-      "retiros",
-      "monthAvailable",
-      "prevAvailable",
-      "reservedCarry",
+      "income",
+      "expense",
+      "monthResult",
+      "toReserves",
+      "toAvailable",
       "available",
       "reservedBalance",
       "total",
     ]);
     expect(validateCascadeOrder(ROWS)).toEqual({ ok: true });
 
-    // FR-1810 (2026-08-31): el usuario REVISÓ su decisión de no añadir filas — entra «Reservas del
-    // acumulado» para que el mes no aparezca debiendo lo que salió del ahorro. Nueve filas: las
-    // ocho de siempre más esa, y ninguna de las viejas desaparece.
-    expect(ROWS).toHaveLength(9);
-    expect([...ROWS.map((r) => r.key)].sort()).toEqual(
-      [...ORDEN_VIEJO.map((r) => r.key), "reservedCarry"].sort()
-    );
+    // FR-1810 (2026-08-31) — la lectura contable que el usuario eligió: OCHO filas en tres bloques.
+    // Ninguna de las cinco que declaró ilegibles sobrevive.
+    expect(ROWS).toHaveLength(8);
+    for (const retirada of ["reserved", "reservedCarry", "prevAvailable", "monthAvailable", "retiros"]) {
+      expect(ROWS.map((r) => r.key)).not.toContain(retirada);
+    }
+    // Y los tres bloques van en su orden, sin intercalarse.
+    expect(ROWS.map((r) => r.block)).toEqual([
+      "mes", "mes", "mes", "reparto", "reparto", "cierre", "cierre", "cierre",
+    ]);
   });
 
   // @aitri-tc TC-BJE-001e
@@ -82,14 +92,14 @@ describe("FR-1401 — el orden sigue la aritmética", () => {
     // viejo Y ocho márgenes iguales, tal como se midió el 2026-08-24— ningún resultado tiene un
     // bloque de sumandos identificable, porque sin niveles no hay bloques que recorrer. Falla en el
     // primero que examina.
-    const v = validateContiguity(ORDEN_VIEJO);
+    const v = validateContiguity(ORDEN_PLANO);
     expect(v.ok).toBe(false);
-    expect(v.offender).toBe("monthAvailable");
+    expect(v.offender).toBe("monthResult");
     expect(v.reason).toContain("declara");
 
     // Y el estado anterior también cae por el otro invariante, el de sangría. Los dos coinciden en
     // rechazarlo, que es lo que se espera de un estado que el usuario evaluó como plano.
-    expect(validateIndentLevels(ORDEN_VIEJO).ok).toBe(false);
+    expect(validateIndentLevels(ORDEN_PLANO).ok).toBe(false);
 
     // Sin este caso, 001e estaría vacío: un validador que devolviera siempre ok:true lo dejaría
     // verde sin comprobar nada.
@@ -104,14 +114,16 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
 
     // Las tres desigualdades, explícitas: 3>2, 2>1, 1>0.
     const nivel = (k: string) => ROWS.find((r) => r.key === k)!.level;
-    expect(nivel("flow")).toBeGreaterThan(nivel("monthAvailable"));
-    expect(nivel("monthAvailable")).toBeGreaterThan(nivel("available"));
-    expect(nivel("prevAvailable")).toBeGreaterThan(nivel("available"));
+    expect(nivel("income")).toBeGreaterThan(nivel("monthResult"));
+    expect(nivel("expense")).toBeGreaterThan(nivel("monthResult"));
     expect(nivel("available")).toBeGreaterThan(nivel("total"));
     expect(nivel("reservedBalance")).toBeGreaterThan(nivel("total"));
+    // Y las partes del DESGLOSE, que van al revés (debajo de su total) pero igual de adentro.
+    expect(nivel("toReserves")).toBeGreaterThan(nivel("monthResult"));
+    expect(nivel("toAvailable")).toBeGreaterThan(nivel("monthResult"));
 
-    // CUATRO niveles, no dos: la cascada tiene tres eslabones, así que `monthAvailable` debe quedar
-    // por debajo de sus sumandos y por encima de su resultado a la vez.
+    // CUATRO niveles, no dos: los bloques anidan a distinta profundidad y el desglose vive un
+    // escalón por dentro de su total.
     expect(new Set(ROWS.map((r) => r.level)).size).toBe(4);
     expect([...new Set(ROWS.map((r) => r.level))].sort()).toEqual([0, 1, 2, 3]);
   });
@@ -119,7 +131,7 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
   // @aitri-tc TC-BJE-003f
   it("TC-BJE-003f: el invariante RECHAZA los ocho márgenes iguales del estado anterior", () => {
     // Línea base medida el 2026-08-24: las ocho etiquetas compartían margen izquierdo.
-    const v = validateIndentLevels(ORDEN_VIEJO);
+    const v = validateIndentLevels(ORDEN_PLANO);
     expect(v.ok).toBe(false);
     expect(v.reason).toContain("no está más adentro");
     // Sin este caso, el criterio «la solución no se apoya sólo en peso ni en reglas» no estaría
@@ -132,10 +144,10 @@ describe("FR-1402 — la sangría transporta la jerarquía", () => {
     expect(INDENT_STEP).toBe(16);
     expect(indentFor(0)).toBe(14);
     expect(indentFor(3)).toBe(62);
-    expect(ROWS.map((r) => indentFor(r.level))).toEqual([62, 62, 62, 46, 46, 46, 30, 30, 14]);
+    expect(ROWS.map((r) => indentFor(r.level))).toEqual([62, 62, 46, 62, 62, 30, 30, 14]);
     // Y el paso estrecho, por debajo de 1024 px.
     expect(INDENT_STEP_NARROW).toBe(12);
-    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([50, 50, 50, 38, 38, 38, 26, 26, 14]);
+    expect(ROWS.map((r) => indentFor(r.level, true))).toEqual([50, 50, 38, 50, 50, 26, 26, 14]);
   });
 });
 
@@ -144,11 +156,13 @@ describe("NFR-1403 — el plegado sobrevive al reordenamiento", () => {
   it("TC-BJE-011f: TAIL_FROM se deriva por búsqueda y sigue a 'available' en cualquier orden", () => {
     const tailFrom = (rows: readonly RowSpec[]) => rows.findIndex((r) => r.key === "available") + 1;
 
-    // Con «Reservas del acumulado» (FR-1810), `available` está en el índice 6 → corta en 7.
-    expect(tailFrom(ROWS)).toBe(7);
+    // Con la estructura de FR-1810, `available` («Disponible») está en el índice 5 → corta en 6.
+    expect(tailFrom(ROWS)).toBe(6);
     // Y lo que queda oculto son EXACTAMENTE las mismas dos filas que antes de la feature.
     expect(ROWS.slice(tailFrom(ROWS)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);
-    expect(ORDEN_VIEJO.slice(tailFrom(ORDEN_VIEJO)).map((r) => r.key)).toEqual(["reservedBalance", "total"]);
+    // (Sobre ORDEN_PLANO no se afirma la cola: es un contra-ejemplo con el orden REVUELTO a
+    // propósito, así que «lo que queda debajo de available» ahí no significa nada. Lo que sí debe
+    // sostenerse es que el corte se BUSCA, y eso lo prueba la permutación de abajo.)
 
     // Permutando la tabla, el corte SIGUE a `available` — no es un índice escrito a mano.
     const permutado = [...ROWS].reverse();

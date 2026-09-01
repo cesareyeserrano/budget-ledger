@@ -123,7 +123,53 @@ documento no supera el del viewport.
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
 | **Franja de errores del mes** (SE AMPLÍA, FR-1806) | **default**: no se renderiza · **error**: una línea por mes con error, con icono, mes y cifra · **empty**: sin errores, ausente · **loading/disabled**: n/a | `role="status"`: se anuncia sin robar el foco a quien teclea. Deriva de la MISMA lista que la marca del encabezado — no puede haber marca sin detalle ni detalle sin marca | H1, H9, H3 control (no corrige por su cuenta) |
-| **Cascada del Balance** | sin cambio de estructura, orden ni signos | Conserva la alarma vigente del disponible en negativo: es la señal del sobregasto real | H1 |
+| **Cascada del Balance** (SE REESTRUCTURA, FR-1810) | **default**: ocho filas en tres bloques rotulados · **empty**: un mes sin datos muestra el guion en las ocho · **error**: alarma de negativo SOLO en «Disponible» y «Patrimonio total» · **loading/disabled**: n/a | Transcripción del diseño que el usuario eligió y aprobó («me gusta la estructura», 2026-08-31) tras pedir la lectura contable. Ver el detalle debajo de esta tabla | H2 lenguaje del usuario, H6 reconocimiento, H8 minimalista |
+
+#### La cascada del Balance, fila a fila (FR-1810 — diseño aprobado por el usuario)
+
+El módulo pasa de nueve filas planas a **ocho en tres bloques**, cada uno con su micro-rótulo en
+mayúsculas pequeñas (`--fg-3`, misma utilidad que los rótulos de tipo, sin regla horizontal propia):
+
+| # | Bloque | Fila | Signo | Nivel | ¿Alarma en negativo? |
+|---|---|---|---|---|---|
+| 1 | RESULTADO DEL MES | Ingresos | `+` | 3 | no |
+| 2 | RESULTADO DEL MES | Gastos | `−` | 3 | no |
+| 3 | RESULTADO DEL MES | **Resultado del mes** | `=` | 2 | no |
+| 4 | CÓMO SE REPARTIÓ | Guardado en alcancías | `→` | 3 | **no** |
+| 5 | CÓMO SE REPARTIÓ | Quedó disponible | `→` | 3 | **no** |
+| 6 | SALDOS AL CIERRE | Disponible | ` ` | 1 | **sí** |
+| 7 | SALDOS AL CIERRE | En alcancías | ` ` | 1 | no |
+| 8 | SALDOS AL CIERRE | **Patrimonio total** | `=` | 0 | **sí** |
+
+**Por qué así.** Guardar en una alcancía no es un gasto: es mover plata de un bolsillo propio a otro,
+y el patrimonio no cambia. Por eso las reservas salen del bloque del resultado (bloque 1, que sólo
+mide si el patrimonio creció) y aparecen en el bloque 2 como **destino**, no como resta.
+
+**El signo `→` es nuevo y es deliberado.** Las filas 4 y 5 no son sumandos que alimentan un resultado
+posterior: son el **desglose** del resultado que está ARRIBA de ellas. `→` se lee «se fue a», que es
+exactamente la relación, y las distingue de los `+`/`−` de la cascada sin inventar un color.
+
+**Estados que desaparecen y qué los sustituye:**
+
+- «Saldo mes anterior» → sobra: el cierre del mes previo es literalmente la columna de la izquierda.
+- «Reservas del acumulado» → sobra: su pregunta la contesta «Quedó disponible» en negativo.
+- «Disponible del mes» → pasa a llamarse «Quedó disponible» y deja de alarmar.
+- «Retiros del mes» → sale de la cascada (se netea en «Guardado en alcancías»); la fila OPERABLE
+  sigue viva al final del segmento de Reservas (FR-1805), que es donde el usuario la pidió.
+
+**El caso que motivó el rediseño** (datos reales del usuario, plano Ejecutado): febrero con 1.000 de
+ingreso, 0 de gasto y 1.500 guardados muestra «Resultado del mes 1.000 · Guardado en alcancías 1.500 ·
+Quedó disponible −500». Ese −500 **no lleva alarma**: no es una deuda, es la lectura correcta de «tu
+bolsillo disponible bajó 500 porque metiste a la alcancía más de lo que entró», y los saldos al cierre
+lo confirman (Disponible 0, En alcancías 2.000). Es el mismo número que antes salía en rojo diciendo
+que el mes «quedaba debiendo».
+
+**Convención de signo:** se CONSERVA la vigente (decisión previa del usuario) — el negativo se marca
+con `−`, color de alerta y glifo, y el positivo no lleva `+`. **No** se adoptan los paréntesis
+contables, que contradirían esa decisión ya tomada.
+
+**Cero explícito:** un resultado que vale 0 muestra `0`, no el guion de vacío — en las filas de
+resultado (3, 6, 8) el cero es información, no ausencia. Las filas de insumo mantienen el guion.
 
 ### Popover de retiros (desde la fila «Retiros del mes»)
 

@@ -175,7 +175,9 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
         }
       }
     }
-    expect(checked).toBe(MONTH_KEYS.length * 2 * 7); // 12 meses × 2 planos × 7 campos
+    // 9 campos desde FR-1810: `income` y `expense` se PUBLICAN (ADR-09) porque el Balance los pinta
+    // como filas propias. `computeBalanceSeries` ya los calculaba dentro para derivar `flow`.
+    expect(checked).toBe(MONTH_KEYS.length * 2 * 9); // 12 meses × 2 planos × 9 campos
   });
 
   it("TC-BAL-916e: mes solo con ingreso: todo va a disponible, reservado 0", () => {

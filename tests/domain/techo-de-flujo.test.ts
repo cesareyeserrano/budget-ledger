@@ -28,9 +28,19 @@ import {
   planTechoMonths,
   plannedRetiroLimit,
 } from "@/domain/reserve";
-import { computeBalanceSeries, reserveSplit } from "@/domain/balance";
+import { computeBalanceSeries, type Plane } from "@/domain/balance";
 import { addMovement, setLeafAmount } from "@/domain/mutations";
 import { MONTH_KEYS } from "@/domain/months";
+import {
+  ROWS,
+  CASCADE,
+  BREAKDOWN,
+  RETIROS_ROW,
+  validateCascadeOrder,
+  validateContiguity,
+  validateIndentLevels,
+  validateBreakdown,
+} from "@/components/balanceRows";
 import type { AmountMap, LedgerNode, LedgerState, MonthKey, NodeType } from "@/domain/types";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────────────────────
@@ -634,94 +644,229 @@ describe("NFR-1803 · gastos e ingresos conservan su comportamiento", () => {
   });
 });
 
-// ── FR-1810 · El desglose del Balance: cada peso a su fuente ───────────────────────────────────
+// ── FR-1810 · El Balance en tres bloques: resultado, reparto y saldos ─────────────────────────
 
-describe("FR-1810 · el Balance desglosa las reservas por fuente", () => {
+/**
+ * La lectura contable que el usuario eligió (2026-08-31, «me gusta la estructura»).
+ *
+ * Estos TCs comprueban las CIFRAS que cada fila publica y las identidades que las atan; el orden,
+ * los bloques y los invariantes de la tabla viven en `balance-jerarquia-orden.test.ts`, que es
+ * donde ya vivía esa mitad. Son fallos distintos: la tabla puede estar bien ordenada y las cifras
+ * mal, y al revés.
+ */
+describe("FR-1810 · el Balance en tres bloques", () => {
+  /** Las cinco cifras que el Balance pinta, tal como las compone `cellValue`. */
+  function filas(s: LedgerState, mes: MonthKey, plane: Plane = "actual") {
+    const m = computeBalanceSeries(s)[mes][plane];
+    return {
+      ingresos: m.income,
+      gastos: m.expense,
+      resultado: m.flow,
+      guardado: m.reserved,
+      quedo: m.flow - m.reserved,
+      disponible: m.available,
+      enAlcancias: m.reservedBalance,
+      patrimonio: m.total,
+    };
+  }
+
   // @aitri-tc TC-TDF-100h
-  it("TC-TDF-100h: el caso del usuario — el mes queda en 0 y el acumulado muestra su uso", () => {
+  it("TC-TDF-100h: guardar de más deja «Quedó disponible» negativo, y esa fila NO alarma", () => {
     let s = base({ ene: 1000, feb: 1000 });
     s = llevar(s, "A", "ene", 1000);
-    s = sacar(s, "A", "ene", 500).state; // enero cierra con 500
-    s = llevar(s, "A", "feb", 1500);
+    s = sacar(s, "A", "ene", 500).state; // enero cierra con 500 disponibles y 500 en la alcancía
+    s = llevar(s, "A", "feb", 1500); // …y febrero guarda 1.500 sobre un ingreso de 1.000
 
-    const split = reserveSplit(s, "feb", "actual");
-    expect(split).toEqual({ delFlujo: 1000, delAcumulado: 500 });
-    const feb = computeBalanceSeries(s).feb.actual;
-    // «Disponible del mes» = flujo − reservas del flujo + retiros = 1.000 − 1.000 + 0 = 0.
-    expect(feb.flow - split.delFlujo + 0).toBe(0);
-    // «Saldo disponible» = disponible del mes + saldo anterior − reservas del acumulado = 0.
-    expect(0 + feb.prevAvailable - split.delAcumulado).toBe(0);
-    expect(feb.available).toBe(0); // y coincide con la fórmula vigente
+    const f = filas(s, "feb");
+    expect(f.resultado).toBe(1000); // ingresos − gastos: las reservas NO entran aquí
+    expect(f.guardado).toBe(1500);
+    expect(f.quedo).toBe(-500); // el bolsillo disponible bajó 500: información, no deuda
+
+    // La fila que lo muestra tiene la alarma APAGADA — es la corrección que motiva el FR. Si
+    // alguien la vuelve a encender, este test cae.
+    expect(ROWS.find((r) => r.key === "toAvailable")!.alarms).toBe(false);
+    // Y las que sí alarman siguen alarmando: ahí un negativo sería una deuda de verdad.
+    expect(ROWS.find((r) => r.key === "available")!.alarms).toBe(true);
+    expect(ROWS.find((r) => r.key === "total")!.alarms).toBe(true);
   });
 
   // @aitri-tc TC-TDF-101e
-  it("TC-TDF-101e: la cascada desglosada cierra por partida doble bajo la secuencia mixta", () => {
-    // Reusa la infraestructura de la secuencia determinista (semilla 1801).
-    const prng = (seed: number) => {
-      let a = seed >>> 0;
-      return () => {
-        a = (a + 0x6d2b79f5) >>> 0;
-        let t = Math.imul(a ^ (a >>> 15), 1 | a);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-    };
-    const rand = prng(1801);
-    let s = base({ ene: 5000, feb: 3000, mar: 4000 });
-    for (let i = 0; i < 60; i++) {
-      const month = MONTH_KEYS[Math.floor(rand() * 12)];
-      const amount = Math.floor(rand() * 900) + 100;
-      const kind = rand();
-      if (kind < 0.4) {
-        const r = applyReserveOp(s, { from: AVAILABLE_ID, to: rand() < 0.5 ? "A" : "B", month, amount });
-        if ("state" in r) s = r.state;
-      } else if (kind < 0.7) {
-        const r = applyReserveOp(s, { from: rand() < 0.5 ? "A" : "B", to: AVAILABLE_ID, month, amount });
-        if ("state" in r) s = r.state;
-      } else {
-        s = setLeafAmount(s, "c-gasto", month, "actual", Math.floor(amount / 3));
+  it("TC-TDF-101e: las tres identidades se sostienen en 120 pasos, 12 meses y 2 planos", () => {
+    let s = base({ ene: 1000, feb: 800, mar: 1200, abr: 600, may: 900, jun: 1500 });
+    let pasos = 0;
+
+    const comprobar = (etiqueta: string) => {
+      for (const plane of ["budget", "actual"] as const) {
+        for (const mk of MONTH_KEYS) {
+          const f = filas(s, mk, plane);
+          // (1) el bloque del reparto cuadra con el resultado del mes
+          expect(f.guardado + f.quedo, `${etiqueta} · ${mk}/${plane} · reparto`).toBe(f.resultado);
+          // (2) los saldos al cierre cuadran con el patrimonio
+          expect(f.disponible + f.enAlcancias, `${etiqueta} · ${mk}/${plane} · cierre`).toBe(f.patrimonio);
+          // (3) la reestructuración NO movió un peso: «Disponible» sigue siendo la fórmula vigente
+          const m = computeBalanceSeries(s)[mk][plane];
+          expect(m.available, `${etiqueta} · ${mk}/${plane} · equivalencia`).toBe(
+            m.prevAvailable + m.flow - m.reserved
+          );
+        }
       }
-      // Partida doble en cada paso y cada mes: el desglose reconstruye el bruto, y la cascada
-      // desglosada produce el MISMO «Saldo disponible» que la fórmula vigente.
-      const series = computeBalanceSeries(s);
+      // (4) y el encadenamiento entre columnas, que es lo que permite retirar «Saldo mes anterior»
+      const serie = computeBalanceSeries(s);
+      let dispPrev = 0;
+      let alcPrev = 0;
       for (const mk of MONTH_KEYS) {
-        const split = reserveSplit(s, mk, "actual");
-        const b = series[mk].actual;
-        const brutos = reserveLeafIds(s).reduce((acc, id) => acc + (s.actuals[id]?.[mk] ?? 0), 0);
-        expect(split.delFlujo + split.delAcumulado, `bruto/${mk}`).toBe(brutos);
-        const saldo = b.flow - split.delFlujo + retirosDe(s, mk) + b.prevAvailable - split.delAcumulado;
-        expect(saldo, `saldo/${mk}`).toBe(b.available);
+        const m = serie[mk].actual;
+        expect(m.available, `${etiqueta} · ${mk} · encadena disponible`).toBe(dispPrev + (m.flow - m.reserved));
+        expect(m.reservedBalance, `${etiqueta} · ${mk} · encadena alcancías`).toBe(alcPrev + m.reserved);
+        dispPrev = m.available;
+        alcPrev = m.reservedBalance;
       }
+    };
+
+    comprobar("inicio");
+    const meses: MonthKey[] = ["ene", "feb", "mar", "abr", "may", "jun"];
+    let aplicados = 0;
+    for (let i = 0; i < 120; i++) {
+      const mk = meses[i % meses.length];
+      const hoja = i % 3 === 0 ? "B" : "A";
+      // Una operación puede rechazarse legítimamente (techo, piso o déficit — FR-1801/1803). Un
+      // rechazo NO muta, así que las identidades se siguen comprobando sobre el estado intacto y la
+      // propiedad es la misma. Se cuentan las aceptadas para que el bucle no pueda degenerar en
+      // silencio a "todo rechazado", que dejaría el test verde sin ejercitar nada.
+      const op =
+        i % 4 === 3
+          ? { from: hoja, to: AVAILABLE_ID, month: mk, amount: 50 + (i % 7) * 25 }
+          : { from: AVAILABLE_ID, to: hoja, month: mk, amount: 40 + (i % 11) * 30 };
+      const r = applyReserveOp(s, op);
+      if ("state" in r) {
+        s = r.state;
+        aplicados += 1;
+      }
+      pasos += 1;
+      comprobar(`paso ${i}`);
     }
-    function retirosDe(st: LedgerState, mk: MonthKey): number {
-      return st.movements.reduce(
-        (acc, m) =>
-          m.type === "transfer" && m.month === mk && m.from && m.from !== AVAILABLE_ID && m.to === AVAILABLE_ID
-            ? acc + m.amount
-            : acc,
-        0
-      );
-    }
+    expect(pasos).toBe(120);
+    expect(aplicados).toBeGreaterThan(40); // el estado se movió de verdad, no se quedó quieto
   });
 
-  // @aitri-tc TC-TDF-102f
-  it("TC-TDF-102f: los negativos REALES conservan su alarma en la fila donde viven", () => {
-    // (a) Sobregasto de gastos: «Disponible del mes» queda en deuda de verdad.
-    let a = base({ ene: 500 });
-    a = setLeafAmount(a, "c-gasto", "ene", "actual", 700); // flujo −200
-    const sa = reserveSplit(a, "ene", "actual");
-    const fa = computeBalanceSeries(a).ene.actual;
-    expect(fa.flow - sa.delFlujo + 0).toBe(-200); // negativo real: la alarma ahí es correcta
+  // @aitri-tc TC-TDF-102e
+  it("TC-TDF-102e: el cierre de febrero es el de enero más su reparto", () => {
+    let s = base({ ene: 1000, feb: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    s = sacar(s, "A", "ene", 500).state;
+    s = llevar(s, "A", "feb", 1500);
 
-    // (b) Estado legado imposible: el hueco aflora en «Saldo disponible», no en el mes.
+    const ene = filas(s, "ene");
+    expect(ene.disponible).toBe(500);
+    expect(ene.enAlcancias).toBe(500);
+
+    const feb = filas(s, "feb");
+    expect(feb.disponible).toBe(ene.disponible + feb.quedo); // 500 + (−500)
+    expect(feb.enAlcancias).toBe(ene.enAlcancias + feb.guardado); // 500 + 1.500
+    // Y los valores concretos que el usuario ve en pantalla.
+    expect(feb.disponible).toBe(0);
+    expect(feb.enAlcancias).toBe(2000);
+    expect(feb.patrimonio).toBe(2000);
+  });
+
+  // @aitri-tc TC-TDF-103e
+  it("TC-TDF-103e: un mes que SOLO retira muestra «Guardado» en negativo, y el reparto cuadra", () => {
+    let s = base({ ene: 1000 });
+    s = llevar(s, "A", "ene", 1000);
+    // Febrero no tiene ingresos ni gastos: su único movimiento de reservas es un retiro.
+    s = sacar(s, "A", "feb", 500).state;
+
+    const f = filas(s, "feb");
+    expect(f.resultado).toBe(0); // no entró ni salió plata del patrimonio
+    expect(f.guardado).toBe(-500); // salió de la alcancía: el neto es negativo
+    expect(f.quedo).toBe(500); // …y llegó al bolsillo disponible
+    expect(f.guardado + f.quedo).toBe(f.resultado); // el cuadre se sostiene con signos mixtos
+  });
+
+  // @aitri-tc TC-TDF-104f
+  it("TC-TDF-104f: la alarma sobrevive donde la deuda es real, y NO donde no la hay", () => {
+    const alarma = (k: string) => ROWS.find((r) => r.key === k)!.alarms;
+    const enRojo = (valor: number, k: string) => valor < 0 && alarma(k);
+
+    // (a) Gastos > ingresos, pero con acumulado suficiente: el mes va en pérdida y NO alarma.
+    let a = base({ ene: 1000 });
+    a = setLeafAmount(a, "c-gasto", "feb", "actual", 300);
+    const fa = filas(a, "feb");
+    expect(fa.resultado).toBe(-300);
+    expect(enRojo(fa.resultado, "monthResult")).toBe(false); // pérdida ≠ alarma
+    expect(fa.disponible).toBe(700); // …y al cierre sigue habiendo plata
+
+    // (b) Estado legado imposible: guardó 1.500 sobre 1.000 sin acumulado. El hueco es REAL.
     let b = base({ ene: 1000 });
     b = llevar(b, "A", "ene", 1000);
     b = { ...b, actuals: { ...b.actuals, A: { ...b.actuals["A"], ene: 1500 } } };
-    const sb = reserveSplit(b, "ene", "actual");
-    expect(sb).toEqual({ delFlujo: 1000, delAcumulado: 500 });
-    const fb = computeBalanceSeries(b).ene.actual;
-    expect(fb.flow - sb.delFlujo + 0).toBe(0); // el mes no miente…
-    expect(0 + fb.prevAvailable - sb.delAcumulado).toBe(-500); // …y el hueco real está aquí
-    expect(fb.available).toBe(-500);
+    const fb = filas(b, "ene");
+    expect(fb.disponible).toBe(-500);
+    expect(enRojo(fb.disponible, "available")).toBe(true); // la única alarma legítima
+
+    // (c) El caso del usuario: guardó de más PERO tenía acumulado. Nada alarma.
+    let c = base({ ene: 1000, feb: 1000 });
+    c = llevar(c, "A", "ene", 1000);
+    c = sacar(c, "A", "ene", 500).state;
+    c = llevar(c, "A", "feb", 1500);
+    const fc = filas(c, "feb");
+    expect(fc.quedo).toBe(-500);
+    expect(enRojo(fc.quedo, "toAvailable")).toBe(false);
+    expect(fc.disponible).toBe(0);
+    expect(enRojo(fc.disponible, "available")).toBe(false);
+  });
+
+  // @aitri-tc TC-TDF-105f
+  it("TC-TDF-105f: los cuatro invariantes de la tabla pasan, y ninguna fila queda huérfana", () => {
+    expect(validateCascadeOrder(ROWS)).toEqual({ ok: true });
+    expect(validateContiguity(ROWS)).toEqual({ ok: true });
+    expect(validateIndentLevels(ROWS)).toEqual({ ok: true });
+    expect(validateBreakdown(ROWS)).toEqual({ ok: true });
+
+    // Toda fila de ROWS participa de una relación DECLARADA: o es resultado/sumando de la cascada,
+    // o es total/parte del desglose. Una fila sin relación es una cifra que nadie comprueba.
+    const enRelacion = new Set<string>();
+    for (const { result, summands } of CASCADE) {
+      enRelacion.add(result);
+      for (const x of summands) enRelacion.add(x);
+    }
+    for (const { total, parts } of BREAKDOWN) {
+      enRelacion.add(total);
+      for (const x of parts) enRelacion.add(x);
+    }
+    for (const r of ROWS) expect(enRelacion, `la fila ${r.key} no está en ninguna relación`).toContain(r.key);
+
+    // Y la fila operable de retiros vive FUERA de la tabla, con su propia spec (ADR-09).
+    expect(RETIROS_ROW.key).toBe("retiros");
+    expect(ROWS.map((r) => r.key)).not.toContain("retiros");
+  });
+
+  // @aitri-tc TC-TDF-106f
+  it("TC-TDF-106f: validateBreakdown RECHAZA un desglose roto — sin esto, 105f estaría vacío", () => {
+    const i = ROWS.findIndex((r) => r.key === "monthResult");
+
+    // (a) una parte ADELANTADA a su total
+    const adelantado = [...ROWS];
+    adelantado.splice(adelantado.findIndex((r) => r.key === "toAvailable"), 1);
+    adelantado.splice(i, 0, ROWS.find((r) => r.key === "toAvailable")!);
+    const va = validateBreakdown(adelantado);
+    expect(va.ok).toBe(false);
+    expect(va.reason).toContain("contiguo");
+
+    // (b) una fila AJENA colada entre el total y sus partes
+    const intruso = [...ROWS];
+    intruso.splice(i + 1, 0, ROWS.find((r) => r.key === "reservedBalance")!);
+    const vb = validateBreakdown(intruso);
+    expect(vb.ok).toBe(false);
+    expect(vb.offender).toBe("reservedBalance");
+
+    // (c) una parte al MISMO nivel que su total: deja de leerse como desglose
+    const plano = ROWS.map((r) => (r.key === "toReserves" ? { ...r, level: 2 as const } : r));
+    const vc = validateBreakdown(plano);
+    expect(vc.ok).toBe(false);
+    expect(vc.reason).toContain("más adentro");
+
+    // Y el positivo, para que el rechazo no sea un "siempre false".
+    expect(validateBreakdown(ROWS)).toEqual({ ok: true });
   });
 });

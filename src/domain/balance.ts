@@ -12,7 +12,7 @@
 import type { LedgerState, MonthKey } from "./types";
 import { typeTotals } from "./rollup";
 import { MONTH_KEYS } from "./months";
-import { reserveDelta, type Plane, reserveAportes } from "./reserve";
+import { reserveDelta, type Plane } from "./reserve";
 
 /** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad.
  *  (El origen del tipo vive en reserve.ts — feature transferencias — para evitar ciclos.) */
@@ -24,6 +24,15 @@ export interface MonthBalance {
   prevAvailable: number;
   /** Saldo reservado con el que abre el mes = cierre reservado REAL del mes previo (ambos planos). */
   prevReserved: number;
+  /**
+   * Ingresos del mes en el plano. Se PUBLICA (FR-1810/ADR-09) porque el Balance lo pinta como fila
+   * propia: `computeBalanceSeries` ya lo calculaba internamente para derivar `flow`, así que
+   * exponerlo no añade ni una pasada — y evita que la UI vuelva a llamar a `typeTotals` por su
+   * cuenta, que sería una segunda fuente para el mismo número.
+   */
+  income: number;
+  /** Gastos del mes en el plano. Mismo motivo que `income` (FR-1810/ADR-09). */
+  expense: number;
   /** Flujo del mes = Ingreso − Gasto. NO incluye el arrastre ni las reservas. */
   flow: number;
   /** Reservas del mes = lo transferido (guardado) este mes. En v1 solo aportes, luego ≥ 0. */
@@ -72,45 +81,6 @@ export function reserveNet(state: LedgerState, month: MonthKey, plane: Plane): n
 }
 
 /**
- * De dónde salió lo reservado en un mes: del flujo propio (ingresos − gastos) o del acumulado que
- * traía (FR-1810).
- *
- * Reporte del usuario, textual: «está diciendo que el mes quedamos debiendo y no es correcto…
- * reservas del mes, sin contar lo que sacamos del acumulado». Cuando la fila «Reservas del mes»
- * resta el bruto completo del flujo, un mes que reservó 1.500 con flujo de 1.000 muestra
- * «Disponible del mes −500» con alarma — una deuda que no existe, porque los 500 salieron del
- * cierre del mes anterior. El desglose carga cada peso a su fuente:
- *
- *     delFlujo     = max(0, min(aportes, flujo))     → se resta del flujo del mes
- *     delAcumulado = aportes − delFlujo              → se resta del saldo del mes anterior
- *
- * La suma reconstruye el bruto, así que la cascada completa cierra exactamente igual que la fórmula
- * vigente (verificado por partida doble en TC-TDF-101e). En un estado imposible (reservas por
- * encima de flujo + acumulado) el negativo aflora en «Saldo disponible» — donde el hueco es real —
- * y con flujo negativo por gastos el «Disponible del mes» sí queda en deuda, que también es real.
- *
- * @param state Estado del ledger (no se muta).
- * @param month Mes a desglosar.
- * @param plane Plano a leer.
- * @returns Los dos componentes, ambos ≥ 0.
- * @throws Nunca.
- *
- * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1839, TC-ID: TC-TDF-100h, TC-TDF-102f
- */
-export function reserveSplit(
-  state: LedgerState,
-  month: MonthKey,
-  plane: Plane
-): { delFlujo: number; delAcumulado: number } {
-  const income = typeTotals(state, "income", [month]);
-  const expense = typeTotals(state, "expense", [month]);
-  const flujo = plane === "budget" ? income.budget - expense.budget : income.actual - expense.actual;
-  const aportes = reserveAportes(state, month, plane);
-  const delFlujo = Math.max(0, Math.min(aportes, flujo));
-  return { delFlujo, delAcumulado: aportes - delFlujo };
-}
-
-/**
  * Las seis cifras de un mes en un plano, a partir del arrastre de ESE plano y de los dos insumos
  * del mes.
  *
@@ -118,20 +88,30 @@ export function reserveSplit(
  * comprobación aparte: `reserved` se resta de `available` y se suma a `reservedBalance`, de modo
  * que se cancela en el total. Guardar reubica la plata, no la crea ni la destruye.
  *
+ * Es también lo que sostiene la lectura del Balance reestructurado (FR-1810): «Quedó disponible»
+ * (`flow − reserved`) es exactamente `available − prev.available`, y «Guardado en alcancías»
+ * (`reserved`) es `reservedBalance − prev.reservedBalance`. Las dos filas del bloque del reparto
+ * son, literalmente, el movimiento de cada saldo — por eso el encadenamiento mes a mes cierra sin
+ * fórmula nueva (ADR-09).
+ *
  * @param prev Cierre REAL del mes anterior (0/0 en el mes 1). Lo comparten ambos planos.
- * @param flow Flujo del mes del plano = Ingreso − Gasto. Puede ser negativo.
+ * @param income Ingresos del mes en el plano.
+ * @param expense Gastos del mes en el plano.
  * @param reserved Neto reservado del mes en el plano.
- * @returns Las seis cifras del mes, más los dos componentes arrastrados.
+ * @returns Las cifras del mes, más los dos componentes arrastrados.
  * @throws Nunca. Es aritmética total sobre números finitos.
  *
  * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-905h, TC-BAL-915e, TC-BAL-925e
  */
-function monthBalance(prev: Carry, flow: number, reserved: number): MonthBalance {
+function monthBalance(prev: Carry, income: number, expense: number, reserved: number): MonthBalance {
+  const flow = income - expense;
   const available = prev.available + flow - reserved;
   const reservedBalance = prev.reservedBalance + reserved;
   return {
     prevAvailable: prev.available,
     prevReserved: prev.reservedBalance,
+    income,
+    expense,
     flow,
     reserved,
     available,
@@ -166,8 +146,8 @@ export function computeBalanceSeries(state: LedgerState): BalanceSeries {
     // AMBOS planos abren en el cierre REAL del mes previo: el plan de un mes se hace sobre la plata
     // que de verdad quedó, no sobre la que se había planeado tener. Solo la cadena ejecutada
     // acumula — el cierre presupuestado de un mes NO se arrastra al siguiente.
-    const budget = monthBalance(prevActual, income.budget - expense.budget, reserveNet(state, month, "budget"));
-    const actual = monthBalance(prevActual, income.actual - expense.actual, reserveNet(state, month, "actual"));
+    const budget = monthBalance(prevActual, income.budget, expense.budget, reserveNet(state, month, "budget"));
+    const actual = monthBalance(prevActual, income.actual, expense.actual, reserveNet(state, month, "actual"));
 
     series[month] = { budget, actual };
     prevActual = actual;

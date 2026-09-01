@@ -167,17 +167,19 @@
     },
     {
       "id": "FR-1810",
-      "title": "El Balance desglosa de dónde salió cada reserva: del flujo del mes o del acumulado",
-      "description": "Cuando un mes reserva más de lo que su propio flujo deja, el Balance separa las dos fuentes: «Reservas del mes» pasa a cargar SOLO lo que salió del flujo (ingresos − gastos del mes), y una fila nueva «Reservas del acumulado» carga lo que salió del saldo del mes anterior, restando en el bloque del acumulado. Reporte del usuario, textual: «está diciendo que el mes quedamos debiendo y no es correcto… reservas del mes (sin contar lo que sacamos del acumulado)». Hoy la fila resta el bruto completo del flujo, así que su febrero (entran 1.000, reserva 1.500 tomando 500 del cierre de enero) muestra «Disponible del mes −500» con alarma: una deuda que no existe. Con el desglose, el mes queda en 0, el acumulado muestra su uso, y la alarma vuelve a significar solo lo que debe: un negativo real. La cascada completa sigue cerrando con la fórmula vigente (verificado en cuatro casos, incluido el estado legado y el sobregasto).",
+      "title": "El Balance se lee en tres bloques: resultado del mes, cómo se repartió y saldos al cierre",
+      "description": "REVISA la primera versión de FR-1810 (que desglosaba lo reservado en «Reservas del mes» + «Reservas del acumulado»). El usuario preguntó «¿qué haría un contador o financiero?», se le presentaron tres opciones y eligió ésta: «me gusta la estructura» (2026-08-31). El principio que la gobierna: GUARDAR EN UNA ALCANCÍA NO ES UN GASTO — es mover plata de un bolsillo propio a otro, y el patrimonio no cambia. Por eso las reservas dejan de RESTAR en la cuenta del mes: no son una salida, son un DESTINO. El módulo pasa de nueve filas planas a ocho, en tres bloques con un rótulo cada uno. (1) RESULTADO DEL MES: «+ Ingresos», «− Gastos», «= Resultado del mes» — sólo lo que cambió el patrimonio; las reservas no aparecen. (2) CÓMO SE REPARTIÓ: «→ Guardado en alcancías» (el neto del mes: apartado menos retirado) y «→ Quedó disponible» (el resultado menos lo guardado); las dos suman exactamente el resultado del mes, y ese cuadre es el invariante que hace la cuenta legible. (3) SALDOS AL CIERRE: «Disponible», «En alcancías» y «= Patrimonio total». Con esto desaparecen las tres filas que el usuario reportó como ilegibles («la suma visible no cuadra… no se logran leer ni entender bien»): «Saldo mes anterior» sobra porque el cierre del mes previo es literalmente la columna de la izquierda; «Reservas del acumulado» sobra porque su pregunta —de dónde salió lo que no cabía en el mes— la contesta ahora «Quedó disponible» en negativo, que es información y no una deuda; y «Retiros del mes» sale de la cascada porque se netea dentro de «Guardado en alcancías» (la fila OPERABLE sigue viva, al final del segmento de Reservas, FR-1805). El techo de flujo (FR-1801…1804) no cambia: sigue viviendo en el dominio y bloqueando igual.",
       "priority": "MUST",
       "type": "reporting",
       "acceptance_criteria": [
-        "Con saldo anterior 500, flujo 1.000 y 1.500 reservados: «Reservas del mes» dice 1.000, «Reservas del acumulado» dice 500, «Disponible del mes» dice 0 SIN alarma, y «Saldo disponible» dice 0",
-        "En un mes cuyas reservas caben en su flujo, «Reservas del acumulado» muestra el guion de vacío y las demás filas quedan idénticas a hoy",
-        "En un estado legado imposible (reservas por encima de flujo + acumulado), el negativo y su alarma aparecen en «Saldo disponible» — donde está el hueco real",
-        "Con sobregasto de gastos (flujo negativo), «Disponible del mes» sí queda negativo con alarma: esa deuda es real",
-        "Para cualquier estado: la cascada desglosada produce exactamente el mismo «Saldo disponible» que la fórmula vigente (saldo anterior + flujo − reservas netas)",
-        "Las validaciones de la cascada (orden, contigüidad, sangrías) pasan con la fila nueva declarada"
+        "En un mes con ingresos 1.000, gastos 0 y 1.500 guardados: «Resultado del mes» dice 1.000, «Guardado en alcancías» dice 1.500 y «Quedó disponible» dice −500",
+        "Para los doce meses y los dos planos: «Guardado en alcancías» + «Quedó disponible» = «Resultado del mes», al peso",
+        "Para los doce meses y los dos planos: «Disponible» + «En alcancías» = «Patrimonio total», al peso",
+        "El cierre de cada mes encadena con el anterior: «Disponible»(m) = «Disponible»(m−1) + «Quedó disponible»(m), y «En alcancías»(m) = «En alcancías»(m−1) + «Guardado en alcancías»(m), en el plano Ejecutado",
+        "La alarma de negativo aparece SOLO en «Disponible» al cierre y en «Patrimonio total»: un «Quedó disponible» negativo se pinta sin alarma, sin triángulo y sin color de alerta",
+        "El módulo renderiza exactamente ocho filas de cifras y ninguna se llama «Reservas del mes», «Reservas del acumulado», «Saldo mes anterior», «Disponible del mes» ni «Retiros del mes»",
+        "Para cualquier estado, «Disponible» al cierre coincide al peso con la fórmula vigente (saldo del mes anterior + flujo − reservas netas)",
+        "Las validaciones declaradas de la cascada (orden, contigüidad y sangrías) pasan con las filas nuevas, y el bloque del reparto se comprueba con su propio invariante: sus dos partes van inmediatamente DESPUÉS de su total y más adentro que él"
       ]
     }
   ],
@@ -489,32 +491,38 @@
       "id": "US-1810",
       "requirement_id": "FR-1810",
       "as_a": "dueño del presupuesto",
-      "i_want": "que el Balance distinga lo que aparté del mes y lo que aparté de mi ahorro acumulado",
-      "so_that": "no me diga que el mes quedó debiendo cuando en realidad usé lo que ya tenía guardado",
+      "i_want": "que el Balance separe lo que gané este mes de dónde quedó guardada la plata",
+      "so_that": "pueda leer la cuenta de arriba abajo sin reconstruirla de cabeza, y que guardar en una alcancía deje de parecer un gasto",
       "acceptance_criteria": [
         {
           "id": "AC-1839",
-          "given": "enero cerró con 500 y en febrero entran 1.000 y reservo 1.500",
-          "when": "miro el Balance de febrero",
-          "then": "«Reservas del mes» dice 1.000, «Reservas del acumulado» dice 500, «Disponible del mes» dice 0 sin alarma y «Saldo disponible» dice 0"
+          "given": "febrero con 1.000 de ingreso, 0 de gasto y 1.500 guardados en la alcancía",
+          "when": "miro el bloque «cómo se repartió»",
+          "then": "«Guardado en alcancías» dice 1.500 y «Quedó disponible» dice −500 sin alarma, y las dos suman el resultado del mes (1.000)"
         },
         {
           "id": "AC-1840",
-          "given": "un mes que reserva 300 de un flujo de 1.000",
-          "when": "miro su Balance",
-          "then": "«Reservas del acumulado» está vacía y todo lo demás es idéntico a hoy"
+          "given": "enero cerró con Disponible 500 y En alcancías 500",
+          "when": "miro los saldos al cierre de febrero",
+          "then": "«Disponible» dice 0, «En alcancías» dice 2.000 y «Patrimonio total» dice 2.000 — cada uno es el cierre de enero más su fila de reparto"
         },
         {
           "id": "AC-1841",
-          "given": "un mes con gastos mayores que ingresos",
-          "when": "miro «Disponible del mes»",
-          "then": "es negativo CON alarma — esa deuda sí es real"
+          "given": "un mes cuyo único movimiento de reservas es un retiro de 500",
+          "when": "miro el bloque del reparto",
+          "then": "«Guardado en alcancías» dice −500 y «Quedó disponible» dice el resultado del mes más 500"
         },
         {
           "id": "AC-1842",
-          "given": "cualquier secuencia de operaciones",
-          "when": "comparo el «Saldo disponible» desglosado contra la fórmula saldo anterior + flujo − reservas netas",
-          "then": "coinciden al peso en los doce meses"
+          "given": "cualquier secuencia de operaciones sobre los doce meses",
+          "when": "comparo «Disponible» al cierre contra saldo anterior + flujo − reservas netas",
+          "then": "coinciden al peso en los doce meses y en los dos planos"
+        },
+        {
+          "id": "AC-1843",
+          "given": "un mes con gastos mayores que sus ingresos",
+          "when": "miro el Balance",
+          "then": "«Resultado del mes» es negativo, y la alarma sólo aparece si además «Disponible» al cierre queda negativo"
         }
       ]
     }
@@ -767,7 +775,7 @@
       "disposition": "FR-1804"
     },
     {
-      "need": "El Balance no puede decir que el mes quedó debiendo cuando tomó del acumulado: desglose de las dos fuentes",
+      "need": "El Balance tiene que poder LEERSE: la suma visible no cierra y las filas se confunden entre sí — reestructurarlo en resultado del mes / cómo se repartió / saldos al cierre",
       "disposition": "FR-1810"
     },
     {
