@@ -341,3 +341,42 @@ medición real, no sobre una suposición.
 **Lección registrada:** la deuda e2e declarada durante el build ocultó esta regresión tres épicas.
 Un gate que nunca se vio correr entero no acredita nada — es el mismo patrón de BG-014 que este
 proyecto ya había pagado una vez.
+
+## Evidencia — la suite e2e completa, por fin verde de verdad (2026-09-01)
+
+**374 pasan · 0 fallan · exit 0 · 2,6 min.** Unitarias 570/570; typecheck y lint limpios.
+
+Llegar aquí costó dos rondas y un error de método propio que conviene dejar escrito:
+
+**El error de método.** Durante tres reportes leí el FINAL de la salida de Playwright («344 passed»,
+«27 passed», «26 passed») sin comprobar la línea de conteo de fallos, que va JUSTO ENCIMA de la lista
+de tests fallidos. La consecuencia fue reportar verde tres veces sobre una suite con 30 rojos. El
+método correcto, y el que se usa desde entonces: extraer explícitamente `^ +[0-9]+ (failed|passed)` y
+comprobar el EXIT CODE. Es exactamente la clase de defecto que este proyecto ya documentó dos veces
+(BG-014, el smoke que acreditaba un build obsoleto; y el aviso de `e2e.sh` sobre gates muertos).
+
+**Los 30 fallos, y por qué ninguno era del producto.** Todos fijaban la verdad ANTERIOR a decisiones
+que el usuario tomó en esta feature:
+
+| Nº | Fijaban | Revocado por |
+|---|---|---|
+| ~20 | El Balance de OCHO filas con los rótulos viejos | FR-1810 v3 y los nombres de la opción A |
+| 4 | Sangrías de cuatro niveles | La escalera de cinco: `monthResult` necesita escalón propio |
+| 2 | «GASTOS y RESERVAS deben ser CONTIGUOS» y el separador interno | FR-1805 (boceto del usuario) |
+| 2 | El módulo NO sigue el resaltado del mes; todo guion en `--fg-muted` | AC-1828 (petición expresa) + la elevación AA medida |
+| 1 | «Margen del mes» en el registro | La auditoría: el margen prometía plata que el dominio rechaza |
+| 1 | El cero pintado más oscuro | **Aquí el test tenía razón**: TC-RSP-011e fija el cero neutro, y lo que resolvía la queja del usuario era el DÍGITO, no el tono. Revertido el color, conservado el «0». |
+
+Ninguna aserción se debilitó: donde se exigía contigüidad ahora se exige separación con la misma
+dureza; donde se pinaba una cifra exacta se sigue pinando; y el contraste AA pasa a verificarse sobre
+el fondo TINTADO, que es el caso difícil.
+
+**Un defecto estructural que causaba cuatro fallos a la vez.** La fila operable de «Retiros del mes»
+conservaba los testids del Balance (`balance-row`, `balance-label`) pese a no pertenecer ya al
+módulo, así que se colaba en todo lo que contara filas, enumerara etiquetas o midiera sangrías: un
+test podía creer que verificaba la cascada y estar midiendo una fila ajena. Ahora tiene
+`retiros-row` / `retiros-label`.
+
+**Y la regresión de fondo:** los grupos de bolsillos arrancaban plegados por una lectura equivocada
+de AC-1820. Escondía todos los bolsillos del usuario al abrir la app. Revertido; la suite pasó de 39
+min con cuelgues a 2,6 min.

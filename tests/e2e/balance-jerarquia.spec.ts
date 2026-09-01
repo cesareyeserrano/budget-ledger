@@ -19,6 +19,7 @@ const FG_LIGHT = "rgb(28, 28, 31)"; //        --fg claro
 const FG_MUTED_LIGHT = "rgb(107, 107, 115)"; // --fg-muted claro
 const FG_SECONDARY_LIGHT = "rgb(85, 85, 93)"; // --fg-secondary claro (color del sumando)
 const FG_MUTED_DARK = "rgb(155, 155, 163)"; //  --fg-muted oscuro
+const FG_SECONDARY_DARK = "rgb(180, 180, 187)"; // --fg-secondary oscuro #b4b4bb (elevación AA)
 
 // ── contraste WCAG a partir de los valores REALES del navegador ───────────────────────────────
 function parseColor(s: string): number[] {
@@ -179,14 +180,20 @@ test.describe("FR-1404 — el em-dash no gasta color", () => {
     );
     expect(guiones.length).toBeGreaterThan(0);
     // Línea base 2026-08-24: las últimas celdas de "Disponible del mes" eran guiones VERDES.
-    for (const c of guiones) expect(c).toBe(FG_MUTED_LIGHT);
+    //
+    // Se aceptan DOS neutros y no uno: desde FR-1805 el módulo sigue el resaltado del mes activo, y
+    // en esa columna el guion sube de `--fg-muted` a `--fg-secondary` por CONTRASTE — medido, el
+    // atenuado sobre el fondo tintado cae a 4,01:1, por debajo de AA, y ningún porcentaje de tinte
+    // lo salva. Lo que este TC protege es que el guion no gaste el canal del COLOR (que no tome el
+    // verde/rojo/azul de su fila), y eso se sigue exigiendo abajo con la misma dureza.
+    for (const c of guiones) expect([FG_MUTED_LIGHT, FG_SECONDARY_LIGHT]).toContain(c);
     expect(guiones.filter((c) => c === FAVORABLE_LIGHT)).toHaveLength(0);
 
     await goto(page, POSITIVE, "dark", TRES);
     const oscuros = await page.getByTestId("balance-cell").evaluateAll((els) =>
       els.filter((e) => e.textContent?.trim() === "—").map((e) => getComputedStyle(e).color),
     );
-    for (const c of oscuros) expect(c).toBe(FG_MUTED_DARK);
+    for (const c of oscuros) expect([FG_MUTED_DARK, FG_SECONDARY_DARK]).toContain(c);
   });
 
   // @aitri-tc TC-BJE-007e
@@ -210,17 +217,15 @@ test.describe("FR-1404 — el em-dash no gasta color", () => {
         })),
       ),
     );
-    expect(porFila).toHaveLength(8);
-    // SIETE de las ocho filas usan `balance-cell`. La octava —«Retiros del mes»— es OPERABLE desde
-    // la unificación del 2026-07-29 y monta sus propias celdas (`planned-withdraw-cell` /
-    // `cell-leaf`), no `BalanceCell`. Queda fuera de este criterio a propósito: su rediseño es
-    // BL-019, que está en el no_go_zone de esta feature.
+    expect(porFila).toHaveLength(10);
+    // Desde FR-1810 las DIEZ filas del módulo usan `balance-cell`: la fila operable de retiros
+    // —que montaba sus propias celdas— salió de la cascada y ya no lleva el testid del Balance.
     const conCeldas = porFila.filter((celdas) => celdas.length > 0);
-    expect(conCeldas).toHaveLength(7);
+    expect(conCeldas).toHaveLength(10);
 
     // Últimas dos celdas de cada fila = el último mes, que no se sembró.
     const ultimoMes = conCeldas.flatMap((celdas) => celdas.slice(-2));
-    expect(ultimoMes).toHaveLength(14); // 7 filas × 2 planos
+    expect(ultimoMes).toHaveLength(20); // 10 filas × 2 planos
 
     // Cada celda es una de dos cosas, y ninguna lleva marca de color:
     const sinDato = ultimoMes.filter((c) => c.txt === "—");
@@ -228,8 +233,12 @@ test.describe("FR-1404 — el em-dash no gasta color", () => {
     expect(sinDato.length).toBeGreaterThan(0); // los sumandos del mes sí están vacíos
     expect(arrastradas.length).toBeGreaterThan(0); // los saldos se acarrean: es el arrastre
 
-    for (const c of sinDato) expect(c.color).toBe(FG_MUTED_LIGHT); // ausencia → atenuado
-    for (const c of arrastradas) expect([FG_LIGHT, FG_SECONDARY_LIGHT]).toContain(c.color);
+    // Ausencia → neutro atenuado, o su elevación AA si la celda cae en la columna del mes activo.
+    for (const c of sinDato) expect([FG_MUTED_LIGHT, FG_SECONDARY_LIGHT]).toContain(c.color);
+    // Se admite además el atenuado: desde FR-1810 una fila de RESULTADO en cero muestra «0» y no
+    // el guion (el guion se leía como «sin datos» cuando la respuesta era justamente cero), y ese
+    // cero conserva el neutro atenuado que fija TC-RSP-011e. Sigue sin gastar color de identidad.
+    for (const c of arrastradas) expect([FG_LIGHT, FG_SECONDARY_LIGHT, FG_MUTED_LIGHT]).toContain(c.color);
 
     // El criterio que de verdad protege este caso: cero marcas de color en un mes tranquilo.
     expect(ultimoMes.filter((c) => c.color === FAVORABLE_LIGHT)).toHaveLength(0);
@@ -308,17 +317,24 @@ test.describe("NFR-1402 — tres canales y contraste AA", () => {
   });
 
   // @aitri-tc TC-BJE-010e
-  test("TC-BJE-010e: con un mes FILTRADO, el módulo conserva su superficie y su contraste", async ({ page }) => {
+  test("TC-BJE-010e: con un mes FILTRADO, el módulo lo resalta y conserva su contraste", async ({ page }) => {
     await goto(page, POSITIVE, "light");
     await page.getByLabel("Mes").click();
     await page.getByRole("option", { name: "Enero", exact: true }).click();
 
-    // El módulo NO sigue el resaltado del filtro: decisión deliberada, porque el tinte oscurece la
-    // celda hasta #e4e4e6 y los colores perderían AA. Es una regresión vigente, no una novedad.
+    // REVOCADO por AC-1828 (petición expresa del usuario: «que el sombreado de la columna del mes
+    // activo aplique para los 3 bloques»). Antes el módulo NO seguía el resaltado, y la razón
+    // declarada era el contraste: el tinte hunde `--fg-muted` a 4,01:1. Al medirlo se resolvió
+    // elevando el guion a `--fg-secondary` SOLO en esa columna (5,60:1), así que el resaltado ya
+    // puede aplicarse. Lo que este TC protege —que ninguna celda baje de AA— se sigue exigiendo, y
+    // ahora sobre el fondo TINTADO, que es el caso difícil.
     const fondos = await page.getByTestId("balance-cell").evaluateAll((els) =>
       els.map((e) => getComputedStyle(e).backgroundColor),
     );
-    for (const f of new Set(fondos)) expect(f).toBe(BG_SUNKEN);
+    const distintos = new Set(fondos);
+    // Dos superficies: la hundida de siempre y la de la columna resaltada.
+    expect(distintos.size, `fondos: ${[...distintos].join(" · ")}`).toBe(2);
+    expect([...distintos]).toContain(BG_SUNKEN);
 
     const pares = await page.getByTestId("balance-cell").evaluateAll((els) =>
       els.map((e) => ({
@@ -326,7 +342,7 @@ test.describe("NFR-1402 — tres canales y contraste AA", () => {
         bg: getComputedStyle(e).backgroundColor,
       })),
     );
-    for (const p of pares) expect(contrast(p.fg, p.bg)).toBeGreaterThanOrEqual(4.5);
+    for (const p of pares) expect(contrast(p.fg, p.bg), `${p.fg} sobre ${p.bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
   // @aitri-tc TC-BJE-010f
@@ -352,12 +368,23 @@ test.describe("NFR-1402 — tres canales y contraste AA", () => {
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // FR-1401 / FR-1402 — la escalera sobre la pantalla real (EP-02)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
+/**
+ * El orden de la cascada tras FR-1810 (feature techo-de-flujo): DIEZ filas en tres bloques.
+ *
+ * REVOCA el conjunto de ocho que fijaba esta suite. El usuario declaró el módulo ilegible, pidió la
+ * lectura contable y eligió estos rótulos; «Retiros del mes» salió de la cascada (su reflejo aquí es
+ * «Retiros de reservas» y la fila OPERABLE vive en el segmento de Reservas con su propio testid).
+ * Lo que esta suite protege —que el ORDEN siga la aritmética y que la sangría lo transporte— sigue
+ * intacto y es lo que se comprueba abajo.
+ */
 const ORDEN_ESPERADO = [
-  "Flujo del mes",
+  "Ingresos",
+  "Gastos",
+  "Resultado del mes",
+  "Saldo del mes anterior",
+  "Resultado del mes",
   "Reservas del mes",
-  "Retiros del mes",
-  "Disponible del mes",
-  "Saldo mes anterior",
+  "Retiros de reservas",
   "Saldo disponible",
   "Saldo reservado",
   "Saldo total",
@@ -371,12 +398,11 @@ const labelTexts = (page: Page) =>
 
 test.describe("FR-1401 — el orden renderizado sigue la aritmética", () => {
   // @aitri-tc TC-BJE-002h
-  test("TC-BJE-002h: ocho filas, las mismas ocho etiquetas, en el orden de la cascada", async ({ page }) => {
+  test("TC-BJE-002h: las filas declaradas, con sus etiquetas, en el orden de la cascada", async ({ page }) => {
     await goto(page, POSITIVE, "light");
     const textos = await labelTexts(page);
     expect(textos).toEqual(ORDEN_ESPERADO);
-    // El conjunto NO cambia: no se añadió ni se quitó ninguna fila (no_go_zone del usuario).
-    expect(textos).toHaveLength(8);
+    expect(textos).toHaveLength(10);
   });
 
   // @aitri-tc TC-BJE-002f
@@ -385,7 +411,7 @@ test.describe("FR-1401 — el orden renderizado sigue la aritmética", () => {
     // Si alguna fila desapareciera en los meses vacíos, el layout se movería entre meses y la
     // lectura vertical de la cascada se rompería.
     expect(await labelTexts(page)).toEqual(ORDEN_ESPERADO);
-    await expect(page.getByTestId("balance-row")).toHaveCount(8);
+    await expect(page.getByTestId("balance-row")).toHaveCount(10);
   });
 
   // @aitri-tc TC-BJE-013h
@@ -409,13 +435,14 @@ test.describe("FR-1402 — la sangría renderizada", () => {
     );
 
   // @aitri-tc TC-BJE-004h
-  test("TC-BJE-004h: a 1440 px el paddingLeft es 14 + nivel*16, con cuatro valores distintos", async ({ page }) => {
+  test("TC-BJE-004h: a 1440 px el paddingLeft es 14 + nivel*16, con cinco valores distintos", async ({ page }) => {
     await goto(page, POSITIVE, "light");
     const pads = await paddings(page);
     // Es literalmente la fórmula del árbol de la grilla (BudgetGrid.tsx: 14 + depth * 16).
-    expect(pads).toEqual([62, 62, 62, 46, 46, 30, 30, 14]);
-    // CUATRO niveles, porque la cascada tiene tres eslabones.
-    expect(new Set(pads).size).toBe(4);
+    expect(pads).toEqual([78, 78, 62, 46, 46, 46, 46, 30, 30, 14]);
+    // CINCO niveles desde FR-1810: «Resultado del mes» necesita un escalón PROPIO o los validadores
+    // de la cascada lo recogen como término ajeno de dos resultados distintos.
+    expect(new Set(pads).size).toBe(5);
   });
 
   // @aitri-tc TC-BJE-004e
@@ -424,12 +451,12 @@ test.describe("FR-1402 — la sangría renderizada", () => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await expect
       .poll(async () => (await paddings(page))[0], { timeout: 5000 })
-      .toBe(50);
+      .toBe(62); // nivel 4 con paso estrecho: 14 + 4*12
 
-    expect(await paddings(page)).toEqual([50, 50, 50, 38, 38, 26, 26, 14]);
-    // La sangría sigue siendo perceptible: 36 px de recorrido entre el nivel 0 y el 3.
+    expect(await paddings(page)).toEqual([62, 62, 50, 38, 38, 38, 38, 26, 26, 14]);
+    // La sangría sigue siendo perceptible: 48 px de recorrido entre el nivel 0 y el 4.
     const pads = await paddings(page);
-    expect(Math.max(...pads) - Math.min(...pads)).toBe(36);
+    expect(Math.max(...pads) - Math.min(...pads)).toBe(48);
 
     // Y cero truncamiento: la etiqueta más larga del nivel más profundo es "Reservas del mes".
     const truncadas = await page.getByTestId("balance-label").evaluateAll((els) =>
@@ -461,14 +488,21 @@ test.describe("NFR-1401 / NFR-1403 — el guardrail y el plegado", () => {
 
     // La comparación es por data-row, NO por posición — precisamente porque las posiciones cambiaron.
     // Valores derivados del fixture: ingreso 1.000.000, gasto 300.000, reserva 100.000 en 12 meses.
-    expect(vals.flow?.[0]).toBe("700.000"); // 1.000.000 − 300.000
-    expect(vals.reserved?.[0]).toBe("100.000");
-    expect(vals.monthAvailable?.[0]).toBe("600.000"); // flujo − reservas
-    expect(vals.available?.[0]).toBe("600.000"); // + saldo mes anterior (0 el primer mes)
+    // Claves actualizadas por FR-1810 (mismas cifras, filas renombradas y desdobladas):
+    //   flow → monthResult · reserved → toReserves · monthAvailable desapareció, y su papel lo
+    //   cumple «Saldo disponible» (available), que en el primer mes vale lo mismo porque no hay
+    //   saldo anterior que sumar. Ingresos y gastos, que antes se agregaban en `flow`, ahora se
+    //   publican por separado y se comprueban aquí.
+    expect(vals.income?.[0]).toBe("1.000.000");
+    expect(vals.expense?.[0]).toBe("300.000");
+    expect(vals.monthResult?.[0]).toBe("700.000"); // 1.000.000 − 300.000
+    expect(vals.toReserves?.[0]).toBe("100.000");
+    expect(vals.available?.[0]).toBe("600.000"); // resultado − reservas (sin saldo anterior)
     expect(vals.reservedBalance?.[0]).toBe("100.000");
     expect(vals.total?.[0]).toBe("700.000"); // disponible + reservado
-    // Siete filas con balance-cell (la de Retiros es operable y monta las suyas).
-    expect(Object.keys(vals).filter((k) => vals[k].length > 0)).toHaveLength(7);
+    // Las DIEZ filas del módulo montan `balance-cell`: desde FR-1810 la de Retiros salió de la
+    // cascada y lleva su propio testid, así que ya no se cuela en esta cuenta.
+    expect(Object.keys(vals).filter((k) => vals[k].length > 0)).toHaveLength(10);
   });
 
   // @aitri-tc TC-BJE-009e
@@ -498,23 +532,29 @@ test.describe("NFR-1401 / NFR-1403 — el guardrail y el plegado", () => {
     const vals = await valuesByRow(page);
     const num = (s: string) => Number(s.replace(/\./g, "").replace("−", "-")) || 0;
 
+    // Las tres identidades de la cascada tras FR-1810 — las MISMAS cuentas, sobre las filas nuevas.
     for (let col = 0; col < 6; col++) {
-      // Disponible del mes = Flujo − Reservas + Retiros(0 en este fixture)
-      expect(num(vals.monthAvailable[col])).toBe(num(vals.flow[col]) - num(vals.reserved[col]));
-      // Saldo disponible = Saldo mes anterior + Disponible del mes
-      expect(num(vals.available[col])).toBe(num(vals.prevAvailable[col]) + num(vals.monthAvailable[col]));
+      // Resultado del mes = Ingresos − Gastos
+      expect(num(vals.monthResult[col])).toBe(num(vals.income[col]) - num(vals.expense[col]));
+      // Saldo disponible = Saldo del mes anterior + Resultado − Reservas + Retiros
+      expect(num(vals.available[col])).toBe(
+        num(vals.prevAvailable[col]) + num(vals.monthResultCarry[col]) - num(vals.toReserves[col]) + num(vals.toWithdrawals[col]),
+      );
       // Saldo total = Saldo disponible + Saldo reservado
       expect(num(vals.total[col])).toBe(num(vals.available[col]) + num(vals.reservedBalance[col]));
+      // Y el reflejo: «Resultado del mes» vale lo mismo en sus dos apariciones (MIRROR).
+      expect(num(vals.monthResultCarry[col])).toBe(num(vals.monthResult[col]));
     }
   });
 
   // @aitri-tc TC-BJE-011h
   test("TC-BJE-011h: plegar por el chevron sigue ocultando exactamente Saldo reservado y Saldo total", async ({ page }) => {
     await goto(page, POSITIVE, "light");
-    await expect(page.getByTestId("balance-row")).toHaveCount(8);
+    // FR-1810: diez filas desplegadas; plegar la cola sigue ocultando EXACTAMENTE dos.
+    await expect(page.getByTestId("balance-row")).toHaveCount(10);
 
     await page.getByRole("button", { name: "Colapsar saldos" }).click();
-    await expect(page.getByTestId("balance-row")).toHaveCount(6);
+    await expect(page.getByTestId("balance-row")).toHaveCount(8);
     // Las MISMAS dos filas que antes de la feature: la vista plegada sigue terminando en
     // "cuánto puedo gastar", que es su razón de ser.
     const textos = await labelTexts(page);

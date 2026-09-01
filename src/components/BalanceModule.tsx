@@ -208,15 +208,13 @@ function BalanceCell({ spec, value, sep, rule, active }: { spec: RowSpec; value:
         // porcentaje— lo hunde por debajo de AA (4,01:1 al 8%). Elevarlo lo deja en 5,60:1: la
         // columna que el usuario está mirando se lee MEJOR, no peor. Es la razón por la que este
         // módulo no seguía el resaltado; con esto ya puede (FR-1805/AC-1828).
-        color: !value
-          ? ceroExplicito
-            ? "var(--fg-secondary)" // DATO, no ausencia: se lee — pero un cero repetido en diez
-              // meses sin actividad no debe pesar como una cifra con contenido, así que se queda un
-              // escalón por debajo del negro pleno de los resultados con valor.
-            : active
-              ? "var(--fg-secondary)"
-              : "var(--fg-muted)"
-          : balanceColor(spec, value),
+        // El COLOR de una celda en cero no cambia con FR-1810 — sigue la regla vigente (neutro
+        // atenuado, elevado en la columna activa por contraste AA). Lo que cambia es el TEXTO: un
+        // resultado en cero muestra «0» y no el guion, porque el guion se leía como «sin datos»
+        // (queja del usuario) cuando la respuesta de la fila era justamente cero. Pintarlo además
+        // más oscuro era una calibración mía que contradecía TC-RSP-011e, y el dígito ya resuelve
+        // el problema por sí solo.
+        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : balanceColor(spec, value),
         fontWeight: spec.weight,
       }}
     >
@@ -260,9 +258,10 @@ function HeaderTotalCell({ value, sep, active }: { value: number; sep?: boolean;
         // Plegar debe RESUMIR, no perder la señal: un total negativo conserva aquí sus tres
         // canales (color, signo y glifo), igual que desplegado.
         background: active ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined,
-        // Plegado RESUME la fila «Saldo disponible», que pinta su cero explícito — resumirla con el
-        // guion de «sin datos» contradecía a la fila que resume (auditoría 2026-09-01).
-        color: !value ? "var(--fg-secondary)" : exceptionColor(value, { alarms: true }),
+        // Plegado RESUME la fila «Saldo disponible», así que muestra su mismo «0» explícito —
+        // resumirla con el guion de «sin datos» contradecía a la fila que resume. El color no
+        // cambia: neutro atenuado, como fija TC-RSP-011e.
+        color: !value ? (active ? "var(--fg-secondary)" : "var(--fg-muted)") : exceptionColor(value, { alarms: true }),
         fontWeight: 600,
       }}
     >
@@ -586,9 +585,17 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null
   const spec = RETIROS_ROW;
   const narrow = useNarrowIndent();
   return (
-    <div className="flex" data-testid="balance-row" data-row="retiros">
+    // `retiros-row` y NO `balance-row`: desde FR-1810 esta fila NO pertenece al Balance — vive en
+    // el segmento de Reservas y su cifra no entra en ninguna de sus cuentas. Conservar el testid
+    // del Balance la colaba en todo lo que cuenta o enumera filas del módulo, que es un modo de
+    // fallo silencioso: un test podía creer que verificaba el Balance y estar midiendo una fila
+    // ajena. Su reflejo de solo lectura DENTRO del Balance es «Retiros de reservas».
+    <div className="flex" data-testid="retiros-row" data-row="retiros">
       <div
-        data-testid="balance-label"
+        // `retiros-label` por la misma razón que `retiros-row`: esta fila no pertenece al Balance,
+        // y con el testid del módulo se colaba en TODO lo que enumera sus etiquetas o mide sus
+        // sangrías — un test podía creer que verificaba la cascada y estar contando una fila ajena.
+        data-testid="retiros-label"
         // Esta fila CIERRA la tarjeta de Reservas (FR-1805): su rótulo redondea la esquina.
         className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pr-2.5 rounded-bl-(--radius-md)")}
         style={{

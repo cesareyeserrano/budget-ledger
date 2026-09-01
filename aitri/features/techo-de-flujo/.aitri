@@ -17,24 +17,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-01T19:16:56.291Z",
+  "updatedAt": "2026-09-01T20:33:23.217Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T03:40:47.029Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-01T03:40:47.149Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-01T15:59:54.892Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-09-01T15:59:54.962Z",
       "event": "approved",
@@ -127,6 +112,25 @@
       "failed": 0,
       "skipped": 34,
       "manual": 0
+    },
+    {
+      "at": "2026-09-01T20:07:40.931Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T20:07:41.096Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-01T20:33:23.182Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 50,
+      "failed": 0,
+      "skipped": 28,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -134,7 +138,7 @@
     "1": "b77049544d3b251c8296fb10c56e357f57d33374e7eb7657f685253afffbdb59",
     "2": "6195829a49cc74af0c0183000d5a6e0be6071d4eb3565da12b273ddbbfaf9a26",
     "3": "7f41fe0f400b1541d9b8a032cfa93db0f4f940e6537a9b43b538dbe751a444cc",
-    "4": "8bf3d6af91908c3b024603c1f1883ae1c29a0189577617fc5d52ff0c41b66006",
+    "4": "0ae42fcd80a592e145e2e130517a3f0759da59e36d01f41ccc3da236642860e8",
     "ux": "81a35e341fed43c7bf2a474e2ddb8214a7574102faf0bc9b190fea2b83cf9e16"
   },
   "frSnapshots": {
@@ -188,15 +192,15 @@
     ]
   },
   "verifyPassed": false,
-  "verifyRanRef": "b2d8e026880ba4d9501a360ab08bbb42fbc43f9d",
+  "verifyRanRef": "bf31d38db944288c83f9baef54d509b09f178204",
   "verifyRanDirty": false,
-  "verifyResultsHash": "46eb5158760be9bcf7ccdf281945b136af7ce95b45df0ae8abe887a070f74b4f",
-  "verifyRanAt": "2026-09-01T19:16:56.043Z",
+  "verifyResultsHash": "1844f9babbf6818451ed2f265a2f96f0b4619e3be875e326061fe5db7be2e936",
+  "verifyRanAt": "2026-09-01T20:33:23.066Z",
   "lastVerifyRun": {
-    "passed": 44,
+    "passed": 50,
     "failed": 0,
-    "skipped": 34,
+    "skipped": 28,
     "manual": 0,
-    "at": "2026-09-01T19:16:56.043Z"
+    "at": "2026-09-01T20:33:23.066Z"
   }
 }

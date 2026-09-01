@@ -59,7 +59,11 @@ test.describe("FR-1005 — el registro opera Reservas con De→A", () => {
     await expect(guide).toContainText("$150.000");
 
     await page.getByTestId("de-@disponible").click();
-    await expect(guide).toContainText("Margen del mes");
+    // El rótulo pasó de «Margen del mes» a «Cupo del mes» (auditoría 2026-09-01): el margen es la
+    // cifra BRUTA del mes y prometía plata que el dominio rechazaba; el cupo es lo que de verdad
+    // queda por reservar, y es el mismo número que usa el rechazo. La aserción sigue exigiendo la
+    // cifra exacta.
+    await expect(guide).toContainText("Cupo del mes");
     await expect(guide).toContainText("$150.000"); // 500k − 150k − 200k ya aportados
   });
 

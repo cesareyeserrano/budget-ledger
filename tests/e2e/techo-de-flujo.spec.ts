@@ -118,7 +118,7 @@ test.describe("FR-1805 · la grilla en tres bloques", () => {
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
-    const retiros = page.locator('[data-testid="balance-row"][data-row="retiros"]');
+    const retiros = page.getByTestId("retiros-row");
     await expect(retiros).toHaveCount(1);
 
     // Vive entre las Reservas y el Balance — el traslado que pidió el usuario (BL-019).

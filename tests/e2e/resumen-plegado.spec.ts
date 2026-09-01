@@ -245,7 +245,9 @@ test("TC-RSP-006h: desplegar devuelve la escalera intacta con su cierre en Saldo
   await page.getByLabel("Expandir balance").click();
 
   const filas = await filasVisibles(page);
-  expect(filas).toHaveLength(8);
+  // FR-1810 reestructuró el módulo: de ocho filas planas a DIEZ en tres bloques. La escalera sigue
+  // cerrando en «Saldo total», que es lo que este TC protege.
+  expect(filas).toHaveLength(10);
   expect(filas[filas.length - 1]).toBe("total");
   expect(await readRow(page, "total", ENE, "actual")).toBe(700_000);
 });
@@ -323,11 +325,14 @@ test("TC-RSP-013h: contraste ≥4.5:1 de la cifra plegada en claro y en oscuro, 
 
 // ── NFR-1501 · regresión: el módulo desplegado y su plegado en dos niveles ─────────────────────
 
-test("TC-RSP-020h: el módulo desplegado conserva sus ocho filas, en orden, cerrando en Saldo total", async ({ page }) => {
+test("TC-RSP-020h: el módulo desplegado conserva sus filas, en orden, cerrando en Saldo total", async ({ page }) => {
   // @aitri-tc TC-RSP-020h
+  // FR-1810: diez filas en tres bloques (el mes · lo disponible · el cierre). «retiros» ya no está
+  // en la lista porque salió de la cascada del Balance — su reflejo aquí es «toWithdrawals», y la
+  // fila OPERABLE vive en el segmento de Reservas con su propio testid.
   await gotoGrid(page, RSP);
   expect(await filasVisibles(page)).toEqual([
-    "flow", "reserved", "retiros", "monthAvailable", "prevAvailable", "available", "reservedBalance", "total",
+    "income", "expense", "monthResult", "prevAvailable", "monthResultCarry", "toReserves", "toWithdrawals", "available", "reservedBalance", "total",
   ]);
 });
 
@@ -337,7 +342,7 @@ test("TC-RSP-021e: el chevron interno sigue ocultando exactamente Saldo reservad
   await page.getByLabel("Colapsar saldos").click();
 
   expect(await filasVisibles(page)).toEqual([
-    "flow", "reserved", "retiros", "monthAvailable", "prevAvailable", "available",
+    "income", "expense", "monthResult", "prevAvailable", "monthResultCarry", "toReserves", "toWithdrawals", "available",
   ]);
   await expect(balRow(page, "reservedBalance")).toHaveCount(0);
   await expect(balRow(page, "total")).toHaveCount(0);
@@ -352,7 +357,7 @@ test("TC-RSP-022f: el estado plegado no se persiste — recargar devuelve el mó
   await page.reload();
   await expect(page.getByTestId("balance-module")).toBeVisible();
 
-  expect(await filasVisibles(page)).toHaveLength(8);
+  expect(await filasVisibles(page)).toHaveLength(10);
   const claves = await page.evaluate(() => Object.keys(localStorage));
   expect(claves.filter((k) => /balance|plegad|collapse/i.test(k))).toEqual([]);
 });
@@ -365,6 +370,8 @@ test("TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y nin
   await plegar(page);
 
   await expect(headerCells(page)).toHaveCount(MONTH_KEYS.length * 2);
+  // `balance-row` cuenta SOLO las filas del módulo: la fila operable de retiros vive en el segmento
+  // de Reservas y lleva su propio testid desde FR-1810 (antes compartía éste y se colaba aquí).
   await expect(page.getByTestId("balance-row")).toHaveCount(0);
 });
 

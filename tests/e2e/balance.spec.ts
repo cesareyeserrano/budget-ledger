@@ -261,14 +261,14 @@ test("TC-BAL-908e: promover a grupo recompone el balance sin quedar obsoleto", a
   await gotoGrid(page, POSITIVE);
 
   const totalBefore = await readBal(page, "total", PLAIN.index, "actual");
-  const flowBefore = await readBal(page, "flow", PLAIN.index, "actual");
+  const flowBefore = await readBal(page, "monthResult", PLAIN.index, "actual");
 
   await drag(page, rowByName(page, "Transporte").getByTestId("row-label"), typeLabel(page, /GASTOS/));
   await expect(rowByName(page, "Transporte")).toHaveAttribute("data-level", "group");
 
   // el balance sigue coherente con los roll-ups de la NUEVA jerarquía: promover no crea ni pierde
   // plata, así que las cifras se conservan — y ninguna queda con un valor obsoleto
-  await expect.poll(async () => readBal(page, "flow", PLAIN.index, "actual")).toBe(flowBefore);
+  await expect.poll(async () => readBal(page, "monthResult", PLAIN.index, "actual")).toBe(flowBefore);
   expect(await readBal(page, "total", PLAIN.index, "actual")).toBe(totalBefore);
 
   // el módulo sigue vivo tras la reestructuración: una edición posterior lo mueve.
@@ -314,7 +314,9 @@ test("TC-BAL-953e: las filas del balance no muestran la marca de sobre-consumo d
 
   const cells = page.getByTestId("balance-module").getByTestId("balance-cell");
   const count = await cells.count();
-  expect(count).toBe(7 * 12 * 2); // siete filas × doce meses × dos planos (FR-1009: +«Retiros del mes»)
+  // FR-1810: DIEZ filas del módulo, todas con `balance-cell` — la operable de retiros salió de
+  // la cascada y ya no lleva el testid del Balance.
+  expect(count).toBe(10 * 12 * 2);
 
   const texts = await cells.allTextContents();
   for (const t of texts) {
@@ -395,7 +397,7 @@ test("TC-BAL-956h: el módulo usa la superficie y tipografía existentes (sin to
   await gotoGrid(page, POSITIVE);
 
   // superficie hundida, la misma que las filas NO editables de la grilla (mes sin resaltar)
-  const cell = balCell(balRow(page, "flow"), PLAIN.index, "actual");
+  const cell = balCell(balRow(page, "monthResult"), PLAIN.index, "actual");
   expect(await bgOf(cell)).toBe(BG_SUNKEN);
   // se compara contra el MISMO mes sin resaltar: la columna filtrada lleva un tinte encima
   const typeRowCell = page.getByTestId("type-total-row").first().getByTestId("cell-parent").nth(PLAIN.index * 2);
@@ -407,7 +409,9 @@ test("TC-BAL-956h: el módulo usa la superficie y tipografía existentes (sin to
   expect((await fontOf(cell)).toLowerCase()).toContain("mono");
 
   // los colores usados son los tokens existentes, ninguno inventado
-  expect(await colorOf(balCell(balRow(page, "flow"), PLAIN.index, "actual"))).toBe(FG_SECONDARY);
+  // Se mide sobre una fila de INSUMO: los resultados van en `--fg` pleno por su tono, y tras
+  // FR-1810 `monthResult` es un resultado. «Ingresos» conserva el tono de insumo.
+  expect(await colorOf(balCell(balRow(page, "income"), PLAIN.index, "actual"))).toBe(FG_SECONDARY);
   expect(await colorOf(balCell(balRow(page, "reservedBalance"), PLAIN.index, "actual"))).toBe(TRANSFER);
   // balance-jerarquia FR-1403 (ADR-02): el bottom-line era --success-strong y pasa a neutro pleno.
   // Sigue siendo un token EXISTENTE del producto, que es lo que este TC vigila: cero inventados.
@@ -426,7 +430,7 @@ test("TC-BAL-956e: las cifras del balance cumplen contraste AA sobre --bg-sunken
     const p = await ctx.newPage();
     await gotoGrid(p, POSITIVE, scheme);
     for (const [role, key] of [
-      ["fg-secondary", "flow"],
+      ["fg-secondary", "income"],
       ["transfer", "reservedBalance"],
       ["success-strong", "total"],
     ] as const) {
@@ -459,7 +463,7 @@ test("TC-BAL-956f: el módulo no introduce una altura de fila fuera de la escala
   const gridRowHeight = await heightOf(gridEjec(rowByName(page, "Mercado"), PLAIN.index));
 
   // filas de insumo: exactamente la altura de una fila de la grilla
-  for (const key of ["prevAvailable", "flow", "reserved", "reservedBalance"]) {
+  for (const key of ["prevAvailable", "monthResult", "toReserves", "reservedBalance"]) {
     const h = await heightOf(balCell(balRow(page, key), PLAIN.index, "actual"));
     expect(h, `fila ${key}: ${h}px vs grilla ${gridRowHeight}px`).toBe(gridRowHeight);
   }
@@ -481,9 +485,11 @@ test("TC-BAL-904h: el módulo de Balance tiene una separación visual propia", a
 
   const boxOf = async (l: Locator) => (await l.boundingBox())!;
 
-  const sep = page.getByTestId("balance-separator");
-  await expect(sep).toHaveCount(1);
-  const sepBox = await boxOf(sep);
+  // FR-1805 (feature techo-de-flujo) sustituyó el separador PROPIO del módulo por el hueco entre
+  // TARJETAS: aquel era una franja de 32px DENTRO de la tarjeta del Balance y dejaba una banda
+  // vacía. Lo que este TC protege —que el Balance esté visiblemente separado de lo de arriba— sigue
+  // vigente y se mide igual, sobre el espacio real en pantalla.
+  await expect(page.getByTestId("balance-separator")).toHaveCount(0);
   const header = await boxOf(page.getByTestId("balance-header"));
 
   // espaciado entre dos filas CONTIGUAS de la grilla: la última fila del grupo Esenciales
@@ -493,10 +499,12 @@ test("TC-BAL-904h: el módulo de Balance tiene una separación visual propia", a
   const gapEntreFilas = ocio.y - (transporte.y + transporte.height);
   expect(gapEntreFilas, "las filas de la grilla son contiguas").toBeLessThan(4);
 
-  expect(sepBox.height, "el separador del balance debe medir ~32px").toBeGreaterThanOrEqual(24);
-  expect(sepBox.height).toBeGreaterThan(gapEntreFilas); // ESTRICTAMENTE mayor
-  // y está donde debe: justo encima del encabezado BALANCE
-  expect(sepBox.y + sepBox.height).toBeLessThanOrEqual(header.y + 1);
+  // El hueco ANTES del encabezado BALANCE: la última fila del bloque de Reservas es «Retiros del
+  // mes», que cierra su tarjeta.
+  const retiros = await boxOf(page.getByTestId("retiros-row"));
+  const separacion = header.y - (retiros.y + retiros.height);
+  expect(separacion, "el Balance debe separarse del bloque de Reservas").toBeGreaterThanOrEqual(16);
+  expect(separacion).toBeGreaterThan(gapEntreFilas); // ESTRICTAMENTE mayor
 });
 
 test("TC-BAL-904e: los tres tipos quedan contiguos y los datos intactos", async ({ page }) => {
@@ -518,7 +526,11 @@ test("TC-BAL-904e: los tres tipos quedan contiguos y los datos intactos", async 
   const ultimoGasto = await boxOf(rowByName(page, "Cine").getByTestId("row-label"));
   const filaReservas = await boxOf(typeLabel(page, /RESERVAS/));
   const gap = filaReservas.y - (ultimoGasto.y + ultimoGasto.height);
-  expect(gap, `GASTOS y RESERVAS deben ser contiguos (gap ${gap}px)`).toBeLessThan(4);
+  // REVOCADO por FR-1805 (boceto del propio usuario): «hay que sacar reservas de ese segmento y
+  // separarlo». Antes se exigía contigüidad; ahora se exige lo contrario, y con la misma dureza —
+  // el hueco tiene que ser mayor que el que separa dos filas cualesquiera de la grilla.
+  const gapEntreFilasGrilla = 4;
+  expect(gap, `GASTOS y RESERVAS deben estar SEPARADOS (gap ${gap}px)`).toBeGreaterThan(gapEntreFilasGrilla);
 
   // y los totales por tipo no cambiaron: la separación era solo visual
   const totalGastos = await gridCells(page.getByTestId("type-total-row").filter({ hasText: "GASTOS" })).nth(PLAIN.index * 2).textContent();
@@ -632,7 +644,7 @@ test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo dispo
 test("TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo", async ({ page }) => {
   // @aitri-tc TC-BAL-909e
   await gotoGrid(page, POSITIVE);
-  expect(await filasVisibles(page)).toHaveLength(8); // FR-1009: +«Retiros del mes» y «Disponible del mes»
+  expect(await filasVisibles(page)).toHaveLength(10); // FR-1810: la lectura en tres bloques
 
   await page.getByLabel("Colapsar saldos").click();
 
@@ -640,7 +652,9 @@ test("TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo"
   // filas de abajo, ni una más ni una menos— pero enumeraba el orden en línea, y el orden ahora
   // sigue la cascada: `prevAvailable` pasó del primer puesto al quinto, junto a `monthAvailable`,
   // porque los dos son sumandos de `Saldo disponible`.
-  expect(await filasVisibles(page)).toEqual(["flow", "reserved", "retiros", "monthAvailable", "prevAvailable", "available"]);
+  expect(await filasVisibles(page)).toEqual([
+    "income", "expense", "monthResult", "prevAvailable", "monthResultCarry", "toReserves", "toWithdrawals", "available",
+  ]);
   await expect(balRow(page, "reservedBalance")).toHaveCount(0);
   await expect(balRow(page, "total")).toHaveCount(0);
 });
@@ -652,12 +666,12 @@ test("TC-BAL-909f: el chevron de Saldo disponible NO oculta ninguna fila de arri
   await page.getByLabel("Colapsar saldos").click();
 
   // el defecto que este test existe para impedir: plegar hacia ARRIBA, ocultando los insumos
-  for (const key of ["prevAvailable", "flow", "reserved", "retiros", "monthAvailable"]) {
+  for (const key of ["prevAvailable", "income", "expense", "monthResult", "toReserves"]) {
     await expect(balRow(page, key), `el insumo ${key} no puede ocultarse`).toHaveCount(1);
   }
-  // y el ciclo es reversible: volver a abrir restituye las ocho
+  // y el ciclo es reversible: volver a abrir restituye las diez
   await page.getByLabel("Expandir saldos").click();
-  expect(await filasVisibles(page)).toHaveLength(8);
+  expect(await filasVisibles(page)).toHaveLength(10);
 });
 
 // ══ FR-910 · orden de los bloques ══════════════════════════════════════════════════════════════
@@ -700,7 +714,7 @@ test("TC-BAL-911h: el bloque de tipo transfer se rotula RESERVAS", async ({ page
   await expect(fila.getByTestId("row-label")).toContainText("RESERVAS");
 
   // la misma palabra que usa el balance: grilla y balance hablan igual
-  await expect(balRow(page, "reserved").getByTestId("balance-label")).toContainText("Reservas del mes");
+  await expect(balRow(page, "toReserves").getByTestId("balance-label")).toContainText("Reservas del mes");
   await expect(balRow(page, "reservedBalance").getByTestId("balance-label")).toContainText("Saldo reservado");
 });
 
