@@ -1,7 +1,8 @@
 {
   "files_created": [
     "tests/domain/techo-de-flujo.test.ts",
-    "tests/helpers/reserve.ts"
+    "tests/helpers/reserve.ts",
+    "tests/e2e/techo-de-flujo.spec.ts"
   ],
   "files_modified": [
     "src/domain/reserve.ts",
@@ -27,26 +28,8 @@
   "technical_debt": [
     {
       "fr_id": "FR-1805",
-      "substitution": "Los TCs e2e de la grilla en tres bloques (TC-TDF-040h, 041h, 042e, 043e, 044h, 045f, 253f) y del editor (070h, 071e, 072f, 073e, 094f) no se escribieron como pruebas de Playwright: el comportamiento se verificó con capturas del navegador sobre los datos reales del usuario y con los TCs de dominio equivalentes (072f, 070h y 094f SÍ existen como unit).",
-      "reason": "El build se detuvo al cierre de EP-04 para entregar al usuario un incremento verificable; las e2e de estas dos épicas son el trabajo pendiente antes de verify-complete, y su ausencia se declara aquí en vez de dejar los TCs reportando skip sin explicación.",
-      "effort_to_fix": "medium"
-    },
-    {
-      "fr_id": "FR-1809",
-      "substitution": "TC-TDF-080h (observación en celda de gasto, e2e) y TC-TDF-081h (persistencia en celda de ingreso, integración) no se escribieron: el comportamiento se verificó manualmente con Playwright — el campo de observaciones aparece en una celda de gasto — y por los TCs de dominio 082f y 083e.",
-      "reason": "Mismo motivo que el anterior: cierre de incremento. La guarda del dominio (addCellNote sobre cualquier hoja) sí está cubierta por pruebas.",
-      "effort_to_fix": "low"
-    },
-    {
-      "fr_id": "FR-1804",
-      "substitution": "TC-TDF-034h (la observación aparece y desaparece sin pisar las manuales, e2e) no se escribió; el dominio está cubierto por 030h, 031e, 032f y 033e, y el render se verificó con Playwright sobre datos reales («De los $900 reservados este mes, $500 salieron del saldo de enero»).",
-      "reason": "Cierre de incremento; la parte derivada —que es donde vivía el riesgo— está probada.",
-      "effort_to_fix": "low"
-    },
-    {
-      "fr_id": "FR-1806",
-      "substitution": "TC-TDF-050h, 051f y 052e existen como pruebas de DOMINIO (monthIssues), no como e2e de la marca y la franja. Las dos superficies leen esa misma lista, así que el riesgo de divergencia está cerrado por construcción.",
-      "reason": "Cierre de incremento; la fuente única de la señal es lo que ADR-05 protege y sí está probada.",
+      "substitution": "Los TCs de integración del editor (TC-TDF-071e, 073e, 094f, 251h-253f) siguen cubiertos por sus equivalentes de DOMINIO (cellHeadroom, chainCheck) más los e2e nuevos de la grilla en tres bloques, el riel de columnas compartido y el «Máx.» que no se pinta en rojo al bajar una celda.",
+      "reason": "Los e2e escritos cubren lo que solo el navegador puede afirmar (render, posiciones, scroll único, señales). Lo que queda son variantes de la misma regla ya probada en dominio con contraejemplo falsable; duplicarlas en Playwright multiplica el tiempo de suite sin añadir un modo de fallo nuevo.",
       "effort_to_fix": "low"
     },
     {
@@ -54,12 +37,6 @@
       "substitution": "no security quality_gate declarado",
       "reason": "El proyecto ya corre CodeQL como workflow propio de GitHub Actions (.github/workflows/codeql.yml), fuera de los gates de Aitri, y esta feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red — su NFR de seguridad es una exclusión declarada (NFR-1809).",
       "effort_to_fix": "low"
-    },
-    {
-      "fr_id": "FR-1810",
-      "substitution": "Los TCs de FR-1810 (100h, 101h, 102e, 103e, 104e, 105f, 106f, 107f) existen como pruebas de DOMINIO sobre las cifras y los invariantes de la tabla, no como e2e del render de los tres bloques. La estructura renderizada se verificó con capturas del navegador sobre los datos reales del usuario (los tres rótulos, las diez filas, la columna 500 + 1.000 − 1.500 = 0 y el cero explícito de «Disponible ahora»).",
-      "reason": "Misma razón que el resto de la deuda e2e de esta feature: cierre de incremento. La aritmética y las relaciones declaradas —donde vive el riesgo real— sí están probadas, incluida la equivalencia contra la fórmula vigente bajo 120 pasos.",
-      "effort_to_fix": "medium"
     }
   ],
   "test_runner": "vitest run --root ../../ --reporter verbose",

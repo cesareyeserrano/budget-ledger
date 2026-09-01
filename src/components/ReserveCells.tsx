@@ -309,8 +309,14 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Mon
           placeholder="Añadir observación"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            e.stopPropagation(); // el Enter de la nota no comitea la celda
-            if (e.key === "Enter" && canAdd && addNote(leafId, month, draft)) setDraft("");
+            // Solo el ENTER se retiene: es el que, si burbujeara, cometería la celda al añadir una
+            // observación. Escape SÍ debe subir — el UX spec declara «Esc cierra sin guardar» para
+            // esta sección, y reteniéndolo el editor quedaba abierto sin forma de cerrarlo con
+            // teclado desde el campo de la nota.
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              if (canAdd && addNote(leafId, month, draft)) setDraft("");
+            }
           }}
           className="w-full bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent"
         />

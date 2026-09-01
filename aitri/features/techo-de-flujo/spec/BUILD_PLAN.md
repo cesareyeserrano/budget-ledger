@@ -281,3 +281,31 @@ derivado no avisa), BG-020 (retiro planeado huérfano → reservado presupuestad
 BG-021 (sin tope de monto: pérdida de precisión >2^53 y 500 en vez de 422), BG-022 (cuatro flecos:
 parseAmount laxo, seq del servidor, mes inválido runtime, setPlannedRetiro silencioso). Ninguno
 alcanzable desde la UI actual. BG-018 (rate-limit en tests) ya estaba registrado.
+
+## Evidencia — la deuda e2e saldada (2026-09-01)
+
+`tests/e2e/techo-de-flujo.spec.ts`: **13 TCs, todos en verde** contra el navegador real. Cubren lo
+que solo el navegador puede afirmar y el dominio no: los tres bloques renderizados y separados
+(medido por POSICIÓN, no por orden del DOM), el riel de columnas compartido y el scroll único
+(enero de Gastos, de Reservas y del Balance caen en la misma x y se mueven juntos), las diez filas
+del Balance con sus rótulos de la opción A, la columna del caso del usuario cerrando en 0 con la
+aserción de que **ningún −500 aparece en ninguna celda**, el negativo real con sus tres canales, el
+«Máx.» visible antes de teclear y flotando bajo el input, la marca del mes y la franja apareciendo
+JUNTAS (y ausentes las dos en un estado sano — el caso falsable), la observación en una celda de
+GASTO, y la nota automática solo en el bolsillo que reservó.
+
+**Tres defectos que las e2e destaparon y ningún test unitario veía:**
+- **El `Escape` no cerraba el editor desde el campo de observación.** Dos causas encadenadas: la
+  sección de notas detenía la propagación de TODAS las teclas (solo debía retener el Enter, que es
+  el que cometería la celda), y el `Escape` se atendía en el input del valor, no en el contenedor —
+  así que desde el campo hermano no llegaba nunca. El editor quedaba abierto sin salida por
+  teclado, contra el «Esc cierra sin guardar» que el UX spec declara para esa sección. Corregido en
+  las dos capas.
+- **Mi fixture omitía el retiro de enero** del caso del usuario. Sin él, febrero queda POR ENCIMA de
+  su techo y el estado es otro (marcado). Lo cazó la marca de error del encabezado apareciendo donde
+  el test esperaba una pantalla limpia — precisamente la señal de FR-1806 haciendo su trabajo.
+- **Los grupos de Reservas arrancan PLEGADOS** (AC-1820, decisión de esta misma feature), así que
+  las filas de bolsillo no existen hasta desplegarlas. El helper `desplegarReservas` lo hace
+  explícito en vez de esconderlo.
+
+Suite unitaria tras los arreglos: **570 pasan, 0 fallan**. typecheck y lint limpios.

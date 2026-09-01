@@ -604,7 +604,16 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
   const rootRef = useRef<HTMLDivElement>(null);
   if (props.editing) {
     return (
-      <div ref={rootRef} className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
+      <div
+        ref={rootRef}
+        // El Escape se atiende en el CONTENEDOR y no solo en el input del valor: el editor incluye
+        // el panel de observaciones (FR-1809), y desde su campo la tecla nunca alcanzaba al input
+        // hermano — el editor quedaba abierto sin salida por teclado, contra el «Esc cierra sin
+        // guardar» que declara el UX spec para esa sección.
+        onKeyDown={(e) => { if (e.key === "Escape") props.cancel(); }}
+        className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")}
+        style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}
+      >
         <input
           autoFocus
           aria-label="Editar valor"
