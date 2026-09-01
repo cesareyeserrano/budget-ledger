@@ -323,7 +323,15 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             a propósito: Balance pesa igual que los otros, pero NO es un tipo de movimiento. */}
         <div
           data-testid="balance-header"
-          className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border border-t border-t-border-strong pl-3.5 pr-2.5 gap-2 font-semibold")}
+          // La tarjeta del Balance empieza (y, plegada, también termina) en esta fila: las
+          // esquinas se declaran aquí porque el envoltorio del módulo hace que los selectores
+          // first/last-child de la tarjeta no lleguen a las celdas.
+          className={cn(
+            STICKY_BASE,
+            LABEL_W,
+            "bg-sunken border-b border-border border-t border-t-border-strong pl-3.5 pr-2.5 gap-2 font-semibold rounded-tl-(--radius-md)",
+            visible.length === 0 && "rounded-bl-(--radius-md)"
+          )}
           style={{ color: "var(--fg)" }}
         >
           <button
@@ -363,7 +371,7 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
         )}
       </div>
 
-      {visible.map((spec) => {
+      {visible.map((spec, idx) => {
         const op = spec.op;
         const rule = spec.rule;
         return (
@@ -375,7 +383,10 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
               LABEL_W,
               "bg-sunken border-b border-border pr-2.5",
               rule && RULE[rule],
-              spec.bottomLine && "label"
+              spec.bottomLine && "label",
+              // La última fila visible cierra la tarjeta — sea «Saldo total» o, con la cola
+              // plegada, «Saldo disponible».
+              idx === visible.length - 1 && "rounded-bl-(--radius-md)"
             )}
             style={{
               // FR-1402: la SANGRÍA es el canal que transporta la jerarquía. El `pl-3.5` fijo que
@@ -553,7 +564,8 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null
     <div className="flex" data-testid="balance-row" data-row="retiros">
       <div
         data-testid="balance-label"
-        className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pr-2.5")}
+        // Esta fila CIERRA la tarjeta de Reservas (FR-1805): su rótulo redondea la esquina.
+        className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pr-2.5 rounded-bl-(--radius-md)")}
         style={{
           paddingLeft: indentFor(spec.level, narrow),
           color: "var(--fg-secondary)",

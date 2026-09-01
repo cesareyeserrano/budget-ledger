@@ -41,8 +41,12 @@ import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
  */
 const SEGMENT = [
   "rounded-(--radius-md) border border-border bg-card shadow-[var(--shadow-sm)]",
-  "[&>*:first-child>*:first-child]:rounded-tl-(--radius-md)",
-  "[&>*:last-child>*:first-child]:rounded-bl-(--radius-md)",
+  // Las esquinas de las CELDAS del rincón no se pueden cazar con selectores first/last-child:
+  // cada tipo de fila anida distinto (TypeTotalRow es plano, NodeRow lleva un envoltorio flex-col
+  // y el Balance va entero dentro de su propio div), así que el selector acertaba solo a veces —
+  // la esquina salía redonda con GASTOS plegado y cuadrada al desplegarlo. El redondeo lo declara
+  // ahora cada fila sobre su celda de rótulo (prop `roundBottom` / clase directa), que es quien
+  // sabe si es la última de su tarjeta.
 ].join(" ");
 
 const TYPE_ORDER: { id: NodeType; label: string; Icon: typeof ArrowLeft }[] = [
@@ -255,8 +259,9 @@ export function BudgetGrid() {
   }
   const dragNode = dragId ? data.nodes.find((n) => n.id === dragId) ?? null : null;
 
-  /** Render de una fila del árbol — compartido por los dos segmentos de la grilla. */
-  function renderRow(row: Row, i: number) {
+  /** Render de una fila del árbol — compartido por los dos segmentos de la grilla.
+   *  `isLast` = última fila de SU tarjeta: su rótulo redondea la esquina inferior izquierda. */
+  function renderRow(row: Row, i: number, isLast: boolean) {
     if (row.node === null) {
       const t = TYPE_ORDER.find((x) => x.id === row.type)!;
       // FR-904/banda: filete fuerte al inicio de cada bloque de tipo. El primero de cada segmento
@@ -273,6 +278,8 @@ export function BudgetGrid() {
             onToggle={() => toggle(`type:${row.type}`)}
             onAddGroup={() => onAddGroup(row.type)}
             bandTop={i > 0}
+            roundTop={i === 0}
+            roundBottom={isLast}
           />
         </Fragment>
       );
@@ -280,6 +287,7 @@ export function BudgetGrid() {
     return (
       <NodeRow
         key={row.node.id}
+        roundBottom={isLast}
         row={row}
         editing={editing}
         editVal={editVal}
@@ -370,13 +378,14 @@ export function BudgetGrid() {
               La separación es ESPACIO y forma, nunca color de categoría (regla de refinamiento-ui
               FR-1201: el color codifica estado). */}
           <div className={SEGMENT}>
-            {segmentoFlujo.map((row, i) => renderRow(row, i))}
+            {segmentoFlujo.map((row, i, arr) => renderRow(row, i, i === arr.length - 1))}
           </div>
 
           <div aria-hidden="true" style={{ height: "var(--spacing-6, 24px)" }} />
 
           <div className={SEGMENT}>
-            {segmentoReservas.map((row, i) => renderRow(row, i))}
+            {/* Ninguna fila del árbol es la última aquí: cierra la fila «Retiros del mes». */}
+            {segmentoReservas.map((row, i) => renderRow(row, i, false))}
             {/* FR-1805: la puerta para SACAR, al final del bloque y junto a los bolsillos. */}
             <RetirosRow highlightMonth={highlightMonth} />
           </div>
@@ -405,7 +414,7 @@ export function BudgetGrid() {
 }
 
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean }) {
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop, roundTop, roundBottom }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean; roundTop?: boolean; roundBottom?: boolean }) {
   const data = useLedgerStore((s) => s.data);
   // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
   // rechazó el hue de estructura al verlo ("prefiero blancos, color neutro"), así que la grilla
@@ -421,7 +430,7 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
       {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
           la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
           sobre-consumo de una celda de datos. */}
-      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
+      <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold", roundTop && "rounded-tl-(--radius-md)", roundBottom && "rounded-bl-(--radius-md)")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
         <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
         <Icon size={15} color={color} />
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
@@ -474,6 +483,8 @@ function NodeRow(props: {
   onDelete: () => void;
   onAddChild: () => void;
   planWarnMonths: Partial<Record<MonthKey, number>>;
+  /** Última fila de su tarjeta: el rótulo redondea la esquina inferior izquierda. */
+  roundBottom?: boolean;
 }) {
   const { row, naming } = props;
   const node = row.node!;
@@ -504,7 +515,7 @@ function NodeRow(props: {
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
           data-testid="row-label"
-          className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default")}
+          className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default", props.roundBottom && "rounded-bl-(--radius-md)")}
           style={{
             paddingLeft: 14 + row.depth * 16,
             // FR-404: la columna fija comparte la superficie de la fila — la estructura se distingue
