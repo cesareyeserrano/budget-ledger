@@ -102,21 +102,40 @@ Registro de por qué se cerró cada uno — `aitri backlog done` no guarda motiv
   Alcance real: **transversal, toca features ya cerradas** — `budget-state-color` (FR-401/402/404), `ux-consistency` (FR-311, los `--type-*-fill`), `stack-upgrade-theme` (FR-204, `typeColorVar`) y el Registro móvil, que propaga el color por tipo. NO es un ajuste; es una feature con su propio pipeline.
   Decisión del usuario: prefiere guía de UX/UI fintech antes de decidir. Esta entrada es el insumo para esa conversación, no la decisión.
 
-## Orden acordado con el usuario (2026-09-01)
+## Orden acordado con el usuario (2026-09-01, REORDENADO el 2026-09-02)
 
 Decidido en conversación, tras verificar cada punto contra el código. Cualquier sesión que lea esto
 NO debe re-abrir estas decisiones: están tomadas.
 
-1. **Grilla dinámica dentro del año** (parte de BL-040) — ocultar meses pasados vacíos y mostrar los
-   futuros. Presentación pura: no toca el modelo ni la base. Pequeña, y quita el ruido de inmediato.
-2. **Cierre de mes** (BL-036) — la grande. Es la única que permite **borrar** maquinaria en vez de
+**Reorden del 2026-09-02 — multi-año pasa al primer lugar.** Al diseñar la grilla dinámica se le
+preguntó al usuario cómo llegaría a un mes pasado que quedó oculto. Respondió con un filtro de
+fechas: «pone filtro, mostrar desde enero 2024 y allí scrolea todo lo que necesite». Ese filtro
+**cruza el año**, y el año no existe en el modelo, así que no cabía dentro de la grilla. Se le
+plantearon las dos salidas —filtro limitado al año en curso ahora, o subir multi-año— y decidió:
+«hay que hacer multi año, ya lo habíamos discutido». El resto del orden conserva su secuencia
+relativa.
+
+1. **Multi-año** — feature propia y grande, ahora la primera. VERIFICADO: el año NO existe en el
+   modelo (`MonthKey` son doce literales `"ene"…"dic"`, `AmountMap` indexa por ellos y el esquema no
+   tiene columna de año), así que exige meter el año en el modelo, migrar los datos y revisar todas
+   las derivaciones y reglas. Habilita el filtro por rango de meses que el usuario pidió.
+2. **Grilla dinámica** (parte de BL-040) — ocultar meses pasados vacíos y mostrar los futuros, más el
+   filtro por rango. Presentación pura, ya sobre un modelo con años. Su expediente con las
+   decisiones y las preguntas abiertas está en `aitri/features/grilla-dinamica/FEATURE_IDEA.md`.
+3. **Cierre de mes** (BL-036) — la grande. Es la única que permite **borrar** maquinaria en vez de
    añadirla, y de ella dependen BL-037 y BL-038, congelados a propósito. Incluye reapertura auditada.
-3. **Saldo inicial + página de Configuración** (resto de BL-040) — ya sobre la base simplificada.
+4. **Saldo inicial + página de Configuración** (resto de BL-040) — ya sobre la base simplificada.
    Todas las decisiones de producto están tomadas y escritas en
    `aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md`.
-4. **Multi-año** — feature propia y grande. VERIFICADO: el año NO existe en el modelo (`MonthKey`
-   son doce literales `"ene"…"dic"` y el esquema no tiene columna de año), así que «12 o 24 meses a
-   futuro» cruzando el año exige meter el año en el modelo y migrar los datos.
+
+### Riesgo asumido al poner multi-año antes que el cierre de mes
+
+Queda anotado, no para re-abrir la decisión sino para que nadie lo descubra a mitad de camino:
+multi-año migra el modelo temporal, y el cierre de mes es la feature que —según el análisis del
+propio usuario— permitiría **retirar** buena parte de la maquinaria del techo (BL-037 y BL-038
+quedarían disueltos). Haciendo multi-año primero se migra maquinaria que el cierre de mes podría
+eliminar después. Es el mismo argumento que puso el cierre antes que el saldo inicial. El usuario
+decidió asumirlo porque el filtro por fechas que quiere no existe sin años.
 
 ### Por qué el cierre de mes va antes que el saldo inicial
 
@@ -127,3 +146,21 @@ Tres razones, en orden de peso:
 - El saldo inicial es, conceptualmente, *la apertura congelada del primer mes*: el cierre introduce
   exactamente esa idea, así que construido el cierre el saldo inicial sale casi gratis.
 - Construir el saldo inicial antes es apoyarlo sobre reglas que están a punto de cambiar.
+
+## Dónde vive cada decisión (mapa, 2026-09-02)
+
+Escrito porque varias decisiones vivían solo en el hilo de una conversación. Si buscas el **porqué**
+de algo, está aquí:
+
+| Tema | Documento |
+|---|---|
+| Orden de trabajo y el riesgo asumido al reordenar | Esta misma sección, arriba |
+| Modelo de reservas: por qué BL-037 y BL-038 son UNO, con los números | `features/cierre-de-mes/feature_context/analisis-del-modelo.md` |
+| Cierre de mes: alcance, la pregunta central, las 4 abiertas | `features/cierre-de-mes/FEATURE_IDEA.md` |
+| Arranque: las 4 opciones maquetadas y por qué ganaron 3 y 4 | `features/meses-y-saldo-inicial/feature_context/diseno-del-arranque.md` |
+| Saldo inicial, meses visibles, rótulo, Configuración | `features/meses-y-saldo-inicial/FEATURE_IDEA.md` |
+| Multi-año: por qué ahora y qué migra | `features/multi-anio/FEATURE_IDEA.md` + su `spec/01_REQUIREMENTS.json` |
+| Grilla dinámica: la regla y sus límites verificados | `features/grilla-dinamica/FEATURE_IDEA.md` |
+| El Balance en tres bloques: las tres reescrituras y su porqué | `features/techo-de-flujo/spec/BUILD_PLAN.md` |
+| Auditoría del dinero: los 9 defectos de la capa de explicación | `features/techo-de-flujo/spec/BUILD_PLAN.md` § pase adversarial |
+| Color del Balance (sin decidir) | BL-042 |
