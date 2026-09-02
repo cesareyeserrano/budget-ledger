@@ -164,3 +164,49 @@ de algo, está aquí:
 | El Balance en tres bloques: las tres reescrituras y su porqué | `features/techo-de-flujo/spec/BUILD_PLAN.md` |
 | Auditoría del dinero: los 9 defectos de la capa de explicación | `features/techo-de-flujo/spec/BUILD_PLAN.md` § pase adversarial |
 | Color del Balance (sin decidir) | BL-042 |
+
+## Decisiones que estaban solo en los checkpoints (rescatadas el 2026-09-02)
+
+> **Aviso estructural:** `.aitri.local` está en `.gitignore`, así que **los checkpoints NO viajan con
+> el repositorio**. Sirven para retomar una sesión en esta máquina, no para guardar una decisión.
+> Todo lo que deba sobrevivir a un clon tiene que estar en un documento versionado. Estas tres
+> vivían solo ahí.
+
+### 1. El pipeline está en rojo A PROPÓSITO
+
+`aitri resume` reporta «deployable: no» y lo seguirá haciendo. Los dos bugs `high` que bloquean son
+decisiones vigentes del usuario, **no tareas pendientes**:
+
+- **backend BG-002** — `PUT /api/v1/ledger` acepta cualquier snapshot sin validar los invariantes del
+  dominio: la regla del techo/piso vive solo en el navegador.
+- **transferencias BG-002** — el techo solo se comprueba al escribir la reserva; bajar el ingreso
+  después deja el estado por encima del techo y nada lo re-valida ni lo señala.
+
+Los dos tocan justo el modelo temporal que `cierre-de-mes` va a cambiar, así que arreglarlos ahora
+sería trabajo que esa feature podría invalidar. **No los abras sin hablarlo con el usuario.**
+
+### 2. Dos features fueron descartadas, y una dejó código vivo
+
+- **`movimientos-internos`** — descartada sin llegar a construirse. El usuario re-evaluó el problema
+  con datos limpios y concluyó que las transferencias ya funcionaban: *«el único gap a cerrar es el
+  cierre de mes»*. No dejó código.
+
+- **`contrapartidas-reserva`** — descartada del pipeline **pero su código sigue vivo y es
+  load-bearing.** El usuario pidió revisar pieza por pieza lo que había entrado y dictó qué se
+  quedaba y qué se iba; lo que se quedó no se revirtió. Hoy siguen en el producto:
+
+  | Qué | Dónde |
+  |---|---|
+  | La migración **v4 → v5** (contrapartidas del mover) | `src/domain/migrate.ts:146` |
+  | El mover deja de escribir la celda del destino (FR-1604) | `src/server/data/ledgerRepo.ts:22` |
+  | Su suite de dominio, 730 líneas, en verde | `tests/domain/contrapartidas-reserva.test.ts` |
+
+  **`data_version = 5`, el marcador vigente de la base de datos, viene de esa feature.** Que su
+  expediente ya no exista NO la convierte en código huérfano: quien intente «limpiar» esas
+  referencias rompería la migración. Es exactamente el caso que `aitri feature discard` advierte —
+  Aitri nunca revierte el código, eso es trabajo de git, y aquí se decidió conservarlo.
+
+### 3. Los checkpoints no son documentación
+
+Corolario de las dos anteriores: si una decisión importa, va a `BACKLOG.md`, al `FEATURE_IDEA.md` de
+su feature o a su `feature_context/`. El checkpoint solo dice **dónde estabas**, no **qué decidiste**.
