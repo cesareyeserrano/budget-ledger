@@ -109,6 +109,9 @@ describe("FR-1601 · el mover se journaliza por ambos extremos y NO escribe celd
     expect(resolvedBalance(s1, "B", "jul", "actual")).toBe(1);
   });
 
+  // Timeout explicito (BG-025). El test hace trabajo real: 2000 moveres tardan ~2,1 s aislado, pero
+  // bajo la instrumentacion de cobertura y con el fork ya cargado de ficheros previos pasa de los 5 s
+  // por defecto y tumbaba el gate. No se recortan las iteraciones: el 2000 ES lo que el test afirma.
   it("TC-CPR-005e: 2000 moveres no escriben ni una celda", () => {
     // @aitri-tc TC-CPR-005e
     let s = op(base(), { from: AVAILABLE_ID, to: "A", month: "ene", amount: 4_000_000 });
@@ -124,7 +127,7 @@ describe("FR-1601 · el mover se journaliza por ambos extremos y NO escribe celd
     }
     expect(s.actuals).toEqual(antes);
     expect(s.movements.filter((m) => m.from !== AVAILABLE_ID && m.to !== AVAILABLE_ID).length).toBeGreaterThan(1500);
-  });
+  }, 30_000);
 
   it("TC-CPR-006f: mover inválido — rechazo tipado sin mutar", () => {
     // @aitri-tc TC-CPR-006f

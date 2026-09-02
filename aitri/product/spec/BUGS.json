@@ -619,6 +619,28 @@
       "created_at": "2026-09-01T16:15:09.285Z",
       "updated_at": "2026-09-01T16:15:09.285Z",
       "resolution": null
+    },
+    {
+      "id": "BG-025",
+      "title": "TC-CPR-005e se pasa del timeout de 5s bajo cobertura: el proyecto app corre sin tope de workers y el test lento (2000 moveres) no llega",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "fixed",
+      "fr": "FR-1601",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-02T17:31:57.800Z",
+      "updated_at": "2026-09-02T17:37:06.433Z",
+      "resolution": "Timeout explicito de 30s en TC-CPR-005e. Medido: 2147ms aislado, 5561ms en suite completa bajo cobertura. Se descarto capar workers del proyecto app (maxForks:4 lo empeoro a 6481ms: vitest reutiliza forks entre ficheros, con menos forks cada uno arrastra mas estado previo). No se recortan las 2000 iteraciones porque son lo que el test afirma.",
+      "fix_commit_sha": "581c88cfc5de40839238ba66afd2e2b66d5deb1d",
+      "fix_at": "2026-09-02T17:37:06.433Z"
     }
   ]
 }
