@@ -105,6 +105,24 @@ se apunta como alcance de ESA feature.
 sin datos. Sí meses futuros sin datos, se va a usar.» ⇒ Pasado vacío: oculto. Futuro vacío: visible
 (es donde se planea).
 
+## El rótulo de la fila (decisión del usuario, 2026-09-01)
+
+La columna de rótulos del Balance es **una sola para los doce meses**, así que la fila no puede
+llamarse «Saldo inicial» en el primer mes y «Saldo del mes anterior» en los demás.
+
+Se le plantearon tres salidas —dejarla igual, renombrarla a «Saldo de apertura» (cierta en ambos
+casos), o marcar la celda con su observación— y **decidió dejarla como está**: la fila sigue siendo
+«Saldo del mes anterior», y en el primer mes del historial simplemente contiene el saldo inicial.
+
+Consecuencia aceptada: en ese primer mes el rótulo es impreciso (no hay mes anterior). Queda
+registrado para que nadie lo "corrija" más adelante creyendo que es un descuido.
+
+## Dónde aterriza, en el código
+
+`computeBalanceSeries` arranca hoy en `ZERO_CARRY` (`{ available: 0, reservedBalance: 0 }`) porque
+«el mes 1 no tiene mes previo». El saldo inicial reemplaza ese cero de apertura. La fila que lo
+muestra ya existe: `prevAvailable`. Nada más de la cascada se entera.
+
 ## Hallazgo de alcance: «12 o 24 meses a futuro» es OTRA feature
 
 Verificado en el código: **el año no existe en el modelo.** `MonthKey` son doce literales
