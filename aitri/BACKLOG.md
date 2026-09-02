@@ -101,3 +101,29 @@ Registro de por qué se cerró cada uno — `aitri backlog done` no guarda motiv
   Aplicado aquí significaría: retirar el color de identidad de tipo de las filas y celdas (queda el ícono y el rótulo para distinguirlas), y dejar el color solo para (a) sobre-consumo del presupuesto y (b) saldo negativo. El verde quedaría solo para el saldo sano, no para "esto es un ingreso".
   Alcance real: **transversal, toca features ya cerradas** — `budget-state-color` (FR-401/402/404), `ux-consistency` (FR-311, los `--type-*-fill`), `stack-upgrade-theme` (FR-204, `typeColorVar`) y el Registro móvil, que propaga el color por tipo. NO es un ajuste; es una feature con su propio pipeline.
   Decisión del usuario: prefiere guía de UX/UI fintech antes de decidir. Esta entrada es el insumo para esa conversación, no la decisión.
+
+## Orden acordado con el usuario (2026-09-01)
+
+Decidido en conversación, tras verificar cada punto contra el código. Cualquier sesión que lea esto
+NO debe re-abrir estas decisiones: están tomadas.
+
+1. **Grilla dinámica dentro del año** (parte de BL-040) — ocultar meses pasados vacíos y mostrar los
+   futuros. Presentación pura: no toca el modelo ni la base. Pequeña, y quita el ruido de inmediato.
+2. **Cierre de mes** (BL-036) — la grande. Es la única que permite **borrar** maquinaria en vez de
+   añadirla, y de ella dependen BL-037 y BL-038, congelados a propósito. Incluye reapertura auditada.
+3. **Saldo inicial + página de Configuración** (resto de BL-040) — ya sobre la base simplificada.
+   Todas las decisiones de producto están tomadas y escritas en
+   `aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md`.
+4. **Multi-año** — feature propia y grande. VERIFICADO: el año NO existe en el modelo (`MonthKey`
+   son doce literales `"ene"…"dic"` y el esquema no tiene columna de año), así que «12 o 24 meses a
+   futuro» cruzando el año exige meter el año en el modelo y migrar los datos.
+
+### Por qué el cierre de mes va antes que el saldo inicial
+
+Tres razones, en orden de peso:
+
+- La regla que el usuario fijó para corregir el saldo inicial —«solo mientras el mes esté abierto»—
+  **necesita** que exista el concepto de «abierto».
+- El saldo inicial es, conceptualmente, *la apertura congelada del primer mes*: el cierre introduce
+  exactamente esa idea, así que construido el cierre el saldo inicial sale casi gratis.
+- Construir el saldo inicial antes es apoyarlo sobre reglas que están a punto de cambiar.

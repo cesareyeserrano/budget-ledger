@@ -1,204 +1,204 @@
 {
-  "executed_at": "2026-08-28T16:48:33.121Z",
+  "executed_at": "2026-09-02T19:37:19.682Z",
   "test_runner": "npm run test:run",
-  "exit_code": 1,
+  "exit_code": 0,
   "e2e_exit_code": 0,
   "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-RUI-001h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-001h\" so it appears on stdout (e.g. test_TC_RUI_001h_description, # @aitri-tc TC-RUI-001h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-001h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1201 — el color señala excepción, nunca categoría > TC-RUI-001h: el rol de la celda sale del ESTADO, no del tipo 5ms"
     },
     {
       "tc_id": "TC-RUI-001e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-001e\" so it appears on stdout (e.g. test_TC_RUI_001e_description, # @aitri-tc TC-RUI-001e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-001e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1201 — el color señala excepción, nunca categoría > TC-RUI-001e: la reserva pierde su hue de identidad y queda neutra 0ms"
     },
     {
       "tc_id": "TC-RUI-001f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-001f\" so it appears on stdout (e.g. test_TC_RUI_001f_description, # @aitri-tc TC-RUI-001f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-001f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1201 — el gate impide que el color vuelva a clasificar > TC-RUI-001f: el gate pasa limpio y FALLA si el color de tipo sale del registro 2880ms"
     },
     {
       "tc_id": "TC-RUI-002h",
       "status": "pass",
-      "notes": "✓  191 [chromium] › tests/e2e/refinamiento-ui.spec.ts:75:5 › TC-RUI-002h: los encabezados de bloque van en tinta neutra con glifo lateral (171ms)"
+      "notes": "✓  191 [chromium] › tests/e2e/refinamiento-ui.spec.ts:75:5 › TC-RUI-002h: los encabezados de bloque van en tinta neutra con glifo lateral (334ms)"
     },
     {
       "tc_id": "TC-RUI-002e",
       "status": "pass",
-      "notes": "✓  192 [chromium] › tests/e2e/refinamiento-ui.spec.ts:101:5 › TC-RUI-002e: la celda sin dato se pinta atenuada, no con el color de su categoría (178ms)"
+      "notes": "✓  192 [chromium] › tests/e2e/refinamiento-ui.spec.ts:101:5 › TC-RUI-002e: la celda sin dato se pinta atenuada, no con el color de su categoría (350ms)"
     },
     {
       "tc_id": "TC-RUI-002f",
       "status": "pass",
-      "notes": "✓  193 [chromium] › tests/e2e/refinamiento-ui.spec.ts:122:5 › TC-RUI-002f: ningún elemento de la grilla deriva su color del tipo (174ms)"
+      "notes": "✓  193 [chromium] › tests/e2e/refinamiento-ui.spec.ts:122:5 › TC-RUI-002f: ningún elemento de la grilla deriva su color del tipo (346ms)"
     },
     {
       "tc_id": "TC-RUI-003h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-003h\" so it appears on stdout (e.g. test_TC_RUI_003h_description, # @aitri-tc TC-RUI-003h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-003h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003h: el glifo corresponde al umbral 0ms"
     },
     {
       "tc_id": "TC-RUI-003e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-003e\" so it appears on stdout (e.g. test_TC_RUI_003e_description, # @aitri-tc TC-RUI-003e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-003e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003e: color y glifo salen de la MISMA evaluación de estado 77ms"
     },
     {
       "tc_id": "TC-RUI-003f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-003f\" so it appears on stdout (e.g. test_TC_RUI_003f_description, # @aitri-tc TC-RUI-003f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-003f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003f: un ingreso por encima de su plan no lleva marca 4ms"
     },
     {
       "tc_id": "TC-RUI-004h",
       "status": "pass",
-      "notes": "✓  194 [chromium] › tests/e2e/refinamiento-ui.spec.ts:142:5 › TC-RUI-004h: el chrome cede altura y no queda superficie que no aporte (177ms)"
+      "notes": "✓  194 [chromium] › tests/e2e/refinamiento-ui.spec.ts:142:5 › TC-RUI-004h: el chrome cede altura y no queda superficie que no aporte (353ms)"
     },
     {
       "tc_id": "TC-RUI-004e",
       "status": "pass",
-      "notes": "✓  195 [chromium] › tests/e2e/refinamiento-ui.spec.ts:189:5 › TC-RUI-004e: la vista tiene un solo nombre y el periodo aparece una sola vez (162ms)"
+      "notes": "✓  195 [chromium] › tests/e2e/refinamiento-ui.spec.ts:189:5 › TC-RUI-004e: la vista tiene un solo nombre y el periodo aparece una sola vez (346ms)"
     },
     {
       "tc_id": "TC-RUI-004f",
       "status": "pass",
-      "notes": "✓  196 [chromium] › tests/e2e/refinamiento-ui.spec.ts:201:5 › TC-RUI-004f: la marca no se renderiza en ninguno de los dos shells (222ms)"
+      "notes": "✓  196 [chromium] › tests/e2e/refinamiento-ui.spec.ts:201:5 › TC-RUI-004f: la marca no se renderiza en ninguno de los dos shells (452ms)"
     },
     {
       "tc_id": "TC-RUI-005h",
       "status": "pass",
-      "notes": "✓  197 [chromium] › tests/e2e/refinamiento-ui.spec.ts:210:5 › TC-RUI-005h: queda una sola leyenda en pantalla (176ms)"
+      "notes": "✓  197 [chromium] › tests/e2e/refinamiento-ui.spec.ts:210:5 › TC-RUI-005h: queda una sola leyenda en pantalla (377ms)"
     },
     {
       "tc_id": "TC-RUI-005e",
       "status": "pass",
-      "notes": "✓  198 [chromium] › tests/e2e/refinamiento-ui.spec.ts:232:5 › TC-RUI-005e: con datos propios, ningún texto afirma el reparto de la semilla (165ms)"
+      "notes": "✓  198 [chromium] › tests/e2e/refinamiento-ui.spec.ts:232:5 › TC-RUI-005e: con datos propios, ningún texto afirma el reparto de la semilla (343ms)"
     },
     {
       "tc_id": "TC-RUI-005f",
       "status": "pass",
-      "notes": "✓  199 [chromium] › tests/e2e/refinamiento-ui.spec.ts:243:5 › TC-RUI-005f: el pie de ayuda ya no se renderiza (162ms)"
+      "notes": "✓  199 [chromium] › tests/e2e/refinamiento-ui.spec.ts:243:5 › TC-RUI-005f: el pie de ayuda ya no se renderiza (339ms)"
     },
     {
       "tc_id": "TC-RUI-006h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-006h\" so it appears on stdout (e.g. test_TC_RUI_006h_description, # @aitri-tc TC-RUI-006h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-006h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006h: la escala semántica de espaciado y la de motion están declaradas y se consumen 106ms"
     },
     {
       "tc_id": "TC-RUI-006e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-006e\" so it appears on stdout (e.g. test_TC_RUI_006e_description, # @aitri-tc TC-RUI-006e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-006e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006e: cero tamaños tipográficos ad-hoc y cero duraciones a mano 65ms"
     },
     {
       "tc_id": "TC-RUI-006f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-006f\" so it appears on stdout (e.g. test_TC_RUI_006f_description, # @aitri-tc TC-RUI-006f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-006f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1206 — las escalas y el cierre de la deriva > TC-RUI-006f: el gate FALLA si se reintroduce un tamaño ad-hoc 1209ms"
     },
     {
       "tc_id": "TC-RUI-007h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-007h\" so it appears on stdout (e.g. test_TC_RUI_007h_description, # @aitri-tc TC-RUI-007h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-007h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007h: el grafo de imports no deja ningún módulo huérfano 250ms"
     },
     {
       "tc_id": "TC-RUI-007e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-007e\" so it appears on stdout (e.g. test_TC_RUI_007e_description, # @aitri-tc TC-RUI-007e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-007e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007e: los mapeos @theme de Tailwind NO son huérfanos 71ms"
     },
     {
       "tc_id": "TC-RUI-007f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-007f\" so it appears on stdout (e.g. test_TC_RUI_007f_description, # @aitri-tc TC-RUI-007f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-007f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/design-tokens.test.ts > FR-1207 — retiro de lo que no tiene consumidor > TC-RUI-007f: ningún token de color declarado queda sin consumidor 166ms"
     },
     {
       "tc_id": "TC-RUI-101h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-101h\" so it appears on stdout (e.g. test_TC_RUI_101h_description, # @aitri-tc TC-RUI-101h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-101h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101h: la semilla conserva su forma y sus totales 2ms"
     },
     {
       "tc_id": "TC-RUI-101f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-101f\" so it appears on stdout (e.g. test_TC_RUI_101f_description, # @aitri-tc TC-RUI-101f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-101f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101f: ningún invariante estructural se rompe — cero huérfanos y totales cuadrados 3ms"
     },
     {
       "tc_id": "TC-RUI-102h",
       "status": "pass",
-      "notes": "✓  200 [chromium] › tests/e2e/refinamiento-ui.spec.ts:251:5 › TC-RUI-102h: regresión — el contrato de edición de la grilla se conserva (314ms)"
+      "notes": "✓  200 [chromium] › tests/e2e/refinamiento-ui.spec.ts:251:5 › TC-RUI-102h: regresión — el contrato de edición de la grilla se conserva (613ms)"
     },
     {
       "tc_id": "TC-RUI-102f",
       "status": "pass",
-      "notes": "✓  202 [chromium] › tests/e2e/refinamiento-ui.spec.ts:285:5 › TC-RUI-102f: regresión — el arrastrar-y-soltar sigue operativo (485ms)"
+      "notes": "✓  202 [chromium] › tests/e2e/refinamiento-ui.spec.ts:285:5 › TC-RUI-102f: regresión — el arrastrar-y-soltar sigue operativo (716ms)"
     },
     {
       "tc_id": "TC-RUI-103h",
       "status": "pass",
-      "notes": "✓  203 [chromium] › tests/e2e/refinamiento-ui.spec.ts:307:5 › TC-RUI-103h: regresión — el registro conserva su color por tipo (576ms)"
+      "notes": "✓  203 [chromium] › tests/e2e/refinamiento-ui.spec.ts:307:5 › TC-RUI-103h: regresión — el registro conserva su color por tipo (750ms)"
     },
     {
       "tc_id": "TC-RUI-103f",
       "status": "pass",
-      "notes": "✓  205 [chromium] › tests/e2e/refinamiento-ui.spec.ts:337:5 › TC-RUI-103f: regresión — el registro NO adopta la tinta neutra de la grilla (502ms)"
+      "notes": "✓  205 [chromium] › tests/e2e/refinamiento-ui.spec.ts:337:5 › TC-RUI-103f: regresión — el registro NO adopta la tinta neutra de la grilla (640ms)"
     },
     {
       "tc_id": "TC-RUI-104h",
       "status": "pass",
-      "notes": "✓  206 [chromium] › tests/e2e/refinamiento-ui.spec.ts:351:5 › TC-RUI-104h: contraste AA en ambos temas tras la unificación (229ms)"
+      "notes": "✓  206 [chromium] › tests/e2e/refinamiento-ui.spec.ts:351:5 › TC-RUI-104h: contraste AA en ambos temas tras la unificación (375ms)"
     },
     {
       "tc_id": "TC-RUI-104f",
       "status": "pass",
-      "notes": "✓  208 [chromium] › tests/e2e/refinamiento-ui.spec.ts:376:5 › TC-RUI-104f: la unificación no baja el contraste de ningún par (164ms)"
+      "notes": "✓  208 [chromium] › tests/e2e/refinamiento-ui.spec.ts:376:5 › TC-RUI-104f: la unificación no baja el contraste de ningún par (287ms)"
     },
     {
       "tc_id": "TC-RUI-105h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-105h\" so it appears on stdout (e.g. test_TC_RUI_105h_description, # @aitri-tc TC-RUI-105h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-105h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105h: resolver el rol de una celda es O(1) y no toca el estado 7ms"
     },
     {
       "tc_id": "TC-RUI-101e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-101e\" so it appears on stdout (e.g. test_TC_RUI_101e_description, # @aitri-tc TC-RUI-101e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-101e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1201 — regresión: el dominio queda intacto > TC-RUI-101e: los casos borde del dominio siguen resolviendo igual 1ms"
     },
     {
       "tc_id": "TC-RUI-102e",
       "status": "pass",
-      "notes": "✓  201 [chromium] › tests/e2e/refinamiento-ui.spec.ts:271:5 › TC-RUI-102e: regresión — sticky y scroll horizontal se conservan (175ms)"
+      "notes": "✓  201 [chromium] › tests/e2e/refinamiento-ui.spec.ts:271:5 › TC-RUI-102e: regresión — sticky y scroll horizontal se conservan (354ms)"
     },
     {
       "tc_id": "TC-RUI-103e",
       "status": "pass",
-      "notes": "✓  204 [chromium] › tests/e2e/refinamiento-ui.spec.ts:320:5 › TC-RUI-103e: regresión — cambiar de tipo conserva el monto y deselecciona la categoría (586ms)"
+      "notes": "✓  204 [chromium] › tests/e2e/refinamiento-ui.spec.ts:320:5 › TC-RUI-103e: regresión — cambiar de tipo conserva el monto y deselecciona la categoría (695ms)"
     },
     {
       "tc_id": "TC-RUI-104e",
       "status": "pass",
-      "notes": "✓  207 [chromium] › tests/e2e/refinamiento-ui.spec.ts:363:5 › TC-RUI-104e: el peor caso de contraste sigue siendo el medido (234ms)"
+      "notes": "✓  207 [chromium] › tests/e2e/refinamiento-ui.spec.ts:363:5 › TC-RUI-104e: el peor caso de contraste sigue siendo el medido (387ms)"
     },
     {
       "tc_id": "TC-RUI-105e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-105e\" so it appears on stdout (e.g. test_TC_RUI_105e_description, # @aitri-tc TC-RUI-105e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-105e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105e: el rol es estable — la misma entrada da siempre la misma salida 12ms"
     },
     {
       "tc_id": "TC-RUI-105f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-105f\" so it appears on stdout (e.g. test_TC_RUI_105f_description, # @aitri-tc TC-RUI-105f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-105f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > NFR-1205 — el rediseño no añade trabajo de render > TC-RUI-105f: entradas degeneradas no producen NaN, Infinity ni excepción 5ms"
     },
     {
       "tc_id": "TC-RUI-003i",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-RUI-003i\" so it appears on stdout (e.g. test_TC_RUI_003i_description, # @aitri-tc TC-RUI-003i); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-RUI-003i --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/refinamiento-ui.test.ts > FR-1203 — la marca no cromática de gravedad > TC-RUI-003i: INVARIANTE — toda celda coloreada lleva marca no cromática 3ms"
     }
   ],
   "fr_coverage": [
     {
       "fr_id": "FR-1201",
-      "tests_passing": 0,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 3,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "partial"
+      "status": "covered"
     },
     {
       "fr_id": "FR-1202",
@@ -210,11 +210,11 @@
     },
     {
       "fr_id": "FR-1203",
-      "tests_passing": 0,
+      "tests_passing": 4,
       "tests_failing": 0,
-      "tests_skipped": 4,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "partial"
+      "status": "covered"
     },
     {
       "fr_id": "FR-1204",
@@ -234,28 +234,28 @@
     },
     {
       "fr_id": "FR-1206",
-      "tests_passing": 0,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 3,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "partial"
+      "status": "covered"
     },
     {
       "fr_id": "FR-1207",
-      "tests_passing": 0,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 3,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "partial"
+      "status": "covered"
     }
   ],
   "ac_coverage": [
     {
       "ac_id": "AC-1201",
       "fr_id": "FR-1201",
-      "tests_passing": 9,
+      "tests_passing": 18,
       "tests_failing": 0,
-      "tests_skipped": 9,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -280,20 +280,20 @@
     {
       "ac_id": "AC-1206",
       "fr_id": "FR-1206",
-      "tests_passing": 0,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 3,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "uncovered"
+      "status": "covered"
     },
     {
       "ac_id": "AC-1203",
       "fr_id": "FR-1203",
-      "tests_passing": 0,
+      "tests_passing": 4,
       "tests_failing": 0,
-      "tests_skipped": 4,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "uncovered"
+      "status": "covered"
     },
     {
       "ac_id": "AC-1205",
@@ -307,20 +307,20 @@
     {
       "ac_id": "AC-1207",
       "fr_id": "FR-1207",
-      "tests_passing": 0,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 3,
+      "tests_skipped": 0,
       "tests_manual": 0,
-      "status": "uncovered"
+      "status": "covered"
     }
   ],
   "summary": {
     "total": 37,
-    "passed": 18,
+    "passed": 37,
     "failed": 0,
-    "skipped": 19,
+    "skipped": 0,
     "skipped_e2e": 0,
-    "skipped_no_marker": 19,
+    "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
   },
@@ -348,7 +348,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-08-28T16:46:50.764Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-08-28T16:46:50.766Z WARN [Better Auth]: Reset Password: User not found"
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-02T19:34:54.253Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-02T19:34:54.255Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "design-tokens",
@@ -388,7 +388,7 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "output": "] › tests/e2e/recuperar-acceso.spec.ts:235:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  361 [chromium] › tests/e2e/recuperar-acceso.spec.ts:435:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  361 passed (1.5m)\n\n(node:94592) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "output": "ecuperar-acceso.spec.ts:423:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (177ms)\n  ✓  380 [chromium] › tests/e2e/recuperar-acceso.spec.ts:435:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  380 passed (2.1m)\n\n(node:31599) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ]
 }
