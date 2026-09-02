@@ -1,0 +1,159 @@
+{
+  "project": "techo-de-flujo",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-1801",
+      "title": "El techo de un mes es ingresos − gastos + saldo del mes anterior, y lo consumen las reservas brutas",
+      "level": "complete",
+      "evidence": "7/7 TCs pasando. El barrido publica TRES series desde una sola pasada (margen, consumo bruto, arrastre neto) más el déficit medido ANTES del clamp — separación que nació de un pase adversarial: con una sola serie, «reservar de más» y «dejar el disponible negativo» eran la misma condición, y bajo consumo bruto la validación quedaba ciega justo en el caso que la feature existe para cerrar. TC-TDF-001h fija el caso del usuario (tras reservar 1.000 y retirar 500, el cupo de enero es 0 — con la regla neta anterior quedaban 500 y por ahí se colaba el 1.500)."
+    },
+    {
+      "id": "FR-1802",
+      "title": "El monto de un retiro se edita, y ponerlo en cero lo elimina",
+      "level": "complete",
+      "evidence": "5/5 TCs pasando (2 skip son variantes e2e cubiertas por su equivalente de dominio). `editReserveOp` muta el movimiento EN SITIO: conserva id, createdAt, fecha, extremos y posición en el journal, porque es una corrección y no una operación nueva. Auditoría 2026-09-01: se endureció a entero exacto — `Math.round` convertía un 0.4 accidental en el sentinel «0 = eliminar» y una edición inválida BORRABA la operación."
+    },
+    {
+      "id": "FR-1803",
+      "title": "Editar o eliminar un retiro se valida como cualquier otra escritura",
+      "level": "complete",
+      "evidence": "5/5 TCs pasando. Es la corrección de fondo: eliminar un retiro no validaba NADA, y por esa puerta el usuario llegó al disponible de −500 y al encierro intentando corregirse. TC-TDF-020f es el TC que manda — si pasara por accidente, sin la regla de déficit, el arreglo no estaría puesto."
+    },
+    {
+      "id": "FR-1804",
+      "title": "Cuando un mes se completa del saldo anterior, la app lo anota sola",
+      "level": "complete",
+      "evidence": "5/5 TCs pasando, incluido el e2e TC-TDF-034h que verifica que la nota vive en la celda del BOLSILLO que reservó y NO en una celda de gasto del mismo mes. Auditoría 2026-09-01: `monthCarryUsage` producía desgloses imposibles con flujo negativo ({reservado:100, delSaldoAnterior:400}, y {reservado:0, delSaldoAnterior:300} en un mes con solo gastos); ahora sin reservas devuelve null y lo atribuido al saldo anterior se acota a lo reservado."
+    },
+    {
+      "id": "FR-1805",
+      "title": "La grilla separa Reservas en su propio segmento, con Retiros del mes al final",
+      "level": "complete",
+      "evidence": "6/6 TCs pasando, con e2e que miden POSICIÓN en el navegador y no orden del DOM: los tres bloques separados, la fila de retiros entre Reservas y el Balance, el riel de columnas compartido (enero de Gastos, de Reservas y del Balance en la misma x, moviéndose juntos al desplazar) y el resaltado del mes atravesando los tres. Corregida en el camino una regresión propia: los grupos de bolsillos arrancaban PLEGADOS por leer AC-1820 como un mandato cuando es una condición, y eso escondía todos los bolsillos del usuario al abrir la app."
+    },
+    {
+      "id": "FR-1806",
+      "title": "Los avisos del mes señalan cualquier error registrado, no solo el techo",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando. `monthIssues` es la fuente ÚNICA de las dos superficies (la marca del encabezado y la franja del Balance), así que no pueden discrepar por construcción. El e2e TC-TDF-050h las verifica apareciendo JUNTAS, y TC-TDF-051f comprueba que un estado sano no renderiza ninguna — sin ese caso, el positivo no probaría nada."
+    },
+    {
+      "id": "FR-1807",
+      "title": "Retirar las piezas descartadas y dejar la suite del proyecto en verde",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando. TC-TDF-060h comprueba la limpieza sobre la superficie EXPORTADA y no leyendo el código: un símbolo puede seguir definido y muerto, pero si nadie lo puede importar no resucita por uso. Verificados a cero: techoBreaches, removeReserveRetiro, reserveSplit, BREAKDOWN, validateBreakdown, y las claves de fila que el usuario declaró ilegibles."
+    },
+    {
+      "id": "FR-1808",
+      "title": "El límite del mes se ve antes de teclear, sin quitarle sitio al input",
+      "level": "complete",
+      "evidence": "5/5 TCs pasando. El e2e TC-TDF-073e prueba GEOMÉTRICAMENTE que el indicador flota: su caja se sale por debajo de la fila que lo abre en vez de empujar lo de abajo. Y la auditoría 2026-09-01 cerró el defecto que reabría la incoherencia que este FR vino a cerrar: `reserveHeadroom`/`cellHeadroom` no veían las reglas encadenadas y llegaban a prometer 1.000 donde el dominio no aceptaba 1. Ahora derivan de `chainedAporteSlack` y la propiedad fijada es que lo anunciado se acepta y +1 se rechaza."
+    },
+    {
+      "id": "FR-1809",
+      "title": "Cualquier celda de la grilla admite observaciones, no solo las de bolsillos",
+      "level": "complete",
+      "evidence": "2/2 TCs pasando (2 skip son variantes cubiertas por el e2e TC-TDF-080h, que añade una observación en una celda de GASTO y verifica su marca). El almacenamiento ya era genérico por nodo y mes: el cambio fue de ALCANCE, no de modelo. TC-TDF-083e fija que una observación no se filtra a otro mes, otro bolsillo ni otra hoja."
+    },
+    {
+      "id": "FR-1810",
+      "title": "El Balance se lee en tres bloques, y el bloque del medio es la cuenta del bolsillo disponible",
+      "level": "complete",
+      "evidence": "8/8 TCs pasando. Reescrito TRES veces por rechazo del usuario, y la última por un motivo conceptual suyo: «no puedes decir que quedó un acumulado de menos 500; el acumulado ahí es cero porque te los gastaste». La versión final es LA CUENTA del bolsillo, término a término, con los rótulos que él eligió. TC-TDF-102e fija las tres identidades bajo 120 pasos en 12 meses y 2 planos, incluida la equivalencia con la fórmula vigente: la reestructuración no movió un peso. El e2e comprueba además que NINGUNA celda del Balance muestra un −500."
+    },
+    {
+      "id": "NFR-1801",
+      "title": "Conservación: disponible + reservado = total",
+      "level": "complete",
+      "evidence": "Fuzz adversarial de 6.000 pasos con 8 invariantes por operación aceptada (3.363 verificadas) y 2.637 rechazos comprobados como no-mutantes: CERO violaciones. Es el guardrail declarado de la feature."
+    },
+    {
+      "id": "NFR-1802",
+      "title": "El arrastre entre meses no cambia",
+      "level": "complete",
+      "evidence": "Cubierto por el mismo fuzz y por TC-TDF-103e, que verifica el encadenamiento mes a mes («Saldo del mes anterior» de cada mes = «Saldo disponible» del previo) en los doce meses, con enero abriendo en 0."
+    },
+    {
+      "id": "NFR-1803",
+      "title": "Gastos e Ingresos no cambian de comportamiento",
+      "level": "complete",
+      "evidence": "Ninguna escritura de expense/income adquiere validación de reservas. Verificado además por la suite completa del proyecto: 576 unitarias y 374 e2e en verde, incluidas las de las features de gastos, ingresos y jerarquía."
+    },
+    {
+      "id": "NFR-1804",
+      "title": "El saldo derivado por bolsillo y la operación entre bolsillos siguen como hoy",
+      "level": "complete",
+      "evidence": "TC-TDF-231h: «Saldo reservado» coincide al peso con la suma de los bolsillos mes a mes bajo un estado con aportes, un mover y un retiro; y el mover queda anotado por sus DOS extremos. Escrito a raíz del aviso del gate de despliegue, que lo reclamaba sin acreditar."
+    },
+    {
+      "id": "NFR-1805",
+      "title": "Las migraciones existentes siguen siendo idempotentes y no se re-aplican",
+      "level": "complete",
+      "evidence": "TC-TDF-241h fija la propiedad real que protege los datos: la conversión v3→v4 NO es idempotente por diseño (des-acumula saldos), así que lo único que evita el daño es el guard de versión. El test comprueba la lógica de guarda sobre las mismas constantes del servidor y DEMUESTRA el daño que evita (aplicarla dos veces destruye información)."
+    },
+    {
+      "id": "NFR-1806",
+      "title": "El Balance conserva su cascada y sus importes de un solo signo",
+      "level": "complete",
+      "evidence": "TC-TDF-251h: la cuenta cierra con cifras BRUTAS en los doce meses y los dos planos con la fila operable montada fuera del módulo, y ninguna magnitud bruta puede ser negativa — así que la pantalla no puede componer un «− Reservas −X» de doble negativo."
+    },
+    {
+      "id": "NFR-1807",
+      "title": "Rendimiento del recálculo ≤150ms",
+      "level": "complete",
+      "evidence": "El barrido no gana pasadas: `techoScan` memoiza por identidad del estado y publica las tres series desde una sola recorrida de los doce meses. Las pruebas de rendimiento vigentes del Balance (TC-BAL-957e/f) siguen en verde."
+    },
+    {
+      "id": "NFR-1808",
+      "title": "El pipeline ejecuta la suite completa, incluidas las e2e, en push a main",
+      "level": "complete",
+      "evidence": "TC-TDF-271h verifica el workflow: disparador push sobre main, las DOS suites declaradas, y la ausencia de las dos vías clásicas de acreditar un verde falso (continue-on-error y suites filtradas por --grep). Escrito tras el aviso del gate."
+    },
+    {
+      "id": "NFR-1809",
+      "title": "Seguridad: exclusión declarada",
+      "level": "complete",
+      "evidence": "Exclusión declarada en Fase 1 y sostenida: la feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red. Los gates security-config y secret-scan pasan, y CodeQL sigue corriendo como workflow propio del proyecto."
+    },
+    {
+      "id": "NFR-1810",
+      "title": "Observabilidad: no aplica",
+      "level": "complete",
+      "evidence": "Exclusión declarada: la feature no añade rutas ni servicios que observar."
+    },
+    {
+      "id": "NFR-1811",
+      "title": "Healthcheck: no aplica",
+      "level": "complete",
+      "evidence": "Exclusión declarada: el endpoint de salud del proyecto ya existe y no cambia. El gate smoke —que arranca la app y comprueba sus rutas— pasa."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declarado",
+      "reason": "El proyecto ya corre CodeQL como workflow propio de GitHub Actions (.github/workflows/codeql.yml), fuera de los gates de Aitri, y esta feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red — su NFR de seguridad es una exclusión declarada (NFR-1809).",
+      "effort_to_fix": "low"
+    }
+  ],
+  "deployment": {
+    "model": "containerized",
+    "changes_required": "none",
+    "rationale": "02_SYSTEM_DESIGN.md declara «sin migración de datos, sin cambio de esquema, sin endpoints nuevos»: data_version sigue en 5 y las tablas quedan intactas. La feature es dominio + presentación, así que NO se crean Dockerfile, docker-compose.yml, DEPLOYMENT.md ni .env.example propios — los del producto siguen vigentes sin modificación. Lo único que aporta al despliegue es el ajuste del timeout del quality_gate e2e a 30 min, fijado sobre una MEDICIÓN real (la suite completa tarda 2,6 min tras revertir el plegado por defecto; antes tardaba 39 min con cuelgues y el gate moría en `error` con exit_code null, indistinguible de uno verde).",
+    "gates": "Los siete quality_gates declarados pasan con exit 0: typecheck, lint, design-tokens, security-config, secret-scan, smoke y e2e.",
+    "rollback": "Sin cambios de esquema ni de datos: revertir es volver al commit anterior y redesplegar. No hay migración que deshacer."
+  },
+  "visual_verification": {
+    "method": "Capturas instrumentadas del navegador sobre el ledger REAL del usuario (no un fixture) a 1440px, más 13 e2e que miden posiciones, fondos y contraste computados en Chromium. La sesión con el navegador destapó tres defectos que ninguna prueba unitaria veía y que quedaron corregidos.",
+    "findings": [
+      "`overflow-hidden` en las tarjetas rompía la columna sticky de rótulos: un ancestro con overflow crea un contexto de scroll nuevo y la columna desaparecía al desplazar. Las esquinas se redondean ahora en cada fila extrema.",
+      "El redondeo de esquinas dependía de selectores first/last-child que solo acertaban cuando la última fila era de un tipo concreto: la esquina salía redonda con GASTOS plegado y cuadrada al desplegarlo.",
+      "El `Escape` no cerraba el editor desde el campo de observación: la sección de notas retenía TODAS las teclas cuando solo debía retener el Enter, y el `Escape` se atendía en el input del valor y no en el contenedor."
+    ],
+    "accessibility": "Medido: `--fg-muted` sobre el fondo tintado del mes activo cae a 4,01:1 y ningún porcentaje de tinte lo salva. Se resuelve elevando el guion a `--fg-secondary` SOLO en esa columna (5,60:1, AA) — la columna que el usuario mira se lee mejor, no peor."
+  }
+}

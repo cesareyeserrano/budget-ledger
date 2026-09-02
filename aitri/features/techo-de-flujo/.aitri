@@ -1,40 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-01T22:00:17.704Z",
+  "updatedAt": "2026-09-02T00:38:19.311Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T16:00:01.492Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-01T16:59:56.196Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-01T17:00:39.838Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-09-01T17:00:43.524Z",
       "event": "approved",
@@ -147,6 +134,23 @@
       "phase": "verify",
       "passed": 62,
       "failed": 0
+    },
+    {
+      "at": "2026-09-02T00:36:37.773Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-02T00:38:13.922Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-02T00:38:19.278Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -155,6 +159,7 @@
     "2": "6195829a49cc74af0c0183000d5a6e0be6071d4eb3565da12b273ddbbfaf9a26",
     "3": "8c1f296a98d8966fea4dfa980601d9675f7570a668bb39f44b629fed1b7c5346",
     "4": "e614ddd35c44bcf80dbb38bba0745dd79e31d0f602592f2d1d316c888a6313db",
+    "5": "03ff002fa6340d3f36770338b7ca3365748f8baae20cc80600aab793d1fbf214",
     "ux": "81a35e341fed43c7bf2a474e2ddb8214a7574102faf0bc9b190fea2b83cf9e16"
   },
   "frSnapshots": {
@@ -183,6 +188,18 @@
       "FR-1810"
     ],
     "4": [
+      "FR-1801",
+      "FR-1802",
+      "FR-1803",
+      "FR-1804",
+      "FR-1805",
+      "FR-1806",
+      "FR-1807",
+      "FR-1808",
+      "FR-1809",
+      "FR-1810"
+    ],
+    "5": [
       "FR-1801",
       "FR-1802",
       "FR-1803",
@@ -228,5 +245,12 @@
     "skipped_no_marker": 14,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-02T00:38:19.277Z"
+    }
+  ]
 }
