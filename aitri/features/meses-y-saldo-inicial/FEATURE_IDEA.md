@@ -123,6 +123,31 @@ registrado para que nadie lo "corrija" más adelante creyendo que es un descuido
 «el mes 1 no tiene mes previo». El saldo inicial reemplaza ese cero de apertura. La fila que lo
 muestra ya existe: `prevAvailable`. Nada más de la cascada se entera.
 
+## La tarjeta de arranque y la Configuración (decisiones del usuario, 2026-09-01)
+
+**Si el usuario empieza a teclear sin responder la tarjeta:** la tarjeta desaparece y el saldo
+inicial queda en 0. Su razón, textual:
+
+> «Perfectamente puedo iniciar de cero el 13 de septiembre con mi salario del 1º de septiembre y
+> registro todo porque me acuerdo o lo tengo en un Excel. Es también válido. Y también vale hacer
+> eso y además trayendo un ahorro viejo que no fue un ingreso de septiembre.»
+
+Son DOS caminos legítimos que el diseño debe admitir sin estorbar:
+  a) Arrancar en cero y registrar el mes completo (el salario entra como ingreso REAL — lo es).
+  b) Lo mismo, **más** un ahorro viejo que no es ingreso de ese mes → ese ahorro es el saldo inicial.
+
+Por eso la tarjeta no puede convertirse en un recordatorio permanente (estorbaría al camino a) y
+Configuración tiene que ser un camino de vuelta de verdad (lo necesita el camino b, cuando el
+usuario se acuerda del ahorro viejo después de haber empezado a teclear).
+
+**Qué vive en Configuración:** > «Por ahora solo lo que tengamos configurable, no agreguemos
+configuraciones nuevas: lo que estamos decidiendo aquí + lo que ya existe que sea configurable.»
+
+Inventario verificado en el código de lo que hoy es configurable y persiste:
+  · **Tema claro/oscuro** (`ThemeToggle.tsx`, vía `next-themes`).
+  · **Ancho de la columna de categorías** (`readCatWidth`/`writeCatWidth`, FR-104).
+Más lo decidido aquí: **mes de inicio** y **saldo inicial**. Nada más — sin inventar ajustes nuevos.
+
 ## Hallazgo de alcance: «12 o 24 meses a futuro» es OTRA feature
 
 Verificado en el código: **el año no existe en el modelo.** `MonthKey` son doce literales
@@ -143,6 +168,10 @@ Por eso hay que separar dos cosas que en el enunciado van juntas:
    configuración DESPUÉS de `cierre-de-mes`, (c) multi-año como feature propia.
 2. **¿Qué ve un usuario NUEVO, sin ningún dato?** Con la regla «solo meses con datos», su grilla
    estaría vacía. Propuesta: mostrar siempre el mes de inicio declarado y los futuros.
+3. **Mover el mes de inicio hacia adelante dejaría datos huérfanos.** Si empieza en septiembre,
+   registra, y luego mueve el inicio a noviembre, septiembre y octubre quedarían fuera de su
+   historia. Propuesta: BLOQUEARLO —mismo principio de «cero pérdida silenciosa» que ya aplica el
+   borrado de categorías (BG-001)— en vez de avisar y dejar pasar.
 
 ## Fuera de alcance (propuesto, a confirmar)
 
