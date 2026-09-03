@@ -1,5 +1,5 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     2,
@@ -10,49 +10,15 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T15:05:50.345Z",
+  "updatedAt": "2026-09-03T15:20:46.368Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T03:10:07.086Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T03:10:17.322Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T04:15:15.090Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T13:20:35.084Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T13:41:42.131Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T13:41:46.089Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T13:42:35.322Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-09-03T13:42:35.430Z",
       "event": "approved",
@@ -131,6 +97,49 @@
       "at": "2026-09-03T15:05:50.315Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-03T15:13:04.065Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 1
+    },
+    {
+      "at": "2026-09-03T15:13:21.112Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 76,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-03T15:13:47.544Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 77,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-03T15:18:40.522Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-03T15:18:43.667Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-03T15:20:19.019Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-03T15:20:46.334Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
@@ -138,7 +147,8 @@
     "1": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
     "2": "27c2e442fc26cb7385a65edf076b3cbcf71164c781cc47619b0bad688759943c",
     "3": "0d8d0b9cacaf3a22774e1a1cdc41b949251369a40fa21c3dc4fc20fe47c358b5",
-    "4": "82b5da7fde1cde6fbc0897f821f2670a6cda97c28527925e436ac8261641f2c6"
+    "4": "82b5da7fde1cde6fbc0897f821f2670a6cda97c28527925e436ac8261641f2c6",
+    "5": "0bff76d0c28b60736c1fd497eddcb5a142784468c2af1b3e4622dc5024c3d00b"
   },
   "frSnapshots": {
     "2": [
@@ -175,7 +185,26 @@
       "FR-2009"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "55f2c5653e75f5a539b315e962b16225b4c00921",
-  "verifyRanDirty": true
+  "verifyPassed": true,
+  "verifyRanRef": "ec72330a9f76474f237884cc319f9f7169a55c47",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "7cb9ec23dd28bbf8fc2806f67a0a9736c403e54faf30dfca21bfc89dca4af2e6",
+  "verifyRanAt": "2026-09-03T15:13:03.970Z",
+  "lastVerifyRun": {
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 1,
+    "at": "2026-09-03T15:13:03.970Z"
+  },
+  "verifySummary": {
+    "total": 77,
+    "passed": 77,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 1
+  }
 }
