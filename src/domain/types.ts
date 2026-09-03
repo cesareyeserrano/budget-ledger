@@ -67,6 +67,26 @@ export interface CellNote {
 /** Mapa nodeId → mes → observaciones manuales de esa celda (feature transferencias, FR-1012). */
 export type CellNotesMap = Record<string, Partial<Record<PeriodKeyT, CellNote[]>>>;
 
+/**
+ * El estado de cierre del ledger (feature cierre-de-mes, FR-2001).
+ *
+ * La frontera es un ESCALAR, no una marca por mes, y eso es la decisión (ADR-11): con una sola
+ * frontera un estado NO CONTIGUO —marzo cerrado y febrero abierto— es INDECIBLE, en vez de ser un
+ * invariante que hay que vigilar en cada escritura. Un invariante que no se puede expresar es el
+ * único que no se rompe.
+ */
+export interface Closure {
+  /** Todo periodo ≤ este valor está cerrado. null = nada cerrado. */
+  closedThrough: PeriodKeyT | null;
+  /**
+   * El mes actualmente reabierto, o null. Cuando no es null vale siempre
+   * `addMonths(closedThrough, 1)`. Es el guardia de «uno a la vez» que impide caminar hacia atrás
+   * reabriendo mes tras mes (FR-2005, ADR-13), y a la vez el dato que la interfaz necesita para
+   * decir QUÉ mes está reabierto.
+   */
+  reopened: PeriodKeyT | null;
+}
+
 export interface LedgerState {
   ownerId: string;
   nodes: LedgerNode[];
@@ -75,6 +95,8 @@ export interface LedgerState {
   movements: Movement[];
   /** Delta aditivo (FR-1012): ausente en estados previos — cargan y operan sin él. */
   cellNotes?: CellNotesMap;
+  /** Delta aditivo (FR-2001): ausente ≡ nada cerrado. Un ledger previo carga y opera sin él. */
+  closure?: Closure;
 }
 
 export const STORAGE_KEYS = {

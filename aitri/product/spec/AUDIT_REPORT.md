@@ -393,3 +393,27 @@ _Tercera revisión adversarial, disparada porque los requisitos cambiaron con la
 **Higiene observada (no es hallazgo):** quedaron procesos `next-server` huérfanos de sesiones anteriores — uno de 3 días en `:3100` y otro de más de un día en `:3220` (webServer de Playwright). Además del punto de RQ-SEC-011, ocupan puertos y provocaron el `EADDRINUSE` que falseó el primer sondeo de esta auditoría. Conviene cerrarlos al terminar una sesión de trabajo.
 
 **Verdict:** 2 hallazgos nuevos — **P0: 0 · P1: 2 · P2: 0**. Riesgo del **producto: bajo** y sin cambio — headers completos, gating íntegro en las 4 rutas, orden correcto de auth antes de parsear el cuerpo, 0 vulnerabilidades en dependencias, repositorio con CI + CodeQL + Dependabot y sin secretos versionados; y RQ-SEC-003, el más importante de las pasadas anteriores, quedó bien remediado. Los dos hallazgos nuevos no están en lo que se despliega sino en **cómo se verifica y cómo se desarrolla**: un gate obligatorio que acreditaba un artefacto obsoleto, y el servidor de desarrollo abierto a la red local. Por segunda pasada consecutiva, lo que aparece no es el producto — es el entorno alrededor del producto.
+
+### Security
+
+_Audit run 2026-09-02 (`aitri audit security`, CLI 2.2.0-rc.9) — first field execution of the repository-posture step (rc.6) + host run-state reading (rc.9). Auditor: agent session; self-declared: this session also authored the rc.6/rc.9 audit machinery being exercised._
+
+**Surfaces audited:** static — repo posture: **covered** (file signals + host settings via `gh`, read-only + workflow run results) · dependencies: **covered** (npm audit, branch-local) · secrets: **partial** (committed-file scan + host secret-scanning config; full-history scan delegated to the declared gitleaks CI step) · code trust boundaries: **NOT re-audited this run** (delegated to declared gates: secret-scan, security-config, e2e) · runtime (deployed/local service): **NOT AUDITED** (no instance probed this run).
+
+**[RQ-SEC-101]** `P1` — Scheduled dependency-security job RED on `main` for ≥3 consecutive weeks
+- Severity: High — known-CVE rot in a finance app's HTTP stack. `undici` carried 4 high/2 moderate advisories (cookie-attribute injection GHSA-v3r7-h72x-cjcm, cache-control disclosure GHSA-jr45-8vmc-qm54) while the red runs went unwatched — the exact silent-rot class.
+- Evidence: `gh run list --branch main --workflow CI`: scheduled runs failed 2026-08-17, 08-24, 08-31 (run 33387603750: "6 vulnerabilities (2 moderate, 4 high) … fix available via npm audit fix"). Branch `feat/servidor-fuente-unica` audits clean (0 vulns) — the fix exists in its newer lockfile; `main` has not received it.
+- Acceptance criteria: next scheduled CI run on `main` exits 0 on the security job; `npm audit --audit-level=high` on `main` exits 0.
+- Suggested implementation: land the current branch (or `npm audit fix` directly on `main`). The newly declared `security-audit` quality_gate (`npm audit --audit-level=high`, 04_BUILD_REPORT.json) now mirrors this check in `verify-run`, so the next rot surfaces in the operator loop, not only in Actions.
+
+**[RQ-SEC-102]** `P2` — Branch protection on `main` does not bind administrators (`enforce_admins: false`)
+- Severity: Medium — the repo's only committer is an admin, so every protection (PR reviews required, 2 status checks, no force-push) is bypassable by the account most likely to be phished and by the operator's own muscle memory. A compromised admin token pushes to `main` directly, skipping CodeQL/CI.
+- Evidence: `gh api repos/cesareyeserrano/budget-ledger/branches/main/protection` → `{"enforce_admins": false, "required_reviews": true, "required_status_checks": 2, "allow_force_pushes": false}`.
+- Acceptance criteria: same endpoint returns `enforce_admins: true`; an admin push to `main` without a PR is rejected.
+- Suggested implementation: `gh api -X POST repos/cesareyeserrano/budget-ledger/branches/main/protection/enforce_admins` (owner runs it — this audit is read-only).
+
+**Observations (not findings — no attacker story at this threat model):** `secret_scanning_non_provider_patterns` and `secret_scanning_validity_checks` disabled (generic-pattern and validity hardening; provider patterns + push protection ARE enabled, which carry the real weight). `.env.example` contains only placeholder/localhost values, matches its own "never commit real values" header.
+
+**Checked clean (evidence of coverage, not assumption):** CI + CodeQL workflows present and wired · `dependabot.yml` present, security updates enabled, vulnerability alerts enabled (204) · secret scanning + push protection enabled · LICENSE present · `.gitignore` covers `.env*` (3 patterns), only `.env.example` committed · `npm audit` clean on the working branch · no `.env`/credential files in tracked history's current tree.
+
+**Proposed quality_gate:** already landed this cycle — `security-audit` (`npm audit --audit-level=high`, required) declared in `04_BUILD_REPORT.json` alongside the existing secret-scan/security-config gates. No additional gate proposed: RQ-SEC-102 is a host setting (one-time fix, re-checked by future posture audits), and presence-only checks would be gate theater.
