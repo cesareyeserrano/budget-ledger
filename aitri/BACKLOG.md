@@ -119,9 +119,30 @@ relativa.
    modelo (`MonthKey` son doce literales `"ene"…"dic"`, `AmountMap` indexa por ellos y el esquema no
    tiene columna de año), así que exige meter el año en el modelo, migrar los datos y revisar todas
    las derivaciones y reglas. Habilita el filtro por rango de meses que el usuario pidió.
-2. **Grilla dinámica** (parte de BL-040) — ocultar meses pasados vacíos y mostrar los futuros, más el
-   filtro por rango. Presentación pura, ya sobre un modelo con años. Su expediente con las
-   decisiones y las preguntas abiertas está en `aitri/features/grilla-dinamica/FEATURE_IDEA.md`.
+2. ~~**Grilla dinámica** (parte de BL-040)~~ — **CERRADA SIN CONSTRUIRSE el 2026-09-03: la absorbió
+   multi-año.** Decisión del usuario al verlo («ya se implementó la grilla dinámica, si ya se cubrió
+   cierra eso»). No es un descarte por cambio de opinión: multi-año, para saber dónde empieza el
+   rango, tuvo que calcular «el periodo más antiguo con datos» — que es exactamente la regla que
+   esta feature existía para implementar. Las dos necesitaban lo mismo y la primera se lo llevó.
+
+   Verificado en el código antes de cerrarla, punto por punto:
+   · *Pasado vacío oculto* → `activeRange` arranca en `oldestPeriodWithData` (FR-1906), y su
+     definición de «mes con datos» —presupuesto, ejecutado, movimiento y observación de celda— es
+     literalmente la que proponía el expediente de la grilla.
+   · *Futuro vacío visible* → el horizonte en años completos (FR-1904).
+   · *«Meses quemados»* → `MonthKey` y sus doce literales ya no existen (FR-1901).
+   · *Ruido de enero a mayo para quien empieza en junio* → `buildSeed` siembra desde el mes EN CURSO
+     (FR-1910, `src/domain/seed.ts`), así que ya no fabrica pasado.
+   · *Filtro* → filtro por año y salto al mes elegido (FR-1905).
+   · Sus cuatro preguntas abiertas quedaron respondidas por el código: el hueco intermedio nunca se
+     oculta (`periodRange` es contiguo), el mes en curso siempre está en el rango, y el Dashboard y
+     el selector siguen la misma regla porque consumen la misma lista.
+
+   **Único residuo, y NO queda huérfano:** escribir en un mes pasado que no tiene ningún dato sigue
+   sin ser posible (no hay columna). Eso ya está decidido por el usuario el 2026-09-01 —«la historia
+   comienza en junio; si quiere empezar en marzo, tendrá que transcribirla desde marzo»— y su
+   mecanismo es el **mes de inicio declarado**, que pertenece al punto 4 y está escrito en
+   `aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md`. No hace falta feature propia.
 3. **Cierre de mes** (BL-036) — la grande. Es la única que permite **borrar** maquinaria en vez de
    añadirla, y de ella dependen BL-037 y BL-038, congelados a propósito. Incluye reapertura auditada.
 4. **Saldo inicial + página de Configuración** (resto de BL-040) — ya sobre la base simplificada.
