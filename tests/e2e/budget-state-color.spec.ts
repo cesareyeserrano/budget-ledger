@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "./helpers/fixtures";
 import { seedLedger } from "./helpers/seed";
 import type { LedgerNode } from "@/domain/types";
-import { MONTH_KEYS } from "../../src/domain/months";
+import { P as MONTH_KEYS } from "./helpers/periods";
 
 // Feature budget-state-color — el color de la grilla señala el ESTADO del presupuesto, no el tipo.
 // Los TCs visuales afirman VALORES COMPUTADOS reales (color, background, scrollWidth, contraste
@@ -12,9 +12,9 @@ const DESK = { width: 1440, height: 900 };
 const MOBILE = { width: 375, height: 900 };
 
 /** Mes sobre el que se posa el filtro en los tests: fijo, para que el resaltado sea determinista. */
-const PICKED = { key: "ene", label: "Enero", index: MONTH_KEYS.indexOf("ene") };
+const PICKED = { key: "2026-01", label: "Enero 2026", index: MONTH_KEYS.indexOf("2026-01") };
 /** Un mes cualquiera SIN resaltar, para leer superficies sin el tinte del filtro. */
-const PLAIN_INDEX = MONTH_KEYS.indexOf("feb");
+const PLAIN_INDEX = MONTH_KEYS.indexOf("2026-02");
 
 const STATE_WARNING = "rgb(158, 71, 8)"; // --state-warning claro (#9e4708)
 const STATE_OVER = "rgb(173, 57, 50)"; // --state-over claro (#ad3932)

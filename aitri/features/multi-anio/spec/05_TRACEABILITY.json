@@ -1,0 +1,166 @@
+{
+  "project": "multi-anio",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-1901",
+      "title": "El periodo del ledger es año y mes: una sola clave ordenable «YYYY-MM» sustituye a MonthKey",
+      "level": "complete",
+      "evidence": "4/4 TCs. `PeriodKey` (\"YYYY-MM\") sustituye a `MonthKey` en los 19 ficheros de `src/` que lo usaban; `months.ts` retirado. Es alias de `string` porque el conjunto de periodos es ABIERTO: la seguridad la dan los validadores en los bordes, no el compilador. TC-MAN-003f destapó un defecto real — `applyReserveCellEdit` aceptaba una clave malformada y escribía una celda que ninguna derivación puede leer (dinero invisible); se endurecieron las cuatro puertas de escritura."
+    },
+    {
+      "id": "FR-1902",
+      "title": "La base de datos guarda el periodo con año, con migración de llaves y constraints",
+      "level": "complete",
+      "evidence": "6/6 TCs contra Postgres real. Las tres tablas guardan `period` con CHECK por expresión regular y las llaves primarias lo incluyen, así que 2026-03 y 2027-03 del mismo nodo coexisten. La migración es de ESTRUCTURA, no de datos (ADR-05): las tablas estaban vacías, y el script comprueba que lo sigan estando y aborta con un mensaje que explica el motivo. El sentinel `@retiros`, cuyo node_id no existe en `node`, migra sin que ninguna comprobación de integridad lo rechace."
+    },
+    {
+      "id": "FR-1903",
+      "title": "El saldo de diciembre abre enero del año siguiente: el arrastre cruza el borde de año",
+      "level": "complete",
+      "evidence": "6/6 TCs. `computeBalanceSeries` recibe la lista de periodos y solo `periods[0]` abre en `ZERO_CARRY`: cada diciembre entrega su saldo a enero del año siguiente igual que cualquier mes. Verificado que ningún enero posterior abre en cero por ser enero, que lo reservado también cruza, que un cambio en 2026-11 se propaga hasta 2027-02, y que la conservación se cumple AL PESO en el paso dic→ene."
+    },
+    {
+      "id": "FR-1904",
+      "title": "El horizonte futuro es configurable en AÑOS COMPLETOS: 1 o 2 años",
+      "level": "complete",
+      "evidence": "5/5 TCs. El horizonte se cuenta en AÑOS COMPLETOS (1 o 2) tras la decisión del usuario al ver la grilla: contar en meses cortaba 2028 en agosto. Desde 2026-09 con 2 años el rango termina en 2028-12. Consecuencia aceptada y probada: la ventana rueda una vez al año — no se mueve de septiembre a diciembre y salta un año entero al entrar 2027-01."
+    },
+    {
+      "id": "FR-1905",
+      "title": "La grilla es una tira continua que cruza años, con banda de año, filtro por año y salto al mes elegido",
+      "level": "complete",
+      "evidence": "6/6 TCs, cuatro de ellos en navegador. Tira continua con banda de año por tramos contiguos —incluido un primer tramo parcial, que es lo que la versión anterior dejaba sin etiqueta—, filtro Año que recorta columnas, y salto al mes elegido. La separación entre `visiblePeriods` (pintar) y `activePeriods` (calcular) es lo que impide que filtrar por 2027 ponga en cero el saldo de apertura de enero. TC-MAN-045h vigila que el posicionamiento inicial no absorba el primer gesto de rueda, defecto medido durante la construcción (~1,5s de grilla clavada)."
+    },
+    {
+      "id": "FR-1906",
+      "title": "El rango visible va del periodo más antiguo con datos hasta el fin del horizonte",
+      "level": "complete",
+      "evidence": "5/5 TCs. El rango va del periodo más antiguo con datos al fin del horizonte, contiguo y ordenado. Las cuatro fuentes cuentan (presupuesto, ejecutado, movimiento y observación de celda) y un cero NO cuenta: una celda vacía no puede fijar el inicio de la historia — verificado con el caso real del usuario, cuya base tenía dos celdas en cero que no movieron su rango. Una clave basura se ignora en vez de corromper el inicio."
+    },
+    {
+      "id": "FR-1907",
+      "title": "La preferencia de horizonte persiste entre sesiones, con 24 por defecto",
+      "level": "complete",
+      "evidence": "5/5 TCs contra Postgres real. La preferencia vive en la tabla `user` y no en el navegador, por decisión explícita del usuario, así que viaja entre dispositivos. Verificado que persiste, que sin fila cae a 2 años, que un valor fuera de rango se rechaza en el esquema Y en el CHECK de la columna, y —lo que FR-1907 exige— que cambiarla NO sube `ledger.revision`: una preferencia no puede hacer chocar el guardado de otro dispositivo."
+    },
+    {
+      "id": "FR-1908",
+      "title": "El registro de movimientos y el selector de periodo operan sobre año y mes",
+      "level": "complete",
+      "evidence": "4/4 TCs. El selector muestra año junto al mes, así que dos «Marzo» son distinguibles antes de elegir; la fecha de captura 2027-03-14 deriva el periodo 2027-03 y no 2026-03; y la API rechaza con 400 un periodo malformado sin escribir fila. Verificado en navegador que todas las opciones del selector llevan año y ninguna se repite."
+    },
+    {
+      "id": "FR-1909",
+      "title": "El techo de reserva y las series de reserva operan sobre la lista ordenada de periodos del rango, no sobre doce índices",
+      "level": "complete",
+      "evidence": "5/5 TCs. Las 26 funciones exportadas de `reserve.ts` operan sobre la lista ordenada del rango en vez de doce índices, y cada `indexOf` rechaza el −1 explícitamente: con `MonthKey` el tipo garantizaba pertenencia y era imposible fallar, con `PeriodKey` un periodo ausente daría −1 y la aritmética seguiría corriendo con un índice que no existe. Verificado que el techo da lo MISMO que antes de migrar en los doce periodos, que un aporte cruza el borde de año, y que ampliar el horizonte sin datos nuevos no mueve ningún veredicto."
+    },
+    {
+      "id": "FR-1910",
+      "title": "La siembra de un usuario nuevo produce periodos del modelo nuevo y no fabrica pasado",
+      "level": "complete",
+      "evidence": "4/4 TCs. `buildSeed` recibe el periodo en curso; `FACTOR` pasó de un registro de doce claves de mes a factores por POSICIÓN. Un usuario que arranca en septiembre no recibe celdas de enero, así que el criterio de FR-1906 («sin datos, el rango empieza en el mes en curso») deja de ser inalcanzable — antes ningún usuario nacía sin datos y su rango habría arrancado siempre en enero."
+    },
+    {
+      "id": "NFR-1901",
+      "title": "La suite existente sigue verde tras la migración: las 610+ pruebas unitarias y e2e del proyecto y de sus featu",
+      "level": "complete",
+      "evidence": "3/3 (1 automático + 2 manuales verificados). La suite pasó de 576 a 645 unitarias/integración y de 344 a 391 e2e: el total SUBE, así que ninguna prueba se perdió al adaptar los 43 ficheros que mencionaban meses literales. TC-MAN-202f barre los 59 ficheros buscando skip/only/todo y no encuentra ninguno: adaptar no fue desactivar."
+    },
+    {
+      "id": "NFR-1902",
+      "title": "El arrastre de saldo dentro de un año no cambia: computeBalanceSeries produce, para un conjunto de datos conte",
+      "level": "complete",
+      "evidence": "3/3 TCs por COMPARACIÓN contra una línea base capturada ejecutando el código ANTERIOR en un worktree de git, sobre un estado explícito. Los nueve campos del balance coinciden al peso en los doce periodos y en los dos planos. TC-MAN-212f comprueba que una diferencia de UN peso hace fallar la comparación: no hay tolerancia que deje pasar dinero perdido."
+    },
+    {
+      "id": "NFR-1903",
+      "title": "El techo de flujo y la maquinaria de reservas conservan su veredicto: headrooms encadenados, verdictOf, límite",
+      "level": "complete",
+      "evidence": "3/3 TCs. Las nueve funciones auditadas (headroom, margen, límite del retiro planeado, aportes, retiros, delta, maxWithdrawal, cellHeadroom y el uso del arrastre) devuelven exactamente lo mismo que antes de migrar en los doce periodos, y las series resueltas y el plan de retiros son idénticos. Es la capa que acababa de pasar un pase adversarial de 6.000 pasos; no se degradó."
+    },
+    {
+      "id": "NFR-1904",
+      "title": "Los roll-ups jerárquicos no cambian: hoja → subcategoría → categoría → grupo → tipo siguen sumando igual en Pr",
+      "level": "complete",
+      "evidence": "3/3 TCs. Los roll-ups por tipo coinciden con la línea base en los doce periodos, un periodo vacío suma 0 y no `undefined`, y —lo que la clave única existe para evitar— los montos de 2026-03 no se filtran al roll-up de 2027-03."
+    },
+    {
+      "id": "NFR-1905",
+      "title": "La persistencia no pierde nada ni rompe el bloqueo optimista por revision (src/server/data/ledgerRepo.ts): gua",
+      "level": "complete",
+      "evidence": "3/3 TCs contra Postgres real. Un ledger con datos en 2025, 2026 y 2027 se guarda y recarga idéntico; un PUT con revisión obsoleta sigue devolviendo conflicto sin escribir; y un snapshot con una sola celda inválida se rechaza ENTERO, sin escritura parcial."
+    },
+    {
+      "id": "NFR-1906",
+      "title": "El registro móvil sigue capturando contra el periodo correcto y sumándolo al Ejecutado de la hoja destino, sin",
+      "level": "complete",
+      "evidence": "3/3 TCs. Un movimiento capturado suma al Ejecutado de su periodo y no se filtra al mismo mes de otro año; tras guardar y recargar ningún movimiento queda con periodo inválido; y el registro apunta por defecto al periodo en curso con su año."
+    },
+    {
+      "id": "NFR-1907",
+      "title": "El recómputo del dominio no se degrada al crecer el rango: con el rango máximo previsto (historial más 24 mese",
+      "level": "complete",
+      "evidence": "3/3 TCs. El coste POR PERIODO es plano —1,4 µs de 12 a 168 periodos— así que el barrido es lineal, no cuadrático. Catorce años completos se recalculan en 0,23 ms, muy por debajo del tope de 150 ms. Los contadores de pasadas no suben al ampliar el rango: el barrido se memoiza por (estado, rango). El RISK-01 del TRD («coste ~7×») queda cerrado con medición, no con opinión."
+    },
+    {
+      "id": "NFR-1908",
+      "title": "El periodo se valida en el SERVIDOR, no solo en el navegador: la API rechaza cualquier periodo malformado o fu",
+      "level": "complete",
+      "evidence": "5/5 TCs, cuatro vectores más el caso legítimo. Formato, años fuera de [2000,2100] que el CHECK de la base SÍ aceptaría, tipos y cadenas de 1.000 caracteres, e inyección SQL. La defensa está en el borde de la API y el CHECK queda como última línea, no como la única — que es lo que se debilitó al abrir el dominio de valores del periodo."
+    },
+    {
+      "id": "NFR-1909",
+      "title": "La migración es reversible en desarrollo y está documentada: el proyecto conserva el script de migración y una",
+      "level": "complete",
+      "evidence": "3/3 TCs. Los dos scripts están versionados y en el journal, nombran las tres tablas con su CHECK, y correr la migración dos veces deja la base igual que correrla una. La guarda de tablas vacías se evalúa ANTES del primer ALTER: si no, un fallo dejaría el esquema a medias."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-1907",
+      "substitution": "El horizonte se persiste y se sirve por API, pero NO hay control en la interfaz para cambiarlo",
+      "reason": "Su sitio es la página de Configuración, que es el punto 4 del orden acordado y no existe todavía. Crearla aquí invadiría el no_go_zone. Todos los usuarios quedan en el defecto de 2 años, que es el valor con el que se diseñó la vista.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-1901",
+      "substitution": "tests/e2e está EXCLUIDO de tsconfig.json, así que `npm run typecheck` no lo comprueba",
+      "reason": "Exclusión preexistente, no introducida por esta feature. Durante la construcción costó caro: un error de sintaxis puro en dos specs sobrevivió a un tsc en verde y solo apareció al ejecutar Playwright, la corrida más lenta de la suite. No se toca por cuenta propia porque la exclusión puede ser deliberada por los tipos de Playwright.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-1902",
+      "substitution": "La migración cambia la estructura pero NO traduce datos del modelo viejo",
+      "reason": "ADR-05: las tres tablas estaban vacías, así que no había filas que traducir, y el script aborta si dejan de estarlo. Una base con datos del modelo de doce meses necesitaría un escalón nuevo que decida el año ancla.",
+      "effort_to_fix": "medium"
+    }
+  ],
+  "deployment": {
+    "model": "containerized",
+    "changes_required": "migración de esquema — ORDEN OBLIGATORIO",
+    "rationale": "A diferencia de las features anteriores, ésta SÍ toca la base: `drizzle/0002_multi_anio.sql` renombra `month` a `period` en amount_cell, movement y cell_note —cambiando sus CHECK y dos llaves primarias— y añade `user.horizon`; `drizzle/0003_horizonte_en_anios.sql` convierte esa columna de meses a años. No se crean Dockerfile, docker-compose.yml ni .env.example propios: los del producto siguen vigentes. Lo que el despliegue gana es un PASO NUEVO y un orden que no es opcional.",
+    "steps": [
+      "1. Respaldo de la base (pg_dump). Es la única vuelta atrás real: la migración BORRA la columna `month`, así que revertir el código sin revertir la base deja la app rota.",
+      "2. `npm run db:migrate` — aplica 0002 y 0003. Transaccional e idempotente por marca de `data_version`.",
+      "3. Desplegar el código nuevo."
+    ],
+    "incompatibility_window": "Entre los pasos 2 y 3 la app vieja no puede leer la base: no conoce la columna `period`. Es aceptable en un despliegue de usuario único y se mitiga haciendo los dos pasos seguidos. Invertir el orden NO funciona: el código nuevo tampoco sabe leer `month`.",
+    "rollback": "Restaurar el respaldo del paso 1 y volver al código anterior. No hay migración inversa automática: `0002` borra la columna original, así que sin respaldo la vuelta atrás no existe. Documentado deliberadamente en vez de escribir un `down` que daría falsa seguridad.",
+    "health_check": "GET / responde 200; el gate `smoke` (npm run gate:smoke) arranca la app y verifica sus rutas clave sin 5xx."
+  },
+  "visual_verification": {
+    "method": "Sesión con la app real levantada contra el Postgres de desarrollo del usuario, más 11 e2e nuevos en Chromium que miden posiciones, anchos y desplazamientos computados.",
+    "findings": "El usuario encontró EN PANTALLA un defecto que ninguna prueba veía: con el filtro en Año, el encabezado pintaba 12 columnas y las filas 32 — celdas sin mes encima. Causa: las filas seguían usando la lista del cálculo en vez de la de las columnas. Corregido y levantado como [RISK-06] del TRD. Los e2e destaparon otros dos: la banda de año pisaba el color del sistema de diseño (rompía el NFR de consistencia de eyebrows) y el scroll suave al montar se comía el primer gesto de rueda del usuario."
+  }
+}

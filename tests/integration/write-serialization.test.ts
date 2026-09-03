@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { LedgerState } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -83,8 +84,8 @@ describe("BL-010 escrituras serializadas", () => {
     const s = store.getState();
 
     // Dos ediciones en el mismo tick: antes salían en paralelo con la misma baseRevision.
-    s.setLeafAmount("s-comida-mercado", "ene", "budget", 111);
-    s.setLeafAmount("s-comida-mercado", "feb", "budget", 222);
+    s.setLeafAmount("s-comida-mercado", "2026-01", "budget", 111);
+    s.setLeafAmount("s-comida-mercado", "2026-02", "budget", 222);
 
     await vi.waitFor(() => expect(api.stats.puts.length).toBeGreaterThanOrEqual(2));
     await delay(40); // drenar por completo
@@ -94,8 +95,8 @@ describe("BL-010 escrituras serializadas", () => {
     // El segundo PUT salió con la revisión que devolvió el primero.
     expect(api.stats.puts[1]!.baseRevision).toBe(1);
     // El servidor terminó con AMBAS ediciones (la coalescencia no perdió la primera).
-    expect(api.stored!.budgets["s-comida-mercado"]!.ene).toBe(111);
-    expect(api.stored!.budgets["s-comida-mercado"]!.feb).toBe(222);
+    expect(api.stored!.budgets["s-comida-mercado"]!["2026-01"]).toBe(111);
+    expect(api.stored!.budgets["s-comida-mercado"]!["2026-02"]).toBe(222);
   });
 
   it("ráfaga de mutaciones → coalescencia: menos PUTs que mutaciones, estado final completo", async () => {
@@ -103,13 +104,13 @@ describe("BL-010 escrituras serializadas", () => {
     const store = await freshStore();
     const s = store.getState();
 
-    for (let i = 1; i <= 6; i++) s.setLeafAmount("s-comida-mercado", "ene", "budget", i * 100);
+    for (let i = 1; i <= 6; i++) s.setLeafAmount("s-comida-mercado", "2026-01", "budget", i * 100);
 
     await delay(150);
     expect(api.stats.maxInFlight).toBe(1);
     expect(api.stats.conflicts).toBe(0);
     expect(api.stats.puts.length).toBeLessThan(6); // los snapshots intermedios se coalescen
-    expect(api.stored!.budgets["s-comida-mercado"]!.ene).toBe(600); // el último gana
+    expect(api.stored!.budgets["s-comida-mercado"]!["2026-01"]).toBe(600); // el último gana
   });
 
   it("409 genuino (otra sesión) → converge al servidor Y avisa con toast, nunca en silencio", async () => {
@@ -119,16 +120,16 @@ describe("BL-010 escrituras serializadas", () => {
     // Estado que "la otra sesión" dejó en el servidor (lo que el GET del resync devolverá).
     const { buildSeed } = await import("@/domain");
     const { setLeafAmount } = await import("@/domain/mutations");
-    const foreign = setLeafAmount(buildSeed("local"), "s-comida-mercado", "mar", "budget", 999);
+    const foreign = setLeafAmount(buildSeed("local", P0), "s-comida-mercado", "2026-03", "budget", 999, P);
     api.foreignWrite(foreign);
 
-    store.getState().setLeafAmount("s-comida-mercado", "ene", "budget", 111);
+    store.getState().setLeafAmount("s-comida-mercado", "2026-01", "budget", 111);
 
     await vi.waitFor(() => expect(api.stats.gets).toBeGreaterThanOrEqual(1)); // hubo resync
     await vi.waitFor(() => {
       const st = store.getState();
       // Convergió al estado del servidor (ADR-06: last-write-wins informado)…
-      expect(st.data.budgets["s-comida-mercado"]?.mar).toBe(999);
+      expect(st.data.budgets["s-comida-mercado"]?.["2026-03"]).toBe(999);
       // …y el descarte NO fue silencioso (BL-010).
       expect(st.toast).toMatch(/Otro dispositivo/);
     });

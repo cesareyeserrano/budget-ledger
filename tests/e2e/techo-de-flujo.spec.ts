@@ -26,9 +26,9 @@ const NODES: LedgerNode[] = [
 ];
 
 /** Un retiro ya operado — misma forma que usa transferencias.spec.ts. */
-const retiro = (from: string, month: string, amount: number) => ({
-  id: `mv-${from}-${month}`, ownerId: "local", type: "transfer" as const, catId: from, subId: null,
-  target: from, amount, month, createdAt: 1, from, to: "@disponible",
+const retiro = (from: string, period: string, amount: number) => ({
+  id: `mv-${from}-${period}`, ownerId: "local", type: "transfer" as const, catId: from, subId: null,
+  target: from, amount, period, createdAt: 1, from, to: "@disponible",
 });
 
 /**
@@ -43,10 +43,10 @@ const retiro = (from: string, month: string, amount: number) => ({
 const CASO_USUARIO = {
   nodes: NODES,
   actuals: {
-    "c-salario": { ene: 1000, feb: 1000 },
-    "c-alcancia": { ene: 1000, feb: 1500 },
+    "c-salario": { "2026-01": 1000, "2026-02": 1000 },
+    "c-alcancia": { "2026-01": 1000, "2026-02": 1500 },
   },
-  movements: [retiro("c-alcancia", "ene", 500)],
+  movements: [retiro("c-alcancia", "2026-01", 500)],
 } as unknown as Parameters<typeof seedLedger>[1];
 
 /** Abre la grilla con el estado sembrado y espera a que el Balance esté montado. */
@@ -132,7 +132,7 @@ test.describe("FR-1805 · la grilla en tres bloques", () => {
     expect(yRetiros).toBeLessThan(yBalance);
 
     // Y es OPERABLE desde ahí: su celda Ejec. abre el mini-form de sacar.
-    await retiros.locator('[data-testid="withdraw-cell"][data-month="feb"]').click();
+    await retiros.locator('[data-testid="withdraw-cell"][data-month="2026-02"]').click();
     await expect(page.getByTestId("withdraw-source")).toBeVisible();
   });
 
@@ -233,7 +233,7 @@ test.describe("FR-1810 · el Balance se lee de arriba abajo", () => {
     // Gasto mayor que el ingreso y sin ahorro que lo cubra: deuda de verdad.
     await abrir(page, {
       nodes: NODES,
-      actuals: { "c-salario": { ene: 500 }, "c-mercado": { ene: 900 } },
+      actuals: { "c-salario": { "2026-01": 500 }, "c-mercado": { "2026-01": 900 } },
     });
 
     const disponible = celdaBalance(page, "available", ENE, 1);
@@ -292,7 +292,7 @@ test.describe("FR-1806 · la señal del mes vive en sus dos superficies", () => 
   /** Un mes por encima de su techo: reservó 1.500 con un flujo de 1.000 y sin saldo previo. */
   const EXCEDIDO = {
     nodes: NODES,
-    actuals: { "c-salario": { ene: 1000 }, "c-alcancia": { ene: 1500 } },
+    actuals: { "c-salario": { "2026-01": 1000 }, "c-alcancia": { "2026-01": 1500 } },
   };
 
   test("TC-TDF-050h: la marca del encabezado y la franja del Balance aparecen JUNTAS", async ({ page }) => {
@@ -300,14 +300,14 @@ test.describe("FR-1806 · la señal del mes vive en sus dos superficies", () => 
     await abrir(page, EXCEDIDO);
 
     // No puede haber marca sin detalle ni detalle sin marca: leen la MISMA lista (ADR-05).
-    await expect(page.locator('[data-testid="techo-mark"][data-month="ene"]')).toBeVisible();
+    await expect(page.locator('[data-testid="techo-mark"][data-month="2026-01"]')).toBeVisible();
     const franja = page.getByTestId("techo-banner");
     await expect(franja).toBeVisible();
     await expect(franja).toContainText(/enero/i);
     await expect(franja).toContainText("500"); // el exceso, nombrado
 
     // La marca no es solo color: lleva texto accesible (WCAG 1.4.1).
-    const etiqueta = await page.locator('[data-testid="techo-mark"][data-month="ene"]').getAttribute("aria-label");
+    const etiqueta = await page.locator('[data-testid="techo-mark"][data-month="2026-01"]').getAttribute("aria-label");
     expect(etiqueta).toMatch(/enero/i);
   });
 
@@ -325,7 +325,7 @@ test.describe("FR-1809 y FR-1804 · observaciones", () => {
     await page.setViewportSize(DESK);
     await abrir(page, {
       nodes: NODES,
-      actuals: { "c-salario": { ene: 1000 }, "c-mercado": { ene: 300 } },
+      actuals: { "c-salario": { "2026-01": 1000 }, "c-mercado": { "2026-01": 300 } },
     });
 
     // Antes de FR-1809 esto solo existía en celdas de bolsillo.
@@ -377,7 +377,7 @@ test.describe("FR-1805 · el bolsillo que crece y el mes resaltado", () => {
         parentId: "g-res", name, icon: null, order: i + 1,
       })),
     ],
-    actuals: { "c-salario": { ene: 1000 } },
+    actuals: { "c-salario": { "2026-01": 1000 } },
   } as unknown as Parameters<typeof seedLedger>[1];
 
   test("TC-TDF-043e: con seis bolsillos y el grupo plegado, «Retiros del mes» sigue a la vista", async ({ page }) => {
@@ -414,7 +414,7 @@ test.describe("FR-1805 · el bolsillo que crece y el mes resaltado", () => {
     };
 
     await page.getByLabel("Mes").click();
-    await page.getByRole("option", { name: "Enero", exact: true }).click();
+    await page.getByRole("option", { name: "Enero 2026", exact: true }).click();
     const ene = await fondos(ENE);
     const feb = await fondos(FEB);
 
@@ -429,7 +429,7 @@ test.describe("FR-1805 · el bolsillo que crece y el mes resaltado", () => {
     // Al cambiar de mes, el resaltado se MUEVE en los tres a la vez: febrero toma el tratamiento
     // que tenía enero, y enero recupera el fondo normal.
     await page.getByLabel("Mes").click();
-    await page.getByRole("option", { name: "Febrero", exact: true }).click();
+    await page.getByRole("option", { name: "Febrero 2026", exact: true }).click();
     const feb2 = await fondos(FEB);
     const ene2 = await fondos(ENE);
     for (const bloque of ["gasto", "reserva", "balance"] as const) {

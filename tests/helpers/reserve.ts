@@ -9,10 +9,11 @@
 import { expect } from "vitest";
 import { editReserveOp, removeReserveOp } from "@/domain/reserve";
 import type { LedgerState } from "@/domain/types";
+import { P } from "../helpers/periods";
 
 /** Elimina una operación esperando que la cadena la acepte. Falla nombrando el motivo si rechaza. */
 export function removeOrFail(state: LedgerState, movementId: string): LedgerState {
-  const r = removeReserveOp(state, movementId);
+  const r = removeReserveOp(state, movementId, P);
   if ("rejected" in r) {
     expect.fail(`removeReserveOp rechazó ${movementId}: ${JSON.stringify(r.rejected)}`);
   }
@@ -21,7 +22,7 @@ export function removeOrFail(state: LedgerState, movementId: string): LedgerStat
 
 /** Corrige el monto de una operación esperando que la cadena lo acepte. */
 export function editOrFail(state: LedgerState, movementId: string, amount: number): LedgerState {
-  const r = editReserveOp(state, movementId, amount);
+  const r = editReserveOp(state, movementId, amount, P);
   if ("rejected" in r) {
     expect.fail(`editReserveOp rechazó ${movementId}→${amount}: ${JSON.stringify(r.rejected)}`);
   }
@@ -38,6 +39,6 @@ export function editOrFail(state: LedgerState, movementId: string, amount: numbe
  * eliminación tenga éxito.
  */
 export function removeIfAllowed(state: LedgerState, movementId: string): LedgerState {
-  const r = removeReserveOp(state, movementId);
+  const r = removeReserveOp(state, movementId, P);
   return "rejected" in r ? state : r.state;
 }

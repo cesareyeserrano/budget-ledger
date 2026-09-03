@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "./helpers/fixtures";
 import { seedLedger } from "./helpers/seed";
 import type { LedgerNode } from "@/domain/types";
-import { MONTH_KEYS } from "../../src/domain/months";
+import { P as MONTH_KEYS } from "./helpers/periods";
 
 // Feature balance-jerarquia — el módulo de Balance deja leer su propia aritmética, y el color pasa
 // a señalar sólo la excepción en TODA la pantalla principal. Los TCs afirman VALORES COMPUTADOS
@@ -320,7 +320,7 @@ test.describe("NFR-1402 — tres canales y contraste AA", () => {
   test("TC-BJE-010e: con un mes FILTRADO, el módulo lo resalta y conserva su contraste", async ({ page }) => {
     await goto(page, POSITIVE, "light");
     await page.getByLabel("Mes").click();
-    await page.getByRole("option", { name: "Enero", exact: true }).click();
+    await page.getByRole("option", { name: "Enero 2026", exact: true }).click();
 
     // REVOCADO por AC-1828 (petición expresa del usuario: «que el sombreado de la columna del mes
     // activo aplique para los 3 bloques»). Antes el módulo NO seguía el resaltado, y la razón

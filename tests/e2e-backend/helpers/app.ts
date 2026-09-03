@@ -66,18 +66,18 @@ export async function login(page: Page, email: string): Promise<void> {
 }
 
 /** Crea un movimiento vía la API en el contexto (cookies) del navegador. Devuelve el status HTTP. */
-export async function createMovementViaApi(page: Page, amount: number, month = "jun"): Promise<number> {
+export async function createMovementViaApi(page: Page, amount: number, period = "2026-06"): Promise<number> {
   return page.evaluate(
-    async ({ amount, month }) => {
+    async ({ amount, period }) => {
       const res = await fetch("/api/v1/movements", {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, month }),
+        body: JSON.stringify({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, period }),
       });
       return res.status;
     },
-    { amount, month }
+    { amount, period }
   );
 }
 
@@ -98,13 +98,13 @@ export async function hasMovementAmount(page: Page, amount: number): Promise<boo
 }
 
 /** Valor de Ejecutado (actual) de un nodo/mes en el store en vivo. */
-export async function actualFor(page: Page, nodeId: string, month: string): Promise<number> {
+export async function actualFor(page: Page, nodeId: string, period: string): Promise<number> {
   return page.evaluate(
-    ({ nodeId, month }) => {
+    ({ nodeId, period }) => {
       const w = window as unknown as { __ledgerStore?: { getState: () => { data: { actuals: Record<string, Record<string, number>> } } } };
-      return w.__ledgerStore?.getState().data.actuals?.[nodeId]?.[month] ?? 0;
+      return w.__ledgerStore?.getState().data.actuals?.[nodeId]?.[period] ?? 0;
     },
-    { nodeId, month }
+    { nodeId, period }
   );
 }
 

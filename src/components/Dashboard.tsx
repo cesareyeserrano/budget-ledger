@@ -4,7 +4,7 @@ import { BarChart, Bar as RBar, XAxis, ResponsiveContainer, Tooltip, Legend } fr
 import { useLedgerStore } from "@/state/store";
 import { dashboardMetrics } from "@/domain";
 import { typeTotals } from "@/domain/rollup";
-import { MONTHS } from "@/domain/months";
+import { periodMonthLabelShort } from "@/domain/periods";
 import { money } from "./format";
 import { Kpi } from "./ui/Kpi";
 import { Card } from "./ui/Card";
@@ -13,14 +13,16 @@ import { Card } from "./ui/Card";
 export function Dashboard() {
   const data = useLedgerStore((s) => s.data);
   const period = useLedgerStore((s) => s.period);
-  const vm = useMemo(() => dashboardMetrics(data, period), [data, period]);
+  const scope = useLedgerStore((s) => s.activePeriods)();
+  const visibles = useLedgerStore((s) => s.visiblePeriods)();
+  const vm = useMemo(() => dashboardMetrics(data, period, scope), [data, period, scope]);
   const trend = useMemo(
-    () => MONTHS.map((m) => ({
-      mes: m.label.slice(0, 3),
-      Ingresos: typeTotals(data, "income", [m.k]).actual,
-      Gastos: typeTotals(data, "expense", [m.k]).actual,
+    () => visibles.map((m) => ({
+      mes: periodMonthLabelShort(m).slice(0, 3),
+      Ingresos: typeTotals(data, "income", [m]).actual,
+      Gastos: typeTotals(data, "expense", [m]).actual,
     })),
-    [data]
+    [data, visibles]
   );
 
   const savingsColor = vm.savingsRate >= 20 ? "var(--success)" : vm.savingsRate >= 0 ? "var(--warning)" : "var(--error)";

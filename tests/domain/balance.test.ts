@@ -5,9 +5,10 @@ import { computeBalanceSeries, reserveNet, type Plane } from "@/domain/balance";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { setLeafAmount, addMovement, moveNode } from "@/domain/mutations";
 import { buildSeed } from "@/domain";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
 import { findNode } from "@/domain/tree";
-import { STORAGE_KEYS, type AmountMap, type LedgerNode, type LedgerState, type MonthKey, type NodeType } from "@/domain/types";
+import { STORAGE_KEYS, type AmountMap, type LedgerNode, type LedgerState, type PeriodKey, type NodeType } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
 
 // Feature balance — FR-905/906/907 y sus NFR de regresión. El corazón es aritmética pura sobre
 // LedgerState, así que se ataca SIN DOM con valores concretos, afirmando cada campo de MonthBalance.
@@ -17,8 +18,8 @@ import { STORAGE_KEYS, type AmountMap, type LedgerNode, type LedgerState, type M
 interface LeafSpec {
   id: string;
   type: NodeType;
-  budget?: Partial<Record<MonthKey, number>>;
-  actual?: Partial<Record<MonthKey, number>>;
+  budget?: Partial<Record<PeriodKey, number>>;
+  actual?: Partial<Record<PeriodKey, number>>;
 }
 
 /**
@@ -53,12 +54,12 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
   it("TC-BAL-905h: las seis cifras del plano Ejecutado con un mes simple", () => {
     // @aitri-tc TC-BAL-905h
     const s = makeState([
-      { id: "c-salario", type: "income", actual: { ene: 100_000 } },
-      { id: "c-mercado", type: "expense", actual: { ene: 30_000 } },
-      { id: "c-alcancia", type: "transfer", actual: { ene: 20_000 } },
+      { id: "c-salario", type: "income", actual: { "2026-01": 100_000 } },
+      { id: "c-mercado", type: "expense", actual: { "2026-01": 30_000 } },
+      { id: "c-alcancia", type: "transfer", actual: { "2026-01": 20_000 } },
     ]);
 
-    const m = computeBalanceSeries(s).ene.actual;
+    const m = computeBalanceSeries(s, P)["2026-01"].actual;
 
     expect(m.prevAvailable).toBe(0);
     expect(m.prevReserved).toBe(0);
@@ -72,12 +73,12 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
   it("TC-BAL-905e: los dos planos se calculan por separado de sus propias celdas", () => {
     // @aitri-tc TC-BAL-905e
     const s = makeState([
-      { id: "c-salario", type: "income", budget: { ene: 120_000 }, actual: { ene: 100_000 } },
-      { id: "c-mercado", type: "expense", budget: { ene: 40_000 }, actual: { ene: 30_000 } },
-      { id: "c-alcancia", type: "transfer", budget: { ene: 0 }, actual: { ene: 0 } },
+      { id: "c-salario", type: "income", budget: { "2026-01": 120_000 }, actual: { "2026-01": 100_000 } },
+      { id: "c-mercado", type: "expense", budget: { "2026-01": 40_000 }, actual: { "2026-01": 30_000 } },
+      { id: "c-alcancia", type: "transfer", budget: { "2026-01": 0 }, actual: { "2026-01": 0 } },
     ]);
 
-    const { budget, actual } = computeBalanceSeries(s).ene;
+    const { budget, actual } = computeBalanceSeries(s, P)["2026-01"];
 
     expect(budget.flow).toBe(80_000); // 120.000 − 40.000, del PLAN
     expect(actual.flow).toBe(70_000); // 100.000 − 30.000, de lo REAL
@@ -89,31 +90,31 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
   it("TC-BAL-905f: el saldo mes anterior NO infla el Flujo del mes", () => {
     // @aitri-tc TC-BAL-905f
     const s = makeState([
-      { id: "c-salario", type: "income", actual: { ene: 100_000, feb: 50_000 } },
-      { id: "c-mercado", type: "expense", actual: { ene: 30_000, feb: 10_000 } },
+      { id: "c-salario", type: "income", actual: { "2026-01": 100_000, "2026-02": 50_000 } },
+      { id: "c-mercado", type: "expense", actual: { "2026-01": 30_000, "2026-02": 10_000 } },
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.actual.total).toBe(70_000); // enero cierra en 70.000
+    expect(series["2026-01"].actual.total).toBe(70_000); // enero cierra en 70.000
     // el arrastre entra por prevAvailable, NUNCA por el flujo
-    expect(series.feb.actual.prevAvailable).toBe(70_000);
-    expect(series.feb.actual.flow).toBe(40_000); // 50.000 − 10.000 EXACTO (una suma del carry daría 110.000)
-    expect(series.feb.actual.available).toBe(110_000); // el carry sí entra aquí
+    expect(series["2026-02"].actual.prevAvailable).toBe(70_000);
+    expect(series["2026-02"].actual.flow).toBe(40_000); // 50.000 − 10.000 EXACTO (una suma del carry daría 110.000)
+    expect(series["2026-02"].actual.available).toBe(110_000); // el carry sí entra aquí
   });
 
   it("TC-BAL-915e: invariante de reconciliación: total = total previo + flujo, en cada plano y varios meses", () => {
     // @aitri-tc TC-BAL-915e
     const s = makeState([
-      { id: "c-salario", type: "income", budget: { ene: 900_000, feb: 800_000, mar: 850_000 }, actual: { ene: 870_000, feb: 810_000, mar: 400_000 } },
-      { id: "c-mercado", type: "expense", budget: { ene: 300_000, feb: 250_000, mar: 260_000 }, actual: { ene: 340_000, feb: 220_000, mar: 610_000 } },
-      { id: "c-alcancia", type: "transfer", budget: { ene: 100_000, feb: 120_000, mar: 90_000 }, actual: { ene: 100_000, feb: 150_000, mar: 0 } },
+      { id: "c-salario", type: "income", budget: { "2026-01": 900_000, "2026-02": 800_000, "2026-03": 850_000 }, actual: { "2026-01": 870_000, "2026-02": 810_000, "2026-03": 400_000 } },
+      { id: "c-mercado", type: "expense", budget: { "2026-01": 300_000, "2026-02": 250_000, "2026-03": 260_000 }, actual: { "2026-01": 340_000, "2026-02": 220_000, "2026-03": 610_000 } },
+      { id: "c-alcancia", type: "transfer", budget: { "2026-01": 100_000, "2026-02": 120_000, "2026-03": 90_000 }, actual: { "2026-01": 100_000, "2026-02": 150_000, "2026-03": 0 } },
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
     // mes 1: no hay previo — el total ES el flujo
-    for (const p of PLANES) expect(series.ene[p].total).toBe(series.ene[p].flow);
+    for (const p of PLANES) expect(series["2026-01"][p].total).toBe(series["2026-01"][p].flow);
 
     // el resto del año: AMBOS planos reconcilian contra el cierre EJECUTADO del mes anterior, que
     // es el punto del que los dos arrancan. La transferencia se cancela entre disponible y reservado.
@@ -133,17 +134,17 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
     }
 
     // marzo ejecutado sobre-gasta (400.000 − 610.000): la invariante también se cumple en negativo
-    expect(series.mar.actual.flow).toBe(-210_000);
+    expect(series["2026-03"].actual.flow).toBe(-210_000);
   });
 
   it("TC-BAL-925e: sobre-gasto: Saldo disponible/total quedan NEGATIVOS (no se recortan a 0)", () => {
     // @aitri-tc TC-BAL-925e
     const s = makeState([
-      { id: "c-salario", type: "income", actual: { ene: 30_000 } },
-      { id: "c-mercado", type: "expense", actual: { ene: 100_000 } },
+      { id: "c-salario", type: "income", actual: { "2026-01": 30_000 } },
+      { id: "c-mercado", type: "expense", actual: { "2026-01": 100_000 } },
     ]);
 
-    const m = computeBalanceSeries(s).ene.actual;
+    const m = computeBalanceSeries(s, P)["2026-01"].actual;
 
     expect(m.flow).toBe(-70_000);
     expect(m.available).toBe(-70_000); // negativo EXACTO, sin clamp a 0
@@ -163,7 +164,7 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
     expect(s.budgets).toEqual({});
     expect(s.actuals).toEqual({});
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
     let checked = 0;
     for (const mk of MONTH_KEYS) {
@@ -182,9 +183,9 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
 
   it("TC-BAL-916e: mes solo con ingreso: todo va a disponible, reservado 0", () => {
     // @aitri-tc TC-BAL-916e
-    const s = makeState([{ id: "c-salario", type: "income", actual: { ene: 50_000 } }]);
+    const s = makeState([{ id: "c-salario", type: "income", actual: { "2026-01": 50_000 } }]);
 
-    const m = computeBalanceSeries(s).ene.actual;
+    const m = computeBalanceSeries(s, P)["2026-01"].actual;
 
     expect(m.flow).toBe(50_000);
     expect(m.available).toBe(50_000);
@@ -202,37 +203,37 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
     // enero: PRESUPUESTADO cierra disponible 80.000 / reservado 20.000
     //        EJECUTADO    cierra disponible 50.000 / reservado 20.000
     const s = makeState([
-      { id: "c-salario", type: "income", budget: { ene: 100_000 }, actual: { ene: 100_000 } },
-      { id: "c-mercado", type: "expense", budget: { ene: 0 }, actual: { ene: 30_000 } },
-      { id: "c-alcancia", type: "transfer", budget: { ene: 20_000 }, actual: { ene: 20_000 } },
+      { id: "c-salario", type: "income", budget: { "2026-01": 100_000 }, actual: { "2026-01": 100_000 } },
+      { id: "c-mercado", type: "expense", budget: { "2026-01": 0 }, actual: { "2026-01": 30_000 } },
+      { id: "c-alcancia", type: "transfer", budget: { "2026-01": 20_000 }, actual: { "2026-01": 20_000 } },
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.budget.available).toBe(80_000);
-    expect(series.ene.budget.reservedBalance).toBe(20_000);
-    expect(series.ene.actual.available).toBe(50_000);
-    expect(series.ene.actual.reservedBalance).toBe(20_000);
+    expect(series["2026-01"].budget.available).toBe(80_000);
+    expect(series["2026-01"].budget.reservedBalance).toBe(20_000);
+    expect(series["2026-01"].actual.available).toBe(50_000);
+    expect(series["2026-01"].actual.reservedBalance).toBe(20_000);
 
     // febrero abre AMBOS planos con el cierre EJECUTADO de enero: el plan de un mes se hace sobre
     // la plata que de verdad quedó, no sobre la que se había planeado tener
-    expect(series.feb.budget.prevAvailable).toBe(50_000);
-    expect(series.feb.budget.prevReserved).toBe(20_000);
-    expect(series.feb.actual.prevAvailable).toBe(50_000);
-    expect(series.feb.actual.prevReserved).toBe(20_000);
+    expect(series["2026-02"].budget.prevAvailable).toBe(50_000);
+    expect(series["2026-02"].budget.prevReserved).toBe(20_000);
+    expect(series["2026-02"].actual.prevAvailable).toBe(50_000);
+    expect(series["2026-02"].actual.prevReserved).toBe(20_000);
 
     // el cierre PRESUPUESTADO de enero (80.000) no reaparece en ningún arrastre
-    expect(series.feb.budget.prevAvailable).not.toBe(80_000);
+    expect(series["2026-02"].budget.prevAvailable).not.toBe(80_000);
   });
 
   it("TC-BAL-906e: el mes 1 abre en 0 en ambos componentes y ambos planos", () => {
     // @aitri-tc TC-BAL-906e
     const s = makeState([
-      { id: "c-salario", type: "income", budget: { ene: 500_000 }, actual: { ene: 480_000 } },
-      { id: "c-alcancia", type: "transfer", budget: { ene: 50_000 }, actual: { ene: 50_000 } },
+      { id: "c-salario", type: "income", budget: { "2026-01": 500_000 }, actual: { "2026-01": 480_000 } },
+      { id: "c-alcancia", type: "transfer", budget: { "2026-01": 50_000 }, actual: { "2026-01": 50_000 } },
     ]);
 
-    const ene = computeBalanceSeries(s).ene;
+    const ene = computeBalanceSeries(s, P)["2026-01"];
 
     for (const p of PLANES) {
       expect(ene[p].prevAvailable, p).toBe(0);
@@ -245,20 +246,20 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
   it("TC-BAL-906f: el presupuestado arranca del cierre REAL, no de su propio cierre planeado", () => {
     // @aitri-tc TC-BAL-906f
     // enero cierra presupuestado total 80.000 y ejecutado total 50.000 — distintos a propósito
-    const s = makeState([{ id: "c-salario", type: "income", budget: { ene: 80_000 }, actual: { ene: 50_000 } }]);
+    const s = makeState([{ id: "c-salario", type: "income", budget: { "2026-01": 80_000 }, actual: { "2026-01": 50_000 } }]);
 
-    const series = computeBalanceSeries(s);
-    expect(series.ene.budget.total).toBe(80_000);
-    expect(series.ene.actual.total).toBe(50_000);
+    const series = computeBalanceSeries(s, P);
+    expect(series["2026-01"].budget.total).toBe(80_000);
+    expect(series["2026-01"].actual.total).toBe(50_000);
 
-    const carriedBudget = series.feb.budget.prevAvailable + series.feb.budget.prevReserved;
+    const carriedBudget = series["2026-02"].budget.prevAvailable + series["2026-02"].budget.prevReserved;
     expect(carriedBudget).toBe(50_000); // el cierre EJECUTADO de enero: la plata que de verdad quedó
     // una implementación que arrastrara el plan sobre sí mismo daría 80.000 y planificaría febrero
     // con 30.000 que nunca existieron
     expect(carriedBudget).not.toBe(80_000);
 
     // el ejecutado arranca del mismo punto: ambas columnas comparten el arrastre real
-    const carriedActual = series.feb.actual.prevAvailable + series.feb.actual.prevReserved;
+    const carriedActual = series["2026-02"].actual.prevAvailable + series["2026-02"].actual.prevReserved;
     expect(carriedActual).toBe(50_000);
     expect(carriedActual).toBe(carriedBudget);
   });
@@ -266,17 +267,17 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
   it("TC-BAL-926e: un cierre negativo se arrastra: el mes siguiente abre en rojo", () => {
     // @aitri-tc TC-BAL-926e
     const s = makeState([
-      { id: "c-mercado", type: "expense", actual: { ene: 40_000 } },
-      { id: "c-salario", type: "income", actual: { feb: 100_000 } },
+      { id: "c-mercado", type: "expense", actual: { "2026-01": 40_000 } },
+      { id: "c-salario", type: "income", actual: { "2026-02": 100_000 } },
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.actual.available).toBe(-40_000);
-    expect(series.ene.actual.total).toBe(-40_000);
+    expect(series["2026-01"].actual.available).toBe(-40_000);
+    expect(series["2026-01"].actual.total).toBe(-40_000);
     // el cierre negativo SE ARRASTRA: no se pone en 0
-    expect(series.feb.actual.prevAvailable).toBe(-40_000);
-    expect(series.feb.actual.available).toBe(60_000); // −40.000 + 100.000
+    expect(series["2026-02"].actual.prevAvailable).toBe(-40_000);
+    expect(series["2026-02"].actual.available).toBe(60_000); // −40.000 + 100.000
   });
 });
 
@@ -287,25 +288,25 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
     // @aitri-tc TC-BAL-907h
     // Modelo v4 (feature transferencias): las celdas transfer son APORTES del mes — la fixture
     // original de flujo vuelve a ser la correcta; reservedBalance acumula los aportes.
-    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { ene: 50_000, feb: 50_000, mar: 30_000 } }]);
+    const s = makeState([{ id: "c-alcancia", type: "transfer", actual: { "2026-01": 50_000, "2026-02": 50_000, "2026-03": 30_000 } }]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.actual.reservedBalance).toBe(50_000);
-    expect(series.feb.actual.reservedBalance).toBe(100_000);
-    expect(series.mar.actual.reservedBalance).toBe(130_000);
+    expect(series["2026-01"].actual.reservedBalance).toBe(50_000);
+    expect(series["2026-02"].actual.reservedBalance).toBe(100_000);
+    expect(series["2026-03"].actual.reservedBalance).toBe(130_000);
     // el acumulado se conserva en los meses sin operación (arrastre: delta 0, no se reinicia)
-    expect(series.abr.actual.reservedBalance).toBe(130_000);
-    expect(series.dic.actual.reservedBalance).toBe(130_000);
+    expect(series["2026-04"].actual.reservedBalance).toBe(130_000);
+    expect(series["2026-12"].actual.reservedBalance).toBe(130_000);
   });
 
   it("TC-BAL-907e: guardar baja disponible y sube reservado; el total no cambia", () => {
     // @aitri-tc TC-BAL-907e
-    const base: LeafSpec[] = [{ id: "c-salario", type: "income", actual: { ene: 100_000 } }];
-    const sinGuardar = computeBalanceSeries(makeState(base)).ene.actual;
+    const base: LeafSpec[] = [{ id: "c-salario", type: "income", actual: { "2026-01": 100_000 } }];
+    const sinGuardar = computeBalanceSeries(makeState(base), P)["2026-01"].actual;
     const conGuardar = computeBalanceSeries(
-      makeState([...base, { id: "c-alcancia", type: "transfer", actual: { ene: 20_000 } }])
-    ).ene.actual;
+      makeState([...base, { id: "c-alcancia", type: "transfer", actual: { "2026-01": 20_000 } }])
+    , P)["2026-01"].actual;
 
     expect(sinGuardar.available).toBe(100_000);
     expect(sinGuardar.reservedBalance).toBe(0);
@@ -323,15 +324,15 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
   it("TC-BAL-907f: el reservado global es la suma de aportes y nunca es negativo en v1", () => {
     // @aitri-tc TC-BAL-907f
     const s = makeState([
-      { id: "c-alcancia-a", type: "transfer", actual: { ene: 40_000 } },
-      { id: "c-alcancia-b", type: "transfer", actual: { ene: 60_000 } },
+      { id: "c-alcancia-a", type: "transfer", actual: { "2026-01": 40_000 } },
+      { id: "c-alcancia-b", type: "transfer", actual: { "2026-01": 60_000 } },
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.actual.reservedBalance).toBe(100_000); // GLOBAL: la suma de las dos
+    expect(series["2026-01"].actual.reservedBalance).toBe(100_000); // GLOBAL: la suma de las dos
     // el módulo no expone un saldo por alcancía — reservedBalance es una sola cifra global
-    expect(Object.keys(series.ene.actual)).not.toContain("byItem");
+    expect(Object.keys(series["2026-01"].actual)).not.toContain("byItem");
     // Re-derivado (FR-1009 supersede FR-907): `reserved` ahora es delta y PUEDE ser negativo
     // (retiro neto); lo que jamás es negativo es el saldo reservado GLOBAL (piso por alcancía).
     for (const mk of MONTH_KEYS) {
@@ -349,21 +350,21 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
     // @aitri-tc TC-BAL-936e
     // Modelo v4: celdas = APORTES del mes (la fixture original de flujo).
     const s = makeState([
-      { id: "c-alcancia-a", type: "transfer", actual: { ene: 30_000, feb: 20_000 } },
-      { id: "c-alcancia-b", type: "transfer", actual: { feb: 10_000 } }, // nada en enero
+      { id: "c-alcancia-a", type: "transfer", actual: { "2026-01": 30_000, "2026-02": 20_000 } },
+      { id: "c-alcancia-b", type: "transfer", actual: { "2026-02": 10_000 } }, // nada en enero
     ]);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.ene.actual.reserved).toBe(30_000); // solo A
-    expect(series.ene.actual.reservedBalance).toBe(30_000);
-    expect(series.feb.actual.reserved).toBe(30_000); // A 20.000 + B 10.000 en el mes
-    expect(series.feb.actual.reservedBalance).toBe(60_000); // 30.000 previo + 30.000 del mes
+    expect(series["2026-01"].actual.reserved).toBe(30_000); // solo A
+    expect(series["2026-01"].actual.reservedBalance).toBe(30_000);
+    expect(series["2026-02"].actual.reserved).toBe(30_000); // A 20.000 + B 10.000 en el mes
+    expect(series["2026-02"].actual.reservedBalance).toBe(60_000); // 30.000 previo + 30.000 del mes
 
     // reserveNet es el insumo directo de esa acumulación
-    expect(reserveNet(s, "ene", "actual")).toBe(30_000);
-    expect(reserveNet(s, "feb", "actual")).toBe(30_000);
-    expect(reserveNet(s, "mar", "actual")).toBe(0);
+    expect(reserveNet(s, "2026-01", "actual")).toBe(30_000);
+    expect(reserveNet(s, "2026-02", "actual")).toBe(30_000);
+    expect(reserveNet(s, "2026-03", "actual")).toBe(0);
   });
 });
 
@@ -372,10 +373,10 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
 describe("FR-908 · el recálculo es derivación de solo lectura", () => {
   it("TC-BAL-908f: computeBalanceSeries es pura: no muta el estado de entrada", () => {
     // @aitri-tc TC-BAL-908f
-    const s = buildSeed("local");
+    const s = buildSeed("local", P0);
     const snapshot = deep(s);
 
-    computeBalanceSeries(s);
+    computeBalanceSeries(s, P);
 
     expect(s).toEqual(snapshot);
     expect(s.budgets).toEqual(snapshot.budgets);
@@ -390,39 +391,39 @@ describe("FR-908 · el recálculo es derivación de solo lectura", () => {
 describe("NFR-901 · el balance no escribe en budgets/actuals", () => {
   it("TC-BAL-951h: editar una hoja persiste igual; el balance no escribe en budgets/actuals", () => {
     // @aitri-tc TC-BAL-951h
-    const s0 = buildSeed("local");
+    const s0 = buildSeed("local", P0);
     const leaf = "s-comida-mercado";
-    const s = setLeafAmount(s0, leaf, "mar", "actual", 12_345);
-    expect(s.actuals[leaf]?.mar).toBe(12_345);
+    const s = setLeafAmount(s0, leaf, "2026-03", "actual", 12_345, P);
+    expect(s.actuals[leaf]?.["2026-03"]).toBe(12_345);
 
     const budgetsBefore = deep(s.budgets);
     const actualsBefore = deep(s.actuals);
 
-    computeBalanceSeries(s);
+    computeBalanceSeries(s, P);
 
-    expect(s.actuals[leaf]?.mar).toBe(12_345); // la edición persiste tal cual
+    expect(s.actuals[leaf]?.["2026-03"]).toBe(12_345); // la edición persiste tal cual
     expect(s.actuals).toEqual(actualsBefore);
     expect(s.budgets).toEqual(budgetsBefore);
   });
 
   it("TC-BAL-951f: los montos de hoja se muestran igual que antes de la feature", () => {
     // @aitri-tc TC-BAL-951f
-    let s = buildSeed("local");
-    s = setLeafAmount(s, "s-comida-mercado", "ene", "budget", 500_000);
-    s = setLeafAmount(s, "s-comida-restaurantes", "ene", "budget", 300_000);
-    s = setLeafAmount(s, "s-comida-cafe", "ene", "budget", 200_000);
-    s = setLeafAmount(s, "s-comida-mercado", "ene", "actual", 450_000);
+    let s = buildSeed("local", P0);
+    s = setLeafAmount(s, "s-comida-mercado", "2026-01", "budget", 500_000, P);
+    s = setLeafAmount(s, "s-comida-restaurantes", "2026-01", "budget", 300_000, P);
+    s = setLeafAmount(s, "s-comida-cafe", "2026-01", "budget", 200_000, P);
+    s = setLeafAmount(s, "s-comida-mercado", "2026-01", "actual", 450_000, P);
 
     // valores de hoja y de padre exactamente como los define el roll-up existente
-    expect(rollupBudget(s, "s-comida-mercado", "ene")).toBe(500_000);
-    expect(rollupBudget(s, "c-comida", "ene")).toBe(1_000_000); // 500 + 300 + 200
-    expect(rollupActual(s, "s-comida-mercado", "ene")).toBe(450_000);
+    expect(rollupBudget(s, "s-comida-mercado", "2026-01")).toBe(500_000);
+    expect(rollupBudget(s, "c-comida", "2026-01")).toBe(1_000_000); // 500 + 300 + 200
+    expect(rollupActual(s, "s-comida-mercado", "2026-01")).toBe(450_000);
 
     // el balance no los toca: los mismos valores tras computar
-    computeBalanceSeries(s);
-    expect(rollupBudget(s, "s-comida-mercado", "ene")).toBe(500_000);
-    expect(rollupBudget(s, "c-comida", "ene")).toBe(1_000_000);
-    expect(rollupActual(s, "s-comida-mercado", "ene")).toBe(450_000);
+    computeBalanceSeries(s, P);
+    expect(rollupBudget(s, "s-comida-mercado", "2026-01")).toBe(500_000);
+    expect(rollupBudget(s, "c-comida", "2026-01")).toBe(1_000_000);
+    expect(rollupActual(s, "s-comida-mercado", "2026-01")).toBe(450_000);
   });
 });
 
@@ -432,17 +433,17 @@ describe("NFR-902 · los roll-ups existentes son el insumo, no cambian", () => {
   it("TC-BAL-952h: typeTotals sigue devolviendo el total por tipo por mes", () => {
     // @aitri-tc TC-BAL-952h
     const s = makeState([
-      { id: "c-mercado", type: "expense", budget: { mar: 300_000 }, actual: { mar: 280_000 } },
-      { id: "c-transporte", type: "expense", budget: { mar: 150_000 }, actual: { mar: 175_000 } },
+      { id: "c-mercado", type: "expense", budget: { "2026-03": 300_000 }, actual: { "2026-03": 280_000 } },
+      { id: "c-transporte", type: "expense", budget: { "2026-03": 150_000 }, actual: { "2026-03": 175_000 } },
     ]);
 
-    const t = typeTotals(s, "expense", ["mar"]);
+    const t = typeTotals(s, "expense", ["2026-03"]);
 
     expect(t.budget).toBe(450_000); // 300.000 + 150.000, suma de las hojas de gasto de marzo
     expect(t.actual).toBe(455_000); // 280.000 + 175.000
 
     // y es exactamente lo que el balance consume como Gasto del mes
-    const m = computeBalanceSeries(s).mar;
+    const m = computeBalanceSeries(s, P)["2026-03"];
     expect(m.budget.flow).toBe(-t.budget); // sin ingresos: el flujo es el gasto en negativo
     expect(m.actual.flow).toBe(-t.actual);
   });
@@ -459,14 +460,14 @@ describe("NFR-902 · los roll-ups existentes son el insumo, no cambian", () => {
         { id: "g-b", ownerId: "local", type: "expense", level: "group", parentId: null, name: "Ocio", icon: null, order: 1 },
         { id: "c-b1", ownerId: "local", type: "expense", level: "category", parentId: "g-b", name: "Cine", icon: null, order: 0 },
       ],
-      budgets: { "c-a1": { abr: 900_000 }, "c-a2": { abr: 200_000 }, "c-b1": { abr: 120_000 } },
-      actuals: { "c-a1": { abr: 900_000 }, "c-a2": { abr: 215_000 }, "c-b1": { abr: 95_000 } },
+      budgets: { "c-a1": { "2026-04": 900_000 }, "c-a2": { "2026-04": 200_000 }, "c-b1": { "2026-04": 120_000 } },
+      actuals: { "c-a1": { "2026-04": 900_000 }, "c-a2": { "2026-04": 215_000 }, "c-b1": { "2026-04": 95_000 } },
       movements: [],
     };
 
-    const t = typeTotals(s, "expense", ["abr"]);
-    const groupsBudget = rollupBudget(s, "g-a", "abr") + rollupBudget(s, "g-b", "abr");
-    const groupsActual = rollupActual(s, "g-a", "abr") + rollupActual(s, "g-b", "abr");
+    const t = typeTotals(s, "expense", ["2026-04"]);
+    const groupsBudget = rollupBudget(s, "g-a", "2026-04") + rollupBudget(s, "g-b", "2026-04");
+    const groupsActual = rollupActual(s, "g-a", "2026-04") + rollupActual(s, "g-b", "2026-04");
 
     expect(t.budget).toBe(groupsBudget); // 1.100.000 + 120.000
     expect(t.actual).toBe(groupsActual);
@@ -475,12 +476,12 @@ describe("NFR-902 · los roll-ups existentes son el insumo, no cambian", () => {
 
   it("TC-BAL-952f: el balance no modifica los roll-ups existentes", () => {
     // @aitri-tc TC-BAL-952f
-    const s = buildSeed("local");
+    const s = buildSeed("local", P0);
     const capture = () =>
       s.nodes.map((n) => MONTH_KEYS.map((mk) => `${n.id}:${mk}:${rollupBudget(s, n.id, mk)}:${rollupActual(s, n.id, mk)}`).join("|"));
 
     const before = capture();
-    computeBalanceSeries(s);
+    computeBalanceSeries(s, P);
     const after = capture();
 
     expect(after).toEqual(before);
@@ -494,9 +495,9 @@ describe("NFR-902 · los roll-ups existentes son el insumo, no cambian", () => {
 describe("NFR-904 · el balance se recompone tras reestructurar la jerarquía", () => {
   it("TC-BAL-954f: el balance recomputado tras promover coincide con la nueva jerarquía (no obsoleto)", () => {
     // @aitri-tc TC-BAL-954f
-    let s = buildSeed("local");
-    s = setLeafAmount(s, "s-comida-mercado", "may", "actual", 400_000);
-    const before = computeBalanceSeries(s);
+    let s = buildSeed("local", P0);
+    s = setLeafAmount(s, "s-comida-mercado", "2026-05", "actual", 400_000, P);
+    const before = computeBalanceSeries(s, P);
 
     const res = moveNode(s, "s-comida-mercado", { kind: "root", type: "expense" }); // promover a grupo
     expect("state" in res).toBe(true);
@@ -506,7 +507,7 @@ describe("NFR-904 · el balance se recompone tras reestructurar la jerarquía", 
     expect(findNode(promoted.nodes, "s-comida-mercado")!.level).toBe("group");
     expect(findNode(promoted.nodes, "s-comida-mercado")!.parentId).toBeNull();
 
-    const after = computeBalanceSeries(promoted);
+    const after = computeBalanceSeries(promoted, P);
 
     // el balance recomputado es COHERENTE con los roll-ups de la jerarquía resultante,
     // no una copia del valor previo: se re-deriva de typeTotals sobre el estado nuevo
@@ -517,11 +518,11 @@ describe("NFR-904 · el balance se recompone tras reestructurar la jerarquía", 
     }
 
     // el monto viaja con el nodo: la promoción no pierde ni duplica plata (cero huérfanos)
-    expect(after.may.actual.flow).toBe(before.may.actual.flow);
+    expect(after["2026-05"].actual.flow).toBe(before["2026-05"].actual.flow);
 
     // y no queda congelado: editar tras el promote mueve la cifra
-    const edited = computeBalanceSeries(setLeafAmount(promoted, "s-comida-mercado", "may", "actual", 900_000));
-    expect(edited.may.actual.flow).toBe(after.may.actual.flow - 500_000);
+    const edited = computeBalanceSeries(setLeafAmount(promoted, "s-comida-mercado", "2026-05", "actual", 900_000, P), P);
+    expect(edited["2026-05"].actual.flow).toBe(after["2026-05"].actual.flow - 500_000);
   });
 });
 
@@ -530,25 +531,25 @@ describe("NFR-904 · el balance se recompone tras reestructurar la jerarquía", 
 describe("NFR-905 · el registro de movimientos queda intacto", () => {
   it("TC-BAL-955f: el balance no altera la forma de captura del movimiento", () => {
     // @aitri-tc TC-BAL-955f
-    const s0 = buildSeed("local");
+    const s0 = buildSeed("local", P0);
     const target = "s-comida-cafe";
-    const antes = s0.actuals[target]?.jun ?? 0;
+    const antes = s0.actuals[target]?.["2026-06"] ?? 0;
 
-    const s = addMovement(s0, { type: "expense", catId: "c-comida", subId: target, amount: 15_000, month: "jun" });
+    const s = addMovement(s0, { type: "expense", catId: "c-comida", subId: target, amount: 15_000, period: "2026-06" }, P);
 
     // el movimiento se guarda con la misma forma de siempre y suma al Ejecutado de la hoja destino
     expect(s.movements.length).toBe(s0.movements.length + 1);
     const mv = s.movements[0];
     expect(mv.target).toBe(target);
     expect(mv.amount).toBe(15_000);
-    expect(mv.month).toBe("jun");
+    expect(mv.period).toBe("2026-06");
     expect(mv.type).toBe("expense");
-    expect(s.actuals[target]?.jun).toBe(antes + 15_000);
+    expect(s.actuals[target]?.["2026-06"]).toBe(antes + 15_000);
 
     // el balance solo LEE ese resultado después: no cambia movements ni actuals
     const movementsBefore = deep(s.movements);
     const actualsBefore = deep(s.actuals);
-    computeBalanceSeries(s);
+    computeBalanceSeries(s, P);
     expect(s.movements).toEqual(movementsBefore);
     expect(s.actuals).toEqual(actualsBefore);
   });
@@ -558,12 +559,12 @@ describe("NFR-905 · el registro de movimientos queda intacto", () => {
 
 /** Estado representativo: la semilla completa con montos en los 12 meses. */
 function representativeState(): LedgerState {
-  let s = buildSeed("local");
+  let s = buildSeed("local", P0);
   const leaves = s.nodes.filter((n) => n.level === "sub" || n.level === "category");
   for (const n of leaves) {
     for (const mk of MONTH_KEYS) {
-      s = setLeafAmount(s, n.id, mk, "budget", 250_000);
-      s = setLeafAmount(s, n.id, mk, "actual", 240_000);
+      s = setLeafAmount(s, n.id, mk, "budget", 250_000, P);
+      s = setLeafAmount(s, n.id, mk, "actual", 240_000, P);
     }
   }
   return s;
@@ -575,10 +576,10 @@ describe("NFR-907 · el recálculo no degrada la edición en línea", () => {
   it("TC-BAL-957h: computeBalanceSeries corre en <100ms con datos representativos", () => {
     // @aitri-tc TC-BAL-957h
     const s = representativeState();
-    computeBalanceSeries(s); // calentamiento: no medir el primer JIT
+    computeBalanceSeries(s, P); // calentamiento: no medir el primer JIT
 
     const t0 = performance.now();
-    for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s);
+    for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s, P);
     const avg = (performance.now() - t0) / ITERATIONS;
 
     expect(avg, `promedio por llamada: ${avg.toFixed(2)} ms`).toBeLessThan(100);
@@ -587,18 +588,18 @@ describe("NFR-907 · el recálculo no degrada la edición en línea", () => {
   it("TC-BAL-957e: recalcular tras editar una celda se mantiene <100ms (caso de edición en vivo)", () => {
     // @aitri-tc TC-BAL-957e
     const s = representativeState();
-    computeBalanceSeries(s); // el estado ya se calculó una vez
+    computeBalanceSeries(s, P); // el estado ya se calculó una vez
 
     const leaf = s.nodes.find((n) => n.level === "sub")!.id;
-    const edited = setLeafAmount(s, leaf, "jul", "actual", 777_000);
+    const edited = setLeafAmount(s, leaf, "2026-07", "actual", 777_000, P);
 
     const t0 = performance.now(); // se mide SOLO la recomputación posterior a la edición
-    computeBalanceSeries(edited);
+    computeBalanceSeries(edited, P);
     const elapsed = performance.now() - t0;
 
     expect(elapsed, `recomputación post-edición: ${elapsed.toFixed(2)} ms`).toBeLessThan(100);
     // y la edición se refleja: el recálculo no devolvió lo anterior
-    expect(computeBalanceSeries(edited).jul.actual.flow).not.toBe(computeBalanceSeries(s).jul.actual.flow);
+    expect(computeBalanceSeries(edited, P)["2026-07"].actual.flow).not.toBe(computeBalanceSeries(s, P)["2026-07"].actual.flow);
   });
 
   it("TC-BAL-957f: el cómputo no crece de forma no lineal con más meses vacíos", () => {
@@ -606,14 +607,14 @@ describe("NFR-907 · el recálculo no degrada la edición en línea", () => {
     const full = representativeState();
     const oneMonth = deep(full);
     for (const id of Object.keys(oneMonth.actuals)) {
-      oneMonth.budgets[id] = { ene: full.budgets[id]?.ene ?? 0 };
-      oneMonth.actuals[id] = { ene: full.actuals[id]?.ene ?? 0 };
+      oneMonth.budgets[id] = { "2026-01": full.budgets[id]?.["2026-01"] ?? 0 };
+      oneMonth.actuals[id] = { "2026-01": full.actuals[id]?.["2026-01"] ?? 0 };
     }
 
     const measure = (s: LedgerState) => {
-      computeBalanceSeries(s);
+      computeBalanceSeries(s, P);
       const t0 = performance.now();
-      for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s);
+      for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s, P);
       return (performance.now() - t0) / ITERATIONS;
     };
 
@@ -635,7 +636,7 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
     // @aitri-tc TC-BAL-958h
     const imports = [...BALANCE_SRC.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
     // Feature transferencias: + ./reserve (dominio puro — reserveNet deriva de saldos resueltos).
-    expect(imports.sort()).toEqual(["./months", "./reserve", "./reserve", "./rollup", "./types"]);
+    expect(imports.sort()).toEqual(["./reserve", "./reserve", "./rollup", "./types"]);
 
     for (const forbidden of ["fetch(", "XMLHttpRequest", "localStorage", "sessionStorage", "node:fs", "require(", "process.env", "eval("]) {
       expect(BALANCE_SRC.includes(forbidden), `balance.ts no debe usar ${forbidden}`).toBe(false);
@@ -655,7 +656,7 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
     });
 
     try {
-      computeBalanceSeries(representativeState());
+      computeBalanceSeries(representativeState(), P);
     } finally {
       if (original === undefined) Reflect.deleteProperty(globalThis, "localStorage");
       else Reflect.set(globalThis, "localStorage", original);
@@ -670,17 +671,17 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
   it("TC-BAL-958f: el balance no puede escribir en el schema (no toca el CHECK)", () => {
     // @aitri-tc TC-BAL-958f
     const s = makeState([
-      { id: "c-salario", type: "income", budget: { ene: 500_000 }, actual: { ene: 480_000 } },
-      { id: "c-mercado", type: "expense", budget: { ene: 900_000 }, actual: { ene: 950_000 } }, // sobre-gasto real
-      { id: "c-alcancia", type: "transfer", budget: { ene: 100_000 }, actual: { ene: 100_000 } },
+      { id: "c-salario", type: "income", budget: { "2026-01": 500_000 }, actual: { "2026-01": 480_000 } },
+      { id: "c-mercado", type: "expense", budget: { "2026-01": 900_000 }, actual: { "2026-01": 950_000 } }, // sobre-gasto real
+      { id: "c-alcancia", type: "transfer", budget: { "2026-01": 100_000 }, actual: { "2026-01": 100_000 } },
     ]);
     const budgetsBefore = deep(s.budgets);
     const actualsBefore = deep(s.actuals);
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
     // el disponible SÍ puede quedar negativo (es una cifra derivada en pantalla)…
-    expect(series.ene.actual.available).toBeLessThan(0);
+    expect(series["2026-01"].actual.available).toBeLessThan(0);
     // …pero ninguna cifra de RESERVA lo es EN ESTA FIXTURE (solo aportes). Re-derivado por
     // feature transferencias (FR-1009): `reserved` como delta PUEDE ser negativo con retiros;
     // lo que jamás baja de 0 es reservedBalance (piso por alcancía) — y el CHECK sigue intacto.
@@ -701,7 +702,7 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
 describe("FR-910 · reordenar los bloques no muta el estado", () => {
   it("TC-BAL-910f: ningún nodo cambia de tipo ni de padre al reordenar", () => {
     // @aitri-tc TC-BAL-910f
-    const s = buildSeed("local");
+    const s = buildSeed("local", P0);
     const antes = s.nodes.map((n) => `${n.id}:${n.type}:${n.parentId ?? "raíz"}`);
 
     // el render recorre los tipos en el orden NUEVO y, por cada uno, llama a las mismas funciones
@@ -716,7 +717,7 @@ describe("FR-910 · reordenar los bloques no muta el estado", () => {
         }
       }
     }
-    computeBalanceSeries(s);
+    computeBalanceSeries(s, P);
 
     expect(s.nodes.map((n) => `${n.id}:${n.type}:${n.parentId ?? "raíz"}`)).toEqual(antes);
     expect(antes.length).toBeGreaterThan(0); // el recorrido pasó por nodos de verdad

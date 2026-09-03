@@ -33,6 +33,10 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  /** Horizonte de planeación en AÑOS COMPLETOS: 1 o 2 (FR-1904/FR-1907, ADR-06). Vive en la
+   *  CUENTA, no en el navegador, así que viaja entre dispositivos; y NO va en el snapshot del
+   *  ledger, de modo que cambiarlo no sube `ledger.revision`. */
+  horizon: integer("horizon").notNull().default(2),
 });
 
 /** Sesiones en BD (ADR-04): logout = DELETE de la fila; expiración por expires_at. */
@@ -126,13 +130,13 @@ export const amountCell = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     nodeId: text("node_id").notNull(),
-    month: text("month").notNull(), // 'ene'..'dic' (CHECK en migración)
+    period: text("period").notNull(), // 'YYYY-MM' (CHECK en migración, FR-1902)
     kind: text("kind").notNull(), // 'budget' | 'actual' (CHECK en migración)
     amount: bigint("amount", { mode: "number" }).notNull(), // >= 0 (CHECK en migración)
   },
   (t) => [
-    primaryKey({ columns: [t.ownerId, t.nodeId, t.month, t.kind] }),
-    check("amount_cell_month_ck", sql`${t.month} in ('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic')`),
+    primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.kind] }),
+    check("amount_cell_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("amount_cell_kind_ck", sql`${t.kind} in ('budget','actual')`),
     check("amount_cell_amount_ck", sql`${t.amount} >= 0`),
   ]
@@ -151,7 +155,7 @@ export const movement = pgTable(
     subId: text("sub_id"),
     target: text("target").notNull(),
     amount: bigint("amount", { mode: "number" }).notNull(), // >= 1 (CHECK en migración)
-    month: text("month").notNull(),
+    period: text("period").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     date: text("date"),
     note: text("note"),
@@ -164,7 +168,7 @@ export const movement = pgTable(
     primaryKey({ columns: [t.ownerId, t.id] }),
     index("movement_owner_created_idx").on(t.ownerId, t.createdAt),
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
-    check("movement_month_ck", sql`${t.month} in ('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic')`),
+    check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("movement_amount_ck", sql`${t.amount} >= 1`),
   ]
 );
@@ -177,14 +181,14 @@ export const cellNote = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     nodeId: text("node_id").notNull(),
-    month: text("month").notNull(),
+    period: text("period").notNull(),
     id: text("id").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     text: text("text").notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.ownerId, t.nodeId, t.month, t.id] }),
-    check("cell_note_month_ck", sql`${t.month} in ('ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic')`),
+    primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.id] }),
+    check("cell_note_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("cell_note_text_ck", sql`char_length(${t.text}) <= 280`),
   ]
 );

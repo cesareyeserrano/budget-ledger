@@ -5,6 +5,7 @@ import { buildSeed } from "@/domain/seed";
 import { addMovement } from "@/domain/mutations";
 import { InMemoryRepository } from "../helpers/inMemoryRepository";
 import { STORAGE_KEYS, type Movement, type LedgerNode } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
 
 const root = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
@@ -70,22 +71,22 @@ describe("FR-206 — stack", () => {
 describe("FR-211/FR-212 — guardado", () => {
   it("TC-SUT-233h: una nota se guarda con el movimiento y el contador muestra '50/280'", () => {
     const note = "c".repeat(50);
-    const next = addMovement(buildSeed("local"), (() => {
-      const seed = buildSeed("local");
+    const next = addMovement(buildSeed("local", P0), (() => {
+      const seed = buildSeed("local", P0);
       const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
-      return { type: "expense" as const, catId: cat.id, subId: null, amount: 1000, month: "jun" as const, date: "2026-06-01T08:00", note };
-    })());
+      return { type: "expense" as const, catId: cat.id, subId: null, amount: 1000, period: "2026-06" as const, date: "2026-06-01T08:00", note };
+    })(), P);
     expect(next.movements[0].note).toBe(note);
     expect(`${note.length}/280`).toBe("50/280");
   });
 
   it("TC-SUT-236h: guardar 50000 aumenta el Ejecutado del destino en 50000 y encabeza recientes", () => {
-    const seed = buildSeed("local");
+    const seed = buildSeed("local", P0);
     const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
-    const before = seed.actuals[cat.id]?.jun ?? 0;
-    const next = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, month: "jun", date: "2026-06-05T09:00", note: null });
-    expect((next.actuals[cat.id]?.jun ?? 0) - before).toBe(50000);
-    expect(next.movements[0]).toMatchObject({ target: cat.id, amount: 50000, month: "jun", date: "2026-06-05T09:00" });
+    const before = seed.actuals[cat.id]?.["2026-06"] ?? 0;
+    const next = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: null }, P);
+    expect((next.actuals[cat.id]?.["2026-06"] ?? 0) - before).toBe(50000);
+    expect(next.movements[0]).toMatchObject({ target: cat.id, amount: 50000, period: "2026-06", date: "2026-06-05T09:00" });
   });
 });
 
@@ -109,9 +110,9 @@ describe("NFR-202 — persistencia", () => {
   // "theme convive con ledger.*", es "theme sobrevive y ledger.* NO EXISTE" (FR-1104).
   it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note)", async () => {
     const repo = new InMemoryRepository();
-    const seed = buildSeed("local");
+    const seed = buildSeed("local", P0);
     const cat = seed.nodes.find((n: LedgerNode) => n.type === "expense" && n.level === "category" && !n.system)!;
-    const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, month: "jun", date: "2026-06-05T09:00", note: "almuerzo" });
+    const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: "almuerzo" }, P);
     await repo.save("local", withMv);
     // "recarga": se relee del repositorio, sin compartir el objeto en memoria
     const reloaded = await repo.load("local");
@@ -127,7 +128,7 @@ describe("NFR-202 — persistencia", () => {
     const store = memStorage();
     store.setItem("theme", "dark"); // la escribiría next-themes
     const repo = new InMemoryRepository();
-    await repo.save("local", buildSeed("local"));
+    await repo.save("local", buildSeed("local", P0));
     expect(store.getItem("theme")).toBe("dark"); // la preferencia del dispositivo, intacta
     expect(await repo.load("local")).not.toBeNull(); // y los datos, legibles
     // Forma fuerte tras FR-1104: el espacio ledger.* del navegador queda VACÍO, no coexistiendo.

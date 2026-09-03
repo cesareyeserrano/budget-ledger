@@ -6,9 +6,14 @@ export type NodeType = "expense" | "income" | "transfer";
 /** 3 niveles editables bajo cada tipo. */
 export type NodeLevel = "group" | "category" | "sub";
 
-export type MonthKey =
-  | "ene" | "feb" | "mar" | "abr" | "may" | "jun"
-  | "jul" | "ago" | "sep" | "oct" | "nov" | "dic";
+/**
+ * El periodo del ledger vive en `./periods` (FR-1901): "YYYY-MM". Se re-exporta desde aquí porque
+ * `types.ts` es la puerta del modelo y medio proyecto lo importa de aquí.
+ *
+ * Antes de multi-anio esto era `PeriodKey`: doce literales de un año implícito.
+ */
+export type { PeriodKey } from "./periods";
+import type { PeriodKey as PeriodKeyT } from "./periods";
 
 /** Nodo de la jerarquía. Solo las HOJAS almacenan montos (budgets/actuals). */
 export interface LedgerNode {
@@ -24,8 +29,8 @@ export interface LedgerNode {
   order: number;
 }
 
-/** Mapa nodeId -> { MonthKey -> monto COP entero >= 0 }. Solo para hojas. */
-export type AmountMap = Record<string, Partial<Record<MonthKey, number>>>;
+/** Mapa nodeId -> { PeriodKey -> monto COP entero >= 0 }. Solo para hojas. */
+export type AmountMap = Record<string, Partial<Record<PeriodKeyT, number>>>;
 
 export interface Movement {
   id: string;
@@ -36,10 +41,10 @@ export interface Movement {
   /** = subId ?? catId. La hoja destino: SIEMPRE debe resolver un nodo existente (cero huérfanos). */
   target: string;
   amount: number; // entero >= 1
-  month: MonthKey;
+  period: PeriodKeyT;
   createdAt: number;
   /** Delta aditivo (feature stack-upgrade-theme, ADR-03): fecha de captura ISO del registro
-   *  móvil ("YYYY-MM-DDTHH:mm"). El `month` se DERIVA de aquí. Opcional: los movimientos
+   *  móvil ("YYYY-MM-DDTHH:mm"). El `period` se DERIVA de aquí. Opcional: los movimientos
    *  previos no lo tienen y siguen siendo válidos (sin migración). */
   date?: string;
   /** Nota opcional (≤280, trim, vacío→null). Ausente en movimientos previos. */
@@ -60,7 +65,7 @@ export interface CellNote {
 }
 
 /** Mapa nodeId → mes → observaciones manuales de esa celda (feature transferencias, FR-1012). */
-export type CellNotesMap = Record<string, Partial<Record<MonthKey, CellNote[]>>>;
+export type CellNotesMap = Record<string, Partial<Record<PeriodKeyT, CellNote[]>>>;
 
 export interface LedgerState {
   ownerId: string;

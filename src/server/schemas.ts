@@ -2,12 +2,12 @@
 /**
  * Module: server/schemas
  * Purpose: Esquemas Zod del BORDE de la API (FR-507). Reutilizan las reglas del dominio compartido
- *   (MONTH_KEY, amountSchema) para que el contrato de datos sea UNO solo cliente/servidor (evita
+ *   (PERIOD_KEY, amountSchema) para que el contrato de datos sea UNO solo cliente/servidor (evita
  *   deriva). Un payload que no valida se rechaza 400/422 ANTES de abrir cualquier transacción.
- * Dependencies: zod, @/domain (MONTH_KEY, amountSchema)
+ * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { MONTH_KEY, amountSchema } from "@/domain";
+import { PERIOD_KEY, amountSchema } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -17,7 +17,7 @@ export const movementInputSchema = z.object({
   catId: z.string().min(1),
   subId: z.string().nullable().optional(),
   amount: amountSchema,
-  month: MONTH_KEY,
+  period: PERIOD_KEY,
   date: z.string().optional(),
   note: z.string().nullable().optional(),
   // Feature transferencias (FR-1004/FR-1010): extremos De→A de una operación de reserva (hoja
@@ -39,7 +39,7 @@ const apiNodeSchema = z.object({
   order: z.number().int(),
 });
 
-const apiAmountMap = z.record(z.string(), z.record(MONTH_KEY, z.number().int().gte(0)));
+const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, z.number().int().gte(0)));
 
 const apiMovementSchema = z.object({
   id: z.string(),
@@ -49,7 +49,7 @@ const apiMovementSchema = z.object({
   subId: z.string().nullable(),
   target: z.string(),
   amount: z.number().int().gte(1),
-  month: MONTH_KEY,
+  period: PERIOD_KEY,
   createdAt: z.number(),
   date: z.string().optional(),
   note: z.string().nullable().optional(),
@@ -61,7 +61,7 @@ const apiMovementSchema = z.object({
 /** Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`). */
 const apiCellNotes = z.record(
   z.string(),
-  z.record(MONTH_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280) })))
+  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280) })))
 );
 
 /** Estado completo del ledger para el snapshot PUT. */
@@ -82,3 +82,14 @@ export const ledgerPutSchema = z.object({
   state: ledgerStateSchema,
 });
 export type LedgerPutBody = z.infer<typeof ledgerPutSchema>;
+
+/**
+ * Cuerpo del PUT del horizonte (FR-1907). Solo 1 o 2 AÑOS: cualquier otro valor es 400 antes de
+ * tocar la base — el CHECK de la columna queda como última defensa, no como la única.
+ */
+export const horizonPutSchema = z.object({
+  horizon: z.union([z.literal(1), z.literal(2)], {
+    errorMap: () => ({ message: "El horizonte debe ser 1 o 2 años" }),
+  }),
+});
+export type HorizonPutBody = z.infer<typeof horizonPutSchema>;

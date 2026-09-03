@@ -4,9 +4,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { applyReserveCellEdit, plannedRetiroLimit, planTechoMonths, RETIROS_PLAN_ID, reserveRetiros, setPlannedRetiro, validateReserveWrite } from "@/domain/reserve";
-import type { AmountMap, LedgerNode, LedgerState, MonthKey, NodeType } from "@/domain/types";
+import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/domain/types";
+import { P } from "../helpers/periods";
 
-interface LeafSpec { id: string; type: NodeType; budget?: Partial<Record<MonthKey, number>>; actual?: Partial<Record<MonthKey, number>> }
+interface LeafSpec { id: string; type: NodeType; budget?: Partial<Record<PeriodKey, number>>; actual?: Partial<Record<PeriodKey, number>> }
 function makeState(leaves: LeafSpec[]): LedgerState {
   const nodes: LedgerNode[] = []; const budgets: AmountMap = {}; const actuals: AmountMap = {}; const seen = new Set<NodeType>();
   leaves.forEach((l, i) => {
@@ -23,52 +24,52 @@ describe("FR-1008 · el plan de aportes AVISA sin bloquear", () => {
     // @aitri-tc TC-TRF4-008h
     const s = makeState([{ id: "c-viaje", type: "transfer" }]);
 
-    const verdict = validateReserveWrite(s, { leafId: "c-viaje", month: "mar", plane: "budget", newAmount: 100_000 });
+    const verdict = validateReserveWrite(s, { leafId: "c-viaje", period: "2026-03", plane: "budget", newAmount: 100_000 }, P);
     expect(verdict.ok).toBe(true);
     if (!verdict.ok) return;
-    expect(verdict.warnings.some((w) => w.month === "mar" && w.rule === "techo")).toBe(true);
+    expect(verdict.warnings.some((w) => w.period === "2026-03" && w.rule === "techo")).toBe(true);
 
-    const applied = applyReserveCellEdit(s, { leafId: "c-viaje", month: "mar", plane: "budget", newAmount: 100_000 });
+    const applied = applyReserveCellEdit(s, { leafId: "c-viaje", period: "2026-03", plane: "budget", newAmount: 100_000 }, P);
     if (!("state" in applied)) throw new Error("el plan jamás bloquea aportes");
-    expect(applied.state.budgets["c-viaje"].mar).toBe(100_000);
-    expect(planTechoMonths(applied.state).mar).toBeDefined(); // la marca «!» de la celda
+    expect(applied.state.budgets["c-viaje"]["2026-03"]).toBe(100_000);
+    expect(planTechoMonths(applied.state, P)["2026-03"]).toBeDefined(); // la marca «!» de la celda
   });
 
   it("TC-TRF4-008f: los planos no se contaminan", () => {
     // @aitri-tc TC-TRF4-008f
-    const s = makeState([{ id: "c-ingreso", type: "income", actual: { jul: 300_000 } }, { id: "c-viaje", type: "transfer", actual: { jul: 200_000 }, budget: { ene: 50_000 } }]);
-    const plan = applyReserveCellEdit(s, { leafId: "c-viaje", month: "ago", plane: "budget", newAmount: 80_000 });
+    const s = makeState([{ id: "c-ingreso", type: "income", actual: { "2026-07": 300_000 } }, { id: "c-viaje", type: "transfer", actual: { "2026-07": 200_000 }, budget: { "2026-01": 50_000 } }]);
+    const plan = applyReserveCellEdit(s, { leafId: "c-viaje", period: "2026-08", plane: "budget", newAmount: 80_000 }, P);
     if (!("state" in plan)) throw new Error("plan rechazado");
-    expect(plan.state.actuals["c-viaje"]).toEqual({ jul: 200_000 });
-    const real = applyReserveCellEdit(plan.state, { leafId: "c-viaje", month: "sep", plane: "actual", newAmount: 10_000 });
+    expect(plan.state.actuals["c-viaje"]).toEqual({ "2026-07": 200_000 });
+    const real = applyReserveCellEdit(plan.state, { leafId: "c-viaje", period: "2026-09", plane: "actual", newAmount: 10_000 }, P);
     if (!("state" in real)) throw new Error("edición real rechazada");
-    expect(real.state.budgets["c-viaje"]).toEqual({ ene: 50_000, ago: 80_000 });
+    expect(real.state.budgets["c-viaje"]).toEqual({ "2026-01": 50_000, "2026-08": 80_000 });
   });
 });
 
 describe("FR-1015 · retiros planeados con techo lógico", () => {
   it("TC-TRF4-015h: el retiro planeado respeta el techo lógico acumulativo del plan", () => {
     // @aitri-tc TC-TRF4-015h
-    const s = makeState([{ id: "c-viaje", type: "transfer", budget: { ene: 100_000, feb: 100_000 } }]);
-    expect(plannedRetiroLimit(s, "feb")).toBe(200_000);
+    const s = makeState([{ id: "c-viaje", type: "transfer", budget: { "2026-01": 100_000, "2026-02": 100_000 } }]);
+    expect(plannedRetiroLimit(s, "2026-02", P)).toBe(200_000);
 
-    const over = setPlannedRetiro(s, "feb", 250_000);
+    const over = setPlannedRetiro(s, "2026-02", 250_000, P);
     expect(over).toEqual({ rejected: { limit: 200_000 } });
 
-    const ok = setPlannedRetiro(s, "feb", 150_000);
+    const ok = setPlannedRetiro(s, "2026-02", 150_000, P);
     if (!("state" in ok)) throw new Error("retiro planeado válido rechazado");
-    expect(reserveRetiros(ok.state, "feb", "budget")).toBe(150_000);
-    expect(plannedRetiroLimit(ok.state, "mar")).toBe(50_000); // acumulativo
+    expect(reserveRetiros(ok.state, "2026-02", "budget")).toBe(150_000);
+    expect(plannedRetiroLimit(ok.state, "2026-03", P)).toBe(50_000); // acumulativo
   });
 
   it("TC-TRF4-015f: planear un retiro sobre el límite rechaza sin mutar", () => {
     // @aitri-tc TC-TRF4-015f
-    const s = makeState([{ id: "c-viaje", type: "transfer", budget: { ene: 200_000 } }]);
+    const s = makeState([{ id: "c-viaje", type: "transfer", budget: { "2026-01": 200_000 } }]);
     const frozen = JSON.parse(JSON.stringify(s));
 
-    expect("rejected" in setPlannedRetiro(s, "mar", 200_001)).toBe(true);
-    const invalid1 = setPlannedRetiro(s, "mar", -5);
-    const invalid2 = setPlannedRetiro(s, "mar", Number("nope"));
+    expect("rejected" in setPlannedRetiro(s, "2026-03", 200_001, P)).toBe(true);
+    const invalid1 = setPlannedRetiro(s, "2026-03", -5, P);
+    const invalid2 = setPlannedRetiro(s, "2026-03", Number("nope"), P);
     expect("state" in invalid1 && invalid1.state === s).toBe(true); // no-op
     expect("state" in invalid2 && invalid2.state === s).toBe(true);
     expect(s).toEqual(frozen);

@@ -5,7 +5,7 @@ import { STORAGE_KEYS } from "@/domain/types";
 import { signOf } from "@/domain/sign";
 import { typeColor, typeTextColor } from "@/lib/tokens";
 import { validateAmountInput, parsePesos } from "@/lib/money";
-import { dateLabel, monthKeyFromDate } from "@/lib/date";
+import { dateLabel, periodKeyFromDate } from "@/lib/date";
 import { normalizeNote } from "@/domain/mutations";
 import { fontSizeForDisplay } from "@/components/register/AmountDisplay";
 
@@ -112,7 +112,7 @@ describe("FR-210 — fecha", () => {
     expect(label).toContain("2026");
     expect(label).not.toContain(":"); // sin hora
     expect(label).not.toContain("09"); // ni la hora 09:45
-    expect(monthKeyFromDate("2026-03-15T09:45")).toBe("mar"); // el month se deriva de la fecha
+    expect(periodKeyFromDate("2026-03-15T09:45")).toBe("2026-03"); // el month se deriva de la fecha
   });
 });
 
@@ -139,7 +139,7 @@ describe("FR-212 — anti doble-tap", () => {
     const st = useLedgerStore.getState();
     const cat = st.data.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
     const before = useLedgerStore.getState().data.movements.length;
-    const input = { type: "expense" as const, catId: cat.id, subId: null, amount: 5000, month: "jun" as const, date: "2026-06-10T10:00", note: null };
+    const input = { type: "expense" as const, catId: cat.id, subId: null, amount: 5000, period: "2026-06" as const, date: "2026-06-10T10:00", note: null };
     const first = useLedgerStore.getState().addMovement(input);
     const second = useLedgerStore.getState().addMovement(input); // idéntico, mismo ms
     expect(first).toBe(true);

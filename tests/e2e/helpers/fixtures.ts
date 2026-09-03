@@ -12,6 +12,7 @@
 import { test as base, expect } from "@playwright/test";
 import { storageStatePath } from "./globalSetup";
 import { buildSeed } from "@/domain";
+import { P0 } from "../../helpers/periods";
 
 export const test = base.extend<{ freshLedger: void }, { workerStorageState: string }>({
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
@@ -47,7 +48,7 @@ export const test = base.extend<{ freshLedger: void }, { workerStorageState: str
       const res = await page.request.get("/api/v1/ledger");
       const baseRevision = res.status() === 200 ? ((await res.json()) as { revision: number }).revision : 0;
       const put = await page.request.put("/api/v1/ledger", {
-        data: { baseRevision, state: buildSeed("local") },
+        data: { baseRevision, state: buildSeed("local", P0) },
       });
       if (!put.ok()) throw new Error(`freshLedger: no se pudo restaurar la semilla (HTTP ${put.status()})`);
       await use();

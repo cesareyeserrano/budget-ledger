@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { LedgerState } from "@/domain/types";
 import { STORAGE_KEYS } from "@/domain/types";
 import { buildSeed } from "@/domain";
+import { P0 } from "../helpers/periods";
 
 const MERCADO = "s-comida-mercado";
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -89,12 +90,12 @@ describe("FR-1101 — punto único de construcción del repositorio", () => {
     const spy = spyStorage();
     const store = await freshStore();
 
-    store.getState().setLeafAmount(MERCADO, "ene", "budget", 250000);
+    store.getState().setLeafAmount(MERCADO, "2026-01", "budget", 250000);
     await settled(api.puts);
 
     expect(api.puts()).toHaveLength(1);
     expect(api.puts()[0]!.url).toContain("/api/v1/ledger");
-    expect(api.lastPutState()!.budgets[MERCADO]!.ene).toBe(250000);
+    expect(api.lastPutState()!.budgets[MERCADO]!["2026-01"]).toBe(250000);
     // Cero escrituras de datos financieros en localStorage.
     expect(spy.written.filter((k) => k.startsWith("ledger."))).toEqual([]);
     spy.restore();
@@ -109,7 +110,7 @@ describe("FR-1101 — punto único de construcción del repositorio", () => {
     const spy = spyStorage();
     const store = await freshStore();
 
-    const ok = store.getState().addMovement({ type: "expense", catId: "c-vivienda", amount: 15000, month: "ene" });
+    const ok = store.getState().addMovement({ type: "expense", catId: "c-vivienda", amount: 15000, period: "2026-01" });
     expect(ok).toBe(true);
     await settled(api.puts);
 
@@ -129,7 +130,7 @@ describe("FR-1101 — punto único de construcción del repositorio", () => {
     const store = await freshStore();
 
     // Con repo vivo la escritura sale…
-    store.getState().setLeafAmount(MERCADO, "jul", "budget", 55000);
+    store.getState().setLeafAmount(MERCADO, "2026-07", "budget", 55000);
     await settled(api.puts);
     const conRepo = api.puts().length;
     expect(conRepo).toBeGreaterThan(0);
@@ -139,7 +140,7 @@ describe("FR-1101 — punto único de construcción del repositorio", () => {
     vi.stubGlobal("window", undefined);
     const apiRoto = stubApi();
     const storeRoto = await freshStore();
-    storeRoto.getState().setLeafAmount(MERCADO, "jul", "budget", 55000);
+    storeRoto.getState().setLeafAmount(MERCADO, "2026-07", "budget", 55000);
     await delay(30);
     expect(apiRoto.puts()).toHaveLength(0);
     vi.stubGlobal("window", realWindow);
@@ -152,19 +153,19 @@ describe("FR-1103 / FR-1104 — Postgres única fuente; localStorage solo prefer
     const spy = spyStorage();
     const store = await freshStore();
     // Hidratar primero con la API sana, luego tumbar la red solo para el PUT.
-    const api = stubApi(buildSeed("local"));
+    const api = stubApi(buildSeed("local", P0));
     await store.getState().hydrate();
     vi.stubGlobal("fetch", vi.fn(async (_u: unknown, init?: RequestInit) => {
       if (init?.method === "PUT") throw new TypeError("Failed to fetch");
       return new Response(JSON.stringify({ revision: 1, state: api.stored }), { status: 200 });
     }));
 
-    store.getState().setLeafAmount(MERCADO, "feb", "actual", 64000);
+    store.getState().setLeafAmount(MERCADO, "2026-02", "actual", 64000);
 
     // El fallo se avisa (banner) en vez de quedar en silencio, y no lanza.
     await vi.waitFor(() => expect(store.getState().storageError).toBe("network"));
     // El estado en memoria conserva lo que el usuario escribió…
-    expect(store.getState().data.actuals[MERCADO]!.feb).toBe(64000);
+    expect(store.getState().data.actuals[MERCADO]!["2026-02"]).toBe(64000);
     // …y no hubo ningún respaldo a localStorage.
     expect(spy.written.filter((k) => k.startsWith("ledger."))).toEqual([]);
     spy.restore();
@@ -179,9 +180,9 @@ describe("FR-1103 / FR-1104 — Postgres única fuente; localStorage solo prefer
     const s = store.getState();
     const nuevoId = s.createNode({ type: "expense", level: "category", parentId: "g-esenciales", name: "Ocio", icon: "tag" });
     expect(nuevoId).not.toBeNull();
-    s.setLeafAmount(nuevoId!, "mar", "budget", 80000);
-    expect(s.addMovement({ type: "expense", catId: "c-vivienda", amount: 12000, month: "mar" })).toBe(true);
-    const reserva = s.applyReserveEdit("c-ahorros", "mar", "budget", 30000);
+    s.setLeafAmount(nuevoId!, "2026-03", "budget", 80000);
+    expect(s.addMovement({ type: "expense", catId: "c-vivienda", amount: 12000, period: "2026-03" })).toBe(true);
+    const reserva = s.applyReserveEdit("c-ahorros", "2026-03", "budget", 30000);
     expect("rejected" in reserva).toBe(false);
 
     await settled(api.puts, 1);
@@ -197,7 +198,7 @@ describe("FR-1103 / FR-1104 — Postgres única fuente; localStorage solo prefer
 
   it("TC-SFU-104e: con localStorage inutilizable los datos del usuario siguen guardándose", async () => {
     // @aitri-tc TC-SFU-104e
-    const api = stubApi(buildSeed("local"));
+    const api = stubApi(buildSeed("local", P0));
     const revienta = () => { throw new DOMException("QuotaExceededError", "QuotaExceededError"); };
     vi.stubGlobal("localStorage", { setItem: revienta, removeItem: revienta, getItem: () => null, clear: () => {}, key: () => null, length: 0 });
     const store = await freshStore();
@@ -205,17 +206,17 @@ describe("FR-1103 / FR-1104 — Postgres única fuente; localStorage solo prefer
     await store.getState().hydrate(); // la limpieza de ledger.* lanza y debe quedar absorbida
     expect(store.getState().hydrated).toBe(true);
 
-    store.getState().setLeafAmount(MERCADO, "abr", "budget", 175000);
+    store.getState().setLeafAmount(MERCADO, "2026-04", "budget", 175000);
     await settled(api.puts);
 
-    expect(api.lastPutState()!.budgets[MERCADO]!.abr).toBe(175000);
+    expect(api.lastPutState()!.budgets[MERCADO]!["2026-04"]).toBe(175000);
   });
 
   it("TC-SFU-104f: la limpieza borra restos ledger.* preexistentes al hidratar", async () => {
     // @aitri-tc TC-SFU-104f
-    stubApi(buildSeed("local"));
+    stubApi(buildSeed("local", P0));
     localStorage.setItem(STORAGE_KEYS.nodes, '[{"id":"viejo"}]');
-    localStorage.setItem(STORAGE_KEYS.budget, '{"viejo":{"ene":1}}');
+    localStorage.setItem(STORAGE_KEYS.budget, '{"viejo":{"2026-01":1}}');
     localStorage.setItem("theme", "dark");
     const store = await freshStore();
 
@@ -245,20 +246,20 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     // Contraparte en proceso del e2e: lo que el navegador observa (volver al login) depende de que
     // el store distinga el 401 de un fallo de red. Antes ambos acababan en el banner "no pudimos
     // guardar" y la app seguía mostrando las finanzas de una sesión ya muerta.
-    const servidor = buildSeed("local");
-    servidor.budgets[MERCADO]!.ene = 424_242;
+    const servidor = buildSeed("local", P0);
+    servidor.budgets[MERCADO]!["2026-01"] = 424_242;
     const sesion = stubSesionQueMuere(servidor);
     const store = await freshStore();
 
     await store.getState().hydrate();
-    expect(store.getState().data.budgets[MERCADO]!.ene).toBe(424_242);
+    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).toBe(424_242);
 
     sesion.matar();
-    store.getState().setLeafAmount(MERCADO, "ene", "budget", 1000);
+    store.getState().setLeafAmount(MERCADO, "2026-01", "budget", 1000);
 
     await vi.waitFor(() => expect(store.getState().sessionExpired).toBe(true));
     // El dato del usuario ya no está en memoria: no queda nada que un render pueda pintar.
-    expect(store.getState().data.budgets[MERCADO]!.ene).not.toBe(424_242);
+    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).not.toBe(424_242);
     expect(store.getState().hydrated).toBe(false);
     // Y NO se confundió con un fallo de red (que solo habría mostrado el banner).
     expect(store.getState().storageError).toBeNull();
@@ -266,8 +267,8 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
 
   it("TC-SFU-102e-resync: un 401 en el sync en vivo también devuelve al login", async () => {
     // @aitri-tc TC-SFU-102e
-    const servidor = buildSeed("local");
-    servidor.budgets[MERCADO]!.ene = 313_131;
+    const servidor = buildSeed("local", P0);
+    servidor.budgets[MERCADO]!["2026-01"] = 313_131;
     const sesion = stubSesionQueMuere(servidor);
     const store = await freshStore();
     await store.getState().hydrate();
@@ -276,13 +277,13 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     await store.getState().resync(); // lo que dispara el evento SSE
 
     expect(store.getState().sessionExpired).toBe(true);
-    expect(store.getState().data.budgets[MERCADO]!.ene).not.toBe(313_131);
+    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).not.toBe(313_131);
   });
 
   it("TC-SFU-102e-relogin: entrar de nuevo cierra el episodio y vuelve a hidratar", async () => {
     // @aitri-tc TC-SFU-102e
-    const servidor = buildSeed("local");
-    servidor.budgets[MERCADO]!.ene = 555_000;
+    const servidor = buildSeed("local", P0);
+    servidor.budgets[MERCADO]!["2026-01"] = 555_000;
     const sesion = stubSesionQueMuere(servidor);
     const store = await freshStore();
     await store.getState().hydrate();
@@ -297,14 +298,14 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     await store.getState().hydrate();
 
     expect(store.getState().hydrated).toBe(true);
-    expect(store.getState().data.budgets[MERCADO]!.ene).toBe(555_000);
+    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).toBe(555_000);
   });
 });
 
 describe("NFR-1101 — las preferencias del dispositivo siguen en localStorage", () => {
   it("TC-SFU-201f: la limpieza de ledger.* no borra las claves de preferencias", async () => {
     // @aitri-tc TC-SFU-201f
-    stubApi(buildSeed("local"));
+    stubApi(buildSeed("local", P0));
     localStorage.setItem("theme", "dark");
     localStorage.setItem("ledger-col-width", "320");
     localStorage.setItem(STORAGE_KEYS.nodes, '[{"id":"viejo"}]');
@@ -343,16 +344,16 @@ describe("NFR-1103 — conflicto por revisión: 409 → resync → convergencia"
 
   it("TC-SFU-203h: un 409 stale dispara resync y el estado converge", async () => {
     // @aitri-tc TC-SFU-203h
-    const servidor = buildSeed("local");
-    servidor.budgets[MERCADO]!.ago = 99000; // lo que escribió la OTRA sesión
+    const servidor = buildSeed("local", P0);
+    servidor.budgets[MERCADO]!["2026-08"] = 99000; // lo que escribió la OTRA sesión
     const api = stubConflict(servidor);
     const store = await freshStore();
 
-    store.getState().setLeafAmount(MERCADO, "ago", "budget", 15000);
+    store.getState().setLeafAmount(MERCADO, "2026-08", "budget", 15000);
 
     // El PUT recibe 409 → el store re-hidrata y converge al valor del servidor, no al local.
-    await vi.waitFor(() => expect(store.getState().data.budgets[MERCADO]!.ago).toBe(99000));
-    expect(store.getState().data.budgets[MERCADO]!.ago).not.toBe(15000);
+    await vi.waitFor(() => expect(store.getState().data.budgets[MERCADO]!["2026-08"]).toBe(99000));
+    expect(store.getState().data.budgets[MERCADO]!["2026-08"]).not.toBe(15000);
     // Y el descarte no fue silencioso (BL-010).
     expect(store.getState().toast).toMatch(/Otro dispositivo/);
   });
@@ -362,18 +363,18 @@ describe("NFR-1103 — conflicto por revisión: 409 → resync → convergencia"
     // Blinda RISK-1: lo que hace converger es la petición de recarga que sigue al 409. Este test
     // cuenta esa petición — si alguien retira el resync, el GET desaparece y el estado se queda en
     // el valor local, y ambas aserciones caen.
-    const servidor = buildSeed("local");
-    servidor.budgets[MERCADO]!.ago = 99000;
+    const servidor = buildSeed("local", P0);
+    servidor.budgets[MERCADO]!["2026-08"] = 99000;
     const api = stubConflict(servidor);
     const store = await freshStore();
 
     const getsAntes = api.gets().length;
-    store.getState().setLeafAmount(MERCADO, "ago", "budget", 15000);
+    store.getState().setLeafAmount(MERCADO, "2026-08", "budget", 15000);
 
     await vi.waitFor(() => expect(api.puts().length).toBeGreaterThanOrEqual(1));
     // Tras el 409 hay UNA recarga desde la fuente de verdad…
     await vi.waitFor(() => expect(api.gets().length).toBeGreaterThan(getsAntes));
     // …y el estado quedó convergido, no divergente.
-    await vi.waitFor(() => expect(store.getState().data.budgets[MERCADO]!.ago).toBe(99000));
+    await vi.waitFor(() => expect(store.getState().data.budgets[MERCADO]!["2026-08"]).toBe(99000));
   });
 });

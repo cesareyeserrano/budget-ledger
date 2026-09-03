@@ -9,8 +9,9 @@
 // Dependencias: @/domain (reserve, tree), @/components/format, @/lib/useHorizontalWheel.
 
 import { useMemo, type CSSProperties } from "react";
-import type { LedgerNode, LedgerState, MonthKey } from "@/domain/types";
+import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
+import { useLedgerStore } from "@/state/store";
 import { isLeaf, findNode } from "@/domain/tree";
 import { Wallet, ArrowUpDown } from "lucide-react";
 import { money, typeFillVar } from "@/components/format";
@@ -24,7 +25,7 @@ export interface ReserveEnds {
 
 interface Props {
   data: LedgerState;
-  month: MonthKey;
+  month: PeriodKey;
   value: ReserveEnds;
   onChange: (ends: ReserveEnds) => void;
   error?: boolean;
@@ -38,14 +39,14 @@ interface EndOption {
 }
 
 /** Alcancías operables: hojas transfer no-system; las subs se aplanan «Categoría · Sub». */
-function reserveOptions(data: LedgerState, month: MonthKey): EndOption[] {
+function reserveOptions(data: LedgerState, month: PeriodKey, periods: readonly PeriodKey[]): EndOption[] {
   const leaves = data.nodes
     .filter((n) => n.type === "transfer" && !n.system && isLeaf(n, data.nodes))
     .sort((a, b) => a.order - b.order);
   return leaves.map((leaf) => ({
     id: leaf.id,
     label: leafLabel(data.nodes, leaf),
-    balance: resolvedBalance(data, leaf.id, month, "actual"),
+    balance: resolvedBalance(data, leaf.id, month, "actual", periods),
   }));
 }
 
@@ -65,7 +66,8 @@ const DEFAULT: CSSProperties = { backgroundColor: "var(--bg-card)", borderColor:
  * @aitri-trace FR-ID: FR-1005, US-ID: US-1005, AC-ID: AC-1005b, TC-ID: TC-TRF-105f, TC-TRF-105h
  */
 export function ReserveRow({ data, month, value, onChange, error = false }: Props) {
-  const options = useMemo(() => reserveOptions(data, month), [data, month]);
+  const periods = useLedgerStore((s) => s.activePeriods)();
+  const options = useMemo(() => reserveOptions(data, month, periods), [data, month, periods]);
   const deRef = useHorizontalWheel<HTMLDivElement>();
   const aRef = useHorizontalWheel<HTMLDivElement>();
 

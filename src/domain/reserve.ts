@@ -11,10 +11,10 @@
 //               meses). Una regla, todas las puertas. Capa PURA: sin React/DOM/IO.
 // Dependencias: ./types, ./months, ./tree, ./rollup, ./validation, ./ids.
 
-import type { AmountMap, CellNote, LedgerState, MonthKey, Movement } from "./types";
-import { MONTH_KEYS } from "./months";
+import type { AmountMap, CellNote, LedgerState, PeriodKey, Movement } from "./types";
 import { findNode, isLeaf } from "./tree";
 import { typeTotals } from "./rollup";
+import { isPeriodKey } from "./periods";
 import { normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
 
@@ -41,7 +41,7 @@ export interface ReserveWarning {
    * siguientes YA usaron — y el texto solo puede ser honesto si sabe cuál habló.
    */
   rule: "techo" | "piso" | "deficit";
-  month: MonthKey;
+  period: PeriodKey;
   leafId?: string;
   /**
    * techo/deficit: el INCREMENTO máximo que la operación admite (operativo: `limit` se acepta y
@@ -53,12 +53,12 @@ export interface ReserveWarning {
 /** Veredicto de una escritura de reserva. En Pres. SIEMPRE ok (avisa, no bloquea). */
 export type ReserveVerdict =
   | { ok: true; warnings: ReserveWarning[] }
-  | { ok: false; rule: "techo" | "piso" | "deficit"; month: MonthKey; leafId?: string; limit: number };
+  | { ok: false; rule: "techo" | "piso" | "deficit"; period: PeriodKey; leafId?: string; limit: number };
 
 /** Edición de celda transfer (grilla): el valor tecleado es el APORTE nuevo de ese mes. */
 export interface ReserveEdit {
   leafId: string;
-  month: MonthKey;
+  period: PeriodKey;
   plane: Plane;
   newAmount: number;
 }
@@ -67,7 +67,7 @@ export interface ReserveEdit {
 export interface ReserveOp {
   from: string;
   to: string;
-  month: MonthKey;
+  period: PeriodKey;
   amount: number;
   date?: string;
   note?: string | null;
@@ -105,9 +105,14 @@ export function reserveLeafIds(state: LedgerState): string[] {
 
 // Memoización por IDENTIDAD (WeakMap): cada mutación clona `budgets`/`actuals`/`movements`, así
 // que un par (mapa, journal) dado es inmutable de facto y sus series se computan una sola vez.
-const seriesMemo = new WeakMap<AmountMap, WeakMap<Movement[], Map<string, readonly number[]>>>();
+// Tercer nivel de memo (multi-anio): la LISTA de periodos. Las series son posicionales sobre esa
+// lista, así que dos rangos distintos producen series distintas y no pueden compartir caché. La
+// lista se calcula UNA vez por render (ADR del TRD), así que su identidad es estable.
+type PeriodScope = readonly PeriodKey[];
+const seriesMemo =
+  new WeakMap<AmountMap, WeakMap<Movement[], WeakMap<object, Map<string, readonly number[]>>>>();
 
-/** Entradas y salidas del journal de UNA hoja, por mes. Doce posiciones cada una. */
+/** Entradas y salidas del journal de UNA hoja, por periodo. Una posición por periodo del rango. */
 interface LeafFlows {
   /** Σ de lo que ENTRA por journal: moveres cuyo `to` es esta hoja (ADR-01). */
   in: number[];
@@ -118,7 +123,7 @@ interface LeafFlows {
 // Índice del journal memoizado por IDENTIDAD del array de movimientos: cada mutación lo clona, así
 // que la invalidación es automática. Cuelga de la MISMA identidad que `seriesMemo` usa como clave
 // interna — no de una clave propia, que es el defecto que [RISK-2] del diseño señala.
-const journalIndexMemo = new WeakMap<Movement[], Map<string, LeafFlows>>();
+const journalIndexMemo = new WeakMap<Movement[], WeakMap<object, Map<string, LeafFlows>>>();
 
 /**
  * Índice `{in, out}` por hoja en UNA sola pasada sobre el journal (ADR-05).
@@ -134,29 +139,31 @@ const journalIndexMemo = new WeakMap<Movement[], Map<string, LeafFlows>>();
  * @returns Mapa hoja → {in, out}; una hoja sin movimientos simplemente no está.
  * @throws Nunca. Un mes fuera de la escala se ignora.
  */
-function journalIndex(movements: Movement[]): Map<string, LeafFlows> {
-  const cached = journalIndexMemo.get(movements);
+function journalIndex(movements: Movement[], periods: PeriodScope): Map<string, LeafFlows> {
+  let byScope = journalIndexMemo.get(movements);
+  if (!byScope) { byScope = new WeakMap(); journalIndexMemo.set(movements, byScope); }
+  const cached = byScope.get(periods as unknown as object);
   if (cached) return cached;
   const index = new Map<string, LeafFlows>();
   const flowsOf = (id: string): LeafFlows => {
     let f = index.get(id);
     if (!f) {
-      f = { in: new Array<number>(12).fill(0), out: new Array<number>(12).fill(0) };
+      f = { in: new Array<number>(periods.length).fill(0), out: new Array<number>(periods.length).fill(0) };
       index.set(id, f);
     }
     return f;
   };
   for (const m of movements) {
     if (m.type !== "transfer") continue;
-    const idx = MONTH_KEYS.indexOf(m.month);
-    if (idx < 0) continue;
+    const idx = periods.indexOf(m.period);
+    if (idx < 0) continue; // fuera del rango activo: no participa en las series de este barrido
     // SALIDA: cualquier movimiento que sale de una hoja real — retiro a Disponible o mover.
     if (m.from && !isAvailable(m.from)) flowsOf(m.from).out[idx] += m.amount;
     // ENTRADA: solo el MOVER. Un aporte desde Disponible entra por la CELDA, no por el journal
     // (FR-1601: el mover dejó de escribir celda; el aporte sigue escribiéndola).
     if (m.to && !isAvailable(m.to) && m.from && !isAvailable(m.from)) flowsOf(m.to).in[idx] += m.amount;
   }
-  journalIndexMemo.set(movements, index);
+  byScope.set(periods as unknown as object, index);
   return index;
 }
 
@@ -177,33 +184,41 @@ function journalIndex(movements: Movement[]): Map<string, LeafFlows> {
  * @param state Estado del ledger (no se muta).
  * @param leafId Hoja transfer (una hoja desconocida deriva [0×12]).
  * @param plane Plano a leer.
- * @returns Serie readonly de 12 saldos derivados. Referencia estable para el mismo estado.
+ * @returns Serie readonly con un saldo derivado por periodo del rango. Referencia estable para
+ *          el mismo (estado, rango).
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-1602, US-ID: US-1602, AC-ID: AC-1604, TC-ID: TC-CPR-009h
  */
-export function resolvedSeries(state: LedgerState, leafId: string, plane: Plane): readonly number[] {
+export function resolvedSeries(
+  state: LedgerState, leafId: string, plane: Plane, periods: PeriodScope
+): readonly number[] {
   const map = plane === "budget" ? state.budgets : state.actuals;
   let byJournal = seriesMemo.get(map);
   if (!byJournal) {
     byJournal = new WeakMap();
     seriesMemo.set(map, byJournal);
   }
-  let byLeaf = byJournal.get(state.movements);
+  let byScope = byJournal.get(state.movements);
+  if (!byScope) {
+    byScope = new WeakMap();
+    byJournal.set(state.movements, byScope);
+  }
+  let byLeaf = byScope.get(periods as unknown as object);
   if (!byLeaf) {
     byLeaf = new Map();
-    byJournal.set(state.movements, byLeaf);
+    byScope.set(periods as unknown as object, byLeaf);
   }
   const key = `${plane}:${leafId}`;
   let series = byLeaf.get(key);
   if (!series) {
     seriesComputes += 1;
     const cells = map[leafId];
-    const flows = plane === "actual" ? journalIndex(state.movements).get(leafId) : undefined;
+    const flows = plane === "actual" ? journalIndex(state.movements, periods).get(leafId) : undefined;
     const out: number[] = [];
     let running = 0;
-    for (let i = 0; i < MONTH_KEYS.length; i++) {
-      running += cells?.[MONTH_KEYS[i]] ?? 0;
+    for (let i = 0; i < periods.length; i++) {
+      running += cells?.[periods[i]] ?? 0;
       if (flows) running += flows.in[i] - flows.out[i];
       out.push(running);
     }
@@ -220,13 +235,20 @@ export function resolvedSeries(state: LedgerState, leafId: string, plane: Plane)
  *
  * @aitri-trace FR-ID: FR-1001, US-ID: US-1001, AC-ID: AC-1001, TC-ID: TC-TRF-101h
  */
-export function resolvedBalance(state: LedgerState, leafId: string, month: MonthKey, plane: Plane): number {
-  return resolvedSeries(state, leafId, plane)[MONTH_KEYS.indexOf(month)] ?? 0;
+export function resolvedBalance(
+  state: LedgerState, leafId: string, month: PeriodKey, plane: Plane, periods: PeriodScope
+): number {
+  const i = periods.indexOf(month);
+  if (i < 0) return 0; // periodo fuera del rango: se rechaza, no se indexa con −1 (RISK-03)
+  return resolvedSeries(state, leafId, plane, periods)[i] ?? 0;
 }
 
 /** Σ de saldos derivados del tipo en un mes (el "Saldo reservado" que el Balance acumula). */
-export function resolvedTypeTotal(state: LedgerState, month: MonthKey, plane: Plane): number {
-  return reserveLeafIds(state).reduce((sum, id) => sum + resolvedBalance(state, id, month, plane), 0);
+export function resolvedTypeTotal(
+  state: LedgerState, month: PeriodKey, plane: Plane, periods: PeriodScope
+): number {
+  return reserveLeafIds(state).reduce(
+    (sum, id) => sum + resolvedBalance(state, id, month, plane, periods), 0);
 }
 
 /**
@@ -241,7 +263,7 @@ export function resolvedTypeTotal(state: LedgerState, month: MonthKey, plane: Pl
  *
  * @aitri-trace FR-ID: FR-1603, US-ID: US-1603, AC-ID: AC-1607, TC-ID: TC-CPR-016h
  */
-export function reserveAportes(state: LedgerState, month: MonthKey, plane: Plane): number {
+export function reserveAportes(state: LedgerState, month: PeriodKey, plane: Plane): number {
   return typeTotals(state, "transfer", [month])[plane];
 }
 
@@ -265,11 +287,11 @@ export const RETIROS_PLAN_ID = "@retiros";
  *
  * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009b, TC-ID: TC-TRF-109e, TC-TRF4-151f
  */
-export function reserveRetiros(state: LedgerState, month: MonthKey, plane: Plane): number {
+export function reserveRetiros(state: LedgerState, month: PeriodKey, plane: Plane): number {
   if (plane === "budget") return state.budgets[RETIROS_PLAN_ID]?.[month] ?? 0;
   return state.movements.reduce(
     (sum, m) =>
-      m.type === "transfer" && m.month === month && m.from && !isAvailable(m.from) && isAvailable(m.to)
+      m.type === "transfer" && m.period === month && m.from && !isAvailable(m.from) && isAvailable(m.to)
         ? sum + m.amount
         : sum,
     0
@@ -284,12 +306,15 @@ export function reserveRetiros(state: LedgerState, month: MonthKey, plane: Plane
  *
  * @throws Nunca.
  */
-export function plannedRetiroLimit(state: LedgerState, month: MonthKey): number {
-  const idx = MONTH_KEYS.indexOf(month);
+export function plannedRetiroLimit(
+  state: LedgerState, month: PeriodKey, periods: PeriodScope
+): number {
+  const idx = periods.indexOf(month);
+  if (idx < 0) return 0; // periodo fuera del rango: sin cupo, no un bucle con −1 (RISK-03)
   let acc = 0;
   for (let i = 0; i <= idx; i++) {
-    acc += reserveAportes(state, MONTH_KEYS[i], "budget");
-    if (i < idx) acc -= reserveRetiros(state, MONTH_KEYS[i], "budget");
+    acc += reserveAportes(state, periods[i], "budget");
+    if (i < idx) acc -= reserveRetiros(state, periods[i], "budget");
   }
   return Math.max(0, acc);
 }
@@ -304,12 +329,13 @@ export function plannedRetiroLimit(state: LedgerState, month: MonthKey): number 
  */
 export function setPlannedRetiro(
   state: LedgerState,
-  month: MonthKey,
-  value: number
+  month: PeriodKey,
+  value: number,
+  periods: PeriodScope
 ): { state: LedgerState } | { rejected: { limit: number } } {
   const v = Math.round(Number(value));
-  if (!Number.isFinite(v) || v < 0 || !MONTH_KEYS.includes(month)) return { state };
-  const limit = plannedRetiroLimit(state, month);
+  if (!Number.isFinite(v) || v < 0 || !periods.includes(month)) return { state };
+  const limit = plannedRetiroLimit(state, month, periods);
   if (v > limit) return { rejected: { limit } };
   const next = cloneState(state);
   next.budgets[RETIROS_PLAN_ID] = { ...(next.budgets[RETIROS_PLAN_ID] ?? {}) };
@@ -345,26 +371,29 @@ function affectedLeavesOf(mv: Movement): string[] {
  * lo que ese retiro ya sacaba. Sin sumarlo, un retiro de 200 sobre un bolsillo que tenía 300 diría
  * «solo tiene 100» cuando admite hasta 300 (AC-1810).
  */
-function verdictOf(state: LedgerState, mv: Movement, blocking: ReserveWarning, libera = 0): ReserveVerdict {
+function verdictOf(
+  state: LedgerState, mv: Movement, blocking: ReserveWarning,
+  libera: number | undefined, periods: PeriodScope
+): ReserveVerdict {
   // El re-mapeo aplica SOLO cuando el mes que bloquea es el de la propia operación: ahí el usuario
   // necesita saber cuánto HAY (saldo + lo que la operación libera). Cuando el bloqueo está en OTRO
   // mes, el `limit` crudo de la cadena ya es el residual de ESE mes bajo el candidato — que es
   // exactamente lo que el mensaje encadenado afirma («quedaría en −$X»). Re-mapearlo con el saldo
   // del mes de la operación producía cifras con magnitud y signo equivocados (auditoría 2026-09-01,
   // hallazgo crítico: «quedaría en −$1.000» cuando el residual real era −$1).
-  if (blocking.rule === "piso" && blocking.leafId && blocking.month === mv.month) {
-    const saldo = resolvedBalance(state, blocking.leafId, mv.month, "actual");
+  if (blocking.rule === "piso" && blocking.leafId && blocking.period === mv.period) {
+    const saldo = resolvedBalance(state, blocking.leafId, mv.period, "actual", periods);
     // `libera` solo cuenta para la hoja de la que la operación SACA (su origen).
-    const credito = blocking.leafId === mv.from ? libera : 0;
+    const credito = blocking.leafId === mv.from ? (libera ?? 0) : 0;
     return {
       ok: false,
       rule: "piso",
-      month: blocking.month,
+      period: blocking.period,
       leafId: blocking.leafId,
       limit: Math.max(0, saldo + credito),
     };
   }
-  return { ok: false, rule: blocking.rule, month: blocking.month, leafId: blocking.leafId, limit: blocking.limit };
+  return { ok: false, rule: blocking.rule, period: blocking.period, leafId: blocking.leafId, limit: blocking.limit };
 }
 
 /**
@@ -389,13 +418,15 @@ function verdictOf(state: LedgerState, mv: Movement, blocking: ReserveWarning, l
  *
  * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
  */
-export function removeReserveOp(state: LedgerState, movementId: string): ReserveOpChangeResult {
+export function removeReserveOp(
+  state: LedgerState, movementId: string, periods: PeriodScope
+): ReserveOpChangeResult {
   const mv = state.movements.find((m) => m.id === movementId);
   if (!isRemovableReserveOp(mv)) return { state };
   const cand = cloneState(state);
   cand.movements = cand.movements.filter((m) => m.id !== movementId);
-  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv));
-  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking) };
+  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv), periods);
+  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking, undefined, periods) };
   return { state: cand };
 }
 
@@ -426,7 +457,8 @@ export function removeReserveOp(state: LedgerState, movementId: string): Reserve
 export function editReserveOp(
   state: LedgerState,
   movementId: string,
-  newAmount: number
+  newAmount: number,
+  periods: PeriodScope
 ): { state: LedgerState; movement: Movement | null } | { rejected: ReserveVerdict | "invalid_target" } {
   const mv = state.movements.find((m) => m.id === movementId);
   if (!isRemovableReserveOp(mv)) return { rejected: "invalid_target" };
@@ -437,7 +469,7 @@ export function editReserveOp(
   const value = newAmount;
 
   if (value === 0) {
-    const removed = removeReserveOp(state, movementId);
+    const removed = removeReserveOp(state, movementId, periods);
     return "rejected" in removed ? { rejected: removed.rejected } : { state: removed.state, movement: null };
   }
   if (value === mv.amount) return { state, movement: mv }; // no-op
@@ -447,8 +479,8 @@ export function editReserveOp(
   const corregido: Movement = { ...cand.movements[idx], amount: value };
   cand.movements[idx] = corregido; // en SITIO: conserva id, fecha, extremos y posición
 
-  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv));
-  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking, mv.amount) };
+  const chain = chainCheck(state, cand, "actual", affectedLeavesOf(mv), periods);
+  if (chain.blocking) return { rejected: verdictOf(state, mv, chain.blocking, mv.amount, periods) };
   return { state: cand, movement: corregido };
 }
 
@@ -467,12 +499,12 @@ export function editReserveOp(
  *
  * @aitri-trace FR-ID: FR-1609, US-ID: US-1609, AC-ID: AC-1628, TC-ID: TC-CPR-058h
  */
-export function monthReserveOps(state: LedgerState, month: MonthKey): readonly Movement[] {
-  return state.movements.filter((m) => m.month === month && isRemovableReserveOp(m));
+export function monthReserveOps(state: LedgerState, month: PeriodKey): readonly Movement[] {
+  return state.movements.filter((m) => m.period === month && isRemovableReserveOp(m));
 }
 
 /** Movimiento neto de reservas del mes = aportes − retiros. Puede ser negativo (retiro neto). */
-export function reserveDelta(state: LedgerState, month: MonthKey, plane: Plane): number {
+export function reserveDelta(state: LedgerState, month: PeriodKey, plane: Plane): number {
   return reserveAportes(state, month, plane) - reserveRetiros(state, month, plane);
 }
 
@@ -480,16 +512,20 @@ export function reserveDelta(state: LedgerState, month: MonthKey, plane: Plane):
  * Margen del mes para GUARDAR (el techo): max(0, disponible previo + flujo del mes), calculado
  * hacia adelante con la cadena ejecutada real (ADR-03). El registro lo muestra ANTES de operar.
  */
-export function availableMargin(state: LedgerState, month: MonthKey): number {
-  const scan = techoScan(state, "actual");
-  return scan.margin[MONTH_KEYS.indexOf(month)] ?? 0;
+export function availableMargin(
+  state: LedgerState, month: PeriodKey, periods: PeriodScope
+): number {
+  const scan = techoScan(state, "actual", periods);
+  const i = periods.indexOf(month);
+  if (i < 0) return 0; // periodo fuera del rango: se rechaza, no se indexa con −1 (RISK-03)
+  return scan.margin[i] ?? 0;
 }
 
 // ── Validación en cadena (techo global / piso por alcancía) ────────────────────────────────────
 
 interface CellWrite {
   leafId: string;
-  month: MonthKey;
+  month: PeriodKey;
   value: number;
 }
 
@@ -515,17 +551,20 @@ function buildCandidate(state: LedgerState, plane: Plane, writes: CellWrite[], e
 // Misma técnica que `journalIndex`: cada mutación clona esos arrays/objetos, así que la
 // invalidación es automática y no hay clave que mantener a mano.
 type TechoScan = { excess: number[]; margin: number[]; consumo: number[]; arrastre: number[]; deficit: number[] };
-const techoMemo = new WeakMap<Movement[], WeakMap<AmountMap, Partial<Record<Plane, TechoScan>>>>();
+const techoMemo =
+  new WeakMap<Movement[], WeakMap<AmountMap, WeakMap<object, Partial<Record<Plane, TechoScan>>>>>();
 
 /** `techoScanRaw` memoizado — el encabezado de mes lo consulta doce veces por render. */
-function techoScan(state: LedgerState, plane: Plane): TechoScan {
+function techoScan(state: LedgerState, plane: Plane, periods: PeriodScope): TechoScan {
   let byMap = techoMemo.get(state.movements);
   if (!byMap) { byMap = new WeakMap(); techoMemo.set(state.movements, byMap); }
   const map = plane === "budget" ? state.budgets : state.actuals;
-  let byPlane = byMap.get(map);
-  if (!byPlane) { byPlane = {}; byMap.set(map, byPlane); }
+  let byScope = byMap.get(map);
+  if (!byScope) { byScope = new WeakMap(); byMap.set(map, byScope); }
+  let byPlane = byScope.get(periods as unknown as object);
+  if (!byPlane) { byPlane = {}; byScope.set(periods as unknown as object, byPlane); }
   let scan = byPlane[plane];
-  if (!scan) { scan = techoScanRaw(state, plane); byPlane[plane] = scan; }
+  if (!scan) { scan = techoScanRaw(state, plane, periods); byPlane[plane] = scan; }
   return scan;
 }
 
@@ -547,11 +586,13 @@ function techoScan(state: LedgerState, plane: Plane): TechoScan {
  *
  * @aitri-trace FR-ID: FR-1605, US-ID: US-1605, AC-ID: AC-1613, TC-ID: TC-CPR-030h
  */
-export function reserveHeadroom(state: LedgerState, month: MonthKey): number {
-  const scan = techoScan(state, "actual");
-  const i = MONTH_KEYS.indexOf(month);
+export function reserveHeadroom(
+  state: LedgerState, month: PeriodKey, periods: PeriodScope
+): number {
+  const scan = techoScan(state, "actual", periods);
+  const i = periods.indexOf(month);
   if (i < 0) return 0;
-  return chainedAporteSlack(scan, i, "actual");
+  return chainedAporteSlack(scan, i, "actual", periods);
 }
 
 /**
@@ -572,13 +613,15 @@ export function reserveHeadroom(state: LedgerState, month: MonthKey): number {
  * En el plano Presupuestado no hay término de déficit ni techo encadenado: el arrastre del barrido
  * es el REAL (ADR-03) y una escritura del plan no lo mueve, así que solo acota su propio mes.
  */
-function chainedAporteSlack(scan: TechoScan, i: number, plane: Plane): number {
+function chainedAporteSlack(
+  scan: TechoScan, i: number, plane: Plane, periods: PeriodScope
+): number {
   let cupo = Math.max(0, scan.margin[i] - scan.consumo[i]);
   if (plane !== "actual") return cupo;
-  for (let k = i + 1; k < MONTH_KEYS.length; k++) {
+  for (let k = i + 1; k < periods.length; k++) {
     if (scan.margin[k] > 0) cupo = Math.min(cupo, Math.max(0, scan.margin[k] - scan.consumo[k]));
   }
-  for (let k = i; k < MONTH_KEYS.length; k++) {
+  for (let k = i; k < periods.length; k++) {
     cupo = Math.min(cupo, Math.max(0, scan.arrastre[k]));
   }
   return cupo;
@@ -607,15 +650,17 @@ function chainedAporteSlack(scan: TechoScan, i: number, plane: Plane): number {
  *
  * @aitri-trace FR-ID: FR-1808, US-ID: US-1808, AC-ID: AC-1830, TC-ID: TC-TDF-070h, TC-TDF-072f
  */
-export function cellHeadroom(state: LedgerState, leafId: string, month: MonthKey, plane: Plane): number {
-  const scan = techoScan(state, plane);
-  const i = MONTH_KEYS.indexOf(month);
+export function cellHeadroom(
+  state: LedgerState, leafId: string, month: PeriodKey, plane: Plane, periods: PeriodScope
+): number {
+  const scan = techoScan(state, plane, periods);
+  const i = periods.indexOf(month);
   if (i < 0) return 0;
   const map = plane === "budget" ? state.budgets : state.actuals;
   const actual = map[leafId]?.[month] ?? 0;
   // El total admisible es lo que la celda YA vale (bajarla siempre se puede) más el incremento que
   // la cadena completa acepta — no solo el del propio mes (auditoría 2026-09-01).
-  return actual + chainedAporteSlack(scan, i, plane);
+  return actual + chainedAporteSlack(scan, i, plane, periods);
 }
 
 /**
@@ -636,12 +681,14 @@ export function cellHeadroom(state: LedgerState, leafId: string, month: MonthKey
  *
  * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1806, TC-ID: TC-TDF-011h
  */
-export function maxWithdrawal(state: LedgerState, leafId: string, month: MonthKey): number {
-  const i = MONTH_KEYS.indexOf(month);
+export function maxWithdrawal(
+  state: LedgerState, leafId: string, month: PeriodKey, periods: PeriodScope
+): number {
+  const i = periods.indexOf(month);
   if (i < 0) return 0;
-  const series = resolvedSeries(state, leafId, "actual");
+  const series = resolvedSeries(state, leafId, "actual", periods);
   let tope = Infinity;
-  for (let k = i; k < MONTH_KEYS.length; k++) tope = Math.min(tope, series[k]);
+  for (let k = i; k < periods.length; k++) tope = Math.min(tope, series[k]);
   return Math.max(0, Number.isFinite(tope) ? tope : 0);
 }
 
@@ -652,7 +699,7 @@ export interface CarryUsage {
   /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
   delSaldoAnterior: number;
   /** El mes de cuyo cierre salió — el que la observación nombra. */
-  mesAnterior: MonthKey;
+  mesAnterior: PeriodKey;
 }
 
 /**
@@ -675,10 +722,12 @@ export interface CarryUsage {
  *
  * @aitri-trace FR-ID: FR-1804, US-ID: US-1804, AC-ID: AC-1813, TC-ID: TC-TDF-030h, TC-TDF-033e
  */
-export function monthCarryUsage(state: LedgerState, month: MonthKey, plane: Plane): CarryUsage | null {
-  const i = MONTH_KEYS.indexOf(month);
+export function monthCarryUsage(
+  state: LedgerState, month: PeriodKey, plane: Plane, periods: PeriodScope
+): CarryUsage | null {
+  const i = periods.indexOf(month);
   if (i <= 0) return null; // enero no tiene mes anterior que nombrar
-  const scan = techoScan(state, plane);
+  const scan = techoScan(state, plane, periods);
   const income = typeTotals(state, "income", [month]);
   const expense = typeTotals(state, "expense", [month]);
   const flujo = plane === "budget" ? income.budget - expense.budget : income.actual - expense.actual;
@@ -692,11 +741,11 @@ export function monthCarryUsage(state: LedgerState, month: MonthKey, plane: Plan
   const delFlujo = Math.max(0, Math.min(reservado, flujo));
   const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
-  return { reservado, delSaldoAnterior, mesAnterior: MONTH_KEYS[i - 1] };
+  return { reservado, delSaldoAnterior, mesAnterior: periods[i - 1] };
 }
 
 /** Un error registrado en un mes. Discriminado por `kind` para admitir tipos nuevos sin tocar la UI. */
-export type MonthIssue = { kind: "techo"; month: MonthKey; margin: number; excess: number };
+export type MonthIssue = { kind: "techo"; period: PeriodKey; margin: number; excess: number };
 
 /**
  * Los errores registrados en cada mes (FR-1806). Hoy un solo tipo —el mes cuyas reservas superan su
@@ -718,12 +767,12 @@ export type MonthIssue = { kind: "techo"; month: MonthKey; margin: number; exces
  *
  * @aitri-trace FR-ID: FR-1806, US-ID: US-1806, AC-ID: AC-1821, TC-ID: TC-TDF-050h, TC-TDF-051f
  */
-export function monthIssues(state: LedgerState): readonly MonthIssue[] {
-  const scan = techoScan(state, "actual");
+export function monthIssues(state: LedgerState, periods: PeriodScope): readonly MonthIssue[] {
+  const scan = techoScan(state, "actual", periods);
   const out: MonthIssue[] = [];
-  for (let i = 0; i < MONTH_KEYS.length; i++) {
+  for (let i = 0; i < periods.length; i++) {
     if (scan.excess[i] > 0) {
-      out.push({ kind: "techo", month: MONTH_KEYS[i], margin: scan.margin[i], excess: scan.excess[i] });
+      out.push({ kind: "techo", period: periods[i], margin: scan.margin[i], excess: scan.excess[i] });
     }
   }
   return out;
@@ -757,7 +806,8 @@ export function monthIssues(state: LedgerState): readonly MonthIssue[] {
  */
 function techoScanRaw(
   state: LedgerState,
-  plane: Plane
+  plane: Plane,
+  periods: PeriodScope
 ): { excess: number[]; margin: number[]; consumo: number[]; arrastre: number[]; deficit: number[] } {
   const excess: number[] = [];
   const margin: number[] = [];
@@ -765,8 +815,8 @@ function techoScanRaw(
   const arrastre: number[] = [];
   const deficit: number[] = [];
   let availActual = 0;
-  for (let i = 0; i < MONTH_KEYS.length; i++) {
-    const m = MONTH_KEYS[i];
+  for (let i = 0; i < periods.length; i++) {
+    const m = periods[i];
     const income = typeTotals(state, "income", [m]);
     const expense = typeTotals(state, "expense", [m]);
     const flowActual = income.actual - expense.actual;
@@ -820,16 +870,18 @@ interface ChainResult {
  *
  * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
  */
-function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affectedLeaves: string[]): ChainResult {
+function chainCheck(
+  base: LedgerState, cand: LedgerState, plane: Plane, affectedLeaves: string[], periods: PeriodScope
+): ChainResult {
   const violations: ReserveWarning[] = [];
 
   // Piso por alcancía afectada, en cadena (solo Ejecutado: el plan no tiene retiros que romper).
   if (plane === "actual") {
     for (const leafId of affectedLeaves) {
-      const series = resolvedSeries(cand, leafId, "actual");
-      for (let i = 0; i < MONTH_KEYS.length; i++) {
+      const series = resolvedSeries(cand, leafId, "actual", periods);
+      for (let i = 0; i < periods.length; i++) {
         if (series[i] < 0) {
-          violations.push({ rule: "piso", month: MONTH_KEYS[i], leafId, limit: series[i] });
+          violations.push({ rule: "piso", period: periods[i], leafId, limit: series[i] });
           break; // el primer mes ofensor de esta hoja
         }
       }
@@ -837,13 +889,13 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
   }
 
   // Techo global por mes, candidato vs base (bloquea solo lo que la escritura EMPEORA).
-  const baseScan = techoScan(base, plane);
-  const candScan = techoScan(cand, plane);
-  for (let i = 0; i < MONTH_KEYS.length; i++) {
+  const baseScan = techoScan(base, plane, periods);
+  const candScan = techoScan(cand, plane, periods);
+  for (let i = 0; i < periods.length; i++) {
     if (candScan.excess[i] > baseScan.excess[i]) {
       violations.push({
         rule: "techo",
-        month: MONTH_KEYS[i],
+        period: periods[i],
         // Lo que SÍ cabía en ese mes ANTES del intento: margen menos consumo, ambos del BASE.
         // Con `candScan.margin` (auditoría 2026-09-01, hallazgo «caben $0 cuando caben $300») el
         // margen ya venía castigado por el propio intento cuando el mes ofensor era otro: el
@@ -857,11 +909,11 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
   // Es la regla que ve lo que el techo no ve (ADR-06). Solo Ejecutado: el plan no tiene arrastre
   // propio (ambos planos abren en el cierre real, ADR-03).
   if (plane === "actual") {
-    for (let i = 0; i < MONTH_KEYS.length; i++) {
+    for (let i = 0; i < periods.length; i++) {
       if (candScan.deficit[i] > baseScan.deficit[i]) {
         violations.push({
           rule: "deficit",
-          month: MONTH_KEYS[i],
+          period: periods[i],
           // Lo que el mes puede soportar sin empeorar: lo que hoy queda antes de caer en negativo.
           limit: Math.max(0, baseScan.arrastre[i]),
         });
@@ -869,7 +921,7 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
     }
   }
 
-  violations.sort((a, b) => MONTH_KEYS.indexOf(a.month) - MONTH_KEYS.indexOf(b.month));
+  violations.sort((a, b) => periods.indexOf(a.period) - periods.indexOf(b.period));
 
   // El `limit` que se ANUNCIA tiene que ser operativo: aceptarse tal cual y rechazarse con un peso
   // más. Techo y déficit acotan el MISMO delta de la operación, así que si varias violaciones
@@ -883,9 +935,9 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
 
   if (plane === "budget") {
     // Pres. AVISA sin bloquear; además marca TODO mes del plan que excede su techo.
-    for (let i = 0; i < MONTH_KEYS.length; i++) {
-      if (candScan.excess[i] > 0 && !violations.some((v) => v.rule === "techo" && v.month === MONTH_KEYS[i])) {
-        violations.push({ rule: "techo", month: MONTH_KEYS[i], limit: candScan.margin[i] });
+    for (let i = 0; i < periods.length; i++) {
+      if (candScan.excess[i] > 0 && !violations.some((v) => v.rule === "techo" && v.period === periods[i])) {
+        violations.push({ rule: "techo", period: periods[i], limit: candScan.margin[i] });
       }
     }
     return { blocking: null, warnings: violations };
@@ -901,17 +953,22 @@ function chainCheck(base: LedgerState, cand: LedgerState, plane: Plane, affected
  *
  * @throws Nunca. Valor inválido (negativo/no numérico) devuelve ok:false tipado.
  */
-export function validateReserveWrite(state: LedgerState, edit: ReserveEdit): ReserveVerdict {
+export function validateReserveWrite(
+  state: LedgerState, edit: ReserveEdit, periods: PeriodScope
+): ReserveVerdict {
   validateCalls += 1;
+  if (!isPeriodKey(edit.period) || periods.indexOf(edit.period) < 0) {
+    return { ok: false, rule: "piso", period: edit.period, leafId: edit.leafId, limit: 0 };
+  }
   const value = Math.round(Number(edit.newAmount));
   if (!Number.isFinite(value) || value < 0) {
-    return { ok: false, rule: "piso", month: edit.month, leafId: edit.leafId, limit: 0 };
+    return { ok: false, rule: "piso", period: edit.period, leafId: edit.leafId, limit: 0 };
   }
-  const cand = buildCandidate(state, edit.plane, [{ leafId: edit.leafId, month: edit.month, value }]);
-  const chain = chainCheck(state, cand, edit.plane, [edit.leafId]);
+  const cand = buildCandidate(state, edit.plane, [{ leafId: edit.leafId, month: edit.period, value }]);
+  const chain = chainCheck(state, cand, edit.plane, [edit.leafId], periods);
   if (chain.blocking) {
     const b = chain.blocking;
-    return { ok: false, rule: b.rule, month: b.month, leafId: b.leafId, limit: b.limit };
+    return { ok: false, rule: b.rule, period: b.period, leafId: b.leafId, limit: b.limit };
   }
   return { ok: true, warnings: chain.warnings };
 }
@@ -950,7 +1007,9 @@ function isReserveLeaf(state: LedgerState, id: string): boolean {
  *
  * @aitri-trace FR-ID: FR-1004, US-ID: US-1004, AC-ID: AC-1004, TC-ID: TC-TRF-104h, TC-TRF-104f
  */
-export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResult {
+export function applyReserveOp(
+  state: LedgerState, op: ReserveOp, periods: PeriodScope
+): ReserveOpResult {
   const amount = parseAmount(op.amount);
   if (amount === null) return { rejected: "invalid_target" };
   if (!op.from || !op.to || op.from === op.to) return { rejected: "invalid_target" };
@@ -959,7 +1018,7 @@ export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResu
   if (fromIsAvailable && toIsAvailable) return { rejected: "invalid_target" };
   if (!fromIsAvailable && !isReserveLeaf(state, op.from)) return { rejected: "invalid_target" };
   if (!toIsAvailable && !isReserveLeaf(state, op.to)) return { rejected: "invalid_target" };
-  if (!MONTH_KEYS.includes(op.month)) return { rejected: "invalid_target" };
+  if (!isPeriodKey(op.period) || !periods.includes(op.period)) return { rejected: "invalid_target" };
 
   // target = la alcancía afectada: retiro → from; aporte y mover → to.
   const targetId = toIsAvailable ? op.from : op.to;
@@ -975,7 +1034,7 @@ export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResu
     subId,
     target: targetId,
     amount,
-    month: op.month,
+    period: op.period,
     createdAt: nextSeq(),
     from: op.from,
     to: op.to,
@@ -994,19 +1053,19 @@ export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResu
   // celda es el aporte del mes»—. Ver ADR-01.
   const writes: CellWrite[] = [];
   if (!toIsAvailable && fromIsAvailable) {
-    const current = state.actuals[op.to]?.[op.month] ?? 0;
-    writes.push({ leafId: op.to, month: op.month, value: current + amount });
+    const current = state.actuals[op.to]?.[op.period] ?? 0;
+    writes.push({ leafId: op.to, month: op.period, value: current + amount });
   }
   const cand = buildCandidate(state, "actual", writes, fromIsAvailable ? undefined : movement);
   const affected = [op.from, op.to].filter((id) => !isAvailable(id));
-  const chain = chainCheck(state, cand, "actual", affected);
+  const chain = chainCheck(state, cand, "actual", affected, periods);
   if (chain.blocking) {
     const b = chain.blocking;
     // Piso del mes de la operación: el límite útil es el saldo que la alcancía TIENE (H9).
-    if (b.rule === "piso" && b.month === op.month && b.leafId && !fromIsAvailable) {
-      return { rejected: { ok: false, rule: "piso", month: op.month, leafId: b.leafId, limit: resolvedBalance(state, b.leafId, op.month, "actual") } };
+    if (b.rule === "piso" && b.period === op.period && b.leafId && !fromIsAvailable) {
+      return { rejected: { ok: false, rule: "piso", period: op.period, leafId: b.leafId, limit: resolvedBalance(state, b.leafId, op.period, "actual", periods) } };
     }
-    return { rejected: { ok: false, rule: b.rule, month: b.month, leafId: b.leafId, limit: b.limit } };
+    return { rejected: { ok: false, rule: b.rule, period: b.period, leafId: b.leafId, limit: b.limit } };
   }
 
   const next = cloneState(state);
@@ -1025,23 +1084,32 @@ export function applyReserveOp(state: LedgerState, op: ReserveOp): ReserveOpResu
  *
  * @throws Nunca.
  */
-export function applyReserveCellEdit(state: LedgerState, edit: ReserveEdit): ReserveEditResult {
+export function applyReserveCellEdit(
+  state: LedgerState, edit: ReserveEdit, periods: PeriodScope
+): ReserveEditResult {
   if (!isReserveLeaf(state, edit.leafId)) return { rejected: "invalid_target" };
+  // El periodo tiene que ser válido Y estar en el rango que se está evaluando (FR-1901, RISK-03).
+  // Sin esta guarda, una clave malformada escribía una celda que ninguna derivación puede leer:
+  // dinero invisible que ni el arrastre ni el techo ven. `indexOf` daría −1 y la aritmética
+  // seguiría corriendo con un índice que no existe.
+  if (!isPeriodKey(edit.period) || periods.indexOf(edit.period) < 0) {
+    return { rejected: "invalid_target" };
+  }
   const value = Math.round(Number(edit.newAmount));
   if (!Number.isFinite(value) || value < 0) return { rejected: "invalid_target" };
   const map = edit.plane === "budget" ? state.budgets : state.actuals;
-  const current = map[edit.leafId]?.[edit.month] ?? 0;
+  const current = map[edit.leafId]?.[edit.period] ?? 0;
   if (value === current) {
     return { state, warnings: [], noop: true };
   }
 
-  const verdict = validateReserveWrite(state, edit);
+  const verdict = validateReserveWrite(state, edit, periods);
   if (!verdict.ok) return { rejected: verdict };
 
   const next = cloneState(state);
   const target = edit.plane === "budget" ? next.budgets : next.actuals;
   target[edit.leafId] = { ...(target[edit.leafId] ?? {}) };
-  target[edit.leafId][edit.month] = value;
+  target[edit.leafId][edit.period] = value;
   return { state: next, warnings: verdict.warnings, noop: false };
 }
 
@@ -1070,9 +1138,11 @@ export interface CellObservation {
  *
  * @throws Nunca. Movimientos sin from/to o sin nota simplemente no aportan.
  */
-export function cellObservations(state: LedgerState, leafId: string, month: MonthKey): CellObservation[] {
+export function cellObservations(
+  state: LedgerState, leafId: string, month: PeriodKey, periods: PeriodScope
+): CellObservation[] {
   const derived: CellObservation[] = state.movements
-    .filter((m) => m.type === "transfer" && m.month === month && m.note && (m.from === leafId || m.to === leafId))
+    .filter((m) => m.type === "transfer" && m.period === month && m.note && (m.from === leafId || m.to === leafId))
     .map((m) => ({ createdAt: m.createdAt, text: m.note!, source: "movement" as const }));
   const manual: CellObservation[] = (state.cellNotes?.[leafId]?.[month] ?? []).map((n) => ({
     createdAt: n.createdAt,
@@ -1103,11 +1173,12 @@ export const CELL_NOTE_MAX = 280;
 export function addCellNote(
   state: LedgerState,
   leafId: string,
-  month: MonthKey,
-  text: string
+  month: PeriodKey,
+  text: string,
+  periods: PeriodScope
 ): { state: LedgerState } | { rejected: "invalid_note" | "invalid_target" } {
   const node = findNode(state.nodes, leafId);
-  if (!node || !isLeaf(node, state.nodes) || !MONTH_KEYS.includes(month)) return { rejected: "invalid_target" };
+  if (!node || !isLeaf(node, state.nodes) || !isPeriodKey(month) || !periods.includes(month)) return { rejected: "invalid_target" };
   const trimmed = text.trim();
   if (trimmed.length === 0 || trimmed.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
   const next = cloneState(state);
@@ -1127,11 +1198,13 @@ export function addCellNote(
  * Estado del PLAN (no de una edición): la grilla marca con «!» + ámbar las celdas Pres. de hojas
  * que aportan en esos meses. Avisar, jamás bloquear.
  */
-export function planTechoMonths(state: LedgerState): Partial<Record<MonthKey, number>> {
-  const scan = techoScan(state, "budget");
-  const out: Partial<Record<MonthKey, number>> = {};
-  for (let i = 0; i < MONTH_KEYS.length; i++) {
-    if (scan.excess[i] > 0) out[MONTH_KEYS[i]] = scan.margin[i];
+export function planTechoMonths(
+  state: LedgerState, periods: PeriodScope
+): Partial<Record<PeriodKey, number>> {
+  const scan = techoScan(state, "budget", periods);
+  const out: Partial<Record<PeriodKey, number>> = {};
+  for (let i = 0; i < periods.length; i++) {
+    if (scan.excess[i] > 0) out[periods[i]] = scan.margin[i];
   }
   return out;
 }

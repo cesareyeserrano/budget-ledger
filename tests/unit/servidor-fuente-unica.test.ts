@@ -14,6 +14,7 @@ import { writeFileSync, rmSync, existsSync, readFileSync, mkdirSync } from "node
 import path from "node:path";
 import { InMemoryRepository } from "../helpers/inMemoryRepository";
 import { buildSeed } from "@/domain";
+import { P0 } from "../helpers/periods";
 
 const ROOT = path.resolve(__dirname, "../..");
 const GATE = path.join(ROOT, "scripts/no-legacy-mode.sh");
@@ -86,19 +87,19 @@ describe("FR-1105 / FR-1106 — el contrato sobrevive al retiro de la implementa
   it("TC-SFU-106e: el fake InMemoryRepository satisface el mismo contrato que el real", async () => {
     // @aitri-tc TC-SFU-106e
     const repo = new InMemoryRepository();
-    const estado = buildSeed("local");
-    estado.budgets["c-ahorros"] = { ...estado.budgets["c-ahorros"], jun: 25000 };
+    const estado = buildSeed("local", P0);
+    estado.budgets["c-ahorros"] = { ...estado.budgets["c-ahorros"], "2026-06": 25000 };
 
     expect(await repo.save("local", estado)).toBe(true);
     const leido = await repo.load("local");
-    expect(leido!.budgets["c-ahorros"]!.jun).toBe(25000);
+    expect(leido!.budgets["c-ahorros"]!["2026-06"]).toBe(25000);
 
     // Aislamiento por owner: un owner desconocido devuelve null, igual que un 204 del servidor.
     expect(await repo.load("otro")).toBeNull();
 
     // Copia profunda: mutar lo devuelto no altera lo "persistido" (si no, un test se engañaría solo).
-    leido!.budgets["c-ahorros"]!.jun = 1;
-    expect((await repo.load("local"))!.budgets["c-ahorros"]!.jun).toBe(25000);
+    leido!.budgets["c-ahorros"]!["2026-06"] = 1;
+    expect((await repo.load("local"))!.budgets["c-ahorros"]!["2026-06"]).toBe(25000);
   });
 });
 

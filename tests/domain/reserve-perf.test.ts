@@ -13,8 +13,9 @@ import {
 } from "@/domain/reserve";
 import { setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState } from "@/domain/types";
+import { P } from "../helpers/periods";
 
 /** 30 alcancías × 12 meses con aportes mixtos + flujo real. */
 function makeBigState(): LedgerState {
@@ -56,15 +57,15 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     const s = makeBigState();
 
     const t0 = performance.now();
-    const verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newAmount: 500_000 });
-    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", month: "sep", plane: "actual", newAmount: 500_000 });
+    const verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
+    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
     if (!("state" in applied)) throw new Error("edición válida rechazada");
-    const series = computeBalanceSeries(applied.state);
-    for (const m of MONTH_KEYS) resolvedTypeTotal(applied.state, m, "actual");
+    const series = computeBalanceSeries(applied.state, P);
+    for (const m of MONTH_KEYS) resolvedTypeTotal(applied.state, m, "actual", P);
     const elapsed = performance.now() - t0;
 
     expect(verdict.ok).toBe(true);
-    expect(series.dic.actual).toBeDefined();
+    expect(series["2026-12"].actual).toBeDefined();
     expect(elapsed, `ruta completa en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });
 
@@ -72,17 +73,17 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     // @aitri-tc TC-TRF4-155e
     const s = makeBigState();
 
-    const first = resolvedSeries(s, "c-alcancia-3", "actual");
+    const first = resolvedSeries(s, "c-alcancia-3", "actual", P);
     expect(__reservePerfCounters().seriesComputes).toBe(1);
-    const second = resolvedSeries(s, "c-alcancia-3", "actual");
-    for (const m of MONTH_KEYS) resolvedSeries(s, "c-alcancia-3", "actual");
+    const second = resolvedSeries(s, "c-alcancia-3", "actual", P);
+    for (const m of MONTH_KEYS) resolvedSeries(s, "c-alcancia-3", "actual", P);
     expect(second).toBe(first); // misma referencia = cero recomputos
     expect(__reservePerfCounters().seriesComputes).toBe(1);
 
-    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-3", month: "ene", plane: "actual", newAmount: 999_000 });
+    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-3", period: "2026-01", plane: "actual", newAmount: 999_000 }, P);
     if (!("state" in applied)) throw new Error("edición válida rechazada");
     __resetReservePerfCounters();
-    const third = resolvedSeries(applied.state, "c-alcancia-3", "actual");
+    const third = resolvedSeries(applied.state, "c-alcancia-3", "actual", P);
     expect(__reservePerfCounters().seriesComputes).toBe(1); // data nuevo SÍ recomputa
     expect(third).not.toBe(first);
     expect(third[0]).toBe(999_000);
@@ -93,11 +94,11 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     const s = makeBigState();
 
     const t0 = performance.now();
-    const next = setLeafAmount(s, "c-mercado", "jun", "actual", 2_000_000);
+    const next = setLeafAmount(s, "c-mercado", "2026-06", "actual", 2_000_000, P);
     const elapsed = performance.now() - t0;
 
     expect(__reservePerfCounters().validateCalls).toBe(0); // cero acoplamiento
-    expect(next.actuals["c-mercado"].jun).toBe(2_000_000);
+    expect(next.actuals["c-mercado"]["2026-06"]).toBe(2_000_000);
     expect(elapsed, `edición expense en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });
 });

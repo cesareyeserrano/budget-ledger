@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ServerRepository } from "@/data/serverRepository";
 import { buildSeed } from "@/domain";
+import { P0 } from "../helpers/periods";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -40,9 +41,9 @@ describe("BG-012 — load() valida la respuesta y degrada sin lanzar", () => {
     ["JSON válido con forma equivocada", JSON.stringify({ hola: "mundo" })],
     ["falta el campo state", JSON.stringify({ revision: 3 })],
     ["state no es un objeto de ledger", JSON.stringify({ revision: 3, state: { nodes: "no soy un array" } })],
-    ["revision no es un número", JSON.stringify({ revision: "tres", state: buildSeed("local") })],
-    ["un movimiento con mes inexistente", JSON.stringify({ revision: 3, state: { ...buildSeed("local"), movements: [{ id: "m1", ownerId: "local", type: "expense", catId: "c-comida", subId: null, target: "c-comida", amount: 100, month: "trecebre", createdAt: 1 }] } })],
-    ["un monto negativo (viola el piso del dominio)", JSON.stringify({ revision: 3, state: { ...buildSeed("local"), budgets: { "s-comida-mercado": { ene: -5 } } } })],
+    ["revision no es un número", JSON.stringify({ revision: "tres", state: buildSeed("local", P0) })],
+    ["un movimiento con mes inexistente", JSON.stringify({ revision: 3, state: { ...buildSeed("local", P0), movements: [{ id: "m1", ownerId: "local", type: "expense", catId: "c-comida", subId: null, target: "c-comida", amount: 100, period: "trecebre", createdAt: 1 }] } })],
+    ["un monto negativo (viola el piso del dominio)", JSON.stringify({ revision: 3, state: { ...buildSeed("local", P0), budgets: { "s-comida-mercado": { "2026-01": -5 } } } })],
   ];
 
   for (const [nombre, cuerpo] of casos) {
@@ -55,7 +56,7 @@ describe("BG-012 — load() valida la respuesta y degrada sin lanzar", () => {
   }
 
   it("una respuesta que SÍ cumple el contrato carga y deja malformed en false", async () => {
-    const state = buildSeed("local");
+    const state = buildSeed("local", P0);
     stubGet(JSON.stringify({ revision: 7, state }));
     const repo = new ServerRepository();
     const cargado = await repo.load();
@@ -67,7 +68,7 @@ describe("BG-012 — load() valida la respuesta y degrada sin lanzar", () => {
 
   it("un cuerpo ilegible NO pisa la revisión conocida (evita un 409 autoinfligido)", async () => {
     const repo = new ServerRepository();
-    stubGet(JSON.stringify({ revision: 9, state: buildSeed("local") }));
+    stubGet(JSON.stringify({ revision: 9, state: buildSeed("local", P0) }));
     await repo.load();
     expect(repo.currentRevision).toBe(9);
 
@@ -115,7 +116,7 @@ describe("BG-012 — el store no siembra encima de una respuesta ilegible", () =
           return new Response(JSON.stringify({ revision: 1 }), { status: 200 });
         }
         if (!sembrado) return new Response(null, { status: 204 });
-        return new Response(JSON.stringify({ revision: 1, state: buildSeed("local") }), { status: 200 });
+        return new Response(JSON.stringify({ revision: 1, state: buildSeed("local", P0) }), { status: 200 });
       })
     );
     const store = (await import("@/state/store")).useLedgerStore;
@@ -134,7 +135,7 @@ describe("BG-012 — el store no siembra encima de una respuesta ilegible", () =
       vi.fn(async (_url: unknown, init?: RequestInit) => {
         if (init?.method === "PUT") return new Response(JSON.stringify({ revision: 1 }), { status: 200 });
         if (corrupto) return new Response("{{{", { status: 200 });
-        return new Response(JSON.stringify({ revision: 1, state: buildSeed("local") }), { status: 200 });
+        return new Response(JSON.stringify({ revision: 1, state: buildSeed("local", P0) }), { status: 200 });
       })
     );
     const store = (await import("@/state/store")).useLedgerStore;

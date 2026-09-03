@@ -1,10 +1,29 @@
 // @aitri-trace domain:validation — NFR-004: validación en el borde (monto entero >=1; nombres 1..60) y esquemas de persistencia.
 import { z } from "zod";
 
-export const MONTH_KEY = z.enum([
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
-]);
+/**
+ * El periodo del ledger en el borde: "YYYY-MM" (FR-1901, NFR-1908).
+ *
+ * Antes era un `z.enum` de doce literales, y ESA era la defensa real: un periodo inventado no
+ * pasaba. Al abrir el dominio de valores esa defensa se debilita, así que aquí se reconstruye en
+ * tres capas, en este orden:
+ *   1. longitud máxima 7 — corta una cadena de 1.000 caracteres antes de llegar a la regex;
+ *   2. formato exacto — cuatro dígitos, guion, mes 01–12 (rechaza "2026-13" y "2026-00");
+ *   3. año dentro de [2000, 2100] — rechaza "0000-01" y años absurdos que el CHECK de la base sí
+ *      aceptaría y que inflarían el rango activo y, con él, el coste de todo el cálculo.
+ *
+ * El CHECK de Postgres queda como ÚLTIMA defensa, no como la única.
+ */
+export const PERIOD_MIN_YEAR = 2000;
+export const PERIOD_MAX_YEAR = 2100;
+export const PERIOD_KEY = z
+  .string()
+  .max(7, "Periodo demasiado largo")
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Periodo inválido: se espera YYYY-MM")
+  .refine((p) => {
+    const y = Number(p.slice(0, 4));
+    return y >= PERIOD_MIN_YEAR && y <= PERIOD_MAX_YEAR;
+  }, `El año debe estar entre ${PERIOD_MIN_YEAR} y ${PERIOD_MAX_YEAR}`);
 
 /** Monto de un movimiento: entero >= 1 COP. Rechaza no-numéricos, negativos y 0. */
 export const amountSchema = z
@@ -49,7 +68,7 @@ const nodeSchema = z.object({
 
 // Enteros ≥ 0, como el CHECK de la BD y el schema del API: un blob local manipulado con montos
 // negativos debe caer a semilla (NFR-003), no cargar un estado que viola el piso (hallazgo adv. 6).
-const amountMapSchema = z.record(z.string(), z.record(MONTH_KEY, z.number().int().gte(0)));
+const amountMapSchema = z.record(z.string(), z.record(PERIOD_KEY, z.number().int().gte(0)));
 
 export const persistedNodesSchema = z.object({
   version: z.literal(1),
@@ -65,7 +84,7 @@ const movementSchema = z.object({
   subId: z.string().nullable(),
   target: z.string(),
   amount: z.number(),
-  month: MONTH_KEY,
+  period: PERIOD_KEY,
   createdAt: z.number(),
   // Delta aditivo (feature stack-upgrade-theme): opcionales para que sobrevivan a la recarga
   // y para no invalidar movimientos previos que no los tienen.
@@ -89,7 +108,7 @@ export type PersistedBudgetV2 = z.infer<typeof persistedBudgetV2Schema>;
 /** Observaciones por celda (FR-1012): nodeId → mes → lista de notas manuales. */
 export const cellNotesSchema = z.record(
   z.string(),
-  z.record(MONTH_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280) })))
+  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280) })))
 );
 
 /** Formato intermedio v3 (saldos con arrastre — revertido). Se acepta SOLO para migrar a v4. */

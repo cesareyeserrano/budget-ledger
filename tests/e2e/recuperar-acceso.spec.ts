@@ -10,6 +10,7 @@
  * sentido. Es la única suite del proyecto que debe correr sin sesión.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { P } from "./helpers/periods";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 

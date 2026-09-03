@@ -25,7 +25,7 @@ const NODES = [
 /** BASE: margen holgado; Viaje aporta en ene; la sub Emergencia aporta en feb. */
 const BASE = {
   budgets: {} as CellMap,
-  actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 100_000 }, "s-fondo-emergencia": { feb: 200_000 } } as CellMap,
+  actuals: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 100_000 }, "s-fondo-emergencia": { "2026-02": 200_000 } } as CellMap,
   movements: [] as Mov[],
 };
 
@@ -55,10 +55,10 @@ const rowByName = (page: Page, name: string) =>
 const reserveCell = (page: Page, name: string, monthIdx: number, plane: "budget" | "actual") =>
   rowByName(page, name).getByTestId("cell-leaf").nth(monthIdx * 2 + (plane === "actual" ? 1 : 0));
 
-async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] }> {
+async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; period: string; amount: number }[] }> {
   // Se lee del SERVIDOR, que es la fuente de verdad (FR-1103) — antes se leía ledger.budget.v4.
   const state = await readLedger(page);
-  return state as unknown as { budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; month: string; amount: number }[] };
+  return state as unknown as { budgets: CellMap; actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; period: string; amount: number }[] };
 }
 
 /**
@@ -75,9 +75,9 @@ async function expectMovementCount(page: Page, n: number): Promise<void> {
 }
 
 /** Un retiro ya operado, para las fixtures que lo necesitan. */
-const retiro = (from: string, month: string, amount: number, note?: string): Mov => ({
-  id: `mv-${from}-${month}`, ownerId: "local", type: "transfer", catId: from, subId: null, target: from,
-  amount, month, createdAt: 1, from, to: "@disponible", ...(note ? { note } : {}),
+const retiro = (from: string, period: string, amount: number, note?: string): Mov => ({
+  id: `mv-${from}-${period}`, ownerId: "local", type: "transfer", catId: from, subId: null, target: from,
+  amount, period, createdAt: 1, from, to: "@disponible", ...(note ? { note } : {}),
 });
 
 test.describe("FR-1002 — la celda dice el aporte del mes", () => {
@@ -115,7 +115,7 @@ test.describe("FR-1002 — la celda dice el aporte del mes", () => {
 
   test("TC-TRF4-002f: ninguna celda del bloque muestra un acumulado ni un negativo", async ({ page }) => {
     // @aitri-tc TC-TRF4-002f
-    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "mar", 40_000)] });
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "2026-03", 40_000)] });
 
     // Operar: subir un aporte por celda y sacar desde la fila Retiros del mes.
     await reserveCell(page, "Nueva", 2, "actual").click();
@@ -137,7 +137,7 @@ test.describe("FR-1002 — la celda dice el aporte del mes", () => {
 test.describe("FR-1003 — editar la celda con validación inline", () => {
   test("TC-TRF4-003f: el bloqueo del techo no cierra el editor: franja, valor seleccionado, Escape restaura", async ({ page }) => {
     // @aitri-tc TC-TRF4-003f
-    await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { ene: 150_000 } }, movements: [] });
+    await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { "2026-01": 150_000 } }, movements: [] });
 
     await reserveCell(page, "Nueva", 0, "actual").click();
     const input = page.getByLabel("Editar valor");
@@ -166,7 +166,7 @@ test.describe("FR-1003 — editar la celda con validación inline", () => {
 test.describe("FR-1008 — la marca del plan de aportes", () => {
   test("TC-TRF4-008e: la marca del plan es «!» + ámbar: canal propio, distinto de ›/›› y ‹‹", async ({ page }) => {
     // @aitri-tc TC-TRF4-008e
-    await gotoGrid(page, { budgets: { "c-viaje": { mar: 1_200_000 } }, actuals: { "c-salario": { ene: 1_000_000 } }, movements: [] });
+    await gotoGrid(page, { budgets: { "c-viaje": { "2026-03": 1_200_000 } }, actuals: { "c-salario": { "2026-01": 1_000_000 } }, movements: [] });
 
     const cell = reserveCell(page, "Viaje", 2, "budget");
     await expect(cell).toHaveAttribute("data-plan-warn", "true");
@@ -182,7 +182,7 @@ test.describe("FR-1008 — la marca del plan de aportes", () => {
 test.describe("FR-1012 — observaciones por celda", () => {
   test("TC-TRF4-012h: la nota de una operación De→A se lee desde la celda y se puede añadir manual", async ({ page }) => {
     // @aitri-tc TC-TRF4-012h
-    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "sep", 50_000, "pasaje")] });
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "2026-09", 50_000, "pasaje")] });
 
     const cell = reserveCell(page, "Viaje", 8, "actual");
     await expect(cell.getByTestId("note-dot")).toBeVisible();
@@ -233,14 +233,14 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
 
   test("TC-TRF4-014e: eliminar un retiro del historial restaura el saldo derivado", async ({ page }) => {
     // @aitri-tc TC-TRF4-014e
-    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "jun", 40_000)] });
+    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "2026-06", 40_000)] });
 
     await expect(page.getByTestId("withdraw-cell").nth(5)).toContainText("40.000");
     await page.getByTestId("withdraw-cell").nth(5).click();
     const history = page.getByTestId("withdraw-history");
     await expect(history).toContainText("Ahorro · Viaje");
     // FR-1802: el botón de borrar se retiró — la corrección es teclear el monto, y 0 elimina.
-    const monto = page.getByTestId("op-amount-mv-c-viaje-jun");
+    const monto = page.getByTestId("op-amount-mv-c-viaje-2026-06");
     await monto.fill("0");
     await monto.press("Enter");
 
@@ -253,12 +253,12 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
   test("TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo)", async ({ page }) => {
     // @aitri-tc TC-TRF4-014f
     await gotoGrid(page, {
-      budgets: { "@retiros": { mar: 100_000, may: 150_000 } },
-      actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 500_000 } },
-      movements: [retiro("c-viaje", "mar", 150_000), retiro("c-viaje", "may", 160_000), retiro("c-viaje", "jun", 30_000)],
+      budgets: { "@retiros": { "2026-03": 100_000, "2026-05": 150_000 } },
+      actuals: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 500_000 } },
+      movements: [retiro("c-viaje", "2026-03", 150_000), retiro("c-viaje", "2026-05", 160_000), retiro("c-viaje", "2026-06", 30_000)],
     });
 
-    // mar: 150k/100k = 150% → rojo + ›› · may: 160k/150k ≈107% → ámbar + › · jun: sin plan → rojo + ››
+    // "2026-03": 150k/100k = 150% → rojo + ›› · "2026-05": 160k/150k ≈107% → ámbar + › · "2026-06": sin plan → rojo + ››
     const mar = page.getByTestId("withdraw-cell").nth(2);
     await expect(mar).toHaveAttribute("data-over", "over_hard");
     await expect(mar).toContainText("››");
@@ -277,8 +277,8 @@ test.describe("FR-1015 — retiros planeados", () => {
   test("TC-TRF4-015e: franja al exceder el plan y marca auto-sanadora al quedar descubierto", async ({ page }) => {
     // @aitri-tc TC-TRF4-015e
     await gotoGrid(page, {
-      budgets: { "c-viaje": { ene: 200_000 }, "@retiros": { jun: 150_000 } },
-      actuals: { "c-salario": { ene: 1_000_000 } },
+      budgets: { "c-viaje": { "2026-01": 200_000 }, "@retiros": { "2026-06": 150_000 } },
+      actuals: { "c-salario": { "2026-01": 1_000_000 } },
       movements: [],
     });
 
@@ -339,7 +339,7 @@ test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
     test(`TC-TRF4-156h: las tintas nuevas pasan AA en ambos temas (${scheme})`, async ({ page }) => {
       // @aitri-tc TC-TRF4-156h
       await page.emulateMedia({ colorScheme: scheme });
-      await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { ene: 150_000 } }, movements: [] });
+      await gotoGrid(page, { budgets: {}, actuals: { "c-salario": { "2026-01": 150_000 } }, movements: [] });
 
       const [fgMuted, bg, error, bgCard, warning] = await Promise.all(
         ["--fg-muted", "--bg", "--error", "--bg-card", "--state-warning"].map((v) => cssVar(page, v))
@@ -365,9 +365,9 @@ test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
   test("TC-TRF4-156f: ningún estado nuevo depende SOLO del color", async ({ page }) => {
     // @aitri-tc TC-TRF4-156f
     await gotoGrid(page, {
-      budgets: { "c-viaje": { mar: 1_200_000 } },
-      actuals: { "c-salario": { ene: 1_000_000 }, "c-viaje": { ene: 300_000 } },
-      movements: [retiro("c-viaje", "jun", 100_000)],
+      budgets: { "c-viaje": { "2026-03": 1_200_000 } },
+      actuals: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 300_000 } },
+      movements: [retiro("c-viaje", "2026-06", 100_000)],
     });
 
     // Plan inviable: glifo «!» + atributo inspeccionable.

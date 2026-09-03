@@ -13,8 +13,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLedgerStore } from "@/state/store";
-import type { MonthKey, Movement } from "@/domain/types";
-import { MONTHS, monthLabel } from "@/domain/months";
+import type { PeriodKey, Movement } from "@/domain/types";
+import { periodMonthLabel, periodLabel } from "@/domain/periods";
 import {
   cellObservations,
   CELL_NOTE_MAX,
@@ -53,23 +53,24 @@ const PLAN_WARN_GLYPH = "!";
  */
 export function ReserveLeafCell(props: {
   leafId: string;
-  month: MonthKey;
+  month: PeriodKey;
   plane: Plane;
   sep?: boolean;
   highlight?: boolean;
-  planWarnMonths: Partial<Record<MonthKey, number>>;
+  planWarnMonths: Partial<Record<PeriodKey, number>>;
   onStart: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
   const value = map[props.leafId]?.[props.month] ?? 0;
   const planWarn = props.plane === "budget" && props.planWarnMonths[props.month] !== undefined && value > 0;
 
   // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
-  const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month) : [];
+  const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month, periods) : [];
   // FR-1804 — y la automática, si esta celda aportó en un mes que se completó del saldo anterior.
   const carry =
-    props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual") : null;
+    props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual", periods) : null;
 
   const color = planWarn
     ? "var(--state-warning)"
@@ -79,9 +80,9 @@ export function ReserveLeafCell(props: {
         ? "var(--accent-light)"
         : "var(--fg-secondary)";
   const title = planWarn
-    ? `Este plan supera tu margen de ${monthLabel(props.month).toLowerCase()}`
+    ? `Este plan supera tu margen de ${periodLabel(props.month).toLowerCase()}`
     : carry
-      ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${monthLabel(carry.mesAnterior).toLowerCase()}.`
+      ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${periodLabel(carry.mesAnterior).toLowerCase()}.`
       : observations.length > 0
         ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
         : undefined;
@@ -122,13 +123,14 @@ export function ReserveLeafCell(props: {
  */
 export function ReserveCellEditor(props: {
   leafId: string;
-  month: MonthKey;
+  month: PeriodKey;
   plane: Plane;
   sep?: boolean;
   highlight?: boolean;
   onClose: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const applyReserveEdit = useLedgerStore((s) => s.applyReserveEdit);
   const { leafId, month, plane } = props;
 
@@ -141,7 +143,7 @@ export function ReserveCellEditor(props: {
   // la celda contiene un TOTAL. Una celda que vale 1.000 en un mes con el cupo agotado admite
   // perfectamente que se la baje a 800; mostrarle «Máx. 0» y pintarla en rojo sería mentirle sobre
   // una escritura válida (TC-TDF-072f).
-  const headroom = plane === "actual" ? cellHeadroom(data, leafId, month, plane) : null;
+  const headroom = plane === "actual" ? cellHeadroom(data, leafId, month, plane, periods) : null;
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -165,7 +167,7 @@ export function ReserveCellEditor(props: {
       props.onClose(); // sin cambio: no-op
       return;
     }
-    const verdict = validateReserveWrite(data, { leafId, month, plane, newAmount: value });
+    const verdict = validateReserveWrite(data, { leafId, period: month, plane, newAmount: value }, periods);
     if (!verdict.ok) {
       fail(
         blockMessage(data, verdict, {
@@ -214,7 +216,7 @@ export function ReserveCellEditor(props: {
         {headroom !== null && (
           <span
             data-testid="reserve-max"
-            title={`El máximo que admite esta celda en ${monthLabel(month).toLowerCase()}`}
+            title={`El máximo que admite esta celda en ${periodLabel(month).toLowerCase()}`}
             className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
             style={{
               color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
@@ -262,11 +264,12 @@ export function ReserveCellEditor(props: {
  * pidió que TODAS las celdas admitan observación. La consume también el editor de celdas de gasto e
  * ingreso de `BudgetGrid`, en vez de duplicarla allí y dejar que las dos copias divergan.
  */
-export function CellNotesSection({ leafId, month }: { leafId: string; month: MonthKey }) {
+export function CellNotesSection({ leafId, month }: { leafId: string; month: PeriodKey }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const addNote = useLedgerStore((s) => s.addCellNote);
   const [draft, setDraft] = useState("");
-  const observations = cellObservations(data, leafId, month);
+  const observations = cellObservations(data, leafId, month, periods);
   // FR-1804 — la observación AUTOMÁTICA del mes, en la celda donde se reservó (que es donde el
   // usuario la busca). Se muestra solo si ESTA celda es un BOLSILLO y aportó ese mes: con FR-1809
   // esta sección vive también en celdas de gasto e ingreso, y sin la guarda de tipo la nota de
@@ -274,7 +277,7 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Mon
   // reservados…» en una celda que no reservó nada.
   const esBolsillo = findNode(data.nodes, leafId)?.type === "transfer";
   const aporto = esBolsillo && (data.actuals[leafId]?.[month] ?? 0) > 0;
-  const carry = aporto ? monthCarryUsage(data, month, "actual") : null;
+  const carry = aporto ? monthCarryUsage(data, month, "actual", periods) : null;
   const over = draft.length > CELL_NOTE_MAX;
   const canAdd = draft.trim().length > 0 && !over;
 
@@ -287,7 +290,7 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Mon
           <span style={{ color: "var(--fg)" }}>
             De los <span className="tabular">{money(carry.reservado)}</span> reservados este mes,{" "}
             <span className="tabular">{money(carry.delSaldoAnterior)}</span> salieron del saldo de{" "}
-            {monthLabel(carry.mesAnterior).toLowerCase()}.
+            {periodLabel(carry.mesAnterior).toLowerCase()}.
           </span>
         </div>
       ) : null}
@@ -371,8 +374,9 @@ const RETIRO_STATE_GLYPH: Record<BudgetState, "" | "›" | "››"> = {
  * lo que el propio plan habrá reservado hasta ese mes («Solo hay $X reservados en tu plan») —
  * franja inline, el editor no se cierra (observación 2, 2026-07-29).
  */
-export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boolean }) {
+export function PlannedWithdrawCell({ month, sep }: { month: PeriodKey; sep?: boolean }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const setPlanned = useLedgerStore((s) => s.setPlannedRetiro);
   const value = reserveRetiros(data, month, "budget");
   const [editing, setEditing] = useState(false);
@@ -383,7 +387,7 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
   function commit() {
     const res = setPlanned(month, Math.max(0, Math.round(Number(val) || 0)));
     if (!res.ok) {
-      setBlock(`Solo hay ${money(res.limit)} reservados en tu plan hasta ${monthLabel(month).toLowerCase()}`);
+      setBlock(`Solo hay ${money(res.limit)} reservados en tu plan hasta ${periodLabel(month).toLowerCase()}`);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -434,7 +438,7 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
   }
   // Estado auto-sanador (hallazgo adversarial 7): si DESPUÉS de planear el retiro bajaron los
   // aportes del plan, la celda se marca sola — ámbar + «!», sin bloquear (es el plan).
-  const uncovered = value > 0 && value > plannedRetiroLimit(data, month);
+  const uncovered = value > 0 && value > plannedRetiroLimit(data, month, periods);
   return (
     <div
       data-testid="planned-withdraw-cell"
@@ -442,7 +446,7 @@ export function PlannedWithdrawCell({ month, sep }: { month: MonthKey; sep?: boo
       {...(uncovered ? { "data-plan-warn": "true" } : {})}
       title={
         uncovered
-          ? `Tu plan de aportes ya no cubre este retiro (hay ${money(plannedRetiroLimit(data, month))} reservados hasta ${monthLabel(month).toLowerCase()})`
+          ? `Tu plan de aportes ya no cubre este retiro (hay ${money(plannedRetiroLimit(data, month, periods))} reservados hasta ${periodLabel(month).toLowerCase()})`
           : "Retiro planeado del mes (haz clic para editar)"
       }
       onClick={() => {
@@ -467,10 +471,11 @@ export function WithdrawCell({
   month,
   sep,
 }: {
-  month: MonthKey;
+  month: PeriodKey;
   sep?: boolean;
 }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const withdraw = useLedgerStore((s) => s.applyReserveWithdrawal);
   const removeWithdrawal = useLedgerStore((s) => s.removeReserveWithdrawal);
   const [open, setOpen] = useState(false);
@@ -484,7 +489,7 @@ export function WithdrawCell({
   // El tope NO es el saldo del mes: si un mes posterior ya retiró de esa misma plata, el saldo
   // sobreestima (auditoría 2026-09-01: mostraba Máx. $1.000 donde solo cabían $200). `maxWithdrawal`
   // mira la serie completa — la misma cuenta que el dominio va a validar.
-  const saldo = fromId ? maxWithdrawal(data, fromId, month) : null;
+  const saldo = fromId ? maxWithdrawal(data, fromId, month, periods) : null;
   const canSave = fromId !== "" && parsed > 0 && (saldo === null || parsed <= saldo);
 
   // Sobre-retiro: ejecutado vs planeado, misma graduación que los gastos (observación 1).
@@ -539,7 +544,7 @@ export function WithdrawCell({
       </PopoverTrigger>
       <PopoverContent className="w-96 p-3 flex flex-col gap-2 text-[12px]" align="end">
         <span className="font-medium" style={{ color: "var(--fg)" }}>
-          {`Sacar en ${monthLabel(month).toLowerCase()} → Disponible`}
+          {`Sacar en ${periodLabel(month).toLowerCase()} → Disponible`}
         </span>
 
         {/* Origen: el desplegable con todas las alcancías y su saldo. La puerta con origen ya
@@ -557,7 +562,7 @@ export function WithdrawCell({
           </option>
           {leaves.map((id) => (
             <option key={id} value={id}>
-              {leafPathLabel(data, id)} — {money(resolvedBalance(data, id, month, "actual"))}
+              {leafPathLabel(data, id)} — {money(resolvedBalance(data, id, month, "actual", periods))}
             </option>
           ))}
         </select>
@@ -650,6 +655,7 @@ export function WithdrawCell({
  */
 function OpRow({ mv }: { mv: Movement }) {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const editOp = useLedgerStore((s) => s.editReserveOp);
   const esMover = !isAvailable(mv.to);
   const [val, setVal] = useState(String(mv.amount));
@@ -670,7 +676,7 @@ function OpRow({ mv }: { mv: Movement }) {
     setError(
       v === "invalid_target" || v.ok
         ? "Ese monto no es válido."
-        : blockMessage(data, v, { editedMonth: mv.month })
+        : blockMessage(data, v, { editedMonth: mv.period })
     );
   }
 

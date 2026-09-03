@@ -13,8 +13,10 @@ import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote } from "../db/schema";
-import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "@/domain";
+import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
+import { comparePeriods, isPeriodKey, periodRange } from "@/domain/periods";
+import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
  *  Historia: 2 = aportes sin journal de retiros · 3 = saldos con arrastre (revertido) · 4 = vigente. */
@@ -62,7 +64,7 @@ function rowsToState(
   const actuals: AmountMap = {};
   for (const c of cellRows) {
     const store = c.kind === "budget" ? budgets : actuals;
-    (store[c.nodeId] ??= {})[c.month as MonthKey] = c.amount;
+    (store[c.nodeId] ??= {})[c.period as PeriodKey] = c.amount;
   }
 
   const movements: Movement[] = movementRows.map((r) => ({
@@ -73,7 +75,7 @@ function rowsToState(
     subId: r.subId,
     target: r.target,
     amount: r.amount,
-    month: r.month as MonthKey,
+    period: r.period as PeriodKey,
     createdAt: r.createdAt,
     ...(r.date != null ? { date: r.date } : {}),
     ...(r.note != null ? { note: r.note } : {}),
@@ -85,7 +87,7 @@ function rowsToState(
   // FR-1012: observaciones manuales por celda.
   const cellNotes: CellNotesMap = {};
   for (const r of cellNoteRows) {
-    ((cellNotes[r.nodeId] ??= {})[r.month as MonthKey] ??= []).push({ id: r.id, createdAt: r.createdAt, text: r.text });
+    ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({ id: r.id, createdAt: r.createdAt, text: r.text });
   }
   for (const byMonth of Object.values(cellNotes)) {
     for (const list of Object.values(byMonth)) list?.sort((a, b) => a.createdAt - b.createdAt);
@@ -178,7 +180,7 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
       for (const [nodeId, months] of Object.entries(map)) {
         for (const [month, amount] of Object.entries(months)) {
           if (amount == null) continue;
-          cellValues.push({ ownerId, nodeId, month, kind, amount });
+          cellValues.push({ ownerId, nodeId, period: month, kind, amount });
         }
       }
     }
@@ -196,7 +198,7 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
         subId: mv.subId,
         target: mv.target,
         amount: mv.amount,
-        month: mv.month,
+        period: mv.period,
         createdAt: mv.createdAt,
         date: mv.date ?? null,
         note: mv.note ?? null,
@@ -225,9 +227,9 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
       if (previo === amount) continue;
       await tx
         .insert(amountCell)
-        .values({ ownerId, nodeId: leafId, month, kind: "actual", amount })
+        .values({ ownerId, nodeId: leafId, period: month, kind: "actual", amount })
         .onConflictDoUpdate({
-          target: [amountCell.ownerId, amountCell.nodeId, amountCell.month, amountCell.kind],
+          target: [amountCell.ownerId, amountCell.nodeId, amountCell.period, amountCell.kind],
           set: { amount },
         });
     }
@@ -263,7 +265,7 @@ async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Pr
     for (const [nodeId, months] of Object.entries(map)) {
       for (const [month, amount] of Object.entries(months)) {
         if (amount == null) continue;
-        cellValues.push({ ownerId, nodeId, month, kind, amount });
+        cellValues.push({ ownerId, nodeId, period: month, kind, amount });
       }
     }
   }
@@ -276,7 +278,7 @@ async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Pr
     subId: m.subId,
     target: m.target,
     amount: m.amount,
-    month: m.month,
+    period: m.period,
     createdAt: m.createdAt,
     date: m.date ?? null,
     note: m.note ?? null,
@@ -302,7 +304,7 @@ async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Pr
   for (const [nodeId, byMonth] of Object.entries(state.cellNotes ?? {})) {
     for (const [month, notes] of Object.entries(byMonth)) {
       for (const n of notes ?? []) {
-        noteValues.push({ ownerId, nodeId, month, id: n.id, createdAt: n.createdAt, text: n.text });
+        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text });
       }
     }
   }
@@ -358,11 +360,29 @@ export async function saveLedger(
 /**
  * Lista los movimientos de un usuario (opcionalmente filtrados por mes), más nuevos primero.
  * @param ownerId usuario autenticado
- * @param month filtro opcional de mes
+ * @param period filtro opcional de periodo ("YYYY-MM")
  */
-export async function getMovements(ownerId: string, month?: MonthKey): Promise<Movement[]> {
-  const where = month
-    ? and(eq(movement.ownerId, ownerId), eq(movement.month, month))
+/**
+ * El rango de periodos con el que el SERVIDOR valida (FR-1909).
+ *
+ * El servidor no conoce el horizonte que el usuario eligió en su navegador —es una preferencia de
+ * presentación (ADR-06)— y no debe: lo que valida son las reglas del dominio sobre los periodos que
+ * REALMENTE existen en el estado, más el periodo que la petición trae. Un rango más ancho no
+ * cambiaría ningún veredicto: los periodos vacíos del final no acotan nada.
+ */
+function serverScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
+  const oldest = oldestPeriodWithData(state);
+  const newest = newestPeriodWithData(state);
+  const ends = [oldest, newest, extra].filter((p): p is PeriodKey => !!p && isPeriodKey(p));
+  if (ends.length === 0) return extra && isPeriodKey(extra) ? [extra] : [];
+  const from = ends.reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b));
+  const to = ends.reduce((a, b) => (comparePeriods(a, b) >= 0 ? a : b));
+  return periodRange(from, to);
+}
+
+export async function getMovements(ownerId: string, period?: PeriodKey): Promise<Movement[]> {
+  const where = period
+    ? and(eq(movement.ownerId, ownerId), eq(movement.period, period))
     : eq(movement.ownerId, ownerId);
   const rows = await db.select().from(movement).where(where).orderBy(desc(movement.createdAt));
   return rowsToState(ownerId, [], [], rows).movements;
@@ -410,7 +430,10 @@ export async function insertMovement(
     // Modelo v4 garantizado ANTES de operar: un ledger v3 sin migrar leería saldos como aportes
     // y aceptaría retiros del doble (hallazgo adversarial 4).
     const prev = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
-    const next = addMovement(prev, input);
+    // El rango activo se deriva del propio estado más el periodo del movimiento: el servidor no
+    // tiene la preferencia de horizonte del cliente, y no la necesita — lo que valida son las
+    // reglas del dominio sobre los periodos que existen (ADR-02).
+    const next = addMovement(prev, input, serverScope(prev, input.period));
     if (next === prev) return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
 
     const mv = next.movements[0]; // addMovement hace unshift: el nuevo va primero
@@ -422,7 +445,7 @@ export async function insertMovement(
       subId: mv.subId,
       target: mv.target,
       amount: mv.amount,
-      month: mv.month,
+      period: mv.period,
       createdAt: mv.createdAt,
       date: mv.date ?? null,
       note: mv.note ?? null,
@@ -434,12 +457,12 @@ export async function insertMovement(
     // un gasto/ingreso toca una; una operación de reserva De→A, hasta dos (FR-1004).
     for (const [nodeId, months] of Object.entries(next.actuals)) {
       for (const [month, amount] of Object.entries(months)) {
-        if (amount == null || prev.actuals[nodeId]?.[month as MonthKey] === amount) continue;
+        if (amount == null || prev.actuals[nodeId]?.[month as PeriodKey] === amount) continue;
         await tx
           .insert(amountCell)
-          .values({ ownerId, nodeId, month, kind: "actual", amount })
+          .values({ ownerId, nodeId, period: month, kind: "actual", amount })
           .onConflictDoUpdate({
-            target: [amountCell.ownerId, amountCell.nodeId, amountCell.month, amountCell.kind],
+            target: [amountCell.ownerId, amountCell.nodeId, amountCell.period, amountCell.kind],
             set: { amount },
           });
       }

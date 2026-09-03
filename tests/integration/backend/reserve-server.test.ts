@@ -12,6 +12,7 @@ import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
 import type { LedgerNode, LedgerState } from "@/domain";
 import { GET as ledgerGET, PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
 import { POST as movsPOST } from "@/app/api/v1/movements/route";
+import { P } from "../../helpers/periods";
 
 const PASSWORD = "Contra$eña123";
 const ORIGIN = "http://localhost:3100";
@@ -61,7 +62,7 @@ function makeState(ownerId: string, opts: { salario?: Partial<Record<string, num
 
 /** Siembra un ledger y lo retrocede al formato de SALDOS (data_version 3) para probar la migración. */
 async function seedAsV3(cookie: string, userId: string, viajeSaldos: Partial<Record<string, number>>): Promise<void> {
-  const state = makeState(userId, { salario: { ene: 900_000 }, viaje: viajeSaldos });
+  const state = makeState(userId, { salario: { "2026-01": 900_000 }, viaje: viajeSaldos });
   const put = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state } }));
   expect(put.status).toBe(200);
   await testDb().execute(sql`UPDATE "ledger" SET data_version = 3 WHERE owner_id = ${userId}`);
@@ -78,16 +79,16 @@ describe("FR-1010 — migración lazy en el servidor", () => {
   it("TC-TRF4-010e: dos cargas concurrentes migran una sola vez y un POST también garantiza v4", async () => {
     // @aitri-tc TC-TRF4-010e
     const a = await newUser("mig-v4@example.com");
-    // saldos v3: aportes {ene:100k,feb:100k} y retiro de 50k en mar (delta negativo)
-    await seedAsV3(a.cookie, a.userId, { ene: 100_000, feb: 200_000, mar: 150_000 });
+    // saldos v3: aportes {"2026-01":100k,"2026-02":100k} y retiro de 50k en mar (delta negativo)
+    await seedAsV3(a.cookie, a.userId, { "2026-01": 100_000, "2026-02": 200_000, "2026-03": 150_000 });
 
     const [r1, r2] = await Promise.all([loadLedger(a.userId), loadLedger(a.userId)]);
     for (const r of [r1, r2]) {
-      expect(r!.state.actuals["c-viaje"]).toEqual({ ene: 100_000, feb: 100_000 }); // aportes recuperados
+      expect(r!.state.actuals["c-viaje"]).toEqual({ "2026-01": 100_000, "2026-02": 100_000 }); // aportes recuperados
       const synth = r!.state.movements.filter((m) => m.from === "c-viaje" && m.to === AVAILABLE_ID);
       expect(synth).toHaveLength(1); // el retiro sintetizado, UNA vez (sin doble conversión)
-      expect(synth[0]).toMatchObject({ month: "mar", amount: 50_000 });
-      expect(resolvedBalance(r!.state, "c-viaje", "dic", "actual")).toBe(150_000); // == saldo v3
+      expect(synth[0]).toMatchObject({ period: "2026-03", amount: 50_000 });
+      expect(resolvedBalance(r!.state, "c-viaje", "2026-12", "actual", P)).toBe(150_000); // == saldo v3
     }
     const [row] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${a.userId}`)) as unknown as { data_version: number }[];
     // El marcador estampado es el VIGENTE de la cadena, no el de la conversión concreta que se
@@ -98,9 +99,9 @@ describe("FR-1010 — migración lazy en el servidor", () => {
 
     // Un usuario v3 SIN cargar: el POST /movements migra ANTES de operar (hallazgo adversarial).
     const b = await newUser("mig-post@example.com");
-    await seedAsV3(b.cookie, b.userId, { ene: 100_000, feb: 100_000 });
+    await seedAsV3(b.cookie, b.userId, { "2026-01": 100_000, "2026-02": 100_000 });
     const post = await movsPOST(
-      req("/api/v1/movements", { method: "POST", cookie: b.cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 200_000, month: "abr", from: "c-viaje", to: AVAILABLE_ID } })
+      req("/api/v1/movements", { method: "POST", cookie: b.cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 200_000, period: "2026-04", from: "c-viaje", to: AVAILABLE_ID } })
     );
     // saldos v3 {100k,100k} = saldo REAL 100k; leído como aportes sin migrar sería 200k y el retiro
     // del doble pasaría — migrado primero, se RECHAZA (422).
@@ -111,22 +112,22 @@ describe("FR-1010 — migración lazy en el servidor", () => {
     // anterior, y sigue intacta.
     expect(rowB.data_version).toBe(5);
     const after = await loadLedger(b.userId);
-    expect(after!.state.actuals["c-viaje"]).toEqual({ ene: 100_000 }); // aportes recuperados (feb era arrastre)
+    expect(after!.state.actuals["c-viaje"]).toEqual({ "2026-01": 100_000 }); // aportes recuperados (feb era arrastre)
   });
 
   it("TC-TRF4-010f: from/to y cellNotes atraviesan las cinco capas", async () => {
     // @aitri-tc TC-TRF4-010f
     const { cookie, userId } = await newUser("capas-v4@example.com");
-    const base = makeState(userId, { salario: { ene: 500_000 }, viaje: { ene: 200_000 } });
-    base.cellNotes = { "c-viaje": { ene: [{ id: "n-1", createdAt: 1, text: "meta del año" }] } };
+    const base = makeState(userId, { salario: { "2026-01": 500_000 }, viaje: { "2026-01": 200_000 } });
+    base.cellNotes = { "c-viaje": { "2026-01": [{ id: "n-1", createdAt: 1, text: "meta del año" }] } };
     base.movements = [
-      { id: "m-viejo", ownerId: userId, type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 200_000, month: "ene", createdAt: 1 },
+      { id: "m-viejo", ownerId: userId, type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje", amount: 200_000, period: "2026-01", createdAt: 1 },
     ];
     const put = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state: base } }));
     expect(put.status).toBe(200);
 
     const post = await movsPOST(
-      req("/api/v1/movements", { method: "POST", cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 50_000, month: "feb", from: "c-viaje", to: AVAILABLE_ID, note: "retiro por API" } })
+      req("/api/v1/movements", { method: "POST", cookie, origin: ORIGIN, body: { type: "transfer", catId: "c-viaje", amount: 50_000, period: "2026-02", from: "c-viaje", to: AVAILABLE_ID, note: "retiro por API" } })
     );
     expect(post.status).toBe(201);
     const created = (await post.json()) as { movement: { from?: string; to?: string; target: string } };
@@ -146,9 +147,9 @@ describe("FR-1010 — migración lazy en el servidor", () => {
     expect(nuevo.to).toBe(AVAILABLE_ID);
     const viejo = body.state.movements.find((m) => m.id === "m-viejo")!;
     expect(viejo.from).toBeUndefined();
-    expect(body.state.cellNotes?.["c-viaje"]?.ene?.[0]?.text).toBe("meta del año");
+    expect(body.state.cellNotes?.["c-viaje"]?.["2026-01"]?.[0]?.text).toBe("meta del año");
     // El retiro no tocó celdas: la celda de feb no existe y el saldo derivado bajó.
-    expect(body.state.actuals["c-viaje"].feb).toBeUndefined();
-    expect(resolvedBalance(body.state, "c-viaje", "dic", "actual")).toBe(150_000);
+    expect(body.state.actuals["c-viaje"]["2026-02"]).toBeUndefined();
+    expect(resolvedBalance(body.state, "c-viaje", "2026-12", "actual", P)).toBe(150_000);
   });
 });

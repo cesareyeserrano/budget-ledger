@@ -17,6 +17,7 @@ import { GET as movsGET } from "@/app/api/v1/movements/route";
 import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
 import { renameNode, deleteNode } from "@/domain/mutations";
 import type { LedgerNode, LedgerState } from "@/domain";
+import { P } from "../../helpers/periods";
 
 const PASSWORD = "Contra$eña123";
 const ORIGIN = "http://localhost:3100";
@@ -78,19 +79,19 @@ describe("FR-1106 — la cobertura apunta al camino de producción", () => {
     // lectura independiente, sin reutilizar el objeto escrito.
     const { cookie, userId } = await newUser("rt-106h@example.com");
     const state = makeState(userId);
-    state.budgets[MERCADO] = { may: 310_000 };
+    state.budgets[MERCADO] = { "2026-05": 310_000 };
 
     expect((await put(cookie, state, 0)).status).toBe(200);
 
     const res = await ledgerGET(req("/api/v1/ledger", { cookie }));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { revision: number; state: LedgerState };
-    expect(body.state.budgets[MERCADO]!.may).toBe(310_000);
+    expect(body.state.budgets[MERCADO]!["2026-05"]).toBe(310_000);
     expect(body.revision).toBeGreaterThan(0);
 
     // Y la lectura de servidor (la que usa el resto del backend) ve exactamente lo mismo.
     const desdeRepo = await loadLedger(userId);
-    expect(desdeRepo!.state.budgets[MERCADO]!.may).toBe(310_000);
+    expect(desdeRepo!.state.budgets[MERCADO]!["2026-05"]).toBe(310_000);
   });
 });
 
@@ -117,7 +118,7 @@ describe("FR-1105 — el retiro del saneador local no cambia el camino de servid
     const trasRename = renameNode(cargado, "g-legado", "Otro");
     expect(trasRename.nodes.find((n) => n.id === "g-legado")!.name).toBe("Sin asignar");
     // …y borrar tampoco lo elimina.
-    const trasDelete = deleteNode(cargado, "g-legado");
+    const trasDelete = deleteNode(cargado, "g-legado", P);
     const quedaVivo = "blocked" in trasDelete
       ? true
       : trasDelete.state.nodes.some((n) => n.id === "g-legado");
@@ -131,15 +132,15 @@ describe("FR-1105 — el retiro del saneador local no cambia el camino de servid
     const { cookie, userId } = await newUser("v3-105f@example.com");
     const state = makeState(userId);
     // Formato v3 = SALDOS acumulados por mes (ene 100k, feb 100k → aporte solo en ene).
-    state.actuals["c-alcancia"] = { ene: 100_000, feb: 100_000 };
+    state.actuals["c-alcancia"] = { "2026-01": 100_000, "2026-02": 100_000 };
     expect((await put(cookie, state, 0)).status).toBe(200);
     await testDb().execute(sql`UPDATE "ledger" SET data_version = 3 WHERE owner_id = ${userId}`);
 
     const migrado = (await loadLedger(userId))!.state;
 
     // La conversión corrió: feb era arrastre del saldo, no un aporte nuevo.
-    expect(migrado.actuals["c-alcancia"]).toEqual({ ene: 100_000 });
-    expect(resolvedBalance(migrado, "c-alcancia", "dic", "actual")).toBe(100_000);
+    expect(migrado.actuals["c-alcancia"]).toEqual({ "2026-01": 100_000 });
+    expect(resolvedBalance(migrado, "c-alcancia", "2026-12", "actual", P)).toBe(100_000);
     const [row] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${userId}`)) as unknown as { data_version: number }[];
     // El marcador estampado es el VIGENTE de la cadena, no el de la conversión concreta que se
     // probó aquí: `contrapartidas-reserva` añadió el paso v4→v5 y el servidor sella el final de la
@@ -154,39 +155,39 @@ describe("NFR-1105 — la semántica v4 de reservas sobrevive al camino de servi
     // @aitri-tc TC-SFU-205h
     const { cookie, userId } = await newUser("v4-205h@example.com");
     const state = makeState(userId);
-    state.actuals["c-alcancia"] = { jul: 200_000 }; // celda = APORTE del mes
+    state.actuals["c-alcancia"] = { "2026-07": 200_000 }; // celda = APORTE del mes
     state.movements = [
       // retiro por journal, no por celda
-      { id: "m-ret", ownerId: userId, type: "transfer", catId: "c-alcancia", subId: null, target: "c-alcancia", amount: 50_000, month: "ago", createdAt: 2, from: "c-alcancia", to: AVAILABLE_ID },
+      { id: "m-ret", ownerId: userId, type: "transfer", catId: "c-alcancia", subId: null, target: "c-alcancia", amount: 50_000, period: "2026-08", createdAt: 2, from: "c-alcancia", to: AVAILABLE_ID },
     ] as LedgerState["movements"];
     expect((await put(cookie, state, 0)).status).toBe(200);
 
     const recargado = (await loadLedger(userId))!.state;
 
     // La celda sigue siendo el aporte del mes (no el saldo)…
-    expect(recargado.actuals["c-alcancia"]!.jul).toBe(200_000);
-    expect(recargado.actuals["c-alcancia"]!.ago ?? 0).toBe(0);
+    expect(recargado.actuals["c-alcancia"]!["2026-07"]).toBe(200_000);
+    expect(recargado.actuals["c-alcancia"]!["2026-08"] ?? 0).toBe(0);
     // …el retiro sigue en el journal…
     const retiros = recargado.movements.filter((m) => m.from === "c-alcancia" && m.to === AVAILABLE_ID);
     expect(retiros).toHaveLength(1);
-    expect(retiros[0]).toMatchObject({ month: "ago", amount: 50_000 });
+    expect(retiros[0]).toMatchObject({ period: "2026-08", amount: 50_000 });
     // …y el saldo resuelto es aporte − retiro.
-    expect(resolvedBalance(recargado, "c-alcancia", "dic", "actual")).toBe(150_000);
+    expect(resolvedBalance(recargado, "c-alcancia", "2026-12", "actual", P)).toBe(150_000);
   });
 
   it("TC-SFU-205e: el saldo disponible del Balance sigue derivando de los saldos resueltos", async () => {
     // @aitri-tc TC-SFU-205e
     const { cookie, userId } = await newUser("bal-205e@example.com");
     const state = makeState(userId);
-    state.actuals["c-salario"] = { jul: 500_000 }; // flujo neto del mes
-    state.actuals["c-alcancia"] = { jul: 200_000 }; // aporte a reserva
+    state.actuals["c-salario"] = { "2026-07": 500_000 }; // flujo neto del mes
+    state.actuals["c-alcancia"] = { "2026-07": 200_000 }; // aporte a reserva
     expect((await put(cookie, state, 0)).status).toBe(200);
 
     const recargado = (await loadLedger(userId))!.state;
 
     // Conservación: lo que entró menos lo apartado es lo que queda disponible.
-    const ingreso = recargado.actuals["c-salario"]!.jul!;
-    const apartado = resolvedBalance(recargado, "c-alcancia", "jul", "actual");
+    const ingreso = recargado.actuals["c-salario"]!["2026-07"]!;
+    const apartado = resolvedBalance(recargado, "c-alcancia", "2026-07", "actual", P);
     expect(ingreso).toBe(500_000);
     expect(apartado).toBe(200_000);
     expect(ingreso - apartado).toBe(300_000);
@@ -197,9 +198,9 @@ describe("NFR-1105 — la semántica v4 de reservas sobrevive al camino de servi
     // Idempotencia del round-trip: load → save → load sin edición intermedia debe devolver lo mismo.
     const { cookie, userId } = await newUser("idem-205f@example.com");
     const state = makeState(userId);
-    state.actuals["c-alcancia"] = { jul: 200_000 };
+    state.actuals["c-alcancia"] = { "2026-07": 200_000 };
     state.movements = [
-      { id: "m-ret", ownerId: userId, type: "transfer", catId: "c-alcancia", subId: null, target: "c-alcancia", amount: 50_000, month: "ago", createdAt: 2, from: "c-alcancia", to: AVAILABLE_ID },
+      { id: "m-ret", ownerId: userId, type: "transfer", catId: "c-alcancia", subId: null, target: "c-alcancia", amount: 50_000, period: "2026-08", createdAt: 2, from: "c-alcancia", to: AVAILABLE_ID },
     ] as LedgerState["movements"];
     expect((await put(cookie, state, 0)).status).toBe(200);
 
@@ -209,9 +210,9 @@ describe("NFR-1105 — la semántica v4 de reservas sobrevive al camino de servi
 
     expect(segunda!.state.actuals).toEqual(primera!.state.actuals);
     expect(segunda!.state.nodes.map((n) => n.id).sort()).toEqual(primera!.state.nodes.map((n) => n.id).sort());
-    expect(segunda!.state.movements.map((m) => ({ id: m.id, amount: m.amount, month: m.month })))
-      .toEqual(primera!.state.movements.map((m) => ({ id: m.id, amount: m.amount, month: m.month })));
-    expect(resolvedBalance(segunda!.state, "c-alcancia", "dic", "actual")).toBe(150_000);
+    expect(segunda!.state.movements.map((m) => ({ id: m.id, amount: m.amount, period: m.period })))
+      .toEqual(primera!.state.movements.map((m) => ({ id: m.id, amount: m.amount, period: m.period })));
+    expect(resolvedBalance(segunda!.state, "c-alcancia", "2026-12", "actual", P)).toBe(150_000);
   });
 });
 
@@ -221,7 +222,7 @@ describe("NFR-1106 — las rutas de datos siguen cerradas sin sesión válida", 
     // Se siembra un ledger real para que un fallo de autorización tenga algo que filtrar.
     const { cookie, userId } = await newUser("cerrado-206h@example.com");
     const state = makeState(userId);
-    state.budgets[MERCADO] = { ene: 777_000 };
+    state.budgets[MERCADO] = { "2026-01": 777_000 };
     expect((await put(cookie, state, 0)).status).toBe(200);
 
     const get = await ledgerGET(req("/api/v1/ledger"));
@@ -241,7 +242,7 @@ describe("NFR-1106 — las rutas de datos siguen cerradas sin sesión válida", 
     // @aitri-tc TC-SFU-206f
     const { cookie, userId } = await newUser("falsa-206f@example.com");
     const state = makeState(userId);
-    state.budgets[MERCADO] = { ene: 555_000 };
+    state.budgets[MERCADO] = { "2026-01": 555_000 };
     expect((await put(cookie, state, 0)).status).toBe(200);
 
     const res = await ledgerGET(req("/api/v1/ledger", { cookie: "better-auth.session_token=deadbeef" }));

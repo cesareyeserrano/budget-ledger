@@ -5,13 +5,13 @@
 //               Presupuestado y Ejecutado) a partir del estado del ledger. Capa de DERIVACIÓN
 //               pura: no persiste nada, no muta la entrada, no hace IO ni red. El balance es
 //               un cálculo de solo lectura — el dato almacenado sigue siendo hoja a hoja.
-// Dependencias: ./types (LedgerState, MonthKey), ./rollup (typeTotals — el mecanismo de
-//               agregación EXISTENTE, que esta feature consume sin modificar), ./months
-//               (MONTH_KEYS, el orden de las columnas).
+// Dependencias: ./types (LedgerState, PeriodKey), ./rollup (typeTotals — el mecanismo de
+//               agregación EXISTENTE, que esta feature consume sin modificar).
+//               El orden de las columnas ya NO vive aquí: la lista de periodos la provee el
+//               llamador (FR-1901/ADR-02 de multi-anio), porque el dominio no lee el reloj.
 
-import type { LedgerState, MonthKey } from "./types";
+import type { LedgerState, PeriodKey } from "./types";
 import { typeTotals } from "./rollup";
-import { MONTH_KEYS } from "./months";
 import { reserveDelta, type Plane } from "./reserve";
 
 /** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad.
@@ -46,7 +46,27 @@ export interface MonthBalance {
 }
 
 /** La serie completa: cada mes con sus dos planos independientes. */
-export type BalanceSeries = Record<MonthKey, { budget: MonthBalance; actual: MonthBalance }>;
+export type BalanceSeries = Record<PeriodKey, { budget: MonthBalance; actual: MonthBalance }>;
+
+/**
+ * Balance en cero. Lo devuelve `balanceAt` para un periodo que no está en el rango activo.
+ *
+ * Existe porque desde multi-anio (FR-1901) la serie es DISPERSA: contiene solo los periodos del
+ * rango, no doce claves siempre presentes. Un acceso directo `series[p]` a un periodo ausente
+ * devuelve `undefined`, y `undefined.available` revienta en ejecución, no en compilación
+ * (RISK-02 del TRD). Se accede por aquí, no por corchete.
+ */
+export const ZERO_BALANCE: MonthBalance = {
+  prevAvailable: 0, prevReserved: 0, income: 0, expense: 0, flow: 0,
+  reserved: 0, available: 0, reservedBalance: 0, total: 0,
+};
+
+/** Lectura segura de la serie dispersa: un periodo fuera del rango vale cero, no `undefined`. */
+export function balanceAt(
+  series: BalanceSeries, period: PeriodKey
+): { budget: MonthBalance; actual: MonthBalance } {
+  return series[period] ?? { budget: ZERO_BALANCE, actual: ZERO_BALANCE };
+}
 
 /** Lo que un mes le pasa al siguiente DENTRO de su propio plano: dos componentes que no se mezclan. */
 interface Carry {
@@ -55,8 +75,9 @@ interface Carry {
 }
 
 /**
- * El mes 1 no tiene mes previo: abre en 0/0 en ambos componentes y en ambos planos.
- * No existe un saldo inicial manual (decisión de producto, no_go_zone).
+ * El PRIMER periodo del rango no tiene previo: abre en 0/0 en ambos componentes y en ambos planos.
+ * Ningún otro lo hace — en particular, un enero que no sea el primero abre con el cierre de su
+ * diciembre (FR-1903). No existe un saldo inicial manual (es la feature del punto 4).
  */
 const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
 
@@ -76,7 +97,7 @@ const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
  *
  * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009, TC-ID: TC-TRF-109h, TC-TRF-109e, TC-TRF-109f
  */
-export function reserveNet(state: LedgerState, month: MonthKey, plane: Plane): number {
+export function reserveNet(state: LedgerState, month: PeriodKey, plane: Plane): number {
   return reserveDelta(state, month, plane);
 }
 
@@ -135,11 +156,16 @@ function monthBalance(prev: Carry, income: number, expense: number, reserved: nu
  *
  * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-905h, TC-BAL-905e, TC-BAL-906h, TC-BAL-908f
  */
-export function computeBalanceSeries(state: LedgerState): BalanceSeries {
+export function computeBalanceSeries(
+  state: LedgerState,
+  periods: readonly PeriodKey[]
+): BalanceSeries {
   const series = {} as BalanceSeries;
   let prevActual: Carry = ZERO_CARRY;
 
-  for (const month of MONTH_KEYS) {
+  // Solo periods[0] abre en ZERO_CARRY (FR-1903). Cada diciembre entrega su saldo a enero del año
+  // siguiente igual que cualquier periodo entrega al siguiente: el borde de año no reinicia nada.
+  for (const month of periods) {
     const income = typeTotals(state, "income", [month]);
     const expense = typeTotals(state, "expense", [month]);
 

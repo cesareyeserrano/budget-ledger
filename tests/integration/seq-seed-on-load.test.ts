@@ -11,6 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { LedgerState } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,9 +51,9 @@ describe("BG-010 — el store siembra la secuencia al cargar", () => {
 
     // Sesión ANTERIOR: deja tres movimientos persistidos (createdAt 1..3).
     __resetSeq();
-    let previo = buildSeed("local");
+    let previo = buildSeed("local", P0);
     for (const amount of [10_000, 20_000, 30_000]) {
-      previo = addMovement(previo, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, month: "jun" });
+      previo = addMovement(previo, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, period: "2026-06" }, P);
     }
     const maxPersistido = Math.max(...previo.movements.map((m) => m.createdAt));
     expect(maxPersistido).toBeGreaterThan(0);
@@ -64,7 +65,7 @@ describe("BG-010 — el store siembra la secuencia al cargar", () => {
     await store.getState().hydrate();
     expect(store.getState().hydrated).toBe(true);
 
-    store.getState().addMovement({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 40_000, month: "jun" });
+    store.getState().addMovement({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 40_000, period: "2026-06" });
     await delay(40);
 
     const nuevo = store.getState().data.movements[0];
@@ -82,7 +83,7 @@ describe("BG-010 — el store siembra la secuencia al cargar", () => {
     const { buildSeed, addMovement, __resetSeq } = await import("@/domain");
 
     __resetSeq();
-    const store0 = buildSeed("local");
+    const store0 = buildSeed("local", P0);
     const api = stubApiServing(store0);
     __resetSeq();
     const store = (await import("@/state/store")).useLedgerStore;
@@ -90,9 +91,9 @@ describe("BG-010 — el store siembra la secuencia al cargar", () => {
 
     // OTRO dispositivo escribe con createdAt altos y el servidor pasa a servir eso.
     __resetSeq();
-    let ajeno = buildSeed("local");
+    let ajeno = buildSeed("local", P0);
     for (let i = 0; i < 9; i++) {
-      ajeno = addMovement(ajeno, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 1_000 * (i + 1), month: "jun" });
+      ajeno = addMovement(ajeno, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 1_000 * (i + 1), period: "2026-06" }, P);
     }
     const maxAjeno = Math.max(...ajeno.movements.map((m) => m.createdAt));
     stubApiServing(ajeno);
@@ -100,7 +101,7 @@ describe("BG-010 — el store siembra la secuencia al cargar", () => {
     await store.getState().resync();
     expect(store.getState().data.movements.length).toBe(ajeno.movements.length);
 
-    store.getState().addMovement({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 99_000, month: "jun" });
+    store.getState().addMovement({ type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 99_000, period: "2026-06" });
     await delay(40);
 
     const nuevo = store.getState().data.movements[0];

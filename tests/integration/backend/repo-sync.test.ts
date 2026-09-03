@@ -7,6 +7,7 @@ import { ServerRepository } from "@/data/serverRepository";
 import { syncHub, type SyncConnection, type SyncEvent } from "@/server/sync";
 import { buildSeed, addMovement } from "@/domain";
 import type { Movement } from "@/domain/types";
+import { P, P0 } from "../../helpers/periods";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -19,7 +20,7 @@ describe("FR-508 — ServerRepository (impl de servidor de LedgerRepository)", (
     // makeRepo({authenticated:true}) desde data/makeRepo.ts — un módulo que producción NUNCA
     // invocaba: el test pasaba en verde sin verificar el camino real (pass falso). Ahora ejercita
     // la MISMA construcción que hace state/store: `new ServerRepository()`.
-    const state = addMovement(buildSeed("A"), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, month: "jun" });
+    const state = addMovement(buildSeed("local", P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, period: "2026-06" }, P);
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       if (init?.method === "PUT") return new Response(JSON.stringify({ revision: 1 }), { status: 200 });
       return new Response(JSON.stringify({ revision: 1, state }), { status: 200 }); // GET re-hidrata
@@ -42,7 +43,7 @@ describe("FR-508 — ServerRepository (impl de servidor de LedgerRepository)", (
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ revision: 1 }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await repo.save("A", buildSeed("A"));
+    await repo.save("A", buildSeed("local", P0));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -57,7 +58,7 @@ describe("FR-508 — ServerRepository (impl de servidor de LedgerRepository)", (
     // @aitri-tc TC-BE-029f
     const repo = new ServerRepository();
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
-    const state = buildSeed("A");
+    const state = buildSeed("local", P0);
     const snapshot = JSON.stringify(state);
 
     const ok = await repo.save("A", state); // no debe lanzar
@@ -69,7 +70,7 @@ describe("FR-508 — ServerRepository (impl de servidor de LedgerRepository)", (
     // conflicto stale: cubre la rama 409 de save (last-write-wins informado, ADR-06)
     const repo = new ServerRepository();
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ revision: 7 }), { status: 409 })));
-    expect(await repo.save("A", buildSeed("A"))).toBe(false);
+    expect(await repo.save("A", buildSeed("local", P0))).toBe(false);
     expect(repo.conflicted).toBe(true);
     expect(repo.currentRevision).toBe(7);
   });

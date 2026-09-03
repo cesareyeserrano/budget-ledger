@@ -3,8 +3,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import type { LedgerNode, LedgerState, MonthKey, NodeLevel, NodeType } from "@/domain/types";
-import { MONTHS, monthLabel } from "@/domain/months";
+import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/domain/types";
+import { periodMonthLabel, isYearStart, periodYear } from "@/domain/periods";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
@@ -158,7 +158,7 @@ export function BudgetGrid() {
   const period = useLedgerStore((s) => s.period);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => initialExpanded(data.nodes));
-  const [editing, setEditing] = useState<{ id: string; mk: MonthKey; field: "budget" | "actual" } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; mk: PeriodKey; field: "budget" | "actual" } | null>(null);
   const [editVal, setEditVal] = useState("");
   const [namingId, setNamingId] = useState<string | null>(null);
   const [catW, setCatW] = useState<number>(() => readCatWidth()); // FR-104: ancho persistido de la columna categoría
@@ -193,27 +193,62 @@ export function BudgetGrid() {
   const highlightMonth = period.mode === "month" ? period.month : null;
   // FR-1008: meses del plan que superan su techo — estado del PLAN (no de una edición); las celdas
   // Pres. de hojas que aportan en esos meses llevan «!» + ámbar.
-  const planWarnMonths = useMemo(() => planTechoMonths(data), [data]);
+  // DOS listas, a propósito (ver el store): `scope` es el alcance del CÁLCULO —no lo toca el
+  // filtro, o el arrastre de enero saldría de cero— y `periods` son las columnas que se PINTAN.
+  const scope = useLedgerStore((s) => s.activePeriods)();
+  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const planWarnMonths = useMemo(() => planTechoMonths(data, scope), [data, scope]);
+
+  // Tramos contiguos por año, para la banda del encabezado. Con un rango que arranca a mitad de
+  // año el primer tramo tiene menos de doce meses — y ESE es justo el que se quedaba sin etiqueta
+  // cuando la marca colgaba de enero.
+  const yearBands = useMemo(() => {
+    const out: { year: number; count: number }[] = [];
+    for (const p of periods) {
+      const y = periodYear(p);
+      const last = out[out.length - 1];
+      if (last && last.year === y) last.count += 1;
+      else out.push({ year: y, count: 1 });
+    }
+    return out;
+  }, [periods]);
+
 
   // BG-007: al montar, posicionar el scroll horizontal en el mes resaltado (el estado ya arranca
   // en el mes en curso, pero el contenedor iniciaba en scrollLeft=0 → siempre se veía enero).
   // Cada mes ocupa 216px (dos celdas CELL_W de 108px); la columna de categoría es sticky.
   const scrollRef = useRef<HTMLDivElement>(null);
+  const yaPosicionado = useRef(false);
   useEffect(() => {
     if (!highlightMonth || !scrollRef.current) return;
-    const idx = MONTHS.findIndex((m) => m.k === highlightMonth);
-    if (idx > 0) scrollRef.current.scrollLeft = idx * 216;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // solo al montar: después el usuario controla el scroll libremente
+    const idx = periods.indexOf(highlightMonth);
+    if (idx < 0) return; // el mes elegido no está entre las columnas visibles
+
+    // Elegir un mes lo trae al frente. Antes esto solo corría al MONTAR (BG-007), lo que bastaba
+    // con doce columnas fijas: el mes buscado siempre estaba a un vistazo. Con un rango de dos
+    // años puede quedar veinte columnas fuera de pantalla, así que elegirlo sin desplazarse no
+    // hacía nada visible.
+    //
+    // El primer posicionamiento es INSTANTÁNEO y solo los posteriores se animan. Con `smooth`
+    // también al montar, la animación seguía viva mientras el usuario ya estaba usando la rueda y
+    // se COMÍA ese primer gesto (medido: la grilla se quedaba en scrollTop 0 y solo respondía tras
+    // ~1,5s). Además, al abrir la página no hay nada que comunicar con un movimiento: la columna
+    // simplemente tiene que estar donde toca.
+    scrollRef.current.scrollTo({
+      left: idx * 216,
+      behavior: yaPosicionado.current ? "smooth" : "auto",
+    });
+    yaPosicionado.current = true;
+  }, [highlightMonth, periods]);
 
   // FR-1606: los meses cuyas reservas superan el margen. UNA derivación por render — el selector
   // está memoizado en el dominio, así que las doce columnas leen un mapa ya calculado.
   const breachByMonth = useMemo(() => {
-    const out: Partial<Record<MonthKey, MonthIssue>> = {};
+    const out: Partial<Record<PeriodKey, MonthIssue>> = {};
     if (!hydrated) return out; // durante la hidratación no se pinta: un falso positivo sería peor
-    for (const b of monthIssues(data)) out[b.month] = b;
+    for (const b of monthIssues(data, scope)) out[b.period] = b;
     return out;
-  }, [data, hydrated]);
+  }, [data, hydrated, scope]);
 
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
@@ -315,7 +350,7 @@ export function BudgetGrid() {
         <div className="w-max min-w-full text-caption">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
-            <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[76px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
+            <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[98px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
               {/* FR-104: manija de resize (la celda sticky ya es containing block para el absolute) */}
               <span
                 onPointerDown={startResize}
@@ -330,38 +365,65 @@ export function BudgetGrid() {
               </span>
             </div>
             <div className="flex flex-col">
+              {/* FR-1905 — BANDA DE AÑO. En una tira continua el nombre del mes no basta: dos
+                  «Marzo» separados por doce columnas son indistinguibles. La marca no puede colgar
+                  de enero, porque un rango que arranca en septiembre no tiene enero hasta el año
+                  siguiente y el primer tramo se quedaría sin etiqueta. El rótulo va pegado al borde
+                  izquierdo de su tramo (sticky) para seguir visible mientras se scrollea dentro de
+                  un año largo. */}
+              <div className="flex" data-testid="year-band">
+                {yearBands.map((b) => (
+                  <div
+                    key={b.year}
+                    data-year={b.year}
+                    style={{ width: b.count * 216 }}
+                    className="h-[22px] flex items-center bg-sunken border-b border-border border-l-2 border-l-fg-muted overflow-hidden"
+                  >
+                    {/* Sin `style={{color}}`: la clase `.eyebrow` fija el color del sistema y
+                        pisarlo rompe NFR de consistencia (TC-UXC-306h exige que TODOS los eyebrow
+                        resuelvan al mismo color; el año no es una excepción). */}
+                    <span className="sticky left-0 px-2 eyebrow tabular">{b.year}</span>
+                  </div>
+                ))}
+              </div>
               <div className="flex">
-                {MONTHS.map((m) => {
-                  const active = highlightMonth === m.k;
+                {periods.map((m) => {
+                  const active = highlightMonth === m;
                   // El mes activo DESTACA por peso + color pleno; los inactivos recéden en gris
                   // secundario. (Antes usaba --accent-light = gris, que en el tema neutro dejaba el
                   // activo MÁS apagado que los demás — al revés de lo buscado.)
                   return (
                     <div
-                      key={m.k}
-                      className={cn(CELL_W, "flex items-center justify-center gap-1 h-[38px] px-2 label bg-sunken border-b border-border border-l-2 border-l-border-strong", active && "font-semibold")}
+                      key={m}
+                      className={cn(CELL_W, "flex items-center justify-center gap-1 h-[38px] px-2 label bg-sunken border-b border-border border-l-2", active && "font-semibold",
+                        // FR-1905: el cambio de año se MARCA. Sin esto, dos «Mar» separados por
+                        // doce columnas son indistinguibles en una tira continua.
+                        isYearStart(m) ? "border-l-fg-muted" : "border-l-border-strong")}
                       style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
+                      data-month-head={m}
+                      data-year-start={isYearStart(m) || undefined}
+                      title={`${periodMonthLabel(m)} de ${periodYear(m)}`}
                     >
-                      {breachByMonth[m.k] ? (
+                      {breachByMonth[m] ? (
                         <span
                           data-testid="techo-mark"
-                          data-month={m.k}
-                          title={`${m.label}: reservas ${money(breachByMonth[m.k]!.excess)} por encima del margen del mes`}
-                          aria-label={`${m.label}: reservas ${money(breachByMonth[m.k]!.excess)} por encima del margen del mes`}
+                          data-month={m}
+                          title={`${periodMonthLabel(m)}: reservas ${money(breachByMonth[m]!.excess)} por encima del margen del mes`}
+                          aria-label={`${periodMonthLabel(m)}: reservas ${money(breachByMonth[m]!.excess)} por encima del margen del mes`}
                           className="flex-none inline-flex"
                           style={{ color: "var(--alert-strong)" }}
                         >
                           <TriangleAlert size={13} aria-hidden="true" />
                         </span>
                       ) : null}
-                      {m.label}
+                      {periodMonthLabel(m)}
                     </div>
                   );
                 })}
               </div>
               <div className="flex">
-                {MONTHS.map((m) => (
-                  <div key={m.k} className="flex">
+                {periods.map((m) => (
+                  <div key={m} className="flex">
                     <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 caption text-fg-muted bg-sunken border-b border-border-strong border-l-2 border-l-border-strong")}>Pres.</div>
                     <div className={cn(CELL_W, "flex items-center justify-end h-[38px] px-3 caption text-fg-muted bg-sunken border-b border-border-strong")}>Ejec.</div>
                   </div>
@@ -414,7 +476,10 @@ export function BudgetGrid() {
 }
 
 
-function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop, roundTop, roundBottom }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: MonthKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean; roundTop?: boolean; roundBottom?: boolean }) {
+function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop, roundTop, roundBottom }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: PeriodKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean; roundTop?: boolean; roundBottom?: boolean }) {
+  // Esta fila solo PINTA: una celda por columna visible. Usaba `activePeriods` y pintaba 32
+  // celdas bajo un encabezado de 12 con el filtro en Año — celdas sin mes encima.
+  const periods = useLedgerStore((s) => s.visiblePeriods)();
   const data = useLedgerStore((s) => s.data);
   // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
   // rechazó el hue de estructura al verlo ("prefiero blancos, color neutro"), así que la grilla
@@ -442,15 +507,15 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
           <button aria-label="Agregar grupo" onClick={onAddGroup} className="inline-flex p-[3px] rounded-md flex-none cursor-pointer bg-transparent border-0" style={{ color }}><Plus size={14} /></button>
         )}
       </div>
-      {MONTHS.map((m) => {
+      {periods.map((m) => {
         // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
         // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
-        const t = typeTotals(data, type, [m.k]);
+        const t = typeTotals(data, type, [m]);
         return (
-          <div key={m.k} className="flex">
+          <div key={m} className="flex">
             {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
-            <Cell value={t.budget} sep bold color={color} sunken highlight={highlightMonth === m.k} />
-            <Cell value={t.actual} bold color={color} sunken highlight={highlightMonth === m.k} />
+            <Cell value={t.budget} sep bold color={color} sunken highlight={highlightMonth === m} />
+            <Cell value={t.actual} bold color={color} sunken highlight={highlightMonth === m} />
           </div>
         );
       })}
@@ -462,18 +527,18 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
 
 /** Nº de observaciones de una celda — el indicador que la marca (FR-1809). */
 function useNotesOf(data: LedgerState) {
-  return (nodeId: string, month: MonthKey) => (data.cellNotes?.[nodeId]?.[month] ?? []).length;
+  return (nodeId: string, month: PeriodKey) => (data.cellNotes?.[nodeId]?.[month] ?? []).length;
 }
 
 function NodeRow(props: {
   row: Row;
-  editing: { id: string; mk: MonthKey; field: "budget" | "actual" } | null;
+  editing: { id: string; mk: PeriodKey; field: "budget" | "actual" } | null;
   editVal: string;
   naming: boolean;
-  highlightMonth: MonthKey | null;
+  highlightMonth: PeriodKey | null;
   isExpanded: boolean;
   onToggle: () => void;
-  startEdit: (mk: MonthKey, field: "budget" | "actual", cur: number) => void;
+  startEdit: (mk: PeriodKey, field: "budget" | "actual", cur: number) => void;
   setEditVal: (v: string) => void;
   commitEdit: () => void;
   cancelEdit: () => void;
@@ -482,10 +547,13 @@ function NodeRow(props: {
   setIcon: (icon: string) => void;
   onDelete: () => void;
   onAddChild: () => void;
-  planWarnMonths: Partial<Record<MonthKey, number>>;
+  planWarnMonths: Partial<Record<PeriodKey, number>>;
   /** Última fila de su tarjeta: el rótulo redondea la esquina inferior izquierda. */
   roundBottom?: boolean;
 }) {
+  // Pinta por columna visible; `scope` es para las reglas que miran TODO el rango.
+  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const scope = useLedgerStore((s) => s.activePeriods)();
   const { row, naming } = props;
   const node = row.node!;
   const data = useLedgerStore((s) => s.data);
@@ -558,40 +626,40 @@ function NodeRow(props: {
               )}
               <button aria-label="Renombrar" onClick={props.startNaming} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Pencil size={13} /></button>
               {/* #4: solo mostrar borrar si el nodo es realmente borrable (grupo vacío; categoría/sub sin datos) */}
-              {canDeleteNode(data, node.id) && (
+              {canDeleteNode(data, node.id, scope) && (
                 <button aria-label="Borrar" onClick={() => setConfirmDel(true)} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Trash2 size={13} /></button>
               )}
             </span>
           )}
         </div>
 
-        {MONTHS.map((m) => {
+        {periods.map((m) => {
           // Modelo v4: la celda transfer es el APORTE del mes (flujo). Solo la HOJA usa el editor
           // de reserva (franja de validación + observaciones); los padres agregan como siempre.
           if (node.type === "transfer" && row.leaf) {
-            const editingB = props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget";
-            const editingA = props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual";
+            const editingB = props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget";
+            const editingA = props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual";
             return (
-              <div key={m.k} className="flex">
+              <div key={m} className="flex">
                 {editingB ? (
-                  <ReserveCellEditor leafId={node.id} month={m.k} plane="budget" sep highlight={props.highlightMonth === m.k} onClose={props.cancelEdit} />
+                  <ReserveCellEditor leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m.k} plane="budget" sep highlight={props.highlightMonth === m.k} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m.k, "budget", 0)} />
+                  <ReserveLeafCell leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m, "budget", 0)} />
                 )}
                 {editingA ? (
-                  <ReserveCellEditor leafId={node.id} month={m.k} plane="actual" highlight={props.highlightMonth === m.k} onClose={props.cancelEdit} />
+                  <ReserveCellEditor leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m.k} plane="actual" highlight={props.highlightMonth === m.k} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m.k, "actual", 0)} />
+                  <ReserveLeafCell leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m, "actual", 0)} />
                 )}
               </div>
             );
           }
-          const bud = rollupBudget(data, node.id, m.k);
-          const act = rollupActual(data, node.id, m.k);
+          const bud = rollupBudget(data, node.id, m);
+          const act = rollupActual(data, node.id, m);
           return (
-            <div key={m.k} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m.k} onStart={() => row.leaf && props.startEdit(m.k, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m.k && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m.k} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m.k} notes={notesOf(node.id, m.k)} onStart={() => row.leaf && props.startEdit(m.k, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+            <div key={m} className="flex">
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
@@ -600,7 +668,7 @@ function NodeRow(props: {
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: MonthKey; notes?: number; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; notes?: number; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   if (props.editing) {
     return (

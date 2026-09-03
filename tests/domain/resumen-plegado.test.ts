@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import type { LedgerNode, LedgerState } from "@/domain/types";
 import { computeBalanceSeries } from "@/domain/balance";
 import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
+import { P } from "../helpers/periods";
 
 // Feature resumen-plegado — NFR-1502 (regresión): la feature cambia QUÉ cifra se pinta al plegar,
 // no CÓMO se calcula. `src/domain/balance.ts` no se tocó, y estos TCs lo afirman: reconciliación,
@@ -19,7 +20,7 @@ const node = (id: string, type: LedgerNode["type"], name: string): LedgerNode =>
 
 function estado(opts: {
   ingBudget: number; ingActual: number; gasto: number; aporte: number;
-  retiro?: { month: (typeof MONTH_KEYS)[number]; amount: number };
+  retiro?: { period: (typeof MONTH_KEYS)[number]; amount: number };
 }): LedgerState {
   const porMes = (v: number) => Object.fromEntries(MONTH_KEYS.map((m) => [m, v]));
   return {
@@ -30,7 +31,7 @@ function estado(opts: {
     movements: opts.retiro
       ? [{
           id: "mov-retiro", ownerId: OWNER, type: "transfer", catId: ALC, subId: null, target: ALC,
-          amount: opts.retiro.amount, month: opts.retiro.month, createdAt: 1,
+          amount: opts.retiro.amount, period: opts.retiro.period, createdAt: 1,
           from: ALC, to: AVAILABLE_ID,
         }]
       : [],
@@ -39,7 +40,7 @@ function estado(opts: {
 
 /** Las 24 comprobaciones de reconciliación: total = disponible + reservado, mes a mes y plano a plano. */
 function desviaciones(state: LedgerState): number[] {
-  const s = computeBalanceSeries(state);
+  const s = computeBalanceSeries(state, P);
   const out: number[] = [];
   for (const m of MONTH_KEYS) {
     for (const p of ["budget", "actual"] as const) {
@@ -54,11 +55,11 @@ describe("resumen-plegado · NFR-1502 — la aritmética del balance no cambia",
   it("TC-RSP-030h: total = disponible + reservado en los 12 meses y los 2 planos", () => {
     const s = estado({ ingBudget: 1_000_000, ingActual: 1_000_000, gasto: 300_000, aporte: 100_000 });
 
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
     // el fixture SEPARA las dos cifras — sin eso, la reconciliación pasaría por casualidad
-    expect(series.ene.actual.available).toBe(600_000);
-    expect(series.ene.actual.reservedBalance).toBe(100_000);
-    expect(series.ene.actual.total).toBe(700_000);
+    expect(series["2026-01"].actual.available).toBe(600_000);
+    expect(series["2026-01"].actual.reservedBalance).toBe(100_000);
+    expect(series["2026-01"].actual.total).toBe(700_000);
 
     const d = desviaciones(s);
     expect(d).toHaveLength(24);
@@ -67,28 +68,28 @@ describe("resumen-plegado · NFR-1502 — la aritmética del balance no cambia",
 
   it("TC-RSP-031e: ambos planos abren el mes con el cierre EJECUTADO real del mes previo", () => {
     const s = estado({ ingBudget: 1_000_000, ingActual: 600_000, gasto: 300_000, aporte: 100_000 });
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
     // enero cierra distinto en cada plano...
-    expect(series.ene.budget.available).toBe(600_000);
-    expect(series.ene.actual.available).toBe(200_000);
+    expect(series["2026-01"].budget.available).toBe(600_000);
+    expect(series["2026-01"].actual.available).toBe(200_000);
 
     // ...y aun así febrero abre los DOS planos con el cierre ejecutado (ADR-03 de `balance`)
-    expect(series.feb.budget.prevAvailable).toBe(200_000);
-    expect(series.feb.actual.prevAvailable).toBe(200_000);
+    expect(series["2026-02"].budget.prevAvailable).toBe(200_000);
+    expect(series["2026-02"].actual.prevAvailable).toBe(200_000);
   });
 
   it("TC-RSP-032f: un mes con retiro neto no rompe la reconciliación ni deja la alcancía en rojo", () => {
     const s = estado({
       ingBudget: 1_000_000, ingActual: 1_000_000, gasto: 300_000, aporte: 100_000,
-      retiro: { month: "mar", amount: 150_000 }, // > el aporte del mes → marzo queda en retiro NETO
+      retiro: { period: "2026-03", amount: 150_000 }, // > el aporte del mes → marzo queda en retiro NETO
     });
-    const series = computeBalanceSeries(s);
+    const series = computeBalanceSeries(s, P);
 
-    expect(series.mar.actual.reserved).toBeLessThan(0); // marzo es retiro NETO
+    expect(series["2026-03"].actual.reserved).toBeLessThan(0); // marzo es retiro NETO
     expect(desviaciones(s).every((x) => x === 0)).toBe(true);
     for (const m of MONTH_KEYS) {
-      expect(resolvedBalance(s, ALC, m, "actual")).toBeGreaterThanOrEqual(0);
+      expect(resolvedBalance(s, ALC, m, "actual", P)).toBeGreaterThanOrEqual(0);
     }
   });
 });

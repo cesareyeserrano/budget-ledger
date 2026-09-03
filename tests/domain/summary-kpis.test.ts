@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { buildSeed } from "@/domain";
 import { summaryKpis } from "@/domain/dashboard";
 import { setLeafAmount } from "@/domain/mutations";
-import { MONTH_KEYS } from "@/domain/months";
-import type { LedgerState, MonthKey } from "@/domain/types";
+import { P as MONTH_KEYS, REF_YEAR } from "../helpers/periods";
+import type { LedgerState, PeriodKey } from "@/domain/types";
 import { isLeaf } from "@/domain/tree";
+import { P, P0 } from "../helpers/periods";
 
 /**
  * FR-016 — franja de indicadores «Resumen» (Presupuestado / Ejecutado con % / Disponible).
@@ -17,8 +18,8 @@ function zeroOut(s: LedgerState, type: "expense" | "income" | "transfer"): Ledge
   let out = s;
   for (const n of s.nodes.filter((x) => x.type === type && isLeaf(x, s.nodes))) {
     for (const m of MONTH_KEYS) {
-      out = setLeafAmount(out, n.id, m, "budget", 0);
-      out = setLeafAmount(out, n.id, m, "actual", 0);
+      out = setLeafAmount(out, n.id, m, "budget", 0, P);
+      out = setLeafAmount(out, n.id, m, "actual", 0, P);
     }
   }
   return out;
@@ -26,7 +27,7 @@ function zeroOut(s: LedgerState, type: "expense" | "income" | "transfer"): Ledge
 
 /** Semilla con los tres tipos a 0: cada test declara exactamente los montos que le importan. */
 function blank(): LedgerState {
-  let s = buildSeed("local");
+  let s = buildSeed("local", P0);
   for (const t of ["expense", "income", "transfer"] as const) s = zeroOut(s, t);
   return s;
 }
@@ -36,9 +37,9 @@ function firstLeaf(s: LedgerState, type: "expense" | "income" | "transfer"): str
   return s.nodes.find((n) => n.type === type && isLeaf(n, s.nodes))!.id;
 }
 
-function put(s: LedgerState, id: string, m: MonthKey, budget: number, actual: number): LedgerState {
-  let out = setLeafAmount(s, id, m, "budget", budget);
-  out = setLeafAmount(out, id, m, "actual", actual);
+function put(s: LedgerState, id: string, m: PeriodKey, budget: number, actual: number): LedgerState {
+  let out = setLeafAmount(s, id, m, "budget", budget, P);
+  out = setLeafAmount(out, id, m, "actual", actual, P);
   return out;
 }
 
@@ -46,9 +47,9 @@ describe("FR-016 — franja de indicadores «Resumen»", () => {
   // @aitri-tc TC-016h
   it("TC-016h: en modo Mes devuelve presupuestado, ejecutado, % y disponible del tipo Gasto", () => {
     const gasto = firstLeaf(blank(), "expense");
-    const s = put(blank(), gasto, "jun", 800000, 200000);
+    const s = put(blank(), gasto, "2026-06", 800000, 200000);
 
-    const k = summaryKpis(s, { mode: "month", month: "jun" });
+    const k = summaryKpis(s, { mode: "month", month: "2026-06" }, P);
 
     expect(k.presupuestado).toBe(800000);
     expect(k.ejecutado).toBe(200000);
@@ -61,7 +62,7 @@ describe("FR-016 — franja de indicadores «Resumen»", () => {
     const gasto = firstLeaf(blank(), "expense");
 
     // (a) Presupuesto 0 → pct 0, sin NaN ni Infinity en ninguna de las cuatro cifras.
-    const vacio = summaryKpis(blank(), { mode: "month", month: "jun" });
+    const vacio = summaryKpis(blank(), { mode: "month", month: "2026-06" }, P);
     expect(vacio.pct).toBe(0);
     for (const v of [vacio.presupuestado, vacio.ejecutado, vacio.pct, vacio.available]) {
       expect(Number.isFinite(v)).toBe(true);
@@ -69,7 +70,7 @@ describe("FR-016 — franja de indicadores «Resumen»", () => {
 
     // (b) Ejecutado == Presupuestado → available exactamente 0 (frontera de "dentro del plan":
     //     la UI pinta --success cuando available >= 0, así que el 0 exacto NO debe ser negativo).
-    const empate = summaryKpis(put(blank(), gasto, "jun", 500000, 500000), { mode: "month", month: "jun" });
+    const empate = summaryKpis(put(blank(), gasto, "2026-06", 500000, 500000), { mode: "month", month: "2026-06" }, P);
     expect(empate.available).toBe(0);
     expect(empate.available >= 0).toBe(true);
     expect(empate.pct).toBe(100);
@@ -77,8 +78,8 @@ describe("FR-016 — franja de indicadores «Resumen»", () => {
     // (c) Modo Año agrega los 12 meses, no solo el que está en foco.
     let anual = blank();
     for (const m of MONTH_KEYS) anual = put(anual, gasto, m, 100000, 40000);
-    const mes = summaryKpis(anual, { mode: "month", month: "jun" });
-    const año = summaryKpis(anual, { mode: "year" });
+    const mes = summaryKpis(anual, { mode: "month", month: "2026-06" }, P);
+    const año = summaryKpis(anual, { mode: "year", year: REF_YEAR }, P);
     expect(mes.presupuestado).toBe(100000);
     expect(año.presupuestado).toBe(100000 * MONTH_KEYS.length);
     expect(año.ejecutado).toBe(40000 * MONTH_KEYS.length);
@@ -92,17 +93,17 @@ describe("FR-016 — franja de indicadores «Resumen»", () => {
     const ingreso = firstLeaf(base0, "income");
     const transfer = firstLeaf(base0, "transfer");
 
-    const base = put(base0, gasto, "jun", 300000, 100000);
-    const antes = summaryKpis(base, { mode: "month", month: "jun" });
+    const base = put(base0, gasto, "2026-06", 300000, 100000);
+    const antes = summaryKpis(base, { mode: "month", month: "2026-06" }, P);
 
     // Ingresos y Transferencias del MISMO mes no pueden mover ninguna de las cuatro cifras.
-    let contaminado = put(base, ingreso, "jun", 9_000_000, 7_000_000);
-    contaminado = put(contaminado, transfer, "jun", 5_000_000, 5_000_000);
-    const despues = summaryKpis(contaminado, { mode: "month", month: "jun" });
+    let contaminado = put(base, ingreso, "2026-06", 9_000_000, 7_000_000);
+    contaminado = put(contaminado, transfer, "2026-06", 5_000_000, 5_000_000);
+    const despues = summaryKpis(contaminado, { mode: "month", month: "2026-06" }, P);
     expect(despues).toEqual(antes);
 
     // Ejecutado por encima del presupuesto ⇒ available negativo (lo que la UI pinta --error).
-    const sobre = summaryKpis(put(blank(), gasto, "jun", 300000, 400000), { mode: "month", month: "jun" });
+    const sobre = summaryKpis(put(blank(), gasto, "2026-06", 300000, 400000), { mode: "month", month: "2026-06" }, P);
     expect(sobre.available).toBe(-100000);
     expect(sobre.available < 0).toBe(true);
     expect(sobre.pct).toBe(133); // Math.round(400000/300000*100)

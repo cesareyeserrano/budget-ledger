@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { cellTone, cellGlyph, budgetState } from "@/domain/budgetState";
-import { buildSeed, rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode, MONTH_KEYS } from "@/domain";
+import { buildSeed, rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode } from "@/domain";
+import { P as MONTH_KEYS, P0 } from "../helpers/periods";
 
 /**
  * refinamiento-ui — el color deja de clasificar y pasa a señalar sólo excepción.
@@ -118,7 +119,7 @@ describe("FR-1203 — la marca no cromática de gravedad", () => {
 describe("NFR-1201 — regresión: el dominio queda intacto", () => {
   // @aitri-tc TC-RUI-101h
   it("TC-RUI-101h: la semilla conserva su forma y sus totales", () => {
-    const s = buildSeed();
+    const s = buildSeed("local", P0);
     // La estructura sembrada no cambió con el rediseño: tres bloques, y cada uno sus categorías.
     const groups = s.nodes.filter((n) => n.level === "group");
     expect(groups.map((g) => g.name).sort()).toEqual(["Ahorro", "Esenciales", "Trabajo"]);
@@ -129,7 +130,7 @@ describe("NFR-1201 — regresión: el dominio queda intacto", () => {
     expect(childrenOf(s.nodes, comida.id).map((c) => c.name).sort()).toEqual(["Café", "Mercado", "Restaurantes"]);
 
     // El roll-up de un padre sigue siendo la suma de sus hojas — la regla de cálculo del producto.
-    // budgets es Record<nodeId, Partial<Record<MonthKey, number>>>: anidado, no una clave compuesta.
+    // budgets es Record<nodeId, Partial<Record<PeriodKey, number>>>: anidado, no una clave compuesta.
     const month = MONTH_KEYS[0];
     const suma = leafDescendants(s.nodes, comida.id)
       .reduce((acc, id) => acc + (s.budgets[id]?.[month] ?? 0), 0);
@@ -139,7 +140,7 @@ describe("NFR-1201 — regresión: el dominio queda intacto", () => {
 
   // @aitri-tc TC-RUI-101e
   it("TC-RUI-101e: los casos borde del dominio siguen resolviendo igual", () => {
-    const s = buildSeed();
+    const s = buildSeed("local", P0);
     // Nodo inexistente: no lanza, devuelve el neutro del dominio.
     expect(findNode(s.nodes, "no-existe")).toBeUndefined();
     expect(childrenOf(s.nodes, "no-existe")).toEqual([]);
@@ -160,7 +161,7 @@ describe("NFR-1201 — regresión: el dominio queda intacto", () => {
 
   // @aitri-tc TC-RUI-101f
   it("TC-RUI-101f: ningún invariante estructural se rompe — cero huérfanos y totales cuadrados", () => {
-    const s = buildSeed();
+    const s = buildSeed("local", P0);
     const ids = new Set(s.nodes.map((n) => n.id));
 
     // Cero huérfanos: todo parentId apunta a un nodo que existe.

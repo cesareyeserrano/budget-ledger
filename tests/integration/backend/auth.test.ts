@@ -11,6 +11,7 @@ import { truncateAll, closeTestDb, testDb } from "./helpers/db";
 import { getSessionUser } from "@/server/session";
 import { saveLedger, getMovement, loadLedger } from "@/server/data/ledgerRepo";
 import { buildSeed, addMovement } from "@/domain";
+import { P, P0 } from "../../helpers/periods";
 
 const PASSWORD = "Contra$eña123";
 
@@ -160,7 +161,7 @@ describe("NFR-501 / NFR-512 — endurecimiento de credenciales y sesión", () =>
     const idA = (await getSessionUser(new Headers({ cookie: a.cookie })))!.userId;
     const idB = (await getSessionUser(new Headers({ cookie: b.cookie })))!.userId;
     // B guarda un movimiento.
-    const state = addMovement(buildSeed(idB), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 9000, month: "jun" });
+    const state = addMovement(buildSeed(idB, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 9000, period: "2026-06" }, P);
     await saveLedger(idB, state, 0);
     const bLedger = await loadLedger(idB);
     const realId = bLedger!.state.movements[0].id;

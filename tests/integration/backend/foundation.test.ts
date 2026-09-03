@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { buildSeed, addMovement, createNode, setLeafAmount } from "@/domain";
 import { loadLedger, saveLedger, getMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
+import { P, P0 } from "../../helpers/periods";
 
 const A = "user-A";
 const B = "user-B";
@@ -25,14 +26,14 @@ afterAll(async () => {
 describe("FR-506 — esquema y persistencia por usuario", () => {
   it("TC-BE-021h: un movimiento guardado es legible con los mismos valores por su ownerId", async () => {
     // @aitri-tc TC-BE-021h
-    const seed = buildSeed(A);
+    const seed = buildSeed(A, P0);
     const withMov = addMovement(seed, {
       type: "expense",
       catId: "c-comida",
       subId: "s-comida-mercado",
       amount: 5000,
-      month: "jun",
-    });
+      period: "2026-06",
+    }, P);
     const res = await saveLedger(A, withMov, 0);
     expect(res).toEqual({ ok: true, revision: 1 });
 
@@ -43,25 +44,25 @@ describe("FR-506 — esquema y persistencia por usuario", () => {
     expect(mv!.catId).toBe("c-comida");
     expect(mv!.subId).toBe("s-comida-mercado");
     expect(mv!.target).toBe("s-comida-mercado");
-    expect(mv!.month).toBe("jun");
+    expect(mv!.period).toBe("2026-06");
     expect(mv!.ownerId).toBe(A);
   });
 
   it("TC-BE-022e: nodo, presupuesto y ejecutado persisten cada uno con su ownerId", async () => {
     // @aitri-tc TC-BE-022e
-    let state = buildSeed(A);
+    let state = buildSeed(A, P0);
     state = createNode(state, { level: "category", parentId: "g-esenciales", type: "expense", name: "Salud" });
     const leaf = state.nodes.find((n) => n.name === "Salud")!;
-    state = setLeafAmount(state, leaf.id, "jun", "budget", 30000);
-    state = setLeafAmount(state, leaf.id, "jun", "actual", 12000);
+    state = setLeafAmount(state, leaf.id, "2026-06", "budget", 30000, P);
+    state = setLeafAmount(state, leaf.id, "2026-06", "actual", 12000, P);
     await saveLedger(A, state, 0);
 
     const loaded = await loadLedger(A);
     const node = loaded!.state.nodes.find((n) => n.id === leaf.id);
     expect(node).toBeDefined();
     expect(node!.ownerId).toBe(A);
-    expect(loaded!.state.budgets[leaf.id]?.jun).toBe(30000);
-    expect(loaded!.state.actuals[leaf.id]?.jun).toBe(12000);
+    expect(loaded!.state.budgets[leaf.id]?.["2026-06"]).toBe(30000);
+    expect(loaded!.state.actuals[leaf.id]?.["2026-06"]).toBe(12000);
 
     // Los tres tipos de fila existen en la BD con owner_id = A.
     const db = testDb();
@@ -78,8 +79,8 @@ describe("FR-506 — esquema y persistencia por usuario", () => {
 
     await expect(
       db.execute(
-        sql`INSERT INTO "movement" (owner_id, id, type, cat_id, target, amount, month, created_at)
-            VALUES (NULL, 'mov-x', 'expense', 'c-comida', 'c-comida', 100, 'jun', 1)`
+        sql`INSERT INTO "movement" (owner_id, id, type, cat_id, target, amount, period: month, created_at)
+            VALUES (NULL, 'mov-x', 'expense', 'c-comida', 'c-comida', 100, "2026-06", 1)`
       )
     ).rejects.toThrow();
 
@@ -91,8 +92,8 @@ describe("FR-506 — esquema y persistencia por usuario", () => {
 describe("FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio", () => {
   it("TC-BE-040h: los datos sobreviven a un reinicio del proceso del servidor", async () => {
     // @aitri-tc TC-BE-040h
-    const seed = buildSeed(A);
-    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, month: "jun" });
+    const seed = buildSeed(A, P0);
+    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, period: "2026-06" }, P);
     await saveLedger(A, withMov, 0);
 
     // "Reinicio": una conexión NUEVA (proceso nuevo) a la misma BD lee el dato durable en Postgres.
@@ -108,8 +109,8 @@ describe("FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio"
 
   it("TC-BE-059h: un registro escrito sigue legible tras reiniciar el proceso", async () => {
     // @aitri-tc TC-BE-059h
-    const seed = buildSeed(A);
-    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 3000, month: "jul" });
+    const seed = buildSeed(A, P0);
+    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 3000, period: "2026-07" }, P);
     await saveLedger(A, withMov, 0);
 
     const fresh = postgres(inject("databaseUrl"), { max: 1 });
@@ -124,8 +125,8 @@ describe("FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio"
   it("TC-BE-041e: un dump→wipe→restore recupera los datos sin pérdida (restore en otro host)", async () => {
     // @aitri-tc TC-BE-041e
     // Restore a nivel de filas: exporta todo, vacía la BD (host nuevo/limpio), reinserta, verifica.
-    const seed = buildSeed(A);
-    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 4200, month: "abr" });
+    const seed = buildSeed(A, P0);
+    const withMov = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 4200, period: "2026-04" }, P);
     await saveLedger(A, withMov, 0);
     const before = await loadLedger(A);
 
@@ -159,9 +160,9 @@ describe("FR-512 / NFR-505 — persistencia portátil que sobrevive al reinicio"
 
   it("TC-BE-061f: un reinicio no pierde ninguno de los registros previos", async () => {
     // @aitri-tc TC-BE-061f
-    let state = buildSeed(A);
+    let state = buildSeed(A, P0);
     for (const amount of [1000, 2000, 4000]) {
-      state = addMovement(state, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, month: "jun" });
+      state = addMovement(state, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount, period: "2026-06" }, P);
     }
     await saveLedger(A, state, 0);
 

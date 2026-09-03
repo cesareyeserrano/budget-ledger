@@ -1,10 +1,17 @@
 // @aitri-trace domain:dashboard — FR-009: 7 indicadores mínimos con filtro Mes/Año.
-import type { LedgerState, MonthKey } from "./types";
-import { MONTH_KEYS } from "./months";
+import type { LedgerState, PeriodKey } from "./types";
+import { periodYear } from "./periods";
 import { typeTotals } from "./rollup";
 import { subtreeIds, isLeaf } from "./tree";
 
-export type Period = { mode: "month"; month: MonthKey } | { mode: "year" };
+/**
+ * Alcance del filtro. El modo amplio sigue siendo UN AÑO — decisión del usuario (2026-09-02):
+ * «año no puede ser todo, debe ser año, y ya no puede tener un balance de todo sin filtro».
+ *
+ * Lo que cambia con multi-anio es que el año deja de ser implícito: hay que DECIR cuál. Antes el
+ * modo "year" no llevaba dato porque solo existía un año; ahora lo lleva.
+ */
+export type Period = { mode: "month"; month: PeriodKey } | { mode: "year"; year: number };
 
 export interface OverBudgetItem { catId: string; name: string; over: number; pct: number }
 export interface TopCatItem { catId: string; name: string; amount: number }
@@ -19,8 +26,11 @@ export interface DashboardVM {
   overBudget: OverBudgetItem[];
 }
 
-function months(period: Period): MonthKey[] {
-  return period.mode === "month" ? [period.month] : MONTH_KEYS;
+function months(period: Period, scope: readonly PeriodKey[]): readonly PeriodKey[] {
+  if (period.mode === "month") return [period.month];
+  // Los periodos del año pedido que EXISTEN en el rango activo. Un año sin datos ni horizonte no
+  // inventa doce columnas: devuelve lo que hay.
+  return scope.filter((p) => periodYear(p) === period.year);
 }
 
 /** Las tres cifras de la franja «Resumen» del escritorio (FR-016), todas del tipo Gasto. */
@@ -48,8 +58,8 @@ export interface SummaryKpis {
  *
  * @aitri-trace domain:summary — FR-016, TC-016h/TC-016e/TC-016f
  */
-export function summaryKpis(state: LedgerState, period: Period): SummaryKpis {
-  const exp = typeTotals(state, "expense", months(period));
+export function summaryKpis(state: LedgerState, period: Period, scope: readonly PeriodKey[]): SummaryKpis {
+  const exp = typeTotals(state, "expense", months(period, scope));
   return {
     presupuestado: exp.budget,
     ejecutado: exp.actual,
@@ -58,8 +68,8 @@ export function summaryKpis(state: LedgerState, period: Period): SummaryKpis {
   };
 }
 
-export function dashboardMetrics(state: LedgerState, period: Period): DashboardVM {
-  const ms = months(period);
+export function dashboardMetrics(state: LedgerState, period: Period, scope: readonly PeriodKey[]): DashboardVM {
+  const ms = months(period, scope);
   const inc = typeTotals(state, "income", ms);
   const exp = typeTotals(state, "expense", ms);
   const balance = inc.actual - exp.actual;

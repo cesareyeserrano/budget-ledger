@@ -23,7 +23,7 @@ test("TC-BE-031e: tras guardar movimientos, localStorage no contiene datos finan
   await register(page, uniqueEmail("split"));
   // Guardar varios movimientos vía la API (fuente de verdad = servidor).
   expect(await createMovementViaApi(page, 5000)).toBe(201);
-  expect(await createMovementViaApi(page, 7000, "jul")).toBe(201);
+  expect(await createMovementViaApi(page, 7000, "2026-07")).toBe(201);
   await page.reload();
   await expect(page.getByTestId("budget-grid")).toBeVisible();
 

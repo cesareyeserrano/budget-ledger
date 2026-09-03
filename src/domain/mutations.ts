@@ -1,6 +1,6 @@
 // @aitri-trace domain:mutations — FR-001/002/006/015: registrar, CRUD, borrado (bloquea si hay datos), reparent.
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
-import type { LedgerNode, LedgerState, MonthKey, Movement, NodeLevel, NodeType } from "./types";
+import type { LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "./types";
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
@@ -27,9 +27,9 @@ export interface NewMovement {
   catId: string;
   subId?: string | null;
   amount: number | string;
-  month: MonthKey;
+  period: PeriodKey;
   /** Feature stack-upgrade-theme (ADR-03): fecha ISO de captura; el registro móvil la envía y
-   *  deriva `month` de ella. Opcional para no romper llamadores existentes (grilla/panel). */
+   *  deriva `period` de ella. Opcional para no romper llamadores existentes (grilla/panel). */
   date?: string;
   /** Nota opcional del registro móvil (se normaliza: trim, ≤280, vacío→null). */
   note?: string | null;
@@ -57,7 +57,9 @@ export function canSave(input: { amount: number | string; catId: string | null }
  * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
  * @aitri-trace FR-ID: FR-1004, US-ID: US-1004, AC-ID: AC-1004b, TC-ID: TC-TRF-104e, TC-TRF-152h
  */
-export function addMovement(state: LedgerState, input: NewMovement): LedgerState {
+export function addMovement(
+  state: LedgerState, input: NewMovement, periods: readonly PeriodKey[]
+): LedgerState {
   const amount = parseAmount(input.amount);
   if (amount === null || !input.catId) return state; // negativo: no altera el estado
   const target = input.subId ?? input.catId;
@@ -65,24 +67,24 @@ export function addMovement(state: LedgerState, input: NewMovement): LedgerState
     const result = applyReserveOp(state, {
       from: input.from ?? AVAILABLE_ID,
       to: input.to ?? target,
-      month: input.month,
+      period: input.period,
       amount,
       ...(input.date ? { date: input.date } : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
-    });
+    }, periods);
     return "state" in result ? result.state : state;
   }
   const next = clone(state);
   const mv: Movement = {
     id: uid(), ownerId: state.ownerId, type: input.type,
     catId: input.catId, subId: input.subId ?? null, target,
-    amount, month: input.month, createdAt: nextSeq(),
+    amount, period: input.period, createdAt: nextSeq(),
     ...(input.date ? { date: input.date } : {}),
     ...(input.note !== undefined ? { note: normalizeNote(input.note) } : {}),
   };
   next.movements.unshift(mv);
   next.actuals[target] = { ...(next.actuals[target] ?? {}) };
-  next.actuals[target][input.month] = (next.actuals[target][input.month] ?? 0) + amount;
+  next.actuals[target][input.period] = (next.actuals[target][input.period] ?? 0) + amount;
   return next;
 }
 
@@ -184,9 +186,9 @@ function nodeHasData(state: LedgerState, nodeId: string): boolean {
   const ids = new Set(subtreeIds(state.nodes, nodeId));
   for (const id of ids) {
     const b = state.budgets[id];
-    if (b && Object.values(b).some((v) => v > 0)) return true;
+    if (b && Object.values(b).some((v) => (v ?? 0) > 0)) return true;
     const a = state.actuals[id];
-    if (a && Object.values(a).some((v) => v > 0)) return true;
+    if (a && Object.values(a).some((v) => (v ?? 0) > 0)) return true;
   }
   return false;
 }
@@ -246,12 +248,14 @@ function rewriteForDelete(state: LedgerState, id: string): LedgerState {
  *
  * @returns `true` si el borrado alteraría a un tercero — el caso que debe bloquearse.
  */
-function deleteWouldCorrupt(state: LedgerState, id: string, candidate: LedgerState): boolean {
+function deleteWouldCorrupt(
+  state: LedgerState, id: string, candidate: LedgerState, periods: readonly PeriodKey[]
+): boolean {
   const borrados = new Set(subtreeIds(state.nodes, id));
   for (const leafId of reserveLeafIds(state)) {
     if (borrados.has(leafId)) continue;
-    const antes = resolvedSeries(state, leafId, "actual");
-    const despues = resolvedSeries(candidate, leafId, "actual");
+    const antes = resolvedSeries(state, leafId, "actual", periods);
+    const despues = resolvedSeries(candidate, leafId, "actual", periods);
     if (antes.some((v, i) => v !== despues[i])) return true;
   }
   return false;
@@ -267,8 +271,10 @@ function deleteWouldCorrupt(state: LedgerState, id: string, candidate: LedgerSta
  *   primero (BG-001/BG-006). Aplica a TODOS los niveles: grupo-hoja (que también almacena
  *   montos, FR-603), categoría y subcategoría.
  */
-export function canDeleteNode(state: LedgerState, id: string): boolean {
-  return deleteBlockReason(state, id) === null;
+export function canDeleteNode(
+  state: LedgerState, id: string, periods: readonly PeriodKey[]
+): boolean {
+  return deleteBlockReason(state, id, periods) === null;
 }
 
 /**
@@ -277,7 +283,9 @@ export function canDeleteNode(state: LedgerState, id: string): boolean {
  * Se publica aparte de `canDeleteNode` para que la UI pueda DECIR el motivo en vez de limitarse a
  * esconder el ícono: «tiene operaciones» y «tiene valores» piden acciones distintas del usuario.
  */
-export function deleteBlockReason(state: LedgerState, id: string): DeleteBlock | null {
+export function deleteBlockReason(
+  state: LedgerState, id: string, periods: readonly PeriodKey[]
+): DeleteBlock | null {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return "has_children";
   if (childrenOf(state.nodes, id).length > 0) return "has_children";
@@ -285,11 +293,13 @@ export function deleteBlockReason(state: LedgerState, id: string): DeleteBlock |
   // BG-023 — la única puerta de escritura que no pasaba por ninguna regla. Se resuelve
   // construyendo el candidato y midiendo su efecto sobre terceros.
   const d = rewriteForDelete(state, id);
-  if (deleteWouldCorrupt(state, id, d)) return "has_operations";
+  if (deleteWouldCorrupt(state, id, d, periods)) return "has_operations";
   return null;
 }
 
-export function deleteNode(state: LedgerState, id: string): DeleteResult {
+export function deleteNode(
+  state: LedgerState, id: string, periods: readonly PeriodKey[]
+): DeleteResult {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return { state };
 
@@ -308,7 +318,7 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
   const next = rewriteForDelete(state, id);
   // BG-023 — la misma medida que publica `deleteBlockReason`: si el borrado alteraría el saldo de
   // un bolsillo que sobrevive, no se hace. Aquí y no solo en la consulta, porque ESTA es la puerta.
-  if (deleteWouldCorrupt(state, id, next)) return { blocked: "has_operations" };
+  if (deleteWouldCorrupt(state, id, next, periods)) return { blocked: "has_operations" };
   return { state: next };
 }
 
@@ -324,15 +334,16 @@ export function deleteNode(state: LedgerState, id: string): DeleteResult {
 export function setLeafAmount(
   state: LedgerState,
   leafId: string,
-  month: MonthKey,
+  month: PeriodKey,
   kind: "budget" | "actual",
-  value: number
+  value: number,
+  periods: readonly PeriodKey[]
 ): LedgerState {
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes)) return state; // los padres no son editables (roll-up)
   const v = Math.max(0, Math.round(Number(value) || 0));
   if (node.type === "transfer") {
-    const result = applyReserveCellEdit(state, { leafId, month, plane: kind, newAmount: v });
+    const result = applyReserveCellEdit(state, { leafId, period: month, plane: kind, newAmount: v }, periods);
     return "rejected" in result ? state : result.state;
   }
   const next = clone(state);
@@ -385,11 +396,11 @@ const levelAtDepth = (d: number): NodeLevel => DEPTH_LEVELS[d];
 
 /** Suma dos mapas mensuales (no pierde ninguno de los dos). Correcto para FLUJOS (expense/income). */
 function mergeMonthMap(
-  a: Record<string, number> | undefined,
-  b: Record<string, number> | undefined
-): Record<string, number> {
-  const out: Record<string, number> = { ...(a ?? {}) };
-  for (const [m, v] of Object.entries(b ?? {})) out[m] = (out[m] ?? 0) + v;
+  a: Partial<Record<PeriodKey, number>> | undefined,
+  b: Partial<Record<PeriodKey, number>> | undefined
+): Partial<Record<PeriodKey, number>> {
+  const out: Partial<Record<PeriodKey, number>> = { ...(a ?? {}) };
+  for (const [m, v] of Object.entries(b ?? {})) out[m] = (out[m] ?? 0) + (v ?? 0);
   return out;
 }
 
@@ -398,9 +409,9 @@ function mergeMonthMap(
  *  conserva como costura por si un tipo vuelve a cambiar de semántica. */
 function mergeMonthMapForType(
   _type: NodeType,
-  a: Record<string, number> | undefined,
-  b: Record<string, number> | undefined
-): Record<string, number> {
+  a: Partial<Record<PeriodKey, number>> | undefined,
+  b: Partial<Record<PeriodKey, number>> | undefined
+): Partial<Record<PeriodKey, number>> {
   return mergeMonthMap(a, b);
 }
 

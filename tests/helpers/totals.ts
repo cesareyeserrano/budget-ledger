@@ -8,12 +8,13 @@
  * DINERO. Un nodo puede estar perfectamente colgado y aun así llevarse un presupuesto fuera de todos
  * los agregados. Estas dos funciones miden el dinero.
  */
-import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
+import type { LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import { typeTotals } from "@/domain/rollup";
 import { resolvedTypeTotal } from "@/domain/reserve";
 import { isLeaf } from "@/domain/tree";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
 import type { Plane } from "@/domain/reserve";
+import { P } from "../helpers/periods";
 
 const TYPES: NodeType[] = ["expense", "income", "transfer"];
 
@@ -52,8 +53,8 @@ export function orphanBudgetNodes(state: LedgerState): string[] {
  * lo que una reestructuración debe conservar es ESTA serie — idéntica antes y después, en los
  * 12 meses de ambos planos.
  */
-export function resolvedYearByMonth(state: LedgerState, plane: Plane): Record<MonthKey, number> {
-  const out = {} as Record<MonthKey, number>;
-  for (const m of MONTH_KEYS) out[m] = resolvedTypeTotal(state, m, plane);
+export function resolvedYearByMonth(state: LedgerState, plane: Plane): Record<PeriodKey, number> {
+  const out = {} as Record<PeriodKey, number>;
+  for (const m of MONTH_KEYS) out[m] = resolvedTypeTotal(state, m, plane, P);
   return out;
 }

@@ -5,9 +5,10 @@
 import { describe, it, expect } from "vitest";
 import { AVAILABLE_ID, applyReserveOp, resolvedBalance } from "@/domain/reserve";
 import { moveNode } from "@/domain/mutations";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
 import { resolvedYearByMonth } from "../helpers/totals";
-import type { AmountMap, LedgerNode, LedgerState, MonthKey } from "@/domain/types";
+import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
+import { P } from "../helpers/periods";
 
 function makeState(): LedgerState {
   const nodes: LedgerNode[] = [
@@ -19,19 +20,19 @@ function makeState(): LedgerState {
     { id: "c-dest", ownerId: "local", type: "transfer", level: "category", parentId: "g-b", name: "Destino", icon: null, order: 5 },
   ];
   const budgets: AmountMap = {};
-  const actuals: AmountMap = { "c-sal": { ene: 1_000_000 } };
+  const actuals: AmountMap = { "c-sal": { "2026-01": 1_000_000 } };
   return { ownerId: "local", nodes, budgets, actuals, movements: [] };
 }
 
 /** Alcancía con aportes Y retiros — la fixture donde el journal importa. */
 function seeded(): LedgerState {
   let s = makeState();
-  const g = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-alcancia", month: "feb", amount: 300_000 });
+  const g = applyReserveOp(s, { from: AVAILABLE_ID, to: "c-alcancia", period: "2026-02", amount: 300_000 }, P);
   if (!("state" in g)) throw new Error("guardar rechazado");
   s = g.state;
-  const r = applyReserveOp(s, { from: "c-alcancia", to: AVAILABLE_ID, month: "sep", amount: 120_000 });
+  const r = applyReserveOp(s, { from: "c-alcancia", to: AVAILABLE_ID, period: "2026-09", amount: 120_000 }, P);
   if (!("state" in r)) throw new Error("sacar rechazado");
-  const d = applyReserveOp(r.state, { from: AVAILABLE_ID, to: "c-dest", month: "may", amount: 50_000 });
+  const d = applyReserveOp(r.state, { from: AVAILABLE_ID, to: "c-dest", period: "2026-05", amount: 50_000 }, P);
   if (!("state" in d)) throw new Error("guardar destino rechazado");
   return d.state;
 }
@@ -60,7 +61,7 @@ describe("FR-1011 · reestructurar conserva los saldos derivados", () => {
     const s0 = seeded();
     const before = resolvedYearByMonth(s0, "actual");
     // el helper ES la aserción del invariante: serie por mes de saldos derivados del tipo
-    expect(before.sep).toBe(300_000 - 120_000 + 50_000);
+    expect(before["2026-09"]).toBe(300_000 - 120_000 + 50_000);
     let s = s0;
     for (const step of [
       () => moveNode(s, "c-alcancia", { kind: "category", id: "c-dest" }),
@@ -86,7 +87,7 @@ describe("FR-1011 · reestructurar conserva los saldos derivados", () => {
       movements: s0.movements.map((m) => (m.from === "c-alcancia" ? { ...m, from: "c-fantasma" } : m)),
     };
     const after = resolvedYearByMonth(corrupt, "actual");
-    expect(after.sep).toBe(350_000); // la fuga: el retiro de 120.000 desapareció
+    expect(after["2026-09"]).toBe(350_000); // la fuga: el retiro de 120.000 desapareció
     expect(after).not.toEqual(before); // el invariante la DETECTA
 
     // …y el camino real de moveNode la mantiene idéntica (el test que falla si alguien lo rompe).

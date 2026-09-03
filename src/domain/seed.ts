@@ -1,6 +1,6 @@
 // @aitri-trace domain:seed — FR-013: semilla DETERMINISTA (sin Math.random). Factores por mes del prototipo (genBudget).
-import type { AmountMap, LedgerNode, LedgerState, MonthKey, NodeType } from "./types";
-import { MONTH_KEYS } from "./months";
+import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "./types";
+import { addMonths } from "./periods";
 import { isLeaf } from "./tree";
 
 /** hash estable de string (idéntico al del prototipo). */
@@ -10,18 +10,31 @@ export function hash(str: string): number {
   return h;
 }
 
-// Factores de ejecución por mes: Ene–May ejecutado, Jun en curso, Jul–Dic proyectado (=0).
-const FACTOR: Record<MonthKey, number> = {
-  ene: 0.96, feb: 1.07, mar: 0.86, abr: 1.14, may: 0.91, jun: 0.55,
-  jul: 0, ago: 0, sep: 0, oct: 0, nov: 0, dic: 0,
-};
+/**
+ * Factores de ejecución POR POSICIÓN dentro de la ventana sembrada, no por nombre de mes (FR-1910).
+ *
+ * Antes era `Record<MonthKey, number>` con los doce literales, y eso rompía dos cosas al meter el
+ * año: (a) no compila con `PeriodKey`, y (b) sembraba de enero a diciembre de un año implícito, así
+ * que un usuario que empieza en septiembre nacía con ocho meses de datos inventados ANTERIORES a su
+ * primer día — justo el ruido que la grilla dinámica existe para quitar.
+ *
+ * Ahora la ventana ARRANCA en el periodo en curso: posición 0 = este mes.
+ */
+const FACTOR: readonly number[] = [
+  0.96, 1.07, 0.86, 1.14, 0.91, 0.55, 0, 0, 0, 0, 0, 0,
+];
+
+/** Cuántos periodos siembra un usuario nuevo, contando desde el periodo en curso. */
+export const SEED_SPAN = FACTOR.length;
 
 /**
  * Genera budgets/actuals deterministas por hoja/mes (verificado contra `genBudget` del prototipo).
  * Los TRES tipos comparten semántica de FLUJO mensual (modelo v4): en transfer la celda es el
  * APORTE del mes, igual que un gasto es el gasto del mes.
  */
-export function genBudget(nodes: LedgerNode[]): { budgets: AmountMap; actuals: AmountMap } {
+export function genBudget(
+  nodes: LedgerNode[], startPeriod: PeriodKey
+): { budgets: AmountMap; actuals: AmountMap } {
   const budgets: AmountMap = {};
   const actuals: AmountMap = {};
   for (const leaf of nodes.filter((n) => isLeaf(n, nodes))) {
@@ -33,9 +46,10 @@ export function genBudget(nodes: LedgerNode[]): { budgets: AmountMap; actuals: A
     base = Math.round(base / 10000) * 10000;
     budgets[leaf.id] = {};
     actuals[leaf.id] = {};
-    for (const m of MONTH_KEYS) {
+    for (let i = 0; i < SEED_SPAN; i++) {
+      const m = addMonths(startPeriod, i);
       budgets[leaf.id][m] = base;
-      const f = FACTOR[m];
+      const f = FACTOR[i];
       if (f > 0) {
         const jit = 0.78 + (hash(leaf.id + m) % 42) / 100;
         actuals[leaf.id][m] = Math.round((base * f * jit) / 1000) * 1000;
@@ -84,7 +98,16 @@ function slug(s: string): string {
 }
 
 /** Construye el estado semilla completo, determinista para un ownerId dado. */
-export function buildSeed(ownerId = "local"): LedgerState {
+/**
+ * Semilla de un usuario nuevo, anclada al periodo EN CURSO (FR-1910).
+ *
+ * `startPeriod` es obligatorio y lo provee el llamador: el dominio no lee el reloj (ADR-02), así
+ * que la app pasa `currentPeriod()` desde el borde y las pruebas pasan un periodo fijo — que es lo
+ * que las hace deterministas en cualquier fecha.
+ *
+ * @aitri-trace FR-ID: FR-1910, US-ID: US-1910, AC-ID: AC-1930, TC-ID: TC-MAN-090h, TC-MAN-091e
+ */
+export function buildSeed(ownerId = "local", startPeriod: PeriodKey): LedgerState {
   const nodes: LedgerNode[] = [];
   let order = 0;
   for (const def of SEED) {
@@ -107,6 +130,6 @@ export function buildSeed(ownerId = "local"): LedgerState {
       }
     }
   }
-  const { budgets, actuals } = genBudget(nodes);
+  const { budgets, actuals } = genBudget(nodes, startPeriod);
   return { ownerId, nodes, budgets, actuals, movements: [] };
 }

@@ -5,7 +5,7 @@ import type { NodeType } from "@/domain/types";
 import { useLedgerStore } from "@/state/store";
 import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, maxWithdrawal, reserveHeadroom } from "@/domain/reserve";
 import { parsePesos } from "@/lib/money";
-import { nowForInput, monthKeyFromDate } from "@/lib/date";
+import { nowForInput, periodKeyFromDate } from "@/lib/date";
 import { money } from "@/components/format";
 import { blockMessage } from "@/components/reserveText";
 import { AmountDisplay } from "./AmountDisplay";
@@ -34,6 +34,7 @@ const CONFIRM_MS = 2000;
  */
 export function Register() {
   const data = useLedgerStore((s) => s.data);
+  const periods = useLedgerStore((s) => s.activePeriods)();
   const nodes = data.nodes;
   const add = useLedgerStore((s) => s.addMovement);
 
@@ -56,7 +57,7 @@ export function Register() {
   }, []);
 
   const amount = useMemo(() => parsePesos(rawAmount), [rawAmount]);
-  const month = monthKeyFromDate(date);
+  const month = periodKeyFromDate(date);
 
   // FR-1005: la guía de estado bajo el monto — el límite visible MIENTRAS se teclea (H1/H5).
   const isReserve = type === "transfer";
@@ -65,11 +66,11 @@ export function Register() {
     // FR-1808/AC-1834 — el CUPO que queda, no el margen bruto: bajo la regla de consumo bruto el
     // margen promete plata que el dominio va a rechazar (en el enero del usuario: margen 1.000,
     // cupo 0). El número mostrado es exactamente el que el rechazo usa como límite.
-    if (isAvailable(ends.from)) return { label: "Cupo del mes", value: reserveHeadroom(data, month) };
+    if (isAvailable(ends.from)) return { label: "Cupo del mes", value: reserveHeadroom(data, month, periods) };
     // Sacar o mover DESDE una alcancía: el tope es lo extraíble viendo la serie completa, no el
     // saldo del mes — un retiro posterior ya pudo usar esa plata (auditoría 2026-09-01).
-    return { label: "Máx.", value: maxWithdrawal(data, ends.from, month) };
-  }, [isReserve, ends.from, data, month]);
+    return { label: "Máx.", value: maxWithdrawal(data, ends.from, month, periods) };
+  }, [isReserve, ends.from, data, month, periods]);
   const overLimit = reserveLimit !== null && amount > reserveLimit.value;
 
   const saveEnabled = isReserve
@@ -101,7 +102,7 @@ export function Register() {
       return;
     }
     // La operación del registro: mismo dominio, mismo veredicto que la grilla (NFR-1004).
-    const dry = applyReserveOp(data, { from, to, month, amount, date, note });
+    const dry = applyReserveOp(data, { from, to, period: month, amount, date, note }, periods);
     if ("rejected" in dry) {
       // Carrera contra la guía (el estado cambió bajo los pies): el mensaje de la regla, bajo el monto.
       if (dry.rejected === "invalid_target") setRuleError("Operación inválida — revisa origen y destino");
@@ -109,7 +110,7 @@ export function Register() {
       return;
     }
     const targetLeaf = isAvailable(to) ? from : to;
-    const ok = add({ type: "transfer", catId: targetLeaf, amount, month, date, note, from, to });
+    const ok = add({ type: "transfer", catId: targetLeaf, amount, period: month, date, note, from, to });
     if (!ok) return; // doble-tap: sin overlay
     setConfirm({ amount, type, summary: `${money(amount)} · ${labelOfEnd(data, from)} → ${labelOfEnd(data, to)}` });
     timer.current = setTimeout(() => {
@@ -132,7 +133,7 @@ export function Register() {
       catId: sel.catId,
       subId: sel.subId,
       amount,
-      month,
+      period: month,
       date,
       note,
     });

@@ -16,7 +16,7 @@
 import { Component, Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import { MONTHS, monthLabel } from "@/domain/months";
+import { periodMonthLabel, periodLabel, isYearStart, periodYear } from "@/domain/periods";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
 import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
@@ -25,7 +25,7 @@ import { exceptionColor } from "./exceptionColor";
 import { ROWS, BLOCKS, RETIROS_ROW, indentFor, type RowSpec } from "./balanceRows";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
-import type { LedgerState, MonthKey } from "@/domain/types";
+import type { LedgerState, PeriodKey } from "@/domain/types";
 
 /**
  * Marca de forma del saldo negativo. Es el canal NO cromático de WCAG 1.4.1: verde y rojo son un
@@ -109,7 +109,7 @@ function balanceColor(spec: RowSpec, value: number): string {
 }
 
 /** Aportes y retiros BRUTOS del mes por plano — las dos filas de un solo signo del bloque 2. */
-type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: number }>>;
+type ReserveFlows = Record<PeriodKey, Record<Plane, { aportes: number; retiros: number }>>;
 
 /**
  * Desdoble del movimiento de reservas por mes y plano: `aportes` (subidas de saldo) y `retiros`
@@ -124,12 +124,12 @@ type ReserveFlows = Record<MonthKey, Record<Plane, { aportes: number; retiros: n
  *
  * @aitri-trace FR-ID: FR-1810, US-ID: US-1810, AC-ID: AC-1840, TC-ID: TC-TDF-101h
  */
-function computeReserveFlows(data: LedgerState): ReserveFlows {
+function computeReserveFlows(data: LedgerState, periods: readonly PeriodKey[]): ReserveFlows {
   const out = {} as ReserveFlows;
-  for (const m of MONTHS) {
-    out[m.k] = {
-      budget: { aportes: reserveAportes(data, m.k, "budget"), retiros: reserveRetiros(data, m.k, "budget") },
-      actual: { aportes: reserveAportes(data, m.k, "actual"), retiros: reserveRetiros(data, m.k, "actual") },
+  for (const m of periods) {
+    out[m] = {
+      budget: { aportes: reserveAportes(data, m, "budget"), retiros: reserveRetiros(data, m, "budget") },
+      actual: { aportes: reserveAportes(data, m, "actual"), retiros: reserveRetiros(data, m, "actual") },
     };
   }
   return out;
@@ -285,7 +285,7 @@ function HeaderTotalCell({ value, sep, active }: { value: number; sep?: boolean;
  *
  * @aitri-trace FR-ID: FR-908, US-ID: US-908, AC-ID: AC-908, TC-ID: TC-BAL-908h, TC-BAL-951e, TC-BAL-956h
  */
-function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
+function BalanceRows({ highlightMonth }: { highlightMonth: PeriodKey | null }) {
   const data = useLedgerStore((s) => s.data);
   // Plegado en dos niveles, como la grilla: el módulo entero y, dentro, sus INSUMOS. Plegar los
   // insumos deja las tres cifras de resultado — la vista compacta de "cuánto tengo". No se
@@ -312,8 +312,13 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
   // El patrón del repo (DesktopShell/BudgetGrid): derivar con useMemo sobre las porciones del
   // estado, NO con un selector de store — Zustand v5 no memoiza selectores y devolver un objeto
   // nuevo por llamada dispararía el "getSnapshot should be cached".
-  const series = useMemo(() => computeBalanceSeries(data), [data]);
-  const flows = useMemo(() => computeReserveFlows(data), [data]);
+  // Igual que la grilla: el CÁLCULO va sobre el rango completo y solo se PINTAN las columnas del
+  // filtro. Con «Año 2027» el saldo de apertura de enero viene de diciembre de 2026, que no está
+  // en pantalla — recortar el cálculo lo pondría en cero y la cifra mostrada sería falsa.
+  const scope = useLedgerStore((s) => s.activePeriods)();
+  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const series = useMemo(() => computeBalanceSeries(data, scope), [data, scope]);
+  const flows = useMemo(() => computeReserveFlows(data, scope), [data, scope]);
 
   return (
     <div data-testid="balance-module">
@@ -351,9 +356,9 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
           <Scale size={15} color="var(--fg)" aria-hidden="true" />
           <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">BALANCE</span>
         </div>
-        {MONTHS.map((m) =>
+        {periods.map((m) =>
           open ? (
-            <div key={m.k} className="flex">
+            <div key={m} className="flex">
               <div className={cn(CELL_W, "min-h-[34px] bg-sunken border-b border-border border-t border-t-border-strong border-l-2 border-l-border-strong")} />
               <div className={cn(CELL_W, "min-h-[34px] bg-sunken border-b border-border border-t border-t-border-strong")} />
             </div>
@@ -368,9 +373,9 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             // gastar». Además alinea los dos niveles de plegado: el chevron interno ya cortaba la
             // escalera justo en «Saldo disponible». Decisión del usuario, 2026-08-25 (BL-029),
             // ratificada el 2026-08-27. Cada celda usa el disponible de SU plano.
-            <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
-              <HeaderTotalCell value={series[m.k].budget.available} sep active={highlightMonth === m.k} />
-              <HeaderTotalCell value={series[m.k].actual.available} active={highlightMonth === m.k} />
+            <div key={m} className="flex" data-month={m} data-active={highlightMonth === m || undefined}>
+              <HeaderTotalCell value={series[m].budget.available} sep active={highlightMonth === m} />
+              <HeaderTotalCell value={series[m].actual.available} active={highlightMonth === m} />
             </div>
           )
         )}
@@ -394,12 +399,12 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             >
               {rotulo}
             </div>
-            {MONTHS.map((m) => (
-              <div key={m.k} className="flex" data-month={m.k}>
+            {periods.map((m) => (
+              <div key={m} className="flex" data-month={m}>
                 <div className={cn(CELL_W, "bg-sunken border-l-2 border-l-border-strong")}
-                     style={{ background: highlightMonth === m.k ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
+                     style={{ background: highlightMonth === m ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
                 <div className={cn(CELL_W, "bg-sunken")}
-                     style={{ background: highlightMonth === m.k ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
+                     style={{ background: highlightMonth === m ? "color-mix(in srgb, var(--accent) 8%, var(--bg-sunken))" : undefined }} />
               </div>
             ))}
           </div>
@@ -453,10 +458,10 @@ function BalanceRows({ highlightMonth }: { highlightMonth: MonthKey | null }) {
             </span>
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
           </div>
-          {MONTHS.map((m) => (
-            <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}>
-              <BalanceCell spec={spec} value={cellValue(series[m.k].budget, spec.key, flows[m.k].budget)} sep rule={rule} active={highlightMonth === m.k} />
-              <BalanceCell spec={spec} value={cellValue(series[m.k].actual, spec.key, flows[m.k].actual)} rule={rule} active={highlightMonth === m.k} />
+          {periods.map((m) => (
+            <div key={m} className="flex" data-month={m} data-active={highlightMonth === m || undefined}>
+              <BalanceCell spec={spec} value={cellValue(series[m].budget, spec.key, flows[m].budget)} sep rule={rule} active={highlightMonth === m} />
+              <BalanceCell spec={spec} value={cellValue(series[m].actual, spec.key, flows[m].actual)} rule={rule} active={highlightMonth === m} />
             </div>
           ))}
         </div>
@@ -515,7 +520,7 @@ class BalanceBoundary extends Component<{ children: ReactNode }, { failed: boole
  *
  * @aitri-trace FR-ID: FR-905, US-ID: US-905, AC-ID: AC-905, TC-ID: TC-BAL-935h, TC-BAL-956h
  */
-export function BalanceModule({ highlightMonth }: { highlightMonth?: MonthKey | null }) {
+export function BalanceModule({ highlightMonth }: { highlightMonth?: PeriodKey | null }) {
   return (
     <BalanceBoundary>
       <BalanceRows highlightMonth={highlightMonth ?? null} />
@@ -543,7 +548,9 @@ export function BalanceModule({ highlightMonth }: { highlightMonth?: MonthKey | 
 function TechoBanner() {
   const data = useLedgerStore((s) => s.data);
   const hydrated = useLedgerStore((s) => s.hydrated);
-  const breaches = useMemo<readonly MonthIssue[]>(() => (hydrated ? monthIssues(data) : []), [data, hydrated]);
+  const scope = useLedgerStore((s) => s.activePeriods)();
+  const breaches = useMemo<readonly MonthIssue[]>(
+    () => (hydrated ? monthIssues(data, scope) : []), [data, hydrated, scope]);
   if (breaches.length === 0) return null;
   return (
     <div
@@ -553,12 +560,12 @@ function TechoBanner() {
       style={{ borderColor: "var(--alert-strong)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)", color: "var(--fg)" }}
     >
       {breaches.map((b) => (
-        <div key={b.month} className="flex items-start gap-2" data-month={b.month}>
+        <div key={b.period} className="flex items-start gap-2" data-month={b.period}>
           <span className="flex-none mt-[1px]" style={{ color: "var(--alert-strong)" }} aria-hidden="true">
             <TriangleAlert size={14} />
           </span>
           <span>
-            <strong>{monthLabel(b.month)}:</strong> reservas <span className="tabular">{money(b.excess)}</span> por
+            <strong>{periodLabel(b.period)}:</strong> reservas <span className="tabular">{money(b.excess)}</span> por
             encima del margen del mes — los meses siguientes quedan sin margen.
           </span>
         </div>
@@ -581,9 +588,10 @@ function TechoBanner() {
  *
  * @aitri-trace FR-ID: FR-1805, US-ID: US-1805, AC-ID: AC-1818, TC-ID: TC-TDF-041h
  */
-export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null }) {
+export function RetirosRow({ highlightMonth }: { highlightMonth: PeriodKey | null }) {
   const spec = RETIROS_ROW;
   const narrow = useNarrowIndent();
+  const periods = useLedgerStore((s) => s.visiblePeriods)();
   return (
     // `retiros-row` y NO `balance-row`: desde FR-1810 esta fila NO pertenece al Balance — vive en
     // el segmento de Reservas y su cifra no entra en ninguna de sus cuentas. Conservar el testid
@@ -610,11 +618,11 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: MonthKey | null
         </span>
         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{spec.label}</span>
       </div>
-      {MONTHS.map((m) => (
-        <div key={m.k} className="flex" data-month={m.k} data-active={highlightMonth === m.k || undefined}
-             style={highlightMonth === m.k ? { background: "color-mix(in srgb, var(--accent) 8%, transparent)" } : undefined}>
-          <PlannedWithdrawCell month={m.k} sep />
-          <WithdrawCell month={m.k} />
+      {periods.map((m) => (
+        <div key={m} className="flex" data-month={m} data-active={highlightMonth === m || undefined}
+             style={highlightMonth === m ? { background: "color-mix(in srgb, var(--accent) 8%, transparent)" } : undefined}>
+          <PlannedWithdrawCell month={m} sep />
+          <WithdrawCell month={m} />
         </div>
       ))}
     </div>

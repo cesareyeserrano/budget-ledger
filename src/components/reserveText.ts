@@ -5,12 +5,12 @@
 // Propósito:    Convertir veredictos y efectos derivados del dominio en los mensajes del UX spec.
 //               El dominio entrega números tipados; aquí viven las palabras del usuario ("saldo",
 //               "margen", "reservar") — cero jerga ("delta", "resolved") en superficie (H2).
-// Dependencias: @/domain (tipos y labelOfEnd), ./format (money), @/domain/months (monthLabel).
+// Dependencias: @/domain (tipos y labelOfEnd), ./format (money), @/domain/periods (periodLabel).
 
 import type { ReserveVerdict } from "@/domain/reserve";
 import { labelOfEnd } from "@/domain/reserve";
-import type { LedgerState, MonthKey } from "@/domain/types";
-import { monthLabel } from "@/domain/months";
+import type { LedgerState, PeriodKey } from "@/domain/types";
+import { periodLabel } from "@/domain/periods";
 import { money } from "./format";
 
 /**
@@ -28,20 +28,20 @@ import { money } from "./format";
 export function blockMessage(
   state: LedgerState,
   verdict: Extract<ReserveVerdict, { ok: false }>,
-  ctx: { editedMonth: MonthKey; attempted?: number; maxTotal?: number }
+  ctx: { editedMonth: PeriodKey; attempted?: number; maxTotal?: number }
 ): string {
-  const chained = verdict.month !== ctx.editedMonth;
+  const chained = verdict.period !== ctx.editedMonth;
   if (verdict.rule === "deficit") {
     // El déficit protege plata que otros meses YA usaron — al subir un aporte (la usarán los gastos
     // siguientes) o al bajar un retiro (la usaron las reservas siguientes). El vocabulario de
     // «caben $X más» era de aporte y mentía al usuario que bajaba un retiro (auditoría 2026-09-01).
-    const mes = monthLabel(verdict.month).toLowerCase();
+    const mes = periodLabel(verdict.period).toLowerCase();
     return verdict.limit > 0
       ? `Bloquea en ${mes}: ${mes} ya usa esa plata — el margen es ${money(verdict.limit)}`
       : `Bloquea en ${mes}: ${mes} ya usa esa plata`;
   }
   if (verdict.rule === "techo") {
-    if (chained) return `Bloquea en ${monthLabel(verdict.month).toLowerCase()}: ese mes solo caben ${money(verdict.limit)} más`;
+    if (chained) return `Bloquea en ${periodLabel(verdict.period).toLowerCase()}: ese mes solo caben ${money(verdict.limit)} más`;
     // Si el llamador dice el TOTAL que la celda admite (el mismo «Máx.» del indicador), el mensaje
     // habla en ese total: el usuario tecleó un total, no un incremento, y mostrarle «margen $0»
     // junto a un «Máx. $1.000» eran dos números distintos para el mismo límite (auditoría
@@ -54,7 +54,7 @@ export function blockMessage(
   const name = labelOfEnd(state, verdict.leafId);
   if (chained) {
     // limit trae "el saldo que quedaría" (negativo) — 9.1: «Viaje quedaría en −50».
-    return `Bloquea en ${monthLabel(verdict.month).toLowerCase()}: «${name}» quedaría en −${money(Math.abs(verdict.limit))}`;
+    return `Bloquea en ${periodLabel(verdict.period).toLowerCase()}: «${name}» quedaría en −${money(Math.abs(verdict.limit))}`;
   }
   return `«${name}» solo tiene ${money(verdict.limit)}`;
 }

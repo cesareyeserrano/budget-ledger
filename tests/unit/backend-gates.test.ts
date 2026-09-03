@@ -8,6 +8,7 @@ import { readFileSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "no
 import path from "node:path";
 import os from "node:os";
 import { buildSeed, rollupBudget } from "@/domain";
+import { P0 } from "../helpers/periods";
 
 const ROOT = process.cwd();
 const ci = () => readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
@@ -169,14 +170,14 @@ describe("NFR-509 — la suite y las verificaciones estáticas permanecen verdes
     // @aitri-tc TC-BE-073f
     // Una mutación del cálculo cambiaría el resultado: rollup es sensible a los datos, así que un TC
     // que fija su salida fallaría si el cálculo se rompiera (no es un pase vacío).
-    const seed = buildSeed("A");
-    const real = rollupBudget(seed, "g-esenciales", "jun");
+    const seed = buildSeed("local", P0);
+    const real = rollupBudget(seed, "g-esenciales", "2026-06");
     const mutated = { ...seed, budgets: { ...seed.budgets } };
     // Alterar el presupuesto de una hoja del grupo cambia el roll-up (prueba de sensibilidad).
-    const leaf = seed.nodes.find((n) => n.type === "expense" && n.level !== "group" && seed.budgets[n.id]?.jun)!;
-    mutated.budgets[leaf.id] = { ...seed.budgets[leaf.id], jun: (seed.budgets[leaf.id]!.jun ?? 0) + 12345 };
-    expect(rollupBudget(mutated, "g-esenciales", "jun")).toBe(real + 12345);
-    expect(rollupBudget(mutated, "g-esenciales", "jun")).not.toBe(real);
+    const leaf = seed.nodes.find((n) => n.type === "expense" && n.level !== "group" && seed.budgets[n.id]?.["2026-06"])!;
+    mutated.budgets[leaf.id] = { ...seed.budgets[leaf.id], "2026-06": (seed.budgets[leaf.id]!["2026-06"] ?? 0) + 12345 };
+    expect(rollupBudget(mutated, "g-esenciales", "2026-06")).toBe(real + 12345);
+    expect(rollupBudget(mutated, "g-esenciales", "2026-06")).not.toBe(real);
   });
 });
 

@@ -24,7 +24,7 @@ const NODES_SIN_ALCANCIAS = NODES.filter((n) => n.type !== "transfer");
 /** Aportes del mes (modelo v4): Viaje 150k y Fondo 200k en ene; margen restante 150k. */
 const BASE = {
   budgets: {} as CellMap,
-  actuals: { "c-salario": { ene: 500_000 }, "c-viaje": { ene: 150_000 }, "c-fondo": { ene: 200_000 } } as CellMap,
+  actuals: { "c-salario": { "2026-01": 500_000 }, "c-viaje": { "2026-01": 150_000 }, "c-fondo": { "2026-01": 200_000 } } as CellMap,
 };
 
 async function gotoRegister(page: Page, nodes = NODES, data = BASE) {
@@ -38,7 +38,7 @@ async function gotoRegister(page: Page, nodes = NODES, data = BASE) {
   await expect(page.getByTestId("mobile-shell")).toBeVisible();
 }
 
-async function persisted(page: Page): Promise<{ actuals: CellMap; movements: { from?: string; to?: string; note?: string | null; month: string; target: string; amount: number }[] }> {
+async function persisted(page: Page): Promise<{ actuals: CellMap; movements: { from?: string; to?: string; note?: string | null; period: string; target: string; amount: number }[] }> {
   return (await readLedger(page)) as never;
 }
 
@@ -69,7 +69,7 @@ test.describe("FR-1005 — el registro opera Reservas con De→A", () => {
 
   test("TC-TRF4-005e: estado vacío sin alcancías, y el toggle dice 'Reserva'", async ({ page }) => {
     // @aitri-tc TC-TRF4-005e
-    await gotoRegister(page, NODES_SIN_ALCANCIAS, { budgets: {}, actuals: { "c-salario": { ene: 500_000 } } });
+    await gotoRegister(page, NODES_SIN_ALCANCIAS, { budgets: {}, actuals: { "c-salario": { "2026-01": 500_000 } } });
     await page.getByTestId("type-transfer").click();
 
     const empty = page.getByTestId("reserve-empty");
@@ -122,14 +122,14 @@ test.describe("FR-1005 — el registro opera Reservas con De→A", () => {
     expect(mv.note).toBe("pasaje");
     expect(mv.target).toBe("c-viaje");
     // Modelo v4: SACAR no toca celdas — el aporte de ene sigue intacto; el saldo derivado bajó.
-    expect(stored.actuals["c-viaje"]).toEqual({ ene: 150_000 });
+    expect(stored.actuals["c-viaje"]).toEqual({ "2026-01": 150_000 });
   });
 });
 
 test.describe("NFR-1002 — gasto e ingreso no pasan por las reglas de reservas", () => {
   test("TC-TRF4-152e: la captura de gasto/ingreso del registro no pasa por las reglas", async ({ page }) => {
     // @aitri-tc TC-TRF4-152e
-    await gotoRegister(page, NODES, { budgets: {}, actuals: { "c-viaje": { ene: 150_000 } } });
+    await gotoRegister(page, NODES, { budgets: {}, actuals: { "c-viaje": { "2026-01": 150_000 } } });
 
     await page.getByTestId("amount-input").fill("9999999");
     await page.getByTestId("category-c-mercado").click();
@@ -141,7 +141,7 @@ test.describe("NFR-1002 — gasto e ingreso no pasan por las reglas de reservas"
     expect(stored.movements).toHaveLength(1);
     expect(stored.movements[0].from).toBeUndefined();
     expect(Object.values(stored.actuals["c-mercado"])[0]).toBe(9_999_999);
-    expect(stored.actuals["c-viaje"]).toEqual({ ene: 150_000 });
+    expect(stored.actuals["c-viaje"]).toEqual({ "2026-01": 150_000 });
   });
 });
 

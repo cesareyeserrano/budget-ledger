@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "./helpers/fixtures";
 import { seedLedger } from "./helpers/seed";
 import type { LedgerNode } from "@/domain/types";
-import { MONTH_KEYS } from "../../src/domain/months";
+import { P as MONTH_KEYS, visibleMonthCount } from "./helpers/periods";
 
 // Feature balance — el módulo de Balance al pie de la grilla y la separación del bloque
 // Transferencia. Los TCs visuales afirman VALORES COMPUTADOS reales (color, background, altura,
@@ -11,9 +11,9 @@ const DESK = { width: 1440, height: 1250 };
 const MOBILE = { width: 375, height: 900 };
 
 /** Mes sobre el que se posa el filtro: fijo, para que el resaltado sea determinista. */
-const PICKED = { key: "ene", label: "Enero", index: MONTH_KEYS.indexOf("ene") };
+const PICKED = { key: "2026-01", label: "Enero 2026", index: MONTH_KEYS.indexOf("2026-01") };
 /** Un mes SIN resaltar, para leer superficies sin el tinte del filtro. */
-const PLAIN = { key: "feb", index: MONTH_KEYS.indexOf("feb") };
+const PLAIN = { key: "2026-02", index: MONTH_KEYS.indexOf("2026-02") };
 
 const BG_SUNKEN = "rgb(241, 241, 243)"; // --bg-sunken claro
 // El módulo usa las variantes AA-seguras, no --success/--error: medidos sobre la superficie
@@ -316,7 +316,9 @@ test("TC-BAL-953e: las filas del balance no muestran la marca de sobre-consumo d
   const count = await cells.count();
   // FR-1810: DIEZ filas del módulo, todas con `balance-cell` — la operable de retiros salió de
   // la cascada y ya no lleva el testid del Balance.
-  expect(count).toBe(10 * 12 * 2);
+  // DIEZ filas × una celda por columna visible × dos planos. El número de columnas ya no
+  // es doce (multi-anio): se lee del DOM para que la aserción siga midiendo la ESTRUCTURA.
+  expect(count).toBe(10 * (await visibleMonthCount(page)) * 2);
 
   const texts = await cells.allTextContents();
   for (const t of texts) {
@@ -622,7 +624,7 @@ test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo dispo
   // @aitri-tc TC-BAL-909h
   await gotoGrid(page, POSITIVE);
 
-  const jul = MONTH_KEYS.indexOf("jul");
+  const jul = MONTH_KEYS.indexOf("2026-07");
   const disponibleAntes = await readBal(page, "available", jul, "actual");
   const totalAntes = await readBal(page, "total", jul, "actual");
   expect(disponibleAntes).toBeGreaterThan(0); // el caso sería vacío si no hubiera datos
@@ -633,7 +635,9 @@ test("TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo dispo
   // plegar RESUME: cero filas, pero el encabezado sigue diciendo una cifra por mes y plano
   expect(await filasVisibles(page)).toEqual([]);
   const celdas = page.getByTestId("balance-header-cell");
-  await expect(celdas).toHaveCount(MONTH_KEYS.length * 2); // 24 = 12 meses × 2 planos
+  // DOS celdas por columna visible. Ya no son doce columnas fijas (multi-anio, FR-1905), así que
+  // el número se lee del DOM: la aserción sigue midiendo la ESTRUCTURA del encabezado plegado.
+  await expect(celdas).toHaveCount((await visibleMonthCount(page)) * 2);
 
   // y el número es el MISMO que mostraba la fila Saldo disponible antes de plegar
   const julEjec = amountOf(await celdas.nth(jul * 2 + 1).textContent());

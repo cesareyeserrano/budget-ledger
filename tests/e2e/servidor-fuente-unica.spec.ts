@@ -4,6 +4,7 @@ import { E2E_BASE, E2E_PASSWORD, e2eEmail, storageStatePath } from "./helpers/gl
 import { buildSeed } from "@/domain";
 import type { Browser, BrowserContext } from "@playwright/test";
 import type { LedgerNode } from "@/domain/types";
+import { P0 } from "./helpers/periods";
 
 // Feature servidor-fuente-unica — e2e. Postgres es la ÚNICA fuente de verdad: sin sesión no hay
 // app ni petición de datos, lo guardado en un navegador aparece en otro, y localStorage solo
@@ -18,9 +19,9 @@ import type { LedgerNode } from "@/domain/types";
 const DESK = { width: 1440, height: 900 };
 const MOB = { width: 375, height: 812 };
 // Índices de mes en la grilla: cada mes ocupa dos celdas (Pres., Ejec.) en orden ene…dic.
-const MONTH_IDX = { ene: 0, sep: 8, oct: 9 } as const;
-const cellIdx = (month: keyof typeof MONTH_IDX, plane: "budget" | "actual") =>
-  MONTH_IDX[month] * 2 + (plane === "actual" ? 1 : 0);
+const MONTH_IDX = { "2026-01": 0, "2026-09": 8, "2026-10": 9 } as const;
+const cellIdx = (period: keyof typeof MONTH_IDX, plane: "budget" | "actual") =>
+  MONTH_IDX[period] * 2 + (plane === "actual" ? 1 : 0);
 
 const fmt = (n: number) => n.toLocaleString("es-CO");
 const workerEmail = () => e2eEmail(test.info().parallelIndex);
@@ -117,7 +118,7 @@ test("TC-SFU-102e: la sesión que expira devuelve al login sin dejar datos en pa
   });
 
   await context.clearCookies();
-  await editLeafCell(page, "Mercado", cellIdx("ene", "actual"), "90000");
+  await editLeafCell(page, "Mercado", cellIdx("2026-01", "actual"), "90000");
 
   await expect.poll(() => statuses, { timeout: 10_000 }).toContain(401);
   await expect(page.getByTestId("auth-form")).toBeVisible({ timeout: 10_000 });
@@ -155,7 +156,7 @@ test("TC-SFU-102f: sin sesión no se emite ninguna petición de datos financiero
 test("TC-SFU-103h: un dato guardado en un navegador aparece al entrar desde otro", async ({ page, browser }) => {
   // @aitri-tc TC-SFU-103h
   const before = await readLedger(page);
-  const baseline = before?.actuals["s-comida-mercado"]?.ene ?? 0;
+  const baseline = before?.actuals["s-comida-mercado"]?.["2026-01"] ?? 0;
 
   // Contexto A: el registro móvil, con la fecha llevada a enero por el calendario.
   await page.setViewportSize(MOB);
@@ -173,10 +174,10 @@ test("TC-SFU-103h: un dato guardado en un navegador aparece al entrar desde otro
   await expect(page.getByTestId("confirm-overlay")).toContainText("$37.500");
 
   await expect
-    .poll(async () => (await readLedger(page))?.actuals["s-comida-mercado"]?.ene ?? 0, { timeout: 10_000 })
+    .poll(async () => (await readLedger(page))?.actuals["s-comida-mercado"]?.["2026-01"] ?? 0, { timeout: 10_000 })
     .toBe(baseline + 37500);
   const movements = (await readLedger(page))?.movements ?? [];
-  expect(movements.some((m) => m.amount === 37500 && m.month === "ene")).toBe(true);
+  expect(movements.some((m) => m.amount === 37500 && m.period === "2026-01")).toBe(true);
 
   // Contexto B: navegador limpio, misma cuenta, login por el formulario.
   const ctxB = await browser.newContext({ baseURL: E2E_BASE, viewport: DESK, storageState: { cookies: [], origins: [] } });
@@ -188,7 +189,7 @@ test("TC-SFU-103h: un dato guardado en un navegador aparece al entrar desde otro
     // BL-003 retiró la lista 'Recientes'; la superficie donde el movimiento se OBSERVA es la
     // celda del mes que alimenta (Mercado/ene Ejec.), que en B debe traer ya el aporte de A.
     // El \D* absorbe el glifo de sobre-consumo (›) que el gasto añade al pasarse del plan.
-    await expect(nodeRow(pageB, "Mercado").getByTestId("cell-leaf").nth(cellIdx("ene", "actual"))).toHaveText(
+    await expect(nodeRow(pageB, "Mercado").getByTestId("cell-leaf").nth(cellIdx("2026-01", "actual"))).toHaveText(
       new RegExp(`^\\D*${fmt(baseline + 37500).replace(/\./g, "\\.")}$`)
     );
   } finally {
@@ -204,8 +205,8 @@ test("TC-SFU-104h: tras un recorrido completo no queda ninguna clave ledger.* en
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
 
-  await editLeafCell(page, "Vivienda", cellIdx("ene", "budget"), "120000");
-  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").nth(cellIdx("ene", "budget"))).toHaveText("120.000");
+  await editLeafCell(page, "Vivienda", cellIdx("2026-01", "budget"), "120000");
+  await expect(nodeRow(page, "Vivienda").getByTestId("cell-leaf").nth(cellIdx("2026-01", "budget"))).toHaveText("120.000");
 
   await page.getByRole("button", { name: /Nuevo movimiento/ }).click();
   await page.getByTestId("amount-input").fill("9000");
@@ -214,16 +215,16 @@ test("TC-SFU-104h: tras un recorrido completo no queda ninguna clave ledger.* en
   await expect(page.getByTestId("confirm-overlay")).toContainText("$9.000");
 
   // Reserva: corregir el aporte de enero de la alcancía 'Ahorros' (semilla: 322.000 → 40.000).
-  await editLeafCell(page, "Ahorros", cellIdx("ene", "actual"), "40000");
-  await expect(nodeRow(page, "Ahorros").getByTestId("cell-leaf").nth(cellIdx("ene", "actual"))).toHaveText("40.000");
+  await editLeafCell(page, "Ahorros", cellIdx("2026-01", "actual"), "40000");
+  await expect(nodeRow(page, "Ahorros").getByTestId("cell-leaf").nth(cellIdx("2026-01", "actual"))).toHaveText("40.000");
 
   await page.reload();
   await expect(page.getByTestId("budget-grid")).toBeVisible();
 
   // El recorrido tiene que haber ESCRITO de verdad: si no, «0 claves» sería un pase gratis.
   const state = await readLedger(page);
-  expect(state?.budgets["c-vivienda"]?.ene).toBe(120000);
-  expect(state?.actuals["c-ahorros"]?.ene).toBe(40000);
+  expect(state?.budgets["c-vivienda"]?.["2026-01"]).toBe(120000);
+  expect(state?.actuals["c-ahorros"]?.["2026-01"]).toBe(40000);
   expect((state?.movements ?? []).some((m) => m.amount === 9000)).toBe(true);
 
   expect(await ledgerKeys(page)).toEqual([]);
@@ -469,14 +470,14 @@ test("TC-SFU-203e: el sync en vivo sigue actualizando la vista sin recargar", as
   try {
     await pageB.goto("/");
     await expandComida(pageB);
-    const cellB = nodeRow(pageB, "Mercado").getByTestId("cell-leaf").nth(cellIdx("sep", "actual"));
+    const cellB = nodeRow(pageB, "Mercado").getByTestId("cell-leaf").nth(cellIdx("2026-09", "actual"));
     await expect(cellB).toHaveText("—"); // sep no tiene ejecución en la semilla
 
     // Testigo de «no se recargó»: una marca en el window de B que cualquier navegación borraría.
     await pageB.evaluate(() => ((window as unknown as { __sfu: boolean }).__sfu = true));
 
-    await editLeafCell(page, "Mercado", cellIdx("sep", "actual"), "88000");
-    await expect(nodeRow(page, "Mercado").getByTestId("cell-leaf").nth(cellIdx("sep", "actual"))).toHaveText("88.000");
+    await editLeafCell(page, "Mercado", cellIdx("2026-09", "actual"), "88000");
+    await expect(nodeRow(page, "Mercado").getByTestId("cell-leaf").nth(cellIdx("2026-09", "actual"))).toHaveText("88.000");
 
     await expect(cellB).toHaveText("88.000", { timeout: 5000 });
     expect(await pageB.evaluate(() => (window as unknown as { __sfu?: boolean }).__sfu === true)).toBe(true);
@@ -493,28 +494,28 @@ test("TC-SFU-204h: la grilla de 12 meses sigue operando contra Postgres", async 
   await page.goto("/");
   await expandComida(page);
 
-  await editLeafCell(page, "Mercado", cellIdx("oct", "budget"), "143000");
+  await editLeafCell(page, "Mercado", cellIdx("2026-10", "budget"), "143000");
   await page.reload();
   await expandComida(page);
 
-  const cell = nodeRow(page, "Mercado").getByTestId("cell-leaf").nth(cellIdx("oct", "budget"));
+  const cell = nodeRow(page, "Mercado").getByTestId("cell-leaf").nth(cellIdx("2026-10", "budget"));
   await expect(cell).toHaveText("143.000");
 
   const state = await readLedger(page);
-  expect(state?.budgets["s-comida-mercado"]?.oct).toBe(143000);
+  expect(state?.budgets["s-comida-mercado"]?.["2026-10"]).toBe(143000);
   // Roll-up del padre: 'Comida' no es hoja — su celda agrega a sus tres subcategorías.
   const esperado =
     143000 +
-    (state?.budgets["s-comida-restaurantes"]?.oct ?? 0) +
-    (state?.budgets["s-comida-cafe"]?.oct ?? 0);
+    (state?.budgets["s-comida-restaurantes"]?.["2026-10"] ?? 0) +
+    (state?.budgets["s-comida-cafe"]?.["2026-10"] ?? 0);
   expect(esperado).toBeGreaterThan(143000);
-  await expect(nodeRow(page, "Comida").getByTestId("cell-parent").nth(cellIdx("oct", "budget"))).toHaveText(fmt(esperado));
+  await expect(nodeRow(page, "Comida").getByTestId("cell-parent").nth(cellIdx("2026-10", "budget"))).toHaveText(fmt(esperado));
 });
 
 test("TC-SFU-204e: promote y demote de nodos siguen funcionando tras el retiro", async ({ page }) => {
   // @aitri-tc TC-SFU-204e
   // 'Ocio'/'Cine' no están en la semilla: se siembran por la API, el mismo camino de un dato real.
-  const seed = buildSeed("local");
+  const seed = buildSeed("local", P0);
   const nodes: LedgerNode[] = [
     ...seed.nodes,
     { id: "c-ocio", ownerId: "local", type: "expense", level: "category", parentId: "g-esenciales", name: "Ocio", icon: "tag", order: 100 },

@@ -21,7 +21,7 @@ describe("FR-312 período por defecto = mes en curso", () => {
     vi.setSystemTime(new Date(2026, 6, 8)); // julio
     const period = await freshStorePeriod();
     expect(period.mode).toBe("month");
-    expect(period).toEqual({ mode: "month", month: "jul" });
+    expect(period).toEqual({ mode: "month", month: "2026-07" });
   });
 
 });

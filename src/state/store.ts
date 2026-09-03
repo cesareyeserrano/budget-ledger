@@ -1,7 +1,7 @@
 // @aitri-trace state:store — única fuente de verdad en memoria; acciones mutan el dominio y persisten vía repositorio.
 "use client";
 import { create } from "zustand";
-import type { LedgerState, MonthKey, NodeType } from "@/domain/types";
+import type { LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
@@ -11,14 +11,74 @@ import {
 import { retiroToast } from "@/components/reserveText";
 import { ServerRepository } from "@/data/serverRepository";
 import { STORAGE_KEYS } from "@/domain/types";
-import { currentMonthKey } from "@/domain/months";
+import { currentPeriod } from "@/lib/date";
+import { activeRange, normalizeHorizon, DEFAULT_HORIZON, type Horizon } from "@/domain/range";
+import { periodYear } from "@/domain/periods";
 
-export type PeriodFilter = { mode: "month"; month: MonthKey } | { mode: "year" };
+/**
+ * Alcance del filtro Mes/Año. El modo amplio sigue siendo UN AÑO, no todo el rango — decisión del
+ * usuario (2026-09-02). Lo que cambia con multi-anio es que hay que decir CUÁL año: antes el modo
+ * "year" no llevaba dato porque solo existía uno.
+ */
+export type PeriodFilter = { mode: "month"; month: PeriodKey } | { mode: "year"; year: number };
+
+/**
+ * EL RANGO ACTIVO, memoizado por IDENTIDAD del estado y del horizonte.
+ *
+ * Que sea UNA sola lista compartida por la grilla, el Balance y `reserve.ts` no es una
+ * optimización: es lo que garantiza que la columna que el usuario ve sea exactamente la que el
+ * techo evalúa (TRD, System Architecture). Además, `reserve.ts` memoiza sus barridos por la
+ * IDENTIDAD de esta lista, así que devolver un array nuevo en cada lectura invalidaría toda la
+ * caché del dominio en cada render.
+ */
+const rangeMemo = new WeakMap<LedgerState, Map<string, PeriodKey[]>>();
+
+/**
+ * El recorte por año, memoizado por IDENTIDAD de la lista completa.
+ *
+ * Sin esto `filter` devolvería un array NUEVO en cada llamada: los `useMemo` de la grilla y del
+ * Balance no acertarían nunca —recalcularían en cada render— y, peor, `reserve.ts` memoiza sus
+ * barridos por la identidad de la lista, así que cada render tiraría toda su caché.
+ */
+const visiblesMemo = new WeakMap<object, Map<number, PeriodKey[]>>();
+function visiblesFor(all: PeriodKey[], year: number): PeriodKey[] {
+  let byYear = visiblesMemo.get(all as unknown as object);
+  if (!byYear) { byYear = new Map(); visiblesMemo.set(all as unknown as object, byYear); }
+  let out = byYear.get(year);
+  if (!out) { out = all.filter((p) => periodYear(p) === year); byYear.set(year, out); }
+  return out;
+}
+function periodsFor(data: LedgerState, horizon: Horizon, now: PeriodKey): PeriodKey[] {
+  let byKey = rangeMemo.get(data);
+  if (!byKey) { byKey = new Map(); rangeMemo.set(data, byKey); }
+  const key = `${horizon}:${now}`;
+  let list = byKey.get(key);
+  if (!list) { list = activeRange(data, now, horizon); byKey.set(key, list); }
+  return list;
+}
 
 interface LedgerStore {
   data: LedgerState;
   hydrated: boolean;
   period: PeriodFilter;
+  /** Horizonte de planeación: 12 o 24 meses rodantes desde el periodo en curso (FR-1904). */
+  horizon: Horizon;
+  /** Fija el horizonte y lo persiste en la cuenta del usuario (FR-1907). */
+  setHorizon: (h: number) => void;
+  /**
+   * El rango ACTIVO: el alcance del CÁLCULO. Lo reciben `computeBalanceSeries` y `reserve.ts`.
+   * No lo toca el filtro: recortar el cálculo cambiaría el arrastre y el techo, no la vista.
+   */
+  activePeriods: () => PeriodKey[];
+  /**
+   * Las columnas que se PINTAN. Es `activePeriods` pasado por el filtro Mes/Año.
+   *
+   * Que sean dos listas distintas es deliberado: con el filtro en «Año 2027» el usuario ve doce
+   * columnas, pero el saldo con que abre enero de 2027 sale de diciembre de 2026 — un periodo que
+   * NO está en pantalla. Si el filtro recortara el cálculo, ese arrastre saldría de cero y las
+   * cifras mostradas serían falsas sin que nada lo delatara.
+   */
+  visiblePeriods: () => PeriodKey[];
   toast: string | null;
   /** El toast vigente ofrece «Deshacer» (retiro de reserva con undo de un nivel, FR-1003/ADR-07). */
   toastUndo: boolean;
@@ -40,12 +100,12 @@ interface LedgerStore {
    * aplica — jamás journaliza ni genera retiros. Devuelve el resultado tipado para que el editor
    * pinte la franja de bloqueo sin re-derivar nada.
    */
-  applyReserveEdit: (leafId: string, month: MonthKey, plane: Plane, newAmount: number) => ReserveEditResult;
+  applyReserveEdit: (leafId: string, month: PeriodKey, plane: Plane, newAmount: number) => ReserveEditResult;
   /**
    * Retiro explícito desde la grilla (fila Retiros): saca de una alcancía hacia Disponible
    * (destino fijo en v1), journaliza y arma el toast con Deshacer.
    */
-  applyReserveWithdrawal: (from: string, month: MonthKey, amount: number, note?: string | null) => ReserveOpResult;
+  applyReserveWithdrawal: (from: string, month: PeriodKey, amount: number, note?: string | null) => ReserveOpResult;
   /** Revierte el último retiro de reserva (un nivel; se descarta con cualquier mutación posterior). */
   undoLastReserveOp: () => void;
   /** Corrige un error: elimina un RETIRO o un MOVER del journal (el saldo se restaura por
@@ -55,9 +115,9 @@ interface LedgerStore {
   /** FR-1802: corrige el monto de una operación; 0 la elimina. */
   editReserveOp: (movementId: string, amount: number) => { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
   /** Retiro PLANEADO de un mes. Rechaza superar lo reservado planeado (con el límite para la UI). */
-  setPlannedRetiro: (month: MonthKey, value: number) => { ok: true } | { ok: false; limit: number };
+  setPlannedRetiro: (month: PeriodKey, value: number) => { ok: true } | { ok: false; limit: number };
   /** Observación manual de una celda de reserva (FR-1012). true si se guardó. */
-  addCellNote: (leafId: string, month: MonthKey, text: string) => boolean;
+  addCellNote: (leafId: string, month: PeriodKey, text: string) => boolean;
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
    *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
   addMovement: (input: NewMovement) => boolean;
@@ -66,7 +126,7 @@ interface LedgerStore {
   setNodeIcon: (id: string, icon: string) => void;
   deleteNode: (id: string) => "ok" | DeleteBlock;
   moveNode: (id: string, dest: MoveDest) => "ok" | "cross_type" | "invalid_target" | "would_overflow";
-  setLeafAmount: (leafId: string, month: MonthKey, kind: "budget" | "actual", value: number) => void;
+  setLeafAmount: (leafId: string, month: PeriodKey, kind: "budget" | "actual", value: number) => void;
   setPeriod: (p: PeriodFilter) => void;
   hydrate: () => Promise<void>;
   /** Re-carga el estado desde la fuente de verdad (usado por el sync en vivo, FR-511). */
@@ -141,7 +201,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   const onSessionExpired = () => {
     pendingSave = null;
     reserveUndo = null;
-    set({ data: buildSeed(OWNER), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
+    set({ data: buildSeed(OWNER, currentPeriod()), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
   };
 
   const drainSaves = async () => {
@@ -197,11 +257,30 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let reserveUndo: { prevData: LedgerState; afterData: LedgerState } | null = null;
 
   return {
-    data: buildSeed(OWNER),
+    data: buildSeed(OWNER, currentPeriod()),
     hydrated: false,
     // ux-consistency FR-312: arrancar en el MES EN CURSO (según el reloj), no en un año/mes fijo.
     // Supersede el default 'Año' de FR-106; el usuario cambia el filtro Mes/Año libremente.
-    period: { mode: "month", month: currentMonthKey() },
+    period: { mode: "month", month: currentPeriod() },
+    horizon: DEFAULT_HORIZON,
+    activePeriods: () => periodsFor(get().data, get().horizon, currentPeriod()),
+    visiblePeriods: () => {
+      const all = periodsFor(get().data, get().horizon, currentPeriod());
+      const f = get().period;
+      return f.mode === "year" ? visiblesFor(all, f.year) : all;
+    },
+    setHorizon: (h) => {
+      const next = normalizeHorizon(h);
+      if (next === get().horizon) return;
+      set({ horizon: next });
+      // La preferencia vive en la CUENTA, no en el navegador (ADR-06): viaja entre dispositivos y
+      // no toca el snapshot del ledger, así que no sube `revision` (FR-1907).
+      void fetch("/api/v1/preferences/horizon", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ horizon: next }),
+      }).catch(() => { /* una preferencia que no se pudo guardar no rompe la sesión */ });
+    },
     toast: null,
     toastUndo: false,
     storageError: null,
@@ -218,7 +297,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     },
 
     applyReserveEdit: (leafId, month, plane, newAmount) => {
-      const result = applyReserveCellEdit(get().data, { leafId, month, plane, newAmount });
+      const result = applyReserveCellEdit(get().data, { leafId, period: month, plane, newAmount }, get().activePeriods());
       if ("rejected" in result || result.noop) return result;
       reserveUndo = null; // editar celdas descarta la ventana de undo del último retiro
       set({ data: result.state });
@@ -231,7 +310,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // FR-1802 — el retiro nace CON fecha: la lista de operaciones la muestra y la edición la
       // conserva. Antes los retiros de la grilla nacían sin ella (solo el Registrar móvil la pasaba).
       const date = new Date().toISOString().slice(0, 16);
-      const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, month, amount, date, ...(note !== undefined ? { note } : {}) });
+      const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, period: month, amount, date, ...(note !== undefined ? { note } : {}) }, get().activePeriods());
       if ("rejected" in result) return result;
       // Retiro: red mínima para un gesto rápido — toast 6s con Deshacer (un nivel).
       reserveUndo = { prevData: prev, afterData: result.state };
@@ -260,7 +339,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     removeReserveWithdrawal: (movementId) => {
       const prev = get().data;
-      const result = removeReserveOp(prev, movementId);
+      const result = removeReserveOp(prev, movementId, get().activePeriods());
       if ("rejected" in result) return { ok: false, rejected: result.rejected };
       if (result.state === prev) return { ok: true }; // no era una operación eliminable: no-op
       reserveUndo = null;
@@ -271,7 +350,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     editReserveOp: (movementId, amount) => {
       const prev = get().data;
-      const result = editReserveOp(prev, movementId, amount);
+      const result = editReserveOp(prev, movementId, amount, get().activePeriods());
       if ("rejected" in result) return { ok: false, rejected: result.rejected };
       if (result.state === prev) return { ok: true }; // mismo monto: no-op
       reserveUndo = null;
@@ -282,7 +361,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     setPlannedRetiro: (month, value) => {
       const prev = get().data;
-      const result = setPlannedRetiro(prev, month, value);
+      const result = setPlannedRetiro(prev, month, value, get().activePeriods());
       if ("rejected" in result) return { ok: false, limit: result.rejected.limit };
       if (result.state !== prev) {
         reserveUndo = null;
@@ -293,7 +372,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     },
 
     addCellNote: (leafId, month, text) => {
-      const result = addCellNote(get().data, leafId, month, text);
+      const result = addCellNote(get().data, leafId, month, text, get().activePeriods());
       if ("rejected" in result) return false;
       set({ data: result.state });
       persist(result.state);
@@ -350,9 +429,16 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.
       if (loaded) seedSeqFrom(loaded);
       // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
-      const data = loaded ?? buildSeed(OWNER);
+      const data = loaded ?? buildSeed(OWNER, currentPeriod());
       if (!loaded) await repo.save(OWNER, data);
       set({ data, hydrated: true });
+      // El horizonte vive en la cuenta (FR-1907/ADR-06). Se lee DESPUÉS de pintar: es una
+      // preferencia, no un dato del ledger, así que no debe retrasar la primera pintura — y si la
+      // lectura falla, la app se queda con el defecto de 24 en vez de romperse.
+      void fetch("/api/v1/preferences/horizon")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => { if (j && typeof j.horizon === "number") set({ horizon: normalizeHorizon(j.horizon) }); })
+        .catch(() => { /* preferencia ilegible: se queda el defecto */ });
     },
 
     /** Re-carga desde la fuente de verdad (sync en vivo / resolución de conflicto). */
@@ -371,12 +457,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
      */
     addMovement: (input) => {
       // Anti doble-tap: un guardado idéntico dentro de la ventana no se duplica (FR-212).
-      const sig = [input.type, input.catId, input.subId ?? "", input.amount, input.month, input.date ?? "", input.note ?? "", input.from ?? "", input.to ?? ""].join("|");
+      const sig = [input.type, input.catId, input.subId ?? "", input.amount, input.period, input.date ?? "", input.note ?? "", input.from ?? "", input.to ?? ""].join("|");
       const now = Date.now();
       if (lastSig === sig && now - lastAt < DOUBLE_TAP_MS) return false;
 
       const prev = get().data;
-      const data = addMovement(prev, input);
+      const data = addMovement(prev, input, get().activePeriods());
       if (data === prev) return false; // inválido: no se persiste
       lastSig = sig;
       lastAt = now;
@@ -403,7 +489,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       persist(data);
     },
     deleteNode: (id) => {
-      const res = deleteNode(get().data, id);
+      const res = deleteNode(get().data, id, get().activePeriods());
       if ("blocked" in res) return res.blocked;
       set({ data: res.state });
       persist(res.state);
@@ -417,7 +503,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       return "ok";
     },
     setLeafAmount: (leafId, month, kind, value) => {
-      const data = setLeafAmount(get().data, leafId, month, kind, value);
+      const data = setLeafAmount(get().data, leafId, month, kind, value, get().activePeriods());
       set({ data });
       persist(data);
     },

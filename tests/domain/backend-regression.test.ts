@@ -8,21 +8,22 @@ import { describe, expect, it } from "vitest";
 import { buildSeed, addMovement, rollupActual, rollupBudget, dashboardMetrics } from "@/domain";
 import { budgetState, OVER_HARD_RATIO } from "@/domain/budgetState";
 import type { LedgerState } from "@/domain";
+import { P, P0 } from "../helpers/periods";
 
 describe("NFR-507 — el dominio no cambia su lógica de cálculo", () => {
   it("TC-BE-065h: rollup/dashboard/budgetState dan resultados idénticos al baseline para la semilla", () => {
     // @aitri-tc TC-BE-065h
-    const seed = buildSeed("A");
+    const seed = buildSeed("local", P0);
     // rollup de un grupo = suma de sus hojas (determinista por la semilla).
     const grupo = "g-esenciales";
     const leaves = seed.nodes.filter((n) => n.parentId && ["c-comida", "s-comida-mercado"].includes(n.id));
     expect(leaves.length).toBeGreaterThan(0);
-    const budJun = rollupBudget(seed, grupo, "jun");
-    const actJun = rollupActual(seed, grupo, "jun");
+    const budJun = rollupBudget(seed, grupo, "2026-06");
+    const actJun = rollupActual(seed, grupo, "2026-06");
     // El roll-up de presupuesto del grupo suma exactamente los presupuestos de sus hojas.
     const manualBud = seed.nodes
       .filter((n) => n.type === "expense" && n.level !== "group")
-      .reduce((acc, n) => acc + (seed.budgets[n.id]?.jun ?? 0), 0);
+      .reduce((acc, n) => acc + (seed.budgets[n.id]?.["2026-06"] ?? 0), 0);
     expect(budJun).toBe(manualBud);
     expect(budJun).toBeGreaterThan(0);
     expect(actJun).toBeGreaterThanOrEqual(0);
@@ -34,7 +35,7 @@ describe("NFR-507 — el dominio no cambia su lógica de cálculo", () => {
     expect(OVER_HARD_RATIO).toBe(1.2);
 
     // dashboard produce un VM estable para el período mes.
-    const vm = dashboardMetrics(seed, { mode: "month", month: "jun" });
+    const vm = dashboardMetrics(seed, { mode: "month", month: "2026-06" }, P);
     expect(vm).toBeDefined();
     expect(typeof JSON.stringify(vm)).toBe("string");
   });
@@ -49,13 +50,13 @@ describe("NFR-507 — el dominio no cambia su lógica de cálculo", () => {
         { id: "c", ownerId: "A", type: "expense", level: "category", parentId: "g", name: "C", icon: null, order: 1 },
         { id: "s", ownerId: "A", type: "expense", level: "sub", parentId: "c", name: "S", icon: null, order: 2 },
       ],
-      budgets: { s: { jun: 0 } },
-      actuals: { s: { jun: 0 } },
+      budgets: { s: { "2026-06": 0 } },
+      actuals: { s: { "2026-06": 0 } },
       movements: [],
     };
-    expect(rollupBudget(state, "g", "jun")).toBe(0);
-    expect(rollupActual(state, "g", "jun")).toBe(0);
-    expect(Number.isNaN(rollupBudget(state, "g", "jun"))).toBe(false);
+    expect(rollupBudget(state, "g", "2026-06")).toBe(0);
+    expect(rollupActual(state, "g", "2026-06")).toBe(0);
+    expect(Number.isNaN(rollupBudget(state, "g", "2026-06"))).toBe(false);
     // budgetState con presupuesto 0 y ejecutado 0 → within (sin dividir por cero).
     expect(budgetState(0, 0)).toBe("within");
     // presupuesto 0 con ejecutado > 0 → over_hard.
@@ -64,15 +65,15 @@ describe("NFR-507 — el dominio no cambia su lógica de cálculo", () => {
 
   it("TC-BE-067f: una entrada inválida se rechaza igual que antes, sin cambio de comportamiento", () => {
     // @aitri-tc TC-BE-067f
-    const seed = buildSeed("A");
+    const seed = buildSeed("local", P0);
     // amount 0 → addMovement devuelve el MISMO estado (rechazado, sin mutar) igual que el baseline.
-    const zero = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 0, month: "jun" });
+    const zero = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 0, period: "2026-06" }, P);
     expect(zero).toBe(seed);
     // sin categoría → rechazado igual.
-    const noCat = addMovement(seed, { type: "expense", catId: "", amount: 100, month: "jun" });
+    const noCat = addMovement(seed, { type: "expense", catId: "", amount: 100, period: "2026-06" }, P);
     expect(noCat).toBe(seed);
     // monto no numérico → rechazado igual.
-    const nan = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: "x", month: "jun" });
+    const nan = addMovement(seed, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: "x", period: "2026-06" }, P);
     expect(nan).toBe(seed);
   });
 });

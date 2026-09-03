@@ -1,5 +1,5 @@
 export * from "./types";
-export * from "./months";
+export * from "./periods";
 export * from "./tree";
 export * from "./rollup";
 export * from "./sign";

@@ -22,6 +22,7 @@ import { GET as ledgerGET } from "@/app/api/v1/ledger/route";
 import { getSessionUser } from "@/server/session";
 import { saveLedger } from "@/server/data/ledgerRepo";
 import { buildSeed, createNode } from "@/domain";
+import { P0 } from "../../helpers/periods";
 
 // BG-015: la fachada de recuperación pasó a estar acotada a 5/min POR CORREO, además de por IP.
 // El arnés rota IPs (`nextIp`), lo que bastaba contra un límite por IP pero no contra uno por
@@ -230,7 +231,7 @@ describe("FR-1309 — cambiar la contraseña cierra las sesiones abiertas", () =
     const bob = await newUser("bob@example.com");
     // Bob necesita libro guardado: sin datos el contrato responde 204, y lo que se afirma aquí es
     // que su sesión SIGUE sirviendo para leerlos (200), no que exista la ruta.
-    await saveLedger(bob.userId, buildSeed(bob.userId), 0);
+    await saveLedger(bob.userId, buildSeed(bob.userId, P0), 0);
 
     const token = await emitToken("alice@example.com");
     expect((await resetWith(token, "NuevaClave9!x")).status).toBe(200);
@@ -264,7 +265,7 @@ describe("NFR-1301 — el secreto no es una puerta lateral a los datos", () => {
   it("TC-REC-202e: presentar el secreto a un endpoint de datos no concede acceso", async () => {
     // @aitri-tc TC-REC-202e
     const { userId } = await newUser("alice@example.com");
-    await saveLedger(userId, buildSeed(userId), 0);
+    await saveLedger(userId, buildSeed(userId, P0), 0);
     const token = await emitToken("alice@example.com");
 
     const intentos: Record<string, HeadersInit> = {
@@ -334,8 +335,8 @@ describe("NFR-1305 — recuperar una cuenta no toca a ninguna otra", () => {
     // @aitri-tc TC-REC-213h
     const alice = await newUser("alice@example.com");
     const bob = await newUser("bob@example.com");
-    await saveLedger(alice.userId, buildSeed(alice.userId), 0);
-    await saveLedger(bob.userId, buildSeed(bob.userId), 0);
+    await saveLedger(alice.userId, buildSeed(alice.userId, P0), 0);
+    await saveLedger(bob.userId, buildSeed(bob.userId, P0), 0);
 
     const hashBobAntes = await storedHash(bob.userId);
     const snapshotBobAntes = await (
@@ -360,12 +361,12 @@ describe("NFR-1305 — recuperar una cuenta no toca a ninguna otra", () => {
     // Jerarquías reconocibles y distintas.
     await saveLedger(
       alice.userId,
-      createNode(buildSeed(alice.userId), { type: "expense", level: "group", parentId: null, name: "GrupoDeAlice" }),
+      createNode(buildSeed(alice.userId, P0), { type: "expense", level: "group", parentId: null, name: "GrupoDeAlice" }),
       0
     );
     await saveLedger(
       bob.userId,
-      createNode(buildSeed(bob.userId), { type: "expense", level: "group", parentId: null, name: "GrupoDeBob" }),
+      createNode(buildSeed(bob.userId, P0), { type: "expense", level: "group", parentId: null, name: "GrupoDeBob" }),
       0
     );
 
@@ -388,12 +389,12 @@ describe("NFR-1305 — recuperar una cuenta no toca a ninguna otra", () => {
     const bob = await newUser("bob@example.com");
     await saveLedger(
       alice.userId,
-      createNode(buildSeed(alice.userId), { type: "expense", level: "group", parentId: null, name: "GrupoDeAlice" }),
+      createNode(buildSeed(alice.userId, P0), { type: "expense", level: "group", parentId: null, name: "GrupoDeAlice" }),
       0
     );
     await saveLedger(
       bob.userId,
-      createNode(buildSeed(bob.userId), { type: "expense", level: "group", parentId: null, name: "GrupoDeBob" }),
+      createNode(buildSeed(bob.userId, P0), { type: "expense", level: "group", parentId: null, name: "GrupoDeBob" }),
       0
     );
 

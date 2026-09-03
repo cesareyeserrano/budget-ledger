@@ -2,13 +2,14 @@ import { describe, it, expect } from "vitest";
 import { buildSeed, createNode, moveNode, dashboardMetrics, deleteNode } from "@/domain";
 import { findNode, childrenOf, subtreeIds } from "@/domain/tree";
 import { setLeafAmount } from "@/domain/mutations";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS, REF_YEAR } from "../helpers/periods";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
+import { P, P0 } from "../helpers/periods";
 
 function seedWithCafe() {
-  const s0 = buildSeed("local");
+  const s0 = buildSeed("local", P0);
   // 'Café' como categoría bajo el grupo Esenciales (tipo Gasto), con un movimiento
-  const movements = [{ id: "m1", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 4000, month: "ene" as const, createdAt: 1 }];
+  const movements = [{ id: "m1", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 4000, period: "2026-01" as const, createdAt: 1 }];
   let s = createNode(s0, { level: "category", parentId: "g-esenciales", type: "expense", name: "Cafetería" });
   const cafe = s.nodes.find((n) => n.name === "Cafetería" && n.level === "category")!;
   s = { ...s, nodes: s.nodes.map((n) => (n.id === cafe.id ? { ...n, id: "c-cafe" } : n)), movements };
@@ -53,15 +54,15 @@ describe("FR-015 reparent por drag-and-drop", () => {
 describe("FR-009 dashboard", () => {
   // @aitri-tc TC-009h
   it("TC-009h: balance del mes = ingresos − gastos ejecutados", () => {
-    const s = buildSeed("local");
-    const vm = dashboardMetrics(s, { mode: "month", month: "jun" });
+    const s = buildSeed("local", P0);
+    const vm = dashboardMetrics(s, { mode: "month", month: "2026-06" }, P);
     expect(vm.balance).toBe(vm.income - vm.expense);
   });
 
   // @aitri-tc TC-009e
   it("TC-009e: filtro Año suma los 12 meses", () => {
-    const s = buildSeed("local");
-    const year = dashboardMetrics(s, { mode: "year" });
+    const s = buildSeed("local", P0);
+    const year = dashboardMetrics(s, { mode: "year", year: REF_YEAR }, P);
     // suma manual de gastos ejecutados del año
     let expected = 0;
     for (const n of s.nodes.filter((x) => x.type === "expense")) {
@@ -80,7 +81,7 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
   // @aitri-tc TC-105h
   it("TC-105h: tras borrar categoría con movimientos, cero huérfanos", () => {
     const s = seedWithCafe();
-    const res = deleteNode(s, "c-cafe");
+    const res = deleteNode(s, "c-cafe", P);
     const state = "state" in res ? res.state : s;
     expect(noOrphans(state.nodes, state.movements)).toBe(true);
   });

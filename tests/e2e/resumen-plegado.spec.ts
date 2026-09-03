@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "./helpers/fixtures";
 import { seedLedger } from "./helpers/seed";
 import type { LedgerNode } from "@/domain/types";
-import { MONTH_KEYS } from "../../src/domain/months";
+import { P as MONTH_KEYS, visibleMonthCount } from "./helpers/periods";
 
 // Feature resumen-plegado — plegado, el encabezado del módulo de Balance resume el mes con el
 // SALDO DISPONIBLE (FR-1501) y conserva la señal de la cifra (FR-1502). Los TCs afirman VALORES y
@@ -153,7 +153,7 @@ function contrast(fg: string, bg: string): number {
 }
 
 const plegar = (page: Page) => page.getByLabel("Colapsar balance").click();
-const ENE = MONTH_KEYS.indexOf("ene");
+const ENE = MONTH_KEYS.indexOf("2026-01");
 
 // ── FR-1501 · la cifra ─────────────────────────────────────────────────────────────────────────
 
@@ -369,7 +369,9 @@ test("TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y nin
   await gotoGrid(page, RSP);
   await plegar(page);
 
-  await expect(headerCells(page)).toHaveCount(MONTH_KEYS.length * 2);
+  // Ya no son doce columnas fijas: el encabezado plegado debe tener DOS celdas por cada
+  // columna que la grilla pinte, sea cual sea el rango activo (multi-anio, FR-1905).
+  await expect(headerCells(page)).toHaveCount((await visibleMonthCount(page)) * 2);
   // `balance-row` cuenta SOLO las filas del módulo: la fila operable de retiros vive en el segmento
   // de Reservas y lleva su propio testid desde FR-1810 (antes compartía éste y se colaba aquí).
   await expect(page.getByTestId("balance-row")).toHaveCount(0);

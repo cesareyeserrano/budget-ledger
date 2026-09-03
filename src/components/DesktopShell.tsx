@@ -2,7 +2,9 @@
 import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useLedgerStore } from "@/state/store";
-import { MONTHS, monthLabel, currentMonthKey } from "@/domain/months";
+import { periodLabel, periodYear } from "@/domain/periods";
+import type { PeriodKey } from "@/domain/types";
+import { currentPeriod } from "@/lib/date";
 import { summaryKpis } from "@/domain/dashboard";
 import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
@@ -30,7 +32,11 @@ export function DesktopShell() {
 
   // FR-016 — la franja «Resumen». El cómputo vive en el dominio (summaryKpis), no aquí: aquí no era
   // alcanzable por un test sin montar el componente, y por eso el requisito no tenía verificación.
-  const kpis = useMemo(() => summaryKpis(data, period), [data, period]);
+  const periods = useLedgerStore((s) => s.activePeriods)();
+  const kpis = useMemo(() => summaryKpis(data, period, periods), [data, period, periods]);
+  // Los años que el rango activo contiene, en orden. Es la lista del selector de Año.
+  const yearsInRange = useMemo(
+    () => [...new Set(periods.map(periodYear))].sort((a, b) => a - b), [periods]);
 
   // Sólo el AÑO. Decía «Agosto 2026» a diez píxeles del selector que ya dice «Agosto», y «Año 2026»
   // junto a la pestaña «Año» ya activa: en ambos modos repetía la palabra que tenía al lado. Lo
@@ -79,7 +85,7 @@ export function DesktopShell() {
         <div className="flex items-center justify-between gap-4 px-6 py-2 flex-wrap border-b border-border">
           <div className="flex items-center gap-2">
             {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso */}
-            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentMonthKey() } : { mode: "year" })}>
+            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentPeriod() } : { mode: "year", year: period.mode === "month" ? periodYear(period.month) : new Date().getFullYear() })}>
               <TabsList data-testid="period-pill">
                 <TabsTrigger value="month">Mes</TabsTrigger>
                 <TabsTrigger value="year">Año</TabsTrigger>
@@ -87,9 +93,21 @@ export function DesktopShell() {
             </Tabs>
             {period.mode === "month" && (
               <div className="w-[130px]">
-                <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as typeof period.month })}>
+                <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as PeriodKey })}>
                   <SelectTrigger aria-label="Mes" className="py-1 label"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MONTHS.map((m) => <SelectItem key={m.k} value={m.k}>{m.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{periods.map((p) => <SelectItem key={p} value={p}>{periodLabel(p)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            {/* Con multi-anio el modo Año tiene que decir CUÁL: no hay un año implícito. Se ofrecen
+                solo los años presentes en el rango activo — ni uno más. */}
+            {period.mode === "year" && (
+              <div className="w-[110px]">
+                <Select value={String(period.year)} onValueChange={(v) => setPeriod({ mode: "year", year: Number(v) })}>
+                  <SelectTrigger aria-label="Año" className="py-1 label"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {yearsInRange.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             )}

@@ -1,9 +1,9 @@
-import type { MonthKey } from "@/domain/types";
-import { MONTH_KEYS } from "@/domain/months";
+import type { PeriodKey } from "@/domain/types";
+import { periodFromDate, periodOf } from "@/domain/periods";
 
 /**
  * Helpers de fecha del registro (FR-210). El campo muestra "Hoy" por defecto; la hora se
- * persiste con el movimiento pero nunca se muestra. El `month` (MonthKey) del modelo se
+ * persiste con el movimiento pero nunca se muestra. El `month` (PeriodKey) del modelo se
  * DERIVA de la fecha (ADR-03) — único puente entre la fecha nueva y los roll-ups por mes.
  */
 
@@ -59,11 +59,25 @@ export function dateLabel(iso: string): string {
 }
 
 /**
- * Deriva el MonthKey (ene…dic) de una fecha ISO — puente al modelo de roll-ups (ADR-03).
+ * Deriva el periodo ("YYYY-MM") de una fecha ISO — puente al modelo de roll-ups (ADR-03, ahora con
+ * año). Una fecha inválida cae al periodo EN CURSO, igual que antes caía al mes en curso.
  *
- * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
+ * @aitri-trace FR-ID: FR-1908, US-ID: US-1908, AC-ID: AC-1923, TC-ID: TC-MAN-070h, TC-MAN-072e
  */
-export function monthKeyFromDate(iso: string): MonthKey {
-  const d = isValidDate(iso) ? new Date(iso) : new Date();
-  return MONTH_KEYS[d.getMonth()];
+export function periodKeyFromDate(iso: string): PeriodKey {
+  return periodFromDate(iso) ?? currentPeriod();
+}
+
+/**
+ * EL RELOJ. Único punto del proyecto que pregunta la fecha para saber en qué periodo estamos.
+ *
+ * Vive aquí, fuera del dominio, por ADR-02 del TRD: si `computeBalanceSeries` o `reserve.ts`
+ * leyeran el reloj dejarían de ser deterministas y la suite se rompería sola cada mes. El borde lo
+ * consulta una vez y se lo PASA al dominio.
+ *
+ * @aitri-trace FR-ID: FR-1904, US-ID: US-1904, AC-ID: AC-1911, TC-ID: TC-MAN-032e
+ */
+export function currentPeriod(): PeriodKey {
+  const d = new Date();
+  return periodOf(d.getFullYear(), d.getMonth() + 1);
 }
