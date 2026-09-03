@@ -146,14 +146,23 @@ test("TC-CDM-091f: intentar editar una celda cerrada explica el rechazo y su sal
   const celda = page.locator(`[data-cell="c-mercado"][data-month="${INICIO}"]`).first();
   const antes = (await celda.textContent()) ?? "";
   await celda.dblclick();
-  // No abre edición…
+
+  // No hay campo de importe y nada toma el foco: la CIFRA no se puede escribir.
+  await expect(page.getByLabel("Editar valor")).toHaveCount(0);
   await expect(page.locator("input:focus")).toHaveCount(0);
-  expect((await celda.textContent()) ?? "").toBe(antes);
-  // …y dice que está cerrado Y qué hacer. Junio NO es el último cerrado, así que la salida es
-  // la observación, no reabrir.
+
+  // Dice que está cerrado Y qué hacer. Junio NO es el último cerrado, así que la salida ofrecida
+  // es la observación, no reabrir.
   const toast = page.getByTestId("toast");
   await expect(toast).toContainText("cerrado");
   await expect(toast).toContainText("observación");
+
+  // Y al cerrar el panel la cifra sigue siendo la misma. Se comprueba DESPUÉS de Escape porque
+  // mientras el panel está abierto el editor sustituye el nodo de la celda: comparar el texto en
+  // ese momento leería un elemento distinto, no un valor cambiado.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(`[data-cell="c-mercado"][data-month="${INICIO}"]`).first())
+    .toHaveText(antes.trim());
 });
 
 test("TC-CDM-093h: el control dice siempre qué es cerrable y qué reabrible", async ({ page }) => {
@@ -227,4 +236,34 @@ test("TC-CDM-094e: un mes cerrado SIN datos se pinta como columna cerrada", asyn
   await expect(page.locator(`[data-testid="closed-mark"][data-month="${enCurso}"]`)).toHaveCount(1);
   // Y el control ofrece reabrirlo: la acción ya no es un callejón sin salida.
   await expect(page.getByTestId("closure-control")).toHaveAttribute("data-reopenable", enCurso);
+});
+
+test("TC-CDM-043e: la celda cerrada dice a la vez «la cifra no» y «la observación sí»", async ({ page }) => {
+  // @aitri-tc TC-CDM-043e
+  // Lo destapó el gate de criterios: AC-2013 no tenía prueba, y al buscar cómo escribirla apareció
+  // que el panel de observaciones vive DENTRO del editor de la celda. Bloquear el editor en los
+  // meses cerrados dejaba las notas inalcanzables — y la nota es la única salida que le queda a un
+  // error demasiado viejo para reabrirse (FR-2004).
+  await abrir(page);
+  await cerrar(page, 2);
+
+  const celda = page.locator(`[data-cell="c-mercado"][data-month="${INICIO}"]`).first();
+  await expect(celda).toHaveAttribute("data-closed", "true");
+  const antes = (await celda.textContent()) ?? "";
+  await celda.dblclick();
+
+  // La CIFRA no es editable: se pinta como texto, no como campo.
+  await expect(page.getByTestId("closed-value")).toHaveCount(1);
+  await expect(page.getByLabel("Editar valor")).toHaveCount(0);
+  // La OBSERVACIÓN sí: el panel está y se puede escribir en él.
+  const notas = page.getByTestId("cell-notes");
+  await expect(notas).toBeVisible();
+  await notas.locator("input").first().fill("error de 8.000 detectado en septiembre");
+  await expect(notas.locator("input").first()).toHaveValue("error de 8.000 detectado en septiembre");
+  // Y el aviso lo explica.
+  await expect(page.getByTestId("toast")).toContainText("cerrado");
+
+  await page.keyboard.press("Escape");
+  // La cifra sigue igual: abrir el panel no la movió.
+  await expect(celda).toContainText(antes.trim().slice(0, 6));
 });

@@ -262,6 +262,11 @@ export function BudgetGrid() {
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
   function commitEdit() {
     if (!editing) return;
+    // FR-2003: en un mes cerrado el editor se abrió en modo SOLO OBSERVACIONES —no hay campo de
+    // importe— así que aquí no hay nada que comitear. Cerrar sin escribir es la única salida
+    // correcta: el servidor rechazaría igual, pero mandar la escritura provocaría un resync
+    // innecesario y un aviso confuso.
+    if (cerrados.has(editing.mk)) { setEditing(null); return; }
     // Las hojas transfer no pasan por aquí: su editor (ReserveCellEditor) comitea vía el camino de
     // reserva del dominio (FR-1003) — este commit es el de flujo (expense/income).
     setLeafAmount(editing.id, editing.mk, editing.field, Math.max(0, Math.round(Number(editVal) || 0)));
@@ -346,11 +351,16 @@ export function BudgetGrid() {
           // Es ERGONOMÍA, no garantía: la autoridad sigue estando en el servidor (ADR-12). Y la
           // salida se NOMBRA — un rechazo que no dice qué hacer manda al usuario a probar cosas.
           if (cerrados.has(mk)) {
+            // NO se corta el camino: se abre el editor en modo SOLO OBSERVACIONES. Cortarlo dejaba
+            // las notas inalcanzables —el panel de observaciones vive DENTRO de este editor— y las
+            // notas son la única salida que le queda a un error demasiado viejo para reabrirse
+            // (FR-2004). Bloquear la celda entera habría convertido esa decisión en letra muerta.
             showToast(
               mk === reopenable
-                ? `${periodMonthLabel(mk)} está cerrado. Puedes reabrirlo para corregirlo.`
+                ? `${periodMonthLabel(mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar una observación.`
                 : `${periodMonthLabel(mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar una observación en la celda.`
             );
+            setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
             return;
           }
           setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
@@ -716,6 +726,10 @@ function NodeRow(props: {
 
 function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  // El foco tiene que entrar en el contenedor cuando NO hay input que lo tome (mes cerrado), o la
+  // tecla Escape se queda en el body y el panel no se cierra nunca.
+  const abiertoCerrado = props.editing && props.closed;
+  useEffect(() => { if (abiertoCerrado) rootRef.current?.focus(); }, [abiertoCerrado]);
   if (props.editing) {
     return (
       <div
@@ -725,9 +739,29 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
         // hermano — el editor quedaba abierto sin salida por teclado, contra el «Esc cierra sin
         // guardar» que declara el UX spec para esa sección.
         onKeyDown={(e) => { if (e.key === "Escape") props.cancel(); }}
-        className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")}
+        // En modo SOLO OBSERVACIONES no hay campo de importe, así que nadie tomaba el foco: la
+        // tecla Escape no alcanzaba este contenedor y el panel se quedaba abierto sin salida. El
+        // contenedor se hace enfocable y se cierra al perder el foco, igual que hacía el input.
+        {...(props.closed ? { tabIndex: -1 } : {})}
+        onBlur={props.closed ? (e) => {
+          if (rootRef.current?.contains(e.relatedTarget as Node)) return;
+          props.cancel();
+        } : undefined}
+        className={cn(CELL_W, "relative py-1 px-2 outline-none", props.sep && "border-l-2 border-l-border-strong")}
         style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}
       >
+        {/* FR-2003/FR-2004/AC-2013: en un mes cerrado la CIFRA se pinta como texto y no como
+            campo, y debajo sigue el panel de observaciones. La celda dice las dos cosas a la vez
+            —esto no se toca, esto sí— sin que el usuario tenga que probar. */}
+        {props.closed ? (
+          <div
+            data-testid="closed-value"
+            aria-label="Valor de un mes cerrado, no editable"
+            className="tabular w-full text-fg-secondary text-caption text-right px-1.5 py-1"
+          >
+            {props.editVal}
+          </div>
+        ) : (
         <input
           autoFocus
           aria-label="Editar valor"
@@ -742,6 +776,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
           onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }}
           className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />
+        )}
         {/* FR-1809: cualquier celda admite observación, no solo las de bolsillos. */}
         {props.nodeId && props.month && (
           <div className="absolute left-0 top-full z-20 mt-1 min-w-[230px] rounded-(--radius-sm) border border-border bg-elevated p-2" style={{ boxShadow: "var(--shadow-md)" }}>

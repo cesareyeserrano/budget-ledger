@@ -3,7 +3,8 @@
   "approvedPhases": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "completedPhases": [
     1,
@@ -14,55 +15,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T13:50:19.550Z",
+  "updatedAt": "2026-09-03T15:05:50.345Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T02:47:41.830Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-09-03T02:47:56.557Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T02:48:01.491Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T02:48:03.576Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T02:48:06.018Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T02:53:07.033Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T03:04:01.760Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T03:04:53.585Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T03:09:03.099Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-09-03T03:10:07.086Z",
       "event": "approved",
@@ -117,13 +72,72 @@
       "at": "2026-09-03T13:50:19.475Z",
       "event": "completed",
       "phase": 4
+    },
+    {
+      "at": "2026-09-03T14:10:40.971Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T14:17:37.779Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 68,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 5
+    },
+    {
+      "at": "2026-09-03T14:33:34.711Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 68,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 5
+    },
+    {
+      "at": "2026-09-03T15:02:05.160Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 69,
+      "failed": 0,
+      "skipped": 3,
+      "manual": 5
+    },
+    {
+      "at": "2026-09-03T15:02:19.965Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 69,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-03T15:05:40.237Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T15:05:40.365Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T15:05:50.157Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T15:05:50.315Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
     "2": "27c2e442fc26cb7385a65edf076b3cbcf71164c781cc47619b0bad688759943c",
-    "3": "ae1b2ba1f047593cfefc1aecc06eac5db7dd2839e0172c524e922bbf1f71d7c9",
+    "3": "0d8d0b9cacaf3a22774e1a1cdc41b949251369a40fa21c3dc4fc20fe47c358b5",
     "4": "82b5da7fde1cde6fbc0897f821f2670a6cda97c28527925e436ac8261641f2c6"
   },
   "frSnapshots": {
@@ -148,7 +162,20 @@
       "FR-2007",
       "FR-2008",
       "FR-2009"
+    ],
+    "4": [
+      "FR-2001",
+      "FR-2002",
+      "FR-2003",
+      "FR-2004",
+      "FR-2005",
+      "FR-2006",
+      "FR-2007",
+      "FR-2008",
+      "FR-2009"
     ]
   },
-  "verifyPassed": false
+  "verifyPassed": false,
+  "verifyRanRef": "55f2c5653e75f5a539b315e962b16225b4c00921",
+  "verifyRanDirty": true
 }

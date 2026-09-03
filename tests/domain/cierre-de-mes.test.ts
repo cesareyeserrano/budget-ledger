@@ -5,6 +5,7 @@
 // concepto de CÁLCULO— se comprueba aquí de forma estructural (TC-CDM-212f), no de palabra.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import {
   isClosed, nextClosable, nextReopenable, closeMonth, reopenMonth,
   closedPeriodsViolated, unclosedEndedPeriods, normalizeClosure, NO_CLOSURE,
@@ -530,9 +531,129 @@ describe("FR-2005/NFR-2004 — la frontera del cierre ancla el rango", () => {
     // @aitri-tc TC-CDM-234f
     const s: LedgerState = {
       ...estado(),
-      // @ts-expect-error basura deliberada, como la escribiría un operador o un formato viejo
+      // Basura deliberada, como la escribiría un operador o la dejaría un formato viejo. El tipo
+      // PeriodKey es un alias de string, así que el compilador NO la detiene — que es justo el
+      // motivo de que normalizeClosure exista y de que esta prueba haga falta.
       closure: { closedThrough: "2026-13", reopened: null },
     };
     expect(activeRange(s, AHORA)[0]).toBe("2026-06");
+  });
+});
+
+// ══ Los tres casos que el gate delató como sin escribir ═════════════════════════════════════════
+describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escritos", () => {
+  it("TC-CDM-202e: las pruebas de multi-anio pasan SIN modificarse", () => {
+    // @aitri-tc TC-CDM-202e
+    // Se comprueba contra la línea base de esta feature (bfded04): si alguien tuviera que retocar
+    // una prueba de multi-anio para que el cierre pase, esta prueba lo delata. Adaptar la prueba
+    // en vez del código es la forma más silenciosa de romper una regresión.
+    const ficheros = [
+      "tests/e2e/multi-anio.spec.ts",
+      "tests/domain/multi-anio.test.ts",
+      "tests/integration/backend/multi-anio.test.ts",
+    ];
+    const diff = execSync(`git diff --stat bfded04 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    expect(diff.trim()).toBe("");
+  });
+
+  it("TC-CDM-251e: cerrar, reabrir y editar caben en el tope de 150ms sobre el estado máximo", () => {
+    // @aitri-tc TC-CDM-251e
+    const periods = periodRange("2024-01", "2028-12"); // 60 periodos
+    const nodes: LedgerNode[] = Array.from({ length: 23 }, (_, i) => ({
+      id: `n${i}`, ownerId: "u", type: "expense", level: "category",
+      parentId: null, name: `n${i}`, icon: null, order: i,
+    }));
+    const mapa = Object.fromEntries(
+      nodes.map((n) => [n.id, Object.fromEntries(periods.map((p, k) => [p, 1000 + k]))])
+    );
+    const base: LedgerState = {
+      ownerId: "u", nodes, budgets: mapa, actuals: mapa, movements: [],
+      closure: { closedThrough: "2026-08", reopened: null },
+    };
+    const rango = activeRange(base, "2026-09");
+
+    // Calentamiento: sin él se mide el JIT y no el código (lección de multi-anio).
+    for (let i = 0; i < 20; i++) {
+      closeMonth(base, "2026-09", rango);
+      reopenMonth(base);
+      computeBalanceSeries(base, rango);
+    }
+    const medir = (fn: () => void) => {
+      const ms: number[] = [];
+      for (let i = 0; i < 20; i++) {
+        const t0 = performance.now();
+        fn();
+        ms.push(performance.now() - t0);
+      }
+      ms.sort((a, b) => a - b);
+      return ms[10];
+    };
+    expect(medir(() => closeMonth(base, "2026-09", rango))).toBeLessThanOrEqual(150);
+    expect(medir(() => reopenMonth(base))).toBeLessThanOrEqual(150);
+    // Y el recálculo completo tras una edición del mes abierto, que es la ruta caliente real.
+    expect(medir(() => {
+      const editado = { ...base, budgets: { ...base.budgets, n0: { ...base.budgets.n0, "2026-09": 9999 } } };
+      computeBalanceSeries(editado, rango);
+    })).toBeLessThanOrEqual(150);
+  });
+
+  it("TC-CDM-252f: el guardia NO puede correr en la ruta de render — es server-only", () => {
+    // @aitri-tc TC-CDM-252f
+    // Más fuerte que contar invocaciones en un render: se comprueba que el guardia no está
+    // ALCANZABLE desde el cliente. `closedPeriodsViolated` solo lo importa la capa de datos del
+    // servidor, y `ledgerRepo` lleva "server-only", así que ningún componente puede llamarlo
+    // aunque quisiera. Si alguien lo metiera en el store o en un componente, esto lo delata.
+    const clientes = execSync(
+      'grep -rl "closedPeriodsViolated" src/components src/state src/app 2>/dev/null || true',
+      { encoding: "utf8" }
+    ).trim();
+    expect(clientes).toBe("");
+    expect(readFileSync("src/server/data/ledgerRepo.ts", "utf8")).toContain('import "server-only"');
+  });
+});
+
+// ══ Las AUSENCIAS, automatizadas ════════════════════════════════════════════════════════════════
+// El plan las declaraba manuales. Una comprobación de ausencia hecha a mano es una promesa que
+// caduca en cuanto alguien toca el código; automatizadas, siguen vigilando solas.
+describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
+  it("TC-CDM-064f: no existe ninguna ruta de cierre automático", () => {
+    // @aitri-tc TC-CDM-064f
+    const llamadas = execSync(
+      'grep -rn "closeMonth(" src/ | grep -v "^src/domain/closure.ts" || true',
+      { encoding: "utf8" }
+    ).trim().split("\n").filter(Boolean);
+    // Las ÚNICAS invocaciones legítimas: el repositorio (que sirve al endpoint) y la acción del
+    // store (que sirve al botón). Cualquier otra es un cierre que el usuario no pidió.
+    for (const l of llamadas) {
+      expect(l, `invocación inesperada de closeMonth: ${l}`)
+        .toMatch(/^src\/(server\/data\/ledgerRepo|state\/store)\.ts:/);
+    }
+    // Y ninguna dentro de un temporizador o de un efecto de montaje.
+    const timers = execSync(
+      'grep -rn "setTimeout\\|setInterval" src/ | grep -i "close" || true',
+      { encoding: "utf8" }
+    ).trim();
+    expect(timers).toBe("");
+  });
+
+  it("TC-CDM-201f: no crece el número de pruebas desactivadas", () => {
+    // @aitri-tc TC-CDM-201f
+    const contar = (ref?: string) => {
+      const cmd = ref
+        ? `git grep -cE "\\.skip\\(|\\.todo\\(|\\.fixme\\(|xit\\(|xdescribe\\(" ${ref} -- tests/ | grep -v coverage-skips || true`
+        : `git grep -cE "\\.skip\\(|\\.todo\\(|\\.fixme\\(|xit\\(|xdescribe\\(" -- tests/ | grep -v coverage-skips || true`;
+      return execSync(cmd, { encoding: "utf8" }).trim().split("\n").filter(Boolean)
+        .reduce((n, l) => n + Number(l.split(":").pop() ?? 0), 0);
+    };
+    // bfded04 es la línea base de esta feature (el TRD aprobado, antes de escribir código).
+    expect(contar()).toBeLessThanOrEqual(contar("bfded04"));
+  });
+
+  it("TC-CDM-222f: la maquinaria del techo no se toca — reserve.ts sin cambios", () => {
+    // @aitri-tc TC-CDM-222f
+    // Es la promesa que sí se hizo: BL-037 y BL-038 están en el no_go_zone y esta feature no los
+    // aborda. Un diff vacío es la única forma de demostrarlo en vez de afirmarlo.
+    const diff = execSync("git diff --stat bfded04 -- src/domain/reserve.ts", { encoding: "utf8" });
+    expect(diff.trim()).toBe("");
   });
 });

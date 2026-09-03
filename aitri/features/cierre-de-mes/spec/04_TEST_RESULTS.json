@@ -1,0 +1,818 @@
+{
+  "executed_at": "2026-09-03T15:02:05.045Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-CDM-010h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2001 · el cierre forma parte del ledger > TC-CDM-010h: cerrado un mes, sobrevive a la recarga 69ms"
+    },
+    {
+      "tc_id": "TC-CDM-011e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2001 · el cierre forma parte del ledger > TC-CDM-011e: el cierre sube revision y deja stale al cliente viejo 58ms"
+    },
+    {
+      "tc_id": "TC-CDM-012h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2001 — el cierre como estado del ledger > TC-CDM-012h: un estado SIN la clave closure se comporta como si nada estuviera cerrado 3ms"
+    },
+    {
+      "tc_id": "TC-CDM-013f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2001 — el cierre como estado del ledger > TC-CDM-013f: un closedThrough corrupto degrada a «nada cerrado» sin lanzar 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-020h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2002 — el cierre es secuencial > TC-CDM-020h: el cerrable es el abierto más antiguo, no el mes en curso 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-021h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2002 — el cierre es secuencial > TC-CDM-021h: cerrado agosto, el siguiente cerrable es septiembre 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-022f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2002 · el cierre es secuencial y no es negociable desde el cliente > TC-CDM-022f: el protocolo NO admite proponer qué mes cerrar 52ms"
+    },
+    {
+      "tc_id": "TC-CDM-023f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2002 · el cierre es secuencial y no es negociable desde el cliente > TC-CDM-023f: sin mes cerrable, se rechaza sin tocar revision ni frontera 82ms"
+    },
+    {
+      "tc_id": "TC-CDM-024e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2002 — el cierre es secuencial > TC-CDM-024e: un mes vacío en medio NO se salta — el rango es contiguo 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-030h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-030h: PROPIEDAD — trastear el mes abierto no mueve NADA del cerrado 1ms"
+    },
+    {
+      "tc_id": "TC-CDM-031f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-031f: cambiar una celda de presupuesto de un mes cerrado se detecta 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-032f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-032f: cambiar una celda de ejecutado de un mes cerrado se detecta 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-033f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2003 · ninguna operación altera una cifra de un mes cerrado > TC-CDM-033f: registrar un movimiento en un mes cerrado se rechaza y no inserta nada 57ms"
+    },
+    {
+      "tc_id": "TC-CDM-034f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-034f: borrar un movimiento de un mes cerrado se detecta 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-035f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2003 · ninguna operación altera una cifra de un mes cerrado > TC-CDM-035f: aportar en un mes cerrado se rechaza y el reservado no cambia 70ms"
+    },
+    {
+      "tc_id": "TC-CDM-036e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-036e: mover un movimiento HACIA un mes cerrado se detecta 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-037e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-037e: editar el mes ABIERTO no produce ninguna violación 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-038e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2003 — el guardia: qué mutación viola un mes cerrado > TC-CDM-038e: manda la frontera del estado PREVIO, no la del entrante 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-039f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2003 · ninguna operación altera una cifra de un mes cerrado > TC-CDM-039f: una escritura rechazada no deja rastro parcial 66ms"
+    },
+    {
+      "tc_id": "TC-CDM-040h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2004 · las observaciones no se congelan > TC-CDM-040h: escribir una observación en un mes cerrado se acepta y persiste 78ms"
+    },
+    {
+      "tc_id": "TC-CDM-041e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2004 — las observaciones siguen editables > TC-CDM-041e: añadir, editar y borrar una nota de un mes cerrado no viola nada 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-042f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2004 — las observaciones siguen editables > TC-CDM-042f: una nota legal NO exime a la cifra que viaja con ella 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-050h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2005 · reapertura del último mes cerrado > TC-CDM-050h: reabrir devuelve la edición de ese mes 99ms"
+    },
+    {
+      "tc_id": "TC-CDM-051f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005 — reapertura del último mes cerrado > TC-CDM-051f: nunca ofrece un mes anterior al último cerrado 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-052f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005 — reapertura del último mes cerrado > TC-CDM-052f: con un mes ya reabierto, reabrir otro se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-053e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005 — reapertura del último mes cerrado > TC-CDM-053e: reabrir–cerrar repetido NO permite retroceder; el suelo es 2026-07 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-054f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005 — reapertura del último mes cerrado > TC-CDM-054f: sin nada cerrado no hay nada que reabrir 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-055h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2005 · reapertura del último mes cerrado > TC-CDM-055h: el rastro de la reapertura sobrevive a volver a cerrar 69ms"
+    },
+    {
+      "tc_id": "TC-CDM-056f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2005 · reapertura del último mes cerrado > TC-CDM-056f: no existe un cierre sin rastro — todo va en la misma transacción 69ms"
+    },
+    {
+      "tc_id": "TC-CDM-057e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005 — reapertura del último mes cerrado > TC-CDM-057e: reabrir propaga hacia adelante sin tocar los meses que siguen cerrados 1ms"
+    },
+    {
+      "tc_id": "TC-CDM-060h",
+      "status": "pass",
+      "notes": "✓   68 [chromium] › tests/e2e/cierre-de-mes.spec.ts:69:5 › TC-CDM-060h: el aviso dice cuántos meses faltan y cuál es el siguiente cerrable (371ms)"
+    },
+    {
+      "tc_id": "TC-CDM-061e",
+      "status": "pass",
+      "notes": "✓   69 [chromium] › tests/e2e/cierre-de-mes.spec.ts:81:5 › TC-CDM-061e: el aviso no bloquea el trabajo (424ms)"
+    },
+    {
+      "tc_id": "TC-CDM-062f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2006 — aviso sin cierre automático > TC-CDM-062f: un usuario cuyo historial empieza en el mes en curso no tiene pendientes 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-063f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2006 — aviso sin cierre automático > TC-CDM-063f: pasar de mes NO cierra nada; solo crece la lista de pendientes 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-064f",
+      "status": "manual",
+      "notes": "Manual execution required — excluded from automated runner."
+    },
+    {
+      "tc_id": "TC-CDM-070h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2007 — cerrar fija el punto de partida, no el plan > TC-CDM-070h: la apertura del mes siguiente no se mueve al editar el futuro 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-071h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2007 · el futuro planeado no se congela > TC-CDM-071h: se edita el horizonte entero con un mes cerrado detrás 111ms"
+    },
+    {
+      "tc_id": "TC-CDM-072f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2007 · el futuro planeado no se congela > TC-CDM-072f: editar el futuro no altera ni una cifra del mes cerrado 78ms"
+    },
+    {
+      "tc_id": "TC-CDM-073e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2007 — cerrar fija el punto de partida, no el plan > TC-CDM-073e: la conservación se cumple en el paso cerrado → abierto 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-080f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2008 — nunca un mes futuro > TC-CDM-080f: con el mes en curso ya cerrado no hay nada cerrable 1ms"
+    },
+    {
+      "tc_id": "TC-CDM-081h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > FR-2002 · el cierre es secuencial y no es negociable desde el cliente > TC-CDM-081h: el mes en curso es cerrable y queda inmediatamente reabrible 81ms"
+    },
+    {
+      "tc_id": "TC-CDM-082e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2008 — nunca un mes futuro > TC-CDM-082e: el mes en curso es cerrable, y lo sigue siendo al pasar a ser pasado 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-090h",
+      "status": "pass",
+      "notes": "✓   71 [chromium] › tests/e2e/cierre-de-mes.spec.ts:112:5 › TC-CDM-090h: las columnas cerradas se distinguen sin interactuar (594ms)"
+    },
+    {
+      "tc_id": "TC-CDM-091f",
+      "status": "pass",
+      "notes": "✓   73 [chromium] › tests/e2e/cierre-de-mes.spec.ts:142:5 › TC-CDM-091f: intentar editar una celda cerrada explica el rechazo y su salida (664ms)"
+    },
+    {
+      "tc_id": "TC-CDM-092e",
+      "status": "pass",
+      "notes": "✓   72 [chromium] › tests/e2e/cierre-de-mes.spec.ts:123:5 › TC-CDM-092e: la distinción no depende solo del color (593ms)"
+    },
+    {
+      "tc_id": "TC-CDM-093h",
+      "status": "pass",
+      "notes": "✓   74 [chromium] › tests/e2e/cierre-de-mes.spec.ts:168:5 › TC-CDM-093h: el control dice siempre qué es cerrable y qué reabrible (639ms)"
+    },
+    {
+      "tc_id": "TC-CDM-200h",
+      "status": "manual",
+      "notes": "Manual execution required — excluded from automated runner."
+    },
+    {
+      "tc_id": "TC-CDM-201f",
+      "status": "manual",
+      "notes": "Manual execution required — excluded from automated runner."
+    },
+    {
+      "tc_id": "TC-CDM-202e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-CDM-202e\" so it appears on stdout (e.g. test_TC_CDM_202e_description, # @aitri-tc TC-CDM-202e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-CDM-202e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-CDM-210h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-210h: sin nada cerrado, los cinco cálculos dan lo mismo con y sin la clave 1ms"
+    },
+    {
+      "tc_id": "TC-CDM-211e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-211e: closure ausente y closure nulo son indistinguibles 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-212f",
+      "status": "manual",
+      "notes": "Manual execution required — excluded from automated runner."
+    },
+    {
+      "tc_id": "TC-CDM-220h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-220h: el veredicto del techo es el mismo en los meses abiertos, haya o no cierres 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-221e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-221e: maxWithdrawal y monthCarryUsage no cambian por cerrar meses 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-222f",
+      "status": "manual",
+      "notes": "Manual execution required — excluded from automated runner."
+    },
+    {
+      "tc_id": "TC-CDM-230h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-230h: el rango activo es idéntico con y sin meses cerrados 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-231e",
+      "status": "pass",
+      "notes": "✓   75 [chromium] › tests/e2e/cierre-de-mes.spec.ts:189:5 › TC-CDM-231e: el filtro por año sigue funcionando con meses cerrados (729ms)"
+    },
+    {
+      "tc_id": "TC-CDM-232f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2002/2003 — el cierre no entra en el cálculo > TC-CDM-232f: cambiar el horizonte no mueve la frontera ni saca un mes cerrado del rango 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-240f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2005 · seguridad del cierre > TC-CDM-240f: el rechazo NO depende del navegador: se decide en el repositorio 63ms"
+    },
+    {
+      "tc_id": "TC-CDM-241f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2005 · seguridad del cierre > TC-CDM-241f: el esquema del cuerpo solo admite baseRevision 29ms"
+    },
+    {
+      "tc_id": "TC-CDM-242f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2005 · seguridad del cierre > TC-CDM-242f: el cierre de un usuario no toca el ledger de otro 74ms"
+    },
+    {
+      "tc_id": "TC-CDM-243h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2005 · seguridad del cierre > TC-CDM-243h: el guardia corre dentro del lock — no hay ventana entre validar y escribir 54ms"
+    },
+    {
+      "tc_id": "TC-CDM-250h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > NFR-2006 — coste del guardia > TC-CDM-250h: sobre el estado máximo, la mediana de closedPeriodsViolated es ≤15ms 55ms"
+    },
+    {
+      "tc_id": "TC-CDM-251e",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-CDM-251e\" so it appears on stdout (e.g. test_TC_CDM_251e_description, # @aitri-tc TC-CDM-251e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-CDM-251e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-CDM-252f",
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-CDM-252f\" so it appears on stdout (e.g. test_TC_CDM_252f_description, # @aitri-tc TC-CDM-252f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-CDM-252f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+    },
+    {
+      "tc_id": "TC-CDM-260h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2007 · la persistencia no pierde nada > TC-CDM-260h: ida y vuelta completa con cierres, reapertura y rastro 88ms"
+    },
+    {
+      "tc_id": "TC-CDM-261f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2007 · la persistencia no pierde nada > TC-CDM-261f: el lock optimista sigue rechazando al cliente viejo 48ms"
+    },
+    {
+      "tc_id": "TC-CDM-262e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2007 · la persistencia no pierde nada > TC-CDM-262e: un ledger anterior a la migración carga sin cierre y opera igual 65ms"
+    },
+    {
+      "tc_id": "TC-CDM-270h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2008 · la migración 0004 > TC-CDM-270h: las columnas, los CHECKs, la tabla del rastro y su índice existen 53ms"
+    },
+    {
+      "tc_id": "TC-CDM-271f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2008 · la migración 0004 > TC-CDM-271f: el CHECK de la frontera rechaza un periodo inválido escrito a mano 55ms"
+    },
+    {
+      "tc_id": "TC-CDM-272e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-de-mes.test.ts > NFR-2008 · la migración 0004 > TC-CDM-272e: no se puede marcar un mes reabierto sin frontera 52ms"
+    },
+    {
+      "tc_id": "TC-CDM-058h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005/NFR-2004 — la frontera del cierre ancla el rango > TC-CDM-058h: un mes cerrado SIN datos sigue en el rango, y reabrirlo devuelve una celda 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-059f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005/NFR-2004 — la frontera del cierre ancla el rango > TC-CDM-059f: el punto de no retorno lo marca el siguiente cierre, no el paso del mes 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-233h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005/NFR-2004 — la frontera del cierre ancla el rango > TC-CDM-233h: el cierre no RECORTA el rango — lo contiene entero y añade la frontera 2ms"
+    },
+    {
+      "tc_id": "TC-CDM-234f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/cierre-de-mes.test.ts > FR-2005/NFR-2004 — la frontera del cierre ancla el rango > TC-CDM-234f: una frontera basura no puede fijar el inicio del rango 0ms"
+    },
+    {
+      "tc_id": "TC-CDM-094e",
+      "status": "pass",
+      "notes": "✓   76 [chromium] › tests/e2e/cierre-de-mes.spec.ts:206:5 › TC-CDM-094e: un mes cerrado SIN datos se pinta como columna cerrada (420ms)"
+    },
+    {
+      "tc_id": "TC-CDM-043e",
+      "status": "pass",
+      "notes": "✓   77 [chromium] › tests/e2e/cierre-de-mes.spec.ts:241:5 › TC-CDM-043e: la celda cerrada dice a la vez «la cifra no» y «la observación sí» (654ms)"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2001",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2002",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2003",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2004",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2005",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2006",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 1,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2007",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2008",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2009",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2001",
+      "fr_id": "FR-2001",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2002",
+      "fr_id": "FR-2001",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2003",
+      "fr_id": "FR-2001",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2004",
+      "fr_id": "FR-2002",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2005",
+      "fr_id": "FR-2002",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2006",
+      "fr_id": "FR-2002",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2007",
+      "fr_id": "FR-2003",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2008",
+      "fr_id": "FR-2003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2009",
+      "fr_id": "FR-2003",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2010",
+      "fr_id": "FR-2003",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 3,
+      "tests_manual": 4,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2011",
+      "fr_id": "FR-2004",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2012",
+      "fr_id": "FR-2004",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2013",
+      "fr_id": "FR-2004",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2014",
+      "fr_id": "FR-2005",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2015",
+      "fr_id": "FR-2005",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2016",
+      "fr_id": "FR-2005",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2017",
+      "fr_id": "FR-2005",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2018",
+      "fr_id": "FR-2005",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2019",
+      "fr_id": "FR-2006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2020",
+      "fr_id": "FR-2006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2021",
+      "fr_id": "FR-2006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2022",
+      "fr_id": "FR-2006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 1,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2023",
+      "fr_id": "FR-2007",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2024",
+      "fr_id": "FR-2007",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2025",
+      "fr_id": "FR-2007",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2026",
+      "fr_id": "FR-2008",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2027",
+      "fr_id": "FR-2008",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2028",
+      "fr_id": "FR-2009",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2029",
+      "fr_id": "FR-2009",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2030",
+      "fr_id": "FR-2009",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2031",
+      "fr_id": "FR-2009",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 77,
+    "passed": 69,
+    "failed": 0,
+    "skipped": 3,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 3,
+    "manual": 5,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (178ms)\n  ✓  402 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  402 passed (2.5m)\n\n(node:51690) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+    }
+  ]
+}

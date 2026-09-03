@@ -842,9 +842,7 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "cero invocaciones automáticas de closeMonth",
-      "test_data": {},
-      "automation": "manual",
-      "manual_reason": "Afirma la AUSENCIA de un camino en todo el arbol. Se verifica por barrido del codigo, no ejecutando: una prueba de ejecucion solo puede demostrar que no ocurrio en SU escenario, no que la ruta no existe."
+      "test_data": {}
     },
     {
       "id": "TC-CDM-070h",
@@ -1119,9 +1117,7 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "conteo de skips no crece respecto a la línea base",
-      "test_data": {},
-      "automation": "manual",
-      "manual_reason": "Es un barrido del arbol de pruebas comparado contra la linea base, no una asercion ejecutable dentro de la suite."
+      "test_data": {}
     },
     {
       "id": "TC-CDM-202e",
@@ -1205,9 +1201,7 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "cero referencias al cierre en balance.ts y reserve.ts",
-      "test_data": {},
-      "automation": "manual",
-      "manual_reason": "Es la comprobacion estructural que sostiene todo el diseno (el cierre es permiso de escritura, no de calculo). Se verifica por inspeccion de firmas y barrido del modulo."
+      "test_data": {}
     },
     {
       "id": "TC-CDM-220h",
@@ -1270,9 +1264,7 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "diff vacío en reserve.ts",
-      "test_data": {},
-      "automation": "manual",
-      "manual_reason": "Afirma que un fichero NO cambio. Se verifica con git diff contra la linea base, no ejecutando la suite."
+      "test_data": {}
     },
     {
       "id": "TC-CDM-230h",
@@ -1713,6 +1705,27 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "1 cabecera con data-closed=true y su [data-testid=closed-mark], con celdas vacías",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-043e",
+      "requirement_id": "FR-2004",
+      "user_story_id": "US-2004",
+      "ac_id": "AC-2013",
+      "title": "La celda de un mes cerrado dice a la vez «la cifra no» y «la observación sí»",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sesión con 2026-06 y 2026-07 cerrados y datos en la grilla",
+      "when": "se hace doble clic en una celda de 2026-06",
+      "then": "NO aparece ningún campo de importe (el valor se pinta como [data-testid=closed-value], no como input), el panel [data-testid=cell-notes] SÍ aparece con su campo para escribir, y el aviso explica que la cifra no se edita",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closed-value presente y sin input de importe; cell-notes presente y escribible; aviso con la explicación",
       "test_data": {}
     }
   ]
