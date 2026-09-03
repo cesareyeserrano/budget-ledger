@@ -39,6 +39,11 @@ const postHandler = withApi<MovementInput>(
   async ({ userId, body }) => {
     const result = await insertMovement(userId, body);
     if (!result) return apiError("invalid_movement", "Movimiento inválido", HTTP.UNPROCESSABLE);
+    // Feature cierre-de-mes (FR-2003): el mes destino está cerrado. Segunda vía de escritura, y
+    // por eso se comprueba aquí además de en saveLedger — insertMovement no pasa por él.
+    if ("closedViolation" in result) {
+      return apiError("closed_period_violation", "El mes está cerrado", HTTP.UNPROCESSABLE);
+    }
     syncHub.publish(userId, { revision: result.revision }); // notifica a los demás dispositivos (FR-511)
     return json({ movement: result.movement, revision: result.revision }, HTTP.CREATED);
   }

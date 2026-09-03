@@ -93,3 +93,16 @@ export const horizonPutSchema = z.object({
   }),
 });
 export type HorizonPutBody = z.infer<typeof horizonPutSchema>;
+
+/**
+ * Cuerpo de las dos operaciones de cierre (FR-2002, FR-2005). SOLO `baseRevision`.
+ *
+ * `.strict()` es la decisión, no un adorno: el cliente NO propone qué mes cerrar. Si el cuerpo
+ * pudiera llevar un `period`, el servidor tendría que validarlo y un cierre fuera de orden sería
+ * al menos EXPRESABLE. Mandando solo la revisión, el mes cerrable es una función del estado del
+ * servidor y la petición ilegal no se puede ni escribir (TC-CDM-022f).
+ */
+export const closurePostSchema = z.object({
+  baseRevision: z.number().int().gte(0),
+}).strict();
+export type ClosurePostBody = z.infer<typeof closurePostSchema>;

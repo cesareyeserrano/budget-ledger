@@ -12,6 +12,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   check,
   index,
@@ -97,7 +98,35 @@ export const ledger = pgTable("ledger", {
   // Feature transferencias (FR-1010): marca de versión de DATOS. 2 = celdas transfer como aportes
   // (formato viejo); 3 = saldos. loadLedger migra lazy y estampa 3 — idempotencia por marca.
   dataVersion: integer("data_version").notNull().default(2),
+  // Feature cierre-de-mes (FR-2001/ADR-11). La frontera del cierre es un ESCALAR: todo periodo
+  // <= closedThrough esta cerrado. NULL = nada cerrado, que es el estado de todo usuario previo
+  // y de todo usuario nuevo. Vive AQUI, junto a `revision`, para heredar gratis el lock optimista
+  // — a diferencia de `user.horizon`, que es preferencia de presentacion y NO sube revision.
+  closedThrough: text("closed_through"),
+  /** El mes actualmente reabierto (= closedThrough + 1 mes) o NULL. Guardia de «uno a la vez». */
+  reopenedPeriod: text("reopened_period"),
 });
+
+/**
+ * El rastro de cierres y reaperturas (FR-2005). Tabla APPEND-ONLY: solo INSERT.
+ *
+ * Es auditoria, no fuente de verdad operativa (ADR-13): el comportamiento del sistema lo decide
+ * `ledger.reopened_period`, no este historial — asi que se puede leer, exportar o purgar sin
+ * alterar lo que la app permite hacer.
+ */
+export const closureEvent = pgTable(
+  "closure_event",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    period: text("period").notNull(),
+    action: text("action").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("closure_event_owner_at_idx").on(t.ownerId, t.at)]
+);
 
 /** Nodo de la jerarquía (Grupo→Categoría→Subcategoría). CHECKs espejan NodeType/NodeLevel. */
 export const node = pgTable(

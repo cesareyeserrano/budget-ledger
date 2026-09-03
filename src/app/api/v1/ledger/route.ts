@@ -22,6 +22,14 @@ const putHandler = withApi<LedgerPutBody>(
   async ({ userId, body }) => {
     // El ownerId del payload se IGNORA: saveLedger fija el de la sesión.
     const res = await saveLedger(userId, body.state, body.baseRevision);
+    // Feature cierre-de-mes (FR-2003): la escritura tocaba cifras de un mes cerrado. 422 y no 409
+    // porque no es un conflicto de versiones — reintentar con la revisión buena no lo arregla.
+    if (!res.ok && "closedViolation" in res) {
+      return json(
+        { error: { code: "closed_period_violation", detail: { periods: res.periods } } },
+        HTTP.UNPROCESSABLE
+      );
+    }
     if (!res.ok) return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     // Notifica a los demás dispositivos del MISMO usuario (FR-511).
     syncHub.publish(userId, { revision: res.revision });

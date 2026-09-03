@@ -12,11 +12,15 @@
 import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
-import { ledger, node, amountCell, movement, cellNote } from "../db/schema";
+import { ledger, node, amountCell, movement, cellNote, closureEvent } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
 import { comparePeriods, isPeriodKey, periodRange } from "@/domain/periods";
 import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
+import {
+  closedPeriodsViolated, closeMonth, normalizeClosure, reopenMonth, NO_CLOSURE,
+} from "@/domain/closure";
+import type { Closure } from "@/domain/types";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
  *  Historia: 2 = aportes sin journal de retiros · 3 = saldos con arrastre (revertido) · 4 = vigente. */
@@ -36,7 +40,9 @@ export interface LoadResult {
 
 export type SaveResult =
   | { ok: true; revision: number }
-  | { ok: false; conflict: true; revision: number };
+  | { ok: false; conflict: true; revision: number }
+  /** Feature cierre-de-mes (FR-2003): la escritura tocaba cifras de meses cerrados. */
+  | { ok: false; closedViolation: true; periods: PeriodKey[] };
 
 /** Reconstruye un LedgerState a partir de las filas de la BD de un owner. */
 function rowsToState(
@@ -121,7 +127,21 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
     db.select().from(cellNote).where(eq(cellNote.ownerId, ownerId)),
   ]);
 
-  return { revision: head.revision, state: rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows) };
+  const state = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  return { revision: head.revision, state: { ...state, closure: closureFromRow(head) } };
+}
+
+/**
+ * El `closure` de la fila ancla, normalizado.
+ *
+ * Se normaliza SIEMPRE, aunque la base tenga CHECKs de formato: los CHECKs son una segunda barrera
+ * independiente, no la primera, y una fila escrita antes de la migracion o a mano por un operador
+ * no puede impedir que la app arranque (TC-CDM-013f).
+ *
+ * @aitri-trace FR-ID: FR-2001, US-ID: US-2001, AC-ID: AC-2001, TC-ID: TC-CDM-010h, TC-CDM-262e
+ */
+function closureFromRow(head: { closedThrough: string | null; reopenedPeriod: string | null }): Closure {
+  return normalizeClosure({ closedThrough: head.closedThrough, reopened: head.reopenedPeriod });
 }
 
 /**
@@ -321,6 +341,17 @@ async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Pr
  * @param baseRevision revisión que el cliente creía vigente
  * @returns { ok:true, revision } si aplicó; { ok:false, conflict:true, revision } si estaba stale (→409)
  */
+/** Carga el estado del owner DENTRO de una transacción. Lo usan el guardia y las operaciones de cierre. */
+async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerState> {
+  const [nodeRows, cellRows, movementRows, cellNoteRows] = await Promise.all([
+    tx.select().from(node).where(eq(node.ownerId, ownerId)),
+    tx.select().from(amountCell).where(eq(amountCell.ownerId, ownerId)),
+    tx.select().from(movement).where(eq(movement.ownerId, ownerId)).orderBy(desc(movement.createdAt)),
+    tx.select().from(cellNote).where(eq(cellNote.ownerId, ownerId)),
+  ]);
+  return rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+}
+
 export async function saveLedger(
   ownerId: string,
   state: LedgerState,
@@ -332,6 +363,22 @@ export async function saveLedger(
     const current = head?.revision ?? 0;
     if (current !== baseRevision) {
       return { ok: false, conflict: true, revision: current };
+    }
+
+    // ── EL GUARDIA (FR-2003, NFR-2005) ────────────────────────────────────────────────────────
+    // Corre AQUI: despues del `for update` y ANTES de la primera escritura, asi que no hay ventana
+    // entre validar y escribir (TC-CDM-243h). Y compara contra el estado PERSISTIDO que lee el
+    // propio servidor, no contra lo que el cliente afirme que habia: un cliente que mienta sobre
+    // el estado previo no consigue nada (TC-CDM-038e).
+    //
+    // Es un PUNTO DE ESTRANGULAMIENTO (ADR-12), no una comprobacion por operacion: las seis vias
+    // de escritura que FR-2003 enumera acaban todas en budgets, actuals o movements, asi que
+    // compararlas las cubre a todas — y cubre las que aun no existen.
+    const closure = head ? closureFromRow(head) : NO_CLOSURE;
+    if (closure.closedThrough !== null) {
+      const prev = await loadStateInTx(tx, ownerId);
+      const violated = closedPeriodsViolated({ ...prev, closure }, state);
+      if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
     }
 
     // Snapshot replace: borra lo del owner y reinserta (owner fijado por parámetro, nunca del estado).
@@ -346,6 +393,10 @@ export async function saveLedger(
     // saldos sería la corrupción exacta que la marca existe para impedir (FR-1010).
     const revision = current + 1;
     if (head) {
+      // OJO: `closedThrough`/`reopenedPeriod` NO se tocan aqui. El snapshot del cliente puede
+      // traer un `closure`, pero el PUT del ledger no es la via para mover la frontera — solo la
+      // mueven closeMonthFor/reopenMonthFor. Ignorarlo es lo que impide que alguien se abra un mes
+      // bajandose la frontera en el mismo snapshot con el que lo edita.
       await tx
         .update(ledger)
         .set({ revision, updatedAt: new Date(), dataVersion: DATA_VERSION_COUNTERPARTY })
@@ -416,7 +467,7 @@ export async function getMovement(ownerId: string, id: string): Promise<Movement
 export async function insertMovement(
   ownerId: string,
   input: NewMovement
-): Promise<{ movement: Movement; revision: number } | null> {
+): Promise<{ movement: Movement; revision: number } | { closedViolation: true } | null> {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
     if (!head) throw new Error("El usuario no tiene un ledger inicializado");
@@ -433,6 +484,17 @@ export async function insertMovement(
     // El rango activo se deriva del propio estado más el periodo del movimiento: el servidor no
     // tiene la preferencia de horizonte del cliente, y no la necesita — lo que valida son las
     // reglas del dominio sobre los periodos que existen (ADR-02).
+    // EL GUARDIA, segunda via de escritura (FR-2003). insertMovement no pasa por saveLedger, asi
+    // que si no se comprobara aqui quedaria un agujero — y es justo el que FR-2003 nombra primero:
+    // «registrar un movimiento nuevo con periodo de un mes cerrado» (TC-CDM-033f).
+    const closure = closureFromRow(head);
+    if (closure.closedThrough !== null) {
+      const next0 = addMovement(prev, input, serverScope(prev, input.period));
+      if (next0 !== prev && closedPeriodsViolated({ ...prev, closure }, next0).length > 0) {
+        return { closedViolation: true as const };
+      }
+    }
+
     const next = addMovement(prev, input, serverScope(prev, input.period));
     if (next === prev) return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
 
@@ -472,4 +534,107 @@ export async function insertMovement(
     await tx.update(ledger).set({ revision, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
     return { movement: mv, revision };
   });
+}
+
+// ── Feature cierre-de-mes ────────────────────────────────────────────────────────────────────────
+
+export type ClosureResult =
+  | { ok: true; revision: number; closure: Closure }
+  | { ok: false; conflict: true; revision: number }
+  | { ok: false; rejected: "not_closable" | "nothing_closed" | "already_reopened" };
+
+/**
+ * Cierra el mes cerrable del usuario. El CLIENTE NO PROPONE cuál: el servidor lo deriva.
+ *
+ * Que la petición no lleve el periodo no es un detalle de comodidad — es lo que hace que un cierre
+ * fuera de orden NO SEA EXPRESABLE en el protocolo (FR-2002, TC-CDM-022f). Misma filosofía que la
+ * frontera escalar: preferir lo indecible a lo vigilado.
+ *
+ * @aitri-trace FR-ID: FR-2002, US-ID: US-2002, AC-ID: AC-2005, TC-ID: TC-CDM-010h, TC-CDM-023f, TC-CDM-081h
+ */
+export async function closeMonthFor(
+  ownerId: string,
+  baseRevision: number,
+  currentPeriod: PeriodKey
+): Promise<ClosureResult> {
+  return db.transaction(async (tx) => {
+    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    const current = head?.revision ?? 0;
+    if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
+
+    const state = await loadStateInTx(tx, ownerId);
+    const res = closeMonth({ ...state, closure: closureFromRow(head) }, currentPeriod);
+    if (!res.ok) return { ok: false, rejected: res.reason };
+
+    const revision = current + 1;
+    await tx
+      .update(ledger)
+      .set({
+        revision,
+        updatedAt: new Date(),
+        closedThrough: res.closure.closedThrough,
+        reopenedPeriod: res.closure.reopened,
+      })
+      .where(eq(ledger.ownerId, ownerId));
+    // Dentro de la MISMA transacción: no existe un cierre sin rastro (TC-CDM-056f).
+    await tx.insert(closureEvent).values({ ownerId, period: res.closed, action: "close" });
+    return { ok: true, revision, closure: res.closure };
+  });
+}
+
+/**
+ * Reabre el último mes cerrado. Uno a la vez: hay que volver a cerrarlo antes de reabrir otro, y
+ * al cerrarlo el último cerrado vuelve a ser el mismo — así que un mes más antiguo nunca queda al
+ * alcance (FR-2005/ADR-13, TC-CDM-053e).
+ *
+ * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2015, TC-ID: TC-CDM-050h, TC-CDM-052f, TC-CDM-054f, TC-CDM-056f
+ */
+export async function reopenMonthFor(ownerId: string, baseRevision: number): Promise<ClosureResult> {
+  return db.transaction(async (tx) => {
+    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    const current = head?.revision ?? 0;
+    if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
+
+    const state = await loadStateInTx(tx, ownerId);
+    const res = reopenMonth({ ...state, closure: closureFromRow(head) });
+    if (!res.ok) return { ok: false, rejected: res.reason };
+
+    const revision = current + 1;
+    await tx
+      .update(ledger)
+      .set({
+        revision,
+        updatedAt: new Date(),
+        closedThrough: res.closure.closedThrough,
+        reopenedPeriod: res.closure.reopened,
+      })
+      .where(eq(ledger.ownerId, ownerId));
+    await tx.insert(closureEvent).values({ ownerId, period: res.reopened, action: "reopen" });
+    return { ok: true, revision, closure: res.closure };
+  });
+}
+
+export interface ClosureEventRow {
+  period: PeriodKey;
+  action: "close" | "reopen";
+  at: string;
+}
+
+/**
+ * El rastro del usuario, más reciente primero. Solo lectura y SIEMPRE filtrado por su ownerId.
+ *
+ * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2018, TC-ID: TC-CDM-055h
+ */
+export async function getClosureEvents(ownerId: string, limit = 200): Promise<ClosureEventRow[]> {
+  const rows = await db
+    .select()
+    .from(closureEvent)
+    .where(eq(closureEvent.ownerId, ownerId))
+    .orderBy(desc(closureEvent.at), desc(closureEvent.id))
+    .limit(limit);
+  return rows.map((r) => ({
+    period: r.period as PeriodKey,
+    action: r.action === "reopen" ? "reopen" : "close",
+    at: r.at.toISOString(),
+  }));
 }
