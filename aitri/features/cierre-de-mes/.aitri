@@ -16,68 +16,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T15:20:46.368Z",
+  "updatedAt": "2026-09-03T15:50:50.725Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T13:42:35.430Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T13:43:29.973Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T13:43:50.080Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T13:50:19.475Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T14:10:40.971Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T14:17:37.779Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 68,
-      "failed": 0,
-      "skipped": 3,
-      "manual": 5
-    },
-    {
-      "at": "2026-09-03T14:33:34.711Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 68,
-      "failed": 0,
-      "skipped": 3,
-      "manual": 5
-    },
-    {
-      "at": "2026-09-03T15:02:05.160Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 69,
-      "failed": 0,
-      "skipped": 3,
-      "manual": 5
-    },
-    {
-      "at": "2026-09-03T15:02:19.965Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 69,
-      "failed": 0
-    },
     {
       "at": "2026-09-03T15:05:40.237Z",
       "event": "completed",
@@ -140,15 +81,66 @@
       "at": "2026-09-03T15:20:46.334Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-09-03T15:44:15.970Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T15:44:16.085Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T15:44:16.188Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T15:44:16.310Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T15:44:16.448Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T15:44:16.716Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T15:50:29.539Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 77,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-03T15:50:41.390Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 77,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-03T15:50:50.710Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-    "2": "27c2e442fc26cb7385a65edf076b3cbcf71164c781cc47619b0bad688759943c",
+    "2": "c841ef45856fb2e15035babd56cb17b629a0d4d4ede452041c18f2c95cce05e0",
     "3": "0d8d0b9cacaf3a22774e1a1cdc41b949251369a40fa21c3dc4fc20fe47c358b5",
     "4": "82b5da7fde1cde6fbc0897f821f2670a6cda97c28527925e436ac8261641f2c6",
-    "5": "0bff76d0c28b60736c1fd497eddcb5a142784468c2af1b3e4622dc5024c3d00b"
+    "5": "7ba2327e36a811dedcd7ff69fc956b6a805f085ab6ee23cb458e560355eea6a7"
   },
   "frSnapshots": {
     "2": [
@@ -186,16 +178,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "ec72330a9f76474f237884cc319f9f7169a55c47",
+  "verifyRanRef": "852ae26c44e982bc45491c9e51b45db8cd71131a",
   "verifyRanDirty": false,
-  "verifyResultsHash": "7cb9ec23dd28bbf8fc2806f67a0a9736c403e54faf30dfca21bfc89dca4af2e6",
-  "verifyRanAt": "2026-09-03T15:13:03.970Z",
+  "verifyResultsHash": "0b04116e870e8816eefb7517f9c54b43636bfddb02fc18f8e39965fb8a1327ef",
+  "verifyRanAt": "2026-09-03T15:50:29.474Z",
   "lastVerifyRun": {
-    "passed": 76,
+    "passed": 77,
     "failed": 0,
     "skipped": 0,
-    "manual": 1,
-    "at": "2026-09-03T15:13:03.970Z"
+    "manual": 0,
+    "at": "2026-09-03T15:50:29.474Z"
   },
   "verifySummary": {
     "total": 77,
