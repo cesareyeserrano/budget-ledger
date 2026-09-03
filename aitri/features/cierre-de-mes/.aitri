@@ -1,7 +1,8 @@
 {
   "currentPhase": 2,
   "approvedPhases": [
-    1
+    1,
+    2
   ],
   "completedPhases": [
     1,
@@ -10,7 +11,7 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T02:53:07.048Z",
+  "updatedAt": "2026-09-03T03:04:01.781Z",
   "driftPhases": [],
   "events": [
     {
@@ -63,11 +64,29 @@
       "at": "2026-09-03T02:53:07.033Z",
       "event": "completed",
       "phase": 2
+    },
+    {
+      "at": "2026-09-03T03:04:01.760Z",
+      "event": "approved",
+      "phase": 2
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "241fa3beba4038e3a782c368013bcc95b388681e1f68fa0b7db00ad5c0448a5c",
     "2": "213cebd432670e66147593a73d793176078443b33dc802809e7348ca49902500"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2001",
+      "FR-2002",
+      "FR-2003",
+      "FR-2004",
+      "FR-2005",
+      "FR-2006",
+      "FR-2007",
+      "FR-2008",
+      "FR-2009"
+    ]
   }
 }
