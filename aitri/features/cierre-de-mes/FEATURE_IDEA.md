@@ -38,28 +38,81 @@ ejecutada.
   abierto: > «A menos que en la feature de cerrar mes incluyamos reapertura para arreglar cosas, y
   tendríamos que ver cómo se audita.»
 
-## LA pregunta de diseño central — sin resolver
+## LA pregunta de diseño central — RESUELTA el 2026-09-03
 
 **¿Qué pasa cuando descubres un error en un mes ya cerrado?**
 
-En contabilidad esto se resuelve **ajustando en el mes abierto**, no reabriendo el cerrado. La
-alternativa es la reapertura explícita con su rastro. De esta decisión sale todo el diseño de la
-feature, y conviene tomarla ANTES de escribir requisitos.
+**Se reabre — pero SOLO el último mes cerrado.** Decisión del usuario, textual: «yo diría reabrir,
+pero solo el mes anterior. Que quiere decir: estamos en septiembre inicios, solo podría corregir
+algo de agosto, no de julio o antes de julio».
+
+Es una restricción de producto que resuelve un problema técnico de raíz, y por eso se adopta tal
+cual. La reapertura sin límite obliga a recalcular hacia adelante todo lo que venga después:
+reabrir enero arrastra los once meses siguientes, varios de ellos cerrados. Acotándola al último
+mes cerrado, **el recálculo nunca alcanza a otro mes cerrado** —todo lo posterior está abierto o es
+plan—, así que el radio de daño queda acotado por construcción y no por disciplina.
+
+*Precisión de redacción sobre las palabras del usuario, con su misma intención:* la regla se escribe
+como «el ÚLTIMO MES CERRADO», no «el mes anterior en el calendario». En la cadencia normal son el
+mismo mes, pero así se porta bien cuando el usuario se retrasa cerrando: si está en septiembre y
+todavía no cerró agosto, lo reabrible es julio, que es el último que congeló. Y no permite caminar
+hacia atrás: reabierto agosto y vuelto a cerrar, agosto sigue siendo el último cerrado — julio nunca
+queda al alcance.
+
+**Consecuencia aceptada, confirmada por el usuario:** un error en un mes demasiado viejo para
+reabrir NO tiene corrección. No se construye el ajuste-en-el-mes-abierto de la contabilidad clásica.
+Lo único que queda es dejar una **nota** en la celda explicando qué pasó — que sí se puede, porque
+las observaciones no se congelan (ver abajo). Queda registrado para que nadie lo lea como un olvido.
 
 ## Su relación con las features vecinas
 
-- **Va DESPUÉS de multi-año y de la grilla dinámica** (puntos 1 y 2). Riesgo asumido y anotado en el
-  backlog: multi-año migra el modelo temporal, y esta feature podría eliminar después parte de esa
-  maquinaria. El usuario lo aceptó porque el filtro por fechas que quiere no existe sin años.
+- **Va DESPUÉS de multi-año** (punto 1), que se cerró el 2026-09-02. La grilla dinámica (punto 2)
+  se cerró sin construirse el 2026-09-03: multi-año la absorbió — ver `aitri/BACKLOG.md`. Riesgo
+  asumido y anotado en el backlog: multi-año migró el modelo temporal, y esta feature podría
+  eliminar después parte de esa maquinaria. El usuario lo aceptó porque el filtro por fechas que
+  quiere no existe sin años.
 - **Va ANTES del saldo inicial** (punto 4), por tres razones: la regla que él fijó para corregirlo
   —«solo mientras el mes esté abierto»— **necesita** que exista el concepto de «abierto»; el saldo
   inicial es conceptualmente *la apertura congelada del primer mes*, que es la idea que esta feature
   introduce; y construirlo antes sería apoyarlo sobre reglas a punto de cambiar.
 
-## Preguntas abiertas — CONFIRMAR antes de cerrar Fase 1
+## Decisiones del usuario (2026-09-03) — las cuatro preguntas, resueltas
 
-1. **La pregunta central de arriba** (ajustar en el mes abierto vs reabrir).
-2. **¿Qué se congela exactamente?** ¿Solo las celdas y los movimientos del mes, o también las
-   observaciones? Una observación es una anotación, no una cifra.
-3. **¿Quién cierra y cuándo?** ¿Un botón explícito, o se cierra solo al pasar de mes?
-4. **¿Qué pasa con los meses futuros ya planeados** cuando el mes en curso se cierra?
+Tomadas en conversación tras plantearle cada una con sus alternativas y su coste. No se re-abren.
+
+1. **Cómo se corrige un mes cerrado** → reapertura acotada al último mes cerrado. Ver la sección
+   central de arriba, con su consecuencia aceptada.
+
+2. **Qué se congela: las CIFRAS sí, las NOTAS no.** Se congelan las celdas y los movimientos —todo
+   lo que entra en un cálculo—, pero las observaciones de celda (FR-1012) siguen editables sobre un
+   mes cerrado. Razón del usuario al elegirlo: una nota no altera ninguna cifra, y poder escribir
+   «esto se corrigió en marzo» sobre un mes cerrado es lo que hace auditable el cierre. Encaja con
+   la decisión 1: es la única salida que le queda a un error demasiado viejo para reabrirse.
+
+3. **Cierre MANUAL, y si el usuario no cierra la app solo AVISA — nunca cierra por su cuenta.**
+   El usuario preguntó expresamente qué pasaría si nunca cerrara («creo que generaría muchos errores
+   si empieza a tocar cosas»), se le explicó el efecto completo, y aun así decidió que la app no
+   congele nada a sus espaldas: aviso visible mientras haya meses sin cerrar, y nada más.
+
+   **CONSECUENCIA QUE EL DISEÑO DEBE ABSORBER — no es un detalle.** Se le presentó antes de decidir
+   y la aceptó. Toda la maquinaria complicada del techo (BL-037, BL-038, las marcas falsas y el
+   trinquete) existe porque hoy cualquier mes pasado es editable en cualquier momento. Esa
+   maquinaria solo puede RETIRARSE si los meses cerrados están garantizados — y con el cierre
+   voluntario no lo están: un usuario que nunca cierre deja la app exactamente como hoy. Por tanto
+   **BL-037 y BL-038 NO quedan disueltos automáticamente por esta feature**, al contrario de lo que
+   supone el § «Por qué es la feature que más valor libera» escrito el 2026-09-02. El dominio tiene
+   que soportar los DOS estados a la vez: reglas simples donde hay meses cerrados, y la vigilancia
+   actual donde no los hay. Dimensionarlo es trabajo de la Fase 2; darlo por resuelto sería el error.
+
+4. **Los meses futuros ya planeados siguen editables.** Cerrar septiembre congela septiembre y nada
+   más. El saldo con que cierra pasa a ser el saldo de apertura de octubre y ese punto de partida
+   queda fijo, pero todo el plan de octubre en adelante se sigue editando con libertad. Razón: el
+   futuro es plan, y el plan cambia.
+
+## Lo que sigue abierto para la Fase 1
+
+- **Qué cuenta como «mes cerrable»**: ¿se puede cerrar un mes futuro? (Presumiblemente no, pero no
+  se le preguntó y no se infiere aquí.)
+- **La forma del aviso** de la decisión 3: dónde vive y cuándo aparece.
+- **El rastro de la reapertura**: qué se registra exactamente y dónde se consulta. El usuario dijo
+  «tendríamos que ver cómo se audita» y no se ha concretado.
