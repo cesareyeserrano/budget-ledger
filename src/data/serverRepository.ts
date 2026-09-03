@@ -9,7 +9,8 @@
  * Dependencies: @/domain (tipos), @/data/repository (interfaz LedgerRepository)
  */
 import { z } from "zod";
-import type { LedgerState } from "@/domain";
+import type { Closure, LedgerState } from "@/domain";
+import { normalizeClosure } from "@/domain/closure";
 import { ledgerStateSchema } from "@/server/schemas";
 import type { LedgerRepository } from "./repository";
 
@@ -28,6 +29,7 @@ const OK = 200;
 const NO_CONTENT = 204;
 const UNAUTHORIZED = 401;
 const CONFLICT = 409;
+const UNPROCESSABLE = 422;
 
 export class ServerRepository implements LedgerRepository {
   /** Revisión vigente conocida (para el lock optimista del PUT). */
@@ -48,6 +50,15 @@ export class ServerRepository implements LedgerRepository {
    * sobrescribiría datos reales con la semilla.
    */
   public malformed = false;
+
+  /**
+   * Feature cierre-de-mes (FR-2003): la última escritura tocaba cifras de un mes cerrado.
+   *
+   * Se distingue del fallo de red A PROPÓSITO. Sin esto, un 422 caía en el `return false` genérico
+   * y el usuario veía «no se pudo guardar» — un mensaje que le haría reintentar eternamente algo
+   * que el servidor nunca va a aceptar. Aquí el rechazo es DEFINITIVO y hay que decirlo.
+   */
+  public closedViolation: string[] | null = null;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -128,15 +139,66 @@ export class ServerRepository implements LedgerRepository {
         this.conflicted = true; // el caller re-hidrata (last-write-wins informado)
         return false;
       }
+      if (res.status === UNPROCESSABLE) {
+        const body = (await res.json().catch(() => ({}))) as
+          { error?: { code?: string; detail?: { periods?: string[] } } };
+        if (body.error?.code === "closed_period_violation") {
+          this.closedViolation = body.error.detail?.periods ?? [];
+        }
+        return false;
+      }
       if (res.status !== OK) return false;
       const body = (await res.json()) as { revision: number };
       this.revision = body.revision;
       this.conflicted = false;
       this.unauthorized = false;
+      this.closedViolation = null;
       return true;
     } catch {
       // Fallo de red: no propagar; el estado en memoria sigue válido y la fuente de verdad no recibió parcial.
       return false;
+    }
+  }
+
+  /**
+   * Mueve la frontera del cierre (FR-2002, FR-2005).
+   *
+   * El cuerpo lleva SOLO `baseRevision`: qué mes se cierra lo decide el servidor, así que desde
+   * aquí no se puede ni pedir un cierre fuera de orden.
+   *
+   * @aitri-trace FR-ID: FR-2002, US-ID: US-2002, AC-ID: AC-2005, TC-ID: TC-CDM-010h, TC-CDM-050h
+   */
+  async closure(
+    action: "close" | "reopen"
+  ): Promise<{ ok: true; closure: Closure } | { ok: false; reason: string }> {
+    try {
+      const res = await fetch(this.url("/api/v1/closure"), {
+        method: action === "close" ? "POST" : "DELETE",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseRevision: this.revision }),
+      });
+      if (res.status === UNAUTHORIZED) {
+        this.unauthorized = true;
+        return { ok: false, reason: "unauthorized" };
+      }
+      const body = (await res.json().catch(() => ({}))) as {
+        revision?: number;
+        closure?: unknown;
+        error?: { code?: string; detail?: { reason?: string } };
+      };
+      if (res.status === CONFLICT) {
+        if (typeof body.revision === "number") this.revision = body.revision;
+        this.conflicted = true;
+        return { ok: false, reason: "revision_conflict" };
+      }
+      if (res.status !== OK) {
+        return { ok: false, reason: body.error?.detail?.reason ?? body.error?.code ?? "rejected" };
+      }
+      if (typeof body.revision === "number") this.revision = body.revision;
+      return { ok: true, closure: normalizeClosure(body.closure) };
+    } catch {
+      return { ok: false, reason: "network" };
     }
   }
 

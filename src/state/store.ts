@@ -13,6 +13,11 @@ import { ServerRepository } from "@/data/serverRepository";
 import { STORAGE_KEYS } from "@/domain/types";
 import { currentPeriod } from "@/lib/date";
 import { activeRange, normalizeHorizon, DEFAULT_HORIZON, type Horizon } from "@/domain/range";
+import {
+  NO_CLOSURE, closureOf, isClosed, nextClosable, nextReopenable, normalizeClosure,
+  unclosedEndedPeriods,
+} from "@/domain/closure";
+import type { Closure } from "@/domain/types";
 import { periodYear } from "@/domain/periods";
 
 /**
@@ -65,6 +70,10 @@ interface LedgerStore {
   horizon: Horizon;
   /** Fija el horizonte y lo persiste en la cuenta del usuario (FR-1907). */
   setHorizon: (h: number) => void;
+  /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
+  closeMonth: () => Promise<void>;
+  /** Reabre el último mes cerrado (FR-2005). */
+  reopenMonth: () => Promise<void>;
   /**
    * El rango ACTIVO: el alcance del CÁLCULO. Lo reciben `computeBalanceSeries` y `reserve.ts`.
    * No lo toca el filtro: recortar el cálculo cambiaría el arrastre y el techo, no la vista.
@@ -228,6 +237,21 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           onSessionExpired();
           return;
         }
+        if (repo.closedViolation) {
+          // Rechazo DEFINITIVO, no un fallo de red: reintentar nunca lo va a arreglar, así que se
+          // descarta lo pendiente y se converge al servidor. Sin esta rama caía en «no se pudo
+          // guardar» y el usuario reintentaría eternamente algo que jamás se va a aceptar.
+          const periodos = repo.closedViolation;
+          repo.closedViolation = null;
+          pendingSave = null;
+          await doResync();
+          get().showToast(
+            periodos.length === 1
+              ? `Ese mes está cerrado: el cambio no se guardó.`
+              : `Esos meses están cerrados: el cambio no se guardó.`
+          );
+          return;
+        }
         if (repo.conflicted) {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
@@ -269,6 +293,60 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const f = get().period;
       return f.mode === "year" ? visiblesFor(all, f.year) : all;
     },
+    /**
+     * Cierra el mes cerrable (FR-2002). La AUTORIDAD es el servidor: aquí solo se pide y se
+     * refleja lo que él decida. Tras un cierre se re-hidrata para que el estado local traiga la
+     * frontera nueva y su revisión.
+     *
+     * @aitri-trace FR-ID: FR-2002, US-ID: US-2002, AC-ID: AC-2005, TC-ID: TC-CDM-093h
+     */
+    closeMonth: async () => {
+      if (!repo) return;
+      const res = await repo.closure("close");
+      if (res.ok) {
+        set({ data: { ...get().data, closure: res.closure } });
+        get().showToast("Mes cerrado.");
+        return;
+      }
+      if (res.reason === "revision_conflict") {
+        await doResync();
+        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        return;
+      }
+      get().showToast(
+        res.reason === "not_closable"
+          ? "No hay ningún mes por cerrar."
+          : "No se pudo cerrar el mes."
+      );
+    },
+
+    /**
+     * Reabre el último mes cerrado (FR-2005). Los dos rechazos posibles se explican distinto
+     * porque piden acciones distintas: «ya hay uno reabierto» tiene salida (ciérralo primero) y
+     * «no hay nada cerrado» no la tiene.
+     *
+     * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2015, TC-ID: TC-CDM-093h
+     */
+    reopenMonth: async () => {
+      if (!repo) return;
+      const res = await repo.closure("reopen");
+      if (res.ok) {
+        set({ data: { ...get().data, closure: res.closure } });
+        get().showToast("Mes reabierto: ya puedes corregirlo.");
+        return;
+      }
+      if (res.reason === "revision_conflict") {
+        await doResync();
+        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        return;
+      }
+      get().showToast(
+        res.reason === "already_reopened"
+          ? "Ya tienes un mes reabierto: ciérralo antes de reabrir otro."
+          : "No hay ningún mes cerrado que reabrir."
+      );
+    },
+
     setHorizon: (h) => {
       const next = normalizeHorizon(h);
       if (next === get().horizon) return;
@@ -544,3 +622,63 @@ if (typeof window !== "undefined") {
 }
 
 export type { NodeType };
+
+/**
+ * EL CIERRE, COMO HOOKS — mismo patrón que `useActivePeriods` (BG-001 de multi-anio).
+ *
+ * Se suscriben a lo que de verdad determina el resultado, no a la identidad de una función. Esa
+ * lección costó un defecto entero: el horizonte cambiaba en el store y la grilla no repintaba.
+ *
+ * @aitri-trace FR-ID: FR-2009, US-ID: US-2009, AC-ID: AC-2028, TC-ID: TC-CDM-090h
+ */
+export function useClosure(): Closure {
+  return useLedgerStore((s) => closureOf(s.data));
+}
+
+/** ¿Está cerrado este periodo? Lo consultan las celdas y las cabeceras de columna. */
+export function useIsClosed(period: PeriodKey): boolean {
+  return useLedgerStore((s) => isClosed(s.data.closure, period));
+}
+
+export interface ClosureStatus {
+  /** El mes que se puede cerrar ahora, o null. */
+  closable: PeriodKey | null;
+  /** El mes que se puede reabrir ahora, o null. */
+  reopenable: PeriodKey | null;
+  /** El mes actualmente reabierto, o null. */
+  reopened: PeriodKey | null;
+  /** Meses ya terminados y sin cerrar. Alimenta el aviso (FR-2006). */
+  pending: PeriodKey[];
+}
+
+/**
+ * Todo lo que el control y el aviso necesitan saber, en una sola suscripción.
+ *
+ * @aitri-trace FR-ID: FR-2006, US-ID: US-2006, AC-ID: AC-2019, TC-ID: TC-CDM-060h, TC-CDM-093h
+ */
+export function useClosureStatus(): ClosureStatus {
+  const closable = useLedgerStore((s) => nextClosable(s.data, currentPeriod(), s.horizon));
+  const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
+  const reopened = useLedgerStore((s) => closureOf(s.data).reopened);
+  const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, currentPeriod()));
+  return { closable, reopenable, reopened, pending };
+}
+
+/**
+ * `unclosedEndedPeriods` MEMOIZADO por identidad — igual que `periodsFor` y por el mismo motivo.
+ *
+ * Un selector de zustand que construya un array nuevo en cada llamada devuelve una referencia
+ * distinta cada vez, así que el componente se re-renderiza con CUALQUIER cambio del store y React
+ * llega a avisar de que el snapshot no está cacheado. La lista tiene que ser estable mientras sus
+ * entradas no cambien.
+ */
+const pendingMemo = new WeakMap<object, Map<string, PeriodKey[]>>();
+function pendingFor(data: LedgerState, horizon: Horizon, now: PeriodKey): PeriodKey[] {
+  let byKey = pendingMemo.get(data);
+  if (!byKey) { byKey = new Map(); pendingMemo.set(data, byKey); }
+  const c = closureOf(data);
+  const key = `${horizon}:${now}:${c.closedThrough ?? ""}`;
+  let list = byKey.get(key);
+  if (!list) { list = unclosedEndedPeriods(data, now, horizon); byKey.set(key, list); }
+  return list;
+}

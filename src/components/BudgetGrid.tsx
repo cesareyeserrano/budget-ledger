@@ -1,10 +1,11 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info } from "lucide-react";
-import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info, Lock } from "lucide-react";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods, useClosure, useClosureStatus } from "@/state/store";
 import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/domain/types";
 import { periodMonthLabel, isYearStart, periodYear } from "@/domain/periods";
+import { isClosed } from "@/domain/closure";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
@@ -198,6 +199,14 @@ export function BudgetGrid() {
   const scope = useActivePeriods();
   const periods = useVisiblePeriods();
   const planWarnMonths = useMemo(() => planTechoMonths(data, scope), [data, scope]);
+  // FR-2009: qué columnas están cerradas. Set memoizado por (periodos × frontera) para no
+  // recalcular la pertenencia en cada render de cada cabecera.
+  const closure = useClosure();
+  const { reopenable } = useClosureStatus();
+  const cerrados = useMemo(
+    () => new Set(periods.filter((p) => isClosed(closure, p))),
+    [periods, closure]
+  );
 
   // Tramos contiguos por año, para la banda del encabezado. Con un rango que arranca a mitad de
   // año el primer tramo tiene menos de doce meses — y ESE es justo el que se quedaba sin etiqueta
@@ -330,7 +339,21 @@ export function BudgetGrid() {
         highlightMonth={highlightMonth}
         onToggle={() => toggle(row.node!.id)}
         isExpanded={!!expanded[row.node.id]}
-        startEdit={(mk, field, cur) => { setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0)); }}
+        startEdit={(mk, field, cur) => {
+          // FR-2003/FR-2009 — UN solo punto: aquí pasan las dos celdas editables (presupuesto y
+          // ejecutado), así que basta con esto para que ninguna de un mes cerrado abra edición.
+          // Es ERGONOMÍA, no garantía: la autoridad sigue estando en el servidor (ADR-12). Y la
+          // salida se NOMBRA — un rechazo que no dice qué hacer manda al usuario a probar cosas.
+          if (cerrados.has(mk)) {
+            showToast(
+              mk === reopenable
+                ? `${periodMonthLabel(mk)} está cerrado. Puedes reabrirlo para corregirlo.`
+                : `${periodMonthLabel(mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar una observación en la celda.`
+            );
+            return;
+          }
+          setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
+        }}
         setEditVal={setEditVal}
         commitEdit={commitEdit}
         cancelEdit={() => setEditing(null)}
@@ -402,8 +425,28 @@ export function BudgetGrid() {
                       style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
                       data-month-head={m}
                       data-year-start={isYearStart(m) || undefined}
-                      title={`${periodMonthLabel(m)} de ${periodYear(m)}`}
+                      data-closed={cerrados.has(m) ? "true" : "false"}
+                      title={
+                        cerrados.has(m)
+                          ? `${periodMonthLabel(m)} de ${periodYear(m)} — mes cerrado: sus cifras no se editan`
+                          : `${periodMonthLabel(m)} de ${periodYear(m)}`
+                      }
                     >
+                      {/* FR-2009: la señal de «cerrado» NO puede ser solo el color — en escala de
+                          grises tiene que seguir leyéndose (WCAG 1.4.1). El candado es ese segundo
+                          canal, igual que el glifo lo es para el código de estado. */}
+                      {cerrados.has(m) ? (
+                        <span
+                          data-testid="closed-mark"
+                          data-month={m}
+                          title={`${periodMonthLabel(m)} está cerrado`}
+                          aria-label={`${periodMonthLabel(m)} está cerrado`}
+                          className="flex-none inline-flex"
+                          style={{ color: "var(--fg-muted)" }}
+                        >
+                          <Lock size={12} aria-hidden="true" />
+                        </span>
+                      ) : null}
                       {breachByMonth[m] ? (
                         <span
                           data-testid="techo-mark"

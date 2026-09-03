@@ -11,6 +11,8 @@ import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
 import { HorizonSelect } from "./HorizonSelect";
+import { ClosureControl } from "./ClosureControl";
+import { ClosureBanner } from "./ClosureBanner";
 import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
 import { StorageBanner } from "./register/StorageBanner";
@@ -124,6 +126,10 @@ export function DesktopShell() {
             {/* La etiqueta de alcance aparece UNA sola vez: antes estaba aquí y otra vez como
                 subtítulo de la primera tarjeta. */}
             <span data-testid="scope-label" className="caption text-fg-muted">{scopeLabel}</span>
+            {/* El cierre va con los controles de PERIODO, no con los de preferencia: es una acción
+                sobre el tiempo del ledger, no un ajuste personal como el tema o el horizonte. */}
+            <span className="h-4 w-px bg-border" aria-hidden />
+            <ClosureControl />
           </div>
           {view === "budget" && (
             <div data-testid="summary-strip" className="flex items-center gap-4 flex-wrap tabular">
@@ -155,6 +161,9 @@ export function DesktopShell() {
             —encima de la grilla y del dashboard— porque es donde se mira al operar, y alineado con
             los KPIs. No se envuelve en un div: cuando no hay aviso el componente no pinta nada. */}
         <StorageBanner className="mx-6 mt-3" />
+        {/* El aviso de meses sin cerrar, hermano del de persistencia y en el mismo sitio: encima
+            del cuerpo, donde se mira al operar. No pinta nada cuando no hay pendientes. */}
+        <ClosureBanner className="mx-6 mt-3" />
 
         {/* Cuerpo */}
         <div className="flex flex-1 min-h-0">
