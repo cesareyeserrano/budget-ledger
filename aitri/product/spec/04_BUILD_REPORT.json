@@ -205,6 +205,12 @@
       "command": "npm run test:e2e",
       "required": false,
       "timeout_ms": 600000
+    },
+    {
+      "name": "security-audit",
+      "command": "npm audit --audit-level=high",
+      "required": true,
+      "note": "Declared 2026-09-02: mirrors the scheduled CI security job locally (its 08-31 run failed on undici vulns unattended). Network-dependent — offline runs will fail this gate; see also TC-BE-084h which exercises npm audit inside the suite."
     }
   ]
 }

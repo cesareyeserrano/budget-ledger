@@ -4,7 +4,9 @@ _Escrito el 2026-09-02 para que las decisiones dejen de vivir solo en el hilo de
 Es el punto 3 del orden acordado (`aitri/BACKLOG.md` § «Orden acordado»), y corresponde a BL-036.
 Todo lo citado como decisión del usuario se confirmó con él el 2026-09-01._
 
-## El problema, en sus palabras
+## Problem / Why
+
+### El problema, en sus palabras
 
 > «Es el cierre de mes que hay que implementar: después de que se cierre el mes, no se pueden editar
 > movimientos. Es importante para evitar esos problemas.»
@@ -31,7 +33,9 @@ reducen a las dos que él enunció: no reservar más de lo disponible, y no saca
 porque probablemente los disuelve. Ver `feature_context/analisis-del-modelo.md` para la evidencia
 ejecutada.
 
-## Alcance decidido
+## New Behavior
+
+### Alcance decidido
 
 - **Congelar un mes cerrado**: sus celdas y sus movimientos dejan de ser editables.
 - **Reapertura auditada.** Decidido al resolver que el saldo inicial solo se corrige con el mes
@@ -63,6 +67,34 @@ queda al alcance.
 reabrir NO tiene corrección. No se construye el ajuste-en-el-mes-abierto de la contabilidad clásica.
 Lo único que queda es dejar una **nota** en la celda explicando qué pasó — que sí se puede, porque
 las observaciones no se congelan (ver abajo). Queda registrado para que nadie lo lea como un olvido.
+
+## Target Users
+
+El mismo usuario individual del proyecto raíz —gestiona sus finanzas personales, planea en
+escritorio y captura en móvil—, con la condición que hace relevante esta feature: **ya tiene
+historia acumulada que no quiere estropear**. Persona heredada de los requisitos aprobados del
+proyecto raíz; no se inventa una nueva. Es él quien enunció el problema y quien decidió las cinco
+reglas de abajo.
+
+No hay segundo rol. No existen contador, auditor ni administrador: no hay multi-usuario en el
+producto, así que «quién puede cerrar» y «quién puede reabrir» tienen una única respuesta —él— y no
+generan requisitos de permisos.
+
+## Success Criteria
+
+Confirmado por el usuario el 2026-09-03, y es UNA sola condición observable, deliberadamente
+tajante:
+
+**Ninguna operación de la app consigue alterar una cifra de un mes cerrado.** Ni editar una celda de
+presupuesto o de ejecutado, ni registrar, editar o borrar un movimiento, ni una reserva, ni un
+retiro, ni un traslado entre alcancías. Tras trastear libremente el mes abierto, las cifras del mes
+cerrado son idénticas a las que tenía al cerrarse.
+
+Es la queja original del usuario, literal —«evitar dañar cosas ya cerradas»— y se eligió por encima
+de la alternativa («que el modelo de reservas se simplifique») porque es comprobable de forma
+binaria y no depende de que el usuario efectivamente cierre. La simplificación del modelo sigue
+siendo el mayor valor de la feature, pero NO es su criterio de éxito: con el cierre voluntario que
+el usuario eligió, solo se cumple donde haya meses cerrados (ver la consecuencia de la decisión 3).
 
 ## Su relación con las features vecinas
 
