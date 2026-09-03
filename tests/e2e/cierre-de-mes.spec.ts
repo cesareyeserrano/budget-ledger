@@ -192,3 +192,39 @@ test("TC-CDM-231e: el filtro por año sigue funcionando con meses cerrados", asy
   // El recorte de la VISTA no cambió qué está cerrado.
   expect(await cerrados(page)).toEqual([INICIO, P(7)]);
 });
+
+// ══ BG-001 · el mes cerrado sin datos se pinta igual (ADR-14) ═══════════════════════════════════
+test("TC-CDM-094e: un mes cerrado SIN datos se pinta como columna cerrada", async ({ page }) => {
+  // @aitri-tc TC-CDM-094e
+  await page.setViewportSize(DESK);
+  const enCurso = P(AHORA.getMonth() + 1);
+  const siguiente = P(AHORA.getMonth() + 2);
+
+  // Ledger sin NADA en el mes en curso ni antes: es el escenario de BG-001.
+  await seedLedger(page, { nodes: NODES, actuals: {}, budgets: {} });
+  const cur = await page.request.get("/api/v1/ledger");
+  const { revision } = (await cur.json()) as { revision: number };
+  const cierre = await page.request.post("/api/v1/closure", { data: { baseRevision: revision } });
+  expect(cierre.ok(), await cierre.text()).toBe(true);
+
+  // Y ahora se escriben datos SOLO en el mes siguiente, que es lo que antes tiraba de la grilla
+  // hacia adelante y dejaba el mes cerrado fuera de pantalla.
+  const l2 = await page.request.get("/api/v1/ledger");
+  const body = (await l2.json()) as { revision: number; state: Record<string, unknown> };
+  const conDatos = { ...body.state, actuals: { "c-sueldo": { [siguiente]: 1_000_000 } } };
+  const put = await page.request.put("/api/v1/ledger", {
+    data: { baseRevision: body.revision, state: conDatos },
+  });
+  expect(put.ok(), await put.text()).toBe(true);
+
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+  // La columna del mes cerrado EXISTE, marcada y con candado, aunque no tenga ni una cifra.
+  const cabeza = page.locator(`[data-month-head="${enCurso}"]`);
+  await expect(cabeza).toHaveCount(1);
+  await expect(cabeza).toHaveAttribute("data-closed", "true");
+  await expect(page.locator(`[data-testid="closed-mark"][data-month="${enCurso}"]`)).toHaveCount(1);
+  // Y el control ofrece reabrirlo: la acción ya no es un callejón sin salida.
+  await expect(page.getByTestId("closure-control")).toHaveAttribute("data-reopenable", enCurso);
+});

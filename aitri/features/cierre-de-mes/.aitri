@@ -14,29 +14,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T13:20:35.118Z",
+  "updatedAt": "2026-09-03T13:50:19.550Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T02:33:57.210Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T02:34:03.787Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T02:35:15.684Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T02:39:50.317Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-09-03T02:47:41.830Z",
       "event": "approved",
@@ -102,14 +82,49 @@
       "at": "2026-09-03T13:20:35.084Z",
       "event": "completed",
       "phase": 4
+    },
+    {
+      "at": "2026-09-03T13:41:42.131Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-03T13:41:46.089Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-03T13:42:35.322Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T13:42:35.430Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T13:43:29.973Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T13:43:50.080Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T13:50:19.475Z",
+      "event": "completed",
+      "phase": 4
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "241fa3beba4038e3a782c368013bcc95b388681e1f68fa0b7db00ad5c0448a5c",
-    "2": "213cebd432670e66147593a73d793176078443b33dc802809e7348ca49902500",
-    "3": "2c23acf2a79b24d2dad6ebca26af44694548257f42e26eae82c57ccb00394bea",
-    "4": "ae1c12bd0110f3c207a481f102e553beac9e8e280c15db43b8300abefe3ecb00"
+    "1": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
+    "2": "27c2e442fc26cb7385a65edf076b3cbcf71164c781cc47619b0bad688759943c",
+    "3": "ae1b2ba1f047593cfefc1aecc06eac5db7dd2839e0172c524e922bbf1f71d7c9",
+    "4": "82b5da7fde1cde6fbc0897f821f2670a6cda97c28527925e436ac8261641f2c6"
   },
   "frSnapshots": {
     "2": [
@@ -134,5 +149,6 @@
       "FR-2008",
       "FR-2009"
     ]
-  }
+  },
+  "verifyPassed": false
 }

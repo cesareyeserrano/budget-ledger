@@ -563,7 +563,10 @@ export async function closeMonthFor(
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
     const state = await loadStateInTx(tx, ownerId);
-    const res = closeMonth({ ...state, closure: closureFromRow(head) }, currentPeriod);
+    // El SERVIDOR no conoce el horizonte del navegador (es preferencia de presentación, ADR-06):
+    // valida sobre los periodos que REALMENTE existen más el mes en curso, igual que serverScope.
+    const conCierre = { ...state, closure: closureFromRow(head) };
+    const res = closeMonth(conCierre, currentPeriod, serverScope(conCierre, currentPeriod));
     if (!res.ok) return { ok: false, rejected: res.reason };
 
     const revision = current + 1;

@@ -11,6 +11,7 @@
 
 import type { LedgerState, PeriodKey } from "./types";
 import { comparePeriods, isPeriodKey, periodOf, periodRange, periodYear } from "./periods";
+import { normalizeClosure } from "./closure";
 
 /**
  * Los dos horizontes que el usuario puede elegir, en AÑOS COMPLETOS (FR-1904). No hay más.
@@ -75,6 +76,10 @@ export function oldestPeriodWithData(state: LedgerState): PeriodKey | null {
  * decide cuánto futuro VACÍO se ofrece para planear, nunca recorta lo que ya existe. Un dato fuera
  * del rango sería un dato que el arrastre no encadena y que el usuario no puede ver ni corregir.
  *
+ * Y por el MISMO argumento hacia atrás (ADR-14): el rango llega hasta la frontera del cierre aunque
+ * ese periodo esté vacío. Un mes cerrado fuera del rango es un mes que el usuario no puede ver ni
+ * —tras reabrirlo— corregir.
+ *
  * @aitri-trace FR-ID: FR-1904, US-ID: US-1904, AC-ID: AC-1910, TC-ID: TC-MAN-030h, TC-MAN-050h
  */
 export function activeRange(
@@ -85,7 +90,20 @@ export function activeRange(
   if (!isPeriodKey(currentPeriod)) return [];
   const h = normalizeHorizon(horizon);
   const oldest = oldestPeriodWithData(state);
-  const from = oldest && comparePeriods(oldest, currentPeriod) < 0 ? oldest : currentPeriod;
+  // La FRONTERA DEL CIERRE ancla igual que un dato (ADR-14, arreglo de BG-001). Un mes que el
+  // usuario CERRÓ es un periodo que existe, tenga cifras o no: si se queda fuera del rango, reabrirlo
+  // no devuelve ninguna celda y la única acción que la app ofrece para corregir el pasado no produce
+  // efecto visible. Es la misma regla que este módulo ya aplica al otro extremo con `newest`.
+  //
+  // Se normaliza ANTES de anclar: una frontera basura no puede fijar el inicio del rango, porque
+  // toda la aritmética posterior la daría por buena.
+  const boundary = normalizeClosure(state.closure).closedThrough;
+  const anchors = [oldest, boundary].filter(
+    (p): p is PeriodKey => !!p && comparePeriods(p, currentPeriod) < 0
+  );
+  const from = anchors.length > 0
+    ? anchors.reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b))
+    : currentPeriod;
 
   // Hasta DICIEMBRE del último año del horizonte: años completos, no una cuenta de meses.
   const horizonEnd = periodOf(periodYear(currentPeriod) + h, 12);

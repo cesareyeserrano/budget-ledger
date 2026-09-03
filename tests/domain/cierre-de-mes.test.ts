@@ -17,6 +17,10 @@ import { addMonths, periodRange } from "@/domain/periods";
 import type { Closure, LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
 
 const AHORA: PeriodKey = "2026-09";
+
+/** `nextClosable` con el rango ya derivado — el dominio lo recibe, no lo deriva (ADR-14). */
+const closableDe = (s: LedgerState, now: PeriodKey = AHORA) =>
+  nextClosable(s, now, activeRange(s, now));
 const NODES: LedgerNode[] = [
   { id: "g-inc", ownerId: "u", type: "income", level: "group", parentId: null, name: "Ingresos", icon: null, order: 0 },
   { id: "c-sueldo", ownerId: "u", type: "income", level: "category", parentId: "g-inc", name: "Sueldo", icon: null, order: 1 },
@@ -81,12 +85,12 @@ describe("FR-2001 — el cierre como estado del ledger", () => {
 describe("FR-2002 — el cierre es secuencial", () => {
   it("TC-CDM-020h: el cerrable es el abierto más antiguo, no el mes en curso", () => {
     // @aitri-tc TC-CDM-020h
-    expect(nextClosable(estado(), AHORA)).toBe("2026-06");
+    expect(closableDe(estado(), AHORA)).toBe("2026-06");
   });
 
   it("TC-CDM-021h: cerrado agosto, el siguiente cerrable es septiembre", () => {
     // @aitri-tc TC-CDM-021h
-    expect(nextClosable(estado({ closedThrough: "2026-08", reopened: null }), AHORA)).toBe("2026-09");
+    expect(closableDe(estado({ closedThrough: "2026-08", reopened: null }), AHORA)).toBe("2026-09");
   });
 
   it("TC-CDM-024e: un mes vacío en medio NO se salta — el rango es contiguo", () => {
@@ -95,7 +99,7 @@ describe("FR-2002 — el cierre es secuencial", () => {
       budgets: { "c-sueldo": { "2026-06": 1_000_000, "2026-09": 1_000_000 } },
       actuals: { "c-sueldo": { "2026-06": 1_000_000 } },
     });
-    expect(nextClosable(s, AHORA)).toBe("2026-07");
+    expect(nextClosable(s, AHORA, activeRange(s, AHORA))).toBe("2026-07");
   });
 });
 
@@ -103,7 +107,7 @@ describe("FR-2008 — nunca un mes futuro", () => {
   it("TC-CDM-080f: con el mes en curso ya cerrado no hay nada cerrable", () => {
     // @aitri-tc TC-CDM-080f
     const s = estado({ closedThrough: "2026-09", reopened: null });
-    expect(nextClosable(s, AHORA)).toBeNull();
+    expect(nextClosable(s, AHORA, activeRange(s, AHORA))).toBeNull();
     // Existe 2026-10 en el rango, pero es futuro.
     expect(activeRange(s, AHORA)).toContain("2026-10");
   });
@@ -111,8 +115,8 @@ describe("FR-2008 — nunca un mes futuro", () => {
   it("TC-CDM-082e: el mes en curso es cerrable, y lo sigue siendo al pasar a ser pasado", () => {
     // @aitri-tc TC-CDM-082e
     const s = estado({ closedThrough: "2026-08", reopened: null });
-    expect(nextClosable(s, "2026-09")).toBe("2026-09");
-    expect(nextClosable(s, "2026-10")).toBe("2026-09");
+    expect(nextClosable(s, "2026-09", activeRange(s, "2026-09"))).toBe("2026-09");
+    expect(nextClosable(s, "2026-10", activeRange(s, "2026-10"))).toBe("2026-09");
   });
 });
 
@@ -137,7 +141,7 @@ describe("FR-2005 — reapertura del último mes cerrado", () => {
       reabiertos.push(r.reopened);
       suelos.push(r.closure.closedThrough);
       s = { ...s, closure: r.closure };
-      const c = closeMonth(s, AHORA);
+      const c = closeMonth(s, AHORA, activeRange(s, AHORA));
       expect(c.ok).toBe(true);
       if (!c.ok) return;
       s = { ...s, closure: c.closure };
@@ -313,8 +317,8 @@ describe("FR-2006 — aviso sin cierre automático", () => {
   it("TC-CDM-063f: pasar de mes NO cierra nada; solo crece la lista de pendientes", () => {
     // @aitri-tc TC-CDM-063f
     const s = estado();
-    expect(unclosedEndedPeriods(s, "2026-09")).toEqual(["2026-06", "2026-07", "2026-08"]);
-    const despues = unclosedEndedPeriods(s, "2026-10");
+    expect(unclosedEndedPeriods(s, "2026-09", activeRange(s, "2026-09"))).toEqual(["2026-06", "2026-07", "2026-08"]);
+    const despues = unclosedEndedPeriods(s, "2026-10", activeRange(s, "2026-10"));
     expect(despues).toEqual(["2026-06", "2026-07", "2026-08", "2026-09"]);
     // Y la frontera sigue exactamente donde estaba: nadie la movió.
     expect(s.closure).toBeUndefined();
@@ -327,7 +331,7 @@ describe("FR-2006 — aviso sin cierre automático", () => {
       budgets: { "c-sueldo": { "2026-09": 1_000_000 } },
       actuals: { "c-sueldo": { "2026-09": 1_000_000 } },
     };
-    expect(unclosedEndedPeriods(nuevo, AHORA)).toEqual([]);
+    expect(unclosedEndedPeriods(nuevo, AHORA, activeRange(nuevo, AHORA))).toEqual([]);
   });
 });
 
@@ -460,5 +464,75 @@ describe("NFR-2006 — coste del guardia", () => {
     }
     ms.sort((a, b) => a - b);
     expect(ms[50]).toBeLessThanOrEqual(15);
+  });
+});
+
+// ══ BG-001 · el mes cerrado sin datos sigue alcanzable (ADR-14) ═════════════════════════════════
+describe("FR-2005/NFR-2004 — la frontera del cierre ancla el rango", () => {
+  /** Ledger SIN un solo dato antes de `desde`; septiembre cerrado y vacío. */
+  const vacioConSeptiembreCerrado = (desde?: PeriodKey): LedgerState => ({
+    ownerId: "u", nodes: NODES, movements: [],
+    budgets: desde ? { "c-mercado": { [desde]: 300_000 } } : {},
+    actuals: desde ? { "c-mercado": { [desde]: 250_000 } } : {},
+    closure: { closedThrough: "2026-09", reopened: null },
+  });
+
+  it("TC-CDM-058h: un mes cerrado SIN datos sigue en el rango, y reabrirlo devuelve una celda", () => {
+    // @aitri-tc TC-CDM-058h
+    const s = vacioConSeptiembreCerrado("2026-10"); // el historial de datos empieza en octubre
+    const rango = activeRange(s, "2026-10");
+    expect(rango[0]).toBe("2026-09");
+    expect(rango).toContain("2026-09");
+
+    // Y tras reabrirlo sigue habiendo columna: es lo que BG-001 no tenía.
+    const r = reopenMonth(s);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const reabierto = { ...s, closure: r.closure };
+    expect(isClosed(reabierto.closure, "2026-09")).toBe(false);
+    expect(activeRange(reabierto, "2026-10")).toContain("2026-09");
+  });
+
+  it("TC-CDM-059f: el punto de no retorno lo marca el siguiente cierre, no el paso del mes", () => {
+    // @aitri-tc TC-CDM-059f
+    const s = vacioConSeptiembreCerrado("2026-10");
+    // Ya estamos en noviembre y NO se ha cerrado octubre: septiembre sigue vivo.
+    expect(activeRange(s, "2026-11")).toContain("2026-09");
+    expect(nextReopenable(s.closure)).toBe("2026-09");
+
+    // Se cierra octubre. Las dos cosas se van JUNTAS: deja de estar anclado y deja de ser reabrible.
+    const c = closeMonth(s, "2026-11", activeRange(s, "2026-11"));
+    expect(c.ok).toBe(true);
+    if (!c.ok) return;
+    expect(c.closed).toBe("2026-10");
+    const despues = { ...s, closure: c.closure };
+    expect(activeRange(despues, "2026-11")).not.toContain("2026-09");
+    expect(nextReopenable(despues.closure)).toBe("2026-10");
+  });
+
+  it("TC-CDM-233h: el cierre no RECORTA el rango — lo contiene entero y añade la frontera", () => {
+    // @aitri-tc TC-CDM-233h
+    // (a) frontera DENTRO del historial: listas idénticas, como antes.
+    const sin = activeRange(estado(), AHORA);
+    const dentro = activeRange(estado({ closedThrough: "2026-08", reopened: null }), AHORA);
+    expect(dentro).toEqual(sin);
+
+    // (b) frontera ANTES del primer dato: superconjunto estricto, nunca pérdida.
+    const s = vacioConSeptiembreCerrado("2026-10");
+    const conCierre = activeRange(s, "2026-10");
+    const sinCierre = activeRange({ ...s, closure: undefined }, "2026-10");
+    for (const p of sinCierre) expect(conCierre).toContain(p);
+    expect(conCierre.length).toBe(sinCierre.length + 1);
+    expect(sinCierre).not.toContain("2026-09");
+  });
+
+  it("TC-CDM-234f: una frontera basura no puede fijar el inicio del rango", () => {
+    // @aitri-tc TC-CDM-234f
+    const s: LedgerState = {
+      ...estado(),
+      // @ts-expect-error basura deliberada, como la escribiría un operador o un formato viejo
+      closure: { closedThrough: "2026-13", reopened: null },
+    };
+    expect(activeRange(s, AHORA)[0]).toBe("2026-06");
   });
 });

@@ -19,6 +19,21 @@ justo la clase de deuda que el propio análisis del modelo (`feature_context/ana
 documenta como origen de los defectos actuales. Manteniéndolo fuera del cálculo, el mundo «sin meses
 cerrados» ES literalmente el código de hoy, sin ramas nuevas.
 
+**EL MATIZ, añadido el 2026-09-03 tras BG-001 — y es un matiz, no una excepción.** Los MÓDULOS DE
+CÁLCULO (`balance.ts`, `reserve.ts`, `rollup.ts`) siguen sin conocer el cierre, y eso se verifica por
+barrido (TC-CDM-212f). Pero `range.ts` SÍ lo conoce, porque responde a una pregunta distinta: no
+«cuánto suma esto» sino «qué periodos EXISTEN para este usuario» — y un mes que el usuario cerró es
+un periodo que existe, tenga cifras o no. Anclar el rango en el mínimo entre el periodo más antiguo
+con datos y la frontera del cierre es la misma regla que ese módulo ya aplica hacia adelante: «si
+hay un dato más allá del horizonte, el rango lo incluye igual, porque un dato fuera del rango no se
+puede ver ni corregir».
+
+Sin ese anclaje aparecía un callejón sin salida real (BG-001): con el ledger vacío, un septiembre
+cerrado se caía de la grilla al entrar octubre y **reabrirlo no devolvía ninguna celda** — la única
+acción que la app ofrece para corregir el pasado quedaba sin efecto visible. Numéricamente el anclaje
+es inocuo: añade como mucho un periodo VACÍO al principio, y el primer periodo abre en `ZERO_CARRY`
+igual que abría el que estaba antes.
+
 Y **FR-2007 sale gratis de FR-2003**: si las cifras de un mes cerrado no pueden cambiar, su saldo de
 cierre tampoco puede, porque es una función de entradas congeladas. El «punto de partida fijo» del
 mes siguiente no necesita mecanismo propio — es un teorema, no una feature.
@@ -313,6 +328,12 @@ I/O: `(LedgerState) → { ok, closure, reopened } | { ok: false, reason }`.
 Failure: `nothing_closed` o `already_reopened` → `422` con el motivo, sin tocar la frontera ni
 insertar evento. Si el INSERT del evento falla, la transacción entera se revierte: **no existe una
 reapertura sin rastro**.
+Anclaje del rango (criterio añadido el 2026-09-03, BG-001): `activeRange` calcula su inicio como
+`min(oldestPeriodWithData, closedThrough)` en vez de solo el primero. Así el mes reabrible y el
+reabierto están SIEMPRE en pantalla, y reabrir siempre deja una columna donde teclear. El punto de
+no retorno lo marca el siguiente cierre —al cerrar octubre, septiembre deja de estar anclado y deja
+de ser reabrible a la vez—, no el paso del mes: las dos cosas se mueven juntas por construcción,
+porque ambas cuelgan de la misma frontera.
 
 **FR-2006: Aviso de meses sin cerrar; la app nunca cierra sola**
 Method: `unclosedEndedPeriods` = periodos del rango activo estrictamente anteriores al mes en curso
@@ -511,6 +532,36 @@ registro que se puede leer, exportar o borrar sin alterar el comportamiento del 
 invariante entre `reopened` y `closedThrough` en el borde de carga, donde se normaliza igual que
 `normalizeHorizon`.
 
+### ADR-14: Qué ancla el inicio del rango visible
+
+**Context:** BG-001 (2026-09-03) destapó que un mes cerrado sin cifras se cae del rango en cuanto
+pasa el mes, porque `activeRange` arranca en el periodo más antiguo CON DATOS. La consecuencia no es
+cosmética: el mes reabierto queda fuera de pantalla y la acción de reabrir no produce ningún efecto
+visible. Hay que decidir qué ancla el inicio del rango.
+
+- **Option A — Solo los datos (statu quo).** El rango arranca en `oldestPeriodWithData`. Ventaja: el
+  cálculo queda del todo aislado del cierre y `range.ts` no importa `closure.ts`. Coste inaceptable:
+  deja vivo el callejón sin salida — la app ofrece una acción que no hace nada observable.
+- **Option B — Datos O frontera del cierre.** El rango arranca en el mínimo de los dos. Ventaja: un
+  mes cerrado siempre tiene columna, así que reabrir siempre devuelve una celda; y es la misma regla
+  que el módulo ya aplica al otro extremo con los datos más allá del horizonte. Coste: `range.ts`
+  pasa a conocer `Closure`, así que el principio «el cierre no entra en el cálculo» necesita el
+  matiz del Executive Summary — los módulos de cálculo siguen sin conocerlo, el que resuelve qué
+  periodos existen sí.
+- **Option C — Prohibir cerrar un mes sin datos ni historial previo.** Ventaja: cero cambios en el
+  rango. Coste: le quita al usuario una acción que pidió expresamente (cerrar el mes en curso,
+  FR-2008), y por un motivo que no puede explicarle sin hablarle del rango visible. Además no
+  resuelve el caso simétrico: un mes con datos que luego se ponen a cero.
+
+**Decision: Option B.** Es la única que elimina el callejón sin salida sin retirar una capacidad, y
+su coste es una precisión en la redacción del principio, no una grieta en él.
+
+**Consequences:** habilita que reabrir SIEMPRE devuelva una celda editable; obliga a que
+`normalizeClosure` se aplique en el borde antes de anclar nada (una frontera basura no puede fijar el
+inicio del rango); y deja el rango arrancando, como mucho, un periodo vacío antes que antes — lo que
+no altera ninguna cifra porque el primer periodo abre en `ZERO_CARRY` de todos modos. La redacción de
+NFR-2004 se corrigió en la Fase 1 para permitirlo: prohíbe RECORTAR el rango, no ampliarlo.
+
 ## Failure Blast Radius
 
 **Component: Postgres**
@@ -619,11 +670,11 @@ Severity: low
       FR-2007, que es un «no se implementa nada» explícito y razonado, nunca un salto silencioso.
 - [x] **Todo NFR tiene una decisión de diseño** — NFR-2001 (sin cambios de contrato: nada que
       adaptar en la suite existente), NFR-2002 y NFR-2003 (el cierre fuera del cálculo),
-      NFR-2004 (`activeRange` intacto; el cierre no recorta el rango), NFR-2005 (Security Design),
+      NFR-2004 (el cierre no RECORTA el rango; lo amplía hasta la frontera — ADR-14), NFR-2005 (Security Design),
       NFR-2006 (Performance & Scalability), NFR-2007 (contrato de preservación: `revision` y su
       lock intactos), NFR-2008 (migración `0004` aditiva, en transacción, idempotente por
       `data_version`).
-- [x] **Todo ADR evalúa ≥2 opciones** — ADR-11 (3), ADR-12 (3), ADR-13 (3).
+- [x] **Todo ADR evalúa ≥2 opciones** — ADR-11 (3), ADR-12 (3), ADR-13 (3), ADR-14 (3).
 - [x] **Ningún elemento del `no_go_zone` aparece en la arquitectura** — no hay ajuste-en-mes-abierto,
       no hay temporizador ni cron de cierre automático, no se toca la maquinaria del techo
       (BL-037/BL-038), no hay forma de reabrir dos meses ni de alcanzar uno anterior al último

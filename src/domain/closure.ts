@@ -18,7 +18,11 @@
 
 import type { Closure, LedgerState, PeriodKey } from "./types";
 import { addMonths, comparePeriods, isPeriodKey } from "./periods";
-import { activeRange, type Horizon } from "./range";
+
+// NO se importa `range.ts`: `activeRange` ancla su inicio en la frontera del cierre (ADR-14), así
+// que importarlo aquí cerraría un ciclo. Las dos funciones que necesitan el rango lo RECIBEN como
+// parámetro — que es como opera el resto del dominio (ADR-02: la lista de periodos entra, no se
+// deriva dentro).
 
 /** Nada cerrado. Es el estado de todo usuario existente y de todo usuario nuevo. */
 export const NO_CLOSURE: Closure = { closedThrough: null, reopened: null };
@@ -81,11 +85,10 @@ export function isClosed(closure: Closure | undefined, period: PeriodKey): boole
 export function nextClosable(
   state: LedgerState,
   currentPeriod: PeriodKey,
-  horizon?: Horizon
+  range: readonly PeriodKey[]
 ): PeriodKey | null {
   if (!isPeriodKey(currentPeriod)) return null;
   const { closedThrough } = closureOf(state);
-  const range = activeRange(state, currentPeriod, horizon);
   if (range.length === 0) return null;
   const candidate =
     closedThrough === null ? range[0] : range.find((p) => comparePeriods(p, closedThrough) > 0);
@@ -129,9 +132,9 @@ export type CloseResult =
 export function closeMonth(
   state: LedgerState,
   currentPeriod: PeriodKey,
-  horizon?: Horizon
+  range: readonly PeriodKey[]
 ): CloseResult {
-  const target = nextClosable(state, currentPeriod, horizon);
+  const target = nextClosable(state, currentPeriod, range);
   if (target === null) return { ok: false, reason: "not_closable" };
   const prev = closureOf(state);
   const reopened = prev.reopened === target ? null : prev.reopened;
@@ -248,11 +251,11 @@ function diffMovements(
 export function unclosedEndedPeriods(
   state: LedgerState,
   currentPeriod: PeriodKey,
-  horizon?: Horizon
+  range: readonly PeriodKey[]
 ): PeriodKey[] {
   if (!isPeriodKey(currentPeriod)) return [];
   const { closedThrough } = closureOf(state);
-  return activeRange(state, currentPeriod, horizon).filter(
+  return range.filter(
     (p) =>
       comparePeriods(p, currentPeriod) < 0 &&
       (closedThrough === null || comparePeriods(p, closedThrough) > 0)

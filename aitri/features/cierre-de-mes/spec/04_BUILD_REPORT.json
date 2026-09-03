@@ -24,7 +24,8 @@
     "src/components/BudgetGrid.tsx",
     "src/components/DesktopShell.tsx",
     "tests/e2e/helpers/fixtures.ts",
-    "drizzle/meta/_journal.json"
+    "drizzle/meta/_journal.json",
+    "src/domain/range.ts"
   ],
   "setup_commands": [
     "npm run db:migrate"
@@ -47,6 +48,12 @@
       "fr_id": "FR-2009",
       "substitution": "Las columnas cerradas se marcan en la cabecera y en las celdas de la GRILLA (data-closed + candado), pero el módulo de Balance no marca las suyas.",
       "reason": "El Balance comparte riel de columnas con la grilla, que sí va marcada, y sus filas son derivadas no editables — no hay nada que el usuario pueda intentar escribir allí, así que la señal de «no editable» no aporta lo mismo. AC-2028 nombra las dos superficies, así que se declara en vez de darse por cubierto.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2005",
+      "substitution": "El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan.",
+      "reason": "Es suficiente y coherente: solo el ULTIMO mes cerrado es reabrible (FR-2005), asi que anclar la frontera es exactamente lo que hace falta para que reabrir devuelva una celda. Los anteriores estan congelados para siempre y vacios — no hay nada que ver ni nada que hacer en ellos. Anclarlos todos exigiria guardar el inicio de la racha cerrada, un dato nuevo sin ningun uso.",
       "effort_to_fix": "low"
     }
   ],

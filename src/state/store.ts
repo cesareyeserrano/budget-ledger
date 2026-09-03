@@ -674,7 +674,7 @@ export interface ClosureStatus {
  * @aitri-trace FR-ID: FR-2006, US-ID: US-2006, AC-ID: AC-2019, TC-ID: TC-CDM-060h, TC-CDM-093h
  */
 export function useClosureStatus(): ClosureStatus {
-  const closable = useLedgerStore((s) => nextClosable(s.data, currentPeriod(), s.horizon));
+  const closable = useLedgerStore((s) => nextClosable(s.data, currentPeriod(), periodsFor(s.data, s.horizon, currentPeriod())));
   const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
   const reopened = useLedgerStore((s) => closureFor(s.data).reopened);
   const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, currentPeriod()));
@@ -696,6 +696,6 @@ function pendingFor(data: LedgerState, horizon: Horizon, now: PeriodKey): Period
   const c = closureFor(data);
   const key = `${horizon}:${now}:${c.closedThrough ?? ""}`;
   let list = byKey.get(key);
-  if (!list) { list = unclosedEndedPeriods(data, now, horizon); byKey.set(key, list); }
+  if (!list) { list = unclosedEndedPeriods(data, now, periodsFor(data, horizon, now)); byKey.set(key, list); }
   return list;
 }

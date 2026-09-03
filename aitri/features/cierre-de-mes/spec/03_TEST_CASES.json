@@ -102,7 +102,8 @@
       "Saldo inicial y página de Configuración: excluidos — no_go_zone, punto 4 del orden acordado.",
       "Paginación del rastro de closure_event: excluida — el TRD acota el crecimiento a ~2 filas al mes para un producto de usuario único y decide explícitamente no diseñar paginación.",
       "Migración inversa de 0004: excluida — el TRD decide no escribirla, porque borrar las columnas destruiría el rastro. Se prueba en cambio que revertir el CÓDIGO es seguro contra la base migrada (TC-CDM-262e).",
-      "Comportamiento del cierre con más de un dispositivo editando a la vez: cubierto solo en su borde de carrera (TC-CDM-243h) y por el lock ya existente; no se construye un escenario multi-dispositivo completo porque el bloqueo optimista ya está verificado por la feature servidor-fuente-unica."
+      "Comportamiento del cierre con más de un dispositivo editando a la vez: cubierto solo en su borde de carrera (TC-CDM-243h) y por el lock ya existente; no se construye un escenario multi-dispositivo completo porque el bloqueo optimista ya está verificado por la feature servidor-fuente-unica.",
+      "El anclaje del rango en la frontera del cierre (ADR-14, arreglo de BG-001) se prueba en UNIDAD —donde vive la aritmética— y con un solo caso e2e que confirma que la columna se pinta. No se construye una matriz e2e de escenarios de anclaje: el navegador no aporta nada que la unidad no demuestre ya, y el riesgo real era el callejón sin salida, no el pintado."
     ]
   },
   "test_cases": [
@@ -1607,6 +1608,111 @@
         "Verificar el resultado esperado"
       ],
       "expected_result": "dos violaciones de CHECK; segunda barrera independiente del código",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-058h",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2015",
+      "title": "Un mes cerrado SIN datos sigue en el rango, y reabrirlo devuelve una celda",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un ledger SIN ningún dato en ningún periodo, con 2026-09 cerrado (closedThrough='2026-09') y datos escritos después solo en 2026-10",
+      "when": "se calcula activeRange con mes en curso 2026-10 y después se reabre 2026-09",
+      "then": "el rango contiene '2026-09' aunque no tenga cifras y aunque el historial de datos empiece en 2026-10; tras reabrirlo sigue contenido, así que hay una columna donde teclear",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-09' presente en el rango antes y después de reabrir — el callejón sin salida de BG-001 desaparece",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-059f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2017",
+      "title": "El punto de no retorno lo marca el siguiente cierre, no el paso del mes",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el mismo ledger vacío con 2026-09 cerrado y datos solo en 2026-10, ya en el mes 2026-11",
+      "when": "se comprueba el rango y el reabrible; luego se cierra 2026-10 y se vuelve a comprobar",
+      "then": "antes de cerrar octubre, '2026-09' sigue en el rango y es reabrible; después de cerrar octubre deja de estar anclado y deja de ser reabrible — las dos cosas a la vez",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "septiembre anclado y reabrible antes; fuera del rango y no reabrible después de cerrar octubre",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-233h",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El cierre no RECORTA el rango: lo contiene entero y añade la frontera",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un state con datos desde 2026-06, horizonte 2 y mes en curso 2026-09",
+      "when": "se compara activeRange sin cierre contra activeRange con closedThrough='2026-08', y después contra un caso con la frontera ANTERIOR al primer dato",
+      "then": "con la frontera dentro del historial las dos listas son idénticas; con la frontera anterior al primer dato la lista con cierre CONTIENE a la de sin cierre y añade los periodos hasta la frontera — nunca pierde ninguno",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "igualdad en el caso normal; superconjunto estricto cuando la frontera precede a los datos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-234f",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "Una frontera basura no puede fijar el inicio del rango",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un state con datos desde 2026-06 y un closure con closedThrough='2026-13' escrito a mano",
+      "when": "se calcula activeRange con mes en curso 2026-09",
+      "then": "el rango arranca en '2026-06' y no en ningún periodo derivado de la basura: normalizeClosure la descarta ANTES de anclar nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "rango desde '2026-06'; la frontera inválida se ignora",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-094e",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2028",
+      "title": "El mes cerrado sin datos se PINTA como columna cerrada",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión cuyo ledger no tiene ningún dato antes del mes en curso, con el mes en curso cerrado por API y datos escritos en el mes siguiente",
+      "when": "se recarga la página y se leen las cabeceras de columna",
+      "then": "la cabecera del mes cerrado existe con data-closed='true' y su candado, aunque todas sus celdas estén vacías",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "1 cabecera con data-closed=true y su [data-testid=closed-mark], con celdas vacías",
       "test_data": {}
     }
   ]
