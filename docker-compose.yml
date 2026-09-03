@@ -1,53 +1,58 @@
-# Ledger — despliegue local/Ultron. Nginx (host o contenedor aparte) hace de reverse proxy → este servicio.
-# feature backend (FR-512 / NFR-505 / NFR-510): Postgres portátil por volumen nombrado, host-agnóstico.
-# La Pi es solo un target; nada aquí la asume. TLS y security headers los termina el reverse proxy.
+# T-Ledger — despliegue de PRODUCCIÓN.
+#
+# No confundir con docker-compose.dev.yml, que levanta base, visor y buzón de correo para
+# desarrollo. Éste levanta la APP y su base, y nada más: el visor de base de datos y Mailpit no
+# tienen sitio en producción.
+#
+# TLS y los headers de seguridad los pone Nginx en el host (ver DEPLOYMENT.md). La app escucha en
+# 127.0.0.1 a propósito: no se expone al exterior sin pasar por el proxy.
 services:
   db:
     image: postgres:16-alpine
-    container_name: ledger-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ledger}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+      POSTGRES_USER: ${POSTGRES_USER:?falta POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-ledger}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledger}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+    # Sin `ports`: la base NO se publica al host. Solo la alcanza la app por la red interna.
 
-  ledger:
+  app:
+    image: t-ledger:${LEDGER_TAG:-latest}
     build: .
-    image: t-ledger:latest
-    container_name: ledger
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "3080:3000"        # host 3080 → contenedor 3000; Nginx (TLS + security headers) hace de proxy
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_URL=${DATABASE_URL:-postgres://ledger:ledger@db:5432/ledger}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3080}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - LEDGER_ALLOWED_ORIGINS=${LEDGER_ALLOWED_ORIGINS:-}
-      # BG-013: este compose asume el nginx de DEPLOYMENT.md, que REEMPLAZA X-Forwarded-For.
-      # Si sirves sin ese proxy delante, déjalo en false o el rate-limit del login no limita.
-      - LEDGER_TRUST_PROXY=${LEDGER_TRUST_PROXY:-true}
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 25s
+      DATABASE_URL: ${DATABASE_URL:?falta DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?falta BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?falta BETTER_AUTH_URL}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      LEDGER_ALLOWED_ORIGINS: ${LEDGER_ALLOWED_ORIGINS:-}
+      # Default SEGURO false, igual que .env.example (BG-013). Detrás de Nginx hay que ponerlo en
+      # true en el .env — pero SOLO si el proxy REEMPLAZA X-Forwarded-For, como manda la sección de
+      # Nginx del DEPLOYMENT.md. Con true y un proxy que lo anexa, el anti-fuerza-bruta se puede
+      # esquivar mandando el header a mano.
+      LEDGER_TRUST_PROXY: ${LEDGER_TRUST_PROXY:-false}
+    ports:
+      # Solo loopback: Nginx es la única puerta desde fuera.
+      - "127.0.0.1:3000:3000"
 
 volumes:
+  # Nombre fijado por contrato (TC-BE-060e) y referenciado por la sección de cifrado en reposo
+  # (ADR-08) del DEPLOYMENT.md: volumen NOMBRADO, nunca un bind-mount a una ruta de máquina.
   pgdata:

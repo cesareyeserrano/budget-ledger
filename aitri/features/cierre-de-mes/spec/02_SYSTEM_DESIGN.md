@@ -421,14 +421,27 @@ máximo de multi-anio (historial más 2 años ≈ 36–60 periodos): del orden d
 
 ## Deployment Architecture
 
-**Modelo de despliegue: aplicación Next.js 15 en Node (`next build` + `next start`), no
-contenerizada.** Es el modelo vigente del proyecto y esta feature no da ninguna razón para cambiarlo.
+**Modelo de despliegue: contenedor Docker detrás de Nginx**, que es lo que el `DEPLOYMENT.md` de la
+raíz declara para este proyecto (Ultron, una Raspberry Pi 5). Esta feature no da ninguna razón para
+cambiarlo y no lo cambia.
+
+> **CORREGIDO el 2026-09-03.** Este párrafo decía «no contenerizada», deducido de que no había
+> `Dockerfile` en el repositorio. Era una inferencia, no un hecho: el `DEPLOYMENT.md` del proyecto
+> decía contenedor desde el principio. La deducción tapó un agujero REAL del proyecto raíz —el
+> documento mandaba construir una imagen desde un fichero que no existía, y describía además una
+> arquitectura con `localStorage` que `servidor-fuente-unica` había retirado—. El `Dockerfile`, el
+> `docker-compose.yml` de producción y el `DEPLOYMENT.md` actualizado se crearon el mismo día, fuera
+> de esta feature porque son del proyecto raíz, y la imagen se verificó arrancando: `/health` 200,
+> `401` sin sesión, headers de seguridad presentes, proceso como usuario sin privilegios y
+> `HEALTHCHECK` en `healthy`.
 
 - **Entornos**: desarrollo local contra el Postgres de `docker-compose.dev.yml`; producción contra
   el Postgres gestionado. Configuración por variables de entorno (`DATABASE_URL`), sin valores
   incrustados.
 - **Orden de despliegue — SIN restricción, a diferencia de multi-anio.** La migración `0004` es
-  puramente aditiva: dos columnas nulables y una tabla nueva. **El código viejo sigue funcionando
+  puramente aditiva: dos columnas nulables y una tabla nueva. Las migraciones viajan DENTRO de la
+  imagen (`docker compose run --rm app node scripts/migrate.mjs`), así que aplicarlas no exige Node
+  ni el repositorio en el host. **El código viejo sigue funcionando
   contra la base migrada** (ignora columnas que no conoce) y el código nuevo funciona contra una
   base sin migrar en modo degradado. Se recomienda igualmente `pg_dump` → `npm run db:migrate` →
   desplegar, pero la ventana entre pasos no rompe nada.

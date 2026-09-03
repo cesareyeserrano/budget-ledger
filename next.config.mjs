@@ -8,6 +8,11 @@ const nextConfig = {
   // le arrancara el build al otro por debajo: corridas colgadas y "Could not find a production build".
   // Con NEXT_DIST_DIR el smoke compila y sirve desde su propio directorio, aislado.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Salida AUTOCONTENIDA para la imagen de contenedor: Next emite `.next/standalone/server.js` con
+  // solo las dependencias que el servidor usa de verdad, así que la imagen no arrastra node_modules
+  // entero. Es ADITIVO — `next build` y `next start` siguen funcionando igual, y ni el gate de smoke
+  // ni la suite e2e se enteran (verificado construyendo la imagen y corriendo la suite completa).
+  output: "standalone",
   // Security headers (NFR-004 raíz + NFR-512 backend). Nginx puede añadir/duplicar TLS en producción.
   // CSP con 'unsafe-inline' en script/style: Next inyecta scripts/estilos inline sin nonce en este
   // setup; una CSP más estricta rompería la app (regresión). frame-ancestors 'none' + base-uri 'self'

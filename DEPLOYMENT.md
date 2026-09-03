@@ -1,11 +1,11 @@
 # Deployment — Ledger (T-Ledger)
 
-App web Next.js 15 (single-user, datos en `localStorage`). Se despliega como **contenedor Docker** detrás de **Nginx** (TLS + security headers) en Ultron (Raspberry Pi 5, 8GB). La misma imagen es portable a hosting profesional.
+App web Next.js 15 con **Postgres 16 como única fuente de verdad**, multiusuario con sesión. Se despliega como **contenedor Docker** detrás de **Nginx** (TLS + security headers) en Ultron (Raspberry Pi 5, 8GB). La misma imagen es portable a hosting profesional.
 
-> No hay backend ni base de datos en v1: el estado vive en el navegador (`localStorage`). El contenedor solo sirve la app Next.
+> **Actualizado el 2026-09-03.** Este documento describía una app que ya no existe: decía «single-user, datos en `localStorage`» y «no hay backend ni base de datos en v1». La feature `servidor-fuente-unica` retiró `localStorage` entero y movió el estado a Postgres, con autenticación por sesión. Además mandaba construir la imagen desde un `Dockerfile` **que no estaba en el repositorio**: quien siguiera estas instrucciones se quedaba a mitad. El `Dockerfile`, el `docker-compose.yml` de producción y el `.dockerignore` se crearon ese día, y la imagen se verificó arrancando de verdad (`/health` 200, `401` sin sesión, headers presentes, proceso sin privilegios, `HEALTHCHECK` en `healthy`).
 
 ## Requisitos
-- Docker + Docker Compose (o Node 20 para correr sin contenedor).
+- Docker + Docker Compose (o Node 22 para correr sin contenedor).
 - Nginx en el host como reverse proxy (TLS, gzip, security headers).
 
 ## Build & run (contenedor)
@@ -39,9 +39,14 @@ npm run start          # sirve en http://localhost:3000
 No hay secretos en v1 (sin auth, sin APIs externas). Las fuentes (Fira Code) se **auto-alojan en build** vía `next/font` — la app **no** hace peticiones HTTP externas en runtime (NFR-004).
 
 ## Health check
-- **Endpoint:** `GET /` responde `200` cuando la app está lista.
-- El contenedor define un `HEALTHCHECK` (wget a `http://127.0.0.1:3000/`); `docker compose ps` muestra `healthy`.
-- El smoke gate del proyecto (`./smoke.sh`) arranca la app y verifica `/` → 200.
+- **Endpoint:** `GET /health` responde `200 {"status":"ok"}` sin autenticación (NFR-504).
+- El contenedor define un `HEALTHCHECK` contra `/health` — **no contra `/`**: desde que hay sesión, la raíz redirige al acceso, así que un 200 ahí no prueba que la app esté sana. `docker compose ps` muestra `healthy`.
+- El smoke gate del proyecto (`./smoke.sh`) arranca la app y verifica sus rutas principales.
+- Comprobación rápida tras desplegar:
+  ```bash
+  curl -s https://<host>/health                                            # {"status":"ok"}
+  curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/v1/ledger   # 401 sin sesión
+  ```
 
 ## Nginx (reverse proxy, en el host)
 Proxy a `http://127.0.0.1:3000` con TLS y security headers. Headers recomendados (alineados con 02_SYSTEM_DESIGN §Security; CSP endurecida porque las fuentes ya son self-hosted):
@@ -169,8 +174,31 @@ los logs delataría que el límite dejó de existir. Ante la duda, `false`: como
 granularidad si varios usuarios comparten IP de salida.
 
 ## Migraciones
-`drizzle-kit` versiona SQL en `drizzle/`. El entrypoint corre `drizzle-kit migrate` (idempotente)
-antes de servir, así un deploy nuevo siempre está sobre el esquema correcto.
+
+`drizzle-kit` versiona SQL en `drizzle/`. **NO corren solas en el arranque**: aplicarlas es un paso
+manual y deliberado, porque algunas imponen un orden estricto respecto al despliegue del código.
+Las migraciones viajan DENTRO de la imagen, así que no hace falta Node ni el repositorio en el host:
+
+```bash
+# 1. Respaldo, siempre primero
+docker compose exec db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > respaldo-$(date +%F).sql
+# 2. Aplicar las pendientes (transaccional, idempotente por marca de versión)
+docker compose run --rm app node scripts/migrate.mjs
+# 3. Levantar el código nuevo
+docker compose up -d --build
+```
+
+**Aviso que ya mordió una vez:** `migrate.mjs` aplica lo que figura en `drizzle/meta/_journal.json`.
+Un `.sql` presente en la carpeta pero **ausente del índice** se ignora **en silencio** y el comando
+termina diciendo «migraciones aplicadas». Si añades una migración, regístrala en el diario y
+comprueba después que el esquema cambió — no te fíes del mensaje de éxito.
+
+**Cada feature declara si su migración impone orden**, en `aitri/features/<nombre>/DEPLOYMENT.md`:
+
+- `0002`/`0003` (**multi-anio**): orden ESTRICTO. Entre migrar y desplegar, la app vieja no puede
+  leer la base — la columna `month` desaparece. Sin marcha atrás, a propósito.
+- `0004` (**cierre-de-mes**): puramente aditiva, SIN orden obligatorio. El código viejo funciona
+  contra la base migrada y el nuevo contra una sin migrar, en modo «nada cerrado».
 
 ## Cifrado (NFR-511)
 

@@ -1,9 +1,14 @@
 # Despliegue — cierre-de-mes
 
-_Fase 5. El modelo de despliegue lo declara `spec/02_SYSTEM_DESIGN.md § Deployment Architecture`:
-**aplicación Next.js 15 en Node (`next build` + `next start`), NO contenerizada.** No hay Dockerfile
-ni docker-compose para producción a propósito — el `docker-compose.dev.yml` de la raíz solo levanta
-Postgres, pgweb y Mailpit para desarrollo._
+_Fase 5. El modelo de despliegue es el del proyecto: **contenedor Docker detrás de Nginx**, descrito
+en el `DEPLOYMENT.md` de la raíz. Esta feature no lo cambia ni añade infraestructura propia._
+
+> **Corregido el 2026-09-03.** Este documento afirmaba «NO contenerizada», deducido de que no había
+> `Dockerfile` en el repositorio en vez de leído del plan del proyecto. Al comprobarlo apareció que
+> el `Dockerfile` faltaba de verdad y que el `DEPLOYMENT.md` de la raíz describía una arquitectura
+> ya retirada. Se arreglaron ambos ese día, como trabajo del proyecto raíz. A esta feature le da
+> igual el envoltorio: su migración y su código se comportan idénticos dentro del contenedor o sobre
+> Node pelado._
 
 ## Lo que esta feature añade al despliegue
 
@@ -22,11 +27,16 @@ llega como `null`, que significa «nada cerrado», que es el comportamiento ante
 
 Se recomienda igualmente el orden habitual, pero **la ventana entre pasos no rompe nada**:
 
+```bash
+# 1. Respaldo, como siempre
+docker compose exec db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > respaldo-$(date +%F).sql
+# 2. Aplicar 0004 (transaccional, idempotente). Las migraciones viajan en la imagen.
+docker compose run --rm app node scripts/migrate.mjs
+# 3. Levantar el código nuevo
+docker compose up -d --build
 ```
-1. pg_dump                                   respaldo, como siempre
-2. npm run db:migrate                        aplica 0004 (transaccional, idempotente)
-3. desplegar el código                       next build && next start
-```
+
+_En desarrollo, sin contenedor, el paso 2 es `npm run db:migrate`._
 
 **Requisito previo:** la migración `0004` debe estar registrada en `drizzle/meta/_journal.json`. Se
 registró en este repositorio; si se copia el `.sql` a otro entorno sin el diario, `db:migrate`

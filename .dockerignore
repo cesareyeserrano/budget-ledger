@@ -1,0 +1,20 @@
+node_modules
+.next
+.next-e2e
+.git
+.github
+aitri
+# OJO: `tests/` NO se excluye. Las configuraciones de Playwright que viven en la raiz referencian
+# ficheros de tests/, y `next build` corre el chequeo de tipos sobre el proyecto entero: sin ellos
+# la build falla con "Cannot find module ./tests/e2e-backend/helpers/globalSetup". No llegan a la
+# imagen final de todos modos — la etapa de runtime solo copia la salida autocontenida.
+test-results
+playwright-report
+coverage
+*.log
+.env
+.env.local
+.env.*.local
+Dockerfile
+.dockerignore
+docker-compose*.yml
