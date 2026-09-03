@@ -632,7 +632,24 @@ export type { NodeType };
  * @aitri-trace FR-ID: FR-2009, US-ID: US-2009, AC-ID: AC-2028, TC-ID: TC-CDM-090h
  */
 export function useClosure(): Closure {
-  return useLedgerStore((s) => closureOf(s.data));
+  return useLedgerStore((s) => closureFor(s.data));
+}
+
+/**
+ * `closureOf` MEMOIZADO por identidad del estado.
+ *
+ * `normalizeClosure` construye un objeto NUEVO en cada llamada, así que usarlo tal cual dentro de
+ * un selector devuelve una referencia distinta en cada render: React entra en bucle y la pantalla
+ * muere con el error #185. Es la MISMA clase de defecto que BG-001 de multi-anio —identidad contra
+ * suscripción— y tiene una trampa añadida: con nada cerrado, `normalizeClosure` devuelve la
+ * constante compartida NO_CLOSURE, así que el bucle NO aparece. Solo se manifiesta en cuanto hay
+ * un mes cerrado, que es justo el estado que ninguna prueba anterior ejercitaba.
+ */
+const closureMemo = new WeakMap<object, Closure>();
+function closureFor(data: LedgerState): Closure {
+  let c = closureMemo.get(data);
+  if (!c) { c = closureOf(data); closureMemo.set(data, c); }
+  return c;
 }
 
 /** ¿Está cerrado este periodo? Lo consultan las celdas y las cabeceras de columna. */
@@ -659,7 +676,7 @@ export interface ClosureStatus {
 export function useClosureStatus(): ClosureStatus {
   const closable = useLedgerStore((s) => nextClosable(s.data, currentPeriod(), s.horizon));
   const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
-  const reopened = useLedgerStore((s) => closureOf(s.data).reopened);
+  const reopened = useLedgerStore((s) => closureFor(s.data).reopened);
   const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, currentPeriod()));
   return { closable, reopenable, reopened, pending };
 }
@@ -676,7 +693,7 @@ const pendingMemo = new WeakMap<object, Map<string, PeriodKey[]>>();
 function pendingFor(data: LedgerState, horizon: Horizon, now: PeriodKey): PeriodKey[] {
   let byKey = pendingMemo.get(data);
   if (!byKey) { byKey = new Map(); pendingMemo.set(data, byKey); }
-  const c = closureOf(data);
+  const c = closureFor(data);
   const key = `${horizon}:${now}:${c.closedThrough ?? ""}`;
   let list = byKey.get(key);
   if (!list) { list = unclosedEndedPeriods(data, now, horizon); byKey.set(key, list); }

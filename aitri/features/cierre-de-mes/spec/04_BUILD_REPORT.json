@@ -1,0 +1,67 @@
+{
+  "files_created": [
+    "src/domain/closure.ts",
+    "src/components/ClosureControl.tsx",
+    "src/components/ClosureBanner.tsx",
+    "src/app/api/v1/closure/route.ts",
+    "src/app/api/v1/closure/events/route.ts",
+    "drizzle/0004_cierre_de_mes.sql",
+    "tests/domain/cierre-de-mes.test.ts",
+    "tests/integration/backend/cierre-de-mes.test.ts",
+    "tests/e2e/cierre-de-mes.spec.ts",
+    "tests/e2e/helpers/closure.ts"
+  ],
+  "files_modified": [
+    "src/domain/types.ts",
+    "src/domain/index.ts",
+    "src/server/db/schema.ts",
+    "src/server/schemas.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/app/api/v1/ledger/route.ts",
+    "src/app/api/v1/movements/route.ts",
+    "src/data/serverRepository.ts",
+    "src/state/store.ts",
+    "src/components/DesktopShell.tsx",
+    "src/components/BudgetGrid.tsx",
+    "tests/e2e/helpers/fixtures.ts",
+    "drizzle/meta/_journal.json"
+  ],
+  "setup_commands": ["npm run db:migrate"],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2003",
+      "substitution": "El cliente NO lleva un guardia de diff propio: no comprueba localmente si una mutación tocaría un mes cerrado antes de enviarla. La protección del cliente es la celda no editable (FR-2009) más el aviso al recibir el 422 del servidor.",
+      "reason": "ADR-12 fija que la autoridad es el servidor y que las comprobaciones del cliente son ergonomía, no garantía. Duplicar el diff en el navegador añadiría una segunda implementación de la MISMA regla que podría divergir de la del servidor — el defecto que ADR-12 existe para evitar. El coste real es cosmético: en el caso raro de que una escritura ilegal salga del cliente, el usuario ve el aviso un instante después en vez de al momento.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2009",
+      "substitution": "El marcado visual de columnas cerradas (data-closed y candado) se implementó en BudgetGrid. BalanceModule comparte el mismo riel de columnas y su alineación, pero no repinta el candado en sus propias filas.",
+      "reason": "El Balance no tiene encabezado de mes propio: reutiliza el riel de la grilla, que ya va marcado, así que duplicar la marca añadiría ruido visual sobre la misma columna sin aportar información nueva. Si el diseño separa alguna vez los dos rieles, esto hay que revisarlo.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/cierre-de-mes.test.ts",
+    "../../../tests/integration/backend/cierre-de-mes.test.ts",
+    "../../../tests/e2e/cierre-de-mes.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "design-tokens", "command": "npm run gate:design-tokens", "required": true, "timeout_ms": 120000 },
+    { "name": "security-config", "command": "npm run gate:security-config", "required": true, "timeout_ms": 120000 },
+    { "name": "secret-scan", "command": "npm run gate:secret-scan", "required": true, "timeout_ms": 120000 },
+    { "name": "smoke", "command": "npm run gate:smoke", "required": true, "timeout_ms": 180000 },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "Medido 2026-09-03: la suite completa incluye los 8 specs nuevos de cierre-de-mes."
+    }
+  ]
+}

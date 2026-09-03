@@ -74,6 +74,20 @@ export const ledgerStateSchema = z.object({
   // FR-1010/FR-1012: opcional — un cliente pre-feature no lo envía; sin este campo el PUT haría
   // strip silencioso de las observaciones.
   cellNotes: apiCellNotes.optional(),
+  // FR-2001: opcional, por el MISMO motivo que cellNotes — y la trampa es literalmente la misma.
+  // Este esquema no solo valida el PUT: ServerRepository.load() lo usa para validar el snapshot
+  // que LLEGA, y zod descarta por defecto lo que no declara. Sin esta línea el cierre viajaba del
+  // servidor al navegador y desaparecía en silencio antes de tocar el store, así que la grilla
+  // pintaba todo como abierto por mucho que la base dijera lo contrario.
+  //
+  // Aceptarlo en el PUT es inofensivo: saveLedger IGNORA state.closure a propósito — la frontera
+  // solo la mueven los endpoints de cierre.
+  closure: z
+    .object({
+      closedThrough: PERIOD_KEY.nullable(),
+      reopened: PERIOD_KEY.nullable(),
+    })
+    .optional(),
 });
 
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */

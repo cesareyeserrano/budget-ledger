@@ -10,8 +10,9 @@
  * Dependencies: @playwright/test, ./globalSetup, @/domain
  */
 import { test as base, expect } from "@playwright/test";
-import { storageStatePath } from "./globalSetup";
+import { storageStatePath, e2eEmail } from "./globalSetup";
 import { buildSeed } from "@/domain";
+import { resetClosure } from "./closure";
 import { P0 } from "../../helpers/periods";
 
 export const test = base.extend<{ freshLedger: void }, { workerStorageState: string }>({
@@ -44,7 +45,12 @@ export const test = base.extend<{ freshLedger: void }, { workerStorageState: str
    * nuevo (FR-513).
    */
   freshLedger: [
-    async ({ page }, use) => {
+    async ({ page }, use, testInfo) => {
+      // Feature cierre-de-mes: ANTES de restaurar la semilla hay que soltar la frontera del cierre.
+      // El cierre es un trinquete —solo se reabre el ultimo mes cerrado, uno a la vez— asi que no
+      // existe camino por API de vuelta a «nada cerrado», y con un mes cerrado el PUT de la semilla
+      // recibe 422 y mata TODAS las pruebas siguientes del worker. Ver helpers/closure.ts.
+      await resetClosure(e2eEmail(testInfo.parallelIndex));
       const res = await page.request.get("/api/v1/ledger");
       const baseRevision = res.status() === 200 ? ((await res.json()) as { revision: number }).revision : 0;
       const put = await page.request.put("/api/v1/ledger", {
