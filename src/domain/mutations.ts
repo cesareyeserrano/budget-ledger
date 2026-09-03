@@ -18,6 +18,15 @@ function clone(state: LedgerState): LedgerState {
     movements: state.movements.map((m) => ({ ...m })),
     // FR-1012: las observaciones sobreviven cualquier mutación (delta aditivo del estado).
     ...(state.cellNotes ? { cellNotes: structuredClone(state.cellNotes) } : {}),
+    // FR-2001/FR-2010: el CIERRE también. Faltaba, y el efecto era silencioso porque el guardia
+    // vive en el servidor: cualquier edición de celda borraba `closure` del estado del navegador,
+    // así que hasta la siguiente resincronización las columnas cerradas dejaban de pintarse como
+    // cerradas y el impacto de un mes reabierto no se podía calcular (no quedaba ni `reopened` ni
+    // línea de base contra la que comparar). Ninguna cifra corría peligro —el servidor sigue
+    // rechazando toda escritura sobre un mes cerrado—, pero la pantalla mentía sobre el estado.
+    // `clone` enumera los campos en vez de propagarlos, así que cada delta aditivo del estado hay
+    // que añadirlo aquí a mano: es la trampa que este comentario deja marcada.
+    ...(state.closure ? { closure: structuredClone(state.closure) } : {}),
   };
 }
 

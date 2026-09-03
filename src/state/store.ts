@@ -14,10 +14,10 @@ import { STORAGE_KEYS } from "@/domain/types";
 import { currentPeriod } from "@/lib/date";
 import { activeRange, normalizeHorizon, DEFAULT_HORIZON, type Horizon } from "@/domain/range";
 import {
-  NO_CLOSURE, closureOf, isClosed, nextClosable, nextReopenable, normalizeClosure,
+  NO_CLOSURE, closureOf, downstreamImpact, isClosed, nextClosable, nextReopenable, normalizeClosure,
   unclosedEndedPeriods,
 } from "@/domain/closure";
-import type { Closure } from "@/domain/types";
+import type { Closure, ImpactRow } from "@/domain/types";
 import { periodYear } from "@/domain/periods";
 
 /**
@@ -650,6 +650,35 @@ function closureFor(data: LedgerState): Closure {
   let c = closureMemo.get(data);
   if (!c) { c = closureOf(data); closureMemo.set(data, c); }
   return c;
+}
+
+/**
+ * FR-2010. Los meses posteriores al reabierto que se movieron, con su antes y su después.
+ *
+ * MEMOIZADO por identidad del estado, por el mismo motivo que `closureFor` y `pendingFor`: sin
+ * memoizar devuelve un array nuevo en cada render y el componente entra en bucle. La clave incluye
+ * el horizonte porque el rango depende de él.
+ *
+ * Recalcula en CADA edición, que es exactamente lo que se quiere: la identidad de `data` cambia al
+ * mutar, así que la lista se refresca sola sin ningún efecto ni suscripción aparte.
+ *
+ * @aitri-trace FR-ID: FR-2010, US-ID: US-2010, AC-ID: AC-2032, TC-ID: TC-CDM-107h
+ */
+export function useDownstreamImpact(): ImpactRow[] {
+  return useLedgerStore((s) => impactFor(s.data, s.horizon, currentPeriod()));
+}
+
+const impactMemo = new WeakMap<object, Map<string, ImpactRow[]>>();
+function impactFor(data: LedgerState, horizon: Horizon, now: PeriodKey): ImpactRow[] {
+  let byKey = impactMemo.get(data);
+  if (!byKey) { byKey = new Map(); impactMemo.set(data, byKey); }
+  const key = `${horizon}:${now}`;
+  let rows = byKey.get(key);
+  if (!rows) {
+    rows = downstreamImpact(data, periodsFor(data, horizon, now), closureFor(data));
+    byKey.set(key, rows);
+  }
+  return rows;
 }
 
 /** ¿Está cerrado este periodo? Lo consultan las celdas y las cabeceras de columna. */

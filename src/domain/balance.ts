@@ -10,7 +10,7 @@
 //               El orden de las columnas ya NO vive aquí: la lista de periodos la provee el
 //               llamador (FR-1901/ADR-02 de multi-anio), porque el dominio no lee el reloj.
 
-import type { LedgerState, PeriodKey } from "./types";
+import type { Carry, LedgerState, PeriodKey } from "./types";
 import { typeTotals } from "./rollup";
 import { reserveDelta, type Plane } from "./reserve";
 
@@ -68,18 +68,16 @@ export function balanceAt(
   return series[period] ?? { budget: ZERO_BALANCE, actual: ZERO_BALANCE };
 }
 
-/** Lo que un mes le pasa al siguiente DENTRO de su propio plano: dos componentes que no se mezclan. */
-interface Carry {
-  available: number;
-  reservedBalance: number;
-}
+// `Carry` (lo que un mes le pasa al siguiente dentro de su plano) se mudó a `types.ts` cuando
+// FR-2010 necesitó guardarlo dentro de `Closure`. Misma forma, misma semántica: solo cambió de casa
+// para no cerrar un ciclo de imports. Aquí se sigue usando exactamente igual.
 
 /**
  * El PRIMER periodo del rango no tiene previo: abre en 0/0 en ambos componentes y en ambos planos.
  * Ningún otro lo hace — en particular, un enero que no sea el primero abre con el cierre de su
  * diciembre (FR-1903). No existe un saldo inicial manual (es la feature del punto 4).
  */
-const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
+export const ZERO_CARRY: Carry = { available: 0, reservedBalance: 0 };
 
 /**
  * Movimiento neto de reservas de un mes en un plano: aportes − retiros, derivado de SALDOS
@@ -158,13 +156,19 @@ function monthBalance(prev: Carry, income: number, expense: number, reserved: nu
  */
 export function computeBalanceSeries(
   state: LedgerState,
-  periods: readonly PeriodKey[]
+  periods: readonly PeriodKey[],
+  opening: Carry = ZERO_CARRY
 ): BalanceSeries {
   const series = {} as BalanceSeries;
-  let prevActual: Carry = ZERO_CARRY;
+  let prevActual: Carry = opening;
 
-  // Solo periods[0] abre en ZERO_CARRY (FR-1903). Cada diciembre entrega su saldo a enero del año
+  // Solo periods[0] abre en `opening` (FR-1903). Cada diciembre entrega su saldo a enero del año
   // siguiente igual que cualquier periodo entrega al siguiente: el borde de año no reinicia nada.
+  //
+  // `opening` es ADITIVO y por defecto vale ZERO_CARRY, así que TODA llamada existente se comporta
+  // byte a byte igual que antes (NFR-2001, TC-CDM-106e). Lo introduce FR-2010: calcular el «antes»
+  // del impacto es correr ESTA MISMA serie abriendo en la línea de base en vez de en el carry
+  // actual — no una fórmula paralela que habría que mantener sincronizada.
   for (const month of periods) {
     const income = typeTotals(state, "income", [month]);
     const expense = typeTotals(state, "expense", [month]);

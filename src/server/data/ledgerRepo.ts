@@ -140,8 +140,35 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
  *
  * @aitri-trace FR-ID: FR-2001, US-ID: US-2001, AC-ID: AC-2001, TC-ID: TC-CDM-010h, TC-CDM-262e
  */
-function closureFromRow(head: { closedThrough: string | null; reopenedPeriod: string | null }): Closure {
-  return normalizeClosure({ closedThrough: head.closedThrough, reopened: head.reopenedPeriod });
+function closureFromRow(head: {
+  closedThrough: string | null;
+  reopenedPeriod: string | null;
+  reopenBaseAvailable?: number | null;
+  reopenBaseReserved?: number | null;
+}): Closure {
+  // La linea de base solo se ofrece si sus DOS componentes estan: `normalizeClosure` la descarta
+  // entera si no cuadra, y nunca inventa un «antes» (FR-2010).
+  const reopenBaseline =
+    head.reopenBaseAvailable == null || head.reopenBaseReserved == null
+      ? undefined
+      : { available: head.reopenBaseAvailable, reservedBalance: head.reopenBaseReserved };
+  return normalizeClosure({
+    closedThrough: head.closedThrough,
+    reopened: head.reopenedPeriod,
+    reopenBaseline,
+  });
+}
+
+/** Las dos columnas de la linea de base a partir de un `Closure` — el bicondicional del CHECK. */
+function baselineColumns(closure: Closure): {
+  reopenBaseAvailable: number | null;
+  reopenBaseReserved: number | null;
+} {
+  const b = closure.reopened === null ? undefined : closure.reopenBaseline;
+  return {
+    reopenBaseAvailable: b ? b.available : null,
+    reopenBaseReserved: b ? b.reservedBalance : null,
+  };
 }
 
 /**
@@ -577,6 +604,7 @@ export async function closeMonthFor(
         updatedAt: new Date(),
         closedThrough: res.closure.closedThrough,
         reopenedPeriod: res.closure.reopened,
+        ...baselineColumns(res.closure),
       })
       .where(eq(ledger.ownerId, ownerId));
     // Dentro de la MISMA transacción: no existe un cierre sin rastro (TC-CDM-056f).
@@ -599,7 +627,11 @@ export async function reopenMonthFor(ownerId: string, baseRevision: number): Pro
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
     const state = await loadStateInTx(tx, ownerId);
-    const res = reopenMonth({ ...state, closure: closureFromRow(head) });
+    const conCierre = { ...state, closure: closureFromRow(head) };
+    // El rango entra como parámetro (ADR-02) y es el mismo `serverScope` que usa el cierre: la
+    // línea de base se calcula sobre los periodos que REALMENTE existen, no sobre el horizonte del
+    // navegador, que el servidor no conoce.
+    const res = reopenMonth(conCierre, serverScope(conCierre));
     if (!res.ok) return { ok: false, rejected: res.reason };
 
     const revision = current + 1;
@@ -610,6 +642,7 @@ export async function reopenMonthFor(ownerId: string, baseRevision: number): Pro
         updatedAt: new Date(),
         closedThrough: res.closure.closedThrough,
         reopenedPeriod: res.closure.reopened,
+        ...baselineColumns(res.closure),
       })
       .where(eq(ledger.ownerId, ownerId));
     await tx.insert(closureEvent).values({ ownerId, period: res.reopened, action: "reopen" });
@@ -623,21 +656,46 @@ export interface ClosureEventRow {
   at: string;
 }
 
+export const CLOSURE_EVENTS_LIMIT = 200;
+
+export interface ClosureEventPage {
+  events: ClosureEventRow[];
+  /** true si hay más historia de la que cabe en el tope: se DECLARA, no se oculta (TC-CDM-116e). */
+  truncated: boolean;
+}
+
 /**
  * El rastro del usuario, más reciente primero. Solo lectura y SIEMPRE filtrado por su ownerId.
  *
+ * Es lo que alimenta el historial que el usuario consulta (FR-2011). Sin paginación a propósito: un
+ * producto de usuario único cierra ~12 veces al año, así que 200 filas son más de una década. Al
+ * llegar al tope se devuelve `truncated: true` — mentir por omisión sería peor que el tope.
+ *
+ * El desempate por `id` no es cosmético: dos eventos del mismo instante dejarían el orden
+ * indeterminado con `at` a solas, y el historial cambiaría de forma entre dos lecturas iguales.
+ *
  * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2018, TC-ID: TC-CDM-055h
+ * @aitri-trace FR-ID: FR-2011, US-ID: US-2011, AC-ID: AC-2035, TC-ID: TC-CDM-110h, TC-CDM-111e, TC-CDM-112e, TC-CDM-116e
  */
-export async function getClosureEvents(ownerId: string, limit = 200): Promise<ClosureEventRow[]> {
+export async function getClosureEvents(
+  ownerId: string,
+  limit = CLOSURE_EVENTS_LIMIT
+): Promise<ClosureEventPage> {
+  // Se pide UNA fila de más: si vuelve, hay historia más allá del tope. Es la forma barata de
+  // saberlo sin un COUNT(*) aparte.
   const rows = await db
     .select()
     .from(closureEvent)
     .where(eq(closureEvent.ownerId, ownerId))
     .orderBy(desc(closureEvent.at), desc(closureEvent.id))
-    .limit(limit);
-  return rows.map((r) => ({
-    period: r.period as PeriodKey,
-    action: r.action === "reopen" ? "reopen" : "close",
-    at: r.at.toISOString(),
-  }));
+    .limit(limit + 1);
+  const truncated = rows.length > limit;
+  return {
+    truncated,
+    events: rows.slice(0, limit).map((r) => ({
+      period: r.period as PeriodKey,
+      action: r.action === "reopen" ? "reopen" : "close",
+      at: r.at.toISOString(),
+    })),
+  };
 }

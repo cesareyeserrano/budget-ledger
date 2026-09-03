@@ -86,6 +86,13 @@ export const ledgerStateSchema = z.object({
     .object({
       closedThrough: PERIOD_KEY.nullable(),
       reopened: PERIOD_KEY.nullable(),
+      // FR-2010. Declararlo NO es opcional aunque el campo lo sea: zod descarta las claves que no
+      // están en el esquema, y este mismo objeto valida la RESPUESTA que el cliente carga. Sin esta
+      // línea la línea de base viajaba correcta desde el servidor y el navegador la tiraba al
+      // parsear, así que el impacto salía siempre vacío sin ningún error a la vista.
+      reopenBaseline: z
+        .object({ available: z.number().finite(), reservedBalance: z.number().finite() })
+        .optional(),
     })
     .optional(),
 });

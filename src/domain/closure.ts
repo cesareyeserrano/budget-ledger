@@ -16,8 +16,13 @@
 //
 // PURO Y SIN RELOJ (ADR-02): `currentPeriod` es un PARÁMETRO. El reloj vive en `src/lib/date.ts`.
 
-import type { Closure, LedgerState, PeriodKey } from "./types";
+import type { Carry, Closure, ImpactRow, LedgerState, PeriodKey } from "./types";
 import { addMonths, comparePeriods, isPeriodKey } from "./periods";
+// Se importa `balance.ts`, y la dirección IMPORTA: el cálculo no conoce el cierre (esa es la
+// invariante que sostiene el diseño y que TC-CDM-212f barre), pero el cierre sí puede USAR el
+// cálculo. `downstreamImpact` no calcula nada nuevo: corre DOS VECES la serie de siempre y las
+// compara.
+import { computeBalanceSeries, ZERO_CARRY } from "./balance";
 
 // NO se importa `range.ts`: `activeRange` ancla su inicio en la frontera del cierre (ADR-14), así
 // que importarlo aquí cerraría un ciclo. Las dos funciones que necesitan el rango lo RECIBEN como
@@ -46,7 +51,41 @@ export function normalizeClosure(v: unknown): Closure {
   // que ADR-13 impone, y aquí es donde se hace cumplir para cualquier estado que entre de fuera.
   const reopened =
     isPeriodKey(raw.reopened) && raw.reopened === addMonths(closedThrough, 1) ? raw.reopened : null;
-  return { closedThrough, reopened };
+  if (reopened === null) return { closedThrough, reopened: null };
+  // La línea de base solo es creíble ACOMPAÑANDO a un mes reabierto y con dos números finitos.
+  // Sin ella se degrada a «no hay línea de base» y el impacto sale vacío: nunca se inventa un
+  // «antes» (FR-2010). El esquema lo garantiza con un CHECK, esto cubre lo que entre de fuera.
+  const baseline = readCarry((v as { reopenBaseline?: unknown }).reopenBaseline);
+  return baseline === null
+    ? { closedThrough, reopened }
+    : { closedThrough, reopened, reopenBaseline: baseline };
+}
+
+/** Un `Carry` de procedencia dudosa: dos enteros finitos o nada. Nunca lanza. */
+function readCarry(v: unknown): Carry | null {
+  if (!v || typeof v !== "object") return null;
+  const raw = v as { available?: unknown; reservedBalance?: unknown };
+  if (!Number.isFinite(raw.available) || !Number.isFinite(raw.reservedBalance)) return null;
+  return { available: Number(raw.available), reservedBalance: Number(raw.reservedBalance) };
+}
+
+/**
+ * El saldo con el que CIERRA un periodo en el plano ejecutado — el carry que entrega al siguiente.
+ *
+ * Es lo que se fotografía al reabrir (FR-2010) y contra lo que se mide después. Se calcula con la
+ * misma serie que pinta el Balance: una sola fuente de verdad, sin fórmula paralela.
+ */
+function closingCarry(
+  state: LedgerState,
+  range: readonly PeriodKey[],
+  period: PeriodKey
+): Carry {
+  const upTo = range.filter((p) => comparePeriods(p, period) <= 0);
+  if (upTo.length === 0) return ZERO_CARRY;
+  const series = computeBalanceSeries(state, upTo);
+  const last = series[upTo[upTo.length - 1]];
+  if (!last) return ZERO_CARRY;
+  return { available: last.actual.available, reservedBalance: last.actual.reservedBalance };
 }
 
 /** El `closure` efectivo de un estado: ausente ≡ nada cerrado (delta aditivo, FR-2001). */
@@ -138,7 +177,14 @@ export function closeMonth(
   if (target === null) return { ok: false, reason: "not_closable" };
   const prev = closureOf(state);
   const reopened = prev.reopened === target ? null : prev.reopened;
-  return { ok: true, closure: { closedThrough: target, reopened }, closed: target };
+  // Sin mes reabierto no hay línea de base: el bicondicional que el esquema exige
+  // (ledger_reopen_baseline_ck) se cumple aquí también, para que el dominio y la base no puedan
+  // discrepar (FR-2010, TC-CDM-105e).
+  const closure: Closure =
+    reopened === null
+      ? { closedThrough: target, reopened: null }
+      : { closedThrough: target, reopened, reopenBaseline: prev.reopenBaseline };
+  return { ok: true, closure, closed: target };
 }
 
 export type ReopenResult =
@@ -148,15 +194,76 @@ export type ReopenResult =
 /**
  * Retrocede la frontera un mes y marca el mes liberado como reabierto.
  *
+ * Al reabrir se FOTOGRAFÍA el saldo de cierre del mes liberado (FR-2010, ADR-15). Esa foto es el
+ * referente de «valor anterior» del impacto: mientras el mes siga reabierto, cada corrección se
+ * mide contra cómo estaba al reabrirlo — no contra la corrección anterior. Así cinco cambios
+ * seguidos muestran el efecto NETO, que es lo que el usuario necesita para saber si se pasó.
+ *
  * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2015, TC-ID: TC-CDM-050h, TC-CDM-052f, TC-CDM-054f
+ * @aitri-trace FR-ID: FR-2010, US-ID: US-2010, AC-ID: AC-2032, TC-ID: TC-CDM-105e
  */
-export function reopenMonth(state: LedgerState): ReopenResult {
+export function reopenMonth(state: LedgerState, range: readonly PeriodKey[]): ReopenResult {
   const c = closureOf(state);
   if (c.closedThrough === null) return { ok: false, reason: "nothing_closed" };
   if (c.reopened !== null) return { ok: false, reason: "already_reopened" };
   const target = c.closedThrough;
   const back = addMonths(target, -1);
-  return { ok: true, closure: { closedThrough: back, reopened: target }, reopened: target };
+  const reopenBaseline = closingCarry(state, range, target);
+  return {
+    ok: true,
+    closure: { closedThrough: back, reopened: target, reopenBaseline },
+    reopened: target,
+  };
+}
+
+/**
+ * FR-2010. Los meses posteriores al reabierto cuyas cifras se MOVIERON, con su antes y su después.
+ *
+ * Cómo se obtiene el «antes» sin guardar un snapshot: corriendo la MISMA serie sobre los MISMOS
+ * meses posteriores, pero abriendo en la línea de base en vez de en el carry actual del mes
+ * reabierto. Como los datos de los meses posteriores son idénticos en las dos corridas, la
+ * diferencia aísla exactamente el efecto de lo que se tocó en el mes reabierto — y si el usuario
+ * además editó octubre por su cuenta, eso NO aparece como impacto, porque está en las dos.
+ *
+ * No se resta un delta constante: el arrastre podría no ser lineal (las reservas tienen reglas
+ * propias), así que se calcula de verdad (ADR-15, TC-CDM-100h).
+ *
+ * NO BLOQUEA NADA, y es una decisión del usuario recogida en el `no_go_zone`: informa dónde quedó
+ * el daño y deja seguir. Bloquear añadiría más vigilancia automática —la que la feature aspira a
+ * poder retirar— y puede encerrar al usuario (TC-CDM-103f prueba que la escritura se acepta).
+ *
+ * @aitri-trace FR-ID: FR-2010, US-ID: US-2010, AC-ID: AC-2032, TC-ID: TC-CDM-100h, TC-CDM-101e, TC-CDM-102f, TC-CDM-104f
+ */
+export function downstreamImpact(
+  state: LedgerState,
+  range: readonly PeriodKey[],
+  closure?: Closure
+): ImpactRow[] {
+  const c = normalizeClosure(closure ?? state.closure);
+  const { reopened, reopenBaseline } = c;
+  if (reopened === null || !reopenBaseline) return [];
+
+  const downstream = range.filter((p) => comparePeriods(p, reopened) > 0);
+  if (downstream.length === 0) return [];
+
+  const after = computeBalanceSeries(state, downstream, closingCarry(state, range, reopened));
+  const before = computeBalanceSeries(state, downstream, reopenBaseline);
+
+  const rows: ImpactRow[] = [];
+  for (const period of downstream) {
+    const a = after[period]?.actual;
+    const b = before[period]?.actual;
+    if (!a || !b || a.available === b.available) continue;
+    rows.push({
+      period,
+      availableBefore: b.available,
+      availableAfter: a.available,
+      // Roto POR ESTA corrección: pasó de cubierto a descubierto. Un mes que ya arrastraba déficit
+      // antes de reabrir no se le imputa (TC-CDM-102f).
+      brokenByThisEdit: a.available < 0 && b.available >= 0,
+    });
+  }
+  return rows;
 }
 
 /**

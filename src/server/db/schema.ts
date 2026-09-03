@@ -105,6 +105,13 @@ export const ledger = pgTable("ledger", {
   closedThrough: text("closed_through"),
   /** El mes actualmente reabierto (= closedThrough + 1 mes) o NULL. Guardia de «uno a la vez». */
   reopenedPeriod: text("reopened_period"),
+  // Feature cierre-de-mes (FR-2010/ADR-15). La LINEA DE BASE del impacto: el saldo con el que
+  // cerraba el mes reabierto en el instante de reabrirlo. Existe exactamente cuando existe
+  // `reopened_period` — el CHECK `ledger_reopen_baseline_ck` (migracion 0005) lo impone, para que
+  // «se borra al volver a cerrar» no dependa de que nadie lo olvide. Sin >= 0: un mes puede cerrar
+  // en deficit y la linea de base representa el estado real, no el deseable.
+  reopenBaseAvailable: bigint("reopen_base_available", { mode: "number" }),
+  reopenBaseReserved: bigint("reopen_base_reserved", { mode: "number" }),
 });
 
 /**

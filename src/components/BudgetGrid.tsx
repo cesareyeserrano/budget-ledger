@@ -714,8 +714,8 @@ function NodeRow(props: {
           const act = rollupActual(data, node.id, m);
           return (
             <div key={m} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
@@ -724,7 +724,7 @@ function NodeRow(props: {
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null);
   // El foco tiene que entrar en el contenedor cuando NO hay input que lo tome (mes cerrado), o la
   // tecla Escape se queda en el body y el panel no se cierra nunca.
@@ -788,7 +788,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
   }
   // FR-404: la fila NO editable (!leaf) lleva la superficie hundida — el MISMO predicado que gobierna
   // la edición, así la afordancia no puede desalinearse del comportamiento (ADR-05).
-  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} notes={props.notes} nodeId={props.nodeId} month={props.month} closed={props.closed} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
+  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} notes={props.notes} nodeId={props.nodeId} month={props.month} plane={props.plane} closed={props.closed} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
 }
 
 /**
@@ -807,15 +807,21 @@ function cellSurface(sunken: boolean | undefined, highlight: boolean | undefined
   return highlight ? `color-mix(in srgb, var(--accent) 6%, ${base})` : base;
 }
 
-function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, notes, carryNote, onClick, clickable, nodeId, month, closed }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; notes?: number; carryNote?: string; onClick?: () => void; clickable?: boolean; nodeId?: string; month?: PeriodKey; closed?: boolean }) {
+function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, notes, carryNote, onClick, clickable, nodeId, month, plane, closed }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; notes?: number; carryNote?: string; onClick?: () => void; clickable?: boolean; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; closed?: boolean }) {
   // FR-2009/AC-2013: la celda de un mes cerrado se distingue como no editable SIN que el usuario
   // tenga que probar — `data-closed` y un cursor que deja de decir «aquí se escribe».
+  //
+  // `data-plane`: las dos celdas de un mes comparten `data-cell` y `data-month`, así que sin él son
+  // indistinguibles desde fuera. Importa más de lo que parece — solo la cadena EJECUTADA arrastra
+  // al mes siguiente, así que «editar el plan» y «editar lo ejecutado» tienen consecuencias
+  // distintas aguas abajo (FR-2010).
   return (
     <div
       onClick={onClick}
       data-testid={clickable ? "cell-leaf" : "cell-parent"}
       {...(nodeId ? { "data-cell": nodeId } : {})}
       {...(month ? { "data-month": month } : {})}
+      {...(plane ? { "data-plane": plane } : {})}
       {...(closed ? { "data-closed": "true" } : {})}
       title={carryNote}
       {...(carryNote ? { "data-carry-note": carryNote } : {})}

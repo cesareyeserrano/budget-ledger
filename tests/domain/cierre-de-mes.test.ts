@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import {
-  isClosed, nextClosable, nextReopenable, closeMonth, reopenMonth,
+  isClosed, nextClosable, nextReopenable, closeMonth, downstreamImpact, reopenMonth,
   closedPeriodsViolated, unclosedEndedPeriods, normalizeClosure, NO_CLOSURE,
 } from "@/domain/closure";
 import { activeRange } from "@/domain/range";
@@ -15,6 +15,7 @@ import { computeBalanceSeries } from "@/domain/balance";
 import { typeTotals } from "@/domain/rollup";
 import { maxWithdrawal, monthCarryUsage, resolvedSeries } from "@/domain/reserve";
 import { addMonths, periodRange } from "@/domain/periods";
+import { addMovement, setLeafAmount } from "@/domain/mutations";
 import type { Closure, LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
 
 const AHORA: PeriodKey = "2026-09";
@@ -22,6 +23,12 @@ const AHORA: PeriodKey = "2026-09";
 /** `nextClosable` con el rango ya derivado — el dominio lo recibe, no lo deriva (ADR-14). */
 const closableDe = (s: LedgerState, now: PeriodKey = AHORA) =>
   nextClosable(s, now, activeRange(s, now));
+
+/**
+ * `reopenMonth` con el rango ya derivado. Desde FR-2010 lo NECESITA: al reabrir fotografía el saldo
+ * de cierre del mes liberado, y ese cálculo se hace sobre los periodos que existen.
+ */
+const reabrir = (s: LedgerState, now: PeriodKey = AHORA) => reopenMonth(s, activeRange(s, now));
 const NODES: LedgerNode[] = [
   { id: "g-inc", ownerId: "u", type: "income", level: "group", parentId: null, name: "Ingresos", icon: null, order: 0 },
   { id: "c-sueldo", ownerId: "u", type: "income", level: "category", parentId: "g-inc", name: "Sueldo", icon: null, order: 1 },
@@ -136,7 +143,7 @@ describe("FR-2005 — reapertura del último mes cerrado", () => {
     const reabiertos: PeriodKey[] = [];
     const suelos: (PeriodKey | null)[] = [];
     for (let i = 0; i < 3; i++) {
-      const r = reopenMonth(s);
+      const r = reabrir(s);
       expect(r.ok).toBe(true);
       if (!r.ok) return;
       reabiertos.push(r.reopened);
@@ -155,13 +162,13 @@ describe("FR-2005 — reapertura del último mes cerrado", () => {
 
   it("TC-CDM-052f: con un mes ya reabierto, reabrir otro se rechaza", () => {
     // @aitri-tc TC-CDM-052f
-    const r = reopenMonth(estado({ closedThrough: "2026-07", reopened: "2026-08" }));
+    const r = reabrir(estado({ closedThrough: "2026-07", reopened: "2026-08" }));
     expect(r).toEqual({ ok: false, reason: "already_reopened" });
   });
 
   it("TC-CDM-054f: sin nada cerrado no hay nada que reabrir", () => {
     // @aitri-tc TC-CDM-054f
-    expect(reopenMonth(estado())).toEqual({ ok: false, reason: "nothing_closed" });
+    expect(reabrir(estado())).toEqual({ ok: false, reason: "nothing_closed" });
   });
 
   it("TC-CDM-057e: reabrir propaga hacia adelante sin tocar los meses que siguen cerrados", () => {
@@ -172,7 +179,7 @@ describe("FR-2005 — reapertura del último mes cerrado", () => {
     const foto = (serie: typeof antes) => JSON.stringify([serie["2026-06"], serie["2026-07"]]);
     const fotoAntes = foto(antes);
 
-    const r = reopenMonth(s);
+    const r = reabrir(s);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const editado: LedgerState = {
@@ -486,7 +493,7 @@ describe("FR-2005/NFR-2004 — la frontera del cierre ancla el rango", () => {
     expect(rango).toContain("2026-09");
 
     // Y tras reabrirlo sigue habiendo columna: es lo que BG-001 no tenía.
-    const r = reopenMonth(s);
+    const r = reabrir(s);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const reabierto = { ...s, closure: r.closure };
@@ -575,7 +582,7 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // Calentamiento: sin él se mide el JIT y no el código (lección de multi-anio).
     for (let i = 0; i < 20; i++) {
       closeMonth(base, "2026-09", rango);
-      reopenMonth(base);
+      reabrir(base);
       computeBalanceSeries(base, rango);
     }
     const medir = (fn: () => void) => {
@@ -589,7 +596,7 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
       return ms[10];
     };
     expect(medir(() => closeMonth(base, "2026-09", rango))).toBeLessThanOrEqual(150);
-    expect(medir(() => reopenMonth(base))).toBeLessThanOrEqual(150);
+    expect(medir(() => reabrir(base))).toBeLessThanOrEqual(150);
     // Y el recálculo completo tras una edición del mes abierto, que es la ruta caliente real.
     expect(medir(() => {
       const editado = { ...base, budgets: { ...base.budgets, n0: { ...base.budgets.n0, "2026-09": 9999 } } };
@@ -657,3 +664,235 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     expect(diff.trim()).toBe("");
   });
 });
+
+// ══ FR-2010 · el impacto aguas abajo de corregir un mes reabierto ═══════════════════════════════
+//
+// Fixture propio y MÍNIMO: sin nodos transfer, así que `reserveNet` es 0 en todos los meses y el
+// arrastre es aritmética a la vista — `available(m) = anterior + ingresos − gastos`. Las cifras de
+// cada prueba están calculadas a mano contra esa fórmula, no leídas de la implementación: si el
+// código se equivoca, el número no cuadra.
+
+const NODES_IMP: LedgerNode[] = [
+  { id: "g-inc", ownerId: "u", type: "income", level: "group", parentId: null, name: "Ingresos", icon: null, order: 0 },
+  { id: "c-sueldo", ownerId: "u", type: "income", level: "category", parentId: "g-inc", name: "Sueldo", icon: null, order: 1 },
+  { id: "g-exp", ownerId: "u", type: "expense", level: "group", parentId: null, name: "Gastos", icon: null, order: 2 },
+  { id: "c-mercado", ownerId: "u", type: "expense", level: "category", parentId: "g-exp", name: "Mercado", icon: null, order: 3 },
+  { id: "c-resto", ownerId: "u", type: "expense", level: "category", parentId: "g-exp", name: "Restaurantes", icon: null, order: 4 },
+];
+
+const PERIODOS_IMP: PeriodKey[] = ["2026-08", "2026-09", "2026-10", "2026-11"];
+
+function estadoImpacto(
+  actuals: LedgerState["actuals"],
+  closure: Closure
+): LedgerState {
+  return { ownerId: "u", nodes: NODES_IMP, budgets: {}, actuals, movements: [], closure };
+}
+
+describe("FR-2010 — el impacto aguas abajo se ve, y no bloquea", () => {
+  it("TC-CDM-100h: enumera los meses posteriores con su antes y su después", () => {
+    // @aitri-tc TC-CDM-100h
+    // Agosto ya corregido: ingresos 1.000.000 − gastos 700.000 ⇒ cierra en 300.000.
+    // La línea de base dice que cerraba en 500.000 al reabrirlo ⇒ 200.000 menos aguas abajo.
+    const s = estadoImpacto(
+      {
+        "c-sueldo": { "2026-08": 1_000_000, "2026-09": 1_000_000 },
+        "c-mercado": { "2026-08": 700_000, "2026-09": 400_000, "2026-10": 300_000 },
+      },
+      {
+        closedThrough: "2026-07",
+        reopened: "2026-08",
+        reopenBaseline: { available: 500_000, reservedBalance: 200_000 },
+      }
+    );
+
+    // Antes:  500.000 → sep 1.100.000 → oct 800.000 → nov 800.000
+    // Después: 300.000 → sep   900.000 → oct 600.000 → nov 600.000
+    const filas = downstreamImpact(s, PERIODOS_IMP);
+    expect(filas).toEqual([
+      { period: "2026-09", availableBefore: 1_100_000, availableAfter: 900_000, brokenByThisEdit: false },
+      { period: "2026-10", availableBefore: 800_000, availableAfter: 600_000, brokenByThisEdit: false },
+      { period: "2026-11", availableBefore: 800_000, availableAfter: 600_000, brokenByThisEdit: false },
+    ]);
+    // Y las propiedades que la lista de arriba cumple por casualidad si alguien la copia mal:
+    // el mes REABIERTO no se reporta a sí mismo…
+    expect(filas.map((f) => f.period)).not.toContain("2026-08");
+    // …y la pérdida es la MISMA en todos los meses posteriores (200.000), porque un cambio en el
+    // saldo de cierre se arrastra entero, no se diluye ni se acumula mes a mes.
+    for (const f of filas) expect(f.availableBefore - f.availableAfter).toBe(200_000);
+  });
+
+  it("TC-CDM-101e: una edición que no mueve el saldo de cierre no reporta ningún mes", () => {
+    // @aitri-tc TC-CDM-101e
+    // Mover 150.000 de Mercado a su hermana Restaurantes deja el gasto TOTAL de agosto igual, así
+    // que el mes cierra donde cerraba. La lista tiene que salir VACÍA, no llena de filas con
+    // before === after: un panel que pinta tres meses que no se movieron es peor que ninguno.
+    const s = estadoImpacto(
+      {
+        "c-sueldo": { "2026-08": 1_000_000, "2026-09": 1_000_000 },
+        "c-mercado": { "2026-08": 550_000, "2026-09": 400_000, "2026-10": 300_000 },
+        "c-resto": { "2026-08": 150_000 },
+      },
+      {
+        closedThrough: "2026-07",
+        reopened: "2026-08",
+        // 1.000.000 − (550.000 + 150.000) = 300.000, idéntico a antes de mover el gasto.
+        reopenBaseline: { available: 300_000, reservedBalance: 0 },
+      }
+    );
+    expect(downstreamImpact(s, PERIODOS_IMP)).toEqual([]);
+  });
+
+  it("TC-CDM-102f: un mes que YA venía roto no se le imputa a esta corrección", () => {
+    // @aitri-tc TC-CDM-102f
+    // Octubre arrastra déficit con la línea de base Y después: no lo rompió esta edición.
+    const s = estadoImpacto(
+      {
+        "c-sueldo": { "2026-08": 1_000_000, "2026-09": 300_000 },
+        "c-mercado": { "2026-08": 950_000, "2026-10": 900_000 },
+      },
+      {
+        closedThrough: "2026-07",
+        reopened: "2026-08",
+        reopenBaseline: { available: 100_000, reservedBalance: 0 },
+      }
+    );
+    const filas = downstreamImpact(s, PERIODOS_IMP);
+    const oct = filas.find((f) => f.period === "2026-10");
+    // Antes: 100.000 → sep 400.000 → oct −500.000.  Después: 50.000 → sep 350.000 → oct −550.000.
+    expect(oct).toEqual({
+      period: "2026-10", availableBefore: -500_000, availableAfter: -550_000, brokenByThisEdit: false,
+    });
+    expect(filas.every((f) => !f.brokenByThisEdit)).toBe(true);
+  });
+
+  it("TC-CDM-102f (contraparte): el mes que ESTA corrección deja sin cubrir sí se marca", () => {
+    // @aitri-tc TC-CDM-102f
+    // El complemento del caso anterior, y la razón de que `brokenByThisEdit` exista: octubre pasa
+    // de cubierto (+50.000) a descubierto (−150.000). Sin esta prueba, devolver `false` siempre
+    // pasaría el test de arriba.
+    const s = estadoImpacto(
+      {
+        "c-sueldo": { "2026-08": 1_000_000 },
+        "c-mercado": { "2026-08": 800_000, "2026-10": 450_000 },
+      },
+      {
+        closedThrough: "2026-07",
+        reopened: "2026-08",
+        reopenBaseline: { available: 500_000, reservedBalance: 0 },
+      }
+    );
+    const oct = downstreamImpact(s, PERIODOS_IMP).find((f) => f.period === "2026-10");
+    // Antes: 500.000 → sep 500.000 → oct +50.000.  Después: 200.000 → sep 200.000 → oct −250.000.
+    expect(oct?.brokenByThisEdit).toBe(true);
+    expect(oct?.availableBefore).toBe(50_000);
+    expect(oct?.availableAfter).toBe(-250_000);
+  });
+
+  it("TC-CDM-104f: el impacto nunca alcanza un mes que sigue cerrado", () => {
+    // @aitri-tc TC-CDM-104f
+    // Se le pasa el rango ENTERO, incluidos los meses cerrados: la lista no puede contener ninguno.
+    const s = estadoImpacto(
+      {
+        "c-sueldo": { "2026-06": 900_000, "2026-07": 900_000, "2026-08": 1_000_000, "2026-09": 500_000 },
+        "c-mercado": { "2026-06": 100_000, "2026-07": 100_000, "2026-08": 700_000 },
+      },
+      {
+        closedThrough: "2026-07",
+        reopened: "2026-08",
+        reopenBaseline: { available: 500_000, reservedBalance: 0 },
+      }
+    );
+    const rango: PeriodKey[] = ["2026-06", "2026-07", "2026-08", "2026-09", "2026-10"];
+    const filas = downstreamImpact(s, rango);
+    expect(filas.length).toBeGreaterThan(0);
+    for (const f of filas) expect(comparePeriodsTest(f.period, "2026-08")).toBeGreaterThan(0);
+    expect(filas.map((f) => f.period)).not.toContain("2026-07");
+    expect(filas.map((f) => f.period)).not.toContain("2026-08");
+  });
+
+  it("TC-CDM-104f (guardias): sin mes reabierto o sin línea de base, no se inventa un «antes»", () => {
+    // @aitri-tc TC-CDM-104f
+    const base = { "c-sueldo": { "2026-08": 1_000_000 } };
+    // Sin mes reabierto.
+    expect(downstreamImpact(estadoImpacto(base, { closedThrough: "2026-07", reopened: null }), PERIODOS_IMP))
+      .toEqual([]);
+    // Con mes reabierto pero SIN línea de base (fila escrita por una versión anterior): lista vacía
+    // y silencio, nunca un «antes» fabricado.
+    expect(downstreamImpact(estadoImpacto(base, { closedThrough: "2026-07", reopened: "2026-08" }), PERIODOS_IMP))
+      .toEqual([]);
+  });
+
+  it("TC-CDM-106e: el tercer parámetro de computeBalanceSeries no altera ninguna llamada existente", () => {
+    // @aitri-tc TC-CDM-106e
+    const s = estado({ closedThrough: "2026-07", reopened: null });
+    const periods = activeRange(s, AHORA);
+    const sinParametro = computeBalanceSeries(s, periods);
+    const conCero = computeBalanceSeries(s, periods, { available: 0, reservedBalance: 0 });
+    expect(sinParametro).toEqual(conCero);
+    // Y el primer periodo sigue abriendo en 0/0, que es la propiedad que FR-1903 fija.
+    const primero = sinParametro[periods[0]];
+    expect(primero.actual.prevAvailable).toBe(0);
+    expect(primero.actual.prevReserved).toBe(0);
+  });
+
+  it("TC-CDM-105e: reabrir fotografía el saldo de cierre; volver a cerrar borra la foto", () => {
+    // @aitri-tc TC-CDM-105e
+    // La mitad de dominio del bicondicional que el esquema impone: la línea de base existe
+    // EXACTAMENTE mientras hay un mes reabierto.
+    const s = estado({ closedThrough: "2026-08", reopened: null });
+    const periods = activeRange(s, AHORA);
+    const cierreDeAgosto = computeBalanceSeries(s, periods)["2026-08"].actual;
+
+    const r = reabrir(s);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.closure.reopenBaseline).toEqual({
+      available: cierreDeAgosto.available,
+      reservedBalance: cierreDeAgosto.reservedBalance,
+    });
+
+    const s2 = { ...s, closure: r.closure };
+    const c = closeMonth(s2, AHORA, activeRange(s2, AHORA));
+    expect(c.ok).toBe(true);
+    if (!c.ok) return;
+    expect(c.closure.reopened).toBeNull();
+    expect(c.closure.reopenBaseline).toBeUndefined();
+  });
+});
+
+describe("BG-CDM-001 — el cierre sobrevive a cualquier mutación del estado", () => {
+  it("TC-CDM-108f: editar una celda NO borra el cierre del estado", () => {
+    // @aitri-tc TC-CDM-108f
+    // El defecto: `clone()` en mutations.ts enumera los campos del estado uno por uno, y `closure`
+    // no estaba en la lista. Cualquier edición lo borraba del estado del NAVEGADOR — silencioso,
+    // porque el guardia vive en el servidor y ninguna cifra corría peligro: lo que fallaba era la
+    // pantalla, que dejaba de pintar las columnas cerradas y no podía calcular el impacto de un
+    // mes reabierto hasta la siguiente resincronización.
+    const closure: Closure = {
+      closedThrough: "2026-07",
+      reopened: "2026-08",
+      reopenBaseline: { available: 500_000, reservedBalance: 0 },
+    };
+    const s = estado(closure);
+    const next = setLeafAmount(s, "c-mercado", "2026-09", "actual", 123_000, activeRange(s, AHORA));
+    expect(next.closure).toEqual(closure);
+  });
+
+  it("TC-CDM-108f: registrar un movimiento tampoco lo borra", () => {
+    // @aitri-tc TC-CDM-108f
+    const closure: Closure = { closedThrough: "2026-07", reopened: null };
+    const s = estado(closure);
+    const next = addMovement(
+      s,
+      { type: "expense", catId: "c-mercado", subId: null, amount: "40000", period: "2026-09" },
+      activeRange(s, AHORA)
+    );
+    expect(next.closure).toEqual(closure);
+  });
+});
+
+/** Comparador local para no acoplar la prueba al import del dominio en este bloque. */
+function comparePeriodsTest(a: PeriodKey, b: PeriodKey): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}

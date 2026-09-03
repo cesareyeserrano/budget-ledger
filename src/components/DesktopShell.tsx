@@ -12,6 +12,7 @@ import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
 import { HorizonSelect } from "./HorizonSelect";
 import { ClosureControl } from "./ClosureControl";
+import { ImpactPanel } from "./ImpactPanel";
 import { ClosureBanner } from "./ClosureBanner";
 import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
@@ -164,6 +165,11 @@ export function DesktopShell() {
         {/* El aviso de meses sin cerrar, hermano del de persistencia y en el mismo sitio: encima
             del cuerpo, donde se mira al operar. No pinta nada cuando no hay pendientes. */}
         <ClosureBanner className="mx-6 mt-3" />
+        {/* El impacto de corregir un mes reabierto (FR-2010), hermano de los dos avisos anteriores
+            y en el mismo sitio: encima del cuerpo, donde se mira al operar. No pinta nada mientras
+            no haya un mes reabierto con cifras movidas. Va DEBAJO del aviso de meses sin cerrar
+            porque responde a una acción recién hecha, no a un estado permanente. */}
+        <ImpactPanel className="mx-6 mt-3" />
 
         {/* Cuerpo */}
         <div className="flex flex-1 min-h-0">

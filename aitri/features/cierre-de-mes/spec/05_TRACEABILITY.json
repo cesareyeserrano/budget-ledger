@@ -66,6 +66,18 @@
       "evidence": "5/5 TCs. Cabeceras y celdas llevan `data-closed` y un CANDADO — segundo canal no cromático (WCAG 1.4.1). El intento de edición explica el rechazo y NOMBRA la salida: reabrir si es el último cerrado, dejar una observación si no. El control dice siempre qué es cerrable, qué reabrible y qué está reabierto. DEUDA DECLARADA: El control de cierre y el aviso solo existen en la pantalla de ESCRITORIO. En móvil no se puede cerrar ni reabrir, y las columnas cerradas del registro móvil no llevan marca. · Las columnas cerradas se marcan en la cabecera y en las celdas de la GRILLA (data-closed + candado), pero el módulo de Balance no marca las suyas."
     },
     {
+      "id": "FR-2010",
+      "title": "Editar un mes reabierto muestra qué cambió aguas abajo — y no lo impide",
+      "level": "complete",
+      "evidence": "8/8 TCs (4 unidad, 3 integración contra Postgres real, 1 e2e). `downstreamImpact` corre DOS VECES la misma serie sobre los mismos meses posteriores —una desde el carry actual del mes reabierto y otra desde la línea de base guardada al reabrirlo (ADR-15, migración 0005 + CHECK bicondicional)— y devuelve solo las filas que se movieron, con su antes y su después. TC-CDM-100h fija cifras concretas y comprueba además que la pérdida es idéntica en todos los meses posteriores, así que un atajo que reste un delta constante no cuela si el arrastre no fuera lineal. TC-CDM-101e: una edición que no mueve el saldo de cierre devuelve lista VACÍA, no filas con before === after. `brokenByThisEdit` distingue «lo rompiste tú» de «ya venía roto» y se prueba en los DOS sentidos (TC-CDM-102f y su contraparte), así que devolver `false` siempre no pasaría. TC-CDM-103f prueba que la corrección dañina SE ACEPTA (200 y persiste): protege la decisión del usuario de avisar y no bloquear, y se pondrá roja si alguien la convierte en un rechazo. TC-CDM-104f verifica que ninguna fila del impacto es un mes cerrado y que sus cifras quedan idénticas byte a byte."
+    },
+    {
+      "id": "FR-2011",
+      "title": "El historial de cierres y reaperturas se consulta desde la app",
+      "level": "complete",
+      "evidence": "7/7 TCs (5 integración, 2 e2e). Panel desplegable de solo lectura colgado del control de cierre (ADR-16), alimentado por `GET /api/v1/closure/events` sobre la tabla append-only `closure_event`. Orden `at DESC, id DESC` — el desempate por id evita que dos eventos del mismo instante dejen el orden indeterminado. TC-CDM-111e: cerrar-reabrir-cerrar deja tres entradas y la primera conserva su instante original. TC-CDM-112e: un ledger sin cierres devuelve 200 con lista vacía, y la pantalla lo explica con una frase en vez de quedarse en blanco. TC-CDM-113f: 401 sin sesión y aislamiento estricto por owner_id, verificado contando filas en la base. TC-CDM-116e: con más eventos que el tope de 200 se devuelve `truncated: true` y el panel lo dice al pie, en vez de mentir por omisión. TC-CDM-115f: el panel no contiene ningún control de escritura y abrirlo no mueve `revision` ni la frontera del cierre."
+    },
+    {
       "id": "NFR-2001",
       "title": "La suite existente sigue verde: las 645 pruebas unitarias y de integración y las 392 e2e del proyecto y de sus features ",
       "level": "complete",
@@ -138,7 +150,25 @@
       "substitution": "El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan.",
       "reason": "Es suficiente y coherente: solo el ULTIMO mes cerrado es reabrible (FR-2005), asi que anclar la frontera es exactamente lo que hace falta para que reabrir devuelva una celda. Los anteriores estan congelados para siempre y vacios — no hay nada que ver ni nada que hacer en ellos. Anclarlos todos exigiria guardar el inicio de la racha cerrada, un dato nuevo sin ningun uso.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "El panel de impacto solo existe en la pantalla de ESCRITORIO, igual que el control de cierre y el aviso (misma deuda ya declarada para FR-2009). En movil no se puede reabrir un mes, asi que tampoco hay impacto que enseniar alli.",
+      "reason": "La persona planea en escritorio y captura en movil (user_personas). Corregir un mes reabierto es trabajo de planeacion, y la accion que lo dispara —reabrir— vive solo en escritorio: un panel de impacto en movil no tendria como aparecer.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2011",
+      "substitution": "El historial no se puede enlazar ni marcar como favorito: es un panel desplegable, no una ruta propia. Tampoco se filtra ni se exporta.",
+      "reason": "ADR-16. Una ruta con su entrada de menu permanente es desproporcionada para una lista que un usuario unico consulta unas pocas veces al anio, y esta feature tiene prohibido crear la pagina de Configuracion (no_go_zone). Si algun dia hace falta filtrar o exportar, la ruta es la evolucion natural y este panel es su contenido.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "La linea de base del impacto se guarda en DOS columnas (el carry de cierre del mes reabierto), no en una foto del estado. El «antes» de cada mes posterior se RECALCULA corriendo la serie desde esa linea de base.",
+      "reason": "ADR-15, y es la decision, no un atajo: un snapshot entero costaria ordenes de magnitud mas y no daria nada extra, porque el arrastre es funcion de (carry de apertura, datos del mes). Su unica premisa es ese determinismo; si algun dia dejara de cumplirse, la decision hay que revisarla — queda escrito en el ADR.",
+      "effort_to_fix": "low"
     }
   ],
-  "deployment_notes": "Modelo de despliegue: contenedor Docker detrás de Nginx, el del proyecto. El Dockerfile, el docker-compose.yml de producción y el .dockerignore NO existían y se crearon el 2026-09-03 como trabajo del PROYECTO RAÍZ, no de esta feature: el DEPLOYMENT.md de la raíz llevaba tiempo mandando construir una imagen desde un fichero ausente. La imagen se verificó arrancando de verdad — migraciones aplicadas desde el contenedor, /health 200, 401 sin sesión, headers de seguridad presentes, proceso como usuario sin privilegios y HEALTHCHECK en healthy. A esta feature le da igual el envoltorio: su migración 0004 y su código se comportan idénticos dentro del contenedor o sobre Node pelado."
+  "deployment_notes": "Modelo de despliegue: contenedor Docker detrás de Nginx, el del proyecto. El Dockerfile, el docker-compose.yml de producción y el .dockerignore NO existían y se crearon el 2026-09-03 como trabajo del PROYECTO RAÍZ, no de esta feature: el DEPLOYMENT.md de la raíz llevaba tiempo mandando construir una imagen desde un fichero ausente. La imagen se verificó arrancando de verdad — migraciones aplicadas desde el contenedor, /health 200, 401 sin sesión, headers de seguridad presentes, proceso como usuario sin privilegios y HEALTHCHECK en healthy. A esta feature le da igual el envoltorio: su migración 0004 y su código se comportan idénticos dentro del contenedor o sobre Node pelado.\n\nAÑADIDO EL 2026-09-03 (FR-2010/FR-2011, segunda ronda tras la auditoría de requisitos): la feature suma la migración `drizzle/0005_cierre_impacto.sql`, igual de aditiva que la 0004 — dos columnas nulables en `ledger` (`reopen_base_available`, `reopen_base_reserved`) y un CHECK bicondicional que las ata a `reopened_period`. NO sube `data_version`, y es deliberado: esa columna marca el modelo de DATOS y `saveLedger` la re-estampa en cada guardado, así que subirla sería una marca que se borra sola — una idempotencia falsa. La idempotencia real viene de `ADD COLUMN IF NOT EXISTS` y `DROP CONSTRAINT IF EXISTS`. Sigue sin haber ventana peligrosa de despliegue: el código viejo ignora las columnas que no conoce y el nuevo, contra una base sin migrar, degrada a «sin línea de base» → impacto vacío, nunca un «antes» inventado. Las dos migraciones están registradas en `drizzle/meta/_journal.json`; sin su entrada, `db:migrate` termina con éxito sin aplicar nada, que es el fallo silencioso que el DEPLOYMENT.md manda comprobar con una consulta a `information_schema` después de migrar."
 }

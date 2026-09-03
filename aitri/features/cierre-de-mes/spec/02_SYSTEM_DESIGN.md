@@ -163,13 +163,43 @@ CREATE INDEX "closure_event_owner_at_idx" ON "closure_event" ("owner_id", "at" D
 UPDATE "ledger" SET "data_version" = 4 WHERE "data_version" < 4;
 ```
 
+**Delta añadido el 2026-09-03 (FR-2010).** El impacto aguas abajo necesita un punto de comparación:
+el saldo con el que el mes reabierto CERRABA en el instante de reabrirlo. Sin él, «valor anterior»
+no tiene referente después de recargar la página.
+
+```sql
+-- drizzle/0005_cierre_impacto.sql
+ALTER TABLE "ledger" ADD COLUMN "reopen_base_available" bigint;
+ALTER TABLE "ledger" ADD COLUMN "reopen_base_reserved"  bigint;
+
+-- La linea de base existe EXACTAMENTE cuando hay un mes reabierto: ni antes ni despues.
+ALTER TABLE "ledger" ADD CONSTRAINT "ledger_reopen_baseline_ck"
+  CHECK ( ("reopened_period" IS NULL     AND "reopen_base_available" IS NULL
+                                         AND "reopen_base_reserved"  IS NULL)
+       OR ("reopened_period" IS NOT NULL AND "reopen_base_available" IS NOT NULL
+                                         AND "reopen_base_reserved"  IS NOT NULL) );
+```
+
+**`0005` NO toca `data_version`, y es deliberado.** Esa columna marca el modelo de DATOS y
+`saveLedger` la re-estampa en `DATA_VERSION_COUNTERPARTY` en cada guardado: subirla aquí sería una
+marca que se borra sola en la siguiente escritura — una idempotencia falsa. `0005` no convierte
+ningún dato existente, así que su idempotencia viene de `ADD COLUMN IF NOT EXISTS` y
+`DROP CONSTRAINT IF EXISTS`, que es la garantía real (NFR-2008).
+
+`reserved` no lleva `>= 0` y `available` tampoco: un mes puede cerrar en déficit, y la línea de base
+tiene que poder representar el estado real, no el deseable. El `CHECK` de bicondicional es el que
+convierte «la línea de base se borra al volver a cerrar» en algo que la base de datos no deja
+olvidar, en vez de una disciplina del código.
+
 **Campos, con su significado exacto**
 
 | Campo | Tipo | Nulo | Significado |
 |---|---|---|---|
 | `ledger.closed_through` | `text` «YYYY-MM» | sí | La frontera. **Todo periodo ≤ este valor está cerrado.** `NULL` = nada cerrado, que es el estado de todo usuario existente y de todo usuario nuevo |
 | `ledger.reopened_period` | `text` «YYYY-MM» | sí | El mes actualmente reabierto, o `NULL`. Cuando no es nulo vale siempre `addMonths(closed_through, 1)`. Es el guardia de «uno a la vez» (FR-2005) |
-| `closure_event.action` | `'close' \| 'reopen'` | no | Solo se INSERTA. Nunca se actualiza ni se borra: es el rastro (FR-2005) |
+| `closure_event.action` | `'close' \| 'reopen'` | no | Solo se INSERTA. Nunca se actualiza ni se borra: es el rastro (FR-2005), y desde FR-2011 también lo que alimenta el historial que el usuario consulta |
+| `ledger.reopen_base_available` | `bigint` | sí | FR-2010. Disponible con el que cerraba el mes reabierto en el instante de reabrirlo. No nulo si y solo si `reopened_period` no lo es |
+| `ledger.reopen_base_reserved` | `bigint` | sí | FR-2010. Reservado con el que cerraba ese mismo mes. Junto al anterior forma el `Carry` de apertura contra el que se mide el impacto |
 
 **Por qué la frontera es un escalar y no una marca por fila.** FR-2001 exige que los meses cerrados
 sean una racha continua y FR-2002 que el cierre sea secuencial. Con una marca por mes, «racha
@@ -192,6 +222,23 @@ export interface Closure {
   closedThrough: PeriodKey | null;
   /** El mes actualmente reabierto, o null. Si no es null, vale addMonths(closedThrough, 1). */
   reopened: PeriodKey | null;
+  /**
+   * FR-2010. Saldo de cierre del mes reabierto EN EL INSTANTE de reabrirlo — el referente de
+   * «valor anterior». Presente si y solo si `reopened` no es null; se borra al volver a cerrar.
+   */
+  reopenBaseline?: Carry;
+}
+// `Carry` ({ available, reservedBalance }) vive hoy sin exportar en balance.ts. Pasa a exportarse:
+// es un cambio de VISIBILIDAD, no de forma ni de comportamiento. Las columnas
+// reopen_base_available / reopen_base_reserved son exactamente sus dos campos.
+
+/** FR-2010. Una fila del impacto: un mes posterior cuyas cifras se movieron al corregir. */
+export interface ImpactRow {
+  period: PeriodKey;
+  availableBefore: number;
+  availableAfter: number;
+  /** true si ESTA corrección lo dejó sin cubrir — no si ya lo estaba antes de tocarlo. */
+  brokenByThisEdit: boolean;
 }
 
 export interface LedgerState {
@@ -234,8 +281,13 @@ DELETE /api/v1/closure                     auth: requerida
   401      sin sesión
 
 GET /api/v1/closure/events                 auth: requerida
-  El rastro (FR-2005). Solo lectura; del ownerId de la sesión.
-  200      { events: Array<{ period: PeriodKey, action: "close" | "reopen", at: string }> }
+  El rastro (FR-2005) y la fuente del historial que el usuario consulta (FR-2011).
+  Solo lectura; del ownerId de la sesión. Orden: `at DESC, id DESC` — el id desempata dos
+  eventos del mismo instante, que el orden por `at` a solas dejaría indeterminado.
+  Tope de 200 filas sin paginación: un usuario único cierra ~12 veces al año, así que 200 son
+  más de una década. Al llegar al tope se devuelve `truncated: true` en vez de mentir por omisión.
+  200      { events: Array<{ period: PeriodKey, action: "close" | "reopen", at: string }>,
+             truncated: boolean }
 ```
 
 **Por qué el cliente no propone qué mes cerrar.** Si el cuerpo llevara `period`, el servidor tendría
@@ -366,6 +418,39 @@ I/O: `() → Closure`; `data-closed` en `[data-month-head]` y en las celdas.
 Failure: si el estado de cierre no llegó todavía, se pinta todo como abierto — el servidor sigue
 rechazando, así que un pintado optimista nunca produce una escritura ilegal.
 
+**FR-2010: Editar un mes reabierto muestra qué cambió aguas abajo — y no lo impide**
+Method: función pura `downstreamImpact(state, periods, closure) → ImpactRow[]` en `closure.ts`.
+Calcula la serie de los meses posteriores al reabierto DOS VECES con la misma función de siempre:
+una abriendo en el carry actual del mes reabierto («después») y otra abriendo en
+`closure.reopenBaseline` («antes»). Devuelve solo las filas donde el disponible difiere.
+`brokenByThisEdit` es `deficit(después) > 0 && deficit(antes) === 0` — señala el mes que ESTA
+corrección rompió, no uno que ya venía roto, que es lo que el usuario pidió («decirle dónde los
+causó»). **Nada de esto entra en el cálculo:** no cambia ningún número, compara dos corridas de un
+cálculo que no se entera de que existe el cierre, así que el invariante del Executive Summary
+—y con él NFR-2002 y NFR-2003— sigue en pie.
+Habilitante: `computeBalanceSeries(state, periods, opening = ZERO_CARRY)` gana un tercer parámetro
+OPCIONAL con el valor por defecto que hoy tiene fijo. Es aditivo y preserva el comportamiento byte
+a byte para todas las llamadas existentes (NFR-2001).
+I/O: `(LedgerState, readonly PeriodKey[], Closure) → ImpactRow[]`; la UI lo pinta en un panel bajo
+la grilla, no en un toast: una lista de meses con cifras no cabe en un aviso efímero.
+Failure: sin mes reabierto o sin línea de base → lista vacía, y la UI no pinta nada. Una línea de
+base ausente con un mes reabierto es imposible por el `CHECK` de la migración `0005`; si aun así
+llegara (fila escrita por una versión anterior), se degrada a lista vacía y se registra en el log —
+nunca se inventa un «antes».
+**Lo que este FR NO hace, y es una decisión:** no bloquea nada. La escritura se acepta siempre. La
+protección de las operaciones de RESERVA sigue siendo la regla «no empeorar» vigente
+(`reserve.ts`), que no se toca; el `no_go_zone` prohíbe extender ese bloqueo a las celdas.
+
+**FR-2011: El historial de cierres y reaperturas se consulta desde la app**
+Method: `ClosureHistoryPanel`, panel desplegable de solo lectura anclado al control de cierre
+(ADR-16), alimentado por `GET /api/v1/closure/events`. No mantiene estado propio: pide al abrirse y
+al recibir un evento de cierre o reapertura. Cada fila pinta periodo, acción y el instante
+formateado en la zona del navegador. La consulta no participa del lock optimista porque no escribe.
+I/O: `() → { events, truncated }`; render de lista descendente.
+Failure: error de red → el panel muestra que no pudo cargarse y ofrece reintentar, sin tocar el
+estado de cierre; lista vacía → frase explicativa («todavía no has cerrado ningún mes»), nunca una
+pantalla en blanco. `truncated` pinta una nota al pie en vez de fingir que ahí acaba la historia.
+
 ## Security Design
 
 **Frontera de confianza.** Todo lo que llega por HTTP es hostil, incluida una petición fabricada a
@@ -465,7 +550,7 @@ cambiarlo y no lo cambia.
 | 1 | **El guardia se salta una vía de escritura** y una cifra cerrada cambia en silencio — el fallo que la feature existe para evitar | Punto de estrangulamiento único en la capa de persistencia (ADR-12), no comprobaciones repartidas. Cubre las vías futuras por construcción. La Fase 3 debe atacarlo con una prueba que enumere las seis vías y una que fabrique peticiones a mano |
 | 2 | **Los dos mundos divergen**: el código con meses cerrados y el código sin ellos se comportan distinto en los meses abiertos | Mitigado por diseño: el cierre no entra en el cálculo, así que el mundo «sin cierres» es el código de hoy sin ramas. NFR-2002 lo verifica comparando resultados con y sin frontera |
 | 3 | **BL-037 y BL-038 siguen vivos** y el usuario podría esperar que esta feature los disuelva | Está escrito en el `no_go_zone` y en el `project_summary`, y se le presentó antes de decidir. El riesgo es de expectativa, no técnico; se gestiona diciéndolo, no construyendo |
-| 4 | **La reapertura deja el ledger en un estado que el usuario no esperaba**: reabre agosto, edita, y septiembre cambia bajo sus pies | Es correcto y deseado (el arrastre debe propagarse), pero debe ser VISIBLE. FR-2009 exige que se vea qué está reabierto; la Fase 3 debería cubrir el aviso al reabrir |
+| 4 | **La reapertura deja el ledger en un estado que el usuario no esperaba**: reabre agosto, edita, y septiembre cambia bajo sus pies | **RESUELTO el 2026-09-03 con FR-2010**, que es requisito y no esperanza. Antes esta mitigación se apoyaba en FR-2009 —que solo exige señalar QUÉ está reabierto, no el impacto de editarlo— y en un «la Fase 3 debería»: la auditoría de requisitos lo detectó y el usuario pidió explícitamente ver dónde causó daño. Ahora `downstreamImpact` lo enumera con cifras antes/después y marca el mes que la corrección rompió. Se avisa, no se bloquea (decisión del usuario, en el `no_go_zone`) |
 | 5 | **Concurrencia entre dispositivos**: dos pestañas, una cierra y la otra guarda una edición de ese mes | Resuelto por el lock optimista existente: la segunda recibe `409` y resincroniza. El guardia corre DESPUÉS del `FOR UPDATE`, así que no hay ventana entre validar y escribir |
 
 ### ADR-11: Dónde vive el estado de cierre
@@ -575,6 +660,59 @@ inicio del rango); y deja el rango arrancando, como mucho, un periodo vacío ant
 no altera ninguna cifra porque el primer periodo abre en `ZERO_CARRY` de todos modos. La redacción de
 NFR-2004 se corrigió en la Fase 1 para permitirlo: prohíbe RECORTAR el rango, no ampliarlo.
 
+### ADR-15: Contra qué se mide el impacto de editar un mes reabierto
+
+**Context:** FR-2010 exige mostrar «el valor anterior y el nuevo» de cada mes posterior que se
+mueva. «Anterior» necesita un referente, y el referente tiene que sobrevivir a una recarga de
+página: el usuario reabre agosto el lunes y lo corrige el jueves.
+
+- **Option A — Línea de base persistida: el carry de cierre del mes reabierto en el instante de
+  reabrirlo, y una segunda corrida de la serie.** El «antes» se obtiene corriendo
+  `computeBalanceSeries` sobre los mismos meses posteriores abriendo en la línea de base en vez de
+  en el carry actual. Ventajas: exacto (no supone que el arrastre sea lineal, lo calcula); dos
+  números persistidos, no un snapshot; sobrevive a recargas y a cambiar de dispositivo; el marco de
+  referencia es «cómo estaba cuando lo reabrí», que es la pregunta que el usuario se hace.
+  Coste: dos columnas nuevas, un `CHECK` de bicondicional y una corrida extra de una función pura.
+- **Option B — Diff por edición contra el estado inmediatamente anterior en memoria.** Cero
+  persistencia. Pero el referente se pierde al recargar, y tras cinco correcciones el usuario ve
+  cinco impactos pequeños y nunca el neto — justo lo que necesita para saber si se pasó.
+- **Option C — No calcular cifras: marcar los meses posteriores como «pueden haber cambiado».**
+  Baratísimo y honesto, pero no responde «dónde», que es literalmente lo que el usuario pidió. Un
+  aviso que no distingue el mes que se rompió del que no se movió no le ahorra ninguna revisión.
+
+**Decision:** Option A.
+
+**Consequences:** habilita un «antes/después» exacto y estable en el tiempo, y hace que el impacto
+sea una comparación de dos cálculos en vez de una rama dentro del cálculo — el invariante del
+Executive Summary sigue intacto. A cambio, el estado de cierre crece en dos columnas cuya
+consistencia hay que garantizar; se garantiza en el esquema (`ledger_reopen_baseline_ck`), no en el
+código, para que no dependa de que nadie olvide limpiarlas al volver a cerrar. Si algún día el
+cálculo dejara de ser determinista sobre (carry de apertura, datos del mes), esta decisión hay que
+revisarla: es su única premisa.
+
+### ADR-16: Dónde vive el historial que el usuario consulta
+
+**Context:** FR-2011 pide que el rastro se pueda consultar desde la app. Los datos ya existen
+(`closure_event`) y el endpoint también; lo que falta es la superficie.
+
+- **Option A — Panel desplegable de solo lectura anclado al control de cierre.** El historial vive
+  donde vive la acción que lo genera, así que se descubre sin buscarlo. No añade ruta, ni entrada de
+  navegación, ni pantalla que mantener. Limitación: no es enlazable ni marcable como favorito.
+- **Option B — Ruta propia (`/cierres`) con su entrada de navegación.** Enlazable y con espacio para
+  crecer, pero añade una pantalla entera y una entrada de menú permanente para una lista que un
+  usuario único mirará unas pocas veces al año. Y roza el `no_go_zone`: esta feature no crea la
+  página de Configuración, y una ruta nueva empieza a parecérsele.
+- **Option C — Lista embebida en el `ClosureBanner`.** Cero superficie nueva, pero el banner existe
+  para avisar de meses SIN cerrar y desaparece cuando no los hay — el historial quedaría
+  inalcanzable justo para el usuario al día, que es el que sí tiene historia que consultar.
+
+**Decision:** Option A.
+
+**Consequences:** el historial es descubrible desde la acción y no cuesta navegación; a cambio no se
+puede enlazar. Si algún día hace falta filtrarlo o exportarlo, Option B es la evolución natural y
+este panel es su contenido, no trabajo tirado. La opción C queda descartada por un motivo que vale
+la pena dejar escrito: acopla la consulta del pasado a un aviso sobre el presente que se apaga.
+
 ## Failure Blast Radius
 
 **Component: Postgres**
@@ -678,21 +816,26 @@ Severity: low
       `cellNotes` en el guardia), FR-2005 (`reopenMonth` + `reopened` + `closure_event` +
       `DELETE /closure`), FR-2006 (`unclosedEndedPeriods` + `ClosureBanner`), FR-2007 (consecuencia
       de FR-2003, sin componente propio y declarado como tal), FR-2008 (`nextClosable` con el mes en
-      curso por parámetro), FR-2009 (`useClosure` + `data-closed` + `Toaster`).
-- [x] **Implementation Approach tiene entrada para cada MUST FR** — las nueve, incluida la de
+      curso por parámetro), FR-2009 (`useClosure` + `data-closed` + `Toaster`), FR-2010 (`downstreamImpact` +
+      `reopenBaseline` + el tercer parámetro opcional de `computeBalanceSeries` + panel de impacto),
+      FR-2011 (`ClosureHistoryPanel` + `GET /closure/events`).
+- [x] **Implementation Approach tiene entrada para cada MUST FR** — las once, incluida la de
       FR-2007, que es un «no se implementa nada» explícito y razonado, nunca un salto silencioso.
 - [x] **Todo NFR tiene una decisión de diseño** — NFR-2001 (sin cambios de contrato: nada que
       adaptar en la suite existente), NFR-2002 y NFR-2003 (el cierre fuera del cálculo),
       NFR-2004 (el cierre no RECORTA el rango; lo amplía hasta la frontera — ADR-14), NFR-2005 (Security Design),
       NFR-2006 (Performance & Scalability), NFR-2007 (contrato de preservación: `revision` y su
-      lock intactos), NFR-2008 (migración `0004` aditiva, en transacción, idempotente por
+      lock intactos), NFR-2008 (migraciones `0004` y `0005`, ambas aditivas, en transacción e idempotentes por
       `data_version`).
-- [x] **Todo ADR evalúa ≥2 opciones** — ADR-11 (3), ADR-12 (3), ADR-13 (3), ADR-14 (3).
+- [x] **Todo ADR evalúa ≥2 opciones** — ADR-11 (3), ADR-12 (3), ADR-13 (3), ADR-14 (3),
+      ADR-15 (3), ADR-16 (3).
 - [x] **Ningún elemento del `no_go_zone` aparece en la arquitectura** — no hay ajuste-en-mes-abierto,
       no hay temporizador ni cron de cierre automático, no se toca la maquinaria del techo
       (BL-037/BL-038), no hay forma de reabrir dos meses ni de alcanzar uno anterior al último
       cerrado, no hay saldo inicial ni página de Configuración, no hay roles ni permisos, no hay
-      multi-moneda, y no hay exportación ni archivado.
+      multi-moneda, y no hay exportación ni archivado. Añadido el 2026-09-03: FR-2010 **no bloquea**
+      ninguna edición del mes reabierto (solo informa) y la reapertura **no pide motivo escrito** —
+      las dos exclusiones que el usuario decidió y que el `no_go_zone` recoge.
 - [x] **Blast radius documentado para ≥2 componentes críticos** — cuatro: Postgres, el guardia, la
       capa de autenticación y el estado del cliente.
 - [x] **Technical Risk Flags completo** — cinco entradas, cuatro riesgos reales con severidad y una

@@ -40,7 +40,11 @@ function db(): ReturnType<typeof postgres> | null {
 export async function resetClosure(email: string): Promise<void> {
   const c = db();
   if (!c) return;
-  await c`UPDATE ledger SET reopened_period = NULL, closed_through = NULL
+  // La línea de base va en el MISMO UPDATE: `ledger_reopen_baseline_ck` (FR-2010) exige que exista
+  // exactamente cuando existe `reopened_period`, así que limpiar uno sin el otro rompe el CHECK y
+  // el helper revienta antes de que la prueba empiece.
+  await c`UPDATE ledger SET reopened_period = NULL, closed_through = NULL,
+                            reopen_base_available = NULL, reopen_base_reserved = NULL
           WHERE owner_id IN (SELECT id FROM "user" WHERE email = ${email})`;
   await c`DELETE FROM closure_event
           WHERE owner_id IN (SELECT id FROM "user" WHERE email = ${email})`;

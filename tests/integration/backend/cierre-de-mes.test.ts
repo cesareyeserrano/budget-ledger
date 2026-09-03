@@ -3,6 +3,7 @@
  * TCs: FR-2001 (010h,011e,013f) · FR-2002 (022f,023f) · FR-2003 (030h,031f,032f,033f,034f,035f,036e,037e,038e,039f) ·
  *      FR-2004 (040h,042f) · FR-2005 (050h,052f,054f,055h,056f) · FR-2007 (071h,072f) · FR-2008 (081h) ·
  *      NFR-2005 (240f,241f,242f,243h) · NFR-2007 (260h,261f,262e) · NFR-2008 (270h,271f,272e)
+ *      FR-2010 (103f,104f,105e) · FR-2011 (110h,111e,112e,113f,116e)
  *
  * Es la capa donde el cierre es AUTORIDAD: lo que el navegador impide es ergonomía, lo que se
  * prueba aquí es el contrato (ADR-12).
@@ -13,7 +14,10 @@ import { buildSeed, setLeafAmount } from "@/domain";
 import { isLeaf } from "@/domain/tree";
 import {
   loadLedger, saveLedger, insertMovement, closeMonthFor, reopenMonthFor, getClosureEvents,
+  CLOSURE_EVENTS_LIMIT,
 } from "@/server/data/ledgerRepo";
+import { downstreamImpact } from "@/domain/closure";
+import { activeRange } from "@/domain/range";
 import { closurePostSchema } from "@/server/schemas";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
 import type { LedgerState, PeriodKey } from "@/domain/types";
@@ -365,7 +369,16 @@ describe("FR-2005 · reapertura del último mes cerrado", () => {
     const r = await reopenMonthFor(A, revision);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.closure).toEqual({ closedThrough: "2026-05", reopened: INICIO });
+    // Desde FR-2010 la reapertura devuelve además la línea de base: el saldo con el que cerraba
+    // el mes liberado. Se comprueba entera en vez de aflojar la aserción a `toMatchObject`.
+    expect(r.closure).toEqual({
+      closedThrough: "2026-05",
+      reopened: INICIO,
+      reopenBaseline: {
+        available: expect.any(Number) as unknown as number,
+        reservedBalance: expect.any(Number) as unknown as number,
+      },
+    });
 
     const l = (await loadLedger(A))!;
     const next = setLeafAmount(l.state, hoja, INICIO, "budget", 350_000, [INICIO, AHORA]);
@@ -405,7 +418,7 @@ describe("FR-2005 · reapertura del último mes cerrado", () => {
     const c = await closeMonthFor(A, r.revision, AHORA);
     expect(c.ok).toBe(true);
 
-    const eventos = await getClosureEvents(A);
+    const { events: eventos } = await getClosureEvents(A);
     expect(eventos.map((e) => `${e.action}:${e.period}`))
       .toEqual([`close:${INICIO}`, `reopen:${INICIO}`, `close:${INICIO}`].reverse());
     for (const e of eventos) expect(Date.parse(e.at)).not.toBeNaN();
@@ -425,7 +438,7 @@ describe("FR-2005 · reapertura del último mes cerrado", () => {
     // La frontera NO se movió y el rastro no ganó filas: rollback completo.
     expect(despues!.state.closure).toEqual(antes!.state.closure);
     expect(despues!.revision).toBe(antes!.revision);
-    expect((await getClosureEvents(A)).filter((e) => e.action === "reopen")).toHaveLength(0);
+    expect((await getClosureEvents(A)).events.filter((e) => e.action === "reopen")).toHaveLength(0);
     await db.execute(sql`ALTER TABLE closure_event DROP CONSTRAINT closure_event_action_ck`);
     await db.execute(sql`ALTER TABLE closure_event ADD CONSTRAINT closure_event_action_ck
                          CHECK (action in ('close','reopen'))`);
@@ -500,7 +513,7 @@ describe("NFR-2005 · seguridad del cierre", () => {
     await sembrar(B);
     expect((await closeMonthFor(A, revision, AHORA)).ok).toBe(true);
     expect((await loadLedger(B))!.state.closure).toEqual({ closedThrough: null, reopened: null });
-    expect(await getClosureEvents(B)).toHaveLength(0);
+    expect((await getClosureEvents(B)).events).toHaveLength(0);
   });
 
   it("TC-CDM-243h: el guardia corre dentro del lock — no hay ventana entre validar y escribir", async () => {
@@ -538,7 +551,7 @@ describe("NFR-2007 · la persistencia no pierde nada", () => {
     expect(despues!.state.closure).toEqual(antes!.state.closure);
     expect(despues!.state.budgets).toEqual(antes!.state.budgets);
     expect(despues!.state.actuals).toEqual(antes!.state.actuals);
-    expect(await getClosureEvents(A)).toHaveLength(4);
+    expect((await getClosureEvents(A)).events).toHaveLength(4);
   });
 
   it("TC-CDM-261f: el lock optimista sigue rechazando al cliente viejo", async () => {
@@ -600,5 +613,190 @@ describe("NFR-2008 · la migración 0004", () => {
       testDb().execute(sql`UPDATE ledger SET reopened_period = '2026-08', closed_through = NULL
                            WHERE owner_id = ${A}`)
     ).rejects.toThrow();
+  });
+});
+
+// ══ FR-2010 · la línea de base vive en la base, y la corrección NO se bloquea ═══════════════════
+
+describe("FR-2010 — el impacto contra Postgres real", () => {
+  it("TC-CDM-105e: la línea de base se escribe al reabrir, sobrevive a la recarga y se borra al cerrar", async () => {
+    // @aitri-tc TC-CDM-105e
+    await sembrar();
+    const { revision } = await cerrar(2);
+    const db = testDb();
+    const columnas = async () => [...(await db.execute(
+      sql`SELECT reopened_period, reopen_base_available, reopen_base_reserved
+          FROM ledger WHERE owner_id = ${A}`
+    ))][0] as Record<string, unknown>;
+
+    // Cerrado y sin reabrir: el bicondicional exige las tres en NULL.
+    const cerrado = await columnas();
+    expect(cerrado.reopened_period).toBeNull();
+    expect(cerrado.reopen_base_available).toBeNull();
+    expect(cerrado.reopen_base_reserved).toBeNull();
+
+    const r = await reopenMonthFor(A, revision);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const reabierto = await columnas();
+    expect(reabierto.reopened_period).not.toBeNull();
+    expect(reabierto.reopen_base_available).not.toBeNull();
+    expect(reabierto.reopen_base_reserved).not.toBeNull();
+
+    // Y viaja en el snapshot: recargar devuelve la MISMA línea de base, que es lo que hace que el
+    // «antes» siga siendo «como estaba cuando lo reabrí» después de cerrar el portátil.
+    const recargado = (await loadLedger(A))!;
+    expect(recargado.state.closure?.reopenBaseline).toEqual(r.closure.reopenBaseline);
+
+    // Volver a cerrarlo la borra: el CHECK ledger_reopen_baseline_ck no admite otra cosa.
+    const c = await closeMonthFor(A, recargado.revision, AHORA);
+    expect(c.ok).toBe(true);
+    const final = await columnas();
+    expect(final.reopened_period).toBeNull();
+    expect(final.reopen_base_available).toBeNull();
+    expect(final.reopen_base_reserved).toBeNull();
+    expect((await loadLedger(A))!.state.closure?.reopenBaseline).toBeUndefined();
+  });
+
+  it("TC-CDM-103f: una corrección que rompe un mes posterior SE ACEPTA y señala el mes", async () => {
+    // @aitri-tc TC-CDM-103f
+    // La prueba que protege la DECISIÓN del usuario: informar, no bloquear. Si algún día alguien
+    // convierte esto en un rechazo «por seguridad», este test se pone rojo.
+    await sembrar();
+    const { revision } = await cerrar(1);
+    const r = await reopenMonthFor(A, revision);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const l = (await loadLedger(A))!;
+    const hoja = hojaDeGasto(l.state);
+    // Un gasto enorme en el mes REABIERTO: arrastra a todos los meses abiertos que siguen.
+    const next = setLeafAmount(l.state, hoja, INICIO, "actual", 99_000_000, [INICIO]);
+
+    const guardado = await saveLedger(A, next, l.revision);
+    // NO 4xx, NO rechazo: la escritura entra.
+    expect(guardado).toEqual({ ok: true, revision: l.revision + 1 });
+
+    const fin = (await loadLedger(A))!;
+    expect(fin.state.actuals[hoja]?.[INICIO]).toBe(99_000_000);
+
+    // Y el impacto la delata: hay meses movidos, y alguno marcado como roto por esta edición.
+    const filas = downstreamImpact(fin.state, activeRange(fin.state, AHORA));
+    expect(filas.length).toBeGreaterThan(0);
+    expect(filas.some((f) => f.brokenByThisEdit)).toBe(true);
+  });
+
+  it("TC-CDM-104f: tras corregir el mes reabierto, ningún mes cerrado aparece ni cambia", async () => {
+    // @aitri-tc TC-CDM-104f
+    await sembrar();
+    const { revision } = await cerrar(2); // 2026-06 y 2026-07 cerrados
+    const db = testDb();
+    const fotoCerrados = async () => JSON.stringify(
+      [...(await db.execute(sql`SELECT node_id, period, kind, amount FROM amount_cell
+                                WHERE owner_id = ${A} AND period <= '2026-06'
+                                ORDER BY node_id, period, kind`))]
+    );
+    const antes = await fotoCerrados();
+
+    const r = await reopenMonthFor(A, revision); // reabre 2026-07
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    const l = (await loadLedger(A))!;
+    const hoja = hojaDeGasto(l.state);
+    const next = setLeafAmount(l.state, hoja, "2026-07", "actual", 777_000, ["2026-07"]);
+    expect(await saveLedger(A, next, l.revision)).toEqual({ ok: true, revision: l.revision + 1 });
+
+    const fin = (await loadLedger(A))!;
+    // Ninguna fila del impacto es un mes cerrado…
+    for (const f of downstreamImpact(fin.state, activeRange(fin.state, AHORA))) {
+      expect(f.period > "2026-07").toBe(true);
+    }
+    // …y las cifras del mes que sigue cerrado son idénticas byte a byte.
+    expect(await fotoCerrados()).toBe(antes);
+  });
+});
+
+// ══ FR-2011 · el historial que el usuario consulta ═════════════════════════════════════════════
+
+describe("FR-2011 — el historial de cierres y reaperturas", () => {
+  it("TC-CDM-110h: devuelve cierre y reapertura, el más reciente primero", async () => {
+    // @aitri-tc TC-CDM-110h
+    await sembrar();
+    const { revision } = await cerrar(1);
+    const r = await reopenMonthFor(A, revision);
+    expect(r.ok).toBe(true);
+
+    const page = await getClosureEvents(A);
+    expect(page.truncated).toBe(false);
+    expect(page.events).toHaveLength(2);
+    expect(page.events[0]).toMatchObject({ period: INICIO, action: "reopen" });
+    expect(page.events[1]).toMatchObject({ period: INICIO, action: "close" });
+    for (const e of page.events) expect(Date.parse(e.at)).not.toBeNaN();
+  });
+
+  it("TC-CDM-111e: cerrar-reabrir-cerrar deja tres entradas y no borra ninguna", async () => {
+    // @aitri-tc TC-CDM-111e
+    await sembrar();
+    const { revision } = await cerrar(1);
+    const primero = (await getClosureEvents(A)).events[0];
+
+    const r = await reopenMonthFor(A, revision);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect((await closeMonthFor(A, r.revision, AHORA)).ok).toBe(true);
+
+    const { events } = await getClosureEvents(A);
+    expect(events).toHaveLength(3);
+    expect(events.map((e) => e.action)).toEqual(["close", "reopen", "close"]);
+    // El primer evento sigue ahí, con su instante intacto: la tabla solo admite INSERT.
+    expect(events[2]).toEqual(primero);
+  });
+
+  it("TC-CDM-112e: un ledger sin cierres devuelve historial vacío, no un error", async () => {
+    // @aitri-tc TC-CDM-112e
+    await sembrar();
+    expect(await getClosureEvents(A)).toEqual({ events: [], truncated: false });
+  });
+
+  it("TC-CDM-113f: el historial está aislado por owner — B no ve nada de A", async () => {
+    // @aitri-tc TC-CDM-113f
+    await sembrar();
+    await cerrar(2);            // A: dos eventos
+    await sembrar(B);
+    await cerrar(1, B);         // B: uno propio
+
+    const deA = await getClosureEvents(A);
+    const deB = await getClosureEvents(B);
+    expect(deA.events).toHaveLength(2);
+    expect(deB.events).toHaveLength(1);
+    // Ni una sola fila cruzada: el filtro por owner_id no es opcional.
+    const db = testDb();
+    const total = [...(await db.execute(sql`SELECT count(*)::int AS n FROM closure_event`))][0] as { n: number };
+    expect(total.n).toBe(3);
+  });
+
+  it("TC-CDM-116e: con más eventos que el tope, se declara truncado en vez de mentir", async () => {
+    // @aitri-tc TC-CDM-116e
+    await sembrar();
+    const db = testDb();
+    // Se siembran LIMIT+1 filas directamente: cerrar 201 meses de verdad no prueba nada más y
+    // tardaría minutos.
+    await db.execute(sql`
+      INSERT INTO closure_event (owner_id, period, action, at)
+      SELECT ${A}, '2026-06', 'close', now() - (g || ' minutes')::interval
+      FROM generate_series(1, ${CLOSURE_EVENTS_LIMIT + 1}) AS g`);
+
+    const page = await getClosureEvents(A);
+    expect(page.events).toHaveLength(CLOSURE_EVENTS_LIMIT);
+    expect(page.truncated).toBe(true);
+
+    // Y con exactamente el tope, `truncated` es false: el borde no se pasa de largo.
+    await db.execute(sql`DELETE FROM closure_event WHERE ctid IN
+                         (SELECT ctid FROM closure_event WHERE owner_id = ${A} LIMIT 1)`);
+    const justo = await getClosureEvents(A);
+    expect(justo.events).toHaveLength(CLOSURE_EVENTS_LIMIT);
+    expect(justo.truncated).toBe(false);
   });
 });

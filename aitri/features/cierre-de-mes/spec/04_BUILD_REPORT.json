@@ -9,7 +9,10 @@
     "tests/domain/cierre-de-mes.test.ts",
     "tests/integration/backend/cierre-de-mes.test.ts",
     "tests/e2e/cierre-de-mes.spec.ts",
-    "tests/e2e/helpers/closure.ts"
+    "tests/e2e/helpers/closure.ts",
+    "src/components/ImpactPanel.tsx",
+    "src/components/ClosureHistoryPanel.tsx",
+    "drizzle/0005_cierre_impacto.sql"
   ],
   "files_modified": [
     "src/domain/types.ts",
@@ -25,7 +28,9 @@
     "src/components/DesktopShell.tsx",
     "tests/e2e/helpers/fixtures.ts",
     "drizzle/meta/_journal.json",
-    "src/domain/range.ts"
+    "src/domain/range.ts",
+    "src/domain/balance.ts",
+    "src/domain/mutations.ts"
   ],
   "setup_commands": [
     "npm run db:migrate"
@@ -54,6 +59,24 @@
       "fr_id": "FR-2005",
       "substitution": "El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan.",
       "reason": "Es suficiente y coherente: solo el ULTIMO mes cerrado es reabrible (FR-2005), asi que anclar la frontera es exactamente lo que hace falta para que reabrir devuelva una celda. Los anteriores estan congelados para siempre y vacios — no hay nada que ver ni nada que hacer en ellos. Anclarlos todos exigiria guardar el inicio de la racha cerrada, un dato nuevo sin ningun uso.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "El panel de impacto solo existe en la pantalla de ESCRITORIO, igual que el control de cierre y el aviso (misma deuda ya declarada para FR-2009). En movil no se puede reabrir un mes, asi que tampoco hay impacto que enseniar alli.",
+      "reason": "La persona planea en escritorio y captura en movil (user_personas). Corregir un mes reabierto es trabajo de planeacion, y la accion que lo dispara —reabrir— vive solo en escritorio: un panel de impacto en movil no tendria como aparecer.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2011",
+      "substitution": "El historial no se puede enlazar ni marcar como favorito: es un panel desplegable, no una ruta propia. Tampoco se filtra ni se exporta.",
+      "reason": "ADR-16. Una ruta con su entrada de menu permanente es desproporcionada para una lista que un usuario unico consulta unas pocas veces al anio, y esta feature tiene prohibido crear la pagina de Configuracion (no_go_zone). Si algun dia hace falta filtrar o exportar, la ruta es la evolucion natural y este panel es su contenido.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "La linea de base del impacto se guarda en DOS columnas (el carry de cierre del mes reabierto), no en una foto del estado. El «antes» de cada mes posterior se RECALCULA corriendo la serie desde esa linea de base.",
+      "reason": "ADR-15, y es la decision, no un atajo: un snapshot entero costaria ordenes de magnitud mas y no daria nada extra, porque el arrastre es funcion de (carry de apertura, datos del mes). Su unica premisa es ese determinismo; si algun dia dejara de cumplirse, la decision hay que revisarla — queda escrito en el ADR.",
       "effort_to_fix": "low"
     }
   ],

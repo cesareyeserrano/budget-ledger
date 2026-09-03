@@ -75,6 +75,16 @@ export type CellNotesMap = Record<string, Partial<Record<PeriodKeyT, CellNote[]>
  * invariante que hay que vigilar en cada escritura. Un invariante que no se puede expresar es el
  * único que no se rompe.
  */
+/**
+ * Lo que un mes le pasa al siguiente dentro de su propio plano: dos componentes que no se mezclan.
+ * Vive aquí y no en `balance.ts` porque `Closure` lo necesita para su línea de base (FR-2010) y
+ * `types.ts` no puede importar de `balance.ts` sin cerrar un ciclo.
+ */
+export interface Carry {
+  available: number;
+  reservedBalance: number;
+}
+
 export interface Closure {
   /** Todo periodo ≤ este valor está cerrado. null = nada cerrado. */
   closedThrough: PeriodKeyT | null;
@@ -85,6 +95,30 @@ export interface Closure {
    * decir QUÉ mes está reabierto.
    */
   reopened: PeriodKeyT | null;
+  /**
+   * FR-2010. El saldo con el que CERRABA el mes reabierto en el instante de reabrirlo — el
+   * referente de «valor anterior» cuando se enumera el impacto aguas abajo.
+   *
+   * Presente si y solo si `reopened` no es null; se borra al volver a cerrar. Se persiste (dos
+   * columnas, no un snapshot) para que el marco de referencia siga siendo «cómo estaba cuando lo
+   * reabrí» después de recargar la página o cambiar de dispositivo, y para que cinco correcciones
+   * seguidas muestren el efecto NETO y no cinco deltas sueltos (ADR-15).
+   */
+  reopenBaseline?: Carry;
+}
+
+/**
+ * FR-2010. Una fila del impacto: un mes posterior al reabierto cuyas cifras se movieron.
+ *
+ * `brokenByThisEdit` distingue «lo rompiste tú» de «ya venía roto»: solo es true si el mes pasó de
+ * estar cubierto a no estarlo. Un mes que ya arrastraba déficit antes de la reapertura no se le
+ * imputa a la corrección (TC-CDM-102f).
+ */
+export interface ImpactRow {
+  period: PeriodKeyT;
+  availableBefore: number;
+  availableAfter: number;
+  brokenByThisEdit: boolean;
 }
 
 export interface LedgerState {

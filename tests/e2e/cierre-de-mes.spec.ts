@@ -1,6 +1,7 @@
 /**
  * Feature cierre-de-mes — lo que solo se puede afirmar en el navegador.
- * TCs: FR-2006 (060h,061e,062f) · FR-2009 (090h,091f,092e,093h) · NFR-2004 (231e)
+ * TCs: FR-2006 (060h,061e,062f) · FR-2009 (090h,091f,092e,093h) · NFR-2004 (231e) ·
+ *      FR-2010 (107h) · FR-2011 (114h,115f)
  *
  * El resto vive en integración: el congelamiento es AUTORIDAD del servidor y lo que se comprueba
  * aquí es que el usuario lo VE y entiende qué hacer (ADR-12).
@@ -266,4 +267,84 @@ test("TC-CDM-043e: la celda cerrada dice a la vez «la cifra no» y «la observa
   await page.keyboard.press("Escape");
   // La cifra sigue igual: abrir el panel no la movió.
   await expect(celda).toContainText(antes.trim().slice(0, 6));
+});
+
+// ══ FR-2010 · el impacto de corregir un mes reabierto se VE ════════════════════════════════════
+test("TC-CDM-107h: corregir un mes reabierto pinta el panel de impacto con sus cifras", async ({ page }) => {
+  // @aitri-tc TC-CDM-107h
+  await abrir(page);
+  await cerrar(page, 1);
+  const control = page.getByTestId("closure-control");
+  await control.getByRole("button", { name: /Reabrir/ }).click();
+  await expect(control).toHaveAttribute("data-reopened", INICIO, { timeout: 15_000 });
+
+  // Sin tocar nada todavía, no hay impacto que enseñar: un panel de ceros permanente sería ruido.
+  await expect(page.getByTestId("impact-panel")).toHaveCount(0);
+
+  // Se corrige el gasto EJECUTADO del mes reabierto: 300.000 → 900.000. El plano importa y no es
+  // un detalle de la prueba: solo la cadena ejecutada arrastra al mes siguiente, así que editar el
+  // PRESUPUESTO de un mes reabierto no mueve ninguna cifra aguas abajo — y no debe pintar panel.
+  const celda = page.locator(
+    `[data-cell="c-mercado"][data-month="${INICIO}"][data-plane="actual"]`
+  ).first();
+  await celda.dblclick();
+  const input = page.locator("input:focus");
+  await expect(input).toBeVisible();
+  await input.fill("900000");
+  await page.keyboard.press("Enter");
+
+  const panel = page.getByTestId("impact-panel");
+  await expect(panel).toBeVisible({ timeout: 15_000 });
+  // Al menos un mes movido, cada fila con su antes y su después.
+  const filas = panel.getByTestId("impact-row");
+  expect(await filas.count()).toBeGreaterThan(0);
+  await expect(filas.first().getByTestId("impact-before")).not.toBeEmpty();
+  await expect(filas.first().getByTestId("impact-after")).not.toBeEmpty();
+
+  // NO es un toast: sigue en pantalla pasados 5 segundos, que es lo que permite corregir mirándolo.
+  await page.waitForTimeout(5_000);
+  await expect(panel).toBeVisible();
+});
+
+// ══ FR-2011 · el historial se consulta ════════════════════════════════════════════════════════
+test("TC-CDM-114h: el historial se abre desde el control y lista las entradas", async ({ page }) => {
+  // @aitri-tc TC-CDM-114h
+  await abrir(page);
+  await cerrar(page, 1);
+  const control = page.getByTestId("closure-control");
+  await control.getByRole("button", { name: /Reabrir/ }).click();
+  await expect(control).toHaveAttribute("data-reopened", INICIO, { timeout: 15_000 });
+
+  await page.getByTestId("closure-history-toggle").click();
+  const filas = page.getByTestId("closure-history-row");
+  await expect(filas).toHaveCount(2, { timeout: 15_000 });
+  // La reapertura arriba, el cierre debajo: el más reciente primero.
+  await expect(filas.nth(0)).toHaveAttribute("data-action", "reopen");
+  await expect(filas.nth(1)).toHaveAttribute("data-action", "close");
+  await expect(filas.nth(0)).toContainText("reabierto");
+  await expect(filas.nth(1)).toContainText("cerrado");
+});
+
+test("TC-CDM-115f: el historial es de solo lectura — no cambia la revisión ni el cierre", async ({ page }) => {
+  // @aitri-tc TC-CDM-115f
+  await abrir(page);
+  await cerrar(page, 1);
+  const antes = (await (await page.request.get("/api/v1/ledger")).json()) as {
+    revision: number; state: { closure?: { closedThrough: string | null } };
+  };
+
+  await page.getByTestId("closure-history-toggle").click();
+  const historial = page.getByTestId("closure-history");
+  await expect(historial).toBeVisible();
+
+  // Dentro del panel no hay NINGÚN control que cierre, reabra o edite.
+  await expect(historial.getByRole("button", { name: /Cerrar |Reabrir/ })).toHaveCount(0);
+  await expect(historial.locator("input")).toHaveCount(0);
+
+  await page.getByTestId("closure-history-toggle").click();
+  await expect(historial).toHaveCount(0);
+
+  const despues = (await (await page.request.get("/api/v1/ledger")).json()) as typeof antes;
+  expect(despues.revision).toBe(antes.revision);
+  expect(despues.state.closure?.closedThrough).toBe(antes.state.closure?.closedThrough);
 });

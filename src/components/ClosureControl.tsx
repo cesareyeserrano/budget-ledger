@@ -5,6 +5,7 @@ import { Lock, LockOpen } from "lucide-react";
 import { useClosureStatus, useLedgerStore } from "@/state/store";
 import { periodLabel } from "@/domain/periods";
 import { Button } from "./ui/button";
+import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
 
 /**
  * Cerrar el mes cerrable y reabrir el último cerrado (FR-2002, FR-2005, FR-2009).
@@ -35,6 +36,16 @@ export function ClosureControl() {
     }
   };
 
+  // OJO: antes el control desaparecía entero cuando no había nada que cerrar ni reabrir. Con el
+  // historial colgando de aquí (FR-2011) eso dejaría sin acceso justo al usuario AL DÍA, que es el
+  // que más historia tiene que consultar. Solo se oculta del todo cuando además no hay historial
+  // posible — y eso solo pasa si nunca se cerró nada, caso en el que `reopenable` es null y
+  // `closable` también: un ledger recién creado en el mes en curso.
+  //
+  // Y resulta que `nadaQueHacer` YA implica «sin historia»: `reopenable` solo es null cuando no hay
+  // frontera de cierre o cuando hay un mes reabierto (y entonces `reopened` es verdad). Así que si
+  // las tres son nulas, nunca se cerró nada y no existe ningún evento que listar — ocultar el
+  // control entero sigue siendo correcto, y el historial no queda inalcanzable para nadie.
   if (!closable && !reopenable && !reopened) return null;
 
   return (
@@ -63,6 +74,9 @@ export function ClosureControl() {
           {periodLabel(reopened)} reabierto
         </span>
       )}
+      {/* Solo de lectura: no hay dentro ningún control que cierre, reabra ni edite (TC-CDM-115f).
+          Se oculta únicamente cuando no puede haber historia que mirar. */}
+      <ClosureHistoryPanel />
     </div>
   );
 }

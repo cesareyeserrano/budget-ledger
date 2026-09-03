@@ -12,11 +12,19 @@ en el `DEPLOYMENT.md` de la raíz. Esta feature no lo cambia ni añade infraestr
 
 ## Lo que esta feature añade al despliegue
 
-Una sola cosa: la **migración `drizzle/0004_cierre_de_mes.sql`**.
+**Dos migraciones**, ambas puramente aditivas:
 
-Es **puramente aditiva** — dos columnas nulables en `ledger` (`closed_through`, `reopened_period`),
-la tabla `closure_event` con su índice, y cinco CHECKs. No toca ninguna llave primaria y **no
-convierte ni un dato**: ningún usuario tiene cierres todavía.
+- **`drizzle/0004_cierre_de_mes.sql`** — dos columnas nulables en `ledger` (`closed_through`,
+  `reopened_period`), la tabla `closure_event` con su índice, y cinco CHECKs.
+- **`drizzle/0005_cierre_impacto.sql`** (FR-2010, añadida el 2026-09-03) — dos columnas nulables más
+  en `ledger` (`reopen_base_available`, `reopen_base_reserved`: la línea de base contra la que se
+  mide el impacto de corregir un mes reabierto) y un CHECK de bicondicional que las ata a
+  `reopened_period`.
+
+Ninguna toca una llave primaria y ninguna **convierte un dato**. `0005` NO sube `data_version` a
+propósito: esa columna marca el modelo de DATOS y `saveLedger` la re-estampa en cada guardado, así
+que subirla sería una marca que se borra sola. Su idempotencia viene de `ADD COLUMN IF NOT EXISTS` y
+`DROP CONSTRAINT IF EXISTS`.
 
 ## Orden de despliegue — SIN ventana peligrosa
 
@@ -30,7 +38,7 @@ Se recomienda igualmente el orden habitual, pero **la ventana entre pasos no rom
 ```bash
 # 1. Respaldo, como siempre
 docker compose exec db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > respaldo-$(date +%F).sql
-# 2. Aplicar 0004 (transaccional, idempotente). Las migraciones viajan en la imagen.
+# 2. Aplicar 0004 y 0005 (transaccionales, idempotentes). Las migraciones viajan en la imagen.
 docker compose run --rm app node scripts/migrate.mjs
 # 3. Levantar el código nuevo
 docker compose up -d --build
@@ -38,14 +46,17 @@ docker compose up -d --build
 
 _En desarrollo, sin contenedor, el paso 2 es `npm run db:migrate`._
 
-**Requisito previo:** la migración `0004` debe estar registrada en `drizzle/meta/_journal.json`. Se
-registró en este repositorio; si se copia el `.sql` a otro entorno sin el diario, `db:migrate`
+**Requisito previo:** las migraciones `0004` y `0005` deben estar registradas en
+`drizzle/meta/_journal.json`. Ambas lo están en este repositorio; si se copia un `.sql` a otro
+entorno sin su entrada en el diario, `db:migrate`
 termina con éxito **sin aplicar nada** — un fallo silencioso que ya ocurrió una vez durante el
 desarrollo. Comprobar después de migrar:
 
 ```sql
 SELECT column_name FROM information_schema.columns
- WHERE table_name = 'ledger' AND column_name IN ('closed_through','reopened_period');
+ WHERE table_name = 'ledger'
+   AND column_name IN ('closed_through','reopened_period',
+                       'reopen_base_available','reopen_base_reserved');
 -- debe devolver DOS filas
 SELECT to_regclass('closure_event');  -- no debe ser NULL
 ```

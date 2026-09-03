@@ -21,6 +21,28 @@
       "resolution": "activeRange ancla su inicio en el MINIMO entre el periodo mas antiguo con datos y la frontera del cierre (ADR-14). Un mes que el usuario cerro es un periodo que existe, tenga cifras o no: sin el anclaje quedaba fuera del rango y reabrirlo no devolvia ninguna celda. Se rompio la importacion circular que aparecio (range -> closure -> range) pasando la lista de periodos como parametro a nextClosable, closeMonth y unclosedEndedPeriods, que es como ya opera el resto del dominio. NFR-2004 se reescribio en la Fase 1: prohibe RECORTAR el rango, no ampliarlo. Verificado con TC-CDM-058h (el mes cerrado sin datos sigue en el rango y reabrirlo devuelve columna), TC-CDM-059f (el punto de no retorno lo marca el siguiente cierre, no el paso del mes), TC-CDM-233h (el rango con cierre CONTIENE al de sin cierre, nunca pierde), TC-CDM-234f (una frontera basura no ancla nada) y TC-CDM-094e en el navegador. 717 unitarias y 401 e2e verdes.",
       "fix_commit_sha": "950dcb9d3ac189ffe6829cbbb8336cb2f1899eed",
       "fix_at": "2026-09-03T13:50:19.634Z"
+    },
+    {
+      "id": "BG-002",
+      "title": "clone() en mutations.ts no copiaba state.closure: cualquier edicion de celda o alta de movimiento borraba el cierre del estado del NAVEGADOR. Ninguna cifra en riesgo (el guardia vive en el servidor, FR-2003/NFR-2005), pero hasta la siguiente resincronizacion las columnas cerradas dejaban de pintarse como cerradas (FR-2009) y el impacto de un mes reabierto no se podia calcular por falta de reopened y de linea de base (FR-2010). Detectado al implementar FR-2010; el defecto es anterior. Arreglo: clone() copia closure; regresion TC-CDM-108f",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": "FR-2010",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-03T17:46:24.460Z",
+      "updated_at": "2026-09-03T19:16:37.364Z",
+      "resolution": "clone() en src/domain/mutations.ts copia state.closure con structuredClone, junto a cellNotes. Comentario que marca la trampa: clone enumera campos, asi que cada delta aditivo del estado hay que anadirlo a mano. Regresion: TC-CDM-108f (editar celda y registrar movimiento conservan el closure entero, linea de base incluida)",
+      "fix_commit_sha": "a514f89cbd61f56de8e9e1253ab5bd84b95bbaba",
+      "fix_at": "2026-09-03T17:46:28.869Z"
     }
   ]
 }
