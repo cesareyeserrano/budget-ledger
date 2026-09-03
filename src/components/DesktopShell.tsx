@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { periodLabel, periodYear } from "@/domain/periods";
 import type { PeriodKey } from "@/domain/types";
 import { currentPeriod } from "@/lib/date";
@@ -10,6 +10,7 @@ import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
+import { HorizonSelect } from "./HorizonSelect";
 import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
 import { StorageBanner } from "./register/StorageBanner";
@@ -32,7 +33,7 @@ export function DesktopShell() {
 
   // FR-016 — la franja «Resumen». El cómputo vive en el dominio (summaryKpis), no aquí: aquí no era
   // alcanzable por un test sin montar el componente, y por eso el requisito no tenía verificación.
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const kpis = useMemo(() => summaryKpis(data, period, periods), [data, period, periods]);
   // Los años que el rango activo contiene, en orden. Es la lista del selector de Año.
   const yearsInRange = useMemo(
@@ -42,7 +43,12 @@ export function DesktopShell() {
   // junto a la pestaña «Año» ya activa: en ambos modos repetía la palabra que tenía al lado. Lo
   // único que aporta esta etiqueta —y que no dice ningún otro control— es el año, así que es lo
   // único que queda. Misma regla que ya se aplicó al <h1> contra la pestaña de vista.
-  const scopeLabel = "2026";
+  //
+  // Se DERIVA del filtro. Estuvo escrito a mano como "2026" desde refinamiento-ui, cuando el año
+  // era implícito y constante y la cadena no podía mentir. Con multi-anio sí miente: en enero
+  // habría seguido diciendo 2026, y en el filtro «Año 2027» decía 2026 al lado del selector que
+  // decía 2027 — la etiqueta cuyo único cometido es el año era la única que no lo sabía.
+  const scopeLabel = String(period.mode === "month" ? periodYear(period.month) : period.year);
 
   return (
     <div className="lx-desktop w-full" style={{ background: "var(--bg)" }}>
@@ -72,6 +78,10 @@ export function DesktopShell() {
           </div>
           {/* Preferencia y cuenta, separadas del grupo de trabajo por un divisor explícito */}
           <div className="flex items-center gap-2">
+            {/* Horizonte de planeación (FR-1904/FR-1907) — provisional aquí hasta que exista la
+                página de Configuración; ver la nota de cabecera de HorizonSelect. */}
+            <HorizonSelect />
+            <span className="h-4 w-px bg-border" aria-hidden />
             <ThemeToggle />
             <span className="h-4 w-px bg-border" aria-hidden />
             <LogoutButton />

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { BarChart, Bar as RBar, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
 import { dashboardMetrics } from "@/domain";
 import { typeTotals } from "@/domain/rollup";
 import { periodMonthLabelShort } from "@/domain/periods";
@@ -13,8 +13,8 @@ import { Card } from "./ui/Card";
 export function Dashboard() {
   const data = useLedgerStore((s) => s.data);
   const period = useLedgerStore((s) => s.period);
-  const scope = useLedgerStore((s) => s.activePeriods)();
-  const visibles = useLedgerStore((s) => s.visiblePeriods)();
+  const scope = useActivePeriods();
+  const visibles = useVisiblePeriods();
   const vm = useMemo(() => dashboardMetrics(data, period, scope), [data, period, scope]);
   const trend = useMemo(
     () => visibles.map((m) => ({

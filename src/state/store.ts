@@ -511,6 +511,32 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   };
 });
 
+/**
+ * LOS DOS RANGOS, COMO HOOKS — BG-001 de multi-anio.
+ *
+ * Antes cada consumidor escribía `useLedgerStore((s) => s.activePeriods)()`: eso se suscribe a la
+ * IDENTIDAD de la función, que es estable de por vida, no a las entradas de las que depende el
+ * resultado. Zustand no veía cambio alguno y no re-renderizaba, así que cambiar el horizonte en
+ * marcha no repintaba nada — la grilla solo se actualizaba de rebote, cuando otra suscripción
+ * (`data` o `period`) provocaba el render y de paso re-evaluaba la función. El defecto era
+ * invisible mientras el horizonte no tuvo control: se leía una vez al hidratar, antes de que
+ * hubiera nada pintado.
+ *
+ * Estos hooks se suscriben a lo que de verdad determina la lista. Devolver una lista MEMOIZADA es
+ * lo que los hace seguros: `periodsFor` y `visiblesFor` cachean por identidad, así que el selector
+ * devuelve la misma referencia mientras las entradas no cambien y no hay bucle de render.
+ */
+export function useActivePeriods(): PeriodKey[] {
+  return useLedgerStore((s) => periodsFor(s.data, s.horizon, currentPeriod()));
+}
+
+export function useVisiblePeriods(): PeriodKey[] {
+  return useLedgerStore((s) => {
+    const all = periodsFor(s.data, s.horizon, currentPeriod());
+    return s.period.mode === "year" ? visiblesFor(all, s.period.year) : all;
+  });
+}
+
 // Seam de test: expone el store para que los e2e observen el estado en vivo (actualizado por el
 // sync SSE) sin recargar. Incondicional tras retirar el flag; sigue siendo no-op en SSR.
 if (typeof window !== "undefined") {

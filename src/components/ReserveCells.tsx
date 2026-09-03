@@ -12,7 +12,7 @@
 // Dependencias: @/state/store, @/domain (reserve), ./reserveText, ./format, ./gridLayout, ./ui/popover.
 
 import { useEffect, useRef, useState } from "react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods } from "@/state/store";
 import type { PeriodKey, Movement } from "@/domain/types";
 import { periodMonthLabel, periodLabel } from "@/domain/periods";
 import {
@@ -61,7 +61,7 @@ export function ReserveLeafCell(props: {
   onStart: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
   const value = map[props.leafId]?.[props.month] ?? 0;
   const planWarn = props.plane === "budget" && props.planWarnMonths[props.month] !== undefined && value > 0;
@@ -130,7 +130,7 @@ export function ReserveCellEditor(props: {
   onClose: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const applyReserveEdit = useLedgerStore((s) => s.applyReserveEdit);
   const { leafId, month, plane } = props;
 
@@ -266,7 +266,7 @@ export function ReserveCellEditor(props: {
  */
 export function CellNotesSection({ leafId, month }: { leafId: string; month: PeriodKey }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const addNote = useLedgerStore((s) => s.addCellNote);
   const [draft, setDraft] = useState("");
   const observations = cellObservations(data, leafId, month, periods);
@@ -376,7 +376,7 @@ const RETIRO_STATE_GLYPH: Record<BudgetState, "" | "›" | "››"> = {
  */
 export function PlannedWithdrawCell({ month, sep }: { month: PeriodKey; sep?: boolean }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const setPlanned = useLedgerStore((s) => s.setPlannedRetiro);
   const value = reserveRetiros(data, month, "budget");
   const [editing, setEditing] = useState(false);
@@ -475,7 +475,7 @@ export function WithdrawCell({
   sep?: boolean;
 }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const withdraw = useLedgerStore((s) => s.applyReserveWithdrawal);
   const removeWithdrawal = useLedgerStore((s) => s.removeReserveWithdrawal);
   const [open, setOpen] = useState(false);
@@ -655,7 +655,7 @@ export function WithdrawCell({
  */
 function OpRow({ mv }: { mv: Movement }) {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const editOp = useLedgerStore((s) => s.editReserveOp);
   const esMover = !isAvailable(mv.to);
   const [val, setVal] = useState(String(mv.amount));

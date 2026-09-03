@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NodeType } from "@/domain/types";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, maxWithdrawal, reserveHeadroom } from "@/domain/reserve";
 import { parsePesos } from "@/lib/money";
 import { nowForInput, periodKeyFromDate } from "@/lib/date";
@@ -34,7 +34,7 @@ const CONFIRM_MS = 2000;
  */
 export function Register() {
   const data = useLedgerStore((s) => s.data);
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const nodes = data.nodes;
   const add = useLedgerStore((s) => s.addMovement);
 

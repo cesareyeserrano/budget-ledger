@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "Cambiar el horizonte en marcha no repinta la grilla: los consumidores se suscriben a la identidad de activePeriods, que nunca cambia",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-03T01:58:17.595Z",
+      "updated_at": "2026-09-03T02:02:10.715Z",
+      "resolution": "Se anaden useActivePeriods()/useVisiblePeriods() en src/state/store.ts, que se suscriben a data+horizon+period y devuelven las listas ya memoizadas por periodsFor/visiblesFor (identidad estable: sin bucle de render). Sustituidos los 20 sitios de llamada en 7 componentes (DesktopShell, Dashboard, ReserveCells, BudgetGrid, BalanceModule, Register, ReserveRow). Verificado con prueba e2e nueva en tests/e2e/multi-anio.spec.ts: elegir '1 ano' pasa la grilla de 36 a 24 columnas terminando en diciembre, y la eleccion sobrevive a la recarga. Regresion completa verde: 645 unit/integracion + 392 e2e, typecheck y lint limpios.",
+      "fix_commit_sha": "8c809354d5b54538a80e3b33159cb15526f54426",
+      "fix_at": "2026-09-03T02:02:10.715Z"
+    }
+  ]
+}

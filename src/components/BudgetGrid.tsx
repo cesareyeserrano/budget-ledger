@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info } from "lucide-react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
 import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/domain/types";
 import { periodMonthLabel, isYearStart, periodYear } from "@/domain/periods";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
@@ -195,8 +195,8 @@ export function BudgetGrid() {
   // Pres. de hojas que aportan en esos meses llevan «!» + ámbar.
   // DOS listas, a propósito (ver el store): `scope` es el alcance del CÁLCULO —no lo toca el
   // filtro, o el arrastre de enero saldría de cero— y `periods` son las columnas que se PINTAN.
-  const scope = useLedgerStore((s) => s.activePeriods)();
-  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const scope = useActivePeriods();
+  const periods = useVisiblePeriods();
   const planWarnMonths = useMemo(() => planTechoMonths(data, scope), [data, scope]);
 
   // Tramos contiguos por año, para la banda del encabezado. Con un rango que arranca a mitad de
@@ -479,7 +479,7 @@ export function BudgetGrid() {
 function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpanded, onToggle, onAddGroup, bandTop, roundTop, roundBottom }: { type: NodeType; label: string; Icon: typeof ArrowLeft; highlightMonth: PeriodKey | null; activeType: NodeType | null; isExpanded: boolean; onToggle: () => void; onAddGroup: () => void; bandTop?: boolean; roundTop?: boolean; roundBottom?: boolean }) {
   // Esta fila solo PINTA: una celda por columna visible. Usaba `activePeriods` y pintaba 32
   // celdas bajo un encabezado de 12 con el filtro en Año — celdas sin mes encima.
-  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const periods = useVisiblePeriods();
   const data = useLedgerStore((s) => s.data);
   // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
   // rechazó el hue de estructura al verlo ("prefiero blancos, color neutro"), así que la grilla
@@ -552,8 +552,8 @@ function NodeRow(props: {
   roundBottom?: boolean;
 }) {
   // Pinta por columna visible; `scope` es para las reglas que miran TODO el rango.
-  const periods = useLedgerStore((s) => s.visiblePeriods)();
-  const scope = useLedgerStore((s) => s.activePeriods)();
+  const periods = useVisiblePeriods();
+  const scope = useActivePeriods();
   const { row, naming } = props;
   const node = row.node!;
   const data = useLedgerStore((s) => s.data);

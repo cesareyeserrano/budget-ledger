@@ -15,7 +15,7 @@
 
 import { Component, Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
 import { periodMonthLabel, periodLabel, isYearStart, periodYear } from "@/domain/periods";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
 import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
@@ -315,8 +315,8 @@ function BalanceRows({ highlightMonth }: { highlightMonth: PeriodKey | null }) {
   // Igual que la grilla: el CÁLCULO va sobre el rango completo y solo se PINTAN las columnas del
   // filtro. Con «Año 2027» el saldo de apertura de enero viene de diciembre de 2026, que no está
   // en pantalla — recortar el cálculo lo pondría en cero y la cifra mostrada sería falsa.
-  const scope = useLedgerStore((s) => s.activePeriods)();
-  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const scope = useActivePeriods();
+  const periods = useVisiblePeriods();
   const series = useMemo(() => computeBalanceSeries(data, scope), [data, scope]);
   const flows = useMemo(() => computeReserveFlows(data, scope), [data, scope]);
 
@@ -548,7 +548,7 @@ export function BalanceModule({ highlightMonth }: { highlightMonth?: PeriodKey |
 function TechoBanner() {
   const data = useLedgerStore((s) => s.data);
   const hydrated = useLedgerStore((s) => s.hydrated);
-  const scope = useLedgerStore((s) => s.activePeriods)();
+  const scope = useActivePeriods();
   const breaches = useMemo<readonly MonthIssue[]>(
     () => (hydrated ? monthIssues(data, scope) : []), [data, hydrated, scope]);
   if (breaches.length === 0) return null;
@@ -591,7 +591,7 @@ function TechoBanner() {
 export function RetirosRow({ highlightMonth }: { highlightMonth: PeriodKey | null }) {
   const spec = RETIROS_ROW;
   const narrow = useNarrowIndent();
-  const periods = useLedgerStore((s) => s.visiblePeriods)();
+  const periods = useVisiblePeriods();
   return (
     // `retiros-row` y NO `balance-row`: desde FR-1810 esta fila NO pertenece al Balance — vive en
     // el segmento de Reservas y su cifra no entra en ninguna de sus cuentas. Conservar el testid

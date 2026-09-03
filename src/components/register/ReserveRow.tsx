@@ -11,7 +11,7 @@
 import { useMemo, type CSSProperties } from "react";
 import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { AVAILABLE_ID, resolvedBalance } from "@/domain/reserve";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { isLeaf, findNode } from "@/domain/tree";
 import { Wallet, ArrowUpDown } from "lucide-react";
 import { money, typeFillVar } from "@/components/format";
@@ -66,7 +66,7 @@ const DEFAULT: CSSProperties = { backgroundColor: "var(--bg-card)", borderColor:
  * @aitri-trace FR-ID: FR-1005, US-ID: US-1005, AC-ID: AC-1005b, TC-ID: TC-TRF-105f, TC-TRF-105h
  */
 export function ReserveRow({ data, month, value, onChange, error = false }: Props) {
-  const periods = useLedgerStore((s) => s.activePeriods)();
+  const periods = useActivePeriods();
   const options = useMemo(() => reserveOptions(data, month, periods), [data, month, periods]);
   const deRef = useHorizontalWheel<HTMLDivElement>();
   const aRef = useHorizontalWheel<HTMLDivElement>();

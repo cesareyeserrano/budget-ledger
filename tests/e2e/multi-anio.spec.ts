@@ -196,3 +196,45 @@ test("TC-MAN-252e: el registro apunta por defecto al periodo en curso, con su a�
   expect(etiqueta).toContain(meses[ahora.getMonth()]);
   expect(etiqueta).toContain(String(ahora.getFullYear()));
 });
+
+// ══ FR-1904 · elegir el horizonte ═════════════════════════════════════════════════════════════
+// Sin TC id a propósito: FR-1904 declara como criterio MUST «el usuario puede fijar el horizonte en
+// 1 o en 2 años», pero ninguno de los TCs sembrados en la Fase 3 (TC-MAN-030h…034f, 060h…064f) lo
+// ejercita — los diez prueban dominio, store y endpoint, y el control de interfaz no existía. Lo
+// detectó la auditoría de requisitos del 2026-09-03 (GAP-1). Esta prueba cubre ese hueco desde
+// fuera del pipeline; cuando el hallazgo se reconcilie en el expediente, le corresponde un TC id.
+
+test("el usuario puede fijar el horizonte desde la cabecera, y su elección persiste", async ({ page }) => {
+  await abrir(page);
+  const anio = Number(P[0].slice(0, 4));
+
+  const ultimaColumna = async () => {
+    const cabezas = await page.locator("[data-month-head]").evaluateAll(
+      (els) => els.map((e) => (e as HTMLElement).dataset.monthHead ?? ""));
+    return cabezas[cabezas.length - 1] ?? "";
+  };
+
+  try {
+    // De salida, el defecto: 2 años completos → el rango termina en el diciembre del año+2
+    await expect(page.getByTestId("horizon-select")).toBeVisible();
+    const columnasCon2 = await visibleMonthCount(page);
+    expect(await ultimaColumna()).toBe(`${anio + 2}-12`);
+
+    // El usuario elige 1 año
+    await page.getByTestId("horizon-select").click();
+    await page.getByRole("option", { name: "1 año", exact: true }).click();
+
+    // El rango se encoge y sigue terminando en DICIEMBRE — años completos, no una cuenta de meses
+    await expect.poll(() => visibleMonthCount(page)).toBeLessThan(columnasCon2);
+    expect(await ultimaColumna()).toBe(`${anio + 1}-12`);
+
+    // La preferencia vive en la cuenta (FR-1907/ADR-06): sobrevive a la recarga
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+    await expect.poll(() => ultimaColumna()).toBe(`${anio + 1}-12`);
+  } finally {
+    // El horizonte NO lo restaura el fixture `freshLedger` —no vive en el ledger— así que dejarlo
+    // en 1 contaminaría a los tests siguientes del mismo worker, que comparten cuenta.
+    await page.request.put("/api/v1/preferences/horizon", { data: { horizon: 2 } });
+  }
+});
