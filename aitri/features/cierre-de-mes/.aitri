@@ -4,7 +4,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -16,14 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T15:50:50.725Z",
+  "updatedAt": "2026-09-03T15:50:58.518Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T15:05:40.237Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-09-03T15:05:40.365Z",
       "event": "approved",
@@ -132,6 +128,13 @@
       "at": "2026-09-03T15:50:50.710Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-09-03T15:50:58.504Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -175,6 +178,17 @@
       "FR-2007",
       "FR-2008",
       "FR-2009"
+    ],
+    "5": [
+      "FR-2001",
+      "FR-2002",
+      "FR-2003",
+      "FR-2004",
+      "FR-2005",
+      "FR-2006",
+      "FR-2007",
+      "FR-2008",
+      "FR-2009"
     ]
   },
   "verifyPassed": true,
@@ -198,5 +212,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 1
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-03T15:50:58.503Z"
+    }
+  ]
 }
