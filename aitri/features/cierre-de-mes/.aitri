@@ -1,15 +1,16 @@
 {
-  "currentPhase": 1,
+  "currentPhase": 2,
   "approvedPhases": [
     1
   ],
   "completedPhases": [
-    1
+    1,
+    2
   ],
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T02:47:41.865Z",
+  "updatedAt": "2026-09-03T02:53:07.048Z",
   "driftPhases": [],
   "events": [
     {
@@ -37,10 +38,36 @@
       "event": "approved",
       "phase": 1,
       "ideaArchived": true
+    },
+    {
+      "at": "2026-09-03T02:47:56.557Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T02:48:01.491Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T02:48:03.576Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T02:48:06.018Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-03T02:53:07.033Z",
+      "event": "completed",
+      "phase": 2
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "241fa3beba4038e3a782c368013bcc95b388681e1f68fa0b7db00ad5c0448a5c"
+    "1": "241fa3beba4038e3a782c368013bcc95b388681e1f68fa0b7db00ad5c0448a5c",
+    "2": "213cebd432670e66147593a73d793176078443b33dc802809e7348ca49902500"
   }
 }
