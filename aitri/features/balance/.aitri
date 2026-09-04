@@ -21,19 +21,9 @@
   "projectName": "balance",
   "createdAt": "2026-07-24T15:27:08.017Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T21:08:10.628Z",
+  "updatedAt": "2026-09-04T22:08:39.335Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-28T12:53:53.842Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-28T12:53:57.925Z",
-      "event": "started",
-      "phase": 3
-    },
     {
       "at": "2026-07-28T12:54:35.325Z",
       "event": "completed",
@@ -153,6 +143,22 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-04T22:03:37.531Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T22:08:39.320Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -167,7 +173,7 @@
   },
   "coverageAuditLastAt": "2026-07-24T21:36:14.042Z",
   "coverageAuditReqHash": "d585fe4f5f429f5b4ceae755ebb1c7fc6aaa007a196a40c12e50034bcea44a7b",
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-904",
@@ -220,14 +226,14 @@
       "FR-911"
     ]
   },
-  "verifyResultsHash": "5e20b0b52b5fb27f95148affdf45da28fb5751ef84c3e291cb900c59003aee20",
-  "verifyRanAt": "2026-09-04T21:08:10.560Z",
+  "verifyResultsHash": "8526d9adc514b20f642d672e697fd562ccdfd31cb342707a9b4b73701d64aa12",
+  "verifyRanAt": "2026-09-04T22:03:37.459Z",
   "lastVerifyRun": {
     "passed": 56,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T21:08:10.560Z"
+    "at": "2026-09-04T22:03:37.459Z"
   },
   "releaseHistory": [
     {
@@ -236,6 +242,16 @@
       "at": "2026-07-28T15:31:42.522Z"
     }
   ],
-  "verifyRanRef": "567bc171fed34e0a09b6b72e0445499395e565b2",
-  "verifyRanDirty": false
+  "verifyRanRef": "16cc02381a8e9acb802123c3e2610dfcbaf6fd69",
+  "verifyRanDirty": false,
+  "verifySummary": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
 }
