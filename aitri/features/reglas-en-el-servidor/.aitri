@@ -4,7 +4,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -16,24 +17,9 @@
   "projectName": "reglas-en-el-servidor",
   "createdAt": "2026-09-03T20:39:32.170Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T14:02:59.306Z",
+  "updatedAt": "2026-09-04T16:52:02.321Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T21:08:11.197Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-03T21:08:11.262Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T21:10:53.691Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-09-03T21:11:13.375Z",
       "event": "approved",
@@ -128,6 +114,29 @@
       "at": "2026-09-04T14:02:59.278Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-09-04T16:51:38.855Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T16:51:45.956Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-04T16:52:02.291Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -156,19 +165,25 @@
       "FR-2102",
       "FR-2103",
       "FR-2104"
+    ],
+    "5": [
+      "FR-2101",
+      "FR-2102",
+      "FR-2103",
+      "FR-2104"
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "02e4c4a6800475fdb0beacdb4fc369faedf347673251694955a0c7752b147b2c",
-  "verifyRanAt": "2026-09-04T12:43:36.616Z",
-  "verifyRanRef": "231b664ac24979630972e14526ddbb0c92ba560e",
-  "verifyRanDirty": true,
+  "verifyResultsHash": "7a38c11e3fd8f348a82641bbe90cd61370edd9054bab88b9bb481cdb71c3d01f",
+  "verifyRanAt": "2026-09-04T16:51:38.760Z",
+  "verifyRanRef": "eef2560d439d4caf1d31dfaad17fbbdcb10cd817",
+  "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 36,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T12:43:36.616Z"
+    "at": "2026-09-04T16:51:38.760Z"
   },
   "verifySummary": {
     "total": 36,
@@ -179,5 +194,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-04T16:52:02.290Z"
+    }
+  ]
 }
