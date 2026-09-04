@@ -21,14 +21,9 @@
   "projectName": "balance",
   "createdAt": "2026-07-24T15:27:08.017Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T19:44:57.630Z",
+  "updatedAt": "2026-09-04T21:08:10.628Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-28T12:31:25.653Z",
-      "event": "approved",
-      "phase": 2
-    },
     {
       "at": "2026-07-28T12:53:53.842Z",
       "event": "started",
@@ -149,6 +144,15 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-04T21:08:10.611Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -216,14 +220,14 @@
       "FR-911"
     ]
   },
-  "verifyResultsHash": "9894821726e83ab91c9c021ae40aed2fa8fd1aed710f11ed041edfcb498b2761",
-  "verifyRanAt": "2026-09-04T19:44:57.471Z",
+  "verifyResultsHash": "5e20b0b52b5fb27f95148affdf45da28fb5751ef84c3e291cb900c59003aee20",
+  "verifyRanAt": "2026-09-04T21:08:10.560Z",
   "lastVerifyRun": {
     "passed": 56,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T19:44:57.471Z"
+    "at": "2026-09-04T21:08:10.560Z"
   },
   "releaseHistory": [
     {
@@ -232,6 +236,6 @@
       "at": "2026-07-28T15:31:42.522Z"
     }
   ],
-  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyRanRef": "567bc171fed34e0a09b6b72e0445499395e565b2",
   "verifyRanDirty": false
 }

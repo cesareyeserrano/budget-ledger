@@ -1,29 +1,29 @@
 {
-  "executed_at": "2026-09-04T19:44:57.466Z",
+  "executed_at": "2026-09-04T21:08:10.558Z",
   "test_runner": "../../../unit.sh",
-  "exit_code": 1,
+  "exit_code": 0,
   "e2e_exit_code": 0,
   "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-BAL-905h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905h: las seis cifras del plano Ejecutado con un mes simple 3ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905h: las seis cifras del plano Ejecutado con un mes simple 2ms"
     },
     {
       "tc_id": "TC-BAL-905e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905e: los dos planos se calculan por separado de sus propias celdas 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905e: los dos planos se calculan por separado de sus propias celdas 1ms"
     },
     {
       "tc_id": "TC-BAL-905f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905f: el saldo mes anterior NO infla el Flujo del mes 1ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-905f: el saldo mes anterior NO infla el Flujo del mes 0ms"
     },
     {
       "tc_id": "TC-BAL-915e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-915e: invariante de reconciliación: total = total previo + flujo, en cada plano y varios meses 1ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-915e: invariante de reconciliación: total = total previo + flujo, en cada plano y varios meses 0ms"
     },
     {
       "tc_id": "TC-BAL-925e",
@@ -33,22 +33,22 @@
     {
       "tc_id": "TC-BAL-935h",
       "status": "pass",
-      "notes": "✓   22 [chromium] › tests/e2e/balance.spec.ts:186:5 › TC-BAL-935h: un resultado sano (≥0) se pinta NEUTRO — el verde quedó revocado (ADR-02) (911ms)"
+      "notes": "✓   22 [chromium] › tests/e2e/balance.spec.ts:186:5 › TC-BAL-935h: un resultado sano (≥0) se pinta NEUTRO — el verde quedó revocado (ADR-02) (384ms)"
     },
     {
       "tc_id": "TC-BAL-935f",
       "status": "pass",
-      "notes": "✓   23 [chromium] › tests/e2e/balance.spec.ts:212:5 › TC-BAL-935f: un resultado negativo se pinta rojo (--error-strong) con − y marca ‹‹ (972ms)"
+      "notes": "✓   23 [chromium] › tests/e2e/balance.spec.ts:212:5 › TC-BAL-935f: un resultado negativo se pinta rojo (--error-strong) con − y marca ‹‹ (392ms)"
     },
     {
       "tc_id": "TC-BAL-945e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-945e: estado cero / usuario nuevo: cifras en 0 sin NaN ni Infinity 17ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-945e: estado cero / usuario nuevo: cifras en 0 sin NaN ni Infinity 2ms"
     },
     {
       "tc_id": "TC-BAL-916e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-916e: mes solo con ingreso: todo va a disponible, reservado 0 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-905 · seis cifras derivadas por columna > TC-BAL-916e: mes solo con ingreso: todo va a disponible, reservado 0 0ms"
     },
     {
       "tc_id": "TC-BAL-906h",
@@ -78,22 +78,22 @@
     {
       "tc_id": "TC-BAL-907e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-907e: guardar baja disponible y sube reservado; el total no cambia 0ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-907e: guardar baja disponible y sube reservado; el total no cambia 1ms"
     },
     {
       "tc_id": "TC-BAL-907f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-907f: el reservado global es la suma de aportes y nunca es negativo en v1 11ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-907f: el reservado global es la suma de aportes y nunca es negativo en v1 1ms"
     },
     {
       "tc_id": "TC-BAL-936e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-936e: multi-reserva y multi-mes: el reservado global acumula sobre todas las reservas y meses 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-907 · guardar en reservas (v1: solo aportes) > TC-BAL-936e: multi-reserva y multi-mes: el reservado global acumula sobre todas las reservas y meses 0ms"
     },
     {
       "tc_id": "TC-BAL-908h",
       "status": "pass",
-      "notes": "✓   24 [chromium] › tests/e2e/balance.spec.ts:236:5 › TC-BAL-908h: editar una hoja de ejecutado recalcula el balance al instante (1.8s)"
+      "notes": "✓   24 [chromium] › tests/e2e/balance.spec.ts:236:5 › TC-BAL-908h: editar una hoja de ejecutado recalcula el balance al instante (1.4s)"
     },
     {
       "tc_id": "TC-BAL-908e",
@@ -103,32 +103,32 @@
     {
       "tc_id": "TC-BAL-908f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-908 · el recálculo es derivación de solo lectura > TC-BAL-908f: computeBalanceSeries es pura: no muta el estado de entrada 8ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-908 · el recálculo es derivación de solo lectura > TC-BAL-908f: computeBalanceSeries es pura: no muta el estado de entrada 3ms"
     },
     {
       "tc_id": "TC-BAL-904h",
       "status": "pass",
-      "notes": "✓   34 [chromium] › tests/e2e/balance.spec.ts:484:5 › TC-BAL-904h: el módulo de Balance tiene una separación visual propia (770ms)"
+      "notes": "✓   34 [chromium] › tests/e2e/balance.spec.ts:484:5 › TC-BAL-904h: el módulo de Balance tiene una separación visual propia (391ms)"
     },
     {
       "tc_id": "TC-BAL-904e",
       "status": "pass",
-      "notes": "✓   35 [chromium] › tests/e2e/balance.spec.ts:512:5 › TC-BAL-904e: los tres tipos quedan contiguos y los datos intactos (765ms)"
+      "notes": "✓   35 [chromium] › tests/e2e/balance.spec.ts:512:5 › TC-BAL-904e: los tres tipos quedan contiguos y los datos intactos (359ms)"
     },
     {
       "tc_id": "TC-BAL-904f",
       "status": "pass",
-      "notes": "✓   36 [chromium] › tests/e2e/balance.spec.ts:542:5 › TC-BAL-904f: en móvil (≤760px) no se renderiza la grilla ni el balance (355ms)"
+      "notes": "✓   36 [chromium] › tests/e2e/balance.spec.ts:542:5 › TC-BAL-904f: en móvil (≤760px) no se renderiza la grilla ni el balance (174ms)"
     },
     {
       "tc_id": "TC-BAL-951h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-901 · el balance no escribe en budgets/actuals > TC-BAL-951h: editar una hoja persiste igual; el balance no escribe en budgets/actuals 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-901 · el balance no escribe en budgets/actuals > TC-BAL-951h: editar una hoja persiste igual; el balance no escribe en budgets/actuals 1ms"
     },
     {
       "tc_id": "TC-BAL-951e",
       "status": "pass",
-      "notes": "✓   26 [chromium] › tests/e2e/balance.spec.ts:290:5 › TC-BAL-951e: el módulo de balance no ofrece edición de sus celdas (1.7s)"
+      "notes": "✓   26 [chromium] › tests/e2e/balance.spec.ts:290:5 › TC-BAL-951e: el módulo de balance no ofrece edición de sus celdas (1.4s)"
     },
     {
       "tc_id": "TC-BAL-951f",
@@ -143,147 +143,147 @@
     {
       "tc_id": "TC-BAL-952e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-902 · los roll-ups existentes son el insumo, no cambian > TC-BAL-952e: total de un tipo = suma de subtotales de sus grupos (sin huérfanos) 1ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-902 · los roll-ups existentes son el insumo, no cambian > TC-BAL-952e: total de un tipo = suma de subtotales de sus grupos (sin huérfanos) 0ms"
     },
     {
       "tc_id": "TC-BAL-952f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-902 · los roll-ups existentes son el insumo, no cambian > TC-BAL-952f: el balance no modifica los roll-ups existentes 8ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-902 · los roll-ups existentes son el insumo, no cambian > TC-BAL-952f: el balance no modifica los roll-ups existentes 1ms"
     },
     {
       "tc_id": "TC-BAL-953h",
       "status": "pass",
-      "notes": "✓   37 [chromium] › tests/e2e/balance.spec.ts:556:5 › TC-BAL-953h: el color de estado sigue aplicando a las hojas de gasto sobre-consumidas (816ms)"
+      "notes": "✓   37 [chromium] › tests/e2e/balance.spec.ts:556:5 › TC-BAL-953h: el color de estado sigue aplicando a las hojas de gasto sobre-consumidas (362ms)"
     },
     {
       "tc_id": "TC-BAL-953e",
       "status": "pass",
-      "notes": "✓   27 [chromium] › tests/e2e/balance.spec.ts:311:5 › TC-BAL-953e: las filas del balance no muestran la marca de sobre-consumo de la grilla (893ms)"
+      "notes": "✓   27 [chromium] › tests/e2e/balance.spec.ts:311:5 › TC-BAL-953e: las filas del balance no muestran la marca de sobre-consumo de la grilla (476ms)"
     },
     {
       "tc_id": "TC-BAL-953f",
       "status": "pass",
-      "notes": "✓   38 [chromium] › tests/e2e/balance.spec.ts:569:5 › TC-BAL-953f: Ingreso y Transferencia conservan su semántica de color (852ms)"
+      "notes": "✓   38 [chromium] › tests/e2e/balance.spec.ts:569:5 › TC-BAL-953f: Ingreso y Transferencia conservan su semántica de color (384ms)"
     },
     {
       "tc_id": "TC-BAL-954h",
       "status": "pass",
-      "notes": "✓   28 [chromium] › tests/e2e/balance.spec.ts:333:5 › TC-BAL-954h: promover a grupo sigue funcionando con la feature activa (986ms)"
+      "notes": "✓   28 [chromium] › tests/e2e/balance.spec.ts:333:5 › TC-BAL-954h: promover a grupo sigue funcionando con la feature activa (684ms)"
     },
     {
       "tc_id": "TC-BAL-954e",
       "status": "pass",
-      "notes": "✓   29 [chromium] › tests/e2e/balance.spec.ts:347:5 › TC-BAL-954e: degradar nodo sigue funcionando con la feature activa (1.1s)"
+      "notes": "✓   29 [chromium] › tests/e2e/balance.spec.ts:347:5 › TC-BAL-954e: degradar nodo sigue funcionando con la feature activa (728ms)"
     },
     {
       "tc_id": "TC-BAL-954f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-904 · el balance se recompone tras reestructurar la jerarquía > TC-BAL-954f: el balance recomputado tras promover coincide con la nueva jerarquía (no obsoleto) 5ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-904 · el balance se recompone tras reestructurar la jerarquía > TC-BAL-954f: el balance recomputado tras promover coincide con la nueva jerarquía (no obsoleto) 1ms"
     },
     {
       "tc_id": "TC-BAL-955h",
       "status": "pass",
-      "notes": "✓   30 [chromium] › tests/e2e/balance.spec.ts:366:5 › TC-BAL-955h: registrar un movimiento suma al Ejecutado igual que antes (1.3s)"
+      "notes": "✓   30 [chromium] › tests/e2e/balance.spec.ts:366:5 › TC-BAL-955h: registrar un movimiento suma al Ejecutado igual que antes (875ms)"
     },
     {
       "tc_id": "TC-BAL-955e",
       "status": "pass",
-      "notes": "✓   39 [chromium] › tests/e2e/balance.spec.ts:591:5 › TC-BAL-955e: en móvil solo existe el registro (ni grilla ni balance) (511ms)"
+      "notes": "✓   39 [chromium] › tests/e2e/balance.spec.ts:591:5 › TC-BAL-955e: en móvil solo existe el registro (ni grilla ni balance) (176ms)"
     },
     {
       "tc_id": "TC-BAL-955f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-905 · el registro de movimientos queda intacto > TC-BAL-955f: el balance no altera la forma de captura del movimiento 5ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-905 · el registro de movimientos queda intacto > TC-BAL-955f: el balance no altera la forma de captura del movimiento 1ms"
     },
     {
       "tc_id": "TC-BAL-956h",
       "status": "pass",
-      "notes": "✓   31 [chromium] › tests/e2e/balance.spec.ts:397:5 › TC-BAL-956h: el módulo usa la superficie y tipografía existentes (sin tokens nuevos) (750ms)"
+      "notes": "✓   31 [chromium] › tests/e2e/balance.spec.ts:397:5 › TC-BAL-956h: el módulo usa la superficie y tipografía existentes (sin tokens nuevos) (375ms)"
     },
     {
       "tc_id": "TC-BAL-956e",
       "status": "pass",
-      "notes": "✓   32 [chromium] › tests/e2e/balance.spec.ts:423:5 › TC-BAL-956e: las cifras del balance cumplen contraste AA sobre --bg-sunken (3.1s)"
+      "notes": "✓   32 [chromium] › tests/e2e/balance.spec.ts:423:5 › TC-BAL-956e: las cifras del balance cumplen contraste AA sobre --bg-sunken (1.5s)"
     },
     {
       "tc_id": "TC-BAL-956f",
       "status": "pass",
-      "notes": "✓   33 [chromium] › tests/e2e/balance.spec.ts:460:5 › TC-BAL-956f: el módulo no introduce una altura de fila fuera de la escala (786ms)"
+      "notes": "✓   33 [chromium] › tests/e2e/balance.spec.ts:460:5 › TC-BAL-956f: el módulo no introduce una altura de fila fuera de la escala (387ms)"
     },
     {
       "tc_id": "TC-BAL-957h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957h: computeBalanceSeries corre en <100ms con datos representativos 28ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957h: computeBalanceSeries corre en <100ms con datos representativos 32ms"
     },
     {
       "tc_id": "TC-BAL-957e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957e: recalcular tras editar una celda se mantiene <100ms (caso de edición en vivo) 15ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957e: recalcular tras editar una celda se mantiene <100ms (caso de edición en vivo) 18ms"
     },
     {
       "tc_id": "TC-BAL-957f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957f: el cómputo no crece de forma no lineal con más meses vacíos 87ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-907 · el recálculo no degrada la edición en línea > TC-BAL-957f: el cómputo no crece de forma no lineal con más meses vacíos 12ms"
     },
     {
       "tc_id": "TC-BAL-958h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958h: balance.ts no hace IO ni red ni lee entradas de usuario nuevas 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958h: balance.ts no hace IO ni red ni lee entradas de usuario nuevas 1ms"
     },
     {
       "tc_id": "TC-BAL-958e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958e: el balance no persiste estado derivado redundante 65ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958e: el balance no persiste estado derivado redundante 9ms"
     },
     {
       "tc_id": "TC-BAL-958f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958f: el balance no puede escribir en el schema (no toca el CHECK) 2ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > NFR-908 · el balance no añade superficie de seguridad > TC-BAL-958f: el balance no puede escribir en el schema (no toca el CHECK) 0ms"
     },
     {
       "tc_id": "TC-BAL-909h",
       "status": "pass",
-      "notes": "✓   40 [chromium] › tests/e2e/balance.spec.ts:623:5 › TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo disponible (1.0s)"
+      "notes": "✓   40 [chromium] › tests/e2e/balance.spec.ts:623:5 › TC-BAL-909h: plegar el módulo desde su encabezado conserva el Saldo disponible (404ms)"
     },
     {
       "tc_id": "TC-BAL-909e",
       "status": "pass",
-      "notes": "✓   41 [chromium] › tests/e2e/balance.spec.ts:648:5 › TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo (898ms)"
+      "notes": "✓   41 [chromium] › tests/e2e/balance.spec.ts:648:5 › TC-BAL-909e: el chevron de Saldo disponible oculta las dos filas de abajo (394ms)"
     },
     {
       "tc_id": "TC-BAL-909f",
       "status": "pass",
-      "notes": "✓   42 [chromium] › tests/e2e/balance.spec.ts:666:5 › TC-BAL-909f: el chevron de Saldo disponible NO oculta ninguna fila de arriba (925ms)"
+      "notes": "✓   42 [chromium] › tests/e2e/balance.spec.ts:666:5 › TC-BAL-909f: el chevron de Saldo disponible NO oculta ninguna fila de arriba (462ms)"
     },
     {
       "tc_id": "TC-BAL-910h",
       "status": "pass",
-      "notes": "✓   43 [chromium] › tests/e2e/balance.spec.ts:683:5 › TC-BAL-910h: los bloques aparecen en el orden Ingresos → Gastos → Reservas (859ms)"
+      "notes": "✓   43 [chromium] › tests/e2e/balance.spec.ts:683:5 › TC-BAL-910h: los bloques aparecen en el orden Ingresos → Gastos → Reservas (366ms)"
     },
     {
       "tc_id": "TC-BAL-910e",
       "status": "pass",
-      "notes": "✓   44 [chromium] › tests/e2e/balance.spec.ts:699:5 › TC-BAL-910e: reordenar no cambia ningún total (838ms)"
+      "notes": "✓   44 [chromium] › tests/e2e/balance.spec.ts:699:5 › TC-BAL-910e: reordenar no cambia ningún total (354ms)"
     },
     {
       "tc_id": "TC-BAL-910f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/balance.test.ts > FR-910 · reordenar los bloques no muta el estado > TC-BAL-910f: ningún nodo cambia de tipo ni de padre al reordenar 6ms"
+      "notes": "✓ |app| tests/domain/balance.test.ts > FR-910 · reordenar los bloques no muta el estado > TC-BAL-910f: ningún nodo cambia de tipo ni de padre al reordenar 1ms"
     },
     {
       "tc_id": "TC-BAL-911h",
       "status": "pass",
-      "notes": "✓   45 [chromium] › tests/e2e/balance.spec.ts:713:5 › TC-BAL-911h: el bloque de tipo transfer se rotula RESERVAS (815ms)"
+      "notes": "✓   45 [chromium] › tests/e2e/balance.spec.ts:713:5 › TC-BAL-911h: el bloque de tipo transfer se rotula RESERVAS (352ms)"
     },
     {
       "tc_id": "TC-BAL-911e",
       "status": "pass",
-      "notes": "✓   46 [chromium] › tests/e2e/balance.spec.ts:725:5 › TC-BAL-911e: el tipo del dominio sigue siendo transfer (762ms)"
+      "notes": "✓   46 [chromium] › tests/e2e/balance.spec.ts:725:5 › TC-BAL-911e: el tipo del dominio sigue siendo transfer (366ms)"
     },
     {
       "tc_id": "TC-BAL-911f",
       "status": "pass",
-      "notes": "✓   47 [chromium] › tests/e2e/balance.spec.ts:740:5 › TC-BAL-911f: no queda ningún rótulo TRANSFERENCIAS en la grilla (762ms)"
+      "notes": "✓   47 [chromium] › tests/e2e/balance.spec.ts:740:5 › TC-BAL-911f: no queda ningún rótulo TRANSFERENCIAS en la grilla (366ms)"
     }
   ],
   "fr_coverage": [
@@ -444,7 +444,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2607,
+      "duration_ms": 1727,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -453,7 +453,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 48405,
+      "duration_ms": 27583,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
     },
     {
@@ -462,8 +462,8 @@
       "required": true,
       "status": "fail",
       "exit_code": 1,
-      "duration_ms": 43331,
-      "output": "\n FAIL  |app| tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-411e: volumen de producción: 6.000 derivaciones (500 nodos × 12 meses) sin degradación ni NaN\nAssertionError: expected 56.74549999999999 to be less than 50\n ❯ tests/domain/budget-state.test.ts:76:21\n     74|     expect(results.some((r) => r === \"over_hard\")).toBe(true); // el d…\n     75|     expect(results.some((r) => r === \"within\")).toBe(true);\n     76|     expect(elapsed).toBeLessThan(50); // es una división por celda: la…\n       |                     ^\n     77|   });\n     78| });\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯"
+      "duration_ms": 26159,
+      "output": "DO no crece — el barrido es lineal, no cuadrático\nAssertionError: expected 0.01984545317460318 to be less than or equal to 0.018232294999999964\n ❯ tests/domain/multi-anio.test.ts:551:18\n    549|     // Si fuera cuadrático, el coste por periodo crecería con n (×14 a…\n    550|     // Se exige que no llegue ni a triplicarse: holgado para el ruido,…\n    551|     expect(c168).toBeLessThanOrEqual(c12 * 3);\n       |                  ^\n    552|     // y el total con 14 años sigue muy por debajo del tope de la NFR\n    553|     expect(c168 * 168).toBeLessThanOrEqual(150);\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯"
     },
     {
       "name": "smoke",
@@ -471,7 +471,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 27234,
+      "duration_ms": 15378,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -480,14 +480,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 177224,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (192ms)\n  ✓  405 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  405 passed (2.9m)\n\n(node:22810) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 108845,
+      "output": "] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  405 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  405 passed (1.8m)\n\n(node:52012) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ],
   "timings": {
-    "runner_ms": 42720,
-    "e2e_ms": 189153,
-    "gates_ms": 298801,
-    "total_ms": 530702
+    "runner_ms": 24087,
+    "e2e_ms": 110409,
+    "gates_ms": 179693,
+    "total_ms": 314206
   }
 }
