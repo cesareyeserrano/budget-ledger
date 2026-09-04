@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { cellTone, cellGlyph, budgetState } from "@/domain/budgetState";
 import { buildSeed, rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode } from "@/domain";
 import { P as MONTH_KEYS, P0 } from "../helpers/periods";
+import { CRONOMETRO_FIABLE } from "../helpers/perf";
 
 /**
  * refinamiento-ui — el color deja de clasificar y pasa a señalar sólo excepción.
@@ -201,7 +202,8 @@ describe("NFR-1205 — el rediseño no añade trabajo de render", () => {
     expect(cellGlyph.length).toBe(3);
     const t0 = performance.now();
     for (let i = 0; i < 100_000; i++) cellTone("expense", 1000, i % 2000);
-    expect(performance.now() - t0).toBeLessThan(150);
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(performance.now() - t0).toBeLessThan(150);
   });
 
   // @aitri-tc TC-RUI-105e

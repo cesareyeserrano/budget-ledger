@@ -8,6 +8,7 @@ import { P as MONTH_KEYS } from "../helpers/periods";
 import { writeCatWidth, readCatWidth } from "@/lib/gridWidth";
 import type { LedgerState, NodeType } from "@/domain/types";
 import { P, P0 } from "../helpers/periods";
+import { CRONOMETRO_FIABLE } from "../helpers/perf";
 
 // Feature grid-ux — NFR-103 (Regression): el roll-up jerárquico sigue en ≤150ms al editar
 // una hoja, y el resize de columna NO desencadena recómputo de roll-ups.
@@ -66,7 +67,8 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
     const rootAncestor = ancestors[ancestors.length - 1];
     expect(rollupActual(state, rootAncestor, "2026-01")).toBeGreaterThanOrEqual(123456);
     // …y en ≤150ms (guardrail de rendimiento).
-    expect(elapsed).toBeLessThanOrEqual(150);
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(elapsed).toBeLessThanOrEqual(150);
   });
 
   it("TC-212e: redimensionar la columna (writeCatWidth) NO recomputa ni altera los roll-ups", () => {

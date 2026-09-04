@@ -16,7 +16,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "coverage": "vitest run --coverage",
+    "coverage": "AITRI_COVERAGE=1 vitest run --coverage",
     "test:run": "vitest run",
     "test:watch": "vitest",
     "gate:design-tokens": "./scripts/design-tokens.sh",

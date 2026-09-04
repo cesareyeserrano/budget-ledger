@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { budgetState, OVER_HARD_RATIO, type BudgetState } from "@/domain/budgetState";
+import { CRONOMETRO_FIABLE } from "../helpers/perf";
 
 // Feature budget-state-color — FR-401. La regla de umbral es aritmética pura, así que se ataca sin
 // DOM en sus valores frontera exactos y en sus casos degenerados. El 120 % se DERIVA de
@@ -73,6 +74,8 @@ describe("FR-401 · budgetState", () => {
     expect(results.every((r) => STATES.includes(r))).toBe(true);
     expect(results.some((r) => r === "over_hard")).toBe(true); // el dataset ejerce los tres caminos
     expect(results.some((r) => r === "within")).toBe(true);
-    expect(elapsed).toBeLessThan(50); // es una división por celda: la grilla lo hace en cada render
+    // es una división por celda: la grilla lo hace en cada render
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(elapsed).toBeLessThan(50);
   });
 });

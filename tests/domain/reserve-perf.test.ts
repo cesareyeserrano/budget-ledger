@@ -16,6 +16,7 @@ import { computeBalanceSeries } from "@/domain/balance";
 import { P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState } from "@/domain/types";
 import { P } from "../helpers/periods";
+import { CRONOMETRO_FIABLE } from "../helpers/perf";
 
 /** 30 alcancías × 12 meses con aportes mixtos + flujo real. */
 function makeBigState(): LedgerState {
@@ -66,7 +67,8 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
 
     expect(verdict.ok).toBe(true);
     expect(series["2026-12"].actual).toBeDefined();
-    expect(elapsed, `ruta completa en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(elapsed, `ruta completa en ${elapsed.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });
 
   it("TC-TRF4-155e: la memoización por identidad evita recomputar sin cambios", () => {
