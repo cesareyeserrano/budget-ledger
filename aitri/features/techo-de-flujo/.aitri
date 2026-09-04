@@ -19,14 +19,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-02T00:38:19.311Z",
+  "updatedAt": "2026-09-04T20:36:40.200Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T17:00:43.524Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-09-01T17:31:45.181Z",
       "event": "verify-run",
@@ -151,6 +146,15 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-04T20:36:40.180Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 17,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -225,16 +229,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "edf97e0cb5e484d1161213b8f632c8172b3628d1",
+  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
   "verifyRanDirty": false,
-  "verifyResultsHash": "667609fda45fb78fed9a352155891f3daa0c8aad33b151ea1c31448a2362a6a2",
-  "verifyRanAt": "2026-09-01T22:00:17.364Z",
+  "verifyResultsHash": "767b9d207228be8f2b73d3e50c0d83de60db8d0952e9e7d5b61585ca58668d39",
+  "verifyRanAt": "2026-09-04T20:36:40.126Z",
   "lastVerifyRun": {
     "passed": 62,
     "failed": 0,
     "skipped": 17,
     "manual": 0,
-    "at": "2026-09-01T22:00:17.364Z"
+    "at": "2026-09-04T20:36:40.126Z"
   },
   "verifySummary": {
     "total": 79,

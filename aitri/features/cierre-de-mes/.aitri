@@ -17,14 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-03T19:45:57.538Z",
+  "updatedAt": "2026-09-04T19:59:57.516Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T18:08:12.225Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-09-03T18:08:14.454Z",
       "event": "approved",
@@ -152,6 +147,15 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-04T19:59:57.484Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -217,8 +221,8 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "a514f89cbd61f56de8e9e1253ab5bd84b95bbaba",
-  "verifyRanDirty": true,
+  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyRanDirty": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
@@ -238,14 +242,14 @@
   ],
   "coverageAuditLastAt": "2026-09-03T16:02:32.903Z",
   "coverageAuditReqHash": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-  "verifyResultsHash": "3c79a3b7a40fbc97d937279006b49b9fe255b8c6a7a1108e3852774cfab543e8",
-  "verifyRanAt": "2026-09-03T19:45:49.950Z",
+  "verifyResultsHash": "bc483a53b120db471903c704726e386f88282d52132ae486142ad3512ca097ec",
+  "verifyRanAt": "2026-09-04T19:59:57.374Z",
   "lastVerifyRun": {
     "passed": 92,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-03T19:45:49.950Z"
+    "at": "2026-09-04T19:59:57.374Z"
   },
   "verifySummary": {
     "total": 92,

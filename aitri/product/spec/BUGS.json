@@ -641,6 +641,46 @@
       "resolution": "Timeout explicito de 30s en TC-CPR-005e. Medido: 2147ms aislado, 5561ms en suite completa bajo cobertura. Se descarto capar workers del proyecto app (maxForks:4 lo empeoro a 6481ms: vitest reutiliza forks entre ficheros, con menos forks cada uno arrastra mas estado previo). No se recortan las 2000 iteraciones porque son lo que el test afirma.",
       "fix_commit_sha": "581c88cfc5de40839238ba66afd2e2b66d5deb1d",
       "fix_at": "2026-09-02T17:37:06.433Z"
+    },
+    {
+      "id": "BG-026",
+      "title": "El gate 'coverage' es INTERMITENTE y bloquea al azar: 'npm run coverage' corre la suite unitaria bajo instrumentacion, y las aserciones de TIEMPO con margen fijo revientan porque la instrumentacion infla lo que miden. Observado el 2026-09-04 en la misma tanda: backend cayo en tests/domain/multi-anio.test.ts:551 (esperaba 0.03711 <= 0.03693, un 0,5% por encima de un margen de x3) y balance en tests/domain/budget-state.test.ts:76 (esperaba 56.7 < 50); el verify de la RAIZ, con el mismo comando, paso en verde. Hay al menos 7 aserciones de este tipo: budget-state.test.ts:76, rollup-perf.test.ts:69, refinamiento-ui.test.ts:204, contrapartidas-reserva.test.ts:719, multi-anio.test.ts:367/518/551 y reserve-perf.test.ts:69. ALCANCE: 13 features mas la raiz declaran ese gate con required=true, asi que un fallo de azar bloquea verify-complete en cualquiera de ellas. Arreglo propuesto: que las aserciones de tiempo se salten o ensanchen su margen bajo instrumentacion, con el mismo patron que ya usa el repo en tests/unit/servidor-fuente-unica.test.ts (it.skipIf sobre una variable de entorno). Emparentado con BG-025, que documenta un caso suelto de la misma familia",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-04T20:37:52.377Z",
+      "updated_at": "2026-09-04T20:37:52.377Z",
+      "resolution": null
+    },
+    {
+      "id": "BG-027",
+      "title": "budget-state-color declara el gate 'coverage' como required=true pero SIN command: {name:'coverage', threshold:80, required:true}. Su ultimo 04_TEST_RESULTS.json lo registra como status 'pass' SIN exit_code, mientras que los otros cuatro gates de esa feature traen command y exit_code. Un gate obligatorio acreditado como verde sin prueba de que ejecutara nada es indistinguible de uno que no corrio. Verificado el 2026-09-04. Arreglo: darle el command real ('../../../coverage.sh', que es el que usan balance, recuperar-acceso, servidor-fuente-unica y transferencias) o retirar el gate si no aplica",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-04T20:37:52.421Z",
+      "updated_at": "2026-09-04T20:37:52.421Z",
+      "resolution": null
     }
   ]
 }

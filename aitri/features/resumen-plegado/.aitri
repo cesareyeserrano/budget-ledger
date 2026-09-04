@@ -19,14 +19,9 @@
   "projectName": "resumen-plegado",
   "createdAt": "2026-08-27T21:01:10.927Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-02T19:42:39.537Z",
+  "updatedAt": "2026-09-04T20:28:48.444Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-28T02:12:25.476Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-08-28T02:36:02.123Z",
       "event": "verify-run",
@@ -161,6 +156,15 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-04T20:28:48.412Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -194,7 +198,7 @@
       "FR-1502"
     ]
   },
-  "verifyRanRef": "76252c0f07d7fef419d91dca8f17fa536f13a5c1",
+  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
   "verifyRanDirty": false,
   "verifyPassed": true,
   "releaseHistory": [
@@ -209,14 +213,14 @@
       "at": "2026-08-28T16:32:20.934Z"
     }
   ],
-  "verifyResultsHash": "73a44bce10f80a030468f01f9ff6e70bec11ec02af1dbeb65d7dd6d653874c58",
-  "verifyRanAt": "2026-09-02T19:42:39.434Z",
+  "verifyResultsHash": "a26b69833f9f72b0db7a87bbb51e70da8e1e679178f774e4d2141747cddac58e",
+  "verifyRanAt": "2026-09-04T20:28:48.309Z",
   "lastVerifyRun": {
     "passed": 20,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-02T19:42:39.434Z"
+    "at": "2026-09-04T20:28:48.309Z"
   },
   "verifySummary": {
     "total": 20,

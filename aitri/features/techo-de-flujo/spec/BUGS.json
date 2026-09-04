@@ -1,0 +1,24 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "17 de los 79 casos declarados en la fase 3 NUNCA se implementaron: la feature cerro 5/5 con ellos contados como 'saltados'. Verificado el 2026-09-04 buscando cada id en tests/: ninguno de los 17 existe en el codigo. El peor es NFR-1807 (Performance, 'derivar el techo, los saldos y los errores de los doce meses no empeora el coste medido vigente'), que se queda con CERO pruebas reales: sus tres casos (TC-TDF-261h, TC-TDF-262e, TC-TDF-263f) son los tres fantasmas, asi que ese requisito nunca se verifico. Los otros 14 dejan huecos parciales en ocho requisitos MUST: FR-1802 (TC-TDF-090h, TC-TDF-092e), FR-1803 (TC-TDF-091h), FR-1807 (TC-TDF-062e), FR-1809 (TC-TDF-081h, TC-TDF-082f), NFR-1804 (TC-TDF-232e, TC-TDF-233f), NFR-1805 (TC-TDF-242e, TC-TDF-243f), NFR-1806 (TC-TDF-252e, TC-TDF-253f) y NFR-1808 (TC-TDF-272e, TC-TDF-273f). Los 79 casos estan declarados automation=auto, asi que ninguno es manual por diseno. Reproducible: la corrida del 2026-09-04 da exactamente el mismo 62/79 que el sello del 2026-09-01, no es intermitente",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "open",
+      "fr": "NFR-1807",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-04T20:37:29.287Z",
+      "updated_at": "2026-09-04T20:37:29.287Z",
+      "resolution": null
+    }
+  ]
+}

@@ -17,14 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-02T18:10:13.168Z",
+  "updatedAt": "2026-09-04T19:36:06.623Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-16T14:25:22.755Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-07-16T14:27:29.998Z",
       "event": "completed",
@@ -173,6 +168,15 @@
       "failed": 0,
       "skipped": 1,
       "manual": 0
+    },
+    {
+      "at": "2026-09-04T19:36:06.593Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 71,
+      "failed": 0,
+      "skipped": 15,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -247,26 +251,16 @@
       "FR-513"
     ]
   },
-  "verifyPassed": true,
-  "verifyResultsHash": "92acdb6985ae35ba6b10633f0df54365202858ee11a2bd36cf3dd4ba31ef70d5",
-  "verifyRanAt": "2026-09-02T18:10:13.060Z",
+  "verifyPassed": false,
+  "verifyResultsHash": "5dcb5730158b3823ccd5c0a42ef237ab3b900ca5525521fca9e9bdf070eda8d0",
+  "verifyRanAt": "2026-09-04T19:36:06.485Z",
   "lastVerifyRun": {
-    "passed": 85,
+    "passed": 71,
     "failed": 0,
-    "skipped": 1,
+    "skipped": 15,
     "manual": 0,
-    "at": "2026-09-02T18:10:13.060Z"
+    "at": "2026-09-04T19:36:06.485Z"
   },
-  "verifyRanRef": "76252c0f07d7fef419d91dca8f17fa536f13a5c1",
-  "verifyRanDirty": false,
-  "verifySummary": {
-    "total": 86,
-    "passed": 85,
-    "failed": 0,
-    "skipped": 1,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 1,
-    "manual": 0,
-    "manual_verified": 0
-  }
+  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyRanDirty": false
 }
