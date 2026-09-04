@@ -551,15 +551,35 @@ describe("FR-2005/NFR-2004 — la frontera del cierre ancla el rango", () => {
 describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escritos", () => {
   it("TC-CDM-202e: las pruebas de multi-anio pasan SIN modificarse", () => {
     // @aitri-tc TC-CDM-202e
-    // Se comprueba contra la línea base de esta feature (bfded04): si alguien tuviera que retocar
+    // Se comprueba contra la línea base de esta feature: si alguien tuviera que retocar
     // una prueba de multi-anio para que el cierre pase, esta prueba lo delata. Adaptar la prueba
     // en vez del código es la forma más silenciosa de romper una regresión.
+    //
+    // ANCLA AVANZADA de bfded04 a 69b1c9f el 2026-09-04, a propósito y por una sola razón.
+    // El ancla se AVANZA, no se borra: la alarma conserva todos los dientes a partir del punto
+    // nuevo, y lo que queda por debajo es un cambio que ya está justificado por escrito.
+    //
+    // Lo que tocó `multi-anio.test.ts` entre bfded04 y 69b1c9f NO fue el cierre acomodando a un
+    // vecino para pasar —que es justo lo que esta prueba existe para delatar—. Fue BG-026, un
+    // defecto en cómo se MIDE el tiempo: los guardarraíles cronometran con `performance.now()`
+    // contra un margen fijo, y bajo instrumentación de cobertura v8 cada rama va envuelta para
+    // contarse, así que el cronómetro medía el coste de contar y no el del algoritmo. El gate
+    // `coverage` fallaba AL AZAR —tumbó a `backend` y luego a `balance` por la línea 551 de ese
+    // fichero— y lo declaran `required` trece features más la raíz.
+    //
+    // Los únicos cambios bajo el ancla nueva son tres: guardar un cronómetro con
+    // `CRONOMETRO_FIABLE` y saltar TC-MAN-260h y TC-MAN-262e con `SALTAR_SI_INSTRUMENTADO`
+    // (ver tests/helpers/perf.ts). Ni una línea de comportamiento: la corrida normal —la que Aitri
+    // parsea para acreditar los TCs— no define `AITRI_COVERAGE`, así que ahí se afirman los tres
+    // exactamente igual que antes (comprobado: 44/44 afirmando, ninguna saltada).
+    //
+    // Los otros dos ficheros de la lista siguen intactos y siguen vigilados.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat bfded04 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat 69b1c9f -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
