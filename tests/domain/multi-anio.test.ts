@@ -19,6 +19,7 @@ import {
 import { buildSeed } from "@/domain";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
+import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO } from "../helpers/perf";
 
 // ── El MISMO estado explícito con el que se capturó la línea base ──────────────────────────────
 function estadoRef(periods: readonly PeriodKey[] = P): LedgerState {
@@ -364,7 +365,8 @@ describe("FR-1909 · reservas sobre la lista de periodos", () => {
     for (const p of cinco) reserveHeadroom(s, p, cinco);
     monthIssues(s, cinco);
     const ms = performance.now() - t0;
-    expect(ms).toBeLessThanOrEqual(150);
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(ms).toBeLessThanOrEqual(150);
     expect(cinco).toHaveLength(60);
   });
 });
@@ -510,7 +512,9 @@ describe("NFR-1904 · los roll-ups no cambian", () => {
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("NFR-1907 · el coste no se degrada", () => {
-  it("TC-MAN-260h: el recómputo con cinco años cabe en 150ms", () => {
+  // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta
+  // ENTERA: mejor verla saltada que verde sin haber afirmado nada (BG-026).
+  it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-MAN-260h: el recómputo con cinco años cabe en 150ms", () => {
     const cinco = periodRange(`${REF_YEAR}-01`, `${REF_YEAR + 4}-12`);
     const s = estadoRef(cinco.slice(0, 12));
     const t0 = performance.now();
@@ -531,7 +535,9 @@ describe("NFR-1907 · el coste no se degrada", () => {
     expect(sesenta).toBeLessThanOrEqual(doce + 1);
   });
 
-  it("TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático", () => {
+  // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta
+  // ENTERA: mejor verla saltada que verde sin haber afirmado nada (BG-026).
+  it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático", () => {
     // Se mide el coste por periodo con repeticiones, no un cronómetro suelto: una medición única
     // reporta el calentamiento del JIT y no el algoritmo (medido: 4,66ms en la primera pasada de
     // 84 periodos frente a 0,128ms cuando está caliente — un factor 36 que no es del código).
