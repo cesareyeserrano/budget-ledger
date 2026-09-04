@@ -19,18 +19,9 @@
   "projectName": "resumen-plegado",
   "createdAt": "2026-08-27T21:01:10.927Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T20:28:48.444Z",
+  "updatedAt": "2026-09-04T20:38:29.333Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-28T02:36:02.123Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 3,
-      "failed": 0,
-      "skipped": 17,
-      "manual": 0
-    },
     {
       "at": "2026-08-28T05:16:23.147Z",
       "event": "verify-run",
@@ -165,6 +156,13 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-04T20:38:29.308Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
