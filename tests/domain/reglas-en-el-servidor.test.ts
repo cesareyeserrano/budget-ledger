@@ -337,8 +337,28 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // @aitri-tc TC-RES-202e
     // Si alguna hubiera necesitado retoques, sería señal de que el guardia cambió comportamiento y
     // no solo quién lo hace cumplir.
+    //
+    // ANCLA AVANZADA de bfded04 a 396653e el 2026-09-04, a propósito y por una sola razón.
+    // El ancla se AVANZA, no se borra: la alarma conserva todos los dientes a partir del punto
+    // nuevo, y lo que queda por debajo es un cambio que ya está justificado por escrito.
+    //
+    // Lo que tocó `contrapartidas-reserva.test.ts` entre bfded04 y 396653e NO fue esta feature
+    // acomodando a un vecino para pasar —que es justo lo que esta prueba existe para delatar—.
+    // Fue BG-026, un defecto en cómo se MIDE el tiempo: los guardarraíles cronometran con
+    // `performance.now()` contra un margen fijo, y bajo instrumentación de cobertura v8 cada rama
+    // va envuelta para contarse, así que el cronómetro medía el coste de contar y no el del
+    // algoritmo. El gate `coverage` fallaba AL AZAR —una aserción distinta en cada corrida— y lo
+    // declaran `required` trece features más la raíz, así que bloqueaba `verify-complete` en
+    // cualquiera de ellas.
+    //
+    // El único cambio bajo el ancla nueva es envolver TC-CPR-086e con `SALTAR_SI_INSTRUMENTADO`
+    // (ver tests/helpers/perf.ts). Ni una línea de comportamiento: la corrida normal —la que Aitri
+    // parsea para acreditar los TCs— no define `AITRI_COVERAGE`, así que ahí ese guardarraíl se
+    // afirma exactamente igual que antes.
+    //
+    // `techo-de-flujo.test.ts` sigue sin tocarse: no tiene ni un `performance.now`.
     const tocadas = execSync(
-      "git diff --name-only bfded04 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only 396653e -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
