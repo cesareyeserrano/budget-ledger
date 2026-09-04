@@ -17,6 +17,8 @@ import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movem
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
 import { comparePeriods, isPeriodKey, periodRange } from "@/domain/periods";
 import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
+import { worsenedBy } from "@/domain/guard";
+import type { ReserveWarning } from "@/domain/reserve";
 import {
   closedPeriodsViolated, closeMonth, normalizeClosure, reopenMonth, NO_CLOSURE,
 } from "@/domain/closure";
@@ -42,7 +44,9 @@ export type SaveResult =
   | { ok: true; revision: number }
   | { ok: false; conflict: true; revision: number }
   /** Feature cierre-de-mes (FR-2003): la escritura tocaba cifras de meses cerrados. */
-  | { ok: false; closedViolation: true; periods: PeriodKey[] };
+  | { ok: false; closedViolation: true; periods: PeriodKey[] }
+  /** Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que estaba. */
+  | { ok: false; domainViolation: true; violations: ReserveWarning[] };
 
 /** Reconstruye un LedgerState a partir de las filas de la BD de un owner. */
 function rowsToState(
@@ -401,11 +405,32 @@ export async function saveLedger(
     // Es un PUNTO DE ESTRANGULAMIENTO (ADR-12), no una comprobacion por operacion: las seis vias
     // de escritura que FR-2003 enumera acaban todas en budgets, actuals o movements, asi que
     // compararlas las cubre a todas — y cubre las que aun no existen.
+    //
+    // ── EL GUARDIA DE DOMINIO (FR-2101, feature reglas-en-el-servidor) ────────────────────────
+    // Antes de esta feature la ÚNICA validación de dominio del servidor era la del cierre: el techo
+    // y el déficit vivían solo en el navegador, así que una peticion fabricada a mano escribía lo
+    // que quisiera. La regla no se reescribe aquí — se LLAMA la misma que usa el cliente
+    // (`worsenedBy` → `chainCheck`), que es lo que hace imposible que las dos divergan.
+    //
+    // El estado previo se carga UNA sola vez y lo comparten los dos guardias (NFR-2105): antes se
+    // cargaba solo cuando había meses cerrados; ahora hace falta siempre.
     const closure = head ? closureFromRow(head) : NO_CLOSURE;
-    if (closure.closedThrough !== null) {
-      const prev = await loadStateInTx(tx, ownerId);
+    const prev = head ? await loadStateInTx(tx, ownerId) : null;
+
+    // ORDEN (ADR-19): el cierre PRIMERO y su rechazo corta. «Ese mes está cerrado» es una respuesta
+    // completa: arreglar la reserva no desbloquearía nada, así que mandar al usuario a hacerlo
+    // sería pedirle trabajo inútil.
+    if (prev && closure.closedThrough !== null) {
       const violated = closedPeriodsViolated({ ...prev, closure }, state);
       if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
+    }
+
+    if (prev) {
+      // El rango juzgado es la UNIÓN de los dos alcances: un mes que la escritura estrena tiene que
+      // entrar en el juicio, o crear un mes sería la puerta de escape (TC-RES-015e).
+      const scope = unionScope(serverScope(prev), serverScope(state));
+      const violations = worsenedBy(prev, state, scope);
+      if (violations.length > 0) return { ok: false, domainViolation: true, violations };
     }
 
     // Snapshot replace: borra lo del owner y reinserta (owner fijado por parámetro, nunca del estado).
@@ -448,6 +473,20 @@ export async function saveLedger(
  * REALMENTE existen en el estado, más el periodo que la petición trae. Un rango más ancho no
  * cambiaría ningún veredicto: los periodos vacíos del final no acotan nada.
  */
+/**
+ * El rango que juzga el guardia: la unión de dos alcances, como rango CONTINUO.
+ *
+ * Continuo y no la simple concatenación porque el arrastre encadena: juzgar 2026-06 y 2026-09 sin
+ * los meses de en medio daría un veredicto sobre una serie que no existe.
+ */
+function unionScope(a: readonly PeriodKey[], b: readonly PeriodKey[]): PeriodKey[] {
+  const all = [...a, ...b];
+  if (all.length === 0) return [];
+  const from = all.reduce((x, y) => (comparePeriods(x, y) <= 0 ? x : y));
+  const to = all.reduce((x, y) => (comparePeriods(x, y) >= 0 ? x : y));
+  return periodRange(from, to);
+}
+
 function serverScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
   const oldest = oldestPeriodWithData(state);
   const newest = newestPeriodWithData(state);
@@ -494,7 +533,12 @@ export async function getMovement(ownerId: string, id: string): Promise<Movement
 export async function insertMovement(
   ownerId: string,
   input: NewMovement
-): Promise<{ movement: Movement; revision: number } | { closedViolation: true } | null> {
+): Promise<
+  | { movement: Movement; revision: number }
+  | { closedViolation: true }
+  | { domainViolation: true; violations: ReserveWarning[] }
+  | null
+> {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
     if (!head) throw new Error("El usuario no tiene un ledger inicializado");
@@ -524,6 +568,15 @@ export async function insertMovement(
 
     const next = addMovement(prev, input, serverScope(prev, input.period));
     if (next === prev) return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
+
+    // EL GUARDIA DE DOMINIO en la segunda vía (FR-2101). Un movimiento de tipo `transfer` ya venía
+    // validado —`addMovement` delega en `applyReserveOp`, que aplica techo y piso y devuelve el
+    // mismo estado al rechazar—, pero uno de INGRESO o GASTO no pasaba por ninguna comprobación:
+    // ese era el agujero. Se juzga el estado resultante, no la operación, así que cubre las dos
+    // clases con una sola llamada (TC-RES-016f).
+    const scope = unionScope(serverScope(prev, input.period), serverScope(next, input.period));
+    const violations = worsenedBy(prev, next, scope);
+    if (violations.length > 0) return { domainViolation: true as const, violations };
 
     const mv = next.movements[0]; // addMovement hace unshift: el nuevo va primero
     await tx.insert(movement).values({

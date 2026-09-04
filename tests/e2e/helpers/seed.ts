@@ -44,8 +44,66 @@ export async function seedLedger(page: Page, input: SeedInput): Promise<void> {
   };
 
   const res = await ctx.put("/api/v1/ledger", { data: { baseRevision, state } });
-  if (!res.ok()) {
-    throw new Error(`seedLedger falló: HTTP ${res.status()} ${await res.text()}`);
+  if (res.ok()) return;
+
+  const cuerpo = await res.text();
+
+  // ── SIEMBRA EN DOS PASOS (feature reglas-en-el-servidor, FR-2101) ──────────────────────────
+  //
+  // Desde que el servidor hace cumplir las reglas del dominio, un escenario que YA está por encima
+  // del techo —los que prueban que la marca de exceso se pinta— no se puede escribir de un tirón:
+  // la escritura crearía el exceso, y eso es exactamente lo que el guardia rechaza. Un usuario
+  // tampoco podría; a ese estado se llega en DOS pasos, y así es como se siembra aquí:
+  //
+  //   1. el mismo escenario pero con el ingreso inflado, de modo que las reservas quepan de sobra;
+  //   2. el escenario real, que respecto del anterior SOLO baja ingresos — y una escritura que no
+  //      toca reservas no se juzga (ADR-20, NFR-1803).
+  //
+  // Es más fiel que un atajo por debajo de la API: reproduce el camino real por el que un ledger
+  // llega a estar excedido, en vez de fabricar un estado que ninguna ruta del producto produce.
+  if (!cuerpo.includes("domain_rule_violation")) {
+    throw new Error(`seedLedger falló: HTTP ${res.status()} ${cuerpo}`);
+  }
+
+  const hojaIngreso = input.nodes.find(
+    (n) => n.type === "income" && !input.nodes.some((h) => h.parentId === n.id)
+  );
+  if (!hojaIngreso) {
+    throw new Error(
+      `seedLedger falló y no hay hoja de ingreso para sembrar en dos pasos: HTTP ${res.status()} ${cuerpo}`
+    );
+  }
+
+  // Los periodos que el escenario toca, más los del plan: el ingreso se infla en todos ellos.
+  const periodos = new Set<string>();
+  for (const mapa of [state.actuals, state.budgets]) {
+    for (const porNodo of Object.values(mapa as AmountMap)) {
+      for (const p of Object.keys(porNodo as Record<string, number>)) periodos.add(p);
+    }
+  }
+  for (const m of state.movements) periodos.add(m.period);
+
+  const HOLGURA = 1_000_000_000_000; // muy por encima de cualquier escenario, y muy por debajo de 2^53
+  const holgado = {
+    ...state,
+    actuals: {
+      ...state.actuals,
+      [hojaIngreso.id]: {
+        ...((state.actuals as AmountMap)[hojaIngreso.id] ?? {}),
+        ...Object.fromEntries([...periodos].map((p) => [p, HOLGURA])),
+      },
+    },
+  };
+
+  const paso1 = await ctx.put("/api/v1/ledger", { data: { baseRevision, state: holgado } });
+  if (!paso1.ok()) {
+    throw new Error(`seedLedger falló en el paso holgado: HTTP ${paso1.status()} ${await paso1.text()}`);
+  }
+  const rev1 = ((await paso1.json()) as { revision: number }).revision;
+
+  const paso2 = await ctx.put("/api/v1/ledger", { data: { baseRevision: rev1, state } });
+  if (!paso2.ok()) {
+    throw new Error(`seedLedger falló en el paso real: HTTP ${paso2.status()} ${await paso2.text()}`);
   }
 }
 

@@ -1,0 +1,334 @@
+{
+  "project_name": "reglas-en-el-servidor",
+  "project_summary": "PUT /api/v1/ledger acepta hoy cualquier snapshot: la única validación de dominio que corre en el servidor es el guardia del cierre de mes, así que una petición fabricada fuera del navegador escribe estados que el dominio jamás habría permitido (backend BG-002, abierto desde el 2026-08-29). La regla YA vive en código compartido (src/domain/reserve.ts, TypeScript puro sin React ni red); lo que falta es que el servidor la LLAME y que su veredicto sea la autoridad — principio que el usuario enunció así: «es una regla de negocio, debe vivir en el código, no en el navegador, ni siquiera en base de datos; es algo como de backend». NORTH STAR (puerta de aceptación, elegida por el usuario el 2026-09-03): ninguna petición fabricada a mano consigue escribir un estado peor del que había — se rechaza y la base queda sin cambios. JTBD: «quiero que las reglas de mis cuentas las garantice el sistema, no la pantalla, para que nada pueda escribir algo que la app no habría aceptado». ACOTAMIENTO (2026-09-03): el guardia juzga solo las escrituras que TOCAN RESERVAS. Hacerlo cumplir sobre ingresos y gastos contradiría NFR-1803 de techo-de-flujo, aprobado y construido, y rompía 7 pruebas de dos features cerradas; el usuario eligió acotar en vez de reabrir agosto. GUARDRAIL (lo que no puede empeorar): el usuario NO queda encerrado — la regla es relativa, así que desde cualquier estado, incluso uno que ya viola el techo, siempre queda al menos una operación que mejora; y lo que la app permite hoy en las operaciones de reserva no cambia: esta feature extiende QUIÉN hace cumplir la regla, no QUÉ permite. NOTA IMPORTANTE VERIFICADA EL 2026-09-03: el supuesto «falso positivo» del techo (BL-037) NO existe. Ejecutado sobre el dominio real, la marca solo aparece cuando se reservó más de lo que nunca se tuvo; con saldo del mes anterior disponible no hay marca y FR-1804 escribe sola la observación que explica de dónde salió lo adicional. El análisis del 2026-09-01 probó el caso en el PRIMER mes del historial, donde por definición no hay saldo previo, y leyó como defecto lo que era el modelo funcionando. Por tanto el techo NO se toca.",
+  "technology_preferences": [
+    "TypeScript + Next.js 15 + React (stack vigente)",
+    "Postgres como única fuente de verdad (modo servidor)",
+    "Vitest para dominio e integración; Playwright para e2e",
+    "La regla es UNA sola función del dominio llamada desde los dos lados: no se escribe una segunda implementación para el servidor"
+  ],
+  "constraints": [
+    "La capa de dominio es PURA: sin React, DOM, IO ni red. El reloj vive fuera (ADR-02)",
+    "La autoridad es el servidor (ADR-12): lo que el navegador impide es ergonomía, no garantía",
+    "El guardia corre DENTRO de la transacción, después del bloqueo de la fila ancla y antes de la primera escritura: no puede haber ventana entre validar y escribir",
+    "El producto es de usuario único: el guardia protege de peticiones ajenas a la app, no de otras personas",
+    "Se construye SOBRE cierre-de-mes (cerrada el 2026-09-03): su guardia sigue corriendo en el mismo punto y las dos comprobaciones conviven",
+    "El servidor NO puede ser más estricto que la app: NFR-1803 de techo-de-flujo garantiza que las escrituras de ingresos y gastos no adquieren validación nueva, y el guardia lo respeta juzgando solo las escrituras que tocan reservas"
+  ],
+  "no_go_zone": [
+    "El techo NO se cambia. FR-1801 (consumo bruto en Ejecutado) y ADR-08 (neto en el plan) siguen intactos. Esta feature extiende quién hace cumplir la regla, no qué permite. VERIFICADO el 2026-09-03: el «falso positivo» que motivaba tocarlo no existe",
+    "BL-037 y BL-038 NO se abordan aquí. Descansan sobre el mismo diagnóstico erróneo y hay que revisarlos con la evidencia ejecutada antes de invertir en ellos; eso es trabajo aparte",
+    "BL-041 (que la celda muestre el saldo real y no los aportes acumulados) sigue fuera: es un problema de lo que se VE, y arreglarlo con una regla de lo que se PERMITE es justo el error que hay que evitar",
+    "Roles, permisos y multi-usuario: el producto tiene un solo usuario",
+    "Validación en la BASE DE DATOS (constraints, triggers): el usuario lo descartó explícitamente — «ni siquiera en base de datos». La regla necesita el estado completo del rango para evaluarse, cosa que un CHECK por fila no puede ver",
+    "Validar las ediciones de INGRESO y GASTO. Decidido por el usuario el 2026-09-03 al descubrirse que su regla inicial («impedir bajar el ingreso hasta arreglar la reserva») contradice NFR-1803 de techo-de-flujo —aprobado y construido— y rompe 7 pruebas de dos features cerradas, entre ellas TC-CPR-040e, que prueba que bajar el ingreso SE ACEPTA. Se eligió acotar el guardia a lo que nadie discute en vez de reabrir agosto",
+    "Un guardia ABSOLUTO que exija que el estado entrante sea válido: dejaría sin ninguna escritura posible a quien ya esté por encima del techo (FR-2104, ADR-18)"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de T-Ledger), que ya tiene historia acumulada y usa la app desde escritorio y móvil",
+      "tech_level": "mid",
+      "goal": "Que las reglas de sus cuentas las garantice el sistema y no la pantalla, y que cuando algo se le impida se le diga qué mover primero",
+      "pain_point": "Hoy la regla del techo vive solo en el navegador: cualquier cosa que escriba por otra vía entra sin comprobar. Y cuando la app le frena, no siempre sabe por dónde salir — ya se quedó encerrado una vez"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2101",
+      "title": "El SERVIDOR rechaza toda escritura de RESERVA que deje un mes peor de lo que estaba",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Hoy `PUT /api/v1/ledger` acepta cualquier snapshot: la única validación de dominio que corre en el servidor es el guardia del cierre de mes. Del techo, el piso y el déficit no se comprueba nada, así que una petición fabricada a mano —fuera del navegador— escribe un estado que la app jamás habría aceptado. Principio del usuario (2026-09-03): «es una regla de negocio, debe vivir en el código, no en el navegador, ni siquiera en base de datos; es algo como de backend». La regla YA vive en código compartido; lo que falta es que el servidor la LLAME y que su veredicto sea la autoridad (ADR-12). ACOTAMIENTO DECIDIDO POR EL USUARIO el 2026-09-03, tras descubrirse el choque: el servidor hace cumplir EXACTAMENTE lo que la app ya hace cumplir —las reglas de las operaciones de RESERVA— y NADA MÁS. Una escritura que solo cambia ingresos o gastos no se valida, porque NFR-1803 de `techo-de-flujo` (aprobado y construido) dice literalmente que «ninguna escritura de ingresos o gastos adquiere validación nueva», y TC-CPR-040e prueba que bajar un ingreso SE ACEPTA aunque deje el mes excedido. El propósito es cerrar el agujero de la petición fabricada, no estrechar lo que el producto permite. La comprobación es RELATIVA: compara el estado persistido que lee el propio servidor contra el entrante y rechaza solo si algún mes empeora.",
+      "acceptance_criteria": [
+        "Una petición construida a mano que suba una reserva por encima del techo de su mes se rechaza con 4xx y la base queda sin cambios",
+        "Lo mismo para una petición que empeore el déficit o deje una alcancía en negativo",
+        "Una escritura que solo cambia ingresos o gastos NO se valida, aunque deje un mes excedido: se acepta y la marca aparece como consecuencia (NFR-1803, TC-CPR-040e)",
+        "Una escritura que MEJORA un mes o lo deja igual se acepta, aunque el estado siga violando el techo desde antes",
+        "El veredicto se calcula contra el estado PERSISTIDO leído por el servidor, no contra el que la petición declare",
+        "El guardia corre después del bloqueo de la fila ancla y ANTES de la primera escritura: no hay ventana entre validar y escribir"
+      ]
+    },
+    {
+      "id": "FR-2102",
+      "title": "El rechazo del servidor viaja con el detalle que permite explicarlo",
+      "priority": "MUST",
+      "type": "ui",
+      "description": "El 422 lleva la regla violada, el periodo y el límite operativo, no solo un código. Sin esos tres datos la interfaz no puede decir nada útil y el usuario recibe un «no se pudo» que no le dice qué mover. Con el alcance acotado, este rechazo es una RED DE SEGURIDAD y no el camino habitual: la app ya frena las operaciones de reserva en el navegador con su propio mensaje (`blockMessage`, FR-1006), así que el usuario solo llega aquí si el cliente falló o si la petición no vino de la app. Aun así el detalle tiene que ser correcto: es lo que permite que el fallo se diagnostique en vez de adivinarse.",
+      "acceptance_criteria": [
+        "El cuerpo del 422 incluye code='domain_rule_violation' y, por cada violación, su regla (techo, piso o deficit), su periodo y su límite",
+        "El límite es operativo: la operación con ese valor exacto se acepta y con un peso más se rechaza",
+        "Con varias violaciones se informa la de periodo más temprano, que es la que hay que arreglar antes de que la siguiente sea alcanzable",
+        "El rechazo no deja escritura parcial: ni una celda ni un movimiento cambian"
+      ]
+    },
+    {
+      "id": "FR-2103",
+      "title": "Una sola implementación de la regla: el servidor llama a la MISMA función que el navegador",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "El riesgo de poner la regla en dos sitios es que diverjan, y entonces el usuario ve una cosa en pantalla y otra al guardar. Se evita por construcción: el guardia del servidor delega en `chainCheck`, la misma función que ya usa `validateReserveWrite` en el navegador, y no reimplementa ni una línea. REDEFINIDO el 2026-09-03: la versión anterior de este requisito pedía además que el navegador validara las ediciones de INGRESO y GASTO antes de emitirlas. Eso se retira — contradecía NFR-1803 y no tiene sentido con el alcance acotado, porque esas ediciones ya no se rechazan.",
+      "acceptance_criteria": [
+        "No existe ningún cálculo de techo, exceso o déficit fuera del módulo del dominio que ya lo implementa: verificado por barrido del código, no por confianza",
+        "El guardia del servidor y la validación del navegador producen el mismo veredicto para los mismos datos",
+        "El módulo del guardia no contiene lógica de la regla: solo decide qué se le pasa a la función que ya existe"
+      ]
+    },
+    {
+      "id": "FR-2104",
+      "title": "Un estado que YA viola el techo nunca queda encerrado",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Existen estados por encima del techo: hoy se puede llegar a ellos y la marca de exceso los delata. Encender un guardia ABSOLUTO los dejaría sin ninguna escritura posible — el usuario no podría ni arreglarlo. Por eso la regla es relativa. VERIFICADO por ejecución el 2026-09-03 desde un exceso de 600.000: bajar la reserva (→300.000) y subir el ingreso (→100.000) mejoran y se permiten; bajar más el ingreso (→900.000) empeora y se rechaza; una edición neutra se permite. La salida siempre está abierta, Se conserva tras el acotamiento porque sigue siendo la propiedad que hace seguro encender el guardia.",
+      "acceptance_criteria": [
+        "Desde un estado con exceso de techo, reducir la reserva de ese mes se acepta y el exceso baja",
+        "Desde ese mismo estado, aumentar el ingreso del mes se acepta y el exceso baja",
+        "Desde ese mismo estado, una edición que no cambia el exceso ni el déficit de ningún mes se acepta",
+        "No existe ningún estado alcanzable desde el que TODAS las escrituras queden rechazadas: siempre hay al menos una operación que mejora"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2101",
+      "requirement_id": "FR-2101",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que las reglas de mi presupuesto las haga cumplir el servidor y no solo la pantalla",
+      "so_that": "que nadie —ni siquiera un programa— pueda escribir en mis cuentas algo que la app jamás habría aceptado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2101",
+          "given": "un ledger con un mes justo en su techo",
+          "when": "llega una petición fabricada a mano que sube la reserva por encima",
+          "then": "se rechaza con 4xx y la base queda idéntica"
+        },
+        {
+          "id": "AC-2102",
+          "given": "un ledger con un mes ya por encima del techo desde antes",
+          "when": "llega una escritura que no lo empeora",
+          "then": "se acepta, porque la regla prohíbe empeorar, no existir en falta"
+        },
+        {
+          "id": "AC-2103",
+          "given": "una petición que declara un estado previo falso",
+          "when": "se procesa",
+          "then": "el veredicto se calcula contra lo persistido y la mentira no cambia el resultado"
+        }
+      ]
+    },
+    {
+      "id": "US-2102",
+      "requirement_id": "FR-2102",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que cuando la app me frene me diga qué mover primero",
+      "so_that": "no quedarme atascado sin saber por dónde salir, como me pasó antes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2104",
+          "given": "un mes con las reservas al tope",
+          "when": "intento bajar el ingreso de ese mes",
+          "then": "la app lo impide y el mensaje nombra el mes y dice que primero reduzca la reserva"
+        },
+        {
+          "id": "AC-2105",
+          "given": "ese mismo rechazo",
+          "when": "leo el mensaje",
+          "then": "me dice el máximo que sí puedo bajar ahora mismo, y ese número se acepta tal cual"
+        },
+        {
+          "id": "AC-2106",
+          "given": "la celda con mi intento escrito",
+          "when": "la operación se rechaza",
+          "then": "la celda conserva su valor anterior y puedo corregir sin volver a empezar"
+        }
+      ]
+    },
+    {
+      "id": "US-2103",
+      "requirement_id": "FR-2103",
+      "as_a": "dueño del presupuesto",
+      "i_want": "enterarme al instante y no después de que el servidor me devuelva el cambio",
+      "so_that": "no ver cifras que aparecen y se deshacen solas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2107",
+          "given": "una edición de ingreso que empeoraría un mes",
+          "when": "la confirmo",
+          "then": "se detiene en el navegador sin emitir la petición"
+        },
+        {
+          "id": "AC-2108",
+          "given": "la misma edición",
+          "when": "comparo el veredicto del navegador con el del servidor",
+          "then": "ambos salen de la misma función del dominio y coinciden"
+        },
+        {
+          "id": "AC-2109",
+          "given": "un caso donde el navegador dejara pasar algo que el servidor rechaza",
+          "when": "llega el rechazo",
+          "then": "el estado local converge al del servidor y veo el mensaje, nunca un fallo mudo"
+        }
+      ]
+    },
+    {
+      "id": "US-2104",
+      "requirement_id": "FR-2104",
+      "as_a": "dueño del presupuesto",
+      "i_want": "poder arreglar un mes que quedó por encima del techo",
+      "so_that": "que una regla nueva no me deje encerrado con un estado que ya tenía",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2110",
+          "given": "un mes con exceso de 600.000",
+          "when": "reduzco la reserva de ese mes",
+          "then": "se acepta y el exceso baja"
+        },
+        {
+          "id": "AC-2111",
+          "given": "ese mismo mes",
+          "when": "aumento su ingreso",
+          "then": "se acepta y el exceso baja"
+        },
+        {
+          "id": "AC-2112",
+          "given": "cualquier estado alcanzable",
+          "when": "busco una operación permitida",
+          "then": "siempre existe al menos una que mejora: ningún estado deja todas las escrituras rechazadas"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2101",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde: las pruebas del proyecto y de sus features pasan sin relajar aserciones ni marcar pruebas como saltadas. MEDIDO el 2026-09-03: 741 unitarias+integración y 405 e2e sobre el commit 99d087c.",
+      "acceptance_criteria": "verify-run del raíz y de cada feature cerrada termina con exit code 0, sin pruebas en fail ni skip que antes pasaran, y el conteo ejecutado no baja de 741 + 405"
+    },
+    {
+      "id": "NFR-2102",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El guardia NO cambia lo que hoy se permite en las operaciones de RESERVA. La regla que el navegador ya aplica en aportes, retiros y traslados conserva su veredicto exacto: esta feature extiende QUIÉN la hace cumplir, no QUÉ permite. En particular FR-1801 (consumo bruto en Ejecutado) y ADR-08 (neto en el plan) siguen intactos.",
+      "acceptance_criteria": "Para los mismos datos, validateReserveWrite, verdictOf, maxWithdrawal, monthCarryUsage y el límite del techo devuelven exactamente los mismos valores que antes de la feature"
+    },
+    {
+      "id": "NFR-2103",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El guardia es INEVITABLE por construcción: corre en el punto de estrangulamiento de la persistencia, no repartido por operación, así que cubre también las vías de escritura que aún no existen. Un cliente que no sea la app —curl, un script, otra versión del front— recibe el mismo veredicto.",
+      "acceptance_criteria": "Una petición fabricada fuera del navegador que intente empeorar un mes se rechaza con 4xx y la base queda sin cambios; añadir una vía de escritura nueva sin tocar el guardia no abre un camino sin validar"
+    },
+    {
+      "id": "NFR-2104",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "cierre-de-mes no se degrada: el guardia del cierre (closedPeriodsViolated) sigue corriendo en el mismo punto y con la misma autoridad, y el guardia nuevo no lo sustituye ni lo adelanta. Las dos comprobaciones conviven en la misma transacción.",
+      "acceptance_criteria": "Los 92 TCs de cierre-de-mes siguen pasando, y una escritura que viole el cierre Y el techo a la vez se rechaza informando de las dos causas o de la más específica, nunca en silencio"
+    },
+    {
+      "id": "NFR-2105",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "El guardia no degrada la escritura: cargar el estado persistido y correr el escaneo del techo dentro de la transacción no lleva el PUT por encima del presupuesto vigente. El escaneo es el mismo que ya corre en el navegador en cada render.",
+      "acceptance_criteria": "Medido sobre el rango máximo previsto (historial más 2 años de horizonte), un PUT con el guardia activo se mantiene dentro del tope que rige hoy para esa ruta"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": [
+    "problem: enunciado por el usuario el 2026-09-03 — «es una regla de negocio, debe vivir en el código, no en el navegador, ni siquiera en base de datos; es algo como de backend»",
+    "baseline: MEDIDO en el código el 2026-09-03 — saveLedger solo corre closedPeriodsViolated; ninguna validación de techo/piso/déficit en el servidor",
+    "success_metric: elegido por el usuario el 2026-09-03 entre tres alternativas, con su coste explicado",
+    "no_go_zone: la decisión de no tocar el techo se apoya en la reproducción ejecutada el 2026-09-03 que desmiente el falso positivo de BL-037; el usuario la señaló («esto ya se había discutido, revísalo») y la evidencia le dio la razón",
+    "users: heredada del proyecto raíz, sin inventar una persona nueva"
+  ],
+  "idea_gaps": [
+    "NFR-2105 — el presupuesto de tiempo del PUT no está cifrado porque no hay un tope declarado para esa ruta hoy. Se fijará en la Fase 2 midiendo el coste real del escaneo dentro de la transacción",
+    "La regla que el usuario enunció el 2026-09-03 —«impedirle bajar el ingreso hasta que arregle la reserva»— NO se construye: contradice NFR-1803. Se le presentó el choque con las 7 pruebas que rompía y eligió acotar. Si algún día quiere esa regla, el camino es reabrir la Fase 1 de techo-de-flujo y de contrapartidas-reserva, no colarla por aquí"
+  ],
+  "coverage_map": [
+    {
+      "need": "«Es una regla de negocio; debe vivir en el código, no en el navegador ni en base de datos: es de backend»",
+      "disposition": "FR-2101"
+    },
+    {
+      "need": "PUT /api/v1/ledger acepta cualquier snapshot sin validar los invariantes del dominio (backend BG-002)",
+      "disposition": "FR-2101"
+    },
+    {
+      "need": "Que una petición fabricada fuera del navegador no consiga escribir (criterio de éxito elegido)",
+      "disposition": "NFR-2103"
+    },
+    {
+      "need": "«Impedirle bajar el ingreso hasta que arregle la reserva: primero la reserva y luego sí el ingreso»",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Hacer que se ajuste lo que permita el movimiento que necesite» — el rechazo anuncia el máximo operativo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que el usuario se entere al instante y no vea su edición deshacerse sola (derivado)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que no exista una segunda copia de la regla que pueda divergir",
+      "disposition": "FR-2103"
+    },
+    {
+      "need": "Que un estado que ya viola el techo no quede sin ninguna escritura posible",
+      "disposition": "FR-2104"
+    },
+    {
+      "need": "Que la suite existente siga verde",
+      "disposition": "NFR-2101"
+    },
+    {
+      "need": "Que no cambie lo que hoy se permite en las operaciones de reserva",
+      "disposition": "NFR-2102"
+    },
+    {
+      "need": "Que el guardia cubra también las vías de escritura futuras",
+      "disposition": "NFR-2103"
+    },
+    {
+      "need": "Que el guardia del cierre de mes no se degrade ni sea sustituido",
+      "disposition": "NFR-2104"
+    },
+    {
+      "need": "Que la validación no degrade el tiempo de escritura",
+      "disposition": "NFR-2105"
+    },
+    {
+      "need": "Cambiar el techo a consumo NETO para eliminar el «falso positivo» de BL-037",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Arreglar BL-037 (el castigo) y BL-038 (el trinquete)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "BL-041: que la celda muestre el saldo real en vez de los aportes acumulados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Validar con constraints o triggers en la base de datos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Roles, permisos y multi-usuario",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que el servidor no se vuelva más estricto que la app (NFR-1803 de techo-de-flujo)",
+      "disposition": "FR-2101"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — reglas-en-el-servidor\n\n_Escrito el 2026-09-03. Nace de investigar `backend BG-002`, abierto desde el 29 de agosto con el\ntítulo como única información. La investigación se hizo ejecutando, no leyendo, y cambió el\nplanteamiento: lo que sigue distingue lo VERIFICADO de lo DECIDIDO por el usuario._\n\n## Problem / Why\n\n### El agujero, verificado en el código\n\n`PUT /api/v1/ledger` acepta **cualquier** snapshot. La única validación de dominio que corre en el\nservidor es el guardia del cierre de mes (`closedPeriodsViolated`, feature `cierre-de-mes`); del\ntecho de flujo y de las reglas de reserva no se comprueba nada. Una petición fabricada a mano\n—fuera del navegador— escribe un estado que el dominio jamás habría permitido.\n\nLa regla **ya vive en código compartido**: `src/domain/reserve.ts` es TypeScript puro, sin React ni\nred, y lo usan los dos lados. Palabras del usuario al plantearle el problema:\n\n> «Como lo entiendo, eso es una regla de negocio. Debe vivir en el código, no en el navegador, ni\n> siquiera en base de datos; es algo como de backend.»\n\nAsí que el defecto no es dónde vive la regla, sino **quién la llama**: el navegador la llama, el\nservidor no. Es la misma filosofía que ADR-12 ya fijó para el cierre (la autoridad es el punto de\nestrangulamiento del servidor; el cliente es ergonomía), aplicada a la regla que se quedó fuera.\n\n### Lo que la investigación desmintió\n\nEl parte hermano —`transferencias BG-002`— afirmaba que un estado por encima del techo «no se\nre-valida **ni se señala**». La segunda mitad es FALSA, y se cerró el 2026-09-03 con la\nreproducción:\n\n```\ningreso 1.000.000 · reservo 1.000.000        →  sin marca\nbajo el ingreso a 400.000                    →  {kind:\"techo\", margin:400.000, excess:600.000}\n```\n\nEsa marca la pintan la grilla (`breachByMonth`) y el Balance, recalculada en cada cambio. Lo cierto\nera solo que nada lo **bloquea**. Se deja escrito para que nadie vuelva a partir de la premisa falsa.\n\n## New Behavior\n\n### La decisión del usuario (2026-09-03) — se rechaza, y en un orden\n\nSe le presentó el caso concreto con su coste, porque la alternativa le quitaba una salida que hoy\ntiene:\n\n| | Hoy | Con la regla en el servidor |\n|---|---|---|\n| Teclea 5.000.000 de ingreso por error y reserva 5.000.000 | permitido | permitido |\n| Se da cuenta y baja el ingreso a 500.000 | permitido, con marca | **RECHAZADO** |\n\nEligió rechazar, textualmente:\n\n> «Lo que haría sería impedirle bajar el ingreso hasta que arregle la reserva. Es decir, primero\n> tendría que editar la reserva y luego sí el ingreso. En general sería hacer que se ajuste lo que\n> permita el movimiento que necesite, como lo acabo de explicar.»\n\nDos cosas, y la segunda es tan importante como la primera:\n\n- **El servidor hace cumplir la regla del dominio en toda escritura**, venga del navegador o de una\n  petición fabricada.\n- **El rechazo tiene que decir el ORDEN**: qué hay que arreglar primero (la reserva) para poder\n  hacer después lo que se quería (bajar el ingreso). Un rechazo que solo diga «no se puede» deja al\n  usuario exactamente donde el encierro de septiembre lo dejó.\n\n**Consecuencia aceptada, presentada antes de decidir:** esto reintroduce el riesgo de encierro del\nque el usuario se quejó en septiembre. Su regla lo acota —siempre queda la salida de bajar la\nreserva primero, que sí se permite— pero cuesta un paso extra cada vez que se corrige un dedazo.\nQueda registrado para que nadie lo lea como un descuido.\n\n## Target Users\n\nEl mismo usuario individual del proyecto raíz. Sin roles ni segundo actor: el guardia protege sus\ndatos de peticiones que no vengan de su propia app, no de otras personas.\n\n## Success Criteria\n\n_A confirmar en la Fase 1 con el usuario._ Candidato, derivado de lo anterior y de la forma que\ntomó el criterio del cierre de mes (binario y comprobable):\n\n**Ninguna petición fabricada a mano consigue escribir un estado que la app no habría permitido** —\ny cuando la app rechaza, dice qué hay que arreglar primero, no solo que no se puede.\n\n## Lo que sigue ABIERTO para la Fase 1\n\n- **El alcance exacto de «la regla»**: el dominio hoy comprueba techo, piso y déficit en las\n  operaciones de RESERVA. ¿El servidor hace cumplir esas tres sobre el diff de estado, o hay\n  matices por tipo de escritura? El usuario enunció el principio, no la lista.\n- **Los estados que YA violan el techo.** Existen: hoy se puede llegar a ellos, y la marca de\n  `excess` los delata. La regla del dominio es RELATIVA («no empeorar»), así que un estado ya\n  violado no se rechaza en bloque — pero hay que verificar que a esos usuarios les queda camino de\n  salida y que ninguna operación legítima queda muerta.\n- **El texto del rechazo** y dónde aparece: es la mitad de la decisión del usuario y no se ha\n  concretado.\n## El «falso positivo» de BL-037 NO existe — verificado el 2026-09-03\n\nEsta feature estuvo a punto de nacer con una premisa falsa, heredada de\n`cierre-de-mes/feature_context/analisis-del-modelo.md`, que afirma que el techo marca como error el\ncamino que CONSERVA la verdad (cubrir un gasto sacando de la reserva). El usuario lo puso en duda\n—«esto ya se había discutido; hay una regla con un comentario que dice de dónde se reserva lo\nadicional cuando el ingreso no lo cubre, revísalo»— y tenía razón. La regla es **FR-1804**\n(`monthCarryUsage`): cuando las reservas no caben en el flujo del mes, lo adicional sale del\n**saldo con que cerró el mes anterior**, y la app escribe sola la observación que lo explica.\n\nEjecutado sobre el dominio real — junio con ingreso 1.000.000, reserva 1.000.000 y gasto 300.000:\n\n```\nSIN saldo previo  →  {kind:\"techo\", margin:700.000, excess:300.000}   · carryUsage: null\nCON 300.000       →  sin marca                                        · carryUsage: {reservado:1.000.000,\n                                                                          delSaldoAnterior:300.000,\n                                                                          mesAnterior:\"2026-05\"}\n```\n\n**La marca es honesta.** Solo aparece cuando se reservó más de lo que el usuario nunca tuvo: sin\nsaldo previo, ese junio tuvo 700.000 de margen y se metieron 1.000.000, y lo adicional lo financió\nel propio retiro — que es circular. El análisis del 2026-09-01 probó el caso en el PRIMER mes del\nhistorial, donde por definición no hay saldo anterior, y leyó como defecto lo que era el modelo\nfuncionando.\n\n**Consecuencias que la Fase 1 debe recoger:**\n- El techo NO se toca. FR-1801 (consumo bruto) sigue en pie y no contradice la regla que el usuario\n  enunció hoy: el saldo del mes anterior YA es parte del disponible y el techo ya lo cuenta\n  (`margin = arrastre previo + ingresos − gastos`). Lo único que no da cupo es un retiro de la\n  reserva del propio mes.\n- Esta feature se simplifica a lo que el usuario pidió desde el principio: **que el servidor haga\n  cumplir la regla que ya existe**, sin cambiar la regla.\n- **BL-037 y BL-038 del backlog descansan sobre este mismo diagnóstico erróneo** y hay que\n  revisarlos con esta evidencia antes de invertir nada en ellos.\n\n## Lo que sigue ABIERTO para la Fase 1 (revisado)\n\n- **Los estados que YA violan el techo.** Existen y hay que verificar que a esos usuarios les queda\n  camino de salida: la regla del dominio es RELATIVA («no empeorar»), así que un estado ya violado\n  no se rechaza en bloque, pero conviene comprobarlo antes de encender el guardia.\n- **El texto del rechazo** y dónde aparece: es la mitad de la decisión del usuario (tiene que decir\n  el ORDEN — primero la reserva, después el ingreso) y no se ha concretado.\n"
+}

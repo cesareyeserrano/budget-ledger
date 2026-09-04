@@ -30,6 +30,16 @@ const putHandler = withApi<LedgerPutBody>(
         HTTP.UNPROCESSABLE
       );
     }
+    // Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que
+    // estaba. 422 y no 409 por el mismo motivo que el anterior: reintentar no lo arregla, hay que
+    // cambiar QUÉ se escribe. El detalle viaja entero para que la interfaz pueda decir qué arreglar
+    // primero (FR-2102) — sin el periodo y sin el límite, el mensaje sería mudo.
+    if (!res.ok && "domainViolation" in res) {
+      return json(
+        { error: { code: "domain_rule_violation", detail: { violations: res.violations } } },
+        HTTP.UNPROCESSABLE
+      );
+    }
     if (!res.ok) return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     // Notifica a los demás dispositivos del MISMO usuario (FR-511).
     syncHub.publish(userId, { revision: res.revision });

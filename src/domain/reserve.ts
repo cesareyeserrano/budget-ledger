@@ -844,7 +844,7 @@ function techoScanRaw(
   return { excess, margin, consumo, arrastre, deficit };
 }
 
-interface ChainResult {
+export interface ChainResult {
   blocking: ReserveWarning | null;
   warnings: ReserveWarning[];
 }
@@ -870,7 +870,7 @@ interface ChainResult {
  *
  * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
  */
-function chainCheck(
+export function chainCheck(
   base: LedgerState, cand: LedgerState, plane: Plane, affectedLeaves: string[], periods: PeriodScope
 ): ChainResult {
   const violations: ReserveWarning[] = [];
@@ -944,6 +944,7 @@ function chainCheck(
   }
   return { blocking: violations[0] ?? null, warnings: [] };
 }
+
 
 /**
  * Valida la edición de una celda transfer (el APORTE del mes) SIN aplicarla: techo global en

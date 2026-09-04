@@ -44,6 +44,15 @@ const postHandler = withApi<MovementInput>(
     if ("closedViolation" in result) {
       return apiError("closed_period_violation", "El mes está cerrado", HTTP.UNPROCESSABLE);
     }
+    // Feature reglas-en-el-servidor (FR-2101): el movimiento dejaba algún mes peor de lo que
+    // estaba. El detalle viaja entero —mismo cuerpo que el PUT del ledger— para que el mensaje
+    // pueda decir qué arreglar primero (FR-2102), no solo que no se pudo.
+    if ("domainViolation" in result) {
+      return json(
+        { error: { code: "domain_rule_violation", detail: { violations: result.violations } } },
+        HTTP.UNPROCESSABLE
+      );
+    }
     syncHub.publish(userId, { revision: result.revision }); // notifica a los demás dispositivos (FR-511)
     return json({ movement: result.movement, revision: result.revision }, HTTP.CREATED);
   }

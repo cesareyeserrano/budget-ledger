@@ -656,12 +656,32 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     expect(contar()).toBeLessThanOrEqual(contar("bfded04"));
   });
 
-  it("TC-CDM-222f: la maquinaria del techo no se toca — reserve.ts sin cambios", () => {
+  it("TC-CDM-222f: la maquinaria del techo no se toca — el CÁLCULO sin cambios", () => {
     // @aitri-tc TC-CDM-222f
     // Es la promesa que sí se hizo: BL-037 y BL-038 están en el no_go_zone y esta feature no los
-    // aborda. Un diff vacío es la única forma de demostrarlo en vez de afirmarlo.
-    const diff = execSync("git diff --stat bfded04 -- src/domain/reserve.ts", { encoding: "utf8" });
-    expect(diff.trim()).toBe("");
+    // aborda.
+    //
+    // REESCRITA el 2026-09-03 (decisión del usuario). Antes exigía un diff VACÍO del fichero entero
+    // contra bfded04. Eso medía la promesa por un proxy demasiado ancho: se rompía en cuanto otra
+    // feature añadía código legítimo al mismo fichero, cosa que `reglas-en-el-servidor` tuvo que
+    // hacer para poder EXPONER la regla (no para cambiarla). Ahora vigila lo que de verdad se
+    // prometió — que el CÁLCULO no cambie — y sigue siendo imposible de falsear: se compara el
+    // texto de las funciones que lo implementan, no un comentario ni un resultado.
+    const actual = readFileSync("src/domain/reserve.ts", "utf8");
+    const base = execSync("git show bfded04:src/domain/reserve.ts", { encoding: "utf8" });
+
+    /** Extrae el cuerpo de una función por su nombre, hasta el cierre en la columna 0. */
+    const cuerpo = (src: string, nombre: string): string => {
+      const i = src.indexOf(`function ${nombre}(`);
+      expect(i).toBeGreaterThan(-1);
+      const fin = src.indexOf("\n}\n", i);
+      return src.slice(i, fin);
+    };
+
+    // Las tres piezas del techo: el escaneo, el consumo BRUTO y el encadenado de las reglas.
+    for (const fn of ["techoScanRaw", "reserveAportes", "chainCheck"]) {
+      expect(cuerpo(actual, fn), `${fn} cambió`).toBe(cuerpo(base, fn));
+    }
   });
 });
 

@@ -1,0 +1,846 @@
+{
+  "test_plan": {
+    "strategy": "Tres niveles, con el peso donde el diseño dice que está el riesgo. UNIT (Vitest, dominio puro): la regla en sí — que rechace lo que empeora, acepte lo que mejora, y sobre todo la PROPIEDAD de que ningún estado queda sin salida (TC-RES-043f), que es la garantía sobre la que descansa la decisión de ADR-18. Se prueba además por BARRIDO que no existe una segunda implementación de la regla (TC-RES-031f): la promesa de FR-2103 es estructural y una prueba de comportamiento no la demostraría. INTEGRATION (Vitest + testcontainers Postgres): el guardia contra la base real, y sobre todo las PETICIONES FABRICADAS A MANO — el criterio de éxito elegido por el usuario es exactamente ese, así que la prueba que lo acredita no puede pasar por la app. Incluye la petición que MIENTE sobre el estado previo (TC-RES-013f), que es el vector que distingue un guardia real de uno decorativo. E2E (Playwright): lo que solo se afirma en el navegador — que el mensaje nombre el mes y el orden, que el máximo anunciado sea operativo, y que la petición ni se emita. LA PRUEBA QUE MÁS IMPORTA es TC-RES-021e: un `limit` que se anuncia y no se puede usar es peor que no anunciarlo, y solo se detecta probando N y N−1.",
+    "coverage_goal": "80%",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "type_coverage_matrix": [
+      {
+        "fr_type": "logic",
+        "frs": [
+          "FR-2101",
+          "FR-2104"
+        ],
+        "required_levels": [
+          "unit",
+          "integration"
+        ],
+        "note": "El dominio es puro: la unidad es el nivel natural. Integración OBLIGATORIA porque el guardia solo es autoridad en el servidor y el criterio de éxito habla de peticiones fabricadas."
+      },
+      {
+        "fr_type": "ui",
+        "frs": [
+          "FR-2102"
+        ],
+        "required_levels": [
+          "e2e"
+        ],
+        "note": "El mensaje, su contenido y que el máximo anunciado sea usable solo se verifican en el navegador."
+      },
+      {
+        "fr_type": "logic",
+        "frs": [
+          "FR-2103"
+        ],
+        "required_levels": [
+          "unit",
+          "e2e",
+          "integration"
+        ],
+        "note": "Unit para el rechazo local y el BARRIDO estructural (una sola implementación); e2e para comprobar que no se emite petición; integración para el caso en que el cliente dejara pasar algo."
+      },
+      {
+        "fr_type": "Regression",
+        "frs": [
+          "NFR-2101",
+          "NFR-2102",
+          "NFR-2104"
+        ],
+        "required_levels": [
+          "unit",
+          "integration"
+        ],
+        "note": "Comparación contra valores registrados antes de la feature: es la única forma de demostrar que nada cambió en vez de suponerlo."
+      },
+      {
+        "fr_type": "Security",
+        "frs": [
+          "NFR-2103"
+        ],
+        "required_levels": [
+          "unit",
+          "integration"
+        ],
+        "note": "El barrido de rutas de escritura es estructural; la petición fabricada es de integración."
+      },
+      {
+        "fr_type": "Performance",
+        "frs": [
+          "NFR-2105"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "Se mide contra Postgres real dentro de la transacción; en unidad el número no significaría nada."
+      }
+    ],
+    "coverage_decisions": [
+      "NO se prueba que el guardia exija validez ABSOLUTA, porque ADR-18 decide lo contrario: TC-RES-012h prueba lo CONTRARIO (una escritura sobre un estado ya violado se ACEPTA si mejora), para que un futuro desarrollador no 'endurezca' la regla y encierre al usuario.",
+      "NO se prueba ningún cambio en el techo: el no_go_zone lo prohíbe y TC-RES-211f prueba que FR-1801 sigue en pie (consumo BRUTO en Ejecutado). Es la prueba que impide que alguien 'arregle' el falso positivo inexistente.",
+      "NO se prueban constraints ni triggers en la base: el usuario los descartó explícitamente y la regla necesita el rango completo, que un CHECK por fila no puede ver.",
+      "La propiedad «ningún estado sin salida» se prueba GENERANDO estados, no con tres ejemplos: un ejemplo solo cubre el caso que alguien recordó, y el riesgo aquí es justo el que nadie imaginó.",
+      "NO se prueba el rendimiento en unidad: un número medido sin Postgres ni transacción no dice nada del PUT real."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-RES-010f",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Una petición fabricada que empeora el techo se rechaza y la base no cambia",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 en Postgres: 2026-06 con ingreso 1.000.000 y reserva 1.000.000 (justo en su techo, exceso 0); revision 5",
+      "when": "PUT /api/v1/ledger construido a mano (sin pasar por la app) con baseRevision 5 y la reserva de 2026-06 subida a 1.400.000",
+      "then": "responde 422 con error.code='domain_rule_violation' y una violación {rule:'techo', period:'2026-06'}; amount_cell de 2026-06 sigue en 1.000.000 y ledger.revision sigue en 5",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422, celda intacta y revisión sin avanzar: la transacción revirtió entera",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-011f",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Una petición que empeora el DÉFICIT se rechaza igual",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 en déficit arrastrado y un retiro de reserva de 300.000 que lo sostiene",
+      "when": "PUT fabricado que ELIMINA ese retiro (una escritura que SÍ toca reservas), dejando el disponible de 2026-06 en −500.000",
+      "then": "responde 422 con una violación {rule:'deficit', period:'2026-06'} y el movimiento de retiro sigue en la tabla movement",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 por déficit: la regla que el techo no ve también corre en el servidor",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-012h",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2102",
+      "title": "Una escritura que MEJORA un estado ya violado se acepta",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 en exceso de 600.000 (ingreso 400.000, reserva 1.000.000), estado alcanzado antes del guardia",
+      "when": "PUT que baja la RESERVA de 2026-06 a 700.000 (exceso pasa a 300.000)",
+      "then": "responde 200, revision avanza en 1 y la celda queda en 700.000 — el guardia no exige validez absoluta, solo que no se empeore",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 y escritura aplicada pese a que el estado sigue violando el techo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-013f",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2103",
+      "title": "Una petición que miente sobre el estado previo obtiene el mismo veredicto",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 justo en su techo (reserva 1.000.000, ingreso 1.000.000)",
+      "when": "PUT fabricado cuyo cuerpo declara un estado previo inventado —con un ingreso de 5.000.000 que haría legal la escritura— y sube la reserva a 1.400.000",
+      "then": "responde 422 igual: el veredicto se calculó contra el estado leído de la base, y lo que la petición afirmara del pasado no cambió nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 idéntico al de TC-RES-010f: la mentira no compra nada",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-014e",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El guardia corre dentro del lock: no hay ventana entre validar y escribir",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 con 300.000 de margen libre y dos clientes con la misma baseRevision",
+      "when": "dos PUT simultáneos, cada uno subiendo la reserva en 300.000 (legales por separado, ilegales juntos)",
+      "then": "uno responde 200 y el otro 409 revision_conflict o 422; en ningún caso los dos se aplican, y el estado final no supera el techo por la suma",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Nunca se aplican los dos: el guardia corre tras el FOR UPDATE",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-015e",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Un mes ESTRENADO por la escritura también se juzga",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ledger de u1 cuyo historial termina en 2026-06; 2026-07 no existe todavía en ninguna tabla",
+      "when": "PUT que crea 2026-07 con una RESERVA de 900.000 y sin ningún ingreso en ese mes",
+      "then": "responde 422 con violación en '2026-07': el rango juzgado es la unión del alcance previo y el entrante, así que estrenar un mes no lo saca del juicio",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "El mes nuevo se evalúa: crear no es una via de escape",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-016f",
+      "requirement_id": "FR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "POST /api/v1/movements aplica el MISMO guardia",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 justo en su techo",
+      "when": "POST /api/v1/movements con un aporte a reserva de 400.000 en 2026-06, fabricado fuera de la app",
+      "then": "responde 422 con la misma forma domain_rule_violation y no se inserta ninguna fila en movement",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Las dos vías de escritura del servidor comparten guardia: no hay puerta trasera",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-020h",
+      "requirement_id": "FR-2102",
+      "user_story_id": "US-2102",
+      "ac_id": "AC-2104",
+      "title": "El 422 lleva regla, periodo y límite — no solo un código",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 justo en su techo",
+      "when": "llega una petición fabricada que sube la reserva de 2026-06 por encima",
+      "then": "el cuerpo del 422 trae code='domain_rule_violation' y una violación con rule='techo', period='2026-06' y un limit numérico: los tres datos que permiten diagnosticar el rechazo en vez de adivinarlo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 con regla, periodo y límite presentes",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-021e",
+      "requirement_id": "FR-2102",
+      "user_story_id": "US-2102",
+      "ac_id": "AC-2105",
+      "title": "El límite anunciado es OPERATIVO: se acepta tal cual y se rechaza con un peso más",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el rechazo de TC-RES-020h, cuyo cuerpo anuncia un límite N para esa operación",
+      "when": "se repite la petición con el valor que deja el mes exactamente en N, y después con un peso más",
+      "then": "la primera responde 200 y persiste; la segunda responde 422. Un `limit` que no cumpla las dos mitades es un número inventado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "N se acepta y N+1 se rechaza",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-022e",
+      "requirement_id": "FR-2102",
+      "user_story_id": "US-2102",
+      "ac_id": "AC-2106",
+      "title": "El rechazo no deja escritura parcial",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un PUT que cambia varias celdas y cuya última violación está en el mes final del rango",
+      "when": "se procesa y se rechaza",
+      "then": "ninguna de las celdas del cuerpo quedó escrita y revision no avanzó: la transacción revirtió entera",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero escrituras parciales",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-023e",
+      "requirement_id": "FR-2102",
+      "user_story_id": "US-2102",
+      "ac_id": "AC-2104",
+      "title": "Con varias violaciones a la vez, se ordenan por periodo y manda la primera",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un candidato de RESERVA que empeora el techo de 2026-07 y el déficit de 2026-09 a la vez",
+      "when": "se pide el veredicto al dominio",
+      "then": "las violaciones vienen ordenadas por periodo ascendente y la primera es la de 2026-07 — la que hay que arreglar antes para que la siguiente sea siquiera alcanzable",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Orden por periodo: el usuario recibe un solo obstáculo, y es el primero",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-030f",
+      "requirement_id": "FR-2103",
+      "user_story_id": "US-2103",
+      "ac_id": "AC-2107",
+      "title": "El módulo del guardia no contiene lógica de la regla",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el fichero del guardia de estado",
+      "when": "se inspecciona su contenido buscando aritmética del techo (márgenes, excesos, arrastres, déficits)",
+      "then": "no calcula ninguna: solo decide qué se le pasa a la función del dominio que ya existe. Toda la aritmética vive en un único sitio",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero aritmética de la regla en el guardia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-031f",
+      "requirement_id": "FR-2103",
+      "user_story_id": "US-2103",
+      "ac_id": "AC-2108",
+      "title": "No existe una segunda implementación de la regla",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el árbol de src/ completo",
+      "when": "se barre el código buscando cálculos de techo, exceso o déficit fuera de src/domain/reserve.ts (reserveAportes, techoScan, chainCheck y sus derivados)",
+      "then": "el barrido devuelve cero coincidencias fuera de reserve.ts: servidor y navegador invocan la misma función y no pueden divergir",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero implementaciones duplicadas — verificado por barrido, no por confianza",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-032e",
+      "requirement_id": "FR-2103",
+      "user_story_id": "US-2103",
+      "ac_id": "AC-2107",
+      "title": "El cuerpo de chainCheck no cambió ni una línea",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el texto de chainCheck en el commit previo a la feature",
+      "when": "se compara con el actual",
+      "then": "es idéntico: exponer la regla costó dos palabras `export` y ni una línea de su cuerpo, así que ningún veredicto pudo alterarse por el camino",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cuerpo idéntico al previo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-033e",
+      "requirement_id": "FR-2103",
+      "user_story_id": "US-2103",
+      "ac_id": "AC-2109",
+      "title": "Una escritura que solo toca ingresos o gastos NO se juzga",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 justo en su techo (ingreso 1.000.000, reserva 1.000.000)",
+      "when": "llega un PUT que baja el ingreso de 2026-06 a 400.000 y no toca ninguna reserva",
+      "then": "responde 200 y la escritura se aplica, dejando el mes con exceso de 600.000: es el acotamiento de ADR-20, y lo exige NFR-1803 («ninguna escritura de ingresos o gastos adquiere validación nueva»)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 y aplicada: el guardia se abstiene donde la app también se abstiene",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-040h",
+      "requirement_id": "FR-2104",
+      "user_story_id": "US-2104",
+      "ac_id": "AC-2110",
+      "title": "Desde un estado violado, bajar la reserva se acepta",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "2026-06 con ingreso 400.000 y reserva 1.000.000 (exceso 600.000)",
+      "when": "se reduce la reserva de 2026-06 a 700.000",
+      "then": "la operación se acepta y el exceso pasa de 600.000 a 300.000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Aceptada: la salida que el usuario dictó (primero la reserva) está siempre abierta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-041h",
+      "requirement_id": "FR-2104",
+      "user_story_id": "US-2104",
+      "ac_id": "AC-2111",
+      "title": "Desde ese mismo estado, subir el ingreso se acepta",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el mismo estado con exceso 600.000",
+      "when": "se sube el ingreso de 2026-06 a 900.000",
+      "then": "la operación se acepta y el exceso pasa de 600.000 a 100.000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Aceptada: mejorar siempre se permite",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-042f",
+      "requirement_id": "FR-2104",
+      "user_story_id": "US-2104",
+      "ac_id": "AC-2110",
+      "title": "Desde ese mismo estado, bajar MÁS el ingreso se rechaza",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el mismo estado con exceso 600.000",
+      "when": "se baja el ingreso de 2026-06 a 100.000, lo que llevaría el exceso a 900.000",
+      "then": "la operación se rechaza con {rule:'techo', period:'2026-06'} y el estado no cambia",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Rechazada: empeorar nunca se permite, aunque el estado ya estuviera mal",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-043e",
+      "requirement_id": "FR-2104",
+      "user_story_id": "US-2104",
+      "ac_id": "AC-2112",
+      "title": "PROPIEDAD: ningún estado deja TODAS las escrituras rechazadas",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un generador de estados que incluye casos violados: exceso de techo, déficit arrastrado, y ambos a la vez, sobre rangos de 1 a 12 meses",
+      "when": "para cada estado generado se prueban las operaciones de salida (reducir la reserva del mes ofensor, aumentar su ingreso, reducir su gasto)",
+      "then": "en TODOS los estados generados existe al menos una operación aceptada: ninguno queda sin salida. Se afirma como propiedad sobre el conjunto generado, no como ejemplo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero estados sin salida sobre el conjunto generado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-200h",
+      "requirement_id": "NFR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "La suite existente sigue verde",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el repositorio en el commit de la feature",
+      "when": "se ejecuta verify-run del raíz y de cada feature cerrada",
+      "then": "exit code 0, sin pruebas en fail ni skip que antes pasaran, y el conteo ejecutado no baja de 741 unitarias+integración y 405 e2e",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Conteo igual o mayor y exit code 0",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-210f",
+      "requirement_id": "NFR-2102",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El veredicto de las operaciones de RESERVA no cambia ni un caso",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el conjunto de escenarios de reserva registrado antes de la feature, con sus veredictos",
+      "when": "se recalculan validateReserveWrite, verdictOf, maxWithdrawal, monthCarryUsage y el límite del techo sobre los mismos datos",
+      "then": "todos devuelven exactamente los mismos valores que antes: esta feature extiende QUIÉN hace cumplir la regla, no QUÉ permite",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Igualdad exacta con los veredictos registrados",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-211f",
+      "requirement_id": "NFR-2102",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "FR-1801 sigue en pie: el consumo del plano Ejecutado sigue siendo BRUTO",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "2026-06 con ingreso 1.000.000, reserva 1.000.000 y un retiro de 500.000",
+      "when": "se consulta el margen y el consumo del mes en el plano Ejecutado",
+      "then": "el consumo sigue siendo 1.000.000 (bruto) y no 500.000 (neto): el retiro NO devuelve cupo, y el plan sigue usando el neto (ADR-08)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Bruto en Ejecutado y neto en el plan: el techo no se tocó",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-220f",
+      "requirement_id": "NFR-2103",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Una vía de escritura nueva queda cubierta sin tocar el guardia",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el código del servidor",
+      "when": "se barren las rutas que escriben en el ledger y se comprueba que todas pasan por el punto de estrangulamiento donde vive el guardia",
+      "then": "no existe ninguna ruta de escritura que llegue a la base sin atravesar el guardia; una ruta nueva heredaría la protección por construcción",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero rutas de escritura sin guardia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-230h",
+      "requirement_id": "NFR-2104",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "cierre-de-mes no se degrada",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la feature cierre-de-mes cerrada con sus 92 TCs",
+      "when": "se ejecuta su verify-run con el guardia nuevo activo",
+      "then": "los 92 TCs siguen pasando y el guardia del cierre sigue corriendo en el mismo punto de la transacción",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "92/92 y guardia del cierre intacto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-231e",
+      "requirement_id": "NFR-2104",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Con las dos violaciones a la vez, manda el mensaje del CIERRE",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con 2026-06 CERRADO y además al tope de su techo",
+      "when": "PUT que edita una celda de 2026-06 empeorando el techo",
+      "then": "responde 422 con closed_period_violation, no con domain_rule_violation: el cierre se evalúa antes porque arreglar la reserva no desbloquearía nada (ADR-19)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Gana el cierre: un solo obstáculo, y el que de verdad bloquea",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-240h",
+      "requirement_id": "NFR-2105",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El guardia no degrada la escritura",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un ledger del tamaño máximo previsto (historial más 2 años de horizonte)",
+      "when": "se mide el tiempo de un PUT /api/v1/ledger con el guardia activo",
+      "then": "se mantiene dentro del tope vigente para esa ruta, y la carga de estado se hace UNA sola vez compartida por los dos guardias",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Dentro del presupuesto, con una sola carga de estado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-034h",
+      "requirement_id": "FR-2103",
+      "user_story_id": "US-2103",
+      "ac_id": "AC-2107",
+      "title": "El guardia y el navegador dan el MISMO veredicto para los mismos datos",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un conjunto de escenarios de reserva con veredicto conocido",
+      "when": "se compara el veredicto del guardia de estado con el que da la validación que usa el navegador",
+      "then": "coinciden en todos: bloquean lo mismo y aceptan lo mismo, porque salen de la misma función",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Veredictos idénticos en todos los escenarios",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-201f",
+      "requirement_id": "NFR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "No crece el número de pruebas desactivadas",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el conteo de it.skip / test.skip / describe.skip registrado antes de la feature",
+      "when": "se recuenta sobre el árbol de tests tras la feature",
+      "then": "el número no aumenta: ninguna prueba se apagó para que la suite pasara",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero pruebas nuevas desactivadas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-202e",
+      "requirement_id": "NFR-2101",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Las suites de las features vecinas pasan SIN modificarse",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "las suites de cierre-de-mes, transferencias y techo-de-flujo tal como están en el commit previo",
+      "when": "se ejecutan con el guardia activo, sin editar ni una aserción",
+      "then": "todas pasan sin cambios: si alguna hubiera necesitado retoques, sería señal de que el guardia cambió comportamiento y no solo quién lo hace cumplir",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Verdes sin tocar una línea",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-212h",
+      "requirement_id": "NFR-2102",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Las 7 pruebas que el alcance ancho habría roto siguen verdes",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "TC-CPR-040e, TC-CPR-043f, TC-CPR-036h, TC-TDF-006e, TC-TDF-050h, TC-TDF-052e y TC-TDF-222e, de techo-de-flujo y contrapartidas-reserva",
+      "when": "se ejecutan con el guardia activo",
+      "then": "las siete pasan sin modificarse. Son las que prueban que bajar el ingreso se acepta y que la marca señala sin bloquear: si alguna se pone roja, el guardia se pasó de alcance",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "7/7 verdes sin tocar una línea",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-221h",
+      "requirement_id": "NFR-2103",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Una petición legítima de la app atraviesa el guardia",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sesión válida y un ledger con margen de sobra en todos sus meses",
+      "when": "la app emite un PUT ordinario que edita una celda sin empeorar nada",
+      "then": "responde 200 y la escritura se aplica: el guardia no añade fricción al camino normal",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 y escritura aplicada",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-222e",
+      "requirement_id": "NFR-2103",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "Sin sesión el guardia ni se evalúa",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una petición sin cookie de sesión",
+      "when": "PUT /api/v1/ledger con un cuerpo que violaría la regla",
+      "then": "responde 401 y no se llega a leer el estado ni a evaluar el guardia: la autenticación es la puerta anterior",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "401 antes de cualquier evaluación de dominio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-232f",
+      "requirement_id": "NFR-2104",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El guardia nuevo NO sustituye al del cierre",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el código de saveLedger e insertMovement",
+      "when": "se barre buscando las llamadas a closedPeriodsViolated y al guardia nuevo dentro de la misma transacción",
+      "then": "AMBAS siguen presentes y en el orden que fija ADR-19 (el cierre primero): el guardia nuevo se añadió, no reemplazó nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Las dos comprobaciones vivas, en su orden",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-241e",
+      "requirement_id": "NFR-2105",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El estado se carga UNA sola vez por transacción",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un ledger con meses cerrados (que activa el guardia del cierre) y el guardia nuevo activo",
+      "when": "se emite un PUT y se cuentan las lecturas de estado dentro de la transacción",
+      "then": "loadStateInTx se invoca exactamente una vez: los dos guardias comparten la carga en vez de pedirla cada uno",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Una sola carga de estado por escritura",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-242f",
+      "requirement_id": "NFR-2105",
+      "user_story_id": "US-2101",
+      "ac_id": "AC-2101",
+      "title": "El guardia no dispara consultas por mes (sin N+1)",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un ledger del rango máximo previsto (historial más 2 años de horizonte, del orden de 36 a 60 periodos)",
+      "when": "se emite un PUT y se cuentan las consultas SQL de la transacción",
+      "then": "el número de consultas no crece con el número de periodos: el escaneo corre en memoria sobre el estado ya cargado, no consultando mes a mes",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Consultas constantes respecto al número de meses",
+      "test_data": {}
+    },
+    {
+      "id": "TC-RES-024f",
+      "requirement_id": "FR-2102",
+      "user_story_id": "US-2102",
+      "ac_id": "AC-2105",
+      "title": "Un rechazo sin periodo ni límite es un fallo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "cualquier rechazo del guardia",
+      "when": "se inspecciona el cuerpo del 422",
+      "then": "la violación NUNCA viene sin `period` ni con `limit` ausente o no numérico. Un cuerpo así hace fallar la prueba: sería un rechazo mudo, imposible de explicar al usuario y de diagnosticar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Periodo y límite presentes y numérico; un cuerpo mudo falla",
+      "test_data": {}
+    }
+  ]
+}

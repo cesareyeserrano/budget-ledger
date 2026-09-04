@@ -204,14 +204,19 @@ describe("NFR-1108 — arranque y CI sin el flag retirado", () => {
     }
   });
 
-  it("TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0", { timeout: 120_000 }, () => {
+  // Cinturón anti-recursión: este es el ÚNICO test que aún lanza el runner del proyecto, y lo hace
+  // sobre UN fichero que no es este, así que hoy no puede reentrar. La marca existe para el día en
+  // que alguien amplíe ese alcance: la corrida anidada la hereda y el test se salta en vez de
+  // lanzar otra suite. Una prueba que relanza la suite en la que vive costó una máquina entera
+  // (feature reglas-en-el-servidor, 2026-09-03).
+  it.skipIf(!!process.env.VITEST_NESTED)("TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0", { timeout: 120_000 }, () => {
     // @aitri-tc TC-SFU-208f
     // Un pipeline que no puede fallar no verifica nada. Se corre un test que falla a propósito con
     // el MISMO runner del proyecto y se exige exit ≠ 0.
     tempFile("tests/unit/__probe_failing__.test.ts", 'import { it, expect } from "vitest";\nit("sonda: debe fallar", () => { expect(1).toBe(2); });\n');
 
     const r = spawnSync("npx", ["vitest", "run", "--project", "app", "tests/unit/__probe_failing__.test.ts"], {
-      cwd: ROOT, encoding: "utf8", env: { ...process.env, CI: "true" },
+      cwd: ROOT, encoding: "utf8", env: { ...process.env, CI: "true", VITEST_NESTED: "1" },
     });
     expect(r.status).not.toBe(0);
 
