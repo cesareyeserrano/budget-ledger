@@ -33,6 +33,7 @@ import { rollupActual } from "@/domain/rollup";
 import { P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import { P } from "../helpers/periods";
+import { SALTAR_SI_INSTRUMENTADO } from "../helpers/perf";
 
 interface LeafSpec { id: string; type: NodeType; budget?: Partial<Record<PeriodKey, number>>; actual?: Partial<Record<PeriodKey, number>> }
 
@@ -702,7 +703,9 @@ describe("NFR-1608 · el índice del journal no empeora el coste", () => {
     expect(__reservePerfCounters().seriesComputes).toBe(30);
   });
 
-  it("TC-CPR-086e: 30 hojas y 500 moveres se derivan por debajo del umbral de 150 ms", () => {
+  // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta
+  // ENTERA: mejor verla saltada que verde sin haber afirmado nada (BG-026).
+  it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-CPR-086e: 30 hojas y 500 moveres se derivan por debajo del umbral de 150 ms", () => {
     // @aitri-tc TC-CPR-086e
     const hojas = Array.from({ length: 30 }, (_, i) => ({ id: `h${i}`, type: "transfer" as NodeType, actual: { "2026-01": 100_000 } }));
     let s = makeState([{ id: "c-ingreso", type: "income", actual: { "2026-01": 50_000_000 } }, ...hojas]);
