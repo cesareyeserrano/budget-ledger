@@ -17,6 +17,7 @@ import {
   addCellNote,
   applyReserveCellEdit,
   cellObservations,
+  CELL_NOTE_MAX,
   applyReserveOp,
   cellHeadroom,
   editReserveOp,
@@ -1147,6 +1148,45 @@ describe("FR-1809 · una observación pertenece a SU celda", () => {
     expect(cellObservations(r2.state, "B", "2026-01", P).map((o) => o.text)).toEqual(["el regalo"]);
     expect(cellObservations(r2.state, "A", "2026-01", P).map((o) => o.text)).toEqual(["la cuota del curso"]);
   });
+
+  // @aitri-tc TC-TDF-082f
+  it("TC-TDF-082f: vacío o de más de 280 se rechaza tipado, y la observación vigente no se toca", () => {
+    // La celda de partida es de GASTO a propósito: FR-1809 abrió las observaciones a cualquier tipo
+    // de celda, y el rechazo por texto inválido tiene que valer igual ahí que en un bolsillo.
+    let s = base({ "2026-01": 1000 });
+    s = setLeafAmount(s, "c-gasto", "2026-01", "actual", 300, P);
+    const puesta = addCellNote(s, "c-gasto", "2026-01", "  el recibo de la luz  ", P);
+    if ("rejected" in puesta) return expect.fail(`la observación vigente se rechazó: ${puesta.rejected}`);
+    s = puesta.state;
+    expect(cellObservations(s, "c-gasto", "2026-01", P).map((o) => o.text)).toEqual(["el recibo de la luz"]);
+
+    const antes = deep(s);
+    const largo = "x".repeat(CELL_NOTE_MAX + 1); // 281: uno por encima del límite
+
+    // Los TRES textos inválidos: vacío, solo espacios (que al recortar queda vacío) y pasado de largo.
+    for (const [nombre, texto] of [["vacío", ""], ["solo espacios", "   \t\n  "], ["281 caracteres", largo]] as const) {
+      const r = addCellNote(s, "c-gasto", "2026-01", texto, P);
+      expect("rejected" in r, `${nombre}: debía rechazarse`).toBe(true);
+      // Rechazo TIPADO, no un booleano ni una excepción: el editor necesita distinguir «texto
+      // inválido» de «celda inválida» para decir cuál de las dos cosas pasó.
+      if ("rejected" in r) expect(r.rejected, `${nombre}: motivo del rechazo`).toBe("invalid_note");
+    }
+
+    // La observación vigente sigue exactamente igual, y el estado entero no se movió.
+    expect(cellObservations(s, "c-gasto", "2026-01", P).map((o) => o.text)).toEqual(["el recibo de la luz"]);
+    expect(deep(s)).toEqual(antes);
+
+    // Y sin truncado silencioso: el texto de 281 no entró recortado a 280 por ninguna puerta.
+    const textos = cellObservations(s, "c-gasto", "2026-01", P).map((o) => o.text);
+    expect(textos).toHaveLength(1);
+    expect(textos[0].length).toBeLessThanOrEqual(CELL_NOTE_MAX);
+    expect(textos.some((t) => t.startsWith("xxxx"))).toBe(false);
+
+    // El borde de al lado SÍ entra: 280 exactos se aceptan. Sin esto, un límite mal puesto en 279
+    // pasaría este caso sin que nadie se enterara.
+    const justo = addCellNote(s, "c-gasto", "2026-01", "y".repeat(CELL_NOTE_MAX), P);
+    expect("state" in justo, "280 caracteres exactos deben aceptarse").toBe(true);
+  });
 });
 
 // ── Las regresiones MUST que el gate de despliegue exige acreditadas ───────────────────────────
@@ -1174,6 +1214,84 @@ describe("NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos",
     expect(elMover, "el mover debe existir con sus dos extremos").toBeTruthy();
     expect(elMover!.amount).toBe(200);
   });
+
+  // @aitri-tc TC-TDF-232e
+  it("TC-TDF-232e: el mover conserva su cálculo y NO cuenta como retiro del mes", () => {
+    // El mover entre bolsillos no saca plata del sistema: la cambia de sitio. Si se contara como
+    // retiro inflaría la fila «Retiros del mes» y, con la regla bruta de esta feature, el usuario
+    // vería una salida que nunca ocurrió (es el defecto hermano de BG-001 de transferencias).
+    let s = base({ "2026-01": 1000 });
+    s = llevar(s, "A", "2026-01", 500); // A con 500, B en 0
+    expect(resolvedBalance(s, "A", "2026-01", "actual", P)).toBe(500);
+    expect(resolvedBalance(s, "B", "2026-01", "actual", P)).toBe(0);
+
+    const antesSuma = computeBalanceSeries(s, P)["2026-01"].actual.reservedBalance;
+    const antesRetiros = reserveRetiros(s, "2026-01", "actual");
+    const antesAportes = reserveAportes(s, "2026-01", "actual");
+
+    const mv = applyReserveOp(s, { from: "A", to: "B", period: "2026-01", amount: 200 }, P);
+    if (!("state" in mv)) return expect.fail(`el mover se rechazó: ${JSON.stringify(mv.rejected)}`);
+    s = mv.state;
+
+    // Saldos: la plata cambió de bolsillo, peso por peso.
+    expect(resolvedBalance(s, "A", "2026-01", "actual", P)).toBe(300);
+    expect(resolvedBalance(s, "B", "2026-01", "actual", P)).toBe(200);
+
+    // Suma invariante: el reservado total del mes no se mueve — nada entró ni salió.
+    const m = computeBalanceSeries(s, P)["2026-01"].actual;
+    expect(m.reservedBalance, "el mover no puede cambiar el reservado total").toBe(antesSuma);
+    expect(m.reservedBalance).toBe(500);
+
+    // Y la fila de retiros del mes sigue sin el mover — ni la de aportes.
+    expect(reserveRetiros(s, "2026-01", "actual"), "el mover no es un retiro").toBe(antesRetiros);
+    expect(reserveRetiros(s, "2026-01", "actual")).toBe(0);
+    expect(reserveAportes(s, "2026-01", "actual"), "el mover no es un aporte").toBe(antesAportes);
+    expect(reserveAportes(s, "2026-01", "actual")).toBe(500);
+
+    // Tampoco consume cupo: el techo del mes es del flujo, y el mover no trae flujo nuevo.
+    expect(reserveHeadroom(s, "2026-01", P)).toBe(500);
+  });
+
+  // @aitri-tc TC-TDF-233f
+  it("TC-TDF-233f: el mover se elimina cuando no rompe, y cuando rompería queda la edición", () => {
+    // (a) Un mover sin operaciones posteriores se elimina y todo vuelve a su sitio.
+    let a = base({ "2026-01": 1000 });
+    a = llevar(a, "A", "2026-01", 500);
+    const mvA = applyReserveOp(a, { from: "A", to: "B", period: "2026-01", amount: 200 }, P);
+    if (!("state" in mvA)) return expect.fail("el mover (a) se rechazó");
+    const quitado = removeReserveOp(mvA.state, mvA.movement.id, P);
+    if ("rejected" in quitado) return expect.fail(`eliminar el mover (a) se rechazó: ${JSON.stringify(quitado.rejected)}`);
+    expect(resolvedBalance(quitado.state, "A", "2026-01", "actual", P)).toBe(500);
+    expect(resolvedBalance(quitado.state, "B", "2026-01", "actual", P)).toBe(0);
+    expect(quitado.state.movements.some((m) => m.id === mvA.movement.id)).toBe(false);
+
+    // (b) Un mover de 500 con un retiro POSTERIOR de 400 en el destino: eliminarlo dejaría a B en
+    // −400, así que el piso lo rechaza. Esa es la situación de encierro que esta feature cierra —
+    // y la salida no es rendirse, es que la EDICIÓN siga disponible.
+    let b = base({ "2026-01": 1000 });
+    b = llevar(b, "A", "2026-01", 500);
+    const mvB = applyReserveOp(b, { from: "A", to: "B", period: "2026-01", amount: 500 }, P);
+    if (!("state" in mvB)) return expect.fail("el mover (b) se rechazó");
+    b = sacar(mvB.state, "B", "2026-01", 400).state;
+    expect(resolvedBalance(b, "B", "2026-01", "actual", P)).toBe(100);
+
+    const antes = deep(b);
+    const noSePuede = removeReserveOp(b, mvB.movement.id, P);
+    expect("rejected" in noSePuede, "eliminar debía rechazarse: dejaría a B en negativo").toBe(true);
+    if ("rejected" in noSePuede && typeof noSePuede.rejected === "object") {
+      expect(noSePuede.rejected).toMatchObject({ ok: false, rule: "piso", period: "2026-01" });
+    }
+    expect(deep(b), "un rechazo no puede mutar nada").toEqual(antes);
+
+    // Editable siempre: bajar el mover a 400 sí cabe — B queda en 0 y A recupera 100.
+    const editado = editReserveOp(b, mvB.movement.id, 400, P);
+    if ("rejected" in editado) return expect.fail(`editar a 400 se rechazó: ${JSON.stringify(editado.rejected)}`);
+    expect(resolvedBalance(editado.state, "B", "2026-01", "actual", P)).toBe(0);
+    expect(resolvedBalance(editado.state, "A", "2026-01", "actual", P)).toBe(100);
+    // La corrección conserva la IDENTIDAD del movimiento: mismo id, no uno nuevo al principio.
+    expect(editado.movement?.id).toBe(mvB.movement.id);
+    expect(editado.state.movements.filter((m) => m.from === "A" && m.to === "B")).toHaveLength(1);
+  });
 });
 
 describe("NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada", () => {
@@ -1199,5 +1317,47 @@ describe("NFR-1806 · la cascada conserva su aritmética con la fila de retiros 
     // Y la fila operable NO está en la tabla del Balance: su reflejo de solo lectura sí.
     expect(ROWS.map((r) => r.key)).not.toContain("retiros");
     expect(ROWS.map((r) => r.key)).toContain("toWithdrawals");
+  });
+
+  // @aitri-tc TC-TDF-252e
+  it("TC-TDF-252e: un mes de solo retiros suma en positivo, sin un solo doble negativo", () => {
+    // El mes de SOLO RETIROS es el caso que delata un modelo neto: con aportes 0 y retiros 500, el
+    // neto vale −500, y pintarlo en una fila cuyo signo declarado es «−» produce «− Reservas −500»
+    // — el doble negativo ilegible que NFR-1806 prohíbe. Las filas se alimentan de las magnitudes
+    // BRUTAS justamente para que esto no pueda ocurrir.
+    let s = base({ "2026-01": 1000 });
+    s = llevar(s, "A", "2026-01", 1000);           // la plata entra en enero…
+    s = sacar(s, "A", "2026-09", 500).state;       // …y septiembre solo tiene un retiro de 500
+
+    const sep = computeBalanceSeries(s, P)["2026-09"].actual;
+    const ago = computeBalanceSeries(s, P)["2026-08"].actual;
+
+    // El mes es de verdad «solo retiros».
+    expect(reserveAportes(s, "2026-09", "actual")).toBe(0);
+    expect(reserveRetiros(s, "2026-09", "actual"), "500 positivo, que es lo que la fila muestra").toBe(500);
+    expect(sep.flow, "septiembre no tiene ingresos ni gastos propios").toBe(0);
+
+    // El NETO sí es negativo — por eso no puede ser lo que se pinta. Dejarlo afirmado explica de
+    // dónde vendría el doble negativo si alguien volviera a alimentar las filas con él.
+    expect(sep.reserved).toBe(-500);
+
+    // Ninguna magnitud bruta de una fila con signo «−» puede ser negativa: ahí está el doble negativo.
+    const brutas: Record<string, number> = {
+      toReserves: reserveAportes(s, "2026-09", "actual"),
+      toWithdrawals: reserveRetiros(s, "2026-09", "actual"),
+      retiros: reserveRetiros(s, "2026-09", "actual"),
+    };
+    for (const fila of [...ROWS, RETIROS_ROW]) {
+      const v = brutas[fila.key];
+      if (v === undefined) continue;
+      expect(v, `${fila.label} (signo «${fila.op}») no puede ser negativa`).toBeGreaterThanOrEqual(0);
+    }
+
+    // Y la cascada cierra con las brutas: el retiro DEVUELVE los 500 al disponible.
+    expect(sep.prevAvailable + sep.flow - brutas.toReserves + brutas.toWithdrawals).toBe(sep.available);
+    expect(sep.available).toBe(ago.available + 500);
+    expect(sep.reservedBalance).toBe(ago.reservedBalance - 500);
+    // El bottom-line no se mueve: la plata cambió de sitio, no de cantidad.
+    expect(sep.total).toBe(ago.total);
   });
 });

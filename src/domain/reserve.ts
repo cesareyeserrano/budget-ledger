@@ -83,19 +83,25 @@ export type ReserveEditResult =
 
 // ── Derivaciones (saldo por alcancía, aportes/retiros del mes) ─────────────────────────────────
 
-// Contadores de instrumentación de NFR (perf): cómputos de series y llamadas a validación.
+// Contadores de instrumentación de NFR (perf): cómputos de series, llamadas a validación y
+// barridos de techo. `techoScans` cuenta las veces que `techoScanRaw` recorre de verdad los doce
+// meses: es el número que delata si la memoización de `techoScan` dejó de funcionar (NFR-1807).
+// Un contador, y no el cronómetro, porque cuenta PASADAS y no milisegundos: sigue siendo cierto
+// bajo instrumentación de cobertura, donde el reloj de pared no lo es (BG-026, tests/helpers/perf).
 let seriesComputes = 0;
 let validateCalls = 0;
+let techoScans = 0;
 
 /** Lectura de los contadores de perf (solo tests). */
-export function __reservePerfCounters(): { seriesComputes: number; validateCalls: number } {
-  return { seriesComputes, validateCalls };
+export function __reservePerfCounters(): { seriesComputes: number; validateCalls: number; techoScans: number } {
+  return { seriesComputes, validateCalls, techoScans };
 }
 
 /** Reinicio de los contadores de perf (solo tests). */
 export function __resetReservePerfCounters(): void {
   seriesComputes = 0;
   validateCalls = 0;
+  techoScans = 0;
 }
 
 /** Ids de las HOJAS transfer (las alcancías). */
@@ -564,7 +570,7 @@ function techoScan(state: LedgerState, plane: Plane, periods: PeriodScope): Tech
   let byPlane = byScope.get(periods as unknown as object);
   if (!byPlane) { byPlane = {}; byScope.set(periods as unknown as object, byPlane); }
   let scan = byPlane[plane];
-  if (!scan) { scan = techoScanRaw(state, plane, periods); byPlane[plane] = scan; }
+  if (!scan) { techoScans += 1; scan = techoScanRaw(state, plane, periods); byPlane[plane] = scan; }
   return scan;
 }
 

@@ -490,6 +490,177 @@ test.describe("FR-1808 · el indicador avisa antes de confirmar y no empuja a na
   });
 });
 
+/**
+ * El escenario de CORRECCIÓN desde la lista (FR-1802 / FR-1803).
+ *
+ * Marzo ingresa 2.000, reserva 1.000 y retira 500 — el bolsillo queda en 500 y marzo cierra con
+ * 1.500 disponibles. Abril reserva 1.300, que salen justo de ese cierre.
+ *
+ * Los números están elegidos para que la MISMA operación admita una corrección y rechace otra, que
+ * es lo que FR-1803 exige demostrar: bajar el retiro a 300 deja marzo cerrando en 1.300 y abril
+ * sigue cabiendo exacto; bajarlo a 100 lo dejaría en 1.100 y abril se quedaría sin respaldo. Sin
+ * las 1.300 de abril, bajar el retiro no rompería nada y el rechazo no tendría dónde ocurrir.
+ */
+const CASO_CORRECCION = {
+  nodes: NODES,
+  actuals: {
+    "c-salario": { "2026-03": 2000 },
+    "c-alcancia": { "2026-03": 1000, "2026-04": 1300 },
+  },
+  movements: [{ ...retiro("c-alcancia", "2026-03", 500), id: "mv-f3" }],
+} as unknown as Parameters<typeof seedLedger>[1];
+
+/** Marzo con DOS operaciones y nada que dependa de ellas: el escenario de la eliminación. */
+const CASO_DOS_OPS = {
+  nodes: NODES,
+  actuals: {
+    "c-salario": { "2026-03": 2000 },
+    "c-alcancia": { "2026-03": 1000 },
+  },
+  movements: [
+    { ...retiro("c-alcancia", "2026-03", 300), id: "mv-a", createdAt: 1 },
+    { ...retiro("c-alcancia", "2026-03", 200), id: "mv-b", createdAt: 2 },
+  ],
+} as unknown as Parameters<typeof seedLedger>[1];
+
+/**
+ * Índice de COLUMNA de marzo en los dos escenarios de corrección — 0, no 2.
+ *
+ * El horizonte de la grilla arranca en el primer mes CON DATOS, no en enero: sembrado marzo, la
+ * primera columna es marzo (medido: las celdas de retiro van de 2026-03 a 2028-12). `ENE`/`FEB` de
+ * arriba valen 0 y 1 porque CASO_USUARIO siembra enero y febrero, no porque el eje sea fijo.
+ */
+const MAR = 0;
+
+/**
+ * Abre la lista «Operaciones de este mes» del mes indicado desde la fila «Retiros del mes».
+ *
+ * Se localiza por `data-month` y NO por índice: la grilla renderiza 34 celdas de retiro (los doce
+ * meses más las de los otros rieles), así que `nth(2)` no es marzo — es otra celda cualquiera, y
+ * el fallo se presenta como «la lista no abre» en vez de «apunté a la celda equivocada».
+ */
+async function abrirOperaciones(page: Page, period: string): Promise<void> {
+  await page.locator(`[data-testid="withdraw-cell"][data-month="${period}"]`).click();
+  await expect(page.getByTestId("withdraw-history")).toBeVisible();
+}
+
+test.describe("FR-1803 · corregir desde la lista, con el rechazo a la vista", () => {
+  test("TC-TDF-091h: la edición válida se aplica; la que rompe se rechaza nombrando el mes", async ({ page }) => {
+    // @aitri-tc TC-TDF-091h
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_CORRECCION);
+
+    await abrirOperaciones(page, "2026-03");
+    const monto = page.getByTestId("op-amount-mv-f3");
+    await expect(monto).toHaveValue("500");
+
+    // (1) La corrección que el usuario pidió por su nombre: bajar el retiro de 500 a 300.
+    await monto.fill("300");
+    await monto.press("Enter");
+    await expect(monto).toHaveValue("300");
+    await expect(page.getByTestId("op-error-mv-f3")).toHaveCount(0);
+
+    // Y la pantalla lo refleja: marzo devuelve 300 en vez de 500, y su disponible baja a 1.300.
+    await expect(celdaBalance(page, "toWithdrawals", MAR, 1)).toHaveText("300");
+    await expect(celdaBalance(page, "available", MAR, 1)).toHaveText("1.300");
+
+    // (2) La edición que ROMPE: bajarlo a 100 dejaría a abril reservando plata que ya no existe.
+    // Antes de esta feature, eliminar un retiro no validaba NADA y por esta puerta se llegaba al
+    // encierro; aquí la puerta responde.
+    // La lista sigue abierta tras la corrección —el popover no se cierra al editar— así que se
+    // reutiliza el mismo campo. Volver a pulsar la celda lo CERRARÍA, que es el gesto de alternar.
+    await expect(page.getByTestId("withdraw-history")).toBeVisible();
+    const monto2 = page.getByTestId("op-amount-mv-f3");
+    await monto2.fill("100");
+    await monto2.press("Enter");
+
+    // El mensaje aparece EN LÍNEA, nombra el mes afectado —abril, no marzo— y no se lo lleva un toast.
+    const error = page.getByTestId("op-error-mv-f3");
+    await expect(error).toBeVisible();
+    await expect(error).toHaveAttribute("role", "alert");
+    await expect(error).toContainText(/abril/i);
+
+    // Y el campo vuelve a lo que había: un rechazo no deja la pantalla mintiendo.
+    await expect(monto2).toHaveValue("300");
+    await expect(celdaBalance(page, "toWithdrawals", MAR, 1)).toHaveText("300");
+    await expect(celdaBalance(page, "available", MAR, 1)).toHaveText("1.300");
+  });
+});
+
+test.describe("FR-1802 · teclear 0 elimina, en línea y sin modal", () => {
+  test("TC-TDF-092e: la fila desaparece con aviso en línea, sin diálogo, y el saldo se restaura", async ({ page }) => {
+    // @aitri-tc TC-TDF-092e
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_DOS_OPS);
+
+    await abrirOperaciones(page, "2026-03");
+    await expect(page.getByTestId("op-retiro")).toHaveCount(2);
+    await expect(celdaBalance(page, "toWithdrawals", MAR, 1)).toHaveText("500"); // 300 + 200
+
+    // Cuántas capas de overlay hay ANTES: la lista vive dentro de un popover, que Radix marca como
+    // `dialog`. Lo que este caso prohíbe es que aparezca UNA MÁS al eliminar — el diálogo de
+    // confirmación que esta feature retira. Contar el delta distingue las dos cosas; afirmar
+    // «cero dialogs» habría fallado por el popover y habría tentado a relajar la aserción.
+    const overlaysAntes = await page.locator('[role="dialog"]').count();
+
+    const monto = page.getByTestId("op-amount-mv-a");
+    await monto.fill("0");
+    await monto.press("Enter");
+
+    // La fila desapareció y la lista queda con UNA operación.
+    await expect(page.getByTestId("op-amount-mv-a")).toHaveCount(0);
+    await expect(page.getByTestId("op-retiro")).toHaveCount(1);
+    await expect(page.getByTestId("op-amount-mv-b")).toBeVisible();
+
+    // El aviso EN LÍNEA, dentro de la propia lista y anunciado a los lectores de pantalla.
+    const aviso = page.getByTestId("op-deleted-notice");
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toHaveText("Operación eliminada");
+    await expect(aviso).toHaveAttribute("role", "status");
+
+    // Y NINGÚN diálogo nuevo: ni una capa más, ni un alertdialog, ni botones de confirmación.
+    expect(await page.locator('[role="dialog"]').count(), "apareció un overlay nuevo").toBe(overlaysAntes);
+    await expect(page.locator('[role="alertdialog"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /confirmar|sí, |seguro/i })).toHaveCount(0);
+
+    // El saldo restaurado: los 300 vuelven al bolsillo (500 → 800) y marzo solo devuelve ya 200.
+    await expect(celdaBalance(page, "toWithdrawals", MAR, 1)).toHaveText("200");
+    await expect(celdaBalance(page, "available", MAR, 1)).toHaveText("1.200");
+    await expect(celdaBalance(page, "reservedBalance", MAR, 1)).toHaveText("800");
+  });
+});
+
+test.describe("NFR-1806 · la mudanza de «Retiros del mes» no duplicó la fila", () => {
+  test("TC-TDF-253f: existe exactamente UNA, y vive en el segmento de Reservas", async ({ page }) => {
+    // @aitri-tc TC-TDF-253f
+    // La fila se MUDÓ del Balance al bloque de Reservas (ADR-09). El modo de fallo de una mudanza
+    // es dejar la copia vieja donde estaba: dos filas con el mismo rótulo, cada una con su cifra, y
+    // el lector sin saber cuál manda. Se cuenta el rótulo en TODA la página, no dentro de un
+    // contenedor — buscar solo donde debe estar no puede encontrar la que sobra.
+    await page.setViewportSize(DESK);
+    await abrir(page, CASO_USUARIO);
+    await desplegarReservas(page);
+
+    await expect(page.getByTestId("retiros-row")).toHaveCount(1);
+    await expect(page.getByTestId("retiros-label")).toHaveCount(1);
+    await expect(page.getByText("Retiros del mes", { exact: true })).toHaveCount(1);
+
+    // Su reflejo dentro del Balance existe, pero con OTRO rótulo: son dos filas distintas y se
+    // llaman distinto, que es lo que impide leerlas como un duplicado.
+    await expect(page.locator('[data-testid="balance-row"][data-row="toWithdrawals"]')).toHaveCount(1);
+    await expect(page.getByText("Retiros de reservas", { exact: true })).toHaveCount(1);
+    // Y la fila operable NO está entre las del Balance.
+    await expect(page.locator('[data-testid="balance-row"][data-row="retiros"]')).toHaveCount(0);
+
+    // Ubicación: bajo el bolsillo y por ENCIMA del encabezado del Balance — cierra Reservas.
+    const yRetiros = (await page.getByTestId("retiros-row").boundingBox())!.y;
+    const yAlcancia = (await filaDe(page, "Alcancía").boundingBox())!.y;
+    const yBalance = (await page.getByTestId("balance-header").boundingBox())!.y;
+    expect(yAlcancia).toBeLessThan(yRetiros);
+    expect(yRetiros).toBeLessThan(yBalance);
+  });
+});
+
 test.describe("FR-1807 · la UI retirada no existe", () => {
   test("TC-TDF-061f: sin botón «Sacar» en la fila del bolsillo y sin botones de borrar", async ({ page }) => {
     // @aitri-tc TC-TDF-061f

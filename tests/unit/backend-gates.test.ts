@@ -7,11 +7,20 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { parse as parseYaml } from "yaml";
 import { buildSeed, rollupBudget } from "@/domain";
 import { P0 } from "../helpers/periods";
 
 const ROOT = process.cwd();
 const ci = () => readFileSync(path.join(ROOT, ".github/workflows/ci.yml"), "utf8");
+
+/** Un paso del workflow, con los campos por los que un fallo puede dejar de tumbar la corrida. */
+interface WorkflowStep { name?: string; run?: string; uses?: string; if?: string; "continue-on-error"?: boolean }
+interface WorkflowJob { steps: WorkflowStep[]; "continue-on-error"?: boolean }
+interface Workflow { jobs: Record<string, WorkflowJob> }
+
+/** El workflow PARSEADO — para afirmar sobre pasos y no sobre el texto plano (NFR-1808). */
+const parseWorkflow = (): Workflow => parseYaml(ci()) as Workflow;
 
 /** Corre un comando; devuelve el exit code (0 si ok). */
 function runExit(cmd: string, args: string[], cwd = ROOT): number {
@@ -201,5 +210,68 @@ describe("NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama prin
     // suite recortada. Es la misma familia de defecto que BG-014 (un gate que nunca se vio fallar).
     expect(yml, "ningún paso puede llevar continue-on-error").not.toMatch(/continue-on-error:\s*true/);
     expect(yml, "la suite no puede correr filtrada por -g/--grep").not.toMatch(/--grep|\s-g\s/);
+  });
+
+  // @aitri-tc TC-TDF-272e
+  it("TC-TDF-272e: los pasos del CI invocan las suites DECLARADAS en package.json, no un nombre inventado", () => {
+    // Lo que este caso añade sobre TC-TDF-271h: aquel afirma sobre el TEXTO del yml con una
+    // alternancia (`test:e2e|playwright test|e2e.sh`), así que sigue verde si el CI invoca un
+    // script que package.json ya no declara — el modo de fallo real cuando se renombra un script y
+    // el workflow se queda atrás. Aquí se PARSEA el workflow y se cruzan las dos mitades: el script
+    // existe en package.json Y algún paso del job de pruebas lo ejecuta.
+    const wf = parseWorkflow();
+    const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> };
+
+    const job = wf.jobs["build-and-test"];
+    expect(job, "el job build-and-test debe existir").toBeDefined();
+    const runs = job.steps.map((st) => st.run ?? "").join("\n");
+
+    for (const script of ["test:run", "test:e2e"]) {
+      expect(pkg.scripts[script], `package.json no declara el script ${script}`).toBeTruthy();
+      expect(runs, `ningún paso del CI ejecuta npm run ${script}`).toContain(`npm run ${script}`);
+    }
+
+    // Y la mitad e2e del backend, que corre por configuración propia en vez de por script.
+    expect(pkg.scripts["test:e2e:backend"]).toBeTruthy();
+    expect(runs, "el CI no corre la e2e del backend").toMatch(/playwright\.backend\.config\.ts/);
+
+    // Ambos comandos presentes: la unitaria y la e2e, en pasos de verdad y no en un comentario.
+    expect(job.steps.some((st) => (st.run ?? "").includes("npm run test:run"))).toBe(true);
+    expect(job.steps.some((st) => (st.run ?? "").includes("npm run test:e2e"))).toBe(true);
+  });
+
+  // @aitri-tc TC-TDF-273f
+  it("TC-TDF-273f: los pasos de suite no pueden dar verde falso — un fallo tumba el workflow", () => {
+    // Los tres vectores por los que un paso de suite sale verde sin haber probado nada: que no
+    // pueda fallar (`continue-on-error`), que el shell se trague el código de salida (`|| true`,
+    // `set +e`, `|| exit 0`), o que la suite no tenga nada que correr y lo dé por bueno
+    // (`--passWithNoTests`). TC-TDF-271h barre el fichero entero con un regex; este localiza los
+    // PASOS DE SUITE y afirma sobre ellos, que es donde el verde falso importa.
+    const wf = parseWorkflow();
+    const job = wf.jobs["build-and-test"];
+
+    const suiteSteps = job.steps.filter((st) => /npm run test:|playwright test/.test(st.run ?? ""));
+    expect(suiteSteps.length, "no se localizó ningún paso de suite").toBeGreaterThanOrEqual(2);
+
+    for (const st of suiteSteps) {
+      const nombre = st.name ?? st.run ?? "(sin nombre)";
+      expect(st["continue-on-error"], `${nombre}: continue-on-error deja pasar un fallo`).toBeFalsy();
+      expect(st.if, `${nombre}: un condicional puede saltarse la suite en silencio`).toBeUndefined();
+      const run = st.run ?? "";
+      expect(run, `${nombre}: '|| true' se traga el código de salida`).not.toMatch(/\|\|\s*true/);
+      expect(run, `${nombre}: '|| exit 0' se traga el código de salida`).not.toMatch(/\|\|\s*exit\s+0/);
+      expect(run, `${nombre}: 'set +e' desarma el shell`).not.toMatch(/set\s+\+e/);
+      expect(run, `${nombre}: --passWithNoTests da verde sin correr nada`).not.toMatch(/--passWithNoTests/);
+      expect(run, `${nombre}: la suite no puede correr filtrada`).not.toMatch(/--grep|\s-g\s/);
+    }
+
+    // Y el job entero tampoco puede estar blindado.
+    expect(job["continue-on-error"], "el job build-and-test no puede llevar continue-on-error").toBeFalsy();
+
+    // Falsabilidad: el mismo predicado aplicado a un paso blindado DEBE fallar. Sin esto, las
+    // aserciones de arriba son indistinguibles de un caso que no comprueba nada (BG-014).
+    const blindado = { name: "suite blindada", run: "npm run test:run || true", "continue-on-error": true } as WorkflowStep;
+    expect(blindado["continue-on-error"]).toBeTruthy();
+    expect(blindado.run).toMatch(/\|\|\s*true/);
   });
 });

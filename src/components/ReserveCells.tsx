@@ -502,6 +502,24 @@ export function WithdrawCell({
   // corregirlo desde la interfaz.
   const monthOps = monthReserveOps(data, month);
 
+  // Confirmación EN LÍNEA de la eliminación (FR-1802 · UX_SPEC §«Teclear 0»). Vive en el
+  // contenedor y no en la fila porque la fila DESAPARECE al eliminarse: un aviso montado dentro de
+  // ella se desmontaría con ella y no llegaría a verse nunca.
+  //
+  // Es en línea y no un diálogo a propósito: el diálogo modal de confirmación es justo lo que esta
+  // feature retira. Teclear 0 ya es un acto deliberado, y la operación es reversible registrándola
+  // de nuevo — pedir permiso encima sería la fricción que H3 (control y libertad) desaconseja.
+  const [opEliminada, setOpEliminada] = useState(false);
+  const avisoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (avisoTimer.current) clearTimeout(avisoTimer.current); }, []);
+
+  /** Muestra «Operación eliminada» y lo desvanece. Reiniciable: dos borrados seguidos no lo cortan. */
+  function avisarEliminada() {
+    setOpEliminada(true);
+    if (avisoTimer.current) clearTimeout(avisoTimer.current);
+    avisoTimer.current = setTimeout(() => setOpEliminada(false), 2600);
+  }
+
   function reset() {
     setFromId("");
     setAmount("");
@@ -616,12 +634,26 @@ export function WithdrawCell({
         {/* Operaciones del mes: eliminar = corregir (el saldo se restaura por construcción). Desde
             FR-1609 la lista incluye los MOVERES, que antes no aparecían — y por eso no había forma
             de deshacer uno equivocado salvo hacer el mover inverso a mano. */}
+        {/* El aviso va FUERA del bloque de la lista: al eliminar la última operación la lista se
+            sustituye por su estado vacío, y un aviso dentro de ella se iría con el bloque.
+            La transición la anula `prefers-reduced-motion` en globals.css. */}
+        {opEliminada ? (
+          <span
+            role="status"
+            data-testid="op-deleted-notice"
+            className="pl-1 transition-opacity duration-300"
+            style={{ color: "var(--fg-secondary)" }}
+          >
+            Operación eliminada
+          </span>
+        ) : null}
+
         {monthOps.length > 0 ? (
           <div className="flex flex-col gap-1 border-t border-border pt-2" data-testid="withdraw-history">
             <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Operaciones de este mes</span>
             <ul className="flex flex-col gap-0.5">
               {monthOps.map((mv) => (
-                <OpRow key={mv.id} mv={mv} />
+                <OpRow key={mv.id} mv={mv} onEliminada={avisarEliminada} />
               ))}
             </ul>
           </div>
@@ -653,7 +685,7 @@ export function WithdrawCell({
  *
  * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1805, TC-ID: TC-TDF-091h, TC-TDF-092e
  */
-function OpRow({ mv }: { mv: Movement }) {
+function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const editOp = useLedgerStore((s) => s.editReserveOp);
@@ -668,7 +700,12 @@ function OpRow({ mv }: { mv: Movement }) {
     const n = Math.max(0, Math.round(Number(val) || 0));
     if (n === mv.amount) return;
     const res = editOp(mv.id, n);
-    if (res.ok) { setError(null); return; }
+    if (res.ok) {
+      setError(null);
+      // 0 = eliminar: la fila se desmonta, así que el aviso lo levanta el contenedor.
+      if (n === 0) onEliminada();
+      return;
+    }
     setVal(String(mv.amount)); // el rechazo no muta: el campo vuelve a lo que había
     // `ok: true` no es alcanzable aquí (el store solo devuelve el veredicto cuando bloqueó), pero
     // el tipo lo admite, así que se estrecha en vez de castear.
