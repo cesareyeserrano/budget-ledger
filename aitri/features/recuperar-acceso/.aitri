@@ -19,19 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T20:38:29.073Z",
+  "updatedAt": "2026-09-05T01:12:34.951Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-14T20:19:54.374Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-14T20:21:33.601Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-08-14T20:25:42.524Z",
       "event": "approved",
@@ -169,6 +159,24 @@
       "phase": "verify",
       "passed": 87,
       "failed": 0
+    },
+    {
+      "at": "2026-09-05T00:59:17.783Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 33,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-05T01:12:34.929Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -252,33 +260,23 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "0ca3faf5477ed8f5ee79cc6038431ea453864aee86694d2b2b841ed394493998",
-  "verifyRanAt": "2026-09-04T20:15:23.632Z",
-  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyResultsHash": "255f40a78284eaf17269f39a31854caf824ed0d28008f0e334e2e9f4e24bbdbd",
+  "verifyRanAt": "2026-09-05T01:12:34.862Z",
+  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
   "verifyRanDirty": false,
   "lastVerifyRun": {
-    "passed": 87,
-    "failed": 0,
+    "passed": 86,
+    "failed": 1,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T20:15:23.632Z"
+    "at": "2026-09-05T01:12:34.862Z"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-08-14T20:58:23.388Z"
     }
-  ],
-  "verifySummary": {
-    "total": 87,
-    "passed": 87,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 0
-  }
+  ]
 }

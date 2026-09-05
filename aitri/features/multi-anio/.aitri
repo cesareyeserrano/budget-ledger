@@ -17,24 +17,9 @@
   "projectName": "multi-anio",
   "createdAt": "2026-09-02T20:59:38.721Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T20:38:28.960Z",
+  "updatedAt": "2026-09-05T01:07:15.202Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-02T22:31:45.458Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T00:46:19.160Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T00:46:40.123Z",
-      "event": "approved",
-      "phase": 1
-    },
     {
       "at": "2026-09-03T00:47:25.809Z",
       "event": "completed",
@@ -138,6 +123,31 @@
       "phase": "verify",
       "passed": 79,
       "failed": 0
+    },
+    {
+      "at": "2026-09-04T23:37:06.108Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-05T01:07:15.057Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-05T01:07:15.186Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -199,26 +209,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "f6794307a884d9443d0e26d8a91cb99ca0493e3055eb52304746a26345c551cb",
-  "verifyRanAt": "2026-09-04T20:07:17.078Z",
-  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyResultsHash": "4db97c956623a975d936fea5da5a0f5acd677f1a3737be3cd9da6bdc7d6ab7d8",
+  "verifyRanAt": "2026-09-05T01:07:15.009Z",
+  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 79,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T20:07:17.078Z"
-  },
-  "verifySummary": {
-    "total": 79,
-    "passed": 79,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 2
+    "at": "2026-09-05T01:07:15.009Z"
   },
   "releaseHistory": [
     {
@@ -228,5 +228,15 @@
     }
   ],
   "coverageAuditLastAt": "2026-09-03T01:25:34.920Z",
-  "coverageAuditReqHash": "510a422af33fdc8873543619521f6f1ee073efbe520f5fec8feaad1e9c7d7832"
+  "coverageAuditReqHash": "510a422af33fdc8873543619521f6f1ee073efbe520f5fec8feaad1e9c7d7832",
+  "verifySummary": {
+    "total": 79,
+    "passed": 79,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 2
+  }
 }
