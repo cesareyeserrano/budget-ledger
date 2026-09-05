@@ -338,7 +338,16 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // Si alguna hubiera necesitado retoques, sería señal de que el guardia cambió comportamiento y
     // no solo quién lo hace cumplir.
     //
-    // ANCLA AVANZADA de bfded04 a 396653e el 2026-09-04, a propósito y por una sola razón.
+    // ANCLA AVANZADA de 396653e a 69d39c4 el 2026-09-05, a propósito y por una sola razón.
+    //
+    // Lo que tocó `techo-de-flujo.test.ts` entre 396653e y 69d39c4 NO fue esta feature acomodando
+    // a un vecino para pasar. Fue BG-001 de techo-de-flujo: 17 de sus 79 casos declarados en la
+    // fase 3 NUNCA se implementaron y la feature cerró 5/5 contándolos como «saltados», con
+    // NFR-1807 llegando al sello con CERO pruebas. Lo que se añadió son esos casos que faltaban
+    // —cuatro de ellos en este fichero: TC-TDF-082f, 232e, 233f y 252e—, no un retoque a los que
+    // ya había: ni una sola aserción existente cambió. El guardia de esta feature no se tocó.
+    //
+    // La razón anterior, que sigue vigente por debajo del ancla nueva:
     // El ancla se AVANZA, no se borra: la alarma conserva todos los dientes a partir del punto
     // nuevo, y lo que queda por debajo es un cambio que ya está justificado por escrito.
     //
@@ -356,9 +365,8 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // parsea para acreditar los TCs— no define `AITRI_COVERAGE`, así que ahí ese guardarraíl se
     // afirma exactamente igual que antes.
     //
-    // `techo-de-flujo.test.ts` sigue sin tocarse: no tiene ni un `performance.now`.
     const tocadas = execSync(
-      "git diff --name-only 396653e -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only 69d39c4 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
