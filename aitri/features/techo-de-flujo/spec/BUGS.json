@@ -9,7 +9,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "high",
-      "status": "open",
+      "status": "verified",
       "fr": "NFR-1807",
       "tc_reference": null,
       "phase_detected": null,
@@ -17,8 +17,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-04T20:37:29.287Z",
-      "updated_at": "2026-09-04T20:37:29.287Z",
-      "resolution": null
+      "updated_at": "2026-09-05T17:12:19.033Z",
+      "resolution": "Los 17 casos declarados en la fase 3 que nunca se implementaron ya existen y pasan. NFR-1807 deja de tener cero pruebas: sus tres casos (TC-TDF-261h/262e/263f) viven en tests/domain/techo-de-flujo-perf.test.ts, con un guardarrail de 150ms (margen medido 0,96ms) y dos contadores de barridos de techo que, a diferencia del cronometro, siguen siendo ciertos bajo cobertura. Los otros 14 se repartieron: 082f/232e/233f/252e en tests/domain/techo-de-flujo.test.ts, 062e/081h/090h/242e/243f en tests/integration/backend/techo-de-flujo.test.ts (nuevo, contra Postgres), 091h/092e/253f en tests/e2e/techo-de-flujo.spec.ts y 272e/273f en tests/unit/backend-gates.test.ts. Dos cambios de producto salieron de escribirlos: la confirmacion en linea 'Operacion eliminada' que el 01_UX_SPEC aprobado exige y nunca se construyo (ReserveCells.tsx), y el contador techoScans que la precondicion de TC-TDF-262e presupone (domain/reserve.ts). Falsabilidad verificada por mutacion: rompiendo la memoizacion de techoScan caen 262e y 263f. Commits 69d39c4 y el avance del ancla TC-RES-202e. Suite: 796 pass, typecheck y lint limpios.",
+      "fix_commit_sha": "bee7960acfb4f6fdf5546fa84dff13bf0c910f58",
+      "fix_at": "2026-09-05T15:21:03.890Z"
     }
   ]
 }

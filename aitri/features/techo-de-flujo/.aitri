@@ -19,23 +19,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T20:36:40.200Z",
+  "updatedAt": "2026-09-05T17:12:08.162Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T17:31:45.181Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 44,
-      "failed": 0,
-      "skipped": 34,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-01T18:12:41.625Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-09-01T18:12:41.803Z",
       "event": "approved",
@@ -155,6 +141,22 @@
       "failed": 0,
       "skipped": 17,
       "manual": 0
+    },
+    {
+      "at": "2026-09-05T15:37:52.678Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-05T17:12:08.129Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -229,24 +231,24 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "dfe86cef604fa964eb1fe76e49c6c69a9e5d42aa",
+  "verifyRanRef": "bee7960acfb4f6fdf5546fa84dff13bf0c910f58",
   "verifyRanDirty": false,
-  "verifyResultsHash": "767b9d207228be8f2b73d3e50c0d83de60db8d0952e9e7d5b61585ca58668d39",
-  "verifyRanAt": "2026-09-04T20:36:40.126Z",
+  "verifyResultsHash": "49e0ab898cfff0dea39f5a30fed928475baac4561124054b5c5abf325af95fcc",
+  "verifyRanAt": "2026-09-05T15:37:52.594Z",
   "lastVerifyRun": {
-    "passed": 62,
+    "passed": 79,
     "failed": 0,
-    "skipped": 17,
+    "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T20:36:40.126Z"
+    "at": "2026-09-05T15:37:52.594Z"
   },
   "verifySummary": {
     "total": 79,
-    "passed": 62,
+    "passed": 79,
     "failed": 0,
-    "skipped": 17,
-    "skipped_e2e": 3,
-    "skipped_no_marker": 14,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
   },

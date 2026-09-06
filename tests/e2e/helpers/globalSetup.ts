@@ -103,7 +103,20 @@ export default async function globalSetup(): Promise<void> {
     BETTER_AUTH_SECRET: "e2e-secret-not-for-production-000000000000",
     BETTER_AUTH_URL: E2E_BASE,
     NEXT_PUBLIC_GOOGLE_ENABLED: "false",
-    NEXT_DIST_DIR: ".next-e2e",
+    // BG-028 — el valor del entorno MANDA, y por eso no es un literal.
+    //
+    // `buildEnv` hace spread de `...process.env` arriba, así que un literal aquí lo pisa siempre.
+    // Con el literal, el `export NEXT_DIST_DIR` de e2e.sh no hacía NADA: su cabecera promete que
+    // «la suite del gate compila y sirve en su propio distDir y su propio puerto», y solo la mitad
+    // del puerto era cierta. Las dos corridas concurrentes que lanza `verify-run` —la Playwright
+    // autodetectada y la del gate e2e— compilaban las dos sobre el MISMO `.next-e2e` y se pisaban
+    // los artefactos a mitad de build.
+    //
+    // El fallback conserva el comportamiento de quien no define la variable (la corrida suelta,
+    // `npx playwright test` a mano), que sigue compilando en `.next-e2e` como siempre.
+    // next.config.mjs:10 ya leía `process.env.NEXT_DIST_DIR`: el cableado existía entero y lo
+    // único que faltaba era dejar pasar el valor.
+    NEXT_DIST_DIR: process.env.NEXT_DIST_DIR ?? ".next-e2e",
     // Todo el tráfico viene de 127.0.0.1: el rate limit por IP haría flaky la suite en serie.
     // Se desactiva SOLO aquí; en producción queda activo (NFR-512).
     LEDGER_RATE_LIMIT_DISABLED: "true",
