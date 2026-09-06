@@ -19,19 +19,9 @@
   "projectName": "refinamiento-ui",
   "createdAt": "2026-08-05T18:06:40.720Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-05T01:28:18.992Z",
+  "updatedAt": "2026-09-06T16:05:26.652Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-12T15:01:08.811Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-08-12T15:01:13.079Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-08-12T15:01:18.122Z",
       "event": "started",
@@ -173,6 +163,22 @@
       "failed": 0,
       "skipped": 18,
       "manual": 0
+    },
+    {
+      "at": "2026-09-06T16:05:14.890Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T16:05:26.624Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -231,17 +237,17 @@
       "FR-1207"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
+  "verifyPassed": true,
+  "verifyRanRef": "0e5465e97078d056f9ab06176774597b62136fd0",
   "verifyRanDirty": false,
-  "verifyResultsHash": "f7461309909beb1c0b7f4d11bdbe758b493d63e32008a4e93960f1dc484c580b",
-  "verifyRanAt": "2026-09-05T01:28:18.917Z",
+  "verifyResultsHash": "619075a4c6511b0edaa469706fb73b968fdb448cba13e6e1881c973fa0b048e1",
+  "verifyRanAt": "2026-09-06T16:05:14.769Z",
   "lastVerifyRun": {
-    "passed": 19,
+    "passed": 37,
     "failed": 0,
-    "skipped": 18,
+    "skipped": 0,
     "manual": 0,
-    "at": "2026-09-05T01:28:18.917Z"
+    "at": "2026-09-06T16:05:14.769Z"
   },
   "releaseHistory": [
     {
@@ -249,5 +255,15 @@
       "version_source": "manifest",
       "at": "2026-08-12T15:23:03.421Z"
     }
-  ]
+  ],
+  "verifySummary": {
+    "total": 37,
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
 }
