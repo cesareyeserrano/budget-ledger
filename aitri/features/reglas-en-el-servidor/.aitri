@@ -17,19 +17,9 @@
   "projectName": "reglas-en-el-servidor",
   "createdAt": "2026-09-03T20:39:32.170Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-04T22:27:47.456Z",
+  "updatedAt": "2026-09-06T20:07:08.015Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T21:24:48.472Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-03T21:27:58.475Z",
-      "event": "approved",
-      "phase": 1
-    },
     {
       "at": "2026-09-03T21:27:58.532Z",
       "event": "started",
@@ -143,6 +133,22 @@
       "phase": "verify",
       "passed": 36,
       "failed": 0
+    },
+    {
+      "at": "2026-09-06T20:07:07.872Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T20:07:08.001Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -180,16 +186,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "43a79f146baf9a78383f178e27f4937335d4cd9295578bdf8768767f6a1a438b",
-  "verifyRanAt": "2026-09-04T22:27:47.270Z",
-  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
-  "verifyRanDirty": false,
+  "verifyResultsHash": "ff9d80d99885bae91658c70a0e16b307359b966f05d662915ab5a2a99a16dace",
+  "verifyRanAt": "2026-09-06T20:07:07.821Z",
+  "verifyRanRef": "7e38a8fe739dbcf2e647e0d26a4db73d10b4263f",
+  "verifyRanDirty": true,
   "lastVerifyRun": {
     "passed": 36,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T22:27:47.270Z"
+    "at": "2026-09-06T20:07:07.821Z"
   },
   "verifySummary": {
     "total": 36,

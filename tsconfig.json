@@ -31,6 +31,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-audit/types/**/*.ts",
     ".next-buildcheck/types/**/*.ts",
     ".next-e2e-backend/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
@@ -40,7 +41,7 @@
     ".next-smoke/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-audit/types/**/*.ts"
+    ".next-e2e-gate/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

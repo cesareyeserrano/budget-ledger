@@ -19,27 +19,9 @@
   "projectName": "resumen-plegado",
   "createdAt": "2026-08-27T21:01:10.927Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-05T17:43:23.531Z",
+  "updatedAt": "2026-09-06T20:13:13.194Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-28T09:19:12.880Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 3,
-      "failed": 0,
-      "skipped": 17,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-28T10:59:03.980Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 3,
-      "failed": 0,
-      "skipped": 17,
-      "manual": 0
-    },
     {
       "at": "2026-08-28T15:36:10.664Z",
       "event": "verify-run",
@@ -161,6 +143,22 @@
       "phase": "verify",
       "passed": 20,
       "failed": 0
+    },
+    {
+      "at": "2026-09-06T20:13:13.048Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T20:13:13.178Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -194,8 +192,8 @@
       "FR-1502"
     ]
   },
-  "verifyRanRef": "bee7960acfb4f6fdf5546fa84dff13bf0c910f58",
-  "verifyRanDirty": false,
+  "verifyRanRef": "7e38a8fe739dbcf2e647e0d26a4db73d10b4263f",
+  "verifyRanDirty": true,
   "verifyPassed": true,
   "releaseHistory": [
     {
@@ -209,14 +207,14 @@
       "at": "2026-08-28T16:32:20.934Z"
     }
   ],
-  "verifyResultsHash": "f264ac7565ab3d4e00b124c3ea377d010d5fdd6dd902519714119e8342b6010d",
-  "verifyRanAt": "2026-09-05T17:43:14.089Z",
+  "verifyResultsHash": "87584d287945ace44052ec3a909c5d3459484a996476799f23f5596fa7c7e94c",
+  "verifyRanAt": "2026-09-06T20:13:13.001Z",
   "lastVerifyRun": {
     "passed": 20,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-05T17:43:14.089Z"
+    "at": "2026-09-06T20:13:13.001Z"
   },
   "verifySummary": {
     "total": 20,
