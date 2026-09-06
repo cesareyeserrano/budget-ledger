@@ -703,6 +703,48 @@
       "resolution": "CORREGIDO EL 6-SEP: el arreglo de codigo (0e5465e) es correcto y el defecto es real —se lee en el codigo: buildEnv hace spread de ...process.env y despues fijaba el literal, asi que la variable se ignoraba— PERO LA EVIDENCIA QUE CITE NO LO PRUEBA. Dije que refinamiento-ui bajando de 2h37m a 8m36s demostraba el arreglo. NO lo demuestra: esa feature declara su gate e2e como 'npm run test:e2e' (playwright pelado), que no define ni E2E_PORT ni NEXT_DIST_DIR, asi que antes y despues del arreglo usa puerto 3220 y carpeta .next-e2e — identico. Ninguna de las dos mitades del cambio (globalSetup respetando la variable; e2e.sh pidiendo .next-e2e-gate) toca esa corrida, porque refinamiento-ui no llama a e2e.sh. LA VARIABLE QUE SI CAMBIO ENTRE LAS DOS CORRIDAS: la maquina se reinicio. La primera fue tras 5,5h encendida y dos verifies previos; la segunda sobre un equipo recien arrancado. Esa es la explicacion que queda en pie. El arreglo solo tiene efecto donde el gate SI llama a e2e.sh (techo-de-flujo y las que lo declaren asi): ahi ahora si compila en carpeta separada. PENDIENTE DE VERIFICACION REAL: reproducir la colision a proposito, o comparar dos corridas de la MISMA feature en el mismo estado de maquina. No dar el bug por verificado hasta entonces.",
       "fix_commit_sha": "296e5c06b308228e85f38f8353a8f2bf66d1162c",
       "fix_at": "2026-09-06T18:07:13.343Z"
+    },
+    {
+      "id": "BG-029",
+      "title": "tests/integration/design-tokens.test.ts MUTA ficheros reales de src/ y por eso la suite es insegura bajo concurrencia: (a) produce verdes falsos y (b) puede dejar el CODIGO FUENTE corrupto. Para probar que los gates de tokens fallan cuando deben, planta la infraccion escribiendo EN EL ARBOL DE FUENTES (writeFileSync sobre src/components/BudgetGrid.tsx, src/components/ui/tabs.tsx, src/components/BalanceModule.tsx y src/components/DesktopShell.tsx) y restaura en un finally. 'aitri verify-run' corre POR DISENO el runner (npm run test:run) y el gate coverage (npm run coverage) A LA VEZ: son dos vitest completos concurrentes. Una corrida planta la infraccion mientras la otra afirma que el arbol esta limpio y la ve -> 'AssertionError: expected 1 to be +0'. REPRODUCIDO A PROPOSITO el 2026-09-06 lanzando ambos comandos en paralelo: 4 tests en rojo en cada corrida (TC-RUI-001f, TC-BJE-012h/012f/012e en una; TC-BAL-957f, TC-RUI-006f, TC-BJE-012f/012e en la otra). SINTOMA EN PRODUCCION DEL PIPELINE, visto DOS veces hoy: el runner sale exit_code 1 mientras TODOS los TCs de la feature salen pass y todos los gates pass, porque los tests que caen NO pertenecen a la feature medida y Aitri solo parsea los suyos. Le paso a cierre-de-mes (92/92 con exit 1) y al verify de la RAIZ (59/59 con exit 1). Aitri lo avisa ('the test runner exited 1 but no failing TCs were parsed... review the run output before trusting the result') pero no bloquea. DANIO MATERIAL VERIFICADO: tras la reproduccion, src/components/BalanceModule.tsx y src/components/DesktopShell.tsx quedaron con un 'const __MUTANTE__ = \"var(--favorable)\"' pegado al final — el finally de una corrida perdio la carrera contra la otra. Restaurado con git checkout. Un SIGKILL entre el write y el restore deja el mismo destrozo sin carrera ninguna. ARREGLO PROPUESTO: que estos tests NO toquen src/. Copiar el arbol relevante a un directorio temporal (mkdtemp) y correr el gate ahi con cwd apuntando a la copia, o parametrizar el script del gate con una raiz. Alternativa mas debil: un lock de fichero que serialice los tests que plantan. EMPARENTADO con BG-026: aquel diagnostico el gate coverage intermitente como aserciones de TIEMPO bajo instrumentacion, y eso era cierto y sigue arreglado, pero esta es una SEGUNDA causa distinta que quedo sin encontrar",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-06T20:50:18.015Z",
+      "updated_at": "2026-09-06T21:11:22.813Z",
+      "resolution": "Arreglado: tests/integration/design-tokens.test.ts ya no escribe en src/. Las infracciones se plantan sobre una COPIA privada del proceso (mkdtemp con src/ y scripts/ copiados; el gate hace cd a dirname($0)/.. y por tanto opera sobre la copia), mediante el helper conInfraccionPlantada(). Las comprobaciones de solo lectura siguen mirando el arbol REAL, que ahora es seguro en paralelo porque ya nadie lo muta. La comprobacion de modulos huerfanos del gate usa git ls-files, que en la copia sin repo devuelve vacio y no da falsos positivos; esa comprobacion ya la cubre TC-RUI-007h contra el arbol real. VERIFICADO POR LA MISMA REPRODUCCION QUE LO ENCONTRO: lanzando npm run test:run y npm run coverage en paralelo, antes caian 4 tests en CADA corrida y quedaban dos ficheros de src/ corruptos con un const __MUTANTE__; ahora caen 0 por esta causa y src/ queda intacto (git diff vacio). Los 10 TCs del fichero pasan en solitario. El unico fallo que queda bajo concurrencia es TC-MAN-262e, una asercion de TIEMPO de otra familia, registrada aparte.",
+      "fix_commit_sha": "b9481d04174324df37199d47090f092d2462540c",
+      "fix_at": "2026-09-06T21:11:22.757Z"
+    },
+    {
+      "id": "BG-030",
+      "title": "La guarda de BG-026 es ASIMETRICA: protege a la corrida instrumentada, no a la normal que corre a su lado. SALTAR_SI_INSTRUMENTADO / CRONOMETRO_FIABLE se activan con AITRI_COVERAGE=1, que solo define la corrida de cobertura. Pero 'aitri verify-run' lanza el runner (npm run test:run, SIN esa variable) y el gate coverage (CON ella) A LA VEZ, y es la corrida NORMAL la que se queda sin CPU: sus aserciones de tiempo siguen afirmandose contra margenes fijos mientras otra suite completa le compite. MEDIDO el 2026-09-06, tras arreglar BG-029: con las dos corridas en paralelo, coverage sale exit 0 (sus guardas la salvan) y test:run sale exit 1 por TC-MAN-262e en tests/domain/multi-anio.test.ts:557 — 'expected 0.0229 to be less than or equal to 0.00501', un factor 4,5 sobre un margen de x3. Ironicamente ESE test lleva it.skipIf(SALTAR_SI_INSTRUMENTADO): la guarda esta puesta y no sirve del lado que falla. CONSECUENCIA: el mismo verde falso de BG-029 —runner exit 1 con todos los TCs de la feature en pass— sigue siendo posible por esta via, aunque con menos frecuencia (1 test en vez de 4). ARREGLO PROPUESTO: que la senal no sea 'estoy instrumentado' sino 'el cronometro no es fiable en esta corrida', y que Aitri la exporte a AMBOS procesos cuando lanza runner y gates en paralelo (p. ej. una variable propia que verify-run defina siempre). Alternativa: que las aserciones de tiempo comparen RATIOS con margenes mucho mas anchos, o se muevan a una suite de rendimiento que corra sola. EMPARENTADO con BG-026 (misma familia, otra mitad) y BG-029 (mismo sintoma observable)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-06T21:11:22.716Z",
+      "updated_at": "2026-09-06T21:11:22.716Z",
+      "resolution": null
     }
   ]
 }

@@ -22,19 +22,9 @@
   "aitriVersion": "2.2.0-rc.10",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-06T18:58:12.134Z",
+  "updatedAt": "2026-09-06T20:47:37.141Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T20:41:34.904Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-08-27T20:41:34.982Z",
-      "event": "completed",
-      "phase": 5
-    },
     {
       "at": "2026-08-27T20:41:43.906Z",
       "event": "approved",
@@ -175,6 +165,23 @@
       "method": "git",
       "baseRefFrom": "809dc5e7aa88d2b348dd4638e9b196304f53a616",
       "baseRefTo": "7e38a8fe739dbcf2e647e0d26a4db73d10b4263f"
+    },
+    {
+      "at": "2026-09-06T20:41:37.640Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 1,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-09-06T20:47:37.123Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [
@@ -188,7 +195,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "766fc5457a5b19e998866e69e44cc870bb67fa1b60621d01194fc3b769a3fd4c"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -328,25 +335,15 @@
       "at": "2026-08-27T20:41:43.905Z"
     }
   ],
-  "verifyRanRef": "296e5c06b308228e85f38f8353a8f2bf66d1162c",
+  "verifyRanRef": "b9481d04174324df37199d47090f092d2462540c",
   "verifyRanDirty": false,
-  "verifyResultsHash": "51a9c77ab55fe7ca39c0214f4bed06d233c14a686b751e7d894bea91eb478d42",
-  "verifyRanAt": "2026-09-06T18:20:37.066Z",
+  "verifyResultsHash": "6bcc6e320371cf5f11d76d911a6dd2ca99ff6c1657190dc8d86f56801a3d51ea",
+  "verifyRanAt": "2026-09-06T20:47:37.072Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-06T18:20:37.066Z"
-  },
-  "verifySummary": {
-    "total": 59,
-    "passed": 59,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 6
+    "at": "2026-09-06T20:47:37.072Z"
   }
 }

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, cpSync } from "node:fs";
 import { resolve, dirname, normalize } from "node:path";
+import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 
 const root = resolve(__dirname, "../..");
@@ -15,13 +16,76 @@ function srcFiles(): string[] {
     .filter((f) => /\.(ts|tsx)$/.test(f) && existsSync(resolve(root, f)));
 }
 
-/** Ejecuta el gate y devuelve su código de salida. */
-function runGate(): number {
+/**
+ * Ejecuta el gate contra una raíz y devuelve su código de salida.
+ *
+ * BG-029 — POR QUÉ HAY UNA RAÍZ PARAMETRIZABLE, Y NO SE TOCA `src/` NUNCA MÁS.
+ *
+ * Estas pruebas demuestran que el gate FALLA cuando debe, y la única forma honesta de demostrarlo
+ * es plantar la infracción y verla caer. Hasta BG-029 la plantaban ESCRIBIENDO EN EL ÁRBOL DE
+ * FUENTES REAL (`src/components/BudgetGrid.tsx`, `ui/tabs.tsx`, `BalanceModule.tsx`,
+ * `DesktopShell.tsx`) y restaurando en un `finally`. Dos problemas, los dos medidos el 2026-09-06:
+ *
+ *   · `aitri verify-run` corre POR DISEÑO el runner (`npm run test:run`) y el gate `coverage`
+ *     (`npm run coverage`) A LA VEZ: dos vitest completos concurrentes. Una corrida plantaba la
+ *     infracción mientras la otra afirmaba que el árbol está limpio, y la veía. Reproducido a
+ *     propósito: 4 tests en rojo en cada corrida. El síntoma en el pipeline era un `exit_code 1`
+ *     del runner con TODOS los TCs de la feature en verde —porque los que caían no eran suyos y
+ *     Aitri solo parsea los propios—, es decir un verde que no acredita.
+ *   · Y el daño material: tras esa reproducción, `BalanceModule.tsx` y `DesktopShell.tsx`
+ *     quedaron con un `const __MUTANTE__` pegado al final. El `finally` de una corrida perdió la
+ *     carrera contra la otra. Un SIGKILL entre el write y el restore deja el mismo destrozo sin
+ *     carrera ninguna — y matar gates por reloj es cosa corriente aquí.
+ *
+ * Ahora la plantación ocurre sobre una COPIA privada de este proceso (`mkdtemp`, ver `ARBOL`), así
+ * que dos corridas concurrentes no pueden verse, y ningún fallo puede ensuciar el repo. Las
+ * comprobaciones de SOLO LECTURA siguen mirando la raíz real: una vez nadie muta `src/`, leerlo es
+ * seguro en paralelo, y es el árbol real el que interesa afirmar limpio.
+ */
+function runGateIn(base: string): number {
   try {
-    execFileSync(resolve(root, gate), { cwd: root, stdio: "pipe" });
+    execFileSync(resolve(base, gate), { cwd: base, stdio: "pipe" });
     return 0;
   } catch (e) {
     return (e as { status?: number }).status ?? 1;
+  }
+}
+
+/** El gate sobre el árbol REAL — solo lectura, seguro en concurrencia. */
+const runGate = (): number => runGateIn(root);
+
+/**
+ * Copia privada del proceso donde se plantan las infracciones.
+ *
+ * Se copian `src/` y `scripts/` y nada más: el gate hace `cd "$(dirname $0)/.."`, así que con el
+ * script dentro de la copia opera sobre ella. Su comprobación de módulos huérfanos usa
+ * `git ls-files`, que en un directorio sin repo devuelve vacío y por tanto no marca nada — no da
+ * falsos positivos, y esa comprobación ya la cubre TC-RUI-007h contra el árbol real.
+ */
+let ARBOL = "";
+beforeAll(() => {
+  ARBOL = mkdtempSync(resolve(tmpdir(), "design-tokens-"));
+  cpSync(resolve(root, "src"), resolve(ARBOL, "src"), { recursive: true });
+  cpSync(resolve(root, "scripts"), resolve(ARBOL, "scripts"), { recursive: true });
+});
+afterAll(() => {
+  if (ARBOL) rmSync(ARBOL, { recursive: true, force: true });
+});
+
+/**
+ * Planta `mutar(original)` en la COPIA, comprueba que el gate cae, y restaura la copia.
+ *
+ * El restore sigue existiendo porque las pruebas comparten la copia dentro del mismo proceso; lo
+ * que ya no puede pasar es que su fallo dañe el repo.
+ */
+function conInfraccionPlantada(rel: string, mutar: (original: string) => string): number {
+  const victima = resolve(ARBOL, rel);
+  const original = readFileSync(victima, "utf8");
+  try {
+    writeFileSync(victima, mutar(original));
+    return runGateIn(ARBOL);
+  } finally {
+    writeFileSync(victima, original);
   }
 }
 
@@ -34,16 +98,15 @@ describe("FR-1201 — el gate impide que el color vuelva a clasificar", () => {
     // Sentido 2: se planta la infracción y debe caer. Un gate que nunca se vio fallar no está
     // verificado — es exactamente lo que pasó con el smoke en BG-014, que llevaba cuatro semanas
     // acreditando un build obsoleto sin que nadie lo notara.
-    const victim = resolve(root, "src/components/BudgetGrid.tsx");
-    const original = readFileSync(victim, "utf8");
-    try {
-      readFileSync(victim); // asegura que existe antes de tocarlo
-      require("node:fs").writeFileSync(victim, `import { typeColorVar } from "./format";\n${original}`);
-      expect(runGate()).not.toBe(0);
-    } finally {
-      require("node:fs").writeFileSync(victim, original);
-    }
-    // Y queda restaurado.
+    const salida = conInfraccionPlantada(
+      "src/components/BudgetGrid.tsx",
+      (o) => `import { typeColorVar } from "./format";\n${o}`
+    );
+    expect(salida, "el gate no cazó el color por tipo fuera de register/").not.toBe(0);
+
+    // La copia queda restaurada y el gate vuelve a pasar sobre ella…
+    expect(runGateIn(ARBOL)).toBe(0);
+    // …y el árbol REAL nunca se tocó: sigue limpio.
     expect(runGate()).toBe(0);
   });
 });
@@ -83,14 +146,12 @@ describe("FR-1206 — las escalas y el cierre de la deriva", () => {
 
   // @aitri-tc TC-RUI-006f
   it("TC-RUI-006f: el gate FALLA si se reintroduce un tamaño ad-hoc", () => {
-    const victim = resolve(root, "src/components/ui/tabs.tsx");
-    const original = readFileSync(victim, "utf8");
-    try {
-      require("node:fs").writeFileSync(victim, original.replace("text-caption", "text-[0.71rem]"));
-      expect(runGate()).not.toBe(0);
-    } finally {
-      require("node:fs").writeFileSync(victim, original);
-    }
+    const salida = conInfraccionPlantada(
+      "src/components/ui/tabs.tsx",
+      (o) => o.replace("text-caption", "text-[0.71rem]")
+    );
+    expect(salida, "el gate no cazó el tamaño ad-hoc").not.toBe(0);
+    expect(runGateIn(ARBOL)).toBe(0);
     expect(runGate()).toBe(0);
   });
 });
@@ -155,8 +216,6 @@ describe("FR-1207 — retiro de lo que no tiene consumidor", () => {
 // balance-jerarquia NFR-1404 — el verde de normalidad queda cerrado por gate (ADR-03)
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("NFR-1404 — el gate impide que el verde permanente vuelva", () => {
-  const writeFile = (p: string, s: string) => require("node:fs").writeFileSync(p, s);
-
   // @aitri-tc TC-BJE-012h
   it("TC-BJE-012h: el gate pasa limpio sobre el árbol tras la feature", () => {
     expect(runGate()).toBe(0);
@@ -167,18 +226,13 @@ describe("NFR-1404 — el gate impide que el verde permanente vuelva", () => {
     // Los DOS ficheros, uno a uno. Arreglar uno y olvidar el otro es literalmente el defecto que
     // originó esta feature: la regla estaba escrita tres veces y dos copias se quedaron en verde.
     for (const rel of ["src/components/BalanceModule.tsx", "src/components/DesktopShell.tsx"]) {
-      const victim = resolve(root, rel);
-      const original = readFileSync(victim, "utf8");
-      try {
-        // Se inyecta en CÓDIGO, no en un comentario: el gate ignora los comentarios a propósito
-        // (los dos ficheros documentan por escrito el token que retiraron).
-        writeFile(victim, `${original}\nconst __MUTANTE__ = "var(--favorable)";\n`);
-        expect(runGate(), `el gate no cazó --favorable en ${rel}`).not.toBe(0);
-      } finally {
-        writeFile(victim, original);
-      }
+      // Se inyecta en CÓDIGO, no en un comentario: el gate ignora los comentarios a propósito
+      // (los dos ficheros documentan por escrito el token que retiraron).
+      const salida = conInfraccionPlantada(rel, (o) => `${o}\nconst __MUTANTE__ = "var(--favorable)";\n`);
+      expect(salida, `el gate no cazó --favorable en ${rel}`).not.toBe(0);
     }
-    // Y queda restaurado.
+    // La copia queda restaurada, y el árbol real jamás se tocó.
+    expect(runGateIn(ARBOL)).toBe(0);
     expect(runGate()).toBe(0);
   });
 
