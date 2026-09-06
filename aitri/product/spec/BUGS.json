@@ -691,7 +691,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "verified",
+      "status": "fixed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -699,10 +699,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-06T15:24:56.480Z",
-      "updated_at": "2026-09-06T16:05:37.673Z",
-      "resolution": "Arreglado en 0e5465e. Eran DOS defectos encadenados y hacia falta corregir los dos: (1) globalSetup.ts fijaba NEXT_DIST_DIR como literal dentro de buildEnv, que hace spread de ...process.env antes, asi que el export de e2e.sh no hacia nada; ahora es process.env.NEXT_DIST_DIR ?? '.next-e2e'. (2) Al arreglar (1) quedo a la vista que el valor PEDIDO tampoco separaba nada: e2e.sh exportaba '.next-e2e', la misma carpeta de la corrida autodetectada; ahora pide '.next-e2e-gate', ya cubierta por el patron .next-*/ de .gitignore. EFECTO MEDIDO sobre la misma feature y la misma maquina: refinamiento-ui paso de 2h37m con dos gates obligatorios muertos por reloj (smoke 15m52s y e2e 136m10s, ambos exit_code null) a 8m36s con los OCHO gates en verde. El gate e2e concretamente: de 136m10s a 2m43s. Sellada 37/37 el 2026-09-06.",
-      "fix_commit_sha": "0e5465e97078d056f9ab06176774597b62136fd0",
-      "fix_at": "2026-09-06T16:05:37.577Z"
+      "updated_at": "2026-09-06T18:07:13.343Z",
+      "resolution": "CORREGIDO EL 6-SEP: el arreglo de codigo (0e5465e) es correcto y el defecto es real —se lee en el codigo: buildEnv hace spread de ...process.env y despues fijaba el literal, asi que la variable se ignoraba— PERO LA EVIDENCIA QUE CITE NO LO PRUEBA. Dije que refinamiento-ui bajando de 2h37m a 8m36s demostraba el arreglo. NO lo demuestra: esa feature declara su gate e2e como 'npm run test:e2e' (playwright pelado), que no define ni E2E_PORT ni NEXT_DIST_DIR, asi que antes y despues del arreglo usa puerto 3220 y carpeta .next-e2e — identico. Ninguna de las dos mitades del cambio (globalSetup respetando la variable; e2e.sh pidiendo .next-e2e-gate) toca esa corrida, porque refinamiento-ui no llama a e2e.sh. LA VARIABLE QUE SI CAMBIO ENTRE LAS DOS CORRIDAS: la maquina se reinicio. La primera fue tras 5,5h encendida y dos verifies previos; la segunda sobre un equipo recien arrancado. Esa es la explicacion que queda en pie. El arreglo solo tiene efecto donde el gate SI llama a e2e.sh (techo-de-flujo y las que lo declaren asi): ahi ahora si compila en carpeta separada. PENDIENTE DE VERIFICACION REAL: reproducir la colision a proposito, o comparar dos corridas de la MISMA feature en el mismo estado de maquina. No dar el bug por verificado hasta entonces.",
+      "fix_commit_sha": "296e5c06b308228e85f38f8353a8f2bf66d1162c",
+      "fix_at": "2026-09-06T18:07:13.343Z"
     }
   ]
 }

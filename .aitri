@@ -22,23 +22,9 @@
   "aitriVersion": "2.2.0-rc.10",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-04T22:50:35.444Z",
+  "updatedAt": "2026-09-06T18:20:53.525Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T20:35:19.758Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-27T20:41:29.840Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-27T20:41:32.247Z",
       "event": "verify-complete",
@@ -171,6 +157,22 @@
       "files": 10,
       "method": "git",
       "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-09-06T18:20:37.142Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T18:20:53.495Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [
@@ -184,7 +186,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "766fc5457a5b19e998866e69e44cc870bb67fa1b60621d01194fc3b769a3fd4c"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -324,15 +326,25 @@
       "at": "2026-08-27T20:41:43.905Z"
     }
   ],
-  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
+  "verifyRanRef": "296e5c06b308228e85f38f8353a8f2bf66d1162c",
   "verifyRanDirty": false,
-  "verifyResultsHash": "d50e05d6e98c9ed29868142356e9884aedf3bae963fc54b13125e0caec8ffe1c",
-  "verifyRanAt": "2026-09-04T22:23:00.511Z",
+  "verifyResultsHash": "51a9c77ab55fe7ca39c0214f4bed06d233c14a686b751e7d894bea91eb478d42",
+  "verifyRanAt": "2026-09-06T18:20:37.066Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-04T22:23:00.511Z"
+    "at": "2026-09-06T18:20:37.066Z"
+  },
+  "verifySummary": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 6
   }
 }
