@@ -17,25 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-06T19:22:06.201Z",
+  "updatedAt": "2026-09-06T20:41:16.597Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T19:16:30.118Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 92,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-03T19:16:37.441Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 92,
-      "failed": 0
-    },
     {
       "at": "2026-09-03T19:16:39.970Z",
       "event": "started",
@@ -154,6 +138,22 @@
       "phase": "verify",
       "passed": 92,
       "failed": 0
+    },
+    {
+      "at": "2026-09-06T20:41:08.668Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T20:41:16.582Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -219,8 +219,8 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "7e38a8fe739dbcf2e647e0d26a4db73d10b4263f",
-  "verifyRanDirty": true,
+  "verifyRanRef": "75cdd3f09e74bb66b9701a59c35a35cf5edafbef",
+  "verifyRanDirty": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
@@ -240,14 +240,14 @@
   ],
   "coverageAuditLastAt": "2026-09-03T16:02:32.903Z",
   "coverageAuditReqHash": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-  "verifyResultsHash": "e8fa541e65f7bb992c6b30867eac5306fa4f8ab491ef362f05c87f01d24fa7d3",
-  "verifyRanAt": "2026-09-06T19:22:05.816Z",
+  "verifyResultsHash": "9b1cfe240dc04577fa66c4ae7a0a06745a17988d58b14492c521bd2be45e7ebf",
+  "verifyRanAt": "2026-09-06T20:41:08.621Z",
   "lastVerifyRun": {
     "passed": 92,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-06T19:22:05.816Z"
+    "at": "2026-09-06T20:41:08.621Z"
   },
   "verifySummary": {
     "total": 92,
