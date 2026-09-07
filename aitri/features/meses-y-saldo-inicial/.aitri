@@ -1,41 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T15:39:08.688Z",
+  "updatedAt": "2026-09-07T17:41:06.202Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T03:26:27.225Z",
-      "event": "approved",
-      "phase": 1,
-      "afterDrift": true
-    },
-    {
-      "at": "2026-09-07T03:26:41.992Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-07T03:26:42.102Z",
-      "event": "approved",
-      "phase": "ux"
-    },
     {
       "at": "2026-09-07T03:26:42.209Z",
       "event": "completed",
@@ -134,6 +120,23 @@
       "phase": "verify",
       "passed": 62,
       "failed": 0
+    },
+    {
+      "at": "2026-09-07T17:27:01.528Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-07T17:29:16.785Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-07T17:41:06.185Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -142,6 +145,7 @@
     "2": "be608dc9ddc524e7644b40ea78b9eab0d01790dd1b84a2cddb6688de2ab610bc",
     "3": "63de33af849d513d038f6de7b528f22abc4002d094c40441eeb4ccb7acc39060",
     "4": "b61492260a3348f7489afcbea66bfdefc68cfbfd3fad27010cbb5584837678a0",
+    "5": "ee2d07544510a0cc58588a3ab46aae6b23097a028b99b4dd1eca6c04989364de",
     "ux": "08d23528d404b1a687a3855eef59be8138ef1fc995ff6ca04957a17305e195f4"
   },
   "coverageAuditLastAt": "2026-09-06T22:17:09.704Z",
@@ -167,6 +171,15 @@
       "FR-2207"
     ],
     "4": [
+      "FR-2201",
+      "FR-2202",
+      "FR-2203",
+      "FR-2204",
+      "FR-2205",
+      "FR-2206",
+      "FR-2207"
+    ],
+    "5": [
       "FR-2201",
       "FR-2202",
       "FR-2203",
@@ -205,5 +218,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 3
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-07T17:41:06.184Z"
+    }
+  ]
 }
