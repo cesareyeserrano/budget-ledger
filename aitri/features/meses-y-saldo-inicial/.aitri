@@ -17,50 +17,9 @@
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T13:27:33.216Z",
+  "updatedAt": "2026-09-07T15:39:08.688Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T02:12:46.151Z",
-      "event": "approved",
-      "phase": 1,
-      "afterDrift": true
-    },
-    {
-      "at": "2026-09-07T02:13:09.990Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-07T02:23:09.089Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-07T02:29:05.243Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T02:29:10.262Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T02:35:43.981Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T02:44:42.684Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T02:46:31.965Z",
-      "event": "started",
-      "phase": 3
-    },
     {
       "at": "2026-09-07T03:26:27.225Z",
       "event": "approved",
@@ -125,19 +84,69 @@
       "failed": 0,
       "skipped": 0,
       "manual": 3
+    },
+    {
+      "at": "2026-09-07T15:27:48.847Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 3
+    },
+    {
+      "at": "2026-09-07T15:31:46.515Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T15:31:49.572Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T15:31:54.611Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T15:31:54.662Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T15:31:54.741Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T15:37:39.280Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 3
+    },
+    {
+      "at": "2026-09-07T15:39:08.675Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
     "1": "a151a5fa700f35fe3eb0b15d6748cb0c8f3026b5242a76167bb209bb90e3941d",
     "2": "be608dc9ddc524e7644b40ea78b9eab0d01790dd1b84a2cddb6688de2ab610bc",
-    "3": "26a1b5e090563e4e7903f2bbc1e8319725154475f13b984988e074ae4970b9bd",
+    "3": "63de33af849d513d038f6de7b528f22abc4002d094c40441eeb4ccb7acc39060",
     "4": "b61492260a3348f7489afcbea66bfdefc68cfbfd3fad27010cbb5584837678a0",
     "ux": "08d23528d404b1a687a3855eef59be8138ef1fc995ff6ca04957a17305e195f4"
   },
   "coverageAuditLastAt": "2026-09-06T22:17:09.704Z",
   "coverageAuditReqHash": "b0fc4d10e57adde2099ef1b55af18143112fee8a5ec115bc49feb995f3e3de5f",
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-2201",
@@ -176,15 +185,25 @@
       "FR-2207"
     ]
   },
-  "verifyResultsHash": "433b40b14b6be346d7b030e024fe5f12ba7e8be952f8c03451ae261788e4b901",
-  "verifyRanAt": "2026-09-07T13:27:33.106Z",
-  "verifyRanRef": "115efe20a138a4afab75b93e2b23a5b45864ec56",
+  "verifyRanRef": "0620d87b568993e9d19430a7693b239ea091fff6",
   "verifyRanDirty": true,
+  "verifyResultsHash": "61cb4bc5306a66f08245a044fcdfbc9230af0fd59dc43789bb013255f11b26e7",
+  "verifyRanAt": "2026-09-07T15:37:39.227Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 3,
-    "at": "2026-09-07T13:27:33.106Z"
+    "at": "2026-09-07T15:37:39.227Z"
+  },
+  "verifySummary": {
+    "total": 62,
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
   }
 }

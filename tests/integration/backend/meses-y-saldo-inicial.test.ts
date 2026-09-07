@@ -48,15 +48,20 @@ beforeEach(async () => {
 afterAll(async () => { await closeTestDb(); });
 
 describe("FR-2207 — la apertura persiste como parte del ledger", () => {
-  it("TC-MSI-060h: Los dos valores vuelven idénticos desde una conexión nueva", async () => {
+  it("TC-MSI-060h: El mes de inicio declarado y su saldo vuelven idénticos tras recargar", async () => {
     // @aitri-tc TC-MSI-060h
+    // Cubre DOS requisitos con un solo comportamiento: AC-2201 de FR-2201 —«declaro junio y
+    // recargo, sigue siendo junio»— y AC-2219 de FR-2207, que es la misma persistencia vista desde
+    // el lado del almacenamiento.
     const { revision } = await sembrar();
     const res = await saveStartFor(A, revision, INICIO, 3_000_000);
     expect(res.ok).toBe(true);
 
     // Una lectura NUEVA, no la que ya teníamos en memoria.
     const releido = await loadLedger(A);
+    // AC-2201: el mes declarado SIGUE siendo junio de 2026 tras la recarga.
     expect(releido?.state.startMonth).toBe("2026-06");
+    expect(releido?.state.startMonth).toBe(INICIO);
     expect(releido?.state.openingBalance).toBe(3_000_000);
   });
 

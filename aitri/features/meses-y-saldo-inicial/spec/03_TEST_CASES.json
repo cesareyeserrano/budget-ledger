@@ -121,7 +121,8 @@
       "EXCLUIDO · Recuperación tras caída de PostgreSQL a mitad de la escritura. La escritura es una transacción única: o sube revision o no hace nada. No hay estado intermedio que enumerar, y el radio de impacto está documentado en el TRD.",
       "CUBIERTO A PROPÓSITO aunque no lo pida ningún AC · TC-MSI-018e (FLAG-1, la costura con el cierre), TC-MSI-055e (una observación de celda cuenta como dato) y TC-MSI-063e (los campos sobreviven al parseo de Zod). Los tres son defectos que pasarían TODOS los gates en verde: no fallan, mienten.",
       "CUBIERTO A PROPÓSITO · TC-MSI-026e (la pregunta de la tarjeta cambia con el mes de inicio). Previene el doble conteo que detectó el usuario el 2026-09-06: declarar el saldo de hoy como apertura de un mes pasado y luego transcribir los ingresos de ese periodo.",
-      "NO APLICA · Pruebas de carga o de escalado. Dos escalares por usuario, sin índices nuevos, sin consultas nuevas. El TRD documenta por qué el coste añadido es O(1) en el camino de render."
+      "NO APLICA · Pruebas de carga o de escalado. Dos escalares por usuario, sin índices nuevos, sin consultas nuevas. El TRD documenta por qué el coste añadido es O(1) en el camino de render.",
+      "CORREGIDO 2026-09-07 · AC-2201 («declaro junio y recargo, sigue siendo junio») se quedó sin ninguna prueba que lo trazara: los cinco TC de FR-2201 se etiquetaron contra AC-2202 y AC-2203, y la prueba que SÍ demuestra AC-2201 —TC-MSI-060h— iba trazada a AC-2219, que ya tenía otras cuatro. Lo cazó el gate de verify-complete, no una revisión. TC-MSI-060h pasa a ser multi-FR (FR-2201 + FR-2207): es un solo comportamiento que abarca los dos de verdad, y ninguno de los dos pierde cobertura."
     ]
   },
   "test_cases": [
@@ -976,24 +977,27 @@
     },
     {
       "id": "TC-MSI-060h",
-      "requirement_id": "FR-2207",
-      "user_story_id": "US-2207",
-      "ac_id": "AC-2219",
-      "title": "Los dos valores vuelven idénticos desde una conexión nueva",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2201",
+      "title": "El mes de inicio declarado y su saldo vuelven idénticos tras recargar",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "critical",
       "preconditions": [],
       "given": "un usuario que hizo PUT /api/v1/ledger/start con startMonth='2026-06' y openingBalance=3000000",
       "when": "se abre un cliente nuevo (cookie de sesión distinta del mismo usuario) y se hace GET /api/v1/ledger",
-      "then": "body.state.startMonth === '2026-06' y body.state.openingBalance === 3000000, sin pérdida ni redondeo",
+      "then": "body.state.startMonth === '2026-06' —el mes declarado SIGUE siendo junio de 2026 tras la recarga— y body.state.openingBalance === 3000000, sin pérdida ni redondeo",
       "steps": [
         "Preparar: un usuario que hizo PUT /api/v1/ledger/start con startMonth='2026-06' y openingBalance=3000000",
         "Ejecutar: se abre un cliente nuevo (cookie de sesión distinta del mismo usuario) y se hace GET /api/v1/ledger",
         "Verificar: body.state.startMonth === '2026-06' y body.state.openingBalance === 3000000, sin pérdida ni redondeo"
       ],
       "expected_result": "startMonth y openingBalance idénticos a lo declarado",
-      "test_data": {}
+      "test_data": {},
+      "frs": [
+        "FR-2201",
+        "FR-2207"
+      ]
     },
     {
       "id": "TC-MSI-061f",
