@@ -1,0 +1,112 @@
+{
+  "files_created": [
+    "src/domain/opening.ts",
+    "src/app/api/v1/ledger/start/route.ts",
+    "src/app/configuracion/page.tsx",
+    "src/components/OpeningCard.tsx",
+    "drizzle/0006_saldo_inicial.sql",
+    "tests/domain/meses-y-saldo-inicial.test.ts",
+    "tests/unit/meses-y-saldo-inicial.test.ts",
+    "tests/integration/backend/meses-y-saldo-inicial.test.ts",
+    "tests/e2e/meses-y-saldo-inicial.spec.ts",
+    "tests/e2e/helpers/opening.ts",
+    "tests/e2e/helpers/pg.ts"
+  ],
+  "files_modified": [
+    "src/domain/types.ts",
+    "src/domain/range.ts",
+    "src/domain/closure.ts",
+    "src/components/BalanceModule.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/MobileShell.tsx",
+    "src/components/HorizonSelect.tsx",
+    "src/data/serverRepository.ts",
+    "src/state/store.ts",
+    "src/server/db/schema.ts",
+    "src/server/schemas.ts",
+    "src/server/data/ledgerRepo.ts",
+    "drizzle/meta/_journal.json",
+    "tests/e2e/helpers/closure.ts",
+    "tests/e2e/helpers/fixtures.ts",
+    "tests/e2e/multi-anio.spec.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate"
+  ],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2201",
+      "substitution": "`serverScope` (ledgerRepo.ts:518) NO conoce el mes de inicio declarado: deriva su rango de `oldestPeriodWithData`/`newestPeriodWithData` mas el mes en curso, no de `activeRange`, asi que el tercer ancla que esta feature anade no lo alcanza. Consecuencia observable: con un ledger sin datos, el primer mes CERRABLE es el mes en curso, no el mes declarado.",
+      "reason": "Cambiarlo alteraria que mes devuelve `nextClosable`, que es comportamiento de la feature `cierre-de-mes` ya cerrada 5/5 — un cambio de especificacion que el protocolo manda enrutar por la pipeline, no absorber dentro de un build. FR-2205 sigue cumpliendose sin ello porque `closedThrough` es un ESCALAR: cerrar cualquier mes >= el de inicio deja el de inicio cerrado, y `isClosed` lo detecta. TC-MSI-041f se escribio sobre el escenario real (declarar junio, transcribirlo, cerrarlo) en vez de forzar el codigo."
+    },
+    {
+      "fr_id": "FR-2203",
+      "substitution": "La tarjeta de arranque no se le mostrara a ningun usuario nuevo REAL. `store.ts:537` siembra con `buildSeed`, que llama a `genBudget` y rellena presupuestos y ejecutados de ejemplo en todas las hojas, y los persiste de inmediato. Asi que un usuario recien registrado ya tiene datos y el predicado «sin datos NI declaracion» nunca se cumple. Los 11 TC de la tarjeta pasan porque siembran un ledger vacio, que es lo que el spec describe.",
+      "reason": "Es un choque entre FR-2203 y FR-013, que es del proyecto RAIZ. El usuario decidio el 2026-09-07 que el usuario nuevo arranque con las celdas VACIAS —`buildSeed` sigue creando la estructura, sin montos— pero eso cambia el comportamiento de FR-013 y se enruta como feature propia, no se absorbe aqui. Queda documentado en BUILD_PLAN.md con las dos alternativas evaluadas y descartadas."
+    },
+    {
+      "fr_id": "FR-2204",
+      "substitution": "Volver de Configuracion conserva el estado de la GRILLA —filtro de periodo, datos, jerarquia: todo lo que vive en el store, que es un singleton de modulo— pero NO la pestana Resumen/Dashboard, que es `useState` local de `DesktopShell` y se pierde al desmontar la ruta.",
+      "reason": "El criterio de FR-2204 dice «no pierde el estado de la GRILLA», y la pestana selecciona entre grilla y dashboard: no es estado de la grilla, es cual de las dos vistas se muestra. Llevarla al store seria un cambio fuera del alcance aprobado. TC-MSI-033e observa el filtro de periodo, que si es estado de la grilla y si sobrevive."
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/meses-y-saldo-inicial.test.ts",
+    "../../../tests/unit/meses-y-saldo-inicial.test.ts",
+    "../../../tests/integration/backend/meses-y-saldo-inicial.test.ts",
+    "../../../tests/e2e/meses-y-saldo-inicial.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "La suite e2e completa. El fixture freshLedger ahora limpia tambien la APERTURA declarada antes de restaurar la semilla: el PUT del snapshot ignora `startMonth`/`openingBalance` a proposito (ADR-02), asi que sin `resetOpening` la declaracion de una prueba sobrevive a la siguiente y la tarjeta de arranque no vuelve a aparecer para ninguna posterior del mismo worker."
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ]
+}

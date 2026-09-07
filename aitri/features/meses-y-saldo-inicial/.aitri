@@ -1,28 +1,190 @@
 {
-  "currentPhase": 1,
-  "approvedPhases": [],
+  "currentPhase": 4,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4
+  ],
   "completedPhases": [
-    1
+    1,
+    "ux",
+    2,
+    3,
+    4
   ],
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-06T21:41:45.730Z",
+  "updatedAt": "2026-09-07T13:27:33.216Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-09-06T21:14:48.814Z",
-      "event": "started",
-      "phase": 1
+      "at": "2026-09-07T02:12:46.151Z",
+      "event": "approved",
+      "phase": 1,
+      "afterDrift": true
     },
     {
-      "at": "2026-09-06T21:41:45.680Z",
+      "at": "2026-09-07T02:13:09.990Z",
       "event": "completed",
-      "phase": 1
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-07T02:23:09.089Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-07T02:29:05.243Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T02:29:10.262Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T02:35:43.981Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T02:44:42.684Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T02:46:31.965Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T03:26:27.225Z",
+      "event": "approved",
+      "phase": 1,
+      "afterDrift": true
+    },
+    {
+      "at": "2026-09-07T03:26:41.992Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-07T03:26:42.102Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-07T03:26:42.209Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T03:26:42.324Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-07T03:31:21.642Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T04:06:42.686Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-07T04:07:28.793Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T12:26:54.908Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T12:27:12.296Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T13:18:58.023Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-07T13:27:33.189Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 3
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "0a94f5f96b6be8891080ecc928d5430a3f3486d54a56f798e2673e4b0210ad5c"
+    "1": "a151a5fa700f35fe3eb0b15d6748cb0c8f3026b5242a76167bb209bb90e3941d",
+    "2": "be608dc9ddc524e7644b40ea78b9eab0d01790dd1b84a2cddb6688de2ab610bc",
+    "3": "26a1b5e090563e4e7903f2bbc1e8319725154475f13b984988e074ae4970b9bd",
+    "4": "b61492260a3348f7489afcbea66bfdefc68cfbfd3fad27010cbb5584837678a0",
+    "ux": "08d23528d404b1a687a3855eef59be8138ef1fc995ff6ca04957a17305e195f4"
+  },
+  "coverageAuditLastAt": "2026-09-06T22:17:09.704Z",
+  "coverageAuditReqHash": "b0fc4d10e57adde2099ef1b55af18143112fee8a5ec115bc49feb995f3e3de5f",
+  "verifyPassed": false,
+  "frSnapshots": {
+    "2": [
+      "FR-2201",
+      "FR-2202",
+      "FR-2203",
+      "FR-2204",
+      "FR-2205",
+      "FR-2206",
+      "FR-2207"
+    ],
+    "3": [
+      "FR-2201",
+      "FR-2202",
+      "FR-2203",
+      "FR-2204",
+      "FR-2205",
+      "FR-2206",
+      "FR-2207"
+    ],
+    "4": [
+      "FR-2201",
+      "FR-2202",
+      "FR-2203",
+      "FR-2204",
+      "FR-2205",
+      "FR-2206",
+      "FR-2207"
+    ],
+    "ux": [
+      "FR-2201",
+      "FR-2202",
+      "FR-2203",
+      "FR-2204",
+      "FR-2205",
+      "FR-2206",
+      "FR-2207"
+    ]
+  },
+  "verifyResultsHash": "433b40b14b6be346d7b030e024fe5f12ba7e8be952f8c03451ae261788e4b901",
+  "verifyRanAt": "2026-09-07T13:27:33.106Z",
+  "verifyRanRef": "115efe20a138a4afab75b93e2b23a5b45864ec56",
+  "verifyRanDirty": true,
+  "lastVerifyRun": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 3,
+    "at": "2026-09-07T13:27:33.106Z"
   }
 }

@@ -202,6 +202,71 @@ export class ServerRepository implements LedgerRepository {
     }
   }
 
+  /**
+   * Declara la APERTURA del historial: mes de inicio y saldo inicial (FR-2201/FR-2202/FR-2207).
+   *
+   * Los DOS valores viajan juntos porque son un solo hecho declarado, y el servidor los escribe en
+   * una sola transacción que sube `revision` una vez (ADR-02).
+   *
+   * A diferencia de `save`, esto NO es optimista: el servidor puede rechazar por regla (422 con
+   * `month_closed` o `would_orphan`), así que la UI espera la respuesta antes de dar el cambio por
+   * bueno. Es la misma disciplina que ya sigue `closure`.
+   *
+   * @param startMonth     El mes de inicio propuesto («YYYY-MM»).
+   * @param openingBalance El saldo de apertura en pesos enteros ≥ 0, o null si no trae nada previo.
+   * @returns `{ok:true}` con los valores confirmados, o `{ok:false, reason}` con el motivo exacto;
+   *          `periods` acompaña a `would_orphan` con los meses que quedarían fuera.
+   * @throws Nunca. Un fallo de red devuelve `{ok:false, reason:"network"}`.
+   *
+   * @aitri-trace FR-ID: FR-2207, US-ID: US-2207, AC-ID: AC-2219, TC-ID: TC-MSI-041f, TC-MSI-051f, TC-MSI-061f
+   */
+  async saveStart(
+    startMonth: string,
+    openingBalance: number | null
+  ): Promise<
+    | { ok: true; startMonth: string; openingBalance: number | null }
+    | { ok: false; reason: string; periods?: string[] }
+  > {
+    try {
+      const res = await fetch(this.url("/api/v1/ledger/start"), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseRevision: this.revision, startMonth, openingBalance }),
+      });
+      if (res.status === UNAUTHORIZED) {
+        this.unauthorized = true;
+        return { ok: false, reason: "unauthorized" };
+      }
+      const body = (await res.json().catch(() => ({}))) as {
+        revision?: number;
+        startMonth?: string;
+        openingBalance?: number | null;
+        error?: { code?: string; detail?: { periods?: string[] } };
+      };
+      if (res.status === CONFLICT) {
+        if (typeof body.revision === "number") this.revision = body.revision;
+        this.conflicted = true;
+        return { ok: false, reason: "revision_conflict" };
+      }
+      if (res.status !== OK) {
+        return {
+          ok: false,
+          reason: body.error?.code ?? "rejected",
+          periods: body.error?.detail?.periods,
+        };
+      }
+      if (typeof body.revision === "number") this.revision = body.revision;
+      return {
+        ok: true,
+        startMonth: body.startMonth ?? startMonth,
+        openingBalance: body.openingBalance ?? null,
+      };
+    } catch {
+      return { ok: false, reason: "network" };
+    }
+  }
+
   /** Revisión vigente conocida (para tests / diagnóstico). */
   get currentRevision(): number {
     return this.revision;

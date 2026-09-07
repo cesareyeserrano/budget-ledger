@@ -70,6 +70,16 @@ interface LedgerStore {
   horizon: Horizon;
   /** Fija el horizonte y lo persiste en la cuenta del usuario (FR-1907). */
   setHorizon: (h: number) => void;
+  /**
+   * Declara la APERTURA del historial: mes de inicio y saldo inicial, en una sola escritura
+   * (FR-2201/FR-2202/FR-2207). Las cuatro vías de la tarjeta de arranque y el formulario de
+   * Configuración convergen aquí.
+   *
+   * NO es optimista: el servidor puede rechazar por regla, así que el estado local solo cambia
+   * cuando la escritura se confirma. Devuelve el resultado para que la UI decida qué mostrar.
+   */
+  setStart: (startMonth: PeriodKey, openingBalance: number | null)
+    => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[] }>;
   /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
   closeMonth: () => Promise<void>;
   /** Reabre el último mes cerrado (FR-2005). */
@@ -358,6 +368,24 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ horizon: next }),
       }).catch(() => { /* una preferencia que no se pudo guardar no rompe la sesión */ });
+    },
+    /**
+     * @aitri-trace FR-ID: FR-2202, US-ID: US-2202, AC-ID: AC-2204, TC-ID: TC-MSI-021h, TC-MSI-024f
+     */
+    setStart: async (startMonth, openingBalance) => {
+      if (!repo) return { ok: false, reason: "no_repo" };
+      const res = await repo.saveStart(startMonth, openingBalance);
+      if (!res.ok) {
+        // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
+        // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
+        if (res.reason === "network") set({ storageError: "network" });
+        return res;
+      }
+      set((st) => ({
+        data: { ...st.data, startMonth: res.startMonth as PeriodKey, openingBalance: res.openingBalance },
+        storageError: null,
+      }));
+      return { ok: true };
     },
     toast: null,
     toastUndo: false,

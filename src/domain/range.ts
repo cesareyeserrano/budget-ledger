@@ -12,6 +12,7 @@
 import type { LedgerState, PeriodKey } from "./types";
 import { comparePeriods, isPeriodKey, periodOf, periodRange, periodYear } from "./periods";
 import { normalizeClosure } from "./closure";
+import { normalizeStartMonth } from "./opening";
 
 /**
  * Los dos horizontes que el usuario puede elegir, en AÑOS COMPLETOS (FR-1904). No hay más.
@@ -98,12 +99,26 @@ export function activeRange(
   // Se normaliza ANTES de anclar: una frontera basura no puede fijar el inicio del rango, porque
   // toda la aritmética posterior la daría por buena.
   const boundary = normalizeClosure(state.closure).closedThrough;
+
+  // El MES DE INICIO declarado es el TERCER ancla (FR-2201, ADR-04 del TRD). Se AÑADE a los dos
+  // existentes, no los sustituye (NFR-2203): fija el SUELO del historial, y un dato o una frontera
+  // anteriores lo extienden igualmente hacia atrás.
+  //
+  // Por qué suelo y no recorte: recortar cumpliría al pie de la letra «no se muestran meses
+  // anteriores», pero un dato previo quedaría invisible E INCORREGIBLE — el mismo argumento con el
+  // que ADR-14 hizo anclar la frontera del cierre. Ese estado es además inalcanzable desde la
+  // interfaz, porque FR-2206 bloquea el movimiento que lo crearía; así que la opción elegida solo
+  // se comporta distinto en un estado que no debería existir, y ahí falla del lado seguro.
+  //
+  // Sin mes declarado, `declared` es null y la expresión se reduce TÉRMINO A TÉRMINO a la anterior.
+  const declared = normalizeStartMonth(state.startMonth);
+  const base = declared ?? currentPeriod;
   const anchors = [oldest, boundary].filter(
-    (p): p is PeriodKey => !!p && comparePeriods(p, currentPeriod) < 0
+    (p): p is PeriodKey => !!p && comparePeriods(p, base) < 0
   );
   const from = anchors.length > 0
     ? anchors.reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b))
-    : currentPeriod;
+    : base;
 
   // Hasta DICIEMBRE del último año del horizonte: años completos, no una cuenta de meses.
   const horizonEnd = periodOf(periodYear(currentPeriod) + h, 12);

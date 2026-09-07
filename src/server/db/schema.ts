@@ -112,6 +112,16 @@ export const ledger = pgTable("ledger", {
   // en deficit y la linea de base representa el estado real, no el deseable.
   reopenBaseAvailable: bigint("reopen_base_available", { mode: "number" }),
   reopenBaseReserved: bigint("reopen_base_reserved", { mode: "number" }),
+  // Feature meses-y-saldo-inicial (FR-2201/FR-2202/ADR-01). La APERTURA declarada del historial:
+  // en que mes empieza y con cuanto. Viven AQUI, junto a `revision` y por el mismo motivo que
+  // `closed_through`: cambian las CIFRAS, asi que heredan gratis el lock optimista. `user.horizon`
+  // no lo hace porque es preferencia de presentacion y no altera ningun numero.
+  //
+  // NULL en ambas = no declarado = comportamiento previo a la feature, byte a byte. Los CHECK de la
+  // migracion 0006 imponen el formato «YYYY-MM», el >= 0 del monto, y que un saldo no pueda existir
+  // sin un mes al que aplicarse (lo inverso SI es legal: es «empiezo desde cero»).
+  startMonth: text("start_month"),
+  openingBalance: bigint("opening_balance", { mode: "number" }),
 });
 
 /**

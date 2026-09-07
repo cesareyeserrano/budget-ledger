@@ -17,6 +17,7 @@ import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
 import { IconPicker } from "./IconPicker";
 import { BalanceModule, RetirosRow } from "./BalanceModule";
+import { OpeningCard } from "./OpeningCard";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
@@ -380,6 +381,13 @@ export function BudgetGrid() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={endDrag}>
+      {/* FR-2203: la tarjeta de arranque va ENCIMA de la grilla, no delante. El contenedor es
+          `relative` solo para anclarla; la grilla conserva su scroll y sigue siendo operable
+          detrás, que es la propiedad que define este diseño (no es un muro). Vive aquí y no en el
+          shell para que la garantía de «no existe en móvil» sea estructural: `MobileShell` no
+          importa la grilla. */}
+      <div className="relative flex flex-1 flex-col min-h-0">
+      <OpeningCard />
       <div ref={scrollRef} className="lx-scroll overflow-auto flex-1" data-testid="budget-grid" style={{ ["--cat-w" as string]: `${catW}px` } as React.CSSProperties}>
         <div className="w-max min-w-full text-caption">
           {/* Encabezados sticky */}
@@ -525,6 +533,7 @@ export function BudgetGrid() {
           </div>
         ) : null}
       </DragOverlay>
+      </div>
     </DndContext>
   );
 }

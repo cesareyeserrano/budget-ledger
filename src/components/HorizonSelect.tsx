@@ -19,22 +19,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
  * hoy vive lo configurable, y se muda a Configuración cuando esa página exista — que es literalmente
  * lo que FR-1907 dice que debe pasar. No se crea aquí una página de ajustes.
  *
- * Solo en escritorio: la persona planea en escritorio y captura en móvil, y el horizonte es una
- * decisión de planeación. La preferencia vive en la CUENTA (ADR-06), así que lo elegido aquí ya
- * rige en el móvil sin necesidad de un segundo control en su cabecera.
+ * SU SITIO DEFINITIVO ES CONFIGURACIÓN, y ya está ahí (FR-2204, 2026-09-07). La nota anterior
+ * decía que su lugar en la cabecera era provisional «hasta que exista la página de Configuración»;
+ * esa página existe, así que se mudó y se retiró de `DesktopShell`. Queda un solo control por
+ * ajuste, que es lo que FR-1907 difería.
+ *
+ * `mostrarRotulo` existe por esa mudanza: en la cabecera el rótulo iba DENTRO del componente porque
+ * «2 años» a solas no dice de qué; en un formulario la etiqueta la pone la página, junto a las de
+ * los demás ajustes, y repetirla sería ruido. El control en sí no cambia.
  *
  * @aitri-trace FR-ID: FR-1904, FR-1907
  */
-export function HorizonSelect() {
+export function HorizonSelect({ mostrarRotulo = true }: { mostrarRotulo?: boolean }) {
   const horizon = useLedgerStore((s) => s.horizon);
   const setHorizon = useLedgerStore((s) => s.setHorizon);
 
   return (
     <div className="flex items-center gap-2">
-      {/* El rótulo va FUERA del control: «2 años» a solas en la cabecera no dice de qué. Mismo
-          patrón que la etiqueta de alcance de la barra de periodo. */}
-      <span className="caption text-fg-muted whitespace-nowrap">Horizonte</span>
-      <div className="w-[104px]">
+      {mostrarRotulo && (
+        <span className="caption text-fg-muted whitespace-nowrap">Horizonte</span>
+      )}
+      <div className="w-[160px]">
         <Select value={String(horizon)} onValueChange={(v) => setHorizon(Number(v))}>
           <SelectTrigger
             aria-label="Horizonte de planeación"

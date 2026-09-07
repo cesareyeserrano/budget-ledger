@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, X, Settings } from "lucide-react";
 import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { periodLabel, periodYear } from "@/domain/periods";
 import type { PeriodKey } from "@/domain/types";
@@ -10,7 +11,6 @@ import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
-import { HorizonSelect } from "./HorizonSelect";
 import { ClosureControl } from "./ClosureControl";
 import { ImpactPanel } from "./ImpactPanel";
 import { ClosureBanner } from "./ClosureBanner";
@@ -23,6 +23,21 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
 import { Kpi } from "./ui/Kpi";
+
+function ConfigLink() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      aria-label="Configuración"
+      data-testid="config-link"
+      onClick={() => router.push("/configuracion")}
+      className="flex h-(--control-md) w-(--control-md) items-center justify-center rounded-(--radius-sm) text-fg-secondary hover:text-fg"
+    >
+      <Settings className="h-5 w-5" strokeWidth={1.75} />
+    </button>
+  );
+}
 
 type View = "budget" | "dashboard";
 
@@ -81,11 +96,11 @@ export function DesktopShell() {
           </div>
           {/* Preferencia y cuenta, separadas del grupo de trabajo por un divisor explícito */}
           <div className="flex items-center gap-2">
-            {/* Horizonte de planeación (FR-1904/FR-1907) — provisional aquí hasta que exista la
-                página de Configuración; ver la nota de cabecera de HorizonSelect. */}
-            <HorizonSelect />
-            <span className="h-4 w-px bg-border" aria-hidden />
+            {/* FR-1907 saldado: el HorizonSelect que vivía aquí de forma PROVISIONAL se mudó a la
+                página de Configuración, que es lo que ese requisito difería. Un solo control por
+                ajuste. */}
             <ThemeToggle />
+            <ConfigLink />
             <span className="h-4 w-px bg-border" aria-hidden />
             <LogoutButton />
           </div>

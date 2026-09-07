@@ -20,8 +20,9 @@ import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
 import { worsenedBy } from "@/domain/guard";
 import type { ReserveWarning } from "@/domain/reserve";
 import {
-  closedPeriodsViolated, closeMonth, normalizeClosure, reopenMonth, NO_CLOSURE,
+  closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE,
 } from "@/domain/closure";
+import { normalizeOpeningBalance, normalizeStartMonth, orphanedByStart } from "@/domain/opening";
 import type { Closure } from "@/domain/types";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
@@ -132,7 +133,34 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
   ]);
 
   const state = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
-  return { revision: head.revision, state: { ...state, closure: closureFromRow(head) } };
+  return {
+    revision: head.revision,
+    state: { ...state, closure: closureFromRow(head), ...openingFromRow(head) },
+  };
+}
+
+/**
+ * La APERTURA declarada de la fila ancla, normalizada (FR-2201/FR-2202).
+ *
+ * Se normaliza SIEMPRE por el mismo motivo que `closureFromRow`: los CHECK de la migracion 0006 son
+ * una segunda barrera independiente, no la primera, y una fila escrita a mano por un operador o
+ * anterior a la migracion no puede impedir que la app arranque. Un valor corrupto se comporta como
+ * «no declarado», que es el estado seguro (TC-MSI-002f, TC-MSI-014f).
+ *
+ * @param head La fila de `ledger` del usuario.
+ * @returns Los dos campos ya normalizados, listos para mezclar en el snapshot.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2207, US-ID: US-2207, AC-ID: AC-2219, TC-ID: TC-MSI-060h, TC-MSI-062e
+ */
+function openingFromRow(head: { startMonth: string | null; openingBalance: number | null }): {
+  startMonth: PeriodKey | null;
+  openingBalance: number | null;
+} {
+  return {
+    startMonth: normalizeStartMonth(head.startMonth),
+    openingBalance: normalizeOpeningBalance(head.openingBalance),
+  };
 }
 
 /**
@@ -663,6 +691,75 @@ export async function closeMonthFor(
     // Dentro de la MISMA transacción: no existe un cierre sin rastro (TC-CDM-056f).
     await tx.insert(closureEvent).values({ ownerId, period: res.closed, action: "close" });
     return { ok: true, revision, closure: res.closure };
+  });
+}
+
+/** Resultado de declarar la apertura (FR-2201/FR-2202/FR-2207). */
+export type StartResult =
+  | { ok: true; revision: number; startMonth: PeriodKey; openingBalance: number | null }
+  | { ok: false; conflict: true; revision: number }
+  | { ok: false; rejected: "month_closed" }
+  | { ok: false; rejected: "would_orphan"; periods: PeriodKey[] };
+
+/**
+ * Declara el MES DE INICIO y el SALDO INICIAL del usuario, en una sola operacion y una sola
+ * transaccion (ADR-02 del TRD).
+ *
+ * POR QUE UN ENDPOINT PROPIO Y NO EL PUT DEL SNAPSHOT. Las dos reglas de abajo son invariantes de
+ * dominio, y NFR-2205 exige que se evaluen en el SERVIDOR. El proyecto tiene el contraejemplo
+ * abierto: BG-002 documenta que `PUT /api/v1/ledger` acepta cualquier snapshot sin validar los
+ * invariantes porque «la regla vive SOLO en el navegador». Aqui no se repite.
+ *
+ * Las dos reglas, ambas dentro de la transaccion y con la fila bloqueada:
+ *   1. FR-2205 — el mes de inicio VIGENTE tiene que estar abierto. Cambiar la apertura recalcula
+ *      toda la serie hacia adelante, incluidos meses que el usuario dio por buenos al cerrarlos.
+ *   2. FR-2206 — mover el inicio hacia adelante no puede dejar meses con datos fuera del historial.
+ *      Se impide, no se avisa: es el mismo principio de «cero perdida silenciosa» del borrado de
+ *      categorias.
+ *
+ * @param ownerId        El usuario, tomado SIEMPRE de la sesion — nunca del cuerpo.
+ * @param baseRevision   La revision que el cliente cree vigente (lock optimista).
+ * @param startMonth     El mes de inicio propuesto, ya validado en forma por `startPutSchema`.
+ * @param openingBalance El saldo de apertura, o null para «no traigo dinero previo».
+ * @returns El resultado discriminado; nunca lanza por una regla de negocio.
+ * @throws Solo errores de infraestructura de la base (los propaga la transaccion).
+ *
+ * @aitri-trace FR-ID: FR-2207, US-ID: US-2207, AC-ID: AC-2219, TC-ID: TC-MSI-041f, TC-MSI-051f, TC-MSI-060h, TC-MSI-061f
+ */
+export async function saveStartFor(
+  ownerId: string,
+  baseRevision: number,
+  startMonth: PeriodKey,
+  openingBalance: number | null
+): Promise<StartResult> {
+  return db.transaction(async (tx) => {
+    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    const current = head?.revision ?? 0;
+    if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
+
+    const state = await loadStateInTx(tx, ownerId);
+    const closure = closureFromRow(head);
+
+    // Regla 1 (FR-2205). Se evalua sobre el mes VIGENTE, no sobre el propuesto: lo que el cierre
+    // protege es la serie ya congelada, y esa cuelga de donde la apertura esta HOY.
+    const vigente = normalizeStartMonth(head.startMonth);
+    if (vigente !== null && isClosed(closure, vigente)) {
+      return { ok: false, rejected: "month_closed" };
+    }
+
+    // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada, y `orphanedByStart` lo refleja sin
+    // caso especial: no habra ningun periodo anterior al candidato.
+    const huerfanos = orphanedByStart(state, startMonth);
+    if (huerfanos.length > 0) {
+      return { ok: false, rejected: "would_orphan", periods: huerfanos };
+    }
+
+    const revision = current + 1;
+    await tx
+      .update(ledger)
+      .set({ revision, updatedAt: new Date(), startMonth, openingBalance })
+      .where(eq(ledger.ownerId, ownerId));
+    return { ok: true, revision, startMonth, openingBalance };
   });
 }
 

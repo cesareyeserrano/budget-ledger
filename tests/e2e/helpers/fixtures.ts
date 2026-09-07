@@ -13,6 +13,7 @@ import { test as base, expect } from "@playwright/test";
 import { storageStatePath, e2eEmail } from "./globalSetup";
 import { buildSeed } from "@/domain";
 import { resetClosure } from "./closure";
+import { resetOpening } from "./opening";
 import { P0 } from "../../helpers/periods";
 
 export const test = base.extend<{ freshLedger: void }, { workerStorageState: string }>({
@@ -51,6 +52,10 @@ export const test = base.extend<{ freshLedger: void }, { workerStorageState: str
       // existe camino por API de vuelta a «nada cerrado», y con un mes cerrado el PUT de la semilla
       // recibe 422 y mata TODAS las pruebas siguientes del worker. Ver helpers/closure.ts.
       await resetClosure(e2eEmail(testInfo.parallelIndex));
+      // Feature meses-y-saldo-inicial: y la APERTURA declarada, por el mismo motivo. El PUT del
+      // snapshot la ignora a proposito (ADR-02), asi que restaurar la semilla no la limpia y la
+      // tarjeta de arranque no volveria a aparecer en ninguna prueba posterior del worker.
+      await resetOpening(e2eEmail(testInfo.parallelIndex));
       const res = await page.request.get("/api/v1/ledger");
       const baseRevision = res.status() === 200 ? ((await res.json()) as { revision: number }).revision : 0;
       const put = await page.request.put("/api/v1/ledger", {

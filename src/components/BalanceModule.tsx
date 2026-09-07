@@ -18,6 +18,7 @@ import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
 import { periodMonthLabel, periodLabel, isYearStart, periodYear } from "@/domain/periods";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
+import { openingCarry } from "@/domain/opening";
 import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
@@ -317,7 +318,13 @@ function BalanceRows({ highlightMonth }: { highlightMonth: PeriodKey | null }) {
   // en pantalla — recortar el cálculo lo pondría en cero y la cifra mostrada sería falsa.
   const scope = useActivePeriods();
   const periods = useVisiblePeriods();
-  const series = useMemo(() => computeBalanceSeries(data, scope), [data, scope]);
+  // FR-2202: la serie abre con el saldo inicial declarado. `openingCarry` devuelve ZERO_CARRY
+  // cuando no hay declaración —o cuando el rango no arranca en el mes de inicio—, así que para
+  // quien no declara nada esto es byte a byte lo de antes (NFR-2201).
+  const series = useMemo(
+    () => computeBalanceSeries(data, scope, openingCarry(data, scope)),
+    [data, scope]
+  );
   const flows = useMemo(() => computeReserveFlows(data, scope), [data, scope]);
 
   return (

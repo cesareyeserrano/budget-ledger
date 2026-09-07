@@ -131,6 +131,23 @@ export interface LedgerState {
   cellNotes?: CellNotesMap;
   /** Delta aditivo (FR-2001): ausente ≡ nada cerrado. Un ledger previo carga y opera sin él. */
   closure?: Closure;
+  /**
+   * FR-2201. El mes en que el usuario declara que EMPIEZA su historia. Delta aditivo: ausente o
+   * `null` ≡ no declarado, y entonces todo se comporta exactamente como antes de esta feature.
+   *
+   * No se deduce del dato más antiguo. Anclar la apertura en «el primer mes con datos» la haría
+   * FLOTAR: teclear algo en un mes anterior la mudaría de sitio en silencio y recalcularía toda la
+   * serie. El mes declarado es el ancla estable.
+   */
+  startMonth?: PeriodKeyT | null;
+  /**
+   * FR-2202. Lo que el usuario ya tenía el día que empezó, en pesos enteros ≥ 0. Delta aditivo:
+   * ausente o `null` ≡ no declarado ≡ abre en 0, byte a byte como hoy.
+   *
+   * NO es un ingreso: no entra en «Resultado del mes», que es justo la cifra que se falsearía si
+   * se metiera como tal. Ocupa la casilla del «Saldo del mes anterior» del mes de inicio.
+   */
+  openingBalance?: number | null;
 }
 
 export const STORAGE_KEYS = {

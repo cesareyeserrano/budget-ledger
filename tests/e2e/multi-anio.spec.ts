@@ -204,7 +204,13 @@ test("TC-MAN-252e: el registro apunta por defecto al periodo en curso, con su a�
 // detectó la auditoría de requisitos del 2026-09-03 (GAP-1). Esta prueba cubre ese hueco desde
 // fuera del pipeline; cuando el hallazgo se reconcilie en el expediente, le corresponde un TC id.
 
-test("el usuario puede fijar el horizonte desde la cabecera, y su elección persiste", async ({ page }) => {
+// ACTUALIZADO el 2026-09-07 (feature meses-y-saldo-inicial, FR-2204): el control se MUDÓ de la
+// cabecera a la página de Configuración. No es una concesión: FR-1907 —aprobado en ESTA feature—
+// decía literalmente que «el control definitivo aterriza en Configuración cuando esa página exista»,
+// y la cabecera de HorizonSelect documentaba su sitio como PROVISIONAL. La página existe desde hoy,
+// así que la prueba navega a donde el requisito siempre dijo. Las aserciones no se tocan: se sigue
+// exigiendo que el rango se encoja a años COMPLETOS y que la preferencia sobreviva a la recarga.
+test("el usuario puede fijar el horizonte desde Configuración, y su elección persiste", async ({ page }) => {
   await abrir(page);
   const anio = Number(P[0].slice(0, 4));
 
@@ -216,13 +222,16 @@ test("el usuario puede fijar el horizonte desde la cabecera, y su elección pers
 
   try {
     // De salida, el defecto: 2 años completos → el rango termina en el diciembre del año+2
-    await expect(page.getByTestId("horizon-select")).toBeVisible();
     const columnasCon2 = await visibleMonthCount(page);
     expect(await ultimaColumna()).toBe(`${anio + 2}-12`);
 
-    // El usuario elige 1 año
+    // El usuario elige 1 año, ahora desde Configuración
+    await page.goto("/configuracion");
+    await expect(page.getByTestId("horizon-select")).toBeVisible();
     await page.getByTestId("horizon-select").click();
     await page.getByRole("option", { name: "1 año", exact: true }).click();
+    await page.getByTestId("config-back").click();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
 
     // El rango se encoge y sigue terminando en DICIEMBRE — años completos, no una cuenta de meses
     await expect.poll(() => visibleMonthCount(page)).toBeLessThan(columnasCon2);

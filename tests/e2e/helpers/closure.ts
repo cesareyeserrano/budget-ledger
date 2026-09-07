@@ -12,22 +12,9 @@
  *   Es infraestructura de pruebas, equivalente a un TRUNCATE: no se añade ningún endpoint de
  *   producción para esto. Un "reset" expuesto por la API sería exactamente la puerta trasera que la
  *   feature existe para no tener.
- * Dependencies: postgres, ./globalSetup
+ * Dependencies: ./pg
  */
-import { existsSync, readFileSync } from "node:fs";
-import postgres from "postgres";
-import { STATE_FILE } from "./globalSetup";
-
-let sql: ReturnType<typeof postgres> | null = null;
-
-function db(): ReturnType<typeof postgres> | null {
-  if (sql) return sql;
-  if (!existsSync(STATE_FILE)) return null;
-  const { databaseUrl } = JSON.parse(readFileSync(STATE_FILE, "utf8")) as { databaseUrl?: string };
-  if (!databaseUrl) return null;
-  sql = postgres(databaseUrl, { max: 1 });
-  return sql;
-}
+import { db } from "./pg";
 
 /**
  * Devuelve a «nada cerrado» el ledger de UN usuario, por su correo. No falla si no hay base.

@@ -95,6 +95,17 @@ export const ledgerStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  // FR-2201/FR-2202: la apertura declarada. Opcionales y NULLABLES, por el mismo motivo que
+  // `closure` y `cellNotes` — y con la MISMA trampa, que conviene no volver a pisar: este esquema
+  // no solo valida el PUT, `ServerRepository.load()` lo usa para validar el snapshot que LLEGA, y
+  // zod descarta por defecto lo que no declara. Sin estas dos lineas los valores viajarian
+  // correctos desde el servidor y desapareceran en silencio antes de tocar el store, asi que la
+  // grilla abriria en cero por mucho que la base dijera otra cosa (TC-MSI-063e).
+  //
+  // Aceptarlos en el PUT es inofensivo: `saveLedger` los IGNORA a proposito — la apertura solo la
+  // mueve PUT /api/v1/ledger/start, que es donde viven sus dos reglas de servidor (ADR-02).
+  startMonth: PERIOD_KEY.nullable().optional(),
+  openingBalance: z.number().int().gte(0).nullable().optional(),
 });
 
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */
@@ -103,6 +114,25 @@ export const ledgerPutSchema = z.object({
   state: ledgerStateSchema,
 });
 export type LedgerPutBody = z.infer<typeof ledgerPutSchema>;
+
+/**
+ * Cuerpo de PUT /api/v1/ledger/start (FR-2201/FR-2202/ADR-02): la apertura declarada del historial.
+ *
+ * UN solo endpoint para los DOS valores, no dos. El usuario declara un hecho —«mi historia empieza
+ * en junio con 1.200.000»— y partirlo en dos escrituras abriria una ventana en la que el mes ya
+ * cambio pero el saldo todavia no, con la cascada recalculada a medias entre las dos. Ademas sube
+ * `revision` una sola vez.
+ *
+ * `openingBalance` admite null: es el estado «declare cuando empiezo, pero no traigo dinero previo»
+ * (los estados 3 y 4 de la tarjeta de arranque). El negativo se rechaza aqui, antes de que ninguna
+ * consulta de dominio llegue a ejecutarse (TC-MSI-092h).
+ */
+export const startPutSchema = z.object({
+  baseRevision: z.number().int().gte(0),
+  startMonth: PERIOD_KEY,
+  openingBalance: z.number().int().gte(0).finite().nullable(),
+});
+export type StartPutBody = z.infer<typeof startPutSchema>;
 
 /**
  * Cuerpo del PUT del horizonte (FR-1907). Solo 1 o 2 AÑOS: cualquier otro valor es 400 antes de

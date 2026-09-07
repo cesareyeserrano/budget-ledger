@@ -23,6 +23,7 @@ import { addMonths, comparePeriods, isPeriodKey } from "./periods";
 // cálculo. `downstreamImpact` no calcula nada nuevo: corre DOS VECES la serie de siempre y las
 // compara.
 import { computeBalanceSeries, ZERO_CARRY } from "./balance";
+import { openingCarry } from "./opening";
 
 // NO se importa `range.ts`: `activeRange` ancla su inicio en la frontera del cierre (ADR-14), así
 // que importarlo aquí cerraría un ciclo. Las dos funciones que necesitan el rango lo RECIBEN como
@@ -74,6 +75,13 @@ function readCarry(v: unknown): Carry | null {
  *
  * Es lo que se fotografía al reabrir (FR-2010) y contra lo que se mide después. Se calcula con la
  * misma serie que pinta el Balance: una sola fuente de verdad, sin fórmula paralela.
+ *
+ * FR-2202: `upTo` arranca en la CABEZA del rango, así que la serie tiene que abrir con la apertura
+ * declarada igual que la del Balance. Esta línea es FLAG-1 del TRD y no es cosmética: sin ella, un
+ * usuario que declara saldo inicial hace que el cierre fotografíe un saldo distinto del que la
+ * pantalla muestra, y la divergencia es INVISIBLE —las dos cifras siguen siendo coherentes consigo
+ * mismas— hasta que alguien reabre un mes y mide el impacto contra una referencia falsa.
+ * Sin declaración, `openingCarry` devuelve `ZERO_CARRY` y esto se comporta byte a byte como antes.
  */
 function closingCarry(
   state: LedgerState,
@@ -82,7 +90,7 @@ function closingCarry(
 ): Carry {
   const upTo = range.filter((p) => comparePeriods(p, period) <= 0);
   if (upTo.length === 0) return ZERO_CARRY;
-  const series = computeBalanceSeries(state, upTo);
+  const series = computeBalanceSeries(state, upTo, openingCarry(state, upTo));
   const last = series[upTo[upTo.length - 1]];
   if (!last) return ZERO_CARRY;
   return { available: last.actual.available, reservedBalance: last.actual.reservedBalance };
