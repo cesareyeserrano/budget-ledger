@@ -573,13 +573,26 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // parsea para acreditar los TCs— no define `AITRI_COVERAGE`, así que ahí se afirman los tres
     // exactamente igual que antes (comprobado: 44/44 afirmando, ninguna saltada).
     //
+    // ANCLA AVANZADA POR SEGUNDA VEZ, de 69b1c9f a f4e2301 el 2026-09-07, y por una razón que NO
+    // es la que esta prueba vigila. Lo que cambió en `multi-anio.spec.ts` no fue una feature vecina
+    // acomodando una prueba para pasar: fue FR-1907 —aprobado en la PROPIA multi-anio— cumpliéndose.
+    // Ese requisito decía que el control del horizonte «aterriza en Configuración cuando esa página
+    // exista», y la cabecera de `HorizonSelect` documentaba su sitio en la barra superior como
+    // PROVISIONAL. La feature meses-y-saldo-inicial creó esa página, así que el control se mudó y la
+    // prueba navega a donde su propio requisito siempre dijo.
+    //
+    // Las ASERCIONES no se tocaron, que es lo que distingue este cambio del que la alarma busca: se
+    // sigue exigiendo que el rango se encoja a años COMPLETOS (último periodo en diciembre, no una
+    // cuenta de meses) y que la preferencia sobreviva a la recarga. Solo cambió a qué pantalla se
+    // navega para mover el control. Verificado: 12/12 en multi-anio.spec.ts tras el cambio.
+    //
     // Los otros dos ficheros de la lista siguen intactos y siguen vigilados.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat 69b1c9f -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat f4e2301 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
