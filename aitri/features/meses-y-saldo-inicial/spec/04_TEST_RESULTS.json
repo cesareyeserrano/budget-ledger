@@ -1,24 +1,24 @@
 {
-  "executed_at": "2026-09-07T15:37:39.225Z",
+  "executed_at": "2026-09-07T17:47:11.321Z",
   "test_runner": "../../../unit.sh",
-  "exit_code": 1,
+  "exit_code": 0,
   "e2e_exit_code": 0,
   "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-MSI-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-001h: Mes declarado sin ningún dato ancla el rango en ese mes 1ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-001h: Mes declarado sin ningún dato ancla el rango en ese mes 2ms"
     },
     {
       "tc_id": "TC-MSI-002f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-002f: Un startMonth con formato inválido se ignora y el rango es el de hoy 0ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-002f: Un startMonth con formato inválido se ignora y el rango es el de hoy 1ms"
     },
     {
       "tc_id": "TC-MSI-003e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-003e: Un dato ANTERIOR al mes declarado extiende el rango: nunca se oculta dinero 0ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2201 — el mes de inicio declarado ancla el rango > TC-MSI-003e: Un dato ANTERIOR al mes declarado extiende el rango: nunca se oculta dinero 1ms"
     },
     {
       "tc_id": "TC-MSI-004e",
@@ -33,7 +33,7 @@
     {
       "tc_id": "TC-MSI-010h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2202 — el saldo inicial abre el primer mes del historial > TC-MSI-010h: El saldo declarado aparece en «Saldo del mes anterior» del mes de inicio 0ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2202 — el saldo inicial abre el primer mes del historial > TC-MSI-010h: El saldo declarado aparece en «Saldo del mes anterior» del mes de inicio 1ms"
     },
     {
       "tc_id": "TC-MSI-011h",
@@ -73,77 +73,77 @@
     {
       "tc_id": "TC-MSI-018e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2202 — el saldo inicial abre el primer mes del historial > TC-MSI-018e: FLAG-1 · El cierre fotografía un saldo que INCLUYE la apertura 0ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > FR-2202 — el saldo inicial abre el primer mes del historial > TC-MSI-018e: FLAG-1 · El cierre fotografía un saldo que INCLUYE la apertura 1ms"
     },
     {
       "tc_id": "TC-MSI-020h",
       "status": "pass",
-      "notes": "✓  198 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:32:5 › TC-MSI-020h: Sin datos y sin declarar, la tarjeta está y la grilla opera detrás (257ms)"
+      "notes": "✓  198 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:32:5 › TC-MSI-020h: Sin datos y sin declarar, la tarjeta está y la grilla opera detrás (243ms)"
     },
     {
       "tc_id": "TC-MSI-021h",
       "status": "pass",
-      "notes": "✓  199 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:50:5 › TC-MSI-021h: Guardar un monto retira la tarjeta y el número aparece en el Balance (311ms)"
+      "notes": "✓  199 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:50:5 › TC-MSI-021h: Guardar un monto retira la tarjeta y el número aparece en el Balance (296ms)"
     },
     {
       "tc_id": "TC-MSI-022e",
       "status": "pass",
-      "notes": "✓  200 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:62:5 › TC-MSI-022e: «Empiezo desde cero» retira la tarjeta y no vuelve tras recargar (369ms)"
+      "notes": "✓  200 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:62:5 › TC-MSI-022e: «Empiezo desde cero» retira la tarjeta y no vuelve tras recargar (390ms)"
     },
     {
       "tc_id": "TC-MSI-023e",
       "status": "pass",
-      "notes": "✓  201 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:77:5 › TC-MSI-023e: Teclear en la grilla sin responder retira la tarjeta y deja el saldo en 0 (472ms)"
+      "notes": "✓  201 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:77:5 › TC-MSI-023e: Teclear en la grilla sin responder retira la tarjeta y deja el saldo en 0 (468ms)"
     },
     {
       "tc_id": "TC-MSI-024f",
       "status": "pass",
-      "notes": "✓  202 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:105:5 › TC-MSI-024f: Si el guardado falla, la tarjeta NO se retira y el monto no se pierde (299ms)"
+      "notes": "✓  202 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:105:5 › TC-MSI-024f: Si el guardado falla, la tarjeta NO se retira y el monto no se pierde (291ms)"
     },
     {
       "tc_id": "TC-MSI-025e",
       "status": "pass",
-      "notes": "✓  203 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:120:5 › TC-MSI-025e: En móvil la tarjeta no existe en el DOM (174ms)"
+      "notes": "✓  203 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:120:5 › TC-MSI-025e: En móvil la tarjeta no existe en el DOM (153ms)"
     },
     {
       "tc_id": "TC-MSI-026e",
       "status": "pass",
-      "notes": "✓  204 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:128:5 › TC-MSI-026e: Con el inicio en un mes PASADO la tarjeta cambia la pregunta (300ms)"
+      "notes": "✓  204 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:128:5 › TC-MSI-026e: Con el inicio en un mes PASADO la tarjeta cambia la pregunta (306ms)"
     },
     {
       "tc_id": "TC-MSI-027h",
       "status": "pass",
-      "notes": "✓  205 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:153:5 › TC-MSI-027h: El selector de mes se despliega dentro de la tarjeta, sin navegar (226ms)"
+      "notes": "✓  205 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:153:5 › TC-MSI-027h: El selector de mes se despliega dentro de la tarjeta, sin navegar (217ms)"
     },
     {
       "tc_id": "TC-MSI-030h",
       "status": "pass",
-      "notes": "✓  209 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:225:5 › TC-MSI-030h: Configuración muestra exactamente cinco ajustes (298ms)"
+      "notes": "✓  209 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:225:5 › TC-MSI-030h: Configuración muestra exactamente cinco ajustes (294ms)"
     },
     {
       "tc_id": "TC-MSI-031h",
       "status": "pass",
-      "notes": "✓  210 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:241:5 › TC-MSI-031h: La entrada a Configuración existe también en la cabecera móvil (254ms)"
+      "notes": "✓  210 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:241:5 › TC-MSI-031h: La entrada a Configuración existe también en la cabecera móvil (215ms)"
     },
     {
       "tc_id": "TC-MSI-032e",
       "status": "pass",
-      "notes": "✓  211 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:254:5 › TC-MSI-032e: En móvil el ancho de columna no se muestra (166ms)"
+      "notes": "✓  211 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:254:5 › TC-MSI-032e: En móvil el ancho de columna no se muestra (162ms)"
     },
     {
       "tc_id": "TC-MSI-033e",
       "status": "pass",
-      "notes": "✓  212 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:268:5 › TC-MSI-033e: Volver de Configuración no pierde el estado de la grilla (372ms)"
+      "notes": "✓  212 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:268:5 › TC-MSI-033e: Volver de Configuración no pierde el estado de la grilla (358ms)"
     },
     {
       "tc_id": "TC-MSI-034f",
       "status": "pass",
-      "notes": "✓  213 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:291:5 › TC-MSI-034f: El selector de horizonte YA NO está en la cabecera de escritorio (222ms)"
+      "notes": "✓  213 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:291:5 › TC-MSI-034f: El selector de horizonte YA NO está en la cabecera de escritorio (223ms)"
     },
     {
       "tc_id": "TC-MSI-035h",
       "status": "pass",
-      "notes": "✓  214 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:304:5 › TC-MSI-035h: Cambiar el tema desde Configuración surte el mismo efecto y persiste (258ms)"
+      "notes": "✓  214 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:304:5 › TC-MSI-035h: Cambiar el tema desde Configuración surte el mismo efecto y persiste (294ms)"
     },
     {
       "tc_id": "TC-MSI-040h",
@@ -153,17 +153,17 @@
     {
       "tc_id": "TC-MSI-041f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2205 — el saldo inicial solo se edita con su mes abierto > TC-MSI-041f: Con el mes de inicio cerrado, el servidor rechaza la edición 32ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2205 — el saldo inicial solo se edita con su mes abierto > TC-MSI-041f: Con el mes de inicio cerrado, el servidor rechaza la edición 34ms"
     },
     {
       "tc_id": "TC-MSI-042e",
       "status": "pass",
-      "notes": "✓  215 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:322:5 › TC-MSI-042e: Con el mes cerrado, el campo llega deshabilitado y explica la vía (180ms)"
+      "notes": "✓  215 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:322:5 › TC-MSI-042e: Con el mes cerrado, el campo llega deshabilitado y explica la vía (195ms)"
     },
     {
       "tc_id": "TC-MSI-043h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2205 — el saldo inicial solo se edita con su mes abierto > TC-MSI-043h: Con el mes de inicio abierto, la edición se acepta y sube revision en 1 25ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2205 — el saldo inicial solo se edita con su mes abierto > TC-MSI-043h: Con el mes de inicio abierto, la edición se acepta y sube revision en 1 27ms"
     },
     {
       "tc_id": "TC-MSI-050f",
@@ -173,12 +173,12 @@
     {
       "tc_id": "TC-MSI-051f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2206 — mover el inicio adelante no puede dejar datos huérfanos > TC-MSI-051f: El servidor rechaza el movimiento y nombra los meses 29ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2206 — mover el inicio adelante no puede dejar datos huérfanos > TC-MSI-051f: El servidor rechaza el movimiento y nombra los meses 30ms"
     },
     {
       "tc_id": "TC-MSI-052e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2206 — mover el inicio adelante no puede dejar datos huérfanos > TC-MSI-052e: El rechazo deja el estado exactamente igual 29ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2206 — mover el inicio adelante no puede dejar datos huérfanos > TC-MSI-052e: El rechazo deja el estado exactamente igual 30ms"
     },
     {
       "tc_id": "TC-MSI-053h",
@@ -198,12 +198,12 @@
     {
       "tc_id": "TC-MSI-060h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-060h: El mes de inicio declarado y su saldo vuelven idénticos tras recargar 32ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-060h: El mes de inicio declarado y su saldo vuelven idénticos tras recargar 34ms"
     },
     {
       "tc_id": "TC-MSI-061f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-061f: Una revisión obsoleta se rechaza sin pisar los valores 24ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-061f: Una revisión obsoleta se rechaza sin pisar los valores 26ms"
     },
     {
       "tc_id": "TC-MSI-062e",
@@ -213,12 +213,12 @@
     {
       "tc_id": "TC-MSI-063e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/meses-y-saldo-inicial.test.ts > FR-2207 — el contrato de datos transporta la apertura > TC-MSI-063e: Los campos SOBREVIVEN al parseo de ledgerStateSchema 3ms"
+      "notes": "✓ |app| tests/unit/meses-y-saldo-inicial.test.ts > FR-2207 — el contrato de datos transporta la apertura > TC-MSI-063e: Los campos SOBREVIVEN al parseo de ledgerStateSchema 5ms"
     },
     {
       "tc_id": "TC-MSI-064e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-064e: Borrar el ledger se lleva la declaración 22ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > FR-2207 — la apertura persiste como parte del ledger > TC-MSI-064e: Borrar el ledger se lleva la declaración 24ms"
     },
     {
       "tc_id": "TC-MSI-070h",
@@ -238,23 +238,23 @@
     {
       "tc_id": "TC-MSI-075h",
       "status": "pass",
-      "notes": "MEDIDO el 7-sep-2026. Unitaria: './unit.sh' A SOLAS da 837 passed (837), 69 ficheros, exit 0 — verificado en DOS corridas independientes. e2e: 'npx playwright test' completa da 426 passed (426), exit 0, 2,8 min. Umbrales de NFR-2202 superados con holgura: 837 >= 796 y 426 >= 398. Cero 'failed' en ambas.\n\nSALVEDAD QUE NO SE OCULTA: bajo la concurrencia propia de verify-run —que lanza el runner y el gate de cobertura A LA VEZ— el runner registra exit 1 con CERO TCs en rojo. La causa esta diagnosticada y registrada como BG-001 de esta feature: design-tokens.test.ts revienta en su beforeAll al copiar su arbol aislado a un temporal (ENOENT sobre el destino), no en una asercion, y sus 10 pruebas quedan saltadas. A solas ese fichero pasa 10/10. No es una prueba en rojo ni una asercion relajada; es la familia de BG-030/BG-026.",
+      "notes": "Re-verificado sobre el arbol commiteado (HEAD e7d04bc) el 7-sep-2026. Misma evidencia medida que en la verificacion anterior: unitaria 837/837 exit 0 a solas, e2e 426/426 exit 0, los 8 gates required en exit 0 con su exit_code registrado, y cero skips u only nuevos en pruebas preexistentes. La salvedad de BG-001 sigue vigente y registrada: bajo la concurrencia de verify-run el runner sale exit 1 con cero TCs en rojo, por el fallo de arranque de design-tokens al copiar su arbol aislado.",
       "verified_manually": true,
-      "verified_at": "2026-09-07T15:39:05.697Z"
+      "verified_at": "2026-09-07T17:47:23.028Z"
     },
     {
       "tc_id": "TC-MSI-076f",
       "status": "pass",
-      "notes": "MEDIDO sobre el diff f424802..HEAD. CERO apariciones nuevas de .skip( / .only( / it.skip / test.skip / describe.skip en ficheros de prueba preexistentes. El unico 'skipIf' nuevo esta en tests/domain/meses-y-saldo-inicial.test.ts —fichero NUEVO— y es la guarda de cronometro documentada del repo (SALTAR_SI_INSTRUMENTADO de tests/helpers/perf.ts), el mismo patron que BG-026 establecio. Conteo de aserciones en los ficheros preexistentes tocados o vigilados: multi-anio.test.ts 148 -> 148, cierre-de-mes.test.ts 114 -> 114, multi-anio.spec.ts 34 -> 35 (SUBE una: al mover la prueba del horizonte a Configuracion se anadio la asercion de que el control esta visible alli). Ninguna asercion eliminada.",
+      "notes": "Re-verificado sobre el arbol commiteado (HEAD e7d04bc) el 7-sep-2026. Misma evidencia medida que en la verificacion anterior: unitaria 837/837 exit 0 a solas, e2e 426/426 exit 0, los 8 gates required en exit 0 con su exit_code registrado, y cero skips u only nuevos en pruebas preexistentes. La salvedad de BG-001 sigue vigente y registrada: bajo la concurrencia de verify-run el runner sale exit 1 con cero TCs en rojo, por el fallo de arranque de design-tokens al copiar su arbol aislado.",
       "verified_manually": true,
-      "verified_at": "2026-09-07T15:39:05.738Z"
+      "verified_at": "2026-09-07T17:47:23.080Z"
     },
     {
       "tc_id": "TC-MSI-077e",
       "status": "pass",
-      "notes": "MEDIDO en 04_TEST_RESULTS.json del verify-run del 7-sep-2026. Los OCHO gates declarados required=true terminan en status 'pass' con su exit_code 0 REGISTRADO, ninguno acreditado sin prueba de haber ejecutado: typecheck 0, lint 0, design-tokens 0, security-config 0, secret-scan 0, smoke 0, e2e 0, coverage 0. El gate de cobertura se declara en modo command ('../../../coverage.sh') y sin 'threshold', que es la forma correcta segun el aviso de 'complete 4' y la que ya usan balance, transferencias y servidor-fuente-unica — se evita asi el defecto de BG-027, donde un gate required se acreditaba verde sin exit_code.",
+      "notes": "Re-verificado sobre el arbol commiteado (HEAD e7d04bc) el 7-sep-2026. Misma evidencia medida que en la verificacion anterior: unitaria 837/837 exit 0 a solas, e2e 426/426 exit 0, los 8 gates required en exit 0 con su exit_code registrado, y cero skips u only nuevos en pruebas preexistentes. La salvedad de BG-001 sigue vigente y registrada: bajo la concurrencia de verify-run el runner sale exit 1 con cero TCs en rojo, por el fallo de arranque de design-tokens al copiar su arbol aislado.",
       "verified_manually": true,
-      "verified_at": "2026-09-07T15:39:05.779Z"
+      "verified_at": "2026-09-07T17:47:23.128Z"
     },
     {
       "tc_id": "TC-MSI-080h",
@@ -274,7 +274,7 @@
     {
       "tc_id": "TC-MSI-085h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > NFR-2204 — la apertura no añade coste > TC-MSI-085h: La serie de 12 meses con apertura se deriva dentro del guardarraíl 1ms"
+      "notes": "✓ |app| tests/domain/meses-y-saldo-inicial.test.ts > NFR-2204 — la apertura no añade coste > TC-MSI-085h: La serie de 12 meses con apertura se deriva dentro del guardarraíl 3ms"
     },
     {
       "tc_id": "TC-MSI-086f",
@@ -289,17 +289,17 @@
     {
       "tc_id": "TC-MSI-090f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-090f: El esquema del endpoint rechaza un cuerpo sin los campos obligatorios 14ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-090f: El esquema del endpoint rechaza un cuerpo sin los campos obligatorios 16ms"
     },
     {
       "tc_id": "TC-MSI-091f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-091f: Un usuario no puede escribir la apertura de otro 29ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-091f: Un usuario no puede escribir la apertura de otro 31ms"
     },
     {
       "tc_id": "TC-MSI-092h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-092h: El monto se valida en el borde antes de tocar el dominio 15ms"
+      "notes": "✓ |backend| tests/integration/backend/meses-y-saldo-inicial.test.ts > NFR-2205 — la apertura es dato del usuario y se valida en el servidor > TC-MSI-092h: El monto se valida en el borde antes de tocar el dominio 17ms"
     },
     {
       "tc_id": "TC-MSI-093e",
@@ -309,17 +309,17 @@
     {
       "tc_id": "TC-MSI-095h",
       "status": "pass",
-      "notes": "✓  206 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:169:5 › TC-MSI-095h: La tarjeta no atrapa el foco ni bloquea la página (199ms)"
+      "notes": "✓  206 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:169:5 › TC-MSI-095h: La tarjeta no atrapa el foco ni bloquea la página (189ms)"
     },
     {
       "tc_id": "TC-MSI-096f",
       "status": "pass",
-      "notes": "✓  207 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:191:5 › TC-MSI-096f: La tarjeta no reaparece tras resolverse por ninguna vía (463ms)"
+      "notes": "✓  207 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:191:5 › TC-MSI-096f: La tarjeta no reaparece tras resolverse por ninguna vía (485ms)"
     },
     {
       "tc_id": "TC-MSI-097e",
       "status": "pass",
-      "notes": "✓  208 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:206:5 › TC-MSI-097e: La tarjeta respeta prefers-reduced-motion (199ms)"
+      "notes": "✓  208 [chromium] › tests/e2e/meses-y-saldo-inicial.spec.ts:206:5 › TC-MSI-097e: La tarjeta respeta prefers-reduced-motion (204ms)"
     }
   ],
   "fr_coverage": [
@@ -589,7 +589,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1873,
+      "duration_ms": 3174,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -598,7 +598,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 36034,
+      "duration_ms": 36114,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
     },
     {
@@ -607,7 +607,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 261,
+      "duration_ms": 249,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -616,7 +616,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 620,
+      "duration_ms": 643,
       "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
     },
     {
@@ -625,7 +625,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 129,
+      "duration_ms": 119,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -634,7 +634,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 15085,
+      "duration_ms": 14566,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -643,8 +643,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 115174,
-      "output": "character after JSON at position 4 (line 1 column 5)\n\n    Error Context: test-results/recuperar-acceso-flujo-NFR-0ae21-el-cliente-en-cero-externas-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:176:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-210h: el recorrido completo, tema incluido, mantiene el cliente en cero externas \n  425 passed (1.9m)\n\n(node:23896) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 111568,
+      "output": "] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  426 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  426 passed (1.9m)\n\n(node:32688) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     },
     {
       "name": "coverage",
@@ -652,14 +652,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 26725,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-07T15:37:38.573Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-07T15:37:38.575Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 26837,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-07T17:47:10.676Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-07T17:47:10.677Z WARN [Better Auth]: Reset Password: User not found"
     }
   ],
   "timings": {
-    "runner_ms": 24149,
-    "e2e_ms": 121007,
-    "gates_ms": 195901,
-    "total_ms": 341071
+    "runner_ms": 24790,
+    "e2e_ms": 120020,
+    "gates_ms": 193270,
+    "total_ms": 338093
   }
 }

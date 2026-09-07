@@ -19,19 +19,9 @@
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T17:41:06.202Z",
+  "updatedAt": "2026-09-07T17:47:23.261Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T03:26:42.209Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T03:26:42.324Z",
-      "event": "approved",
-      "phase": 2
-    },
     {
       "at": "2026-09-07T03:31:21.642Z",
       "event": "completed",
@@ -137,6 +127,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-07T17:47:11.385Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-07T17:47:23.237Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -198,16 +204,16 @@
       "FR-2207"
     ]
   },
-  "verifyRanRef": "0620d87b568993e9d19430a7693b239ea091fff6",
-  "verifyRanDirty": true,
-  "verifyResultsHash": "61cb4bc5306a66f08245a044fcdfbc9230af0fd59dc43789bb013255f11b26e7",
-  "verifyRanAt": "2026-09-07T15:37:39.227Z",
+  "verifyRanRef": "de77b6f1a7ab6b5d6fe2d7d35d08c9e7e02e7e82",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "1271b3cdf1647f2f862194e9829fafaa0cf423bb74a64d03f4ec93f2cd95c9ad",
+  "verifyRanAt": "2026-09-07T17:47:11.324Z",
   "lastVerifyRun": {
-    "passed": 59,
+    "passed": 62,
     "failed": 0,
     "skipped": 0,
-    "manual": 3,
-    "at": "2026-09-07T15:37:39.227Z"
+    "manual": 0,
+    "at": "2026-09-07T17:47:11.324Z"
   },
   "verifySummary": {
     "total": 62,
