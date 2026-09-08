@@ -8,7 +8,7 @@
     4,
     5
   ],
-  "overall_status": "compliant",
+  "overall_status": "partial",
   "requirement_compliance": [
     {
       "id": "FR-001",
@@ -74,7 +74,7 @@
       "id": "FR-013",
       "title": "Datos semilla determinísticos al primer arranque",
       "level": "production_ready",
-      "evidence": "3 tests unit (TC-013h/e/f): jerarquía+montos semilla; editable; no sobrescribe datos existentes."
+      "evidence": "3 tests de integracion (TC-013h/e/f). REESCRITO el 2026-09-07 con el requisito: TC-013h ya no exige montos —antes afirmaba actuals['s-comida-mercado']['2026-01'] > 0 y con la semilla vacia REVENTABA con TypeError— sino que los mapas salgan SIN UNA SOLA CLAVE (no con claves a cero: OpeningCard cuenta claves para decidir si la tarjeta de arranque se muestra), que la jerarquia se siembre con sus 12 nodos y que siga siendo determinista. TC-013e (semilla editable) y TC-013f (no se regenera si ya hay libro) intactos y en verde. Implementado por la feature semilla-intacta (FR-2301/FR-2302), verificada 17/17. VER compliance_gaps: la mitad «montos» del criterio de exito 1 del discovery ya no la cubre nadie."
     },
     {
       "id": "FR-014",
@@ -155,6 +155,21 @@
       "substitution": "Andamiaje multiusuario/API: entidades cargan `ownerId` (default 'local') y toda la persistencia pasa por la interfaz LedgerRepository. Sin TCs dedicados (FR SHOULD sin user story); se ejercita indirectamente en los tests de persistencia.",
       "reason": "Es andamiaje para Fase 2, no funcionalidad activa en v1; su contrato (interfaz + ownerId) está presente y usado por el store.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-013",
+      "substitution": "La semilla dejo de traer montos el 2026-09-07 (feature semilla-intacta, FR-2301). Con ello la necesidad del USUARIO SECUNDARIO del discovery —el revisor tecnico de portafolio, cuya meta textual es «constatar una app coherente end-to-end, no un demo a medias»— queda SIN CUBRIR en el producto: con el libro vacio no ve rejilla con cifras, ni dashboard, ni roll-ups. La decision del usuario del 2026-09-08 es servirla con una accion explicita de «cargar datos de ejemplo» —`genBudget` sigue viva y exportada en src/domain/seed.ts precisamente para eso— pero ESA ACCION NO ESTA CONSTRUIDA: va en una feature aparte junto al recorrido de arranque. Hasta entonces, quien quiera ver el producto lleno tiene que teclear los datos a mano.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "FR-012",
+      "substitution": "Separador de miles INCOHERENTE entre las superficies donde se ESCRIBE dinero, detectado por el usuario el 2026-09-08. `AmountDisplay` del Registro formatea en vivo con `formatCOP` (FR-207) mientras se teclea; en cambio la celda editable de la grilla (BudgetGrid, `replace(/[^0-9]/g,\"\")`), la tarjeta de arranque (OpeningCard) y el saldo inicial de Configuracion aceptan digitos pelados sin agrupar. Al LEER si es coherente en todas las superficies (`money`/`cellNum` con toLocaleString('es-CO')). Es donde mas facil es equivocarse en un cero, porque la tarjeta y Configuracion piden cifras grandes. La pieza para arreglarlo ya existe (`formatCOP` de @/lib/money). Va en la feature del recorrido de arranque.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-011",
+      "substitution": "BG-003 (cierre-de-mes, high) — CERRADO el 2026-09-08, se registra aqui porque toca la cadena de migraciones del proyecto. drizzle/0005_cierre_impacto.sql anadia dos columnas NULABLES y acto seguido un CHECK bicondicional que las exige cuando hay un mes reabierto: cualquier fila ya reabierta lo violaba al crearlo y la migracion abortaba con 23514, dejando SIN aplicar tambien la 0006. Funcionaba en base vacia y fallaba en una con datos. Se anadio el paso de conversion que faltaba y se corrigio la cabecera, que afirmaba «puramente aditiva, no hay datos que convertir» — falso. LA DEUDA QUE QUEDA, y por eso se declara en vez de darlo por cerrado del todo: la linea de base NO se reconstruye, se SUELTA la reapertura (reopened_period = NULL), porque el saldo de cierre en el instante de reabrir no quedo anotado en ninguna parte y fabricar ceros seria peor que no tener el dato. Una base que traiga meses reabiertos de antes de esta migracion los vera como no reabiertos y habra que reabrirlos de nuevo; entonces si nacen con su linea de base. Hoy no afecta a nadie: no hay usuarios ni base de produccion.",
+      "effort": "low"
     }
   ],
   "deployment_files": [
@@ -202,6 +217,12 @@
       "severity": "accepted",
       "gap": "FR-016 se verifica en el nivel de dominio (summaryKpis), no de UI: ningún TC comprueba que DesktopShell renderice esas cifras en pantalla ni sus colores --success/--error.",
       "mitigation": "Aceptado. La lógica —que es donde estaban los bordes sin cubrir (división por cero, empate en 0, contaminación por otros tipos)— queda verificada y validada por mutación. El renderizado es una línea por KPI sobre el componente Kpi compartido, ya cubierto por TC-UXC-308h. Si la franja gana comportamiento propio en el diseño posterior que el usuario dejó abierto, ahí corresponde un e2e."
+    },
+    {
+      "id": "GAP-16",
+      "requirement": "FR-013",
+      "gap": "El criterio de exito 1 del discovery aprobado pide «una estructura de categorias Y MONTOS SEMILLA COHERENTES» y el brief «jerarquia + montos dummy». La mitad MONTOS dejo de cubrirse el 2026-09-07 por decision del usuario. La mitad ESTRUCTURA y las dos promesas operativas —«0 pasos de configuracion obligatorios» y «puede empezar a operar de inmediato»— SIGUEN cumpliendose: 12 nodos, todos renombrables y borrables, y se puede teclear desde el primer segundo. CONSECUENCIA REAL, no cosmetica: el USUARIO SECUNDARIO del discovery —el revisor tecnico de portafolio, meta textual «constatar una app coherente end-to-end, no un demo a medias»— se queda sin nada que ver, porque con el libro vacio no hay rejilla con cifras, ni dashboard, ni roll-ups. Decision del 2026-09-08: servirlo con una accion explicita de «cargar datos de ejemplo» (genBudget sigue viva y exportada para alimentarla). ESA ACCION NO ESTA CONSTRUIDA. Registrado en AUDIT_REPORT.md, en idea_gaps y en el coverage_map de la raiz. 00_DISCOVERY.md conserva la redaccion vieja del criterio: actualizarla cuando el discovery se reabra por otro motivo.",
+      "action": "Construir la accion «cargar datos de ejemplo» en la feature del recorrido de arranque; y actualizar 00_DISCOVERY.md cuando se reabra."
     }
   ]
 }
