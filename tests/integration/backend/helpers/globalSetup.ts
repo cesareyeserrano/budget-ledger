@@ -59,6 +59,19 @@ export default async function setup({ provide }: GlobalSetupContext): Promise<()
         Wait.forListeningPorts(),
       ]),
     )
+    // BG-032 — el arranque tolera una maquina OCUPADA. El default de Testcontainers son 10 s, y en
+    // un equipo desahogado sobran; pero `aitri verify-run` lanza A LA VEZ el runner, el gate de
+    // cobertura y DOS suites de Playwright que compilan Next, y AMBAS corridas de vitest incluyen el
+    // proyecto `backend` — o sea que dos Postgres intentan levantarse a la vez mientras cuatro
+    // procesos pesados se pelean la CPU. Ahi los 10 s no alcanzan y el fallo es
+    // «Timed out after 10000ms while waiting for container ports to be bound to the host»: la suite
+    // entera se cae con 53 casos SALTADOS y cero rojos, que se lee como un desastre y es solo un
+    // arranque lento.
+    //
+    // Subirlo NO esconde nada: un contenedor que de verdad no arranca sigue fallando, solo que tras
+    // esperar lo razonable en vez de rendirse a los 10 s. Y no alarga la corrida sana ni un
+    // milisegundo — el wait strategy resuelve en cuanto el log de readiness aparece.
+    .withStartupTimeout(120_000)
     .start();
   const url = container.getConnectionUri();
 
@@ -76,6 +89,7 @@ export default async function setup({ provide }: GlobalSetupContext): Promise<()
     .withExposedPorts(1025, 8025)
     .withEnvironment({ MP_SMTP_AUTH_ACCEPT_ANY: "1", MP_SMTP_AUTH_ALLOW_INSECURE: "1" })
     .withWaitStrategy(Wait.forListeningPorts())
+    .withStartupTimeout(120_000) // BG-032, mismo motivo que Postgres arriba
     .start();
 
   provide("smtpHost", mailpit.getHost());

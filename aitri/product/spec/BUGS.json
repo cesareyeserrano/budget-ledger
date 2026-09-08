@@ -777,6 +777,26 @@
       "resolution": "Cerrado el 2026-09-08, commit 4b941d0. Ver el mensaje del commit para el detalle.",
       "fix_commit_sha": "84516685aca2b7b3d1178e4c06d02819932b13bd",
       "fix_at": "2026-09-08T21:28:59.162Z"
+    },
+    {
+      "id": "BG-032",
+      "title": "El arranque de Testcontainers se rinde a los 10 s y tumba la suite entera bajo la concurrencia de verify-run. SINTOMA: 'Timed out after 10000ms while waiting for container ports to be bound to the host', y la corrida sale con 6 pasadas, 53 SALTADAS y cero rojos — se lee como un desastre y es solo un arranque lento. Los gates coverage y e2e caen con ella. CAUSA: tests/integration/backend/helpers/globalSetup.ts no declaraba withStartupTimeout, asi que usaba el default de Testcontainers (10 s). En una maquina desahogada sobra; pero 'aitri verify-run' lanza A LA VEZ el runner (npm run test:run), el gate de cobertura (npm run coverage) y DOS suites de Playwright que compilan Next — y AMBAS corridas de vitest incluyen el proyecto 'backend', de modo que DOS Postgres intentan levantarse simultaneamente mientras cuatro procesos pesados se pelean la CPU. Observado el 2026-09-08 con Docker sano: 4 GB de limite, cuatro contenedores, memoria por debajo del 3%. No era falta de recursos, era el reloj. ARREGLO: withStartupTimeout(120_000) en el Postgres y en el Mailpit. No esconde nada —un contenedor que de verdad no arranca sigue fallando, solo que tras esperar lo razonable— y no alarga la corrida sana ni un milisegundo, porque el wait strategy resuelve en cuanto aparece el log de readiness. VERIFICADO: proyecto backend 247/247 en 29,9 s. EMPARENTADO con BG-026 (gate coverage intermitente), BG-028 (distDir e2e compartido) y BG-030 (aserciones de tiempo bajo contencion): son la misma familia — verify-run lanza demasiado en paralelo y cada componente se rompe por donde es mas fragil.",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "open",
+      "fr": "NFR-006",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-08T23:16:12.580Z",
+      "updated_at": "2026-09-08T23:16:12.580Z",
+      "resolution": null
     }
   ]
 }
