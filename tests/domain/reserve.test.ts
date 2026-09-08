@@ -429,7 +429,11 @@ describe("NFR-1004 · el dominio es la única regla", () => {
     const importLines = src.split("\n").filter((l) => /^import /.test(l));
     expect(importLines.length).toBeGreaterThan(0);
     for (const line of importLines) {
-      expect(line).toMatch(/from "\.\/(types|periods|tree|rollup|validation|ids)"/);
+      // `opening` entra en la lista el 2026-09-08 (BG-031). Es dominio PURO —solo importa types,
+      // periods y balance— y hacía falta para que el techo de reservas arranque en el saldo inicial
+      // declarado, igual que el Balance. Sin él, un usuario con apertura veía su dinero y no podía
+      // reservar ni un peso. Lo que este caso vigila —cero UI, cero IO— no cambia.
+      expect(line).toMatch(/from "\.\/(types|periods|tree|rollup|validation|ids|opening)"/);
     }
     expect(src).not.toMatch(/from "(react|next|zustand)/);
     expect(src).not.toMatch(/from "node:/);

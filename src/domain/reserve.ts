@@ -17,6 +17,7 @@ import { typeTotals } from "./rollup";
 import { isPeriodKey } from "./periods";
 import { normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
+import { openingCarry } from "./opening";
 
 /** Los dos planos de la grilla. (balance.ts lo re-exporta; el origen vive aquí para evitar ciclos.) */
 export type Plane = "budget" | "actual";
@@ -544,9 +545,15 @@ function buildCandidate(state: LedgerState, plane: Plane, writes: CellWrite[], e
     target[w.leafId] = { ...(target[w.leafId] ?? {}) };
     target[w.leafId][w.month] = w.value;
   }
+  // Se PROPAGA el estado y solo se sustituyen las tres piezas que el candidato cambia. Enumerar
+  // los campos era la MISMA trampa que ya se cerró en `clone` y `cloneState`, y aquí mordió más
+  // fuerte (BG-031): el candidato perdía `startMonth` y `openingBalance`, así que el guardia
+  // comparaba un estado CON saldo inicial contra otro SIN él y concluía que la escritura empeoraba
+  // el mes. Efecto para el usuario: su Balance decía 36.480.200 disponibles y no podía reservar ni
+  // un peso, con un rechazo que anunciaba un límite de 36.480.200. Las dos cifras eran ciertas y
+  // juntas eran un absurdo.
   return {
-    ownerId: state.ownerId,
-    nodes: state.nodes,
+    ...state,
     budgets: plane === "budget" ? map : state.budgets,
     actuals,
     movements: extraMovement ? [extraMovement, ...state.movements] : state.movements,
@@ -853,7 +860,18 @@ function techoScanRaw(
   const consumo: number[] = [];
   const arrastre: number[] = [];
   const deficit: number[] = [];
-  let availActual = 0;
+  // BG-031 — el techo ARRANCA en el saldo inicial declarado, igual que el Balance.
+  //
+  // Antes empezaba en 0 y nunca miraba la apertura, asi que un usuario que declaraba «traigo
+  // 36.480.200» veia ese dinero en su Balance y a la vez NO PODIA RESERVAR NI UN PESO: el techo se
+  // calcula como «ingresos del mes − gastos del mes + saldo del mes anterior», y sin ingresos ni
+  // apertura le daba cupo 0. La app afirmaba las dos cosas a la vez y cada una era cierta por
+  // separado. Reportado por el usuario el 2026-09-08 sobre su ledger real.
+  //
+  // `openingCarry` es la MISMA fuente que usa `computeBalanceSeries` (FR-2202), no un calculo
+  // paralelo: si divergieran, el numero que la app MUESTRA y el que el guardia HACE CUMPLIR
+  // volverian a discrepar — que es exactamente el defecto que se esta cerrando.
+  let availActual = openingCarry(state, periods).available;
   for (let i = 0; i < periods.length; i++) {
     const m = periods[i];
     const income = typeTotals(state, "income", [m]);
@@ -1017,13 +1035,23 @@ export function validateReserveWrite(
 
 /** Clon del estado con mapas nuevos (misma técnica que mutations.clone; local para evitar ciclos). */
 function cloneState(state: LedgerState): LedgerState {
+  // Se PROPAGA el estado y luego se sobrescriben las partes profundas. Antes se enumeraban los
+  // campos uno a uno, y el propio código dejó la advertencia escrita: «cada delta aditivo del estado
+  // hay que añadirlo aquí a mano: es la trampa que este comentario deja marcada». La trampa se cerró
+  // dos veces — primero sobre `closure`, y el 2026-09-08 sobre `startMonth` y `openingBalance`
+  // (BG-031): al clonar se perdía el saldo inicial, así que el guardia del techo veía un candidato
+  // SIN apertura y rechazaba reservar aunque el Balance mostrara 36.480.200 disponibles.
+  //
+  // Con el spread la trampa deja de existir: un campo nuevo del estado viaja solo. Lo único que hay
+  // que recordar es clonar EN PROFUNDIDAD lo que se muta, que es justo lo que va debajo.
   return {
-    ownerId: state.ownerId,
+    ...state,
     nodes: state.nodes.map((n) => ({ ...n })),
     budgets: structuredClone(state.budgets),
     actuals: structuredClone(state.actuals),
     movements: state.movements.map((m) => ({ ...m })),
     ...(state.cellNotes ? { cellNotes: structuredClone(state.cellNotes) } : {}),
+    ...(state.closure ? { closure: structuredClone(state.closure) } : {}),
   };
 }
 

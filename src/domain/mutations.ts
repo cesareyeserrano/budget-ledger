@@ -10,22 +10,22 @@ import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, resolvedSeries, res
 export { normalizeNote, __resetSeq, seedSeq, seedSeqFrom };
 
 function clone(state: LedgerState): LedgerState {
+  // Se PROPAGA el estado y luego se sobrescriben las partes profundas. Antes se enumeraban los
+  // campos uno a uno, y el propio código dejó la advertencia escrita: «cada delta aditivo del estado
+  // hay que añadirlo aquí a mano: es la trampa que este comentario deja marcada». La trampa se cerró
+  // dos veces — primero sobre `closure`, y el 2026-09-08 sobre `startMonth` y `openingBalance`
+  // (BG-031): al clonar se perdía el saldo inicial, así que el guardia del techo veía un candidato
+  // SIN apertura y rechazaba reservar aunque el Balance mostrara 36.480.200 disponibles.
+  //
+  // Con el spread la trampa deja de existir: un campo nuevo del estado viaja solo. Lo único que hay
+  // que recordar es clonar EN PROFUNDIDAD lo que se muta, que es justo lo que va debajo.
   return {
-    ownerId: state.ownerId,
+    ...state,
     nodes: state.nodes.map((n) => ({ ...n })),
     budgets: structuredClone(state.budgets),
     actuals: structuredClone(state.actuals),
     movements: state.movements.map((m) => ({ ...m })),
-    // FR-1012: las observaciones sobreviven cualquier mutación (delta aditivo del estado).
     ...(state.cellNotes ? { cellNotes: structuredClone(state.cellNotes) } : {}),
-    // FR-2001/FR-2010: el CIERRE también. Faltaba, y el efecto era silencioso porque el guardia
-    // vive en el servidor: cualquier edición de celda borraba `closure` del estado del navegador,
-    // así que hasta la siguiente resincronización las columnas cerradas dejaban de pintarse como
-    // cerradas y el impacto de un mes reabierto no se podía calcular (no quedaba ni `reopened` ni
-    // línea de base contra la que comparar). Ninguna cifra corría peligro —el servidor sigue
-    // rechazando toda escritura sobre un mes cerrado—, pero la pantalla mentía sobre el estado.
-    // `clone` enumera los campos en vez de propagarlos, así que cada delta aditivo del estado hay
-    // que añadirlo aquí a mano: es la trampa que este comentario deja marcada.
     ...(state.closure ? { closure: structuredClone(state.closure) } : {}),
   };
 }

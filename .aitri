@@ -21,19 +21,9 @@
   "aitriVersion": "2.2.0-rc.11",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-08T21:15:50.602Z",
+  "updatedAt": "2026-09-08T21:23:25.289Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-08T16:27:09.656Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-08T16:27:15.328Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-09-08T16:35:18.175Z",
       "event": "verify-run",
@@ -151,6 +141,22 @@
       "at": "2026-09-08T21:15:50.586Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-08T21:23:25.140Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-08T21:23:25.272Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [
@@ -164,7 +170,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -314,6 +320,25 @@
       "at": "2026-09-08T17:52:37.256Z"
     }
   ],
-  "verifyRanRef": "12dd22bef3443f558a1fe91fd804fb562d45b9fa",
-  "verifyRanDirty": false
+  "verifyRanRef": "8d04f9407aaa53ee34dd433c994d3aad4ca9f9af",
+  "verifyRanDirty": true,
+  "verifyResultsHash": "8a909c7500d1a3babbd6705cebd87ad6d25487b196b0905d144b54b767267992",
+  "verifyRanAt": "2026-09-08T21:23:25.095Z",
+  "lastVerifyRun": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-08T21:23:25.095Z"
+  },
+  "verifySummary": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 6
+  }
 }
