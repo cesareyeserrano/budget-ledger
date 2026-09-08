@@ -43,6 +43,26 @@
       "resolution": "clone() en src/domain/mutations.ts copia state.closure con structuredClone, junto a cellNotes. Comentario que marca la trampa: clone enumera campos, asi que cada delta aditivo del estado hay que anadirlo a mano. Regresion: TC-CDM-108f (editar celda y registrar movimiento conservan el closure entero, linea de base incluida)",
       "fix_commit_sha": "a514f89cbd61f56de8e9e1253ab5bd84b95bbaba",
       "fix_at": "2026-09-03T17:46:28.869Z"
+    },
+    {
+      "id": "BG-003",
+      "title": "La migracion 0005_cierre_impacto revienta en cualquier base que YA tenga un mes reabierto: anade dos columnas NULABLES y acto seguido un CHECK bicondicional que exige que la linea de base exista siempre que reopened_period no sea NULL. Las columnas nacen en NULL, asi que la fila existente viola ledger_reopen_baseline_ck en el instante de crearlo y la migracion aborta con 23514 (check_violation, ATRewriteTable). Su propia cabecera afirma 'Puramente aditiva: dos columnas nulables. No hay datos que convertir' — NO ES CIERTO: le falta el backfill de reopen_base_available/reopen_base_reserved para las filas que ya tienen un mes reabierto. REPRODUCIDO el 2026-09-07 en la base de desarrollo: la cuenta admin (c94596c7, revision 1017) tenia closed_through=2026-08 y reopened_period=2026-09, y 'npm run db:migrate' aborto ahi, dejando SIN aplicar tambien la 0006_saldo_inicial. Sintoma observable para el usuario: el login devuelve 200 con su cookie y acto seguido GET /api/v1/ledger devuelve 500 'Error interno', porque el codigo pide start_month/opening_balance que no existen — o sea, entra y la app no carga. IMPACTO EN DESPLIEGUE: funciona en base vacia y falla en una con datos, asi que tumbaria el despliegue si CUALQUIER cuenta tuviera un mes reabierto ese dia, y dejaria la cadena de migraciones a medias. Arreglo propuesto: entre el ALTER TABLE ADD COLUMN y el ADD CONSTRAINT, rellenar la linea de base de las filas con reopened_period NOT NULL (o, si no hay valor reconstruible, poner reopened_period a NULL en esas filas de forma explicita y documentada). Desbloqueo aplicado en la maquina del usuario: limpiar reopened_period; copia de la fila guardada. NO es arreglo del repositorio.",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "open",
+      "fr": "FR-2010",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-08T03:06:33.789Z",
+      "updated_at": "2026-09-08T03:06:33.789Z",
+      "resolution": null
     }
   ]
 }

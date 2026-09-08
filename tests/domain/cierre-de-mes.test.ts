@@ -586,13 +586,32 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // cuenta de meses) y que la preferencia sobreviva a la recarga. Solo cambió a qué pantalla se
     // navega para mover el control. Verificado: 12/12 en multi-anio.spec.ts tras el cambio.
     //
-    // Los otros dos ficheros de la lista siguen intactos y siguen vigilados.
+    // ANCLA AVANZADA POR TERCERA VEZ, de f4e2301 a 9250b2b el 2026-09-07, y de nuevo por una razón
+    // que NO es la que esta prueba vigila. Lo que cambió en los ficheros de multi-anio no fue el
+    // cierre —ni ningún vecino— acomodando una prueba para pasar: fue FR-2301 de semilla-intacta,
+    // que retira los montos de ejemplo de la semilla del primer arranque porque nadie abre una app
+    // de finanzas y quiere ver dinero que no tecleó. FR-013 de la raíz quedó enmendado en el mismo
+    // movimiento.
+    //
+    // El cambio en esos ficheros es UNA LÍNEA DE IMPORT cada uno: pasan a componer la semilla
+    // POBLADA con `buildSeedConMontos` (tests/helpers/seedConMontos.ts), que es exactamente el
+    // estado que `buildSeed` les daba antes. Las ASERCIONES no se tocaron —que es lo que distingue
+    // este cambio del que la alarma busca—: TC-MAN-090h sigue exigiendo que un usuario de 2026-09
+    // no reciba celdas anteriores, TC-MAN-091e que su rango no arranque en enero, y TC-MAN-092f que
+    // la siembra no lleve doce claves de mes fijas. Lo único que cambió es DE DÓNDE sale el ledger
+    // poblado sobre el que se afirman, porque la semilla del producto ya no tiene celdas que anclar
+    // — el anclaje vive ahora en `genBudget`, que sigue intacta y es lo que el helper invoca.
+    //
+    // Verificado tras el cambio: 837 unitarias en verde, con multi-anio afirmando sus 44 igual que
+    // antes y ninguna saltada.
+    //
+    // Los tres ficheros siguen vigilados a partir del ancla nueva.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat f4e2301 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat 9250b2b -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
