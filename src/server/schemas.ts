@@ -7,7 +7,7 @@
  * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { PERIOD_KEY, amountSchema } from "@/domain";
+import { PERIOD_KEY, amountSchema, cellAmountSchema } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -39,7 +39,9 @@ const apiNodeSchema = z.object({
   order: z.number().int(),
 });
 
-const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, z.number().int().gte(0)));
+// BG-021: la celda comparte el tope del dominio. Sin el, un snapshot podia traer 1e21 y el
+// PUT terminaba en 500 al chocar con el bigint de Postgres, o guardaba en silencio otro numero.
+const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, cellAmountSchema));
 
 const apiMovementSchema = z.object({
   id: z.string(),
@@ -48,7 +50,7 @@ const apiMovementSchema = z.object({
   catId: z.string(),
   subId: z.string().nullable(),
   target: z.string(),
-  amount: z.number().int().gte(1),
+  amount: amountSchema, // BG-021: con tope superior
   period: PERIOD_KEY,
   createdAt: z.number(),
   date: z.string().optional(),
@@ -105,7 +107,7 @@ export const ledgerStateSchema = z.object({
   // Aceptarlos en el PUT es inofensivo: `saveLedger` los IGNORA a proposito — la apertura solo la
   // mueve PUT /api/v1/ledger/start, que es donde viven sus dos reglas de servidor (ADR-02).
   startMonth: PERIOD_KEY.nullable().optional(),
-  openingBalance: z.number().int().gte(0).nullable().optional(),
+  openingBalance: cellAmountSchema.nullable().optional(), // BG-021
 });
 
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */
@@ -130,7 +132,7 @@ export type LedgerPutBody = z.infer<typeof ledgerPutSchema>;
 export const startPutSchema = z.object({
   baseRevision: z.number().int().gte(0),
   startMonth: PERIOD_KEY,
-  openingBalance: z.number().int().gte(0).finite().nullable(),
+  openingBalance: cellAmountSchema.nullable(), // BG-021
 });
 export type StartPutBody = z.infer<typeof startPutSchema>;
 

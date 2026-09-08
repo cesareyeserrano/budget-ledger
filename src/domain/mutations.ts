@@ -2,7 +2,7 @@
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
 import type { LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "./types";
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
-import { parseAmount, nodeNameSchema, normalizeNote } from "./validation";
+import { parseAmount, nodeNameSchema, normalizeNote, MONTO_MAX } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
 import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, resolvedSeries, reserveLeafIds } from "./reserve";
 
@@ -350,7 +350,11 @@ export function setLeafAmount(
 ): LedgerState {
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes)) return state; // los padres no son editables (roll-up)
-  const v = Math.max(0, Math.round(Number(value) || 0));
+  // BG-021: se acota por ARRIBA tambien. Sin el tope, teclear una cifra por encima de 2^53 se
+  // guardaba con OTRO valor —JavaScript deja de ser exacto ahi— y por encima del bigint de
+  // Postgres reventaba el guardado entero. Se recorta en vez de rechazar porque esta es la ruta
+  // de la GRILLA: el usuario ya tecleo, y perder su edicion sin decir nada seria peor.
+  const v = Math.min(MONTO_MAX, Math.max(0, Math.round(Number(value) || 0)));
   if (node.type === "transfer") {
     const result = applyReserveCellEdit(state, { leafId, period: month, plane: kind, newAmount: v }, periods);
     return "rejected" in result ? state : result.state;

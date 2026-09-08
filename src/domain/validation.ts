@@ -25,11 +25,45 @@ export const PERIOD_KEY = z
     return y >= PERIOD_MIN_YEAR && y <= PERIOD_MAX_YEAR;
   }, `El año debe estar entre ${PERIOD_MIN_YEAR} y ${PERIOD_MAX_YEAR}`);
 
-/** Monto de un movimiento: entero >= 1 COP. Rechaza no-numéricos, negativos y 0. */
+/**
+ * TOPE SUPERIOR DEL DINERO (BG-021). Es `Number.MAX_SAFE_INTEGER`, y la frontera no es arbitraria:
+ * es EXACTAMENTE donde JavaScript deja de representar los enteros de forma exacta. Por encima,
+ * `2**53 + 1 === 2**53` es `true`, así que un peso se pierde ANTES de que ninguna validación llegue
+ * a verlo — no hay defensa posible más arriba, solo la ilusión de haber guardado lo que el usuario
+ * escribió.
+ *
+ * Medido el 2026-09-08, antes del arreglo: el esquema aceptaba `1e21` y hasta `Number.MAX_VALUE`
+ * (1.79e308), porque `z.number().int()` los da por enteros. La columna es `bigint` en Postgres, cuyo
+ * techo es ~9.22e18, así que todo eso terminaba en un 500 del servidor — y lo que caía entre 2^53 y
+ * ese techo se guardaba en silencio con otro valor.
+ *
+ * NO es un límite de producto: 9.007.199.254.740.991 COP no es una cifra que nadie vaya a teclear.
+ * Es la frontera de la CORRECCIÓN. Si algún día se quiere un tope de producto más bajo y explicable
+ * al usuario, es otra decisión y va por encima de esta.
+ */
+export const MONTO_MAX = Number.MAX_SAFE_INTEGER;
+
+const MSG_MAX = `El monto no puede superar ${MONTO_MAX.toLocaleString("es-CO")}`;
+
+/** Monto de un movimiento: entero entre 1 y MONTO_MAX. Rechaza no-numéricos, negativos y 0. */
 export const amountSchema = z
   .number({ invalid_type_error: "El monto debe ser numérico" })
+  .finite("El monto debe ser un número finito")
   .int("El monto debe ser un entero")
-  .gte(1, "El monto debe ser mayor a 0");
+  .gte(1, "El monto debe ser mayor a 0")
+  .lte(MONTO_MAX, MSG_MAX);
+
+/**
+ * Monto de una CELDA o del saldo inicial: entero entre 0 y MONTO_MAX. El cero es legítimo aquí
+ * —una celda vacía, «empiezo desde cero»— y por eso no comparte esquema con el movimiento, que
+ * exige >= 1.
+ */
+export const cellAmountSchema = z
+  .number({ invalid_type_error: "El monto debe ser numérico" })
+  .finite("El monto debe ser un número finito")
+  .int("El monto debe ser un entero")
+  .gte(0, "El monto no puede ser negativo")
+  .lte(MONTO_MAX, MSG_MAX);
 
 /** Valida una entrada de monto que puede venir como string del input. Devuelve null si es inválida. */
 export function parseAmount(raw: unknown): number | null {
