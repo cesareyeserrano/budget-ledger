@@ -75,7 +75,9 @@
     "src/domain/reserve.ts",
     "src/server/schemas.ts",
     "tests/domain/reserve.test.ts",
-    "tests/domain/techo-de-flujo.test.ts"
+    "tests/domain/techo-de-flujo.test.ts",
+    "package-lock.json",
+    "tests/integration/backend/helpers/globalSetup.ts"
   ],
   "setup_commands": [
     "npm install"
@@ -134,6 +136,11 @@
     {
       "fr_id": "NFR-005",
       "substitution": "LOS CUATRO BUGS DE DINERO, cerrados el 2026-09-08 tras reproducir cada uno y MEDIRLO antes de tocar codigo. BG-021: el monto no tenia techo — aceptaba hasta Number.MAX_VALUE y lo que caia entre 2^53 y el bigint de Postgres se guardaba con OTRO valor, en silencio; el tope es MAX_SAFE_INTEGER porque ahi deja de ser exacta la representacion. BG-020: el retiro planeado huerfano dejaba el reservado presupuestado en -400.000 sin aviso; se AVISA (tipo nuevo de MonthIssue), no se bloquea, por la misma razon que ya documenta monthIssues. BG-019: una alcancia con dinero dentro se borraba y su saldo se descongelaba a Disponible sin aviso; AHORA SE BLOQUEA por decision del usuario, por coherencia con el resto del producto. BG-024: la fusion dejaba moveres de un bolsillo a si mismo, vivos y EDITABLES. DEUDA QUE QUEDA, declarada y no disimulada: (a) BG-022 (low) sigue abierto — bordes menores del dinero: parseAmount laxo, seq del servidor, mes invalido. (b) HALLAZGO SIN REGISTRAR, pendiente de decision del usuario: vaciar la CELDA de una alcancia a 0 NO la vacia — el mover que le dio el dinero se lo sigue acreditando (medido: celda undefined y balance 100.000 en los doce meses). Es de la misma familia que el resto: el modelo hace lo correcto y la interfaz no lo cuenta. (c) BG-019 se resolvio bloqueando; el AVISO —decir cuanto dinero hay antes de bloquear— sigue sin construirse.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-006",
+      "substitution": "BG-031 y BG-032, cerrados el 2026-09-08 con la app YA en uso real. BG-031: el techo de reservas no conocia el saldo inicial y TRES constructores de estado del dominio perdian campos al clonar — la app mostraba 36.480.200 disponibles y rechazaba reservar. Arreglado y ademas blindado: los tres PROPAGAN el estado, asi que un campo nuevo no se puede volver a perder. BG-032: el arranque de Testcontainers se rendia a los 10 s bajo la concurrencia de verify-run. DEUDA QUE QUEDA, y es la de fondo: `aitri verify-run` lanza A LA VEZ el runner, el gate de cobertura y DOS suites de Playwright, y AMBAS corridas de vitest incluyen el proyecto backend — dos Postgres levantandose a la vez. BG-026, BG-028, BG-030 y BG-032 son la MISMA familia: demasiado en paralelo, y cada componente se rompe por donde es mas fragil. Los cuatro estan mitigados uno a uno; la causa comun —la concurrencia misma— sigue en pie y volvera a morder por una quinta puerta. La salida de fondo seria que el gate de cobertura no repita el proyecto backend, o que verify-run serialice.",
       "effort": "medium"
     }
   ],
