@@ -787,7 +787,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "high",
-      "status": "open",
+      "status": "verified",
       "fr": "NFR-006",
       "tc_reference": null,
       "phase_detected": null,
@@ -795,8 +795,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-08T23:16:12.580Z",
-      "updated_at": "2026-09-08T23:16:12.580Z",
-      "resolution": null
+      "updated_at": "2026-09-08T23:16:22.443Z",
+      "resolution": "Cerrado el 2026-09-08, commit 24383c1. withStartupTimeout(120_000) en Postgres y Mailpit. Verificado: proyecto backend 247/247 en 29,9 s.",
+      "fix_commit_sha": "24383c1cc151c182cfeda7c900dbfbcd5e95022b",
+      "fix_at": "2026-09-08T23:16:22.346Z"
     }
   ]
 }
