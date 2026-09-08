@@ -735,7 +735,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -743,8 +743,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-06T21:11:22.716Z",
-      "updated_at": "2026-09-06T21:11:22.716Z",
-      "resolution": null
+      "updated_at": "2026-09-08T17:36:37.847Z",
+      "resolution": "Arreglado el 2026-09-08. LA CAUSA no es la lentitud sino la RAFAGA: una maquina uniformemente lenta no rompe una razon como c168/c12 porque las dos mitades se frenan igual; lo que rompe es que la contencion llega a rafagas y pilla a UNA de las dos mediciones. Por eso ensanchar el margen nunca lo iba a arreglar — solo hacia falta que la rafaga fuera mayor. LA SALIDA: medir varias veces y quedarse con el MINIMO, la muestra que menos competencia tuvo, que es la que mas se acerca al coste real del algoritmo. Se anaden mejorDe y mejorTiempo a tests/helpers/perf.ts y se aplican a las 14 aserciones de tiempo de los diez ficheros que las tienen. CRONOMETRO_FIABLE se conserva tal cual: la instrumentacion de cobertura infla TODAS las muestras por igual, asi que ahi el minimo no salva y saltar la prueba sigue siendo lo correcto — son dos problemas distintos y cada uno conserva su defensa. MEDIDO, NO SUPUESTO: con seis carriles de CPU compitiendo, repitiendo seis veces la misma medicion cuyo valor verdadero es 1.02, la media simple dio 2.18 / 0.97 / 0.75 / 1.03 / 1.02 / 2.13 —se va hasta 2.18 contra un tope de 3.00— y el mejor-de-5 dio 1.02 / 1.02 / 1.02 / 1.03 / 1.03 / 1.02, clavado seis de seis. NO AFLOJA EL GUARDARRAIL, LO AFILA: con la medicion estable el tope de TC-MAN-262e BAJA de x3 a x2, mas exigente con lo cuadratico y a la vez inmune a la contencion; el margen ancho no protegia del ruido, solo dejaba pasar regresiones. PRUEBA DE FUEGO: suite completa con OCHO carriles de CPU compitiendo y carga 7.24 —mucho peor que un verify-run real— dio 849/851, y los dos rojos eran las alarmas de ancla TC-CDM-202e y TC-RES-202e quejandose de estos mismos cambios, no aserciones de tiempo. Antes bastaba carga 3 para tumbarlas. Tras avanzar las dos anclas con su justificacion: 851/851 exit 0. Commits: c81f706 (el arreglo) y el de las anclas. EMPARENTADOS: BG-026 queda cubierto por la misma via en su mitad de contencion; BG-025 (TC-CPR-005e se pasaba del timeout bajo cobertura) es de la misma familia y conviene revisarlo con esto puesto.",
+      "fix_commit_sha": "0139dfdb1ed99da1a4889e4d67ba79e8b5be0cad",
+      "fix_at": "2026-09-08T17:35:27.230Z"
     }
   ]
 }
