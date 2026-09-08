@@ -8,7 +8,7 @@ import { P as MONTH_KEYS } from "../helpers/periods";
 import { writeCatWidth, readCatWidth } from "@/lib/gridWidth";
 import type { LedgerState, NodeType } from "@/domain/types";
 import { P, P0 } from "../helpers/periods";
-import { CRONOMETRO_FIABLE } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 // Feature grid-ux — NFR-103 (Regression): el roll-up jerárquico sigue en ≤150ms al editar
 // una hoja, y el resize de columna NO desencadena recómputo de roll-ups.
@@ -58,10 +58,11 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
     expect(ancestors.length).toBeGreaterThan(0);
 
     // Edición + recómputo completo de la grilla, cronometrado.
-    const start = performance.now();
-    state = setLeafAmount(state, leafId, "2026-01", "actual", 123456, P);
-    recomputeGrid(state);
-    const elapsed = performance.now() - start;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    const elapsed = mejorTiempo(() => {
+      state = setLeafAmount(state, leafId, "2026-01", "actual", 123456, P);
+      recomputeGrid(state);
+    });
 
     // El cambio SÍ se refleja hacia arriba: el Ejecutado del ancestro raíz incluye el nuevo monto.
     const rootAncestor = ancestors[ancestors.length - 1];

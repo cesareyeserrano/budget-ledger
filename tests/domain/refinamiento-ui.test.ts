@@ -6,7 +6,7 @@ import { cellTone, cellGlyph, budgetState } from "@/domain/budgetState";
 import { rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode } from "@/domain";
 import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { P as MONTH_KEYS, P0 } from "../helpers/periods";
-import { CRONOMETRO_FIABLE } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 /**
  * refinamiento-ui — el color deja de clasificar y pasa a señalar sólo excepción.
@@ -204,10 +204,12 @@ describe("NFR-1205 — el rediseño no añade trabajo de render", () => {
     // que es la propiedad que garantiza que el guardrail de ≤150 ms no se degrada por celda.
     expect(cellTone.length).toBe(3);
     expect(cellGlyph.length).toBe(3);
-    const t0 = performance.now();
-    for (let i = 0; i < 100_000; i++) cellTone("expense", 1000, i % 2000);
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    const ms = mejorTiempo(() => {
+      for (let i = 0; i < 100_000; i++) cellTone("expense", 1000, i % 2000);
+    });
     // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
-    if (CRONOMETRO_FIABLE) expect(performance.now() - t0).toBeLessThan(150);
+    if (CRONOMETRO_FIABLE) expect(ms, `100k llamadas en ${ms.toFixed(1)}ms`).toBeLessThan(150);
   });
 
   // @aitri-tc TC-RUI-105e

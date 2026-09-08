@@ -16,7 +16,7 @@ import { computeBalanceSeries } from "@/domain/balance";
 import { P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState } from "@/domain/types";
 import { P } from "../helpers/periods";
-import { CRONOMETRO_FIABLE } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 /** 30 alcancías × 12 meses con aportes mixtos + flujo real. */
 function makeBigState(): LedgerState {
@@ -57,13 +57,16 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     // @aitri-tc TC-TRF4-155h
     const s = makeBigState();
 
-    const t0 = performance.now();
-    const verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
-    const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
-    if (!("state" in applied)) throw new Error("edición válida rechazada");
-    const series = computeBalanceSeries(applied.state, P);
-    for (const m of MONTH_KEYS) resolvedTypeTotal(applied.state, m, "actual", P);
-    const elapsed = performance.now() - t0;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    let verdict!: ReturnType<typeof validateReserveWrite>;
+    let series!: ReturnType<typeof computeBalanceSeries>;
+    const elapsed = mejorTiempo(() => {
+      verdict = validateReserveWrite(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
+      const applied = applyReserveCellEdit(s, { leafId: "c-alcancia-7", period: "2026-09", plane: "actual", newAmount: 500_000 }, P);
+      if (!("state" in applied)) throw new Error("edición válida rechazada");
+      series = computeBalanceSeries(applied.state, P);
+      for (const m of MONTH_KEYS) resolvedTypeTotal(applied.state, m, "actual", P);
+    });
 
     expect(verdict.ok).toBe(true);
     expect(series["2026-12"].actual).toBeDefined();
@@ -95,9 +98,9 @@ describe("NFR-1005 · performance de la capa de reservas", () => {
     // @aitri-tc TC-TRF4-155f
     const s = makeBigState();
 
-    const t0 = performance.now();
-    const next = setLeafAmount(s, "c-mercado", "2026-06", "actual", 2_000_000, P);
-    const elapsed = performance.now() - t0;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    let next!: ReturnType<typeof setLeafAmount>;
+    const elapsed = mejorTiempo(() => { next = setLeafAmount(s, "c-mercado", "2026-06", "actual", 2_000_000, P); });
 
     expect(__reservePerfCounters().validateCalls).toBe(0); // cero acoplamiento
     expect(next.actuals["c-mercado"]["2026-06"]).toBe(2_000_000);

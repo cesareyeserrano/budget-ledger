@@ -9,7 +9,7 @@ import { normalizeStartMonth, normalizeOpeningBalance, openingCarry, orphanedByS
 import { closeMonth, reopenMonth, closureOf, isClosed } from "@/domain/closure";
 import { periodRange } from "@/domain/periods";
 import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
-import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorTiempo } from "../helpers/perf";
 
 // ── Estado base: dos hojas, una de ingreso y otra de gasto. Sin nada más, para que cada prueba
 //    ponga EXACTAMENTE los datos de su escenario y nada se cuele por la puerta de atrás. ────────
@@ -328,9 +328,9 @@ describe("NFR-2204 — la apertura no añade coste", () => {
     expect(CRONOMETRO_FIABLE).toBe(true);
     const st = estadoGrande(true);
     const meses = periodRange("2026-01", "2026-12");
-    const t0 = performance.now();
-    computeBalanceSeries(st, meses, openingCarry(st, meses));
-    expect(performance.now() - t0).toBeLessThan(150);
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    const ms = mejorTiempo(() => computeBalanceSeries(st, meses, openingCarry(st, meses)));
+    expect(ms, `serie con apertura en ${ms.toFixed(1)}ms`).toBeLessThan(150);
   });
 
   it("TC-MSI-086f: openingCarry no recorre el estado", () => {

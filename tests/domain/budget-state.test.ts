@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { budgetState, OVER_HARD_RATIO, type BudgetState } from "@/domain/budgetState";
-import { CRONOMETRO_FIABLE } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 // Feature budget-state-color — FR-401. La regla de umbral es aritmética pura, así que se ataca sin
 // DOM en sus valores frontera exactos y en sus casos degenerados. El 120 % se DERIVA de
@@ -66,9 +66,9 @@ describe("FR-401 · budgetState", () => {
     }
     expect(pairs).toHaveLength(6_000);
 
-    const t0 = performance.now();
-    const results = pairs.map(([b, a]) => budgetState(b, a));
-    const elapsed = performance.now() - t0;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    let results: ReturnType<typeof budgetState>[] = [];
+    const elapsed = mejorTiempo(() => { results = pairs.map(([b, a]) => budgetState(b, a)); });
 
     expect(results).toHaveLength(6_000);
     expect(results.every((r) => STATES.includes(r))).toBe(true);

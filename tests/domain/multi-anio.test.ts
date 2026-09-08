@@ -23,7 +23,7 @@ import {
 import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
-import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorDe, mejorTiempo } from "../helpers/perf";
 
 // ── El MISMO estado explícito con el que se capturó la línea base ──────────────────────────────
 function estadoRef(periods: readonly PeriodKey[] = P): LedgerState {
@@ -364,13 +364,15 @@ describe("FR-1909 · reservas sobre la lista de periodos", () => {
     const cinco = periodRange(`${REF_YEAR}-01`, `${REF_YEAR + 4}-12`);
     const s = estadoRef(cinco.slice(0, 12));
     __resetReservePerfCounters();
-    const t0 = performance.now();
-    computeBalanceSeries(s, cinco);
-    for (const p of cinco) reserveHeadroom(s, p, cinco);
-    monthIssues(s, cinco);
-    const ms = performance.now() - t0;
+    // BG-030: mejor-de-5, no un cronómetro suelto. El mínimo es la pasada que menos CPU tuvo que
+    // compartir, y por tanto la que mide el algoritmo y no la ráfaga que le tocó.
+    const ms = mejorTiempo(() => {
+      computeBalanceSeries(s, cinco);
+      for (const p of cinco) reserveHeadroom(s, p, cinco);
+      monthIssues(s, cinco);
+    });
     // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
-    if (CRONOMETRO_FIABLE) expect(ms).toBeLessThanOrEqual(150);
+    if (CRONOMETRO_FIABLE) expect(ms, `ruta completa en ${ms.toFixed(1)}ms`).toBeLessThanOrEqual(150);
     expect(cinco).toHaveLength(60);
   });
 });
@@ -521,9 +523,9 @@ describe("NFR-1907 · el coste no se degrada", () => {
   it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-MAN-260h: el recómputo con cinco años cabe en 150ms", () => {
     const cinco = periodRange(`${REF_YEAR}-01`, `${REF_YEAR + 4}-12`);
     const s = estadoRef(cinco.slice(0, 12));
-    const t0 = performance.now();
-    computeBalanceSeries(s, cinco);
-    expect(performance.now() - t0).toBeLessThanOrEqual(150);
+    // BG-030: mejor-de-5 (ver tests/helpers/perf.ts).
+    const ms = mejorTiempo(() => computeBalanceSeries(s, cinco));
+    expect(ms, `recómputo de cinco años en ${ms.toFixed(1)}ms`).toBeLessThanOrEqual(150);
   });
 
   it("TC-MAN-261f: el número de recómputos de serie por operación no sube", () => {
@@ -542,6 +544,9 @@ describe("NFR-1907 · el coste no se degrada", () => {
   // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta
   // ENTERA: mejor verla saltada que verde sin haber afirmado nada (BG-026).
   it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático", () => {
+    // BG-030: cada lado se mide MEJOR-DE-5. Una media simple reporta la ráfaga de CPU que le tocó,
+    // no el algoritmo: con el verify-run compitiendo, esta razón llegó a 2.18 midiendo algo cuyo
+    // valor real es 1.02, y tumbó cuatro corridas el 2026-09-08. Ver tests/helpers/perf.ts.
     // Se mide el coste por periodo con repeticiones, no un cronómetro suelto: una medición única
     // reporta el calentamiento del JIT y no el algoritmo (medido: 4,66ms en la primera pasada de
     // 84 periodos frente a 0,128ms cuando está caliente — un factor 36 que no es del código).
@@ -554,11 +559,14 @@ describe("NFR-1907 · el coste no se degrada", () => {
     };
     medir(12, 30); medir(168, 10); // calentar antes de medir
 
-    const c12 = medir(12, 50);
-    const c168 = medir(168, 30);
+    const c12 = mejorDe(() => medir(12, 50));
+    const c168 = mejorDe(() => medir(168, 30));
     // Si fuera cuadrático, el coste por periodo crecería con n (×14 al pasar de 12 a 168).
-    // Se exige que no llegue ni a triplicarse: holgado para el ruido, implacable con lo cuadrático.
-    expect(c168).toBeLessThanOrEqual(c12 * 3);
+    // Con el mínimo la medición es estable (1.02 medido seis de seis bajo carga), así que el tope
+    // BAJA de ×3 a ×2: sigue holgado para el ruido residual y es bastante más implacable con lo
+    // cuadrático de lo que era antes. El margen ancho no protegía del ruido —la ráfaga siempre
+    // podía ser mayor—, solo dejaba pasar regresiones.
+    expect(c168, `coste por periodo ×${(c168 / c12).toFixed(2)} al pasar de 12 a 168`).toBeLessThanOrEqual(c12 * 2);
     // y el total con 14 años sigue muy por debajo del tope de la NFR
     expect(c168 * 168).toBeLessThanOrEqual(150);
   });

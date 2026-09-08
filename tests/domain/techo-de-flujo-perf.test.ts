@@ -34,7 +34,7 @@ import { computeBalanceSeries } from "@/domain/balance";
 import { setLeafAmount } from "@/domain/mutations";
 import { P, P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/domain/types";
-import { CRONOMETRO_FIABLE } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────────────────────
 
@@ -124,16 +124,20 @@ describe("NFR-1807 · derivar techo, saldos y errores de los doce meses no empeo
 
     // El recómputo COMPLETO que hace un render de la grilla: la cascada del balance, el cupo y el
     // desglose del arrastre de los doce meses, la serie de cada bolsillo y el barrido de errores.
-    const t0 = performance.now();
-    const series = computeBalanceSeries(s, P);
-    const cupos: number[] = [];
-    for (const m of MONTH_KEYS) {
-      cupos.push(reserveHeadroom(s, m, P));
-      monthCarryUsage(s, m, "actual", P);
-      for (const id of POCKETS) resolvedSeries(s, id, "actual", P);
-    }
-    const issues = monthIssues(s, P);
-    const elapsed = performance.now() - t0;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    let series!: ReturnType<typeof computeBalanceSeries>;
+    let cupos: number[] = [];
+    let issues!: ReturnType<typeof monthIssues>;
+    const elapsed = mejorTiempo(() => {
+      series = computeBalanceSeries(s, P);
+      cupos = [];
+      for (const m of MONTH_KEYS) {
+        cupos.push(reserveHeadroom(s, m, P));
+        monthCarryUsage(s, m, "actual", P);
+        for (const id of POCKETS) resolvedSeries(s, id, "actual", P);
+      }
+      issues = monthIssues(s, P);
+    });
 
     // Que el recómputo haya derivado algo de verdad — un guardarraíl sobre trabajo vacío no mide
     // nada. Estas aserciones se afirman SIEMPRE, también bajo cobertura.

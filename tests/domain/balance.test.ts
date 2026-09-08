@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { mejorDe, mejorTiempo } from "../helpers/perf";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { computeBalanceSeries, reserveNet, type Plane } from "@/domain/balance";
@@ -578,9 +579,12 @@ describe("NFR-907 · el recálculo no degrada la edición en línea", () => {
     const s = representativeState();
     computeBalanceSeries(s, P); // calentamiento: no medir el primer JIT
 
-    const t0 = performance.now();
-    for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s, P);
-    const avg = (performance.now() - t0) / ITERATIONS;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    const avg = mejorDe(() => {
+      const t0 = performance.now();
+      for (let i = 0; i < ITERATIONS; i++) computeBalanceSeries(s, P);
+      return (performance.now() - t0) / ITERATIONS;
+    });
 
     expect(avg, `promedio por llamada: ${avg.toFixed(2)} ms`).toBeLessThan(100);
   });
@@ -593,9 +597,8 @@ describe("NFR-907 · el recálculo no degrada la edición en línea", () => {
     const leaf = s.nodes.find((n) => n.level === "sub")!.id;
     const edited = setLeafAmount(s, leaf, "2026-07", "actual", 777_000, P);
 
-    const t0 = performance.now(); // se mide SOLO la recomputación posterior a la edición
-    computeBalanceSeries(edited, P);
-    const elapsed = performance.now() - t0;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts). Se mide SOLO la recomputación posterior a la edición.
+    const elapsed = mejorTiempo(() => computeBalanceSeries(edited, P));
 
     expect(elapsed, `recomputación post-edición: ${elapsed.toFixed(2)} ms`).toBeLessThan(100);
     // y la edición se refleja: el recálculo no devolvió lo anterior
