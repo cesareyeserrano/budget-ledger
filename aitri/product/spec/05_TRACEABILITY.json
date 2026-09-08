@@ -170,6 +170,11 @@
       "fr_id": "FR-011",
       "substitution": "BG-003 (cierre-de-mes, high) — CERRADO el 2026-09-08, se registra aqui porque toca la cadena de migraciones del proyecto. drizzle/0005_cierre_impacto.sql anadia dos columnas NULABLES y acto seguido un CHECK bicondicional que las exige cuando hay un mes reabierto: cualquier fila ya reabierta lo violaba al crearlo y la migracion abortaba con 23514, dejando SIN aplicar tambien la 0006. Funcionaba en base vacia y fallaba en una con datos. Se anadio el paso de conversion que faltaba y se corrigio la cabecera, que afirmaba «puramente aditiva, no hay datos que convertir» — falso. LA DEUDA QUE QUEDA, y por eso se declara en vez de darlo por cerrado del todo: la linea de base NO se reconstruye, se SUELTA la reapertura (reopened_period = NULL), porque el saldo de cierre en el instante de reabrir no quedo anotado en ninguna parte y fabricar ceros seria peor que no tener el dato. Una base que traiga meses reabiertos de antes de esta migracion los vera como no reabiertos y habra que reabrirlos de nuevo; entonces si nacen con su linea de base. Hoy no afecta a nadie: no hay usuarios ni base de produccion.",
       "effort": "low"
+    },
+    {
+      "fr_id": "NFR-001",
+      "substitution": "BG-030 (raiz, medium) — CERRADO y VERIFICADO el 2026-09-08. Las 14 aserciones de tiempo de la suite pasan a medirse MEJOR-DE-5 (mejorDe/mejorTiempo en tests/helpers/perf.ts) en vez de con un cronometro suelto: el minimo es la pasada que menos CPU tuvo que compartir. LA DEUDA QUE QUEDA, y por eso se declara: el guardarrail sigue siendo un cronometro de pared dentro de la suite unitaria, no una suite de rendimiento aislada. El minimo lo vuelve robusto a la contencion —probado con 8 carriles de CPU y carga 7.24, cero fallos, cuando antes bastaba carga 3— pero sigue dependiendo de que ALGUNA de las 5 pasadas encuentre la maquina desahogada. En una maquina saturada de forma sostenida volveria a ser fragil. La salida definitiva sigue siendo mover los guardarrailes a una suite de rendimiento que corra sola; no se hizo porque el coste supera al problema hoy. EMPARENTADOS: BG-025 y BG-026 son de la misma familia y conviene revisarlos con este arreglo puesto.",
+      "effort": "medium"
     }
   ],
   "deployment_files": [
