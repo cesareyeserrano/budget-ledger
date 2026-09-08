@@ -43,7 +43,11 @@
     "tests/e2e/critical.spec.ts",
     "tests/e2e/reparent.spec.ts",
     "tests/domain/summary-kpis.test.ts",
-    "tests/helpers/seedConMontos.ts"
+    "tests/helpers/seedConMontos.ts",
+    "tests/domain/bg-019-borrar-alcancia-con-saldo.test.ts",
+    "tests/domain/bg-020-retiro-planeado-huerfano.test.ts",
+    "tests/domain/bg-021-tope-de-monto.test.ts",
+    "tests/domain/bg-024-auto-mover-en-la-fusion.test.ts"
   ],
   "files_modified": [
     "src/domain/dashboard.ts",
@@ -66,7 +70,12 @@
     "tests/domain/reglas-en-el-servidor.test.ts",
     "tests/domain/reserve-perf.test.ts",
     "tests/domain/rollup-perf.test.ts",
-    "tests/domain/techo-de-flujo-perf.test.ts"
+    "tests/domain/techo-de-flujo-perf.test.ts",
+    "src/components/BalanceModule.tsx",
+    "src/domain/reserve.ts",
+    "src/server/schemas.ts",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/techo-de-flujo.test.ts"
   ],
   "setup_commands": [
     "npm install"
@@ -120,6 +129,11 @@
     {
       "fr_id": "NFR-001",
       "substitution": "BG-030 (raiz, medium) — CERRADO y VERIFICADO el 2026-09-08. Las 14 aserciones de tiempo de la suite pasan a medirse MEJOR-DE-5 (mejorDe/mejorTiempo en tests/helpers/perf.ts) en vez de con un cronometro suelto: el minimo es la pasada que menos CPU tuvo que compartir. LA DEUDA QUE QUEDA, y por eso se declara: el guardarrail sigue siendo un cronometro de pared dentro de la suite unitaria, no una suite de rendimiento aislada. El minimo lo vuelve robusto a la contencion —probado con 8 carriles de CPU y carga 7.24, cero fallos, cuando antes bastaba carga 3— pero sigue dependiendo de que ALGUNA de las 5 pasadas encuentre la maquina desahogada. En una maquina saturada de forma sostenida volveria a ser fragil. La salida definitiva sigue siendo mover los guardarrailes a una suite de rendimiento que corra sola; no se hizo porque el coste supera al problema hoy. EMPARENTADOS: BG-025 y BG-026 son de la misma familia y conviene revisarlos con este arreglo puesto.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-005",
+      "substitution": "LOS CUATRO BUGS DE DINERO, cerrados el 2026-09-08 tras reproducir cada uno y MEDIRLO antes de tocar codigo. BG-021: el monto no tenia techo — aceptaba hasta Number.MAX_VALUE y lo que caia entre 2^53 y el bigint de Postgres se guardaba con OTRO valor, en silencio; el tope es MAX_SAFE_INTEGER porque ahi deja de ser exacta la representacion. BG-020: el retiro planeado huerfano dejaba el reservado presupuestado en -400.000 sin aviso; se AVISA (tipo nuevo de MonthIssue), no se bloquea, por la misma razon que ya documenta monthIssues. BG-019: una alcancia con dinero dentro se borraba y su saldo se descongelaba a Disponible sin aviso; AHORA SE BLOQUEA por decision del usuario, por coherencia con el resto del producto. BG-024: la fusion dejaba moveres de un bolsillo a si mismo, vivos y EDITABLES. DEUDA QUE QUEDA, declarada y no disimulada: (a) BG-022 (low) sigue abierto — bordes menores del dinero: parseAmount laxo, seq del servidor, mes invalido. (b) HALLAZGO SIN REGISTRAR, pendiente de decision del usuario: vaciar la CELDA de una alcancia a 0 NO la vacia — el mover que le dio el dinero se lo sigue acreditando (medido: celda undefined y balance 100.000 en los doce meses). Es de la misma familia que el resto: el modelo hace lo correcto y la interfaz no lo cuenta. (c) BG-019 se resolvio bloqueando; el AVISO —decir cuanto dinero hay antes de bloquear— sigue sin construirse.",
       "effort": "medium"
     }
   ],
