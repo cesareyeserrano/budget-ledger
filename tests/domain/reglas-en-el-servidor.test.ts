@@ -383,8 +383,26 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // a x2. Ninguna asercion de comportamiento se toco. Verificado con la suite completa bajo OCHO
     // carriles de CPU y carga 7.24: cero fallos de cronometro.
     //
+    // ANCLA AVANZADA a c11727b el 2026-09-08, y por una razon que NO es la que esta prueba vigila.
+    // Lo que toco `contrapartidas-reserva.test.ts` y `techo-de-flujo.test.ts` fue BG-019, una
+    // DECISION DEL USUARIO: una alcancia con dinero dentro ya no se puede borrar. Antes se borraba
+    // y su saldo se descongelaba a Disponible sin un aviso (medido: reservado 500.000 -> 0,
+    // disponible 4.500.000 -> 5.000.000). La razon que dio el usuario es la coherencia — la app ya
+    // bloquea borrar una categoria con datos, y una alcancia con saldo era la misma situacion con
+    // distinto comportamiento solo porque el dinero habia entrado por otra puerta.
+    //
+    // Cuatro TC aprobados cambian de VEREDICTO por esto, en tres features. NO se acomodaron para
+    // que pasaran —que es justo lo que esta alarma existe para delatar—: se reescribieron
+    // conservando su intencion y declarando por escrito que la decision cambio. TC-CPR-013f sigue
+    // vigilando que borrar el destino no resucite el saldo del origen, solo que ahora vacia el
+    // bolsillo por el camino legitimo primero.
+    //
+    // De paso se destapo algo que conviene no perder de vista: vaciar la CELDA de un bolsillo a 0
+    // NO lo vacia — el mover que le dio el dinero se lo sigue acreditando. Medido: celda
+    // `undefined` y balance 100.000 en los doce meses.
+    //
     const tocadas = execSync(
-      "git diff --name-only c81f706 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only c11727b -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
