@@ -446,18 +446,30 @@ function repointMovements(next: LedgerState, cedingId: string, receivingId: stri
   const receiver = findNode(next.nodes, receivingId);
   const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;
   const subId = receiver && receiver.level === "sub" ? receivingId : null;
-  next.movements = next.movements.map((m) => {
-    if (m.from !== cedingId && m.to !== cedingId && m.target !== cedingId) return m;
-    const nm = { ...m };
-    if (nm.from === cedingId) nm.from = receivingId;
-    if (nm.to === cedingId) nm.to = receivingId;
-    if (nm.target === cedingId) {
-      nm.target = receivingId;
-      nm.catId = catId;
-      nm.subId = subId;
-    }
-    return nm;
-  });
+  next.movements = next.movements
+    .map((m) => {
+      if (m.from !== cedingId && m.to !== cedingId && m.target !== cedingId) return m;
+      const nm = { ...m };
+      if (nm.from === cedingId) nm.from = receivingId;
+      if (nm.to === cedingId) nm.to = receivingId;
+      if (nm.target === cedingId) {
+        nm.target = receivingId;
+        nm.catId = catId;
+        nm.subId = subId;
+      }
+      return nm;
+    })
+    // BG-024 — el AUTO-MOVER que nace de la propia fusión. Un mover que iba de A a B, cuando B se
+    // fusiona en A, queda con `from === to`: dinero que se mueve de un bolsillo a sí mismo. No
+    // significa nada, pero seguía vivo en el diario y EDITABLE, así que el usuario podía abrirlo y
+    // cambiarle el monto sin que eso tuviera ningún efecto — la peor clase de control: uno que
+    // responde y no hace nada.
+    //
+    // Se descarta, no se conserva. VERIFICADO el 2026-09-08 antes de tocar nada: quitarlo es
+    // NEUTRO —las series de todos los bolsillos quedan idénticas y el reservado y el disponible del
+    // mes no cambian un peso—, porque restar y sumar en la misma hoja se cancela. No se pierde
+    // información: el efecto de ese mover ya está en las celdas que la fusión combinó.
+    .filter((m) => !(m.from && m.to && m.from === m.to));
 }
 
 /**
