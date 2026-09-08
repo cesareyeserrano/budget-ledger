@@ -53,7 +53,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "high",
-      "status": "open",
+      "status": "verified",
       "fr": "FR-2010",
       "tc_reference": null,
       "phase_detected": null,
@@ -61,8 +61,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-08T03:06:33.789Z",
-      "updated_at": "2026-09-08T03:06:33.789Z",
-      "resolution": null
+      "updated_at": "2026-09-08T15:41:51.560Z",
+      "resolution": "Arreglado el 2026-09-08 en drizzle/0005_cierre_impacto.sql. Se anade un paso de CONVERSION DE DATOS entre el ALTER TABLE ADD COLUMN y el ADD CONSTRAINT, y se corrige la cabecera, que afirmaba «Puramente aditiva: dos columnas nulables. No hay datos que convertir» — falso, y era justo la causa. DECISION DE FONDO: la linea de base NO se rellena con ceros, se SUELTA la reapertura (reopened_period = NULL en las filas que la tuvieran sin linea de base). Motivo escrito en la propia migracion: la linea de base es el saldo con el que el mes cerraba en el instante de reabrirlo, y ese instante ya paso sin que existiera donde anotarlo; rellenarla con ceros seria PEOR que no tenerla, porque el sistema tratara esos dos numeros como la foto real y enumeraria el impacto aguas abajo contra un referente inventado — un dato ausente se nota, uno falso no. El usuario puede reabrir el mes cuando quiera y ESA reapertura si nacera con su linea de base bien tomada; no se pierde ninguna cifra del ledger, reopened_period es estado de cierre. VERIFICADO CONTRA EL ESCENARIO EXACTO: se puso la fila en closed_through=2026-08, reopened_period=2026-09, reopen_base_* NULL —el estado que abortaba con 23514— y la migracion corrio con exit 0 y cero errores, dejando la fila consistente. Ademas se comprobo que sigue siendo idempotente (dos pasadas seguidas de db:migrate, ambas limpias). Editar la migracion en su sitio es seguro porque el usuario confirmo el 2026-09-08 que NO HAY USUARIOS ni base de produccion: la unica base que la habia aplicado es la de desarrollo.",
+      "fix_commit_sha": "eca99fb0f61d741b58c9d43c59e5393acc156493",
+      "fix_at": "2026-09-08T15:41:47.220Z"
     }
   ]
 }
