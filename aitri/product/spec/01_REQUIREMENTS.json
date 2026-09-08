@@ -576,7 +576,12 @@
     "success_metric": "Usuario confirmó en chat: 'Demo funcional completa' (flujo end-to-end sin bugs, datos coherentes)",
     "no_go_zone": "Usuario confirmó en chat las correcciones: app web (sin teclado numérico), móvil v1 solo registro, sin distribución proporcional, borrado a 'Sin asignar' por grupo; multiusuario/APIs/multi-año → Fase 2; localStorage v1; tipos fijos (D-1)"
   },
-  "idea_gaps": [],
+  "idea_gaps": [
+    "[DIVERGENCIA REGISTRADA — GAP-16 de la auditoria del 2026-09-07] El criterio de exito 1 del discovery aprobado pide «al abrir la app sin datos previos, el usuario ve una estructura de categorias Y MONTOS SEMILLA COHERENTES», y el brief original pide «datos semilla coherentes (jerarquia + montos dummy)». La mitad MONTOS dejo de estar cubierta al enmendar FR-013 el 2026-09-07, por decision del usuario: nadie abre una app de finanzas personales y quiere ver dinero que no tecleo, y ademas esos montos tapaban la tarjeta de arranque de FR-2203, que por eso no se le mostraba a ningun usuario real. La mitad ESTRUCTURA y las dos promesas operativas del criterio —«0 pasos de configuracion obligatorios» y «puede empezar a operar de inmediato»— SIGUEN CUMPLIENDOSE: el usuario nuevo recibe sus 12 nodos, todos renombrables y borrables, y puede teclear en cualquier celda desde el primer segundo. `00_DISCOVERY.md` conserva la redaccion vieja de ese criterio; actualizarla cuando el discovery se reabra por otro motivo.",
+    "[RESUELTO 2026-09-08 — la otra mitad de GAP-16] La necesidad que los montos de ejemplo SI servian es la del USUARIO SECUNDARIO del discovery, el revisor tecnico de portafolio, cuya meta textual es «constatar una app coherente end-to-end, no un demo a medias»: con todo vacio no ve rejilla con cifras, ni dashboard, ni roll-ups. Decision del usuario del 2026-09-08: esa necesidad se sirve con una ACCION EXPLICITA de «cargar datos de ejemplo», no con la semilla. El default queda honesto para el usuario real y el demo queda opt-in. `genBudget` (src/domain/seed.ts) sigue viva, intacta y exportada tras FR-2301 y es el generador determinista que alimenta esa accion. LA ACCION AUN NO ESTA CONSTRUIDA: va como feature aparte, junto al recorrido de arranque. Ver la entrada correspondiente del coverage_map.",
+    "[CONTEXTO CONFIRMADO 2026-09-08] NO HAY USUARIOS todavia: el producto no se ha puesto en manos de nadie. Ninguna decision sobre el arranque arrastra migracion de datos ni compatibilidad hacia atras. Confirmado por el usuario al revisar el recorrido del usuario nuevo.",
+    "[ABIERTA — decidida, sin construir] El RECORRIDO DEL USUARIO NUEVO se replanteo el 2026-09-08 y la forma acordada es: pantalla unica con la pregunta de apertura (mes de inicio + saldo inicial) con salida honesta «empiezo desde cero»; al responderla aparece la app con sus 12 categorias vacias, anclada en el mes declarado; y desde ahi el usuario registra lo suyo o pulsa «cargar datos de ejemplo». Esto REVIERTE la decision del 2026-09-06 recogida en FR-2203 de `meses-y-saldo-inicial` («No es un muro: la app se ve detras y se puede ignorar»), que hizo de la pregunta un overlay no bloqueante con cuatro estados. Es un giro deliberado del usuario, no un olvido. Va como feature propia."
+  ],
   "coverage_map": [
     {
       "need": "Registrar movimiento (tipo, categoría, subcategoría opcional, mes, monto) y sumar al Ejecutado, con input estándar web",
@@ -724,6 +729,18 @@
     },
     {
       "need": "Lista de movimientos recientes tras guardar — discovery SC-2 y criterios de éxito del brief; retirada por el usuario en BL-003 y sustituida por el ConfirmOverlay",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Montos semilla / datos dummy en el primer arranque» — discovery SC-1 («estructura de categorias Y MONTOS SEMILLA COHERENTES») y criterio de exito del brief («jerarquia + montos dummy»). RETIRADO de la semilla por decision del usuario del 2026-09-07 (FR-013 enmendado, implementado por la feature semilla-intacta en FR-2301): un usuario nuevo no debe ver dinero que no tecleo, y esos montos tapaban la tarjeta de arranque de FR-2203.",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Constatar una app coherente end-to-end, no un demo a medias» — meta del USUARIO SECUNDARIO del discovery (revisor tecnico de portafolio). Era lo que los montos de ejemplo servian de verdad. Decision del 2026-09-08: se sirve con una accion explicita de «cargar datos de ejemplo» (genBudget sigue exportada para alimentarla), no con la semilla. PENDIENTE DE CONSTRUIR: feature propia junto al recorrido de arranque.",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Recorrido del usuario nuevo: pantalla unica de apertura con salida «empiezo desde cero», y despues la app con la estructura vacia anclada en el mes declarado (acordado 2026-09-08; revierte el overlay no bloqueante de FR-2203). PENDIENTE DE CONSTRUIR: feature propia.",
       "disposition": "out_of_scope"
     }
   ],

@@ -6,6 +6,60 @@ _Auditoría técnica bajo demanda sobre el árbol en `feat/balance` (HEAD 56f92f
 
 **Qué se revisó explícitamente por dimensión:** *Calidad* — funciones >40 líneas, anidamiento, exports sin uso, duplicación entre `store.ts` y `data/makeRepo.ts`. *Arquitectura* — separación dominio puro / estado / repositorio / servidor, caminos de error de `persist()`, estado en memoria (`SyncHub`) frente a multi-instancia. *Lógica* — invariante `padre == Σhojas` en `mutations.ts`/`rollup.ts`, casos borde de `budgetState`, `balance.ts`, ciclos en `tree.ts`, monotonía de `createdAt`. *Seguridad* — validación Zod en el borde, aislamiento por `ownerId`, cabeceras de `next.config.mjs`, cookies/rate-limit de `auth.ts`, secretos en el árbol, `npm audit`. *Stack* — versiones mayores atrasadas, gates declarados en `04_BUILD_REPORT.json`, CI, linter.
 
+### GAP-16 — El montos de la semilla: el discovery aprobado lo pide y FR-013 ya lo niega (2026-09-07)
+
+**Estado: UNCOVERED — y no registrado en ninguna parte del rastro de la raiz.**
+
+**La necesidad, citada literal.** El discovery aprobado, criterio de exito 1:
+
+> "**Primer arranque operable sin configuracion:** al abrir la app sin datos previos, el usuario ve
+> una estructura de categorias **y montos semilla coherentes** y puede empezar a operar de inmediato
+> (0 pasos de configuracion obligatorios)."
+
+Y el brief original, en sus criterios de exito:
+
+> "Given un usuario nuevo, when abre la app por primera vez, then ve datos semilla coherentes
+> (**jerarquia + montos dummy**) y puede operar sin configuracion."
+
+**Lo que dice hoy el requisito.** FR-013 fue enmendado el 2026-09-07 por decision del usuario: la
+semilla genera la jerarquia **SIN montos** — `budgets` y `actuals` salen sin una sola clave. La feature
+`semilla-intacta` (FR-2301/FR-2302) lo implementa. La razon de producto es solida y esta escrita:
+nadie abre una app de finanzas personales y quiere ver dinero que no tecleo; ademas esos montos
+tapaban la tarjeta de arranque de FR-2203, que por eso no se le mostro nunca a ningun usuario real.
+
+**Por que ES un hallazgo aunque la decision sea legitima.** El cambio es del cliente y esta bien
+tomado. Lo que falta es el RASTRO: la mitad "montos" del criterio de exito 1 del discovery aprobado
+dejo de estar cubierta y **eso no se registro en ningun sitio**.
+
+- `coverage_map` de la raiz sigue diciendo `"Datos semilla determinísticos al primer arranque (seed
+  editable)" -> FR-013`. Sigue siendo cierto para la jerarquia y **calla** que los montos salieron.
+- `idea_gaps` de la raiz esta **VACIO** (0 entradas), asi que no hay ninguna anotacion de la divergencia.
+- `00_DISCOVERY.md` conserva su criterio de exito 1 intacto, contradiciendo al FR que lo implementa.
+
+Es exactamente el patron que las auditorias anteriores SI manejaron bien en tres casos comparables
+—la categoria "Sin asignar" (FR-003 declara "SUSTITUYE el mecanismo del brief original"), la lista de
+"Movimientos recientes" (BL-003, con su entrada de out_of_scope) y el tema oscuro unico (FR-012
+declara "SUSTITUYE el 'tema oscuro unico' del brief original")—. Aqui falto hacer lo mismo.
+
+**Matiz que importa para no sobreactuar.** El criterio de exito 1 tiene DOS mitades y solo se perdio
+una. "0 pasos de configuracion obligatorios" y "puede empezar a operar de inmediato" **siguen
+cumpliendose**: el usuario nuevo recibe su jerarquia completa de 12 nodos y puede teclear en cualquier
+celda desde el primer segundo. No ve una pantalla en blanco. Lo que ya no ve son los montos de ejemplo.
+
+**Accion sugerida — una de las dos, no ambas:**
+
+1. **Registrar la divergencia** (barato, y es lo que el patron del proyecto pide): anadir la entrada a
+   `coverage_map` y a `idea_gaps` de la raiz declarando que la mitad "montos semilla" del SC-1 se
+   retiro por decision del usuario del 2026-09-07, con su motivo. No reabre nada mas.
+2. **Actualizar `00_DISCOVERY.md`** para que su criterio de exito 1 diga lo que el producto hace hoy.
+   Es lo mas limpio, pero toca la fase de discovery aprobada y arrastra su propia cascada.
+
+**Nota de honestidad sobre esta auditoria:** la enmienda a FR-013 la escribio esta misma sesion, unas
+horas antes de correr este pase, asi que sobre ESTE hallazgo la auditoria no es independiente. Los
+demas requisitos de la raiz los escribieron sesiones anteriores.
+
+---
+
 ### Findings → Bugs
 
 **[BUG-1]** `[severity: high]` — `moveNode` hacia una categoría-hoja con montos borra sus montos del roll-up (pérdida silenciosa de dinero)
@@ -116,7 +170,9 @@ _Auditoría técnica bajo demanda sobre el árbol en `feat/balance` (HEAD 56f92f
 
 **Method:** Independent re-derivation of client needs from `00_DISCOVERY.md`, `01_REQUIREMENTS.json#original_brief`, and the seed IDEA, traced backward to the functional requirements, then diffed against the Phase-1 `coverage_map`.
 
-**Verdict (re-audited 2026-07-07):** 30 needs traced · 28 fully covered · 0 uncovered (dropped) · 2 divergences/questions to resolve. Fresh independent re-derivation on 2026-07-07 reproduced the same trace and confirms the 2026-07-02 findings stand — root Phase-1 FRs unchanged; GAP-2 and GAP-3 remain open pending a user decision. (Note: the in-flight `stack-upgrade-theme` feature will supersede FR-012's design system, but that is a feature-level change not yet folded into root Phase 1.)
+**Verdict (re-auditado 2026-09-07):** 31 needs traced · 29 cubiertos · **1 UNCOVERED sin registrar (GAP-16, nuevo)** · 2 divergencias previas abiertas. El pase de hoy se disparo porque los requisitos de la raiz CAMBIARON: FR-013 se enmendo el 2026-09-07 para que la semilla no traiga montos. Ese cambio dejo sin cubrir la mitad "montos semilla" del criterio de exito 1 del discovery aprobado, sin dejar rastro en `coverage_map` ni en `idea_gaps` — ver GAP-16. Todo lo demas del trazado se reproduce igual que en los pases anteriores: ninguna otra necesidad expresada quedo huerfana, y las tres sustituciones historicas (Sin asignar, Movimientos recientes, tema oscuro unico) siguen correctamente declaradas en el FR que las sustituye.
+
+**Verdict anterior (re-audited 2026-07-07):** 30 needs traced · 28 fully covered · 0 uncovered (dropped) · 2 divergences/questions to resolve. Fresh independent re-derivation on 2026-07-07 reproduced the same trace and confirms the 2026-07-02 findings stand — root Phase-1 FRs unchanged; GAP-2 and GAP-3 remain open pending a user decision. (Note: the in-flight `stack-upgrade-theme` feature will supersede FR-012's design system, but that is a feature-level change not yet folded into root Phase 1.)
 No client need was silently *dropped* — every expressed need maps to an FR, an NFR, a constraint, or an explicit `no_go_zone` line. The prior GAP-1 ("Sin asignar" per-GRUPO → per-TIPO divergence) is **RESOLVED**: FR-003 now reads *"la categoría fija 'Sin asignar' del **MISMO GRUPO** … UNA por **GRUPO**"* and NFR-005 *"de 'Sin asignar' de su grupo"*, matching the brief and D-2; the editable-montos point is now consistent with the D-2 constraint (`auto, no renombrable/borrable, montos editables`). Two items still diverge and should be confirmed.
 
 ---

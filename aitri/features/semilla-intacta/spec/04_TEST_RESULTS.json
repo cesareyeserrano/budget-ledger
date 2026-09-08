@@ -1,0 +1,259 @@
+{
+  "executed_at": "2026-09-08T03:16:02.331Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-SIN-001h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-001h: buildSeed devuelve budgets y actuals sin una sola clave 2ms"
+    },
+    {
+      "tc_id": "TC-SIN-002e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-002e: ninguna hoja tiene monto en ninguno de los doce meses del rango 2ms"
+    },
+    {
+      "tc_id": "TC-SIN-003f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-003f: la trampa del mapa con ceros — hasData sobre la semilla real es false 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-004h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > FR-2301 · lo que se persiste en el primer arranque > TC-SIN-004h: el snapshot persistido llega vacío y vuelve vacío desde una lectura nueva 6ms"
+    },
+    {
+      "tc_id": "TC-SIN-010h",
+      "status": "pass",
+      "notes": "✓  271 [chromium] › tests/e2e/semilla-intacta.spec.ts:33:5 › TC-SIN-010h: un usuario nuevo ve la tarjeta de arranque y ninguna cifra inventada (240ms)"
+    },
+    {
+      "tc_id": "TC-SIN-011e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2302 · el predicado de la tarjeta no cambia > TC-SIN-011e: shouldShowOpeningCard conserva su tabla de verdad completa 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-012f",
+      "status": "pass",
+      "notes": "✓  272 [chromium] › tests/e2e/semilla-intacta.spec.ts:56:5 › TC-SIN-012f: una cuenta con datos propios NO ve la tarjeta (200ms)"
+    },
+    {
+      "tc_id": "TC-SIN-020h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > NFR-2301 · las cuentas existentes no se tocan > TC-SIN-020h: una cuenta con libro persistido no cambia ni un byte 2ms"
+    },
+    {
+      "tc_id": "TC-SIN-021e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > NFR-2301 · las cuentas existentes no se tocan > TC-SIN-021e: una cuenta que borró todos sus montos tampoco se re-siembra 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-022f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > NFR-2301 · las cuentas existentes no se tocan > TC-SIN-022f: sin libro persistido SÍ se siembra — la condición sigue colgando del 204 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-030h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-030h: la jerarquía es idéntica campo a campo a la de antes del cambio 1ms"
+    },
+    {
+      "tc_id": "TC-SIN-031e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-031e: la siembra sigue siendo determinista entre llamadas 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-032f",
+      "status": "pass",
+      "notes": "✓  273 [chromium] › tests/e2e/semilla-intacta.spec.ts:68:5 › TC-SIN-032f: la semilla sigue siendo editable — renombrar una categoría persiste (113ms)"
+    },
+    {
+      "tc_id": "TC-SIN-040h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · la migración de las pruebas no hace trampas > TC-SIN-040h: el helper restituye la semilla con montos anterior 1ms"
+    },
+    {
+      "tc_id": "TC-SIN-041e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · la migración de las pruebas no hace trampas > TC-SIN-041e: el helper no muta la semilla base que compone 0ms"
+    },
+    {
+      "tc_id": "TC-SIN-042f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · la migración de las pruebas no hace trampas > TC-SIN-042f: genBudget sobrevive intacta y sigue produciendo los mismos montos 1ms"
+    },
+    {
+      "tc_id": "TC-SIN-043f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · el gate contra la trampa silenciosa > TC-SIN-043f: la migración no introduce ningún marcador de salto en la suite 45ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2301",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2302",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2301",
+      "fr_id": "FR-2301",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2302",
+      "fr_id": "FR-2301",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2303",
+      "fr_id": "FR-2301",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2304",
+      "fr_id": "FR-2302",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2305",
+      "fr_id": "FR-2302",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2306",
+      "fr_id": "FR-2302",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 1672,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 36743,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 256,
+      "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 712,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 127,
+      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 15095,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 121385,
+      "output": "      at /Users/cesareyeserrano/PROJECTS/T-Ledger/tests/e2e/recuperar-acceso-flujo.spec.ts:101:20\n\n    Error Context: test-results/recuperar-acceso-flujo-El--6d6f9-n-base-de-datos-y-sin-ayuda-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:92:7 › El recorrido completo › TC-REC-228h: el recorrido se completa sin consola, sin base de datos y sin ayuda \n  428 passed (2.0m)\n\n(node:89760) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 25805,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-08T03:16:01.623Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-08T03:16:01.625Z WARN [Better Auth]: Reset Password: User not found"
+    }
+  ],
+  "timings": {
+    "runner_ms": 24404,
+    "e2e_ms": 112863,
+    "gates_ms": 201795,
+    "total_ms": 339080
+  }
+}

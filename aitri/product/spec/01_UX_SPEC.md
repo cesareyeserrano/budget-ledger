@@ -62,7 +62,21 @@
 
 ### Flujo G — Primer arranque (persona: Dueño de finanzas / Revisor) · FR-013, FR-011
 - **Entry point:** abrir la app sin datos previos.
-- **Pasos:** se genera jerarquía semilla + montos dummy (Ene–May ejecutado, Jun en curso, Jul–Dic proyectado=0). El usuario opera sin configurar.
+- **Pasos:** se genera la jerarquía semilla **SIN montos** — `budgets` y `actuals` salen sin una
+  sola celda (FR-013 reescrito el 2026-09-07; feature `semilla-intacta`, FR-2301). El usuario ve sus
+  categorías vacías y puede teclear en cualquier celda de inmediato: sigue sin haber pasos de
+  configuración obligatorios. **Cambió el porqué, no el resultado operativo:** nadie abre una app de
+  finanzas personales y quiere ver dinero que no tecleó, y aquellos montos de ejemplo además tapaban
+  la tarjeta de arranque —su condición es «sin datos NI declaración»— de modo que esa tarjeta no se
+  le mostró NUNCA a ningún usuario real hasta este cambio.
+- **Tarjeta de arranque (FR-2203 de `meses-y-saldo-inicial`):** con la semilla vacía, el primer
+  arranque muestra la tarjeta sobre la grilla preguntando el mes de inicio y el saldo previo. No es
+  un muro: la grilla opera detrás. Cuatro salidas — guardar un monto, «Empiezo desde cero», teclear
+  en la grilla, o declarar después desde Configuración.
+- **Demo del producto lleno:** la necesidad del *Revisor* —«constatar una app coherente end-to-end,
+  no un demo a medias»— ya NO la cubre la semilla. Se decidió el 2026-09-08 servirla con una acción
+  explícita de «cargar datos de ejemplo» (`genBudget` sigue exportada para alimentarla). **Pendiente
+  de construir:** feature propia. Hasta entonces el Revisor ve el producto vacío.
 - **Error path (persistencia):** si el servidor no devuelve datos, la app arranca con el estado semilla sin pantalla en blanco (H9). Si un guardado no alcanza el servidor o la respuesta es ilegible, se muestra el **aviso de persistencia** (`StorageBanner`, BL-022) en ambos shells: la app no presenta como guardado lo que no lo está (H1: estado del sistema visible).
 
 ---
@@ -108,7 +122,7 @@
 ### Global
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| Shell responsive | móvil (≤760px: solo Registrar) · escritorio (>760px: app completa) · loading (hidratación) · error (recupera a semilla) · empty (semilla) | Conmutación por CSS @media; mismo estado/datos | H4 |
+| Shell responsive | móvil (≤760px: solo Registrar) · escritorio (>760px: app completa) · loading (hidratación) · error (recupera a semilla) · empty (semilla: jerarquía SIN montos, con la tarjeta de arranque encima) | Conmutación por CSS @media; mismo estado/datos | H4 |
 | Confirmación de borrado inline (check / X) | default · disabled · resto n/a | Confirmar/cancelar acción destructiva | H3 |
 
 ---
@@ -123,7 +137,18 @@
 
 **Dashboard:** H1 (indicadores responden al filtro) · H2 (nombres de indicadores en lenguaje financiero simple) · H8 (solo lo relevante del periodo) · H9 (empty states explican el estado, no una pantalla vacía).
 
-**Global/Persistencia:** H4 (mismos datos móvil/escritorio) · H9 (recuperación de estado corrupto a semilla, sin pantalla en blanco) · H10 (semilla al primer arranque actúa como onboarding operable sin configurar).
+**Global/Persistencia:** H4 (mismos datos móvil/escritorio) · H9 (recuperación de estado corrupto a
+semilla, sin pantalla en blanco) · H10 (la semilla al primer arranque sigue actuando como onboarding
+operable sin configurar: desde el 2026-09-07 aporta la ESTRUCTURA —12 nodos, todos renombrables y
+borrables— y ya no los montos; la tarjeta de arranque cubre la parte de reconocimiento que antes
+insinuaban las cifras de ejemplo).
+
+**Deuda de UX conocida (2026-09-08, sin construir):** el separador de miles es incoherente entre las
+superficies donde se ESCRIBE dinero. `AmountDisplay` del Registro formatea en vivo con `formatCOP`
+(FR-207), pero la celda editable de la grilla (`BudgetGrid`, `replace(/[^0-9]/g,"")`), la tarjeta de
+arranque y el saldo inicial de Configuración aceptan dígitos pelados. Al LEER sí es coherente en todas
+(`money`/`cellNum` con `toLocaleString("es-CO")`). Es donde más fácil es equivocarse en un cero, porque
+la tarjeta y Configuración piden cifras grandes. Va en la feature del recorrido de arranque.
 
 ---
 

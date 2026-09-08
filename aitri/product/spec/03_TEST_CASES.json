@@ -798,24 +798,26 @@
       "requirement_id": "FR-013",
       "user_story_id": "US-013",
       "ac_id": "AC-025",
-      "title": "Primer arranque sin datos genera semilla determinista coherente",
+      "title": "Primer arranque sin datos genera semilla determinista y SIN montos",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
         "El servidor no tiene libro para este usuario (load devuelve null)"
       ],
-      "given": "ningún libro persistido para el usuario",
-      "when": "se inicializa la app (load devuelve null → buildSeed)",
-      "then": "existe una jerarquía semilla con hojas cuyo actuals de 'ene'..'may' > 0 y 'jul'..'dic' === 0 (factores del prototipo), determinista (dos ejecuciones producen los mismos montos)",
+      "given": "ningún libro persistido para el usuario (load devuelve 204 → null)",
+      "when": "se inicializa la app (load devuelve null → buildSeed('local', P0))",
+      "then": "`budgets` y `actuals` salen SIN UNA SOLA CLAVE —no con claves a valor 0— y `movements` vacío; la jerarquía SÍ se siembra: 12 nodos, entre ellos 's-comida-mercado'; y sigue siendo determinista (dos ejecuciones producen la misma jerarquía y los mismos mapas vacíos, comparados como cadena)",
       "steps": [
-        "load() sin datos en el servidor",
-        "buildSeed",
-        "Verificar actuals por mes",
-        "Repetir y comparar determinismo"
+        "load() sin datos en el servidor (204 → null)",
+        "buildSeed('local', P0) dos veces",
+        "Verificar Object.keys(budgets).length === 0 y Object.keys(actuals).length === 0",
+        "Verificar 12 nodos y la presencia de 's-comida-mercado'",
+        "Verificar determinismo: JSON.stringify de las dos jerarquías coincide"
       ],
-      "expected_result": "semilla con Ene–May>0, Jul–Dic=0 e idéntica entre corridas",
-      "test_data": {}
+      "expected_result": "Object.keys(budgets).length === 0 && Object.keys(actuals).length === 0 && movements.length === 0 && nodes.length === 12 && jerarquías idénticas entre llamadas",
+      "test_data": {},
+      "notes": "Reescrito el 2026-09-07 con FR-013. Antes exigía actuals['s-comida-mercado']['2026-01'] > 0; con la semilla vacía esa expresión no fallaba: REVENTABA con TypeError al indexar undefined. La forma importa —mapas sin claves, no llenos de ceros— porque OpeningCard cuenta claves para decidir si la tarjeta de arranque se muestra (FR-2203 / FR-2302 de semilla-intacta)."
     },
     {
       "id": "TC-013e",

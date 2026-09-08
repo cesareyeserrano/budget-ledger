@@ -1,0 +1,68 @@
+{
+  "project": "semilla-intacta",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-2301",
+      "title": "La semilla del primer arranque no trae montos",
+      "level": "complete",
+      "evidence": "covered — 5 TC en verde. TC-SIN-001h (buildSeed devuelve budgets y actuals sin una sola clave), TC-SIN-002e (barrido exhaustivo: 8 hojas x 12 meses x 2 mapas = 192 lecturas, todas undefined), TC-SIN-003f (la trampa del mapa con ceros: replica LITERALMENTE la expresion de hasData de OpeningCard.tsx:62 sobre la semilla real), TC-SIN-004h (integracion: el snapshot PERSISTIDO vuelve vacio desde una lectura nueva) y TC-SIN-042f (genBudget sobrevive intacta). Implementado en src/domain/seed.ts eliminando la llamada a genBudget desde buildSeed y devolviendo mapas vacios literales."
+    },
+    {
+      "id": "FR-2302",
+      "title": "La tarjeta de arranque por fin se le muestra a un usuario nuevo real",
+      "level": "complete",
+      "evidence": "covered — 3 TC en verde. TC-SIN-010h (e2e: escribe sobre la cuenta la salida LITERAL de buildSeed —la funcion del producto— y verifica que ese usuario ve la tarjeta, la estructura detras y CERO importes en pantalla), TC-SIN-012f (e2e negativo: una cuenta con datos propios NO ve la tarjeta) y TC-SIN-011e (tabla de verdad completa de shouldShowOpeningCard, seis casos). Cero lineas modificadas en OpeningCard.tsx, como exigia el no_go_zone: la tarjeta aparece por CONSECUENCIA de la semilla vacia. Ver la deuda declarada sobre el tramo registro->primer render."
+    },
+    {
+      "id": "NFR-2301",
+      "title": "Ninguna cuenta existente ve cambiar una cifra",
+      "level": "complete",
+      "evidence": "covered — 3 TC en verde. TC-SIN-020h (una cuenta con libro persistido y montos propios queda byte a byte identica y CERO escrituras emitidas), TC-SIN-021e (una cuenta que borro sus montos a mano tampoco se re-siembra: la condicion es el 204, no la ausencia de montos) y TC-SIN-022f (sin libro persistido SI se siembra). NOTA DE CONTEXTO confirmada por el usuario el 2026-09-08: no hay usuarios todavia, asi que esta garantia no protege a nadie hoy — se conserva porque el invariante debe seguir siendo cierto."
+    },
+    {
+      "id": "NFR-2302",
+      "title": "La jerarquia sembrada sigue intacta y editable",
+      "level": "complete",
+      "evidence": "covered — 3 TC en verde. TC-SIN-030h (comparacion campo a campo contra fixture congelado: 12 nodos, ids, nombres, tipo, nivel, padre y orden; orden estrictamente creciente sin huecos; todo padre existe), TC-SIN-031e (determinismo entre llamadas) y TC-SIN-032f (e2e: renombrar c-comida a Alimentacion persiste desde una conexion nueva y el resto de la jerarquia no cambia). TC-013e y TC-013f de la raiz siguen en verde sin modificar una linea de su codigo."
+    },
+    {
+      "id": "NFR-2303",
+      "title": "La suite existente sigue verde sin trampas",
+      "level": "complete",
+      "evidence": "covered — 4 TC en verde y la suite completa como evidencia. 33 pruebas caian en 7 pipelines (raiz, servidor-fuente-unica, refinamiento-ui, multi-anio, cierre-de-mes, backend y una regresion de BG-003); 26 se resolvieron componiendo la semilla poblada con buildSeedConMontos y 7 pidieron criterio individual, TODAS documentadas en el mensaje del commit 3e1c61f. TC-SIN-040h (el helper restituye la semilla anterior byte a byte), TC-SIN-041e (no muta la base que compone), TC-SIN-042f (genBudget intacta y determinista) y TC-SIN-043f, que es el gate: recorre el arbol de pruebas con git ls-files y exige CERO marcadores it.skip/test.skip/describe.skip/todo, excluyendo it.skipIf, que es la guarda de cronometro preexistente de BG-026/BG-030. Cero aserciones relajadas y ningun TC degradado a manual."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2302",
+      "substitution": "TC-SIN-010h NO recorre un registro de usuario por la interfaz: la app no expone ruta de registro (src/app/ solo tiene api, configuracion, health, recuperar y la raiz) y las cuentas e2e las crea globalSetup. En su lugar la prueba escribe sobre la cuenta del worker la salida LITERAL de `buildSeed` —la funcion del producto— y verifica que ese usuario ve la tarjeta. Es estrictamente mas fuerte que la siembra sintetica que enmascaro el defecto original (un ledger fabricado a mano no se pondria rojo si alguien devolviera montos a la semilla; esta prueba si), pero no cubre el tramo registro->primer render. Cerrarlo exige una ruta de registro que el producto no tiene.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-2302",
+      "substitution": "FR-1910 de multi-anio («la semilla se ancla al periodo EN CURSO») queda VACIO para la semilla que se envia: sin celdas no hay eje que anclar. Sus TCs (TC-MAN-090h/091e/092f) siguen verificando el anclaje, pero ahora contra `buildSeedConMontos`, o sea contra `genBudget` — que es donde el anclaje vive de verdad. El proposito del requisito (un usuario de septiembre no ve celdas de enero a agosto) se cumple MAS que antes, porque no ve ninguna. Queda registrado para que nadie lea esos TCs creyendo que cubren la semilla enviada.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "NFR-2303",
+      "substitution": "El fixture `freshLedger` de la suite e2e (tests/e2e/helpers/fixtures.ts) pasa a componer su baseline con `buildSeedConMontos`. Su comentario decia que reproducia «el mismo estado con el que la app arranca a un usuario nuevo»; eso YA NO es cierto y se corrigio en el propio fichero. El baseline poblado se conserva porque las aserciones de los 416 TCs e2e lo asumen; el estado real del usuario nuevo se verifica aparte en tests/e2e/semilla-intacta.spec.ts.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2301",
+      "substitution": "`buildSeed` conserva el parametro `startPeriod` aunque su cuerpo ya no lo usa (la jerarquia no depende del mes). Se mantiene por compatibilidad: 36 ficheros de prueba y 3 de codigo lo pasan, y cambiarlo seria un refactor de firma sin valor para el usuario. tsconfig no activa noUnusedParameters, asi que no rompe el typecheck.",
+      "effort": "low"
+    }
+  ],
+  "deployment_notes": "Modelo: contenedor Docker detras de Nginx, el del PROYECTO. Esta feature NO crea ningun artefacto desplegable nuevo —sin Dockerfile ni docker-compose propios— y NO introduce ni una variable de entorno, ni una migracion de base de datos, ni un paso de despliegue. El cambio es una RESTA en el dominio: `buildSeed` deja de llamar a `genBudget`.\n\nSALUD Y ARRANQUE: sin cambios. El endpoint /health del proyecto sigue siendo el mismo y el gate `smoke` del verify (exit 0) prueba que la app arrancada responde sus rutas clave sin errores de servidor.\n\nCOMPATIBILIDAD HACIA ATRAS: total para los datos existentes. El codigo nuevo SOLO se ejecuta cuando el servidor responde 204 (cuenta sin libro persistido), asi que un despliegue no altera ninguna cuenta ya sembrada — verificado por TC-SIN-020h y TC-SIN-021e. Ademas, el usuario confirmo el 2026-09-08 que NO HAY USUARIOS todavia, de modo que el riesgo real de este despliegue es nulo.\n\nRETROCESO: revertir el commit 3e1c61f restituye el comportamiento anterior para las cuentas nuevas. NO hay nada que reconstruir ni migrar: las cuentas sembradas durante la ventana conservan sus casillas vacias, que es un estado perfectamente valido e indistinguible del de un usuario que vacio sus montos a mano. La migracion de las pruebas viaja en el mismo commit, asi que el revert es atomico.\n\nATENCION PARA QUIEN MANTENGA ESTO: `seed.ts` debe devolver los mapas SIN CLAVES, nunca con claves a valor 0. `OpeningCard.tsx:62` decide su visibilidad contando claves, asi que unos ceros dejarian la tarjeta de arranque oculta sin poner NADA en rojo salvo TC-SIN-003f, que existe exactamente para eso (RISK-2302 del diseno)."
+}

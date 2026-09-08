@@ -42,7 +42,8 @@
     "tests/integration/persistence.test.ts",
     "tests/e2e/critical.spec.ts",
     "tests/e2e/reparent.spec.ts",
-    "tests/domain/summary-kpis.test.ts"
+    "tests/domain/summary-kpis.test.ts",
+    "tests/helpers/seedConMontos.ts"
   ],
   "files_modified": [
     "src/domain/dashboard.ts",
@@ -51,7 +52,8 @@
     "package.json",
     "scripts/security-config.sh",
     "tests/integration/feature-stack.test.ts",
-    "tests/domain/categories.test.ts"
+    "tests/domain/categories.test.ts",
+    "tests/e2e/helpers/fixtures.ts"
   ],
   "setup_commands": [
     "npm install"
@@ -86,6 +88,16 @@
       "substitution": "Andamiaje multiusuario/API: entidades cargan `ownerId` (default 'local') y toda la persistencia pasa por la interfaz LedgerRepository. Sin TCs dedicados (FR SHOULD sin user story); se ejercita indirectamente en los tests de persistencia.",
       "reason": "Es andamiaje para Fase 2, no funcionalidad activa en v1; su contrato (interfaz + ownerId) está presente y usado por el store.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-013",
+      "substitution": "La semilla dejo de traer montos el 2026-09-07 (feature semilla-intacta, FR-2301). Con ello la necesidad del USUARIO SECUNDARIO del discovery —el revisor tecnico de portafolio, cuya meta textual es «constatar una app coherente end-to-end, no un demo a medias»— queda SIN CUBRIR en el producto: con el libro vacio no ve rejilla con cifras, ni dashboard, ni roll-ups. La decision del usuario del 2026-09-08 es servirla con una accion explicita de «cargar datos de ejemplo» —`genBudget` sigue viva y exportada en src/domain/seed.ts precisamente para eso— pero ESA ACCION NO ESTA CONSTRUIDA: va en una feature aparte junto al recorrido de arranque. Hasta entonces, quien quiera ver el producto lleno tiene que teclear los datos a mano.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "FR-012",
+      "substitution": "Separador de miles INCOHERENTE entre las superficies donde se ESCRIBE dinero, detectado por el usuario el 2026-09-08. `AmountDisplay` del Registro formatea en vivo con `formatCOP` (FR-207) mientras se teclea; en cambio la celda editable de la grilla (BudgetGrid, `replace(/[^0-9]/g,\"\")`), la tarjeta de arranque (OpeningCard) y el saldo inicial de Configuracion aceptan digitos pelados sin agrupar. Al LEER si es coherente en todas las superficies (`money`/`cellNum` con toLocaleString('es-CO')). Es donde mas facil es equivocarse en un cero, porque la tarjeta y Configuracion piden cifras grandes. La pieza para arreglarlo ya existe (`formatCOP` de @/lib/money). Va en la feature del recorrido de arranque.",
+      "effort": "low"
     }
   ],
   "test_runner": "npm run test:run",

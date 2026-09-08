@@ -143,7 +143,19 @@ interface PersistedBudget { version: 2; budgets: AmountMap; actuals: AmountMap; 
 - **Roll-up (FR-004, verificado `cellSums`):** NUNCA se persiste el total de un padre. `budget(parent,m)=Σ budget(leaf,m)` sobre `leafDescendants`; `actual(parent,m)=Σ actual(node,m)` sobre `subtreeIds` (incluye montos directos en categoría-hoja).
 - **Traslado al crear 1ª subcategoría (FR-002, prototipo `addNode`):** al convertir categoría-hoja en padre, sus budgets/actuals se mueven a la nueva sub (los totales no caen).
 - **Edición de hoja (FR-006, D-3, prototipo `commitEdit`):** `setLeafAmount` fija `max(0, round(valor))` en budgets/actuals de la **hoja**. NO hay rama de distribución a padres (divergencia v1 #3).
-- **Semilla determinista (FR-013, `genBudget`):** base por hoja según `type` y `hash(id)` redondeada a 10.000; ejecutado = base × factor-mes × jitter; factores `{ene:.96,feb:1.07,mar:.86,abr:1.14,may:.91,jun:.55,jul..dic:0}`. Sin `Math.random` (todo por hash).
+- **Semilla determinista (FR-013):** `buildSeed` construye la jerarquía —12 nodos, todos
+  renombrables y borrables, ninguno de sistema— y **NO genera montos**: `budgets` y `actuals` salen
+  sin una sola clave (reescrito el 2026-09-07; feature `semilla-intacta`, FR-2301). **La forma
+  importa:** los mapas deben salir VACÍOS, no con claves a valor 0 — `OpeningCard` decide su
+  visibilidad con `Object.keys(budgets).length > 0`, así que unos ceros ocultarían la tarjeta de
+  arranque sin poner nada en rojo salvo TC-SIN-003f, que existe para eso.
+- **`genBudget` (ya NO participa en la siembra):** sigue viva y exportada en `src/domain/seed.ts`.
+  Base por hoja según `type` y `hash(id)` redondeada a 10.000; ejecutado = base × factor-mes ×
+  jitter; sin `Math.random` (todo por hash). Es el generador determinista de montos del
+  repositorio, y queda como (a) fixture de las pruebas que necesitan un ledger poblado
+  (`tests/helpers/seedConMontos.ts`) y (b) el motor de la futura acción «cargar datos de ejemplo»
+  decidida el 2026-09-08. Ninguna prueba la importaba directamente antes del cambio (medido: 0),
+  así que conservarla no arrastra deuda.
 - **Preservación:** rebuild greenfield; claves/forma provienen del prototipo. No hay datos de producción que preservar.
 
 ## API Design
@@ -169,7 +181,8 @@ function deleteNode(s: LedgerState, id: string): { state: LedgerState } | { bloc
 function moveNode(s: LedgerState, id: string, dest: {kind:'category'|'group', id:string}):
   { state: LedgerState } | { rejected: 'cross_type' | 'invalid_target' };              // FR-015
 function setLeafAmount(s: LedgerState, leafId: string, month: MonthKey, kind:'budget'|'actual', value: number): LedgerState; // FR-006
-function buildSeed(ownerId: string): LedgerState;                                       // FR-013
+function buildSeed(ownerId: string, startPeriod: PeriodKey): LedgerState;                // FR-013 — jerarquía SIN montos
+function genBudget(nodes: LedgerNode[], startPeriod: PeriodKey): { budgets: AmountMap; actuals: AmountMap }; // fixtures y futura demo, NO la siembra
 function dashboardMetrics(s: LedgerState, period: {mode:'month'|'year', month?:MonthKey}): DashboardVM; // FR-009
 ```
 
@@ -211,7 +224,15 @@ Realización por MUST FR — método, contrato I/O y comportamiento ante fallo. 
 
 - **FR-012 · Sistema de diseño César Augusto** — *Método:* tokens **theme-aware** vía CSS custom properties (temas claro y oscuro, preferencia del sistema por defecto y toggle en la UI; bordes-sobre-rellenos); tipografía self-hosted vía `next/font`. *I/O:* tokens `--bg/--fg/--error/--success/…` resueltos por tema y aplicados por componente. *Fallo:* n/a (contrato visual estático). *(Evolución: `stack-upgrade-theme` FR-201/202/204/205 sustituyó el tema oscuro único por el par claro/oscuro sobre paleta zinc, con AA en ambos; `grid-ux/FR-109` reemplazó el mono Fira Code por Lexend + números tabulares.)*
 
-- **FR-013 · Semilla determinística** — *Método:* `buildSeed(ownerId)` construye la jerarquía fija y `genBudget` deriva montos dummy por hoja/mes de forma determinística (hash del nombre, sin aleatoriedad). *I/O:* `buildSeed()` → `LedgerState` completo. *Fallo:* determinístico por diseño — misma entrada, misma semilla (verificable byte a byte).
+- **FR-013 · Semilla determinística SIN montos** — *Método:* `buildSeed(ownerId, startPeriod)`
+construye la jerarquía y devuelve `budgets: {}` y `actuals: {}` literales; ya no llama a `genBudget`.
+*I/O:* `buildSeed()` → `LedgerState` con 12 nodos y los dos mapas sin claves. *Fallo:* ninguno
+alcanzable — la operación dejó de hacer trabajo, no puede lanzar; y sigue siendo determinística por
+diseño (misma entrada, misma jerarquía, verificable byte a byte). *Consecuencia buscada:* con los
+mapas vacíos `hasData` es falso y la tarjeta de arranque de FR-2203 por fin se le muestra a un
+usuario nuevo real — antes no se le mostraba a nadie. *Nota:* `startPeriod` se conserva en la firma
+aunque el cuerpo ya no lo use (la jerarquía no depende del mes); cambiarla obligaría a tocar 36
+ficheros de prueba y 3 de código sin valor para el usuario.
 
 - **FR-015 · Reparent por drag-drop** — *Método:* `moveNode(state, nodeId, dest, overflow=blockPolicy)` reubica un subárbol validando tipo y techo de 3 niveles; el manejo de desborde es una estrategia enchufable. *I/O:* `dest = {kind:'category'|'group'|'root', …}` → `{state}` o `{rejected:'cross_type'|'invalid_target'|'would_overflow'}`. *Fallo:* mover entre tipos distintos o desbordar el techo se rechaza sin mutar ni perder movimientos (cero huérfanos, NFR-602).
 
