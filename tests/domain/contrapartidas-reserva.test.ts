@@ -27,7 +27,7 @@ import {
   __reservePerfCounters,
 } from "@/domain/reserve";
 import { removeOrFail, removeIfAllowed } from "../helpers/reserve";
-import { addMovement, createNode, deleteNode, setLeafAmount } from "@/domain/mutations";
+import { addMovement, createNode, deleteBlockReason, deleteNode, setLeafAmount } from "@/domain/mutations";
 import { computeBalanceSeries } from "@/domain/balance";
 import { rollupActual } from "@/domain/rollup";
 import { P as MONTH_KEYS } from "../helpers/periods";
@@ -218,7 +218,18 @@ describe("FR-1602 · el saldo derivado suma los moveres que entran", () => {
     // @aitri-tc TC-CPR-013f
     let s = op(base(), { from: AVAILABLE_ID, to: "A", period: "2026-07", amount: 200_000 });
     s = op(s, { from: "A", to: "B", period: "2026-07", amount: 150_000 });
-    const del = deleteNode(s, "B", P); // B no tiene celdas propias: se puede borrar
+
+    // BG-019 (decisión del usuario, 2026-09-08): B ya NO se puede borrar mientras tenga saldo, por
+    // coherencia con el resto del producto —una categoría con datos tampoco se borra—. Antes se
+    // borraba y sus 150.000 se descongelaban a Disponible sin un aviso.
+    expect(deleteBlockReason(s, "B", P)).toBe("has_data");
+
+    // Lo que este caso vigila NO cambia: que borrar el destino no RESUCITE el saldo del origen. Se
+    // vacía B por el camino legítimo —sacarlo a Disponible— y entonces sí se borra; A conserva sus
+    // 50.000 y no vuelve a los 200.000 de antes del mover.
+    s = op(s, { from: "B", to: AVAILABLE_ID, period: "2026-07", amount: 150_000 });
+    expect(resolvedBalance(s, "B", "2026-07", "actual", P)).toBe(0);
+    const del = deleteNode(s, "B", P);
     if (!("state" in del)) throw new Error(`borrado bloqueado: ${JSON.stringify(del)}`);
     expect(resolvedBalance(del.state, "A", "2026-07", "actual", P)).toBe(50_000);
   });
@@ -453,8 +464,11 @@ describe("FR-1609 · un mover equivocado se puede corregir", () => {
     // @aitri-tc TC-CPR-061f
     const { s1, id } = conMover();
     expect(removeOrFail(s1, "no-existe")).toBe(s1);
-    const sinDestino = deleteNode(s1, "B", P);
-    if (!("state" in sinDestino)) throw new Error("borrado bloqueado");
+    // BG-019: para llegar al mover HUÉRFANO —que es lo que este caso vigila— hay que vaciar B
+    // primero; con saldo dentro el borrado queda bloqueado. El estado final es el mismo.
+    const vaciado = op(s1, { from: "B", to: AVAILABLE_ID, period: "2026-07", amount: 150_000 });
+    const sinDestino = deleteNode(vaciado, "B", P);
+    if (!("state" in sinDestino)) throw new Error(`borrado bloqueado: ${JSON.stringify(sinDestino)}`);
     expect(() => removeReserveOp(sinDestino.state, id, P)).not.toThrow();
   });
 

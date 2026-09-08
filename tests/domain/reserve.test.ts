@@ -218,10 +218,21 @@ describe("FR-1004 · operación De→A y su integridad estructural", () => {
     // @aitri-tc TC-TRF4-104e
     const base = makeState([income({ "2026-01": 500_000 }), { id: "c-a", type: "transfer" }, { id: "c-b", type: "transfer" }]);
     let s = op(base, { from: AVAILABLE_ID, to: "c-a", period: "2026-01", amount: 100_000 });
-    s = op(s, { from: "c-a", to: "c-b", period: "2026-01", amount: 100_000 }); // saldo A=0, celda B=100k
+    s = op(s, { from: "c-a", to: "c-b", period: "2026-01", amount: 100_000 }); // saldo A=0, B=100k
+
+    // BG-019 (decisión del usuario, 2026-09-08): B no se borra mientras tenga saldo, por coherencia
+    // con el resto del producto. Y aquí se destapó algo que conviene no perder de vista: vaciar la
+    // CELDA de B a 0 NO vacía el bolsillo — el mover que le dio el dinero se lo sigue acreditando.
+    // Medido: celda `undefined` y balance 100.000 en los doce meses. Antes, este caso borraba un
+    // bolsillo con 100.000 dentro; era exactamente el defecto que BG-019 describe.
     const cleared = applyReserveCellEdit(s, { leafId: "c-b", period: "2026-01", plane: "actual", newAmount: 0 }, P);
     if (!("state" in cleared)) throw new Error("vaciar B rechazado");
-    s = cleared.state;
+    expect(resolvedBalance(cleared.state, "c-b", "2026-01", "actual", P)).toBe(100_000); // sigue dentro
+    expect(deleteNode(cleared.state, "c-b", P)).toMatchObject({ blocked: "has_data" });
+
+    // Se vacía por el camino que SÍ saca el dinero, y entonces se borra.
+    s = op(cleared.state, { from: "c-b", to: AVAILABLE_ID, period: "2026-01", amount: 100_000 });
+    expect(resolvedBalance(s, "c-b", "2026-01", "actual", P)).toBe(0);
 
     const del = deleteNode(s, "c-b", P);
     if (!("state" in del)) throw new Error(`borrado bloqueado: ${JSON.stringify(del)}`);

@@ -1068,20 +1068,39 @@ describe("BG-023 · borrar un bolsillo no puede alterar a un tercero", () => {
     expect("blocked" in d && d.blocked).toBe("has_operations");
   });
 
-  it("el bloqueo mide el EFECTO, no la forma: lo que no altera a nadie se sigue borrando", () => {
-    // (a) Un bolsillo que solo RECIBIÓ: su plata vuelve a Disponible sin tocar a ningún tercero.
-    //     Es la decisión que ya fijaban TC-CPR-013f y TC-TRF4-104e, y sigue viva.
+  it("el bloqueo mide el EFECTO sobre terceros, y desde BG-019 también el SALDO propio", () => {
+    // ── LO QUE CAMBIÓ EL 2026-09-08 ────────────────────────────────────────────────────────────
+    // Este caso fijaba que un bolsillo que solo RECIBIÓ se podía borrar, porque su plata volvía a
+    // Disponible sin tocar a ningún tercero. Medir el EFECTO sobre terceros sigue siendo la regla
+    // de BG-023 y no se toca. Lo que se añade encima es el SALDO PROPIO (BG-019).
+    //
+    // DECISIÓN DEL USUARIO, y la razón es la coherencia: la app ya bloquea borrar una categoría con
+    // datos. Que una alcancía CON DINERO DENTRO sí se dejara borrar era la misma situación con
+    // distinto comportamiento, solo porque el dinero había entrado por otra puerta. El saldo no se
+    // perdía —se descongelaba a Disponible— pero el usuario no se enteraba: medido, reservado
+    // 500.000 → 0 y disponible 4.500.000 → 5.000.000, en silencio.
+
+    // (a) Un bolsillo que solo RECIBIÓ: AHORA se bloquea, porque tiene dinero dentro.
     let a = baseTres({ "2026-01": 500 });
     a = aportar(a, "B", "2026-01", 500);
     a = mover(a, "B", "A", "2026-01", 500);
-    expect(deleteBlockReason(a, "A", P)).toBeNull();
+    expect(deleteBlockReason(a, "A", P)).toBe("has_data");
 
-    // (b) Recibió y retiró: los dos efectos se cancelan, nada cambia, se borra.
+    // (b) Recibió y RETIRÓ: su saldo vuelve a cero y los dos efectos se cancelan, así que se
+    //     BORRA — igual que antes de BG-019. Es la prueba de que la guarda nueva mira lo que el
+    //     bolsillo TODAVÍA guarda (el último periodo del rango, porque los saldos se arrastran) y
+    //     no lo que tuvo alguna vez. Bloquear por el pasado sería una cárcel: exactamente el
+    //     defecto que BG-006 dejó documentado para gastos e ingresos.
     let b = baseTres({ "2026-01": 500 });
     b = aportar(b, "B", "2026-01", 500);
     b = mover(b, "B", "A", "2026-01", 500);
     b = sacar(b, "A", "2026-02", 500).state;
     expect(deleteBlockReason(b, "A", P)).toBeNull();
+
+    // (c) Y lo que SÍ se sigue borrando: un bolsillo virgen, sin saldo y sin operaciones. El
+    //     endurecimiento no convirtió el borrado en una cárcel.
+    const c = baseTres({ "2026-01": 500 });
+    expect(deleteBlockReason(c, "A", P)).toBeNull();
   });
 
   it("el bloqueo NO alcanza a gastos e ingresos con journal histórico (no revive BG-006)", () => {

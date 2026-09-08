@@ -202,6 +202,34 @@ function nodeHasData(state: LedgerState, nodeId: string): boolean {
   return false;
 }
 
+/**
+ * ¿Algún bolsillo del subárbol TODAVÍA guarda dinero? (BG-019)
+ *
+ * Es la mitad que `nodeHasData` no puede ver. Aquel mira las CELDAS —lo que el usuario tecleó— y
+ * eso basta para gastos e ingresos. Pero el saldo de una alcancía es DERIVADO: entra por aportes y
+ * por moveres de otras alcancías, y un bolsillo que recibió todo su dinero por un mover no tiene ni
+ * una celda propia. Sus celdas dicen «vacío» y dentro hay medio millón.
+ *
+ * SE MIRA EL ÚLTIMO PERIODO DEL RANGO, no todos. Los saldos se ARRASTRAN, así que el último es lo
+ * que el bolsillo todavía guarda hoy; los anteriores son historia. Un bolsillo que tuvo 500 en
+ * enero y se vació en febrero está vacío, y bloquearlo por lo que tuvo una vez sería una cárcel —
+ * exactamente el defecto que BG-006 dejó documentado para gastos e ingresos.
+ *
+ * Plano `actual`: el dinero que de verdad está, no el planeado.
+ */
+function subtreeHasReserveBalance(
+  state: LedgerState, nodeId: string, periods: readonly PeriodKey[]
+): boolean {
+  if (periods.length === 0) return false;
+  const ids = new Set(subtreeIds(state.nodes, nodeId));
+  for (const leafId of reserveLeafIds(state)) {
+    if (!ids.has(leafId)) continue;
+    const serie = resolvedSeries(state, leafId, "actual", periods);
+    if ((serie[serie.length - 1] ?? 0) !== 0) return true;
+  }
+  return false;
+}
+
 export type DeleteBlock = "has_children" | "has_data" | "has_operations";
 export type DeleteResult = { state: LedgerState } | { blocked: DeleteBlock };
 
@@ -299,6 +327,16 @@ export function deleteBlockReason(
   if (!node || node.system) return "has_children";
   if (childrenOf(state.nodes, id).length > 0) return "has_children";
   if (nodeHasData(state, id)) return "has_data";
+  // BG-019 — el SALDO DERIVADO del propio nodo. `nodeHasData` mira las CELDAS, y un bolsillo que
+  // recibió su dinero por un MOVER no tiene celdas: tiene saldo. La guarda de BG-023 tampoco lo ve,
+  // porque mide el efecto sobre TERCEROS y salta a propósito los nodos que se borran. Entre las dos
+  // quedaba un hueco: borrar esa alcancía descongelaba su saldo a Disponible sin un aviso.
+  // Medido el 2026-09-08: reservado 500.000 → 0, disponible 4.500.000 → 5.000.000, en silencio.
+  //
+  // DECISIÓN DEL USUARIO (2026-09-08), y la razón es la COHERENCIA: la app ya bloquea borrar una
+  // categoría con datos. Que una alcancía con saldo sí se dejara borrar era la misma situación con
+  // distinto comportamiento, solo porque el dinero había entrado por otra puerta.
+  if (subtreeHasReserveBalance(state, id, periods)) return "has_data";
   // BG-023 — la única puerta de escritura que no pasaba por ninguna regla. Se resuelve
   // construyendo el candidato y midiendo su efecto sobre terceros.
   const d = rewriteForDelete(state, id);
@@ -321,6 +359,10 @@ export function deleteNode(
   // cualquier nodo CON valores (presupuestado o ejecutado; grupo-hoja, categoría o sub) →
   // bloqueado (hay que vaciarlo primero; cero pérdida silenciosa — BG-001/BG-006)
   if (nodeHasData(state, id)) return { blocked: "has_data" };
+
+  // BG-019 — y con SALDO DERIVADO propio, aunque sus celdas estén vacías. Aquí y no solo en la
+  // consulta, porque ESTA es la puerta: la UI puede esconder el ícono, pero el borrado es este.
+  if (subtreeHasReserveBalance(state, id, periods)) return { blocked: "has_data" };
 
   // sin datos → borrado del subárbol, sus montos y sus movimientos históricos (BG-006), salvo que
   // la reescritura alterara a un tercero (BG-023).

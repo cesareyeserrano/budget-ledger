@@ -31,7 +31,7 @@ function trasLaFusion(): { antes: LedgerState; despues: LedgerState; B: string }
   const mov = applyReserveOp(s, { from: "c-ahorros", to: B, period: P0, amount: 300_000 }, P);
   if (!("state" in mov)) throw new Error("el mover se rechazó: el escenario no se montó");
   const antes = mov.state;
-  const fus = moveNode(antes, B, { kind: "category", id: "c-ahorros" }, P);
+  const fus = moveNode(antes, B, { kind: "category", id: "c-ahorros" });
   if (!("state" in fus)) throw new Error(`la fusión se rechazó: ${JSON.stringify(fus)}`);
   return { antes, despues: fus.state, B };
 }
@@ -75,7 +75,7 @@ describe("BG-024 · auto-moveres tras fusionar bolsillos", () => {
     s = "state" in mov ? mov.state : s;
 
     // se fusiona C (que no participa en el mover) dentro de c-ahorros
-    const fus = moveNode(s, C!, { kind: "category", id: "c-ahorros" }, P);
+    const fus = moveNode(s, C!, { kind: "category", id: "c-ahorros" });
     const s2 = "state" in fus ? fus.state : s;
     // el mover c-ahorros -> B sigue vivo y con sus dos extremos distintos
     const vivos = s2.movements.filter((m) => m.type === "transfer" && m.from && m.to && m.from !== m.to);
