@@ -737,8 +737,22 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     // hacer para poder EXPONER la regla (no para cambiarla). Ahora vigila lo que de verdad se
     // prometió — que el CÁLCULO no cambie — y sigue siendo imposible de falsear: se compara el
     // texto de las funciones que lo implementan, no un comentario ni un resultado.
+    // ANCLA AVANZADA de bfded04 a 4b941d0 el 2026-09-08, y por una razón que NO es la que esta
+    // prueba vigila. La promesa de `cierre-de-mes` era que ELLA no tocaba la maquinaria del techo
+    // (BL-037/BL-038 en su no_go_zone), y esa promesa sigue intacta: el cambio no es suyo.
+    //
+    // Lo que cambió `techoScanRaw` fue BG-031, un defecto que el usuario reportó sobre su ledger
+    // real: el techo arrancaba en 0 y nunca miraba el saldo inicial declarado, mientras el Balance
+    // sí lo veía. Con apertura de 36.480.200 y sin ingresos, la app mostraba ese dinero disponible
+    // y rechazaba reservar hasta el último peso. El arreglo es UNA LÍNEA —`availActual` arranca en
+    // `openingCarry(state, periods).available`, la MISMA fuente que usa el Balance— y no altera la
+    // aritmética del techo: sigue siendo «margen = max(0, arrastre previo + flujo)» y el consumo
+    // sigue siendo BRUTO en Ejecutado y NETO en Presupuestado. Lo único que cambia es DÓNDE empieza
+    // el arrastre, que antes era un cero implícito y ahora es lo que el usuario declaró tener.
+    //
+    // `reserveAportes` y `chainCheck` NO se tocaron y siguen comparándose contra el ancla nueva.
     const actual = readFileSync("src/domain/reserve.ts", "utf8");
-    const base = execSync("git show bfded04:src/domain/reserve.ts", { encoding: "utf8" });
+    const base = execSync("git show 4b941d0:src/domain/reserve.ts", { encoding: "utf8" });
 
     /** Extrae el cuerpo de una función por su nombre, hasta el cierre en la columna 0. */
     const cuerpo = (src: string, nombre: string): string => {
