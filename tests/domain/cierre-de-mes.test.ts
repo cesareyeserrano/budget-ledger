@@ -605,13 +605,31 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // Verificado tras el cambio: 837 unitarias en verde, con multi-anio afirmando sus 44 igual que
     // antes y ninguna saltada.
     //
+    // ANCLA AVANZADA a c81f706 el 2026-09-08, y por una razon que NO es la que esta prueba vigila.
+    // Lo que toco los ficheros vigilados fue BG-030: la guarda de tiempo de BG-026 resulto ser
+    // ASIMETRICA. `CRONOMETRO_FIABLE` se apaga con AITRI_COVERAGE, que solo define la corrida
+    // instrumentada; pero `aitri verify-run` lanza a la vez el runner normal (SIN la variable) y el
+    // gate de cobertura (CON ella), y es la corrida NORMAL la que se queda sin CPU. Sus
+    // guardarrailes se afirmaban contra margenes fijos mientras otra suite le competia: runner
+    // exit 1 con CERO TCs en rojo, cuatro veces solo el 2026-09-08.
+    //
+    // El cambio es de MEDICION, no de comportamiento: cada asercion de tiempo pasa a medirse
+    // MEJOR-DE-5 (`mejorDe`/`mejorTiempo` en tests/helpers/perf.ts) en vez de con un cronometro
+    // suelto. El minimo es la pasada que menos CPU tuvo que compartir. Medido con seis carriles
+    // compitiendo, sobre algo cuyo valor real es 1.02: la media simple se iba a 2.18 y el
+    // mejor-de-5 dio 1.02 seis de seis.
+    //
+    // NO se relajo NADA — al contrario: con la medicion estable, el tope de TC-MAN-262e BAJO de x3
+    // a x2. Ninguna asercion de comportamiento se toco. Verificado con la suite completa bajo OCHO
+    // carriles de CPU y carga 7.24: cero fallos de cronometro.
+    //
     // Los tres ficheros siguen vigilados a partir del ancla nueva.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat 9250b2b -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat c81f706 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 

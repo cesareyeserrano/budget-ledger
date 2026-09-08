@@ -365,8 +365,26 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // parsea para acreditar los TCs— no define `AITRI_COVERAGE`, así que ahí ese guardarraíl se
     // afirma exactamente igual que antes.
     //
+    // ANCLA AVANZADA a c81f706 el 2026-09-08, y por una razon que NO es la que esta prueba vigila.
+    // Lo que toco los ficheros vigilados fue BG-030: la guarda de tiempo de BG-026 resulto ser
+    // ASIMETRICA. `CRONOMETRO_FIABLE` se apaga con AITRI_COVERAGE, que solo define la corrida
+    // instrumentada; pero `aitri verify-run` lanza a la vez el runner normal (SIN la variable) y el
+    // gate de cobertura (CON ella), y es la corrida NORMAL la que se queda sin CPU. Sus
+    // guardarrailes se afirmaban contra margenes fijos mientras otra suite le competia: runner
+    // exit 1 con CERO TCs en rojo, cuatro veces solo el 2026-09-08.
+    //
+    // El cambio es de MEDICION, no de comportamiento: cada asercion de tiempo pasa a medirse
+    // MEJOR-DE-5 (`mejorDe`/`mejorTiempo` en tests/helpers/perf.ts) en vez de con un cronometro
+    // suelto. El minimo es la pasada que menos CPU tuvo que compartir. Medido con seis carriles
+    // compitiendo, sobre algo cuyo valor real es 1.02: la media simple se iba a 2.18 y el
+    // mejor-de-5 dio 1.02 seis de seis.
+    //
+    // NO se relajo NADA — al contrario: con la medicion estable, el tope de TC-MAN-262e BAJO de x3
+    // a x2. Ninguna asercion de comportamiento se toco. Verificado con la suite completa bajo OCHO
+    // carriles de CPU y carga 7.24: cero fallos de cronometro.
+    //
     const tocadas = execSync(
-      "git diff --name-only 69d39c4 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only c81f706 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
