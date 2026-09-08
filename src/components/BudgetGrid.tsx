@@ -10,7 +10,7 @@ import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { planTechoMonths, monthIssues, monthCarryUsage, type MonthIssue } from "@/domain/reserve";
+import { planTechoMonths, monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
 import { CellNotesSection, ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cellNum, money } from "./format";
@@ -470,8 +470,8 @@ export function BudgetGrid() {
                         <span
                           data-testid="techo-mark"
                           data-month={m}
-                          title={`${periodMonthLabel(m)}: reservas ${money(breachByMonth[m]!.excess)} por encima del margen del mes`}
-                          aria-label={`${periodMonthLabel(m)}: reservas ${money(breachByMonth[m]!.excess)} por encima del margen del mes`}
+                          title={`${periodMonthLabel(m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
+                          aria-label={`${periodMonthLabel(m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
                           className="flex-none inline-flex"
                           style={{ color: "var(--alert-strong)" }}
                         >

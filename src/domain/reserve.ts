@@ -750,8 +750,17 @@ export function monthCarryUsage(
   return { reservado, delSaldoAnterior, mesAnterior: periods[i - 1] };
 }
 
-/** Un error registrado en un mes. Discriminado por `kind` para admitir tipos nuevos sin tocar la UI. */
-export type MonthIssue = { kind: "techo"; period: PeriodKey; margin: number; excess: number };
+/**
+ * Un error registrado en un mes. Discriminado por `kind` para admitir tipos nuevos sin tocar la UI.
+ *
+ * Las dos variantes comparten forma A PROPÓSITO —`margin` es el techo que aplica y `excess` cuánto
+ * lo pasa— para que las superficies que solo pintan la cifra no tengan que ramificar. Lo que sí
+ * cambia por `kind` es el TEXTO: «reservas por encima del margen» y «retiro planeado sin respaldo»
+ * piden acciones distintas del usuario.
+ */
+export type MonthIssue =
+  | { kind: "techo"; period: PeriodKey; margin: number; excess: number }
+  | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number };
 
 /**
  * Los errores registrados en cada mes (FR-1806). Hoy un solo tipo —el mes cuyas reservas superan su
@@ -773,12 +782,36 @@ export type MonthIssue = { kind: "techo"; period: PeriodKey; margin: number; exc
  *
  * @aitri-trace FR-ID: FR-1806, US-ID: US-1806, AC-ID: AC-1821, TC-ID: TC-TDF-050h, TC-TDF-051f
  */
+/**
+ * El texto de un aviso de mes. Vive en el dominio y no en cada superficie para que la marca de la
+ * grilla y la franja del Balance no puedan discrepar — es el mismo criterio que ADR-01 aplicó al
+ * cálculo: una sola fuente, no dos que se parecen.
+ */
+export function monthIssueText(issue: MonthIssue, money: (n: number) => string): string {
+  return issue.kind === "techo"
+    ? `reservas ${money(issue.excess)} por encima del margen del mes`
+    : `retiro planeado ${money(issue.excess)} por encima de lo que el plan reserva`;
+}
+
 export function monthIssues(state: LedgerState, periods: PeriodScope): readonly MonthIssue[] {
   const scan = techoScan(state, "actual", periods);
   const out: MonthIssue[] = [];
   for (let i = 0; i < periods.length; i++) {
     if (scan.excess[i] > 0) {
       out.push({ kind: "techo", period: periods[i], margin: scan.margin[i], excess: scan.excess[i] });
+    }
+    // BG-020 — el retiro PLANEADO huérfano. Es el MISMO defecto que motivó esta función, aplicado a
+    // otra cantidad: `setPlannedRetiro` comprueba el límite al escribir y nada lo re-valida después,
+    // así que bajar un aporte planeado —corregir un error de tecleo, algo que debe seguir
+    // permitiéndose— dejaba el retiro por encima de lo que el plan reserva y el reservado
+    // presupuestado en NEGATIVO, sin un aviso. Medido el 2026-09-08: aporte de 500.000 bajado a
+    // 100.000 con un retiro de 500.000 escrito antes → reservado presupuestado −400.000.
+    const planeado = state.budgets[RETIROS_PLAN_ID]?.[periods[i]] ?? 0;
+    if (planeado > 0) {
+      const limite = plannedRetiroLimit(state, periods[i], periods);
+      if (planeado > limite) {
+        out.push({ kind: "retiro_planeado", period: periods[i], margin: limite, excess: planeado - limite });
+      }
     }
   }
   return out;

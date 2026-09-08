@@ -572,8 +572,18 @@ function TechoBanner() {
             <TriangleAlert size={14} />
           </span>
           <span>
-            <strong>{periodLabel(b.period)}:</strong> reservas <span className="tabular">{money(b.excess)}</span> por
-            encima del margen del mes — los meses siguientes quedan sin margen.
+            <strong>{periodLabel(b.period)}:</strong>{" "}
+            {b.kind === "techo" ? (
+              <>
+                reservas <span className="tabular">{money(b.excess)}</span> por encima del margen del
+                mes — los meses siguientes quedan sin margen.
+              </>
+            ) : (
+              <>
+                retiro planeado <span className="tabular">{money(b.excess)}</span> por encima de lo
+                que el plan reserva — baja el retiro o sube el aporte planeado.
+              </>
+            )}
           </span>
         </div>
       ))}
