@@ -13,7 +13,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { LedgerState } from "@/domain/types";
 import { STORAGE_KEYS } from "@/domain/types";
-import { buildSeed } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { P0 } from "../helpers/periods";
 
 const MERCADO = "s-comida-mercado";
@@ -259,7 +262,12 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
 
     await vi.waitFor(() => expect(store.getState().sessionExpired).toBe(true));
     // El dato del usuario ya no está en memoria: no queda nada que un render pueda pintar.
-    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).not.toBe(424_242);
+    // NFR-2303 (semilla-intacta): tras matar la sesión el store vuelve a la semilla, que desde
+    // FR-2301 no trae celdas — así que la celda ya no EXISTE, que es MÁS fuerte que "vale otra
+    // cosa". Se conserva la aserción original y se añade la ausencia; solo se encadena opcional
+    // para no reventar al indexar un mapa vacío.
+    expect(store.getState().data.budgets[MERCADO]?.["2026-01"]).not.toBe(424_242);
+    expect(store.getState().data.budgets[MERCADO]?.["2026-01"]).toBeUndefined();
     expect(store.getState().hydrated).toBe(false);
     // Y NO se confundió con un fallo de red (que solo habría mostrado el banner).
     expect(store.getState().storageError).toBeNull();
@@ -277,7 +285,12 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     await store.getState().resync(); // lo que dispara el evento SSE
 
     expect(store.getState().sessionExpired).toBe(true);
-    expect(store.getState().data.budgets[MERCADO]!["2026-01"]).not.toBe(313_131);
+    // NFR-2303 (semilla-intacta): tras matar la sesión el store vuelve a la semilla, que desde
+    // FR-2301 no trae celdas — así que la celda ya no EXISTE, que es MÁS fuerte que "vale otra
+    // cosa". Se conserva la aserción original y se añade la ausencia; solo se encadena opcional
+    // para no reventar al indexar un mapa vacío.
+    expect(store.getState().data.budgets[MERCADO]?.["2026-01"]).not.toBe(313_131);
+    expect(store.getState().data.budgets[MERCADO]?.["2026-01"]).toBeUndefined();
   });
 
   it("TC-SFU-102e-relogin: entrar de nuevo cierra el episodio y vuelve a hidratar", async () => {

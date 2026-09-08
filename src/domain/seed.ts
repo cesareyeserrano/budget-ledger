@@ -1,4 +1,7 @@
-// @aitri-trace domain:seed — FR-013: semilla DETERMINISTA (sin Math.random). Factores por mes del prototipo (genBudget).
+// @aitri-trace domain:seed — FR-013 / FR-2301 (semilla-intacta): la semilla es DETERMINISTA
+// (sin Math.random) y NO trae montos. `buildSeed` siembra SOLO la jerarquía; `budgets` y `actuals`
+// salen sin una sola clave. `genBudget` sigue viva y exportada, pero ya no la llama la siembra:
+// queda como generador determinista de fixtures para las pruebas que necesitan montos.
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "./types";
 import { addMonths } from "./periods";
 import { isLeaf } from "./tree";
@@ -31,6 +34,11 @@ export const SEED_SPAN = FACTOR.length;
  * Genera budgets/actuals deterministas por hoja/mes (verificado contra `genBudget` del prototipo).
  * Los TRES tipos comparten semántica de FLUJO mensual (modelo v4): en transfer la celda es el
  * APORTE del mes, igual que un gasto es el gasto del mes.
+ *
+ * NO forma parte de la siembra desde FR-2301 (semilla-intacta, 2026-09-07): un usuario nuevo no
+ * debe ver dinero que no tecleó. Se conserva exportada porque es el único generador determinista
+ * de montos del repositorio, y las pruebas que necesitan una semilla POBLADA la componen con él
+ * (ver `tests/helpers/seedConMontos.ts`). No volver a llamarla desde `buildSeed`.
  */
 export function genBudget(
   nodes: LedgerNode[], startPeriod: PeriodKey
@@ -130,6 +138,10 @@ export function buildSeed(ownerId = "local", startPeriod: PeriodKey): LedgerStat
       }
     }
   }
-  const { budgets, actuals } = genBudget(nodes, startPeriod);
+  // FR-2301: la semilla NO trae montos. Los mapas salen SIN CLAVES, no con claves a valor 0:
+  // `OpeningCard` decide su visibilidad con `Object.keys(budgets).length > 0` (FR-2302), así que
+  // unas claves en cero dejarían la tarjeta de arranque oculta sin que nada se pusiera rojo.
+  const budgets: AmountMap = {};
+  const actuals: AmountMap = {};
   return { ownerId, nodes, budgets, actuals, movements: [] };
 }

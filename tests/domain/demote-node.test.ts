@@ -2,7 +2,11 @@
 // Nivel = profundidad: grupo=0, categoría=1, sub=2; cabida = destDepth + subtreeDepth ≤ 2.
 // Cada test embebe su TC id para el mapeo de aitri verify-run.
 import { describe, it, expect } from "vitest";
-import { buildSeed, createNode, deleteNode, addMovement, moveNode } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { createNode, deleteNode, addMovement, moveNode } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { setLeafAmount, canDeleteNode, blockPolicy, type OverflowPolicy } from "@/domain/mutations";
 import { subtreeDepth } from "@/domain/tree";
 import { rollupBudget, typeTotals } from "@/domain/rollup";

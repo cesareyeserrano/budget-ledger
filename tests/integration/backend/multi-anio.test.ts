@@ -6,7 +6,11 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { sql } from "drizzle-orm";
-import { buildSeed, setLeafAmount } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { setLeafAmount } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../../helpers/seedConMontos";
 import { loadLedger, saveLedger } from "@/server/data/ledgerRepo";
 import { getHorizon, setHorizon } from "@/server/data/preferencesRepo";
 import { PERIOD_KEY } from "@/domain/validation";

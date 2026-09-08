@@ -16,7 +16,11 @@ import {
   applyReserveOp, applyReserveCellEdit, RETIROS_PLAN_ID,
   __reservePerfCounters, __resetReservePerfCounters,
 } from "@/domain/reserve";
-import { buildSeed } from "@/domain";
+// NFR-2303 (semilla-intacta): TC-MAN-090h/091e/092f verifican el ANCLAJE del eje de meses al
+// periodo de arranque (FR-1910/FR-1906). Desde FR-2301 la siembra del producto sale sin celdas,
+// así que ya no hay eje que anclar en ella: el anclaje lo sigue haciendo `genBudget`, y estas
+// pruebas lo ejercitan componiendo la semilla poblada. Sus aserciones no se tocaron.
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
 import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO } from "../helpers/perf";

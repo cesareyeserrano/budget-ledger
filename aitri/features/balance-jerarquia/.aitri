@@ -19,27 +19,9 @@
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-06T19:59:12.356Z",
+  "updatedAt": "2026-09-07T20:02:53.297Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-26T23:03:14.649Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 13,
-      "failed": 0,
-      "skipped": 21,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-27T00:50:32.202Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 13,
-      "failed": 0,
-      "skipped": 21,
-      "manual": 0
-    },
     {
       "at": "2026-08-27T16:09:12.381Z",
       "event": "completed",
@@ -171,6 +153,22 @@
       "phase": "verify",
       "passed": 34,
       "failed": 0
+    },
+    {
+      "at": "2026-09-07T20:02:41.436Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-07T20:02:53.272Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -220,8 +218,8 @@
       "FR-1405"
     ]
   },
-  "verifyRanRef": "7e38a8fe739dbcf2e647e0d26a4db73d10b4263f",
-  "verifyRanDirty": true,
+  "verifyRanRef": "95ac8f0924949fae9baeb341649e0220a3f1c3fe",
+  "verifyRanDirty": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
@@ -234,14 +232,14 @@
       "at": "2026-08-27T16:15:35.827Z"
     }
   ],
-  "verifyResultsHash": "ac3557cfc8a0a1a1f6ea2ad5b7df59ba7c0cbb92aaaed9b59f4074f3bc28551c",
-  "verifyRanAt": "2026-09-06T19:59:12.163Z",
+  "verifyResultsHash": "9835cf57640b75d8b85a05da1b856454840cefee2ae707d271dc356f5f6017e6",
+  "verifyRanAt": "2026-09-07T20:02:41.381Z",
   "lastVerifyRun": {
     "passed": 34,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-06T19:59:12.163Z"
+    "at": "2026-09-07T20:02:41.381Z"
   },
   "verifySummary": {
     "total": 34,

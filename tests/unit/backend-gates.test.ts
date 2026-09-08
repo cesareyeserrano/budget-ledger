@@ -8,7 +8,11 @@ import { readFileSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "no
 import path from "node:path";
 import os from "node:os";
 import { parse as parseYaml } from "yaml";
-import { buildSeed, rollupBudget } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { rollupBudget } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { P0 } from "../helpers/periods";
 
 const ROOT = process.cwd();

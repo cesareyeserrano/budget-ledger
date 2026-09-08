@@ -1,0 +1,462 @@
+{
+  "test_plan": {
+    "strategy": "Piramide con el peso en el DOMINIO y dos e2e que cubren lo que el dominio no puede probar. La razon: el riesgo de esta feature no es que algo reviente sino que algo salga BIEN A MEDIAS. Concretamente, la trampa de RISK-2302 — devolver los mapas con claves a valor 0 en vez de vacios — deja FR-2301 aparentemente cumplido (no hay montos visibles) y rompe FR-2302 en silencio (la tarjeta sigue sin aparecer), sin que nada se ponga rojo. De ahi tres decisiones: (1) TC-SIN-003f replica LITERALMENTE la expresion de hasData de OpeningCard.tsx:62 en vez de comprobar 'no hay montos', para que el acoplamiento implicito entre los dos ficheros tenga un guardian; (2) el e2e TC-SIN-010h recorre el flujo de REGISTRO REAL y no siembra ningun ledger a mano, porque la brecha que esta feature repara es exactamente esa — meses-y-saldo-inicial tenia ocho casos verdes sembrando ledgers vacios mientras el producto real jamas mostraba la tarjeta; (3) NFR-2302 se verifica contra un fixture CONGELADO de la jerarquia anterior, campo a campo, no contra un recuento, porque 'la estructura no cambia' es la promesa que el usuario compro y un recuento la dejaria pasar aunque cambiaran los nombres.",
+    "coverage_goal": "100% de ramas en src/domain/seed.ts (el unico modulo tocado) y 80% de lineas en los modulos que lo consumen",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "type_coverage_matrix": [
+      {
+        "fr": "FR-2301",
+        "type": "logic",
+        "unit": "MUST",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "Logica pura de siembra: verificable sin navegador. La integracion es obligatoria porque lo que importa es lo que se PERSISTE, no solo el objeto en memoria"
+      },
+      {
+        "fr": "FR-2302",
+        "type": "ui",
+        "unit": "SHOULD",
+        "integration": "-",
+        "e2e": "MUST",
+        "reason": "FR de tipo ui: e2e siempre MUST. Y aqui con una exigencia extra — el e2e debe recorrer el registro real, porque un ledger fabricado a mano es justo lo que enmascaro el defecto original"
+      },
+      {
+        "fr": "NFR-2301",
+        "type": "regression",
+        "unit": "-",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "La promesa es sobre datos PERSISTIDOS de cuentas existentes; solo se puede afirmar contra almacenamiento real"
+      },
+      {
+        "fr": "NFR-2302",
+        "type": "regression",
+        "unit": "MUST",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "La jerarquia se compara nodo a nodo en unit; su editabilidad exige persistencia y va en integracion"
+      },
+      {
+        "fr": "NFR-2303",
+        "type": "regression",
+        "unit": "MUST",
+        "integration": "-",
+        "e2e": "-",
+        "reason": "El helper y la supervivencia de genBudget son funciones puras; el conteo de marcadores de salto es un gate estatico sobre el arbol de pruebas"
+      }
+    ],
+    "coverage_decisions": [
+      "EXCLUIDO · Comparar OpeningCard.tsx contra su version anterior como TEXTO, que es la letra de AC-2305. Se cubre por COMPORTAMIENTO en TC-SIN-011e (tabla de verdad completa del predicado). Motivo: una prueba que afirma cadenas del codigo fuente es exactamente lo que la revision de Fase 3 prohibe, y ademas sobrevive a un refactor cosmetico que no cambia nada. La tabla de verdad caza el cambio que importa y el renombrado no la rompe.",
+      "EXCLUIDO · Migrar los 12 ficheros de prueba que usan buildSeed pero NO tocan budgets ni actuals. Medido el 2026-09-07: de los 36 que usan buildSeed, 24 tocan los mapas. Los otros 12 solo necesitan la estructura, que no cambia, asi que migrarlos seria churn sin valor.",
+      "EXCLUIDO · Rendimiento del primer arranque. El cambio RETIRA trabajo (genBudget recorre cada hoja x SEED_SPAN meses calculando un hash por celda), asi que no hay regresion posible por ese lado y no se declara ninguna NFR de rendimiento que cubrir.",
+      "EXCLUIDO · Seguridad. Fase 1 declaro que no aplica y Fase 2 restituyo el motivo: el cambio elimina datos generados, no introduce entrada de usuario ni toca autenticacion, autorizacion o el contrato HTTP. Los gates security-config, secret-scan y security-audit del proyecto siguen corriendo sin cambio.",
+      "EXCLUIDO · Concurrencia de dos primeros arranques simultaneos de la misma cuenta. El lock optimista por revision es el mecanismo ya cubierto por las pruebas de cierre-de-mes y del ledger; repetirlo aqui probaria el lock, no esta feature.",
+      "NO EXCLUIDO, se traslada · TC-013h de la raiz revienta con este cambio (RISK-2301). No se cubre desde esta feature con un TC propio porque el arreglo correcto es enmendar FR-013 y ese caso EN LA RAIZ, decision tomada con el usuario el 2026-09-07. Queda como riesgo alto declarado en 02_SYSTEM_DESIGN.md, no como hueco de cobertura."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-SIN-001h",
+      "requirement_id": "FR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "El primer arranque devuelve budgets y actuals sin una sola clave",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "nada montado; se invoca la siembra directamente con ownerId='u-test' y startPeriod='2026-01'",
+      "when": "buildSeed('u-test','2026-01')",
+      "then": "Object.keys(resultado.budgets).length === 0 y Object.keys(resultado.actuals).length === 0; resultado.movements es []",
+      "steps": [
+        "Preparar: nada montado; se invoca la siembra directamente con ownerId='u-test' y startPeriod='2026-01'",
+        "Ejecutar: buildSeed('u-test','2026-01')",
+        "Verificar: Object.keys(resultado.budgets).length === 0 y Object.keys(resultado.actuals).length === 0; resultado.movements es []"
+      ],
+      "expected_result": "Object.keys(budgets).length === 0 && Object.keys(actuals).length === 0 && movements.length === 0",
+      "test_data": {
+        "ownerId": "u-test",
+        "startPeriod": "2026-01"
+      }
+    },
+    {
+      "id": "TC-SIN-002e",
+      "requirement_id": "FR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2302",
+      "title": "Ninguna hoja tiene monto en ninguno de los doce meses del rango",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la semilla de buildSeed('u-test','2026-01') y la lista de sus hojas (isLeaf sobre resultado.nodes)",
+      "when": "se recorre cada hoja x cada uno de los 12 meses desde '2026-01' hasta '2026-12', leyendo budgets[hoja][mes] y actuals[hoja][mes]",
+      "then": "las 12 lecturas de cada hoja devuelven undefined en los dos mapas; el recorrido visita al menos 10 hojas (prueba de que la jerarquía existe y el barrido no es vacío por accidente)",
+      "steps": [
+        "Preparar: la semilla de buildSeed('u-test','2026-01') y la lista de sus hojas (isLeaf sobre resultado.nodes)",
+        "Ejecutar: se recorre cada hoja x cada uno de los 12 meses desde '2026-01' hasta '2026-12', leyendo budgets[hoja][mes] y actuals[hoja][mes]",
+        "Verificar: las 12 lecturas de cada hoja devuelven undefined en los dos mapas; el recorrido visita al menos 10 hojas (prueba de que la jerarquía existe y el barrido no es vacío por accidente)"
+      ],
+      "expected_result": "todas las lecturas === undefined, sobre >= 10 hojas x 12 meses en ambos mapas",
+      "test_data": {
+        "startPeriod": "2026-01",
+        "meses": 12
+      }
+    },
+    {
+      "id": "TC-SIN-003f",
+      "requirement_id": "FR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "La trampa del mapa con ceros: hasData sobre la semilla real debe ser false",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la semilla de buildSeed('u-test','2026-01'), pasada tal cual sin normalizar",
+      "when": "se calcula hasData con la MISMA expresion que usa OpeningCard.tsx:62 — Object.keys(budgets ?? {}).length > 0 || Object.keys(actuals ?? {}).length > 0 || (movements?.length ?? 0) > 0",
+      "then": "hasData === false. Si una implementacion futura rellenara los mapas con claves a valor 0, hasData seria true y este caso fallaria — que es exactamente su proposito",
+      "steps": [
+        "Preparar: la semilla de buildSeed('u-test','2026-01'), pasada tal cual sin normalizar",
+        "Ejecutar: se calcula hasData con la MISMA expresion que usa OpeningCard.tsx:62 — Object.keys(budgets ?? {}).length > 0 || Object.keys(actuals ?? {}).length > 0 || (movements?.length ?? 0) > 0",
+        "Verificar: hasData === false. Si una implementacion futura rellenara los mapas con claves a valor 0, hasData seria true y este caso fallaria — que es exactamente su proposito"
+      ],
+      "expected_result": "hasData === false sobre la salida literal de buildSeed",
+      "test_data": {
+        "nota": "guardia contra RISK-2302: el acoplamiento implicito entre seed.ts y OpeningCard.tsx"
+      }
+    },
+    {
+      "id": "TC-SIN-004h",
+      "requirement_id": "FR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "El snapshot PERSISTIDO del primer arranque llega vacio al servidor",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una cuenta autenticada nueva cuyo GET /api/v1/ledger responde 204 (sin libro persistido)",
+      "when": "se ejecuta el primer arranque del cliente (siembra + persistencia) y despues se relee el ledger con una conexion NUEVA",
+      "then": "el snapshot releido trae budgets y actuals sin una sola clave, movements vacio, y una jerarquia con al menos 10 nodos",
+      "steps": [
+        "Preparar: una cuenta autenticada nueva cuyo GET /api/v1/ledger responde 204 (sin libro persistido)",
+        "Ejecutar: se ejecuta el primer arranque del cliente (siembra + persistencia) y despues se relee el ledger con una conexion NUEVA",
+        "Verificar: el snapshot releido trae budgets y actuals sin una sola clave, movements vacio, y una jerarquia con al menos 10 nodos"
+      ],
+      "expected_result": "releido.budgets === {} && releido.actuals === {} && releido.nodes.length >= 10",
+      "test_data": {
+        "http_load_status": 204
+      }
+    },
+    {
+      "id": "TC-SIN-010h",
+      "requirement_id": "FR-2302",
+      "user_story_id": "US-2302",
+      "ac_id": "AC-2304",
+      "title": "Una cuenta recien registrada ve la tarjeta de arranque por el flujo real",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un navegador limpio en viewport 1440x900 y una cuenta que se registra en este mismo test (sin sembrar ningun ledger a mano)",
+      "when": "se completa el registro, se entra a '/' y se espera al primer render de la grilla",
+      "then": "el elemento con data-testid='opening-card' es visible; la grilla se ve detras con sus categorias sembradas; ninguna celda de la grilla muestra un importe",
+      "steps": [
+        "Preparar: un navegador limpio en viewport 1440x900 y una cuenta que se registra en este mismo test (sin sembrar ningun ledger a mano)",
+        "Ejecutar: se completa el registro, se entra a '/' y se espera al primer render de la grilla",
+        "Verificar: el elemento con data-testid='opening-card' es visible; la grilla se ve detras con sus categorias sembradas; ninguna celda de la grilla muestra un importe"
+      ],
+      "expected_result": "opening-card visible + grilla con categorias + cero importes en pantalla",
+      "test_data": {
+        "viewport": "1440x900",
+        "flujo": "registro real, sin fixture de ledger"
+      }
+    },
+    {
+      "id": "TC-SIN-011e",
+      "requirement_id": "FR-2302",
+      "user_story_id": "US-2302",
+      "ac_id": "AC-2305",
+      "title": "El predicado de visibilidad conserva su tabla de verdad completa",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la funcion exportada shouldShowOpeningCard(hasData, startMonth, openingBalance)",
+      "when": "se evalua la tabla de verdad completa: (false,null,null), (true,null,null), (false,'2026-06',null), (false,null,0), (false,null,3000000), (true,'2026-06',3000000)",
+      "then": "devuelve true SOLO para (false,null,null); false en los otros cinco casos",
+      "steps": [
+        "Preparar: la funcion exportada shouldShowOpeningCard(hasData, startMonth, openingBalance)",
+        "Ejecutar: se evalua la tabla de verdad completa: (false,null,null), (true,null,null), (false,'2026-06',null), (false,null,0), (false,null,3000000), (true,'2026-06',3000000)",
+        "Verificar: devuelve true SOLO para (false,null,null); false en los otros cinco casos"
+      ],
+      "expected_result": "shouldShowOpeningCard === true unicamente con hasData=false, startMonth=null y openingBalance=null",
+      "test_data": {
+        "nota": "AC-2305 se verifica por COMPORTAMIENTO observable, no comparando el fichero fuente como texto"
+      }
+    },
+    {
+      "id": "TC-SIN-012f",
+      "requirement_id": "FR-2302",
+      "user_story_id": "US-2302",
+      "ac_id": "AC-2306",
+      "title": "Una cuenta con datos propios no ve la tarjeta",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una cuenta autenticada cuyo ledger persistido ya tiene budgets con al menos una celda con importe, en viewport 1440x900",
+      "when": "se carga '/' y se espera al primer render de la grilla",
+      "then": "no existe ningun elemento con data-testid='opening-card' en el DOM; la grilla muestra los importes de esa cuenta",
+      "steps": [
+        "Preparar: una cuenta autenticada cuyo ledger persistido ya tiene budgets con al menos una celda con importe, en viewport 1440x900",
+        "Ejecutar: se carga '/' y se espera al primer render de la grilla",
+        "Verificar: no existe ningun elemento con data-testid='opening-card' en el DOM; la grilla muestra los importes de esa cuenta"
+      ],
+      "expected_result": "opening-card ausente del DOM + importes propios visibles",
+      "test_data": {
+        "viewport": "1440x900"
+      }
+    },
+    {
+      "id": "TC-SIN-020h",
+      "requirement_id": "NFR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "Una cuenta con libro persistido no cambia ni un byte al abrir la app",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una cuenta cuyo ledger persistido tiene budgets={'s-comida-mercado':{'2026-01':120000}}, actuals={'s-comida-mercado':{'2026-01':98000}} y revision=7",
+      "when": "se abre la app con esa cuenta (load devuelve el libro, no 204) y se relee el ledger",
+      "then": "JSON.stringify(budgets), JSON.stringify(actuals) y revision son EXACTAMENTE los de antes: 120000, 98000 y revision=7; no se ha emitido ningun PUT",
+      "steps": [
+        "Preparar: una cuenta cuyo ledger persistido tiene budgets={'s-comida-mercado':{'2026-01':120000}}, actuals={'s-comida-mercado':{'2026-01':98000}} y revision=7",
+        "Ejecutar: se abre la app con esa cuenta (load devuelve el libro, no 204) y se relee el ledger",
+        "Verificar: JSON.stringify(budgets), JSON.stringify(actuals) y revision son EXACTAMENTE los de antes: 120000, 98000 y revision=7; no se ha emitido ningun PUT"
+      ],
+      "expected_result": "budgets, actuals y revision identicos byte a byte; cero escrituras",
+      "test_data": {
+        "revision": 7,
+        "celda": 120000
+      }
+    },
+    {
+      "id": "TC-SIN-021e",
+      "requirement_id": "NFR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "Una cuenta que borro todos sus montos tampoco se re-siembra",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una cuenta cuyo ledger persistido existe con revision=12 pero cuyos budgets y actuals estan vacios porque el usuario los borro a mano",
+      "when": "se abre la app con esa cuenta",
+      "then": "no se siembra nada: los mapas siguen vacios, la revision sigue en 12 y no se emite ningun PUT. La condicion de siembra es el 204, no la ausencia de montos",
+      "steps": [
+        "Preparar: una cuenta cuyo ledger persistido existe con revision=12 pero cuyos budgets y actuals estan vacios porque el usuario los borro a mano",
+        "Ejecutar: se abre la app con esa cuenta",
+        "Verificar: no se siembra nada: los mapas siguen vacios, la revision sigue en 12 y no se emite ningun PUT. La condicion de siembra es el 204, no la ausencia de montos"
+      ],
+      "expected_result": "sin siembra, revision sigue 12, cero escrituras",
+      "test_data": {
+        "revision": 12
+      }
+    },
+    {
+      "id": "TC-SIN-022f",
+      "requirement_id": "NFR-2301",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "Sin libro persistido si se siembra: la condicion sigue colgando del 204",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una cuenta autenticada cuyo GET /api/v1/ledger responde 204",
+      "when": "se abre la app",
+      "then": "SI se siembra y se persiste: aparece una jerarquia de al menos 10 nodos con budgets y actuals vacios, y la revision pasa a 1",
+      "steps": [
+        "Preparar: una cuenta autenticada cuyo GET /api/v1/ledger responde 204",
+        "Ejecutar: se abre la app",
+        "Verificar: SI se siembra y se persiste: aparece una jerarquia de al menos 10 nodos con budgets y actuals vacios, y la revision pasa a 1"
+      ],
+      "expected_result": "siembra ejecutada, nodes.length >= 10, mapas vacios, revision === 1",
+      "test_data": {
+        "http_load_status": 204,
+        "revision_esperada": 1
+      }
+    },
+    {
+      "id": "TC-SIN-030h",
+      "requirement_id": "NFR-2302",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2303",
+      "title": "La jerarquia sembrada es identica nodo a nodo a la de antes del cambio",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la lista de nodos de referencia capturada del comportamiento anterior (ids, nombres, tipo, level, parentId y order de cada nodo) como fixture congelado en el test",
+      "when": "buildSeed('u-test','2026-01').nodes",
+      "then": "la lista devuelta coincide con la de referencia en longitud y, para cada indice, en id, name, type, level, parentId y order",
+      "steps": [
+        "Preparar: la lista de nodos de referencia capturada del comportamiento anterior (ids, nombres, tipo, level, parentId y order de cada nodo) como fixture congelado en el test",
+        "Ejecutar: buildSeed('u-test','2026-01').nodes",
+        "Verificar: la lista devuelta coincide con la de referencia en longitud y, para cada indice, en id, name, type, level, parentId y order"
+      ],
+      "expected_result": "nodes coincide campo a campo con el fixture de referencia, sin una sola diferencia",
+      "test_data": {
+        "campos": [
+          "id",
+          "name",
+          "type",
+          "level",
+          "parentId",
+          "order"
+        ]
+      }
+    },
+    {
+      "id": "TC-SIN-031e",
+      "requirement_id": "NFR-2302",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2303",
+      "title": "La siembra sigue siendo determinista entre llamadas",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "dos invocaciones independientes con los mismos argumentos",
+      "when": "buildSeed('u-test','2026-01') dos veces seguidas",
+      "then": "JSON.stringify(a.nodes) === JSON.stringify(b.nodes); ademas los dos resultados tienen budgets y actuals vacios",
+      "steps": [
+        "Preparar: dos invocaciones independientes con los mismos argumentos",
+        "Ejecutar: buildSeed('u-test','2026-01') dos veces seguidas",
+        "Verificar: JSON.stringify(a.nodes) === JSON.stringify(b.nodes); ademas los dos resultados tienen budgets y actuals vacios"
+      ],
+      "expected_result": "las dos jerarquias son identicas como cadena y ambos pares de mapas estan vacios",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SIN-032f",
+      "requirement_id": "NFR-2302",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2303",
+      "title": "La semilla sigue siendo editable: renombrar una categoria persiste",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una cuenta recien sembrada por el flujo real, con el nodo 'c-comida' presente en su jerarquia",
+      "when": "se renombra 'c-comida' a 'Alimentacion' y se relee el ledger desde una conexion nueva",
+      "then": "el nodo c-comida vuelve con name === 'Alimentacion'; el resto de la jerarquia no ha cambiado",
+      "steps": [
+        "Preparar: una cuenta recien sembrada por el flujo real, con el nodo 'c-comida' presente en su jerarquia",
+        "Ejecutar: se renombra 'c-comida' a 'Alimentacion' y se relee el ledger desde una conexion nueva",
+        "Verificar: el nodo c-comida vuelve con name === 'Alimentacion'; el resto de la jerarquia no ha cambiado"
+      ],
+      "expected_result": "c-comida.name === 'Alimentacion' tras releer; resto de nodos intacto",
+      "test_data": {
+        "nodo": "c-comida",
+        "nombre_nuevo": "Alimentacion"
+      }
+    },
+    {
+      "id": "TC-SIN-040h",
+      "requirement_id": "NFR-2303",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "El helper de pruebas restituye exactamente la semilla con montos anterior",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el helper nuevo buildSeedConMontos(ownerId, startPeriod) del arbol de pruebas",
+      "when": "buildSeedConMontos('u-test','2026-01') y se compara con la salida de referencia del comportamiento anterior (misma jerarquia + montos de genBudget)",
+      "then": "la jerarquia coincide nodo a nodo y los mapas budgets/actuals traen una entrada por hoja con sus doce meses, con los mismos valores deterministas de antes del cambio",
+      "steps": [
+        "Preparar: el helper nuevo buildSeedConMontos(ownerId, startPeriod) del arbol de pruebas",
+        "Ejecutar: buildSeedConMontos('u-test','2026-01') y se compara con la salida de referencia del comportamiento anterior (misma jerarquia + montos de genBudget)",
+        "Verificar: la jerarquia coincide nodo a nodo y los mapas budgets/actuals traen una entrada por hoja con sus doce meses, con los mismos valores deterministas de antes del cambio"
+      ],
+      "expected_result": "jerarquia identica + budgets/actuals poblados con los valores deterministas de referencia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SIN-041e",
+      "requirement_id": "NFR-2303",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "El helper no muta la semilla base que compone",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una semilla base obtenida con buildSeed('u-test','2026-01') y guardada aparte",
+      "when": "se invoca buildSeedConMontos('u-test','2026-01') y despues se vuelve a inspeccionar la semilla base guardada",
+      "then": "la semilla base sigue con budgets y actuals sin una sola clave: el helper compuso un objeto nuevo y no escribio sobre ella",
+      "steps": [
+        "Preparar: una semilla base obtenida con buildSeed('u-test','2026-01') y guardada aparte",
+        "Ejecutar: se invoca buildSeedConMontos('u-test','2026-01') y despues se vuelve a inspeccionar la semilla base guardada",
+        "Verificar: la semilla base sigue con budgets y actuals sin una sola clave: el helper compuso un objeto nuevo y no escribio sobre ella"
+      ],
+      "expected_result": "la instancia base conserva Object.keys(budgets).length === 0 tras invocar el helper",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SIN-042f",
+      "requirement_id": "NFR-2303",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "genBudget sobrevive intacta y sigue produciendo los mismos montos",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la funcion exportada genBudget y la jerarquia de buildSeed('u-test','2026-01').nodes",
+      "when": "genBudget(nodes,'2026-01')",
+      "then": "devuelve budgets y actuals poblados: una entrada por hoja, doce meses cada una, con los mismos valores deterministas de antes del cambio; los meses con FACTOR>0 traen ejecutado>0 y los de FACTOR=0 traen exactamente 0",
+      "steps": [
+        "Preparar: la funcion exportada genBudget y la jerarquia de buildSeed('u-test','2026-01').nodes",
+        "Ejecutar: genBudget(nodes,'2026-01')",
+        "Verificar: devuelve budgets y actuals poblados: una entrada por hoja, doce meses cada una, con los mismos valores deterministas de antes del cambio; los meses con FACTOR>0 traen ejecutado>0 y los de FACTOR=0 traen exactamente 0"
+      ],
+      "expected_result": "genBudget sigue exportada y sus valores coinciden con la referencia determinista previa al cambio",
+      "test_data": {
+        "nota": "si alguien mutila genBudget en vez de solo dejar de llamarla, este caso lo caza"
+      }
+    },
+    {
+      "id": "TC-SIN-043f",
+      "requirement_id": "NFR-2303",
+      "user_story_id": "US-2301",
+      "ac_id": "AC-2301",
+      "title": "La migracion de las pruebas no introduce ningun marcador de salto",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el arbol de pruebas del repositorio y el conteo de marcadores de salto de la linea base previa a esta feature",
+      "when": "se cuentan las apariciones de it.skip, test.skip, describe.skip, it.todo y test.todo en tests/ (excluyendo it.skipIf, que es la guarda legitima de cronometro ya existente)",
+      "then": "el conteo es menor o igual al de la linea base: la migracion de los 24 ficheros no anadio ni un solo salto",
+      "steps": [
+        "Preparar: el arbol de pruebas del repositorio y el conteo de marcadores de salto de la linea base previa a esta feature",
+        "Ejecutar: se cuentan las apariciones de it.skip, test.skip, describe.skip, it.todo y test.todo en tests/ (excluyendo it.skipIf, que es la guarda legitima de cronometro ya existente)",
+        "Verificar: el conteo es menor o igual al de la linea base: la migracion de los 24 ficheros no anadio ni un solo salto"
+      ],
+      "expected_result": "conteo de marcadores de salto <= linea base, y ningun TC existente convertido a manual",
+      "test_data": {
+        "excluye": "it.skipIf",
+        "ficheros_a_migrar": 24
+      }
+    }
+  ]
+}

@@ -111,14 +111,28 @@ describe("FR-011 / NFR-003 persistencia", () => {
 
 describe("FR-013 semilla determinista", () => {
   // @aitri-tc TC-013h
-  it("TC-013h: primer arranque sin datos → semilla coherente y determinista", async () => {
+  it("TC-013h: primer arranque sin datos → semilla determinista y SIN montos", async () => {
     // 204 = usuario nuevo: el repositorio devuelve null y el CLIENTE siembra (FR-513).
+    //
+    // FR-013 reescrito el 2026-09-07 (feature semilla-intacta, FR-2301): la semilla ya NO trae
+    // montos de ejemplo — nadie abre una app de finanzas personales y quiere ver dinero que no
+    // tecleó. Antes este caso exigía actuals["s-comida-mercado"]["2026-01"] > 0. Lo que se
+    // verifica ahora es lo que el requisito pide hoy: mapas SIN UNA SOLA CLAVE (no claves a cero
+    // — de eso depende que la tarjeta de arranque de FR-2203 llegue a verse), jerarquía intacta y
+    // determinismo conservado.
     stubApi(null);
     expect(await new ServerRepository().load()).toBeNull();
     const a = buildSeed("local", P0);
     const b = buildSeed("local", P0);
-    expect(a.actuals["s-comida-mercado"]["2026-01"]).toBeGreaterThan(0);
-    expect(a.actuals["s-comida-mercado"]["2026-07"]).toBe(0);
+    // Sin montos: los mapas salen vacíos, no poblados de ceros.
+    expect(Object.keys(a.budgets)).toHaveLength(0);
+    expect(Object.keys(a.actuals)).toHaveLength(0);
+    expect(a.movements).toHaveLength(0);
+    // La jerarquía SÍ se siembra y sigue siendo la de siempre.
+    expect(a.nodes.length).toBeGreaterThan(10);
+    expect(a.nodes.some((n) => n.id === "s-comida-mercado")).toBe(true);
+    // Y sigue siendo determinista, que es la otra mitad del requisito.
+    expect(JSON.stringify(a.nodes)).toBe(JSON.stringify(b.nodes));
     expect(JSON.stringify(a.actuals)).toBe(JSON.stringify(b.actuals));
   });
 

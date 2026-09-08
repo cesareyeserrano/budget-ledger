@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { addMovement, buildSeed, createNode, deleteNode } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { addMovement, createNode, deleteNode } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { rollupBudget } from "@/domain/rollup";
 import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";

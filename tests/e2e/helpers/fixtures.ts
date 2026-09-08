@@ -11,7 +11,12 @@
  */
 import { test as base, expect } from "@playwright/test";
 import { storageStatePath, e2eEmail } from "./globalSetup";
-import { buildSeed } from "@/domain";
+// NFR-2303 (semilla-intacta): el baseline de aislamiento de la suite e2e se compone con montos.
+// Desde FR-2301 la semilla del PRODUCTO sale vacía, y este fixture no existe para reproducir el
+// estado del usuario nuevo sino para dar a cada test un punto de partida IDÉNTICO y poblado — que
+// es lo que sus aserciones llevan asumiendo desde siempre. El estado real del usuario nuevo se
+// verifica aparte, con la `buildSeed` de verdad, en tests/e2e/semilla-intacta.spec.ts.
+import { buildSeedConMontos as buildSeed } from "../../helpers/seedConMontos";
 import { resetClosure } from "./closure";
 import { resetOpening } from "./opening";
 import { P0 } from "../../helpers/periods";

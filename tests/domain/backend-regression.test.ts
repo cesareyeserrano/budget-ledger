@@ -5,7 +5,11 @@
  * TCs: NFR-507 (065h, 066e, 067f).
  */
 import { describe, expect, it } from "vitest";
-import { buildSeed, addMovement, rollupActual, rollupBudget, dashboardMetrics } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { addMovement, rollupActual, rollupBudget, dashboardMetrics } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { budgetState, OVER_HARD_RATIO } from "@/domain/budgetState";
 import type { LedgerState } from "@/domain";
 import { P, P0 } from "../helpers/periods";

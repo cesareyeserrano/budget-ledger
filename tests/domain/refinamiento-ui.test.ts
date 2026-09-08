@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { cellTone, cellGlyph, budgetState } from "@/domain/budgetState";
-import { buildSeed, rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode } from "@/domain";
+// NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
+// intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
+// producto sale vacía, así que componen la semilla poblada de siempre con este helper.
+import { rollupBudget, rollupActual, childrenOf, leafDescendants, subtreeIds, subtreeDepth, findNode } from "@/domain";
+import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import { P as MONTH_KEYS, P0 } from "../helpers/periods";
 import { CRONOMETRO_FIABLE } from "../helpers/perf";
 

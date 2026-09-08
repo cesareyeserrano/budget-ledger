@@ -1,0 +1,207 @@
+{
+  "project_name": "semilla-intacta",
+  "project_summary": {
+    "north_star_kpi": "Un usuario que abre T-Ledger por primera vez no ve ni un peso que no haya tecleado él: cero montos en presupuestado y ejecutado, en todos los meses y rubros, en su primer arranque.",
+    "jtbd": "Cuando abro una app de finanzas personales por primera vez, quiero ver mi estructura de categorías vacía y no cifras inventadas, para poder confiar en que lo que aparece en pantalla es mi dinero de verdad.",
+    "guardrail_metric": "Cero cambio para quien ya tiene libro persistido: la semilla no se regenera (TC-013f de la raíz), así que ninguna cuenta existente ve cambiar una sola cifra. Y cero cambio en la jerarquía: mismas categorías, mismo orden, misma editabilidad (TC-013e de la raíz sigue verde)."
+  },
+  "technology_preferences": [
+    "TypeScript + Next.js, el stack ya en uso; no se introduce ninguna dependencia nueva",
+    "El cambio vive en src/domain/seed.ts (genBudget), que ya es determinista y sin Math.random"
+  ],
+  "constraints": [
+    "El cambio alcanza SOLO a cuentas nuevas: una cuenta con libro persistido no vuelve a sembrarse (FR-013 de la raíz, TC-013f)",
+    "genBudget debe devolver los mapas budgets y actuals VACÍOS, no con claves a valor 0: OpeningCard.tsx:62 decide por Object.keys(...).length, así que unas claves en cero mantendrían hasData en true y la tarjeta seguiría sin aparecer",
+    "Ruta A elegida por el usuario el 2026-09-07: el cambio se enruta como feature y NO se reabre la Fase 1 de la raíz, cuyas fases 2-5 quedaron aprobadas y con verify en verde ese mismo día"
+  ],
+  "no_go_zone": [
+    "NO se toca la jerarquía semilla ni su catálogo de categorías: buildSeed sigue creando Comida, Transporte, Vivienda, Salario, Freelance, Ahorros y el resto, igual que hoy",
+    "NO se añaden columnas, campos al snapshot ni migraciones de base de datos",
+    "NO se toca la condición de visibilidad de la tarjeta de arranque (FR-2203 de meses-y-saldo-inicial): la tarjeta debe aparecer por CONSECUENCIA de la semilla vacía, sin editar su predicado",
+    "NO se publica `revision` desde el store ni se inventa ninguna marca de «recién sembrado»: esa vía queda superada por esta decisión",
+    "NO se altera el comportamiento de ninguna cuenta existente",
+    "NO se reabre la Fase 1 del proyecto raíz para enmendar FR-013 en este ciclo"
+  ],
+  "user_personas": [
+    {
+      "role": "Usuario NUEVO de T-Ledger que se registra y abre la app por primera vez",
+      "tech_level": "mid",
+      "goal": "Ver su propia situación financiera desde el primer minuto, empezando por decirle a la app cuánto dinero traía",
+      "pain_point": "Hoy la app le muestra presupuestos y gastos de ejemplo que él nunca tecleó. No sabe si esas cifras son suyas, si son un error o si tiene que borrarlas una por una; y además esos datos falsos tapan la tarjeta que debía preguntarle su saldo inicial, así que nunca la ve"
+    },
+    {
+      "role": "Usuario YA en marcha, con su libro persistido desde antes de este cambio",
+      "tech_level": "mid",
+      "goal": "Que nada de lo suyo se mueva",
+      "pain_point": "Un cambio en la siembra podría, mal hecho, tocar cuentas que ya tienen datos; para él el único resultado aceptable es que no cambie absolutamente nada"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2301",
+      "title": "La semilla del primer arranque no trae montos",
+      "description": "`genBudget` (src/domain/seed.ts:35, llamada desde buildSeed en la línea 133) deja de generar valores de dinero: devuelve `budgets` y `actuals` VACÍOS. La jerarquía de categorías que produce `buildSeed` no cambia en nada — mismos nodos, mismo orden, misma editabilidad. Decisión textual del usuario (2026-09-07): «hagámoslo sin montos de muestra» y «lo que aplica son valores en dinero, el resto de cosas no debería afectar, es decir valores ejecutados en cualquier mes o rubro». Alcanza a presupuestado Y ejecutado, en todos los meses y todos los rubros. ATENCIÓN AL MECANISMO: los mapas tienen que salir vacíos, no llenos de ceros — OpeningCard.tsx:62 calcula `hasData` con `Object.keys(data.budgets ?? {}).length > 0`, así que unas claves con valor 0 dejarían `hasData` en true y romperían FR-2302 en silencio.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Para una cuenta autenticada sin libro persistido (load → 204), tras el primer arranque el snapshot persistido tiene `budgets` y `actuals` sin una sola clave (happy)",
+        "Ni un solo mes ni un solo rubro del primer arranque muestra un monto distinto de vacío, ni en presupuestado ni en ejecutado, recorriendo los doce meses del rango activo (edge — cobertura completa de la decisión)",
+        "La jerarquía sembrada es idéntica a la de antes del cambio: mismo número de nodos, mismos nombres y mismo orden, comparada nodo a nodo (negativo — el cambio NO puede tocar la estructura)"
+      ]
+    },
+    {
+      "id": "FR-2302",
+      "title": "La tarjeta de arranque por fin se le muestra a un usuario nuevo real",
+      "description": "Consecuencia directa de FR-2301, y la razón por la que el defecto se cierra sin tocar código de la tarjeta. `OpeningCard` ya decide su visibilidad con `hasData` («sin datos NI declaración», FR-2203 de meses-y-saldo-inicial), pero hasta hoy la semilla dejaba datos y por eso la tarjeta NO APARECÍA JAMÁS a un usuario real; sus ocho casos de prueba pasaban porque siembran un ledger vacío a mano. Con la semilla sin casillas, `hasData` es false y la tarjeta se muestra. Este FR existe para VERIFICARLO EXTREMO A EXTREMO sobre el flujo real de registro y primer arranque, no sobre un ledger fabricado — que es exactamente la brecha que dejó la feature anterior.",
+      "priority": "MUST",
+      "type": "ui",
+      "acceptance_criteria": [
+        "Una cuenta recién registrada, al abrir la app por primera vez por el flujo real (registro → primer arranque → siembra → render), ve la tarjeta de arranque sobre la grilla (happy)",
+        "El predicado de visibilidad de OpeningCard NO se modifica en esta feature: la tarjeta aparece por el cambio en la semilla, verificado comparando el fichero contra su versión anterior (edge — restricción de implementación comprobable)",
+        "Una cuenta con libro persistido y datos propios NO ve la tarjeta al abrir la app (negativo)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2301",
+      "requirement_id": "FR-2301",
+      "as_a": "usuario nuevo que abre T-Ledger por primera vez",
+      "i_want": "ver mis categorías sin ningún monto dentro",
+      "so_that": "sepa que todo lo que aparezca en pantalla de aquí en adelante lo puse yo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2301",
+          "given": "una cuenta autenticada sin libro persistido",
+          "when": "abro la app por primera vez y se siembra",
+          "then": "el snapshot persistido tiene budgets y actuals sin una sola clave"
+        },
+        {
+          "id": "AC-2302",
+          "given": "el primer arranque ya sembrado",
+          "when": "recorro los doce meses del rango activo en todos los rubros",
+          "then": "no encuentro ni un monto, ni presupuestado ni ejecutado"
+        },
+        {
+          "id": "AC-2303",
+          "given": "la semilla de antes del cambio y la de después",
+          "when": "comparo sus jerarquías nodo a nodo",
+          "then": "son idénticas en número, nombres y orden"
+        }
+      ]
+    },
+    {
+      "id": "US-2302",
+      "requirement_id": "FR-2302",
+      "as_a": "usuario nuevo que ya tenía unos ahorros antes de conocer la app",
+      "i_want": "que la app me pregunte cuánto traía, en vez de esconderme esa pregunta detrás de datos falsos",
+      "so_that": "mi Balance cuadre desde el primer día",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2304",
+          "given": "una cuenta recién registrada",
+          "when": "abro la app por primera vez recorriendo el flujo real completo",
+          "then": "veo la tarjeta de arranque encima de la grilla"
+        },
+        {
+          "id": "AC-2305",
+          "given": "esta feature aplicada",
+          "when": "comparo OpeningCard.tsx con su versión anterior",
+          "then": "su predicado de visibilidad no ha cambiado"
+        },
+        {
+          "id": "AC-2306",
+          "given": "una cuenta con libro persistido y datos propios",
+          "when": "abro la app",
+          "then": "no veo la tarjeta"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2301",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Ninguna cuenta EXISTENTE ve cambiar una sola cifra. La semilla solo corre cuando el servidor responde 204 sin libro (FR-013 de la raíz, TC-013f); una cuenta con libro persistido no se re-siembra ni se sobrescribe.",
+      "acceptance_criteria": "Sobre una cuenta con libro persistido y montos propios, abrir la app tras el cambio deja el snapshot byte a byte idéntico al de antes: mismos budgets, mismos actuals, misma revision"
+    },
+    {
+      "id": "NFR-2302",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La jerarquía semilla sigue intacta y editable. Los dos criterios de FR-013 de la raíz que esta feature NO contradice —catálogo determinista y semilla EDITABLE— siguen cumpliéndose: TC-013e y TC-013f de la raíz deben seguir en verde sin tocarlos.",
+      "acceptance_criteria": "TC-013e y TC-013f de la raíz pasan sin modificación alguna en su código, y el usuario puede renombrar y borrar una categoría sembrada exactamente como antes"
+    },
+    {
+      "id": "NFR-2303",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde sin trampas. Medido el 2026-09-07: 36 ficheros de prueba usan buildSeed y varios asumen que trae montos. Se ajustan sembrando explícitamente los montos que cada prueba necesita, NUNCA relajando aserciones, marcando pruebas como skip ni degradándolas a manual.",
+      "acceptance_criteria": "La suite completa pasa tras el cambio con el mismo número de pruebas ejecutadas que antes o más, cero pruebas nuevas en skip, y ningún TC existente convertido a manual"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "assumed",
+    "baseline": "confirmed",
+    "success_metric": "assumed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": [
+    "problem: user confirmed — decisión textual del usuario el 2026-09-07: «hagámoslo sin montos de muestra» y «lo que aplica son valores en dinero. el resto de cosas no debería afectar, es decir valores ejecutados en cualquier mes o rubro»",
+    "no_go_zone: user confirmed — el usuario eligió explícitamente la ruta A el 2026-09-07 (enrutar como feature, NO reabrir la Fase 1 de la raíz) y acotó el alcance con «el resto de cosas no debería afectar»",
+    "baseline: medida en el código el 2026-09-07, no estimada — src/state/store.ts:537 siembra con buildSeed; src/domain/seed.ts:133 llama a genBudget, que rellena montos; OpeningCard.tsx:62 calcula hasData por Object.keys().length; 36 ficheros de prueba usan buildSeed; 3 ficheros de código la usan; 3 TCs de la raíz cubren FR-013 y solo TC-013h se ve afectado",
+    "FEATURE_IDEA.md de la feature, reescrito el 2026-09-07 tras la decisión (la versión previa, que optaba por la «marca de recién sembrado», queda superada y está guardada en el scratchpad de la sesión)"
+  ],
+  "idea_gaps": [
+    "users: asumido — el usuario no enumeró personas. Se asume que el cambio apunta SOLO a cuentas nuevas y que las existentes quedan intactas, derivado de «el resto de cosas no debería afectar». PREGUNTAR AL DUEÑO antes de aprobar: ¿confirmas que una cuenta ya existente no debe verse afectada de ninguna forma?",
+    "success_metric: asumido — el usuario no dio una métrica. Se propone «cero montos en el primer arranque, en todos los meses y rubros», derivada literalmente de su frase. PREGUNTAR AL DUEÑO: ¿es esa la medida de éxito, o esperas además alguna señal en la interfaz?",
+    "[ABIERTA] ¿Los meses PROYECTADOS también quedan sin presupuesto? La lectura literal de la decisión dice que sí (ni presupuestado ni ejecutado) y así se escribió en FR-2301. Confirmar antes de aprobar.",
+    "[DEUDA DECLARADA, no olvido] FR-013 de la raíz conserva dos frases que el producto ya no cumplirá: «y montos dummy por hoja/mes…» en su descripción, y «con montos por mes coherentes» en su primer criterio de aceptación. Además TC-013h de la raíz afirma esos montos y habrá que ajustarlo. Es el precio ACEPTADO por el usuario al elegir la ruta A el 2026-09-07, para no cascado-invalidar las fases 2-5 de la raíz recién selladas. Enmendar cuando la raíz se reabra por otro motivo.",
+    "[SUPERADA] La vía de la «marca de recién sembrado» (publicar revision desde el store y usar revision==1) era la elegida en la versión anterior del FEATURE_IDEA. La decisión del usuario la vuelve innecesaria: con la semilla sin casillas la tarjeta aparece sola. Queda como out_of_scope en el coverage_map, no como olvido."
+  ],
+  "coverage_map": [
+    {
+      "need": "«hagámoslo sin montos de muestra» — el usuario nuevo no ve dinero que no tecleó",
+      "disposition": "FR-2301"
+    },
+    {
+      "need": "«valores ejecutados en cualquier mes o rubro» — el alcance cubre ejecutado además de presupuestado, en todos los meses",
+      "disposition": "FR-2301"
+    },
+    {
+      "need": "«el resto de cosas no debería afectar» — la jerarquía de categorías se queda tal cual",
+      "disposition": "NFR-2302"
+    },
+    {
+      "need": "La tarjeta de arranque debe llegarle por fin a un usuario nuevo real, no solo a un ledger fabricado en pruebas",
+      "disposition": "FR-2302"
+    },
+    {
+      "need": "Las cuentas existentes no pueden verse afectadas",
+      "disposition": "NFR-2301"
+    },
+    {
+      "need": "Los 36 ficheros de prueba que asumen montos en la semilla hay que ajustarlos sin relajar aserciones",
+      "disposition": "NFR-2303"
+    },
+    {
+      "need": "Ruta A: enrutar como feature en vez de reabrir la Fase 1 de la raíz",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Publicar `revision` desde el store / marca de «recién sembrado» (vía superada por la decisión del usuario)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Enmendar el texto de FR-013 de la raíz y su TC-013h",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Vaciar también la jerarquía para que el usuario cree sus propias categorías desde cero",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — semilla-intacta\n\n_Reescrito el 2026-09-07 tras una decisión explícita del usuario que cambia la vía elegida._\n_La versión anterior de este documento (que optaba por la «marca de recién sembrado») queda\nsuperada; ver «Historia de la decisión» al final._\n\n## El problema\n\n**Un usuario nuevo abre una app de finanzas personales y ve dinero que no es suyo.**\n\n`src/state/store.ts:537` siembra a todo usuario nuevo con `buildSeed`, que llama a `genBudget`\n(`src/domain/seed.ts:133`) y rellena presupuestos y ejecutados **de ejemplo** en todas las hojas, y\nlos persiste de inmediato.\n\nEso arrastra un segundo defecto. `meses-y-saldo-inicial` construyó una tarjeta que le pregunta al\nusuario nuevo cuánto dinero traía antes de empezar (FR-2203). Su condición de aparición es «sin datos\nNI declaración». Como la semilla ya dejó datos, la condición nunca se cumple y **la tarjeta no\naparece jamás**. Sus ocho casos de prueba pasan porque siembran un ledger vacío; el producto real no\nse comporta así.\n\n## La decisión del usuario (2026-09-07)\n\n> «hagámoslo sin montos de muestra»\n>\n> «lo que aplica son valores en dinero. el resto de cosas no debería afectar, es decir valores\n> ejecutados en cualquier mes o rubro»\n\n**La estructura se queda. El dinero se va.** Un usuario nuevo recibe su jerarquía de categorías\n(Comida, Transporte, Vivienda, Salario, Freelance, Ahorros…) **sin un solo monto**: ni presupuestado\nni ejecutado, en ningún mes ni rubro.\n\nRazón de producto: nadie abre una app de finanzas personales y quiere ver dinero falso.\n\n## Cómo se cumple, y por qué resulta más simple de lo previsto\n\n`OpeningCard.tsx:62` decide la visibilidad de la tarjeta así:\n\n```ts\nconst hasData =\n  Object.keys(data.budgets ?? {}).length > 0 ||\n  Object.keys(data.actuals ?? {}).length > 0 ||\n  (data.movements?.length ?? 0) > 0;\n```\n\nMira **la existencia de casillas**, no su valor. Por lo tanto, si la semilla deja de crear esas\ncasillas, la tarjeta de FR-2203 aparece **sin tocar su condición**, y el defecto de la tarjeta se\ncierra como consecuencia del mismo cambio.\n\n**Corolario, verificado en el código el 2026-09-07:** no hace falta publicar `revision` desde el\nstore ni inventar ninguna marca de «recién sembrado». Esa complejidad desaparece.\n\n**Cuidado con la trampa:** dejar las casillas creadas con valor `0` NO sirve — `hasData` seguiría\nsiendo verdadero y la tarjeta seguiría sin aparecer. `genBudget` debe devolver los mapas VACÍOS.\n\n## Alcance\n\n- `genBudget` (`src/domain/seed.ts`) deja de generar montos: `budgets` y `actuals` salen vacíos.\n- `buildSeed` sigue creando la jerarquía de categorías **igual que hoy**. No se toca.\n- No se añaden columnas, ni campos al snapshot, ni migraciones.\n- Los ficheros de prueba que asumen que la semilla trae montos se ajustan (ver «Coste medido»).\n\n## Efecto sobre FR-013 de la raíz — deuda DECLARADA, no silenciosa\n\nFR-013 (MUST, raíz) queda contradicho **en dos frases y nada más**. Medido el 2026-09-07:\n\n- Su descripción pide «**y montos dummy por hoja/mes: Ene–May con ejecutados, Jun en curso, Jul–Dic\n  proyectados (ejecutado=0), con Ingresos de base mayor que Gastos y transferencias intermedias**».\n- Su primer criterio de aceptación pide «con **montos por mes coherentes** (Ene–May ejecutado,\n  Jul–Dic ejecutado=0)».\n- `TC-013h` («Primer arranque sin datos genera semilla determinista coherente») afirma esos montos.\n\n**Lo que NO se contradice**, y sigue vigente palabra por palabra: la jerarquía semilla determinística\ny su catálogo; que la semilla sea EDITABLE (`TC-013e`); y que no se regenere ni sobrescriba si la\ncuenta ya tiene libro (`TC-013f`). También sigue en pie el propósito de «estado inicial demostrable»\nen lo estructural: el usuario recibe un esqueleto usable, no una pantalla en blanco.\n\n**Ruta elegida por el usuario el 2026-09-07 (opción A):** el cambio se enruta **como esta feature**,\nno reabriendo la raíz. Reabrir la Fase 1 de la raíz habría cascado-invalidado sus fases 2, 3, 4 y 5,\ntodas aprobadas y con el verify recién sellado en verde ese mismo día. El precio aceptado, y aquí\ndeclarado para que nadie lo descubra por sorpresa: **FR-013 conserva un texto que el producto ya no\ncumple** hasta que la raíz se reabra por algún otro motivo y se enmiende esa frase. `aitri audit\nrequirements` lo señalará; esta sección es la respuesta.\n\n## Coste medido (2026-09-07, no estimado)\n\n- **36 ficheros de prueba** usan `buildSeed` (`grep -rl buildSeed tests/`). Varios asumen que trae\n  montos y hay que ajustarlos. Es el grueso del trabajo real de esta feature.\n- **3 ficheros de código** la usan: `src/state/store.ts`, `src/data/repository.ts`,\n  `src/domain/seed.ts`.\n- **3 TCs de la raíz** cubren FR-013; solo `TC-013h` se ve afectado.\n\n## Preguntas abiertas — confirmar antes de cerrar la Fase 1\n\n1. **[ASSUMPTION] Un usuario EXISTENTE no se ve afectado.** Su libro ya está persistido, así que la\n   semilla no se regenera (`TC-013f`) y sus montos siguen intactos. Este cambio solo alcanza a\n   cuentas nuevas. Confirmar.\n2. **[ASSUMPTION] Un usuario existente que nunca declaró saldo inicial no verá la tarjeta**, porque\n   sí tiene datos. Su camino sigue siendo Configuración, que ya funciona. Confirmar.\n3. **¿Los meses proyectados también quedan sin presupuesto?** La lectura literal de la decisión\n   («valores ejecutados en cualquier mes o rubro» + «sin montos de muestra») dice que sí: ni\n   presupuestado ni ejecutado. Se asume así.\n\n## Historia de la decisión — no reabrir lo cerrado\n\nCuatro vías se evaluaron el 2026-09-07:\n\n1. **Vaciar la semilla — ELEGIDA por el usuario.** Se había descartado antes por su coste (revoca\n   parte de FR-013 y toca 36 ficheros de prueba), pero al medir el choque real resultó ser dos frases\n   y un TC, no una revocación entera. El usuario decidió pagarlo: *«hagámoslo sin montos de muestra»*.\n2. **Comparar contra la semilla recalculada** — descartada por frágil: `buildSeed` depende del mes en\n   que se creó la cuenta y ese dato no se guarda, así que la comparación fallaría al cambiar de mes.\n3. **Mirar solo los movimientos del diario** — descartada porque deja fuera a quien teclea\n   directamente en una celda de la grilla, que no crea movimiento.\n4. **La marca de «recién sembrado»** (`revision == 1` tras el guardado de la semilla) — fue la vía\n   elegida en la versión anterior de este documento, y queda **superada**: la decisión del usuario la\n   vuelve innecesaria, porque con la semilla sin casillas la tarjeta aparece sola.\n"
+}
