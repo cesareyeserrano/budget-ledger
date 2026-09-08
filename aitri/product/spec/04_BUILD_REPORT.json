@@ -53,7 +53,8 @@
     "scripts/security-config.sh",
     "tests/integration/feature-stack.test.ts",
     "tests/domain/categories.test.ts",
-    "tests/e2e/helpers/fixtures.ts"
+    "tests/e2e/helpers/fixtures.ts",
+    "drizzle/0005_cierre_impacto.sql"
   ],
   "setup_commands": [
     "npm install"
@@ -97,6 +98,11 @@
     {
       "fr_id": "FR-012",
       "substitution": "Separador de miles INCOHERENTE entre las superficies donde se ESCRIBE dinero, detectado por el usuario el 2026-09-08. `AmountDisplay` del Registro formatea en vivo con `formatCOP` (FR-207) mientras se teclea; en cambio la celda editable de la grilla (BudgetGrid, `replace(/[^0-9]/g,\"\")`), la tarjeta de arranque (OpeningCard) y el saldo inicial de Configuracion aceptan digitos pelados sin agrupar. Al LEER si es coherente en todas las superficies (`money`/`cellNum` con toLocaleString('es-CO')). Es donde mas facil es equivocarse en un cero, porque la tarjeta y Configuracion piden cifras grandes. La pieza para arreglarlo ya existe (`formatCOP` de @/lib/money). Va en la feature del recorrido de arranque.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-011",
+      "substitution": "BG-003 (cierre-de-mes, high) — CERRADO el 2026-09-08, se registra aqui porque toca la cadena de migraciones del proyecto. drizzle/0005_cierre_impacto.sql anadia dos columnas NULABLES y acto seguido un CHECK bicondicional que las exige cuando hay un mes reabierto: cualquier fila ya reabierta lo violaba al crearlo y la migracion abortaba con 23514, dejando SIN aplicar tambien la 0006. Funcionaba en base vacia y fallaba en una con datos. Se anadio el paso de conversion que faltaba y se corrigio la cabecera, que afirmaba «puramente aditiva, no hay datos que convertir» — falso. LA DEUDA QUE QUEDA, y por eso se declara en vez de darlo por cerrado del todo: la linea de base NO se reconstruye, se SUELTA la reapertura (reopened_period = NULL), porque el saldo de cierre en el instante de reabrir no quedo anotado en ninguna parte y fabricar ceros seria peor que no tener el dato. Una base que traiga meses reabiertos de antes de esta migracion los vera como no reabiertos y habra que reabrirlos de nuevo; entonces si nacen con su linea de base. Hoy no afecta a nadie: no hay usuarios ni base de produccion.",
       "effort": "low"
     }
   ],
