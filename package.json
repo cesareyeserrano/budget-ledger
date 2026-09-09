@@ -25,7 +25,7 @@
     "gate:smoke": "./smoke.sh",
     "test:e2e": "playwright test",
     "test:e2e:backend": "playwright test --config playwright.backend.config.ts",
-    "test:backend:full": "vitest run --reporter verbose && npm run test:e2e:backend",
+    "test:backend:full": "./backend-full.sh",
     "user:reset-password": "node scripts/reset-password.mjs"
   },
   "dependencies": {

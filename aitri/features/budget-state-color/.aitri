@@ -1,42 +1,25 @@
 {
-  "currentPhase": 5,
+  "currentPhase": 4,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-10T15:59:08.001Z",
+  "updatedAt": "2026-09-09T12:38:51.404Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T01:32:43.710Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T12:53:19.305Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T12:53:19.392Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-07-10T12:54:16.692Z",
       "event": "verify-run",
@@ -137,20 +120,36 @@
       "at": "2026-07-10T15:57:43.899Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-09T12:38:51.086Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-09T12:38:51.192Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-09T12:38:51.375Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
     "1": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
     "2": "4828c2f93578941b05a51f9a5ba93d4592d9d9ec750620baa13e4246c83e49f2",
     "3": "e8cd7eb2b283e67d413cc1899b7727a57fa35cd6f897bd55aea920d102d52d5f",
-    "4": "757260c7393bb041ddb9c0e087897b8a51044963e6b470e652f8a683d063e530",
-    "5": "38f77be2029ea4c350a8daec7b4ddfe818fb9eb034f42d6747327fef218bc2f0",
+    "4": "2ff5c0598e8a11161f0749b6adc5125022d4b253eb6d20bc9e89b13b0e5b7bc2",
     "ux": "90c1de7107db0707eb9b41509b62959bb4937ac5c6c1f3bb4762f360c5b87744"
   },
   "coverageAuditLastAt": "2026-07-10T15:59:07.999Z",
   "coverageAuditReqHash": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-401",
@@ -182,24 +181,5 @@
       "FR-403",
       "FR-404"
     ]
-  },
-  "verifyResultsHash": "8880f4d5a769e1f50873e905b1b8d0f22c4fef3bba7d45dc3f4ba24cea9e2d9f",
-  "verifyRanAt": "2026-07-10T15:47:49.833Z",
-  "lastVerifyRun": {
-    "passed": 28,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-07-10T15:47:49.833Z"
-  },
-  "verifySummary": {
-    "total": 28,
-    "passed": 28,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 3
   }
 }

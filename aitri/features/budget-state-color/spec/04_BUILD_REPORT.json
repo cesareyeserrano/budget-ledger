@@ -26,11 +26,35 @@
     "../../../tests/e2e/budget-state-color.spec.ts"
   ],
   "quality_gates": [
-    { "name": "typecheck", "command": "npm run typecheck", "required": true },
-    { "name": "lint", "command": "npm run lint", "required": true },
-    { "name": "coverage", "threshold": 80, "required": true },
-    { "name": "smoke", "command": "../../../smoke.sh", "required": true, "timeout_ms": 420000 },
-    { "name": "e2e", "command": "../../../e2e.sh", "required": true, "timeout_ms": 600000 }
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000,
+      "note": "BG-027: se declaraba required=true SIN command, asi que el gate se acreditaba en verde sin ejecutar nada — indistinguible de uno que no corrio. Se le da el mismo comando que usan balance, transferencias, servidor-fuente-unica y recuperar-acceso. El campo `threshold: 80` que traia era decorativo: el umbral vive en vitest.config.ts y es el exit code de coverage.sh lo que el gate juzga."
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 600000
+    }
   ],
   "notes": [
     "ADR-01/02 aplicados literalmente: la regla vive en src/domain/budgetState.ts (bajo el gate de coverage, include: src/domain/**) y devuelve un enum semántico, no una variable CSS. El color (STATE_COLOR) y el glifo (STATE_GLYPH) son dos tablas indexadas por el MISMO BudgetState, y ejecColor/ejecGlyph llaman a la misma función pura con las mismas entradas: no existe una segunda condición que pueda divergir. budgetState.ts queda al 100 % de ramas (TC-BSC-455e).",
