@@ -17,18 +17,9 @@
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T12:38:51.404Z",
+  "updatedAt": "2026-09-09T13:04:31.678Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T12:54:16.692Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 25,
-      "failed": 0,
-      "skipped": 3,
-      "manual": 0
-    },
     {
       "at": "2026-07-10T13:04:15.635Z",
       "event": "completed",
@@ -135,6 +126,15 @@
       "at": "2026-09-09T12:38:51.375Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-09T13:04:31.641Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 5,
+      "manual": 0
     }
   ],
   "cascadedPhases": [
@@ -181,5 +181,16 @@
       "FR-403",
       "FR-404"
     ]
+  },
+  "verifyResultsHash": "2a6ff5e19d4923585b6f79f8501605df3b20000f6837e28f3c79b216a8594496",
+  "verifyRanAt": "2026-09-09T13:04:31.505Z",
+  "verifyRanRef": "8fde3ee9e53477f051e1ff08614cb105d1133a69",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 23,
+    "failed": 0,
+    "skipped": 5,
+    "manual": 0,
+    "at": "2026-09-09T13:04:31.505Z"
   }
 }

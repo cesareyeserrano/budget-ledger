@@ -18,7 +18,13 @@ export function cookiesFrom(res: Response): string {
 
 export interface AuthReqOpts {
   cookie?: string;
-  /** x-forwarded-for: aísla el bucket de rate-limit por test (evita contaminación entre tests). */
+  /**
+   * x-forwarded-for: aísla el bucket de rate-limit por test.
+   *
+   * Solo funciona porque `setupEnv.ts` enciende `LEDGER_TRUST_PROXY` en esta suite (BG-018). Sin
+   * eso, BG-013 hace que el header se ignore y TODOS los tests comparten el cubo de 127.0.0.1 —que
+   * es lo que pasaba, con este comentario prometiendo un aislamiento que no existía.
+   */
   ip?: string;
 }
 
