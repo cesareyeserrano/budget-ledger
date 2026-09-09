@@ -328,6 +328,107 @@ Cambio de requisitos desde la auditoría del 2026-07-07: uno solo (commit `40f73
 
 ---
 
+### Re-auditoría 2026-09-09 — la intención acordada el 8-sep vive fuera del rastro, y una frontera quedó obsoleta
+
+_Pasada independiente en sesión fresca: las necesidades se re-derivaron del `00_DISCOVERY.md` aprobado y del `original_brief` ANTES de abrir el `coverage_map`, según el protocolo. 37 necesidades trazadas._
+
+**Lo que esta pasada NO repite.** GAP-16 (los montos de la semilla) se registró el 2026-09-07 y desde entonces el `coverage_map` de la raíz SÍ recibió su entrada `out_of_scope` con la decisión del usuario fechada. Queda un residuo, y va abajo como GAP-20; el hallazgo original no se re-abre.
+
+---
+
+#### GAP-17 `UNCOVERED` — El recorrido de arranque acordado el 2026-09-08 contradice un MUST aprobado y no existe fuera de un texto libre
+
+**La necesidad, citada literal** — `01_REQUIREMENTS.json#coverage_map`, entrada dispuesta `out_of_scope`:
+
+> "Recorrido del usuario nuevo: pantalla unica de apertura con salida «empiezo desde cero», y despues
+> la app con la estructura vacia anclada en el mes declarado (acordado 2026-09-08; **revierte el overlay
+> no bloqueante de FR-2203**). PENDIENTE DE CONSTRUIR: feature propia."
+
+**Por qué es un hallazgo, y el más serio de esta pasada.** Tres cosas fallan a la vez:
+
+1. **La disposición es falsa.** `out_of_scope` significa "el cliente no lo quiere". El propio texto dice lo contrario: *acordado* con el usuario y *pendiente de construir*. Es trabajo diferido, no una frontera. Ninguna compuerta de Aitri mira una necesidad dispuesta así.
+2. **No hay línea en `no_go_zone`.** Verificado mecánicamente: ni «apertura», ni «recorrido», ni «empiezo desde cero» aparecen en las dieciséis líneas del `no_go_zone`. Una disposición `out_of_scope` sin su frontera es una necesidad que salió del rastro sin dejar constancia.
+3. **Contradice comportamiento aprobado y en producción.** FR-2203 es un **MUST aprobado** de la feature `meses-y-saldo-inicial`, con sus TCs en verde, y su texto dice justo lo contrario del acuerdo nuevo: *"No es un muro: la app se ve detrás y se puede ignorar"*. El acuerdo del 8-sep pide exactamente un muro — pantalla única de apertura. Hoy el producto hace una cosa, el requisito aprobado documenta esa cosa, y la intención vigente del cliente pide otra. Nadie que lea los artefactos aprobados se enteraría.
+
+**Acción.** Abrir la feature del recorrido de arranque (`aitri feature init <nombre>`) y que su Fase 1 absorba este acuerdo como FR propio. Al derivarlo, declarar explícitamente que **sustituye a FR-2203** de `meses-y-saldo-inicial`, igual que `grid-ux` declaró sustituir el mecanismo «Sin asignar» del brief. Mientras tanto, corregir la disposición en el `coverage_map` de la raíz: no es `out_of_scope`, es una necesidad pendiente.
+
+---
+
+#### GAP-18 `UNCOVERED` — La meta del usuario secundario del discovery está excluida por una disposición que su propio texto desmiente
+
+**La necesidad, citada literal** — `00_DISCOVERY.md`, sección *Users*, usuario secundario:
+
+> "**Usuario secundario — Autor / revisor técnico del portafolio.** […] Su meta: **constatar una app
+> coherente end-to-end, no un demo a medias**."
+
+**Cómo está dispuesta hoy** — `coverage_map`, `out_of_scope`:
+
+> "Era lo que los montos de ejemplo servian de verdad. Decision del 2026-09-08: se sirve con una accion
+> explicita de «cargar datos de ejemplo» (genBudget sigue exportada para alimentarla), no con la semilla.
+> **PENDIENTE DE CONSTRUIR: feature propia** junto al recorrido de arranque."
+
+**Por qué es un hallazgo.** Misma mis-disposición que GAP-17, sobre una necesidad de más peso: es la meta declarada de uno de los **dos usuarios** del discovery aprobado, no un detalle. La decisión de servirla con una acción explícita en vez de con la semilla es legítima y está bien razonada — pero el resultado registrado es que la meta del revisor quedó marcada como fuera de alcance mientras el texto admite que hay que construirla. Tampoco tiene línea en `no_go_zone` (verificado: ni «demo», ni «ejemplo», ni «portafolio», ni «revisor»). Y hay una dependencia real: `genBudget` sigue exportada *sólo* para alimentar esa acción futura, así que hoy hay código vivo sosteniendo una necesidad que el rastro declara muerta.
+
+**Acción.** Recogerla en la misma feature de arranque que GAP-17 (el propio texto las une: *"feature propia junto al recorrido de arranque"*), como FR de «cargar datos de ejemplo». Corregir la disposición a pendiente.
+
+---
+
+#### GAP-19 `MIS-DISPOSICIÓN` — La frontera «Multi-año» sigue declarada fuera de alcance y el producto ya lo entregó
+
+**La frontera, citada literal** — `01_REQUIREMENTS.json#no_go_zone`:
+
+> "Multi-año y multi-moneda — v1 es single-year (2026) y single-currency (COP); **selector multi-año** y
+> conversión de moneda quedan para Fase 2"
+
+**Lo que el producto hace hoy.** La feature `multi-anio` está 5/5 aprobada con 79 TCs en verde y entregó el multi-año completo: FR-1901 (clave `YYYY-MM` en vez de `MonthKey`), FR-1902 (migración de la base con año), FR-1903 (el arrastre cruza el borde de año), FR-1904 (horizonte configurable en años completos), **FR-1905 (banda de año y filtro por año en la grilla — el «selector multi-año» que la frontera niega)**, FR-1907 (la preferencia persiste).
+
+**Por qué es un hallazgo.** No es pérdida de alcance: es el rastro contando lo contrario de lo que hay. Este artefacto maneja bien ese mismo caso **dos veces** — la línea del backend lleva su *"NOTA: el backend y PostgreSQL ya NO están fuera de alcance"* y la del tema claro su *"NOTA: el modo claro ya NO está fuera de alcance"*. La de multi-año nunca recibió su nota, y el `coverage_map` la sigue disponiendo `out_of_scope` sin matiz. Un revisor que lea el `no_go_zone` concluye que el filtro por año no debería existir; una auditoría futura lo leería como alcance que nadie pidió.
+
+**Acción.** Anotar la línea con el mismo patrón ya usado: la mitad **multi-año** salió del `no_go_zone` (entregada por `multi-anio`, FR-1901..FR-1910), la mitad **multi-moneda** sigue vigente. Ajustar la entrada del `coverage_map` a `FR-1905` para la parte del selector.
+
+---
+
+#### GAP-20 `RESIDUO DE GAP-16` — La frontera de los montos de la semilla sigue sin registrarse donde se registran las fronteras
+
+**Estado.** GAP-16 pedía dejar rastro de que la mitad «montos» del criterio de éxito 1 del discovery dejó de estar cubierta. Se hizo **a medias**: el `coverage_map` ya trae su entrada `out_of_scope` con la decisión del usuario del 2026-09-07 y la razón escrita. Falta lo demás:
+
+- **`no_go_zone` no tiene la línea.** Verificado: ni «semilla» ni «dummy» aparecen en sus dieciséis entradas. La frontera vive sólo como texto libre dentro del mapa, que es justo el sitio donde una auditoría no la busca.
+- **`00_DISCOVERY.md` sigue intacto**, con su criterio de éxito 1 pidiendo *"estructura de categorías **y montos semilla coherentes**"*, en contradicción directa con FR-013.
+
+**Acción.** Añadir la línea al `no_go_zone` con el patrón de las otras retiradas por el usuario (la de «Movimientos recientes» es el modelo exacto: cita el criterio del discovery, nombra la decisión y apunta al FR que la sustituye).
+
+---
+
+#### Observaciones — trazadas, no elevadas a gap
+
+- **`PARTIAL` — Hosting.** El brief lo pone como constraint dura: *"Hosting inicial: Next.js en Docker sobre Ultron (Pi 5, 8GB RAM), Nginx como reverse proxy; dejar preparado para hosting profesional"*. Está cargado en `constraints` #7, así que no es alcance perdido. Pero NFR-006 sólo verifica que *"el contenedor Next.js responde 200 en la ruta principal tras arrancar"*: la mitad **Nginx como reverse proxy** y la de **preparado para hosting profesional** no tienen criterio de aceptación. Es la parte del despliegue que ninguna compuerta mira.
+- **README.** *"El README debe explicar decisiones técnicas, no solo cómo correr el proyecto"* está en `constraints` #8 — trazado, no perdido — pero no tiene FR, NFR ni TC. Es un entregable sin verificación. No se eleva a gap porque el constraint lo carga; se anota porque nada lo comprueba.
+- **Reverse-check (FRs sin necesidad del cliente detrás):** ninguno nuevo. Los catorce FR de la raíz trazan a una necesidad del discovery o del brief.
+- **Sustituciones bien documentadas, revisadas y descartadas como gap:** tema oscuro único → claro/oscuro (`constraints` #3 + nota en `no_go_zone`), localStorage → PostgreSQL (`constraints` #5 + `technology_preferences`), «Sin asignar» → borrado seguro (`constraints` #9 + `no_go_zone`), lista de recientes → ConfirmOverlay (`no_go_zone`), journal inmutable (`no_go_zone`), distribución proporcional eliminada (`constraints` #10). Las seis citan su decisión. Ninguna se reporta.
+
+#### Lo que se trazó (evidencia de completitud)
+
+**Del discovery aprobado (17):** los tres tipos de movimiento · contraste contra presupuesto anual sobre los mismos datos · taxonomía propia de 3 niveles · roll-up jerárquico · SC-1 arranque sin configuración · SC-1 montos semilla *(GAP-20)* · SC-2 captura en pocos pasos con feedback ≤1 s · SC-2 lista de recientes · SC-2b consistencia exacta captura→ejecutado · SC-3 CRUD que persiste al recargar · SC-4 borrado sin pérdida de historial · SC-5 grilla de 12 meses con ancestros ≤150 ms · SC-6 dashboard de 7 indicadores con filtro · SC-7 móvil compacto coherente · SC-8 end-to-end sin bugs · meta del usuario secundario *(GAP-18)* · el prototipo offline como implementación de referencia.
+
+**Del brief original (19):** subcategoría opcional (D-8) · input estándar sin teclado ad-hoc · «Sin asignar» por grupo · grilla sticky con scroll · signo/color/varianza por tipo · persistencia · sistema de diseño con tokens exactos · tema oscuro único · stack fijo · moneda COP + UI español + código inglés · hosting Docker/Nginx *(PARTIAL)* · README con decisiones técnicas *(observación)* · andamiaje multiusuario y APIs · D-5 log único con ediciones y borrados · D-3 ejecutado editable vs derivado · distribución proporcional · tendencia mensual ingreso-vs-gasto · multi-año y multi-moneda *(GAP-19)* · exportación, reordenar por arrastre y tweaks como preferencias.
+
+**Del propio `coverage_map` (1):** el recorrido de arranque acordado el 2026-09-08 *(GAP-17)*.
+
+```
+─── Requirements Coverage Audit — 2026-09-09 ───────────────
+Project:        T-Ledger
+Needs traced:   37
+  Covered:      32
+  Partial:       1  ← hosting: constraint cargado, sin criterio de aceptación
+  Uncovered:     2  ← GAP-17, GAP-18 (acordadas con el usuario, dispuestas out_of_scope)
+  Mis-disposición / residuo: 2  ← GAP-19, GAP-20 (el rastro contradice al producto)
+Top gap: el recorrido de arranque acordado el 8-sep revierte FR-2203, un MUST aprobado
+         y en verde, pero sólo existe como texto libre marcado «out_of_scope».
+────────────────────────────────────────────────────────────
+```
+
+---
+
 ## Security
 
 _Adversarial review tras cerrar la feature `backend` (modo servidor multiusuario: auth, API `/api/v1`, Postgres, SSE). Fecha: 2026-07-16._
