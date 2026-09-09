@@ -18,8 +18,14 @@
   ],
   "setup_commands": [],
   "environment_variables": [],
-  "technical_debt": [],
-  "test_runner": "npx vitest run --root ../../.. --reporter verbose",
+  "technical_debt": [
+    {
+      "fr_id": "NFR-006",
+      "substitution": "BG-034 — el runner de esta feature era `npx vitest run --root ../../.. --reporter verbose`, la UNICA de las veintiuna que no se situaba en la raiz. `--root` le dice a vitest donde esta la configuracion, pero el CWD del proceso sigue siendo el de la feature, y el globalSetup del proyecto `backend` resuelve las migraciones de Drizzle contra el cwd: reventaba con «Can't find meta/_journal.json» y abortaba el proyecto entero, dejando 5 de los 28 TCs sin acreditar y el runner en exit 1 con CERO rojos. Reproducido dos veces seguidas el 2026-09-09, o sea DETERMINISTA, no la contencion a la que se atribuyo al principio. Pasa a `../../../unit.sh`, que es lo que usan las otras y que documenta este mismo fallo en su cabecera.",
+      "effort": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
   "test_files": [
     "../../../tests/domain/budget-state.test.ts",
     "../../../tests/domain/budget-state-aa.test.ts",

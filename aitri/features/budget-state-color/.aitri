@@ -17,35 +17,9 @@
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T13:04:31.678Z",
+  "updatedAt": "2026-09-09T14:14:06.168Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T13:04:15.635Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T13:04:15.708Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T13:05:17.157Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 25,
-      "failed": 0,
-      "skipped": 3,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-10T13:06:24.104Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 28,
-      "failed": 0
-    },
     {
       "at": "2026-07-10T13:06:34.506Z",
       "event": "started",
@@ -135,6 +109,34 @@
       "failed": 0,
       "skipped": 5,
       "manual": 0
+    },
+    {
+      "at": "2026-09-09T13:46:34.422Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 5,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T14:13:09.416Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 5,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T14:14:05.980Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-09T14:14:06.142Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
   "cascadedPhases": [
@@ -144,7 +146,7 @@
     "1": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
     "2": "4828c2f93578941b05a51f9a5ba93d4592d9d9ec750620baa13e4246c83e49f2",
     "3": "e8cd7eb2b283e67d413cc1899b7727a57fa35cd6f897bd55aea920d102d52d5f",
-    "4": "2ff5c0598e8a11161f0749b6adc5125022d4b253eb6d20bc9e89b13b0e5b7bc2",
+    "4": "85880dd74aa0082bf91fa6257d70f404c4913bb844cc844c9064d1e7d1845ecf",
     "ux": "90c1de7107db0707eb9b41509b62959bb4937ac5c6c1f3bb4762f360c5b87744"
   },
   "coverageAuditLastAt": "2026-07-10T15:59:07.999Z",
@@ -182,15 +184,6 @@
       "FR-404"
     ]
   },
-  "verifyResultsHash": "2a6ff5e19d4923585b6f79f8501605df3b20000f6837e28f3c79b216a8594496",
-  "verifyRanAt": "2026-09-09T13:04:31.505Z",
-  "verifyRanRef": "8fde3ee9e53477f051e1ff08614cb105d1133a69",
-  "verifyRanDirty": false,
-  "lastVerifyRun": {
-    "passed": 23,
-    "failed": 0,
-    "skipped": 5,
-    "manual": 0,
-    "at": "2026-09-09T13:04:31.505Z"
-  }
+  "verifyRanRef": "534387acf4e3b7f0ee1d0fca808d4a30d227d94e",
+  "verifyRanDirty": false
 }

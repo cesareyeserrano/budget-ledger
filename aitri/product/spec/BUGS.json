@@ -829,6 +829,26 @@
       "resolution": "Cerrado el 2026-09-09, commit feba977. secret-scan.sh acepta una raiz opcional y la prueba planta en su propio arbol temporal. Verificado con las dos corridas simultaneas y carga 4.85: ambas exit 0, cero rojos.",
       "fix_commit_sha": "feba97748e4edec4a720f627f4e83d131266fbcc",
       "fix_at": "2026-09-09T12:50:41.908Z"
+    },
+    {
+      "id": "BG-034",
+      "title": "budget-state-color declara un runner que NO se situa en la raiz y pierde 5 de sus 28 TCs: era 'npx vitest run --root ../../.. --reporter verbose', la UNICA de las veintiuna features que no usa unit.sh ni npm run. El flag --root le dice a vitest donde esta la configuracion, pero el CWD del proceso sigue siendo el directorio de la FEATURE, y el globalSetup del proyecto backend resuelve las migraciones de Drizzle contra el cwd: revienta con 'Can't find meta/_journal.json' y aborta el proyecto entero. Resultado: 23 pasados, 5 SALTADOS y el runner en exit 1 con CERO TCs en rojo — el falso verde otra vez, pero esta vez DETERMINISTA. Reproducido dos veces seguidas el 2026-09-09; al principio se atribuyo a la contencion de verify-run y era otra cosa. El propio unit.sh documenta este fallo en su cabecera, con el mismo mensaje de error, y explica ademas que sin el proyecto backend la cobertura cae del 94% al 48%. ARREGLO: el runner pasa a ../../../unit.sh, que hace 'cd' a la raiz.",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": "NFR-006",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-09T14:14:06.243Z",
+      "updated_at": "2026-09-09T14:14:06.243Z",
+      "resolution": null
     }
   ]
 }

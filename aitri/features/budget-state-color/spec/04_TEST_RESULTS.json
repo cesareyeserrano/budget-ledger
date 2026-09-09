@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-09T13:04:31.214Z",
+  "executed_at": "2026-09-09T14:13:09.296Z",
   "test_runner": "npx vitest run --root ../../.. --reporter verbose",
   "exit_code": 1,
   "e2e_exit_code": 0,
@@ -28,27 +28,27 @@
     {
       "tc_id": "TC-BSC-402h",
       "status": "pass",
-      "notes": "✓   48 [chromium] › tests/e2e/budget-state-color.spec.ts:153:5 › TC-BSC-402h: la celda pasada muestra el glifo antes del monto, en el color del estado (721ms)"
+      "notes": "✓   48 [chromium] › tests/e2e/budget-state-color.spec.ts:153:5 › TC-BSC-402h: la celda pasada muestra el glifo antes del monto, en el color del estado (712ms)"
     },
     {
       "tc_id": "TC-BSC-402e",
       "status": "pass",
-      "notes": "✓   49 [chromium] › tests/e2e/budget-state-color.spec.ts:175:5 › TC-BSC-402e: fronteras del glifo y ancho: 100% sin marca, 120% con '››', y un monto de 7 cifras no desborda (745ms)"
+      "notes": "✓   49 [chromium] › tests/e2e/budget-state-color.spec.ts:175:5 › TC-BSC-402e: fronteras del glifo y ancho: 100% sin marca, 120% con '››', y un monto de 7 cifras no desborda (723ms)"
     },
     {
       "tc_id": "TC-BSC-402f",
       "status": "pass",
-      "notes": "✓   50 [chromium] › tests/e2e/budget-state-color.spec.ts:198:5 › TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transferencia, ni el total por tipo lleva glifo (732ms)"
+      "notes": "✓   50 [chromium] › tests/e2e/budget-state-color.spec.ts:198:5 › TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transferencia, ni el total por tipo lleva glifo (747ms)"
     },
     {
       "tc_id": "TC-BSC-403h",
       "status": "pass",
-      "notes": "✓   51 [chromium] › tests/e2e/budget-state-color.spec.ts:229:5 › TC-BSC-403h: la clave acompaña al glifo y cubre el vocabulario de estado (722ms)"
+      "notes": "✓   51 [chromium] › tests/e2e/budget-state-color.spec.ts:229:5 › TC-BSC-403h: la clave acompaña al glifo y cubre el vocabulario de estado (713ms)"
     },
     {
       "tc_id": "TC-BSC-403e",
       "status": "pass",
-      "notes": "✓   52 [chromium] › tests/e2e/budget-state-color.spec.ts:249:5 › TC-BSC-403e: la clave no se repite como chrome — ni franja fija ni bloque por fila (696ms)"
+      "notes": "✓   52 [chromium] › tests/e2e/budget-state-color.spec.ts:249:5 › TC-BSC-403e: la clave no se repite como chrome — ni franja fija ni bloque por fila (704ms)"
     },
     {
       "tc_id": "TC-BSC-403f",
@@ -58,37 +58,37 @@
     {
       "tc_id": "TC-BSC-404h",
       "status": "pass",
-      "notes": "✓   54 [chromium] › tests/e2e/budget-state-color.spec.ts:270:5 › TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la fila; la hoja usa el lienzo (749ms)"
+      "notes": "✓   54 [chromium] › tests/e2e/budget-state-color.spec.ts:270:5 › TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la fila; la hoja usa el lienzo (753ms)"
     },
     {
       "tc_id": "TC-BSC-404e",
       "status": "pass",
-      "notes": "✓   55 [chromium] › tests/e2e/budget-state-color.spec.ts:289:5 › TC-BSC-404e: un grupo SIN hijos es hoja editable y recibe la superficie de hoja (763ms)"
+      "notes": "✓   55 [chromium] › tests/e2e/budget-state-color.spec.ts:289:5 › TC-BSC-404e: un grupo SIN hijos es hoja editable y recibe la superficie de hoja (817ms)"
     },
     {
       "tc_id": "TC-BSC-404f",
       "status": "pass",
-      "notes": "✓   56 [chromium] › tests/e2e/budget-state-color.spec.ts:306:5 › TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad (867ms)"
+      "notes": "✓   56 [chromium] › tests/e2e/budget-state-color.spec.ts:306:5 › TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad (910ms)"
     },
     {
       "tc_id": "TC-BSC-451h",
       "status": "pass",
-      "notes": "✓   57 [chromium] › tests/e2e/budget-state-color.spec.ts:340:5 › TC-BSC-451h: regresión — el Registro conserva la propagación de color por tipo (708ms)"
+      "notes": "✓   57 [chromium] › tests/e2e/budget-state-color.spec.ts:340:5 › TC-BSC-451h: regresión — el Registro conserva la propagación de color por tipo (758ms)"
     },
     {
       "tc_id": "TC-BSC-451e",
       "status": "pass",
-      "notes": "✓   58 [chromium] › tests/e2e/budget-state-color.spec.ts:357:5 › TC-BSC-451e: regresión — Transferencia también propaga su color en el Registro (693ms)"
+      "notes": "✓   58 [chromium] › tests/e2e/budget-state-color.spec.ts:357:5 › TC-BSC-451e: regresión — Transferencia también propaga su color en el Registro (689ms)"
     },
     {
       "tc_id": "TC-BSC-451f",
       "status": "pass",
-      "notes": "✓   59 [chromium] › tests/e2e/budget-state-color.spec.ts:370:5 › TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de presupuesto (271ms)"
+      "notes": "✓   59 [chromium] › tests/e2e/budget-state-color.spec.ts:370:5 › TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de presupuesto (285ms)"
     },
     {
       "tc_id": "TC-BSC-452h",
       "status": "pass",
-      "notes": "✓   60 [chromium] › tests/e2e/budget-state-color.spec.ts:390:5 › TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warning, superado = success) (708ms)"
+      "notes": "✓   60 [chromium] › tests/e2e/budget-state-color.spec.ts:390:5 › TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warning, superado = success) (714ms)"
     },
     {
       "tc_id": "TC-BSC-452e",
@@ -98,7 +98,7 @@
     {
       "tc_id": "TC-BSC-452f",
       "status": "pass",
-      "notes": "✓   62 [chromium] › tests/e2e/budget-state-color.spec.ts:421:5 › TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto NO recibe glifo ni color de estado (722ms)"
+      "notes": "✓   62 [chromium] › tests/e2e/budget-state-color.spec.ts:421:5 › TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto NO recibe glifo ni color de estado (736ms)"
     },
     {
       "tc_id": "TC-BSC-453h",
@@ -113,7 +113,7 @@
     {
       "tc_id": "TC-BSC-453f",
       "status": "pass",
-      "notes": "✓   64 [chromium] › tests/e2e/budget-state-color.spec.ts:457:5 › TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: toda celda coloreada lleva glifo (692ms)"
+      "notes": "✓   64 [chromium] › tests/e2e/budget-state-color.spec.ts:457:5 › TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: toda celda coloreada lleva glifo (678ms)"
     },
     {
       "tc_id": "TC-BSC-454h",
@@ -123,12 +123,12 @@
     {
       "tc_id": "TC-BSC-454e",
       "status": "pass",
-      "notes": "✓   66 [chromium] › tests/e2e/budget-state-color.spec.ts:501:5 › TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Recientes' retirada (BL-003) (892ms)"
+      "notes": "✓   66 [chromium] › tests/e2e/budget-state-color.spec.ts:501:5 › TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Recientes' retirada (BL-003) (884ms)"
     },
     {
       "tc_id": "TC-BSC-454f",
       "status": "pass",
-      "notes": "✓   67 [chromium] › tests/e2e/budget-state-color.spec.ts:531:5 › TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor (724ms)"
+      "notes": "✓   67 [chromium] › tests/e2e/budget-state-color.spec.ts:531:5 › TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor (748ms)"
     },
     {
       "tc_id": "TC-BSC-455h",
@@ -245,17 +245,17 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2462,
+      "duration_ms": 2437,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
       "name": "lint",
       "command": "npm run lint",
       "required": true,
-      "status": "pass",
-      "exit_code": 0,
-      "duration_ms": 68925,
-      "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
+      "status": "error",
+      "exit_code": null,
+      "duration_ms": 761745,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint .\n\n\n[aitri] gate did not finish within 300000ms — raise \"timeout_ms\" on this gate if it legitimately needs longer (e.g. mutation testing)."
     },
     {
       "name": "coverage",
@@ -263,8 +263,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 42355,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T13:00:58.714Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T13:00:58.717Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 47204,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T14:09:41.927Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T14:09:41.929Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "smoke",
@@ -272,7 +272,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 28125,
+      "duration_ms": 27861,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -281,14 +281,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 183241,
-      "output": "OJECTS/T-Ledger/tests/e2e/recuperar-acceso-flujo.spec.ts:170:20\n\n    Error Context: test-results/recuperar-acceso-flujo-NFR-221fd-te-ninguna-petición-externa-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:156:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-023f: durante el flujo el navegador no emite ninguna petición externa \n  428 passed (3.0m)\n\n(node:24621) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 178458,
+      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (180ms)\n  ✓  429 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  429 passed (3.0m)\n\n(node:34658) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ],
   "timings": {
-    "runner_ms": 3287,
-    "e2e_ms": 165667,
-    "gates_ms": 325109,
-    "total_ms": 494076
+    "runner_ms": 3216,
+    "e2e_ms": 171642,
+    "gates_ms": 1017705,
+    "total_ms": 1192576
   }
 }
