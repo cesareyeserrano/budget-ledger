@@ -839,7 +839,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": "NFR-006",
       "tc_reference": null,
       "phase_detected": null,
@@ -847,8 +847,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-09T14:14:06.243Z",
-      "updated_at": "2026-09-09T14:14:06.243Z",
-      "resolution": null
+      "updated_at": "2026-09-09T16:21:13.710Z",
+      "resolution": "Cerrado el 2026-09-09, commit 9887277. El runner pasa de 'npx vitest run --root ../../..' a '../../../unit.sh', que hace cd a la raiz. VERIFICADO: la feature pasa de 23 pasados con 5 SALTADOS y exit 1, a 28/28 con exit 0. Las cinco pruebas que faltaban son las del proyecto backend, que abortaba con 'Can't find meta/_journal.json' porque el globalSetup resuelve las migraciones de Drizzle contra el cwd y el cwd era el directorio de la feature. Con ellas vuelve tambien la cobertura real de src/server/**: unit.sh documenta que sin el proyecto backend cae del 94% al 48%.",
+      "fix_commit_sha": "37f6a5c9dcf30ae331efb9ea741740ba95650a07",
+      "fix_at": "2026-09-09T16:21:13.605Z"
     }
   ]
 }

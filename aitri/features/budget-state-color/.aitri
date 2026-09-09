@@ -17,19 +17,9 @@
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T14:14:06.168Z",
+  "updatedAt": "2026-09-09T16:07:26.580Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T13:06:34.506Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T13:06:34.542Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-07-10T13:06:38.840Z",
       "event": "started",
@@ -137,6 +127,22 @@
       "at": "2026-09-09T14:14:06.142Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-09T16:07:26.315Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T16:07:26.542Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
     }
   ],
   "cascadedPhases": [
@@ -151,7 +157,7 @@
   },
   "coverageAuditLastAt": "2026-07-10T15:59:07.999Z",
   "coverageAuditReqHash": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-401",
@@ -184,6 +190,25 @@
       "FR-404"
     ]
   },
-  "verifyRanRef": "534387acf4e3b7f0ee1d0fca808d4a30d227d94e",
-  "verifyRanDirty": false
+  "verifyRanRef": "37f6a5c9dcf30ae331efb9ea741740ba95650a07",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "f28e64bcf39711dace8458224eb400d2faa09dadb79bfcac41e977617177397d",
+  "verifyRanAt": "2026-09-09T16:07:26.193Z",
+  "lastVerifyRun": {
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-09T16:07:26.193Z"
+  },
+  "verifySummary": {
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 3
+  }
 }
