@@ -575,7 +575,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -583,8 +583,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-01T15:18:39.199Z",
-      "updated_at": "2026-09-01T15:18:39.199Z",
-      "resolution": null
+      "updated_at": "2026-09-09T13:12:56.370Z",
+      "resolution": "Cerrado el 2026-09-09, commit a673f31. De las cuatro cosas del parte, dos seguian vivas y se midieron antes de tocar nada: parseAmount aceptaba '0x10' como 16 y '1e3' como 1000 —guardando un numero distinto del tecleado, en silencio— y setPlannedRetiro devolvia {state} sin senal ante mes invalido, negativo o NaN, con lo que el store respondia ok:true y la interfaz creia haber guardado. Ahora parseAmount solo acepta digitos (con espacios y '+' tolerados) y setPlannedRetiro devuelve {invalid:true}, que el store traduce a un rechazo con el limite real del mes. Las otras dos partes del parte (seq del servidor, mes invalido) no se reprodujeron como defecto vivo. 6 TC nuevos incluido el de regresion. TC-TRF4-015f reescrito conservando su intencion, afirmando mas fuerte.",
+      "fix_commit_sha": "a673f31d67684053a8292f96c1c850dd9ceac582",
+      "fix_at": "2026-09-09T13:12:56.267Z"
     },
     {
       "id": "BG-023",

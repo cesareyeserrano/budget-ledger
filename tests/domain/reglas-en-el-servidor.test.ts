@@ -401,8 +401,17 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // NO lo vacia — el mover que le dio el dinero se lo sigue acreditando. Medido: celda
     // `undefined` y balance 100.000 en los doce meses.
     //
+    // ANCLA AVANZADA a a673f31 el 2026-09-09. Lo que toco los ficheros vigilados NO fue esta feature
+    // ni ninguna vecina acomodandose: fue la tanda de bugs de dinero e infraestructura de ese dia.
+    // BG-022 endurecio `parseAmount` (dejaba pasar "0x10" como 16 y "1e3" como 1000, guardando un
+    // numero distinto del tecleado) y `setPlannedRetiro` (se tragaba la entrada invalida en silencio
+    // y el store respondia ok:true). Ninguna asercion de comportamiento se relajo: TC-TRF4-015f, que
+    // afirmaba el no-op mudo, pasa a afirmar MAS fuerte —el estado sigue intacto Y el llamante se
+    // entera—, y se anadio un caso de regresion que fija que lo que una persona si escribe sigue
+    // entrando. Ver el mensaje del commit.
+    //
     const tocadas = execSync(
-      "git diff --name-only c11727b -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only a673f31 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
