@@ -177,6 +177,10 @@ describe("FR-1801 · el techo es del mes y lo consumen las brutas", () => {
     s = conAporte.state;
     const conRetiro = setPlannedRetiro(s, "2026-01", 150, P);
     if ("rejected" in conRetiro) throw new Error(`retiro planeado rechazado: ${JSON.stringify(conRetiro.rejected)}`);
+    // BG-022: `setPlannedRetiro` distingue ahora una entrada INVÁLIDA de un no-op mudo. Aquí no
+    // debería darse —el mes está en el rango y 150 es un entero— así que si aparece, es un fallo
+    // del escenario y hay que verlo, no tragarlo.
+    if ("invalid" in conRetiro) throw new Error("entrada inválida: el escenario está mal montado");
     // Con el NETO (200 − 150 = 50 ≤ 100 de margen) el plan NO avisa. Si la regla bruta se aplicara
     // también aquí, el consumo sería 200 > 100 y aparecería un aviso que nadie pidió.
     expect(planTechoMonths(conRetiro.state, P)["2026-01"]).toBeUndefined();

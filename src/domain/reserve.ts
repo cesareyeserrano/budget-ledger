@@ -331,7 +331,8 @@ export function plannedRetiroLimit(
  * plan (que avisa sin bloquear), aquí SÍ se rechaza superar lo reservado planeado: planear un
  * retiro imposible no es información, es un error de tecleo.
  *
- * @returns `{state}` o `{rejected: {limit}}` con lo retirable del plan de ese mes.
+ * @returns `{state}`, `{rejected: {limit}}` con lo retirable del plan de ese mes, o `{invalid}` si
+ *   el mes no está en el rango o el valor no es un entero >= 0 (BG-022: antes eso era un no-op mudo).
  * @throws Nunca.
  */
 export function setPlannedRetiro(
@@ -339,9 +340,12 @@ export function setPlannedRetiro(
   month: PeriodKey,
   value: number,
   periods: PeriodScope
-): { state: LedgerState } | { rejected: { limit: number } } {
+): { state: LedgerState } | { rejected: { limit: number } } | { invalid: true } {
   const v = Math.round(Number(value));
-  if (!Number.isFinite(v) || v < 0 || !periods.includes(month)) return { state };
+  // BG-022 — una entrada inválida se RECHAZA, no se traga. Antes devolvía `{state}` sin tocar nada,
+  // y el llamante no podía distinguir «guardado» de «ignorado»: el store veía que el estado no había
+  // cambiado y aun así respondía `ok: true`, o sea que la interfaz creía haber guardado.
+  if (!Number.isFinite(v) || v < 0 || !periods.includes(month)) return { invalid: true };
   const limit = plannedRetiroLimit(state, month, periods);
   if (v > limit) return { rejected: { limit } };
   const next = cloneState(state);

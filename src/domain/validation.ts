@@ -65,9 +65,24 @@ export const cellAmountSchema = z
   .gte(0, "El monto no puede ser negativo")
   .lte(MONTO_MAX, MSG_MAX);
 
+/**
+ * Un monto tecleado: solo DÍGITOS, con espacios alrededor y un signo `+` opcional tolerados.
+ *
+ * BG-022 — `Number()` a secas entiende notaciones que nadie teclea en un campo de dinero y que
+ * significan otra cosa: `"0x10"` daba **16** (el usuario escribió diez) y `"1e3"` daba **1000**.
+ * El monto quedaba guardado con un número distinto del que la persona creyó escribir, en silencio.
+ * Se rechaza en vez de interpretar: un campo de pesos no es una calculadora de literales.
+ */
+const MONTO_TECLEADO = /^\+?\d+$/;
+
 /** Valida una entrada de monto que puede venir como string del input. Devuelve null si es inválida. */
 export function parseAmount(raw: unknown): number | null {
-  const n = typeof raw === "string" ? Number(raw.trim()) : raw;
+  let n: unknown = raw;
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!MONTO_TECLEADO.test(t)) return null; // BG-022: ni hexadecimal ni notación científica
+    n = Number(t);
+  }
   const res = amountSchema.safeParse(n);
   return res.success ? res.data : null;
 }

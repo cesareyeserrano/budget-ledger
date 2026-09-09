@@ -5,7 +5,7 @@ import type { LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
-  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, seedSeqFrom,
+  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, plannedRetiroLimit, seedSeqFrom,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -469,6 +469,13 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const prev = get().data;
       const result = setPlannedRetiro(prev, month, value, get().activePeriods());
       if ("rejected" in result) return { ok: false, limit: result.rejected.limit };
+      // BG-022 — entrada inválida (mes fuera del rango, valor no entero o negativo). Antes el
+      // dominio devolvía el estado sin tocar y esto respondía `ok: true`: la interfaz creía haber
+      // guardado algo que nunca se guardó. Se devuelve un rechazo con el límite REAL del mes, que
+      // es la cifra honesta que el editor de celda muestra.
+      if ("invalid" in result) {
+        return { ok: false, limit: plannedRetiroLimit(prev, month, get().activePeriods()) };
+      }
       if (result.state !== prev) {
         reserveUndo = null;
         set({ data: result.state });

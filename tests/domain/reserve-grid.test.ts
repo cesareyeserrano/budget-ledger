@@ -68,10 +68,18 @@ describe("FR-1015 · retiros planeados con techo lógico", () => {
     const frozen = JSON.parse(JSON.stringify(s));
 
     expect("rejected" in setPlannedRetiro(s, "2026-03", 200_001, P)).toBe(true);
+
+    // BG-022 — una entrada INVÁLIDA pasa de no-op mudo a rechazo explícito. Antes esto devolvía el
+    // mismo estado sin señal, y el store no podía distinguir «guardado» de «ignorado»: respondía
+    // `ok: true` y la interfaz creía haber guardado algo que nunca se guardó.
+    //
+    // Lo que este caso vigila NO cambia —«rechaza SIN MUTAR»— y de hecho se afirma más fuerte: el
+    // estado sigue intacto Y ahora el llamante se entera.
     const invalid1 = setPlannedRetiro(s, "2026-03", -5, P);
     const invalid2 = setPlannedRetiro(s, "2026-03", Number("nope"), P);
-    expect("state" in invalid1 && invalid1.state === s).toBe(true); // no-op
-    expect("state" in invalid2 && invalid2.state === s).toBe(true);
+    expect("invalid" in invalid1).toBe(true);
+    expect("invalid" in invalid2).toBe(true);
+    expect("state" in invalid1).toBe(false); // no devuelve estado: no hay nada que guardar
     expect(s).toEqual(frozen);
     expect(s.budgets[RETIROS_PLAN_ID]).toBeUndefined();
   });
