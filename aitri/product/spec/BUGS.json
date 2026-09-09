@@ -861,7 +861,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "fr": "NFR-1107",
       "tc_reference": null,
       "phase_detected": null,
@@ -869,8 +869,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-09T21:16:15.639Z",
-      "updated_at": "2026-09-09T21:16:15.639Z",
-      "resolution": null
+      "updated_at": "2026-09-09T22:32:16.582Z",
+      "resolution": "Arreglado en scripts/no-legacy-mode.sh (acepta una raiz opcional como $1, sin argumento se comporta igual que antes) y en tests/unit/servidor-fuente-unica.test.ts (las TRES sondas pasan a arbol temporal propio: arbolSonda() para las dos del gate, y vitest --root para la del runner, que antes plantaba un test-que-falla dentro de tests/unit/ donde la otra corrida lo recolectaba). VERIFICADO CONTRA EL ESCENARIO QUE LO ROMPIA, DOS VECES: reproduciendo a mano el solape de los cinco procesos que verify-run lanza de verdad (runner + playwright autodetectado + gate e2e + coverage + smoke), unit.sh devuelve exit 0 con 877/877 en las dos pasadas, donde ANTES del arreglo devolvia exit 1 con 876/877 y TC-SFU-207h como unico rojo ('reaparecio el modo retirado en src/ — src/__probe_legacy__.ts'). Ademas los 10 TCs del fichero pasan aislados y el checkout queda INTACTO: ni src/__probe_legacy__.ts ni tests/__probe_legacy__.ts ni docs/__probe_legacy__.md ni tests/unit/__probe_failing__.test.ts quedan tras la corrida. TC-SFU-207f sigue exigiendo que el gate FALLE en su arbol temporal, asi que la prueba no quedo pasando en vacio.",
+      "fix_commit_sha": "18a4e3e421a0021d9d11980b609a43cf36125f50",
+      "fix_at": "2026-09-09T22:32:16.582Z"
     },
     {
       "id": "BG-036",

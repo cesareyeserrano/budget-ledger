@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # Gate e2e: corre la suite Playwright COMPLETA y falla (exit!=0) si cualquier test falla.
 #
-# Por qué existe este script y no un `command: npm run test:e2e` a secas:
+# NOTA (2026-09-09): `npm run test:e2e` YA ES este script. Se cambió en package.json porque el gate
+# e2e de la RAÍZ y de siete features estaba declarado como `npm run test:e2e` —playwright pelado—,
+# así que corría con el MISMO puerto, el MISMO distDir y el MISMO storageState que la corrida
+# autodetectada que Aitri lanza en paralelo: cero aislamiento, justo lo que BG-016/BG-028/BG-036
+# habían arreglado sólo para quien llamaba a este script. Enrutar el script npm fue la vía barata
+# (package.json es manifiesto de build: no marca deriva de artefacto ni dispara reconcile).
+#
+# Lo de abajo es la razón ORIGINAL por la que el script existe, y sigue vigente:
 #
 #  1. `aitri feature verify-run` ejecuta los quality_gates con el directorio de la FEATURE como
 #     working dir, donde no hay package.json. Sin el `cd` de abajo, el gate muere con spawn ENOENT

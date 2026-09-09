@@ -23,7 +23,7 @@
     "gate:security-config": "./scripts/security-config.sh",
     "gate:secret-scan": "./scripts/secret-scan.sh",
     "gate:smoke": "./smoke.sh",
-    "test:e2e": "playwright test",
+    "test:e2e": "./e2e.sh",
     "test:e2e:backend": "playwright test --config playwright.backend.config.ts",
     "test:backend:full": "./backend-full.sh",
     "user:reset-password": "node scripts/reset-password.mjs"
