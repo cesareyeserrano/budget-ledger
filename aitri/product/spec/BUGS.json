@@ -813,7 +813,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": "NFR-513",
       "tc_reference": null,
       "phase_detected": null,
@@ -821,8 +821,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-09T12:50:29.180Z",
-      "updated_at": "2026-09-09T12:50:29.180Z",
-      "resolution": null
+      "updated_at": "2026-09-09T12:50:42.004Z",
+      "resolution": "Cerrado el 2026-09-09, commit feba977. secret-scan.sh acepta una raiz opcional y la prueba planta en su propio arbol temporal. Verificado con las dos corridas simultaneas y carga 4.85: ambas exit 0, cero rojos.",
+      "fix_commit_sha": "feba97748e4edec4a720f627f4e83d131266fbcc",
+      "fix_at": "2026-09-09T12:50:41.908Z"
     }
   ]
 }
