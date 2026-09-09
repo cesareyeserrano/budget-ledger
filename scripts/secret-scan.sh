@@ -6,6 +6,14 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# RAÍZ A ESCANEAR. Sin argumento, la del repo — que es como lo invoca el gate y como debe quedarse.
+# El argumento existe SOLO para que la prueba del propio gate (TC-BE-085e) pueda plantar su secreto
+# en un árbol aislado en vez de ensuciar `src/` (BG-033): con dos corridas de vitest a la vez —lo
+# que `aitri verify-run` hace siempre— una plantaba el fichero y la otra, al comprobar «el árbol
+# limpio pasa», encontraba el secreto de su vecina y fallaba. Un rojo fantasma que no era del gate
+# ni del código.
+if [ "$#" -gt 0 ]; then cd "$1"; fi
+
 # Rutas a escanear (fuentes + config), excluyendo dependencias, builds, ejemplos y fixtures de test.
 SCAN_DIRS=(src scripts .github next.config.mjs docker-compose.yml drizzle.config.ts)
 

@@ -659,7 +659,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -667,8 +667,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-04T20:37:52.377Z",
-      "updated_at": "2026-09-04T20:37:52.377Z",
-      "resolution": null
+      "updated_at": "2026-09-09T12:44:50.827Z",
+      "resolution": "Cerrado el 2026-09-09. Sus DOS causas quedaron cubiertas por arreglos posteriores, y se comprobo en vez de deducirlo. (1) La instrumentacion inflando el cronometro: ya la cubria CRONOMETRO_FIABLE, y ahora ademas las SIETE aserciones que este parte nombra por linea —budget-state:76, rollup-perf:69, refinamiento-ui:204, contrapartidas-reserva:719, multi-anio:367/518 y reserve-perf:69— se miden MEJOR-DE-5 (BG-030), asi que reportan el coste del algoritmo y no la rafaga que les toco. (2) La contencion de verify-run: BG-032 subio el arranque de Testcontainers de 10 s a 120 s, que era lo que tumbaba el gate en 26 s con 53 casos saltados y cero rojos. EVIDENCIA: tres pasadas seguidas de ./coverage.sh el 2026-09-09, las tres exit 0 y las tres con el MISMO resultado (867 passed | 4 skipped de 871). Antes oscilaba entre corridas sin que nadie tocara una prueba.",
+      "fix_commit_sha": "29a69e4d2222ffb95dee8dc02a8bb1ba4a7d4fdf",
+      "fix_at": "2026-09-09T12:44:50.670Z"
     },
     {
       "id": "BG-027",
@@ -679,7 +681,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -687,8 +689,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-04T20:37:52.421Z",
-      "updated_at": "2026-09-04T20:37:52.421Z",
-      "resolution": null
+      "updated_at": "2026-09-09T12:44:51.212Z",
+      "resolution": "Cerrado el 2026-09-09, commit 29a69e4. El gate coverage de budget-state-color declaraba required=true SIN command: se acreditaba con measured 93.25 y status pass pero sin exit_code ni salida, mientras los otros cuatro gates de esa feature si los traen. Se le da ../../../coverage.sh, el mismo que usan balance, transferencias, servidor-fuente-unica y recuperar-acceso, con timeout_ms 900000. El campo threshold:80 que traia era decorativo — el umbral vive en vitest.config.ts y lo que el gate juzga es el exit code. El cambio se enruto por feature run-phase build para no dejar el artefacto en deriva.",
+      "fix_commit_sha": "29a69e4d2222ffb95dee8dc02a8bb1ba4a7d4fdf",
+      "fix_at": "2026-09-09T12:44:50.961Z"
     },
     {
       "id": "BG-028",
@@ -799,6 +803,26 @@
       "resolution": "Cerrado el 2026-09-08, commit 24383c1. withStartupTimeout(120_000) en Postgres y Mailpit. Verificado: proyecto backend 247/247 en 29,9 s.",
       "fix_commit_sha": "24383c1cc151c182cfeda7c900dbfbcd5e95022b",
       "fix_at": "2026-09-08T23:16:22.346Z"
+    },
+    {
+      "id": "BG-033",
+      "title": "TC-BE-085e ensucia el arbol COMPARTIDO y da un rojo fantasma con dos corridas a la vez: plantaba src/__planted_secret_test.ts con nombre fijo para probar el gate de secretos, asi que con el runner y el gate de cobertura corriendo en paralelo —lo que aitri verify-run hace SIEMPRE— una corrida plantaba el fichero y la otra, al comprobar «el arbol limpio pasa», encontraba el secreto de su vecina y fallaba con 'expected 1 to be +0'. El rojo no era del gate ni del codigo, y dejaba la suite en exit 1 sin causa visible. REPRODUCIDO el 2026-09-09 lanzando las dos corridas con seis carriles de CPU compitiendo. ARREGLO: scripts/secret-scan.sh acepta una RAIZ opcional —sin argumento escanea el repo, que es como lo invoca el gate de verdad— y la prueba planta en un arbol temporal propio, sin tocar nada compartido. Mismo patron que ya usa design-tokens. VERIFICADO: las dos corridas simultaneas con carga 4.85 salen ambas exit 0, 871/871 y 867+4, cero rojos.",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": "NFR-513",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-09T12:50:29.180Z",
+      "updated_at": "2026-09-09T12:50:29.180Z",
+      "resolution": null
     }
   ]
 }

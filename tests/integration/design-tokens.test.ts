@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, cpSync, mkdirSync } from "node:fs";
 import { resolve, dirname, normalize } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
@@ -63,10 +63,36 @@ const runGate = (): number => runGateIn(root);
  * falsos positivos, y esa comprobación ya la cubre TC-RUI-007h contra el árbol real.
  */
 let ARBOL = "";
+
+/**
+ * Copia con el destino CREADO A MANO y un reintento (BG-001 de meses-y-saldo-inicial).
+ *
+ * El síntoma: bajo la concurrencia de `aitri verify-run` —dos corridas de vitest a la vez, mas dos
+ * suites de Playwright compilando— este `beforeAll` reventaba con
+ * `ENOENT ... design-tokens-XXXX/src`, syscall `cp`, sobre el DESTINO recién creado por `mkdtemp`.
+ * La suite entera caía con exit 1 y CERO casos en rojo, que es el peor reporte posible: parece un
+ * desastre y es un tropiezo de sistema de ficheros.
+ *
+ * `cpSync(recursive)` da por hecho que puede crear el destino sobre la marcha, y en `/var/folders`
+ * bajo carga eso falla. Crearlo explícitamente antes elimina esa suposición; el reintento cubre el
+ * caso residual. No enmascara nada: si la copia falla dos veces, lanza igual y con su error.
+ */
+function copiarArbol(desde: string, hasta: string): void {
+  for (let intento = 1; intento <= 2; intento++) {
+    try {
+      mkdirSync(hasta, { recursive: true });
+      cpSync(desde, hasta, { recursive: true });
+      return;
+    } catch (e) {
+      if (intento === 2) throw e;
+    }
+  }
+}
+
 beforeAll(() => {
   ARBOL = mkdtempSync(resolve(tmpdir(), "design-tokens-"));
-  cpSync(resolve(root, "src"), resolve(ARBOL, "src"), { recursive: true });
-  cpSync(resolve(root, "scripts"), resolve(ARBOL, "scripts"), { recursive: true });
+  copiarArbol(resolve(root, "src"), resolve(ARBOL, "src"));
+  copiarArbol(resolve(root, "scripts"), resolve(ARBOL, "scripts"));
 });
 afterAll(() => {
   if (ARBOL) rmSync(ARBOL, { recursive: true, force: true });

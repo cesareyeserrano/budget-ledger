@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync, existsSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, rmSync, mkdtempSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { parse as parseYaml } from "yaml";
@@ -107,13 +107,28 @@ describe("NFR-513 — gates de seguridad automatizados", () => {
 
   it("TC-BE-085e: el gate de secretos detecta un secreto plantado y pasa el árbol limpio", () => {
     // @aitri-tc TC-BE-085e
-    expect(runExit("bash", ["scripts/secret-scan.sh"])).toBe(0); // árbol limpio → pasa
-    const planted = path.join(ROOT, "src", "__planted_secret_test.ts");
+    // BG-033 — el secreto se planta en un ÁRBOL AISLADO, no en `src/`.
+    //
+    // Antes se escribía `src/__planted_secret_test.ts` en el árbol compartido. Con DOS corridas de
+    // vitest a la vez —que es lo que `aitri verify-run` hace siempre: el runner y el gate de
+    // cobertura— una plantaba el fichero y la otra, al comprobar «el árbol limpio pasa»,
+    // encontraba el secreto de su vecina y fallaba con «expected 1 to be +0». Un rojo fantasma que
+    // no era del gate ni del código, y que además dejaba la suite en exit 1 sin causa visible.
+    // Reproducido el 2026-09-09 lanzando las dos corridas con seis carriles de CPU compitiendo.
+    //
+    // El script acepta ahora una raíz opcional —sin argumento escanea el repo, que es como lo
+    // invoca el gate de verdad— así que la prueba puede tener su propio árbol y no tocar nada
+    // compartido. Es el mismo patrón que ya usa design-tokens.
+    const arbol = mkdtempSync(path.join(os.tmpdir(), "secret-scan-"));
     try {
-      writeFileSync(planted, `const k = "AKIAIOSFODNN7EXAMPLE"; export default k;\n`);
-      expect(runExit("bash", ["scripts/secret-scan.sh"])).not.toBe(0); // secreto → falla
+      mkdirSync(path.join(arbol, "src"), { recursive: true });
+      writeFileSync(path.join(arbol, "src", "limpio.ts"), `export const x = 1;\n`);
+      expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).toBe(0); // árbol limpio → pasa
+
+      writeFileSync(path.join(arbol, "src", "plantado.ts"), `const k = "AKIAIOSFODNN7EXAMPLE"; export default k;\n`);
+      expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).not.toBe(0); // secreto → falla
     } finally {
-      rmSync(planted, { force: true });
+      rmSync(arbol, { recursive: true, force: true });
     }
   });
 

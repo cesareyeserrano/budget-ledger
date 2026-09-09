@@ -77,7 +77,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -85,8 +85,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-04T22:08:34.250Z",
-      "updated_at": "2026-09-04T22:08:34.250Z",
-      "resolution": null
+      "updated_at": "2026-09-09T12:44:51.531Z",
+      "resolution": "Cerrado el 2026-09-09, commit 29a69e4. El '&&' de test:backend:full dejaba sin ejecutar la mitad e2e cuando la unitaria fallaba, y Aitri acreditaba sus 13 casos como saltados. Pasa a ./backend-full.sh: las dos mitades corren SIEMPRE y se devuelve el PEOR codigo. PROBADO forzando un fallo unitario: la mitad unitaria reporta 1 failed de 872, la e2e corre igual y ejecuta 14 TCs del backend (antes: cero), y el script sale con exit 1. La evidencia sobrevive y el rojo sigue siendo rojo. PENDIENTE, la otra mitad del parte: TC-BE-077h (cifrado en transito) sigue saliendo skip por falta de marcador; hay que darle su marcador o declararlo manual.",
+      "fix_commit_sha": "29a69e4d2222ffb95dee8dc02a8bb1ba4a7d4fdf",
+      "fix_at": "2026-09-09T12:44:51.353Z"
     }
   ]
 }
