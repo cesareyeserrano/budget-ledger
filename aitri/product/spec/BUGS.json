@@ -487,7 +487,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -495,8 +495,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-01T07:15:07.379Z",
-      "updated_at": "2026-09-01T07:15:07.379Z",
-      "resolution": null
+      "updated_at": "2026-09-09T13:07:31.934Z",
+      "resolution": "Cerrado el 2026-09-09. LEDGER_TRUST_PROXY=true en setupEnv.ts, solo en la suite de backend. Probado que el aislamiento funciona: agotar el cupo de una IP (6º -> 429) deja otra IP intacta (1er intento -> 401). Antes compartian cubo y dos comentarios prometian por escrito un aislamiento inexistente. El comportamiento de produccion lo sigue verificando trust-proxy.test.ts.",
+      "fix_commit_sha": "53de7e8ec1523e0036f760ff87c6ebb884efa52d",
+      "fix_at": "2026-09-09T13:07:31.834Z"
     },
     {
       "id": "BG-019",
