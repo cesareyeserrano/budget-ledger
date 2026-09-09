@@ -19,19 +19,9 @@
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T17:47:23.261Z",
+  "updatedAt": "2026-09-09T19:40:20.158Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T03:31:21.642Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-07T04:06:42.686Z",
-      "event": "approved",
-      "phase": 3
-    },
     {
       "at": "2026-09-07T04:07:28.793Z",
       "event": "started",
@@ -143,6 +133,22 @@
       "phase": "verify",
       "passed": 62,
       "failed": 0
+    },
+    {
+      "at": "2026-09-09T19:38:10.414Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T19:40:20.144Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -204,16 +210,16 @@
       "FR-2207"
     ]
   },
-  "verifyRanRef": "de77b6f1a7ab6b5d6fe2d7d35d08c9e7e02e7e82",
+  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
   "verifyRanDirty": false,
-  "verifyResultsHash": "1271b3cdf1647f2f862194e9829fafaa0cf423bb74a64d03f4ec93f2cd95c9ad",
-  "verifyRanAt": "2026-09-07T17:47:11.324Z",
+  "verifyResultsHash": "2304ec7cd44f72528b3ca478d0a5704ae635ec58fb1b20b8aa721e16ecf6264a",
+  "verifyRanAt": "2026-09-09T19:38:10.362Z",
   "lastVerifyRun": {
     "passed": 62,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-07T17:47:11.324Z"
+    "at": "2026-09-09T19:38:10.362Z"
   },
   "verifySummary": {
     "total": 62,

@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-06T20:13:13.000Z",
+  "executed_at": "2026-09-09T19:13:26.348Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,77 +8,77 @@
     {
       "tc_id": "TC-RSP-001h",
       "status": "pass",
-      "notes": "✓  236 [chromium] › tests/e2e/resumen-plegado.spec.ts:160:5 › TC-RSP-001h: plegado, la celda de Ejecutado muestra el Saldo disponible y no el Saldo total (249ms)"
+      "notes": "✓  254 [chromium] › tests/e2e/resumen-plegado.spec.ts:160:5 › TC-RSP-001h: plegado, la celda de Ejecutado muestra el Saldo disponible y no el Saldo total (227ms)"
     },
     {
       "tc_id": "TC-RSP-002e",
       "status": "pass",
-      "notes": "✓  237 [chromium] › tests/e2e/resumen-plegado.spec.ts:175:5 › TC-RSP-002e: las 24 celdas del encabezado plegado coinciden con la fila «Saldo disponible» (297ms)"
+      "notes": "✓  255 [chromium] › tests/e2e/resumen-plegado.spec.ts:175:5 › TC-RSP-002e: las 24 celdas del encabezado plegado coinciden con la fila «Saldo disponible» (319ms)"
     },
     {
       "tc_id": "TC-RSP-003e",
       "status": "pass",
-      "notes": "✓  238 [chromium] › tests/e2e/resumen-plegado.spec.ts:197:5 › TC-RSP-003e: cada celda usa el disponible de SU plano (247ms)"
+      "notes": "✓  256 [chromium] › tests/e2e/resumen-plegado.spec.ts:197:5 › TC-RSP-003e: cada celda usa el disponible de SU plano (244ms)"
     },
     {
       "tc_id": "TC-RSP-004f",
       "status": "pass",
-      "notes": "✓  239 [chromium] › tests/e2e/resumen-plegado.spec.ts:210:5 › TC-RSP-004f: el Saldo total ya no aparece en ninguna celda del encabezado plegado (281ms)"
+      "notes": "✓  257 [chromium] › tests/e2e/resumen-plegado.spec.ts:210:5 › TC-RSP-004f: el Saldo total ya no aparece en ninguna celda del encabezado plegado (318ms)"
     },
     {
       "tc_id": "TC-RSP-005e",
       "status": "pass",
-      "notes": "✓  240 [chromium] › tests/e2e/resumen-plegado.spec.ts:228:5 › TC-RSP-005e: sin reservas, la cifra plegada es la misma que antes del cambio (226ms)"
+      "notes": "✓  258 [chromium] › tests/e2e/resumen-plegado.spec.ts:228:5 › TC-RSP-005e: sin reservas, la cifra plegada es la misma que antes del cambio (244ms)"
     },
     {
       "tc_id": "TC-RSP-006h",
       "status": "pass",
-      "notes": "✓  241 [chromium] › tests/e2e/resumen-plegado.spec.ts:241:5 › TC-RSP-006h: desplegar devuelve la escalera intacta con su cierre en Saldo total (290ms)"
+      "notes": "✓  259 [chromium] › tests/e2e/resumen-plegado.spec.ts:241:5 › TC-RSP-006h: desplegar devuelve la escalera intacta con su cierre en Saldo total (318ms)"
     },
     {
       "tc_id": "TC-RSP-007e",
       "status": "pass",
-      "notes": "✓  242 [chromium] › tests/e2e/resumen-plegado.spec.ts:255:5 › TC-RSP-007e: con disponible negativo y total positivo, la celda plegada muestra el negativo (293ms)"
+      "notes": "✓  260 [chromium] › tests/e2e/resumen-plegado.spec.ts:255:5 › TC-RSP-007e: con disponible negativo y total positivo, la celda plegada muestra el negativo (280ms)"
     },
     {
       "tc_id": "TC-RSP-010h",
       "status": "pass",
-      "notes": "✓  243 [chromium] › tests/e2e/resumen-plegado.spec.ts:275:5 › TC-RSP-010h: un disponible negativo conserva color, signo y glifo en la celda plegada (256ms)"
+      "notes": "✓  261 [chromium] › tests/e2e/resumen-plegado.spec.ts:275:5 › TC-RSP-010h: un disponible negativo conserva color, signo y glifo en la celda plegada (306ms)"
     },
     {
       "tc_id": "TC-RSP-011e",
       "status": "pass",
-      "notes": "✓  244 [chromium] › tests/e2e/resumen-plegado.spec.ts:289:5 › TC-RSP-011e: un disponible de exactamente 0 se pinta neutro, sin color de excepción (261ms)"
+      "notes": "✓  262 [chromium] › tests/e2e/resumen-plegado.spec.ts:289:5 › TC-RSP-011e: un disponible de exactamente 0 se pinta neutro, sin color de excepción (245ms)"
     },
     {
       "tc_id": "TC-RSP-012f",
       "status": "pass",
-      "notes": "✓  245 [chromium] › tests/e2e/resumen-plegado.spec.ts:300:5 › TC-RSP-012f: un valor positivo no lleva color de excepción ni glifo de negativo (244ms)"
+      "notes": "✓  263 [chromium] › tests/e2e/resumen-plegado.spec.ts:300:5 › TC-RSP-012f: un valor positivo no lleva color de excepción ni glifo de negativo (261ms)"
     },
     {
       "tc_id": "TC-RSP-013h",
       "status": "pass",
-      "notes": "✓  246 [chromium] › tests/e2e/resumen-plegado.spec.ts:313:5 › TC-RSP-013h: contraste ≥4.5:1 de la cifra plegada en claro y en oscuro, sana y negativa (692ms)"
+      "notes": "✓  264 [chromium] › tests/e2e/resumen-plegado.spec.ts:313:5 › TC-RSP-013h: contraste ≥4.5:1 de la cifra plegada en claro y en oscuro, sana y negativa (704ms)"
     },
     {
       "tc_id": "TC-RSP-020h",
       "status": "pass",
-      "notes": "✓  247 [chromium] › tests/e2e/resumen-plegado.spec.ts:328:5 › TC-RSP-020h: el módulo desplegado conserva sus filas, en orden, cerrando en Saldo total (225ms)"
+      "notes": "✓  265 [chromium] › tests/e2e/resumen-plegado.spec.ts:328:5 › TC-RSP-020h: el módulo desplegado conserva sus filas, en orden, cerrando en Saldo total (226ms)"
     },
     {
       "tc_id": "TC-RSP-021e",
       "status": "pass",
-      "notes": "✓  248 [chromium] › tests/e2e/resumen-plegado.spec.ts:339:5 › TC-RSP-021e: el chevron interno sigue ocultando exactamente Saldo reservado y Saldo total (250ms)"
+      "notes": "✓  266 [chromium] › tests/e2e/resumen-plegado.spec.ts:339:5 › TC-RSP-021e: el chevron interno sigue ocultando exactamente Saldo reservado y Saldo total (287ms)"
     },
     {
       "tc_id": "TC-RSP-022f",
       "status": "pass",
-      "notes": "✓  249 [chromium] › tests/e2e/resumen-plegado.spec.ts:351:5 › TC-RSP-022f: el estado plegado no se persiste — recargar devuelve el módulo desplegado (334ms)"
+      "notes": "✓  267 [chromium] › tests/e2e/resumen-plegado.spec.ts:351:5 › TC-RSP-022f: el estado plegado no se persiste — recargar devuelve el módulo desplegado (327ms)"
     },
     {
       "tc_id": "TC-RSP-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-030h: total = disponible + reservado en los 12 meses y los 2 planos 1ms"
+      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-030h: total = disponible + reservado en los 12 meses y los 2 planos 2ms"
     },
     {
       "tc_id": "TC-RSP-031e",
@@ -88,22 +88,22 @@
     {
       "tc_id": "TC-RSP-032f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-032f: un mes con retiro neto no rompe la reconciliación ni deja la alcancía en rojo 0ms"
+      "notes": "✓ |app| tests/domain/resumen-plegado.test.ts > resumen-plegado · NFR-1502 — la aritmética del balance no cambia > TC-RSP-032f: un mes con retiro neto no rompe la reconciliación ni deja la alcancía en rojo 2ms"
     },
     {
       "tc_id": "TC-RSP-040h",
       "status": "pass",
-      "notes": "✓  250 [chromium] › tests/e2e/resumen-plegado.spec.ts:367:5 › TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y ninguna fila (241ms)"
+      "notes": "✓  268 [chromium] › tests/e2e/resumen-plegado.spec.ts:367:5 › TC-RSP-040h: en escritorio el encabezado plegado tiene sus 24 celdas y ninguna fila (229ms)"
     },
     {
       "tc_id": "TC-RSP-041f",
       "status": "pass",
-      "notes": "✓  251 [chromium] › tests/e2e/resumen-plegado.spec.ts:380:5 › TC-RSP-041f: a 375px el módulo de Balance no se renderiza (182ms)"
+      "notes": "✓  269 [chromium] › tests/e2e/resumen-plegado.spec.ts:380:5 › TC-RSP-041f: a 375px el módulo de Balance no se renderiza (168ms)"
     },
     {
       "tc_id": "TC-RSP-042e",
       "status": "pass",
-      "notes": "✓  252 [chromium] › tests/e2e/resumen-plegado.spec.ts:388:5 › TC-RSP-042e: el breakpoint no se mueve — 760px sin módulo, 761px con módulo (250ms)"
+      "notes": "✓  270 [chromium] › tests/e2e/resumen-plegado.spec.ts:388:5 › TC-RSP-042e: el breakpoint no se mueve — 760px sin módulo, 761px con módulo (245ms)"
     }
   ],
   "fr_coverage": [
@@ -207,7 +207,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1442,
+      "duration_ms": 1456,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -216,7 +216,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 36863,
+      "duration_ms": 36043,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
     },
     {
@@ -225,7 +225,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 235,
+      "duration_ms": 234,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -234,7 +234,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 699,
+      "duration_ms": 703,
       "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
     },
     {
@@ -243,7 +243,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 119,
+      "duration_ms": 118,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -252,14 +252,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 14530,
+      "duration_ms": 14702,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     }
   ],
   "timings": {
-    "runner_ms": 23318,
-    "e2e_ms": 107541,
-    "gates_ms": 53888,
-    "total_ms": 184759
+    "runner_ms": 26439,
+    "e2e_ms": 114319,
+    "gates_ms": 53257,
+    "total_ms": 194026
   }
 }

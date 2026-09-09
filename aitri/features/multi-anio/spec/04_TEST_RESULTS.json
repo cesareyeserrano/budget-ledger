@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-06T19:32:54.961Z",
+  "executed_at": "2026-09-09T19:22:15.043Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,17 +8,17 @@
     {
       "tc_id": "TC-MAN-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-001h: dos marzos de años distintos conviven sin pisarse 2ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-001h: dos marzos de años distintos conviven sin pisarse 1ms"
     },
     {
       "tc_id": "TC-MAN-002e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-002e: ordenar como texto da el orden cronológico cruzando el año 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-002e: ordenar como texto da el orden cronológico cruzando el año 0ms"
     },
     {
       "tc_id": "TC-MAN-003f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-003f: cuatro claves malformadas se rechazan sin mutar el estado 3ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1901 · el periodo es año y mes > TC-MAN-003f: cuatro claves malformadas se rechazan sin mutar el estado 2ms"
     },
     {
       "tc_id": "TC-MAN-004e",
@@ -28,37 +28,37 @@
     {
       "tc_id": "TC-MAN-010h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-010h: las tres tablas aceptan un periodo bien formado y lo devuelven igual 47ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-010h: las tres tablas aceptan un periodo bien formado y lo devuelven igual 34ms"
     },
     {
       "tc_id": "TC-MAN-011e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-011e: la llave primaria admite el mismo nodo en dos años 27ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-011e: la llave primaria admite el mismo nodo en dos años 20ms"
     },
     {
       "tc_id": "TC-MAN-012f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-012f: el CHECK rechaza 2026-13 y 2026-00 y no deja fila 29ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-012f: el CHECK rechaza 2026-13 y 2026-00 y no deja fila 21ms"
     },
     {
       "tc_id": "TC-MAN-013e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-013e: la marca de versión está puesta y el CHECK vive en las tres tablas 34ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-013e: la marca de versión está puesta y el CHECK vive en las tres tablas 24ms"
     },
     {
       "tc_id": "TC-MAN-014f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-014f: la migración aborta con mensaje claro si las tablas no están vacías 27ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-014f: la migración aborta con mensaje claro si las tablas no están vacías 17ms"
     },
     {
       "tc_id": "TC-MAN-015f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-015f: el sentinel @retiros migra y persiste aunque no sea un nodo del árbol 28ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1902 · el esquema guarda el periodo con año > TC-MAN-015f: el sentinel @retiros migra y persiste aunque no sea un nodo del árbol 37ms"
     },
     {
       "tc_id": "TC-MAN-020h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1903 · el arrastre cruza el borde de año > TC-MAN-020h: el disponible de dic-2026 abre ene-2027 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1903 · el arrastre cruza el borde de año > TC-MAN-020h: el disponible de dic-2026 abre ene-2027 0ms"
     },
     {
       "tc_id": "TC-MAN-021h",
@@ -88,7 +88,7 @@
     {
       "tc_id": "TC-MAN-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-030h: horizonte de 2 años desde 2026-09 termina en DICIEMBRE de 2028 2ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-030h: horizonte de 2 años desde 2026-09 termina en DICIEMBRE de 2028 0ms"
     },
     {
       "tc_id": "TC-MAN-031h",
@@ -103,47 +103,47 @@
     {
       "tc_id": "TC-MAN-033e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-033e: bajar el horizonte no borra datos fuera de la ventana 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-033e: bajar el horizonte no borra datos fuera de la ventana 0ms"
     },
     {
       "tc_id": "TC-MAN-034f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-034f: un horizonte fuera de {12,24} cae a 24 4ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1904 · horizonte configurable y rodante > TC-MAN-034f: un horizonte fuera de {12,24} cae a 24 0ms"
     },
     {
       "tc_id": "TC-MAN-040h",
       "status": "pass",
-      "notes": "✓  198 [chromium] › tests/e2e/multi-anio.spec.ts:34:5 › TC-MAN-040h: se pasa de diciembre a enero del año siguiente scrolleando, sin cambiar de vista (382ms)"
+      "notes": "✓  216 [chromium] › tests/e2e/multi-anio.spec.ts:34:5 › TC-MAN-040h: se pasa de diciembre a enero del año siguiente scrolleando, sin cambiar de vista (203ms)"
     },
     {
       "tc_id": "TC-MAN-041h",
       "status": "pass",
-      "notes": "✓  199 [chromium] › tests/e2e/multi-anio.spec.ts:54:5 › TC-MAN-041h: la banda rotula cada año, incluido un primer tramo parcial (332ms)"
+      "notes": "✓  217 [chromium] › tests/e2e/multi-anio.spec.ts:54:5 › TC-MAN-041h: la banda rotula cada año, incluido un primer tramo parcial (219ms)"
     },
     {
       "tc_id": "TC-MAN-042e",
       "status": "pass",
-      "notes": "✓  200 [chromium] › tests/e2e/multi-anio.spec.ts:67:5 › TC-MAN-042e: el Balance sigue alineado con la grilla en todo el rango (344ms)"
+      "notes": "✓  218 [chromium] › tests/e2e/multi-anio.spec.ts:67:5 › TC-MAN-042e: el Balance sigue alineado con la grilla en todo el rango (215ms)"
     },
     {
       "tc_id": "TC-MAN-043f",
       "status": "pass",
-      "notes": "✓  201 [chromium] › tests/e2e/multi-anio.spec.ts:79:5 › TC-MAN-043f: la columna de categorías no se desplaza ni pierde su ancho (359ms)"
+      "notes": "✓  219 [chromium] › tests/e2e/multi-anio.spec.ts:79:5 › TC-MAN-043f: la columna de categorías no se desplaza ni pierde su ancho (209ms)"
     },
     {
       "tc_id": "TC-MAN-044h",
       "status": "pass",
-      "notes": "✓  202 [chromium] › tests/e2e/multi-anio.spec.ts:95:5 › TC-MAN-044h: el filtro Año recorta las columnas pero no el cálculo (680ms)"
+      "notes": "✓  220 [chromium] › tests/e2e/multi-anio.spec.ts:95:5 › TC-MAN-044h: el filtro Año recorta las columnas pero no el cálculo (417ms)"
     },
     {
       "tc_id": "TC-MAN-045h",
       "status": "pass",
-      "notes": "✓  203 [chromium] › tests/e2e/multi-anio.spec.ts:125:5 › TC-MAN-045h: el posicionamiento inicial no se come el primer gesto de rueda (483ms)"
+      "notes": "✓  221 [chromium] › tests/e2e/multi-anio.spec.ts:125:5 › TC-MAN-045h: el posicionamiento inicial no se come el primer gesto de rueda (345ms)"
     },
     {
       "tc_id": "TC-MAN-050h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-050h: va del dato más antiguo al fin del horizonte 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-050h: va del dato más antiguo al fin del horizonte 0ms"
     },
     {
       "tc_id": "TC-MAN-051h",
@@ -153,12 +153,12 @@
     {
       "tc_id": "TC-MAN-052e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-052e: registrar en un periodo anterior extiende el rango hacia atrás 0ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-052e: registrar en un periodo anterior extiende el rango hacia atrás 8ms"
     },
     {
       "tc_id": "TC-MAN-053e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-053e: las cuatro fuentes de dato cuentan para fijar el inicio 0ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1906 · el rango visible > TC-MAN-053e: las cuatro fuentes de dato cuentan para fijar el inicio 1ms"
     },
     {
       "tc_id": "TC-MAN-054f",
@@ -168,27 +168,27 @@
     {
       "tc_id": "TC-MAN-060h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-060h: persiste entre lecturas 30ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-060h: persiste entre lecturas 23ms"
     },
     {
       "tc_id": "TC-MAN-061e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-061e: sin preferencia guardada, el horizonte son 2 años 28ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-061e: sin preferencia guardada, el horizonte son 2 años 20ms"
     },
     {
       "tc_id": "TC-MAN-062f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-062f: un valor corrupto cae al defecto sin lanzar 29ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-062f: un valor corrupto cae al defecto sin lanzar 22ms"
     },
     {
       "tc_id": "TC-MAN-063f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-063f: cambiar el horizonte no sube revision del ledger 54ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > FR-1907 · la preferencia de horizonte > TC-MAN-063f: cambiar el horizonte no sube revision del ledger 32ms"
     },
     {
       "tc_id": "TC-MAN-064f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-064f: el esquema del horizonte rechaza lo inválido y la columna lo respalda 29ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-064f: el esquema del horizonte rechaza lo inválido y la columna lo respalda 19ms"
     },
     {
       "tc_id": "TC-MAN-070h",
@@ -198,22 +198,22 @@
     {
       "tc_id": "TC-MAN-071h",
       "status": "pass",
-      "notes": "✓  204 [chromium] › tests/e2e/multi-anio.spec.ts:141:5 › TC-MAN-071h: el selector de mes muestra el año junto al mes (430ms)"
+      "notes": "✓  222 [chromium] › tests/e2e/multi-anio.spec.ts:141:5 › TC-MAN-071h: el selector de mes muestra el año junto al mes (278ms)"
     },
     {
       "tc_id": "TC-MAN-072e",
       "status": "pass",
-      "notes": "✓  205 [chromium] › tests/e2e/multi-anio.spec.ts:151:5 › TC-MAN-072e: elegir un mes lo deja a la vista sin scrollear a mano (542ms)"
+      "notes": "✓  223 [chromium] › tests/e2e/multi-anio.spec.ts:151:5 › TC-MAN-072e: elegir un mes lo deja a la vista sin scrollear a mano (436ms)"
     },
     {
       "tc_id": "TC-MAN-073f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-073f: un periodo malformado no llega a escribirse por ninguna vía 30ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-073f: un periodo malformado no llega a escribirse por ninguna vía 21ms"
     },
     {
       "tc_id": "TC-MAN-080h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-080h: con doce meses el techo da lo mismo que antes de migrar 2ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-080h: con doce meses el techo da lo mismo que antes de migrar 1ms"
     },
     {
       "tc_id": "TC-MAN-081h",
@@ -228,22 +228,22 @@
     {
       "tc_id": "TC-MAN-083f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-083f: un periodo fuera del rango se rechaza en vez de operar con índice −1 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-083f: un periodo fuera del rango se rechaza en vez de operar con índice −1 0ms"
     },
     {
       "tc_id": "TC-MAN-084e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-084e: el recálculo con el rango máximo cabe en 150ms 2ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1909 · reservas sobre la lista de periodos > TC-MAN-084e: el recálculo con el rango máximo cabe en 150ms 9ms"
     },
     {
       "tc_id": "TC-MAN-090h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1910 · la siembra no fabrica pasado > TC-MAN-090h: un usuario nuevo de 2026-09 no recibe celdas anteriores 4ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1910 · la siembra no fabrica pasado > TC-MAN-090h: un usuario nuevo de 2026-09 no recibe celdas anteriores 22ms"
     },
     {
       "tc_id": "TC-MAN-091e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1910 · la siembra no fabrica pasado > TC-MAN-091e: el rango de un usuario recién creado no arranca en enero 0ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > FR-1910 · la siembra no fabrica pasado > TC-MAN-091e: el rango de un usuario recién creado no arranca en enero 1ms"
     },
     {
       "tc_id": "TC-MAN-092f",
@@ -253,7 +253,7 @@
     {
       "tc_id": "TC-MAN-093e",
       "status": "pass",
-      "notes": "✓  206 [chromium] › tests/e2e/multi-anio.spec.ts:164:5 › TC-MAN-093e: el fixture freshLedger deja un estado coherente con el periodo en curso (378ms)"
+      "notes": "✓  224 [chromium] › tests/e2e/multi-anio.spec.ts:164:5 › TC-MAN-093e: el fixture freshLedger deja un estado coherente con el periodo en curso (193ms)"
     },
     {
       "tc_id": "TC-MAN-200h",
@@ -272,42 +272,42 @@
     {
       "tc_id": "TC-MAN-202f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/multi-anio-suite.test.ts > NFR-1901 · ninguna prueba quedó desactivada al migrar > TC-MAN-202f: no existe ni un `skip`, `only` o `todo` en toda la suite 38ms"
+      "notes": "✓ |app| tests/unit/multi-anio-suite.test.ts > NFR-1901 · ninguna prueba quedó desactivada al migrar > TC-MAN-202f: no existe ni un `skip`, `only` o `todo` en toda la suite 55ms"
     },
     {
       "tc_id": "TC-MAN-210h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-210h: un año completo da los mismos números que antes de migrar 3ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-210h: un año completo da los mismos números que antes de migrar 12ms"
     },
     {
       "tc_id": "TC-MAN-211e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-211e: el plano Presupuestado sigue sin arrastrar su propio cierre 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-211e: el plano Presupuestado sigue sin arrastrar su propio cierre 2ms"
     },
     {
       "tc_id": "TC-MAN-212f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-212f: una discrepancia de un peso hace fallar la comparación 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1902 · el arrastre dentro de un año no cambia > TC-MAN-212f: una discrepancia de un peso hace fallar la comparación 4ms"
     },
     {
       "tc_id": "TC-MAN-220h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-220h: las funciones auditadas dan lo mismo que antes de migrar 7ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-220h: las funciones auditadas dan lo mismo que antes de migrar 9ms"
     },
     {
       "tc_id": "TC-MAN-221e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-221e: las series resueltas y el plan de retiros no cambian 0ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-221e: las series resueltas y el plan de retiros no cambian 2ms"
     },
     {
       "tc_id": "TC-MAN-222f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-222f: la explicación del arrastre nombra el periodo correcto y no cambia de cifra 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1903 · el techo y las reservas conservan su veredicto > TC-MAN-222f: la explicación del arrastre nombra el periodo correcto y no cambia de cifra 2ms"
     },
     {
       "tc_id": "TC-MAN-230h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1904 · los roll-ups no cambian > TC-MAN-230h: cada tipo suma lo mismo que antes, en los doce periodos 1ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1904 · los roll-ups no cambian > TC-MAN-230h: cada tipo suma lo mismo que antes, en los doce periodos 2ms"
     },
     {
       "tc_id": "TC-MAN-231e",
@@ -322,37 +322,37 @@
     {
       "tc_id": "TC-MAN-240h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-240h: guardar y recargar un ledger de tres años devuelve lo mismo 50ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-240h: guardar y recargar un ledger de tres años devuelve lo mismo 33ms"
     },
     {
       "tc_id": "TC-MAN-241f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-241f: un PUT con revision vieja se rechaza y no escribe 74ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-241f: un PUT con revision vieja se rechaza y no escribe 42ms"
     },
     {
       "tc_id": "TC-MAN-242e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-242e: una celda con periodo inválido no llega a la base 46ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1905 · la persistencia no pierde nada > TC-MAN-242e: una celda con periodo inválido no llega a la base 26ms"
     },
     {
       "tc_id": "TC-MAN-250h",
       "status": "pass",
-      "notes": "✓  207 [chromium] › tests/e2e/multi-anio.spec.ts:176:5 › TC-MAN-250h: un movimiento capturado suma al Ejecutado de SU periodo (362ms)"
+      "notes": "✓  225 [chromium] › tests/e2e/multi-anio.spec.ts:176:5 › TC-MAN-250h: un movimiento capturado suma al Ejecutado de SU periodo (226ms)"
     },
     {
       "tc_id": "TC-MAN-251f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-251f: ningún movimiento queda con un periodo inválido tras guardar y recargar 50ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > bordes que solo se ven contra la base y la API > TC-MAN-251f: ningún movimiento queda con un periodo inválido tras guardar y recargar 37ms"
     },
     {
       "tc_id": "TC-MAN-252e",
       "status": "pass",
-      "notes": "✓  208 [chromium] › tests/e2e/multi-anio.spec.ts:190:5 › TC-MAN-252e: el registro apunta por defecto al periodo en curso, con su año (365ms)"
+      "notes": "✓  226 [chromium] › tests/e2e/multi-anio.spec.ts:190:5 › TC-MAN-252e: el registro apunta por defecto al periodo en curso, con su año (203ms)"
     },
     {
       "tc_id": "TC-MAN-260h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1907 · el coste no se degrada > TC-MAN-260h: el recómputo con cinco años cabe en 150ms 0ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1907 · el coste no se degrada > TC-MAN-260h: el recómputo con cinco años cabe en 150ms 2ms"
     },
     {
       "tc_id": "TC-MAN-261f",
@@ -362,47 +362,47 @@
     {
       "tc_id": "TC-MAN-262e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1907 · el coste no se degrada > TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático 38ms"
+      "notes": "✓ |app| tests/domain/multi-anio.test.ts > NFR-1907 · el coste no se degrada > TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático 120ms"
     },
     {
       "tc_id": "TC-MAN-270f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-270f: vector 1 — formato: los malformados se rechazan 28ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-270f: vector 1 — formato: los malformados se rechazan 17ms"
     },
     {
       "tc_id": "TC-MAN-271f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-271f: vector 2 — rango: años absurdos que el CHECK sí aceptaría 27ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-271f: vector 2 — rango: años absurdos que el CHECK sí aceptaría 17ms"
     },
     {
       "tc_id": "TC-MAN-272f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-272f: vector 3 — tipo y tamaño 26ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-272f: vector 3 — tipo y tamaño 18ms"
     },
     {
       "tc_id": "TC-MAN-273f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-273f: vector 4 — inyección: una carga SQL no altera la base 26ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-273f: vector 4 — inyección: una carga SQL no altera la base 17ms"
     },
     {
       "tc_id": "TC-MAN-274h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-274h: un periodo legítimo atraviesa la validación 28ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1908 · el periodo se valida en el servidor > TC-MAN-274h: un periodo legítimo atraviesa la validación 18ms"
     },
     {
       "tc_id": "TC-MAN-280h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-280h: el script existe, está en el journal y nombra las tres tablas 26ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-280h: el script existe, está en el journal y nombra las tres tablas 25ms"
     },
     {
       "tc_id": "TC-MAN-281f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-281f: el script aborta si las tablas no están vacías, y lo dice 27ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-281f: el script aborta si las tablas no están vacías, y lo dice 17ms"
     },
     {
       "tc_id": "TC-MAN-282e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-282e: la marca de versión sube y el esquema resultante es el que el código espera 60ms"
+      "notes": "✓ |backend| tests/integration/backend/multi-anio.test.ts > NFR-1909 · la migración está versionada y documentada > TC-MAN-282e: la marca de versión sube y el esquema resultante es el que el código espera 39ms"
     }
   ],
   "fr_coverage": [
@@ -795,7 +795,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 5388,
+      "duration_ms": 1457,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -804,7 +804,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 66665,
+      "duration_ms": 37005,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
     },
     {
@@ -813,7 +813,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 425,
+      "duration_ms": 240,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -822,7 +822,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 949,
+      "duration_ms": 701,
       "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
     },
     {
@@ -831,7 +831,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 219,
+      "duration_ms": 123,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -840,7 +840,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 26525,
+      "duration_ms": 15300,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -849,14 +849,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 162736,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (177ms)\n  ✓  408 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  408 passed (2.7m)\n\n(node:29850) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 112420,
+      "output": "m] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  429 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  429 passed (1.9m)\n\n(node:4629) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ],
   "timings": {
-    "runner_ms": 37115,
-    "e2e_ms": 168452,
-    "gates_ms": 262907,
-    "total_ms": 468494
+    "runner_ms": 27366,
+    "e2e_ms": 112624,
+    "gates_ms": 167247,
+    "total_ms": 307252
   }
 }

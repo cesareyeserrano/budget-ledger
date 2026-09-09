@@ -21,19 +21,9 @@
   "projectName": "balance",
   "createdAt": "2026-07-24T15:27:08.017Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T20:02:53.189Z",
+  "updatedAt": "2026-09-09T17:53:25.388Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-28T14:30:41.924Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-28T14:30:42.001Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-07-28T14:33:05.215Z",
       "event": "verify-run",
@@ -173,6 +163,22 @@
       "phase": "verify",
       "passed": 56,
       "failed": 0
+    },
+    {
+      "at": "2026-09-09T17:51:54.426Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T17:53:25.374Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -240,14 +246,14 @@
       "FR-911"
     ]
   },
-  "verifyResultsHash": "dcec86429c4e1bff82736bcee0adb10d432f5a7dd6cd79704d9fafaf9205cd25",
-  "verifyRanAt": "2026-09-07T19:48:38.587Z",
+  "verifyResultsHash": "49591a75c475f4bbfc5605fb9574681b4b979b5ea3a7e73e5954ff08eaae820b",
+  "verifyRanAt": "2026-09-09T17:51:54.370Z",
   "lastVerifyRun": {
     "passed": 56,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-07T19:48:38.587Z"
+    "at": "2026-09-09T17:51:54.370Z"
   },
   "releaseHistory": [
     {
@@ -256,7 +262,7 @@
       "at": "2026-07-28T15:31:42.522Z"
     }
   ],
-  "verifyRanRef": "95ac8f0924949fae9baeb341649e0220a3f1c3fe",
+  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 56,

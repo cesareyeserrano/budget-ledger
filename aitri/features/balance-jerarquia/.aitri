@@ -19,28 +19,9 @@
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-07T20:02:53.297Z",
+  "updatedAt": "2026-09-09T18:35:17.999Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T16:09:12.381Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-27T16:09:12.526Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-27T16:14:47.263Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 34,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-27T16:15:01.412Z",
       "event": "verify-complete",
@@ -169,6 +150,31 @@
       "phase": "verify",
       "passed": 34,
       "failed": 0
+    },
+    {
+      "at": "2026-09-09T18:21:50.536Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T18:33:10.853Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T18:35:17.986Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -218,7 +224,7 @@
       "FR-1405"
     ]
   },
-  "verifyRanRef": "95ac8f0924949fae9baeb341649e0220a3f1c3fe",
+  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -232,14 +238,14 @@
       "at": "2026-08-27T16:15:35.827Z"
     }
   ],
-  "verifyResultsHash": "9835cf57640b75d8b85a05da1b856454840cefee2ae707d271dc356f5f6017e6",
-  "verifyRanAt": "2026-09-07T20:02:41.381Z",
+  "verifyResultsHash": "3103976840edd2a5b061c544e0369279417842f0580f6dd2c18d5f09d368abab",
+  "verifyRanAt": "2026-09-09T18:33:10.779Z",
   "lastVerifyRun": {
     "passed": 34,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-07T20:02:41.381Z"
+    "at": "2026-09-09T18:33:10.779Z"
   },
   "verifySummary": {
     "total": 34,

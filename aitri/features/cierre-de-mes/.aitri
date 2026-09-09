@@ -17,19 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-06T20:41:16.597Z",
+  "updatedAt": "2026-09-09T19:56:38.569Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T19:16:39.970Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-09-03T19:17:24.777Z",
-      "event": "completed",
-      "phase": 5
-    },
     {
       "at": "2026-09-03T19:17:27.315Z",
       "event": "approved",
@@ -154,6 +144,22 @@
       "phase": "verify",
       "passed": 92,
       "failed": 0
+    },
+    {
+      "at": "2026-09-09T19:53:30.328Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T19:56:38.555Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -219,7 +225,7 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "75cdd3f09e74bb66b9701a59c35a35cf5edafbef",
+  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -240,14 +246,14 @@
   ],
   "coverageAuditLastAt": "2026-09-03T16:02:32.903Z",
   "coverageAuditReqHash": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-  "verifyResultsHash": "9b1cfe240dc04577fa66c4ae7a0a06745a17988d58b14492c521bd2be45e7ebf",
-  "verifyRanAt": "2026-09-06T20:41:08.621Z",
+  "verifyResultsHash": "739c39fc3ba27dd97370a6c3ff9976e2c6cace9b1c2cdada746b6ff30cc69e9a",
+  "verifyRanAt": "2026-09-09T19:53:30.277Z",
   "lastVerifyRun": {
     "passed": 92,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-06T20:41:08.621Z"
+    "at": "2026-09-09T19:53:30.277Z"
   },
   "verifySummary": {
     "total": 92,
