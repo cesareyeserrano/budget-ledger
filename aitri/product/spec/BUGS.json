@@ -851,6 +851,48 @@
       "resolution": "Cerrado el 2026-09-09, commit 9887277. El runner pasa de 'npx vitest run --root ../../..' a '../../../unit.sh', que hace cd a la raiz. VERIFICADO: la feature pasa de 23 pasados con 5 SALTADOS y exit 1, a 28/28 con exit 0. Las cinco pruebas que faltaban son las del proyecto backend, que abortaba con 'Can't find meta/_journal.json' porque el globalSetup resuelve las migraciones de Drizzle contra el cwd y el cwd era el directorio de la feature. Con ellas vuelve tambien la cobertura real de src/server/**: unit.sh documenta que sin el proyecto backend cae del 94% al 48%.",
       "fix_commit_sha": "37f6a5c9dcf30ae331efb9ea741740ba95650a07",
       "fix_at": "2026-09-09T16:21:13.605Z"
+    },
+    {
+      "id": "BG-035",
+      "title": "El gate estatico no-legacy-mode se rompe solo bajo concurrencia: TC-SFU-207h escanea src/ mientras su VECINO de la misma suite planta src/__probe_legacy__.ts en el arbol COMPARTIDO. Es EXACTAMENTE la familia de BG-033 (que arreglo el mismo patron para secret-scan plantando en un arbol temporal propio), sin arreglar en este otro test. MEDIDO EL 2026-09-09 reproduciendo el solape a proposito: 'aitri verify-run' lanza unit.sh Y coverage.sh, que son la MISMA suite de vitest corrida dos veces (coverage.sh solo anade --coverage y AITRI_COVERAGE=1), asi que servidor-fuente-unica.test.ts se ejecuta DOS VECES A LA VEZ sobre el mismo checkout. Una corrida esta en la linea 155 plantando src/__probe_legacy__.ts (para comprobar que el gate SI detecta el modo retirado) mientras la otra esta en la linea 137 (TC-SFU-207h) afirmando que el gate pasa 'cuando el codigo esta limpio'. La segunda ve la sonda de la primera y cae con: 'AssertionError: no-legacy-mode: reaparecio el modo retirado en src/ — src/__probe_legacy__.ts:1:export const SERVER_MODE = true; expected 1 to be +0'. EVIDENCIA: con las cinco corridas de verify-run solapadas a mano, unit.sh devolvio exit 1 con 876/877 en verde y ESTE como unico rojo; aislado, unit.sh da exit 0 con 877/877 en 24s. ESTA ES UNA DE LAS DOS CAUSAS de la firma 'exit 1 con CERO TCs en rojo' que viene costando descartes de 7 minutos: Aitri parsea el TC como fail o no lo parsea, pero el exit 1 del runner es real. Arreglo: el mismo de BG-033 — que el gate acepte una raiz opcional y el test plante en su propio arbol temporal, no en src/",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "open",
+      "fr": "NFR-1107",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-09T21:16:15.639Z",
+      "updated_at": "2026-09-09T21:16:15.639Z",
+      "resolution": null
+    },
+    {
+      "id": "BG-036",
+      "title": "Las DOS suites Playwright que verify-run corre a la vez comparten las MISMAS cuentas de Postgres y se pisan la siembra: 396 de 429 tests en rojo. CAUSA EXACTA, medida el 2026-09-09: tests/e2e/helpers/globalSetup.ts:46 nombra la cuenta solo por el INDICE de worker — e2eEmail = (worker) => 'e2e-w{worker}@ledger.test'. El aislamiento se diseno para los workers DENTRO de una suite, y su propio comentario (lineas 36-40) explica por que compartir cuenta es fatal: 'Postgres es COMPARTIDO: si todos los workers usaran la misma cuenta, la siembra de un test sobrescribiria el estado de otro a media ejecucion, porque seedLedger hace un PUT de snapshot completo. Eso produce fallos intermitentes que dependen del orden — el peor tipo de flakiness'. Es literalmente lo que pasa, solo que entre DOS SUITES en vez de entre dos workers: verify-run lanza la corrida Playwright autodetectada ('npx playwright test' desde la raiz) Y el gate e2e (../../../e2e.sh, la suite COMPLETA otra vez), las dos con workers 0..3, o sea las dos usando e2e-w0@ledger.test .. e2e-w3@ledger.test. BG-028 separo el distDir (.next-e2e vs .next-e2e-gate) y BG-016 separo el PUERTO (3220 vs 3230) — lo unico que quedo compartido es LA BASE DE DATOS, que es justo el estado que los tests siembran. EVIDENCIA: con el solape reproducido a mano el gate e2e devolvio 396 failed / 33 passed en 6.5m; el MISMO gate aislado da 429 passed exit 0 en 1.9m. ESTA ES LA SEGUNDA CAUSA de la clase de degradacion, y explica los descartes de hoy en balance-jerarquia y en semilla-intacta (dos veces). Arreglo propuesto, simetrico con lo que ya se hizo para puerto y distDir: que e2e.sh exporte un namespace propio (p.ej. E2E_ACCOUNT_NS=gate) y que e2eEmail lo incorpore, de modo que las dos suites usen cuentas disjuntas. Sin namespace el valor por defecto conserva el comportamiento actual",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": "FR-505",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-09T21:16:29.567Z",
+      "updated_at": "2026-09-09T22:07:29.594Z",
+      "resolution": "DIAGNOSTICO CORREGIDO — LA CAUSA QUE DECLARE ERA FALSA Y LA DESMIENTE EL PROPIO CODIGO. Dije que las dos suites Playwright compartian las cuentas de Postgres. NO es asi: tests/e2e/helpers/globalSetup.ts:101 arranca un PostgreSqlContainer POR SUITE, o sea que cada una tiene su base efimera con sus propias cuentas e2e-w0..w3. Por ahi no habia colision y el titulo de este bug estaba equivocado. LO QUE SI SE COMPARTIA, y queda arreglado: el fichero de storageState. storageStatePath vivia en os.tmpdir() con solo el indice de worker en el nombre, asi que las dos suites escribian ledger-e2e-storage-state-w0.json; y cada cookie vale SOLO contra la base de su suite, asi que la que escribia segunda dejaba a la primera autenticandose contra una cuenta inexistente en su base. tmpdir era el unico estado que las dos veian de verdad. ARREGLO: E2E_ACCOUNT_NS namespacea storageState (y el email, redundante pero simetrico, misma variable); e2e.sh exporta gate-. Sin la variable los nombres son los de siempre. PARCIALMENTE VERIFICADO: con las cinco corridas solapadas a mano el gate paso 429/429 en 2.4m con CERO respuestas 422, cuando antes devolvia 396 failed. NO CIERRA LA CLASE y no hay que darlo por cerrado: en la misma corrida la suite autodetectada se hundio con 972 respuestas 422 y 30 minutos de reloj. CANDIDATO MEDIDO PARA LO QUE QUEDA: la memoria de Docker. docker info reporta 3.82 GB totales, y el solape pide los tres contenedores de desarrollo MAS dos stacks e2e completos (un Postgres y un Mailpit por suite) MAS los de la integracion de backend. Dos suites Playwright completas no caben en 3.82 GB, y eso explica por que 'arrancar con carga baja' nunca basto: el limite es memoria de Docker, no CPU. SIGUIENTE PASO REAL, y es estructural: dejar de correr la suite COMPLETA dos veces por verify-run (la autodetectada y el gate e2e.sh son la misma suite), o subir la memoria de Docker. Tambien se corrigio el comentario que habia escrito con la causa falsa, por la misma razon que BG-018: un comentario que promete un aislamiento inexistente es peor que no tenerlo.",
+      "fix_commit_sha": "e379d1db6869506cb72f9d39b177d87dde61f58a",
+      "fix_at": "2026-09-09T22:07:29.594Z"
     }
   ]
 }

@@ -12,7 +12,14 @@
 # Salida: 0 si el código está limpio; 1 e imprime las coincidencias si algo reapareció.
 set -uo pipefail
 
-cd "$(dirname "$0")/.." || exit 2
+# BG-035 — RAÍZ OPCIONAL. Mismo arreglo que BG-033 le dio a secret-scan.sh, y por el mismo motivo:
+# las pruebas de este gate necesitan plantar sondas para comprobar que DETECTA lo retirado, y si las
+# plantan en el checkout compartido, una corrida concurrente las ve y se cae. `aitri verify-run`
+# lanza unit.sh Y coverage.sh, que son la misma suite de vitest dos veces sobre el mismo árbol: una
+# plantaba src/__probe_legacy__.ts mientras la otra afirmaba que src/ estaba limpio. Con una raíz
+# como argumento, cada prueba escanea su propio árbol temporal y el checkout no se toca.
+# Sin argumento el comportamiento es el de siempre: la raíz del repo.
+cd "${1:-$(dirname "$0")/..}" || exit 2
 
 PATRON='SERVER_MODE|LEDGER_SERVER_MODE|LocalStorageRepository'
 

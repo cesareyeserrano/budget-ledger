@@ -1,19 +1,19 @@
 {
-  "executed_at": "2026-09-09T20:02:14.427Z",
+  "executed_at": "2026-09-09T22:11:15.380Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
-  "e2e_exit_code": 0,
+  "e2e_exit_code": 1,
   "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-SIN-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-001h: buildSeed devuelve budgets y actuals sin una sola clave 7ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-001h: buildSeed devuelve budgets y actuals sin una sola clave 2ms"
     },
     {
       "tc_id": "TC-SIN-002e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-002e: ninguna hoja tiene monto en ninguno de los doce meses del rango 1ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > FR-2301 · la semilla del primer arranque no trae montos > TC-SIN-002e: ninguna hoja tiene monto en ninguno de los doce meses del rango 2ms"
     },
     {
       "tc_id": "TC-SIN-003f",
@@ -23,12 +23,12 @@
     {
       "tc_id": "TC-SIN-004h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > FR-2301 · lo que se persiste en el primer arranque > TC-SIN-004h: el snapshot persistido llega vacío y vuelve vacío desde una lectura nueva 7ms"
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > FR-2301 · lo que se persiste en el primer arranque > TC-SIN-004h: el snapshot persistido llega vacío y vuelve vacío desde una lectura nueva 5ms"
     },
     {
       "tc_id": "TC-SIN-010h",
-      "status": "pass",
-      "notes": "✓  271 [chromium] › tests/e2e/semilla-intacta.spec.ts:33:5 › TC-SIN-010h: un usuario nuevo ve la tarjeta de arranque y ninguna cifra inventada (232ms)"
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-SIN-010h\" so it appears on stdout (e.g. test_TC_SIN_010h_description, # @aitri-tc TC-SIN-010h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-SIN-010h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
     },
     {
       "tc_id": "TC-SIN-011e",
@@ -37,8 +37,8 @@
     },
     {
       "tc_id": "TC-SIN-012f",
-      "status": "fail",
-      "notes": "✘  272 [chromium] › tests/e2e/semilla-intacta.spec.ts:56:5 › TC-SIN-012f: una cuenta con datos propios NO ve la tarjeta (232ms)"
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-SIN-012f\" so it appears on stdout (e.g. test_TC_SIN_012f_description, # @aitri-tc TC-SIN-012f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-SIN-012f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
     },
     {
       "tc_id": "TC-SIN-020h",
@@ -53,22 +53,22 @@
     {
       "tc_id": "TC-SIN-022f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > NFR-2301 · las cuentas existentes no se tocan > TC-SIN-022f: sin libro persistido SÍ se siembra — la condición sigue colgando del 204 0ms"
+      "notes": "✓ |app| tests/integration/semilla-intacta.test.ts > NFR-2301 · las cuentas existentes no se tocan > TC-SIN-022f: sin libro persistido SÍ se siembra — la condición sigue colgando del 204 1ms"
     },
     {
       "tc_id": "TC-SIN-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-030h: la jerarquía es idéntica campo a campo a la de antes del cambio 2ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-030h: la jerarquía es idéntica campo a campo a la de antes del cambio 3ms"
     },
     {
       "tc_id": "TC-SIN-031e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-031e: la siembra sigue siendo determinista entre llamadas 0ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2302 · la jerarquía sembrada sigue intacta > TC-SIN-031e: la siembra sigue siendo determinista entre llamadas 1ms"
     },
     {
       "tc_id": "TC-SIN-032f",
-      "status": "pass",
-      "notes": "✓  273 [chromium] › tests/e2e/semilla-intacta.spec.ts:68:5 › TC-SIN-032f: la semilla sigue siendo editable — renombrar una categoría persiste (102ms)"
+      "status": "skip",
+      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-SIN-032f\" so it appears on stdout (e.g. test_TC_SIN_032f_description, # @aitri-tc TC-SIN-032f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-SIN-032f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
     },
     {
       "tc_id": "TC-SIN-040h",
@@ -83,12 +83,12 @@
     {
       "tc_id": "TC-SIN-042f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · la migración de las pruebas no hace trampas > TC-SIN-042f: genBudget sobrevive intacta y sigue produciendo los mismos montos 1ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · la migración de las pruebas no hace trampas > TC-SIN-042f: genBudget sobrevive intacta y sigue produciendo los mismos montos 0ms"
     },
     {
       "tc_id": "TC-SIN-043f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · el gate contra la trampa silenciosa > TC-SIN-043f: la migración no introduce ningún marcador de salto en la suite 34ms"
+      "notes": "✓ |app| tests/domain/semilla-intacta.test.ts > NFR-2303 · el gate contra la trampa silenciosa > TC-SIN-043f: la migración no introduce ningún marcador de salto en la suite 40ms"
     }
   ],
   "fr_coverage": [
@@ -102,11 +102,11 @@
     },
     {
       "fr_id": "FR-2302",
-      "tests_passing": 2,
-      "tests_failing": 1,
-      "tests_skipped": 0,
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 2,
       "tests_manual": 0,
-      "status": "partial"
+      "status": "covered"
     }
   ],
   "ac_coverage": [
@@ -131,20 +131,20 @@
     {
       "ac_id": "AC-2303",
       "fr_id": "FR-2301",
-      "tests_passing": 3,
+      "tests_passing": 2,
       "tests_failing": 0,
-      "tests_skipped": 0,
+      "tests_skipped": 1,
       "tests_manual": 0,
       "status": "covered"
     },
     {
       "ac_id": "AC-2304",
       "fr_id": "FR-2302",
-      "tests_passing": 1,
+      "tests_passing": 0,
       "tests_failing": 0,
-      "tests_skipped": 0,
+      "tests_skipped": 1,
       "tests_manual": 0,
-      "status": "covered"
+      "status": "uncovered"
     },
     {
       "ac_id": "AC-2305",
@@ -159,19 +159,19 @@
       "ac_id": "AC-2306",
       "fr_id": "FR-2302",
       "tests_passing": 0,
-      "tests_failing": 1,
-      "tests_skipped": 0,
+      "tests_failing": 0,
+      "tests_skipped": 1,
       "tests_manual": 0,
       "status": "uncovered"
     }
   ],
   "summary": {
     "total": 17,
-    "passed": 16,
-    "failed": 1,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 3,
+    "skipped_e2e": 2,
+    "skipped_no_marker": 1,
     "manual": 0,
     "manual_verified": 0
   },
@@ -183,7 +183,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1506,
+      "duration_ms": 1442,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -192,7 +192,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 36362,
+      "duration_ms": 36746,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint ."
     },
     {
@@ -201,7 +201,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 252,
+      "duration_ms": 245,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -210,7 +210,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 785,
+      "duration_ms": 710,
       "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
     },
     {
@@ -219,7 +219,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 118,
+      "duration_ms": 115,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -228,7 +228,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 14907,
+      "duration_ms": 1246,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -237,8 +237,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 111830,
-      "output": "] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  429 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  429 passed (1.9m)\n\n(node:18606) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 123556,
+      "output": "dger/tests/e2e/recuperar-acceso-flujo.spec.ts:193:20\n\n    Error Context: test-results/recuperar-acceso-flujo-NFR-0ae21-el-cliente-en-cero-externas-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:176:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-210h: el recorrido completo, tema incluido, mantiene el cliente en cero externas \n  428 passed (2.1m)\n\n(node:51684) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     },
     {
       "name": "coverage",
@@ -246,14 +246,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 26692,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T20:02:13.686Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T20:02:13.687Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 25857,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T22:11:14.664Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-09T22:11:14.666Z WARN [Better Auth]: Reset Password: User not found"
     }
   ],
   "timings": {
-    "runner_ms": 24528,
-    "e2e_ms": 113286,
-    "gates_ms": 192452,
-    "total_ms": 330281
+    "runner_ms": 25595,
+    "e2e_ms": 2085,
+    "gates_ms": 189917,
+    "total_ms": 217609
   }
 }

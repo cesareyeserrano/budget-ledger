@@ -43,9 +43,38 @@ export const APP_LOG = path.join(os.tmpdir(), "ledger-e2e-app.log");
  */
 export const E2E_WORKERS = 4;
 export const E2E_PASSWORD = "Ledger-e2e-2026!";
-export const e2eEmail = (worker: number) => `e2e-w${worker}@ledger.test`;
+
+/**
+ * BG-036 — NAMESPACE DE CUENTAS, porque el aislamiento por worker no llegaba lo bastante lejos.
+ *
+ * LO QUE DE VERDAD SE COMPARTÍA ERA EL storageState, NO LA BASE. Conviene dejarlo escrito con
+ * precisión, porque la primera versión de este comentario afirmaba que las dos suites compartían
+ * cuentas de Postgres y ESO ES FALSO: la línea 101 de este mismo fichero arranca un
+ * PostgreSqlContainer POR SUITE, así que cada una tiene su base efímera y sus propias cuentas
+ * e2e-w0..w3. Por ahí no había colisión.
+ *
+ * La que sí había es este fichero de cookie: `storageStatePath` vivía en os.tmpdir() con sólo el
+ * índice de worker en el nombre. Cuando `aitri verify-run` lanza las DOS suites a la vez —la corrida
+ * Playwright autodetectada y el gate `e2e.sh`, que es la suite completa otra vez—, las dos escribían
+ * `ledger-e2e-storage-state-w0.json`. Y cada cookie es válida SÓLO contra la base de SU suite, así
+ * que la que escribía segunda dejaba a la primera autenticándose contra una cuenta que en su base no
+ * existe. tmpdir es el único estado que las dos suites veían de verdad.
+ *
+ * El namespace se aplica también al email. Ahí es redundante —bases distintas ya los separan— pero
+ * se mantiene por simetría y porque sale de la misma variable: un namespace por suite, un juego de
+ * recursos por suite.
+ *
+ * OJO, ESTO NO ARREGLA LA CLASE ENTERA. Con las cinco corridas de verify-run solapadas a mano el
+ * 2026-09-09, el gate pasó limpio (429/429, cero 422) pero la corrida autodetectada se hundió con
+ * 972 respuestas 422 y 30 minutos de reloj. Queda causa abierta y el candidato medido es la MEMORIA
+ * DE DOCKER: 3,82 GB en total para los tres contenedores de desarrollo más DOS stacks e2e completos
+ * (un Postgres y un Mailpit por suite) más los de la integración de backend. Dos suites Playwright
+ * completas a la vez no caben, y por eso la receta operativa sigue siendo una unidad cada vez.
+ */
+const E2E_NS = process.env.E2E_ACCOUNT_NS ?? "";
+export const e2eEmail = (worker: number) => `e2e-${E2E_NS}w${worker}@ledger.test`;
 export const storageStatePath = (worker: number) =>
-  path.join(os.tmpdir(), `ledger-e2e-storage-state-w${worker}.json`);
+  path.join(os.tmpdir(), `ledger-e2e-storage-state-${E2E_NS}w${worker}.json`);
 
 /**
  * ¿Hay alguien escuchando ya en el puerto de la suite? (BG-016)

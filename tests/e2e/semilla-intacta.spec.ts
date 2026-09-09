@@ -59,10 +59,29 @@ test("TC-SIN-012f: una cuenta con datos propios NO ve la tarjeta", async ({ page
   await page.setViewportSize(DESK);
   await page.goto("/");
 
+  // BG-001 — ANCLAR A UNA PÁGINA CARGADA ANTES DE JUZGAR. Lo que este TC comprueba es una
+  // AUSENCIA, y una ausencia se cumple sola en una página que todavía no ha pintado: el
+  // `toHaveCount(0)` daba verde tanto si la tarjeta no debía estar como si no había cargado nada
+  // —cero es cero—, o sea que el caso podía pasar POR LA RAZÓN EQUIVOCADA y nadie se enteraba.
+  //
+  // La otra mitad era el síntoma visible: la lectura de importes se hacía con `allInnerTexts()`,
+  // que se resuelve UNA SOLA VEZ y no reintenta, lanzada justo después del `goto`. Si el ledger no
+  // había pintado, la lista venía vacía y el `some()` daba false. De ahí el flaky medido el
+  // 2026-09-09: fallaba el 1er intento (459ms) y pasaba el reintento (297ms), así que Playwright lo
+  // marcaba `flaky` y devolvía exit 0 —la suite no lo delataba— mientras Aitri leía el primer
+  // marcador y lo acreditaba como fail.
+  //
+  // Las dos mitades tienen la misma raíz, y por eso NO se arregla subiendo reintentos: eso taparía
+  // el síntoma y dejaría viva la aserción que pasa por la razón equivocada. Se espera PRIMERO, con
+  // una aserción que SÍ reintenta, a que la grilla muestre un importe —lo que prueba a la vez que
+  // la página cargó y que la cuenta tiene datos propios, que es la premisa del caso—, y sólo
+  // entonces se afirma la ausencia de la tarjeta.
+  const celdaConImporte = page
+    .locator('[data-testid^="cell-"]')
+    .filter({ hasText: /\d[\d.,]*\d/ });
+  await expect(celdaConImporte.first()).toBeVisible();
+
   await expect(page.getByTestId("opening-card")).toHaveCount(0);
-  // y la grilla sí muestra importes
-  const textos = await page.locator('[data-testid^="cell-"]').allInnerTexts();
-  expect(textos.some((t) => /\d[\d.,]*\d/.test(t.replace(/\s/g, "")))).toBe(true);
 });
 
 test("TC-SIN-032f: la semilla sigue siendo editable — renombrar una categoría persiste", async ({ page }) => {

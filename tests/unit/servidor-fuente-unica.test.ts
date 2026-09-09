@@ -10,8 +10,9 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
-import { writeFileSync, rmSync, existsSync, readFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, rmSync, existsSync, readFileSync, mkdirSync, mkdtempSync } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { InMemoryRepository } from "../helpers/inMemoryRepository";
 import { buildSeed } from "@/domain";
 import { P0 } from "../helpers/periods";
@@ -19,15 +20,37 @@ import { P0 } from "../helpers/periods";
 const ROOT = path.resolve(__dirname, "../..");
 const GATE = path.join(ROOT, "scripts/no-legacy-mode.sh");
 
-/** Ejecuta el gate y devuelve su exit code (0 = limpio, 1 = reapareció el modo retirado). */
-function runGate(): { code: number; out: string } {
-  const r = spawnSync(GATE, [], { cwd: ROOT, encoding: "utf8" });
+/**
+ * Ejecuta el gate sobre una raíz y devuelve su exit code (0 = limpio, 1 = reapareció lo retirado).
+ * Sin argumento mira el checkout real, que es lo que interesa comprobar de verdad.
+ */
+function runGate(raiz?: string): { code: number; out: string } {
+  const r = spawnSync(GATE, raiz ? [raiz] : [], { cwd: ROOT, encoding: "utf8" });
   return { code: r.status ?? -1, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 }
 
 const temporales: string[] = [];
-function tempFile(rel: string, content: string): string {
-  const abs = path.join(ROOT, rel);
+const arbolesTemp: string[] = [];
+
+/**
+ * BG-035 — ÁRBOL PROPIO PARA LAS SONDAS. Plantarlas en el checkout compartido era un defecto real,
+ * no una incomodidad: `aitri verify-run` corre unit.sh Y coverage.sh, o sea la MISMA suite dos veces
+ * sobre el mismo árbol, así que la corrida que plantaba `src/__probe_legacy__.ts` envenenaba a la
+ * que estaba afirmando que src/ seguía limpio. Medido el 2026-09-09: runner exit 1 con 876/877 en
+ * verde y este TC como único rojo. Es la familia de BG-033, que ya lo arregló así para secret-scan.
+ *
+ * El árbol lleva un src/ con un fichero limpio porque el gate aborta con exit 2 si no existe src/.
+ */
+function arbolSonda(): string {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "ledger-no-legacy-"));
+  mkdirSync(path.join(dir, "src"), { recursive: true });
+  writeFileSync(path.join(dir, "src/limpio.ts"), "export const ok = true;\n");
+  arbolesTemp.push(dir);
+  return dir;
+}
+
+function tempFile(rel: string, content: string, base: string = ROOT): string {
+  const abs = path.join(base, rel);
   mkdirSync(path.dirname(abs), { recursive: true });
   writeFileSync(abs, content);
   temporales.push(abs);
@@ -35,8 +58,8 @@ function tempFile(rel: string, content: string): string {
 }
 
 afterEach(() => {
-  // Los sondeos escriben dentro de src/ y tests/: dejarlos rompería el gate para todos.
   while (temporales.length) rmSync(temporales.pop()!, { force: true });
+  while (arbolesTemp.length) rmSync(arbolesTemp.pop()!, { recursive: true, force: true });
 });
 
 describe("FR-1101 — construcción del repositorio en SSR", () => {
@@ -142,19 +165,21 @@ describe("NFR-1107 — gate estático no-legacy-mode", () => {
     // @aitri-tc TC-SFU-207e
     // Mencionar los nombres retirados fuera de src/ es legítimo (explicar QUÉ se retiró); hacerlo
     // fallar sería un falso positivo que obligaría a borrar la explicación para pasar el gate.
-    tempFile("tests/__probe_legacy__.ts", "export const x = 'LocalStorageRepository';\n");
-    tempFile("docs/__probe_legacy__.md", "El flag SERVER_MODE se retiró en esta feature.\n");
+    const raiz = arbolSonda();
+    tempFile("tests/__probe_legacy__.ts", "export const x = 'LocalStorageRepository';\n", raiz);
+    tempFile("docs/__probe_legacy__.md", "El flag SERVER_MODE se retiró en esta feature.\n", raiz);
 
-    const { code, out } = runGate();
+    const { code, out } = runGate(raiz);
     expect(code, out).toBe(0);
   });
 
   it("TC-SFU-207f: el gate falla si alguien reintroduce el flag en src/", () => {
     // @aitri-tc TC-SFU-207f
     // El gate se prueba FALLANDO: si no falla aquí, no protege nada.
-    tempFile("src/__probe_legacy__.ts", "export const SERVER_MODE = true;\n");
+    const raiz = arbolSonda();
+    tempFile("src/__probe_legacy__.ts", "export const SERVER_MODE = true;\n", raiz);
 
-    const { code, out } = runGate();
+    const { code, out } = runGate(raiz);
     expect(code).toBe(1);
     expect(out).toMatch(/reapareció el modo retirado/);
     expect(out).toContain("__probe_legacy__.ts");
@@ -213,9 +238,17 @@ describe("NFR-1108 — arranque y CI sin el flag retirado", () => {
     // @aitri-tc TC-SFU-208f
     // Un pipeline que no puede fallar no verifica nada. Se corre un test que falla a propósito con
     // el MISMO runner del proyecto y se exige exit ≠ 0.
-    tempFile("tests/unit/__probe_failing__.test.ts", 'import { it, expect } from "vitest";\nit("sonda: debe fallar", () => { expect(1).toBe(2); });\n');
+    // BG-035 — LA SONDA VA EN SU PROPIA RAÍZ, no en tests/unit/. Plantar aquí un test que falla a
+    // propósito dentro del glob del proyecto `app` era una bomba de relojería bajo concurrencia:
+    // verify-run corre unit.sh y coverage.sh a la vez, y si la segunda recolectaba mientras esta
+    // sonda existía, se llevaba un rojo llamado "sonda: debe fallar" sin ninguna relación con el
+    // código. Con `--root` vitest recolecta SOLO dentro del árbol temporal; la sonda no usa alias
+    // ni helpers del proyecto, así que no necesita su configuración.
+    const raiz = mkdtempSync(path.join(os.tmpdir(), "ledger-probe-failing-"));
+    arbolesTemp.push(raiz);
+    tempFile("sonda.test.ts", 'import { it, expect } from "vitest";\nit("sonda: debe fallar", () => { expect(1).toBe(2); });\n', raiz);
 
-    const r = spawnSync("npx", ["vitest", "run", "--project", "app", "tests/unit/__probe_failing__.test.ts"], {
+    const r = spawnSync("npx", ["vitest", "run", "--root", raiz], {
       cwd: ROOT, encoding: "utf8", env: { ...process.env, CI: "true", VITEST_NESTED: "1" },
     });
     expect(r.status).not.toBe(0);

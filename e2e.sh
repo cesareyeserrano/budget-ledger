@@ -30,5 +30,12 @@ cd "$(dirname "$0")"
 export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-e2e-gate}"
 export E2E_PORT="${E2E_PORT:-3230}"
 
+# BG-036 — NAMESPACE PROPIO PARA ESTA SUITE. Lo que compartía con la corrida autodetectada NO era la
+# base (cada suite arranca su propio Postgres efímero) sino el fichero de storageState en tmpdir:
+# las dos escribían ledger-e2e-storage-state-w0.json, y una cookie sólo vale contra la base de SU
+# suite. Con namespace cada una tiene su juego de ficheros. Ver el comentario largo en
+# tests/e2e/helpers/globalSetup.ts, que deja dicho lo que esto arregla y lo que NO.
+export E2E_ACCOUNT_NS="${E2E_ACCOUNT_NS:-gate-}"
+
 echo "[e2e] suite completa · distDir=$NEXT_DIST_DIR · puerto=$E2E_PORT"
 exec npx playwright test

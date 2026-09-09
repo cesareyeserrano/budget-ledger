@@ -9,7 +9,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "fr": "FR-2302",
       "tc_reference": null,
       "phase_detected": null,
@@ -17,8 +17,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-09T20:05:59.445Z",
-      "updated_at": "2026-09-09T20:05:59.445Z",
-      "resolution": null
+      "updated_at": "2026-09-09T20:26:01.804Z",
+      "resolution": "Arreglado en tests/e2e/semilla-intacta.spec.ts:56. Se ancla el TC a una pagina CARGADA antes de juzgar la ausencia: se espera con una asercion que SI reintenta (expect(celdaConImporte.first()).toBeVisible(), sobre un locator filtrado por /\\d[\\d.,]*\\d/) a que la grilla muestre un importe —lo que prueba a la vez que la pagina pinto y que la cuenta tiene datos propios, la premisa del caso— y SOLO ENTONCES se afirma toHaveCount(0) sobre opening-card. Elimina las dos mitades del defecto: desaparece el allInnerTexts() de una sola vez sin reintento que causaba el flaky, y la asercion de ausencia deja de poder satisfacerse en una pagina en blanco. NO se subieron reintentos a proposito: eso habria tapado el sintoma dejando viva la asercion que pasaba por la razon equivocada. VERIFICADO CONTRA EL ESCENARIO QUE LO ROMPIA, no contra la ausencia de sintoma: (1) 5 repeticiones con --retries=0, o sea con el PRIMER intento como veredicto, 5 de 5 en verde (el 1er intento pasa de fallar a 459ms a pasar a 415ms); (2) COMPROBACION DE MUTACION: replica del test con page.route del ledger ABORTADA para que la grilla no pinte nunca — el test FALLA con 'element(s) not found', que es lo que se le pide; si hubiera pasado, estaria pasando en vacio.",
+      "fix_commit_sha": "e379d1db6869506cb72f9d39b177d87dde61f58a",
+      "fix_at": "2026-09-09T20:26:01.804Z"
     }
   ]
 }
