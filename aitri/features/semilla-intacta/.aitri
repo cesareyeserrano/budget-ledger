@@ -17,20 +17,9 @@
   "projectName": "semilla-intacta",
   "createdAt": "2026-09-07T18:44:22.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T22:11:15.457Z",
+  "updatedAt": "2026-09-10T00:48:38.526Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T22:38:17.221Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-07T22:41:02.497Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
     {
       "at": "2026-09-07T23:02:32.209Z",
       "event": "started",
@@ -144,6 +133,22 @@
       "failed": 0,
       "skipped": 3,
       "manual": 0
+    },
+    {
+      "at": "2026-09-10T00:48:22.599Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-10T00:48:38.513Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 17,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -172,23 +177,33 @@
       "FR-2302"
     ]
   },
-  "verifyResultsHash": "99736ef26bdf7d58c1d465ad97c5b63af7c051b44d19e1c35d518ef202599438",
-  "verifyRanAt": "2026-09-09T22:11:15.382Z",
-  "verifyRanRef": "e379d1db6869506cb72f9d39b177d87dde61f58a",
-  "verifyRanDirty": true,
+  "verifyResultsHash": "2fb445cee43d7980571d911c55bec9cb0b4537dfa32548d1d8f2fee1ee75559b",
+  "verifyRanAt": "2026-09-10T00:48:22.540Z",
+  "verifyRanRef": "b94d51fcd90ab8e261767f34f0d3ab8e0a5fbefe",
+  "verifyRanDirty": false,
   "lastVerifyRun": {
-    "passed": 14,
+    "passed": 17,
     "failed": 0,
-    "skipped": 3,
+    "skipped": 0,
     "manual": 0,
-    "at": "2026-09-09T22:11:15.382Z"
+    "at": "2026-09-10T00:48:22.540Z"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-09-08T15:01:00.836Z"
     }
-  ]
+  ],
+  "verifySummary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
 }
