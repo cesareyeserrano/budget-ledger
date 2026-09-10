@@ -895,6 +895,26 @@
       "resolution": "DIAGNOSTICO CORREGIDO — LA CAUSA QUE DECLARE ERA FALSA Y LA DESMIENTE EL PROPIO CODIGO. Dije que las dos suites Playwright compartian las cuentas de Postgres. NO es asi: tests/e2e/helpers/globalSetup.ts:101 arranca un PostgreSqlContainer POR SUITE, o sea que cada una tiene su base efimera con sus propias cuentas e2e-w0..w3. Por ahi no habia colision y el titulo de este bug estaba equivocado. LO QUE SI SE COMPARTIA, y queda arreglado: el fichero de storageState. storageStatePath vivia en os.tmpdir() con solo el indice de worker en el nombre, asi que las dos suites escribian ledger-e2e-storage-state-w0.json; y cada cookie vale SOLO contra la base de su suite, asi que la que escribia segunda dejaba a la primera autenticandose contra una cuenta inexistente en su base. tmpdir era el unico estado que las dos veian de verdad. ARREGLO: E2E_ACCOUNT_NS namespacea storageState (y el email, redundante pero simetrico, misma variable); e2e.sh exporta gate-. Sin la variable los nombres son los de siempre. PARCIALMENTE VERIFICADO: con las cinco corridas solapadas a mano el gate paso 429/429 en 2.4m con CERO respuestas 422, cuando antes devolvia 396 failed. NO CIERRA LA CLASE y no hay que darlo por cerrado: en la misma corrida la suite autodetectada se hundio con 972 respuestas 422 y 30 minutos de reloj. CANDIDATO MEDIDO PARA LO QUE QUEDA: la memoria de Docker. docker info reporta 3.82 GB totales, y el solape pide los tres contenedores de desarrollo MAS dos stacks e2e completos (un Postgres y un Mailpit por suite) MAS los de la integracion de backend. Dos suites Playwright completas no caben en 3.82 GB, y eso explica por que 'arrancar con carga baja' nunca basto: el limite es memoria de Docker, no CPU. SIGUIENTE PASO REAL, y es estructural: dejar de correr la suite COMPLETA dos veces por verify-run (la autodetectada y el gate e2e.sh son la misma suite), o subir la memoria de Docker. Tambien se corrigio el comentario que habia escrito con la causa falsa, por la misma razon que BG-018: un comentario que promete un aislamiento inexistente es peor que no tenerlo.",
       "fix_commit_sha": "e379d1db6869506cb72f9d39b177d87dde61f58a",
       "fix_at": "2026-09-09T22:07:29.594Z"
+    },
+    {
+      "id": "BG-037",
+      "title": "El procedimiento de Rollback de DEPLOYMENT.md sigue describiendo la app que ya NO existe, y es peligroso porque se lee durante un incidente. DEPLOYMENT.md:73 dice literalmente: 'La imagen es inmutable y versionada; el estado del usuario vive en su navegador (no hay migraciones de datos que revertir)'. Las dos mitades son falsas desde la feature servidor-fuente-unica: el estado vive en Postgres y SI hay migraciones (drizzle, src/server/db). Lo agrava que es EXACTAMENTE la clase de error que la cabecera del propio documento (linea 5) declara haber corregido el 2026-09-03: 'Este documento describia una app que ya no existe: decia single-user, datos en localStorage'. Se corrigio la mitad del documento y la seccion de Rollback se quedo con el texto viejo, asi que hoy el fichero se contradice a si mismo entre la linea 5 y la linea 73. DETECTADO el 2026-09-09 verificando la checklist de revision humana de la fase 5 de budget-state-color, que pide comprobar que DEPLOYMENT.md incluya procedimiento de rollback: la seccion EXISTE, asi que el item se marca hecho, pero su contenido enganaria al operador. POR QUE NO LO ARREGLE SOBRE LA MARCHA: el rollback correcto de una app con Postgres detras exige decisiones que no son mias — politica de respaldo antes de desplegar, si las migraciones de drizzle se revierten o se aplica solo hacia adelante, y que se hace con los datos escritos entre el despliegue y la reversion. Hay que escribirlo CON el usuario. Lo que es seguro: la seccion de Health check del mismo documento (lineas 41-47) si esta correcta y verificada (GET /health devuelve 200 sin autenticacion, HEALTHCHECK apunta a /health y no a /, que redirige)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": "NFR-504",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-09T23:52:48.689Z",
+      "updated_at": "2026-09-09T23:52:48.689Z",
+      "resolution": null
     }
   ]
 }
