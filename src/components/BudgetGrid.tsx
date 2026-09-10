@@ -1,10 +1,11 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, useDraggable, useDroppable, type DragEndEvent, type DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info, Lock } from "lucide-react";
-import { useLedgerStore, useActivePeriods, useVisiblePeriods, useClosure, useClosureStatus } from "@/state/store";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, ArrowRight, ArrowRightLeft, TriangleAlert, Info, Lock, ArrowLeftRight } from "lucide-react";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods, useClosure, useClosureStatus, useCalendar } from "@/state/store";
 import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/domain/types";
-import { periodMonthLabel, isYearStart, periodYear } from "@/domain/periods";
+import { periodMonthLabel, isYearStart, periodYear, monthOf } from "@/domain/periods";
+import { cycleMonthLabel, withRange } from "./cycleText";
 import { isClosed } from "@/domain/closure";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
@@ -204,6 +205,8 @@ export function BudgetGrid() {
   // recalcular la pertenencia en cada render de cada cabecera.
   const closure = useClosure();
   const { reopenable } = useClosureStatus();
+  // Feature ciclos (FR-2407): el calendario vigente para rotular la cabecera.
+  const cal = useCalendar();
   const cerrados = useMemo(
     () => new Set(periods.filter((p) => isClosed(closure, p))),
     [periods, closure]
@@ -358,8 +361,8 @@ export function BudgetGrid() {
             // (FR-2004). Bloquear la celda entera habría convertido esa decisión en letra muerta.
             showToast(
               mk === reopenable
-                ? `${periodMonthLabel(mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar una observación.`
-                : `${periodMonthLabel(mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar una observación en la celda.`
+                ? `${cycleMonthLabel(cal, mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar una observación.`
+                : `${cycleMonthLabel(cal, mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar una observación en la celda.`
             );
             setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
             return;
@@ -392,7 +395,7 @@ export function BudgetGrid() {
         <div className="w-max min-w-full text-caption">
           {/* Encabezados sticky */}
           <div className="sticky top-0 z-[3] flex">
-            <div className={cn(STICKY_BASE, LABEL_W, "items-end h-[98px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
+            <div className={cn(STICKY_BASE, LABEL_W, cal.mode === "cycle" ? "items-end h-[112px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow" : "items-end h-[98px] pl-3.5 pr-2.5 pb-2.5 bg-sunken border-b border-border-strong eyebrow")}>CATEGORÍA
               {/* FR-104: manija de resize (la celda sticky ya es containing block para el absolute) */}
               <span
                 onPointerDown={startResize}
@@ -431,26 +434,35 @@ export function BudgetGrid() {
               <div className="flex">
                 {periods.map((m) => {
                   const active = highlightMonth === m;
+                  // Feature ciclos (FR-2407): en ciclos la cabecera lleva DOS líneas — nombre y rango —
+                  // y crece a 52px; en mes se queda en 38px y sin rango, idéntica a la de antes.
+                  const range = cal.rangeLabel(m);
+                  const transition = cal.isTransition(m);
                   // El mes activo DESTACA por peso + color pleno; los inactivos recéden en gris
                   // secundario. (Antes usaba --accent-light = gris, que en el tema neutro dejaba el
                   // activo MÁS apagado que los demás — al revés de lo buscado.)
                   return (
                     <div
                       key={m}
-                      className={cn(CELL_W, "flex items-center justify-center gap-1 h-[38px] px-2 label bg-sunken border-b border-border border-l-2", active && "font-semibold",
+                      className={cn(CELL_W, "flex items-center justify-center gap-1 px-2 label bg-sunken border-b border-border border-l-2", range ? "h-[52px] flex-col gap-[2px]" : "h-[38px]", active && "font-semibold",
                         // FR-1905: el cambio de año se MARCA. Sin esto, dos «Mar» separados por
                         // doce columnas son indistinguibles en una tira continua.
                         isYearStart(m) ? "border-l-fg-muted" : "border-l-border-strong")}
-                      style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)" }}
+                      // Feature ciclos (UX A: columna actual a 600). `.label` es CSS sin capa y gana a `font-semibold`,
+                      // así que el peso va en línea — SOLO en ciclos: la cabecera de mes queda idéntica (NFR de regresión).
+                      style={{ width: 216, color: active ? "var(--fg)" : "var(--fg-secondary)", ...(range && active && !transition ? { fontWeight: 600 } : {}) }}
                       data-month-head={m}
                       data-year-start={isYearStart(m) || undefined}
                       data-closed={cerrados.has(m) ? "true" : "false"}
                       title={
-                        cerrados.has(m)
-                          ? `${periodMonthLabel(m)} de ${periodYear(m)} — mes cerrado: sus cifras no se editan`
-                          : `${periodMonthLabel(m)} de ${periodYear(m)}`
+                        transition
+                          ? `Ciclo de transición · ${range}: cambiaste el día de pago. Es normal que sea más corto o más largo.${cerrados.has(m) ? " — cerrado: sus cifras no se editan" : ""}`
+                          : cerrados.has(m)
+                            ? `${periodMonthLabel(monthOf(m))} de ${periodYear(m)}${range ? ` · ${range}` : ""} — ${range ? "ciclo" : "mes"} cerrado: sus cifras no se editan`
+                            : `${periodMonthLabel(monthOf(m))} de ${periodYear(m)}${range ? ` · ${range}` : ""}`
                       }
                     >
+                    <span className="flex items-center gap-1">
                       {/* FR-2009: la señal de «cerrado» NO puede ser solo el color — en escala de
                           grises tiene que seguir leyéndose (WCAG 1.4.1). El candado es ese segundo
                           canal, igual que el glifo lo es para el código de estado. */}
@@ -458,8 +470,8 @@ export function BudgetGrid() {
                         <span
                           data-testid="closed-mark"
                           data-month={m}
-                          title={`${periodMonthLabel(m)} está cerrado`}
-                          aria-label={`${periodMonthLabel(m)} está cerrado`}
+                          title={`${cycleMonthLabel(cal, m)} está cerrado`}
+                          aria-label={`${cycleMonthLabel(cal, m)} está cerrado`}
                           className="flex-none inline-flex"
                           style={{ color: "var(--fg-muted)" }}
                         >
@@ -470,15 +482,24 @@ export function BudgetGrid() {
                         <span
                           data-testid="techo-mark"
                           data-month={m}
-                          title={`${periodMonthLabel(m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
-                          aria-label={`${periodMonthLabel(m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
+                          title={`${cycleMonthLabel(cal, m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
+                          aria-label={`${cycleMonthLabel(cal, m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
                           className="flex-none inline-flex"
                           style={{ color: "var(--alert-strong)" }}
                         >
                           <TriangleAlert size={13} aria-hidden="true" />
                         </span>
                       ) : null}
-                      {periodMonthLabel(m)}
+                      {transition && (
+                        <span data-testid="transition-mark" data-month={m} className="flex-none inline-flex" style={{ color: "var(--fg-muted)" }}>
+                          <ArrowLeftRight size={12} aria-label="Ciclo de transición" />
+                        </span>
+                      )}
+                      {cycleMonthLabel(cal, m)}
+                    </span>
+                    {range && (
+                      <span data-testid="cycle-range" className="caption font-normal whitespace-nowrap" style={{ color: "var(--fg-muted)" }}>{range}</span>
+                    )}
                     </div>
                   );
                 })}

@@ -32,10 +32,16 @@ export const MONTH_LABELS_SHORT = [
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ] as const;
 
-const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+// Feature ciclos (ADR-02): la clave puede llevar el sufijo «t» — el ciclo de TRANSICIÓN entre dos
+// versiones de configuración cuando termina en el mismo mes que el ciclo que lo precede. Ordena por
+// texto entre «2026-10» y «2026-11» sin tocar `comparePeriods`.
+const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])t?$/;
 
-/** Longitud exacta de un periodo bien formado. Se comprueba ANTES de la regex (NFR-1908). */
+/** Longitudes admitidas: 7 («YYYY-MM») u 8 con el sufijo de transición (NFR-1908). */
 const PERIOD_LEN = 7;
+const CYCLE_KEY_LEN = 8;
+/** Sufijo de la clave de transición (ADR-02). */
+export const TRANSITION_SUFFIX = "t";
 
 /**
  * True si `v` es un periodo bien formado. Único punto de verdad del formato.
@@ -43,7 +49,26 @@ const PERIOD_LEN = 7;
  * @aitri-trace FR-ID: FR-1901, US-ID: US-1901, AC-ID: AC-1903, TC-ID: TC-MAN-003f, TC-MAN-004e
  */
 export function isPeriodKey(v: unknown): v is PeriodKey {
-  return typeof v === "string" && v.length === PERIOD_LEN && PERIOD_RE.test(v);
+  return typeof v === "string" && (v.length === PERIOD_LEN || v.length === CYCLE_KEY_LEN) && PERIOD_RE.test(v);
+}
+
+/**
+ * True si la clave es la de un ciclo de transición («YYYY-MMt»). Feature ciclos, ADR-02.
+ *
+ * @aitri-trace FR-ID: FR-2408, US-ID: US-2408, AC-ID: AC-2425, TC-ID: TC-CIC-080e
+ */
+export function isCycleKey(v: unknown): boolean {
+  return isPeriodKey(v) && v.length === CYCLE_KEY_LEN;
+}
+
+/** La clave de mes de cualquier clave: «2026-10t» → «2026-10». Identidad para una clave de mes. */
+export function monthOf(p: PeriodKey): PeriodKey {
+  return isCycleKey(p) ? p.slice(0, PERIOD_LEN) : p;
+}
+
+/** La clave de transición del mes: «2026-10» → «2026-10t». */
+export function transitionKey(month: PeriodKey): PeriodKey {
+  return `${monthOf(month)}${TRANSITION_SUFFIX}`;
 }
 
 /** Año de un periodo. Devuelve NaN si el periodo es inválido. */
@@ -81,11 +106,26 @@ export function minPeriod(a: PeriodKey, b: PeriodKey): PeriodKey {
  * Un periodo inválido se devuelve tal cual: el llamador valida antes.
  */
 export function addMonths(p: PeriodKey, n: number): PeriodKey {
+  // Feature ciclos (FLAG-1): sobre una clave de transición la aritmética de meses NO tiene sentido
+  // — la vecindad la da el calendario. Lanzar aquí es preferible a perder el sufijo en silencio.
+  if (isCycleKey(p)) throw new Error(`addMonths: «${p}» es una clave de transición; usa calendar.next/prev`);
   if (!isPeriodKey(p) || !Number.isFinite(n)) return p;
   const total = periodYear(p) * 12 + (periodMonth(p) - 1) + Math.trunc(n);
   const year = Math.floor(total / 12);
   const month = total - year * 12 + 1;
   return periodOf(year, month);
+}
+
+/**
+ * Feature ciclos (gate estático, TC-CIC-102e): vecinos de MES para el código que por contrato solo
+ * opera en modo mes (el cierre normaliza su frontera sin calendario). En ciclos la vecindad la da
+ * `calendar.next/prev`; ante una clave de transición lanzan, igual que `addMonths`.
+ */
+export function monthNext(p: PeriodKey): PeriodKey {
+  return addMonths(p, 1);
+}
+export function monthPrev(p: PeriodKey): PeriodKey {
+  return addMonths(p, -1);
 }
 
 /** Meses entre dos periodos (`to` − `from`). Negativo si `to` es anterior. */
@@ -105,10 +145,13 @@ export function monthsBetween(from: PeriodKey, to: PeriodKey): number {
  */
 export function periodRange(from: PeriodKey, to: PeriodKey): PeriodKey[] {
   if (!isPeriodKey(from) || !isPeriodKey(to)) return [];
-  const n = monthsBetween(from, to);
+  // Cotas con sufijo se reducen a su mes: la lista de MESES nunca contiene transiciones (esas las
+  // intercala `Calendar.keys`). Así esta ruta «nunca lanza» aunque la cota venga de un dato con «t».
+  const f = monthOf(from);
+  const n = monthsBetween(f, monthOf(to));
   if (!Number.isFinite(n) || n < 0) return [];
   const out: PeriodKey[] = [];
-  for (let i = 0; i <= n; i++) out.push(addMonths(from, i));
+  for (let i = 0; i <= n; i++) out.push(addMonths(f, i));
   return out;
 }
 

@@ -49,10 +49,19 @@ const baseSchema = z.object({
   // protección: quien despliegue sin proxy, o con `$proxy_add_x_forwarded_for`, tenía el
   // anti-fuerza-bruta apagado y nada se lo decía. Ahora hay que afirmarlo explícitamente.
   LEDGER_TRUST_PROXY: z.string().optional(),
+  // Feature ciclos (FLAG-2): zona horaria en la que el servidor decide «hoy» (IANA).
+  LEDGER_TZ: z.string().optional(),
+  // SOLO PRUEBAS (ignoradas en production): fijar «hoy» y forzar un fallo a mitad de transacción.
+  LEDGER_TEST_OVERRIDES: z.string().optional(),
+  LEDGER_TODAY: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  LEDGER_NOW: z.string().optional(),
+  LEDGER_TEST_FAIL_AFTER: z.enum(["first_insert"]).optional(),
 });
 
 export type Env = z.infer<typeof baseSchema> & {
   allowedOrigins: string[];
+  /** Feature ciclos: zona horaria del «hoy» del servidor. Por defecto America/Bogota. */
+  tz: string;
   googleEnabled: boolean;
   /** true solo si LEDGER_TRUST_PROXY === "true". Cualquier otro valor (o su ausencia) es false. */
   trustProxy: boolean;
@@ -96,7 +105,8 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   const smtpEnabled = Boolean(
     env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD && env.SMTP_FROM
   );
-  return { ...env, allowedOrigins, googleEnabled, trustProxy, smtpEnabled };
+  return { ...env,
+    tz: env.LEDGER_TZ || "America/Bogota", allowedOrigins, googleEnabled, trustProxy, smtpEnabled };
 }
 
 let cached: Env | null = null;

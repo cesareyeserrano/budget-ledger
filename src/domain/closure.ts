@@ -17,7 +17,7 @@
 // PURO Y SIN RELOJ (ADR-02): `currentPeriod` es un PARÁMETRO. El reloj vive en `src/lib/date.ts`.
 
 import type { Carry, Closure, ImpactRow, LedgerState, PeriodKey } from "./types";
-import { addMonths, comparePeriods, isPeriodKey } from "./periods";
+import { comparePeriods, isCycleKey, isPeriodKey, monthNext, monthPrev } from "./periods";
 // Se importa `balance.ts`, y la dirección IMPORTA: el cálculo no conoce el cierre (esa es la
 // invariante que sostiene el diseño y que TC-CDM-212f barre), pero el cierre sí puede USAR el
 // cálculo. `downstreamImpact` no calcula nada nuevo: corre DOS VECES la serie de siempre y las
@@ -50,8 +50,14 @@ export function normalizeClosure(v: unknown): Closure {
   if (closedThrough === null) return NO_CLOSURE;
   // `reopened` solo es creíble si es EXACTAMENTE el mes siguiente a la frontera: es el invariante
   // que ADR-13 impone, y aquí es donde se hace cumplir para cualquier estado que entre de fuera.
+  // Feature ciclos (FLAG-1, hallazgo 3/A): si alguna clave lleva el sufijo de transición, aquí NO
+  // hay aritmética posible — la vecindad la verifica el BORDE con el calendario
+  // (`checkClosureNeighbors`). Esta función sigue sin lanzar nunca.
+  const sinAritmetica = isCycleKey(closedThrough) || isCycleKey(raw.reopened);
   const reopened =
-    isPeriodKey(raw.reopened) && raw.reopened === addMonths(closedThrough, 1) ? raw.reopened : null;
+    isPeriodKey(raw.reopened) && (sinAritmetica || raw.reopened === monthNext(closedThrough))
+      ? raw.reopened
+      : null;
   if (reopened === null) return { closedThrough, reopened: null };
   // La línea de base solo es creíble ACOMPAÑANDO a un mes reabierto y con dos números finitos.
   // Sin ella se degrada a «no hay línea de base» y el impacto sale vacío: nunca se inventa un
@@ -100,6 +106,22 @@ function closingCarry(
 export function closureOf(state: LedgerState): Closure {
   return normalizeClosure(state.closure);
 }
+
+/**
+ * Feature ciclos (FR-2409). La relación «reopened = siguiente de closedThrough» verificada con la
+ * vecindad REAL (`calendar.next`), una sola vez y en el borde: `closureFromRow` en el servidor e
+ * `hydrate` en el cliente. Si no casa, degrada `reopened` (y su línea de base) a null — el mismo
+ * efecto que `normalizeClosure` tiene para claves de mes, ahora también para las de transición.
+ *
+ * @aitri-trace FR-ID: FR-2409, US-ID: US-2409, AC-ID: AC-2429, TC-ID: TC-CIC-087e
+ */
+export function checkClosureNeighbors(c: Closure, next: (p: PeriodKey) => PeriodKey): Closure {
+  if (c.closedThrough === null || c.reopened === null) return c;
+  if (next(c.closedThrough) === c.reopened) return c;
+  return { closedThrough: c.closedThrough, reopened: null };
+}
+
+// Vecindad mensual por defecto (modo mes): `monthPrev` vive en domain/periods (gate estático TC-CIC-102e).
 
 /**
  * ¿Está cerrado este periodo? Es la pregunta que hace toda mutación antes de mutar.
@@ -210,12 +232,16 @@ export type ReopenResult =
  * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2015, TC-ID: TC-CDM-050h, TC-CDM-052f, TC-CDM-054f
  * @aitri-trace FR-ID: FR-2010, US-ID: US-2010, AC-ID: AC-2032, TC-ID: TC-CDM-105e
  */
-export function reopenMonth(state: LedgerState, range: readonly PeriodKey[]): ReopenResult {
+export function reopenMonth(
+  state: LedgerState, range: readonly PeriodKey[], prev: (p: PeriodKey) => PeriodKey = monthPrev
+): ReopenResult {
   const c = closureOf(state);
   if (c.closedThrough === null) return { ok: false, reason: "nothing_closed" };
   if (c.reopened !== null) return { ok: false, reason: "already_reopened" };
   const target = c.closedThrough;
-  const back = addMonths(target, -1);
+  // Feature ciclos (FLAG-1): la vecindad entra como parámetro para que retroceder desde «2026-11»
+  // llegue a la transición «2026-10t» y no la salte (TC-CIC-086e).
+  const back = prev(target);
   const reopenBaseline = closingCarry(state, range, target);
   return {
     ok: true,

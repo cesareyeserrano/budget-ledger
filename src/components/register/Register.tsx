@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { NodeType } from "@/domain/types";
-import { useLedgerStore, useActivePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useCalendar } from "@/state/store";
 import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, maxWithdrawal, reserveHeadroom } from "@/domain/reserve";
 import { parsePesos } from "@/lib/money";
 import { nowForInput, periodKeyFromDate } from "@/lib/date";
+import { proposeOpeningCycle } from "@/domain/cycles";
+import { periodMonthLabel, monthOf } from "@/domain/periods";
+import { Info } from "lucide-react";
+import { cycleLabel } from "../cycleText";
 import { money } from "@/components/format";
 import { blockMessage } from "@/components/reserveText";
 import { AmountDisplay } from "./AmountDisplay";
@@ -57,7 +61,16 @@ export function Register() {
   }, []);
 
   const amount = useMemo(() => parsePesos(rawAmount), [rawAmount]);
-  const month = periodKeyFromDate(date);
+  // Feature ciclos (FR-2405/FR-2406): el periodo sale del calendario vigente (en mes es el de siempre).
+  // Un ingreso dentro de la ventana del pago adelantado recibe la PROPUESTA de contarse en el ciclo
+  // que abre; el defecto es quedarse en el de su fecha, y solo si el usuario acepta cambia.
+  const cal = useCalendar();
+  const derivedPeriod = useMemo(() => { try { return cal.periodForDate(date); } catch { return null; } }, [cal, date]);
+  const proposal = useMemo(() => (derivedPeriod && type === "income" ? proposeOpeningCycle(cal, "income", date) : null), [cal, derivedPeriod, type, date]);
+  const [countInOpening, setCountInOpening] = useState(false);
+  useEffect(() => { setCountInOpening(false); }, [proposal]);
+  const month = proposal && countInOpening ? proposal : (derivedPeriod ?? periodKeyFromDate(date));
+  const outOfRange = cal.mode === "cycle" && (derivedPeriod === null || !periods.includes(month));
 
   // FR-1005: la guía de estado bajo el monto — el límite visible MIENTRAS se teclea (H1/H5).
   const isReserve = type === "transfer";
@@ -73,9 +86,9 @@ export function Register() {
   }, [isReserve, ends.from, data, month, periods]);
   const overLimit = reserveLimit !== null && amount > reserveLimit.value;
 
-  const saveEnabled = isReserve
+  const saveEnabled = !outOfRange && (isReserve
     ? amount > 0 && !!ends.from && !!ends.to && !overLimit
-    : amount > 0;
+    : amount > 0);
 
   /** Cambiar de tipo conserva el monto pero deselecciona la categoría/los extremos (FR-208/209). */
   function onChangeType(t: NodeType) {
@@ -182,9 +195,45 @@ export function Register() {
       )}
 
       <DateTimeField value={date} onChange={setDate} />
+      {cal.mode === "cycle" && (
+        <p data-testid="register-cycle" className={outOfRange ? "caption text-(--alert-strong)" : "caption text-fg-secondary"}>
+          {outOfRange ? "Fuera del rango de tu presupuesto" : <><span className="text-fg-muted">Ciclo</span> · {cycleLabel(cal, month).replace(/ \d{4}$/, "")} · {cal.rangeLabel(month)}</>}
+        </p>
+      )}
+      {proposal && !outOfRange && (
+        <div data-testid="opening-proposal" className="flex flex-col gap-2 rounded-(--radius-sm) border border-border-strong p-3">
+          <p className="caption flex items-start gap-2 text-fg-secondary">
+            <Info size={14} data-icon="info" className="mt-0.5 shrink-0" aria-hidden />
+            <span>Este ingreso cae {proposalDays(cal, date, proposal)} antes de tu día de pago ({anchorDayOf(cal)}). ¿Es el salario que abre {periodMonthLabel(monthOf(proposal))}?</span>
+          </p>
+          <div role="radiogroup" aria-label="Ciclo del ingreso" className="flex flex-col gap-1 sm:inline-flex sm:flex-row sm:overflow-hidden sm:rounded-(--radius-sm) sm:border sm:border-border">
+            <button type="button" role="radio" aria-checked={!countInOpening} data-testid="proposal-keep" onClick={() => setCountInOpening(false)}
+              className={`h-(--control-md) rounded-(--radius-sm) border border-border px-3 label sm:rounded-none sm:border-0 ${!countInOpening ? "bg-card-hover text-fg" : "text-fg-secondary"}`}>
+              Mantener en {periodMonthLabel(monthOf(derivedPeriod ?? month))}
+            </button>
+            <button type="button" role="radio" aria-checked={countInOpening} data-testid="proposal-accept" onClick={() => setCountInOpening(true)}
+              className={`h-(--control-md) rounded-(--radius-sm) border border-border px-3 label sm:rounded-none sm:border-0 ${countInOpening ? "bg-card-hover text-fg" : "text-fg-secondary"}`}>
+              Contar en {periodMonthLabel(monthOf(proposal))} · {cal.rangeLabel(proposal)}
+            </button>
+          </div>
+        </div>
+      )}
       <NoteField value={note} onChange={setNote} />
 
       <SaveButton type={type} disabled={!saveEnabled} onClick={onSave} />
     </div>
   );
+}
+
+/** «1 día» / «3 días» entre la fecha del ingreso y el inicio del ciclo propuesto (FR-2406). */
+function proposalDays(cal: ReturnType<typeof useCalendar>, iso: string, proposal: string): string {
+  const start = cal.rangeOf(proposal)?.start;
+  if (!start) return "";
+  const n = Math.round((Date.parse(`${start}T00:00:00Z`) - Date.parse(`${iso.slice(0, 10)}T00:00:00Z`)) / 86_400_000);
+  return `${n} ${n === 1 ? "día" : "días"}`;
+}
+/** El día de pago vigente, para el texto de la propuesta. */
+function anchorDayOf(cal: ReturnType<typeof useCalendar>): number | string {
+  const vs = cal.config.versions.filter((v) => v.mode === "cycle");
+  return vs[vs.length - 1]?.anchorDay ?? "";
 }

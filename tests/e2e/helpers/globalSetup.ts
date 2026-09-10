@@ -149,6 +149,9 @@ export default async function globalSetup(): Promise<void> {
     // Todo el tráfico viene de 127.0.0.1: el rate limit por IP haría flaky la suite en serie.
     // Se desactiva SOLO aquí; en producción queda activo (NFR-512).
     LEDGER_RATE_LIMIT_DISABLED: "true",
+    // Feature ciclos: deja que un spec fije «hoy» en el servidor con la cabecera x-ledger-today
+    // (`page.setExtraHTTPHeaders`). Solo en el servidor de pruebas; producción nunca la define.
+    LEDGER_TEST_OVERRIDES: "1",
     SMTP_HOST: mailpit.getHost(),
     SMTP_PORT: String(mailpit.getMappedPort(1025)),
     SMTP_USER: "ledger-e2e",

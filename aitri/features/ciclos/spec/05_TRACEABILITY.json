@@ -1,0 +1,216 @@
+{
+  "project": "Ledger (T-Ledger) — Feature: ciclos",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-2401",
+      "title": "Modo de periodo en Configuración: «Mes a mes» por defecto o «Ciclos» con día de pago",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (16 passing, 0 failing, 0 skipped). Sección de modo en src/components/PeriodModeSection.tsx (A0–A5) validada en el servidor por cyclesTargetSchema; e2e en tests/e2e/ciclos.spec.ts contra Postgres efímero. Sin deuda declarada."
+    },
+    {
+      "id": "FR-2402",
+      "title": "Calendario de ciclos contiguos, de duración variable, a partir del día de pago",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (10 passing, 0 failing, 0 skipped). buildCalendar en src/domain/cycles.ts; test de propiedad: para todo Calendar generado keys() es contiguo y cada clave pasa isPeriodKey (R2). Sin deuda declarada."
+    },
+    {
+      "id": "FR-2403",
+      "title": "Previsualizar los ciclos y la reubicación antes de guardar",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (15 passing, 0 failing, 0 skipped). preview en el servidor + A6; el resumen nombra celdas, movimientos, celdas que juntan dos meses y la identidad de totales. Sin deuda declarada."
+    },
+    {
+      "id": "FR-2404",
+      "title": "Activar «Ciclos» reubica lo existente: el presupuesto de cada rubro sigue a su ejecutado",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (28 passing, 0 failing, 0 skipped). placeDateless + relocate + relocation_origin (migración 0008) + applyCyclesFor en una transacción. La fixture F-USER, réplica del ledger real del usuario previa a la activación, fija el resultado por rubro (R3). Sin deuda declarada."
+    },
+    {
+      "id": "FR-2405",
+      "title": "En modo «Ciclos», cada movimiento pertenece al ciclo que contiene su fecha de transacción",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (10 passing, 0 failing, 0 skipped). periodForDate + isValidMovementPeriod; el servidor responde 422 period_mismatch a una clave incoherente con la fecha. Sin deuda declarada."
+    },
+    {
+      "id": "FR-2406",
+      "title": "[ASSUMPTION: needs user confirmation] El salario que llega antes del día de pago cuenta en el ciclo que abre",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (8 passing, 0 failing, 0 skipped). proposeOpeningCycle + D2 en el Registro (propuesta con «Mantener» por defecto). El título conserva la marca ASSUMPTION de Fase 1; la regla se revisó con el usuario en las aprobaciones de fase. Sin deuda declarada."
+    },
+    {
+      "id": "FR-2407",
+      "title": "Columnas y selectores nombran el ciclo por el mes en que termina y muestran su rango",
+      "level": "partial",
+      "evidence": "fr_coverage: covered (13 passing, 0 failing, 0 skipped). rangeLabel único en cabeceras, selectores, cierre, historial y Dashboard. PARTIAL por deuda declarada en Fase 4: el peso 600 de la columna actual se aplica en línea solo en modo ciclos; en modo mes sigue en 500 porque NFR-2401 exige la cabecera de mes idéntica (TC-CIC-064f la compara byte a byte)."
+    },
+    {
+      "id": "FR-2408",
+      "title": "Cambiar el día de pago crea una versión nueva con fecha del primer pago; el pasado no se recalcula",
+      "level": "partial",
+      "evidence": "fr_coverage: covered (16 passing, 0 failing, 0 skipped). planVersionChange + versiones append-only en cycle_config_version; propiedad verificada: ningún cambio de día hace desaparecer una clave de ciclo (18.910 cambios válidos). PARTIAL por dos deudas declaradas en Fase 4: A7 usa <input type=\"date\"> nativo en vez del DateCalendar del Registro, y el resumen del cambio de día dice «Totales idénticos ✓» en lugar de «Los ciclos hasta <mes> no se tocan ✓» del flujo A2."
+    },
+    {
+      "id": "FR-2409",
+      "title": "Cierre, reapertura, corrección y arrastre operan sobre la frontera del ciclo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (8 passing, 0 failing, 0 skipped). closure.ts recorre la vecindad con calendar.next (checkClosureNeighbors); pruebas de integración de cierre sobre la fixture F-USER. Sin deuda de código declarada para esta FR."
+    },
+    {
+      "id": "FR-2410",
+      "title": "Volver a «Mes a mes» deshace la reubicación: cada parte vuelve a su mes; ida y vuelta sin ediciones deja el ledger idéntico",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (13 passing, 0 failing, 0 skipped). relocate inverso con memoria (restoreParts, returnDateless) + bloqueo si hay periodos cerrados; ida y vuelta sin ediciones idéntica. La única deuda declarada en Fase 4 para esta FR NO era de código sino de datos: el ledger de dev del usuario estaba en ciclos sin memoria de origen (R6). Quedó RESUELTA el 2026-09-10 tras el build, con permiso del usuario y respaldo previo (ledger-dev-antes-memoria-origen-20260910-181330.sql): 78 filas de relocation_origin reconstruidas desde el respaldo previo a la activación y 18 notas movidas al ciclo de sus celdas (revisión 90). Verificado leyendo la base: las 78 filas coinciden con las calculadas y volver a mes a mes da 0 notas y 0 movimientos fuera de su mes; solo difiere el presupuesto que el usuario escribió después de activar. Por eso se asigna complete y no partial; la deuda se copia igualmente abajo para que un revisor la vea."
+    },
+    {
+      "id": "NFR-2401",
+      "title": "Regresión — el modo «Mes a mes» es idéntico al comportamiento actual",
+      "level": "partial",
+      "evidence": "3 TCs passing (TC-CIC-100h, 101f, 102e) y la suite completa en verde: vitest 1002/1002 y e2e 482/482 en EP-08; verify-run 2026-09-10T23:12:22Z con exit 0. MONTH_CALENDAR delega en las funciones actuales. PARTIAL por deuda declarada en Fase 4: el gate estático de TC-CIC-102e vigila currentPeriod(/periodRange(/addMonths( pero no periods.monthNext/monthPrev, que closure.ts usa por contrato de modo mes."
+    },
+    {
+      "id": "NFR-2402",
+      "title": "Regresión — cierre-de-mes no cambia en modo mes",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-103h, 104e, 105f): cierre secuencial, periodo cerrado inmutable y reapertura única con rastro, iguales en modo mes."
+    },
+    {
+      "id": "NFR-2403",
+      "title": "Regresión — multi-anio no cambia",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-106h, 107e, 108f): diciembre abre enero, horizonte en años completos y rango visible sin cambios; activeRange recibe la misma forma."
+    },
+    {
+      "id": "NFR-2404",
+      "title": "Regresión — transferencias no cambia de valor",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-109h, 110e, 111f): saldos por alcancía, techo global y piso por alcancía devuelven los mismos importes; reserve.ts recibe la lista de periodos."
+    },
+    {
+      "id": "NFR-2405",
+      "title": "Regresión — meses-y-saldo-inicial no cambia",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-112h, 113e, 114f): el saldo inicial abre el primer periodo y persiste en el servidor; startMonth/openingBalance se reubican, no se recalculan (112h sobre F-USER)."
+    },
+    {
+      "id": "NFR-2406",
+      "title": "Regresión — Postgres única fuente de verdad; migración versionada e idempotente",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-115h, 116e, 117f): 0007_ciclos.sql y 0008_ciclos_origen.sql registradas en drizzle/meta/_journal.json, aplicarlas dos veces no falla ni duplica; un ledger anterior carga en modo mes. Ambas aplicadas en la base de dev del usuario con respaldo previo."
+    },
+    {
+      "id": "NFR-2407",
+      "title": "Invariantes del modelo de ciclos (RV-05, RV-07)",
+      "level": "complete",
+      "evidence": "4 TCs passing (TC-CIC-118h, 119e, 120f, 121e): suma de balances de ciclos = ingresos − gastos independientes; relocate bloquea con relocation_invariant (incluida negative_cell, que nombra el rubro) y la transacción hace ROLLBACK."
+    },
+    {
+      "id": "NFR-2408",
+      "title": "Seguridad — configuración y reubicación son del dueño del ledger",
+      "level": "complete",
+      "evidence": "7 TCs passing (TC-CIC-122f–128e): endpoints con withApi auth required + mutation (Origin), aislamiento por ownerId de la sesión, validación Zod; relocation_origin es solo del servidor y GET no la expone; los anulamientos de prueba (cabecera x-ledger-today, LEDGER_TODAY, LEDGER_NOW, LEDGER_TEST_FAIL_AFTER) solo se leen con la puerta explícita LEDGER_TEST_OVERRIDES=1 (src/server/clock.ts overridesEnabled), que ningún fichero de despliegue define. Gates security-config y secret-scan en pass."
+    },
+    {
+      "id": "NFR-2409",
+      "title": "Rendimiento — calendario y serie de balances bajo el guardarraíl",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-129h, 130e, 131f): con F-BIG la derivación mide ~15 ms (mejor de varias) bajo el guardarraíl vigente."
+    },
+    {
+      "id": "NFR-2410",
+      "title": "Observabilidad — historial de versiones, salud y registro por petición",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-132h, 133e, 134f): cada activación, cambio de día y vuelta a mes queda en cycle_config_version con fecha y valores y se muestra en el historial; GET /health sigue en 200 tras migrar; withApi registra cada petición, incluidas las rutas nuevas."
+    },
+    {
+      "id": "NFR-2411",
+      "title": "CI/CD — las pruebas de la feature corren en el pipeline",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-135h, 136e, 137f): los ficheros nuevos caen en los globs de vitest.config.ts y de Playwright. .github/workflows/ci.yml verificado: (a) on push y pull_request a main; (b) npm ci; (c) npm run test:run = vitest run, lo mismo que ../../../unit.sh (que solo hace cd a la raíz y exec npx vitest run); (d) npm run test:e2e = ./e2e.sh, el runner e2e declarado, más la suite playwright.backend.config.ts. Sin huecos."
+    },
+    {
+      "id": "NFR-2412",
+      "title": "Usabilidad — previsualización obligatoria y formato único de rango",
+      "level": "complete",
+      "evidence": "3 TCs passing (TC-CIC-138h, 139e, 140f): ninguna ruta cambia el modo sin previsualización, rangeLabel es el único formato y el aviso de bloqueo nombra el ciclo a reabrir."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2408",
+      "substitution": "«Fecha de tu primer pago con el día nuevo» (A7 del spec de UX) usa un <input type=\"date\"> nativo en vez del DateCalendar (react-day-picker) del Registro.",
+      "reason": "El primer incremento prioriza el núcleo de reubicación; el campo nativo valida formato y el servidor valida la regla (first_pay_invalid). La paridad visual con el Registro queda para BL-045.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2407",
+      "substitution": "TC-CIC-062h: el peso 600 de la columna actual se aplica en línea SOLO en modo ciclos. En modo mes la cabecera activa sigue en 500 como antes de la feature, porque `.label` es CSS sin capa y gana a `font-semibold`.",
+      "reason": "Corregirlo en modo mes cambiaría la cabecera de mes, que NFR-2401 exige idéntica (TC-CIC-064f compara byte a byte contra el commit base).",
+      "effort": "low"
+    },
+    {
+      "fr_id": "NFR-2401",
+      "substitution": "TC-CIC-102e: la vecindad mensual del cierre (normalizeClosure, reopenMonth por defecto) pasó a periods.monthNext/monthPrev; el gate estático vigila currentPeriod(/periodRange(/addMonths(, no esos nombres.",
+      "reason": "closure.ts no puede importar el calendario (cycles.ts ya importa closure.ts). Son funciones de modo mes por contrato: con claves de transición lanzan, y la vecindad en ciclos la verifica checkClosureNeighbors con calendar.next.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "FR-2410",
+      "substitution": "El ledger de dev del usuario se activó en ciclos el 2026-09-10 con la regla anterior, antes de existir relocation_origin (migración 0008), y sus presupuestos se alinearon a mano por la API (revisión 84). No tiene memoria de origen: volver a mes a mes usaría los tres casos al revés y no separaría Parqueaderos, Restaurantes y Ropa en agosto y septiembre.",
+      "reason": "La memoria solo la escribe una activación con el código nuevo. Mitigación propuesta (R6 del diseño): un script de un solo uso que reconstruya su memoria desde el respaldo previo a la activación, con permiso del usuario y respaldo previo. Hasta entonces, el usuario no debe volver a mes a mes con esos datos.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2408",
+      "substitution": "El resumen de la previsualización al cambiar el día de pago muestra «Totales idénticos ✓» en lugar de «Los ciclos hasta <mes> no se tocan ✓» que dicta el flujo A2 del spec de UX.",
+      "reason": "Ningún TC lo cubre (TC-CIC-079e afirma la transición y su nota, no el resumen) y la regla del cambio de día no cambió en la rederivación. Se declara en vez de ampliar el alcance del build; el dato de corte saldría de la primera fila de transición del preview.",
+      "effort": "low"
+    }
+  ],
+  "notes": [
+    "overall_status 'partial' y no 'compliant': las 10 FR y las 12 NFR están cubiertas (178/178 pasando, 0 fallando, 0 saltadas, 48 criterios de aceptación con prueba que pasa, 0 TCs de baja confianza), pero FR-2407, FR-2408 y NFR-2401 arrastran deuda declarada en Fase 4 y el mapeo evidencia→nivel las deja en partial. Ninguna en placeholder ni functionally_present.",
+    "Deuda de FR-2410 (R6) resuelta después de sellar el build: ver la evidencia de FR-2410. Se copia igualmente en technical_debt_inherited porque el 04_BUILD_REPORT.json aprobado la declara.",
+    "Modelo de despliegue: el del proyecto raíz (contenedor Docker detrás de Nginx). Esta feature no añade Dockerfile, compose ni servicio; la checklist de contenedor del raíz sigue vigente: Dockerfile multi-stage, USER nextjs (no root), HEALTHCHECK contra /health, compose con healthcheck en app y postgres.",
+    "La migración SÍ impone orden: 0007 y 0008 antes de la imagen nueva (el código nuevo consulta cycle_config_version y relocation_origin; con 0007 sin aplicar GET /api/v1/ledger falla, incidente del 2026-09-10 en dev). El código viejo funciona sobre la base migrada. Detalle y reversión en aitri/features/ciclos/DEPLOYMENT.md.",
+    "verify-run corrió sobre cambios sin commit (aviso de Aitri): el veredicto es de este árbol de trabajo.",
+    "Divergencia con 02_SYSTEM_DESIGN.md (Deployment Architecture), declarada en vez de ocultada: el diseño decía que las variables solo de pruebas se ignoran cuando NODE_ENV === \"production\". La implementación usa una puerta explícita, LEDGER_TEST_OVERRIDES=1, y NO NODE_ENV, porque el servidor e2e arranca con NODE_ENV=production y necesita fijar «hoy». Consecuencia operativa: con esa variable definida, cualquier petición podría fijar «hoy» con la cabecera x-ledger-today. Por eso .env.example, el DEPLOYMENT.md raíz y el de la feature dicen NUNCA definirla en producción."
+  ],
+  "deployment_files": [
+    "Dockerfile (multi-stage; USER nextjs no-root; HEALTHCHECK) — del proyecto, sin cambios",
+    "docker-compose.yml (app + postgres, healthcheck en ambos) — del proyecto, sin cambios",
+    "docker-compose.dev.yml — del proyecto, sin cambios",
+    ".dockerignore — del proyecto, sin cambios",
+    ".env.example — MODIFICADO: LEDGER_TZ y las variables solo de pruebas, comentadas",
+    "drizzle/0007_ciclos.sql y drizzle/0008_ciclos_origen.sql + drizzle/meta/_journal.json — NUEVAS",
+    "DEPLOYMENT.md (raíz) — MODIFICADO: LEDGER_TZ en Configuración y 0007/0008 en Migraciones",
+    "aitri/features/ciclos/DEPLOYMENT.md — NUEVO: orden, reversión, variables y comprobaciones",
+    ".github/workflows/ci.yml — del proyecto, verificado para NFR-2411, sin cambios"
+  ],
+  "verification_evidence": {
+    "executed_at": "2026-09-10T23:12:22.333Z",
+    "exit_code": 0,
+    "e2e_exit_code": 0,
+    "tests": "178/178 pasando · 0 fallando · 0 saltados (125 unit/integración + 53 e2e)",
+    "manual_verified": 0,
+    "quality_gates": [
+      "typecheck: pass (exit 0)",
+      "lint: pass (exit 0)",
+      "design-tokens: pass (exit 0)",
+      "security-config: pass (exit 0)",
+      "secret-scan: pass (exit 0)",
+      "smoke: pass (exit 0)",
+      "e2e: pass (exit 0)",
+      "coverage: pass (exit 0)"
+    ],
+    "ac_coverage": "los 48 criterios de aceptación tienen prueba que pasa"
+  }
+}

@@ -19,9 +19,8 @@
  * la grilla (FR-010). No es una media query que alguien pueda cambiar por descuido.
  */
 import { useEffect, useRef, useState } from "react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useNow } from "@/state/store";
 import { periodMonthLabel, periodOf, periodYear, periodMonth } from "@/domain/periods";
-import { currentPeriod } from "@/lib/date";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -52,7 +51,8 @@ export function OpeningCard() {
   const data = useLedgerStore((s) => s.data);
   const setStart = useLedgerStore((s) => s.setStart);
 
-  const hoy = currentPeriod();
+  // Feature ciclos (FLAG-1): «hoy» según el calendario vigente.
+  const hoy = useNow();
   const [mes, setMes] = useState<string>(hoy);
   const [monto, setMonto] = useState<string>("");
   const [abierto, setAbierto] = useState(false);

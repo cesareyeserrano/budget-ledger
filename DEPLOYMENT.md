@@ -135,7 +135,8 @@ en vivo. Host-agnóstico (NFR-510): la Pi es solo un laboratorio.
 
 ## Configuración (12-factor, todo por entorno)
 `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID/SECRET` (opcionales),
-`LEDGER_ALLOWED_ORIGINS`, `LEDGER_TRUST_PROXY`, `SMTP_*` (opcionales, ver abajo). Validadas
+`LEDGER_ALLOWED_ORIGINS`, `LEDGER_TRUST_PROXY`, `SMTP_*` (opcionales, ver abajo), `LEDGER_TZ` (opcional:
+zona IANA en la que el servidor decide «hoy» para el cierre por ciclos; por defecto `America/Bogota`). Validadas
 fail-fast al arranque (`src/server/env.ts` + `scripts/check-env.mjs`): un valor requerido faltante
 aborta el boot nombrando la variable (NFR-510). Ver `.env.example`.
 
@@ -238,6 +239,10 @@ comprueba después que el esquema cambió — no te fíes del mensaje de éxito.
   leer la base — la columna `month` desaparece. Sin marcha atrás, a propósito.
 - `0004` (**cierre-de-mes**): puramente aditiva, SIN orden obligatorio. El código viejo funciona
   contra la base migrada y el nuevo contra una sin migrar, en modo «nada cerrado».
+- `0007`/`0008` (**ciclos**): aditivas, pero con orden en un sentido: migrar ANTES de la imagen
+  nueva, que consulta sus dos tablas. El código viejo funciona sobre la base migrada mientras nadie
+  haya activado ciclos. Las variables `LEDGER_TEST_OVERRIDES`, `LEDGER_TODAY`, `LEDGER_NOW` y
+  `LEDGER_TEST_FAIL_AFTER` son solo de pruebas: NUNCA en producción.
 
 ## Cifrado (NFR-511)
 

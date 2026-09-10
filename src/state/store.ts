@@ -11,7 +11,10 @@ import {
 import { retiroToast } from "@/components/reserveText";
 import { ServerRepository } from "@/data/serverRepository";
 import { STORAGE_KEYS } from "@/domain/types";
-import { currentPeriod } from "@/lib/date";
+import { currentPeriodFor, todayISO } from "@/lib/date";
+import { buildCalendar, boundsFor, MONTH_CALENDAR, type Calendar, type CycleTarget, type RelocationSummary } from "@/domain/cycles";
+import { activeKeys } from "@/domain/range";
+import { checkClosureNeighbors } from "@/domain/closure";
 import { activeRange, normalizeHorizon, DEFAULT_HORIZON, type Horizon } from "@/domain/range";
 import {
   NO_CLOSURE, closureOf, downstreamImpact, isClosed, nextClosable, nextReopenable, normalizeClosure,
@@ -26,6 +29,11 @@ import { periodYear } from "@/domain/periods";
  * "year" no llevaba dato porque solo existía uno.
  */
 export type PeriodFilter = { mode: "month"; month: PeriodKey } | { mode: "year"; year: number };
+/** Feature ciclos: lo que devuelve la previsualización (misma forma que la respuesta del servidor). */
+export type PeriodModePreview =
+  | { ok: true; cycles: Array<{ key: PeriodKey; label: string; start: string; end: string; transition: boolean; current: boolean }>; relocation: RelocationSummary & { note: string } }
+  | { ok: false; code: string; detail?: Record<string, unknown> };
+export type PeriodModeResult = { ok: true } | { ok: false; code: string; detail?: Record<string, unknown> };
 
 /**
  * EL RANGO ACTIVO, memoizado por IDENTIDAD del estado y del horizonte.
@@ -58,8 +66,39 @@ function periodsFor(data: LedgerState, horizon: Horizon, now: PeriodKey): Period
   if (!byKey) { byKey = new Map(); rangeMemo.set(data, byKey); }
   const key = `${horizon}:${now}`;
   let list = byKey.get(key);
-  if (!list) { list = activeRange(data, now, horizon); byKey.set(key, list); }
+  // Feature ciclos (FR-2407): la lista sale del calendario. En modo mes `MONTH_CALENDAR.keys` ES
+  // `periodRange`, así que `activeKeys` devuelve exactamente lo que `activeRange` devolvía (NFR-2401).
+  if (!list) { list = activeKeys(data, calendarFor(data), now, horizon); byKey.set(key, list); }
   return list;
+}
+
+// ── Feature ciclos: el calendario vigente y «hoy» según él ──────────────────────────────────────
+const calendarMemo = new WeakMap<object, Calendar>();
+/**
+ * El calendario del estado, memoizado por identidad del estado (como `periodsFor`). Sin `cycles`
+ * es `MONTH_CALENDAR`: cero cambio para todo ledger previo a la feature.
+ *
+ * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-062h, TC-CIC-064f
+ */
+export function calendarFor(data: LedgerState): Calendar {
+  if (!data.cycles || data.cycles.mode !== "cycle") return MONTH_CALENDAR;
+  let cal = calendarMemo.get(data);
+  if (!cal) { cal = buildCalendar(data.cycles, boundsFor(data, todayISO())); calendarMemo.set(data, cal); }
+  return cal;
+}
+/** El periodo «de hoy» según el calendario del estado (FLAG-1: sustituye al reloj mensual). */
+function nowFor(data: LedgerState): PeriodKey {
+  return currentPeriodFor(calendarFor(data), todayISO());
+}
+/** El mes calendario de hoy, para sembrar: la semilla es siempre de modo mes. */
+function seedPeriod(): PeriodKey {
+  return currentPeriodFor(MONTH_CALENDAR);
+}
+export function useCalendar(): Calendar {
+  return useLedgerStore((s) => calendarFor(s.data));
+}
+export function useNow(): PeriodKey {
+  return useLedgerStore((s) => nowFor(s.data));
 }
 
 interface LedgerStore {
@@ -78,6 +117,10 @@ interface LedgerStore {
    * NO es optimista: el servidor puede rechazar por regla, así que el estado local solo cambia
    * cuando la escritura se confirma. Devuelve el resultado para que la UI decida qué mostrar.
    */
+  /** Feature ciclos (FR-2403): previsualiza un cambio de periodo. No toca el estado. */
+  previewPeriodMode: (target: CycleTarget) => Promise<PeriodModePreview>;
+  /** Feature ciclos (FR-2404/FR-2410): aplica el cambio; tras el 200 resincroniza desde el servidor. */
+  applyPeriodMode: (target: CycleTarget) => Promise<PeriodModeResult>;
   setStart: (startMonth: PeriodKey, openingBalance: number | null)
     => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[] }>;
   /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
@@ -220,7 +263,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   const onSessionExpired = () => {
     pendingSave = null;
     reserveUndo = null;
-    set({ data: buildSeed(OWNER, currentPeriod()), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
+    set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
   };
 
   const drainSaves = async () => {
@@ -291,15 +334,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let reserveUndo: { prevData: LedgerState; afterData: LedgerState } | null = null;
 
   return {
-    data: buildSeed(OWNER, currentPeriod()),
+    data: buildSeed(OWNER, seedPeriod()),
     hydrated: false,
     // ux-consistency FR-312: arrancar en el MES EN CURSO (según el reloj), no en un año/mes fijo.
     // Supersede el default 'Año' de FR-106; el usuario cambia el filtro Mes/Año libremente.
-    period: { mode: "month", month: currentPeriod() },
+    period: { mode: "month", month: seedPeriod() },
     horizon: DEFAULT_HORIZON,
-    activePeriods: () => periodsFor(get().data, get().horizon, currentPeriod()),
+    activePeriods: () => periodsFor(get().data, get().horizon, nowFor(get().data)),
     visiblePeriods: () => {
-      const all = periodsFor(get().data, get().horizon, currentPeriod());
+      const all = periodsFor(get().data, get().horizon, nowFor(get().data));
       const f = get().period;
       return f.mode === "year" ? visiblesFor(all, f.year) : all;
     },
@@ -372,6 +415,23 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     /**
      * @aitri-trace FR-ID: FR-2202, US-ID: US-2202, AC-ID: AC-2204, TC-ID: TC-MSI-021h, TC-MSI-024f
      */
+    previewPeriodMode: async (target) => {
+      if (!repo) return { ok: false, code: "network" };
+      return repo.previewCycles(target);
+    },
+    applyPeriodMode: async (target) => {
+      if (!repo) return { ok: false, code: "network" };
+      const res = await repo.applyCycles(target);
+      if (!res.ok) {
+        if (res.code === "network") set({ storageError: "network" });
+        return res;
+      }
+      // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
+      // transacción y devolver el snapshot entero sería duplicar el camino de `resync`.
+      await doResync();
+      set({ storageError: null });
+      return { ok: true };
+    },
     setStart: async (startMonth, openingBalance) => {
       if (!repo) return { ok: false, reason: "no_repo" };
       const res = await repo.saveStart(startMonth, openingBalance);
@@ -542,7 +602,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.
       if (loaded) seedSeqFrom(loaded);
       // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
-      const data = loaded ?? buildSeed(OWNER, currentPeriod());
+      const data = loaded ?? buildSeed(OWNER, seedPeriod());
       if (!loaded) await repo.save(OWNER, data);
       set({ data, hydrated: true });
       // El horizonte vive en la cuenta (FR-1907/ADR-06). Se lee DESPUÉS de pintar: es una
@@ -640,12 +700,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
  * devuelve la misma referencia mientras las entradas no cambien y no hay bucle de render.
  */
 export function useActivePeriods(): PeriodKey[] {
-  return useLedgerStore((s) => periodsFor(s.data, s.horizon, currentPeriod()));
+  return useLedgerStore((s) => periodsFor(s.data, s.horizon, nowFor(s.data)));
 }
 
 export function useVisiblePeriods(): PeriodKey[] {
   return useLedgerStore((s) => {
-    const all = periodsFor(s.data, s.horizon, currentPeriod());
+    const all = periodsFor(s.data, s.horizon, nowFor(s.data));
     return s.period.mode === "year" ? visiblesFor(all, s.period.year) : all;
   });
 }
@@ -683,7 +743,9 @@ export function useClosure(): Closure {
 const closureMemo = new WeakMap<object, Closure>();
 function closureFor(data: LedgerState): Closure {
   let c = closureMemo.get(data);
-  if (!c) { c = closureOf(data); closureMemo.set(data, c); }
+  // Feature ciclos (FR-2409): la vecindad «reabierto = siguiente del cerrado» se verifica en el
+  // borde con el calendario real, una sola vez por estado (el servidor hace lo mismo al cargar).
+  if (!c) { c = checkClosureNeighbors(closureOf(data), calendarFor(data).next); closureMemo.set(data, c); }
   return c;
 }
 
@@ -700,7 +762,7 @@ function closureFor(data: LedgerState): Closure {
  * @aitri-trace FR-ID: FR-2010, US-ID: US-2010, AC-ID: AC-2032, TC-ID: TC-CDM-107h
  */
 export function useDownstreamImpact(): ImpactRow[] {
-  return useLedgerStore((s) => impactFor(s.data, s.horizon, currentPeriod()));
+  return useLedgerStore((s) => impactFor(s.data, s.horizon, nowFor(s.data)));
 }
 
 const impactMemo = new WeakMap<object, Map<string, ImpactRow[]>>();
@@ -738,10 +800,10 @@ export interface ClosureStatus {
  * @aitri-trace FR-ID: FR-2006, US-ID: US-2006, AC-ID: AC-2019, TC-ID: TC-CDM-060h, TC-CDM-093h
  */
 export function useClosureStatus(): ClosureStatus {
-  const closable = useLedgerStore((s) => nextClosable(s.data, currentPeriod(), periodsFor(s.data, s.horizon, currentPeriod())));
+  const closable = useLedgerStore((s) => nextClosable(s.data, nowFor(s.data), periodsFor(s.data, s.horizon, nowFor(s.data))));
   const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
   const reopened = useLedgerStore((s) => closureFor(s.data).reopened);
-  const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, currentPeriod()));
+  const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, nowFor(s.data)));
   return { closable, reopenable, reopened, pending };
 }
 

@@ -3,6 +3,33 @@
 /** 3 tipos FIJOS: eje de signo (D-1). No editables. */
 export type NodeType = "expense" | "income" | "transfer";
 
+// ── Feature ciclos (FR-2401/FR-2402/FR-2408, ADR-01/ADR-03) ─────────────────────────────────────
+/** El eje del presupuesto: mes calendario (hoy, por defecto) o ciclo de pago. */
+export type PeriodMode = "month" | "cycle";
+/** Qué hacer cuando el día de pago no existe en el mes (29, 30, 31). */
+export type EndOfMonthPolicy = "last_day" | "shift";
+/**
+ * Una versión de la configuración de ciclos. Append-only: cambiar es INSERTAR (RF-07/RF-08). La
+ * última fila por `seq` es la vigente; `mode:"month"` es la vuelta a mes a mes (fila de historial).
+ */
+export interface CycleVersion {
+  seq: number;
+  mode: PeriodMode;
+  anchorDay: number | null;
+  eomPolicy: EndOfMonthPolicy | null;
+  /** "YYYY-MM-DD": día en que la versión entró en vigor (lo que Configuración muestra). */
+  effectiveFrom: string;
+  /** "YYYY-MM-DD": primer pago bajo la versión (RF-09a). null en la primera activación y en "month". */
+  firstPay: string | null;
+  /** `startMonth` antes de activar; lo usa la vuelta a mes (FR-2410). */
+  restoreStartMonth: string | null;
+  createdAt: string;
+}
+export interface CycleConfig {
+  mode: PeriodMode;
+  versions: CycleVersion[];
+}
+
 /** 3 niveles editables bajo cada tipo. */
 export type NodeLevel = "group" | "category" | "sub";
 
@@ -121,6 +148,22 @@ export interface ImpactRow {
   brokenByThisEdit: boolean;
 }
 
+/**
+ * Feature ciclos, re-derivación del 2026-09-10 (FR-2404, FR-2410, ADR-07). Una parte de la memoria de
+ * origen: de qué mes calendario vino un dato sin día que la activación movió. `amount` es la parte de
+ * la celda (con signo solo en «actual», que guarda residuos, ADR-06); 0 en «movement» y «note».
+ */
+export interface OriginPart {
+  subject: "budget" | "actual" | "movement" | "note";
+  /** id de hoja (budget/actual), de movimiento o de nota. */
+  ref: string;
+  /** Clave donde vive HOY. */
+  period: PeriodKeyT;
+  /** Mes calendario del que vino (sin sufijo). */
+  originPeriod: PeriodKeyT;
+  amount: number;
+}
+
 export interface LedgerState {
   ownerId: string;
   nodes: LedgerNode[];
@@ -148,6 +191,16 @@ export interface LedgerState {
    * se metiera como tal. Ocupa la casilla del «Saldo del mes anterior» del mes de inicio.
    */
   openingBalance?: number | null;
+  /**
+   * Feature ciclos (FR-2401, ADR-03). La configuración de ciclos, de SOLO LECTURA en el snapshot:
+   * la escribe únicamente `PUT /api/v1/ledger/cycles`. Ausente ≡ modo mes ≡ hoy, byte a byte.
+   */
+  cycles?: CycleConfig;
+  /**
+   * Feature ciclos, re-derivación del 2026-09-10 (ADR-07). La memoria de origen de lo que la activación
+   * movió. SOLO servidor (tabla relocation_origin): `GET /ledger` no la expone y `PUT /ledger` la ignora.
+   */
+  origins?: OriginPart[];
 }
 
 export const STORAGE_KEYS = {

@@ -15,6 +15,7 @@ import {
   bigserial,
   boolean,
   check,
+  date,
   index,
   integer,
   pgTable,
@@ -216,6 +217,56 @@ export const movement = pgTable(
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
     check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("movement_amount_ck", sql`${t.amount} >= 1`),
+  ]
+);
+
+/**
+ * Feature ciclos (FR-2401/FR-2408, ADR-03). Una fila por VERSION de la configuracion de ciclos,
+ * append-only: la ultima por `id` es la vigente; sin filas = modo mes. Cambiar es INSERTAR (RF-07/08).
+ * `first_pay` es el primer pago bajo la version (RF-09a): NULL en la primera activacion (el calendario
+ * cubre todo el historial) y en las filas `month`. `restore_start_month` recuerda el mes de inicio
+ * previo a activar, para la vuelta a mes (FR-2410). Los CHECKs viven en la migracion 0007.
+ */
+export const cycleConfigVersion = pgTable(
+  "cycle_config_version",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    mode: text("mode").notNull(),
+    anchorDay: integer("anchor_day"),
+    eomPolicy: text("eom_policy"),
+    effectiveFrom: date("effective_from").notNull(),
+    firstPay: date("first_pay"),
+    restoreStartMonth: text("restore_start_month"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("cycle_cfg_owner_id_idx").on(t.ownerId, t.id)]
+);
+
+/**
+ * Feature ciclos, re-derivación del 2026-09-10 (ADR-07, migración 0008). La memoria de origen: de qué mes
+ * calendario vino cada dato sin día que la activación movió. Sin FK a las filas que recuerda (el snapshot
+ * las reinserta en cada guardado); solo el endpoint de ciclos la escribe y la consume. `amount` con signo
+ * solo en 'actual' (residuo, ADR-06).
+ */
+export const relocationOrigin = pgTable(
+  "relocation_origin",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(), // 'budget' | 'actual' | 'movement' | 'note' (CHECK en migración)
+    ref: text("ref").notNull(), // id de hoja, de movimiento o de nota
+    period: text("period").notNull(), // clave donde vive hoy
+    originPeriod: text("origin_period").notNull(), // mes calendario del que vino
+    amount: bigint("amount", { mode: "number" }).notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ name: "relocation_origin_pk", columns: [t.ownerId, t.subject, t.ref, t.period, t.originPeriod] }),
+    check("relocation_origin_subject_ck", sql`${t.subject} in ('budget','actual','movement','note')`),
+    check("relocation_origin_amount_ck", sql`${t.subject} = 'actual' or ${t.amount} >= 0`),
   ]
 );
 

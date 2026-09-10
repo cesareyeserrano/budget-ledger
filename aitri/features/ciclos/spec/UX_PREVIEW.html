@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Preview — ciclos</title>
+<style>
+  :root{
+    --ink:#1c1c1f; --ink2:#55555d; --ink3:#6b6b73; --line:#e3e3e7; --paper:#f7f7f8; --card:#fff;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", "DM Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;
+       letter-spacing:-0.01em;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:1.5rem;font-weight:600;letter-spacing:-0.02em;margin:0 0 6px}
+  h2{font-size:1.0625rem;font-weight:600;margin:40px 0 4px;letter-spacing:-0.01em}
+  .sub{color:var(--ink2);font-size:.875rem;margin:0 0 4px}
+  .eyebrow{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin:0 0 10px}
+  .banner{border:1px solid var(--line);border-left:3px solid #ad3932;background:#fff;border-radius:10px;
+          padding:12px 14px;margin:18px 0;font-size:.8125rem;color:var(--ink2)}
+  .banner strong{color:var(--ink)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  .panel{border-radius:14px;border:1px solid;padding:18px;overflow:hidden}
+  .panel.light{--bg:#f7f7f8;--card:#ffffff;--elev:#ffffff;--sunken:#f1f1f3;--hover:#f1f1f3;
+    --primary:#1c1c1f;--primaryfg:#ffffff;--accentl:#55555d;--fg:#1c1c1f;--fg2:#55555d;--fg3:#6b6b73;
+    --bd:#e3e3e7;--bds:#d3d3d9;--alert:#ad3932;--soft:#9e4708;--fav:#2d7650;}
+  .panel.dark{--bg:#131316;--card:#1b1b1f;--elev:#26262b;--sunken:#0f0f12;--hover:#26262b;
+    --primary:#f4f4f5;--primaryfg:#1c1c1f;--accentl:#9b9ba3;--fg:#f4f4f5;--fg2:#b4b4bb;--fg3:#9b9ba3;
+    --bd:#33333a;--bds:#43434c;--alert:#ec6a66;--soft:#e0a458;--fav:#5fbe82;}
+  .panel{background:var(--bg);border-color:var(--bd);color:var(--fg)}
+  .panel h3{margin:0 0 2px;font-size:.9375rem;font-weight:600;color:var(--fg)}
+  .panel .note{font-size:.75rem;color:var(--fg3);margin:0 0 14px}
+  .sw{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--bd)}
+  .sw:first-of-type{border-top:0}
+  .chip{width:34px;height:34px;border-radius:8px;border:1px solid var(--bds);flex:none}
+  .swmeta{min-width:0;flex:1}
+  .swrole{font-size:.8125rem;font-weight:500;color:var(--fg)}
+  .swhex{font-family:var(--mono);font-size:.6875rem;color:var(--fg3)}
+  .swwhy{font-size:.6875rem;color:var(--fg2);margin-top:2px}
+  .badge{font-family:var(--mono);font-size:.625rem;font-weight:600;padding:2px 6px;border-radius:999px;
+         border:1px solid var(--bds);color:var(--fg2);white-space:nowrap;flex:none}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+  .lbl{font-size:.8125rem;font-weight:500;color:var(--fg);display:block;margin-bottom:6px}
+  .help{font-size:.75rem;color:var(--fg2);margin-top:6px}
+  .inp{height:40px;border-radius:8px;border:1px solid var(--bd);background:var(--card);
+       color:var(--fg);padding:0 10px;font-family:var(--mono);font-size:.875rem;display:inline-flex;align-items:center}
+  .btn{height:40px;border-radius:8px;border:1px solid var(--bds);background:var(--card);color:var(--fg);
+       padding:0 14px;font-size:.8125rem;font-weight:500;display:inline-flex;align-items:center;font-family:var(--sans)}
+  .btn.primary{background:var(--primary);color:var(--primaryfg);border-color:var(--primary)}
+  .btn.ghost{border-color:transparent;color:var(--fg3);background:transparent}
+  .btn[disabled]{opacity:.6}
+  .radiogroup{display:inline-flex;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+  .radiogroup span{height:40px;padding:0 14px;display:inline-flex;align-items:center;font-size:.8125rem;font-weight:500;color:var(--fg2)}
+  .radiogroup span.on{background:var(--hover);color:var(--fg)}
+  /* Cabecera de grilla (B1/B2) */
+  .gridhead{display:flex;background:var(--sunken);border-bottom:1px solid var(--bd);overflow-x:auto}
+  .col{width:216px;flex:none;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+       border-left:2px solid var(--bds);font-size:.8125rem;font-weight:500;color:var(--fg2)}
+  .col.year{border-left-color:var(--fg3)}
+  .col.active{color:var(--fg);font-weight:600}
+  .col .range{font-size:.75rem;font-weight:400;color:var(--fg3)}
+  .col .name{display:inline-flex;align-items:center;gap:4px}
+  .col svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--fg3)}
+  .subhead{display:flex;background:var(--sunken);border-bottom:1px solid var(--bds)}
+  .subhead div{width:108px;flex:none;height:38px;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;font-size:.75rem;color:var(--fg3);border-left:2px solid var(--bds)}
+  .subhead div:nth-child(even){border-left:0}
+  .prev{background:var(--sunken);border-radius:8px;padding:12px;margin-top:10px}
+  .prev .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--bd);font-size:.8125rem}
+  .prev .row:first-child{border-top:0}
+  .prev .row .r{font-size:.75rem;color:var(--fg2)}
+  .pill{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--bds);border-radius:999px;padding:1px 8px;color:var(--fg2);margin-left:8px}
+  .sum{font-size:.75rem;color:var(--fg2);margin-top:10px;line-height:1.7}
+  .sum b{color:var(--fg);font-weight:500}
+  .infobox{border:1px solid var(--bds);border-radius:8px;padding:12px;margin-top:10px;font-size:.75rem;color:var(--fg2)}
+  .alertbox{border:1px solid var(--alert);border-radius:8px;padding:12px;margin-top:10px;font-size:.75rem;color:var(--fg)}
+  .alertbox b{color:var(--alert)}
+  .type{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;align-items:baseline;font-size:.8125rem}
+  .type .k{font-family:var(--mono);font-size:.6875rem;color:var(--ink3)}
+  .spacing{display:flex;align-items:flex-end;gap:12px;margin-top:8px}
+  .spacing div{background:#1c1c1f;opacity:.85}
+  .spacing span{font-family:var(--mono);font-size:.625rem;color:var(--ink3);display:block;text-align:center;margin-top:4px}
+  .foot{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:.75rem;color:var(--ink3)}
+  .strip-banner{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#ad3932;margin:0 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Aitri · feature ciclos · fase UX</p>
+  <h1>UX Preview — Ciclos</h1>
+  <p class="sub">Manual visual de <code>01_UX_SPEC.md</code>. Cero tokens nuevos: todo lo que ves está transcrito de <code>src/app/globals.css</code>, el estándar vigente del producto.</p>
+  <div class="banner"><strong>Sin diseño provisto por el cliente.</strong> El documento del cliente define comportamiento y nomenclatura, no pantallas. Esta página es la <strong>propuesta</strong> de cómo se ven el nombre y el rango del ciclo, la sección de Configuración y la previsualización. Corregirla aquí cuesta una frase; corregirla construida cuesta un refactor.</div>
+
+  <h2>Roles de color, claro y oscuro</h2>
+  <p class="sub">Cada panel fija su propia paleta. Los badges son el contraste calculado contra el fondo indicado.</p>
+  <div class="grid2" id="panels"></div>
+
+  <h2>Escala tipográfica</h2>
+  <p class="sub">Inter para el texto, DM Mono solo para números. Roles de <code>globals.css</code>, sin tamaños ad-hoc.</p>
+  <div class="card" style="background:#fff;border:1px solid #e3e3e7">
+    <div class="type">
+      <span class="k">.title-sm · 1.0625rem/600</span><span style="font-size:1.0625rem;font-weight:600">Periodo del presupuesto</span>
+      <span class="k">.label · .8125rem/500</span><span style="font-size:.8125rem;font-weight:500">Septiembre &nbsp;·&nbsp; Día en que cobras &nbsp;·&nbsp; Ver cómo quedaría</span>
+      <span class="k">.label · .8125rem/600 (actual)</span><span style="font-size:.8125rem;font-weight:600">Septiembre</span>
+      <span class="k">.caption · .75rem/400</span><span style="font-size:.75rem;color:#6b6b73">21 ago – 20 sep</span>
+      <span class="k">.eyebrow · .6875rem/600</span><span style="font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6b6b73">actual</span>
+      <span class="k">.tabular · DM Mono</span><span style="font-family:var(--mono);font-size:.875rem">21 &nbsp; 15 celdas &nbsp; 10 movimientos</span>
+    </div>
+  </div>
+
+  <h2>Espaciado, radios, alturas</h2>
+  <p class="sub">Base 4px. Cabecera de ciclo 52px (dos líneas) solo en modo ciclos; 38px en modo mes. Controles 40px.</p>
+  <div class="card" style="background:#fff;border:1px solid #e3e3e7">
+    <div class="spacing">
+      <div style="width:4px;height:4px"><span>4</span></div>
+      <div style="width:8px;height:8px"><span>8</span></div>
+      <div style="width:12px;height:12px"><span>12</span></div>
+      <div style="width:16px;height:16px"><span>16</span></div>
+      <div style="width:20px;height:20px"><span>20</span></div>
+      <div style="width:24px;height:24px"><span>24</span></div>
+      <div style="width:38px;height:38px;opacity:.25"><span>38 mes</span></div>
+      <div style="width:52px;height:52px;opacity:.25"><span>52 ciclo</span></div>
+      <div style="width:40px;height:40px;opacity:.4"><span>40 ctrl</span></div>
+    </div>
+    <p class="help" style="margin-top:14px">Radios: 14px card · 8px campos, botones, panel · 9999px pastilla «actual». Motion: 160ms al aparecer, 120ms hover/foco; <code>prefers-reduced-motion</code> → 0.001ms.</p>
+  </div>
+
+  <h2>Composición en contexto</h2>
+  <p class="strip-banner">Illustrative — non-binding; the spec is the contract</p>
+  <div class="grid2" id="strips"></div>
+
+  <h2>Nota de honestidad</h2>
+  <p class="sub">Tokens del estándar que esta feature declara y <strong>no usa</strong>: <code>--alert-soft</code> y <code>--favorable</code>. Se muestran como swatch para que el revisor vea la paleta completa, pero ninguna superficie de Ciclos los pinta: «Totales idénticos ✓» va en <code>--fg</code>, no en verde. La cabecera de 52px se renderiza aquí a ancho fijo de 216px por columna, como en la grilla real; el candado y la marca de techo no se dibujan porque no cambian.</p>
+
+  <p class="foot">Generated from 01_UX_SPEC.md — non-binding; the spec is the contract.</p>
+</div>
+
+<script>
+(function(){
+  function lum(hex){const c=hex.replace('#','');const r=parseInt(c.substr(0,2),16)/255,g=parseInt(c.substr(2,2),16)/255,b=parseInt(c.substr(4,2),16)/255;
+    const f=v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);}
+  function ratio(a,b){const la=lum(a),lb=lum(b);const hi=Math.max(la,lb),lo=Math.min(la,lb);return (hi+0.05)/(lo+0.05);}
+  function badge(fg,bg){const r=ratio(fg,bg);const lvl=r>=7?'AAA':r>=4.5?'AA':r>=3?'AA-large':'FAIL';return lvl+' '+r.toFixed(2);}
+  const themes=[
+    {name:'Claro',cls:'light',t:{bg:'#f7f7f8',card:'#ffffff',hover:'#f1f1f3',sunken:'#f1f1f3',primary:'#1c1c1f',primaryfg:'#ffffff',accentl:'#55555d',fg:'#1c1c1f',fg2:'#55555d',fg3:'#6b6b73',bd:'#e3e3e7',bds:'#d3d3d9',alert:'#ad3932',soft:'#9e4708',fav:'#2d7650'}},
+    {name:'Oscuro',cls:'dark',t:{bg:'#131316',card:'#1b1b1f',hover:'#26262b',sunken:'#0f0f12',primary:'#f4f4f5',primaryfg:'#1c1c1f',accentl:'#9b9ba3',fg:'#f4f4f5',fg2:'#b4b4bb',fg3:'#9b9ba3',bd:'#33333a',bds:'#43434c',alert:'#ec6a66',soft:'#e0a458',fav:'#5fbe82'}}
+  ];
+  const rows=[
+    ['background','bg','Lienzo de /configuracion y de la app',null],
+    ['surface','card','Card de la sección; contenedor de la propuesta D2',null],
+    ['surface-hover','hover','Opción activa del grupo Mes a mes / Ciclos',null],
+    ['sunken','sunken','Cabecera de grilla (B1/B2) y panel de previsualización A6',null],
+    ['primary','primary','Relleno de «Ver cómo quedaría» y «Confirmar»','primaryfg'],
+    ['accent-light','accentl','Anillo de foco 2px','card'],
+    ['text-primary','fg','Nombre del ciclo actual, etiquetas, nombres en A6/A10','bg'],
+    ['text-secondary','fg2','Ciclos no actuales, rango en selector/historial, apoyos','bg'],
+    ['text-muted (rango en cabecera)','fg3','Rango bajo el nombre en la cabecera, sobre sunken','sunken'],
+    ['border','bd','Hairlines',null],
+    ['border-strong','bds','Borde de columna, pastilla «actual», contenedor D2',null],
+    ['error / --alert-strong','alert','Campo inválido, franja A9, «Fuera del rango»','card'],
+    ['--alert-soft (no se usa)','soft','Declarado en el estándar; ninguna superficie de Ciclos lo pinta','card'],
+    ['--favorable (no se usa)','fav','«Totales idénticos ✓» va en text-primary, no en verde','card']
+  ];
+  const panels=document.getElementById('panels');
+  themes.forEach(th=>{
+    const p=document.createElement('div');p.className='panel '+th.cls;
+    let h='<h3>'+th.name+'</h3><p class="note">'+(th.cls==='light'?':root':'.dark')+' de globals.css</p>';
+    rows.forEach(r=>{const hex=th.t[r[1]];const vs=r[3]?th.t[r[3]]:null;
+      h+='<div class="sw"><div class="chip" style="background:'+hex+'"></div><div class="swmeta"><div class="swrole">'+r[0]+'</div><div class="swhex">'+hex+(vs?' sobre '+vs:'')+'</div><div class="swwhy">'+r[2]+'</div></div>'+(vs?'<span class="badge">'+badge(hex,vs)+'</span>':'')+'</div>';});
+    p.innerHTML=h;panels.appendChild(p);
+  });
+  const arrow='<svg viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>';
+  const strips=document.getElementById('strips');
+  themes.forEach(th=>{
+    const p=document.createElement('div');p.className='panel '+th.cls;
+    p.innerHTML=
+      '<h3>'+th.name+' · cabecera de grilla en modo ciclos (B1/B2)</h3><p class="note">52px, nombre + rango; «Septiembre» actual; «Transición» con icono; borde de año en Enero</p>'+
+      '<div class="gridhead">'+
+        '<div class="col active"><span class="name">Septiembre</span><span class="range">21 ago – 20 sep</span></div>'+
+        '<div class="col"><span class="name">Octubre</span><span class="range">21 sep – 20 oct</span></div>'+
+        '<div class="col"><span class="name">'+arrow+'Transición</span><span class="range">21 oct – 29 oct</span></div>'+
+        '<div class="col"><span class="name">Noviembre</span><span class="range">30 oct – 29 nov</span></div>'+
+        '<div class="col"><span class="name">Diciembre</span><span class="range">30 nov – 29 dic</span></div>'+
+        '<div class="col year"><span class="name">Enero</span><span class="range">30 dic – 29 ene</span></div>'+
+      '</div>'+
+      '<div class="subhead"><div>Pres.</div><div>Ejec.</div><div>Pres.</div><div>Ejec.</div><div>Pres.</div><div>Ejec.</div></div>'+
+      '<h3 style="margin-top:18px">Configuración · «Periodo del presupuesto» (A1–A6)</h3><p class="note">Estado: Ciclos elegido, día 21, previsualización abierta</p>'+
+      '<div class="card">'+
+        '<span class="lbl">Periodo</span><div class="radiogroup"><span>Mes a mes</span><span class="on">Ciclos</span></div>'+
+        '<p class="help">Ahora: mes calendario, como siempre.</p>'+
+        '<span class="lbl" style="margin-top:12px">Día en que cobras</span><span class="inp" style="width:96px">21</span>'+
+        '<p class="help">El día del mes en que recibes tu ingreso principal. El ciclo va desde ese día hasta el anterior al siguiente pago.</p>'+
+        '<div style="margin-top:12px"><span class="btn primary">Ver cómo quedaría</span> <span class="btn ghost">Descartar</span></div>'+
+        '<div class="prev">'+
+          '<div class="row"><span><b style="font-weight:500">Septiembre 2026</b><span class="pill">actual</span></span><span class="r">21 ago – 20 sep</span></div>'+
+          '<div class="row"><span>Octubre 2026</span><span class="r">21 sep – 20 oct</span></div>'+
+          '<div class="row"><span>Noviembre 2026</span><span class="r">21 oct – 20 nov</span></div>'+
+          '<div class="row"><span>Diciembre 2026</span><span class="r">21 nov – 20 dic</span></div>'+
+          '<div class="row"><span>Enero 2027</span><span class="r">21 dic – 20 ene</span></div>'+
+          '<div class="row"><span>Febrero 2027</span><span class="r">21 ene – 20 feb</span></div>'+
+          '<div class="sum"><b>15 celdas</b> cambian de columna · <b>10 movimientos</b> cambian de ciclo · <b>3 celdas</b> juntan dos meses · <b>Totales idénticos ✓</b><br>Cada presupuesto queda en el mismo ciclo que lo que pagaste de ese rubro. Si un rubro tenía presupuesto en dos meses que caen en el mismo ciclo, se suman y se recuerda de qué mes vino cada parte.</div>'+
+          '<div style="margin-top:12px"><span class="btn primary">Confirmar</span> <span class="btn ghost">Cancelar</span></div>'+
+        '</div>'+
+        '<div class="alertbox"><b>Septiembre 2026 está cerrado.</b> Para volver a mes a mes, reábrelo primero desde la grilla.</div>'+
+      '</div>'+
+      '<h3 style="margin-top:18px">Registrar · línea «Ciclo» y propuesta del ingreso adelantado (D1/D2)</h3><p class="note">Ingreso fechado 20 nov con día de pago 21</p>'+
+      '<div class="card">'+
+        '<span class="lbl">Fecha</span><span class="inp" style="width:100%;font-family:var(--sans)">viernes 20 de noviembre</span>'+
+        '<p class="help"><span style="color:var(--fg3)">Ciclo</span> · Noviembre · 21 oct – 20 nov</p>'+
+        '<div class="infobox">Este ingreso cae 1 día antes de tu día de pago (21). ¿Es el salario que abre Diciembre?<br><div class="radiogroup" style="margin-top:8px"><span class="on">Mantener en Noviembre</span><span>Contar en Diciembre · 21 nov – 20 dic</span></div></div>'+
+      '</div>';
+    strips.appendChild(p);
+  });
+})();
+</script>
+</body>
+</html>

@@ -12,18 +12,23 @@
 import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
-import { ledger, node, amountCell, movement, cellNote, closureEvent } from "../db/schema";
+import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
-import { comparePeriods, isPeriodKey, periodRange } from "@/domain/periods";
+import { comparePeriods, isPeriodKey, monthOf } from "@/domain/periods";
+import {
+  buildCalendar, isValidMovementPeriod, normalizeCycleConfig, NO_CYCLES, type Calendar,
+} from "@/domain/cycles";
+import { currentPeriodFor } from "@/lib/date";
 import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
 import { worsenedBy } from "@/domain/guard";
 import type { ReserveWarning } from "@/domain/reserve";
 import {
-  closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE,
+  closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
 import { normalizeOpeningBalance, normalizeStartMonth, orphanedByStart } from "@/domain/opening";
-import type { Closure } from "@/domain/types";
+import type { Closure, CycleConfig, CycleVersion, OriginPart
+} from "@/domain/types";
 
 /** Versión de DATOS vigente (modelo v4, 2026-07-29): celdas = aportes; retiros en el journal.
  *  Historia: 2 = aportes sin journal de retiros · 3 = saldos con arrastre (revertido) · 4 = vigente. */
@@ -47,7 +52,65 @@ export type SaveResult =
   /** Feature cierre-de-mes (FR-2003): la escritura tocaba cifras de meses cerrados. */
   | { ok: false; closedViolation: true; periods: PeriodKey[] }
   /** Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que estaba. */
-  | { ok: false; domainViolation: true; violations: ReserveWarning[] };
+  | { ok: false; domainViolation: true; violations: ReserveWarning[] }
+  /** Feature ciclos (FR-2405/NFR-2408): claves fuera del calendario o periodo incoherente con la fecha. */
+  | { ok: false; periodMismatch: true; ids: string[] };
+
+// ── Feature ciclos: la configuración versionada y el calendario del dueño ───────────────────────
+
+type DbLike = DbTx | typeof db;
+
+function versionFromRow(r: typeof cycleConfigVersion.$inferSelect): CycleVersion {
+  return {
+    seq: r.id,
+    mode: r.mode === "cycle" ? "cycle" : "month",
+    anchorDay: r.anchorDay,
+    eomPolicy: r.eomPolicy === "last_day" || r.eomPolicy === "shift" ? r.eomPolicy : null,
+    effectiveFrom: String(r.effectiveFrom),
+    firstPay: r.firstPay === null ? null : String(r.firstPay),
+    restoreStartMonth: r.restoreStartMonth,
+    createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+  };
+}
+
+/**
+ * Las versiones de ciclos del dueño, en orden de creación. Sin filas = modo mes (`NO_CYCLES`).
+ *
+ * @aitri-trace FR-ID: FR-2401, US-ID: US-2401, AC-ID: AC-2402, TC-ID: TC-CIC-037h, TC-CIC-169h
+ */
+export async function loadCyclesIn(conn: DbLike, ownerId: string): Promise<CycleConfig> {
+  const rows = await conn.select().from(cycleConfigVersion).where(eq(cycleConfigVersion.ownerId, ownerId)).orderBy(asc(cycleConfigVersion.id));
+  if (rows.length === 0) return NO_CYCLES;
+  return normalizeCycleConfig({ versions: rows.map(versionFromRow) });
+}
+
+/**
+ * Feature ciclos, re-derivación del 2026-09-10 (ADR-07). La memoria de origen del dueño. SOLO servidor:
+ * la adjunta `loadStateInTx` para el endpoint de ciclos; `loadLedger` (GET) no la expone y `PUT /ledger`
+ * no la escribe.
+ *
+ * @aitri-trace FR-ID: FR-2410, US-ID: US-2410, AC-ID: AC-2433, TC-ID: TC-CIC-090h, TC-CIC-177h
+ */
+export async function loadOriginsIn(conn: DbLike, ownerId: string): Promise<OriginPart[]> {
+  const rows = await conn.select().from(relocationOrigin).where(eq(relocationOrigin.ownerId, ownerId));
+  return rows.map((r) => ({
+    subject: r.subject as OriginPart["subject"], ref: r.ref, period: r.period as PeriodKey, originPeriod: r.originPeriod as PeriodKey, amount: r.amount,
+  }));
+}
+
+/**
+ * El calendario del dueño para un estado, con cotas que cubren sus datos y las claves extra.
+ * En modo mes es `MONTH_CALENDAR`, así que todo lo anterior a la feature sigue igual.
+ *
+ * @aitri-trace FR-ID: FR-2409, US-ID: US-2409, AC-ID: AC-2429, TC-ID: TC-CIC-082h, TC-CIC-111f
+ */
+export function calendarOf(state: LedgerState, ...extra: (PeriodKey | null | undefined)[]): Calendar {
+  const ends = [oldestPeriodWithData(state), newestPeriodWithData(state), normalizeStartMonth(state.startMonth), ...extra]
+    .filter((p): p is PeriodKey => !!p && isPeriodKey(p)).map(monthOf);
+  const from = ends.length > 0 ? ends.reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b)) : "2026-01";
+  const to = ends.length > 0 ? ends.reduce((a, b) => (comparePeriods(a, b) >= 0 ? a : b)) : "2026-12";
+  return buildCalendar(state.cycles, { from, to });
+}
 
 /** Reconstruye un LedgerState a partir de las filas de la BD de un owner. */
 function rowsToState(
@@ -132,10 +195,12 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
     db.select().from(cellNote).where(eq(cellNote.ownerId, ownerId)),
   ]);
 
-  const state = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  const cycles = await loadCyclesIn(db, ownerId);
+  const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  const state = cycles.versions.length > 0 ? { ...base, cycles } : base;
   return {
     revision: head.revision,
-    state: { ...state, closure: closureFromRow(head), ...openingFromRow(head) },
+    state: { ...state, closure: closureFromRow(head, calendarOf(state)), ...openingFromRow(head) },
   };
 }
 
@@ -172,27 +237,30 @@ function openingFromRow(head: { startMonth: string | null; openingBalance: numbe
  *
  * @aitri-trace FR-ID: FR-2001, US-ID: US-2001, AC-ID: AC-2001, TC-ID: TC-CDM-010h, TC-CDM-262e
  */
-function closureFromRow(head: {
+export function closureFromRow(head: {
   closedThrough: string | null;
   reopenedPeriod: string | null;
   reopenBaseAvailable?: number | null;
   reopenBaseReserved?: number | null;
-}): Closure {
+}, cal?: Calendar): Closure {
   // La linea de base solo se ofrece si sus DOS componentes estan: `normalizeClosure` la descarta
   // entera si no cuadra, y nunca inventa un «antes» (FR-2010).
   const reopenBaseline =
     head.reopenBaseAvailable == null || head.reopenBaseReserved == null
       ? undefined
       : { available: head.reopenBaseAvailable, reservedBalance: head.reopenBaseReserved };
-  return normalizeClosure({
+  const c = normalizeClosure({
     closedThrough: head.closedThrough,
     reopened: head.reopenedPeriod,
     reopenBaseline,
   });
+  // Feature ciclos (FLAG-1, hallazgo 3/A): la vecindad «reopened = siguiente de closedThrough» se
+  // verifica AQUÍ, en el borde y con el calendario real, una sola vez.
+  return cal ? checkClosureNeighbors(c, cal.next) : c;
 }
 
 /** Las dos columnas de la linea de base a partir de un `Closure` — el bicondicional del CHECK. */
-function baselineColumns(closure: Closure): {
+export function baselineColumns(closure: Closure): {
   reopenBaseAvailable: number | null;
   reopenBaseReserved: number | null;
 } {
@@ -323,7 +391,7 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
 }
 
 /** Inserta las filas derivadas de un LedgerState dentro de una transacción (owner ya fijado). */
-async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Promise<void> {
+export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Promise<void> {
   const nodeValues = state.nodes.map((n) => ({
     ownerId,
     id: n.id,
@@ -401,14 +469,43 @@ async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerState): Pr
  * @returns { ok:true, revision } si aplicó; { ok:false, conflict:true, revision } si estaba stale (→409)
  */
 /** Carga el estado del owner DENTRO de una transacción. Lo usan el guardia y las operaciones de cierre. */
-async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerState> {
+export async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerState> {
   const [nodeRows, cellRows, movementRows, cellNoteRows] = await Promise.all([
     tx.select().from(node).where(eq(node.ownerId, ownerId)),
     tx.select().from(amountCell).where(eq(amountCell.ownerId, ownerId)),
     tx.select().from(movement).where(eq(movement.ownerId, ownerId)).orderBy(desc(movement.createdAt)),
     tx.select().from(cellNote).where(eq(cellNote.ownerId, ownerId)),
   ]);
-  return rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  const [cycles, origins] = await Promise.all([loadCyclesIn(tx, ownerId), loadOriginsIn(tx, ownerId)]);
+  const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  const withCycles = cycles.versions.length > 0 ? { ...base, cycles } : base;
+  return origins.length > 0 ? { ...withCycles, origins } : withCycles;
+}
+
+/**
+ * Feature ciclos (FR-2405, RV-01/RV-02). Los ids de movimiento cuyo periodo no casa con su fecha,
+ * más un marcador por cada clave de celda/nota fuera del calendario. Vacío = coherente.
+ *
+ * @aitri-trace FR-ID: FR-2405, US-ID: US-2405, AC-ID: AC-2417, TC-ID: TC-CIC-050f, TC-CIC-101f
+ */
+export function periodMismatches(state: LedgerState, cal: Calendar): string[] {
+  const ids: string[] = [];
+  const used = new Set<PeriodKey>();
+  for (const m of [state.budgets, state.actuals]) for (const cells of Object.values(m)) for (const p of Object.keys(cells ?? {})) used.add(p);
+  for (const byP of Object.values(state.cellNotes ?? {})) for (const p of Object.keys(byP ?? {})) used.add(p);
+  for (const mv of state.movements) used.add(mv.period);
+  // Solo claves BIEN FORMADAS: una malformada («2026-13») no es asunto del calendario — la
+  // rechazan Zod en el borde y el CHECK de la base, como siempre (TC-MAN-242e sigue igual).
+  const validas = [...used].filter((k) => isPeriodKey(k)).sort(comparePeriods);
+  if (validas.length > 0) {
+    const allowed = new Set(cal.keys(monthOf(validas[0]!), monthOf(validas[validas.length - 1]!)));
+    for (const k of validas) if (!allowed.has(k)) ids.push(`period:${k}`);
+  }
+  for (const mv of state.movements) {
+    if (cal.mode === "cycle" && !mv.date) { ids.push(mv.id); continue; }
+    if (mv.date && !isValidMovementPeriod(cal, mv)) ids.push(mv.id);
+  }
+  return ids;
 }
 
 export async function saveLedger(
@@ -442,8 +539,15 @@ export async function saveLedger(
     //
     // El estado previo se carga UNA sola vez y lo comparten los dos guardias (NFR-2105): antes se
     // cargaba solo cuando había meses cerrados; ahora hace falta siempre.
-    const closure = head ? closureFromRow(head) : NO_CLOSURE;
     const prev = head ? await loadStateInTx(tx, ownerId) : null;
+    // Feature ciclos (ADR-03): la configuración NO viaja en el snapshot — solo la cambia
+    // `applyCyclesFor`. Un cliente con código anterior no puede borrarla ni alterarla desde aquí.
+    if (prev?.cycles) state = { ...state, cycles: prev.cycles };
+    else if ("cycles" in state) { const { cycles: _ignored, ...rest } = state; void _ignored; state = rest as LedgerState; }
+    const cal = calendarOf(state);
+    const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
+    const mismatch = periodMismatches(state, cal);
+    if (mismatch.length > 0) return { ok: false, periodMismatch: true, ids: mismatch };
 
     // ORDEN (ADR-19): el cierre PRIMERO y su rechazo corta. «Ese mes está cerrado» es una respuesta
     // completa: arreglar la reserva no desbloquearía nada, así que mandar al usuario a hacerlo
@@ -456,7 +560,7 @@ export async function saveLedger(
     if (prev) {
       // El rango juzgado es la UNIÓN de los dos alcances: un mes que la escritura estrena tiene que
       // entrar en el juicio, o crear un mes sería la puerta de escape (TC-RES-015e).
-      const scope = unionScope(serverScope(prev), serverScope(state));
+      const scope = unionScope(state, serverScope(prev), serverScope(state));
       const violations = worsenedBy(prev, state, scope);
       if (violations.length > 0) return { ok: false, domainViolation: true, violations };
     }
@@ -507,22 +611,24 @@ export async function saveLedger(
  * Continuo y no la simple concatenación porque el arrastre encadena: juzgar 2026-06 y 2026-09 sin
  * los meses de en medio daría un veredicto sobre una serie que no existe.
  */
-function unionScope(a: readonly PeriodKey[], b: readonly PeriodKey[]): PeriodKey[] {
+export function unionScope(state: LedgerState, a: readonly PeriodKey[], b: readonly PeriodKey[]): PeriodKey[] {
   const all = [...a, ...b];
   if (all.length === 0) return [];
   const from = all.reduce((x, y) => (comparePeriods(x, y) <= 0 ? x : y));
   const to = all.reduce((x, y) => (comparePeriods(x, y) >= 0 ? x : y));
-  return periodRange(from, to);
+  // Feature ciclos (FLAG-1 (4)): la lista sale del calendario del dueño, con las transiciones.
+  return calendarOf(state, from, to).keys(monthOf(from), monthOf(to));
 }
 
-function serverScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
+export function serverScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
   const oldest = oldestPeriodWithData(state);
   const newest = newestPeriodWithData(state);
   const ends = [oldest, newest, extra].filter((p): p is PeriodKey => !!p && isPeriodKey(p));
   if (ends.length === 0) return extra && isPeriodKey(extra) ? [extra] : [];
   const from = ends.reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b));
   const to = ends.reduce((a, b) => (comparePeriods(a, b) >= 0 ? a : b));
-  return periodRange(from, to);
+  // Feature ciclos (FLAG-1 (4)): sin horizonte, como siempre; con las transiciones del calendario.
+  return calendarOf(state, extra).keys(monthOf(from), monthOf(to));
 }
 
 export async function getMovements(ownerId: string, period?: PeriodKey): Promise<Movement[]> {
@@ -565,11 +671,13 @@ export async function insertMovement(
   | { movement: Movement; revision: number }
   | { closedViolation: true }
   | { domainViolation: true; violations: ReserveWarning[] }
+  | { periodMismatch: true; expected: PeriodKey | null }
   | null
 > {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
     if (!head) throw new Error("El usuario no tiene un ledger inicializado");
+    const cycles = await loadCyclesIn(tx, ownerId);
 
     // Cargar el estado del owner y correr la mutación pura del dominio (misma lógica que el cliente).
     const [nodeRows, cellRows, movementRows] = await Promise.all([
@@ -579,14 +687,24 @@ export async function insertMovement(
     ]);
     // Modelo v4 garantizado ANTES de operar: un ledger v3 sin migrar leería saldos como aportes
     // y aceptaría retiros del doble (hallazgo adversarial 4).
-    const prev = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
+    const base = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
+    const prev: LedgerState = cycles.versions.length > 0 ? { ...base, cycles } : base;
+    const cal = calendarOf(prev, input.period);
+    // Feature ciclos (FR-2405, FR-2406, NFR-2408): el periodo tiene que ser el de la fecha (o el
+    // ciclo que un ingreso abre dentro de la ventana). En ciclos la fecha es obligatoria.
+    if (cal.mode === "cycle" && !input.date) return { periodMismatch: true as const, expected: null };
+    if (input.date && !isValidMovementPeriod(cal, { type: input.type, period: input.period, date: input.date })) {
+      let expected: PeriodKey | null = null;
+      try { expected = cal.periodForDate(input.date); } catch { expected = null; }
+      return { periodMismatch: true as const, expected };
+    }
     // El rango activo se deriva del propio estado más el periodo del movimiento: el servidor no
     // tiene la preferencia de horizonte del cliente, y no la necesita — lo que valida son las
     // reglas del dominio sobre los periodos que existen (ADR-02).
     // EL GUARDIA, segunda via de escritura (FR-2003). insertMovement no pasa por saveLedger, asi
     // que si no se comprobara aqui quedaria un agujero — y es justo el que FR-2003 nombra primero:
     // «registrar un movimiento nuevo con periodo de un mes cerrado» (TC-CDM-033f).
-    const closure = closureFromRow(head);
+    const closure = closureFromRow(head, cal);
     if (closure.closedThrough !== null) {
       const next0 = addMovement(prev, input, serverScope(prev, input.period));
       if (next0 !== prev && closedPeriodsViolated({ ...prev, closure }, next0).length > 0) {
@@ -602,7 +720,7 @@ export async function insertMovement(
     // mismo estado al rechazar—, pero uno de INGRESO o GASTO no pasaba por ninguna comprobación:
     // ese era el agujero. Se juzga el estado resultante, no la operación, así que cubre las dos
     // clases con una sola llamada (TC-RES-016f).
-    const scope = unionScope(serverScope(prev, input.period), serverScope(next, input.period));
+    const scope = unionScope(prev, serverScope(prev, input.period), serverScope(next, input.period));
     const violations = worsenedBy(prev, next, scope);
     if (violations.length > 0) return { domainViolation: true as const, violations };
 
@@ -663,7 +781,9 @@ export type ClosureResult =
 export async function closeMonthFor(
   ownerId: string,
   baseRevision: number,
-  currentPeriod: PeriodKey
+  /** Un periodo («YYYY-MM») o, desde la feature ciclos, «hoy» como fecha ISO («YYYY-MM-DD»): el
+   *  periodo en curso se deriva del calendario del dueño (FR-2409, FLAG-2). */
+  currentPeriodOrToday: string
 ): Promise<ClosureResult> {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
@@ -673,7 +793,10 @@ export async function closeMonthFor(
     const state = await loadStateInTx(tx, ownerId);
     // El SERVIDOR no conoce el horizonte del navegador (es preferencia de presentación, ADR-06):
     // valida sobre los periodos que REALMENTE existen más el mes en curso, igual que serverScope.
-    const conCierre = { ...state, closure: closureFromRow(head) };
+    const esPeriodo: boolean = isPeriodKey(currentPeriodOrToday);
+    const cal = calendarOf(state, esPeriodo ? currentPeriodOrToday : currentPeriodOrToday.slice(0, 7));
+    const currentPeriod: PeriodKey = esPeriodo ? currentPeriodOrToday : currentPeriodFor(cal, currentPeriodOrToday);
+    const conCierre = { ...state, closure: closureFromRow(head, cal) };
     const res = closeMonth(conCierre, currentPeriod, serverScope(conCierre, currentPeriod));
     if (!res.ok) return { ok: false, rejected: res.reason };
 
@@ -738,7 +861,7 @@ export async function saveStartFor(
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
     const state = await loadStateInTx(tx, ownerId);
-    const closure = closureFromRow(head);
+    const closure = closureFromRow(head, calendarOf(state));
 
     // Regla 1 (FR-2205). Se evalua sobre el mes VIGENTE, no sobre el propuesto: lo que el cierre
     // protege es la serie ya congelada, y esa cuelga de donde la apertura esta HOY.
@@ -777,11 +900,12 @@ export async function reopenMonthFor(ownerId: string, baseRevision: number): Pro
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
     const state = await loadStateInTx(tx, ownerId);
-    const conCierre = { ...state, closure: closureFromRow(head) };
+    const cal = calendarOf(state);
+    const conCierre = { ...state, closure: closureFromRow(head, cal) };
     // El rango entra como parámetro (ADR-02) y es el mismo `serverScope` que usa el cierre: la
     // línea de base se calcula sobre los periodos que REALMENTE existen, no sobre el horizonte del
     // navegador, que el servidor no conoce.
-    const res = reopenMonth(conCierre, serverScope(conCierre));
+    const res = reopenMonth(conCierre, serverScope(conCierre), cal.prev);
     if (!res.ok) return { ok: false, rejected: res.reason };
 
     const revision = current + 1;

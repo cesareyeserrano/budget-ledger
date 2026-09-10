@@ -14,7 +14,7 @@ import { HTTP, json, withApi } from "@/server/http";
 import { closeMonthFor, reopenMonthFor } from "@/server/data/ledgerRepo";
 import { closurePostSchema, type ClosurePostBody } from "@/server/schemas";
 import { syncHub } from "@/server/sync";
-import { currentPeriod } from "@/lib/date";
+import { serverToday } from "@/server/clock";
 
 /** 422 con el motivo que el dominio dio. Nunca se inventa uno: se propaga el que decidió la regla. */
 function rejected(reason: "not_closable" | "nothing_closed" | "already_reopened"): Response {
@@ -25,9 +25,11 @@ function rejected(reason: "not_closable" | "nothing_closed" | "already_reopened"
 
 const postHandler = withApi<ClosurePostBody>(
   { auth: "required", schema: closurePostSchema, mutation: true },
-  async ({ userId, body }) => {
+  async ({ userId, body, req }) => {
     // El reloj entra por el BORDE (ADR-02): el dominio no lo lee, se le pasa.
-    const res = await closeMonthFor(userId, body.baseRevision, currentPeriod());
+    // Feature ciclos (FR-2409, FLAG-2): «hoy» lo decide el servidor en LEDGER_TZ; el periodo en curso
+    // sale del calendario del dueño dentro de closeMonthFor.
+    const res = await closeMonthFor(userId, body.baseRevision, serverToday(req));
     if (!res.ok && "conflict" in res) {
       return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     }

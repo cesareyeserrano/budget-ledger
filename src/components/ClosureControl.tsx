@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Lock, LockOpen } from "lucide-react";
 import { useClosureStatus, useLedgerStore } from "@/state/store";
-import { periodLabel } from "@/domain/periods";
+import { useCalendar } from "@/state/store";
+import { cycleLabel, withRange } from "./cycleText";
 import { Button } from "./ui/button";
 import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
 
@@ -21,6 +22,8 @@ import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
  * @aitri-trace FR-ID: FR-2002, US-ID: US-2002, AC-ID: AC-2031, TC-ID: TC-CDM-093h
  */
 export function ClosureControl() {
+  // Feature ciclos (FR-2407): el título del botón lleva el rango del ciclo; el texto, el nombre.
+  const cal = useCalendar();
   const { closable, reopenable, reopened } = useClosureStatus();
   const closeMonth = useLedgerStore((s) => s.closeMonth);
   const reopenMonth = useLedgerStore((s) => s.reopenMonth);
@@ -57,13 +60,13 @@ export function ClosureControl() {
       data-reopened={reopened ?? ""}
     >
       {closable && (
-        <Button variant="ghost" size="sm" disabled={busy} onClick={() => void run(closeMonth)}>
-          <Lock size={14} /> Cerrar {periodLabel(closable)}
+        <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, closable)} onClick={() => void run(closeMonth)}>
+          <Lock size={14} /> Cerrar {cycleLabel(cal, closable)}
         </Button>
       )}
       {reopenable && (
-        <Button variant="ghost" size="sm" disabled={busy} onClick={() => void run(reopenMonth)}>
-          <LockOpen size={14} /> Reabrir {periodLabel(reopenable)}
+        <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, reopenable)} onClick={() => void run(reopenMonth)}>
+          <LockOpen size={14} /> Reabrir {cycleLabel(cal, reopenable)}
         </Button>
       )}
       {/* Un mes reabierto es un estado en el que el usuario NO debería quedarse sin darse cuenta:
@@ -71,7 +74,7 @@ export function ClosureControl() {
           límite al chocar con él. */}
       {reopened && !reopenable && (
         <span className="caption text-fg-muted whitespace-nowrap">
-          {periodLabel(reopened)} reabierto
+          {cycleLabel(cal, reopened)} reabierto
         </span>
       )}
       {/* Solo de lectura: no hay dentro ningún control que cierre, reabra ni edite (TC-CDM-115f).

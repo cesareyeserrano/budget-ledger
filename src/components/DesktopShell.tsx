@@ -2,10 +2,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Settings } from "lucide-react";
-import { useLedgerStore, useActivePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useCalendar, useNow } from "@/state/store";
 import { periodLabel, periodYear } from "@/domain/periods";
+import { withRange } from "./cycleText";
 import type { PeriodKey } from "@/domain/types";
-import { currentPeriod } from "@/lib/date";
 import { summaryKpis } from "@/domain/dashboard";
 import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
@@ -45,6 +45,9 @@ type View = "budget" | "dashboard";
 export function DesktopShell() {
   const data = useLedgerStore((s) => s.data);
   const period = useLedgerStore((s) => s.period);
+  // Feature ciclos: calendario vigente y «hoy» según él (FLAG-1).
+  const cal = useCalendar();
+  const hoy = useNow();
   const setPeriod = useLedgerStore((s) => s.setPeriod);
   const [view, setView] = useState<View>("budget");
   const [panel, setPanel] = useState(false);
@@ -113,17 +116,18 @@ export function DesktopShell() {
         <div className="flex items-center justify-between gap-4 px-6 py-2 flex-wrap border-b border-border">
           <div className="flex items-center gap-2">
             {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso */}
-            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentPeriod() } : { mode: "year", year: period.mode === "month" ? periodYear(period.month) : new Date().getFullYear() })}>
+            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : hoy } : { mode: "year", year: period.mode === "month" ? periodYear(period.month) : new Date().getFullYear() })}>
               <TabsList data-testid="period-pill">
                 <TabsTrigger value="month">Mes</TabsTrigger>
                 <TabsTrigger value="year">Año</TabsTrigger>
               </TabsList>
             </Tabs>
             {period.mode === "month" && (
-              <div className="w-[130px]">
+              <div className={cal.mode === "cycle" ? "w-[280px]" : "w-[130px]"}>
+                {/* Feature ciclos (FR-2407): nombre + rango en cada opción («Octubre 2026 · 21 sep – 20 oct»). */}
                 <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as PeriodKey })}>
-                  <SelectTrigger aria-label="Mes" className="py-1 label"><SelectValue /></SelectTrigger>
-                  <SelectContent>{periods.map((p) => <SelectItem key={p} value={p}>{periodLabel(p)}</SelectItem>)}</SelectContent>
+                  <SelectTrigger aria-label="Mes" className="py-1 label"><SelectValue>{withRange(cal, period.month)}</SelectValue></SelectTrigger>
+                  <SelectContent>{periods.map((p) => <SelectItem key={p} value={p}>{withRange(cal, p)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}

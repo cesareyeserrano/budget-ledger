@@ -10,7 +10,8 @@
 // PURO Y SIN RELOJ (ADR-02): `currentPeriod` es un PARÁMETRO. El reloj vive en `src/lib/date.ts`.
 
 import type { LedgerState, PeriodKey } from "./types";
-import { comparePeriods, isPeriodKey, periodOf, periodRange, periodYear } from "./periods";
+import { comparePeriods, isPeriodKey, monthOf, periodOf, periodRange, periodYear } from "./periods";
+import type { Calendar } from "./cycles";
 import { normalizeClosure } from "./closure";
 import { normalizeStartMonth } from "./opening";
 
@@ -88,7 +89,26 @@ export function activeRange(
   currentPeriod: PeriodKey,
   horizon: Horizon = DEFAULT_HORIZON
 ): PeriodKey[] {
-  if (!isPeriodKey(currentPeriod)) return [];
+  const b = activeBounds(state, currentPeriod, horizon);
+  return b ? periodRange(b.from, b.to) : [];
+}
+
+/**
+ * Feature ciclos (FLAG-1, hallazgo 8). Las DOS COTAS del rango activo, siempre como claves de MES:
+ * una cota que venga de un dato con sufijo de transición se reduce a su mes con `monthOf`, y la
+ * transición reaparece en su sitio cuando `Calendar.keys` intercala. Es el mismo cálculo que
+ * `activeRange` hacía en línea; se extrae para que el modo ciclos comparta las cotas sin tocar la
+ * lista mensual (NFR-2403).
+ *
+ * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-106h, TC-CIC-108f
+ */
+export function activeBounds(
+  state: LedgerState,
+  currentPeriod: PeriodKey,
+  horizon: Horizon = DEFAULT_HORIZON
+): { from: PeriodKey; to: PeriodKey } | null {
+  if (!isPeriodKey(currentPeriod)) return null;
+  const current = monthOf(currentPeriod);
   const h = normalizeHorizon(horizon);
   const oldest = oldestPeriodWithData(state);
   // La FRONTERA DEL CIERRE ancla igual que un dato (ADR-14, arreglo de BG-001). Un mes que el
@@ -112,7 +132,7 @@ export function activeRange(
   //
   // Sin mes declarado, `declared` es null y la expresión se reduce TÉRMINO A TÉRMINO a la anterior.
   const declared = normalizeStartMonth(state.startMonth);
-  const base = declared ?? currentPeriod;
+  const base = declared ?? current;
   const anchors = [oldest, boundary].filter(
     (p): p is PeriodKey => !!p && comparePeriods(p, base) < 0
   );
@@ -121,13 +141,30 @@ export function activeRange(
     : base;
 
   // Hasta DICIEMBRE del último año del horizonte: años completos, no una cuenta de meses.
-  const horizonEnd = periodOf(periodYear(currentPeriod) + h, 12);
+  const horizonEnd = periodOf(periodYear(current) + h, 12);
   // Lo que ya existe manda sobre la ventana: si hay un dato en 2030 y el horizonte llega a 2028,
   // el rango llega a 2030. El horizonte ofrece futuro vacío; no esconde pasado ni futuro escrito.
   const newest = newestPeriodWithData(state);
   const to = newest && comparePeriods(newest, horizonEnd) > 0 ? newest : horizonEnd;
 
-  return periodRange(from, to);
+  return { from: monthOf(from), to: monthOf(to) };
+}
+
+/**
+ * Feature ciclos (FR-2407, FR-2409). La lista de claves que se PINTAN y sobre la que corre el
+ * dominio, según el calendario: en modo mes es exactamente `activeRange`; en ciclos intercala las
+ * transiciones y respeta las mismas cotas.
+ *
+ * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-107e
+ */
+export function activeKeys(
+  state: LedgerState,
+  calendar: Calendar,
+  currentPeriod: PeriodKey,
+  horizon: Horizon = DEFAULT_HORIZON
+): PeriodKey[] {
+  const b = activeBounds(state, currentPeriod, horizon);
+  return b ? calendar.keys(b.from, b.to) : [];
 }
 
 /** El periodo más RECIENTE con datos, o `null`. Simétrico de `oldestPeriodWithData`. */

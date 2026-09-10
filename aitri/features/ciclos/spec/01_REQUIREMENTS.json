@@ -1,0 +1,946 @@
+{
+  "project_name": "ciclos",
+  "project_summary": {
+    "north_star_kpi": "Con el modo «Ciclos» activo y día de pago 21, el usuario abre la app y los 27 movimientos que hoy tiene repartidos entre agosto (9) y septiembre (18) aparecen TODOS en una sola columna, «Septiembre · 21 ago – 20 sep», junto con el salario que los pagó — cero movimientos en otra columna, cero pesos perdidos o duplicados respecto del modo mes.",
+    "jtbd": "Cuando cobro el 21 y con esa plata pago cuentas hasta el 20 del mes siguiente, quiero que el presupuesto se lleve por ese periodo de pago y no por mes calendario, para poder responder «¿con qué plata pago esta cuenta?» sin que un mismo salario se parta en dos columnas ni una columna mezcle dos salarios.",
+    "guardrail_metric": "Modo «Mes a mes» (el que tiene todo el mundo por defecto) = cero cambio: la suite completa del proyecto y de sus 21 features (1054 pruebas en verde el 2026-09-10) sigue en verde sin relajar aserciones, y los totales de cada mes son idénticos a los de antes de la feature. Y para quien activa ciclos: la suma de todas las celdas y de todos los movimientos antes y después de activar es exactamente la misma."
+  },
+  "technology_preferences": [
+    "TypeScript + Next.js + Postgres con drizzle, el stack ya en uso; ninguna dependencia nueva para calcular fechas (la aritmética de periodos del dominio se extiende, no se sustituye)",
+    "La configuración de ciclos viaja con el snapshot del ledger por las rutas ya autenticadas, como el mes de inicio y el saldo inicial (FR-2207) y el cierre (FR-2001)"
+  ],
+  "constraints": [
+    "PRIMER INCREMENTO = el núcleo que ajusta las transacciones actuales del usuario (decisión suya, 2026-09-10). Todo lo demás del documento del cliente queda aplazado y registrado en BL-045; no se pierde, se hace después.",
+    "El modo es una elección POR USUARIO en Configuración: «Mes a mes» por defecto (idéntico a hoy) o «Ciclos». Nunca las dos vistas a la vez: así no se mezclan dos sistemas de corte (§4.1 del documento).",
+    "El ciclo se nombra por el MES EN QUE TERMINA y muestra siempre su rango debajo («Septiembre · 21 ago – 20 sep»). Decisión del usuario que SUPERSEDE §2.1 de su documento; la alternativa (nombrar por el mes en que empieza, que no correría las celdas) quedó anotada en 00_DISCOVERY.md y el usuario la vio al aprobar.",
+    "La frontera del ciclo es NOMINAL: siempre el día configurado. Si el pago se adelanta por fin de semana o festivo, la frontera no se mueve. Decisión del usuario que SUPERSEDE §3.1; por eso NO hay calendario de festivos ni política de día hábil.",
+    "«Cerrado», reapertura, corrección retroactiva y arrastre siguen la lógica de cierre-de-mes aplicada a la columna del ciclo (supersede §8.4: un ciclo cerrado no se corrige en sitio, se reabre).",
+    "Un cambio de día de pago CREA una versión nueva con fecha de vigencia y fecha del primer pago nuevo; nunca edita la configuración en sitio ni recalcula ciclos cerrados (RF-07, RF-08, RV-07: «el error más costoso de este modelo»).",
+    "La base de desarrollo contiene datos reales del usuario: ninguna prueba ni migración los modifica sin pedírselo; la activación real la ejecuta él desde la app."
+  ],
+  "no_go_zone": [
+    "NO frecuencias distintas de «un día del mes»: quincenal 15/30, quincenal con fin de mes, semanal, catorcenal y fechas manuales para ingresos irregulares (RF-03, RF-04, §2.2.2) quedan aplazadas a un incremento posterior (BL-045).",
+    "NO calendario de festivos ni política de día no hábil (parte de RF-02, RV-09): RETIRADOS por decisión del usuario, porque la frontera del ciclo es nominal y el pago adelantado se resuelve con FR-2406.",
+    "NO gastos recurrentes con día de vencimiento proyectados a ciclos futuros (RF-12) ni cuotas de compras diferidas (RF-13, §5.2): aplazados (BL-045). Por eso «fecha de vencimiento» no existe en el núcleo: la fecha de la transacción es la que asigna.",
+    "NO prorrateo de un gasto entre los ciclos que lo anteceden (RF-09c, RV-10, §2.2.6): aplazado (BL-045); BL-043 sugiere reusar el motor de alcancías de transferencias cuando llegue.",
+    "NO ingreso extraordinario asignado a mano a otro ciclo (RF-14, §5.1) ni varias fuentes de ingreso con una designada (RF-15, §5.4): en el núcleo hay UNA fuente que define los ciclos, el salario. Aplazados (BL-045).",
+    "NO vista alterna por mes calendario con ciclos activos (RF-16, §4.2, §9): el rango bajo el nombre basta por ahora; cualquier reporte tributario futuro se construirá sobre esa vista. Aplazado (BL-045).",
+    "NO disponible tras gastos comprometidos no pagados (RF-17), NO alerta de ciclo futuro en déficit (RF-18), NO aviso de duración distinta al comparar ciclos (RF-19): aplazados (BL-045). Consecuencia: de RF-09b sobrevive en el núcleo solo la MARCA visual del ciclo de transición; las exclusiones de promedios/alertas se aplican cuando existan.",
+    "NO ingreso de monto variable con proyectado vs confirmado (§8.3): no aplica al salario fijo del usuario; se retoma si entran fuentes variables (BL-045).",
+    "NO criterio tributario (§9): el modelo no cambia cuándo se realiza un ingreso para efectos de renta.",
+    "NO migración masiva de otros usuarios: activar ciclos es una acción de cada usuario sobre su propio ledger desde Configuración; ninguna cuenta cambia de modo sin que su dueño lo haga.",
+    "NO montos negativos: un reembolso es una transacción más, un ingreso positivo en el ciclo en que llega (§8.5, decisión del usuario).",
+    "NO editar en sitio una configuración de ciclos ya vigente ni recalcular un ciclo cerrado al cambiar el día de pago (RF-08, RV-07).",
+    "NO marca de anomalía por ciclo con ingresos sin gastos o con gastos sin ingresos (RV-04): RETIRADA en el núcleo. Con un solo modo activo por usuario (resolución 2 del discovery) no puede darse la mezcla de cortes de §4.1 que la regla vigila, y un ciclo sin ingreso todavía es un estado legítimo antes del día de pago (§8.2). Se retoma, si hace falta, junto con la alerta RF-18 (BL-045)."
+  ],
+  "user_personas": [
+    {
+      "role": "El presupuestador personal que cobra el 21 y activa «Ciclos»",
+      "tech_level": "mid",
+      "goal": "Ver en una sola columna el salario del 21 y todo lo que pagó con él hasta el 20 del mes siguiente, y saber cuánto le queda del ciclo en curso",
+      "pain_point": "Hoy la app le parte cada salario en dos columnas y cada columna mezcla dos salarios: «no sé cuándo un pago entra el 21 de un mes, pero con eso pago lo de otro mes; es confuso y creo que contablemente erróneo»"
+    },
+    {
+      "role": "El usuario que se queda en «Mes a mes» (todo usuario existente o nuevo que no toca Configuración)",
+      "tech_level": "mid",
+      "goal": "Que nada de lo suyo cambie: mismas columnas, mismos totales, mismo cierre",
+      "pain_point": "Una feature que cambia el eje de indexación del dinero podría, mal hecha, mover cifras de cuentas que nunca pidieron ciclos; para él el único resultado aceptable es cero diferencia"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2401",
+      "title": "Modo de periodo en Configuración: «Mes a mes» por defecto o «Ciclos» con día de pago",
+      "description": "Cuando el usuario abre la página de Configuración (FR-2204 de meses-y-saldo-inicial), el sistema muestra un ajuste «Periodo del presupuesto» con dos valores: «Mes a mes», seleccionado por defecto en todo ledger que nunca haya elegido, y «Ciclos». Cuando elige «Ciclos», el sistema pide el día del mes en que cobra (entero de 1 a 31) y la política de fin de mes para días 29, 30 y 31 («último día del mes», por defecto, o «desplazar al día siguiente disponible» — parámetro de RF-02 del documento). El ajuste viaja con el snapshot del ledger y persiste en el servidor (FR-2207), validado allí y no solo en el navegador (lección de BG-002). Con «Mes a mes» ninguna pantalla cambia respecto de hoy (RF-01: el sistema no aplica ningún ciclo sin elección explícita).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Un ledger recién sembrado y un ledger existente sin elección muestran «Mes a mes» seleccionado y ninguna columna, selector ni cifra distinta de la de hoy (happy — defecto)",
+        "Elegir «Ciclos» con día 21 y guardar persiste modo, día y política en el servidor; recargar la app conserva la elección y las columnas siguen por ciclo (happy — persistencia)",
+        "Un día 0, 32, decimal, vacío o no numérico se rechaza en el servidor con error visible y el modo NO cambia; una petición con esos valores enviada directamente a la API también se rechaza (negative)",
+        "El ajuste se ve y se opera en el viewport de escritorio de 1440 px sin scroll horizontal, con el control de día visible junto a la opción «Ciclos» (edge — medio declarado: Configuración es de escritorio)"
+      ]
+    },
+    {
+      "id": "FR-2402",
+      "title": "Calendario de ciclos contiguos, de duración variable, a partir del día de pago",
+      "description": "Cuando el modo «Ciclos» está activo, el sistema genera el calendario de ciclos a partir de la configuración vigente (RF-06): cada ciclo empieza el día de pago de un mes y termina el día anterior al día de pago del mes siguiente, aplicando la política de fin de mes cuando el día no existe en ese mes (con día 31 y «último día del mes», febrero abre el 28 o el 29). Los ciclos son contiguos: el fin de uno es el día anterior al inicio del siguiente, sin huecos ni traslapes (RV-03), y ninguna configuración válida produce un ciclo de duración cero o negativa (RV-08). La duración es variable (§2.2.3): ninguna lógica del sistema asume duración constante ni divide entre un número fijo de días. Cada ciclo se identifica por el mes en que TERMINA y lleva su rango de fechas.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con día 21, el ciclo «Septiembre 2026» va del 2026-08-21 al 2026-09-20, «Octubre 2026» del 2026-09-21 al 2026-10-20, y para 24 meses consecutivos el fin de cada ciclo es exactamente el día anterior al inicio del siguiente (happy)",
+        "Con día 31 y política «último día del mes», el ciclo que termina en marzo de 2027 empieza el 2027-02-28 y el que termina en marzo de 2028 empieza el 2028-02-29; con día 30 y «desplazar», el ciclo que empieza en febrero abre el 2027-03-01 — en ambos casos la contigüidad se conserva y el 29-feb solo aparece en año bisiesto (edge — fin de mes y bisiesto)",
+        "Con día 1 los ciclos coinciden exactamente con los meses calendario; con cualquier día de 1 a 31 la duración mínima es 28 y la máxima 31 días, y no existe ningún ciclo de 0 días ni ninguna fecha que pertenezca a dos ciclos (edge — contigüidad exhaustiva)",
+        "Una configuración con día fuera de 1..31 o con fecha de vigencia inválida no genera calendario y se rechaza con error, dejando el calendario anterior intacto (negative)"
+      ]
+    },
+    {
+      "id": "FR-2403",
+      "title": "Previsualizar los ciclos y la reubicación antes de guardar",
+      "description": "Cuando el usuario cambia la configuración de ciclos (activar, cambiar el día de pago o volver a mes a mes) y antes de guardar, el sistema muestra una previsualización (RF-05): los próximos seis ciclos con nombre y rango, y un resumen de lo que va a reubicarse — cuántas celdas tecleadas cambian de columna, cuántos movimientos cambian de ciclo, cuántas celdas juntan dos meses en un mismo ciclo (FR-2404; se omite cuando son cero), y la comprobación de que la suma de celdas y de movimientos antes y después es idéntica. Cuando el usuario cancela, el sistema no persiste nada y el ledger queda exactamente como estaba.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Al elegir «Ciclos» con día 21 sobre el ledger del usuario, la previsualización lista «Septiembre · 21 ago – 20 sep» y los cinco ciclos siguientes, e indica «15 celdas cambian de columna, 10 movimientos cambian de ciclo, 3 celdas juntan dos meses, totales idénticos» (las 14 celdas de agosto y el presupuesto de septiembre del Salario; los 10 movimientos del 21 al 29 de agosto; Parqueaderos, Restaurantes y Ropa) antes de que exista el botón Confirmar habilitado (happy)",
+        "Cancelar en la previsualización deja el snapshot persistido byte a byte igual al anterior: mismo modo, mismas celdas, mismos periodos de movimientos (negative)",
+        "Sobre un ledger vacío (sin celdas ni movimientos) la previsualización muestra los seis ciclos y «0 celdas, 0 movimientos» y permite confirmar (edge — cero datos)",
+        "La previsualización cabe en el viewport de 1440 px sin scroll horizontal y cada ciclo muestra nombre y rango con fechas completas (día y mes) en la misma fila (UX — medible)"
+      ]
+    },
+    {
+      "id": "FR-2404",
+      "title": "Activar «Ciclos» reubica lo existente: el presupuesto de cada rubro sigue a su ejecutado",
+      "description": "Cuando el usuario confirma la activación de «Ciclos», el sistema reubica el ledger completo. Todo movimiento CON fecha se asigna al ciclo que contiene esa fecha (FR-2405). REGLA (decisión del usuario, 2026-09-10, validada sobre su ledger real): todo dato SIN día de un rubro R anclado al mes calendario M — su celda de Presupuestado, el residuo tecleado de su Ejecutado (la parte de la celda que no explican movimientos fechados) y sus movimientos antiguos sin fecha — sigue al ejecutado de ese rubro, en tres casos y en este orden: (1) si R tiene movimientos fechados en M, va al ciclo donde cae la mayor suma de esos movimientos (empate: el ciclo más antiguo); (2) si R no tiene movimientos en M pero sí en otros meses, sigue la costumbre del rubro sobre todos sus movimientos fechados: si la suma de los fechados desde el día de pago supera a la de los anteriores, va al ciclo que abre el pago de M (el nombrado M+1); si no, al ciclo del mismo nombre M; (3) si R no tiene ningún movimiento fechado, va al ciclo del mismo nombre M. Cuando dos meses calendario de un mismo rubro caen en un mismo ciclo, sus celdas se SUMAN en una sola. Todo dato sin día que existía al activar —cambie o no de columna, junte meses o no— recuerda el mes calendario del que vino (memoria de origen), para que la vuelta a mes a mes lo devuelva exactamente (FR-2410); una celda que junta meses recuerda cuánto vino de cada uno. Sustituye a la regla anterior («todo dato sin día de M va al ciclo M+1»), que sobre los datos reales del usuario separó el presupuesto del ejecutado: él presupuesta en el mes M lo que paga a principios de M con el salario del día 21 anterior, así que su presupuesto de septiembre y sus pagos del 1 al 8 de septiembre deben quedar juntos en «Septiembre» (21 ago – 20 sep), y solo el salario, que llega el 21, financia el ciclo siguiente. El inicio del historial pasa a ser el MÁS ANTIGUO de dos candidatos — el ciclo donde queda el dato sin día más antiguo y el ciclo que contiene el movimiento fechado más antiguo —, de modo que ningún dato queda antes del primer ciclo (misma regla de ancla múltiple que NFR-2203 de meses-y-saldo-inicial); el saldo inicial (FR-2202) abre ese primer ciclo. Ni un peso se pierde ni se duplica: la suma de todas las celdas y de todos los movimientos es idéntica antes y después. Si un residuo tecleado negativo (un Ejecutado escrito por debajo de lo que suman sus movimientos) deja una celda o una alcancía en negativo al reubicar, la activación se bloquea y la previsualización nombra el rubro y el ciclo para que el usuario corrija ese valor. La reubicación se ejecuta en el servidor como una sola operación: o se aplica completa o no se aplica.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Sobre el ledger del usuario (celdas tecleadas en 2026-08 y 2026-09 espejo del gasto, presupuesto del Salario en 2026-08, 2026-09 y 2026-10; 27 movimientos fechados del 2026-08-21 al 2026-09-08; mes de inicio 2026-08), activar con día 21 deja en «Septiembre» (21 ago – 20 sep) el presupuesto y el ejecutado de cada rubro con el MISMO valor (Agua 226.300/226.300, Hipoteca 1.318.200/1.318.200, Restaurantes 849.100/849.100 sumando agosto y septiembre), en «Octubre» solo el presupuesto del Salario (8.450.000, caso 2: siempre llega el 21), los 27 movimientos en «Septiembre», el historial empezando en «Septiembre» con el saldo inicial, y la suma total de celdas y de movimientos idéntica a la previa (happy — caso real)",
+        "Caso 1 con reparto: un rubro con presupuesto 100 en 2026-09 y movimientos de 30 el 2026-09-05 y 70 el 2026-09-25 lleva su presupuesto a «Octubre» (donde cae la mayor suma, 70) y su ejecutado queda 30 en «Septiembre» y 70 en «Octubre»; con 50 y 50 el presupuesto va a «Septiembre», el ciclo más antiguo (edge — mayoría y empate)",
+        "Caso 2 y caso 3: un rubro cobrado siempre el día 21 con presupuesto en 2026-10 y sin movimientos en octubre lo lleva a «Noviembre»; un rubro pagado siempre antes del 21 en la misma situación lo lleva a «Octubre»; un rubro sin ningún movimiento fechado (Ahorros, Internet: ejecutado tecleado) deja presupuesto y ejecutado juntos en «Octubre» (edge — costumbre y sin historia)",
+        "Un movimiento SIN fecha de un rubro sigue la misma regla que el presupuesto de ese rubro en su mes: con periodo 2026-09 en un rubro cuyos pagos de septiembre caen en «Septiembre» queda en «Septiembre»; uno CON fecha 2026-09-25 queda en «Octubre» por su fecha (edge — las dos ramas)",
+        "Cuando dos meses de un rubro caen en un mismo ciclo (Restaurantes: 336.700 de agosto y 512.400 de septiembre en «Septiembre»), la celda de Presupuestado resultante vale la suma y conserva la memoria de origen [2026-08: 336.700, 2026-09: 512.400] (la del Ejecutado se explica entera por sus movimientos y su memoria de residuo vale 0 en ambos meses); una celda que no junta meses también recuerda su único mes de origen (edge — fusión con memoria)",
+        "Si la operación falla a mitad (por ejemplo, un error del servidor al escribir), el ledger persistido queda en modo «Mes a mes» con todas sus celdas y movimientos intactos: no existe un estado intermedio con parte reubicada (negative — atomicidad)",
+        "Después de activar, ninguna celda ni movimiento queda anclado a una clave que no corresponda a un ciclo del calendario generado (RV-01: nada sin ciclo) y ninguno aparece en dos ciclos (RV-02) (edge — invariantes)",
+        "Con mes de inicio 2026-08 y un movimiento fechado 2026-08-15, activar con día 21 hace que el historial empiece en «Agosto» (21 jul – 20 ago), que es el ciclo que contiene ese movimiento, y el saldo inicial abre «Agosto» y no «Septiembre» (edge — el dato más antiguo ancla el inicio)",
+        "Con día 21, un rubro con un movimiento de 100 fechado 2026-08-25 y su Ejecutado de agosto tecleado en 0, y movimientos de 30 el 2026-09-05 y 20 el 2026-09-25 con su Ejecutado de septiembre tecleado en 0: la previsualización se bloquea con «La celda de «<nombre del rubro>» en Septiembre 2026 quedaría en negativo: tecleaste menos de lo que suman sus movimientos. Corrígela antes de cambiar el periodo.», muestra el nombre del rubro y no su id, y no aparece Confirmar (negative — residuo negativo)"
+      ]
+    },
+    {
+      "id": "FR-2405",
+      "title": "En modo «Ciclos», cada movimiento pertenece al ciclo que contiene su fecha de transacción",
+      "description": "Cuando el modo «Ciclos» está activo y el usuario registra o edita un movimiento (FR-001 de la raíz, FR-1908 de multi-anio), el sistema asigna el movimiento al ciclo que contiene su fecha de transacción, sin intervención manual (RF-10; decisión del usuario: la fecha que asigna es la de la transacción, no un vencimiento). El Registro muestra, junto a la fecha, el nombre y rango del ciclo al que caerá el movimiento antes de guardar. Cambiar la fecha reasigna el ciclo. Todo movimiento queda en exactamente un ciclo (RV-01, RV-02). Un reembolso es una transacción más: un ingreso positivo en el ciclo de su fecha (§8.5).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con día 21, un gasto fechado 2026-10-05 cae en «Octubre» (21 sep – 20 oct) y uno fechado 2026-10-25 cae en «Noviembre»; el Registro muestra ese nombre y rango antes de guardar y la celda de Ejecutado de la hoja destino en esa columna sube en el monto (happy)",
+        "Un movimiento fechado exactamente el día de pago (2026-10-21) cae en el ciclo que EMPIEZA ese día («Noviembre»), y uno fechado el día anterior (2026-10-20) cae en «Octubre» (edge — frontera exacta)",
+        "Editar la fecha de un movimiento de 2026-10-20 a 2026-10-21 lo mueve de «Octubre» a «Noviembre»: la columna de origen baja el monto y la de destino lo sube, y el movimiento no aparece en las dos (edge — reasignación)",
+        "Un movimiento con fecha fuera del rango activo del ledger, o sin fecha en modo ciclos, se rechaza en el servidor con error visible y no se persiste (negative)"
+      ]
+    },
+    {
+      "id": "FR-2406",
+      "title": "[ASSUMPTION: needs user confirmation] El salario que llega antes del día de pago cuenta en el ciclo que abre",
+      "description": "Cuando el modo «Ciclos» está activo y el usuario registra un INGRESO con fecha dentro de los tres días anteriores al próximo día de pago, el sistema propone asignarlo al ciclo que ese día de pago abre, mostrando el motivo («el 21 cae sábado: este ingreso abre Diciembre») y deja al usuario aceptar la propuesta o mantener el ciclo de la fecha. Es la regla acordada con el usuario para el pago adelantado por fin de semana o festivo: la frontera no se mueve, pero el salario no puede quedar contado en el ciclo que termina, porque parecería que ese ciclo cobró dos veces. ASUNCIÓN a confirmar: la ventana de tres días (cubre viernes por sábado o domingo y un festivo pegado a fin de semana) y que sea una propuesta aceptable en vez de una asignación automática — el usuario dijo «no sé si entiendo tu regla» dos veces, así que se implementa como propuesta visible y no como magia. ALCANCE Y DEFECTO (auditoría 2026-09-10): el núcleo no distingue el salario de otro ingreso (RF-15 aplazado), así que la propuesta aparece para CUALQUIER ingreso dentro de la ventana; por eso es una propuesta y no una asignación: el valor por defecto es quedarse en el ciclo de la fecha, y solo si el usuario la acepta el ingreso pasa al ciclo que abre. Un reembolso o un ingreso adicional fechado el 20-nov ve la propuesta y, si el usuario no la acepta, queda en «Noviembre» — con lo que §5.3 (un ingreso adicional no abre ciclo ni cambia de ciclo) y la resolución 9 (reembolso = ingreso del ciclo en que llega) se respetan por defecto.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con día 21, un ingreso fechado 2026-11-20 muestra la propuesta «abre Diciembre (21 nov – 20 dic)»; al aceptarla el movimiento queda en «Diciembre» y la columna «Noviembre» no lo suma (happy)",
+        "Un ingreso fechado 2026-11-17 (cuatro días antes) no recibe propuesta y cae en «Noviembre»; un GASTO fechado 2026-11-20 tampoco recibe propuesta y cae en «Noviembre» (edge — ventana y solo ingresos)",
+        "Si el usuario rechaza la propuesta, el ingreso del 2026-11-20 queda en «Noviembre» por su fecha, y editarlo después vuelve a ofrecer la propuesta (negative — la regla no fuerza)",
+        "En modo «Mes a mes» ningún ingreso recibe esta propuesta, sea cual sea su fecha (negative — aislamiento del modo)",
+        "Un reembolso fechado 2026-11-20 muestra la propuesta con el foco en «mantener en Noviembre»; guardar sin tocar nada lo deja en «Noviembre», y el resumen de la columna «Diciembre» no lo incluye (edge — el defecto respeta §5.3 y §8.5)"
+      ]
+    },
+    {
+      "id": "FR-2407",
+      "title": "Columnas y selectores nombran el ciclo por el mes en que termina y muestran su rango",
+      "description": "Cuando el modo «Ciclos» está activo, el sistema rotula cada columna de la grilla (FR-006, FR-1905), cada opción del selector «Mes» de la barra de la grilla (el filtro de Balance y Dashboard), el filtro del Dashboard (FR-009) y el historial de cierres (FR-2011) con el nombre del mes en que termina el ciclo y, debajo o al lado, su rango con día y mes («Septiembre · 21 ago – 20 sep»). El ciclo en curso es el que contiene la fecha de hoy y recibe la misma marca de «actual» que hoy recibe el mes en curso. Un ciclo de transición (FR-2408) lleva una marca visible propia y su rango real. En modo «Mes a mes» los rótulos son los de hoy, sin rango.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con día 21 y fecha del sistema 2026-09-10, la columna marcada como actual es «Septiembre» con rango «21 ago – 20 sep», y en el viewport de 1440 px el rango es legible bajo el nombre sin truncarse (contraste ≥ 4.5:1 sobre el fondo de la cabecera) (happy)",
+        "El selector «Mes» de la barra de la grilla (el que filtra Balance y Dashboard) lista los ciclos del rango activo mostrando nombre y rango en cada opción («Octubre 2026 · 21 sep – 20 oct»), y el Registro muestra bajo el campo de fecha el ciclo en que caerá el movimiento («Ciclo · Octubre · 21 sep – 20 oct»), actualizado al cambiar la fecha (edge — selectores y Registro reales: el Registro no tiene selector de periodo, la fecha lo deriva)",
+        "Un ciclo de transición muestra su marca y su rango real (por ejemplo «Transición · 21 oct – 29 oct») y no la marca de actual salvo que contenga la fecha de hoy (edge — transición)",
+        "En modo «Mes a mes» ninguna cabecera muestra rango ni marca de transición, y la captura de la grilla es idéntica a la de antes de la feature en 1440 px (negative — aislamiento del modo)"
+      ]
+    },
+    {
+      "id": "FR-2408",
+      "title": "Cambiar el día de pago crea una versión nueva con fecha del primer pago; el pasado no se recalcula",
+      "description": "Cuando el usuario en modo «Ciclos» cambia el día de pago, el sistema exige la fecha del primer pago bajo el día nuevo y NO la infiere (RF-09a). La configuración se guarda como una versión nueva con esa fecha de vigencia, conservando las anteriores (RF-07). La versión nueva aplica solo hacia adelante: los ciclos cerrados y los anteriores a la vigencia conservan sus fechas y balances (RF-08, RV-07). El periodo entre el último pago bajo el día viejo y el primer pago nuevo es un ciclo de transición, marcado como tal, que puede ser más corto o más largo de lo normal y no se normaliza (RF-09, §2.2.5). La contigüidad se cumple también en la frontera entre versiones (RV-06). El sistema rechaza una fecha de primer pago que caiga dentro de un ciclo cerrado o que no sea posterior al último pago vigente. REGLA PARA EL DATO SIN DÍA al cambiar de versión (hueco señalado por la auditoría del 2026-09-10): las celdas tecleadas y los movimientos sin fecha conservan su columna POR NOMBRE — la celda de «Noviembre» sigue en «Noviembre» aunque su rango pase de 21 oct – 20 nov a 30 oct – 29 nov —, el ciclo de transición nace sin celdas y solo recibe los movimientos cuya fecha cae en su rango, y los movimientos con fecha desde la vigencia en adelante se reasignan por fecha contra el calendario nuevo. La suma de celdas y de movimientos es idéntica antes y después, y la previsualización (FR-2403) muestra cuántos movimientos cambian de ciclo y confirma que ninguna celda cambia de columna: como el último pago viejo es el ancla anterior al primer pago nuevo, ningún cambio de día hace desaparecer una clave (verificado sobre 18.910 cambios válidos con el calendario real), así que ninguna celda se junta con otra y la memoria de origen no cambia.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con día 21 y último pago viejo el 2026-10-21, cambiar a día 30 con primer pago 2026-10-30 produce el ciclo de transición «Transición · 21 oct – 29 oct» (9 días) seguido de «Noviembre · 30 oct – 29 nov»; los ciclos hasta «Octubre» conservan exactamente sus fechas y balances (happy — ejemplo del documento)",
+        "Cambiar a día 5 con primer pago 2026-11-05 produce «Transición · 21 oct – 4 nov» (15 días); las dos versiones quedan guardadas con su fecha de vigencia y se pueden consultar (edge — transición larga e historial)",
+        "Con «Septiembre» y «Octubre» cerrados, una fecha de primer pago 2026-10-10 (dentro de un ciclo cerrado) o 2026-10-21 (no posterior al último pago) se rechaza con error y no se crea versión (negative)",
+        "Tras el cambio, los balances de todos los ciclos anteriores a la vigencia, comparados uno a uno con los de antes del cambio, son idénticos (RV-07) y ninguna fecha entre el inicio del historial y el fin del horizonte queda sin ciclo ni en dos ciclos (RV-06) (edge — invariantes)",
+        "Con celdas tecleadas en «Noviembre» (21 oct – 20 nov) y un gasto fechado 2026-10-25, cambiar a día 30 con primer pago 2026-10-30 deja las celdas en «Noviembre» (ahora 30 oct – 29 nov), mueve el gasto del 25-oct a «Transición · 21 oct – 29 oct», deja la transición sin celdas, y la suma de celdas y de movimientos es idéntica a la previa (edge — dato sin día al cambiar de versión)",
+        "Con día 21 vigente, cambiar a día 5 con primer pago 2026-12-05 deja el 21-nov como último pago viejo: la transición es «Diciembre · 21 nov – 4 dic», «Noviembre» (21 oct – 20 nov) conserva su clave y sus celdas, la previsualización indica «0 celdas cambian de columna» y la memoria de origen no cambia (edge — transición larga)"
+      ]
+    },
+    {
+      "id": "FR-2409",
+      "title": "Cierre, reapertura, corrección y arrastre operan sobre la frontera del ciclo",
+      "description": "Cuando el modo «Ciclos» está activo, el sistema aplica la lógica de cierre-de-mes a la columna del ciclo: se cierra el ciclo abierto más antiguo (FR-2002), sus cifras quedan inmutables (FR-2003), se reabre solo el último cerrado y con rastro (FR-2005), y un ciclo solo puede cerrarse cuando su fecha de fin ya pasó o contiene la fecha de hoy — nunca uno futuro (FR-2008 reinterpretado sobre el rango del ciclo). Corregir un movimiento de un ciclo cerrado exige reabrirlo (decisión del usuario, supersede §8.4). El sobrante de un ciclo abre el siguiente exactamente como hoy pasa entre meses (§8.1: igual que ahora), incluida la frontera de año (FR-1903).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con día 21 y fecha del sistema 2026-09-25, cerrar «Septiembre» (21 ago – 20 sep) congela sus cifras y el saldo con que abre «Octubre» es el resultado de «Septiembre»; el historial registra el cierre con el nombre del ciclo (happy)",
+        "Con fecha del sistema 2026-09-10, «Septiembre» (contiene hoy) se puede cerrar y «Octubre» (empieza el 21 sep) no: el intento se rechaza con el mismo mensaje que hoy rechaza un mes futuro (edge — frontera de «terminado»)",
+        "Registrar un gasto con fecha 2026-09-05 estando «Septiembre» cerrado se rechaza; tras reabrir «Septiembre» se acepta y el cierre queda con rastro de reapertura (negative — corrección solo reabriendo)",
+        "El sobrante de «Diciembre» (21 nov – 20 dic) abre «Enero» del año siguiente con el mismo valor, cruzando el borde de año como hoy lo hace diciembre a enero (edge — arrastre entre años)"
+      ]
+    },
+    {
+      "id": "FR-2410",
+      "title": "Volver a «Mes a mes» deshace la reubicación: cada parte vuelve a su mes; ida y vuelta sin ediciones deja el ledger idéntico",
+      "description": "Cuando el usuario en modo «Ciclos» elige «Mes a mes» y confirma tras la previsualización (FR-2403), el sistema aplica la reubicación inversa. Cada movimiento con fecha vuelve al mes calendario de su fecha. Cada celda con memoria de origen (FR-2404) devuelve cada parte a su mes; si la celda fue editada después de activarse, la diferencia entre su valor actual y lo que la memoria explica se atribuye al mes MÁS RECIENTE de la memoria (decisión del usuario, 2026-09-10); si es una reducción mayor de lo que ese mes puede ceder, el resto se descuenta del mes anterior, y así hacia atrás, de modo que ninguna celda devuelta queda negativa y lo devuelto suma exactamente el valor actual. En el Presupuestado la memoria explica toda la celda; en el Ejecutado explica solo el residuo tecleado, y cada mes devuelto vale su parte más los movimientos que vuelven a él por su fecha. Cada dato sin memoria (tecleado o registrado ya en modo ciclos) vuelve por los mismos tres casos de FR-2404 en sentido inverso: (1) al mes calendario donde cae la mayor suma de los movimientos fechados de ese rubro cuyo periodo es ese ciclo (empate: el mes más antiguo); (2) sin movimientos en el ciclo pero con historia, por la costumbre del rubro —un movimiento «cobra desde el día de pago» si el ciclo en que quedó termina en un mes posterior al de su fecha, incluido el ingreso que el usuario contó en el ciclo que abre (FR-2406)—: si la mayor suma cobra desde el día de pago, al mes anterior al nombre del ciclo (el mes cuyo pago lo abre); si no, al mes del mismo nombre; (3) sin ningún movimiento fechado, al mes del mismo nombre; para una clave de transición («2026-10t») el mes del mismo nombre es el de su clave sin sufijo. El mes de inicio vuelve al que había antes de activar, también cuando no había ninguno declarado, salvo que un dato creado en ciclos quede antes de él. Activar y desactivar sin ediciones intermedias y sin ciclos cerrados deja el ledger persistido idéntico al original, incluidas las celdas en 0 y un mes de inicio vacío; con un ciclo cerrado la vuelta exige reabrirlo primero, y la reapertura ya deja rastro en el historial. ASUNCIÓN: el usuario pidió un modo elegible con «Mes a mes» por defecto; un modo que no se pudiera deshacer sería una trampa, así que la vuelta atrás forma parte del núcleo.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Sobre el ledger del usuario, activar con día 21 y volver a «Mes a mes» sin tocar nada deja celdas, movimientos, mes de inicio y saldo inicial byte a byte iguales al snapshot original, incluidas las tres celdas que juntaron agosto y septiembre (Parqueaderos, Restaurantes, Ropa), que vuelven a sus dos meses con sus valores originales, y sus cinco celdas en 0 (Presupuestado de Internet, Mercado y Salario en octubre; Ejecutado del Salario en septiembre y octubre) (happy — ida y vuelta)",
+        "Con el Presupuestado de Restaurantes en «Septiembre» = 849.100 [memoria 2026-08: 336.700, 2026-09: 512.400] editado a 900.000, volver a mes deja agosto en 336.700 y septiembre en 563.300 (la diferencia va al mes más reciente); editado a 800.000, septiembre queda en 463.300 (edge — celda fusionada editada)",
+        "Un rubro con un gasto de 300 fechado 2026-08-25 (sin presupuesto en agosto) y presupuesto 100 en 2026-09 pagado el 2026-09-03: activar deja el presupuesto en «Septiembre» y volver a mes lo devuelve a septiembre por su memoria; sin memoria, la mayoría de los movimientos de «Septiembre» (300 de agosto contra 100 de septiembre) lo habría mandado a agosto (edge — la memoria no es solo para celdas fusionadas)",
+        "Con el Presupuestado de Restaurantes en «Septiembre» = 849.100 [ago 336.700, sep 512.400] reducido a 300.000, volver deja septiembre en 0 y agosto en 300.000; borrado a 0, ambos meses quedan en 0 y ningún monto es negativo (edge — reducción mayor que la parte más reciente)",
+        "Celdas creadas en ciclos sin memoria: una celda de Salario (cobra el 21) tecleada en «Octubre» vuelve a septiembre calendario; una de Agua (paga antes del 21) tecleada en «Octubre» vuelve a octubre; una de un rubro sin movimientos tecleada en «Octubre» vuelve a octubre; y un movimiento fechado 2026-09-05 registrado en ciclos vuelve a 2026-09 por su fecha (edge — datos creados en ciclos)",
+        "Si la operación inversa falla a mitad, el ledger queda íntegro en modo «Ciclos», sin estado intermedio (negative — atomicidad)",
+        "Con un ciclo cerrado, volver a «Mes a mes» se rechaza con un mensaje que pide reabrir primero, porque la frontera del cierre cambiaría de rango (negative — cierre vigente)",
+        "Con el Ejecutado de Restaurantes en «Septiembre» = 849.100, explicado entero por sus movimientos (336.700 fechados del 21 al 29 de agosto y 512.400 del 4 al 8 de septiembre), tecleado a 300.000: volver deja el Ejecutado de septiembre en 0 y el de agosto en 300.000, y ningún mes queda en negativo (edge — Ejecutado editado)",
+        "Un ledger sin mes de inicio declarado, con presupuesto en 2026-09 y un gasto fechado 2026-09-05: activar con día 21 y volver a «Mes a mes» lo deja otra vez sin mes de inicio (edge — inicio vacío)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2401",
+      "requirement_id": "FR-2401",
+      "as_a": "presupuestador que cobra el 21",
+      "i_want": "elegir en Configuración que mi presupuesto se lleve por ciclos de pago, diciendo el día en que cobro",
+      "so_that": "la app corte donde corta mi plata y no donde corta el calendario",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2401",
+          "given": "un ledger que nunca ha elegido periodo",
+          "when": "abro Configuración",
+          "then": "veo «Periodo del presupuesto» con «Mes a mes» seleccionado y ninguna otra pantalla cambiada"
+        },
+        {
+          "id": "AC-2402",
+          "given": "Configuración abierta",
+          "when": "elijo «Ciclos», tecleo 21 y guardo",
+          "then": "el servidor persiste modo, día y política, y al recargar sigo en ciclos con día 21"
+        },
+        {
+          "id": "AC-2403",
+          "given": "Configuración abierta",
+          "when": "tecleo 32, 0 o «abc» como día",
+          "then": "el servidor rechaza el valor con error visible y el modo sigue en «Mes a mes»"
+        },
+        {
+          "id": "AC-2404",
+          "given": "una petición a la API con día 40 sin pasar por la interfaz",
+          "when": "la envío autenticado",
+          "then": "se rechaza y el ledger no cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-2402",
+      "requirement_id": "FR-2402",
+      "as_a": "presupuestador con ciclos activos",
+      "i_want": "que la app calcule sola de qué día a qué día va cada ciclo",
+      "so_that": "nunca haya un día sin ciclo ni un día en dos ciclos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2405",
+          "given": "día de pago 21",
+          "when": "se genera el calendario de 24 meses",
+          "then": "«Septiembre 2026» es 2026-08-21 a 2026-09-20 y cada fin es el día anterior al inicio siguiente"
+        },
+        {
+          "id": "AC-2406",
+          "given": "día de pago 31 con «último día del mes»",
+          "when": "se genera el ciclo que termina en marzo de 2028",
+          "then": "empieza el 2028-02-29 y el de 2027 empieza el 2027-02-28"
+        },
+        {
+          "id": "AC-2407",
+          "given": "día de pago 30 con «desplazar»",
+          "when": "se genera el ciclo que arranca en febrero de 2027",
+          "then": "empieza el 2027-03-01 y el anterior termina el 2027-02-28"
+        },
+        {
+          "id": "AC-2408",
+          "given": "una configuración con día 0",
+          "when": "se intenta generar",
+          "then": "se rechaza y el calendario anterior queda intacto"
+        }
+      ]
+    },
+    {
+      "id": "US-2403",
+      "requirement_id": "FR-2403",
+      "as_a": "presupuestador que va a activar ciclos sobre datos reales",
+      "i_want": "ver antes de confirmar qué ciclos van a existir y qué se va a mover",
+      "so_that": "no active a ciegas algo que reordena todo mi presupuesto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2409",
+          "given": "mi ledger con 46 celdas y 27 movimientos",
+          "when": "elijo «Ciclos» con día 21",
+          "then": "veo seis ciclos con rango y «15 celdas cambian de columna, 10 movimientos cambian de ciclo, 3 celdas juntan dos meses, totales idénticos» antes de poder confirmar"
+        },
+        {
+          "id": "AC-2410",
+          "given": "la previsualización abierta",
+          "when": "cancelo",
+          "then": "el snapshot persistido es byte a byte el anterior"
+        },
+        {
+          "id": "AC-2411",
+          "given": "un ledger vacío",
+          "when": "elijo «Ciclos»",
+          "then": "veo seis ciclos y «0 celdas, 0 movimientos» y puedo confirmar"
+        }
+      ]
+    },
+    {
+      "id": "US-2404",
+      "requirement_id": "FR-2404",
+      "as_a": "presupuestador que ya tecleó su plan por meses",
+      "i_want": "que al activar ciclos el presupuesto de cada rubro quede en el mismo ciclo que lo que pagué de ese rubro",
+      "so_that": "no tenga que volver a teclear nada, no pierda un peso y no vea un ciclo gastado sin presupuesto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2412",
+          "given": "mi ledger real (celdas en ago/sep/oct, 27 movimientos del 21-ago al 8-sep, inicio 2026-08)",
+          "when": "confirmo la activación con día 21",
+          "then": "en «Septiembre» el presupuesto y el ejecutado de cada rubro tienen el mismo valor, en «Octubre» solo está el presupuesto del Salario, los 27 movimientos están en «Septiembre», el historial empieza en «Septiembre» con mi saldo inicial y las sumas totales son idénticas"
+        },
+        {
+          "id": "AC-2413",
+          "given": "un rubro con presupuesto 100 en 2026-09, movimientos de 30 el 5-sep y 70 el 25-sep, y un movimiento sin fecha con periodo 2026-09 en un rubro que paga a principios de mes",
+          "when": "confirmo la activación",
+          "then": "el presupuesto 100 queda en «Octubre» (donde cae la mayor suma), el ejecutado queda 30 en «Septiembre» y 70 en «Octubre», y el movimiento sin fecha queda en «Septiembre»"
+        },
+        {
+          "id": "AC-2414",
+          "given": "un fallo del servidor a mitad de la reubicación",
+          "when": "la operación aborta",
+          "then": "el ledger sigue en «Mes a mes» con todo intacto"
+        },
+        {
+          "id": "AC-2439",
+          "given": "mes de inicio 2026-08 y un movimiento fechado 2026-08-15",
+          "when": "confirmo la activación con día 21",
+          "then": "el historial empieza en «Agosto · 21 jul – 20 ago» y el saldo inicial abre ese ciclo"
+        },
+        {
+          "id": "AC-2440",
+          "given": "Restaurantes con 336.700 en agosto y 512.400 en septiembre, todo pagado entre el 21-ago y el 8-sep",
+          "when": "confirmo la activación con día 21",
+          "then": "«Septiembre» muestra 849.100 en presupuesto y en ejecutado, y la celda de Presupuestado recuerda que 336.700 vinieron de agosto y 512.400 de septiembre"
+        },
+        {
+          "id": "AC-2441",
+          "given": "el Salario, que siempre llega el 21, con presupuesto en octubre y sin movimientos en octubre; y Ahorros sin ningún movimiento fechado",
+          "when": "confirmo la activación",
+          "then": "el presupuesto del Salario de octubre queda en «Noviembre» y el presupuesto y el ejecutado tecleado de Ahorros quedan juntos en el ciclo del mismo nombre"
+        },
+        {
+          "id": "AC-2447",
+          "given": "un rubro con su Ejecutado de agosto y de septiembre tecleado por debajo de lo que suman sus movimientos, de modo que el ciclo «Septiembre» quedaría en negativo",
+          "when": "previsualizo la activación con día 21",
+          "then": "veo que la celda de ese rubro en Septiembre 2026 quedaría en negativo, con su nombre, y no puedo confirmar hasta corregirla"
+        }
+      ]
+    },
+    {
+      "id": "US-2405",
+      "requirement_id": "FR-2405",
+      "as_a": "presupuestador registrando un gasto",
+      "i_want": "que la app lo ponga en el ciclo de su fecha y me lo diga antes de guardar",
+      "so_that": "sepa con qué salario lo estoy pagando",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2415",
+          "given": "ciclos con día 21",
+          "when": "registro un gasto fechado 2026-10-05",
+          "then": "el Registro muestra «Octubre · 21 sep – 20 oct» y el Ejecutado de esa columna sube en el monto"
+        },
+        {
+          "id": "AC-2416",
+          "given": "un movimiento fechado 2026-10-20 en «Octubre»",
+          "when": "cambio su fecha a 2026-10-21",
+          "then": "pasa a «Noviembre» y «Octubre» baja el monto"
+        },
+        {
+          "id": "AC-2417",
+          "given": "ciclos activos",
+          "when": "envío un movimiento sin fecha o con fecha fuera del rango activo",
+          "then": "el servidor lo rechaza y no se persiste"
+        }
+      ]
+    },
+    {
+      "id": "US-2406",
+      "requirement_id": "FR-2406",
+      "as_a": "presupuestador al que le pagaron el viernes 20 porque el 21 cayó sábado",
+      "i_want": "que ese salario cuente en el ciclo que abre y no en el que termina",
+      "so_that": "no parezca que en noviembre cobré dos veces y en diciembre ninguna",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2418",
+          "given": "ciclos con día 21",
+          "when": "registro un ingreso fechado 2026-11-20",
+          "then": "veo la propuesta «abre Diciembre (21 nov – 20 dic)» y al aceptarla queda en «Diciembre»"
+        },
+        {
+          "id": "AC-2419",
+          "given": "ciclos con día 21",
+          "when": "registro un ingreso fechado 2026-11-17 o un gasto fechado 2026-11-20",
+          "then": "no hay propuesta y caen en «Noviembre»"
+        },
+        {
+          "id": "AC-2420",
+          "given": "la propuesta visible para el ingreso del 2026-11-20",
+          "when": "la rechazo",
+          "then": "queda en «Noviembre» por su fecha"
+        },
+        {
+          "id": "AC-2421",
+          "given": "modo «Mes a mes»",
+          "when": "registro cualquier ingreso",
+          "then": "nunca aparece la propuesta"
+        },
+        {
+          "id": "AC-2438",
+          "given": "un reembolso fechado 2026-11-20 en ciclos con día 21",
+          "when": "guardo sin aceptar la propuesta",
+          "then": "queda en «Noviembre» y «Diciembre» no lo suma"
+        }
+      ]
+    },
+    {
+      "id": "US-2407",
+      "requirement_id": "FR-2407",
+      "as_a": "presupuestador mirando la grilla",
+      "i_want": "que cada columna diga «Septiembre · 21 ago – 20 sep»",
+      "so_that": "sepa de un vistazo qué días cubre sin tener que calcularlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2422",
+          "given": "ciclos con día 21 y hoy 2026-09-10",
+          "when": "abro la grilla a 1440 px",
+          "then": "la columna actual es «Septiembre» con «21 ago – 20 sep» legible debajo y contraste ≥ 4.5:1"
+        },
+        {
+          "id": "AC-2423",
+          "given": "el selector «Mes» de la barra de la grilla y el Registro, en ciclos con día 21",
+          "when": "abro el selector y, en el Registro, pongo la fecha 2026-10-05",
+          "then": "cada opción del selector muestra nombre y rango («Octubre 2026 · 21 sep – 20 oct») y el Registro muestra «Ciclo · Octubre · 21 sep – 20 oct» bajo la fecha"
+        },
+        {
+          "id": "AC-2424",
+          "given": "modo «Mes a mes»",
+          "when": "abro la grilla",
+          "then": "ninguna cabecera muestra rango ni marca de transición"
+        }
+      ]
+    },
+    {
+      "id": "US-2408",
+      "requirement_id": "FR-2408",
+      "as_a": "presupuestador cuyo empleador cambia el día de pago al 30",
+      "i_want": "decirle a la app cuándo es mi primer pago nuevo y que solo cambie de ahí en adelante",
+      "so_that": "mi historial no se reescriba solo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2425",
+          "given": "día 21 con último pago 2026-10-21",
+          "when": "cambio a día 30 con primer pago 2026-10-30",
+          "then": "aparece «Transición · 21 oct – 29 oct» y luego «Noviembre · 30 oct – 29 nov», y todo hasta «Octubre» conserva fechas y balances"
+        },
+        {
+          "id": "AC-2426",
+          "given": "el mismo punto de partida",
+          "when": "cambio a día 5 con primer pago 2026-11-05",
+          "then": "aparece «Transición · 21 oct – 4 nov» y las dos versiones quedan consultables con su vigencia"
+        },
+        {
+          "id": "AC-2427",
+          "given": "«Septiembre» y «Octubre» cerrados",
+          "when": "doy como primer pago 2026-10-10 o 2026-10-21",
+          "then": "se rechaza y no se crea versión"
+        },
+        {
+          "id": "AC-2428",
+          "given": "un cambio de día aplicado",
+          "when": "comparo los balances de los ciclos anteriores a la vigencia con los de antes",
+          "then": "son idénticos uno a uno y no hay huecos ni traslapes en la frontera"
+        },
+        {
+          "id": "AC-2437",
+          "given": "celdas tecleadas en «Noviembre» y un gasto fechado 2026-10-25 bajo día 21",
+          "when": "cambio a día 30 con primer pago 2026-10-30",
+          "then": "las celdas siguen en «Noviembre» con su rango nuevo, el gasto pasa a «Transición · 21 oct – 29 oct» y las sumas totales no cambian"
+        },
+        {
+          "id": "AC-2448",
+          "given": "día 21 vigente con celdas en «Noviembre»",
+          "when": "cambio a día 5 con primer pago 2026-12-05",
+          "then": "la transición es 21 nov – 4 dic, «Noviembre» conserva sus celdas y la previsualización dice que ninguna celda cambia de columna"
+        }
+      ]
+    },
+    {
+      "id": "US-2409",
+      "requirement_id": "FR-2409",
+      "as_a": "presupuestador cerrando su ciclo",
+      "i_want": "cerrar «Septiembre» igual que hoy cierro un mes",
+      "so_that": "el ciclo quede congelado y su sobrante abra «Octubre»",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2429",
+          "given": "hoy 2026-09-25 y «Septiembre» abierto",
+          "when": "lo cierro",
+          "then": "sus cifras quedan inmutables y «Octubre» abre con su resultado"
+        },
+        {
+          "id": "AC-2430",
+          "given": "hoy 2026-09-10",
+          "when": "intento cerrar «Octubre»",
+          "then": "se rechaza como ciclo futuro y «Septiembre» sí se deja cerrar"
+        },
+        {
+          "id": "AC-2431",
+          "given": "«Septiembre» cerrado",
+          "when": "registro un gasto fechado 2026-09-05",
+          "then": "se rechaza; tras reabrir «Septiembre» se acepta y queda rastro de la reapertura"
+        },
+        {
+          "id": "AC-2432",
+          "given": "«Diciembre» con sobrante",
+          "when": "se calcula «Enero» del año siguiente",
+          "then": "abre con ese mismo sobrante"
+        }
+      ]
+    },
+    {
+      "id": "US-2410",
+      "requirement_id": "FR-2410",
+      "as_a": "presupuestador que probó ciclos y quiere volver",
+      "i_want": "volver a «Mes a mes» y encontrar todo como estaba",
+      "so_that": "activar ciclos no sea una decisión sin retorno",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2433",
+          "given": "mi ledger activado con día 21 sin ediciones",
+          "when": "vuelvo a «Mes a mes» y confirmo",
+          "then": "el snapshot es byte a byte el original, incluidas las celdas que habían juntado dos meses"
+        },
+        {
+          "id": "AC-2434",
+          "given": "una celda de Salario tecleada en «Octubre», una de Agua tecleada en «Octubre» y un movimiento fechado 2026-09-05, creados en ciclos",
+          "when": "vuelvo a mes",
+          "then": "la del Salario queda en septiembre calendario, la de Agua en octubre y el movimiento en 2026-09"
+        },
+        {
+          "id": "AC-2435",
+          "given": "un ciclo cerrado",
+          "when": "intento volver a «Mes a mes»",
+          "then": "se rechaza pidiendo reabrir primero"
+        },
+        {
+          "id": "AC-2442",
+          "given": "el Presupuestado de Restaurantes en «Septiembre» = 849.100 con memoria [ago 336.700, sep 512.400] y editado a 900.000",
+          "when": "vuelvo a mes",
+          "then": "agosto queda en 336.700 y septiembre en 563.300"
+        },
+        {
+          "id": "AC-2443",
+          "given": "un gasto de 300 del 25-ago sin presupuesto de agosto y un presupuesto de 100 en septiembre pagado el 3-sep, activado con día 21",
+          "when": "vuelvo a mes sin tocar nada",
+          "then": "el presupuesto de 100 vuelve a septiembre, no a agosto"
+        },
+        {
+          "id": "AC-2444",
+          "given": "el Presupuestado de Restaurantes en «Septiembre» = 849.100 con memoria [ago 336.700, sep 512.400] reducido a 300.000",
+          "when": "vuelvo a mes",
+          "then": "septiembre queda en 0 y agosto en 300.000, sin montos negativos"
+        },
+        {
+          "id": "AC-2445",
+          "given": "el Ejecutado de Restaurantes en «Septiembre» = 849.100, explicado por movimientos de agosto (336.700) y de septiembre (512.400), tecleado a 300.000",
+          "when": "vuelvo a mes",
+          "then": "el Ejecutado de septiembre queda en 0 y el de agosto en 300.000, sin meses en negativo"
+        },
+        {
+          "id": "AC-2446",
+          "given": "un ledger sin mes de inicio declarado activado con día 21",
+          "when": "vuelvo a mes sin tocar nada",
+          "then": "el ledger sigue sin mes de inicio"
+        }
+      ]
+    },
+    {
+      "id": "US-2411",
+      "requirement_id": "FR-2401",
+      "as_a": "usuario que nunca toca Configuración",
+      "i_want": "no enterarme de que existe la opción de ciclos",
+      "so_that": "mi presupuesto por meses siga exactamente igual",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2436",
+          "given": "un ledger existente con datos y sin elección de periodo",
+          "when": "abro la app tras el despliegue de la feature",
+          "then": "columnas, totales, cierre y Registro son idénticos a los de antes"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2401",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El modo «Mes a mes», que tiene todo ledger por defecto, es idéntico al comportamiento actual: la suite completa del proyecto raíz y de sus 21 features (1054 pruebas en verde el 2026-09-10, agregado de aitri resume) sigue en verde sin relajar aserciones ni marcar pruebas como saltadas, y los totales de cada mes son los mismos que antes de la feature para los mismos datos.",
+      "acceptance_criteria": "verify-run de la raíz y de cada feature sellada termina con exit 0 sin pruebas en fail ni skip que antes pasaran; y sobre un ledger con datos en modo mes, la serie completa de meses (presupuestado, ejecutado, balance) coincide byte a byte con la calculada por el código anterior a la feature"
+    },
+    {
+      "id": "NFR-2402",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "cierre-de-mes no cambia en modo mes: el cierre sigue siendo secuencial (FR-2002), un periodo cerrado sigue inmutable (FR-2003), la reapertura sigue siendo una sola a la vez y con rastro (FR-2005) y solo se cierra un periodo terminado o en curso (FR-2008).",
+      "acceptance_criteria": "Los TCs de FR-2002, FR-2003, FR-2005 y FR-2008 de cierre-de-mes pasan sin modificarse; y en modo ciclos los mismos escenarios, expresados sobre la columna del ciclo, producen los mismos rechazos y los mismos rastros"
+    },
+    {
+      "id": "NFR-2403",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "multi-anio no cambia: el saldo de diciembre sigue abriendo enero (FR-1903), el horizonte en años completos sigue funcionando (FR-1904) y el rango visible sigue yendo del periodo más antiguo con datos al fin del horizonte (FR-1906), en modo mes y, sobre ciclos, con las mismas reglas.",
+      "acceptance_criteria": "Los TCs de FR-1903, FR-1904 y FR-1906 pasan sin modificarse; en modo ciclos el rango visible cubre desde el ciclo más antiguo con datos hasta el ciclo que contiene el fin del horizonte, sin ciclos vacíos delante ni huecos"
+    },
+    {
+      "id": "NFR-2404",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "transferencias no cambia de valor: los saldos derivados por alcancía (FR-1001), el techo global (FR-1006) y el piso por alcancía (FR-1007) bloquean exactamente igual y devuelven los mismos importes para los mismos movimientos, sea cual sea el modo — el motor de reservas opera sobre la lista ordenada de periodos (FR-1909) y esa lista, en ciclos, es la de ciclos.",
+      "acceptance_criteria": "Los TCs de FR-1001, FR-1006 y FR-1007 pasan sin modificarse; y para un mismo conjunto de movimientos de reserva, el saldo derivado de cada alcancía al final del último periodo es idéntico en modo mes y en modo ciclos"
+    },
+    {
+      "id": "NFR-2405",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "meses-y-saldo-inicial no cambia: el saldo inicial sigue abriendo el primer periodo del historial (FR-2202), persiste en el servidor como parte del ledger (FR-2207) y solo se edita con su periodo abierto (FR-2205); en ciclos el «primer periodo» es el primer ciclo.",
+      "acceptance_criteria": "Los TCs de FR-2202, FR-2205 y FR-2207 pasan sin modificarse; y tras activar ciclos, la fila «Saldo del mes anterior» del primer ciclo muestra el saldo inicial declarado y ninguna otra columna lo repite"
+    },
+    {
+      "id": "NFR-2406",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Postgres sigue siendo la única fuente de verdad (FR-011) y la migración que añade la configuración de ciclos es versionada e idempotente (FR-1010): aplicarla dos veces no falla ni duplica nada, y un ledger anterior a la feature carga sin la configuración y se comporta en modo mes.",
+      "acceptance_criteria": "La migración aplicada sobre una base ya migrada termina sin error y sin cambios; un snapshot persistido antes de la feature carga, se muestra en modo mes y se guarda de vuelta sin alterar ninguna celda ni movimiento"
+    },
+    {
+      "id": "NFR-2407",
+      "category": "Reliability",
+      "priority": "MUST",
+      "requirement": "Invariantes del modelo de ciclos (RV-05 y RV-07 del documento): (a) la suma de los balances de todos los ciclos de un rango iguala ingresos menos gastos de ese rango calculados de forma independiente sobre los movimientos; (b) un cambio de configuración no altera el balance de ningún ciclo anterior a su fecha de vigencia. Son los dos errores silenciosos que el documento llama los más costosos del modelo.",
+      "acceptance_criteria": "Sobre un ledger con al menos 50 movimientos repartidos en 6 ciclos, la suma de balances por ciclo coincide con el total independiente al peso; y tras un cambio de día de pago, los balances de los ciclos anteriores a la vigencia coinciden uno a uno con los capturados antes del cambio; un caso construido para violar cualquiera de las dos hace fallar la prueba"
+    },
+    {
+      "id": "NFR-2408",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "La configuración de ciclos y la reubicación son datos y operaciones del usuario sobre su propio ledger: viajan por las rutas ya autenticadas, ningún endpoint nuevo responde sin sesión, y un usuario no puede leer ni escribir la configuración ni disparar la reubicación de otro. Todo valor se valida en el SERVIDOR (día entero 1..31, política dentro del conjunto permitido, fechas ISO válidas, primer pago posterior al último vigente y fuera de ciclos cerrados), no solo en el navegador — lección de BG-002.",
+      "acceptance_criteria": "Una petición sin sesión a la configuración o a la reubicación recibe rechazo; una petición autenticada como otro usuario no alcanza el ledger ajeno; y un día 32, una política inventada, una fecha «2026-13-40» o un primer pago dentro de un ciclo cerrado se rechazan en el servidor aunque el cliente los envíe bien formados"
+    },
+    {
+      "id": "NFR-2409",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "Generar el calendario de ciclos y derivar la serie completa de balances por ciclo no rompe el guardarraíl vigente del proyecto: el recómputo completo se mantiene bajo 150 ms en el escenario de referencia (el mismo umbral que NFR-2204 de meses-y-saldo-inicial), y la reubicación de un ledger con 5000 celdas y 2000 movimientos termina en menos de 2 s en el servidor.",
+      "acceptance_criteria": "El recómputo completo en modo ciclos sobre el escenario de referencia mide < 150 ms; la reubicación del ledger sintético de 5000 celdas y 2000 movimientos mide < 2 s y su resultado cumple la invariante de sumas idénticas"
+    },
+    {
+      "id": "NFR-2410",
+      "category": "Observability",
+      "priority": "MUST",
+      "requirement": "Cada activación, cambio de versión y vuelta a mes queda registrada con fecha y valores (es el historial de versiones que RF-07 exige), consultable desde la app junto al historial de cierres (FR-2011), y las rutas nuevas quedan cubiertas por el registro de peticiones ya existente del servidor ([timestamp] METHOD /path STATUS). No hay proceso nuevo: el healthcheck existente (GET /health → 200, NFR-504) sigue siendo el del despliegue.",
+      "acceptance_criteria": "Tras activar, cambiar de día y volver a mes, el historial muestra tres entradas con fecha, modo y día; una petición a la ruta de configuración deja una línea de log con método, ruta y estado; y GET /health responde 200 después de aplicar la migración"
+    },
+    {
+      "id": "NFR-2411",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "Las pruebas de la feature (unitarias del motor de ciclos y de la reubicación, e2e de Configuración, Registro y grilla en modo ciclos) se integran en las suites que verify-run y el pipeline ya ejecutan: vitest para unitarias y ./e2e.sh para e2e (test:e2e enruta a e2e.sh desde e8705e4). No se crea un runner aparte ni un script que verify-run no lance.",
+      "acceptance_criteria": "Los ficheros de prueba de la feature están bajo los globs que vitest y playwright ya recogen; npm run test:e2e sigue apuntando a ./e2e.sh; y verify-run de la feature reporta cada TC de la feature con pass/fail, ninguno como no encontrado"
+    },
+    {
+      "id": "NFR-2412",
+      "category": "Usability",
+      "priority": "MUST",
+      "requirement": "Activar ciclos no es una trampa ni un salto a ciegas: siempre pasa por la previsualización (FR-2403), siempre se puede cancelar, y siempre se puede volver a «Mes a mes» (FR-2410) salvo con un ciclo cerrado, en cuyo caso el mensaje dice exactamente qué reabrir. Los nombres y rangos de ciclo usan el mismo formato de fecha en toda la app.",
+      "acceptance_criteria": "No existe ninguna ruta de la interfaz que cambie el modo sin pasar por la previsualización; el rango se formatea igual (día y mes abreviado, «21 ago – 20 sep») en grilla, Registro, Dashboard, historial y Configuración, verificado por comparación de cadenas en los cinco lugares"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Documento del cliente feature_context/requerimiento-ciclos-de-pago.md §1 (aportado el 2026-09-08) y sus palabras en chat el 2026-09-10: «no sé cuándo un pago entra el 21 de un mes, pero con eso pago lo de otro mes; es confuso y creo que contablemente erróneo». Discovery aprobado por él («aprobado») el 2026-09-10.",
+    "users": "Persona heredada de los requisitos aprobados de la raíz (usuario único del producto, es él mismo). Que cobra el 21 lo confirman sus datos reales (único ingreso «Salario agosto 2026» fechado 2026-08-21) y sus ejemplos en chat («este ciclo, por ejemplo, es el ciclo de septiembre: inició el 21 de agosto»). La segunda persona (quien se queda en mes a mes) sale de su punto adicional: «el usuario puede decidir en configuraciones usar esquema mes a mes, como lo tenemos hoy (por defecto), o por ciclos».",
+    "baseline": "Medido en la base de dev el 2026-09-10 (solo lectura): 27 movimientos fechados del 2026-08-21 al 2026-09-08 partidos por la app en 9 para agosto y 18 para septiembre; celdas «Salario» tecleadas en 2026-08, 2026-09 y 2026-10; mes de inicio 2026-08; nada cerrado. El usuario confirmó que las celdas de agosto «llegaron el 21 de agosto, así que según yo es septiembre».",
+    "success_metric": "Los ocho criterios de éxito de 00_DISCOVERY.md, aprobados por el usuario el 2026-09-10 tras ver explícitamente las dos consecuencias que se le pidieron confirmar (que todo lo tecleado se corre un mes, y la regla del salario adelantado).",
+    "no_go_zone": "Decisión del usuario el 2026-09-10: «sí, primero el núcleo que ajusta mis transacciones actuales, luego lo demás»; la lista de aplazados de 00_DISCOVERY.md aprobada por él y registrada como BL-045; festivos retirados por su respuesta 8 («no afecta el cierre del ciclo»)."
+  },
+  "idea_gaps": [
+    "[ABIERTA — FR-2406] La regla del salario adelantado se presentó dos veces y el usuario respondió «no sé si entiendo tu regla»; aprobó el discovery con ella escrita sobre su caso (pagado el 20-nov → «Diciembre»). Se implementa como PROPUESTA visible en el Registro, con ventana de tres días, para CUALQUIER ingreso (el núcleo no distingue el salario) y con defecto «quedarse en el ciclo de la fecha». CONFIRMAR al aprobar: ¿ventana de 3 días? ¿propuesta con ese defecto, o automático solo para el salario (lo que exigiría marcar cuál ingreso es el salario)?",
+    "[RESUELTA 2026-09-10 — FR-2404] Los movimientos antiguos sin fecha siguen la misma regla que el presupuesto de su rubro en su mes (los tres casos), no «M+1» a secas. Asunción por coherencia con la regla nueva; los datos del usuario no tienen movimientos sin fecha.",
+    "[ABIERTA — FR-2401] Política de fin de mes para días 29-31: el documento la define como parámetro con dos valores (RF-02); se asume «último día del mes» por defecto. Al usuario, con día 21, no le afecta.",
+    "[ABIERTA — FR-2410] Volver a «Mes a mes» con reubicación inversa se incluye en el núcleo por criterio del agente (un modo sin retorno sería una trampa); el usuario no lo pidió explícitamente. CONFIRMAR al aprobar si lo quiere en este incremento o aplazado.",
+    "[ABIERTA — NFR-2409] El umbral de 2 s para reubicar 5000 celdas y 2000 movimientos es una cota propuesta por el agente; el guardarraíl de 150 ms sí es el vigente del proyecto.",
+    "[ABIERTA — FR-2408] Al cambiar el día de pago, las celdas tecleadas conservan su columna POR NOMBRE (la de «Noviembre» sigue siendo «Noviembre» con el rango nuevo) y el ciclo de transición nace sin celdas. Regla derivada por el agente a partir de la auditoría; el usuario no la ha visto. CONFIRMAR al aprobar.",
+    "[ABIERTA — FR-2404] El inicio del historial en ciclos es el más antiguo entre el ciclo que abre el pago del mes de inicio y el ciclo del movimiento fechado más antiguo, para que ningún dato quede antes del primer ciclo. Asunción de coherencia (misma regla que NFR-2203); no afecta a los datos actuales del usuario.",
+    "[RESUELTA 2026-09-10 — FR-2404/FR-2410] La regla original «todo dato sin día de M va al ciclo M+1» se aplicó sobre el ledger real y separó el presupuesto del ejecutado (Septiembre gastado sin presupuesto, Octubre presupuestado sin gasto). El usuario aprobó la regla nueva (el presupuesto sigue al ejecutado, tres casos), la memoria de origen para deshacer, y que la diferencia de una celda fusionada editada vaya al mes más reciente. Validada por simulación sobre su respaldo: activar reproduce su tabla y la vuelta es idéntica. Sus datos de dev se alinearon una sola vez por la API (revisión 84) a petición suya.",
+    "[ABIERTA — FR-2404] Los desempates son criterio del agente, no del usuario: en el caso 1 empate de sumas ⇒ ciclo más antiguo; en el caso 2 la costumbre se decide por SUMA de montos (no por número de pagos) y el empate ⇒ ciclo del mismo nombre. Sobre los datos del usuario ningún desempate se activa. CONFIRMAR al aprobar.",
+    "[ABIERTA — FR-2404/FR-2410] Hallazgo de la fase de diseño (2026-09-10): con memoria SOLO para las celdas que juntan meses, la ida y vuelta no es idéntica en general — un gasto del 25-ago sin presupuesto de agosto más un presupuesto de septiembre pagado el 3-sep vuelve a agosto. Se amplía la memoria a todo dato sin día que la activación mueve; sobre los datos del usuario no hay cambio visible. CONFIRMAR al aprobar.",
+    "[ABIERTA — FR-2410] Reducción de una celda fusionada mayor que la parte del mes más reciente: el resto se descuenta del mes anterior, hacia atrás, porque ningún monto puede ser negativo (CHECK de amount_cell). Criterio del agente que extiende la decisión del usuario («la diferencia va al mes más reciente»). CONFIRMAR al aprobar.",
+    "[ABIERTA — FR-2404/FR-2408/FR-2410] Revisión adversarial del diseño (2026-09-10): se incorporan el bloqueo por residuo negativo con el nombre del rubro, la memoria de las celdas que junta un cambio de día, la vuelta del Ejecutado editado sin meses negativos, las celdas en 0 y el mes de inicio vacío en la ida y vuelta, y el alcance de la identidad a ledgers sin ciclos cerrados. CONFIRMAR al aprobar: la identidad no se promete con ciclos cerrados, y un Ejecutado tecleado por debajo de sus movimientos puede bloquear la activación.",
+    "[RESUELTA 2026-09-10 — FR-2408] La «clave que desaparece» es imposible: con el último pago viejo definido como el ancla anterior al primer pago nuevo, ningún cambio de día elimina una clave (18.910 cambios válidos probados con el calendario real; la desviación 2 del build ya lo señalaba). Se retira la fusión al cambiar de día y AC-2448 describe el caso real."
+  ],
+  "coverage_map": [
+    {
+      "need": "RF-01 cada usuario define su propia configuración; ninguna por defecto sin elección explícita",
+      "disposition": "FR-2401"
+    },
+    {
+      "need": "RF-02 frecuencia, anclas, política de día no hábil, calendario de festivos, comportamiento de fin de mes",
+      "disposition": "FR-2401"
+    },
+    {
+      "need": "RF-02 (parte) política de día no hábil y calendario de festivos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-03 todos los esquemas de §2.2.2 por configuración sin ramas por esquema (quincenal, semanal, catorcenal)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-04 fechas de inicio de ciclo definidas a mano para ingresos irregulares",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-05 previsualizar los próximos ciclos antes de guardar",
+      "disposition": "FR-2403"
+    },
+    {
+      "need": "RF-06 generar el calendario con fechas de inicio y fin calculadas; duración variable (§2.2.3)",
+      "disposition": "FR-2402"
+    },
+    {
+      "need": "RF-07 configuración versionada por fecha de vigencia con histórico",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "RF-08 un cambio aplica solo hacia adelante; ciclos cerrados no se recalculan",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "RF-09 marcar el ciclo de transición entre versiones (§2.2.4, §2.2.5)",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "RF-09a exigir la fecha del primer pago nuevo, no inferirla",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "RF-09b excluir ciclos de transición de promedios, tendencias, comparaciones y alertas",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-09b (parte) el ciclo de transición se identifica visualmente",
+      "disposition": "FR-2407"
+    },
+    {
+      "need": "RF-09c prorratear un gasto recurrente entre ciclos anteriores (§2.2.6)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-10 asignar cada movimiento a un ciclo por la regla única de §3, sin intervención manual",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "RF-11 balance del ciclo = ingresos − gastos con la misma regla de corte en ambas columnas (§4, §4.1)",
+      "disposition": "NFR-2407"
+    },
+    {
+      "need": "RF-12 gastos recurrentes con día de vencimiento proyectados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-13 cuotas de compras diferidas (§5.2)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-14 ingreso extraordinario asignado a otro ciclo (§5.1)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-15 designar qué fuente define los ciclos con varias fuentes (§5.4)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-16 vista alterna por mes calendario (§4.2, §9)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-17 disponible tras gastos comprometidos no pagados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-18 alerta cuando un ciclo futuro queda en déficit",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RF-19 aviso de duración distinta al comparar ciclos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RV-01 ningún movimiento sin ciclo",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "RV-02 ningún movimiento en más de un ciclo",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "RV-03 ciclos contiguos sin huecos ni traslapes",
+      "disposition": "FR-2402"
+    },
+    {
+      "need": "RV-04 ciclo con ingresos sin gastos o gastos sin ingresos marcado como anomalía",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RV-05 suma de balances de ciclos = ingresos − gastos del periodo calculado independientemente",
+      "disposition": "NFR-2407"
+    },
+    {
+      "need": "RV-06 contigüidad también en la frontera entre versiones",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "RV-07 un cambio de configuración no altera balances anteriores a su vigencia",
+      "disposition": "NFR-2407"
+    },
+    {
+      "need": "RV-08 ninguna configuración válida genera ciclos de duración cero o negativa ni anclas duplicadas",
+      "disposition": "FR-2402"
+    },
+    {
+      "need": "RV-09 toda fecha de inicio respeta la política de día no hábil contra el calendario de festivos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "RV-10 las reservas prorrateadas suman el gasto y ninguna cae después del vencimiento",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "§2.1 nomenclatura del ciclo — SUPERSEDIDA por el usuario: nombre por el mes en que termina con rango debajo",
+      "disposition": "FR-2407"
+    },
+    {
+      "need": "§3.1 el ciclo inicia en la fecha real de recepción — SUPERSEDIDA por el usuario: frontera nominal",
+      "disposition": "FR-2402"
+    },
+    {
+      "need": "§3.1 consecuencia: el salario adelantado por no hábil cuenta en el ciclo que abre",
+      "disposition": "FR-2406"
+    },
+    {
+      "need": "§5.3 un ingreso adicional dentro de un ciclo se suma a ese ciclo y no abre uno nuevo",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "§8.1 arrastre de saldo entre ciclos — decidido: igual que hoy entre meses",
+      "disposition": "FR-2409"
+    },
+    {
+      "need": "§8.2 ingreso recibido fuera de la fecha esperada — decidido: frontera nominal, el atrasado cae por fecha, el adelantado por FR-2406",
+      "disposition": "FR-2406"
+    },
+    {
+      "need": "§8.3 ingreso de monto variable, proyectado vs confirmado",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "§8.4 corrección retroactiva de un ciclo cerrado — decidido: misma lógica de cierre de mes, reabrir",
+      "disposition": "FR-2409"
+    },
+    {
+      "need": "§8.5 reembolsos — decidido: una transacción más, ingreso positivo en el ciclo en que llega",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "§9 criterio tributario fuera de alcance; reportes tributarios sobre mes calendario",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Punto adicional del usuario: modo configurable, mes a mes por defecto como hoy, o ciclos indicando las fechas",
+      "disposition": "FR-2401"
+    },
+    {
+      "need": "Punto adicional del usuario: cambiar el día de pago el próximo año creando o modificando ciclos según aplique",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "Punto adicional del usuario: primero el núcleo que ajusta sus transacciones actuales, luego lo demás",
+      "disposition": "FR-2404"
+    },
+    {
+      "need": "Decisión del usuario: sus celdas de agosto son del ciclo «Septiembre» (reubicación al activar)",
+      "disposition": "FR-2404"
+    },
+    {
+      "need": "Poder volver a mes a mes sin perder nada (implícito en «modo por defecto»)",
+      "disposition": "FR-2410"
+    },
+    {
+      "need": "Must Not Break: modo mes idéntico, suites verdes, totales iguales",
+      "disposition": "NFR-2401"
+    },
+    {
+      "need": "Must Not Break: cierre-de-mes (FR-2002/2003/2005/2008)",
+      "disposition": "NFR-2402"
+    },
+    {
+      "need": "Must Not Break: multi-anio (FR-1903/1904/1906)",
+      "disposition": "NFR-2403"
+    },
+    {
+      "need": "Must Not Break: transferencias (FR-1001/1006/1007)",
+      "disposition": "NFR-2404"
+    },
+    {
+      "need": "Must Not Break: meses-y-saldo-inicial (FR-2202/2205/2207)",
+      "disposition": "NFR-2405"
+    },
+    {
+      "need": "Must Not Break: Postgres única fuente y migración versionada e idempotente (FR-011, FR-1010)",
+      "disposition": "NFR-2406"
+    },
+    {
+      "need": "RF-11 balance del ciclo con la misma regla de corte en ambas columnas — entregado por la asignación por fecha y el balance por columna existente",
+      "disposition": "FR-2405"
+    },
+    {
+      "need": "§2.2.4/§2.2.5 dónde queda el dato sin día (celdas, movimientos sin fecha) cuando se regeneran los ciclos abiertos y futuros al cambiar de versión",
+      "disposition": "FR-2408"
+    },
+    {
+      "need": "§5.3 un ingreso adicional no abre ciclo ni cambia de ciclo por defecto, aunque caiga en la ventana del pago adelantado",
+      "disposition": "FR-2406"
+    },
+    {
+      "need": "RV-04 anomalía de configuración — RETIRADA en el núcleo, decisión registrada en no_go_zone",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Corrección UX 2026-09-10: el Registro no tiene selector de periodo; el criterio de FR-2407 se expresa sobre el selector «Mes» de la barra y la línea «Ciclo» del Registro",
+      "disposition": "FR-2407"
+    },
+    {
+      "need": "Decisión del usuario 2026-09-10: el presupuesto de cada rubro debe comportarse igual que su ejecutado al activar ciclos; sus datos se alinearon una vez",
+      "disposition": "FR-2404"
+    }
+  ],
+  "original_brief": "<!-- Fuente AUTORITATIVA: feature_context/requerimiento-ciclos-de-pago.md (aportado por el usuario el\n     2026-09-08; nombre interno «Cadencia», nombre de cara al usuario «Ciclos»). Este fichero lo RESUME\n     para el pipeline; ante cualquier discrepancia manda el documento del cliente. Las decisiones que el\n     documento ya tomó se llevan a los FR tal cual. Lo que el documento deja abierto (§8) y lo que el\n     análisis de impacto BL-043 destapó se marca [ASSUMPTION] o [DISCOVERY] y se resuelve CON el usuario. -->\n\n## Feature\nEl presupuesto se lleva por CICLO DE PAGO (desde la fecha de un ingreso hasta el día anterior al siguiente), no por mes calendario; el calendario de ciclos es configurable por usuario, versionado por fecha de vigencia, y todo movimiento se asigna a su ciclo por una regla única.\n\n## Problem / Why\nConfirmado por el usuario (§1 del documento). El presupuesto por mes calendario asume que el ingreso llega el día 1. Cuando llega a mitad de mes, un mismo mes se alimenta de dos ingresos distintos y un mismo ingreso se reparte entre dos meses. El usuario no puede responder «¿con qué plata pago esta cuenta?» y los balances mensuales muestran distorsiones que no corresponden a su realidad. Medido en la base de dev el 2026-09: los 27 movimientos reales del ledger de admin ya quedan partidos por el corte de mes calendario.\n\n## Target Users\nEl presupuestador personal, usuario único del producto (mismo usuario de todas las features previas). Recibe su ingreso principal en una fecha que no es el día 1. Sin tipo de usuario nuevo.\n[ASSUMPTION] El esquema concreto del usuario (mensual con un ancla, quincenal 15/30, otro) NO está en el documento: el día 21 de los ejemplos es solo ilustración (§2). Hay que preguntárselo; define el primer caso real que la configuración debe cubrir.\n\n## New Behavior\nTrasladados del documento del cliente (§6 RF-01…RF-19 y §7 RV-01…RV-10), sin re-decidir:\n\n**Configuración**\n- RF-01 Cada usuario define su propia configuración de ciclos; el sistema no aplica ninguna configuración por defecto sin elección explícita.\n- RF-02 Se configura: frecuencia (mensual, quincenal, semanal, catorcenal, personalizada), anclas, política de día no hábil (anterior / siguiente / sin ajuste), calendario de festivos (país/región, sábado hábil o no) y comportamiento de fin de mes (último día del mes / desplazar).\n- RF-03 Todos los esquemas de §2.2.2 se cubren por configuración, sin ramas de código por esquema.\n- RF-04 Fechas de inicio de ciclo definidas a mano para ingresos irregulares.\n- RF-05 Previsualizar los próximos ciclos que genera una configuración antes de guardarla.\n\n**Motor de ciclos**\n- RF-06 Genera el calendario de ciclos (inicio y fin calculados) a partir de la configuración vigente. Los ciclos tienen duración VARIABLE (§2.2.3): ninguna lógica asume duración fija ni divide entre un número constante de días.\n- RF-07 La configuración se almacena como versiones con fecha de vigencia; se conserva el histórico.\n- RF-08 Un cambio de configuración aplica solo hacia adelante; los ciclos ya cerrados no se recalculan.\n- RF-09 El periodo entre dos versiones de configuración se marca como ciclo de transición.\n- RF-09a Al cambiar la configuración el usuario indica la fecha del primer pago bajo el esquema nuevo; el sistema no la infiere.\n- RF-09b Los ciclos de transición se excluyen de promedios, tendencias, comparaciones y alertas.\n- RF-09c Un gasto recurrente se puede prorratear entre los ciclos anteriores a su vencimiento, descontando la reserva del disponible de cada uno.\n\n**Asignación y balance**\n- RF-10 Todo movimiento pertenece al ciclo cuyo ingreso fue el último en ocurrir antes de la fecha del movimiento (fecha de vencimiento o pago efectivo, no el mes que nombre la factura). Sin intervención manual.\n- RF-11 Balance del ciclo = ingresos del ciclo − gastos del ciclo, con la MISMA regla de corte en ambas columnas (§4.1).\n- RF-12 Gastos recurrentes con día de vencimiento, proyectados a los ciclos futuros.\n- RF-13 Las cuotas de una compra diferida se distribuyen en los ciclos de sus vencimientos; la obligación completa se registra al comprar.\n- RF-14 Un ingreso extraordinario (prima, bonificación) se marca como tal y se asigna a mano a otro ciclo (§5.1: no se suma al ingreso corriente).\n- RF-15 Con más de una fuente de ingreso, el usuario designa cuál define los ciclos; las demás caen dentro del ciclo vigente (§5.4). Los ingresos adicionales no abren ciclo (§5.3).\n\n**Presentación**\n- RF-16 Vista alterna por mes calendario, claramente diferenciada de la vista por ciclo.\n- RF-17 Dentro del ciclo activo: saldo disponible tras descontar los gastos comprometidos aún no pagados.\n- RF-18 Advertencia cuando los gastos proyectados de un ciclo futuro superan su ingreso esperado (no aplica al ciclo de transición).\n- RF-19 Las comparaciones entre ciclos indican cuando los periodos tienen duración distinta.\n- Nomenclatura (§2.1): el ciclo se identifica por la fecha de su ingreso («Ciclo 21-sep»), nunca por un nombre de mes.\n\n**Reglas de validación (§7)**\n- RV-01 Ningún movimiento sin ciclo. RV-02 Ninguno en más de un ciclo. RV-03 Ciclos contiguos, sin huecos ni traslapes. RV-06 Contigüidad también en la frontera entre versiones de configuración.\n- RV-04 Un ciclo con ingresos y sin gastos, o con gastos y sin ingresos, se marca como anomalía de configuración (ver caso abierto 8.2).\n- RV-05 La suma de balances de los ciclos de un periodo iguala ingresos − gastos del periodo calculado de forma independiente.\n- RV-07 Un cambio de configuración no altera el balance de ningún ciclo anterior a su vigencia (verificable comparando balances históricos antes y después). REGRESIÓN DURA.\n- RV-08 Ninguna configuración válida produce ciclos de duración cero o negativa ni anclas duplicadas.\n- RV-09 Toda fecha de inicio respeta la política de día no hábil contra el calendario de festivos del usuario.\n- RV-10 La suma de reservas prorrateadas de un gasto iguala su monto; ninguna reserva en un ciclo posterior al vencimiento.\n\n## Success Criteria\n- Dado un usuario con configuración mensual ancla 21, cuando registra un gasto con fecha 5-oct, entonces pertenece al Ciclo 21-sep; con fecha 25-oct, al Ciclo 21-oct (RF-10).\n- Dado el Ciclo 21-sep, cuando se calcula su balance, entonces incluye el giro del 21-sep y los vencimientos del 21-sep al 20-oct, y nunca aparece un ciclo con ingresos sin gastos seguido de otro con gastos sin ingresos por mezclar cortes (RF-11, §4.1).\n- Dada una configuración quincenal 15/30, cuando se genera el calendario, entonces los ciclos alternan 15 y 16 días y febrero produce 13, sin huecos ni traslapes (RF-06, RV-03).\n- Dado un cambio de ancla 21→30 con primer pago nuevo el 30-oct y último viejo el 21-oct, cuando se guarda, entonces existe un ciclo de transición 21-oct→29-oct de 9 días marcado como tal, excluido de promedios y de la alerta RF-18 (RF-09, RF-09a, RF-09b).\n- Dado cualquier cambio de configuración, cuando se comparan los balances de los ciclos anteriores a su vigencia antes y después, entonces son idénticos (RV-07).\n- Dado un gasto de 300 prorrateado en 3 ciclos, cuando se guardan las reservas, entonces suman 300, ninguna cae después del vencimiento y cada una descuenta del disponible de su ciclo (RF-09c, RV-10).\n- Dado que el usuario no ha elegido configuración, cuando abre la app, entonces no existe ningún ciclo por defecto (RF-01).\n\n## Touch Points\nMedidos en el código el 2026-09-08 y re-verificados el 2026-09-10. Es la feature más grande del proyecto: cambia el EJE de indexación del dinero.\n- **PeriodKey «YYYY-MM»** (`src/domain/periods.ts:21`, presente en 25 ficheros de `src/`): los mapas de dinero se indexan por mes (`budgets[hoja][periodo]`). Un ciclo es un rango de fechas de duración variable que no se alinea con el calendario. MODIFICA.\n- **Movement.date** (`src/domain/types.ts:49`): ya guarda la fecha ISO de captura y de ella se DERIVA `period`. Es la pieza a favor: los movimientos capturados desde el Registro ya tienen el día que RF-10 necesita. Pero es opcional (movimientos previos no lo tienen). MODIFICA la derivación.\n- **Celda de la grilla tecleada directo** (`setLeafAmount`, `src/domain/mutations.ts:385`) NO es un movimiento: es un monto de un mes sin día. Bajo ciclos no tiene a qué ciclo pertenecer. ES EL HUECO CENTRAL. `addMovement` (`mutations.ts:69`) acumula, `setLeafAmount` asigna: ya hoy discrepan.\n- **cierre-de-mes (FR-2001…FR-2011)**: `closedThrough`/`reopenedPeriod` son PeriodKey de mes (26 usos en `src/domain/closure.ts`). Cierre secuencial, trinquete de reapertura y línea base del impacto están definidos sobre la frontera del mes. MODIFICA.\n- **meses-y-saldo-inicial (FR-2201…FR-2207)**: `startMonth` (`types.ts:142`) ancla el historial en un MES; la página de Configuración (FR-2204) es donde vive lo configurable y es el lugar natural de la configuración de ciclos. MODIFICA / AÑADE.\n- **multi-anio (FR-1901…FR-1910)**: `activeRange` (`src/domain/range.ts`) deriva el eje visible de meses; la grilla continua de FR-1905 y la de 12 columnas de FR-006 asumen meses. MODIFICA.\n- **transferencias (FR-1001…FR-1015)**: RF-09c (reservar por adelantado porciones de un gasto, descontando del disponible) es conceptualmente el motor de alcancías con techo (FR-1006) y piso (FR-1007). [DISCOVERY] estudiar reusarlo en vez de construir otro: la mayor economía posible de la feature.\n- **Balance (FR-1009, feature balance)**: el arrastre de saldo entre periodos YA EXISTE y opera sobre el mes (FR-1903 lo cruza por año). Caso abierto 8.1.\n- **Persistencia** (FR-011, drizzle en `src/server/db`): configuración versionada, ciclos, gastos recurrentes, cuotas y prorrateos son tablas/columnas nuevas con migración.\n\n## Must Not Break (Regression Boundary)\n- Todo movimiento capturado antes de la feature conserva su `period` y su monto; el agregado de la raíz sigue 59/59 y ninguna feature sellada cambia de verde.\n- RV-07 como NFR de regresión: los balances de ciclos anteriores a un cambio de configuración son idénticos antes y después.\n- cierre-de-mes: un periodo cerrado sigue inmutable (FR-2003), el cierre sigue secuencial (FR-2002) y la reapertura sigue siendo una sola a la vez (FR-2005) sobre la frontera que se decida en discovery.\n- multi-anio: el saldo de diciembre sigue abriendo enero (FR-1903) y el horizonte en años (FR-1904) sigue funcionando.\n- transferencias: techo global (FR-1006) y piso por alcancía (FR-1007) siguen bloqueando exactamente igual; los saldos derivados (FR-1001) no cambian de valor.\n- meses-y-saldo-inicial: el saldo inicial sigue abriendo el primer periodo del historial (FR-2202) y persiste en el servidor (FR-2207).\n- FR-011: Postgres sigue siendo la única fuente de verdad; la migración es versionada e idempotente como exige FR-1010.\n- La vista por mes calendario (RF-16) reproduce los mismos totales mensuales que hoy para los mismos datos (es la base de cualquier reporte tributario, §9).\n\n## Out of Scope\n- Criterio tributario (§9): el modelo no modifica cuándo se realiza un ingreso para declaración de renta; cualquier reporte tributario se construye sobre la vista de mes calendario, no sobre ciclos.\n- Generar ciclos a partir de TODAS las fuentes de ingreso (§5.4): no se implementa; solo una fuente define los ciclos.\n- Una configuración de ciclos por defecto para toda la base de usuarios (RF-01).\n- Normalizar o «arreglar» el ciclo de transición (§2.2.4): se muestra como es.\n\n## Casos abiertos — a resolver en discovery CON el usuario\n[DISCOVERY] Ninguno de estos está decidido en el documento; no se inventa una respuesta.\n1. **Sustituir o convivir** (README de origen): ¿las columnas de la grilla pasan a ser ciclos (rehace FR-006/FR-1905 y todo lo tecleado en celdas se reasigna a mano) o la grilla mensual se queda para planear y los ciclos son la vista de ejecución (más barato, pero hay que definir qué manda cuando discrepan, que es justo el error de §4.1)? Reloj: cada celda tecleada directo desde el 2026-09-08 es dato sin día.\n2. **8.1 Arrastre de saldo entre ciclos**: ¿sobrante pasa al siguiente o cada ciclo arranca en cero? El arrastre ya existe sobre el mes; hay que decidir si opera sobre la frontera del ciclo.\n3. **8.2 Ingreso fuera de fecha**: ¿fecha esperada abre el ciclo provisionalmente y la real lo confirma? Choca con RV-04.\n4. **8.3 Ingreso de monto variable**: cómo distinguir proyectado de confirmado en la interfaz.\n5. **8.4 Corrección retroactiva**: corregir un movimiento de un ciclo cerrado SÍ recalcula; cambiar configuración NO. Verificar caminos separados y cómo se concilia con FR-2003 (mes cerrado inmutable).\n6. **8.5 Reembolsos**: ¿corrigen el ciclo original o entran como ingreso del actual?\n7. **Esquema real del usuario** y su calendario de festivos (país/región, sábado).\n8. **Orden con BL-044** (panel de celda como diario): su análisis recomienda hacerla ANTES porque empuja la captura hacia el movimiento con fecha y reduce la superficie del hueco 1. El usuario decidió ir a Ciclos ya; queda anotado.\n"
+}

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { BarChart, Bar as RBar, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods, useCalendar } from "@/state/store";
 import { dashboardMetrics } from "@/domain";
 import { typeTotals } from "@/domain/rollup";
 import { periodMonthLabelShort } from "@/domain/periods";
@@ -15,9 +15,12 @@ export function Dashboard() {
   const period = useLedgerStore((s) => s.period);
   const scope = useActivePeriods();
   const visibles = useVisiblePeriods();
+  // Feature ciclos (FR-2407): título y tooltip por ciclo cuando el calendario lo es.
+  const cal = useCalendar();
   const vm = useMemo(() => dashboardMetrics(data, period, scope), [data, period, scope]);
   const trend = useMemo(
     () => visibles.map((m) => ({
+      key: m,
       mes: periodMonthLabelShort(m).slice(0, 3),
       Ingresos: typeTotals(data, "income", [m]).actual,
       Gastos: typeTotals(data, "expense", [m]).actual,
@@ -39,13 +42,13 @@ export function Dashboard() {
       </div>
 
       <div className="flex flex-col gap-3">
-      <Card title="Ejecución mensual · 2026">
+      <Card title={`Ejecución ${cal.mode === "cycle" ? "por ciclo" : "mensual"} · 2026`}>
         <div className="w-full h-[220px]" data-testid="monthly-trend">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trend} barGap={2} barCategoryGap="20%">
               <XAxis dataKey="mes" tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
               {/* FR-301: cursor del tooltip theme-aware (color-mix con --fg), visible en claro; no rgba blanco fijo. */}
-              <Tooltip cursor={{ fill: "color-mix(in srgb, var(--fg) 6%, transparent)" }} contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", borderRadius: 10, fontSize: 12, color: "var(--fg)", boxShadow: "var(--shadow-md)" }} formatter={(v: number) => money(v)} />
+              <Tooltip cursor={{ fill: "color-mix(in srgb, var(--fg) 6%, transparent)" }} contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", borderRadius: 10, fontSize: 12, color: "var(--fg)", boxShadow: "var(--shadow-md)" }} formatter={(v: number) => money(v)} labelFormatter={(label, items) => { const k = (items?.[0]?.payload as { key?: string } | undefined)?.key; const r = k ? cal.rangeLabel(k) : null; return r ? `${String(label)} · ${r}` : String(label); }} />
               <Legend wrapperStyle={{ fontSize: 12, color: "var(--fg-muted)" }} />
               <RBar dataKey="Ingresos" fill="var(--success)" radius={[3, 3, 0, 0]} />
               <RBar dataKey="Gastos" fill="var(--error)" radius={[3, 3, 0, 0]} />

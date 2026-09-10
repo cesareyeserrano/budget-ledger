@@ -18,8 +18,10 @@ export const PERIOD_MIN_YEAR = 2000;
 export const PERIOD_MAX_YEAR = 2100;
 export const PERIOD_KEY = z
   .string()
-  .max(7, "Periodo demasiado largo")
-  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Periodo inválido: se espera YYYY-MM")
+  .max(8, "Periodo demasiado largo")
+  // Feature ciclos (ADR-02): «t» opcional = ciclo de transición. La defensa fuerte no es esta regex
+  // sino la pertenencia a `calendar.keys`, que el servidor comprueba en cada escritura.
+  .regex(/^\d{4}-(0[1-9]|1[0-2])t?$/, "Periodo inválido: se espera YYYY-MM")
   .refine((p) => {
     const y = Number(p.slice(0, 4));
     return y >= PERIOD_MIN_YEAR && y <= PERIOD_MAX_YEAR;

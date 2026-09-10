@@ -31,11 +31,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ArrowLeft } from "lucide-react";
-import { useLedgerStore } from "@/state/store";
+import { useLedgerStore, useNow } from "@/state/store";
+import { PeriodModeSection } from "@/components/PeriodModeSection";
+import { Toaster } from "@/components/Toaster";
 import { periodMonthLabel, periodOf, periodMonth, periodYear } from "@/domain/periods";
 import { isClosed, closureOf } from "@/domain/closure";
 import { normalizeStartMonth } from "@/domain/opening";
-import { currentPeriod } from "@/lib/date";
+
 import {
   readCatWidth, writeCatWidth, CAT_WIDTH_MIN, CAT_WIDTH_MAX, CAT_WIDTH_DEFAULT,
 } from "@/lib/gridWidth";
@@ -60,6 +62,8 @@ function ConfiguracionScreen() {
   const data = useLedgerStore((s) => s.data);
   const setStart = useLedgerStore((s) => s.setStart);
   const { theme, setTheme } = useTheme();
+  // Feature ciclos (FLAG-1): «hoy» según el calendario vigente, no el reloj mensual.
+  const hoy = useNow();
 
   // `next-themes` no conoce el tema hasta montar en cliente: pintar antes daría un salto.
   const [montado, setMontado] = useState(false);
@@ -70,7 +74,7 @@ function ConfiguracionScreen() {
   useEffect(() => setCatW(readCatWidth()), []);
 
   // ── «Tu historia»: el único bloque que se confirma ──
-  const startVigente = normalizeStartMonth(data.startMonth) ?? currentPeriod();
+  const startVigente = normalizeStartMonth(data.startMonth) ?? hoy;
   const saldoVigente = data.openingBalance ?? 0;
   const [mes, setMes] = useState<string>(startVigente);
   const [saldo, setSaldo] = useState<string>(String(saldoVigente));
@@ -106,7 +110,7 @@ function ConfiguracionScreen() {
     }
   }
 
-  const anios = [periodYear(currentPeriod()) - 2, periodYear(currentPeriod()) - 1, periodYear(currentPeriod())];
+  const anios = [periodYear(hoy) - 2, periodYear(hoy) - 1, periodYear(hoy)];
 
   // Mismo criterio que `ShellSwitch`: no se pinta hasta que el store trae los datos del servidor.
   // Pintar antes mostraría un saldo y un mes de inicio que no son los del usuario.
@@ -114,6 +118,8 @@ function ConfiguracionScreen() {
 
   return (
     <main className="min-h-screen bg-bg">
+      {/* Feature ciclos (FR-2404): «Ciclos activados» se confirma aquí, donde se decide. */}
+      <Toaster />
       <div className="mx-auto flex max-w-[720px] flex-col gap-6 px-4 py-6">
         {/* Cabecera: «Volver» SIEMPRE visible, también si el ledger no cargara (H3). */}
         <div className="flex items-center gap-3">
@@ -244,7 +250,7 @@ function ConfiguracionScreen() {
             onChange={(e) => setSaldo(e.target.value)}
           />
           <p className="caption mt-1.5 text-fg-secondary">
-            {mes === currentPeriod()
+            {mes === hoy
               ? "Lo que ya tenías el día que empezaste. No cuenta como ingreso del mes."
               : `Lo que tenías al empezar ${periodMonthLabel(mes).toLocaleLowerCase("es")}. No incluyas los ingresos de ${periodMonthLabel(mes).toLocaleLowerCase("es")} en adelante: esos se registran mes a mes.`}
           </p>
@@ -264,6 +270,8 @@ function ConfiguracionScreen() {
             {ok && <span data-testid="config-saved" className="caption text-fg-secondary">Guardado</span>}
           </div>
         </Card>
+        {/* ── 4. Periodo del presupuesto (feature ciclos, FR-2401) ─────────────────────── */}
+        <PeriodModeSection />
       </div>
     </main>
   );

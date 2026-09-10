@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { History, Lock, LockOpen } from "lucide-react";
-import { periodLabel } from "@/domain/periods";
+import { useCalendar, useLedgerStore } from "@/state/store";
+import { cycleLabel } from "./cycleText";
 import type { PeriodKey } from "@/domain/types";
 import { Button } from "./ui/button";
 
@@ -35,6 +36,10 @@ interface ClosureEvent {
  */
 export function ClosureHistoryPanel() {
   const [open, setOpen] = useState(false);
+  // Feature ciclos (FR-2407, FLAG-3): el rango solo acompaña a los eventos POSTERIORES a la última
+  // versión de configuración; los anteriores se cerraron bajo otro calendario y solo llevan nombre.
+  const cal = useCalendar();
+  const sinceVersion = useLedgerStore((s) => { const vs = s.data.cycles?.versions ?? []; return vs[vs.length - 1]?.createdAt ?? null; });
   const [events, setEvents] = useState<ClosureEvent[] | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -111,7 +116,12 @@ export function ClosureHistoryPanel() {
                   {e.action === "reopen"
                     ? <LockOpen size={13} className="shrink-0 text-fg-muted" aria-hidden />
                     : <Lock size={13} className="shrink-0 text-fg-muted" aria-hidden />}
-                  <span className="text-fg">{periodLabel(e.period)}</span>
+                  <span className="text-fg">
+                    {cycleLabel(cal, e.period)}
+                    {cal.rangeLabel(e.period) && (sinceVersion === null || String(e.at) >= sinceVersion) && (
+                      <span className="text-fg-secondary"> · {cal.rangeLabel(e.period)}</span>
+                    )}
+                  </span>
                   <span className="text-fg-secondary">
                     {e.action === "reopen" ? "reabierto" : "cerrado"}
                   </span>

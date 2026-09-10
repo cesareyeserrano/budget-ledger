@@ -47,6 +47,10 @@ const postHandler = withApi<MovementInput>(
     // Feature reglas-en-el-servidor (FR-2101): el movimiento dejaba algún mes peor de lo que
     // estaba. El detalle viaja entero —mismo cuerpo que el PUT del ledger— para que el mensaje
     // pueda decir qué arreglar primero (FR-2102), no solo que no se pudo.
+    if ("periodMismatch" in result) {
+      // Feature ciclos (FR-2405/NFR-2408): el periodo no es el de la fecha (o falta la fecha en ciclos).
+      return json({ error: { code: "period_mismatch", detail: { expected: result.expected } } }, HTTP.UNPROCESSABLE);
+    }
     if ("domainViolation" in result) {
       return json(
         { error: { code: "domain_rule_violation", detail: { violations: result.violations } } },

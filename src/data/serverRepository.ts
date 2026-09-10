@@ -9,6 +9,10 @@
  * Dependencies: @/domain (tipos), @/data/repository (interfaz LedgerRepository)
  */
 import { z } from "zod";
+import type { CycleTarget } from "@/domain/cycles";
+import type { PeriodModePreview, PeriodModeResult } from "@/state/store";
+type PreviewCycles = Extract<PeriodModePreview, { ok: true }>["cycles"];
+type PreviewRelocation = Extract<PeriodModePreview, { ok: true }>["relocation"];
 import type { Closure, LedgerState } from "@/domain";
 import { normalizeClosure } from "@/domain/closure";
 import { ledgerStateSchema } from "@/server/schemas";
@@ -220,6 +224,49 @@ export class ServerRepository implements LedgerRepository {
    *
    * @aitri-trace FR-ID: FR-2207, US-ID: US-2207, AC-ID: AC-2219, TC-ID: TC-MSI-041f, TC-MSI-051f, TC-MSI-061f
    */
+  /**
+   * Feature ciclos (FR-2403). POST /api/v1/ledger/cycles/preview: calcula, no escribe.
+   *
+   * @aitri-trace FR-ID: FR-2403, US-ID: US-2403, AC-ID: AC-2409, TC-ID: TC-CIC-020h, TC-CIC-026f
+   */
+  async previewCycles(target: CycleTarget): Promise<PeriodModePreview> {
+    try {
+      const res = await fetch(this.url("/api/v1/ledger/cycles/preview"), {
+        method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ target }),
+      });
+      if (res.status === UNAUTHORIZED) { this.unauthorized = true; return { ok: false, code: "unauthorized" }; }
+      const body = (await res.json().catch(() => ({}))) as { cycles?: PreviewCycles; relocation?: PreviewRelocation; revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
+      if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; return { ok: false, code: "revision_conflict" }; }
+      if (res.status !== OK || !body.cycles || !body.relocation) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
+      return { ok: true, cycles: body.cycles, relocation: body.relocation };
+    } catch {
+      return { ok: false, code: "network" };
+    }
+  }
+
+  /**
+   * Feature ciclos (FR-2404/FR-2408/FR-2410). PUT /api/v1/ledger/cycles con el lock optimista.
+   *
+   * @aitri-trace FR-ID: FR-2404, US-ID: US-2404, AC-ID: AC-2412, TC-ID: TC-CIC-002h, TC-CIC-162f
+   */
+  async applyCycles(target: CycleTarget): Promise<PeriodModeResult> {
+    try {
+      const res = await fetch(this.url("/api/v1/ledger/cycles"), {
+        method: "PUT", credentials: "include", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseRevision: this.revision, target }),
+      });
+      if (res.status === UNAUTHORIZED) { this.unauthorized = true; return { ok: false, code: "unauthorized" }; }
+      const body = (await res.json().catch(() => ({}))) as { revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
+      if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; this.conflicted = true; return { ok: false, code: "revision_conflict" }; }
+      if (res.status !== OK) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
+      if (typeof body.revision === "number") this.revision = body.revision;
+      return { ok: true };
+    } catch {
+      return { ok: false, code: "network" };
+    }
+  }
+
   async saveStart(
     startMonth: string,
     openingBalance: number | null

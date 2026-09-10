@@ -67,6 +67,20 @@ const apiCellNotes = z.record(
 );
 
 /** Estado completo del ledger para el snapshot PUT. */
+/** Feature ciclos: la configuración versionada tal como viaja en el snapshot (solo lectura). */
+export const cycleConfigSchema = z.object({
+  mode: z.enum(["month", "cycle"]),
+  versions: z.array(z.object({
+    seq: z.number().int(),
+    mode: z.enum(["month", "cycle"]),
+    anchorDay: z.number().int().min(1).max(31).nullable(),
+    eomPolicy: z.enum(["last_day", "shift"]).nullable(),
+    effectiveFrom: z.string(),
+    firstPay: z.string().nullable(),
+    restoreStartMonth: z.string().nullable(),
+    createdAt: z.string(),
+  })),
+});
 export const ledgerStateSchema = z.object({
   ownerId: z.string(),
   nodes: z.array(apiNodeSchema),
@@ -108,6 +122,9 @@ export const ledgerStateSchema = z.object({
   // mueve PUT /api/v1/ledger/start, que es donde viven sus dos reglas de servidor (ADR-02).
   startMonth: PERIOD_KEY.nullable().optional(),
   openingBalance: cellAmountSchema.nullable().optional(), // BG-021
+  // Feature ciclos (ADR-03): se ACEPTA (el cliente lo recibe en GET y lo reenvía en PUT) y se IGNORA
+  // en saveLedger — la configuración solo cambia por /api/v1/ledger/cycles.
+  cycles: cycleConfigSchema.optional(),
 });
 
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */
@@ -159,3 +176,30 @@ export const closurePostSchema = z.object({
   baseRevision: z.number().int().gte(0),
 }).strict();
 export type ClosurePostBody = z.infer<typeof closurePostSchema>;
+
+// ── Feature ciclos (FR-2401, FR-2408, NFR-2408) ─────────────────────────────────────────────────
+/** Fecha civil «YYYY-MM-DD». La existencia del día (30-feb) la comprueba el dominio (`isIsoDate`). */
+const ISO_DATE = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "Fecha inválida: se espera YYYY-MM-DD");
+/**
+ * El objetivo de un cambio de periodo. `anchorDay` es un ENTERO 1..31 — un decimal, una cadena o
+ * un nulo son `invalid_payload` antes de tocar la base (lección de BG-002).
+ *
+ * @aitri-trace FR-ID: FR-2401, US-ID: US-2401, AC-ID: AC-2403, TC-ID: TC-CIC-006f, TC-CIC-017f
+ */
+export const cyclesTargetSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("month") }).strict(),
+  z.object({
+    mode: z.literal("cycle"),
+    anchorDay: z.number().int().min(1).max(31),
+    eomPolicy: z.enum(["last_day", "shift"]),
+    firstPayDate: ISO_DATE.optional(),
+  }).strict(),
+]);
+export type CyclesTarget = z.infer<typeof cyclesTargetSchema>;
+export const cyclesPreviewSchema = z.object({ target: cyclesTargetSchema }).strict();
+export type CyclesPreviewBody = z.infer<typeof cyclesPreviewSchema>;
+export const cyclesPutSchema = z.object({
+  baseRevision: z.number().int().gte(0),
+  target: cyclesTargetSchema,
+}).strict();
+export type CyclesPutBody = z.infer<typeof cyclesPutSchema>;

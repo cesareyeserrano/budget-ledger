@@ -19,6 +19,7 @@ import { storageStatePath, e2eEmail } from "./globalSetup";
 import { buildSeedConMontos as buildSeed } from "../../helpers/seedConMontos";
 import { resetClosure } from "./closure";
 import { resetOpening } from "./opening";
+import { resetCycles } from "./cycles";
 import { P0 } from "../../helpers/periods";
 
 export const test = base.extend<{ freshLedger: void }, { workerStorageState: string }>({
@@ -61,6 +62,8 @@ export const test = base.extend<{ freshLedger: void }, { workerStorageState: str
       // snapshot la ignora a proposito (ADR-02), asi que restaurar la semilla no la limpia y la
       // tarjeta de arranque no volveria a aparecer en ninguna prueba posterior del worker.
       await resetOpening(e2eEmail(testInfo.parallelIndex));
+      // Feature ciclos: la cuenta vuelve a modo mes entre tests (las versiones son append-only).
+      await resetCycles(e2eEmail(testInfo.parallelIndex));
       const res = await page.request.get("/api/v1/ledger");
       const baseRevision = res.status() === 200 ? ((await res.json()) as { revision: number }).revision : 0;
       const put = await page.request.put("/api/v1/ledger", {

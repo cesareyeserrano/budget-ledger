@@ -39,3 +39,5 @@ process.env.MAILPIT_API ??= inject("mailpitApi");
 // no creerse el header, lo sigue verificando `trust-proxy.test.ts` de forma independiente. Sin
 // esto, la única alternativa sería apagar el rate-limit y entonces TC-BE-081f no probaría nada.
 process.env.LEDGER_TRUST_PROXY ??= "true";
+// Feature ciclos: los anulamientos de reloj/fallo forzado solo existen con esta puerta abierta.
+process.env.LEDGER_TEST_OVERRIDES = "1";
