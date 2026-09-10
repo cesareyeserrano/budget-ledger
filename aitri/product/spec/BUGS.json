@@ -905,7 +905,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "fr": "NFR-504",
       "tc_reference": null,
       "phase_detected": null,
@@ -913,8 +913,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-09T23:52:48.689Z",
-      "updated_at": "2026-09-09T23:52:48.689Z",
-      "resolution": null
+      "updated_at": "2026-09-10T01:46:17.642Z",
+      "resolution": "Seccion Rollback de DEPLOYMENT.md reescrita CON EL USUARIO el 2026-09-09. El texto viejo decia 'el estado del usuario vive en su navegador (no hay migraciones de datos que revertir)' y 'como no hay backend ni DB, el rollback es solo de la imagen': ambas falsas desde servidor-fuente-unica, y era lo que un operador leia en plena emergencia. POLITICA DECIDIDA POR EL USUARIO, en sus palabras: 'si es codigo, solo volver a la version anterior; si modifico base de datos, un respaldo de base de datos para poder volver'. Queda escrita en dos niveles: (1) EL CODIGO — volver la imagen, rapido y SIN perdida de datos; si el despliegue no toco el esquema, ahi se acaba. (2) LA BASE — restaurar el respaldo, solo si quedo danada de verdad, con el aviso explicito de que devuelve la base al momento del respaldo y SE PIERDE todo lo escrito despues; por eso el respaldo se toma justo ANTES de desplegar, para acortar esa ventana. Ademas se deja dicho que la ESTRUCTURA no se deshace: un cambio de esquema se corrige con una migracion nueva hacia adelante, porque Drizzle no genera migraciones de bajada y revertir seria escribir SQL a mano en mitad de la emergencia. Los comandos se verificaron contra docker-compose.yml real: los servicios se llaman 'db' y 'app' y las variables son POSTGRES_USER y POSTGRES_DB. Se conserva una nota de cabecera en la propia seccion diciendo QUE decia antes y por que era falso, para que nadie reintroduzca el texto viejo. Cero menciones restantes al texto antiguo en el fichero.",
+      "fix_commit_sha": "0d2b0e70832d72eae0958121de2616d898a2d30b",
+      "fix_at": "2026-09-10T01:46:17.642Z"
     }
   ]
 }

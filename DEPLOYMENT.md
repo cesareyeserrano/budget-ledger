@@ -70,15 +70,54 @@ location / {
 `.github/workflows/ci.yml` corre en cada push/PR a `main`: install → typecheck → unit+integration (`npm run test:run`) → build → E2E (Playwright). Falla el pipeline si algo falla (NFR-006).
 
 ## Rollback
-La imagen es inmutable y versionada; el estado del usuario vive en su navegador (no hay migraciones de datos que revertir).
+
+> **Reescrito el 2026-09-09 (BG-037).** Esta sección decía que «el estado del usuario vive en su
+> navegador (no hay migraciones de datos que revertir)» y que «como no hay backend ni DB, el rollback
+> es solo de la imagen». Las dos cosas son falsas desde `servidor-fuente-unica`: los datos viven en
+> Postgres y sí hay migraciones. Era la misma app inexistente que la cabecera de este documento ya
+> había corregido en el resto del fichero — esta sección se quedó atrás, y es la que se lee en plena
+> emergencia.
+
+Hay **dos** cosas que pueden volver atrás, y no cuestan lo mismo.
+
+### 1. El código — vuelve la imagen
+
+Es el caso normal y **no se pierde ningún dato**. La imagen es inmutable y versionada:
+
 ```bash
 # volver a una imagen previa conocida
 docker tag t-ledger:<tag-anterior> t-ledger:latest
 docker compose up -d            # relanza con la imagen anterior
-# o simplemente
-docker compose down && docker compose up -d --build   # reconstruye desde el commit deseado
 ```
-Como no hay backend ni DB, el rollback es solo de la imagen del contenedor: sin pérdida de datos ni pasos de migración inversa.
+
+Si el despliegue que falló **no tocó la estructura de la base**, con esto has terminado.
+
+### 2. La base de datos — restaura el respaldo
+
+Solo si la base quedó dañada de verdad. **Restaurar te devuelve la base al momento en que se hizo el
+respaldo: todo lo que se haya escrito después se pierde.** Por eso el respaldo se toma justo antes de
+desplegar, para que esa ventana sea lo más corta posible.
+
+```bash
+# ANTES de desplegar un cambio que toque el esquema
+docker compose exec -T db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" > respaldo-$(date +%F-%H%M).sql
+
+# restaurar (solo si hace falta; la app debe estar parada)
+docker compose stop app
+cat respaldo-<fecha>.sql | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+docker compose start app
+```
+
+### La estructura de la base no se deshace
+
+Si un despliegue **cambia el esquema** (añade una columna, una tabla, un índice), ese cambio **no se
+revierte**: se corrige con una migración nueva hacia adelante. Drizzle no genera migraciones de
+bajada, así que revertir significaría escribir SQL a mano en mitad de la emergencia, que es el peor
+momento posible para hacerlo. Restaurar el respaldo del punto 2 es la única marcha atrás real sobre
+el esquema, y viene con la pérdida de datos que dice ahí.
+
+**Regla práctica:** vuelve la imagen primero. Toca el respaldo solo si la base está rota, y sabiendo
+lo que cuesta.
 ```
 
 ---
