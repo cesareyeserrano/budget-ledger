@@ -23,7 +23,7 @@ import {
 import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
-import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorDe, mejorTiempo } from "../helpers/perf";
+import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorDe, mejorTiempo, razonMediana } from "../helpers/perf";
 
 // ── El MISMO estado explícito con el que se capturó la línea base ──────────────────────────────
 function estadoRef(periods: readonly PeriodKey[] = P): LedgerState {
@@ -544,9 +544,12 @@ describe("NFR-1907 · el coste no se degrada", () => {
   // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta
   // ENTERA: mejor verla saltada que verde sin haber afirmado nada (BG-026).
   it.skipIf(SALTAR_SI_INSTRUMENTADO)("TC-MAN-262e: el coste POR PERIODO no crece — el barrido es lineal, no cuadrático", () => {
-    // BG-030: cada lado se mide MEJOR-DE-5. Una media simple reporta la ráfaga de CPU que le tocó,
-    // no el algoritmo: con el verify-run compitiendo, esta razón llegó a 2.18 midiendo algo cuyo
-    // valor real es 1.02, y tumbó cuatro corridas el 2026-09-08. Ver tests/helpers/perf.ts.
+    // BG-002 (de esta feature): la razón es la MEDIANA DE 9 PARES alternos (`razonMediana`), no el
+    // cociente de dos mejor-de-5 medidos en bloque. Con BG-030 cada lado se medía por separado, y
+    // cuando una racha lenta duraba un bloque ENTERO el mínimo no la salvaba: la razón llegó a 2,68
+    // bajo diez procesos quemando CPU y tumbó el verify-run del 2026-09-11. Con pares adyacentes los
+    // dos lados comparten la racha. Medido: máximo 1,45 en las mismas condiciones, y sobre un trabajo
+    // cuadrático sintético sigue dando ~×14. Cifras y porqué en tests/helpers/perf.ts.
     // Se mide el coste por periodo con repeticiones, no un cronómetro suelto: una medición única
     // reporta el calentamiento del JIT y no el algoritmo (medido: 4,66ms en la primera pasada de
     // 84 periodos frente a 0,128ms cuando está caliente — un factor 36 que no es del código).
@@ -559,15 +562,13 @@ describe("NFR-1907 · el coste no se degrada", () => {
     };
     medir(12, 30); medir(168, 10); // calentar antes de medir
 
-    const c12 = mejorDe(() => medir(12, 50));
-    const c168 = mejorDe(() => medir(168, 30));
     // Si fuera cuadrático, el coste por periodo crecería con n (×14 al pasar de 12 a 168).
-    // Con el mínimo la medición es estable (1.02 medido seis de seis bajo carga), así que el tope
-    // BAJA de ×3 a ×2: sigue holgado para el ruido residual y es bastante más implacable con lo
-    // cuadrático de lo que era antes. El margen ancho no protegía del ruido —la ráfaga siempre
-    // podía ser mayor—, solo dejaba pasar regresiones.
-    expect(c168, `coste por periodo ×${(c168 / c12).toFixed(2)} al pasar de 12 a 168`).toBeLessThanOrEqual(c12 * 2);
-    // y el total con 14 años sigue muy por debajo del tope de la NFR
+    // El tope se QUEDA en ×2 (lo bajó BG-030 desde ×3): la mediana de pares es más estable que el
+    // mejor-de-5 en bloque, así que no hace falta ensancharlo para dejar de dar falsos rojos.
+    const razon = razonMediana(() => medir(12, 50), () => medir(168, 30));
+    expect(razon, `coste por periodo ×${razon.toFixed(2)} al pasar de 12 a 168`).toBeLessThanOrEqual(2);
+    // y el total con 14 años sigue muy por debajo del tope de la NFR (presupuesto absoluto: mejor-de-5)
+    const c168 = mejorDe(() => medir(168, 30));
     expect(c168 * 168).toBeLessThanOrEqual(150);
   });
 });

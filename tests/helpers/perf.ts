@@ -86,3 +86,62 @@ export function mejorTiempo(trabajo: () => void, veces = 5): number {
     return performance.now() - t0;
   }, veces);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// LA TERCERA PIEZA (BG-002 de multi-anio): cuando la racha lenta dura un lado ENTERO
+//
+// El mejor-de-5 supone ráfagas CORTAS: alguna de las cinco muestras escapa y el mínimo la encuentra.
+// Pero una razón medía sus dos lados EN BLOQUE —cinco muestras de uno y luego cinco del otro— y si
+// la racha lenta dura el bloque entero, caen las cinco y el mínimo no salva nada. Pasó en el
+// verify-run de multi-anio del 2026-09-11: TC-MAN-262e en rojo, con la suite completa pasando 8 de
+// 9 veces ese día y el test aislado 5 de 5.
+//
+// REPRODUCIDO con una sonda que copia la medición de TC-MAN-262e, bajo diez procesos quemando CPU
+// (tantos como núcleos): el lado de 12 meses seguía en 0,00052 ms por periodo y las cinco muestras
+// del de 168 subían JUNTAS a 0,00137 — razón 2,68, tres de treinta ensayos por encima del tope ×2.
+// Medido también con tiempo de CPU del proceso (`process.cpuUsage`) y SALE IGUAL (2,68): no es
+// esperar turno, es ejecutar más lento, lo que encaja con que el proceso pase a un núcleo de
+// eficiencia (esta máquina tiene 4 de rendimiento y 6 de eficiencia). No está probado, y la cura
+// no depende de ello.
+//
+// LA SALIDA es INTERCALAR: medir los dos lados en pares adyacentes, alternando cuál va primero, y
+// quedarse con la MEDIANA de las razones. Una racha larga cae por igual sobre los dos lados de un
+// par; solo estropea los pares que la pillan a caballo, y la mediana los descarta. MEDIDO, 60
+// ensayos con los diez quemadores:
+//
+//     mejor-de-5 por lado          : máximo 2,03 · 1 por encima de ×2   (en la primera sonda: 2,68 · 3 de 30)
+//     mediana de 9 pares alternos  : máximo 1,45 · 0
+//
+// Y NO PIERDE DIENTES: sobre un trabajo cuadrático sintético (×14 real) la mediana dio entre 10,9 y
+// 14,5, muy por encima del tope. Ojo con la tentación del MÍNIMO de las razones: también se midió,
+// y cae hasta 0,09 cuando un par pilla lento solo el lado pequeño — dejaría pasar una regresión ×14.
+//
+// Sobre la premisa de BG-030, arriba: el `aitri verify-run` actual NO corre el runner y los gates a
+// la vez, los corre en serie (comprobado en su código el 2026-09-11). La competencia existe igual
+// —otros procesos de la máquina y los forks de la propia suite—, así que todo lo anterior sigue
+// valiendo; lo único que cambia es de dónde viene.
+
+/**
+ * Razón `grande / pequeno` robusta a rachas lentas largas: mide los dos lados en `pares` pares
+ * adyacentes, alternando cuál va primero, y devuelve la MEDIANA de las razones. Úsala en toda
+ * aserción que compare dos tiempos entre sí; para un presupuesto absoluto sigue valiendo `mejorDe`.
+ *
+ * `pares` debe ser impar para que la mediana sea una muestra real y no un promedio de dos.
+ */
+export function razonMediana(pequeno: () => number, grande: () => number, pares = 9): number {
+  const razones: number[] = [];
+  for (let i = 0; i < pares; i++) {
+    let a: number;
+    let b: number;
+    if (i % 2 === 0) {
+      a = pequeno();
+      b = grande();
+    } else {
+      b = grande();
+      a = pequeno();
+    }
+    razones.push(b / a);
+  }
+  razones.sort((x, y) => x - y);
+  return razones[Math.floor(pares / 2)];
+}
