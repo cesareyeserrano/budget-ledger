@@ -448,6 +448,14 @@
       "problem": "El discovery de la feature ciclos (aitri/features/ciclos/spec/00_DISCOVERY.md, 2026-09-10) fijo por decision del usuario un PRIMER INCREMENTO = el nucleo que ajusta sus transacciones actuales: modo mes/ciclos en Configuracion, un dia de pago del mes versionable con ciclo de transicion, asignacion por fecha de transaccion, nombre por mes en que termina con rango visible, cierre y arrastre iguales a hoy. Todo lo demas del documento del cliente (aitri/product/idea_context/cadencia/requerimiento-ciclos-de-pago.md) queda APLAZADO, no perdido: (a) frecuencias quincenal 15/30, quincenal fin de mes, semanal, catorcenal y fechas manuales (RF-03, RF-04, §2.2.2); (b) prorrateo de un gasto entre los ciclos que lo anteceden (RF-09c, RV-10, §2.2.6) — BL-043 sugiere reusar el motor de alcancias de transferencias; (c) gastos recurrentes con dia de vencimiento proyectados (RF-12) y cuotas de compras diferidas (RF-13); (d) ingreso extraordinario asignado a otro ciclo (RF-14) y varias fuentes con una designada (RF-15); (e) vista alterna por mes calendario para reportes tributarios (RF-16, §9); (f) disponible tras comprometidos (RF-17), alerta de ciclo futuro en deficit (RF-18), aviso de duracion distinta al comparar (RF-19); (g) ingreso de monto variable proyectado vs confirmado (§8.3). RETIRADOS, no aplazados: calendario de festivos y politica de dia no habil (RF-02 en esa parte, RV-09), porque la frontera del ciclo es nominal por decision del usuario. Cada inciso es candidato a feature propia; priorizar con el usuario cuando el nucleo este sellado.",
       "status": "open",
       "createdAt": "2026-09-10T02:24:43.615Z"
+    },
+    {
+      "id": "BL-046",
+      "title": "Referencia de imagen de Linux para TC-CIC-064f",
+      "priority": "P2",
+      "problem": "La guarda visual de la cabecera de mes (TC-CIC-064f, FR-2407) compara byte a byte contra tests/e2e/__screenshots__/ciclos-header-month.png, capturada en macOS. En el runner de CI (ubuntu) el texto se dibuja con otras fuentes y otro antialiasing, asi que la igualdad exacta nunca se cumple: en el PR #23 fallo los tres intentos mientras el resto del test pasaba. Desde el 2026-09-11 la comparacion de pixeles corre solo en darwin, asi que en CI la guarda visual NO se comprueba (lo estructural si: sin rango, sin marca de transicion, cabecera de 38px). Para recuperarla en CI hace falta una referencia propia de Linux, generada con la imagen Docker de Playwright, o pasar a toHaveScreenshot, que guarda una referencia por plataforma y admite tolerancia.",
+      "status": "open",
+      "createdAt": "2026-09-11T22:45:36.486Z"
     }
   ]
 }
