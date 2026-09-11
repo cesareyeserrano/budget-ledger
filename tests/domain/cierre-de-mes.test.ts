@@ -623,13 +623,28 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // a x2. Ninguna asercion de comportamiento se toco. Verificado con la suite completa bajo OCHO
     // carriles de CPU y carga 7.24: cero fallos de cronometro.
     //
+    // ANCLA AVANZADA a daeecc1 el 2026-09-11, y otra vez por una razon que NO es la que esta prueba
+    // vigila. Lo que toco `multi-anio.test.ts` fue BG-002 de multi-anio: el mejor-de-5 de arriba
+    // tampoco bastaba. TC-MAN-262e medía sus dos lados EN BLOQUE, y cuando una racha lenta duraba
+    // un bloque entero caian las cinco muestras juntas —razon 2,68 bajo diez procesos quemando CPU—
+    // y tumbo un verify-run de multi-anio aunque la suite pasaba 8 de 9 veces ese dia.
+    //
+    // El cambio sigue siendo de MEDICION y solo toca ESE test: la razon pasa a ser la mediana de 9
+    // pares alternos (`razonMediana` en tests/helpers/perf.ts). El tope se QUEDA en x2 y el
+    // presupuesto absoluto de 150 ms no cambia. Ninguna otra prueba del fichero se toco. Verificado:
+    // 44/44 en multi-anio.test.ts y TC-MAN-262e 30/30 con los diez quemadores.
+    //
+    // (De paso, la premisa de BG-030 que cuenta el parrafo anterior —verify-run lanzando runner y
+    // cobertura A LA VEZ— no es cierta en el Aitri actual, que los corre en serie. La competencia
+    // por CPU existe igual; solo viene de otro sitio.)
+    //
     // Los tres ficheros siguen vigilados a partir del ancla nueva.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat c81f706 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat daeecc1 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
