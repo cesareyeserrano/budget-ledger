@@ -34,6 +34,12 @@ jobs:
       # Actions fijadas por SHA de commit, no por tag: un tag puede reapuntarse a código malicioso
       # si se compromete el repo de la action. Dependabot (github-actions) mantiene estos SHAs.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Historia COMPLETA, no el clon superficial por defecto (fetch-depth: 1). Varias pruebas
+          # vigilan cambios contra un commit ancla (`git show <sha>:…`, `git diff <sha>`, `git grep … <sha>`):
+          # TC-CDM-201f, TC-CDM-202e, TC-CDM-222f, TC-RES-032e. Con un solo commit en el runner caen
+          # con "invalid object name" aunque el código esté bien — pasó en el PR #23.
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
