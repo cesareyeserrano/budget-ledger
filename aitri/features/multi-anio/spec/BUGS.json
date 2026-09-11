@@ -31,7 +31,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "verified",
       "fr": null,
       "tc_reference": "TC-MAN-262e",
       "phase_detected": null,
@@ -39,7 +39,7 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-11T18:38:30.538Z",
-      "updated_at": "2026-09-11T19:33:14.026Z",
+      "updated_at": "2026-09-11T19:48:25.903Z",
       "resolution": "Arreglado el 2026-09-11 en daeecc1 (ancla de TC-CDM-202e avanzada en f0a991f). CAUSA: la razon c168/c12 de TC-MAN-262e medía sus dos lados EN BLOQUE con mejor-de-5 cada uno; una racha lenta que dura un bloque entero hace caer las cinco muestras juntas y el minimo no la salva. REPRODUCIDO con una sonda que copia la medicion bajo diez procesos quemando CPU: razon 2,68 (3 de 30 por encima de x2); con tiempo de CPU sale igual, asi que es ejecucion mas lenta y no espera. ARREGLO: razonMediana en tests/helpers/perf.ts, mediana de 9 pares adyacentes con orden alterno; tope x2 sin tocar. MEDIDO: 60 ensayos con quemadores, maximo 1,45 y cero por encima de x2; sensibilidad intacta, un trabajo cuadratico sintetico (x14 real) da 10,9-14,5. VERIFICADO: tsc y lint exit 0; TC-MAN-262e 5/5 aislado y 30/30 con quemadores; multi-anio.test.ts 44/44; unit.sh completo exit 0, 1002/1002.",
       "log": [
         {

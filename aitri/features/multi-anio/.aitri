@@ -17,19 +17,9 @@
   "projectName": "multi-anio",
   "createdAt": "2026-09-02T20:59:38.721Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T18:47:04.768Z",
+  "updatedAt": "2026-09-11T19:49:13.337Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T01:04:12.251Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T01:04:17.276Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-09-03T01:10:48.948Z",
       "event": "verify-run",
@@ -169,6 +159,22 @@
       "phase": "verify",
       "passed": 79,
       "failed": 0
+    },
+    {
+      "at": "2026-09-11T19:48:25.885Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T19:49:13.323Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -230,16 +236,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "a81e2491fad98666b9d6b546bc8e312c20df952e769c86c12abaad9528f3db8c",
-  "verifyRanAt": "2026-09-11T18:46:53.271Z",
-  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
+  "verifyResultsHash": "6eb7f82366995ab1f8297f07843d78f1764c62e6c92fd040925a6743ca6f1d27",
+  "verifyRanAt": "2026-09-11T19:48:25.832Z",
+  "verifyRanRef": "2a2904fc5911be35b9309845166e20bc8610d312",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 79,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-11T18:46:53.271Z"
+    "at": "2026-09-11T19:48:25.832Z"
   },
   "releaseHistory": [
     {
