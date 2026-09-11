@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "FR-1204 a medias: el chrome cede 112px pero se los queda la grilla, no el Balance. A 1024x768 solo 2 filas de Balance quedan visibles (el AC pide >3); TC-RUI-004h en rojo",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "closed",
+      "fr": "FR-1204",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-11T20:19:49.914Z",
+      "updated_at": "2026-08-12T13:15:25.933Z",
+      "resolution": "Cerrado sin arreglo de codigo, por decision del usuario (2026-08-12). La mitad no entregada del AC ('>3 filas de Balance visibles') NO es alcanzable recortando chrome: medido a 1024x768, el reparto es 128px de chrome + 76 de cabecera de grilla + 408 de DATOS (12 filas de categorias) antes del Balance. Los pixeles que lo empujan bajo el pliegue son categorias del usuario, que crecen con lo que el cree; ponerle techo a la grilla seria pelear contra su comportamiento natural. La otra mitad si se entrego y se verifica: chrome 240->128. TC-RUI-004h se reencuadro sobre lo que el requisito significa de verdad (quitar lo que no aporta) y ahora afirma tres cosas: chrome<240, cero franjas fijas de ayuda, y cero rotulos repetidos en el chrome. La composicion del modulo de Balance queda en BL-025 para la parte 2 del rediseno.",
+      "close_commit_sha": "7a7fef6921fd502e590d9f864b5a5152ba635498",
+      "close_at": "2026-08-12T13:15:25.933Z"
+    }
+  ]
+}

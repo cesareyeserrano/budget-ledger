@@ -5,20 +5,21 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { buildSeed, addMovement, rollupBudget, rollupActual } from "@/domain";
-import type { MonthKey } from "@/domain";
+import type { PeriodKey } from "@/domain";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser } from "./helpers/db";
+import { P, P0 } from "../../helpers/periods";
 
 const A = "user-perf";
 const READ_WRITE_BUDGET_MS = 500;
 const ROLLUP_BUDGET_MS = 150;
-const MONTHS: MonthKey[] = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const MONTHS: PeriodKey[] = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"];
 
 /** Construye un estado con ~N movimientos (usuario típico con histórico). */
 function seedWithMovements(ownerId: string, n: number) {
-  let state = buildSeed(ownerId);
+  let state = buildSeed(ownerId, P0);
   for (let i = 0; i < n; i++) {
-    state = addMovement(state, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 1000 + i, month: MONTHS[i % 12] });
+    state = addMovement(state, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 1000 + i, period: MONTHS[i % 12] }, P);
   }
   return state;
 }
@@ -45,15 +46,15 @@ describe("NFR-506 — presupuesto de latencia", () => {
 
   it("TC-BE-063e: una escritura confirma en ≤500ms y el roll-up del cliente se mantiene ≤150ms", async () => {
     // @aitri-tc TC-BE-063e
-    await saveLedger(A, buildSeed(A), 0);
+    await saveLedger(A, buildSeed(A, P0), 0);
     const t0 = performance.now();
-    const res = await insertMovement(A, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, month: "jun" });
+    const res = await insertMovement(A, { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, period: "2026-06" });
     const writeMs = performance.now() - t0;
     expect(res).not.toBeNull();
     expect(writeMs).toBeLessThanOrEqual(READ_WRITE_BUDGET_MS);
 
     // Roll-up del cliente sobre la jerarquía semilla: recálculo tras editar una hoja.
-    const state = buildSeed(A);
+    const state = buildSeed(A, P0);
     const t1 = performance.now();
     for (const m of MONTHS) {
       for (const n of state.nodes) {

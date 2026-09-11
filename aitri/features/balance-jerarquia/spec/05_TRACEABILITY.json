@@ -1,0 +1,141 @@
+{
+  "project": "balance-jerarquia",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-1401",
+      "title": "El orden de las filas del Balance sigue la aritmetica",
+      "level": "complete",
+      "evidence": "6/6 TCs pasando (TC-BJE-001h/e/f, 002h/f, 013h). El orden nuevo es flow, reserved, retiros, monthAvailable, prevAvailable, available, reservedBalance, total: cada resultado va precedido, sin nada en medio, por el conjunto COMPLETO de sus sumandos directos, y el resultado anterior de la cascada es literalmente la fila de encima. Verificado en dos niveles porque son fallos distintos: TC-BJE-001h/e sobre la tabla `ROWS` como dato (sin renderizar), TC-BJE-002h sobre el DOM real. TC-BJE-013h comprueba ademas que el orden de lectura accesible coincide con el declarado — el reordenamiento MEJORA la lectura secuencial, porque cada resultado se anuncia despues de sus sumandos. DESVIACION DECLARADA: el PRIMER criterio de aceptacion de este FR es insatisfacible y no se implementa tal cual; ver technical_debt_inherited[0]. La intencion del FR —que el orden siga la aritmetica— se cumple y la verifica su segundo criterio."
+    },
+    {
+      "id": "FR-1402",
+      "title": "Los sumandos se anidan visualmente bajo el resultado que componen",
+      "level": "complete",
+      "evidence": "4/4 TCs pasando (TC-BJE-003h/f, 004h/e). Cuatro niveles de sangria —y no dos— porque la cascada tiene TRES eslabones: `Disponible del mes` es a la vez resultado de las tres primeras filas y sumando de `Saldo disponible`, asi que debe quedar por debajo de unas y por encima de otro. Medido sobre la pantalla real del usuario a 1920px el 2026-08-25, en AMBOS temas: paddingLeft = 62/62/62/46/46/30/30/14 px, cuatro valores distintos. Es la formula del arbol de la grilla (BudgetGrid.tsx:427, `14 + depth * 16`), que ocupa la misma columna sticky justo encima — se igualo a proposito para no introducir un segundo ritmo de sangria en la misma columna. A 1024px el paso baja a 12 px (50/38/26/14) y TC-BJE-004e comprueba que ninguna etiqueta se trunca. TC-BJE-003f RECHAZA el estado anterior (los ocho margenes iguales, medidos el 2026-08-24): sin ese caso, el criterio «la solucion no se apoya solo en peso ni en reglas» no estaria verificado."
+    },
+    {
+      "id": "FR-1403",
+      "title": "Neutro por defecto: ninguna cifra de resultado se colorea",
+      "level": "complete",
+      "evidence": "6/6 TCs pasando (TC-BJE-005h/e/f, 006h/e/f). LINEA BASE medida el 2026-08-24 a 1920px: 72 celdas en --favorable con un balance sano (tres filas de resultado x 12 meses x 2 planos). RESULTADO medido el 2026-08-25 sobre el mismo ledger, en ambos temas: CERO celdas verdes de 168. La regla alcanza tambien al encabezado del modulo PLEGADO (TC-BJE-006e), que usaba `var(--success-strong)` —alias de --favorable— y reintroducia el verde por una segunda puerta al plegar: es la superficie que la primera redaccion de los FR paso por alto, porque solo existe estando plegado y no sale en ninguna captura del modulo desplegado. La encontro la auditoria de uniformidad que pidio el usuario. TC-BJE-005f y 006f confirman que la EXCEPCION sigue viva: un negativo conserva --alert-strong y sus tres canales, plegado y desplegado. TC-BJE-005e cubre el borde del cero. ALCANCE: se verifica sobre siete de las ocho filas; ver technical_debt_inherited[3]."
+    },
+    {
+      "id": "FR-1404",
+      "title": "Una celda sin dato nunca lleva el color de su fila",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-BJE-007h/e/f). Medido el 2026-08-25 en ambos temas: todas las celdas cuyo contenido es el em-dash comparten UN solo color, --fg-muted. La linea base del 2026-08-24 tenia guiones VERDES en la fila «Disponible del mes» — tinta de estado gastada en la AUSENCIA de dato. La implementacion es una transcripcion literal del patron que la grilla ya aplicaba (BudgetGrid.tsx, refinamiento-ui FR-1202): esta feature lo REPLICA en el Balance, no lo redefine, asi que el producto queda con una sola regla para el hueco. DESVIACION DECLARADA en TC-BJE-007e: ver technical_debt_inherited[1]."
+    },
+    {
+      "id": "FR-1405",
+      "title": "El indicador RESTANTE de la franja superior deja de ser verde permanente",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-BJE-008h/e/f). Medido el 2026-08-25 en ambos temas: los TRES indicadores de la franja (PRESUPUESTO, EJECUTADO, RESTANTE) comparten UN solo color con un restante sano. Antes, RESTANTE era --favorable siempre que `available >= 0`, o sea casi siempre. TC-BJE-008e cubre el borde exacto que la condicion anterior fallaba: un restante de EXACTAMENTE cero se pintaba verde y ahora cae a neutro — cero no es una buena noticia, es el limite. TC-BJE-008f confirma que con restante negativo el chip es el UNICO elemento coloreado de la franja. ORIGEN: este FR no existia en la primera redaccion; lo abrio la auditoria de uniformidad que pidio el usuario el 2026-08-25, al comprobar que arreglar el Balance y dejar la franja habria dejado la pantalla principal con DOS criterios de color simultaneos."
+    },
+    {
+      "id": "NFR-1401",
+      "title": "La aritmetica y las cifras no cambian (guardrail de la feature)",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-BJE-009h/e/f). `src/domain/balance.ts` no se toco: la suite de dominio de las features `balance` y `transferencias` sigue verde sin editar un solo test de calculo. TC-BJE-009h compara las cifras por CLAVE de fila y no por posicion, precisamente porque las posiciones cambiaron. TC-BJE-009e cubre el caso limite del guardrail: el ARRASTRE entre meses, donde `prevAvailable` es la fila que MAS se mueve en el reordenamiento (del puesto 1 al 5) y por tanto donde un error de indexacion romperia la cadena sin dejar ninguna celda vacia. TC-BJE-009f reconstruye las tres ecuaciones de la cascada sobre el DOM renderizado."
+    },
+    {
+      "id": "NFR-1402",
+      "title": "La accesibilidad no cromatica y el contraste no se degradan",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-BJE-010h/e/f). Un valor negativo conserva sus TRES canales simultaneos —color, signo menos tipografico y glifo de forma con aria-hidden— tal como exige WCAG 1.4.1: retirar el verde no podia degradar el unico canal de estado que queda. El contraste se calcula a partir de los valores REALES del navegador sobre el fondo real de cada celda, en los dos temas, y ninguno baja de 4,5:1. La retirada del verde SUBE el contraste medio del modulo: --favorable (4,87:1) era el par mas flojo de las filas de resultado y lo sustituye --fg (15,8:1). TC-BJE-010e cubre el caso limite donde el contraste podria degradarse sin que ningun token cambie: un mes FILTRADO, cuyo tinte el modulo no sigue a proposito."
+    },
+    {
+      "id": "NFR-1403",
+      "title": "El plegado en dos niveles sobrevive al reordenamiento",
+      "level": "complete",
+      "evidence": "3/3 TCs pasando (TC-BJE-011h/e/f). Se conserva POR CONSTRUCCION, no por parche: `TAIL_FROM` ya se calculaba con `ROWS.findIndex(r => r.key === 'available') + 1`, asi que sigue al reordenamiento solo. En el orden nuevo `available` cae en el indice 5 y el corte deja ocultas EXACTAMENTE las mismas dos filas que antes —`Saldo reservado` y `Saldo total`—, de modo que la vista plegada sigue terminando en «cuanto puedo gastar», que es su razon de ser. TC-BJE-011f lo comprueba permutando la tabla: el corte sigue a `available` en cualquier orden, no es un indice escrito a mano. TC-BJE-011e cubre el SEGUNDO nivel de plegado, el del modulo entero, que es el cruce exacto con FR-1403."
+    },
+    {
+      "id": "NFR-1404",
+      "title": "La regla de color queda protegida por un gate",
+      "level": "production_ready",
+      "evidence": "3/3 TCs pasando (TC-BJE-012h/e/f). `scripts/design-tokens.sh` gana una comprobacion verificada en los TRES sentidos, ejecutandola de verdad: pasa limpio (exit 0); FALLA nombrando fichero y linea al inyectar `var(--favorable)` en BalanceModule.tsx y, por separado, en DesktopShell.tsx (exit 1); y NO se dispara por los usos legitimos de Dashboard.tsx ni BudgetGrid.tsx (exit 0). Ese tercer sentido importa tanto como el segundo: un gate con falsos positivos ahi presionaria a retirar color que el usuario decidio conservar, empujando fuera de su propio no_go_zone. Esta escrito como LISTA NEGRA con excepciones declaradas y no como lista blanca de ficheros vigilados, asi que un componente NUEVO queda cubierto por defecto — que es exactamente como se escapo el chip RESTANTE. Ignora las lineas de comentario a proposito, porque los dos ficheros corregidos documentan por escrito el token que retiraron. POR QUE ES NECESARIO: el verde permanente sobrevivio a la feature refinamiento-ui porque ningun test lo cazaba (TC-RUI-002f comprueba colores de TIPO y --favorable no lo es)."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-1401",
+      "substitution": "El PRIMER criterio de aceptacion de FR-1401 —«entre dos filas de resultado consecutivas no aparece ninguna fila de sumando»— es INSATISFACIBLE y no se implementa tal cual. En su lugar el invariante que se hace cumplir es la CONTIGUIDAD leida sobre los niveles (`validateContiguity`): cada resultado va precedido por el conjunto COMPLETO de sus sumandos directos, que es el SEGUNDO criterio del mismo FR y el que captura la intencion. `validateCascadeOrder` comprueba la mitad que si es satisfacible: ningun resultado se calcula antes que sus insumos y la cadena va en orden.",
+      "reason": "En cualquier escalera cada resultado va precedido de su bloque de sumandos, luego entre dos resultados consecutivos SIEMPRE hay sumandos — los dos criterios del FR se contradicen. Medido el 2026-08-25: el orden ANTERIOR (el defectuoso) deja 1 sumando entre resultados consecutivos y la escalera deja 2, o sea que el criterio premia al defecto sobre la cura. La INTENCION de FR-1401 («el orden sigue la aritmetica») no cambia y lo construido la cumple; lo que quedo mal redactado es un criterio en el artefacto. Decision del usuario (2026-08-25): desviacion declarada en vez de re-derivar la fase 1, que habria cascadeado UX, arquitectura y tests para reescribir una frase. Precedente del proyecto: TC-REC-055e, tambien por premisa falsa del caso aprobado.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1404",
+      "substitution": "TC-BJE-007e afirmaba «un mes entero sin datos presenta TODAS sus celdas en em-dash». El test verifica en su lugar que un mes sin MOVIMIENTOS PROPIOS no introduce ninguna marca de color: lo sin dato va atenuado, lo arrastrado va neutro, cero verde y cero alerta.",
+      "reason": "La premisa del caso aprobado era FALSA: por el ARRASTRE, un mes sin movimientos propios sigue mostrando cifras — «Saldo mes anterior», «Saldo disponible» y «Saldo total» se acarrean del mes previo. Un mes con todo en em-dash solo existe antes del primer dato del ledger. Lo que el TC queria proteger sigue verificado y con el mismo rigor; lo que cambia es la premisa, no el criterio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1402",
+      "substitution": "La tabla `ROWS` y sus invariantes se extrajeron de `BalanceModule.tsx` a un modulo nuevo, `src/components/balanceRows.ts`. El TRD listaba los cambios dentro de `BalanceModule.tsx`.",
+      "reason": "Es la CONSECUENCIA directa de ADR-04, no un cambio de diseno: si `level` es dato declarado para que «un test pueda afirmar que todo sumando esta mas adentro que su resultado SIN RENDERIZAR NADA», la tabla tiene que ser importable sin arrastrar React ni el store de Zustand. `BalanceModule.tsx` sigue siendo el unico sitio que la pinta. Precedente en el repo: `reserveText.ts`, helper pequeno colocado junto a sus consumidores.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-1403",
+      "substitution": "El criterio dice «ninguna celda del modulo». Se verifica sobre SIETE de las ocho filas: la fila «Retiros del mes» no usa `BalanceCell`.",
+      "reason": "Esa fila es OPERABLE desde la unificacion del 2026-07-29 y monta `PlannedWithdrawCell`/`WithdrawCell`, con sus propios testids. Su rediseno es BL-019, que esta en el no_go_zone de esta feature por decision del usuario. Verificado aparte: esas celdas NO usan `--favorable` ni sus alias, asi que no dejan verde huerfano — el criterio se cumple de hecho en las ocho filas, y se comprueba mecanicamente en siete.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-1403",
+      "substitution": "El TC de la feature `balance` TC-BAL-909e enumeraba en linea el orden de las filas visibles tras plegar, y se actualizo.",
+      "reason": "Su CONDUCTA no cambia —el chevron sigue ocultando exactamente «Saldo reservado» y «Saldo total»— pero listaba el orden, y el orden ahora sigue la cascada: `prevAvailable` paso del primer puesto al quinto. No es una revocacion de criterio sino la actualizacion de un dato que el propio FR-1401 manda cambiar.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "deployment": {
+    "model": "containerized",
+    "changes_required": "none",
+    "rationale": "02_SYSTEM_DESIGN.md#Deployment Architecture declara «Sin cambios»: modelo containerizado identico al del producto. Esta feature es presentacion pura — no anade variables de entorno, ni servicios, ni migraciones, ni pasos de build, ni dependencias. NO se crean Dockerfile, docker-compose.yml, DEPLOYMENT.md ni .env.example propios: los del producto siguen vigentes sin modificacion. Lo unico que la feature aporta al despliegue es una comprobacion mas dentro del quality_gate `design-tokens`, que YA estaba declarado desde refinamiento-ui ADR-01, asi que no hay un gate NUEVO de producto que registrar. Lo que si se corrigio en el manifiesto fue DECLARAR el gate `e2e` que ya usaban las otras features y que este habia omitido. REVERSION: revertir los commits. No hay estado persistido que migrar de vuelta — es la propiedad de un cambio puramente presentacional.",
+    "verified": "Los SIETE quality_gates pasaron en la corrida de verify-run del 2026-08-27 sobre codigo commiteado: typecheck, lint, design-tokens, security-config, secret-scan, smoke y e2e, todos exit 0. 34/34 TCs, cero skips. El gate `smoke` arranca el producto y comprueba que sus rutas responden sin errores de servidor, asi que la aplicacion ensamblada se verifico de verdad, no solo sus unidades. NOTA: el gate `e2e` (../../../e2e.sh) se anadio el 2026-08-27 tras descubrir que su ausencia hacia que Aitri autodetectara Playwright y lo lanzara EN PARALELO con los gates, compartiendo .next y el puerto 3220 — el timeout mataba una suite que aislada tarda 2 minutos. Es el mismo motivo por el que existen unit.sh y smoke.sh, documentado en la cabecera de cada uno."
+  },
+  "visual_verification": {
+    "method": "Medicion instrumentada sobre la pantalla REAL del usuario —su propio ledger, no un fixture— a 1920px y en los DOS temas, el 2026-08-25. Comparada contra la captura de linea base del 2026-08-24 tomada del mismo servidor de desarrollo antes de tocar nada.",
+    "baseline": "feature_context/estado-actual-1920px-2026-08-24.png",
+    "result": "feature_context/resultado-1920px-2026-08-25.png",
+    "findings": [
+      {
+        "id": "verde permanente",
+        "estado": "cerrado",
+        "medicion": "72 celdas en --favorable → 0 de 168, en tema claro y en oscuro"
+      },
+      {
+        "id": "em-dash coloreado",
+        "estado": "cerrado",
+        "medicion": "guiones en --favorable → un solo color para todos los em-dash (--fg-muted), en ambos temas"
+      },
+      {
+        "id": "ocho margenes iguales",
+        "estado": "cerrado",
+        "medicion": "un solo valor de paddingLeft → cuatro: 14/30/46/62 px, en ambos temas"
+      },
+      {
+        "id": "chip RESTANTE verde",
+        "estado": "cerrado",
+        "medicion": "franja con dos colores distintos → un solo color para los tres indicadores, en ambos temas"
+      },
+      {
+        "id": "sumando entre dos resultados",
+        "estado": "cerrado",
+        "medicion": "«Saldo reservado» pasa a estar inmediatamente ANTES del resultado que compone; «Saldo mes anterior» baja del puesto 1 al 5, junto a su hermano «Disponible del mes»"
+      }
+    ],
+    "user_review": "El usuario reviso EP-01 en pantalla el 2026-08-25 y confirmo el resultado; su unica observacion —que el resumen plegado deberia mostrar «Saldo disponible» y no «Saldo total»— es cambio de comportamiento sobre FR-905 y se enruto al backlog como BL-029 en vez de absorberla en el build. Reviso EP-02 y lo dio por bueno.",
+    "note": "La fidelidad visual de la escalera NO se cubre con TCs pixel a pixel: que la sangria «se lea bien» es juicio del usuario y no tiene medida objetiva. Los TCs afirman la MEDIDA (paddingLeft en px, conteos de color), y la impresion la valido el usuario mirando la pantalla. Esa separacion es deliberada y esta declarada en 03_TEST_CASES.json#coverage_decisions."
+  }
+}

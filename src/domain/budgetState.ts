@@ -47,3 +47,61 @@ export function budgetState(budget: number, actual: number): BudgetState {
   if (ratio < OVER_HARD_RATIO) return "over_soft";
   return "over_hard";
 }
+
+/** Rol de color de una celda Ejecutado. Semántico: la UI lo mapea a su token. */
+export type CellTone = "neutral" | "muted" | "favorable" | "alert-soft" | "alert-strong";
+
+/**
+ * Rol de color del Ejecutado de una celda, por TIPO y por ESTADO.
+ *
+ * refinamiento-ui FR-1201: vivía dentro de BudgetGrid como `ejecColor`, devolviendo variables CSS.
+ * Eso la hacía inalcanzable para un test sin montar el componente — el mismo problema que tenía el
+ * cómputo de la franja de resumen. Aquí devuelve el ROL semántico y la UI resuelve el token, así que
+ * la regla se verifica sin tocar el DOM.
+ *
+ * El parámetro `type` se conserva porque ingreso y gasto difieren en REGLA (superar un ingreso
+ * planeado es bueno; superar un gasto no), NO en identidad: ningún tipo tiene ya un hue propio.
+ *
+ * @param type Tipo del nodo.
+ * @param budget Presupuesto del mes.
+ * @param actual Ejecutado del mes.
+ * @returns El rol de color; nunca un token ni un color literal.
+ *
+ * @aitri-trace FR-ID: FR-1201, US-ID: US-1201, AC-ID: AC-1201, TC-ID: TC-RUI-001h, TC-RUI-001e
+ */
+export function cellTone(type: "expense" | "income" | "transfer", budget: number, actual: number): CellTone {
+  if (!actual) return "muted";
+  if (type === "expense") {
+    const st = budgetState(budget, actual);
+    return st === "within" ? "neutral" : st === "over_soft" ? "alert-soft" : "alert-strong";
+  }
+  if (type === "income") return actual >= budget ? "favorable" : "alert-soft";
+  // La reserva no expresa desvío: neutra, en vez del azul de identidad que llevaba antes.
+  return "neutral";
+}
+
+/**
+ * Glifo de gravedad. Deriva del MISMO `budgetState` que `cellTone`, con las mismas entradas: es lo
+ * que garantiza por construcción que el canal accesible no pueda contradecir al cromático (ADR-02).
+ * Un ingreso por encima de su plan NO lleva marca: superarlo es bueno.
+ *
+ * @aitri-trace FR-ID: FR-1203, US-ID: US-1203, AC-ID: AC-1203, TC-ID: TC-RUI-003h, TC-RUI-003f
+ */
+export function cellGlyph(
+  type: "expense" | "income" | "transfer",
+  budget: number,
+  actual: number
+): "" | "\u2039" | "\u203a" | "\u203a\u203a" {
+  if (!actual) return "";
+  if (type === "expense") {
+    const st = budgetState(budget, actual);
+    return st === "over_soft" ? "\u203a" : st === "over_hard" ? "\u203a\u203a" : "";
+  }
+  // Un INGRESO por debajo de su plan también es una excepción leve, y al unificar los tokens pasó a
+  // compartir el ámbar con el sobre-consumo. Sin marca propia quedaba una celda COLOREADA SIN canal
+  // no cromático — exactamente lo que WCAG 1.4.1 prohíbe, y lo que TC-BSC-453f detectó.
+  // El vocabulario es coherente: «›» apunta a que te pasaste, «‹» a que te quedaste corto.
+  if (type === "income" && actual < budget) return "\u2039";
+  // Superar un ingreso planeado es BUENO: no lleva marca (NFR-402 de budget-state-color).
+  return "";
+}

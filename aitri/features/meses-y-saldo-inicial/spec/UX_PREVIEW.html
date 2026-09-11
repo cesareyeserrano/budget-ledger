@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Preview — meses-y-saldo-inicial</title>
+<style>
+  :root{
+    --ink:#1c1c1f; --ink2:#55555d; --ink3:#6b6b73; --line:#e3e3e7; --paper:#f7f7f8; --card:#fff;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", "DM Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;
+       letter-spacing:-0.01em;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:1.5rem;font-weight:600;letter-spacing:-0.02em;margin:0 0 6px}
+  h2{font-size:1.0625rem;font-weight:600;margin:40px 0 4px;letter-spacing:-0.01em}
+  .sub{color:var(--ink2);font-size:.875rem;margin:0 0 4px}
+  .eyebrow{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin:0 0 10px}
+  .banner{border:1px solid var(--line);border-left:3px solid #ad3932;background:#fff;border-radius:10px;
+          padding:12px 14px;margin:18px 0;font-size:.8125rem;color:var(--ink2)}
+  .banner strong{color:var(--ink)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+
+  /* Paneles de tema: cada uno FIJA su propia paleta, no depende del tema del lector */
+  .panel{border-radius:14px;border:1px solid;padding:18px;overflow:hidden}
+  .panel.light{--bg:#f7f7f8;--card:#ffffff;--elev:#ffffff;--sunken:#f1f1f3;--hover:#f1f1f3;
+    --primary:#1c1c1f;--accentl:#55555d;--fg:#1c1c1f;--fg2:#55555d;--fg3:#6b6b73;
+    --bd:#e3e3e7;--bds:#d3d3d9;--alert:#ad3932;--soft:#9e4708;--fav:#2d7650;}
+  .panel.dark{--bg:#131316;--card:#1b1b1f;--elev:#26262b;--sunken:#0f0f12;--hover:#26262b;
+    --primary:#f4f4f5;--accentl:#9b9ba3;--fg:#f4f4f5;--fg2:#b4b4bb;--fg3:#9b9ba3;
+    --bd:#33333a;--bds:#43434c;--alert:#ec6a66;--soft:#e0a458;--fav:#5fbe82;}
+  .panel{background:var(--bg);border-color:var(--bd);color:var(--fg)}
+  .panel h3{margin:0 0 2px;font-size:.9375rem;font-weight:600;color:var(--fg)}
+  .panel .note{font-size:.75rem;color:var(--fg3);margin:0 0 14px}
+
+  .sw{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--bd)}
+  .sw:first-of-type{border-top:0}
+  .chip{width:34px;height:34px;border-radius:8px;border:1px solid var(--bds);flex:none}
+  .swmeta{min-width:0;flex:1}
+  .swrole{font-size:.8125rem;font-weight:500;color:var(--fg)}
+  .swhex{font-family:var(--mono);font-size:.6875rem;color:var(--fg3)}
+  .swwhy{font-size:.6875rem;color:var(--fg2);margin-top:2px}
+  .badge{font-family:var(--mono);font-size:.625rem;font-weight:600;padding:2px 6px;border-radius:999px;
+         border:1px solid var(--bds);color:var(--fg2);white-space:nowrap;flex:none}
+
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+  .lbl{font-size:.8125rem;font-weight:500;color:var(--fg);display:block;margin-bottom:6px}
+  .help{font-size:.75rem;color:var(--fg2);margin-top:6px}
+  .inp{height:40px;width:100%;border-radius:8px;border:1px solid var(--bd);background:var(--card);
+       color:var(--fg);padding:0 10px;font-family:var(--mono);font-size:.875rem;display:flex;align-items:center}
+  .inp.bad{border-color:var(--alert)}
+  .err{font-size:.75rem;color:var(--alert);margin-top:6px}
+  .btn{height:40px;border-radius:8px;border:1px solid var(--bds);background:var(--card);color:var(--fg);
+       padding:0 14px;font-size:.8125rem;font-weight:500;display:inline-flex;align-items:center;font-family:var(--sans)}
+  .btn.ghost{border-color:transparent;color:var(--fg3);background:transparent}
+  .btn[disabled]{opacity:.6}
+  .lnk{font-size:.75rem;color:var(--fg2);text-decoration:underline}
+  .seg{display:inline-flex;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+  .seg span{padding:0 12px;height:38px;display:flex;align-items:center;font-size:.8125rem;color:var(--fg2)}
+  .seg span.on{background:var(--hover);color:var(--fg);font-weight:500}
+  .alertbox{border:1px solid var(--alert);border-radius:8px;padding:10px 12px;font-size:.75rem;color:var(--fg);
+            background:var(--card)}
+  .alertbox b{color:var(--alert)}
+  .rowline{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;
+           background:var(--sunken);font-size:.75rem;color:var(--fg2);margin-top:6px}
+  .rowline .amt{font-family:var(--mono);color:var(--fg)}
+
+  table{width:100%;border-collapse:collapse;font-size:.8125rem;margin-top:8px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.6875rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);font-weight:600}
+  td.m{font-family:var(--mono);font-size:.75rem;color:var(--ink2);white-space:nowrap}
+  .scroll{overflow-x:auto}
+  .stack{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
+  .sp{background:#1c1c1f;border-radius:3px;height:18px}
+  .spwrap{text-align:center}
+  .spwrap small{display:block;font-family:var(--mono);font-size:.625rem;color:var(--ink3);margin-top:4px}
+  .ill{border:1px dashed var(--bds);border-radius:12px;padding:14px;margin-top:10px}
+  .illbanner{font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+             color:var(--fg3);margin-bottom:10px}
+  footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:.75rem;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>UX Preview — meses-y-saldo-inicial</h1>
+<p class="sub">Manual visual de <code>01_UX_SPEC.md</code>. Cada valor de aquí tiene una fila de origen en la sección Design Tokens del spec.</p>
+
+<div class="banner">
+  <strong>Lo primero que hay que comparar:</strong> las dos tarjetas de la izquierda son la MISMA
+  tarjeta, plegada y desplegada. El enlace <em>«Mi historia empieza antes»</em> revela el selector de
+  mes <strong>ahí mismo, sin salir de la tarjeta</strong>: quien empieza este mes nunca lo ve, y quien
+  trae su historia en un cuaderno la declara sin ir a ninguna otra pantalla.<br><br>
+  Al elegir un mes pasado cambia también la <strong>pregunta</strong>: de «¿cuánto tienes hoy?» a
+  «¿cuánto tenías al empezar junio?». No es cosmética. Quien arranca en junio y declara el saldo de
+  hoy estaría metiendo los ingresos de junio a agosto que está a punto de transcribir, y ese dinero
+  quedaría contado <strong>dos veces</strong>. Es la única desviación respecto de la copia que fijó el
+  documento de diseño.
+</div>
+
+<div class="banner">
+  <strong>Esta feature no propone una estética nueva.</strong> Construye dentro del sistema de diseño ya
+  aprobado e implementado del producto (tokens zinc theme-aware de <code>src/app/globals.css</code>).
+  Lo que hay que revisar aquí no es «¿me gustan estos colores?» sino <strong>«¿las dos superficies nuevas
+  se ven como el resto de mi app?»</strong> — cero tokens nuevos, cero desviaciones.
+</div>
+
+<h2>Paleta en los dos temas</h2>
+<p class="sub">Cada panel fija su propia paleta, así que la comparación no depende del tema de tu navegador.</p>
+
+<div class="grid2">
+  <!-- ── CLARO ── -->
+  <div class="panel light">
+    <h3>Tema claro</h3>
+    <p class="note">:root de globals.css</p>
+
+    <div class="sw"><div class="chip" style="background:#f7f7f8"></div><div class="swmeta">
+      <div class="swrole">background <span class="swhex">#f7f7f8</span></div>
+      <div class="swwhy">Lienzo de /configuracion. No es blanco puro: así las cards se perciben elevadas.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#ffffff"></div><div class="swmeta">
+      <div class="swrole">surface <span class="swhex">#ffffff</span></div>
+      <div class="swwhy">Tarjeta de arranque y las tres Card de Configuración.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#f1f1f3"></div><div class="swmeta">
+      <div class="swrole">sunken <span class="swhex">#f1f1f3</span></div>
+      <div class="swwhy">Fondo del deslizador de ancho de columna.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#1c1c1f"></div><div class="swmeta">
+      <div class="swrole">primary / accent <span class="swhex">#1c1c1f</span></div>
+      <div class="swwhy">Chrome neutro. El acento cromático se reserva al tipo de movimiento.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#55555d"></div><div class="swmeta">
+      <div class="swrole">accent-light <span class="swhex">#55555d</span></div>
+      <div class="swwhy">Anillo de foco, 2px con offset 2px.</div></div>
+      <span class="badge">AA 7.3</span></div>
+
+    <div class="sw"><div class="chip" style="background:#1c1c1f"></div><div class="swmeta">
+      <div class="swrole">text-primary <span class="swhex">#1c1c1f</span></div>
+      <div class="swwhy">Etiquetas y valores.</div></div><span class="badge">AAA 16.4</span></div>
+
+    <div class="sw"><div class="chip" style="background:#55555d"></div><div class="swmeta">
+      <div class="swrole">text-secondary <span class="swhex">#55555d</span></div>
+      <div class="swwhy">Textos de apoyo bajo cada control.</div></div><span class="badge">AAA 7.3</span></div>
+
+    <div class="sw"><div class="chip" style="background:#6b6b73"></div><div class="swmeta">
+      <div class="swrole">text-muted <span class="swhex">#6b6b73</span></div>
+      <div class="swwhy">Solo eyebrow de sección. Medido sobre la superficie hundida, que es la peor.</div></div>
+      <span class="badge">AA 4.68</span></div>
+
+    <div class="sw"><div class="chip" style="background:#e3e3e7"></div><div class="swmeta">
+      <div class="swrole">border <span class="swhex">#e3e3e7</span></div>
+      <div class="swwhy">Hairline de cards y campos.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#ad3932"></div><div class="swmeta">
+      <div class="swrole">error / alert-strong <span class="swhex">#ad3932</span></div>
+      <div class="swwhy">Campo inválido y franja de bloqueo. Rol canónico de excepción grave.</div></div>
+      <span class="badge">AA 4.85</span></div>
+  </div>
+
+  <!-- ── OSCURO ── -->
+  <div class="panel dark">
+    <h3>Tema oscuro</h3>
+    <p class="note">.dark de globals.css</p>
+
+    <div class="sw"><div class="chip" style="background:#131316"></div><div class="swmeta">
+      <div class="swrole">background <span class="swhex">#131316</span></div>
+      <div class="swwhy">Nunca negro puro: evita halación.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#1b1b1f"></div><div class="swmeta">
+      <div class="swrole">surface <span class="swhex">#1b1b1f</span></div>
+      <div class="swwhy">Más clara que el lienzo: la elevación sube en luminancia.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#0f0f12"></div><div class="swmeta">
+      <div class="swrole">sunken <span class="swhex">#0f0f12</span></div>
+      <div class="swwhy">Más oscura que el lienzo: lo hundido baja.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#f4f4f5"></div><div class="swmeta">
+      <div class="swrole">primary / accent <span class="swhex">#f4f4f5</span></div>
+      <div class="swwhy">Se invierte con el tema; el rol no cambia.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#9b9ba3"></div><div class="swmeta">
+      <div class="swrole">accent-light <span class="swhex">#9b9ba3</span></div>
+      <div class="swwhy">Anillo de foco.</div></div><span class="badge">AA 6.8</span></div>
+
+    <div class="sw"><div class="chip" style="background:#f4f4f5"></div><div class="swmeta">
+      <div class="swrole">text-primary <span class="swhex">#f4f4f5</span></div>
+      <div class="swwhy">Off-white, no blanco puro.</div></div><span class="badge">AAA 15.8</span></div>
+
+    <div class="sw"><div class="chip" style="background:#b4b4bb"></div><div class="swmeta">
+      <div class="swrole">text-secondary <span class="swhex">#b4b4bb</span></div>
+      <div class="swwhy">Textos de apoyo.</div></div><span class="badge">AAA 9.6</span></div>
+
+    <div class="sw"><div class="chip" style="background:#9b9ba3"></div><div class="swmeta">
+      <div class="swrole">text-muted <span class="swhex">#9b9ba3</span></div>
+      <div class="swwhy">Solo eyebrow.</div></div><span class="badge">AA 6.8</span></div>
+
+    <div class="sw"><div class="chip" style="background:#33333a"></div><div class="swmeta">
+      <div class="swrole">border <span class="swhex">#33333a</span></div>
+      <div class="swwhy">Hairline.</div></div></div>
+
+    <div class="sw"><div class="chip" style="background:#ec6a66"></div><div class="swmeta">
+      <div class="swrole">error / alert-strong <span class="swhex">#ec6a66</span></div>
+      <div class="swwhy">Aclarado y desaturado respecto del claro, para no vibrar.</div></div>
+      <span class="badge">AA 5.6</span></div>
+  </div>
+</div>
+
+<h2>Escala tipográfica, al tamaño real</h2>
+<p class="sub">Roles ya definidos en globals.css. Esta feature no añade ni un tamaño.</p>
+<div class="scroll"><table>
+  <tr><th>Rol</th><th>Valor</th><th>Uso en esta feature</th><th>Muestra</th></tr>
+  <tr><td class="m">.title</td><td class="m">1.25rem / 600</td><td>h1 «Configuración»</td>
+      <td style="font-size:1.25rem;font-weight:600;letter-spacing:-.02em">Configuración</td></tr>
+  <tr><td class="m">.title-sm</td><td class="m">1.0625rem / 600</td><td>Título de tarjeta y de cada Card</td>
+      <td style="font-size:1.0625rem;font-weight:600">Tu historia</td></tr>
+  <tr><td class="m">.label</td><td class="m">0.8125rem / 500</td><td>Etiquetas de campo, texto de botón</td>
+      <td style="font-size:.8125rem;font-weight:500">Saldo inicial</td></tr>
+  <tr><td class="m">.caption</td><td class="m">0.75rem / 400</td><td>Apoyo, errores, enlace de la tarjeta</td>
+      <td style="font-size:.75rem">Lo que ya tenías el día que empezaste.</td></tr>
+  <tr><td class="m">.eyebrow</td><td class="m">0.6875rem / 600 / .09em</td><td>Rótulo de sección</td>
+      <td style="font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6b6b73">Apariencia</td></tr>
+  <tr><td class="m">.tabular</td><td class="m">DM Mono, tabular-nums</td><td>Montos de la tarjeta y de Configuración</td>
+      <td style="font-family:var(--mono);font-variant-numeric:tabular-nums">$ 3.000.000</td></tr>
+</table></div>
+
+<h2>Espaciado, radios y altura de control</h2>
+<p class="sub">Base 4px. Alturas desde la escala canónica de <code>control-size-scale</code> FR-801 — prohibido inventar alturas.</p>
+<div class="stack">
+  <div class="spwrap"><div class="sp" style="width:4px"></div><small>4</small></div>
+  <div class="spwrap"><div class="sp" style="width:8px"></div><small>8</small></div>
+  <div class="spwrap"><div class="sp" style="width:12px"></div><small>12</small></div>
+  <div class="spwrap"><div class="sp" style="width:16px"></div><small>16</small></div>
+  <div class="spwrap"><div class="sp" style="width:20px"></div><small>20</small></div>
+  <div class="spwrap"><div class="sp" style="width:24px"></div><small>24</small></div>
+</div>
+<div class="stack" style="margin-top:16px">
+  <div class="spwrap"><div style="width:56px;height:34px;border:1px solid #d3d3d9;border-radius:8px;background:#fff"></div><small>radius-sm 8</small></div>
+  <div class="spwrap"><div style="width:56px;height:34px;border:1px solid #d3d3d9;border-radius:14px;background:#fff"></div><small>radius-lg 14</small></div>
+  <div class="spwrap"><div style="width:56px;height:32px;border:1px solid #d3d3d9;border-radius:8px;background:#fff"></div><small>control-sm 32</small></div>
+  <div class="spwrap"><div style="width:56px;height:40px;border:1px solid #d3d3d9;border-radius:8px;background:#fff"></div><small>control-md 40</small></div>
+</div>
+
+<h2>Composición en contexto</h2>
+<div class="ill">
+  <div class="illbanner" style="color:#6b6b73">Ilustrativo — no vinculante; el spec es el contrato</div>
+  <div class="grid2">
+    <!-- Tarjeta de arranque, claro -->
+    <div class="panel light" style="padding:22px">
+      <p class="eyebrow" style="color:#6b6b73">A · Tarjeta de arranque — inicio EN el mes en curso</p>
+      <div class="card" style="box-shadow:0 14px 36px -10px rgba(24,24,27,.16)">
+        <div style="font-size:1.0625rem;font-weight:600;margin-bottom:6px">Tu historia empieza en septiembre</div>
+        <div class="help" style="margin:0 0 14px">Dinos cuánto tienes hoy y lo tomamos como punto de partida.
+          No cuenta como ingreso del mes: es lo que ya traías.</div>
+        <label class="lbl">¿Cuánto tienes hoy?</label>
+        <div class="inp">$ 3.000.000</div>
+        <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+          <span class="btn">Guardar</span>
+          <span class="btn ghost">Empiezo desde cero</span>
+        </div>
+        <div style="margin-top:12px"><span class="lnk">Mi historia empieza antes &#9662;</span></div>
+      </div>
+      <p class="eyebrow" style="color:#6b6b73;margin-top:18px">A · la MISMA tarjeta, con el desplegable ABIERTO</p>
+      <div class="card" style="box-shadow:0 14px 36px -10px rgba(24,24,27,.16)">
+        <div style="font-size:1.0625rem;font-weight:600;margin-bottom:6px">Tu historia empieza en junio</div>
+        <div class="help" style="margin:0 0 14px">Dinos cuánto tenías al empezar junio y lo tomamos como punto
+          de partida. No cuenta como ingreso del mes: es lo que ya traías.</div>
+        <label class="lbl">Mes de inicio</label>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div class="inp" style="font-family:var(--sans);justify-content:space-between">Junio <span style="color:#9b9ba3">&#9662;</span></div>
+          <div class="inp" style="font-family:var(--sans);justify-content:space-between">2026 <span style="color:#9b9ba3">&#9662;</span></div>
+        </div>
+        <label class="lbl">¿Cuánto tenías al empezar junio?</label>
+        <div class="inp">$ 1.200.000</div>
+        <div class="help">No incluyas los ingresos de junio en adelante: esos los vas a registrar mes a mes.</div>
+        <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+          <span class="btn">Guardar</span>
+          <span class="btn ghost">Empiezo desde cero</span>
+        </div>
+        <div style="margin-top:12px"><span class="lnk">Empiezo este mes &#9652;</span></div>
+      </div>
+
+      <p class="eyebrow" style="color:#6b6b73;margin-top:18px">A2 · estado error</p>
+      <div class="card">
+        <label class="lbl">¿Cuánto tienes hoy?</label>
+        <div class="inp bad">-500.000</div>
+        <div class="err">El saldo inicial no puede ser negativo. Si empiezas debiendo, regístralo como un gasto del mes.</div>
+        <div style="margin-top:12px"><span class="btn" disabled>Guardar</span></div>
+      </div>
+    </div>
+
+    <!-- Configuración, oscuro -->
+    <div class="panel dark" style="padding:22px">
+      <p class="eyebrow" style="color:#9b9ba3">B · Configuración — tres de las cinco secciones</p>
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:1.0625rem;font-weight:600;margin-bottom:10px">Apariencia</div>
+        <label class="lbl">Tema</label>
+        <div class="seg"><span class="on">Sistema</span><span>Claro</span><span>Oscuro</span></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:1.0625rem;font-weight:600;margin-bottom:10px">Grilla</div>
+        <label class="lbl">Horizonte de planeación</label>
+        <div class="inp" style="font-family:var(--sans);justify-content:space-between">2 años <span style="color:#9b9ba3">▾</span></div>
+        <div class="help">Cuántos años hacia adelante muestra la grilla para planear.</div>
+      </div>
+      <div class="card">
+        <div style="font-size:1.0625rem;font-weight:600;margin-bottom:10px">Tu historia</div>
+        <div class="alertbox" style="margin-bottom:12px">
+          <b>Septiembre de 2026 está cerrado.</b> Para cambiar el saldo inicial, reabre ese mes.
+        </div>
+        <label class="lbl">Saldo inicial</label>
+        <div class="inp" style="opacity:.6">$ 3.000.000</div>
+        <div class="rowline"><span>Saldo del mes anterior · septiembre</span><span class="amt">3.000.000</span></div>
+        <div class="rowline"><span>Resultado del mes · septiembre</span><span class="amt">0</span></div>
+        <div class="help" style="margin-top:8px">La fila de la derecha muestra por qué el saldo inicial no es un ingreso:
+          el resultado del mes sigue en 0.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Nota de honestidad — lo que este preview NO muestra</h2>
+<div class="scroll"><table>
+  <tr><th>Qué falta</th><th>Por qué</th></tr>
+  <tr><td>Las familias reales <b>Inter</b> y <b>DM Mono</b></td>
+      <td>El preview no hace ni una petición externa por regla del entregable, así que se rinde con las
+          pilas de respaldo que los propios tokens declaran (<code>system-ui</code> y <code>ui-monospace</code>).
+          El tamaño, el peso y el interletrado sí son los del spec; la forma de la letra no.</td></tr>
+  <tr><td><code>--alert-soft</code> y <code>--favorable</code></td>
+      <td>Están en la tabla de tokens del spec marcados como <b>no usados por esta feature</b>. Se listan
+          arriba para que se vea que la decisión fue deliberada, y no se pintan en la composición porque
+          teñir de verde un «Guardado» diluiría el significado del rol.</td></tr>
+  <tr><td>Los estados <code>loading</code> y los skeletons</td>
+      <td>Son movimiento; una captura estática los representaría mal. Están especificados componente
+          por componente en «Component Inventory» del spec.</td></tr>
+  <tr><td>El comportamiento a 375px</td>
+      <td>Es una tabla de reglas, no una estética: la tarjeta no existe en móvil y el ancho de columna
+          se oculta. Sección «Design Tokens» del spec, apartado «Responsive».</td></tr>
+</table></div>
+
+<footer>
+  Generado desde <code>01_UX_SPEC.md</code> — no vinculante; el spec es el contrato.<br>
+  Feature <b>meses-y-saldo-inicial</b> · T-Ledger · 2026-09-06
+</footer>
+
+</div>
+</body>
+</html>

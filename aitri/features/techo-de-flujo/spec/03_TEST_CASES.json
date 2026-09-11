@@ -1,0 +1,2002 @@
+{
+  "test_plan": {
+    "strategy": "Tres niveles contra el contrato del TRD. UNIT (Vitest, dominio puro): las tres series del barrido (consumo bruto, arrastre neto, déficit), las TRES reglas de la cadena —con foco en la de déficit, que es la única que ve las operaciones sobre retiros—, cellHeadroom como total tecleable frente a reserveHeadroom como incremento, editReserveOp conservando identidad, monthCarryUsage acotado al arrastre real, y la NO-regresión del plano Presupuestado (ADR-08). INTEGRATION (Vitest + testcontainers Postgres): que la edición de un monto viaje por el snapshot PUT y vuelva idéntica, y que las observaciones de celdas de gasto/ingreso persistan. E2E (Playwright): los tres segmentos con su riel único y el sombreado atravesándolos, la fila «Retiros del mes» mudada y operable, el «Máx.» bajo el input sin robar ancho, la lista con montos editables sin botones de borrar, la observación automática apareciendo y desapareciendo sola, los avisos del mes, y las observaciones en celdas de gasto e ingreso. Cada NFR de regresión lleva su set happy/edge/negative con secuencia determinista.",
+    "coverage_goal": "85% de líneas en src/domain; el guardrail honesto es la secuencia determinista de ≥100 operaciones (NFR-1801/1802) verificando los invariantes tras CADA paso, más los cuatro casos numéricos del usuario",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-TDF-001h",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "El caso del usuario: tras reservar 1.000 y retirar 500, el cupo de enero es 0",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Estado con ingreso ene=1.000 y un bolsillo"
+      ],
+      "given": "enero con flujo 1.000, aportes 1.000 y un retiro de 500 (el retiro devolvió la plata a la cuenta)",
+      "when": "se consulta reserveHeadroom(state, 'ene')",
+      "then": "devuelve 0 — el retiro NO recargó el cupo; con la regla vieja devolvía 500",
+      "steps": [
+        "Construir el estado exacto del usuario",
+        "Consultar el cupo de enero",
+        "Verificar 0"
+      ],
+      "expected_result": "reserveHeadroom(ene) = 0 exacto (la regla vieja daba 500)",
+      "test_data": {
+        "flujo": 1000,
+        "aportes": 1000,
+        "retiros": 500
+      }
+    },
+    {
+      "id": "TC-TDF-002f",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "Con el cupo agotado, reservar 1 peso más se rechaza sin mutar",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "El estado de TC-TDF-001h"
+      ],
+      "given": "enero con cupo 0",
+      "when": "applyReserveCellEdit sube la celda del bolsillo de 1.000 a 1.001",
+      "then": "devuelve { rejected } con rule 'techo', month 'ene' y limit 1.000; la celda sigue en 1.000 y el journal no cambia",
+      "steps": [
+        "Intentar subir la celda 1 peso",
+        "Verificar rechazo tipado",
+        "Verificar estado deep-equal al previo"
+      ],
+      "expected_result": "Rechazo con limit=1.000 (lo que cabía en el mes); cero mutación verificada por comparación profunda",
+      "test_data": {
+        "intento": 1001
+      }
+    },
+    {
+      "id": "TC-TDF-003h",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1802",
+      "title": "Febrero hereda el cierre de enero: techo 1.500 y reservar 1.500 se acepta",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "El estado de TC-TDF-001h (enero cierra con 500 en la cuenta)"
+      ],
+      "given": "enero cerrado con 500 y febrero con ingreso de 1.000",
+      "when": "se consulta el cupo de febrero y se reservan 1.500",
+      "then": "el cupo de febrero es 1.500 (1.000 del mes + 500 del cierre de enero) y la reserva se acepta; el cupo queda en 0",
+      "steps": [
+        "Verificar cupo de febrero = 1.500",
+        "Reservar 1.500",
+        "Verificar aceptación y cupo 0"
+      ],
+      "expected_result": "Cupo 1.500 y reserva aceptada — lo retirado en enero SÍ cuenta para febrero",
+      "test_data": {
+        "flujo_feb": 1000,
+        "cierre_ene": 500
+      }
+    },
+    {
+      "id": "TC-TDF-004e",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1803",
+      "title": "El sobrante se arrastra: reservar 300 de 1.000 deja 700 disponibles en febrero",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Ingreso ene=1.000, sin gastos"
+      ],
+      "given": "enero con 300 reservados y febrero sin ingresos",
+      "when": "se consulta el cupo de febrero y se reservan 400 de los 700",
+      "then": "el cupo de febrero es 700; tras reservar 400 queda en 300 — el sobrante se puede usar total o parcialmente",
+      "steps": [
+        "Verificar cupo 700",
+        "Reservar 400 parcialmente",
+        "Verificar cupo restante 300"
+      ],
+      "expected_result": "Cupo 700 en febrero sin ingresos propios; uso parcial deja 300",
+      "test_data": {
+        "reservado_ene": 300,
+        "reserva_feb": 400
+      }
+    },
+    {
+      "id": "TC-TDF-005e",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1804",
+      "title": "El límite exacto se acepta y deja el cupo en 0",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un mes con techo 700 y nada reservado"
+      ],
+      "given": "cupo del mes = 700",
+      "when": "se reservan exactamente 700",
+      "then": "se acepta (comparación ≥, no >) y el cupo queda en 0; reservar 1 más se rechaza",
+      "steps": [
+        "Reservar el límite exacto",
+        "Verificar aceptación",
+        "Verificar que 1 peso más se rechaza"
+      ],
+      "expected_result": "700 aceptado, cupo 0, y el peso 701 rechazado",
+      "test_data": {
+        "techo": 700
+      }
+    },
+    {
+      "id": "TC-TDF-006e",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1802",
+      "title": "El sobregasto real deja el arrastre negativo sin marcar exceso ni bloquear",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un mes con ingresos 500 y gastos 700 (flujo −200), sin reservas"
+      ],
+      "given": "flujo negativo de −200 y ningún aporte en el mes",
+      "when": "se corre el barrido y se consulta el exceso del mes",
+      "then": "el margen se acota a 0, el exceso es 0 (no hay aportes que excedan), el arrastre es −200, y el déficit del mes es 200",
+      "steps": [
+        "Construir el mes sobregirado",
+        "Verificar margen 0, exceso 0, arrastre −200, déficit 200"
+      ],
+      "expected_result": "El sobregasto vive en el déficit, no en el exceso — así no bloquea escrituras ajenas",
+      "test_data": {
+        "ingresos": 500,
+        "gastos": 700
+      }
+    },
+    {
+      "id": "TC-TDF-010h",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1805",
+      "title": "Editar un retiro de 500 a 300 devuelve 200 al bolsillo sin tocar la celda",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero con 1.000 reservados y un retiro de 500 (bolsillo en 500, cuenta en 500)"
+      ],
+      "given": "el retiro con id mv1 vale 500",
+      "when": "editReserveOp(state, 'mv1', 300)",
+      "then": "el bolsillo pasa a 700, la cuenta a 300, y actuals[bolsillo].ene sigue valiendo 1.000 — la celda de reservas NO cambia",
+      "steps": [
+        "Editar el retiro a 300",
+        "Verificar saldo del bolsillo 700 y cuenta 300",
+        "Verificar celda intacta en 1.000"
+      ],
+      "expected_result": "Bolsillo 700, cuenta 300, celda de reservas intacta en 1.000",
+      "test_data": {
+        "antes": 500,
+        "despues": 300
+      }
+    },
+    {
+      "id": "TC-TDF-011h",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1806",
+      "title": "Editar el retiro a 0 lo elimina y el bolsillo recupera todo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "El estado de TC-TDF-010h con el retiro ya en 300"
+      ],
+      "given": "un retiro de 300 en el journal",
+      "when": "editReserveOp(state, 'mv1', 0)",
+      "then": "el movimiento desaparece del journal (movements no lo contiene), el bolsillo vuelve a 1.000, y la respuesta trae movement: null",
+      "steps": [
+        "Editar a 0",
+        "Verificar que el movimiento no está",
+        "Verificar saldo 1.000 y movement null"
+      ],
+      "expected_result": "Movimiento eliminado, bolsillo en 1.000, respuesta con movement: null",
+      "test_data": {
+        "monto": 0
+      }
+    },
+    {
+      "id": "TC-TDF-012e",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1807",
+      "title": "La edición conserva id, fecha y posición: es el mismo movimiento",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Un retiro con id mv1, date '2026-01-15T10:00' y createdAt conocido, con otro movimiento posterior en el journal"
+      ],
+      "given": "el journal con mv1 en segunda posición",
+      "when": "se edita mv1 de 500 a 200",
+      "then": "el movimiento conserva id='mv1', date='2026-01-15T10:00', su createdAt original y su MISMA posición en el array; solo cambia amount a 200",
+      "steps": [
+        "Capturar id, date, createdAt e índice",
+        "Editar el monto",
+        "Verificar los cuatro campos y la posición"
+      ],
+      "expected_result": "Mismo id, misma fecha, mismo createdAt, misma posición; solo el monto cambió (no se eliminó y recreó)",
+      "test_data": {
+        "date": "2026-01-15T10:00"
+      }
+    },
+    {
+      "id": "TC-TDF-013f",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1808",
+      "title": "Monto negativo o no numérico: rechazo sin alterar el retiro",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Un retiro vigente de 500"
+      ],
+      "given": "el retiro en 500",
+      "when": "se intenta editarlo a −100 y luego a NaN (Number('abc'))",
+      "then": "ambas devuelven { rejected: 'invalid_target' } y el retiro sigue exactamente en 500",
+      "steps": [
+        "Intentar −100",
+        "Intentar NaN",
+        "Verificar rechazos y monto intacto"
+      ],
+      "expected_result": "Dos rechazos tipados; monto sigue en 500",
+      "test_data": {
+        "valores": [
+          -100,
+          "abc"
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-014e",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1805",
+      "title": "Editar un MOVER valida sus DOS extremos, no solo el origen",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Un mover A→B de 500 en enero; en febrero se retiran 400 del bolsillo B"
+      ],
+      "given": "el destino B depende del mover para cubrir su retiro de febrero",
+      "when": "se intenta editar el mover de 500 a 100",
+      "then": "se rechaza: B quedaría en negativo en febrero. Si la validación solo mirase el origen A, la edición se habría aceptado",
+      "steps": [
+        "Construir mover A→B con retiro posterior en B",
+        "Editar el mover a la baja",
+        "Verificar rechazo nombrando el bolsillo B y febrero"
+      ],
+      "expected_result": "Rechazo con rule 'piso', leafId=B, month='feb' — las dos hojas afectadas se validan",
+      "test_data": {
+        "mover": 500,
+        "retiro_B_feb": 400,
+        "nuevo_mover": 100
+      }
+    },
+    {
+      "id": "TC-TDF-020f",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1809",
+      "title": "EL CASO CRÍTICO: eliminar el retiro de un mes por encima del techo se rechaza",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Enero con flujo 1.000, 1.500 reservados y un retiro de 500 (estado alcanzable con la regla vieja)"
+      ],
+      "given": "el disponible de enero es 0 gracias al retiro; sin él sería −500",
+      "when": "removeReserveOp(state, idDelRetiro)",
+      "then": "devuelve { rejected } nombrando enero; el journal conserva el retiro y el disponible de enero sigue en 0, NO en −500",
+      "steps": [
+        "Construir el estado legado",
+        "Intentar eliminar el retiro",
+        "Verificar rechazo y disponible sin caer a negativo"
+      ],
+      "expected_result": "Rechazo con month='ene'; disponible 0. Este caso lo detecta SOLO la regla de déficit: el exceso de techo no cambia al eliminar un retiro, así que una implementación que solo compare excesos ACEPTARÁ y fallará este test",
+      "test_data": {
+        "flujo": 1000,
+        "reservado": 1500,
+        "retiro": 500
+      }
+    },
+    {
+      "id": "TC-TDF-021h",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1811",
+      "title": "Eliminar un retiro que no rompe nada se acepta y restaura exactamente",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero con flujo 1.000, 500 reservados y un retiro de 200 (sobra margen)"
+      ],
+      "given": "el estado S0 previo al retiro tenía el bolsillo en 500 y la cuenta en 500",
+      "when": "se elimina el retiro de 200",
+      "then": "se acepta; el bolsillo vuelve a 500 y la cuenta a 500 — los valores exactos de S0 en los doce meses",
+      "steps": [
+        "Capturar los valores previos",
+        "Eliminar el retiro",
+        "Verificar restauración exacta y aceptación"
+      ],
+      "expected_result": "Aceptado, con restauración al peso — la regla nueva no bloquea lo legítimo",
+      "test_data": {
+        "retiro": 200
+      }
+    },
+    {
+      "id": "TC-TDF-022f",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1810",
+      "title": "Subir un retiro por encima del saldo: el mensaje dice el saldo REAL, no uno negativo",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Un bolsillo con 300 y un retiro de 200 ese mes"
+      ],
+      "given": "el bolsillo tiene 300 disponibles",
+      "when": "se intenta editar el retiro de 200 a 800",
+      "then": "se rechaza con rule 'piso' y limit igual al saldo real del bolsillo (un número POSITIVO: 500, lo que hay antes del retiro), nunca un limit negativo",
+      "steps": [
+        "Intentar subir el retiro por encima del saldo",
+        "Verificar rechazo",
+        "Verificar que limit ≥ 0 y corresponde al saldo real"
+      ],
+      "expected_result": "Rechazo con limit positivo igual al saldo del bolsillo; el retiro sigue en 200",
+      "test_data": {
+        "saldo": 300,
+        "retiro": 200,
+        "intento": 800
+      }
+    },
+    {
+      "id": "TC-TDF-023e",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1812",
+      "title": "Editar o eliminar un movimiento inexistente deja el estado intacto y no lanza",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Un estado con movimientos"
+      ],
+      "given": "un id 'no-existe' que no está en el journal, y un id ya eliminado",
+      "when": "se llama editReserveOp y removeReserveOp con ambos ids",
+      "then": "removeReserveOp devuelve { state } deep-equal al de entrada; editReserveOp devuelve { rejected: 'invalid_target' }; ninguna lanza",
+      "steps": [
+        "Llamar ambas funciones con id inexistente",
+        "Verificar estado intacto y ausencia de excepción"
+      ],
+      "expected_result": "Estado deep-equal, sin excepciones; el rechazo de id inexistente es 'invalid_target', no un veredicto de cadena",
+      "test_data": {
+        "ids": [
+          "no-existe"
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-024e",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1829",
+      "title": "Bajar un retiro que un mes posterior ya gastó: rechazo nombrando ese mes",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Enero: flujo 1.000, 1.000 reservados, retiro de 500 (cierra con 500). Febrero: sin ingresos, 500 reservados"
+      ],
+      "given": "febrero reservó exactamente los 500 que el retiro de enero devolvió a la cuenta",
+      "when": "se intenta editar el retiro de enero de 500 a 300",
+      "then": "se rechaza nombrando FEBRERO (no enero): bajar el retiro reduciría el cierre de enero a 300 y febrero quedaría sin respaldo",
+      "steps": [
+        "Construir la cadena enero-febrero",
+        "Editar el retiro de enero a la baja",
+        "Verificar que el mes nombrado es febrero"
+      ],
+      "expected_result": "Rechazo con month='feb' — la validación mira los doce meses, no solo el editado",
+      "test_data": {
+        "retiro_ene": 500,
+        "reserva_feb": 500,
+        "nuevo_retiro": 300
+      }
+    },
+    {
+      "id": "TC-TDF-030h",
+      "requirement_id": "FR-1804",
+      "user_story_id": "US-1804",
+      "ac_id": "AC-1813",
+      "title": "Un mes que se completa del saldo anterior produce la observación con sus dos cifras",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero cierra con 500; febrero con flujo 1.000 y 1.500 reservados"
+      ],
+      "given": "febrero reservó 1.500 sobre un flujo propio de 1.000",
+      "when": "monthCarryUsage(state, 'feb', 'actual')",
+      "then": "devuelve { reservado: 1500, delSaldoAnterior: 500, mesAnterior: 'ene' }",
+      "steps": [
+        "Construir el estado",
+        "Consultar la observación de febrero",
+        "Verificar las tres cifras"
+      ],
+      "expected_result": "reservado=1.500, delSaldoAnterior=500, mesAnterior='ene'",
+      "test_data": {
+        "flujo_feb": 1000,
+        "reservado_feb": 1500
+      }
+    },
+    {
+      "id": "TC-TDF-031e",
+      "requirement_id": "FR-1804",
+      "user_story_id": "US-1804",
+      "ac_id": "AC-1814",
+      "title": "Bajar la reserva reescribe la observación: sigue habiendo UNA sola",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El estado de TC-TDF-030h"
+      ],
+      "given": "febrero con la observación de 500 tomados del saldo anterior",
+      "when": "se baja la reserva de febrero a 1.200 y se vuelve a consultar",
+      "then": "devuelve delSaldoAnterior: 200 — el valor se recalcula, no se acumula: la función es pura y no guarda historial",
+      "steps": [
+        "Bajar la reserva a 1.200",
+        "Re-consultar",
+        "Verificar 200 y que no hay rastro del 500 anterior"
+      ],
+      "expected_result": "delSaldoAnterior=200; ninguna estructura acumula el valor previo",
+      "test_data": {
+        "nueva_reserva": 1200
+      }
+    },
+    {
+      "id": "TC-TDF-032f",
+      "requirement_id": "FR-1804",
+      "user_story_id": "US-1804",
+      "ac_id": "AC-1815",
+      "title": "Sin uso del saldo anterior no hay observación: null en los tres casos límite",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Tres estados: (a) mes cuyas reservas caben en su flujo, (b) enero sin mes anterior, (c) mes sin reservas"
+      ],
+      "given": "los tres casos donde no se tomó nada del saldo anterior",
+      "when": "se consulta monthCarryUsage en cada uno",
+      "then": "los tres devuelven null: (a) 900 reservados de 1.000 de flujo, (b) enero con 1.200 reservados y arrastre previo 0, (c) mes con 0 reservado",
+      "steps": [
+        "Consultar los tres casos",
+        "Verificar null en cada uno"
+      ],
+      "expected_result": "null × 3 — enero nunca nombra un mes anterior inexistente",
+      "test_data": {
+        "casos": [
+          "cabe en el flujo",
+          "enero sin previo",
+          "sin reservas"
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-033e",
+      "requirement_id": "FR-1804",
+      "user_story_id": "US-1804",
+      "ac_id": "AC-1813",
+      "title": "La observación se acota al arrastre real: no anuncia lo que no existió",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Enero (sin mes anterior, arrastre 0) con flujo 1.000 y 1.500 reservados — estado legado por encima del techo"
+      ],
+      "given": "enero reservó 500 más de lo que entró, pero no había saldo anterior del que tomarlos",
+      "when": "monthCarryUsage(state, 'ene', 'actual')",
+      "then": "devuelve null (el mínimo entre la diferencia bruta 500 y el arrastre disponible 0 es 0), NO una observación diciendo «500 salieron del saldo anterior»",
+      "steps": [
+        "Construir el estado legado",
+        "Consultar la observación",
+        "Verificar null"
+      ],
+      "expected_result": "null — la observación jamás anuncia una extracción de un saldo que no existía; ese mes lleva la marca de error de FR-1806 en su lugar",
+      "test_data": {
+        "arrastre_previo": 0,
+        "diferencia_bruta": 500
+      }
+    },
+    {
+      "id": "TC-TDF-034h",
+      "requirement_id": "FR-1804",
+      "user_story_id": "US-1804",
+      "ac_id": "AC-1816",
+      "title": "La observación automática aparece y desaparece sin tocar las escritas a mano",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "App con Postgres; febrero con una observación escrita a mano en la celda de un bolsillo"
+      ],
+      "given": "la observación manual «revisar recibo» existe en la celda del bolsillo de febrero",
+      "when": "se sube la reserva de febrero por encima del flujo (aparece la automática) y luego se baja (desaparece)",
+      "then": "la automática aparece en la celda del total de Reservas y luego desaparece; la manual «revisar recibo» sigue intacta en su celda en los tres momentos",
+      "steps": [
+        "Escribir la observación manual",
+        "Subir la reserva y verificar la automática",
+        "Bajar la reserva y verificar que desaparece",
+        "Verificar la manual intacta"
+      ],
+      "expected_result": "La automática aparece/desaparece sola; el texto «revisar recibo» permanece sin cambios",
+      "test_data": {
+        "manual": "revisar recibo"
+      }
+    },
+    {
+      "id": "TC-TDF-040h",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1817",
+      "title": "La grilla muestra tres bloques con Reservas fuera del de Ingresos y Gastos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio 1440×900, sesión iniciada, datos en los tres tipos"
+      ],
+      "given": "la grilla renderizada",
+      "when": "se recorre verticalmente y se miden las posiciones de los bloques",
+      "then": "existen tres contenedores en orden: Ingresos+Gastos, Reservas, Balance; entre ellos hay separación vertical ≥24px; ninguna fila de Reservas está dentro del contenedor de Ingresos y Gastos",
+      "steps": [
+        "Abrir la grilla",
+        "Localizar los tres contenedores",
+        "Verificar orden, separación y pertenencia de filas"
+      ],
+      "expected_result": "Tres bloques en el orden del boceto, con ≥24px de separación y Reservas en contenedor propio",
+      "test_data": {
+        "viewport": "1440x900"
+      }
+    },
+    {
+      "id": "TC-TDF-041h",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1818",
+      "title": "«Retiros del mes» es la última fila de Reservas y desde ahí se saca plata",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; un bolsillo con 500 de saldo en marzo"
+      ],
+      "given": "el segmento de Reservas con sus bolsillos",
+      "when": "se localiza su última fila y se completa una operación de sacar 200 desde ella",
+      "then": "la última fila es «Retiros del mes»; tras guardar, el saldo del bolsillo baja a 300 y la fila muestra 200 en marzo",
+      "steps": [
+        "Verificar que es la última fila del segmento",
+        "Abrir el popover y sacar 200",
+        "Verificar saldo y cifra de la fila"
+      ],
+      "expected_result": "Operación completa desde la fila mudada: bolsillo 300, fila con 200",
+      "test_data": {
+        "saldo": 500,
+        "retiro": 200
+      }
+    },
+    {
+      "id": "TC-TDF-042e",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1819",
+      "title": "Un solo riel: enero de Gastos y enero de Reservas comparten columna al desplazar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio 1440×900 con los tres segmentos poblados"
+      ],
+      "given": "la grilla sin desplazar",
+      "when": "se mide el offsetLeft de la celda de enero en cada segmento, se desplaza horizontalmente 300px y se vuelve a medir",
+      "then": "antes y después del scroll, las tres celdas de enero comparten el mismo offsetLeft (±1px); existe UN solo contenedor con scroll horizontal en la grilla",
+      "steps": [
+        "Medir las tres celdas de enero",
+        "Desplazar 300px",
+        "Re-medir y verificar alineación",
+        "Contar contenedores con overflow-x"
+      ],
+      "expected_result": "Alineación idéntica antes y después; un único contenedor de scroll",
+      "test_data": {
+        "scroll": 300
+      }
+    },
+    {
+      "id": "TC-TDF-043e",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1820",
+      "title": "Con seis bolsillos y grupos plegados, «Retiros del mes» sigue visible",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio 1440×900 con seis bolsillos repartidos en dos grupos"
+      ],
+      "given": "la grilla recién cargada",
+      "when": "se comprueba el estado inicial de los grupos de bolsillos y la visibilidad de la fila de retiros",
+      "then": "los grupos de bolsillos arrancan PLEGADOS y la fila «Retiros del mes» está dentro del viewport sin desplazamiento vertical adicional",
+      "steps": [
+        "Cargar la grilla con seis bolsillos",
+        "Verificar que los grupos arrancan plegados",
+        "Verificar que la fila de retiros es visible sin scroll"
+      ],
+      "expected_result": "Grupos plegados por defecto y fila de retiros visible — con los grupos abiertos quedaría enterrada",
+      "test_data": {
+        "bolsillos": 6
+      }
+    },
+    {
+      "id": "TC-TDF-044h",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1828",
+      "title": "El sombreado del mes activo atraviesa los tres bloques y se mueve a la vez",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio con marzo como mes activo"
+      ],
+      "given": "marzo seleccionado como mes activo",
+      "when": "se inspecciona el fondo computado de la columna de marzo en cada segmento, y luego se cambia el mes activo a abril",
+      "then": "con marzo activo, las celdas de marzo de los TRES bloques (Ingresos/Gastos, Reservas y Balance) tienen el fondo de resaltado y las de otros meses no; al pasar a abril, el resaltado se mueve en los tres a la vez",
+      "steps": [
+        "Verificar el resaltado en los tres bloques con marzo",
+        "Verificar que el Balance también lo tiene (hoy no)",
+        "Cambiar a abril y re-verificar los tres"
+      ],
+      "expected_result": "Resaltado presente en los tres bloques —incluido el Balance, que hoy carece de él— y sincronizado al cambiar de mes",
+      "test_data": {
+        "mes_inicial": "mar",
+        "mes_final": "abr"
+      }
+    },
+    {
+      "id": "TC-TDF-045f",
+      "requirement_id": "FR-1805",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1817",
+      "title": "A 375px no se renderiza la grilla y no hay desborde horizontal",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Viewport 375×667, sesión iniciada"
+      ],
+      "given": "la app cargada en móvil",
+      "when": "se busca la grilla de presupuesto y se mide el ancho del documento",
+      "then": "ningún contenedor de la grilla existe en el DOM (la vista es solo Registrar) y document.documentElement.scrollWidth ≤ 375",
+      "steps": [
+        "Abrir a 375px",
+        "Verificar ausencia de la grilla",
+        "Medir scrollWidth"
+      ],
+      "expected_result": "Grilla ausente y scrollWidth ≤ 375 — los tres segmentos no afectan a móvil",
+      "test_data": {
+        "viewport": "375x667"
+      }
+    },
+    {
+      "id": "TC-TDF-050h",
+      "requirement_id": "FR-1806",
+      "user_story_id": "US-1806",
+      "ac_id": "AC-1821",
+      "title": "Un mes con error muestra la marca en su encabezado y el detalle en la franja",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; estado con marzo por encima del techo por 500"
+      ],
+      "given": "marzo con reservas 500 por encima de su margen",
+      "when": "se inspeccionan el encabezado de marzo y el pie del Balance",
+      "then": "el encabezado de marzo lleva la marca de alerta con su etiqueta accesible; la franja del Balance nombra «Marzo» y la cifra 500; ningún otro mes lleva marca",
+      "steps": [
+        "Provocar el estado",
+        "Verificar la marca en marzo y su ausencia en los demás",
+        "Verificar el texto de la franja"
+      ],
+      "expected_result": "Marca solo en marzo; franja con «Marzo» y 500",
+      "test_data": {
+        "exceso": 500
+      }
+    },
+    {
+      "id": "TC-TDF-051f",
+      "requirement_id": "FR-1806",
+      "user_story_id": "US-1806",
+      "ac_id": "AC-1822",
+      "title": "Estado sano: ninguna marca y la franja no se renderiza",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio; estado sin errores en ningún mes"
+      ],
+      "given": "todas las reservas dentro de su techo",
+      "when": "se recorren los doce encabezados y el pie del Balance",
+      "then": "cero elementos de marca en los encabezados y la franja NO existe en el DOM (no está oculta: no se renderiza)",
+      "steps": [
+        "Cargar un estado sano",
+        "Contar marcas (0)",
+        "Verificar que la franja no está en el DOM"
+      ],
+      "expected_result": "0 marcas y franja ausente del DOM",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-052e",
+      "requirement_id": "FR-1806",
+      "user_story_id": "US-1806",
+      "ac_id": "AC-1823",
+      "title": "La señal desaparece al corregir, sin recargar, y marca y franja van juntas",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El estado de TC-TDF-050h"
+      ],
+      "given": "marzo marcado con error",
+      "when": "se corrige bajando la reserva de marzo hasta que cabe, sin recargar la página",
+      "then": "la marca del encabezado y la franja desaparecen a la vez; en ningún momento intermedio existe una sin la otra (ambas derivan de la misma lista)",
+      "steps": [
+        "Corregir la causa",
+        "Verificar que ambas desaparecen sin recargar",
+        "Verificar que nunca hay marca sin franja ni franja sin marca"
+      ],
+      "expected_result": "Ambas desaparecen simultáneamente sin recarga; coherencia marca↔franja en todo momento",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-060h",
+      "requirement_id": "FR-1807",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "La superficie del dominio no exporta las piezas retiradas",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Build tras la limpieza"
+      ],
+      "given": "import * as reserve from '@/domain/reserve'",
+      "when": "se inspecciona la superficie exportada",
+      "then": "no existen 'techoBreaches', 'TechoBreach' ni el alias 'removeReserveRetiro'; sí existen 'monthIssues', 'cellHeadroom', 'editReserveOp' y 'monthCarryUsage'",
+      "steps": [
+        "Importar la superficie",
+        "Verificar ausencia de los tres símbolos retirados",
+        "Verificar presencia de los cuatro nuevos"
+      ],
+      "expected_result": "3 símbolos ausentes y 4 presentes",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-061f",
+      "requirement_id": "FR-1807",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1825",
+      "title": "La UI retirada no existe: sin botón «Sacar» en la fila ni botones de borrar",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio; un bolsillo con saldo y otro sin saldo; un mes con operaciones registradas"
+      ],
+      "given": "la grilla y la lista de operaciones del mes",
+      "when": "se pasa el ratón por las filas de ambos bolsillos y se revisa la lista de operaciones",
+      "then": "no aparece ningún botón «Sacar» ni el texto «Sin saldo que sacar» en ninguna fila; en la lista de operaciones no hay ningún botón de borrar ni su tooltip",
+      "steps": [
+        "Hover sobre la fila con saldo y sin saldo",
+        "Verificar ausencia del botón y del texto",
+        "Abrir la lista y verificar ausencia de botones de borrar"
+      ],
+      "expected_result": "0 apariciones de «Sacar», «Sin saldo que sacar» y botones de borrar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-062e",
+      "requirement_id": "FR-1807",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "Las dos pruebas rojas por el marcador de versión quedan verdes sin relajarse",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Postgres (testcontainers)"
+      ],
+      "given": "las pruebas TC-SFU-105f y TC-TRF4-010e, hoy rojas porque esperan data_version=4",
+      "when": "se ejecutan tras la corrección",
+      "then": "ambas pasan y siguen verificando lo mismo: que la conversión v3→v4 corre sobre las celdas y que el marcador queda estampado con el valor vigente (5); no se elimina ninguna aserción",
+      "steps": [
+        "Ejecutar ambas pruebas",
+        "Verificar que pasan",
+        "Verificar que conservan sus aserciones sobre la conversión de celdas"
+      ],
+      "expected_result": "Ambas verdes conservando sus aserciones de conversión — solo cambia la constante de versión esperada",
+      "test_data": {
+        "version_esperada": 5
+      }
+    },
+    {
+      "id": "TC-TDF-070h",
+      "requirement_id": "FR-1808",
+      "user_story_id": "US-1808",
+      "ac_id": "AC-1830",
+      "title": "El editor abre con el límite visible debajo y el input a ancho completo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; un mes cuyo cupo permite un total de 10.200.000 en esa celda"
+      ],
+      "given": "la celda de un bolsillo con el editor cerrado",
+      "when": "se abre el editor y se mide, sin teclear nada, el ancho del input y la posición del indicador",
+      "then": "el indicador muestra «Máx. 10.200.000» completo (sin puntos suspensivos), su borde superior está por DEBAJO del borde inferior del input, y el ancho del input es ≥90% del ancho interior de la celda de 108px",
+      "steps": [
+        "Abrir el editor",
+        "Medir ancho del input y su relación con el ancho de celda",
+        "Verificar posición vertical del indicador y su texto completo"
+      ],
+      "expected_result": "Input a ancho completo (≥90% del interior de la celda), indicador debajo con la cifra íntegra",
+      "test_data": {
+        "limite": 10200000,
+        "cell_w": 108
+      }
+    },
+    {
+      "id": "TC-TDF-071e",
+      "requirement_id": "FR-1808",
+      "user_story_id": "US-1808",
+      "ac_id": "AC-1831",
+      "title": "Al pasarse del límite el indicador enrojece antes de confirmar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; celda con límite total de 400.000"
+      ],
+      "given": "el editor abierto con el indicador en color apagado",
+      "when": "se teclea 900.000 SIN pulsar Enter",
+      "then": "el color computado del indicador cambia al de alerta del tema activo mientras se teclea; al borrar hasta 300.000 vuelve al color apagado",
+      "steps": [
+        "Teclear por encima del límite",
+        "Verificar el color de alerta sin confirmar",
+        "Bajar el valor y verificar que vuelve al normal"
+      ],
+      "expected_result": "El color reacciona mientras se teclea, en ambos sentidos, antes de confirmar",
+      "test_data": {
+        "limite": 400000,
+        "tecleado": 900000
+      }
+    },
+    {
+      "id": "TC-TDF-072f",
+      "requirement_id": "FR-1808",
+      "user_story_id": "US-1808",
+      "ac_id": "AC-1832",
+      "title": "Bajar el valor de una celda con el cupo agotado NO se pinta en alerta",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; enero con el cupo del mes agotado y esta celda valiendo 1.000"
+      ],
+      "given": "el cupo restante del mes es 0, pero el total tecleable de ESTA celda es 1.000 (lo que ya vale)",
+      "when": "se abre el editor y se teclea 800 (una bajada perfectamente válida)",
+      "then": "el indicador muestra «Máx. 1.000» y permanece en color apagado; al confirmar, la escritura se acepta",
+      "steps": [
+        "Abrir la celda con el cupo del mes agotado",
+        "Verificar que el Máx. es el total tecleable, no 0",
+        "Teclear 800 y verificar color normal y aceptación"
+      ],
+      "expected_result": "Máx. 1.000 (no 0) en color normal, y la bajada se acepta. Una implementación que use el cupo restante del mes como límite del editor mostraría «Máx. 0» y pintaría en rojo una escritura válida — este test lo detecta",
+      "test_data": {
+        "cupo_mes": 0,
+        "valor_celda": 1000,
+        "tecleado": 800
+      }
+    },
+    {
+      "id": "TC-TDF-073e",
+      "requirement_id": "FR-1808",
+      "user_story_id": "US-1808",
+      "ac_id": "AC-1833",
+      "title": "El indicador no desplaza las celdas vecinas de la grilla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio; una celda del centro de la grilla"
+      ],
+      "given": "las posiciones de las celdas vecinas (izquierda, derecha y la de la fila inferior) con el editor cerrado",
+      "when": "se abre el editor de la celda central",
+      "then": "las tres celdas vecinas conservan exactamente su posición (getBoundingClientRect idéntico): el indicador se superpone, no reflowa el layout",
+      "steps": [
+        "Capturar posiciones de las vecinas",
+        "Abrir el editor",
+        "Re-capturar y comparar"
+      ],
+      "expected_result": "Posiciones idénticas antes y después: cero desplazamiento del layout",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-080h",
+      "requirement_id": "FR-1809",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1835",
+      "title": "Se puede anotar una observación en una celda de GASTO y persiste",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "App con Postgres; una celda de gasto en marzo, plano Ejecutado, sin observaciones"
+      ],
+      "given": "la celda de Mercado en marzo sin indicador de observación",
+      "when": "se abre, se escribe «este mes pagué la matrícula» y se confirma; después se recarga la página",
+      "then": "la celda muestra el indicador de observación, el texto se lee al abrirlo, y tras recargar sigue ahí — hoy esta celda ni siquiera ofrece el campo",
+      "steps": [
+        "Abrir la celda de gasto",
+        "Escribir y confirmar la observación",
+        "Verificar indicador y texto",
+        "Recargar y re-verificar"
+      ],
+      "expected_result": "Observación visible y persistida en una celda de gasto (comportamiento nuevo)",
+      "test_data": {
+        "texto": "este mes pagué la matrícula"
+      }
+    },
+    {
+      "id": "TC-TDF-081h",
+      "requirement_id": "FR-1809",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1836",
+      "title": "Observación en una celda de INGRESO del plano Presupuestado",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Postgres (testcontainers) con un ledger sembrado"
+      ],
+      "given": "una hoja de ingreso y el plano Presupuestado",
+      "when": "se añade una observación a esa celda, se guarda por PUT y se recarga por GET",
+      "then": "la observación vuelve idéntica en cellNotes bajo el nodo de ingreso; SELECT sobre cell_note muestra la fila con ese node_id",
+      "steps": [
+        "Añadir la observación",
+        "PUT + GET",
+        "Verificar en la respuesta y en la tabla"
+      ],
+      "expected_result": "Observación persistida bajo un node_id de tipo income — el almacenamiento no distingue el tipo",
+      "test_data": {
+        "plano": "budget"
+      }
+    },
+    {
+      "id": "TC-TDF-082f",
+      "requirement_id": "FR-1809",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1837",
+      "title": "Texto vacío o de más de 280 caracteres: rechazo sin alterar lo vigente",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Una celda de gasto con una observación vigente"
+      ],
+      "given": "la celda con una observación existente",
+      "when": "se intenta añadir una observación vacía, otra de solo espacios y otra de 300 caracteres",
+      "then": "las tres devuelven { rejected: 'invalid_note' }; la observación vigente no cambia y NO se trunca el texto largo",
+      "steps": [
+        "Intentar los tres textos inválidos",
+        "Verificar los tres rechazos",
+        "Verificar que la observación vigente sigue igual"
+      ],
+      "expected_result": "3 rechazos tipados; observación vigente intacta; sin truncado silencioso",
+      "test_data": {
+        "largos": [
+          0,
+          0,
+          300
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-083e",
+      "requirement_id": "FR-1809",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1838",
+      "title": "Las observaciones pertenecen a su celda: no se filtran a otros meses ni filas",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un estado con hojas de gasto (Mercado, Transporte) e ingreso"
+      ],
+      "given": "una observación escrita en Mercado/marzo",
+      "when": "se consultan las observaciones de Mercado/febrero, Transporte/marzo y la hoja de ingreso en marzo",
+      "then": "las tres devuelven lista vacía; solo Mercado/marzo tiene la observación",
+      "steps": [
+        "Escribir en Mercado/marzo",
+        "Consultar las otras tres celdas",
+        "Verificar vacías"
+      ],
+      "expected_result": "Aislamiento por (nodo, mes): 1 celda con observación, 3 vacías",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-201h",
+      "requirement_id": "NFR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "Conservación bajo secuencia determinista de 120 operaciones mixtas",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "PRNG determinista con semilla 1801; estado inicial la semilla del producto"
+      ],
+      "given": "una secuencia de 120 pasos que mezcla reservar, retirar, editar retiros, eliminar retiros, editar celdas, y escribir gastos e ingresos",
+      "when": "se aplica cada paso (aceptado o rechazado) y tras CADA uno se computa disponible + reservado por mes",
+      "then": "la identidad total(m) = total(m−1) + flujo(m) se cumple al peso en los doce meses y los dos planos tras cada uno de los 120 pasos",
+      "steps": [
+        "Generar la secuencia con semilla fija",
+        "Aplicar y verificar la identidad tras cada paso"
+      ],
+      "expected_result": "120 × 12 × 2 comprobaciones exactas: ninguna operación crea ni destruye dinero",
+      "test_data": {
+        "semilla": 1801,
+        "pasos": 120
+      }
+    },
+    {
+      "id": "TC-TDF-202e",
+      "requirement_id": "NFR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "La secuencia cubre los bordes: límites exactos, ediciones a 0 y cadenas de meses",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "La infraestructura de TC-TDF-201h"
+      ],
+      "given": "una secuencia dirigida con: reserva por el límite exacto, edición de retiro a 0, edición que afecta a un mes posterior, y eliminación encadenada",
+      "when": "se aplica cada paso verificando conservación y las tres reglas de la cadena",
+      "then": "la conservación se mantiene y ninguna serie de bolsillo queda negativa tras ningún paso",
+      "steps": [
+        "Construir la secuencia de bordes",
+        "Verificar conservación y piso tras cada paso"
+      ],
+      "expected_result": "Conservación y piso intactos en todos los caminos límite",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-203f",
+      "requirement_id": "NFR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "Los rechazos de la secuencia no dejan efectos parciales",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "La secuencia de TC-TDF-201h instrumentada para registrar rechazos"
+      ],
+      "given": "los pasos que devuelven { rejected } (la semilla garantiza ≥10)",
+      "when": "tras cada rechazo se compara el estado con una copia profunda previa al intento",
+      "then": "deep-equal exacto en cada rechazo y la conservación sigue cumpliéndose",
+      "steps": [
+        "Contar los rechazos (≥10)",
+        "Verificar deep-equal y conservación tras cada uno"
+      ],
+      "expected_result": "≥10 rechazos verificados sin mutación parcial",
+      "test_data": {
+        "rechazos_minimos": 10
+      }
+    },
+    {
+      "id": "TC-TDF-211h",
+      "requirement_id": "NFR-1802",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1802",
+      "title": "El cierre de un mes es la apertura del siguiente, con y sin retiros",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Estado con operaciones en varios meses, incluidos meses con retiros"
+      ],
+      "given": "la serie de arrastre de los doce meses",
+      "when": "se compara el cierre de cada mes con la apertura del siguiente",
+      "then": "coinciden al peso en los once pares, incluidos los meses con retiros (donde la plata retirada SÍ cuenta para el cierre)",
+      "steps": [
+        "Computar la serie",
+        "Verificar los once pares cierre-apertura"
+      ],
+      "expected_result": "11 pares exactos; el arrastre conserva su fórmula neta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-212e",
+      "requirement_id": "NFR-1802",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1802",
+      "title": "El arrastre sobrevive a la secuencia mixta de 120 operaciones",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "La secuencia determinista de TC-TDF-201h"
+      ],
+      "given": "los 120 estados intermedios",
+      "when": "tras cada paso se verifica la relación cierre-apertura en los doce meses",
+      "then": "la igualdad se mantiene tras cada uno de los 120 pasos, en ambos planos",
+      "steps": [
+        "Reutilizar la secuencia",
+        "Verificar el arrastre tras cada paso"
+      ],
+      "expected_result": "120 × 11 × 2 comprobaciones exactas",
+      "test_data": {
+        "semilla": 1801
+      }
+    },
+    {
+      "id": "TC-TDF-213f",
+      "requirement_id": "NFR-1802",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1802",
+      "title": "El arrastre NO usa el consumo bruto: un retiro sí devuelve plata al mes siguiente",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Enero: flujo 1.000, aportes 1.000, retiro 500"
+      ],
+      "given": "el mes donde consumo bruto (1.000) y neto (500) difieren",
+      "when": "se consulta el cierre de enero",
+      "then": "el cierre es 500 (usa el NETO), no 0 (que sería usar el bruto). Una implementación que use el bruto también para el arrastre daría 0 y este test lo detecta",
+      "steps": [
+        "Construir el mes con aportes y retiros",
+        "Verificar cierre = 500"
+      ],
+      "expected_result": "Cierre 500 — bruto para el cupo, neto para el arrastre; confundirlos rompe este test",
+      "test_data": {
+        "bruto": 1000,
+        "neto": 500,
+        "cierre_esperado": 500
+      }
+    },
+    {
+      "id": "TC-TDF-221h",
+      "requirement_id": "NFR-1803",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1836",
+      "title": "Roll-ups y totales de Gastos e Ingresos idénticos al baseline",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Fixture congelado con jerarquía expense/income y sus resultados esperados serializados"
+      ],
+      "given": "el fixture baseline",
+      "when": "se recomputan rollupBudget, rollupActual y typeTotals con el código nuevo",
+      "then": "los doce meses × dos tipos × dos planos dan exactamente los valores del baseline",
+      "steps": [
+        "Cargar fixture y baseline",
+        "Recomputar",
+        "Comparar valor a valor"
+      ],
+      "expected_result": "Cero diferencias contra el baseline",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-222e",
+      "requirement_id": "NFR-1803",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1836",
+      "title": "Escribir gastos e ingresos no adquiere validación de cadena",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Estado con bolsillos llenos y poco disponible"
+      ],
+      "given": "diez escrituras de gasto que llevan el disponible hasta −2.000",
+      "when": "se aplican las diez con setLeafAmount y addMovement",
+      "then": "las diez se aceptan sin rechazo alguno; el disponible termina negativo y los saldos de bolsillos no cambian",
+      "steps": [
+        "Aplicar la ráfaga",
+        "Verificar cero rechazos",
+        "Verificar bolsillos intactos"
+      ],
+      "expected_result": "10/10 aceptadas — los gastos conservan exactamente su comportamiento",
+      "test_data": {
+        "gastos": 10
+      }
+    },
+    {
+      "id": "TC-TDF-223f",
+      "requirement_id": "NFR-1803",
+      "user_story_id": "US-1809",
+      "ac_id": "AC-1837",
+      "title": "La validación vigente de montos de gasto no cambió",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Estado válido"
+      ],
+      "given": "addMovement de gasto con amount 0 y con −5",
+      "when": "se ejecutan ambas",
+      "then": "ambas son no-op devolviendo el mismo estado, exactamente como hoy; ninguna lanza",
+      "steps": [
+        "Intentar los dos montos inválidos",
+        "Verificar no-op idéntico al comportamiento vigente"
+      ],
+      "expected_result": "Los rechazos de gasto son los mismos de siempre: ni más ni menos",
+      "test_data": {
+        "montos": [
+          0,
+          -5
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-231h",
+      "requirement_id": "NFR-1804",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1805",
+      "title": "El saldo reservado sigue siendo la suma de los bolsillos, mes a mes",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Estado con tres bolsillos y operaciones en cinco meses"
+      ],
+      "given": "el Balance y las series de los bolsillos",
+      "when": "se comparan el «Saldo reservado» del Balance y la suma manual de los saldos",
+      "then": "coinciden al peso en los doce meses",
+      "steps": [
+        "Sembrar operaciones",
+        "Comparar las dos cifras mes a mes"
+      ],
+      "expected_result": "12/12 meses exactos",
+      "test_data": {
+        "bolsillos": 3
+      }
+    },
+    {
+      "id": "TC-TDF-232e",
+      "requirement_id": "NFR-1804",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1805",
+      "title": "El mover entre bolsillos conserva su cálculo y no cuenta como retiro",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Un bolsillo A con 500 y un bolsillo B en 0"
+      ],
+      "given": "un mover A→B de 200",
+      "when": "se aplica y se consultan los saldos y la cifra de «Retiros del mes»",
+      "then": "A queda en 300, B en 200, la suma reservada sigue en 500, y «Retiros del mes» NO incluye el mover",
+      "steps": [
+        "Aplicar el mover",
+        "Verificar saldos, suma y fila de retiros"
+      ],
+      "expected_result": "Saldos correctos, suma invariante, retiros del mes sin el mover",
+      "test_data": {
+        "mover": 200
+      }
+    },
+    {
+      "id": "TC-TDF-233f",
+      "requirement_id": "NFR-1804",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1811",
+      "title": "El mover sigue siendo corregible: eliminable cuando no rompe, editable siempre",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Dos escenarios: (a) mover A→B de 200 sin operaciones posteriores, (b) mover A→B de 500 con un retiro posterior de 400 en B"
+      ],
+      "given": "los dos moveres",
+      "when": "se intenta eliminar cada uno",
+      "then": "(a) se elimina con normalidad y los saldos se restauran; (b) se rechaza nombrando el mes que quedaría sin respaldo, PERO editar su monto a 400 sí se acepta — el mover nunca queda atrapado sin vía de corrección",
+      "steps": [
+        "Eliminar el mover (a) y verificar restauración",
+        "Intentar eliminar (b) y verificar rechazo",
+        "Editar (b) a 400 y verificar aceptación"
+      ],
+      "expected_result": "Eliminación libre cuando no rompe; cuando rompería, la edición sigue disponible como vía de corrección",
+      "test_data": {
+        "caso_a": 200,
+        "caso_b": 500,
+        "retiro_posterior": 400
+      }
+    },
+    {
+      "id": "TC-TDF-241h",
+      "requirement_id": "NFR-1805",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "La cadena de migraciones sigue siendo idempotente y no se re-aplica",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres (testcontainers) con ledgers sembrados en data_version 3 y 5"
+      ],
+      "given": "un ledger v3 con celdas en formato de saldos y otro ya en v5",
+      "when": "se cargan ambos dos veces",
+      "then": "el v3 migra a v5 con el resultado esperado y la segunda carga no cambia nada; el v5 no se re-migra en ninguna de las dos cargas",
+      "steps": [
+        "Cargar cada ledger dos veces",
+        "Verificar resultado idéntico y marcador estampado"
+      ],
+      "expected_result": "Migración idempotente; el marcador impide la re-aplicación",
+      "test_data": {
+        "versiones": [
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-242e",
+      "requirement_id": "NFR-1805",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "Esta feature no introduce ninguna migración: data_version sigue en 5",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Postgres con un ledger en data_version 5 y datos vivos"
+      ],
+      "given": "el ledger marcado con la versión vigente",
+      "when": "se carga, se opera (reservar, editar un retiro, escribir una observación) y se guarda",
+      "then": "data_version sigue valiendo 5 tras todas las operaciones; ninguna fila se borra por migración",
+      "steps": [
+        "Operar sobre el ledger",
+        "Verificar data_version=5",
+        "Verificar que los conteos de filas solo cambian por las operaciones"
+      ],
+      "expected_result": "Marcador intacto en 5: la feature es de cálculo, no de datos",
+      "test_data": {
+        "version": 5
+      }
+    },
+    {
+      "id": "TC-TDF-243f",
+      "requirement_id": "NFR-1805",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "Un ledger v5 con datos vivos no pierde nada al cargarse repetidamente",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Postgres con ledger v5 con movimientos, celdas y observaciones"
+      ],
+      "given": "el ledger con sus datos",
+      "when": "se carga tres veces seguidas",
+      "then": "los conteos de movement, amount_cell y cell_note son idénticos tras cada carga; ninguna migración corre",
+      "steps": [
+        "Contar filas",
+        "Cargar tres veces",
+        "Re-contar y comparar"
+      ],
+      "expected_result": "Conteos idénticos: cero borrados",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-251h",
+      "requirement_id": "NFR-1806",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1818",
+      "title": "La cascada del Balance conserva su aritmética con la fila de retiros mudada",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Estado con ingresos, gastos, reservas y retiros en marzo"
+      ],
+      "given": "la declaración CASCADE y las filas renderizadas",
+      "when": "se validan contigüidad, orden y niveles sobre el orden RENDERIZADO completo (segmento de Reservas + Balance)",
+      "then": "las tres validaciones devuelven ok:true; «retiros» sigue declarado como sumando de «Disponible del mes» y sigue apareciendo ANTES que él en el orden renderizado",
+      "steps": [
+        "Componer el orden renderizado",
+        "Correr las tres validaciones",
+        "Verificar que retiros sigue en CASCADE"
+      ],
+      "expected_result": "Tres validaciones ok con la fila mudada; la aritmética declarada intacta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-252e",
+      "requirement_id": "NFR-1806",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1818",
+      "title": "Un mes con solo retiros: la fila suma en positivo, sin doble negativo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Septiembre con un único retiro de 500"
+      ],
+      "given": "las filas del Balance de septiembre",
+      "when": "se leen sus valores y signos",
+      "then": "«Retiros del mes» vale 500 en positivo (suma al disponible), «Reservas del mes» 0, y ninguna fila ya restada lleva un signo menos adicional",
+      "steps": [
+        "Sembrar el mes solo-retiro",
+        "Verificar valores y signos de todas las filas"
+      ],
+      "expected_result": "500 positivo; cero dobles negativos en la cascada",
+      "test_data": {
+        "retiro": 500
+      }
+    },
+    {
+      "id": "TC-TDF-253f",
+      "requirement_id": "NFR-1806",
+      "user_story_id": "US-1805",
+      "ac_id": "AC-1817",
+      "title": "No hay dos filas «Retiros del mes»: la mudanza no duplica",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio con la grilla completa renderizada"
+      ],
+      "given": "los tres segmentos visibles",
+      "when": "se cuentan los elementos con el rótulo «Retiros del mes» en toda la página",
+      "then": "hay exactamente UNO, y está en el segmento de Reservas — el Balance ya no lo renderiza",
+      "steps": [
+        "Renderizar la grilla",
+        "Contar apariciones del rótulo",
+        "Verificar su ubicación"
+      ],
+      "expected_result": "Exactamente 1 fila, en el segmento de Reservas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-261h",
+      "requirement_id": "NFR-1807",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "El guardrail de rendimiento sigue bajo el umbral con las series nuevas",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "El escenario del guardrail existente: 8 bolsillos, 12 meses, 500 movimientos"
+      ],
+      "given": "el estado del guardrail",
+      "when": "se recomputa el barrido completo (tres series), los cupos de los doce meses y la observación de cada mes tras una mutación",
+      "then": "el tiempo total queda por debajo del umbral vigente de 150ms",
+      "steps": [
+        "Construir el escenario",
+        "Medir el recómputo completo",
+        "Comparar con 150ms"
+      ],
+      "expected_result": "Recómputo < 150ms con 8 bolsillos y 500 movimientos",
+      "test_data": {
+        "bolsillos": 8,
+        "movimientos": 500,
+        "umbral_ms": 150
+      }
+    },
+    {
+      "id": "TC-TDF-262e",
+      "requirement_id": "NFR-1807",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "El barrido no gana pasadas: publicar tres series cuesta lo mismo que una",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Contadores de instrumentación del dominio"
+      ],
+      "given": "contadores en 0 y un estado con 8 bolsillos",
+      "when": "se consultan los cupos de los doce meses en ambos planos (24 lecturas)",
+      "then": "el número de barridos ejecutados es ≤2 (uno por plano): la memoización por identidad se conserva pese a publicar tres series",
+      "steps": [
+        "Resetear contadores",
+        "Hacer las 24 lecturas",
+        "Verificar ≤2 barridos"
+      ],
+      "expected_result": "24 lecturas → ≤2 barridos: la memoización sigue funcionando",
+      "test_data": {
+        "lecturas": 24
+      }
+    },
+    {
+      "id": "TC-TDF-263f",
+      "requirement_id": "NFR-1807",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "Una mutación invalida la memoización: el cupo refleja el cambio",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "Un estado con el cupo ya memoizado"
+      ],
+      "given": "reserveHeadroom(ene) memoizado en 1.000",
+      "when": "se reservan 400 y se vuelve a consultar",
+      "then": "devuelve 600, no el valor cacheado 1.000",
+      "steps": [
+        "Leer y memoizar",
+        "Mutar",
+        "Re-leer y verificar el valor nuevo"
+      ],
+      "expected_result": "600 tras la mutación: el caché nunca sirve un cupo obsoleto",
+      "test_data": {
+        "antes": 1000,
+        "reserva": 400,
+        "despues": 600
+      }
+    },
+    {
+      "id": "TC-TDF-271h",
+      "requirement_id": "NFR-1808",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "CI: el workflow dispara en push a la rama principal",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        ".github/workflows/ci.yml en el repo (ruta relativa a process.cwd())"
+      ],
+      "given": "el YAML parseado",
+      "when": "se inspecciona la clave on",
+      "then": "on.push.branches incluye 'main'",
+      "steps": [
+        "Parsear ci.yml",
+        "Verificar el disparador"
+      ],
+      "expected_result": "Trigger push a main presente",
+      "test_data": {
+        "archivo": ".github/workflows/ci.yml"
+      }
+    },
+    {
+      "id": "TC-TDF-272e",
+      "requirement_id": "NFR-1808",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "CI: los pasos invocan la suite unitaria y la e2e declaradas",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "ci.yml y package.json"
+      ],
+      "given": "los scripts test:run y test:e2e existen en package.json",
+      "when": "se buscan los comandos en los steps del workflow",
+      "then": "existe un step que ejecuta 'npm run test:run' y otro 'npm run test:e2e'",
+      "steps": [
+        "Verificar los scripts",
+        "Verificar ambos comandos en los steps"
+      ],
+      "expected_result": "Ambos comandos presentes",
+      "test_data": {
+        "scripts": [
+          "test:run",
+          "test:e2e"
+        ]
+      }
+    },
+    {
+      "id": "TC-TDF-273f",
+      "requirement_id": "NFR-1808",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1827",
+      "title": "CI: los pasos de suite no pueden dar verde falso",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "ci.yml"
+      ],
+      "given": "los steps que ejecutan las suites",
+      "when": "se inspecciona cada uno",
+      "then": "ninguno declara continue-on-error: true ni lleva flags de exclusión de pruebas",
+      "steps": [
+        "Localizar los steps",
+        "Verificar ausencia de continue-on-error y filtros"
+      ],
+      "expected_result": "Un fallo de la suite falla el workflow",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-090h",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1805",
+      "title": "La edición del monto viaja a Postgres y vuelve idéntica",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres (testcontainers) con un retiro de 500 persistido"
+      ],
+      "given": "el movimiento con id mv1 y amount 500 en la tabla movement",
+      "when": "se edita a 300 en el cliente y se guarda por PUT; después se lee por GET desde una conexión nueva",
+      "then": "el GET devuelve mv1 con amount 300, conservando su id, date y extremos; SELECT sobre movement confirma amount=300 y un solo registro con ese id",
+      "steps": [
+        "Editar y guardar",
+        "Nueva conexión",
+        "GET y SELECT de verificación"
+      ],
+      "expected_result": "amount=300 persistido bajo el MISMO id: la edición no duplica ni recrea el movimiento",
+      "test_data": {
+        "antes": 500,
+        "despues": 300
+      }
+    },
+    {
+      "id": "TC-TDF-091h",
+      "requirement_id": "FR-1803",
+      "user_story_id": "US-1803",
+      "ac_id": "AC-1809",
+      "title": "F3 en pantalla: corregir un retiro desde la lista, con rechazo visible",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Escritorio; marzo con un retiro de 500 y un bolsillo con saldo"
+      ],
+      "given": "la lista «Operaciones de este mes» abierta desde la fila de retiros",
+      "when": "se teclea 300 en el monto del retiro y se confirma; después se intenta una edición que rompería un mes posterior",
+      "then": "la primera edición se guarda y el saldo del bolsillo sube 200 en pantalla; la segunda no se guarda, el campo vuelve a su valor previo y bajo la fila aparece el motivo nombrando el mes afectado",
+      "steps": [
+        "Abrir la lista",
+        "Editar el monto a 300 y verificar el saldo",
+        "Intentar la edición que rompe",
+        "Verificar el mensaje y el valor restaurado"
+      ],
+      "expected_result": "Edición válida aplicada en la UI; edición inválida rechazada con el mes nombrado y el campo restaurado",
+      "test_data": {
+        "de": 500,
+        "a": 300
+      }
+    },
+    {
+      "id": "TC-TDF-092e",
+      "requirement_id": "FR-1802",
+      "user_story_id": "US-1802",
+      "ac_id": "AC-1806",
+      "title": "Teclear 0 elimina la operación con aviso en línea, sin diálogo modal",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Escritorio; marzo con dos operaciones listadas"
+      ],
+      "given": "la lista con dos operaciones",
+      "when": "se teclea 0 en el monto de la primera y se confirma",
+      "then": "la fila desaparece de la lista, aparece un aviso en línea que se desvanece, NO se abre ningún diálogo modal, y el saldo del bolsillo se restaura en la grilla",
+      "steps": [
+        "Teclear 0 y confirmar",
+        "Verificar que la fila desaparece",
+        "Verificar ausencia de modal y presencia del aviso en línea",
+        "Verificar el saldo restaurado"
+      ],
+      "expected_result": "Eliminación con aviso en línea, sin modal, y saldo restaurado; la lista queda con una operación",
+      "test_data": {
+        "operaciones": 2
+      }
+    },
+    {
+      "id": "TC-TDF-093e",
+      "requirement_id": "FR-1801",
+      "user_story_id": "US-1801",
+      "ac_id": "AC-1801",
+      "title": "El plano Presupuestado NO cambia de comportamiento (ADR-08)",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Un plan con 200.000 de aportes, 150.000 de retiro planeado y margen de plan 100.000"
+      ],
+      "given": "el plano Presupuestado, donde el retiro planeado descuenta hoy del consumo",
+      "when": "se consultan los meses avisados del plan y el límite del retiro planeado",
+      "then": "el aviso del plan se comporta EXACTAMENTE como antes de esta feature (el retiro planeado sigue descontando): la regla bruta aplica solo al plano Ejecutado",
+      "steps": [
+        "Construir el plan",
+        "Comparar los meses avisados contra el baseline previo a la feature",
+        "Verificar el límite del retiro planeado"
+      ],
+      "expected_result": "Comportamiento del plan idéntico al baseline — aplicar la regla bruta también al plan cambiaría el aviso y este test lo detecta",
+      "test_data": {
+        "aportes_plan": 200000,
+        "retiro_plan": 150000,
+        "margen_plan": 100000
+      }
+    },
+    {
+      "id": "TC-TDF-094f",
+      "requirement_id": "FR-1808",
+      "user_story_id": "US-1808",
+      "ac_id": "AC-1834",
+      "title": "El límite mostrado y el del rechazo son la misma cifra, en grilla y en móvil",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Un estado donde el cupo del mes es 400.000; app accesible a 1440px y a 375px"
+      ],
+      "given": "la grilla en escritorio y la pantalla Registrar a 375px",
+      "when": "en cada superficie se lee la cifra mostrada como límite y luego se provoca el rechazo tecleando de más",
+      "then": "en ambas superficies la cifra del rechazo coincide dígito a dígito con la mostrada; y la de Registrar coincide con el cupo real (400.000), no con el margen bruto",
+      "steps": [
+        "Leer el límite en la grilla y provocar el rechazo",
+        "Repetir a 375px en Registrar",
+        "Comparar las cuatro cifras"
+      ],
+      "expected_result": "Indicador y rechazo dicen lo mismo en ambas superficies; Registrar muestra el cupo, no el margen bruto",
+      "test_data": {
+        "cupo": 400000
+      }
+    },
+    {
+      "id": "TC-TDF-100h",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1839",
+      "title": "El caso del usuario: la columna se lee 500 + 1.000 − 1.500 y cierra en 0",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero cierra con 500 disponibles; febrero tiene 1.000 de ingreso, 0 de gasto y 1.500 guardados"
+      ],
+      "given": "el bloque «lo disponible» de febrero",
+      "when": "se leen sus cinco filas de arriba abajo",
+      "then": "valen 500, 1.000, 1.500, 0 y «Saldo disponible» 0; NINGUNA fila de la columna vale −500",
+      "steps": [
+        "Construir el estado",
+        "Leer las cinco filas",
+        "Verificar los valores y que ninguna cifra de la columna sea −500"
+      ],
+      "expected_result": "500 / 1.000 / 1.500 / — / 0, y cero apariciones de −500",
+      "test_data": {
+        "venia": 500,
+        "ingresos": 1000,
+        "guardado": 1500
+      }
+    },
+    {
+      "id": "TC-TDF-101h",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1840",
+      "title": "«Guardado» y «Sacado» son brutos y de un solo signo, nunca un neto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Enero aporta 1.000 a la alcancía y retira 500"
+      ],
+      "given": "el bloque «lo disponible» de enero",
+      "when": "se leen «Reservas del mes» y «Retiros de reservas»",
+      "then": "dicen 1.000 y 500 —las cifras brutas— y no un neto de 500; ambas son ≥ 0 en cualquier estado",
+      "steps": [
+        "Construir enero con aporte y retiro",
+        "Leer las dos filas",
+        "Verificar 1.000 y 500",
+        "Recorrer los doce meses comprobando que ninguna de las dos es negativa"
+      ],
+      "expected_result": "1.000 y 500 por separado; ninguna de las dos filas es negativa en ningún mes",
+      "test_data": {
+        "aporte": 1000,
+        "retiro": 500
+      }
+    },
+    {
+      "id": "TC-TDF-102e",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1841",
+      "title": "Las dos cuentas se sostienen en 120 pasos, 12 meses y 2 planos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Secuencia determinista de 120 operaciones (semilla 1801), con rechazos tolerados"
+      ],
+      "given": "los 120 estados intermedios",
+      "when": "tras cada paso se evalúan las cuentas en los doce meses y los dos planos",
+      "then": "(1) Venía + Resultado − Guardado + Sacado = Saldo disponible; (2) Saldo disponible + Saldo reservado = Saldo total; (3) Saldo disponible coincide con saldo anterior + flujo − reservas netas",
+      "steps": [
+        "Recorrer la secuencia",
+        "Evaluar las tres identidades tras cada paso",
+        "Fallar nombrando paso, mes, plano e identidad"
+      ],
+      "expected_result": "120 × 12 × 2 × 3 igualdades exactas; ninguna tolerancia",
+      "test_data": {
+        "semilla": 1801
+      }
+    },
+    {
+      "id": "TC-TDF-103e",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1842",
+      "title": "«Saldo del mes anterior» encadena con el cierre del mes previo, y enero abre en 0",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "La serie ejecutada del estado del usuario"
+      ],
+      "given": "los doce meses en el plano Ejecutado",
+      "when": "se compara «Saldo del mes anterior» de cada mes con «Saldo disponible» del anterior",
+      "then": "coinciden en los once pares, y enero abre en 0",
+      "steps": [
+        "Recorrer los doce meses encadenando",
+        "Verificar enero = 0"
+      ],
+      "expected_result": "11 coincidencias exactas y enero en 0",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-104e",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1839",
+      "title": "«Resultado del mes» vale lo mismo en sus dos apariciones",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Cualquier estado de la secuencia determinista"
+      ],
+      "given": "las dos filas que muestran el resultado del mes",
+      "when": "se leen sus valores en los doce meses y los dos planos",
+      "then": "son idénticos al peso — la repetición es un reflejo, no una segunda cifra que pueda divergir",
+      "steps": [
+        "Leer ambas filas por su clave",
+        "Comparar en 12 meses × 2 planos",
+        "Comprobar además que la relación está DECLARADA en MIRROR"
+      ],
+      "expected_result": "24 igualdades exactas y la pareja declarada en MIRROR",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-105f",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1843",
+      "title": "La alarma vive SOLO donde un negativo significa deber plata",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Dos estados: (a) gastos > ingresos con acumulado suficiente; (b) legado con 1.500 guardados sobre 1.000 sin acumulado"
+      ],
+      "given": "los dos estados",
+      "when": "se leen los valores y la propiedad de alarma de cada fila",
+      "then": "(a) «Resultado del mes» es negativo y NO alarma, y «Saldo disponible» sigue positivo; (b) «Saldo disponible» es −500 y SÍ alarma; y las filas de insumo bruto (ingresos, gastos, guardado, sacado) no alarman en ningún caso",
+      "steps": [
+        "Construir ambos estados",
+        "Verificar valor y alarma de cada fila implicada",
+        "Comprobar que solo las tres filas declaradas pueden alarmar"
+      ],
+      "expected_result": "Exactamente una alarma entre los dos estados, en «Saldo disponible» de (b)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-106f",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1839",
+      "title": "La tabla declarada: diez filas, tres bloques, y ninguna fila huérfana de relación",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "La tabla ROWS y los invariantes de balanceRows.ts"
+      ],
+      "given": "la tabla de filas del Balance",
+      "when": "se validan tamaño, bloques, invariantes y cobertura de relaciones",
+      "then": "ROWS tiene 10 entradas en los bloques mes/disponible/cierre; ninguna clave es reserved, reservedCarry, monthAvailable, toAvailable ni retiros; los tres validadores devuelven ok; y toda fila aparece en CASCADE o en MIRROR",
+      "steps": [
+        "Leer ROWS",
+        "Comprobar tamaño, claves ausentes y reparto por bloque",
+        "Ejecutar los validadores",
+        "Comprobar que ninguna fila queda fuera de las relaciones declaradas"
+      ],
+      "expected_result": "10 filas, 0 claves prohibidas, 3 validadores en ok, 0 filas huérfanas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-107f",
+      "requirement_id": "FR-1810",
+      "user_story_id": "US-1810",
+      "ac_id": "AC-1839",
+      "title": "Los invariantes RECHAZAN una tabla mal formada — sin esto, 106f estaría vacío",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Copias de ROWS manipuladas"
+      ],
+      "given": "tres tablas inválidas",
+      "when": "se ejecutan los validadores sobre cada una",
+      "then": "(a) con los diez márgenes iguales, validateIndentLevels y validateContiguity fallan; (b) con un término del bloque 2 movido DESPUÉS de «Saldo disponible», validateCascadeOrder falla nombrándolo; (c) con «Resultado del mes» al mismo nivel que los términos del bloque 2, validateContiguity lo recoge como sumando ajeno y falla",
+      "steps": [
+        "Construir las tres tablas",
+        "Ejecutar los validadores",
+        "Verificar ok=false y el offender en cada una",
+        "Verificar el positivo sobre ROWS para que el rechazo no sea un siempre-false"
+      ],
+      "expected_result": "Tres rechazos con offender identificado, y ROWS en ok",
+      "test_data": {}
+    },
+    {
+      "id": "TC-TDF-063f",
+      "requirement_id": "FR-1807",
+      "user_story_id": "US-1807",
+      "ac_id": "AC-1826",
+      "title": "Corregir una operación es editar su monto: no existe ningún botón de borrar",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Enero con un retiro de 500 ya operado"
+      ],
+      "given": "la lista «Operaciones de este mes» del popover de retiros",
+      "when": "se busca una vía de borrado",
+      "then": "el monto de la operación es un campo editable y NO existe ningún botón de borrar ni de eliminar: teclear 0 es el único camino de eliminación",
+      "steps": [
+        "Abrir el popover de retiros de enero",
+        "Comprobar que el monto es editable",
+        "Comprobar que no hay botones de borrar/eliminar"
+      ],
+      "expected_result": "Campo de monto presente; cero botones de borrado",
+      "test_data": {
+        "retiro": 500
+      }
+    }
+  ]
+}

@@ -17,8 +17,8 @@ const buttonVariants = cva(
       },
       // control-size-scale FR-802: alturas desde la escala canónica (--control-sm/-md).
       size: {
-        default: "h-(--control-md) px-3.5 text-[0.8rem]",
-        sm: "h-(--control-sm) px-3 text-[0.72rem]",
+        default: "h-(--control-md) px-3.5 text-label",
+        sm: "h-(--control-sm) px-3 text-caption",
         icon: "h-(--control-sm) w-(--control-sm) p-0",
       },
     },

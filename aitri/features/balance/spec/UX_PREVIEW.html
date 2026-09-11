@@ -41,7 +41,7 @@
   .child .pres{color:var(--fg-muted)}
   .dash{color:var(--fg-muted)}
   /* FR-904: separación visual del bloque Transferencia */
-  .sep td{padding:0;height:22px;background:var(--bg);border-bottom:1px solid var(--border)!important}
+  .sep td{padding:0;height:32px;background:var(--bg);border-bottom:none!important}
   /* BALANCE module */
   .balance-head td{background:var(--bg-sunken);border-top:1px solid var(--border-strong);
     color:var(--fg-muted);letter-spacing:.12em;font-size:10px;text-transform:uppercase;padding-top:12px}
@@ -71,7 +71,7 @@
 
 <div class="note">
   <b>UX Preview — feature balance.</b> Render del spec (no es la app). Muestra
-  (1) la <b>separación visual del bloque TRANSFERENCIAS</b> y (2) el <b>módulo BALANCE</b> al pie:
+  (1) la <b>separación visual del módulo BALANCE</b> (los tres tipos quedan contiguos) y (2) el <b>módulo BALANCE</b> al pie:
   6 filas × 2 planos (Pres. = plan manual · Ejec. = real). El módulo es de <b>solo lectura</b>: nada se teclea aquí,
   todo se calcula de las celdas de la grilla de arriba. <b>Cada columna arrastra su propio cierre</b>: el Saldo mes
   anterior Pres. = cierre presupuestado del mes previo (tu plan); el Ejec. = cierre real — dos trayectorias independientes.
@@ -131,9 +131,6 @@
         <td class="pres monthgroup">8.400.000</td><td>7.083.000</td>
       </tr>
 
-      <!-- FR-904: separación visual del bloque Transferencia -->
-      <tr class="sep"><td colspan="7"></td></tr>
-
       <tr class="type tr">
         <td class="cat">⇄ TRANSFERENCIAS</td>
         <td class="pres monthgroup">1.040.000</td><td class="ejec">1.040.000</td>
@@ -147,14 +144,17 @@
         <td class="pres monthgroup">1.040.000</td><td>900.000</td>
       </tr>
 
+      <!-- FR-904: el corte fuerte va ANTES del balance; los tres tipos quedan contiguos -->
+      <tr class="sep"><td colspan="7"></td></tr>
+
       <!-- FR-905/906/907: módulo BALANCE -->
       <tr class="balance-head"><td class="cat">Balance</td><td colspan="6"></td></tr>
 
       <tr class="bal ctx">
         <td class="cat">Saldo mes anterior</td>
         <td class="pres monthgroup dash">—</td><td class="dash">—</td>
-        <td class="pres monthgroup">3.400.000</td><td>2.283.482</td>
-        <td class="pres monthgroup">7.520.000</td><td>6.553.482</td>
+        <td class="pres monthgroup">2.360.000</td><td>1.243.482</td>
+        <td class="pres monthgroup">5.440.000</td><td>4.365.482</td>
       </tr>
       <tr class="bal in">
         <td class="cat">Flujo del mes</td>
@@ -192,7 +192,7 @@
 
 <div class="caption">
   Notas del render:
-  · <b>Saldo mes anterior</b> = cierre del MISMO plano en el mes previo: Pres. arrastra el cierre presupuestado (feb: 3.400.000), Ejec. el cierre real (feb: 2.283.482) — valores distintos, cada uno de su columna. Enero = <span class="dash">—</span> (mes 1, sin arrastre).
+  · <b>Saldo mes anterior</b> = el <b>Saldo disponible</b> que viene del mes previo, en el MISMO plano (feb Pres. 2.360.000 = disponible de enero; feb Ejec. 1.243.482 = el real). NO es la suma disponible + reservado: lo reservado se ve aparte, acumulado, en <b>Saldo reservado</b>. Así las dos cuentas se leen en pantalla: <i>disponible = anterior + flujo − reservas</i> y <i>total = disponible + reservado</i>. Enero = <span class="dash">—</span> (mes 1, sin arrastre).
   · Cada plano es independiente: el presupuestado nunca toma datos reales, ni al revés. Así comparas "lo que planeé acumulado" vs "lo real".
   · Cada aporte a la alcancía (guardar) baja el disponible y sube el reservado; el <b>Saldo total no cambia</b> por guardar. En v1 solo se guarda (la reserva solo crece); “sacar” vive en la feature <b>transferencias</b>.
   · Un <span class="neg">rojo</span> aparecería en Saldo disponible/total solo si el gasto superara lo disponible (deuda real).

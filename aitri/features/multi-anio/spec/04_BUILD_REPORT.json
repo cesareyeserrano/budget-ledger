@@ -1,0 +1,176 @@
+{
+  "files_created": [
+    "src/domain/periods.ts",
+    "src/domain/range.ts",
+    "src/server/data/preferencesRepo.ts",
+    "src/app/api/v1/preferences/horizon/route.ts",
+    "drizzle/0002_multi_anio.sql",
+    "drizzle/0003_horizonte_en_anios.sql",
+    "tests/helpers/periods.ts",
+    "tests/e2e/helpers/periods.ts",
+    "tests/fixtures/multi-anio-baseline.json",
+    "tests/domain/multi-anio.test.ts",
+    "tests/integration/backend/multi-anio.test.ts",
+    "tests/unit/multi-anio-suite.test.ts",
+    "tests/e2e/multi-anio.spec.ts"
+  ],
+  "files_modified": [
+    "drizzle/meta/_journal.json",
+    "src/app/api/v1/movements/route.ts",
+    "src/components/BalanceModule.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/Dashboard.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/ReserveCells.tsx",
+    "src/components/register/Register.tsx",
+    "src/components/register/ReserveRow.tsx",
+    "src/components/reserveText.ts",
+    "src/domain/balance.ts",
+    "src/domain/dashboard.ts",
+    "src/domain/index.ts",
+    "src/domain/migrate.ts",
+    "src/domain/mutations.ts",
+    "src/domain/reserve.ts",
+    "src/domain/rollup.ts",
+    "src/domain/seed.ts",
+    "src/domain/types.ts",
+    "src/domain/validation.ts",
+    "src/lib/date.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/server/db/schema.ts",
+    "src/server/schemas.ts",
+    "src/state/store.ts",
+    "tests/domain/backend-regression.test.ts",
+    "tests/domain/balance.test.ts",
+    "tests/domain/categories.test.ts",
+    "tests/domain/contrapartidas-reserva.test.ts",
+    "tests/domain/demote-node.test.ts",
+    "tests/domain/hardening.test.ts",
+    "tests/domain/move-dashboard-seed.test.ts",
+    "tests/domain/movement.test.ts",
+    "tests/domain/period-default.test.ts",
+    "tests/domain/promote-to-group.test.ts",
+    "tests/domain/refinamiento-ui.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/resumen-plegado.test.ts",
+    "tests/domain/rollup-perf.test.ts",
+    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/seq-monotonic.test.ts",
+    "tests/domain/summary-kpis.test.ts",
+    "tests/domain/techo-de-flujo.test.ts",
+    "tests/e2e-backend/grid-regression.spec.ts",
+    "tests/e2e-backend/helpers/app.ts",
+    "tests/e2e-backend/storage-split.spec.ts",
+    "tests/e2e/balance-jerarquia.spec.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/helpers/fixtures.ts",
+    "tests/e2e/recuperar-acceso.spec.ts",
+    "tests/e2e/resumen-plegado.spec.ts",
+    "tests/e2e/servidor-fuente-unica.spec.ts",
+    "tests/e2e/techo-de-flujo.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/helpers/reserve.ts",
+    "tests/helpers/totals.ts",
+    "tests/integration/backend/api.test.ts",
+    "tests/integration/backend/auth.test.ts",
+    "tests/integration/backend/foundation.test.ts",
+    "tests/integration/backend/perf.test.ts",
+    "tests/integration/backend/recuperar-acceso-reset.test.ts",
+    "tests/integration/backend/repo-sync.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/response-validation.test.ts",
+    "tests/integration/seq-seed-on-load.test.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/integration/write-serialization.test.ts",
+    "tests/unit/backend-gates.test.ts",
+    "tests/unit/feature-stack.test.ts",
+    "tests/unit/servidor-fuente-unica.test.ts",
+    "tests/unit/ux-consistency.test.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate"
+  ],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1907",
+      "substitution": "El horizonte se persiste y se sirve por API, pero NO hay control en la interfaz para cambiarlo",
+      "reason": "Su sitio es la página de Configuración, que es el punto 4 del orden acordado y no existe todavía. Crearla aquí invadiría el no_go_zone. Todos los usuarios quedan en el defecto de 2 años, que es el valor con el que se diseñó la vista.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-1901",
+      "substitution": "tests/e2e está EXCLUIDO de tsconfig.json, así que `npm run typecheck` no lo comprueba",
+      "reason": "Exclusión preexistente, no introducida por esta feature. Durante la construcción costó caro: un error de sintaxis puro en dos specs sobrevivió a un tsc en verde y solo apareció al ejecutar Playwright, la corrida más lenta de la suite. No se toca por cuenta propia porque la exclusión puede ser deliberada por los tipos de Playwright.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-1902",
+      "substitution": "La migración cambia la estructura pero NO traduce datos del modelo viejo",
+      "reason": "ADR-05: las tres tablas estaban vacías, así que no había filas que traducir, y el script aborta si dejan de estarlo. Una base con datos del modelo de doce meses necesitaría un escalón nuevo que decida el año ancla.",
+      "effort_to_fix": "medium"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_files": [
+    "../../../tests/domain/multi-anio.test.ts",
+    "../../../tests/integration/backend/multi-anio.test.ts",
+    "../../../tests/unit/multi-anio-suite.test.ts",
+    "../../../tests/e2e/multi-anio.spec.ts"
+  ],
+  "test_runner_timeout_ms": 900000,
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "Medido 2026-09-02 tras multi-anio: 380 e2e en 2,4 min, 0 fallos. La suite se aceleró respecto de los 10,8 min de techo-de-flujo."
+    }
+  ]
+}

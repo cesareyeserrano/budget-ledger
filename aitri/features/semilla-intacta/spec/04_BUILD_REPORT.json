@@ -1,0 +1,104 @@
+{
+  "files_created": [
+    "tests/helpers/seedConMontos.ts",
+    "tests/domain/semilla-intacta.test.ts",
+    "tests/integration/semilla-intacta.test.ts",
+    "tests/e2e/semilla-intacta.spec.ts"
+  ],
+  "files_modified": [
+    "src/domain/seed.ts",
+    "tests/e2e/helpers/fixtures.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/domain/multi-anio.test.ts",
+    "tests/domain/backend-regression.test.ts",
+    "tests/domain/categories.test.ts",
+    "tests/domain/demote-node.test.ts",
+    "tests/domain/refinamiento-ui.test.ts",
+    "tests/unit/backend-gates.test.ts",
+    "tests/integration/backend/cierre-de-mes.test.ts",
+    "tests/integration/backend/multi-anio.test.ts",
+    "tests/domain/cierre-de-mes.test.ts",
+    "aitri/product/spec/01_REQUIREMENTS.json"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2302",
+      "substitution": "TC-SIN-010h NO recorre un registro de usuario por la interfaz: la app no expone ruta de registro (src/app/ solo tiene api, configuracion, health, recuperar y la raiz) y las cuentas e2e las crea globalSetup. En su lugar la prueba escribe sobre la cuenta del worker la salida LITERAL de `buildSeed` —la funcion del producto— y verifica que ese usuario ve la tarjeta. Es estrictamente mas fuerte que la siembra sintetica que enmascaro el defecto original (un ledger fabricado a mano no se pondria rojo si alguien devolviera montos a la semilla; esta prueba si), pero no cubre el tramo registro->primer render. Cerrarlo exige una ruta de registro que el producto no tiene.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-2302",
+      "substitution": "FR-1910 de multi-anio («la semilla se ancla al periodo EN CURSO») queda VACIO para la semilla que se envia: sin celdas no hay eje que anclar. Sus TCs (TC-MAN-090h/091e/092f) siguen verificando el anclaje, pero ahora contra `buildSeedConMontos`, o sea contra `genBudget` — que es donde el anclaje vive de verdad. El proposito del requisito (un usuario de septiembre no ve celdas de enero a agosto) se cumple MAS que antes, porque no ve ninguna. Queda registrado para que nadie lea esos TCs creyendo que cubren la semilla enviada.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "NFR-2303",
+      "substitution": "El fixture `freshLedger` de la suite e2e (tests/e2e/helpers/fixtures.ts) pasa a componer su baseline con `buildSeedConMontos`. Su comentario decia que reproducia «el mismo estado con el que la app arranca a un usuario nuevo»; eso YA NO es cierto y se corrigio en el propio fichero. El baseline poblado se conserva porque las aserciones de los 416 TCs e2e lo asumen; el estado real del usuario nuevo se verifica aparte en tests/e2e/semilla-intacta.spec.ts.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2301",
+      "substitution": "`buildSeed` conserva el parametro `startPeriod` aunque su cuerpo ya no lo usa (la jerarquia no depende del mes). Se mantiene por compatibilidad: 36 ficheros de prueba y 3 de codigo lo pasan, y cambiarlo seria un refactor de firma sin valor para el usuario. tsconfig no activa noUnusedParameters, asi que no rompe el typecheck.",
+      "effort": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/semilla-intacta.test.ts",
+    "../../../tests/integration/semilla-intacta.test.ts",
+    "../../../tests/e2e/semilla-intacta.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "La suite e2e completa. Su fixture freshLedger compone ahora el baseline con buildSeedConMontos (ver technical_debt de NFR-2303): la semilla del producto salio vacia con FR-2301 y las aserciones de los 416 TCs asumen un baseline poblado."
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ]
+}

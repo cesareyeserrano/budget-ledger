@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Preview — recuperar-acceso</title>
+<style>
+  /* Sin recursos externos: ni fuentes, ni imágenes, ni CDN. Pilas del sistema. */
+  :root{
+    --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --code: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e9ec;color:#1c1c1f;font-family:var(--ui);line-height:1.5;padding:24px}
+  header{max-width:1200px;margin:0 auto 20px}
+  h1{font-size:1.4rem;margin:0 0 6px;letter-spacing:-0.02em}
+  .sub{font-size:.85rem;color:#55555d;margin:0}
+  .warn{max-width:1200px;margin:0 auto 20px;padding:10px 14px;border:1px solid #c9a227;background:#fdf6e0;border-radius:8px;font-size:.8rem;color:#5c4a00}
+  .cols{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:860px){.cols{grid-template-columns:1fr}}
+  .panel{border-radius:14px;padding:20px;border:1px solid}
+  .panel h2{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;margin:0 0 14px}
+  .panel h3{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:22px 0 8px;opacity:.75}
+
+  /* Cada panel FIJA su propia paleta: la comparación no depende del tema del que mira. */
+  .light{background:#f7f7f8;border-color:#e3e3e7;color:#1c1c1f}
+  .dark {background:#131316;border-color:#33333a;color:#f4f4f5}
+
+  table{width:100%;border-collapse:collapse;font-size:.75rem}
+  th{text-align:left;font-weight:600;opacity:.6;padding:4px 6px;font-size:.6875rem;text-transform:uppercase;letter-spacing:.06em}
+  td{padding:5px 6px;vertical-align:middle;border-top:1px solid currentColor}
+  tbody tr td{border-color:rgba(128,128,128,.25)}
+  .sw{width:26px;height:26px;border-radius:6px;border:1px solid rgba(128,128,128,.4);display:block}
+  .hex{font-family:var(--code);font-size:.7rem;opacity:.85}
+  .why{opacity:.7;font-size:.7rem}
+
+  .badge{display:inline-block;font-family:var(--code);font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:999px;border:1px solid}
+  .pass{color:#1d6b45;border-color:#1d6b45;background:rgba(45,118,80,.12)}
+  .dark .pass{color:#5fbe82;border-color:#5fbe82;background:rgba(95,190,130,.15)}
+
+  .scale div{margin:5px 0}
+  .t-title{font-size:1.25rem;font-weight:600;letter-spacing:-.02em}
+  .t-label{font-size:.8125rem;font-weight:500}
+  .t-caption{font-size:.75rem;font-weight:400}
+  .t-eyebrow{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase}
+  .ann{font-family:var(--code);font-size:.65rem;opacity:.5;margin-left:8px}
+
+  .spacing{display:flex;gap:8px;align-items:flex-end;margin-top:6px}
+  .spacing i{display:block;background:currentColor;opacity:.35;width:14px;border-radius:2px}
+  .spacing span{font-family:var(--code);font-size:.6rem;opacity:.6;display:block;text-align:center;margin-top:3px}
+
+  .illus{margin-top:22px;border:1px dashed rgba(128,128,128,.5);border-radius:10px;padding:14px}
+  .illus .flag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.65;margin-bottom:10px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap}
+
+  /* La tarjeta de credenciales, con los tokens reales de cada tema. */
+  .card{width:250px;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;border:1px solid}
+  .light .card{background:#fff;border-color:#e3e3e7;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .dark  .card{background:#1b1b1f;border-color:#33333a;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .card .eb{font-size:.6875rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase}
+  .light .card .eb{color:#6b6b73} .dark .card .eb{color:#9b9ba3}
+  .card .ti{font-size:1.25rem;font-weight:600;letter-spacing:-.02em}
+  .card .help{font-size:.75rem}
+  .light .card .help{color:#55555d} .dark .card .help{color:#b4b4bb}
+  .card label{font-size:.8125rem;font-weight:500}
+  .light .card label{color:#55555d} .dark .card label{color:#b4b4bb}
+  .field{height:40px;border-radius:8px;border:1px solid;display:flex;align-items:center;padding:0 12px;font-size:.8125rem}
+  .light .field{background:#fff;border-color:#e3e3e7;color:#6b6b73}
+  .dark  .field{background:#26262b;border-color:#33333a;color:#9b9ba3}
+  .field.err{border-color:#ad3932} .dark .field.err{border-color:#ec6a66}
+  .field.foc{outline:2px solid #55555d;outline-offset:2px}
+  .dark .field.foc{outline-color:#9b9ba3}
+  .btn{height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8125rem;font-weight:500;border:1px solid}
+  .light .btn{background:#1c1c1f;color:#fff;border-color:#1c1c1f}
+  .dark  .btn{background:#f4f4f5;color:#1c1c1f;border-color:#f4f4f5}
+  .btn.off{opacity:.6}
+  .errtext{font-size:.75rem;color:#ad3932}
+  .dark .errtext{color:#ec6a66}
+  .link{font-size:.75rem;text-align:center}
+  .light .link{color:#6b6b73} .dark .link{color:#9b9ba3}
+  .rule{height:1px;background:#e3e3e7} .dark .rule{background:#33333a}
+
+  .gaps{max-width:1200px;margin:22px auto 0;padding:12px 16px;border:1px solid #b9b9c0;border-radius:10px;background:#f3f3f5;font-size:.75rem}
+  .gaps h3{margin:0 0 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em}
+  .gaps ul{margin:0;padding-left:18px} .gaps li{margin:3px 0}
+  footer{max-width:1200px;margin:18px auto 0;font-size:.7rem;color:#55555d;font-family:var(--code)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>UX Preview — feature <code>recuperar-acceso</code></h1>
+  <p class="sub">Render del <strong>01_UX_SPEC.md</strong>. Cada panel fija su propia paleta, así que la comparación claro/oscuro no depende del tema de tu sistema.</p>
+</header>
+
+<div class="warn">
+  <strong>Esto es una lectura-de-vuelta, no una propuesta.</strong> Esta feature no inventa diseño: reutiliza el sistema ya aprobado del producto
+  (<code>stack-upgrade-theme</code> · <code>ux-consistency</code> · <code>refinamiento-ui</code>), leído de <code>src/app/globals.css</code>.
+  Compáralo contra la app que ya tienes: <em>cualquier diferencia es un error de transcripción</em>, no una decisión nueva.
+  Los tokens del bloque «Design Tokens» del spec RAÍZ (paleta oscura única del prototipo) están <strong>superados</strong> y no se usan aquí.
+</div>
+
+<div class="cols">
+
+  <!-- ══════════ CLARO ══════════ -->
+  <section class="panel light">
+    <h2>Tema claro</h2>
+
+    <h3>Superficies y texto</h3>
+    <table>
+      <thead><tr><th></th><th>Rol</th><th>Hex</th><th>Razón</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sw" style="background:#f7f7f8"></span></td><td>background</td><td class="hex">#f7f7f8</td><td class="why">Lienzo off-white: la tarjeta flota</td></tr>
+        <tr><td><span class="sw" style="background:#ffffff"></span></td><td>surface (tarjeta)</td><td class="hex">#ffffff</td><td class="why">Superficie de las 3 pantallas</td></tr>
+        <tr><td><span class="sw" style="background:#ffffff"></span></td><td>surface-2 (campos)</td><td class="hex">#ffffff</td><td class="why">Fondo de Input, del componente</td></tr>
+        <tr><td><span class="sw" style="background:#1c1c1f"></span></td><td>primary</td><td class="hex">#1c1c1f</td><td class="why">Chrome neutro: no compite con lo semántico</td></tr>
+        <tr><td><span class="sw" style="background:#55555d"></span></td><td>accent (foco)</td><td class="hex">#55555d</td><td class="why">Anillo de <code>:focus-visible</code></td></tr>
+        <tr><td><span class="sw" style="background:#1c1c1f"></span></td><td>text-primary</td><td class="hex">#1c1c1f</td><td class="why">Títulos y valor de campo</td></tr>
+        <tr><td><span class="sw" style="background:#55555d"></span></td><td>text-secondary</td><td class="hex">#55555d</td><td class="why">Etiquetas y ayuda</td></tr>
+        <tr><td><span class="sw" style="background:#6b6b73"></span></td><td>text-muted</td><td class="hex">#6b6b73</td><td class="why">Eyebrow y enlaces secundarios</td></tr>
+        <tr><td><span class="sw" style="background:#ad3932"></span></td><td>error</td><td class="hex">#ad3932</td><td class="why">Rol canónico <code>--alert-strong</code></td></tr>
+        <tr><td><span class="sw" style="background:#e3e3e7"></span></td><td>border</td><td class="hex">#e3e3e7</td><td class="why">Hairline de tarjeta y campos</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Contraste calculado</h3>
+    <table>
+      <tbody>
+        <tr><td>text-primary sobre tarjeta</td><td><span class="badge pass">AA 16.9</span></td></tr>
+        <tr><td>text-secondary sobre tarjeta</td><td><span class="badge pass">AA 7.3</span></td></tr>
+        <tr><td>text-muted sobre tarjeta</td><td><span class="badge pass">AA 5.28</span></td></tr>
+        <tr><td>error sobre tarjeta</td><td><span class="badge pass">AA 4.85</span></td></tr>
+        <tr><td>texto sobre relleno primario</td><td><span class="badge pass">AA 16.9</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Escala tipográfica, al tamaño real</h3>
+    <div class="scale">
+      <div class="t-eyebrow">Ledger<span class="ann">.eyebrow · 0.6875rem/600 · ls .09em</span></div>
+      <div class="t-title">Recuperar contraseña<span class="ann">.title · 1.25rem/600</span></div>
+      <div class="t-label">Email<span class="ann">.label · 0.8125rem/500</span></div>
+      <div class="t-caption">Te enviaremos un enlace para crear una contraseña nueva.<span class="ann">.caption · 0.75rem/400</span></div>
+    </div>
+
+    <h3>Espaciado (base 4px) y radios</h3>
+    <div class="spacing">
+      <div><i style="height:4px"></i><span>4</span></div>
+      <div><i style="height:8px"></i><span>8</span></div>
+      <div><i style="height:12px"></i><span>12</span></div>
+      <div><i style="height:16px"></i><span>16</span></div>
+      <div><i style="height:20px"></i><span>20</span></div>
+      <div><i style="height:24px"></i><span>24</span></div>
+      <div style="margin-left:16px"><i style="height:26px;width:26px;border-radius:8px"></i><span>r 8</span></div>
+      <div><i style="height:26px;width:26px;border-radius:14px"></i><span>r 14</span></div>
+    </div>
+
+    <div class="illus">
+      <div class="flag">Ilustrativo — no vinculante; el contrato es el spec</div>
+      <div class="cards">
+        <div class="card">
+          <div class="eb">Ledger</div>
+          <div class="ti">Recuperar contraseña</div>
+          <div class="help">Te enviaremos un enlace para crear una contraseña nueva.</div>
+          <label>Email</label>
+          <div class="field foc">tu@correo.com</div>
+          <div class="btn">Enviar enlace</div>
+          <div class="rule"></div>
+          <div class="link">Volver a iniciar sesión</div>
+        </div>
+        <div class="card">
+          <div class="eb">Ledger</div>
+          <div class="ti">Recuperar contraseña</div>
+          <label>Email</label>
+          <div class="field err">tu@correo.com</div>
+          <div class="errtext">No pudimos enviar el correo. Inténtalo de nuevo en unos minutos.</div>
+          <div class="btn off">Enviando…</div>
+          <div class="rule"></div>
+          <div class="link">Volver a iniciar sesión</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ OSCURO ══════════ -->
+  <section class="panel dark">
+    <h2>Tema oscuro</h2>
+
+    <h3>Superficies y texto</h3>
+    <table>
+      <thead><tr><th></th><th>Rol</th><th>Hex</th><th>Razón</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sw" style="background:#131316"></span></td><td>background</td><td class="hex">#131316</td><td class="why">Nunca negro puro: evita halación</td></tr>
+        <tr><td><span class="sw" style="background:#1b1b1f"></span></td><td>surface (tarjeta)</td><td class="hex">#1b1b1f</td><td class="why">Más clara que el lienzo = elevada</td></tr>
+        <tr><td><span class="sw" style="background:#26262b"></span></td><td>surface-2 (campos)</td><td class="hex">#26262b</td><td class="why">Fondo de Input, del componente</td></tr>
+        <tr><td><span class="sw" style="background:#f4f4f5"></span></td><td>primary</td><td class="hex">#f4f4f5</td><td class="why">Se invierte: relleno claro, texto oscuro</td></tr>
+        <tr><td><span class="sw" style="background:#9b9ba3"></span></td><td>accent (foco)</td><td class="hex">#9b9ba3</td><td class="why">Anillo de <code>:focus-visible</code></td></tr>
+        <tr><td><span class="sw" style="background:#f4f4f5"></span></td><td>text-primary</td><td class="hex">#f4f4f5</td><td class="why">Off-white, no blanco puro</td></tr>
+        <tr><td><span class="sw" style="background:#b4b4bb"></span></td><td>text-secondary</td><td class="hex">#b4b4bb</td><td class="why">Etiquetas y ayuda</td></tr>
+        <tr><td><span class="sw" style="background:#9b9ba3"></span></td><td>text-muted</td><td class="hex">#9b9ba3</td><td class="why">Eyebrow y enlaces secundarios</td></tr>
+        <tr><td><span class="sw" style="background:#ec6a66"></span></td><td>error</td><td class="hex">#ec6a66</td><td class="why">Rol canónico <code>--alert-strong</code></td></tr>
+        <tr><td><span class="sw" style="background:#33333a"></span></td><td>border</td><td class="hex">#33333a</td><td class="why">Hairline de tarjeta y campos</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Contraste calculado</h3>
+    <table>
+      <tbody>
+        <tr><td>text-primary sobre tarjeta</td><td><span class="badge pass">AA 15.1</span></td></tr>
+        <tr><td>text-secondary sobre tarjeta</td><td><span class="badge pass">AA 8.9</span></td></tr>
+        <tr><td>text-muted sobre tarjeta</td><td><span class="badge pass">AA 6.8</span></td></tr>
+        <tr><td>error sobre tarjeta</td><td><span class="badge pass">AA 5.9</span></td></tr>
+        <tr><td>texto sobre relleno primario</td><td><span class="badge pass">AA 15.1</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Escala tipográfica, al tamaño real</h3>
+    <div class="scale">
+      <div class="t-eyebrow" style="color:#9b9ba3">Ledger<span class="ann">.eyebrow · 0.6875rem/600 · ls .09em</span></div>
+      <div class="t-title">Crea tu contraseña nueva<span class="ann">.title · 1.25rem/600</span></div>
+      <div class="t-label" style="color:#b4b4bb">Contraseña nueva<span class="ann">.label · 0.8125rem/500</span></div>
+      <div class="t-caption" style="color:#b4b4bb">Se han cerrado las sesiones abiertas de tu cuenta.<span class="ann">.caption · 0.75rem/400</span></div>
+    </div>
+
+    <h3>Espaciado (base 4px) y radios</h3>
+    <div class="spacing">
+      <div><i style="height:4px"></i><span>4</span></div>
+      <div><i style="height:8px"></i><span>8</span></div>
+      <div><i style="height:12px"></i><span>12</span></div>
+      <div><i style="height:16px"></i><span>16</span></div>
+      <div><i style="height:20px"></i><span>20</span></div>
+      <div><i style="height:24px"></i><span>24</span></div>
+      <div style="margin-left:16px"><i style="height:26px;width:26px;border-radius:8px"></i><span>r 8</span></div>
+      <div><i style="height:26px;width:26px;border-radius:14px"></i><span>r 14</span></div>
+    </div>
+
+    <div class="illus">
+      <div class="flag">Ilustrativo — no vinculante; el contrato es el spec</div>
+      <div class="cards">
+        <div class="card">
+          <div class="eb">Ledger</div>
+          <div class="ti">Crea tu contraseña nueva</div>
+          <label>Contraseña nueva</label>
+          <div class="field">••••••••</div>
+          <label>Repite la contraseña</label>
+          <div class="field err">••••••</div>
+          <div class="errtext">Las contraseñas no coinciden.</div>
+          <div class="btn off">Guardar contraseña</div>
+        </div>
+        <div class="card">
+          <div class="eb">Ledger</div>
+          <div class="ti">Este enlace ya no sirve</div>
+          <div class="help">Los enlaces caducan a los 30 minutos y sólo se pueden usar una vez. Pide uno nuevo para continuar.</div>
+          <div class="btn">Pedir un enlace nuevo</div>
+          <div class="rule"></div>
+          <div class="link">Volver a iniciar sesión</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="gaps">
+  <h3>Huecos honestos — lo que este preview NO muestra fielmente</h3>
+  <ul>
+    <li><strong>Las tipografías reales no están cargadas.</strong> El producto usa <code>Inter</code> (interfaz) y <code>DM Mono</code> (cifras). Cargarlas exigiría una petición externa, prohibida en este preview, así que se renderiza con la pila del sistema. Los <em>tamaños, pesos y tracking</em> sí son los reales; la forma de la letra no. (Estas tres pantallas no muestran ninguna cifra, así que DM Mono no interviene.)</li>
+    <li><strong>Elevación aproximada.</strong> El sistema compone <code>.elevated-sm</code> como <code>--elev-highlight</code> + <code>--shadow-sm</code>; aquí se usa sólo una sombra equivalente. No afecta a ningún color ni a ninguna medida.</li>
+    <li><strong>Sin estados vivos.</strong> Los estados <em>foco</em>, <em>error</em>, <em>ocupado</em> y <em>enlace muerto</em> se muestran en composiciones fijas, una al lado de otra, en vez de por interacción.</li>
+    <li><strong>Tokens del sistema no renderizados por no intervenir aquí:</strong> <code>--bg-sunken</code>, <code>--type-expense/income/transfer</code>, <code>--favorable</code>, <code>--alert-soft</code>, y la escala <code>--control-sm</code> (32px). Ninguna de las tres pantallas los consume.</li>
+  </ul>
+</div>
+
+<footer>Generado desde 01_UX_SPEC.md — no vinculante; el contrato es el spec.</footer>
+
+</body>
+</html>

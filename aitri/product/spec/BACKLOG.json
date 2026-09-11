@@ -54,6 +54,408 @@
       "status": "closed",
       "createdAt": "2026-07-23T01:45:33.572Z",
       "closedAt": "2026-07-23T14:28:06.639Z"
+    },
+    {
+      "id": "BL-007",
+      "title": "Implementar los 11 TC de grid-ux nunca escritos (6 NFR de regresion)",
+      "priority": "P1",
+      "problem": "TC-205e/208e/210e/211e/211f/213e/213f/214h/214f/215e/215f figuran skip en aitri/features/grid-ux/spec/04_TEST_RESULTS.json con la nota 'Not detected in runner output', pero un grep de cada id sobre tests/ devuelve cero coincidencias: los tests no existen. Seis cubren NFR de regresion (NFR-101 Escape cancela edicion, NFR-102 reparent + manija de resize, NFR-104 registro a 375px, NFR-105 persistencia tras resize, NFR-106 contraste AA y cero fuente externa).",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:58:44.368Z",
+      "acceptance": "Cada uno de los 11 TC tiene un test en tests/e2e/grid-ux.spec.ts nombrado por su TC-ID, verify-run los reporta pass y grid-ux queda 0 skip. TC-215e/215f se re-anclan a Inter + DM Mono (FR-213 de stack-upgrade-theme reemplazo a Lexend). TC-BE-077h se marca manual y se verifica.",
+      "closedAt": "2026-07-28T21:00:52.376Z"
+    },
+    {
+      "id": "BL-008",
+      "title": "TC-105e afirma 'totales cuadran' sin comprobar ningun total (dejo pasar BG-009)",
+      "priority": "P1",
+      "problem": "tests/domain/move-dashboard-seed.test.ts:87-95 se titula 'tras reparent, cero huerfanos y totales cuadran' y acredita NFR-005 raiz y NFR-902 de balance, pero solo asserta noOrphans() y subtreeIds().toContain(). Nunca compara rollupBudget/rollupActual antes y despues. Ejecuta exactamente la operacion que dispara BG-009, pierde 300.000 mensuales del total del grupo, y pasa en verde. Misma laguna en demote-node.test.ts:206,258 y promote-to-group.test.ts:320.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:58:44.441Z",
+      "acceptance": "TC-105e y los reparents de demote-node/promote-to-group comparan el total del grupo y del tipo en los 12 meses antes y despues de la operacion, y fallan si no se conservan. Evaluar un quality_gate de mutacion para esta clase de falso verde.",
+      "closedAt": "2026-07-28T20:07:31.392Z"
+    },
+    {
+      "id": "BL-009",
+      "title": "Memoizar los roll-ups de la grilla y medir NFR-103 a escala real",
+      "priority": "P2",
+      "problem": "BudgetGrid.tsx:435-444 y :325-334 recalculan rollupBudget/rollupActual y typeTotals por celda (12 meses x fila), cada uno O(n^2) por los escaneos de childrenOf/isLeaf. Ademas NodeRow y TypeTotalRow se suscriben al objeto data completo, asi que toda fila re-renderiza ante cualquier cambio (el diseno prometia selectores memoizados). El test del guardrail tests/domain/rollup-perf.test.ts:49 solo mide sobre buildSeed() (12 nodos), el unico tamano donde no puede fallar.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:58:59.134Z",
+      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms."
+    },
+    {
+      "id": "BL-010",
+      "title": "Serializar las escrituras al servidor (cola/debounce) para no perder ediciones en vuelo",
+      "priority": "P2",
+      "problem": "src/state/store.ts:57-66 llama repo.save() sin esperar (fire-and-forget) en cada mutacion, y ServerRepository (src/data/serverRepository.ts:58-81) solo actualiza this.revision al responder el PUT. Dos ediciones rapidas seguidas salen con la misma baseRevision, la segunda recibe 409, el handler llama resync() y set({data: loaded}) sobrescribe el estado local, revirtiendo en silencio lo que el usuario acaba de teclear.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:58:59.210Z",
+      "acceptance": "Un save en vuelo a la vez con coalescencia del ultimo estado; un 409 que descarte cambios locales avisa al usuario en vez de revertir en silencio.",
+      "closedAt": "2026-07-31T17:42:29.880Z"
+    },
+    {
+      "id": "BL-011",
+      "title": "Aplicar el sistema de diseno a AuthForm y al boton de logout",
+      "priority": "P2",
+      "problem": "src/components/auth/AuthForm.tsx:42-110 esta maquetado con style inline y inputs/buttons sin clase: sin tokens, sin los componentes ui/ (Button, Card), sin estados de foco. LoginGate.tsx:52-59 dibuja el boton Salir como un button fixed con opacity 0.7 y ningun estilo. En modo servidor es la primera pantalla que ve el usuario y contradice FR-012 y el trabajo de ux-consistency. Ningun TC cubre su fidelidad visual.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:58:59.286Z",
+      "acceptance": "AuthForm y el logout usan Card/Button/Input del sistema y tokens theme-aware, con foco visible (NFR-002), en claro y oscuro.",
+      "closedAt": "2026-08-06T19:58:46.804Z"
+    },
+    {
+      "id": "BL-012",
+      "title": "Unificar el punto de swap del repositorio: data/makeRepo.ts es codigo muerto",
+      "priority": "P2",
+      "problem": "src/data/makeRepo.ts solo lo usa tests/integration/backend/repo-sync.test.ts:18, que es el test que acredita TC-BE-027h. La app usa la funcion local makeRepo() de src/state/store.ts:46, con otra firma (decide por SERVER_MODE, no por autenticacion). El TC verifica un camino que el producto no ejecuta, y las dos decisiones de swap pueden divergir sin que ningun test lo note.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:17.500Z",
+      "acceptance": "O el store consume data/makeRepo.ts (y TC-BE-027h pasa a verificar el camino real), o se borra el modulo y el TC se reapunta al store. Un solo punto de decision de swap en el arbol.",
+      "closedAt": "2026-08-04T03:10:40.426Z"
+    },
+    {
+      "id": "BL-013",
+      "title": "El pie de la grilla describe la semilla, no los datos del usuario",
+      "priority": "P2",
+      "problem": "DesktopShell.tsx:147 (GridFooter) imprime 'Ene-May ejecutado / Jun en curso / Jul-Dic proyectado', que es literalmente la tabla FACTOR de src/domain/seed.ts:14-17. En cuanto el usuario captura movimientos reales o avanza el ano, el pie afirma algo falso sobre la grilla que tiene delante, con el peso de una leyenda del producto.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:17.573Z",
+      "acceptance": "La leyenda se deriva del estado (ultimo mes con ejecutado > 0 y el mes en curso via currentMonthKey()) o se retira.",
+      "closedAt": "2026-08-12T17:20:00.051Z"
+    },
+    {
+      "id": "BL-014",
+      "title": "Migrar el lint a la CLI de ESLint con flat config y cubrir tests/e2e",
+      "priority": "P2",
+      "problem": "package.json ejecuta 'next lint', que ya avisa 'deprecated and will be removed in Next.js 16' (npm outdated muestra Next 16.2.12 como latest). El gate lint es required:true en 04_BUILD_REPORT.json, asi que el salto a Next 16 rompe verify-run por un motivo ajeno al codigo. Ademas .eslintrc.json es formato legacy (ESLint 9 usa flat config) e ignorePatterns excluye tests/e2e/**, ~2.500 lineas de las mas fragiles del repo.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:17.647Z",
+      "acceptance": "eslint.config.mjs con flat config, script lint via la CLI de ESLint, tests/e2e incluido en el analisis, y npm run lint en verde.",
+      "closedAt": "2026-08-13T15:47:22.116Z"
+    },
+    {
+      "id": "BL-015",
+      "title": "Declarar los gates de seguridad en 04_BUILD_REPORT.json y crear scripts/security-config.sh",
+      "priority": "P2",
+      "problem": "quality_gates solo declara typecheck/lint/coverage/smoke/e2e. El escaneo de secretos (scripts/secret-scan.sh, que si existe) y el SCA (npm audit --audit-level=high) solo corren en .github/workflows/ci.yml, asi que aitri verify-run no los ejecuta nunca. Ademas falta el scripts/security-config.sh propuesto al cierre de la seccion Security del AUDIT_REPORT: verificar cabeceras, poweredByHeader:false, CSP sin unsafe-eval, cookies httpOnly/sameSite y el customRule de /sign-up/email. Dos de esas correcciones ya estan en el codigo sin nada que impida revertirlas.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:17.721Z",
+      "acceptance": "scripts/security-config.sh existe y sale non-zero si falta cualquiera de las condiciones; secret-scan y security-config declarados como quality_gates required en 04_BUILD_REPORT.json y ejecutados por verify-run.",
+      "closedAt": "2026-08-03T16:35:15.608Z"
+    },
+    {
+      "id": "BL-016",
+      "title": "Actualizar files_created y test_files de 04_BUILD_REPORT.json",
+      "priority": "P3",
+      "problem": "aitri/product/spec/04_BUILD_REPORT.json cita en files_created src/components/MovementForm.tsx y src/components/RecentList.tsx, ambos borrados (los reemplazaron register/ y BL-003). test_files sigue enumerando los 7 archivos de la primera build cuando la suite real son 33. El artefacto es la referencia de quien llega nuevo al proyecto y describe un arbol que no existe.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:31.898Z",
+      "acceptance": "files_created y test_files regenerados contra el arbol actual; ningun archivo citado inexistente.",
+      "closedAt": "2026-08-05T15:02:02.897Z"
+    },
+    {
+      "id": "BL-017",
+      "title": "Escritura incremental del ledger en vez de snapshot-replace completo",
+      "priority": "P3",
+      "problem": "saveLedger (src/server/data/ledgerRepo.ts:174-177) borra TODOS los nodos, celdas y movimientos del owner y los reinserta en cada PUT, incluso al editar una sola celda: tres DELETE mas N INSERT en chunks de 500, con un for-update sobre la fila ancla que serializa todo. Es una decision deliberada y correcta hoy (ADR-06: nunca deja estado parcial), pero el coste por tecla crece linealmente con el historial.",
+      "status": "open",
+      "createdAt": "2026-07-28T19:59:31.970Z",
+      "acceptance": "Un diff por celda/nodo dentro de la misma transaccion, conservando el lock optimista por revision y la garantia de no dejar estado parcial."
+    },
+    {
+      "id": "BL-018",
+      "title": "Limpiar los restos de 'Sin asignar' (UNASSIGNED_NAME sin uso, ramas system inalcanzables)",
+      "priority": "P3",
+      "problem": "src/domain/types.ts:63 exporta UNASSIGNED_NAME sin ningun consumidor en src/ ni tests/. Ningun camino crea ya nodos system, asi que las ramas gateadas por node.system en mutations.ts (canRename/canDelete/deleteNode/moveNode) y en BudgetGrid.tsx son inalcanzables. stripLegacyUnassigned (src/data/repository.ts:11-22) SI debe quedarse: migra datos guardados por versiones anteriores.",
+      "status": "closed",
+      "createdAt": "2026-07-28T19:59:32.043Z",
+      "acceptance": "UNASSIGNED_NAME eliminado y las ramas system retiradas o justificadas; stripLegacyUnassigned intacto. Hacerlo junto con la re-derivacion de FR-003 (GAP-4 del AUDIT_REPORT).",
+      "closedAt": "2026-08-12T20:06:55.113Z"
+    },
+    {
+      "id": "BL-019",
+      "title": "UI de retiros: rediseñar cómo se opera un retiro",
+      "priority": "P2",
+      "problem": "La operación de retiros quedó unificada en la fila «Retiros del mes» del Balance (decisión 2026-07-29), pero al usuario no le resulta amigable operar desde ahí abajo.",
+      "status": "open",
+      "createdAt": "2026-07-30T14:25:30.238Z"
+    },
+    {
+      "id": "BL-020",
+      "title": "Recuperación de contraseña y verificación de email (login sin camino de vuelta)",
+      "priority": "P1",
+      "problem": "Ningún FR cubre recuperar la contraseña ni verificar el email. Un usuario que olvida su contraseña queda fuera de la app sin camino de vuelta, y Google (la única alternativa de acceso) está apagado con NEXT_PUBLIC_GOOGLE_ENABLED=false. Con la feature servidor-fuente-unica el login pasa a ser obligatorio para todos (FR-1102), así que esto deja de ser incómodo y pasa a bloqueante. Hallazgo del 2026-07-30 al inventariar el login: el núcleo de auth está sólido (argon2id en parámetros OWASP, sesiones en BD que el logout invalida, cookies HttpOnly/Secure/SameSite, rate limit de 5 intentos/min), lo que falta es el flujo de recuperación. Es funcionalidad real —envío de correo, tokens de un solo uso, expiración, plantillas— NO acabado visual: debe ir por su propia feature (aitri feature init), no colarse dentro de otra. Relacionado: FR-501, FR-502 (feature backend).",
+      "status": "closed",
+      "createdAt": "2026-07-30T22:18:29.415Z",
+      "closedAt": "2026-08-24T22:19:38.113Z"
+    },
+    {
+      "id": "BL-021",
+      "title": "ServerRepository no valida la forma de la respuesta de la API (NFR-003 más débil que el camino retirado)",
+      "priority": "P2",
+      "problem": "Hallazgo del 2026-07-30 al re-cimentar los tests en la feature servidor-fuente-unica. LocalStorageRepository validaba el payload con Zod (persistedNodesSchema/persistedBudgetSchema) y ante datos corruptos devolvia null sin lanzar, de modo que la app recuperaba a semilla: eso era NFR-003 ('recuperacion segura'). ServerRepository, que es ahora el UNICO camino, hace 'const body = await res.json() as { revision: number; state: LedgerState }' en serverRepository.ts:48 — un CAST, no una validacion. Consecuencias: (1) JSON malformado lanza en vez de degradar; hydrate() lo atrapa y no rompe la app, pero el usuario ve un estado vacio sin explicacion. (2) JSON sintacticamente valido con forma equivocada se acepta ENTERO sin verificar, y entra al store como si fuera un LedgerState valido. La interfaz LedgerRepository sigue prometiendo 'Nunca lanza por datos corruptos', promesa que la unica implementacion viva no cumple. Mitigacion parcial existente: la API valida con Zod en la ESCRITURA, asi que una respuesta mal formada implica un bug del servidor, no datos de usuario corruptos. Arreglo propuesto: validar el cuerpo de load() con un schema de LedgerState y devolver null ante no-conformidad, alineando el comportamiento con el contrato declarado.",
+      "status": "closed",
+      "createdAt": "2026-07-31T00:07:27.791Z",
+      "closedAt": "2026-08-03T16:23:57.590Z"
+    },
+    {
+      "id": "BL-022",
+      "title": "StorageBanner solo está montado en MobileShell: en escritorio los avisos de persistencia son invisibles",
+      "priority": "P2",
+      "problem": "src/components/MobileShell.tsx:27 monta <StorageBanner /> y DesktopShell.tsx no monta ninguno. Los dos motivos que el banner cubre son de escritorio tanto como de móvil: 'network' (el guardado no llegó al servidor) y 'malformed' (BG-012: el servidor respondió algo ilegible, no se cargó nada encima y lo que hay en pantalla no es de fiar). En escritorio ambos ocurren en silencio absoluto — el usuario sigue editando sobre datos que el servidor no confirma, que es justo el escenario que BG-012 quería dejar de tener. Preexistente: no lo introdujo BG-012, solo lo hizo más visible al añadir el segundo motivo. Arreglo propuesto: montar StorageBanner en DesktopShell en un sitio que no tape la grilla ni el header (ojo al precedente del LogoutButton, que era fixed y tapaba el ThemeToggle), o extraer el aviso a un layout compartido por ambos shells.",
+      "status": "closed",
+      "createdAt": "2026-08-03T16:32:06.988Z",
+      "acceptance": "Con storageError distinto de null, el aviso es visible en escritorio y en móvil; un e2e por cada motivo (network y malformed) comprueba que el texto correcto aparece en ambos shells.",
+      "closedAt": "2026-08-03T21:58:23.410Z"
+    },
+    {
+      "id": "BL-023",
+      "title": "El servidor de desarrollo publica en todas las interfaces (next dev sin -H)",
+      "priority": "P1",
+      "problem": "package.json define 'dev': 'next dev -p 3100' y next dev liga a 0.0.0.0 por defecto: la app de desarrollo queda alcanzable desde toda la red local. Verificado durante la auditoria del 2026-08-05: curl http://192.168.1.8:3100/ devolvio 200 con el proceso vivo desde hacia 3 dias. Como el BETTER_AUTH_SECRET de desarrollo esta versionado en el repositorio, quien alcance ese puerto puede forjar una sesion valida contra esa instancia. Es el hermano de RQ-SEC-006, que ato los contenedores a loopback pero dejo fuera el proceso de Next. Arreglo: 'dev': 'next dev -H 127.0.0.1 -p 3100', con un 'dev:lan' aparte y explicito para el caso de probar desde el movil, y una comprobacion en scripts/security-config.sh para que no se revierta en silencio. Ver RQ-SEC-011 en AUDIT_REPORT.md.",
+      "status": "closed",
+      "createdAt": "2026-08-05T04:09:48.373Z",
+      "closedAt": "2026-08-12T17:20:00.126Z"
+    },
+    {
+      "id": "BL-024",
+      "title": "Un test unitario hace npm audit por red y vuelve no determinista el gate coverage",
+      "priority": "P2",
+      "problem": "TC-BE-084h (tests/unit/backend-gates.test.ts:62) ejecuta 'npm audit --audit-level=high' contra la red dentro de la suite unitaria. Bajo la carga del e2e en paralelo llego a tardar 287s en el verify-run del 2026-08-05 y agoto el timeout de 300s del gate coverage, que salio 'error' (exit_code null) siendo required. Se subio el timeout a 900s como parche, pero la causa sigue: un test unitario no deberia depender de la red. Ademas es REDUNDANTE: scripts/security-config.sh ya corre el mismo 'npm audit --audit-level=high' como quality gate, asi que la comprobacion de postura no se pierde si el test deja de hacer la llamada. Arreglo propuesto: que TC-BE-084h verifique solo que el CI declara el gate SCA (la parte de contrato, que es instantanea) y delegar la ejecucion real a security-config.sh; o darle su propio timeout y marcarlo como test lento fuera del camino de coverage.",
+      "status": "closed",
+      "createdAt": "2026-08-05T17:02:56.131Z",
+      "closedAt": "2026-08-13T15:47:22.079Z"
+    },
+    {
+      "id": "BL-025",
+      "title": "Balance: agrupar los sumandos bajo su resultado",
+      "priority": "P2",
+      "problem": "Las 8 filas del modulo de Balance se presentan planas, pero tres de ellas ('Flujo del mes', 'Reservas del mes', 'Retiros del mes') son los SUMANDOS que componen 'Disponible del mes', y otras tres son resultados. Nada en la presentacion lo indica, asi que la aritmetica del modulo no se lee de un vistazo: el usuario ve ocho cifras al mismo nivel y tiene que reconstruir mentalmente cual sale de cuales. Idea del usuario (2026-08-12) al revisar el rediseno en localhost. Ningun FR de refinamiento-ui lo cubre: sus siete requisitos son color, glifo, chrome, textos, escalas y retirada de codigo. Material para la parte 2 del rediseno, junto con interaccion de fila, composicion del registro y layout adaptativo.",
+      "status": "closed",
+      "createdAt": "2026-08-12T12:55:32.405Z",
+      "closedAt": "2026-08-27T19:41:01.183Z"
+    },
+    {
+      "id": "BL-026",
+      "title": "Balance: el verde senala la normalidad, no la excepcion (hallazgo 1.6 del estudio)",
+      "priority": "P2",
+      "problem": "Las tres filas de RESULTADO del modulo de Balance (Disponible del mes, Saldo disponible, Saldo total) se pintan de --favorable en las doce columnas: 72 celdas verdes simultaneas con un saldo sano. Medido el 2026-08-12 a 1920px. El propio codigo del modulo declara que 'un verde en cada insumo positivo seria ruido permanente y dejaria de significar algo', y luego lo aplica solo a medias. Cuando el saldo se ponga negativo, el rojo tendra que destacar sobre un fondo ya saturado de color. Es el hallazgo 1.6 del estudio UI/UX y NO lo cerro refinamiento-ui: su FR-1201 se titula 'el rojo y el ambar solo senalan excepcion' y no alcanza al verde. Sub-hallazgo del mismo sitio: 6 de esas celdas verdes son em-dash '—', es decir tinta gastada en la AUSENCIA de dato, que es el mismo defecto que el hallazgo 1.2 corrigio en la grilla. Ningun test lo caza porque TC-RUI-002f comprueba colores de TIPO y --favorable no lo es. Material para la parte 2, junto a BL-025.",
+      "status": "closed",
+      "createdAt": "2026-08-12T15:15:32.765Z",
+      "closedAt": "2026-08-27T19:41:01.231Z"
+    },
+    {
+      "id": "BL-027",
+      "title": "La suite unitaria lanza subprocesos pesados y se vuelve no determinista bajo carga",
+      "priority": "P2",
+      "problem": "tests/unit/backend-gates.test.ts ejecuta procesos pesados DENTRO de la suite unitaria: TC-BE-072e lanza 'npm run typecheck' y 'npm run lint' como subprocesos, y TC-BE-071h arranca una instancia completa de vitest en un directorio temporal. Aislado no molesta —coverage pasa en 53s— pero cuando el gate coverage corre junto al e2e de backend (Docker + testcontainers + dos servidores Next), esos subprocesos se ahogan: el 2026-08-13 el gate coverage del feature backend salio en fail con 'vitest-worker: Timeout calling onTaskUpdate', un fallo de RPC del worker que NO es un fallo de codigo. Es el mismo patron que BL-024, que ya se cerro quitando la llamada de red de TC-BE-084h: aquel arreglo trato un ofensor, quedan estos dos. Consecuencia: un gate required puede salir rojo por contencion de recursos y no por el codigo, que es exactamente el tipo de senal que ensena a la gente a re-ejecutar en vez de investigar. Arreglo propuesto: que TC-BE-072e y TC-BE-071h verifiquen el CONTRATO (que los scripts existan y esten declarados) en vez de EJECUTARLO, delegando la ejecucion real a los quality_gates, que ya corren typecheck y lint por separado — mismo razonamiento y misma solucion que se aplico en BL-024.",
+      "status": "closed",
+      "createdAt": "2026-08-13T03:20:01.080Z",
+      "closedAt": "2026-08-13T16:30:56.561Z"
+    },
+    {
+      "id": "BL-028",
+      "title": "Verificacion de email en el registro (mitad no entregada de BL-020)",
+      "priority": "P3",
+      "problem": "BL-020 pedia recuperacion de contrasena Y verificacion de email. La recuperacion se entrego completa el 2026-08-14 (feature recuperar-acceso, 5/5 fases, 87/87 TC) y BL-020 se cerro por eso el 2026-08-24. La verificacion de email NO se hizo: quedo out_of_scope por decision del usuario el 2026-08-13, con el riesgo declarado y aceptado de que quien se registre con un correo mal escrito queda irrecuperable — no puede entrar (no sabe la contrasena de una cuenta que no es suya) ni recuperar (el enlace va a un buzon que no controla). Despriorizado a P3 el 2026-08-24 por decision del usuario: el foco vuelve al core (modulo de Balance), y el login se retoma despues. Nota de entorno: en dev los correos van a Mailpit (localhost:8025), no a buzones reales, y no hay proveedor SMTP de produccion elegido — sin esa decision la verificacion tampoco funcionaria fuera de la maquina de desarrollo.",
+      "status": "closed",
+      "createdAt": "2026-08-24T22:19:48.561Z",
+      "files": "src/server/auth.ts, src/server/mail/, src/components/auth/AuthForm.tsx",
+      "acceptance": "Un registro con correo no verificado queda en estado limitado hasta confirmar el enlace; el correo de verificacion sale por el mismo transporte que la recuperacion; existe un camino para reenviarlo.",
+      "closedAt": "2026-08-27T19:42:30.203Z"
+    },
+    {
+      "id": "BL-029",
+      "title": "El resumen plegado del Balance deberia mostrar Saldo disponible, no Saldo total (y ser configurable)",
+      "priority": "P2",
+      "problem": "Al plegar el modulo de Balance, su encabezado muestra el SALDO TOTAL del mes (HeaderTotalCell, src/components/BalanceModule.tsx, FR-905 de la feature balance). El usuario lo reviso el 2026-08-25 y prefiere que muestre el SALDO DISPONIBLE. El argumento es correcto y el propio codigo lo respalda sin cumplirlo: el comentario del plegado dice que existe para dar 'la vista compacta de cuanto tengo', pero Saldo total INCLUYE el Saldo reservado — plata ya apartada que el usuario no va a gastar. Si se pliega el modulo para responder 'cuanto puedo gastar', la cifra correcta es Saldo disponible. Coherencia adicional: el chevron interno, que vive en la fila 'Saldo disponible', ya pliega la cola dejando la cuenta terminando ahi justamente por esa razon — asi que los dos niveles de plegado hoy responden preguntas distintas sin motivo. NO se metio en la feature balance-jerarquia por decision del usuario del 2026-08-25: es cambio de comportamiento sobre un FR aprobado (FR-905) y meterlo a mitad del build habria cascadeado UX, arquitectura, tests y la aprobacion de EP-01. En codigo es UNA linea (series[m.k].budget.total -> .available); lo que cuesta es la decision y su cascada.",
+      "status": "closed",
+      "createdAt": "2026-08-25T17:11:31.579Z",
+      "files": "src/components/BalanceModule.tsx, tests/e2e/balance.spec.ts",
+      "behavior": "SEGUNDA PARTE, pedida por el usuario el 2026-08-25: hacerlo CONFIGURABLE a futuro (que el usuario elija que cifra resume el modulo plegado). Eso ya no es una linea: necesita preferencia persistida, sitio donde ajustarla y decidir su alcance (por usuario, global). Conviene tratarlo como fase 2 de este item, o como feature propia.",
+      "acceptance": "Plegado, el encabezado del modulo muestra el Saldo disponible del mes; un saldo negativo conserva sus tres canales (color, signo, glifo); el color obedece la regla de balance-jerarquia FR-1403 (neutro por defecto). Los TCs de la feature balance que afirman el Saldo total en el encabezado se actualizan con revocacion declarada, como se hizo con TC-BAL-935h.",
+      "closedAt": "2026-08-28T16:28:01.475Z"
+    },
+    {
+      "id": "BL-030",
+      "title": "TC-REC-040h es flaky: 15s de espera a Mailpit no bastan bajo carga de suite completa",
+      "priority": "P2",
+      "problem": "El 2026-08-26, re-verificando recuperar-acceso, TC-REC-040h fallo en la primera pasada y paso en el reintento — Playwright lo clasifica como 'flaky'. Error: 'no llego ningun correo a flujo-1819-2@example.com en 15000ms', en tests/e2e/helpers/mailbox.ts:60. NO es un defecto del producto: el test comprueba FR-1309 (revocacion de sesiones tras recuperar contrasena) y pasa en aislamiento en 1.3 segundos. Lo que falla es el arnes: bajo la carga de la suite completa (344 e2e en paralelo mas los contenedores de testcontainers), Mailpit tarda mas de los 15 s que espera el helper. Consecuencia practica: aitri verify-run registra el TC como 'fail' aunque Playwright lo de por bueno tras el reintento, asi que verify-complete BLOQUEA y obliga a re-correr toda la verificacion de la feature. Es una falsa alarma cara: cada aparicion cuesta unos 4 minutos de re-corrida y hace dudar de una mitigacion de seguridad que esta bien.",
+      "status": "closed",
+      "createdAt": "2026-08-26T20:57:45.278Z",
+      "files": "tests/e2e/helpers/mailbox.ts",
+      "behavior": "Arreglo propuesto, de una linea: subir el timeout de waitForResetLink de 15000 a 45000 ms. Es espera MAXIMA, no fija — el bucle sondea cada 200 ms y sale en cuanto llega el correo, asi que subirlo NO ralentiza las corridas sanas (hoy resuelve en ~1 s). Alternativa complementaria si reaparece: dar a Mailpit su propio contenedor por worker, como ya hacen los tests de backend con Postgres.",
+      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas. La espera del helper deja de ser el factor limitante.",
+      "closedAt": "2026-08-27T19:42:30.162Z"
+    },
+    {
+      "id": "BL-031",
+      "title": "TC-REC-040h es flaky: 15s de espera a Mailpit no bastan bajo carga de suite completa",
+      "priority": "P3",
+      "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27.] El 2026-08-26, re-verificando recuperar-acceso, TC-REC-040h fallo en la primera pasada y paso en el reintento — Playwright lo clasifica como 'flaky'. Error: 'no llego ningun correo en 15000ms', en tests/e2e/helpers/mailbox.ts:60. NO es un defecto del producto: el test comprueba FR-1309 (revocacion de sesiones tras recuperar contrasena) y pasa en aislamiento en 1.3 segundos. Bajo la carga de la suite completa Mailpit tarda mas de los 15 s que espera el helper. Consecuencia: aitri verify-run lo registra como 'fail' aunque Playwright lo de por bueno tras el reintento, y verify-complete bloquea, obligando a re-correr la verificacion entera. RELEVANCIA REDUCIDA desde el 2026-08-27: el usuario abandono la recuperacion por correo en favor del reset por terminal, asi que este test cubre un flujo que queda DORMIDO. Recobra importancia el dia que se active el correo (cuando haya dominio propio).",
+      "status": "open",
+      "createdAt": "2026-08-27T19:42:30.243Z",
+      "files": "tests/e2e/helpers/mailbox.ts",
+      "behavior": "Arreglo propuesto, de una linea: subir el timeout de waitForResetLink de 15000 a 45000 ms. Es espera MAXIMA, no fija — el bucle sondea cada 200 ms y sale en cuanto llega el correo, asi que subirlo NO ralentiza las corridas sanas. Alternativa si reaparece: un Mailpit por worker, como ya hacen los tests de backend con Postgres.",
+      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas."
+    },
+    {
+      "id": "BL-032",
+      "title": "Verificacion de email en el registro (mitad no entregada de BL-020)",
+      "priority": "P3",
+      "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27.] BL-020 pedia recuperacion de contrasena Y verificacion de email. La recuperacion se entrego (feature recuperar-acceso) y BL-020 se cerro. La verificacion NO se hizo: quedo out_of_scope por decision del usuario el 2026-08-13, con el riesgo declarado y aceptado de que quien se registre con un correo mal escrito queda irrecuperable. BLOQUEADO DE HECHO desde el 2026-08-27: el usuario abandono el envio de correo (sin dominio propio no hay combinacion que no acabe en spam) y la recuperacion pasa por terminal. La verificacion de email NO SE PUEDE HACER sin correo, asi que este item depende por completo de que primero se consiga un dominio propio y se active el SMTP. Hasta entonces no es accionable.",
+      "status": "open",
+      "createdAt": "2026-08-27T19:42:30.291Z",
+      "files": "src/server/auth.ts, src/server/mail/, src/components/auth/AuthForm.tsx",
+      "acceptance": "Requiere PRIMERO un dominio propio y SMTP activo. Despues: un registro con correo no verificado queda en estado limitado hasta confirmar el enlace, y existe un camino para reenviarlo."
+    },
+    {
+      "id": "BL-033",
+      "title": "Registrar en el pipeline el reset por terminal y el correo dormido (auditoria 2026-08-27, GAP-13/GAP-14)",
+      "priority": "P3",
+      "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27 — no se atrapa por ahora.] La auditoria de requisitos del 2026-08-27 encontro dos huecos de REGISTRO (no de alcance) en la recuperacion de acceso. GAP-14: el reset por terminal (npm run user:reset-password, scripts/reset-password.mjs, DEPLOYMENT.md:104) es hoy la UNICA via operativa —el flujo por correo responde 503 sin variables SMTP— y no tiene FR, ni AC, ni TC en ningun pipeline; solo se verifico a mano. Ademas ningun artefacto declara que el correo quedo dormido, asi que los 12 FR MUST de recuperar-acceso describen un camino que la configuracion desplegada no ofrece. GAP-13: la feature entera (12 FR MUST, 10 NFRs, el unico endpoint publico sin autenticar del sistema) no aparece en el coverage_map ni en NFR-004 de la raiz, a diferencia de backend, servidor-fuente-unica y stack-upgrade-theme, que si estan plegados. Ninguno bloquea el despliegue ni pierde alcance: el producto hace lo correcto, lo que falta es que el artefacto lo diga. Se retoma el dia que haya dominio propio y SMTP, junto con BL-031 y BL-032.",
+      "status": "open",
+      "createdAt": "2026-08-27T20:26:17.226Z",
+      "acceptance": "El no_go_zone de recuperar-acceso declara el flujo por correo DORMIDO (citando la decision del 2026-08-27); el reset por terminal tiene FR propio con su TC (automatizado o manual verificado); el coverage_map raiz y NFR-004 registran la feature con el formato ya usado para FR-011 y FR-014"
+    },
+    {
+      "id": "BL-034",
+      "title": "Hacer configurable que cifra resume el Balance plegado (segunda mitad de BL-029)",
+      "priority": "P3",
+      "problem": "BL-029 tenia dos mitades. La primera —que plegado se muestre el Saldo disponible en vez del Saldo total— se entrego el 2026-08-28 con la feature resumen-plegado (FR-1501/FR-1502, 20/20 TCs). La segunda sigue pendiente por decision del usuario del 2026-08-27: que sea EL USUARIO quien elija que cifra resume el modulo plegado. No es una linea de codigo como la primera: necesita una preferencia persistida, decidir su alcance (por cuenta o global) y un sitio donde ajustarla — hoy el producto no tiene pantalla de ajustes, asi que la feature arrastra crear esa superficie o meter el control en el propio encabezado. El punto de extension esta identificado y es uno solo: el MONTHS.map de BalanceModule.tsx que hoy elige el campo `available`, documentado en el ADR-01 de la feature (se descarto parametrizar HeaderTotalCell por adelantado: andamiaje especulativo sin segundo llamador).",
+      "status": "open",
+      "createdAt": "2026-08-28T16:28:27.855Z",
+      "acceptance": "El usuario elige entre Saldo disponible y Saldo total para el encabezado plegado; la eleccion persiste entre sesiones y dispositivos con el alcance que se decida; el valor por defecto sigue siendo Saldo disponible"
+    },
+    {
+      "id": "BL-035",
+      "title": "Rastro del proposito de un retiro: que un gasto se pueda cargar contra la alcancia que lo financio",
+      "priority": "P3",
+      "problem": "Hoy ahorrar para algo y pagarlo son DOS actos que la app no relaciona. El retiro manda la plata a Disponible (un sentinel, no un rubro: reserve.ts:27) y el gasto se anota aparte contra su rubro de gasto; la tabla movement no tiene ningun campo que ligue un movimiento expense con una hoja transfer, asi que el proposito de la alcancia se evapora en el momento de sacarla. Consecuencias: (1) no se puede preguntar 'lo que aparte para UK termino en UK'; (2) si el usuario olvida el segundo paso, la plata aparece como disponible y desaparece del relato — le paso al usuario el 2026-08-29, perdio el rastro de 15M en una sola sesion. DECISION DEL USUARIO 2026-08-29: NO se rehace el modelo. La observacion del usuario es correcta —la aritmetica ya cuadra y el dinero esta bien—, y cargar gastos contra sobres (envelope budgeting) es cirugia que toca transferencias, balance, balance-jerarquia y resumen-plegado, las cuatro cerradas. Se opto por la via barata: capturar el 'para que' como NOTA en el retiro, que da el rastro sin tocar el modelo, y que va dentro de BL-019. Esta entrada queda como el registro de la idea completa por si algun dia la nota no basta.",
+      "status": "open",
+      "createdAt": "2026-08-29T18:30:45.414Z",
+      "files": "src/domain/reserve.ts, src/domain/types.ts, src/domain/balance.ts",
+      "behavior": "Un gasto puede declarar que alcancia lo financio, y el balance puede reportar cuanto de cada alcancia termino en que rubro.",
+      "decisions": "2026-08-29: diferido conscientemente. El usuario objeto —con razon— que mandar el retiro a Disponible ya deja la plata lista para el gasto; lo unico que se pierde es el vinculo, y para eso basta la nota (BL-019). No abrir esta feature salvo que el rastro por nota se demuestre insuficiente.",
+      "acceptance": "Dado un ahorro en una alcancia y un gasto pagado con el, el usuario puede ver que ese gasto se financio con esa alcancia sin reconstruirlo de memoria."
+    },
+    {
+      "id": "BL-036",
+      "title": "Cierre de mes: congelar un mes ya cerrado para que no se pueda editar hacia atras",
+      "priority": "P1",
+      "problem": "Editar un mes viejo puede dejar sin respaldo un movimiento posterior. Ejemplo del usuario: en agosto mete 1.000 en un bolsillo, en septiembre saca los 1.000, y despues corrige agosto a 400 — septiembre queda habiendo sacado 1.000 de un bolsillo que solo tenia 400. Hoy la app valida ese caso para los bolsillos (bloquea nombrando el mes que revienta) pero NO para los ingresos, y por esa puerta el usuario quedo dos veces con mas plata apartada de la que tenia, sin poder escribir nada en ningun mes siguiente. IDEA DEL USUARIO, 2026-08-30: «necesitamos implementar un cierre de mes que no deje editar cosas viejas despues del cierre». Es mejor que validar caso por caso porque la regla es PREDECIBLE: antes de cerrar editas libre, despues de cerrar no se toca — en vez de que la app te bloquee a veces si y a veces no, por un motivo que vive en otro mes.",
+      "status": "closed",
+      "createdAt": "2026-08-31T03:34:00.188Z",
+      "behavior": "Un mes puede cerrarse. Un mes cerrado no admite ediciones de ninguna clase: ni gastos, ni ingresos, ni movimientos internos.",
+      "decisions": "ORDEN ACORDADO CON EL USUARIO (2026-09-01): va DESPUES de la grilla dinamica y ANTES del saldo inicial. Razon tecnica que el propio usuario dedujo: si un mes cerrado no se puede tocar, la vigilancia de los doce meses en cada operacion deja de tener sentido, y buena parte de la maquinaria del techo se puede BORRAR en vez de seguir parcheandola. Es la unica feature pendiente que ELIMINA complejidad. ALCANCE ADICIONAL decidido: incluir REAPERTURA de un mes cerrado, auditada — el usuario la pidio al resolver que el saldo inicial solo se corrige con el mes abierto. PREGUNTA DE DISENO CENTRAL, sin resolver: que pasa cuando se descubre un error en un mes ya cerrado. En contabilidad se ajusta en el mes ABIERTO, no reabriendo el cerrado; la alternativa es la reapertura explicita con su rastro. De ahi sale todo el diseno. EXPEDIENTE CREADO el 2026-09-02: aitri/features/cierre-de-mes/FEATURE_IDEA.md, con el alcance, la pregunta de diseno central y las cuatro preguntas abiertas; su feature_context/ lleva la evidencia ejecutada de por que esta feature disuelve BL-037 y BL-038.",
+      "acceptance": "Dado un mes cerrado, cuando el usuario intenta editar cualquier celda o movimiento de ese mes, entonces la app no lo permite y explica que el mes esta cerrado.",
+      "log": [
+        {
+          "at": "2026-09-11T14:56:48.349Z",
+          "text": "CERRADA 2026-09-11: entregada por la feature cierre-de-mes (5/5, 92/92 TCs). FR-2003 congela todas las vias de escritura de un mes cerrado (celdas de presupuesto y ejecutado, alta/edicion/borrado de movimientos, aportes, retiros y traslados) y FR-2009 explica en pantalla que el mes esta cerrado y cual es la salida; incluye reapertura auditada (FR-2005). Diferencia con la letra de esta entrada, decidida por el usuario el 2026-09-03: las observaciones de celda siguen editables (FR-2004). BL-037 y BL-038 quedaron fuera de alcance a proposito y siguen abiertas. Suites completas en verde en el verify de la raiz del 2026-09-11."
+        }
+      ],
+      "updatedAt": "2026-09-11T14:56:48.349Z",
+      "closedAt": "2026-09-11T14:56:48.468Z"
+    },
+    {
+      "id": "BL-037",
+      "title": "Decision de modelo: el ciclo retirar-para-gastar no debe castigarse como exceso",
+      "priority": "P1",
+      "problem": "El ciclo prescrito retirar-para-gastar deja el mes marcado como error permanente y congela la plata fresca del mes (y, sin holgura, tambien los aportes de meses anteriores)",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:40.993Z",
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+    },
+    {
+      "id": "BL-038",
+      "title": "Decision de modelo: el no-empeora es un trinquete — corregir la correccion queda prohibido",
+      "priority": "P1",
+      "problem": "En un mes con violacion tolerada, toda edicion que mejora es irreversible: un dedazo vuelve irrecuperable el valor verdadero y el journal queda mintiendo",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:41.035Z",
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+    },
+    {
+      "id": "BL-039",
+      "title": "Decision de modelo: el plan aprueba lo imposible y rechaza lo legitimo",
+      "priority": "P2",
+      "problem": "El techo del plan bendice planes inejecutables (consumo neto 0) y rechaza planes legitimos (retirar de ahorro real; ahorrar un mes para aportar el siguiente queda en ambar)",
+      "status": "open",
+      "createdAt": "2026-09-01T16:15:41.076Z"
+    },
+    {
+      "id": "BL-040",
+      "title": "Grilla por meses dinamica + saldo inicial + pagina de configuraciones",
+      "priority": "P1",
+      "problem": "Los meses de la grilla estan quemados: quien empieza a usar la app a mitad de ano ve meses vacios haciendo ruido, y no tiene forma de decirle a la app el dinero que YA tiene",
+      "status": "closed",
+      "createdAt": "2026-09-01T23:42:32.216Z",
+      "log": [
+        {
+          "at": "2026-09-11T14:56:51.897Z",
+          "text": "CERRADA 2026-09-11: entregada en dos partes. Grilla dinamica: absorbida por multi-anio (FR-1901, FR-1904, FR-1905, FR-1906, FR-1910), cerrada sin construirse por decision del usuario el 2026-09-03 (ver aitri/BACKLOG.md, orden acordado, punto 2). Saldo inicial + pagina de Configuracion: feature meses-y-saldo-inicial (5/5, 62/62 TCs, FR-2201 a FR-2207: mes de inicio declarado, saldo inicial que abre el primer mes, tarjeta de arranque, pagina de Configuracion, edicion solo con el mes abierto). Suites completas en verde en el verify de la raiz del 2026-09-11."
+        }
+      ],
+      "updatedAt": "2026-09-11T14:56:51.897Z",
+      "closedAt": "2026-09-11T14:56:52.003Z"
+    },
+    {
+      "id": "BL-041",
+      "title": "Decision de modelo: la celda de un bolsillo, aporte del mes o saldo que tengo",
+      "priority": "P2",
+      "problem": "La celda de un bolsillo muestra lo APORTADO ese mes, no lo que hay en el cajon, y el usuario lo declaro incorrecto: «la realidad es lo que tengo; si dice 1.500 cuando tengo 1.000, esta mal»",
+      "status": "open",
+      "createdAt": "2026-09-02T00:00:00.000Z",
+      "decisions": "VERIFICADO que la divergencia YA EXISTE hoy, no la introduce ninguna propuesta: tras reservar 1.000 y sacar 300, la celda dice 1.000 y el cajon tiene 700; y reservando 600 en enero y 400 en febrero, la celda de febrero dice 400 cuando hay 1.000. La objecion del usuario es contra el diseno vigente. OPCIONES: (a) la grilla muestra el SALDO del cajon al cierre de cada mes —la foto— y los flujos del mes siguen visibles en el Balance («Reservas del mes» / «Retiros de reservas») y en la lista de operaciones; (b) dejarlo como esta. LA PREGUNTA DIFICIL de la opcion (a): que significa BAJAR el numero de la celda — «no meti tanto» (corregir) o «saque plata» (retiro real). Propuesta: bajar la celda corrige lo aportado, y sacar plata se hace por la fila de retiros, que ademas pone fecha. Esa separacion disolveria la ambiguedad de la que nacen BL-037 y BL-038. NOTA HISTORICA: el modelo v3 guardaba SALDOS y la migracion a v4 los convirtio en APORTES; el motivo registrado fue que con semantica de saldo una celda ausente resolvia 0 e inventaba retiros fantasma. Eso afecta al ALMACENAMIENTO, no a la presentacion: se puede seguir guardando aportes y MOSTRAR el saldo derivado, que es lo que ya hace resolvedSeries. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+    },
+    {
+      "id": "BL-042",
+      "title": "Decision de UX: devolverle color al Balance — tres formas maquetadas, sin elegir",
+      "priority": "P2",
+      "problem": "El Balance quedo sin color tras la reestructuracion de FR-1810 y el usuario pidio devolverselo, pero la decision de cual de las tres formas no se tomo y no estaba registrada en ninguna parte",
+      "status": "open",
+      "createdAt": "2026-09-02T21:34:53.848Z"
+    },
+    {
+      "id": "BL-043",
+      "title": "Cadencia (Ciclos): el presupuesto se lleva por CICLO DE PAGO, no por mes calendario",
+      "priority": "P1",
+      "problem": "Si el ingreso llega a mitad de mes, el mes calendario se alimenta de DOS ingresos distintos y un mismo ingreso se parte entre DOS meses. El usuario no puede responder \"con que plata pago esta cuenta\" y los balances mensuales muestran distorsiones que no corresponden a su realidad financiera. Un CICLO va desde la fecha de un ingreso hasta el dia anterior al siguiente, y ES la unidad de presupuesto.\n\nREQUERIMIENTO COMPLETO DEL USUARIO en aitri/product/idea_context/cadencia/requerimiento-ciclos-de-pago.md (aportado el 2026-09-08: 19 RF, 10 reglas de validacion, 5 casos abiertos para discovery). Ese documento es AUTORITATIVO cuando la feature entre al pipeline: sus decisiones se llevan a los FR tal cual, no se re-deciden. PARQUEADO por decision del usuario: \"esto no es para hacerlo ya, pero si necesitamos escribir esta feature y analizarla\".\n\n*** ANALISIS DE IMPACTO, MEDIDO EN EL CODIGO EL 2026-09-08. ES LA FEATURE MAS GRANDE QUE HA TENIDO EL PROYECTO ***\n\n1. TOCA EL EJE DE INDEXACION DE TODO EL DOMINIO. Hoy el periodo es PeriodKey = \"YYYY-MM\" (src/domain/periods.ts:21), un mes calendario, y aparece en 25 ficheros de src/. Los mapas de dinero se indexan por el: budgets[hojaId][periodo]. Un ciclo NO es un mes: es un rango de fechas de duracion VARIABLE (15 y 16 dias alternados en un esquema quincenal, 13 en febrero) y en los esquemas semanal o catorcenal ni siquiera se alinea con el calendario. Esto no es anadir un campo, es cambiar la unidad sobre la que se indexa el dinero.\n\n2. HAY UNA PIEZA A FAVOR, Y ES GRANDE. Movement.date ya existe (src/domain/types.ts) y guarda la fecha de captura ISO \"YYYY-MM-DDTHH:mm\"; el period se DERIVA de ahi. Los movimientos capturados desde el Registro YA tienen el dato de dia que la regla de asignacion de la seccion 3 necesita. PERO es opcional (\"los movimientos previos no lo tienen\") y, sobre todo, LO QUE EL USUARIO TECLEA DIRECTO EN LA GRILLA NO ES UN MOVIMIENTO: es una celda de un mes, sin dia. Bajo ciclos esa celda no tiene a que ciclo pertenecer. ES EL HUECO CENTRAL DEL ANALISIS y hay que resolverlo en discovery antes que nada.\n\n3. COLISIONA CON cierre-de-mes ENTERA. closedThrough y reopenedPeriod son PeriodKey de MES (26 menciones en src/domain/closure.ts). El cierre secuencial, el trinquete de reapertura y la linea de base del impacto habria que redefinirlos sobre la frontera del ciclo. Es una feature aprobada, construida y verificada de 92 TCs.\n\n4. COLISIONA CON meses-y-saldo-inicial. startMonth es el ancla del historial y es un MES; bajo ciclos el historial empieza en un CICLO.\n\n5. COLISIONA CON multi-anio. activeRange deriva el eje visible de los meses con datos y del horizonte en anios, y la rejilla de 12 columnas de FR-006 asume meses.\n\n6. RF-09c (prorratear un gasto recurrente entre los ciclos que lo anteceden, descontando la reserva del disponible de cada uno) es CONCEPTUALMENTE LO MISMO que las alcancias/reservas de la feature transferencias, con su techo y su piso. Estudiar si se reusa ese motor en vez de construir uno nuevo: seria la mayor economia de toda la feature.\n\n7. RV-07 (\"un cambio de configuracion no puede alterar el balance de ningun ciclo anterior a su fecha de vigencia\") es una NFR de regresion durisima y la que mas facil se rompe en silencio. El propio documento avisa: \"es el error mas costoso de este modelo\".\n\nRUTA RECOMENDADA: NO es una feature, son varias. Empezar por un discovery propio (aitri run-phase discovery), que es lo que AGENTS.md pide para algo de este tamano, y resolver ahi los cinco casos abiertos de la seccion 8 CON el usuario. OJO con el 8.1 (arrastre de saldo entre ciclos): el arrastre YA EXISTE en el producto y opera sobre el MES, asi que el propio documento pide verificarlo — \"es una falla silenciosa: el calculo funciona, pero contra el periodo equivocado\".",
+      "status": "closed",
+      "createdAt": "2026-09-08T19:27:37.743Z",
+      "closedAt": "2026-09-10T23:42:01.376Z"
+    },
+    {
+      "id": "BL-044",
+      "title": "El panel de la celda pasa a ser su diario: muestra los movimientos que la componen y permite capturar desde ahi",
+      "priority": "P1",
+      "problem": "La nota de un movimiento de INGRESO o GASTO no se ve en ninguna parte de la aplicacion. El dato se guarda (Movement.note, columna note de la tabla movement) y nada lo lee. Detectado el 2026-09-09 con datos reales del usuario: 27 movimientos cargados, y al abrir la celda Tecnologia > Accesorios de agosto (187.500) el usuario no podia saber que fue. La celda dice \"Sin observaciones este mes\" mientras la nota \"Accesorio de camara\" esta en la base.\n\n*** LO QUE SE MIDIO EN EL CODIGO EL 2026-09-09 ***\n\n1. LA CAUSA EXACTA. cellObservations (src/domain/reserve.ts:1213) construye la lista de observaciones de una celda desde dos fuentes: las notas manuales (cellNotes) y las notas de movimientos. Pero la segunda filtra por m.type === \"transfer\" (linea 1217). Todo movimiento de gasto o ingreso queda fuera por construccion. No es un bug de datos: es el alcance con el que se escribio la funcion, cuando las observaciones solo existian para bolsillos.\n\n2. NO HAY OTRA PANTALLA DONDE MIRAR. La aplicacion tiene tres paginas (/, /recuperar, /configuracion) y ningun componente lista movimientos: un grep de movements.map / movements.filter sobre src/components y src/app no devuelve nada. El diario de ingresos y gastos no existe como superficie.\n\n3. ESTA INVISIBILIDAD YA COSTO UN BUG, Y ESTA ABIERTO. BG-017 dice literalmente: \"Como ninguna pantalla muestra el diario de ingresos/gastos, la desincronizacion es invisible: movimiento fantasma (caso real: ingreso de 6.500.000/ago contra el grupo Trabajo, detectado 2026-08-31 solo mirando la BD)\". O sea que esta feature no es cosmetica: es la observabilidad que habria cazado BG-017 en el momento y que cazara su clase en el futuro.\n\n4. LA TRAMPA DE DISENO QUE HAY QUE EVITAR. El usuario lo pidio como \"que la observacion tenga un campo de valor y la celda sume sola\". NO se debe construir asi. Hoy ya hay DOS escritores del mismo numero: setLeafAmount (src/domain/mutations.ts) ASIGNA (store[leafId][month] = v) y addMovement (src/domain/mutations.ts:96) ACUMULA (actuals[target][period] += amount). Una nota-con-valor seria un TERCER escritor de la misma celda y la pregunta \"cual manda\" dejaria de tener respuesta. El mecanismo que el usuario quiere YA EXISTE: es el movimiento. Lo que falta es la superficie, no el motor.\n\n5. HUECO PREEXISTENTE QUE ESTA FEATURE TIENE QUE RESOLVER. Teclear un valor en una celda que ya tiene movimientos SOBRESCRIBE el acumulado: setLeafAmount asigna, no suma. Los movimientos siguen en la base, la celda deja de valer su suma, y nada avisa. Reproducible: Restaurantes 2026-08 vale 336.700 formado por 4 movimientos; teclear 400.000 deja los 4 movimientos vivos y la celda en 400.000. Verificado el 2026-09-09 sobre los datos reales: hoy la deriva es cero en las 20 celdas, pero el camino esta abierto. Esta pregunta es anterior a la feature y es su contenido real.\n\n6. QUE SE PROPONE. El panel de observaciones de la celda deja de ser un cuaderno de notas y pasa a ser el DIARIO de esa celda: lista los movimientos que componen su total (dia, monto, concepto) y ofrece un campo para anadir uno mas ahi mismo, delegando en addMovement. Reutiliza el motor que ya funciona, no crea una segunda contabilidad, y de paso da por fin superficie a la nota del gasto. La nota manual de celda (cellNotes, FR-1809) se queda como esta, para observaciones que NO son dinero.\n\n7. TAMANO Y RUTA. Es una feature del pipeline, no un cambio pequeno: toca el panel de celda, el filtro de observaciones y la relacion entre celda y movimientos. Es INDEPENDIENTE de BL-043 (Cadencia) y mucho menor, pero la ayuda: bajo ciclos, un movimiento con fecha se reasigna solo y una celda tecleada no, asi que empujar la captura hacia el movimiento reduce la superficie del problema de ciclos. Conviene hacerla ANTES.\n\nCONTEXTO DEL HALLAZGO: mientras se cargaban los datos reales del usuario (ciclo 21-ago a 8-sep 2026) se escribieron 27 observaciones manuales de celda como parche, duplicando el texto de la nota de cada movimiento. Ese parche es texto muerto que no se entera si el movimiento cambia, y esta feature lo hace innecesario.",
+      "status": "open",
+      "createdAt": "2026-09-09T16:20:34.364Z",
+      "fr_id": "FR-1809, FR-1012, FR-507",
+      "files": "src/domain/reserve.ts:1213 (cellObservations), src/components/ReserveCells.tsx (CellNotesSection), src/components/BudgetGrid.tsx (EditableCell), src/domain/mutations.ts:96 (addMovement) y setLeafAmount, src/app/api/v1/movements/[id]/route.ts",
+      "behavior": "- Al abrir el editor de CUALQUIER celda hoja, el panel lista los movimientos de ese nodo y ese periodo en orden cronologico, cada uno con dia, monto y su nota.\n- Desde ese panel se puede anadir un movimiento: monto, concepto y fecha (por defecto dentro del periodo de la celda). Delega en addMovement, y la celda sube sola. El usuario no teclea el total nunca.\n- Las notas manuales (cellNotes) siguen mostrandose, visualmente distinguibles de los movimientos. CellObservation ya lleva source: \"movement\" | \"manual\", asi que la distincion existe en el modelo.\n- Las celdas de tipo transfer conservan su comportamiento actual byte a byte: sus observaciones derivadas del journal se siguen viendo igual (NFR de regresion).\n- Una celda cuyo valor tecleado NO coincide con la suma de sus movimientos LO DICE. No se elige un ganador en silencio.",
+      "decisions": "A RESOLVER EN DISCOVERY, CON EL USUARIO:\n1. Que manda cuando el valor tecleado de la celda y la suma de sus movimientos discrepan. Tres caminos: (a) la celda pasa a solo-lectura cuando tiene movimientos; (b) teclear genera un movimiento de ajuste por la diferencia; (c) la celda sigue mandando y se marca la discrepancia. Es la decision central de la feature y es anterior a ella.\n2. Si la nota del movimiento sustituye a las 27 observaciones manuales duplicadas escritas el 2026-09-09, o si conviven. Si las sustituye, hay que borrarlas para no ver el mismo texto dos veces.\n3. Si entra en alcance editar o borrar un movimiento. Hoy el producto NO lo tiene: src/app/api/v1/movements/[id]/route.ts responde PATCH y DELETE como no soportados, y el comentario dice \"En v1 el producto no tiene editar/borrar movimiento\". Un panel que LISTA movimientos vuelve esa ausencia evidente e incomoda: el usuario vera el error y no podra corregirlo. Decidir si se acota (solo listar) o se amplia.\n4. Si al listar movimientos se aprovecha para cerrar BG-017, que es el mismo hueco visto desde el otro lado.",
+      "acceptance": "- Abrir Tecnologia > Accesorios de agosto muestra \"26 ago - 187.500 - Accesorio de camara\". Hoy muestra \"Sin observaciones este mes\". Es el caso que origino la peticion.\n- Abrir Restaurantes de agosto lista sus CUATRO consumos en orden cronologico y su suma es exactamente el valor de la celda (336.700).\n- Anadir un movimiento desde el panel sube el total de la celda sin que el usuario teclee el total.\n- Teclear un valor en una celda que tiene movimientos NO deja el descuadre mudo: la interfaz lo dice.\n- Las celdas de bolsillos (transfer) pasan sus TCs existentes sin cambios.\n- Un movimiento sin nota se lista igual, por su dia y su monto: la nota es opcional en el modelo.",
+      "updatedAt": "2026-09-09T16:21:08.658Z"
+    },
+    {
+      "id": "BL-045",
+      "title": "Ciclos, incrementos siguientes: lo que el nucleo de la feature ciclos aplazo a proposito (RF-03/04 frecuencias, RF-09c prorrateo, RF-12/13 recurrentes y cuotas, RF-14/15 extraordinarios y varias fuentes, RF-16 vista mes calendario, RF-17/18/19)",
+      "priority": "P2",
+      "problem": "El discovery de la feature ciclos (aitri/features/ciclos/spec/00_DISCOVERY.md, 2026-09-10) fijo por decision del usuario un PRIMER INCREMENTO = el nucleo que ajusta sus transacciones actuales: modo mes/ciclos en Configuracion, un dia de pago del mes versionable con ciclo de transicion, asignacion por fecha de transaccion, nombre por mes en que termina con rango visible, cierre y arrastre iguales a hoy. Todo lo demas del documento del cliente (aitri/product/idea_context/cadencia/requerimiento-ciclos-de-pago.md) queda APLAZADO, no perdido: (a) frecuencias quincenal 15/30, quincenal fin de mes, semanal, catorcenal y fechas manuales (RF-03, RF-04, §2.2.2); (b) prorrateo de un gasto entre los ciclos que lo anteceden (RF-09c, RV-10, §2.2.6) — BL-043 sugiere reusar el motor de alcancias de transferencias; (c) gastos recurrentes con dia de vencimiento proyectados (RF-12) y cuotas de compras diferidas (RF-13); (d) ingreso extraordinario asignado a otro ciclo (RF-14) y varias fuentes con una designada (RF-15); (e) vista alterna por mes calendario para reportes tributarios (RF-16, §9); (f) disponible tras comprometidos (RF-17), alerta de ciclo futuro en deficit (RF-18), aviso de duracion distinta al comparar (RF-19); (g) ingreso de monto variable proyectado vs confirmado (§8.3). RETIRADOS, no aplazados: calendario de festivos y politica de dia no habil (RF-02 en esa parte, RV-09), porque la frontera del ciclo es nominal por decision del usuario. Cada inciso es candidato a feature propia; priorizar con el usuario cuando el nucleo este sellado.",
+      "status": "open",
+      "createdAt": "2026-09-10T02:24:43.615Z"
+    },
+    {
+      "id": "BL-046",
+      "title": "Referencia de imagen de Linux para TC-CIC-064f",
+      "priority": "P2",
+      "problem": "La guarda visual de la cabecera de mes (TC-CIC-064f, FR-2407) compara byte a byte contra tests/e2e/__screenshots__/ciclos-header-month.png, capturada en macOS. En el runner de CI (ubuntu) el texto se dibuja con otras fuentes y otro antialiasing, asi que la igualdad exacta nunca se cumple: en el PR #23 fallo los tres intentos mientras el resto del test pasaba. Desde el 2026-09-11 la comparacion de pixeles corre solo en darwin, asi que en CI la guarda visual NO se comprueba (lo estructural si: sin rango, sin marca de transicion, cabecera de 38px). Para recuperarla en CI hace falta una referencia propia de Linux, generada con la imagen Docker de Playwright, o pasar a toHaveScreenshot, que guarda una referencia por plataforma y admite tolerancia.",
+      "status": "open",
+      "createdAt": "2026-09-11T22:45:36.486Z"
     }
   ]
 }

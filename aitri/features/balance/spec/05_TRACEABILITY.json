@@ -1,0 +1,152 @@
+{
+  "project": "balance",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "deployment_files": [],
+  "deployment_model": "Sin cambios de despliegue: la feature es dominio puro (src/domain/balance.ts) más componentes de cliente, empaquetados en el mismo bundle Next.js que ya existe. Sin migraciones (no toca el schema), sin variables de entorno nuevas, sin endpoints nuevos. Rollback = revertir el bundle; no hay estado nuevo que deshacer. El healthcheck (/health) y el despliegue se heredan del pipeline raíz y de la feature backend, verificados por el gate de smoke.",
+  "requirement_compliance": [
+    {
+      "id": "FR-904",
+      "title": "Separación visual del módulo de Balance",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BAL-904h mide contra el DOM real que el aire vacío antes del encabezado BALANCE (~32px) es ESTRICTAMENTE mayor que el espaciado entre filas contiguas de la grilla (<4px). TC-BAL-904e verifica lo contrario para los tipos: GASTOS y RESERVAS quedan contiguos (gap <4px) y no existe ya el transfer-separator, con los totales por tipo intactos. TC-BAL-904f confirma que a 375px no se renderiza ni la grilla ni el balance. El FR fue REENCUADRADO el 2026-07-27: antes separaba TRANSFERENCIAS, ahora separa el Balance."
+    },
+    {
+      "id": "FR-905",
+      "title": "Módulo de Balance: seis cifras derivadas por columna, en ambos planos",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (9 passing, 0 failing, 0 skipped). El cálculo vive en computeBalanceSeries (src/domain/balance.ts), función pura al 100% de líneas, ramas y funciones. TC-BAL-905h fija las seis cifras de un mes simple; TC-BAL-905f defiende el error más fácil del cálculo (sumar el arrastre al flujo) exigiendo flow=40.000 EXACTO donde una implementación equivocada daría 110.000; TC-BAL-925e exige que el sobre-gasto quede negativo sin recortar a 0; TC-BAL-945e recorre las 168 cifras de un estado vacío exigiendo 0 y Number.isFinite. Los TCs e2e 935h/935f miden el color computado real."
+    },
+    {
+      "id": "FR-906",
+      "title": "Arrastre: ambos planos abren en el cierre REAL previo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). ADR-03 fue INVERTIDO por decisión del usuario el 2026-07-27 tras probar con datos propios: ambos planos abren en el cierre ejecutado del mes anterior, para no planear con plata que ya no existe. TC-BAL-906f es el test que lo defiende — construye un estado donde enero cierra presupuestado en 80.000 y ejecutado en 50.000, y exige que el arrastre presupuestado de febrero sea 50.000 y NUNCA 80.000. TC-BAL-926e verifica que un cierre negativo se arrastra sin ponerse en 0."
+    },
+    {
+      "id": "FR-907",
+      "title": "Guardar en reservas; el reservado global se acumula",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). TC-BAL-907e demuestra la invariante que da sentido al modelo: guardar 20.000 baja el disponible en 20.000 y sube el reservado en 20.000, y el Saldo TOTAL no cambia — la plata se reubica, no se crea. TC-BAL-936e verifica la acumulación sobre varias reservas y meses. TC-BAL-907f confirma que en v1 el reservado nunca queda negativo: 'sacar' está diferido a la feature transferencias (ADR-02), así que el CHECK amount>=0 del schema queda intacto."
+    },
+    {
+      "id": "FR-908",
+      "title": "Recálculo en vivo del módulo ante cambios",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). No requirió código propio: el useMemo depende de `data` y toda mutación del store lo reemplaza. TC-BAL-908h edita una celda en el navegador y exige que el Saldo total baje EXACTAMENTE 10.000 sin recargar, y que el arrastre lo propague al mes siguiente. TC-BAL-908e verifica que tras promover un nodo el balance se recompone. TC-BAL-908f prueba por deep-equal que computeBalanceSeries no muta su entrada."
+    },
+    {
+      "id": "FR-909",
+      "title": "Plegado en dos niveles y bloques de igual jerarquía",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). AÑADIDO en la re-derivación del 2026-07-28, tras implementarse sin FR ni TC — y los tres defectos que tuvo los encontró el usuario a mano, no la suite. Ahora están fijados: TC-BAL-909h exige que plegado el encabezado conserve las 24 celdas del Saldo total (plegar RESUME, no borra); TC-BAL-909f exige que el chevron NO oculte ninguna fila de arriba. VERIFICADOS POR MUTACIÓN: al restaurar el defecto de plegar hacia arriba fallan 909e y 909f, y al restaurar el de borrar los totales falla 909h."
+    },
+    {
+      "id": "FR-910",
+      "title": "Orden Ingresos → Gastos → Reservas → Balance",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BAL-910h lee el orden de DOM real y exige ['income','expense','transfer'] con el balance debajo. TC-BAL-910e confirma que los totales por tipo no cambian (gasto 300.000, ingreso 1.000.000). TC-BAL-910f prueba en unit que recorrer los tipos en el orden nuevo no muta el type ni el parentId de ningún nodo: el reordenamiento es de presentación."
+    },
+    {
+      "id": "FR-911",
+      "title": "El bloque de tipo transfer se rotula RESERVAS",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-BAL-911h verifica el rótulo y que coincide con el lenguaje del balance ('Reservas del mes', 'Saldo reservado'). TC-BAL-911e es el que protege el modelo: el atributo data-type sigue siendo 'transfer' y el nodo PERSISTIDO en localStorage conserva type='transfer' — cambió la palabra, no el dominio. TC-BAL-911f exige que no sobreviva ningún 'TRANSFERENCIAS'. PENDIENTE de revisar junto con la feature transferencias, que añadirá operaciones que no son reservas."
+    },
+    {
+      "id": "NFR-901",
+      "title": "Los montos hoja por hoja (budgets/actuals) se muestran y editan exactamente igual que antes; los agregados y e",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-951h/951e/951f). TC-BAL-951h edita una hoja a 12.345 y comprueba por deep-equal que budgets y actuals quedan idénticos antes y después de correr computeBalanceSeries. TC-BAL-951e hace click y doble click en una celda del balance y exige 0 inputs de edición, contrastándolo con una celda de hoja que SÍ abre editor. El balance no tiene ninguna ruta de escritura al store."
+    },
+    {
+      "id": "NFR-902",
+      "title": "Las filas de agregación existentes (total por tipo vía TypeTotalRow, subtotales de grupo y de categoría vía ro",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-952h/952e/952f). El balance CONSUME typeTotals de src/domain/rollup.ts, no lo reimplementa. TC-BAL-952e verifica que el total de un tipo sigue siendo la suma de sus grupos (sin huérfanos) y TC-BAL-952f captura los roll-ups de TODOS los nodos en los 12 meses antes y después de computar el balance, exigiendo igualdad."
+    },
+    {
+      "id": "NFR-903",
+      "title": "El código de estado por color de budget-state-color (neutro ≤100% / ámbar >100% / rojo ≥120%, con marca de for",
+      "level": "complete",
+      "evidence": "3 TCs e2e pasando (TC-BAL-953h/953e/953f). TC-BAL-953h confirma que una hoja de gasto al 110% sigue en ámbar con su marca ›. TC-BAL-953e recorre las 144 celdas del módulo exigiendo CERO ocurrencias de › — el balance tiene su propio canal de forma (‹‹ con −), deliberadamente distinto. TC-BAL-953f verifica que Ingreso y Transferencia conservan su semántica."
+    },
+    {
+      "id": "NFR-904",
+      "title": "Promover a grupo (promote-to-group) y degradar nodo (demote-node) siguen funcionando; tras esas operaciones lo",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-954h/954e/954f). Promover y degradar se ejercitan por drag real en el navegador con el balance visible, y TC-BAL-954f recalcula tras un promote comprobando que las cifras derivan de los roll-ups de la jerarquía NUEVA y no del valor previo — además de que una edición posterior sigue moviendo el balance."
+    },
+    {
+      "id": "NFR-905",
+      "title": "El registro de movimientos (móvil compacto y escritorio) sigue guardando contra la hoja destino sin cambios; e",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-955h/955e/955f). TC-BAL-955h registra un movimiento por la UI real y exige que EXACTAMENTE un mes suba EXACTAMENTE 15.000, comparando los doce meses (así no depende del reloj). TC-BAL-955e confirma que a 375px existe el registro y no existen ni budget-grid ni balance-module."
+    },
+    {
+      "id": "NFR-906",
+      "title": "Las filas de agregación y el módulo de balance respetan la escala de tamaños de control (control-size-scale) y",
+      "level": "complete",
+      "evidence": "3 TCs e2e pasando (TC-BAL-956h/956e/956f). TC-BAL-956h compara la superficie y la familia tipográfica del balance contra una celda EXISTENTE de la grilla, en vez de contra un literal — así el test no queda expuesto a un error del spec. TC-BAL-956e MIDE el contraste de los cuatro roles sobre --bg-sunken en tema claro y oscuro (8 medidas, todas ≥4.5:1): ese gate es el que detectó que --success y --error incumplían AA y forzó las variantes --success-strong/--error-strong."
+    },
+    {
+      "id": "NFR-907",
+      "title": "El recalculo de agregados y balance no degrada la edición en línea de la grilla: la actualización tras editar ",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-957h/957e/957f). computeBalanceSeries es O(meses × hojas); medido sobre la semilla completa con montos en los 12 meses, el promedio por llamada y la recomputación tras editar quedan holgadamente bajo los 100 ms, y TC-BAL-957f confirma que pasar de 1 a 12 meses con datos no dispara un crecimiento cuadrático."
+    },
+    {
+      "id": "NFR-908",
+      "title": "Aplicabilidad de seguridad: esta feature no añade entradas nuevas ni superficie de red — es cálculo derivado d",
+      "level": "complete",
+      "evidence": "3 TCs pasando (TC-BAL-958h/958e/958f). TC-BAL-958h inspecciona el CÓDIGO FUENTE del módulo y exige que sus imports sean exactamente ['./months','./rollup','./types'] y que no contenga fetch, XMLHttpRequest, localStorage, node:fs, process.env ni eval. TC-BAL-958e instala un localStorage espía y verifica CERO escrituras durante el cómputo. TC-BAL-958f confirma que ninguna cifra de reserva es negativa en ningún mes ni plano, ni siquiera con sobre-gasto real: el CHECK amount>=0 queda intacto."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-905",
+      "substitution": "Los resultados del balance usan --success-strong (#2d7650) y --error-strong (#ad3932) en tema claro, no los --success (#2f7d53) / --error (#c4453e) que nombraba el UX spec aprobado.",
+      "reason": "Medido en el navegador, los tonos base dan 4.45:1 y 4.36:1 sobre --bg-sunken, por debajo del mínimo AA de 4.5 que el propio spec exige en su NFR-906 y que TC-BAL-956e verifica. El spec afirmaba que cumplían, pero había medido contra la superficie de la card DISPONIBLE (--bg-card, donde el verde sí da 5.03:1) en vez de contra la superficie hundida que este módulo usa. Las variantes son el MISMO hue con la luminancia bajada lo justo, y se AÑADEN en vez de redefinir --success/--error, que usa toda la app — el mismo patrón y la misma justificación con que budget-state-color añadió --state-warning/--state-over (su ADR-03). Decidido por el usuario el 2026-07-25 tras presentarle las tres opciones. En tema oscuro las variantes coinciden con su token base, así que ahí no hay cambio visual alguno. 01_UX_SPEC.md y 03_TEST_CASES.json quedaron actualizados con la tabla de contraste MEDIDA.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-906",
+      "substitution": "La fila 'Saldo total' usa la utilidad existente .label (0.8125rem ≈ 13px) en vez de los 15px que pedía el Component Inventory del UX spec.",
+      "reason": "El mismo UX spec se contradice: su sección de Tipografía exige 'sin tamaños tipográficos nuevos' (NFR-906 / ux-consistency), y 15px no existe en la escala del producto. .label es el siguiente tamaño real hacia arriba desde la base de la grilla (0.74rem ≈ 11.8px), así que cumple lo que el spec buscaba —que el bottom-line pese más que el resto— sin estrenar un tamaño. Para llegar a 15px habría que añadir un token de tamaño, que es justo lo que la NFR prohíbe.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-906",
+      "substitution": "Las cifras usan DM Mono (--font-mono, vía la utilidad .tabular), no Fira Code como decía el UX spec.",
+      "reason": "Es un error de hecho del spec sobre el producto: la fuente mono de T-Ledger es DM Mono desde la feature stack-upgrade-theme (FR-213, src/app/layout.tsx). Fira Code no está instalada ni referenciada en el repo. El propio spec manda que 'el estándar del producto MANDA sobre el arquetipo' y que todo lo visual se herede del sistema ya implementado, así que se implementó con .tabular — la misma utilidad que ya usan las celdas de la grilla. TC-BAL-956h lo verifica comparando la familia tipográfica del balance contra la de una celda existente, que es el invariante real ('no introduce tipografía nueva') y no queda expuesto al error del spec.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-905",
+      "substitution": "El módulo no aplica el tinte del mes seleccionado en el filtro; su superficie es uniformemente --bg-sunken, mientras la grilla de arriba sí resalta la columna del mes.",
+      "reason": "El tinte compone la superficie hasta #e4e4e6 en tema claro, donde los tres roles de color del balance caen bajo AA (verde 3.96:1, rojo 3.88:1, azul 4.17:1) — arrastraría incluso al azul, que sobre la superficie limpia sí pasa. El UX spec no pide el resaltado para este módulo (su Component Inventory no lo menciona), así que se omite. El costo es cosmético: la banda vertical del mes filtrado se corta al llegar al balance. Recuperarlo exigiría variantes AA para la superficie resaltada, igual que hizo budget-state-color.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "No se declara un quality_gate de seguridad propio de esta feature.",
+      "reason": "El escaneo de seguridad del proyecto corre como CodeQL en CI (.github/workflows/codeql.yml) y el gate SCA de dependencias (npm audit) ya está declarado por la feature backend en su NFR-513, ambos fuera de los gates de Aitri; esta feature no añade superficie que escanear —es cálculo derivado de solo lectura, sin entradas de usuario nuevas, sin red y sin IO, verificado mecánicamente por TC-BAL-958h contra el código fuente del módulo.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": [
+    "version 0.0.1-beta tomada de package.json#version del producto (version_source: manifest). La feature no publica version propia: es un cambio dentro de la app existente.",
+    "overall_status 'compliant': los ocho FR son MUST, los ocho están 'covered' en fr_coverage con 0 fallos y 0 skipped, y los cinco quality gates (typecheck, lint, coverage, smoke, e2e) pasaron. Ninguno se marcó 'production_ready' porque ese nivel implica endurecimiento operacional propio, y esta feature no añade superficie operacional: hereda la del producto.",
+    "Sin artefactos de despliegue nuevos. La feature no toca el schema (no hay migración), no añade variables de entorno ni endpoints, y su rollback es revertir el bundle.",
+    "La deuda técnica heredada de Fase 4 se copia literal e incluye la decisión de tokens AA (--success-strong/--error-strong), el tamaño del bottom-line, DM Mono en vez del Fira Code que decía el spec, la ausencia del tinte de mes en el módulo y la razón por la que no se declara un gate de seguridad propio (SEC-GATE).",
+    "Durante esta fase se resolvió además backend/BG-001 (npm audit con 18 vulns high por GHSA-mh99-v99m-4gvg): overrides brace-expansion ^5.0.8 + minimatch ^10.2.6, que es la versión de minimatch hecha para la v5. Sin eso la verificación de esta feature no podía pasar, porque un test fallando impide a vitest emitir la tabla de cobertura."
+  ]
+}

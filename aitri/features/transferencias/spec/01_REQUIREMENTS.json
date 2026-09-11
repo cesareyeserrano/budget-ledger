@@ -1,0 +1,558 @@
+{
+  "project_name": "T-Ledger — feature transferencias (Reservas)",
+  "project_summary": "Reservas (alcancías) sobre el modelo v4, decidido por el usuario en uso real (2026-07-29): las celdas del tipo Reserva son APORTES del mes (planes y ejecuciones, como Ingresos/Gastos); los RETIROS son operaciones explícitas del journal (registro De→A y fila «Retiros del mes» del Balance, destino Disponible en v1, corregibles); el saldo por alcancía es DERIVADO (Σ aportes − Σ retiros) y el acumulado global vive en el Balance («Saldo reservado»). Reglas: techo global por mes al guardar y piso por alcancía al sacar, en cadena de 12 meses.",
+  "technology_preferences": "El stack existente sin dependencias nuevas: núcleo TypeScript puro en src/domain (las reglas y la resolución de saldos son funciones puras), Zustand, Next.js 15, Drizzle/Postgres en modo servidor. El CHECK amount >= 0 de la BD NO se toca (los saldos son ≥ 0 por el piso).",
+  "constraints": [
+    "El modelo v4 (decisiones del usuario en sesión de uso real, 2026-07-29) SUPERSEDE a feature_context/DESIGN_OPTIONS.md §1–§9 donde contradiga: la celda dice el movimiento del mes, jamás el acumulado; el saldo por alcancía es derivado. DESIGN_OPTIONS sigue siendo fuente para lo no contradicho (reglas techo/piso, registro De→A, sentinel).",
+    "El stack existente sin dependencias nuevas: núcleo TypeScript puro en src/domain, Zustand, Next.js 15, Drizzle/Postgres en modo servidor. El CHECK amount >= 0 de la BD no se toca.",
+    "La validación vive en el DOMINIO (una regla, todas las puertas): la grilla, la fila Retiros del mes y el registro consultan las mismas funciones puras. El PUT snapshot permanece como puerta CONFIADA (ADR-04).",
+    "Nada se mueve solo: registro 100% manual; lo automático es el cálculo (saldos derivados, balance) y el control (reglas).",
+    "Re-derivación declarada: los TCs de la propia feature (TC-TRF-*) escritos contra el modelo v3 se re-derivan a v4; las re-derivaciones de la feature balance (TC-BAL-907h/907f/936e/958e/958f y los 8 seeds) ya quedaron absorbidas."
+  ],
+  "no_go_zone": [
+    "Celdas-saldo con arrastre (modelo v3): se construyó y el usuario lo REVIRTIÓ en uso real (2026-07-29). La celda jamás muestra el acumulado; el gris de arrastre, «volver al arrastre» y el badge SALDO no existen en v4.",
+    "Helper de trayectoria del plan (FR-1013 del PRD v3): sin objeto en v4 — planear aportes constantes es teclear el mismo valor, como en cualquier tipo.",
+    "Rediseño UX de la operación de retiros: la ubicación actual (fila «Retiros del mes» del Balance) no convence al usuario — queda explícitamente FUERA de esta feature como BL-019 (feature futura).",
+    "Atajo compuesto 'pagar con esta reserva' (retiro + gasto en un acto) — dos pasos explícitos en v1 (v4 mantiene la decisión; 'destino en qué gastarlo' del mini-form quedó en 'siempre a Disponible').",
+    "Vencimientos, intereses o estados de préstamos — un préstamo v1 es una reserva nombrada.",
+    "Transferencias programadas o recurrentes, y cierres automáticos de mes — nada se mueve solo.",
+    "Conciliación con cuentas bancarias reales.",
+    "Vista de journal (lista completa de movimientos) — la lectura nace solo como observaciones por celda (FR-1012) y el historial de retiros del mes en su mini-form (FR-1014).",
+    "Retiros PLANEADOS por alcancía — el plan de retiros es GLOBAL por mes (fila única); el desglose por alcancía del plan queda fuera de v1.",
+    "Multi-año — restricción heredada del proyecto (single-year), ratificada explícita.",
+    "Alcancías como 'SOBRE' de gasto — el modelo v1 es LUGAR (sacás y luego gastás)."
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño de sus finanzas personales",
+      "tech_level": "mid",
+      "goal": "Apartar plata con control (no reservar la que no tiene), verla acumularse alcancía por alcancía, y poder sacarla o moverla sin descuadrar nada — desde la grilla en escritorio y desde el registro en el móvil",
+      "pain_point": "Hoy las transferencias no tienen control ni límite: puede apartar plata que no tiene, la que aparta nunca vuelve a ser gastable en el modelo, y la celda de cada mes dice cuánto movió ese mes — no cuánto HAY, que es lo que quiere saber de una alcancía"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1001",
+      "title": "Saldo DERIVADO por alcancía — la capa que reglas, registro y balance consumen",
+      "description": "Derivación pura resolvedBalance(state, leafId, mes, plano): saldo de la alcancía en el mes = Σ aportes (celdas) de ene..mes − Σ retiros (journal, from=alcancía) de ene..mes. En Pres. no hay retiros ejecutados: la serie del plan acumula aportes planeados. NO se muestra celda a celda (decisión v4): lo consumen las reglas techo/piso, el selector De del registro, el mini-form de retiros y el Balance. Memoizada por identidad de estado.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con aportes {ene:100.000, feb:100.000, mar:100.000} y retiro de 50.000 en abr, el saldo derivado es 100/200/300/250 mil y se mantiene 250.000 hasta dic (happy)",
+        "Una alcancía sin aportes ni retiros deriva 0 en los 12 meses sin lanzar (edge)",
+        "Ninguna secuencia de operaciones aceptadas produce un saldo derivado negativo en ningún mes (invariante, negativo)"
+      ]
+    },
+    {
+      "id": "FR-1002",
+      "title": "Las celdas del tipo Reserva son APORTES del mes — misma semántica que los otros tipos",
+      "description": "Los tres tipos comparten semántica de celda: planes y ejecuciones DEL MES. La celda de una alcancía muestra su aporte tecleado u operado ese mes (0 = em-dash, como el resto de la grilla); los totales de fila padre y de tipo son Σ de celdas del mes. El acumulado JAMÁS aparece en la grilla — vive en el Balance (Saldo reservado).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Teclear 100.000 en abril muestra 100.000 en abril y no altera ninguna otra celda (happy)",
+        "La fila total RESERVAS de un mes es la Σ de las celdas de ese mes — con {ene:100.000} y {feb:200.000} en dos alcancías, feb totaliza 200.000, no 300.000 (edge)",
+        "Ninguna celda ni total del bloque RESERVAS muestra un valor acumulado ni un negativo (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1003",
+      "title": "Editar la celda corrige el aporte del mes — jamás genera retiros ni journal",
+      "description": "El editor de celda transfer escribe el aporte nuevo del mes tras validar techo (subirlo) y piso derivado en cadena (bajarlo no puede dejar en rojo retiros ya operados de ese mes o posteriores). En BLOQUEO el editor NO se cierra: franja inline junto a la celda con el mensaje y el valor seleccionado; Escape restaura. Commit sin cambio = no-op. La edición de celda nunca journaliza: el journal es de operaciones explícitas.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con margen 150.000, subir una celda en 200.000 bloquea con franja inline «No puedes reservar $200.000: tu margen este mes es $150.000», el editor sigue abierto con el valor seleccionado y Escape restaura sin persistir (negativo)",
+        "Bajar el aporte de feb de 100.000 a 0 cuando hay un retiro posterior que dependía de esa plata bloquea nombrando el mes ofensor y el saldo que quedaría (edge)",
+        "Editar celdas (subir o bajar) deja movements.length sin cambio (happy)"
+      ]
+    },
+    {
+      "id": "FR-1004",
+      "title": "Operación De→A en el dominio (applyReserveOp) — journal con from/to; el journal SIGUE a las celdas",
+      "description": "applyReserveOp(state, {from, to, mes, monto, fecha?, nota?}): guardar (Disponible→alcancía) suma el aporte a la celda del mes Y journaliza; sacar (alcancía→Disponible) SOLO journaliza; mover (alcancía→alcancía) suma la celda destino y journaliza con ambos extremos. target = la alcancía afectada (retiro: from; aporte/mover: to); el sentinel '@disponible' jamás va en target. INTEGRIDAD ESTRUCTURAL (hallazgos adversariales 2026-07-30): cuando un traslado FR-604 (createNode/moveNode) mueve las celdas de una hoja transfer, sus movimientos de reserva se re-apuntan al receptor (sin esto el saldo derivado renace sin sus retiros: saldo fantasma); deleteNode conserva —convertido en retiro a Disponible— el movimiento cuyo origen sigue vivo. addMovement delega para type transfer; expense/income no cambian.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Guardar 50.000 en mayo deja la celda de mayo en (previo+50.000) y UN movimiento con from='@disponible', to=alcancía, target=alcancía (happy)",
+        "Sacar 50.000 no toca ninguna celda y deja el movimiento con from=alcancía, to='@disponible', target=alcancía (happy)",
+        "Crear una subcategoría bajo una alcancía con retiros, o fusionarla por drag-drop, conserva el saldo derivado EXACTO (los retiros siguen a las celdas); un segundo retiro del mismo monto se rechaza (negativo — el saldo fantasma del hallazgo adversarial)",
+        "Borrar el destino de un mover A→B conserva el retiro de A (convertido a Disponible): el saldo de A no 'resucita' (edge)",
+        "Monto inválido (≤0, no numérico, no entero), extremos iguales, ambos sentinel o nodo inexistente: rechazo tipado sin mutar (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1005",
+      "title": "El registro opera Reservas con De→A, mostrando el estado antes de operar",
+      "description": "El tipo del registro se llama 'Reserva'. Al elegirlo, las filas De y A reemplazan al selector de categorías: 'Disponible' + las alcancías (subs aplanadas) con su saldo DERIVADO visible; elegido el origen, el máximo retirable (saldo) o el margen del mes junto al monto, que pasa a error y deshabilita Guardar al excederse. A excluye la opción de De (De=A imposible). Estado vacío sin alcancías. Guarda con fecha y nota; overlay de confirmación con '$X · De → A'.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En 375px, elegir Reserva muestra De/A con saldos visibles ('Viaje · $150.000') y al elegir origen aparece 'Máx. $150.000' o 'Margen del mes: $X' (happy)",
+        "La opción elegida en De no existe en A, dinámicamente (negativo)",
+        "Sin alcancías: estado vacío con guía y Guardar deshabilitado; el toggle dice 'Reserva' y 'Transferencia' no aparece (edge)",
+        "Guardar crea el movimiento con from/to/fecha/nota, actualiza celda (guardar/mover) o solo journal (sacar), y muestra el overlay (happy)"
+      ]
+    },
+    {
+      "id": "FR-1006",
+      "title": "Regla TECHO — global por mes, bloqueante en Ejecutado, con mensaje que explica",
+      "description": "El neto del mes del tipo (aportes − retiros) ≤ max(0, disponiblePrevio + flujoDelMes) — la SUMA, no el 'O'. Corre EN CADENA sobre los 12 meses del estado candidato y bloquea solo lo que la escritura EMPEORA respecto al estado base (los datos históricos que ya violaban no bloquean ediciones ajenas). Un retiro nunca viola el techo. Mensaje con el monto y el margen; si el mes que rompe es otro, lo nombra.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con margen 150.000, guardar 150.000 pasa y 1 peso más (en cualquier alcancía) bloquea con limit=0 (happy+negativo)",
+        "Con margen 0, mover 100.000 A→B pasa (neto 0) y sacar pasa siempre (edge)",
+        "ene cierra −500.000 y feb ingresa 300.000 → margen feb = 0 (el agujero del 'O' cerrado) (negativo)",
+        "Primera carga: ingreso de 2.000.000 + guardar 2.000.000 el mismo mes PASA (happy)"
+      ]
+    },
+    {
+      "id": "FR-1007",
+      "title": "Regla PISO — por alcancía sobre el saldo derivado, bloqueante, y sacar se permite en rojo",
+      "description": "El saldo DERIVADO de cada alcancía nunca queda negativo en NINGÚN mes de la cadena: sacar más del saldo se bloquea ('«Viaje» solo tiene $X'); bajar un aporte que dejaba financiados retiros posteriores se bloquea nombrando el mes ofensor. Sacar SÍ se permite con disponible negativo (cubrir un mes malo es su razón de ser).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Sacar exactamente el saldo pasa y deja el derivado en 0; sacar 1 peso más bloquea con el saldo en el veredicto (happy+negativo)",
+        "Con disponible en −300.000, sacar 300.000 del fondo PASA y el disponible queda en 0 (edge)",
+        "Bajar el aporte de un mes anterior que deja negativo un mes posterior (por retiros ya operados) bloquea nombrando ese mes (edge; cadena)"
+      ]
+    },
+    {
+      "id": "FR-1008",
+      "title": "El plan de APORTES avisa sin bloquear, con marca de forma propia",
+      "description": "Las celdas Pres. de transfer planean aportes. El techo del plan (neto planeado ≤ margen planeado, anclado al cierre real previo — ADR-03) AVISA sin bloquear: la celda se marca con ámbar + glifo «!» (canal no cromático propio, ≠ ›/›› y ‹‹) y el valor se guarda. Los planos no se contaminan.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Teclear en Pres. un aporte que supera el margen planeado marca la celda («!» + ámbar) y GUARDA (happy)",
+        "La marca es distinta de ›, ›› y ‹‹ y visible sin percepción de color (edge; WCAG 1.4.1)",
+        "Editar el plan no altera el Ejecutado y viceversa (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1009",
+      "title": "El Balance desdobla el mes en filas de un solo signo y acumula el reservado",
+      "description": "Filas del módulo: '− Reservas del mes' (Σ aportes de celdas), '+ Retiros del mes' (Σ retiros del journal; en Pres., el retiro planeado), '= Disponible del mes' (flujo − aportes + retiros: lo que el MES dejó, sin arrastre — pedida por el usuario para no hacer la cuenta mental), '= Saldo disponible' (acumulado), '+ Saldo reservado' (ACUMULA mes a mes: previo + aportes − retiros) y '= Saldo total'. La aritmética de monthBalance no cambia (reserved = neto, puede ser negativo); conservación total = total previo + flujo por construcción.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "jul: flujo +500.000, guardar 200.000 → disponible 300.000/reservado 200.000/total 500.000; ago: sacar 50.000 → Retiros del mes 50.000, reservado 150.000, total 500.000; con gasto de 50.000 además → total 450.000 (happy; escenario del usuario)",
+        "Disponible del mes = flujo − aportes + retiros, sin el arrastre (con flujo 500.000, aporte 200.000: 300.000 aunque el acumulado sea otro) (happy)",
+        "Un mes sin operaciones muestra Reservas 0 y Retiros 0, y el Saldo reservado ARRASTRA el acumulado del mes anterior (edge)",
+        "total(m) = total(m−1) + flujo(m) en ambos planos para cualquier estado alcanzable (invariante)"
+      ]
+    },
+    {
+      "id": "FR-1010",
+      "title": "Persistencia v4 y migraciones versionadas e idempotentes (v2→v4, v3→v4)",
+      "description": "Formato vigente: ledger.budget.v4 / data_version=4 (celdas=aportes + journal con from/to + cellNotes + @retiros del plan). Migraciones por MARCA, nunca heurística: v2→v4 identidad de celdas (ya eran aportes); v3→v4 deshace el acumulado (deltas) y los deltas negativos se sintetizan como retiros del journal (plano Ejecutado) o como retiros del plan (@retiros, plano Pres.) — el saldo derivado resultante es idéntico al resuelto v3. En servidor migra el SERVIDOR (transaccional con for update + re-check), y TAMBIÉN insertMovement garantiza v4 antes de operar (hallazgo adversarial: un POST sobre v3 leería saldos como aportes). from/to y cell_note atraviesan las 5 capas. Los schemas del borde local exigen enteros ≥ 0 (blob corrupto → semilla, NFR-003).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Datos v3 {saldos 100,200,300,250} migran a aportes {100,100,100} + retiro sintetizado de 50.000 con nota, y el saldo derivado iguala al resuelto v3 en los 12 meses; migrar dos veces = una (happy+edge)",
+        "Dos cargas concurrentes en servidor migran exactamente una vez; un POST /movements sobre un ledger v3 migra antes de operar (edge)",
+        "Un movimiento con from/to y una observación de celda sobreviven cliente→PUT→BD→GET→cliente (happy)",
+        "Un blob local con montos negativos o no enteros se rechaza al cargar (cae a semilla) (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1011",
+      "title": "Reestructurar el árbol conserva los saldos derivados",
+      "description": "Para todo createNode/moveNode/deleteNode que toque nodos transfer: Σ saldo derivado del tipo es idéntico antes y después, mes a mes — porque los movimientos de reserva siguen a las celdas (FR-1004). La fusión de celdas (suma por mes) vuelve a ser correcta porque son flujos.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Reparent/promote/demote de una alcancía con aportes y retiros conserva Σ derivado(m) en los 12 meses (invariante)",
+        "El helper de tests de conservación afirma el invariante derivado para transfer (edge)"
+      ]
+    },
+    {
+      "id": "FR-1012",
+      "title": "Campo de observaciones por celda",
+      "description": "Las celdas Ejec. del bloque RESERVAS afloran observaciones: las notas de operaciones De→A del mes llegan solas (derivadas del journal) y se pueden añadir manuales (≤280, rechazo sin truncar). Punto indicador solo si hay observaciones; lectura por tooltip y sección del editor con placeholder cuando no hay.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Una operación De→A con nota deja su observación legible desde la celda del mes (happy)",
+        "Celda sin observaciones: sin indicador y placeholder 'Sin observaciones este mes' (edge)",
+        "Una observación manual de más de 280 caracteres se rechaza sin truncar (negativo)"
+      ]
+    },
+    {
+      "id": "FR-1014",
+      "title": "Operar y CORREGIR retiros desde la fila «Retiros del mes» (Ejec.)",
+      "description": "La celda Ejec. de la fila Retiros del mes muestra la Σ de retiros del mes graduada contra el retiro planeado con la MISMA regla de los gastos (neutro ≤100%, ámbar+› <120%, rojo+›› ≥120% o sin plan). Al clic abre el mini-form: origen en lista desplegable con TODAS las alcancías (grupos-hoja, categorías y subcategorías, ruta completa y saldo derivado), monto con 'Máx.', destino SIEMPRE Disponible (v1). Sacar journaliza con toast + Deshacer (undo de un nivel). El mini-form lista los retiros del mes con eliminación: borrar el movimiento restaura el saldo por construcción (corrección de errores).",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Retirar 200.000 con 150.000 planeados marca la celda en rojo con ›› (y ámbar+› entre 100% y 120%) (happy)",
+        "El desplegable lista todas las alcancías con ruta jerárquica y saldo; el monto sobre el Máx. deshabilita Sacar (happy)",
+        "Eliminar un retiro del historial restaura el saldo derivado exacto de la alcancía (edge)",
+        "El retiro exitoso muestra toast con Deshacer que revierte la operación completa (happy)"
+      ]
+    },
+    {
+      "id": "FR-1015",
+      "title": "Retiros PLANEADOS con techo lógico y marca auto-sanadora",
+      "description": "La celda Pres. de la fila Retiros del mes edita el retiro planeado global del mes (fila @retiros del plan). Se RECHAZA planear más de lo que el propio plan habrá reservado hasta ese mes (aportes planeados acumulados − retiros planeados previos): franja inline «Solo hay $X reservados en tu plan hasta [mes]». Si DESPUÉS bajan los aportes del plan, la celda se marca sola («!» + ámbar, sin bloquear) con tooltip explicativo.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con plan de aportes 100.000+100.000 (ene, feb), planear sacar 250.000 en feb se rechaza con limit=200.000; 150.000 pasa y el límite de mar queda en 50.000 (happy+negativo)",
+        "Tras planear un retiro válido, bajar los aportes del plan marca la celda con «!» + ámbar sin bloquear (edge)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1001",
+      "requirement_id": "FR-1001",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1001",
+          "given": "aportes {ene:100k,feb:100k,mar:100k} y retiro 50k en abr",
+          "when": "consulto el saldo derivado de la alcancía",
+          "then": "100/200/300/250 mil y 250.000 constante hasta dic"
+        }
+      ]
+    },
+    {
+      "id": "US-1002",
+      "requirement_id": "FR-1002",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1002",
+          "given": "una alcancía con aportes tecleados",
+          "when": "miro su fila en la grilla",
+          "then": "cada celda dice el aporte de ESE mes y el total del bloque es la suma del mes — jamás un acumulado"
+        }
+      ]
+    },
+    {
+      "id": "US-1003",
+      "requirement_id": "FR-1003",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1003",
+          "given": "una celda con aporte y margen insuficiente para subirla",
+          "when": "confirmo la edición",
+          "then": "franja inline con el número exacto, el editor sigue abierto con el valor seleccionado, Escape restaura"
+        },
+        {
+          "id": "AC-1003b",
+          "given": "un retiro posterior financiado por el aporte de feb",
+          "when": "bajo el aporte de feb",
+          "then": "bloquea nombrando el mes que quedaría en rojo; el journal jamás cambia por editar celdas"
+        }
+      ]
+    },
+    {
+      "id": "US-1004",
+      "requirement_id": "FR-1004",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1004",
+          "given": "Viaje 200k y Fondo 800k, margen 0",
+          "when": "muevo 100k de Viaje a Fondo",
+          "then": "un acto: celda de Fondo +100k, un movimiento from/to, Σ derivado idéntico"
+        },
+        {
+          "id": "AC-1004b",
+          "given": "una alcancía con retiros en el journal",
+          "when": "le creo una subcategoría o la fusiono por drag-drop",
+          "then": "el saldo derivado se conserva exacto — los movimientos siguieron a las celdas"
+        }
+      ]
+    },
+    {
+      "id": "US-1005",
+      "requirement_id": "FR-1005",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1005",
+          "given": "el registro móvil con tipo Reserva",
+          "when": "abro De y elijo una alcancía",
+          "then": "veo su saldo en el chip y el Máx. junto al monto; esa opción desaparece de A"
+        }
+      ]
+    },
+    {
+      "id": "US-1006",
+      "requirement_id": "FR-1006",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1006",
+          "given": "margen del mes 150.000",
+          "when": "intento guardar 200.000",
+          "then": "bloqueo con 'No puedes reservar $200.000: tu margen este mes es $150.000'"
+        }
+      ]
+    },
+    {
+      "id": "US-1007",
+      "requirement_id": "FR-1007",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1007",
+          "given": "Viaje con saldo derivado 150.000",
+          "when": "intento sacar 150.001",
+          "then": "bloqueo con '«Viaje» solo tiene $150.000' y nada se persiste"
+        }
+      ]
+    },
+    {
+      "id": "US-1008",
+      "requirement_id": "FR-1008",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1008",
+          "given": "el plano Pres.",
+          "when": "tecleo un aporte que supera el margen planeado",
+          "then": "la celda se marca «!» + ámbar y el valor SE GUARDA"
+        }
+      ]
+    },
+    {
+      "id": "US-1009",
+      "requirement_id": "FR-1009",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1009",
+          "given": "jul +500k y guardo 200k; ago saco 50k y gasto 50k",
+          "when": "miro el Balance",
+          "then": "jul: 300/200/500 mil; ago: Retiros 50k, reservado 150k, total 450k — y Disponible del mes dice lo del MES, sin arrastre"
+        }
+      ]
+    },
+    {
+      "id": "US-1010",
+      "requirement_id": "FR-1010",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1010",
+          "given": "datos v3 (saldos con arrastre) o v2 (aportes)",
+          "when": "cargo la app una o dos veces, en local o servidor",
+          "then": "quedan en v4 con el saldo derivado idéntico, retiros sintetizados donde había deltas negativos, y sin doble conversión"
+        }
+      ]
+    },
+    {
+      "id": "US-1011",
+      "requirement_id": "FR-1011",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1011",
+          "given": "una alcancía con aportes y retiros",
+          "when": "reestructuro el árbol (reparent/promote/demote/delete)",
+          "then": "Σ saldo derivado del tipo idéntico antes y después, mes a mes"
+        }
+      ]
+    },
+    {
+      "id": "US-1012",
+      "requirement_id": "FR-1012",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1012",
+          "given": "una operación De→A con nota «pasaje»",
+          "when": "miro la celda del mes",
+          "then": "punto indicador + la nota legible; sin observaciones no hay indicador"
+        }
+      ]
+    },
+    {
+      "id": "US-1014",
+      "requirement_id": "FR-1014",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1014",
+          "given": "retiro planeado 150k y retiros ejecutados 200k",
+          "when": "miro la celda Ejec. de Retiros del mes",
+          "then": "rojo + ›› (la regla de los gastos); del mini-form puedo sacar (Máx. visible, desplegable jerárquico) y eliminar retiros para corregir"
+        }
+      ]
+    },
+    {
+      "id": "US-1015",
+      "requirement_id": "FR-1015",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1015",
+          "given": "plan de aportes 200k acumulados a feb",
+          "when": "planeo sacar 250k en feb",
+          "then": "rechazo con 'Solo hay $200.000 reservados en tu plan hasta febrero'; si luego bajo los aportes, la celda se marca sola"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1001",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La conservación del balance sobrevive: total(m) = total(m−1) + flujo(m) en ambos planos, para cualquier estado alcanzable (reserved neto negativo incluido). La aritmética de monthBalance no cambia.",
+      "acceptance_criteria": "Secuencias mixtas de aportes/guardar/sacar/mover/plan/eliminar-retiros (≥100 ops) cumplen la identidad en los 12 meses de ambos planos tras cada op; el escenario del usuario (500→500→450) exacto"
+    },
+    {
+      "id": "NFR-1002",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La captura de gastos e ingresos NO cambia: addMovement para expense/income conserva su comportamiento (suma al ejecutado del target), ignora from/to accidentales, y el registro/edición de sus celdas queda intacto.",
+      "acceptance_criteria": "Los TCs de gasto/ingreso pasan sin modificación; un expense con from/to no altera saldos de reservas ni gana extremos"
+    },
+    {
+      "id": "NFR-1003",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los datos previos siguen válidos: migraciones no destructivas (v2 identidad; v3 conversión sin pérdida), movimientos sin from/to cargan, el CHECK amount >= 0 no se modifica, claves ajenas intactas, y un blob local corrupto cae a semilla.",
+      "acceptance_criteria": "Un estado pre-feature completo carga sin pérdida; la migración drizzle es aditiva; montos negativos/no enteros en el blob local se rechazan"
+    },
+    {
+      "id": "NFR-1004",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Una sola regla, todas las puertas: techo y piso viven en el dominio puro (sin React/DOM/IO) y son las MISMAS funciones para la grilla, la fila Retiros del mes y el registro. El PUT snapshot queda documentado como puerta confiada (ADR-04).",
+      "acceptance_criteria": "Las funciones de validación no importan UI; las tres puertas producen el mismo veredicto para la misma operación; 02_SYSTEM_DESIGN.md documenta el PUT confiado"
+    },
+    {
+      "id": "NFR-1005",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "La derivación de saldos + validación en cadena de 12 meses corren en cada tecleo dentro del guardrail heredado (≤150 ms) con ~30 alcancías, medido sobre la ruta real; la memoización por identidad evita recomputos y la edición de gastos/ingresos no pasa por las reglas de reservas.",
+      "acceptance_criteria": "TC de perf: edición + validación + balance + totales ≤150 ms con 30 alcancías; contador de cómputos =1 en consultas repetidas; contador de validaciones =0 en una edición expense"
+    },
+    {
+      "id": "NFR-1006",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La disciplina de accesibilidad sobrevive: todo estado nuevo portado por color lleva canal no cromático o texto («!» del plan; ›/›› del sobre-retiro; mensajes con el número exacto), contraste AA en ambos temas, táctiles del registro ≥48px.",
+      "acceptance_criteria": "Pares --fg-muted/--bg, --error/--bg-card y --state-warning/--bg ≥4.5:1 en claro y oscuro; glifos presentes en el DOM; controles nuevos del registro ≥48px"
+    },
+    {
+      "id": "NFR-1007",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Cero rojo al cierre: los TCs de esta feature (TC-TRF-*) se re-derivan al modelo v4 y la suite completa del monorepo (raíz + todas las features) queda en verde; las re-derivaciones quedan documentadas en el build report.",
+      "acceptance_criteria": "Al verify de esta feature: aitri status muestra la suite agregada sin ✗; el build report lista los TCs re-derivados v3→v4"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Palabras del usuario en el seed (2026-07-28): 'necesitamos controlar las transferencias… que no tienen control ni límite' — el dolor es el descontrol (apartar plata que no hay, no poder sacar). Refinado en la sesión de diseño del 2026-07-28 con 8 casos de uso confirmados uno a uno (feature_context/DESIGN_OPTIONS.md §1).",
+    "users": "El mismo presupuestador personal de balance, confirmado implícitamente por el usuario al validar los 8 casos de uso como propios ('todos') en la sesión del 2026-07-28.",
+    "baseline": "El código actual: celdas transfer = aporte mensual sin regla alguna (setLeafAmount con Math.max(0,…)), reserveNet = suma ciega, sin operación de sacar; verificado contra src/ durante la sesión de diseño.",
+    "success_metric": "Los escenarios numéricos confirmados por el usuario (jul/ago: 500→500→450; margen 150 bloquea 200 con mensaje exacto; 'Viaje solo tiene 150'), validados contra monthBalance real (sim-opciones.mjs).",
+    "no_go_zone": "Decisiones explícitas del usuario en la sesión 2026-07-28: dos pasos sin atajo, préstamos = reserva nombrada, sin vista de journal (nace como observaciones por celda), sin saldo inicial manual (patrón de primera carga), y las exclusiones heredadas ratificadas (año único, sin recurrencias, sin conciliación bancaria)."
+  },
+  "idea_gaps": [
+    "La ubicación/UX definitiva de la operación de retiros quedó explícitamente pendiente: al usuario no le resulta amigable operar desde la fila del Balance — registrado como BL-019, feature aparte (out_of_scope aquí).",
+    "Retiros planeados por alcancía (hoy el plan de retiros es global por mes) — fuera de v1, sin decisión de si se necesitará."
+  ],
+  "coverage_map": [
+    {
+      "need": "La celda del tipo Reserva es un movimiento del mes, como Ingresos/Gastos (decisión del usuario 2026-07-29, revierte el modelo saldo)",
+      "covered_by": "FR-1002"
+    },
+    {
+      "need": "Editar la celda corrige el aporte — jamás genera retiros implícitos (el retiro fantasma que confundió al usuario)",
+      "covered_by": "FR-1003"
+    },
+    {
+      "need": "El acumulado de reservas vive en el Balance (Saldo reservado arrastra mes a mes)",
+      "covered_by": "FR-1009"
+    },
+    {
+      "need": "Saldo por alcancía derivado, visible al operar (registro y mini-form)",
+      "covered_by": "FR-1001"
+    },
+    {
+      "need": "Retiros explícitos vía journal, nunca por resta de celdas",
+      "covered_by": "FR-1004"
+    },
+    {
+      "need": "Retiro desde la grilla/balance con destino simple: siempre a Disponible (v1, 'la fácil')",
+      "covered_by": "FR-1014"
+    },
+    {
+      "need": "Origen del retiro en lista desplegable con TODAS las alcancías (grupos, categorías y subcategorías) y su saldo",
+      "covered_by": "FR-1014"
+    },
+    {
+      "need": "Si me equivoco en un retiro, poder corregirlo (eliminar del historial)",
+      "covered_by": "FR-1014"
+    },
+    {
+      "need": "Los retiros también se presupuestan (celda Pres. de Retiros del mes)",
+      "covered_by": "FR-1015"
+    },
+    {
+      "need": "No presupuestar retiros mayores a lo reservado del plan (no es lógico en la práctica)",
+      "covered_by": "FR-1015"
+    },
+    {
+      "need": "Marcar el sobre-retiro ejecutado como en los otros rubros (ámbar/rojo con ›/››)",
+      "covered_by": "FR-1014"
+    },
+    {
+      "need": "No sacar más de lo disponible en el ejecutado (piso, en cadena)",
+      "covered_by": "FR-1007"
+    },
+    {
+      "need": "Ver cuánto quedó disponible EN el mes sin hacer la cuenta mental",
+      "covered_by": "FR-1009"
+    },
+    {
+      "need": "Techo: no reservar plata que no se tiene (fórmula SUMA, no 'O'); primera carga = ingreso + reserva del mismo mes",
+      "covered_by": "FR-1006"
+    },
+    {
+      "need": "El plan avisa sin bloquear, con marca propia (aportes)",
+      "covered_by": "FR-1008"
+    },
+    {
+      "need": "Registro móvil De→A con estado visible antes de operar; renombrado 'Reserva'",
+      "covered_by": "FR-1005"
+    },
+    {
+      "need": "Guardar/sacar/mover = una operación con journal (fecha y nota)",
+      "covered_by": "FR-1004"
+    },
+    {
+      "need": "Observaciones por celda como inicio de la lectura del journal",
+      "covered_by": "FR-1012"
+    },
+    {
+      "need": "Reestructurar el árbol no fabrica ni pierde plata (los movimientos siguen a las celdas; borrar no resucita saldos)",
+      "covered_by": "FR-1011"
+    },
+    {
+      "need": "Migrar los datos existentes (v2 y el v3 intermedio) sin pérdida y sin doble conversión; datos corruptos caen a semilla",
+      "covered_by": "FR-1010"
+    },
+    {
+      "need": "Flujo del mes puede ser negativo (gastar más de lo que entra) — correcto, lo absorbe el disponible",
+      "covered_by": "FR-1009"
+    },
+    {
+      "need": "Rediseño UX de dónde/cómo se opera el retiro (no convence abajo)",
+      "covered_by": "out_of_scope"
+    },
+    {
+      "need": "Helper de trayectoria del plan (v3)",
+      "covered_by": "out_of_scope"
+    },
+    {
+      "need": "Atajo compuesto retiro+gasto; vencimientos/intereses; programados; conciliación; multi-año; sobres; vista journal completa",
+      "covered_by": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- PLANEADA — Fase 1 lista para iniciar.\n     SESIÓN DE DISEÑO COMPLETADA 2026-07-28 (tarde): el usuario pidió repensar desde casos de uso\n     y el diseño CONVERGIÓ. La fuente autoritativa para la Fase 1 es\n     `feature_context/DESIGN_OPTIONS.md` — casos de uso confirmados, primitiva única\n     (sacar → disponible; un retiro JAMÁS es ingreso), representación (dos almacenes ≥0 por celda,\n     se muestra el neto), reglas techo/piso refinadas, y TODAS las decisiones abiertas cerradas\n     (plan con retiros que avisa sin bloquear · préstamos = reserva nombrada · dos pasos sin atajo).\n     La sección \"ABIERTO\" y las \"preguntas sin responder\" de abajo quedaron RESUELTAS ahí;\n     lo demás de esta cabecera (lo CONFIRMADO del seed) sigue vigente. -->\n\n# ⚠️ ESTADO AL 2026-07-28 — leer esto antes que nada\n\n## La premisa REAL (corrige el encuadre original)\n\nEl usuario lo dijo así: *\"necesitamos controlar las transferencias o movimientos dentro de\ntransferencias, que no tienen control ni límite\"*. El dolor es el **descontrol**, no la falta de un\nmodelo de origen→destino. Hoy podés apartar plata que no tenés.\n\n## CONFIRMADO con el usuario\n\n1. **La edición manual de las celdas SE QUEDA.** Esto CONTRADICE la sección \"New Behavior\" de abajo,\n   que decía volver las celdas no editables. El usuario fue explícito: *\"no eliminar la posibilidad\n   de editar manualmente\"*.\n\n2. **La regla tiene DOS lados:**\n   - **Techo:** `reservas del mes ≤ saldo mes anterior + flujo del mes`\n   - **Piso:** el `saldo reservado` no puede quedar negativo (no sacar más de lo guardado)\n\n3. **La formulación inicial del usuario tenía un hueco, y él lo corrigió a medias.** Había propuesto\n   *\"disponible positivo **O** ingresos − egresos del mes positivo\"*. El \"O\" abre un agujero:\n   enero cierra en −500, en febrero entran 300 → el flujo es positivo, pero tenés −200 y la regla\n   te dejaría transferir. **No son dos condiciones alternativas: es la SUMA de las dos.**\n   Ojo: tampoco es \"≤ Saldo disponible\", porque esa cifra YA tiene las reservas restadas — el\n   margen real es `saldo mes anterior + flujo`, antes de restar reservas. El usuario detectó\n   justamente este error.\n\n4. **Al pasarse: se BLOQUEA con mensaje que explique por qué** (no se guarda y se avisa). No es un\n   aviso blando.\n\n5. **Las reglas deben aplicar en LAS DOS puertas de entrada.** Hoy no se hablan: la grilla valida\n   con `Math.max(0, …)` en `setLeafAmount`, el registro con `parseAmount` (≥1) en `addMovement`, y\n   el registro SÍ permite tipo \"Transferencia\" (`TypeToggle.tsx`). Ninguna sabe del saldo →\n   **la validación tiene que vivir en el DOMINIO**, no en el componente de grilla.\n\n6. **Transferencias entre ítems del mismo tipo** (alcancía A → alcancía B): no son problema. Son\n   neto cero y hoy YA funcionan editando dos celdas. Va como regresión a verificar, no como trabajo.\n\n7. **Sacar de una reserva NO es un ingreso.** Verificado con números: julio cierra en disponible 300\n   / reservado 200 / total 500; si en agosto sacás 50 y lo anotás como ingreso, el total sube a 550\n   (plata inventada) y el reservado sigue diciendo 200. Contablemente es una reclasificación de\n   activo: no toca ninguna cuenta de resultado y el patrimonio no cambia.\n\n## ABIERTO — es donde se detuvo la conversación\n\n**Cómo se REPRESENTA \"sacar\" de una reserva.** Se exploraron tres formas y ninguna convenció:\n\n| forma | objeción |\n|---|---|\n| Monto negativo en la celda | Al usuario no le convence ver negativos ahí |\n| Dos renglones por alcancía (guardé / saqué) | *\"Si sacás y no metés en ningún lado\"* — la mayoría de los meses uno queda vacío y la grilla se duplica |\n| Línea \"Retiro de reservas\" en el balance (idea del usuario) | Buena para leer, pero el balance es DERIVADO: el número igual hay que teclearlo en algún lado |\n\nMatiz importante que sí quedó claro: **reducir lo guardado en el MISMO mes ya funciona hoy** (bajás\nla celda de julio de 200 a 150 y esos 50 vuelven a disponible). Lo que no existe es sacar en un mes\nPOSTERIOR, que exigiría un negativo y toca el `CHECK amount >= 0`.\n\n## La hipótesis de por qué nada cerraba\n\nHay **dos modelos peleando**: la grilla es una MATRIZ DE PRESUPUESTO (un número por celda: \"cuánto va\na esta categoría este mes\"), pero guardar y sacar son EVENTOS CON DOS LADOS. Todas las opciones de\narriba eran parches para ese desajuste.\n\n## Las preguntas que quedaron SIN responder\n\nEl usuario pidió repensar el flujo desde cero. Se le preguntó, y no alcanzó a contestar:\n\n- Tenés 200 en la alcancía \"Viaje\" y en agosto necesitás 50 para pagar algo. ¿Qué pasa paso a paso?\n  ¿Sacás y después gastás, o pagás directo con esa plata?\n- Ese gasto, ¿lo anotás como gasto normal? ¿En qué categoría?\n- **La pregunta clave: ¿la alcancía es un LUGAR donde tenés plata, o una CATEGORÍA de gasto que vas\n  llenando?** Son cosas distintas y el modelo cambia por completo según cuál sea.\n\n## Recomendación para la próxima sesión\n\nEmpezar por esas preguntas, NO por escribir requisitos. Considerar correr `discovery` para esta\nfeature: los campos Success Criteria y Out of Scope de abajo siguen marcados \"[A DEFINIR EN\nDISCOVERY]\", y Target Users sigue siendo un [ASSUMPTION] sin confirmar.\n\n---\n\n# Documento original (2026-07-24) — leer con la cabecera de arriba\n\n## Feature\nUn módulo de **transferencia calculada**: mover dinero entre lugares (disponible ↔ reservas, o entre dos reservas) eligiendo **origen → destino → monto**, de modo que la app ajuste ambos lados sola y ninguna transferencia pueda descuadrar. Al hacerlo, las celdas de transferencia de la grilla dejan de editarse **a mano** (que es lo que hoy descuadra): pasan a ser el resultado CALCULADO de estos movimientos.\n\n## Relación con la feature `balance` (decidida 2026-07-24)\n`balance` v1 dejó dentro solo **GUARDAR** en una reserva (aporte ≥ 0: la reserva solo crece, nunca queda negativa). Todo lo que exige un movimiento con dos lados o un monto negativo se difirió AQUÍ:\n- **Sacar** de una reserva (devolverla a disponible) — porque una reserva no puede quedar negativa, hay que topar el monto al saldo del ítem: es una transferencia con reglas, no un neto negativo suelto.\n- **Mover entre dos reservas** (alcancía A → alcancía B) — neto cero, ambos lados nombrados.\n- Volver las **celdas de transferencia no editables a mano** — se calculan desde estos movimientos.\n- No relajar el `CHECK amount >= 0`: al modelar sacar como transferencia calculada (no como monto negativo), el signo se maneja en la capa de movimiento, no en el almacén de celdas.\n\n## Problem / Why\nEn la feature `balance` (v1) las transferencias se registran a mano y **toda** transferencia suma al saldo reservado, sin distinguir a dónde va. Eso descuadra en cuanto el movimiento no es \"guardar plata nueva\":\n\n- **Sacar de una reserva para gastar** — hoy no existe \"sacar\"; la plata que metes a una alcancía nunca vuelve a ser gastable en el modelo.\n- **Mover entre dos reservas** (alcancía A → alcancía B) — es neto cero, pero \"toda transferencia cuenta\" lo infla.\n- **Prestar dinero a alguien** — ¿es gasto? ¿es una reserva que esperas de vuelta (cuenta por cobrar)? Sin origen/destino no se puede distinguir.\n- **Que te devuelvan un préstamo** — ¿ingreso nuevo o des-reserva?\n- **Mover de un ingreso a una transferencia** — el usuario lo mencionó como algo que hoy no sabe registrar.\n\nRaíz técnica: hoy un movimiento guarda solo **destino + monto** (`target`, `amount`), no el **origen**. Sin el origen la app no puede saber de dónde salió la plata, así que no puede garantizar que los dos lados de una transferencia cuadren. Registrar a mano ambos lados es justo lo que produce errores.\n\nLa solución es una transferencia **calculada**: el usuario elige de dónde y hacia dónde, y la app mueve ambos lados atómicamente — el descuadre deja de ser posible por construcción.\n\n## Target Users\n[ASSUMPTION] El mismo presupuestador personal de `balance`. No abre un tipo de usuario nuevo.\n\n## New Behavior\nEl sistema debe:\n1. Registrar una transferencia con **origen y destino explícitos** (no solo destino).\n2. Ajustar **ambos lados** de forma atómica: el origen baja, el destino sube, en un solo acto.\n3. Soportar los movimientos que v1 no puede: sacar de una reserva, mover entre reservas (neto cero), y distinguir un préstamo de una reserva.\n4. Impedir por construcción que una transferencia descuadre el balance.\n5. Recalcular el módulo de Balance (`balance`) con la semántica correcta una vez exista origen/destino — reemplazando la simplificación \"toda transferencia cuenta\".\n\n## Success Criteria\n[A DEFINIR EN DISCOVERY de esta feature] Punto de partida a confirmar:\n- Dado que el usuario mueve X de la reserva A a la reserva B, cuando mira el balance, el Saldo total NO cambia y el reservado de A baja X mientras el de B sube X.\n- Dado que saca X de una reserva para gastar, el Saldo disponible sube X (vuelve a ser gastable) y el reservado baja X.\n- Ninguna secuencia de transferencias deja el balance descuadrado (la suma de orígenes = suma de destinos, siempre).\n\n## Touch Points\nMODIFICA:\n- El modelo de movimiento (`src/domain/types.ts`: `Movement` — añadir origen; hoy solo hay `target`/`amount`).\n- La captura de movimientos (registro móvil y escritorio).\n- El módulo de Balance (`balance`): la regla \"toda transferencia cuenta\" se sustituye por el cálculo real origen/destino.\n- Persistencia y migración de movimientos previos (los viejos no tienen origen).\n\n## Must Not Break (Regression Boundary)\n- Los movimientos previos sin origen siguen siendo válidos (sin migración destructiva).\n- El balance de `balance` sigue cuadrando: Saldo total = total previo + Flujo del mes.\n- El registro de ingresos y gastos (que no son transferencias) no cambia su forma de captura.\n\n## Out of Scope\n[A DEFINIR EN DISCOVERY de esta feature] Candidatos: cuentas por cobrar/pagar como entidad con vencimiento, intereses, transferencias programadas/recurrentes, conciliación con cuentas bancarias reales.\n\n## Dependencia\nDepende de `balance`: primero se ven los números (y se hace obvio por qué esto hace falta), luego se corrige cómo se registran las transferencias. NO iniciar hasta que `balance` esté verificada y sellada.\n"
+}

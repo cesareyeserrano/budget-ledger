@@ -1,0 +1,48 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "El mover alcancia->alcancia se cuenta como retiro e infla las filas «Reservas del mes» y «Retiros del mes», y no se puede corregir desde la UI",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "fixed",
+      "fr": "FR-1009",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-29T18:29:03.638Z",
+      "updated_at": "2026-08-29T18:50:53.534Z",
+      "resolution": "reserveRetiros ahora exige que el destino sea Disponible (isAvailable(m.to)) y reserveAportes resta los moveres via la nueva reserveMovers. Las dos filas del desdoble dicen por fin lo que prometen (BalanceModule.tsx:140) y la aritmetica no se toca: el neto (A-M)-(R-M)=A-R es identico, asi que Saldo reservado y Saldo total salen iguales. El centinela TC-TRF4-151f tenia el agujero exacto —cubria un movimiento sin from y uno de tipo expense, nunca un mover— y se reforzo; se anadieron BG-001a/b/c en tests/domain/reserve-balance.test.ts. Falsabilidad comprobada: revertido el arreglo, 3 de los tests fallan. Suite 318/318, typecheck y lint limpios. Datos reales del usuario en agosto: Reservas 18.400.300->9.200.000, Retiros 9.200.300->0; Saldo reservado 9.201.000 y total 10.201.000 sin cambio.",
+      "fix_commit_sha": "d4c6cea7dcc7c7dc5944a422422f5a72f0b4d55d",
+      "fix_at": "2026-08-29T18:50:53.534Z"
+    },
+    {
+      "id": "BG-002",
+      "title": "El techo solo se comprueba al escribir la reserva: bajar el ingreso despues deja el estado por encima del techo y nada lo re-valida ni lo señala",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "closed",
+      "fr": "FR-1006",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-08-29T22:33:37.197Z",
+      "updated_at": "2026-09-03T20:35:26.130Z",
+      "resolution": "PREMISA FALSA, corregida por reproduccion ejecutada el 2026-09-03. El parte afirmaba que el estado por encima del techo 'no se re-valida NI SE SENALA'. La segunda mitad es falsa: con ingreso 1.000.000 y reserva 1.000.000, bajar el ingreso a 400.000 produce monthIssues -> {kind:techo, period:2026-06, margin:400000, excess:600000}, y esa marca la pintan la grilla (breachByMonth, BudgetGrid) y el Balance, recalculada en cada cambio. Lo unico cierto es que nada lo BLOQUEA. Y bloquearlo seria un error de producto, no un arreglo: esa marca es el falso positivo documentado en feature_context/analisis-del-modelo.md (BL-037) —el camino que CONSERVA la verdad es el que queda marcado— y bajar la celda es la unica escapatoria, de la que nacio el trinquete BL-038. Bloquear le quitaria al usuario su unica salida y recrearia el encierro del que ya se quejo. El problema real vive en BL-037/BL-038 (modelo de reservas), no aqui. La falta de validacion en el SERVIDOR se sigue en backend BG-002, que si es real",
+      "close_commit_sha": "231b664ac24979630972e14526ddbb0c92ba560e",
+      "close_at": "2026-09-03T20:35:26.130Z"
+    }
+  ]
+}

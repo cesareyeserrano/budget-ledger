@@ -1,0 +1,137 @@
+{
+  "files_created": [
+    "scripts/no-legacy-mode.sh",
+    "src/components/auth/AuthPending.tsx",
+    "src/components/auth/LogoutButton.tsx",
+    "src/components/ui/input.tsx",
+    "tests/e2e/helpers/fixtures.ts",
+    "tests/e2e/helpers/globalSetup.ts",
+    "tests/e2e/helpers/globalTeardown.ts",
+    "tests/e2e/helpers/seed.ts",
+    "tests/helpers/inMemoryRepository.ts",
+    "tests/e2e/servidor-fuente-unica.spec.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/unit/servidor-fuente-unica.test.ts",
+    "tests/integration/write-serialization.test.ts"
+  ],
+  "files_modified": [
+    "playwright.config.ts",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/MobileShell.tsx",
+    "src/components/auth/AuthForm.tsx",
+    "src/components/auth/LoginGate.tsx",
+    "src/components/register/StorageBanner.tsx",
+    "src/data/repository.ts",
+    "src/domain/types.ts",
+    "src/lib/authClient.ts",
+    "src/state/store.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/control-size-scale.spec.ts",
+    "tests/e2e/coverage-extra.spec.ts",
+    "tests/e2e/coverage-skips.spec.ts",
+    "tests/e2e/critical.spec.ts",
+    "tests/e2e/demote-node.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e/grid-ux.spec.ts",
+    "tests/e2e/promote-to-group.spec.ts",
+    "tests/e2e/reparent.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/ux-consistency.spec.ts",
+    "tests/e2e-backend/helpers/globalSetup.ts",
+    "tests/integration/backend/repo-sync.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/integration/reserve-migration.test.ts"
+  ],
+  "files_deleted": [
+    "src/data/makeRepo.ts",
+    "src/lib/serverMode.ts"
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "NFR-1103",
+      "substitution": "ServerRepository castea la respuesta del servidor (`as { revision, state }`) sin validar su forma. Un cuerpo sintácticamente válido pero con forma equivocada entra al estado sin ser rechazado.",
+      "reason": "RISK-2 declarado en el TRD: LocalStorageRepository validaba con Zod y devolvía null; el camino de servidor no tiene equivalente. Se acepta porque el productor es el propio backend del proyecto (contrato controlado) y el fallo real —respuesta corrupta o no-JSON— sí queda cubierto: lanza y hydrate() lo absorbe. Registrado como BL-021.",
+      "effort_to_fix": "small"
+    },
+    {
+      "fr_id": "FR-1105",
+      "substitution": "Los nodos `system` heredados que existan en Postgres quedan SIN saneador: stripLegacyUnassigned salía de src/ con el camino local y el camino de servidor nunca tuvo uno equivalente.",
+      "reason": "Declarado y aceptado a conciencia (decisión del usuario 2026-07-30: no hay usuarios reales; la única data viva es la de dev, creada con el modelo actual). Por eso los guards `!node.system` de mutations/BudgetGrid/ReserveRow/CategoryRow SE CONSERVAN: pasan de ser ramas muertas a la única defensa ante datos legados. Verificado por TC-SFU-105e.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-1103",
+      "substitution": "Cada PUT reescribe el snapshot completo del ledger (borra e reinserta nodos, celdas y movimientos del owner) en vez de aplicar un diff por celda.",
+      "reason": "Decisión deliberada de ADR-06: la reescritura completa dentro de una transacción con lock nunca deja estado parcial. El coste por tecla crece con el historial, lo que se acepta en esta escala y queda registrado como BL-017.",
+      "effort_to_fix": "large"
+    },
+    {
+      "fr_id": "NFR-1103",
+      "substitution": "El conflicto por revisión (409) se resuelve con last-write-wins informado: el cliente converge al estado del servidor y descarta lo local pendiente, avisando con un toast. No hay merge por campo.",
+      "reason": "Con las escrituras ya serializadas (BL-010) un 409 solo puede venir de OTRA sesión, escenario que el producto no soporta como uso normal (un usuario, varios dispositivos secuenciales). Un merge de tres vías sería desproporcionado; lo que sí era inaceptable —descartar en silencio— quedó corregido.",
+      "effort_to_fix": "large"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/unit/servidor-fuente-unica.test.ts",
+    "../../../tests/integration/servidor-fuente-unica.test.ts",
+    "../../../tests/integration/backend/servidor-fuente-unica.test.ts",
+    "../../../tests/integration/write-serialization.test.ts",
+    "../../../tests/integration/persistence.test.ts",
+    "../../../tests/integration/backend/repo-sync.test.ts",
+    "../../../tests/e2e/servidor-fuente-unica.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "no-legacy-mode",
+      "command": "../../../scripts/no-legacy-mode.sh",
+      "required": true,
+      "timeout_ms": 60000
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "environment_variables": [
+    "DATABASE_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "LEDGER_ALLOWED_ORIGINS"
+  ],
+  "notes": "NEXT_PUBLIC_LEDGER_SERVER_MODE se retiró del entorno (NFR-1107/NFR-1108): ya no aparece en src/, ni en .env.example, ni en la preparación de ninguna suite. El gate no-legacy-mode lo vigila en cada verify y está probado FALLANDO (TC-SFU-207f). Tres defectos aparecieron al escribir los TCs y quedaron corregidos en este mismo build: (1) BG-001 — un 401 se trataba como fallo de red, así que una sesión expirada dejaba las finanzas en pantalla, incumpliendo el criterio edge de FR-1102; (2) los controles del login medían 48px en escritorio porque el override `max-[760px]:` de input.tsx repetía la misma altura base, contradiciendo la escala de FR-1108/FR-801 y el UX spec; (3) tests/e2e-backend/helpers/globalSetup.ts seguía inyectando el flag retirado en el build, resucitando el modo por una puerta que el gate no vigila (solo mira src/)."
+}

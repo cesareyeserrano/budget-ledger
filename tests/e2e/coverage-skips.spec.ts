@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./helpers/fixtures";
 
 // TCs sembrados en 03_TEST_CASES.json que no tenían spec real (aparecían como skip en verify-run).
 // Cada test embebe su TC id en el título para que aitri verify-run lo mapee.
@@ -56,8 +56,10 @@ test("TC-102h: la app renderiza sin desborde horizontal a 375, 768 y 1440px", as
   for (const width of [375, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    // esperar a que el shell correspondiente esté montado antes de medir
-    await page.waitForLoadState("networkidle");
+    // esperar a que el shell correspondiente esté montado antes de medir. Ojo: networkidle ya no
+    // sirve aquí — el sync en vivo (FR-511) mantiene un EventSource abierto y la red nunca queda
+    // ociosa, así que ese wait agotaba el timeout con la app ya renderizada.
+    await expect(page.getByTestId("page-title")).toBeVisible();
     const overflow = await page.evaluate(() => {
       const el = document.documentElement;
       return el.scrollWidth - el.clientWidth;

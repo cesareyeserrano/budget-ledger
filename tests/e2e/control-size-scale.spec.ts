@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
 
 // Feature control-size-scale — e2e (FR-801/802, NFR-801..803). Mide la altura efectiva de los
 // controles (boundingBox) y lee los tokens de :root. Escala: sm=32 / md=40 / lg=48.
@@ -62,10 +62,15 @@ test.describe("escritorio (1440)", () => {
     expect(t.accent.length).toBeGreaterThan(0); // color intacto
   });
 
+  // Los TCs de este bloque apuntan a la pestaña por ROL, no por texto. El <h1> del escritorio dice
+  // también «Resumen» — nombra la vista para quien no la ve — y precede a la pestaña en el DOM, así
+  // que .getByText(…).first() agarraba un sr-only de 1 px de alto en lugar del TabsTrigger. En 801e
+  // y 802h eso daba un fallo ruidoso; en 802f pasaba EN FALSO (1 px tampoco es 30/36/44), midiendo
+  // el elemento equivocado sin que nadie lo notara.
   // @aitri-tc TC-801e
   test("TC-801e: ningún control clave tiene una altura fuera de {32,40,48}px", async ({ page }) => {
     const locs = [
-      page.getByText("Resumen", { exact: true }).first(),
+      page.getByRole("tab", { name: "Resumen", exact: true }).first(),
       page.getByRole("button", { name: /Nuevo movimiento/ }).first(),
       page.getByLabel("Mes").first(),
       page.getByTestId("theme-toggle"),
@@ -78,7 +83,7 @@ test.describe("escritorio (1440)", () => {
 
   // @aitri-tc TC-802h
   test("TC-802h: TabsTrigger=32, Button default=40 y SelectTrigger=40", async ({ page }) => {
-    expect(near(await heightOf(page.getByText("Resumen", { exact: true }).first()), 32)).toBe(true);
+    expect(near(await heightOf(page.getByRole("tab", { name: "Resumen", exact: true }).first()), 32)).toBe(true);
     expect(near(await heightOf(page.getByRole("button", { name: /Nuevo movimiento/ }).first()), 40)).toBe(true);
     expect(near(await heightOf(page.getByLabel("Mes").first()), 40)).toBe(true);
   });
@@ -93,7 +98,7 @@ test.describe("escritorio (1440)", () => {
   // @aitri-tc TC-802f
   test("TC-802f: ningún control clave mide una altura retirada (30, 36 o 44px)", async ({ page }) => {
     const locs = [
-      page.getByText("Resumen", { exact: true }).first(),
+      page.getByRole("tab", { name: "Resumen", exact: true }).first(),
       page.getByRole("button", { name: /Nuevo movimiento/ }).first(),
       page.getByLabel("Mes").first(),
       page.getByTestId("theme-toggle"),

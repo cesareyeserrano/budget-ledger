@@ -1,0 +1,797 @@
+{
+  "project_name": "T-Ledger — techo-de-flujo",
+  "project_summary": "El usuario aparta plata en bolsillos dentro de su cuenta. Hoy el cupo para reservar en un mes se calcula con las reservas NETAS (lo apartado menos lo retirado), así que un retiro RECARGA el cupo: él reservó 1.000 de un ingreso de 1.000, retiró 500, y la app le ofreció 500 de cupo otra vez y le aceptó teclear 1.500 — más de lo que entró en el mes. Al intentar corregirlo eliminando el retiro (operación que hoy no valida NADA) quedó con el disponible en −500 y ningún mes siguiente aceptaba escritura: el encierro. NORTH STAR (puerta de aceptación): el techo de un mes es ingresos − gastos + saldo del mes anterior, lo consumen las reservas BRUTAS, y no existe ninguna secuencia de operaciones aceptadas que deje lo reservado por encima de ese techo. JTBD: «saber cuánto puedo apartar este mes sin pelearme con la app, y poder corregirme sin quedar encerrado». GUARDRAIL: la conservación (disponible + reservado = total) y el arrastre entre meses no pueden empeorar; Gastos e Ingresos no cambian de comportamiento; el recómputo sigue ≤150ms. LA PIEZA QUE HABILITA LA CORRECCIÓN: el retiro pasa a EDITARSE (teclear 0 lo elimina), porque con el cupo agotado esa es la única vía para devolver plata al bolsillo dentro del mismo mes sin inflar la celda.",
+  "technology_preferences": [
+    "TypeScript + Next.js 15 + React (stack vigente)",
+    "Postgres como única fuente de verdad",
+    "Vitest para dominio e integración; Playwright para e2e"
+  ],
+  "constraints": [
+    "La grilla conserva sus dos planos, sus doce meses y su jerarquía agrupable: cambia la disposición en segmentos, no la estructura",
+    "Los doce meses siguen siendo UN solo riel de columnas alineadas con un solo scroll horizontal — los segmentos se separan en vertical, no en grillas independientes",
+    "La capa de dominio es PURA: sin React, DOM, IO ni red",
+    "El producto no renderiza la grilla por debajo de 760px: a 375px solo existe la pantalla Registrar",
+    "La migración de datos v4→v5 YA se ejecutó sobre la base del usuario (data_version=5): su código se conserva y debe seguir siendo idempotente",
+    "El mecanismo de observaciones por celda (FR-1012) hoy solo AGREGA notas: la observación automática necesita poder reemplazarse"
+  ],
+  "no_go_zone": [
+    "Cierre de mes (impedir editar meses ya cerrados): re-confirmado por el usuario esta sesión — «eso es el cierre de mes que hay que implementar». Es BL-036, feature aparte, y es lo que congelará las ediciones de ingresos/gastos viejos",
+    "Cambiar el modelo de celdas: la celda sigue siendo lo RESERVADO del mes, el Balance sigue desdoblando reservas y retiros, y el saldo por bolsillo sigue siendo derivado. El usuario lo revalidó operando la app: «no veo que mienta… eso lo sabe el balance». Descarta el modelo entró/salió de la feature descartada movimientos-internos",
+    "Bloquear la edición de ingresos y gastos de meses pasados: se sigue permitiendo con señal. Congelarlo es del cierre de mes, no de aquí",
+    "Retirar la operación bolsillo→bolsillo, su anotación por dos extremos, el índice de journal o su eliminación: se CONSERVAN tal como funcionan hoy",
+    "Retirar la migración v4→v5: imposible, ya está estampada en la base real del usuario",
+    "Metas por bolsillo, gastar directamente desde un bolsillo, y multiusuario o permisos: siguen fuera como en las features previas"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de T-Ledger)",
+      "tech_level": "mid",
+      "goal": "Apartar plata en sus bolsillos sabiendo cuánto puede apartar cada mes, y poder corregir un retiro sin quedar bloqueado",
+      "pain_point": "La app le devolvió cupo al retirar y le dejó reservar más de lo que ingresó en el mes; al intentar corregirlo eliminando el retiro quedó con el disponible en negativo y sin poder escribir en ningún mes"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1801",
+      "title": "El techo de un mes es ingresos − gastos + saldo del mes anterior, y lo consumen las reservas brutas",
+      "description": "Cuando el usuario intenta reservar en un mes, el sistema acepta la operación solo si cabe en el techo de ese mes, calculado como ingresos del mes − gastos del mes + saldo con que cerró el mes anterior, menos lo YA reservado en ese mes contado en BRUTO. Regla del usuario, textual: «el techo para reservas = ingresos del mes − gastos del mes + Saldo mes anterior». Hoy el cupo se calcula con las reservas NETAS (apartado − retirado), así que un retiro del mismo mes lo RECARGA: con 1.000 de ingreso, 1.000 reservados y 500 retirados la app volvía a ofrecer 500 y aceptaba teclear 1.500. El retiro devuelve la plata a la cuenta, pero NO devuelve cupo del mes.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con enero: ingreso 1.000, reservados 1.000 y retirados 500 — el cupo de enero es 0 y un intento de reservar 1 peso más se rechaza sin mutar el estado",
+        "Ese mismo enero cierra con 500 en la cuenta, así que en febrero con ingreso 1.000 el techo es 1.500 y reservar 1.500 se acepta",
+        "Con enero: ingreso 1.000 y solo 300 reservados, en febrero sin ingresos el techo es 700 y se puede reservar total o parcialmente",
+        "El rechazo dice cuánto cabía realmente en el mes, no solo que no se puede",
+        "El límite exacto se acepta: con techo 700, reservar exactamente 700 deja el cupo en 0",
+        "No existe ninguna secuencia de reservas y retiros aceptados que deje un mes con lo reservado por encima de su techo"
+      ]
+    },
+    {
+      "id": "FR-1802",
+      "title": "El monto de un retiro se edita, y ponerlo en cero lo elimina",
+      "description": "Cuando el usuario quiere devolver al bolsillo parte de lo que retiró, el sistema le permite editar el monto del retiro en la lista de operaciones del mes, y eliminarlo tecleando 0. Palabras del usuario: «si retiré 500, pero ahora de esos 500 que retiré quiero volver a guardar 200, debería poder dejarme editar los 500 a 300. hoy día tendría que eliminar ese movimiento y registrar uno por 300». Es la vía necesaria bajo FR-1801: con el cupo del mes agotado, registrar un aporte nuevo se rechazaría, y hacerlo por esta puerta no infla la celda de reservas. Sustituye a los botones de borrar de la lista, que se retiran.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con un retiro de 500 en enero, editarlo a 300 deja el bolsillo con 200 más, la cuenta con 200 menos, y la celda de reservas de enero SIN cambio",
+        "Editar ese retiro a 0 elimina el movimiento: el bolsillo recupera los 500 y la operación desaparece de la lista",
+        "Editar un retiro a un valor mayor que el original se acepta si el bolsillo tiene saldo suficiente",
+        "La edición NO puede superar el techo de ningún mes: bajar un retiro reduce el saldo con que cierra su mes, así que si un mes posterior ya reservó contando con él, la edición se rechaza nombrando ese mes",
+        "Un monto no numérico o negativo se rechaza y el retiro conserva su valor vigente",
+        "Tras editar, el movimiento conserva su fecha y su identidad: no se sustituye por uno nuevo",
+        "La misma edición de monto aplica a los movimientos ENTRE bolsillos que la lista también muestra, con la misma validación"
+      ]
+    },
+    {
+      "id": "FR-1803",
+      "title": "Editar o eliminar un retiro se valida como cualquier otra escritura",
+      "description": "Cuando una edición o eliminación de un retiro dejaría el mes por encima de su techo o un bolsillo en negativo, el sistema la rechaza nombrando el mes afectado. Hoy eliminar un retiro no valida NADA —la función borra el movimiento y devuelve el estado— y por esa puerta el usuario llegó a un disponible de −500 y al encierro: es la operación que usó para CORREGIRSE. La regla es la misma que ya aplican la escritura de la celda del bolsillo y el registro de una operación.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con enero en 1.500 reservados sobre 1.000 de ingreso, eliminar el retiro de 500 se rechaza y el mensaje nombra enero",
+        "Un rechazo deja el estado exactamente igual que antes del intento: ni celdas ni movimientos cambian",
+        "Eliminar un retiro que NO rompe nada se acepta con normalidad y el saldo del bolsillo vuelve al valor previo exacto",
+        "Editar un retiro al alza por encima del saldo del bolsillo se rechaza diciendo cuánto tiene el bolsillo",
+        "Editar o eliminar un retiro inexistente deja el estado intacto y no lanza",
+        "Tras esta feature no existe ninguna vía de edición o eliminación de operaciones internas que deje un mes en estado imposible"
+      ]
+    },
+    {
+      "id": "FR-1804",
+      "title": "Cuando un mes se completa del saldo anterior, la app lo anota sola",
+      "description": "Cuando lo reservado en un mes supera lo que ese mes ingresó menos lo que gastó, y se completa con el saldo que venía del mes anterior, el sistema escribe una observación automática que dice cuánto se tomó del saldo anterior — por ejemplo «De los 1.500 reservados este mes, 500 salieron del saldo de enero». Idea del usuario: «para cuando reservamos dinero y se complete del saldo mes anterior, agregar una nota de observación automática que diga cuanto dinero se tomo del saldo anterior». Se mantiene al día sola: si la reserva baja y ya cabe en el flujo del mes, la observación desaparece. Es una observación DEL MES y no de un movimiento: con varios bolsillos la atribución sería arbitraria, y las reservas tecleadas en la celda no son movimientos.",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "En un mes con 1.000 de flujo y 1.500 reservados, la observación aparece y nombra las dos cifras: los 1.500 reservados y los 500 tomados del saldo anterior",
+        "Al bajar esa reserva a 900 (que ya cabe en el flujo del mes) la observación desaparece sin dejar rastro",
+        "Al bajar la reserva a 1.200, la observación se REEMPLAZA y pasa a decir 200 tomados del saldo anterior — no se acumulan dos observaciones",
+        "En un mes cuyas reservas caben en su propio flujo no existe ninguna observación automática",
+        "La observación automática no se confunde con las que el usuario escribe a mano: estas se conservan intactas cuando aquella aparece, cambia o desaparece",
+        "Hay una sola observación automática por mes, aunque varios bolsillos hayan reservado ese mes"
+      ]
+    },
+    {
+      "id": "FR-1805",
+      "title": "La grilla separa Reservas en su propio segmento, con Retiros del mes al final",
+      "description": "Cuando el usuario mira la grilla, el sistema presenta Ingresos y Gastos en un bloque, Reservas en un bloque propio separado por espacio, y el Balance al final. La fila «Retiros del mes» —la puerta desde la que se saca plata— pasa al FINAL del segmento de Reservas, junto a los bolsillos. Boceto del usuario: «actualmente tenemos ingresos y gastos en un segmento junto con reservas, hay que sacar reservas de ahi y separarlo de ese segmento… y pasar la fila retiros del mes al segmento de reservas al final». Esto resuelve además la queja BL-019 (sacar desde el pie del Balance es incómodo) por un camino más simple que el botón por fila que se retira. Los grupos de bolsillos se pliegan cuando crecen para que la fila de retiros no quede enterrada.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En escritorio a 1440px, el orden vertical es: Ingresos y Gastos, separación, Reservas, separación, Balance — y las Reservas no comparten bloque con Ingresos ni Gastos",
+        "La fila «Retiros del mes» se renderiza como última fila del segmento de Reservas y desde ella se completa una operación de sacar de principio a fin",
+        "Las doce columnas de meses siguen alineadas entre los tres segmentos y el scroll horizontal es único: enero de Gastos y enero de Reservas quedan en la misma columna",
+        "Con los grupos de bolsillos plegados, la fila «Retiros del mes» permanece visible sin desplazamiento vertical adicional",
+        "El sombreado de la columna del mes activo atraviesa los TRES bloques —Ingresos y Gastos, Reservas y Balance— con el mismo tratamiento: hoy el Balance no lo tiene y pasa a tenerlo",
+        "Al cambiar el mes activo, el sombreado se mueve de columna en los tres bloques a la vez",
+        "A 375px no se renderiza la grilla: la vista sigue siendo solo Registrar, sin desbordes horizontales"
+      ]
+    },
+    {
+      "id": "FR-1806",
+      "title": "Los avisos del mes señalan cualquier error registrado, no solo el techo",
+      "description": "Cuando en un mes queda registrado un error, el sistema lo señala con la marca del encabezado de ese mes y lo detalla en la franja al pie del Balance. Hoy ambas superficies existen pero solo saben de un caso —las reservas por encima del techo— y el usuario pidió ampliar su alcance: «SE QUEDA, AMPLIAR ALCANCE CUANDO ALGÚN ERROR SE REGISTRE EN EL MES». Pasan a alimentarse de una lista de errores por mes, hoy con un solo tipo y abierta a otros. Avisan sin bloquear y sin ofrecer corrección automática: cuál de los dos lados está mal solo lo sabe el usuario.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Un mes con un error registrado muestra la marca en su encabezado, y la franja al pie del Balance lo detalla nombrando el mes y la cifra",
+        "Un mes sin errores no muestra marca alguna y la franja no se renderiza",
+        "La marca y la franja se derivan de la MISMA lista de errores: no puede haber marca sin detalle ni detalle sin marca",
+        "La señal desaparece en cuanto el error se corrige, sin recargar la página",
+        "La franja se anuncia sin robar el foco a quien está tecleando (role=status) y su color no es el único canal: lleva icono y texto"
+      ]
+    },
+    {
+      "id": "FR-1807",
+      "title": "Retirar las piezas descartadas y dejar la suite del proyecto en verde",
+      "description": "Cuando esta feature termine, el repositorio no contiene las piezas de interfaz que el usuario descartó al revisarlas una por una, y la suite completa del proyecto pasa. Se retiran: el botón «Sacar» de la fila del bolsillo con su estado «Sin saldo que sacar» y el título de origen fijo del formulario, y los botones de borrar de la lista de operaciones con su tooltip (los sustituye el monto editable de FR-1802). El indicador del límite NO se retira: el usuario revocó esa orden al entender que el defecto era de forma, no de fondo — «sería resolver el UX de la grilla, si no quitarlo» —, y su rediseño es FR-1808. Recoge además la deuda que dejó el trabajo del 2026-08-30: dos pruebas de features anteriores llevan rojas desde entonces porque esperan data_version=4 cuando el estampado vigente es 5.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "No existe el botón «Sacar» de la fila del bolsillo, ni su estado inerte «Sin saldo que sacar», ni el título de origen fijo del formulario",
+        "No existen los botones de borrar de la lista de operaciones ni su tooltip: el único camino de corrección es editar el monto",
+        "Las dos pruebas hoy rojas por el estampado de versión de datos quedan verdes sin relajar lo que verifican",
+        "Tras la limpieza, typecheck y lint pasan con cero errores y la suite completa del proyecto queda verde",
+        "No queda ninguna prueba que verifique una pieza retirada"
+      ]
+    },
+    {
+      "id": "FR-1808",
+      "title": "El límite del mes se ve antes de teclear, sin quitarle sitio al input",
+      "description": "Cuando el usuario abre el editor de una celda de bolsillo, el sistema le muestra cuánto puede reservar todavía en ese mes ANTES de que teclee, y el input conserva el ancho completo de la celda. Hoy el indicador «Máx. N» se colocó al lado del input dentro de una celda de 108px: con las cifras reales del usuario («Máx. 10.200.000») el input quedaba sin sitio para escribir, y por eso él ordenó primero quitarlo. Al entender que el defecto era la colocación y no el indicador, lo revocó: «sería resolver el UX de la grilla, si no quitarlo». La cifra mostrada es exactamente la misma contra la que el dominio rechaza (FR-1801), así que indicador y rechazo no pueden discrepar. FORMA ELEGIDA por el usuario el 2026-08-31 sobre una comparación renderizada a escala real (celda de 108px, tokens y cifras reales): el indicador FLOTA DEBAJO del input —en el mismo sitio donde ya aparece el mensaje de rechazo— de modo que el input conserva el ancho íntegro; se ve siempre, en gris apagado, y pasa al rojo de alerta en cuanto el valor tecleado supera el límite. Se descartaron: mostrarlo solo al excederse (no permite saber el cupo por adelantado) y llevarlo al encabezado del mes (sube el alto de la cabecera). La fase UX detalla el resto.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con el editor abierto y sin haber tecleado nada, el límite del mes es visible DEBAJO del input y este conserva el ancho íntegro de la celda (108px menos su propio padding)",
+        "Con la cifra más larga que el producto admite (p. ej. 10.200.000) el indicador no reduce el ancho del input ni se recorta con puntos suspensivos",
+        "Cuando el valor tecleado supera el límite, el indicador pasa al color de alerta ANTES de confirmar, y el contraste de ese color se mantiene ≥4,5:1 sobre su fondo",
+        "Con el límite en 0, el editor abre ya en estado de alerta: se ve antes de teclear, no después del rechazo",
+        "La cifra del indicador coincide dígito a dígito con la que el rechazo devuelve para el mismo estado",
+        "El indicador no tapa ni desplaza el contenido de las celdas vecinas de la grilla"
+      ]
+    },
+    {
+      "id": "FR-1809",
+      "title": "Cualquier celda de la grilla admite observaciones, no solo las de bolsillos",
+      "description": "Cuando el usuario quiere anotar algo sobre una celda cualquiera de la grilla, el sistema le permite escribir una observación opcional y verla después. Hoy las observaciones existen solo en las celdas de bolsillos: `addCellNote` rechaza cualquier hoja que no sea transfer y el indicador solo se dibuja en esas filas, así que un gasto o un ingreso no se puede anotar. Decisión del usuario, 2026-08-31: «observaciones por celda, todas las celdas deberían tener observaciones opcionales, si no está agreguémoslo». El almacenamiento ya es genérico por nodo y mes (mapa `cellNotes` y tabla `cell_note`), así que es una extensión del alcance, no un modelo nuevo. Habilita además que la observación automática de FR-1804 viva en la celda del total de Reservas del mes, que es una celda como cualquier otra.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Se puede escribir una observación en una celda de GASTO y verla después: el indicador aparece en esa celda y el texto se conserva al recargar",
+        "Lo mismo en una celda de INGRESO y en una de bolsillo, en los dos planos (Presupuestado y Ejecutado)",
+        "Una celda sin observaciones no muestra ningún indicador: la grilla no gana ruido visual donde no hay nada anotado",
+        "Una observación vacía o de más de 280 caracteres se rechaza sin alterar las observaciones vigentes de esa celda",
+        "Las observaciones de una celda son suyas: escribir en la celda de marzo no altera las de febrero ni las de otra fila"
+      ]
+    },
+    {
+      "id": "FR-1810",
+      "title": "El Balance se lee en tres bloques, y el bloque del medio es la cuenta del bolsillo disponible",
+      "description": "REVISA la v2 de FR-1810. La v2 presentaba el bloque del medio como un REPARTO del resultado del mes en dos destinos («Guardado en alcancías» + «Quedó disponible»). El usuario lo rechazó por un motivo conceptual, textual: «no puedes decir que quedó un acumulado de menos 500, el acumulado ahí es cero porque te los gastaste, no quedaste debiendo acumulado». Tiene razón y el defecto es de fondo, no de rótulo: la metáfora del reparto SOLO se sostiene mientras lo guardado quepa en el resultado del mes. Cuando se guarda más —el caso que motivó toda la feature— 1.000 no se reparte en 1.500 y −500, y la fila del sobrante acaba mostrando un negativo que no existe como cantidad: un saldo que se gastó vale CERO, no menos. La corrección: el bloque del medio deja de ser un reparto y pasa a ser LA CUENTA DEL BOLSILLO DISPONIBLE, que es la fórmula que el propio usuario enunció el 2026-08-31 («el techo para reservas = ingresos del mes − gastos del mes + saldo mes anterior»), escrita en pantalla de arriba abajo: «Venía del mes anterior» + «Resultado del mes» − «Guardado en alcancías» + «Sacado de alcancías» = «Disponible ahora». Con eso el −500 no se esconde: DEJA DE EXISTIR, porque los 500 que salieron del saldo de enero se ven salir en su propia línea en vez de deducirse de un número negativo. Vuelven además «Guardado» y «Sacado» como dos filas de un solo signo con su cifra BRUTA (nunca un «− Guardado: −500», que es doble negación), y los retiros vuelven a estar dentro de la cuenta del Balance — la primera queja del usuario era que la suma visible no cerraba porque esa fila vivía en otra tarjeta. Se restituye «Venía del mes anterior», que la v2 había retirado con el argumento de que ese dato es la columna de la izquierda: el argumento era válido para un contador y falso para este usuario, en cuya fórmula esa cifra es un término explícito. Diez filas en tres bloques: RESULTADO DEL MES (3), LO DISPONIBLE (5) y SALDOS AL CIERRE (2). El techo de flujo (FR-1801…1804) no cambia. NOMBRES (opción A, elegida por el usuario el 2026-09-01: «me gusta la opción A»): cada fila usa la palabra que YA existe en la pantalla o en su fórmula. Bloques: «El mes», «Lo disponible», «El cierre». Filas: Ingresos · Gastos · = Resultado del mes | Saldo del mes anterior · + Resultado del mes · − Reservas del mes (aportes brutos) · + Retiros de reservas (retiros brutos) · = Saldo disponible | + Saldo reservado · = Saldo total. Regla del vocabulario: un FLUJO del mes jamás lleva la palabra «saldo»; un SALDO siempre. Los tres cierres recuperan los nombres históricos de la app; «Reservas»/«Retiros» calcan el segmento RESERVAS y su fila operable «Retiros del mes».",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Con «Saldo del mes anterior» 500, ingresos 1.000, gastos 0 y 1.500 guardados: la columna se lee 500 + 1.000 − 1.500 + 0 y «Saldo disponible» dice 0 — ninguna fila de la columna muestra −500",
+        "«Reservas del mes» y «Retiros de reservas» muestran cifras BRUTAS y nunca negativas: un mes que aporta 1.000 y retira 500 muestra 1.000 y 500, no un neto de 500",
+        "Para los doce meses y los dos planos: «Saldo del mes anterior» + «Resultado del mes» − «Reservas del mes» + «Retiros de reservas» = «Saldo disponible», al peso",
+        "Para los doce meses y los dos planos: «Saldo disponible» + «Saldo reservado» = «Saldo total», al peso",
+        "«Saldo del mes anterior» de cada mes es igual a «Saldo disponible» del mes previo en el plano Ejecutado, y 0 en enero",
+        "«Resultado del mes» se muestra en los dos bloques con el MISMO valor: es la cifra de cierre del primero y un término de la cuenta del segundo",
+        "La alarma de negativo aparece SOLO en «Saldo del mes anterior», «Saldo disponible» y «Saldo total» — las tres cifras donde un negativo significa deber plata de verdad",
+        "El módulo renderiza exactamente diez filas y ninguna se llama «Quedó disponible», «Reservas del acumulado», «Disponible del mes», «Guardado en alcancías» ni «Disponible ahora»",
+        "Para cualquier estado, «Saldo disponible» coincide al peso con la fórmula vigente (saldo del mes anterior + flujo − reservas netas)",
+        "Las validaciones declaradas de la cascada (orden, contigüidad y sangrías) pasan con las filas nuevas, y toda fila del módulo participa de una relación declarada"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1801",
+      "requirement_id": "FR-1801",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el cupo de reservas de un mes sea lo que entró menos lo que gasté más lo que traía del mes anterior",
+      "so_that": "no pueda apartar más plata de la que realmente tengo ese mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1801",
+          "given": "enero con ingreso 1.000, 1.000 ya reservados y un retiro de 500",
+          "when": "intento reservar 100 más en enero",
+          "then": "se rechaza, el mensaje dice que el cupo de enero es 0, y ni la celda ni el journal cambian"
+        },
+        {
+          "id": "AC-1802",
+          "given": "ese enero, que cierra con 500 en la cuenta, y febrero con ingreso 1.000",
+          "when": "reservo 1.500 en febrero",
+          "then": "se acepta: 1.000 salen del flujo de febrero y 500 del saldo con que cerró enero"
+        },
+        {
+          "id": "AC-1803",
+          "given": "enero con ingreso 1.000 del que solo reservé 300, y febrero sin ingresos",
+          "when": "consulto el cupo de febrero",
+          "then": "es 700 y puedo reservarlos total o parcialmente"
+        },
+        {
+          "id": "AC-1804",
+          "given": "un mes con techo 700 y nada reservado",
+          "when": "reservo exactamente 700",
+          "then": "se acepta y el cupo del mes queda en 0"
+        }
+      ]
+    },
+    {
+      "id": "US-1802",
+      "requirement_id": "FR-1802",
+      "as_a": "dueño del presupuesto",
+      "i_want": "corregir el monto de un retiro en vez de borrarlo y volver a registrarlo",
+      "so_that": "pueda devolver plata al bolsillo el mismo mes sin inflar lo reservado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1805",
+          "given": "enero con 1.000 reservados y un retiro de 500",
+          "when": "edito el retiro a 300",
+          "then": "el bolsillo queda en 700, la cuenta en 300, y la celda de reservas de enero sigue diciendo 1.000"
+        },
+        {
+          "id": "AC-1806",
+          "given": "ese retiro ya en 300",
+          "when": "lo edito a 0",
+          "then": "el movimiento desaparece de la lista y el bolsillo vuelve a 1.000"
+        },
+        {
+          "id": "AC-1807",
+          "given": "un retiro de 500 con fecha del 15 de enero",
+          "when": "lo edito a 200",
+          "then": "conserva su fecha del 15 de enero y su identidad — no aparece como un movimiento nuevo"
+        },
+        {
+          "id": "AC-1808",
+          "given": "un retiro vigente de 500",
+          "when": "intento escribir un valor negativo o no numérico",
+          "then": "se rechaza y el retiro sigue en 500"
+        },
+        {
+          "id": "AC-1829",
+          "given": "enero que cierra con 500 gracias a un retiro de 500, y febrero que ya reservó esos 500",
+          "when": "intento editar el retiro de enero a 300",
+          "then": "se rechaza nombrando febrero: bajar el retiro reduciría el saldo de apertura de febrero por debajo de lo que ya reservó"
+        }
+      ]
+    },
+    {
+      "id": "US-1803",
+      "requirement_id": "FR-1803",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app no me deje corregir de una forma que la rompa",
+      "so_that": "no vuelva a quedar encerrado por intentar arreglar un error",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1809",
+          "given": "enero con 1.500 reservados sobre 1.000 de ingreso y un retiro de 500",
+          "when": "intento eliminar ese retiro",
+          "then": "se rechaza nombrando enero, y el disponible NO queda en negativo"
+        },
+        {
+          "id": "AC-1810",
+          "given": "un bolsillo con 300 y un retiro de 200 en ese mes",
+          "when": "intento editar el retiro a 800",
+          "then": "se rechaza diciendo cuánto tiene el bolsillo, y el retiro sigue en 200"
+        },
+        {
+          "id": "AC-1811",
+          "given": "un retiro de 500 cuya eliminación no deja ningún mes por encima de su techo",
+          "when": "lo elimino",
+          "then": "se acepta y el saldo del bolsillo y la cuenta vuelven a los valores exactos previos"
+        },
+        {
+          "id": "AC-1812",
+          "given": "un retiro ya eliminado",
+          "when": "intento editarlo o eliminarlo otra vez",
+          "then": "el estado queda intacto y no se lanza ningún error"
+        }
+      ]
+    },
+    {
+      "id": "US-1804",
+      "requirement_id": "FR-1804",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app me diga cuánto de lo que aparté este mes salió del saldo que traía",
+      "so_that": "entienda de dónde salió la plata sin tener que calcularlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1813",
+          "given": "febrero con flujo 1.000 y 1.500 reservados",
+          "when": "consulto febrero",
+          "then": "veo una observación que dice que de los 1.500 reservados, 500 salieron del saldo de enero"
+        },
+        {
+          "id": "AC-1814",
+          "given": "ese febrero con su observación",
+          "when": "bajo la reserva a 1.200",
+          "then": "la observación pasa a decir 200 tomados del saldo anterior y sigue habiendo UNA sola"
+        },
+        {
+          "id": "AC-1815",
+          "given": "ese febrero",
+          "when": "bajo la reserva a 900, que ya cabe en el flujo del mes",
+          "then": "la observación desaparece"
+        },
+        {
+          "id": "AC-1816",
+          "given": "un mes con una observación escrita a mano por el usuario",
+          "when": "la observación automática aparece, cambia o desaparece",
+          "then": "la escrita a mano permanece intacta"
+        }
+      ]
+    },
+    {
+      "id": "US-1805",
+      "requirement_id": "FR-1805",
+      "as_a": "dueño del presupuesto",
+      "i_want": "ver las Reservas en su propio bloque, con la fila de retiros al final",
+      "so_that": "no se mezclen con Ingresos y Gastos y pueda sacar plata desde donde están los bolsillos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1817",
+          "given": "la grilla en escritorio a 1440px",
+          "when": "la recorro de arriba abajo",
+          "then": "veo Ingresos y Gastos, un espacio, Reservas, un espacio y el Balance — con Reservas fuera del bloque de Ingresos y Gastos"
+        },
+        {
+          "id": "AC-1818",
+          "given": "el segmento de Reservas",
+          "when": "miro su última fila",
+          "then": "es «Retiros del mes» y desde ella completo una operación de sacar de principio a fin"
+        },
+        {
+          "id": "AC-1819",
+          "given": "los tres segmentos renderizados",
+          "when": "desplazo la grilla horizontalmente",
+          "then": "las doce columnas de meses siguen alineadas entre segmentos y el scroll es uno solo"
+        },
+        {
+          "id": "AC-1820",
+          "given": "seis bolsillos con sus grupos plegados",
+          "when": "miro el segmento de Reservas",
+          "then": "la fila «Retiros del mes» sigue visible sin desplazamiento vertical adicional"
+        },
+        {
+          "id": "AC-1828",
+          "given": "los tres segmentos con marzo como mes activo",
+          "when": "miro la columna de marzo",
+          "then": "está sombreada en Ingresos y Gastos, en Reservas y en el Balance, con el mismo tratamiento; al cambiar el mes activo a abril el sombreado se mueve en los tres a la vez"
+        }
+      ]
+    },
+    {
+      "id": "US-1806",
+      "requirement_id": "FR-1806",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app me señale en qué mes hay algo mal",
+      "so_that": "no descubra el problema cuando ya no puedo escribir en ninguna parte",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1821",
+          "given": "un mes con un error registrado",
+          "when": "miro la grilla y el Balance",
+          "then": "el encabezado de ese mes lleva la marca y la franja al pie lo detalla nombrando el mes y la cifra"
+        },
+        {
+          "id": "AC-1822",
+          "given": "un ledger sin errores en ningún mes",
+          "when": "miro la grilla y el Balance",
+          "then": "no hay marca en ningún encabezado y la franja no se renderiza"
+        },
+        {
+          "id": "AC-1823",
+          "given": "un mes marcado con error",
+          "when": "corrijo la causa",
+          "then": "la marca y la franja desaparecen sin recargar la página"
+        }
+      ]
+    },
+    {
+      "id": "US-1808",
+      "requirement_id": "FR-1808",
+      "as_a": "dueño del presupuesto",
+      "i_want": "ver cuánto puedo reservar todavía en el mes sin que el indicador me quite el sitio para escribir",
+      "so_that": "sepa el límite antes de teclear en vez de descubrirlo por un rechazo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1830",
+          "given": "marzo con un límite de 10.200.000 y el editor de una celda de bolsillo recién abierto",
+          "when": "miro la celda sin haber tecleado nada",
+          "then": "veo el límite completo, sin recortes, y el input conserva el ancho íntegro de la celda"
+        },
+        {
+          "id": "AC-1831",
+          "given": "ese mismo editor con límite 400.000",
+          "when": "tecleo 900.000",
+          "then": "el indicador pasa al color de alerta antes de que yo confirme, con contraste ≥4,5:1"
+        },
+        {
+          "id": "AC-1832",
+          "given": "un mes cuyo límite es 0",
+          "when": "abro el editor",
+          "then": "el indicador ya está en alerta desde el primer render, sin que yo haya tecleado"
+        },
+        {
+          "id": "AC-1833",
+          "given": "el editor abierto en una celda del centro de la grilla",
+          "when": "miro las celdas vecinas",
+          "then": "ninguna queda tapada ni desplazada por el indicador"
+        },
+        {
+          "id": "AC-1834",
+          "given": "un mes cuyo cupo es 400.000, visto desde la grilla y desde la pantalla Registrar",
+          "when": "leo la cifra que cada superficie muestra como límite y luego tecleo de más para provocar el rechazo",
+          "then": "la cifra del rechazo coincide dígito a dígito con la mostrada, en las dos superficies — y la de Registrar es el cupo real, no el margen bruto"
+        }
+      ]
+    },
+    {
+      "id": "US-1807",
+      "requirement_id": "FR-1807",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que las piezas que descarté no queden en la app ni en el código",
+      "so_that": "la interfaz solo tenga lo que decidí y nadie las tome por vigentes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1825",
+          "given": "la fila de un bolsillo con saldo, y otra sin saldo",
+          "when": "paso el ratón por encima de cada una",
+          "then": "no aparece el botón «Sacar» en ninguna, ni el texto «Sin saldo que sacar»"
+        },
+        {
+          "id": "AC-1826",
+          "given": "la lista de operaciones del mes",
+          "when": "la reviso",
+          "then": "no hay botones de borrar: el único camino de corrección es editar el monto"
+        },
+        {
+          "id": "AC-1827",
+          "given": "el proyecto tras la limpieza",
+          "when": "corro typecheck, lint y la suite completa",
+          "then": "los tres pasan con cero errores, incluidas las dos pruebas hoy rojas por el estampado de versión"
+        }
+      ]
+    },
+    {
+      "id": "US-1809",
+      "requirement_id": "FR-1809",
+      "as_a": "dueño del presupuesto",
+      "i_want": "poder anotar una observación en cualquier celda, no solo en las de mis bolsillos",
+      "so_that": "pueda recordar por qué un gasto o un ingreso de un mes fue como fue",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1835",
+          "given": "la celda de un gasto en marzo, plano Ejecutado, sin observaciones",
+          "when": "escribo «este mes pagué la matrícula» y confirmo",
+          "then": "la celda muestra el indicador de observación y el texto se lee al abrirlo; tras recargar la página sigue ahí"
+        },
+        {
+          "id": "AC-1836",
+          "given": "una celda de ingreso en el plano Presupuestado",
+          "when": "escribo una observación",
+          "then": "se guarda igual que en las demás celdas — el plano no cambia el comportamiento"
+        },
+        {
+          "id": "AC-1837",
+          "given": "una celda con una observación vigente",
+          "when": "intento guardar una vacía o de 300 caracteres",
+          "then": "se rechaza y la observación vigente no cambia"
+        },
+        {
+          "id": "AC-1838",
+          "given": "observaciones escritas en marzo de la fila de Mercado",
+          "when": "miro febrero y la fila de Transporte",
+          "then": "ninguna de esas celdas muestra indicador: la observación pertenece a su celda"
+        }
+      ]
+    },
+    {
+      "id": "US-1810",
+      "requirement_id": "FR-1810",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la cuenta de mi plata disponible se vea escrita, término a término, en el Balance",
+      "so_that": "no tenga que interpretar un número negativo para entender que gasté lo que traía ahorrado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1839",
+          "given": "febrero con 500 que venían de enero, 1.000 de ingreso, 0 de gasto y 1.500 guardados",
+          "when": "leo el bloque «lo disponible» de arriba abajo",
+          "then": "dice 500, 1.000, 1.500, — y «Disponible ahora» 0; en ninguna fila aparece −500"
+        },
+        {
+          "id": "AC-1840",
+          "given": "enero, donde aporté 1.000 a la alcancía y retiré 500",
+          "when": "miro «Reservas del mes» y «Retiros de reservas»",
+          "then": "dicen 1.000 y 500 —las cifras brutas, cada una con su signo propio— y no un neto de 500"
+        },
+        {
+          "id": "AC-1841",
+          "given": "cualquier secuencia de operaciones sobre los doce meses",
+          "when": "compruebo la cuenta de cada columna",
+          "then": "«Saldo del mes anterior» + «Resultado» − «Guardado» + «Sacado» = «Disponible ahora», y «Disponible ahora» + «Saldo reservado» = «Saldo total», al peso"
+        },
+        {
+          "id": "AC-1842",
+          "given": "la serie ejecutada completa",
+          "when": "comparo «Saldo del mes anterior» de un mes con «Disponible ahora» del anterior",
+          "then": "coinciden en los doce meses, y enero abre en 0"
+        },
+        {
+          "id": "AC-1843",
+          "given": "un mes cuyos gastos superan lo que tiene disponible",
+          "when": "miro el Balance",
+          "then": "«Disponible ahora» sale negativo CON alarma: esa sí es plata que se debe"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1801",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La conservación se mantiene: disponible + reservado = total en los doce meses y en los dos planos, para cualquier estado alcanzable. Una reserva, un retiro o la edición de un retiro no crean ni destruyen dinero",
+      "acceptance_criteria": "Una secuencia determinista de ≥100 operaciones mixtas (reservar, retirar, editar retiros, eliminar retiros, editar celdas, gastos e ingresos) satisface la igualdad en los doce meses y en los dos planos tras cada paso"
+    },
+    {
+      "id": "NFR-1802",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El arrastre entre meses no cambia: el saldo con que cierra un mes es el que abre el siguiente, y lo retirado en un mes cuenta para el cierre de ese mes",
+      "acceptance_criteria": "Para cada uno de los doce meses, el saldo de apertura coincide al peso con el cierre del mes anterior, sobre cualquier estado alcanzable — incluidos meses con retiros"
+    },
+    {
+      "id": "NFR-1803",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Gastos e Ingresos no cambian de comportamiento: se siguen tecleando, sumando y agregando como hoy, y ninguna escritura suya adquiere validación nueva",
+      "acceptance_criteria": "Los roll-ups de gasto e ingreso, sus totales por tipo y el flujo del mes dan resultados idénticos a los del baseline para el mismo estado, y una ráfaga de escrituras de gasto que deja el disponible negativo se acepta íntegra"
+    },
+    {
+      "id": "NFR-1804",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El saldo derivado por bolsillo, la operación entre bolsillos anotada por sus dos extremos y su eliminación siguen funcionando como hoy",
+      "acceptance_criteria": "Para cualquier estado alcanzable, el Saldo reservado del Balance coincide al peso con la suma de los saldos de los bolsillos mes a mes, y una operación entre bolsillos sigue sin contarse como retiro y sigue siendo eliminable"
+    },
+    {
+      "id": "NFR-1805",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las migraciones de formato existentes siguen siendo idempotentes y no se re-aplican sobre un ledger ya marcado",
+      "acceptance_criteria": "Un ledger sembrado en cada versión histórica migra al modelo vigente con el mismo resultado aplicando la cadena una o dos veces, y un ledger ya marcado con la versión vigente no se vuelve a migrar"
+    },
+    {
+      "id": "NFR-1806",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El módulo de Balance conserva su cascada, su orden de filas y sus importes de un solo signo: ningún importe se muestra como doble negativo",
+      "acceptance_criteria": "Las filas del Balance siguen el orden y los signos vigentes, y ningún importe se renderiza con un signo menos delante de una fila ya restada"
+    },
+    {
+      "id": "NFR-1807",
+      "category": "Performance",
+      "requirement": "Derivar el techo, los saldos y los errores de los doce meses no empeora el coste medido vigente",
+      "acceptance_criteria": "El guardrail de rendimiento existente sigue por debajo de su umbral (recómputo ≤150ms) con el mismo escenario"
+    },
+    {
+      "id": "NFR-1808",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "El pipeline ejecuta la suite completa declarada del proyecto —incluidas las pruebas e2e— en cada push a la rama principal",
+      "acceptance_criteria": "El workflow de CI contiene un disparador push sobre la rama principal y pasos que invocan los comandos de suite unitaria y e2e declarados en package.json, sin continue-on-error ni filtros de exclusión"
+    },
+    {
+      "id": "NFR-1809",
+      "category": "Security",
+      "requirement": "Not applicable: la feature opera sobre el dominio y las superficies del usuario ya autenticado. No añade ni modifica rutas HTTP, no toca autenticación ni sesiones, no maneja secretos ni datos de terceros y no acepta entrada de red nueva. La ausencia de validación de invariantes en el servidor sigue registrada como BG-002 de la feature backend, fuera de este alcance",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    },
+    {
+      "id": "NFR-1810",
+      "category": "Observability",
+      "requirement": "Not applicable: la feature no añade ni modifica ninguna ruta HTTP ni proceso de fondo. El registro por petición del proyecto no se altera",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    },
+    {
+      "id": "NFR-1811",
+      "category": "Reliability",
+      "requirement": "Healthcheck: no aplica. El endpoint de salud del proyecto ya existe y esta feature no introduce ningún servicio nuevo que deba reportar estado",
+      "acceptance_criteria": "No aplica — exclusión declarada"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo encontró operando su propia app y lo describió con sus números (enero 1.000/1.000/500 → teclea 1.500 → elimina el retiro → encierro); se reprodujo paso a paso ejecutando el dominio real y leyendo su base de datos",
+    "users": "Usuario único del producto, es él mismo; sin cambio respecto de todas las features previas",
+    "baseline": "Verificado sobre su app en vivo el 2026-08-31: enero con 1.000 reservados y 500 retirados ofrece cupo 500 (debería ser 0), y febrero con 1.500 reservados sobre 1.000 de ingreso; además leído en Postgres (revision 822, data_version 5)",
+    "success_metric": "Formulada por el usuario textualmente («el techo para reservas = ingresos del mes − gastos del mes + Saldo mes anterior. correcto?») y confirmada tras verificarla contra cuatro casos ejecutados",
+    "no_go_zone": "Confirmado en esta sesión: el cierre de mes va aparte («eso es el cierre de mes que hay que implementar»), el modelo de celdas no cambia («no veo que mienta… eso lo sabe el balance»), y el inventario de piezas de UI lo dictó él una por una (QUITAR/SE QUEDA/MANTENER)"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "El techo del mes se calcula con reservas brutas, no netas — un retiro no recarga el cupo",
+      "disposition": "FR-1801"
+    },
+    {
+      "need": "El techo incluye el saldo con que cerró el mes anterior (arrastre entre meses)",
+      "disposition": "FR-1801"
+    },
+    {
+      "need": "El rechazo dice cuánto cabía realmente en el mes",
+      "disposition": "FR-1801"
+    },
+    {
+      "need": "Editar el monto de un retiro en la lista de operaciones",
+      "disposition": "FR-1802"
+    },
+    {
+      "need": "Teclear 0 en un retiro lo elimina (sustituye a los botones de borrar)",
+      "disposition": "FR-1802"
+    },
+    {
+      "need": "Editar un retiro no infla la celda de reservas del mes",
+      "disposition": "FR-1802"
+    },
+    {
+      "need": "Editar o eliminar un retiro se valida (hoy la eliminación no valida nada)",
+      "disposition": "FR-1803"
+    },
+    {
+      "need": "Ninguna vía de corrección puede dejar un mes en estado imposible",
+      "disposition": "FR-1803"
+    },
+    {
+      "need": "Observación automática cuando el mes se completa del saldo anterior",
+      "disposition": "FR-1804"
+    },
+    {
+      "need": "La observación automática se actualiza sola y no acumula historial",
+      "disposition": "FR-1804"
+    },
+    {
+      "need": "La observación es del MES, no de un movimiento ni de un bolsillo",
+      "disposition": "FR-1804"
+    },
+    {
+      "need": "La observación automática no pisa las observaciones escritas a mano",
+      "disposition": "FR-1804"
+    },
+    {
+      "need": "Reservas sale del segmento de Ingresos y Gastos; grilla en tres bloques",
+      "disposition": "FR-1805"
+    },
+    {
+      "need": "La fila «Retiros del mes» pasa al final del segmento de Reservas",
+      "disposition": "FR-1805"
+    },
+    {
+      "need": "Los doce meses siguen alineados en un solo riel con un solo scroll",
+      "disposition": "FR-1805"
+    },
+    {
+      "need": "Plegar los grupos de bolsillos para que la fila de retiros no quede enterrada",
+      "disposition": "FR-1805"
+    },
+    {
+      "need": "El sombreado de la columna del mes activo se respeta y aplica a los tres bloques (hoy el Balance no lo tiene)",
+      "disposition": "FR-1805"
+    },
+    {
+      "need": "Editar un retiro no puede superar el techo de ningún mes",
+      "disposition": "FR-1802"
+    },
+    {
+      "need": "La edición de monto aplica igual a los movimientos entre bolsillos de la lista",
+      "disposition": "FR-1802"
+    },
+    {
+      "need": "El triángulo del encabezado y la franja del Balance amplían su alcance a cualquier error del mes",
+      "disposition": "FR-1806"
+    },
+    {
+      "need": "Quitar el botón «Sacar» de la fila del bolsillo, su estado inerte y el título de origen fijo",
+      "disposition": "FR-1807"
+    },
+    {
+      "need": "Quitar los botones de borrar de la lista de operaciones y su tooltip",
+      "disposition": "FR-1807"
+    },
+    {
+      "need": "Dejar verdes las dos pruebas que el trabajo del 2026-08-30 dejó rojas (data_version 4 vs 5)",
+      "disposition": "FR-1807"
+    },
+    {
+      "need": "La conservación del dinero no puede empeorar",
+      "disposition": "NFR-1801"
+    },
+    {
+      "need": "El arrastre entre meses no puede empeorar",
+      "disposition": "NFR-1802"
+    },
+    {
+      "need": "Gastos e Ingresos no cambian de comportamiento",
+      "disposition": "NFR-1803"
+    },
+    {
+      "need": "Se conservan el saldo derivado, la operación entre bolsillos y su eliminación",
+      "disposition": "NFR-1804"
+    },
+    {
+      "need": "Se conserva la migración v4→v5 ya estampada, idempotente",
+      "disposition": "NFR-1805"
+    },
+    {
+      "need": "El Balance conserva cascada, orden y signos",
+      "disposition": "NFR-1806"
+    },
+    {
+      "need": "El recómputo sigue por debajo de 150ms",
+      "disposition": "NFR-1807"
+    },
+    {
+      "need": "La suite completa corre en cada push a la rama principal",
+      "disposition": "NFR-1808"
+    },
+    {
+      "need": "Mantener el campo «¿Para qué? (opcional)» del retiro",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Mantener la lista «Operaciones de este mes» y su estado vacío",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cierre de mes: impedir editar meses ya cerrados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar el modelo de celdas al desdoble entró/salió",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Bloquear la edición de ingresos y gastos de meses pasados",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "El límite del mes se ve antes de teclear sin quitarle sitio al input (rediseño del indicador, no su retiro)",
+      "disposition": "FR-1808"
+    },
+    {
+      "need": "Las observaciones por celda dejan de ser exclusivas de los bolsillos y aplican a todas las celdas",
+      "disposition": "FR-1809"
+    },
+    {
+      "need": "La observación automática del mes vive en la celda del total de Reservas (una celda como cualquier otra)",
+      "disposition": "FR-1804"
+    },
+    {
+      "need": "El Balance tiene que poder LEERSE término a término, y ninguna fila puede mostrar un saldo negativo que no existe: lo que se gastó vale cero, no menos",
+      "disposition": "FR-1810"
+    },
+    {
+      "need": "El Registrar muestra el cupo real del mes, no el margen bruto",
+      "disposition": "FR-1808"
+    },
+    {
+      "need": "El mensaje de rechazo del editor habla del TOTAL que la celda admite, con la misma cifra que el «Máx.»",
+      "disposition": "FR-1808"
+    },
+    {
+      "need": "Los retiros hechos desde la grilla llevan fecha, y la lista de operaciones la muestra",
+      "disposition": "FR-1802"
+    }
+  ],
+  "original_brief": "# techo-de-flujo — el cupo de reservas es del mes, y los retiros no lo recargan\n\n_Semilla capturada en sesión con el usuario, 2026-08-31. Todas las decisiones de este documento\nson SUYAS y textuales (elegidas entre opciones o formuladas por él, verificadas con ejemplos\nejecutados sobre el dominio real y sobre su app con sus propios datos — NADA de aquí es\nsuposición del agente salvo lo marcado [ASSUMPTION]). Sustituye a la feature\n`movimientos-internos` (descartada: sus premisas de discovery quedaron revocadas por el propio\nusuario al re-probar la app) y cierra el trabajo a medias de `contrapartidas-reserva`._\n\n## Problem / Why\n\nEl usuario lo encontró operando SU app, y se reprodujo paso a paso con sus números:\n\n1. Enero: ingresan 1.000. Reserva 1.000. Retira 500 del bolsillo.\n2. La app le vuelve a ofrecer 500 de cupo — el retiro **recargó** el margen del mes.\n3. Teclea 1.500 en la celda de reservas de enero y **la app lo acepta**: enero queda con 1.500\n   reservados sobre 1.000 que ingresaron. Sus palabras: «según eso enero reservó 1500… está mal.\n   recordá que solo se puede reservar de lo que quede en el flujo del mes».\n4. Intenta corregir **eliminando el retiro** → disponible −500, triángulo rojo, y ningún mes\n   siguiente acepta nada (el encierro).\n\nCausa raíz, acordada con él: **el cupo del mes se calcula con las reservas NETAS (aportes −\nretiros), y debe calcularse con las BRUTAS (solo aportes)**. Un retiro devuelve la plata a la\ncuenta, pero NO devuelve cupo de reserva del mes.\n\nAgravante verificado en código: eliminar un retiro no valida absolutamente nada\n(`removeReserveOp` borra el movimiento y ya) — la puerta de corrección es justamente la que\nproduce el estado imposible.\n\n## Target Users\n\nDueño del presupuesto — usuario único del producto, nivel técnico medio. Es quien encontró el\ndefecto operando la app con datos reales. No habilita tipos de usuario nuevos.\n\n## New Behavior\n\n### 1. La regla del techo (cerrada con el usuario, en sus palabras)\n\n> «el techo para reservas = ingresos del mes − gastos del mes + Saldo mes anterior. correcto?» — Sí.\n\n- **Techo del mes** = ingresos del mes − gastos del mes + saldo con que CERRÓ el mes anterior.\n- Cada reserva del mes lo **consume** (bruto). Los retiros del mes **no lo devuelven**.\n- El **arrastre entre meses se conserva** (confirmado: «si solo reservo 300 en enero, el acumulado\n  disponible para febrero son 700, puedo disponer de esos para reservarlos total o parcialmente»).\n  Lo retirado en enero SÍ cuenta para el cierre de enero y por tanto para el techo de febrero:\n  reservar 1.500 en febrero (1.000 del mes + 500 del cierre de enero) es legítimo.\n- Con esta regla el paso 3 del problema se bloquea de raíz y el paso 4 deja de poder ocurrir.\n\n### 2. El retiro se EDITA (decisión del usuario, «de acuerdo» explícito)\n\n> «si retiré 500, pero ahora de esos 500 que retiré quiero volver a guardar 200, debería poder\n> dejarme editar los 500 a 300. hoy día tendría que eliminar ese movimiento y registrar uno por 300.»\n\n- En «Operaciones de este mes», el monto de cada retiro es **editable directamente**: teclear 300\n  donde decía 500; **teclear 0 lo elimina**. Sustituye a los botones de borrar (que se retiran).\n- Es NECESARIO con la regla nueva: si el cupo del mes quedó en 0, editar el retiro a la baja es la\n  única forma de devolver plata al bolsillo dentro del mismo mes — y la celda no se infla.\n- Toda edición de retiro se valida con la misma regla de cadena (piso del bolsillo + techo);\n  eliminar (0) también — cierra el bug del paso 4. [ASSUMPTION: la validación de la edición del\n  MOVER en esa lista sigue la misma regla; el usuario decidió sobre retiros, el mover se asimila]\n\n### 3. Interfaz — decisiones pieza a pieza (dictadas por el usuario sobre el inventario del 2026-08-30)\n\nSE QUEDA:\n- Triángulo en el encabezado del mes + franja al pie del Balance — **ampliando su alcance**: dejan\n  de ser solo «techo excedido» y pasan a señalar **cualquier error registrado en el mes** (lista\n  de errores por mes, hoy con un tipo, extensible).\n- Campo «¿Para qué? (opcional)» del retiro. (Revierte el descarte del discovery de\n  movimientos-internos; aquella premisa murió con esa feature.)\n- «Operaciones de este mes» (lista que incluye moveres) y su estado vacío «Sin operaciones este mes».\n\nSE QUITA:\n- «Máx. N» del editor de celda (además tapaba el input: la celda mide 108px). El rechazo con la\n  cifra real queda como red.\n- Botón «Sacar» de la fila del bolsillo, su estado «Sin saldo que sacar» y el título con origen\n  fijo del formulario. Sacar vive en la fila «Retiros del mes», que se muda (ver abajo).\n- Botones de eliminar de la lista de operaciones y su tooltip (los sustituye el monto editable).\n\n### 4. La grilla se reorganiza en segmentos (boceto del usuario)\n\n```\nINGRESOS\nGASTOS\n(espacio)\nRESERVAS          ← con la fila «Retiros del mes» AL FINAL del segmento\n(espacio)\nBALANCE\n```\n\n- Reservas SALE del segmento donde hoy convive con ingresos y gastos.\n- La fila «Retiros del mes» (la puerta para sacar, con su desplegable de origen) pasa al final del\n  segmento de Reservas — cerca de los bolsillos, resolviendo la queja BL-019 por el camino simple.\n- Si los bolsillos crecen, los grupos se pliegan (reusar el plegado de `resumen-plegado`) para que\n  la fila de retiros quede a la vista y no enterrada.\n- Restricción técnica acordada: los 12 meses siguen siendo UN solo riel de columnas alineadas y un\n  solo scroll — los segmentos se separan verticalmente, no en grillas independientes.\n\n### 5. Observación automática del mes (forma cerrada con el usuario: «perfecto»)\n\nCuando lo reservado en un mes supera su flujo (ingresos − gastos) y se completa del saldo\nanterior, la app escribe UNA observación de mes, por el mecanismo de observaciones existente\n(FR-1012), p. ej.: **«De los 1.500 reservados este mes, 500 salieron del saldo de enero»**.\n\n- **Se actualiza sola, no acumula historial**: si la reserva baja y ya cabe en el flujo, la nota\n  desaparece. (Las observaciones hoy son solo-agregar: esta necesita reemplazarse.)\n- **Es del MES, no de un movimiento**: con varios bolsillos la atribución sería arbitraria, y las\n  reservas tecleadas en la celda no son «un movimiento», así que un log por movimiento las perdería.\n\n## Success Criteria\n\n- **Dado** enero con ingreso 1.000, reservados 1.000 y un retiro de 500, **cuando** intento\n  reservar 1 peso más en enero, **entonces** se rechaza: el cupo de enero es 0 (el retiro no lo\n  recargó) y el mensaje dice cuánto cabía.\n- **Dado** ese mismo enero, **cuando** miro febrero con ingreso de 1.000, **entonces** el techo de\n  febrero es 1.500 (1.000 del mes + 500 del cierre de enero) y reservar 1.500 se acepta.\n- **Dado** enero con ingreso 1.000 y solo 300 reservados, **cuando** febrero no tiene ingresos,\n  **entonces** puedo reservar hasta 700 en febrero (el sobrante se arrastra, total o parcialmente).\n- **Dado** un retiro de 500 en la lista de operaciones, **cuando** edito su monto a 300,\n  **entonces** el bolsillo queda con 200 más, la celda de reservas NO cambia, y el journal muestra\n  el retiro en 300; **cuando** lo edito a 0, **entonces** el movimiento desaparece.\n- **Dado** un retiro cuya edición o eliminación dejaría un mes en estado imposible, **cuando** lo\n  intento, **entonces** se rechaza nombrando el mes — nunca queda un disponible negativo por esa vía.\n- **Dado** un mes cuyas reservas se completaron del saldo anterior, **cuando** lo consulto,\n  **entonces** veo la observación automática con las dos cifras; **cuando** bajo la reserva y ya\n  cabe en el flujo, **entonces** la observación desaparece.\n- **Dado** la grilla, **cuando** la miro, **entonces** Reservas es un segmento separado de\n  Ingresos/Gastos, con «Retiros del mes» al final, y los 12 meses comparten un solo riel alineado.\n- **Dado** el editor de celda de un bolsillo, **cuando** lo abro, **entonces** no existe el\n  indicador «Máx.»; y en la fila del bolsillo no existe el botón «Sacar».\n- **Dado** el proyecto tras esta feature, **cuando** corre la suite completa, **entonces** los 2\n  tests hoy rojos por el estampado v5 (TC-SFU-105f y TC-TRF4-010e) quedan verdes.\n\n## Out of Scope\n\n- **Cierre de mes** (impedir editar meses cerrados): es BL-036, feature aparte — re-confirmado por\n  el usuario esta sesión («eso es el cierre de mes que hay que implementar»).\n- **El modelo de celdas NO cambia**: la celda = lo reservado del mes; el Balance desdobla\n  reservas/retiros; el saldo por bolsillo es derivado. Revalidado expresamente por el usuario\n  («no veo que mienta… eso lo sabe el balance»).\n- **Se conservan** del código existente: el mover bolsillo→bolsillo anotado por sus dos extremos,\n  `journalIndex`, la eliminación de moveres, y la migración v4→v5 (ya estampada en su base real,\n  `data_version=5` — no puede retirarse).\n- **Gastos e Ingresos no cambian de comportamiento.**\n- Editar ingresos/gastos de meses pasados sigue permitido con señal (no se bloquea aquí — lo\n  congelará el cierre de mes).\n\n## Notas de deuda que esta feature recoge\n\n- Los 2 tests que el commit del 2026-08-30 dejó rojos (esperan `data_version=4` con el estampado\n  ya en 5): `tests/integration/backend/servidor-fuente-unica.test.ts` (TC-SFU-105f) y\n  `reserve-server.test.ts` (TC-TRF4-010e).\n- De `contrapartidas-reserva` (descartada) faltaban pruebas de integración y e2e: las que apliquen\n  al comportamiento que SE CONSERVA deben quedar cubiertas por el plan de pruebas de esta feature.\n"
+}

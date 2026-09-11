@@ -1,37 +1,63 @@
-# Ledger — imagen de producción (Next.js 15, Node 22). Deploy: reverse proxy (TLS) → este contenedor.
-# feature backend: modo servidor (auth + Postgres). La Pi es solo un target; imagen multi-arch estándar.
+# T-Ledger — imagen de producción.
+#
+# Multi-stage: las dependencias de desarrollo y el código fuente se quedan en las etapas previas y
+# NO viajan en la imagen final. Se apoya en `output: "standalone"` de next.config.ts, que emite un
+# servidor con solo las dependencias que usa de verdad.
+#
+# Node 22 alpine: Next 15 pide 18.18+, y alpine mantiene la imagen pequeña — importa en el destino
+# declarado en DEPLOYMENT.md, una Raspberry Pi 5.
+
+# ── 1. Dependencias ──────────────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps || npm install --omit=dev --no-audit --no-fund --legacy-peer-deps
+# Solo los manifiestos: así esta capa se cachea y `npm ci` no se repite en cada cambio de código.
+COPY package.json package-lock.json ./
+RUN npm ci
 
+# ── 2. Build ─────────────────────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund --legacy-peer-deps
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Placeholders de build: los módulos de servidor validan env() al recolectar page data. Son valores
-# de COMPILACIÓN (no conectan a nada — postgres.js es lazy); los reales se inyectan en runtime.
-ENV DATABASE_URL=postgres://build:build@localhost:5432/build
-ENV BETTER_AUTH_SECRET=build-time-placeholder-secret-000000
-ENV BETTER_AUTH_URL=http://localhost:3000
-ENV NEXT_PUBLIC_LEDGER_SERVER_MODE=true
-# next/font auto-aloja Fira Code en build (sin peticiones externas en runtime — NFR-004, BG-001).
+# La build de Next no necesita la base de datos, pero sí que la variable exista: el módulo de entorno
+# la valida al importarse. Es un valor de COMPILACIÓN y nunca llega a la imagen final.
+ENV DATABASE_URL="postgres://build:build@localhost:5432/build"
+ENV BETTER_AUTH_SECRET="build-time-only-not-a-real-secret-000000"
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# ── 3. Runtime ───────────────────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
-COPY --from=builder --chown=node:node /app/.next ./.next
-COPY --from=builder --chown=node:node /app/public ./public
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/package.json ./package.json
-COPY --from=builder --chown=node:node /app/drizzle ./drizzle
-COPY --from=builder --chown=node:node /app/scripts/migrate.mjs ./scripts/migrate.mjs
-USER node
+ENV HOSTNAME=0.0.0.0
+
+# Usuario sin privilegios: el proceso NO corre como root (RQ-SEC / NFR-512).
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# `standalone` ya trae el servidor y sus dependencias; `static` y `public` van aparte por diseño
+# de Next (no se incluyen en el bundle autocontenido).
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Las migraciones viajan en la imagen para poder aplicarlas desde el propio contenedor, sin exigir
+# Node ni el repositorio en el host — que en el destino declarado (una Raspberry Pi) importa.
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+# `output: standalone` solo empaqueta lo que el SERVIDOR usa, y scripts/migrate.mjs no forma parte
+# del build de Next: sus dos dependencias hay que traerlas a mano. Son las dos únicas que necesita y
+# ninguna arrastra transitivas, así que esto NO es «copiar node_modules» por la puerta de atrás.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/postgres ./node_modules/postgres
+
+USER nextjs
 EXPOSE 3000
-# Healthcheck contra /health (no requiere auth ni datos, NFR-504).
-HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 CMD wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1 || exit 1
-# Migraciones (idempotentes) antes de servir: un deploy nuevo siempre está sobre el esquema correcto.
-CMD ["sh", "-c", "node scripts/migrate.mjs && npm run start"]
+
+# Contra /health, no contra /: la raíz redirige al acceso cuando no hay sesión, así que un 200 ahí
+# no prueba que la app esté sana. /health responde { status: "ok" } sin autenticación (NFR-504).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
+
+CMD ["node", "server.js"]

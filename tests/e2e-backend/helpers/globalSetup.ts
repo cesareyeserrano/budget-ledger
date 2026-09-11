@@ -2,7 +2,8 @@
 /**
  * Module: tests/e2e-backend/helpers/globalSetup
  * Purpose: Levanta el entorno e2e del backend: Postgres 16 efímero (testcontainers), migraciones, y la
- *   app Next en MODO SERVIDOR (NEXT_PUBLIC_LEDGER_SERVER_MODE=true) apuntando a esa BD. Guarda el PID
+ *   app Next apuntando a esa BD. Ya no inyecta ningún flag de modo: el interruptor de rollout se
+ *   retiró y Postgres es la única fuente de verdad (FR-1101/NFR-1108). Guarda el PID
  *   de la app y la URL de la BD en un archivo temporal para el teardown. El contenedor lo reap-ea Ryuk
  *   al salir del proceso.
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres, child_process
@@ -42,14 +43,13 @@ export default async function globalSetup(): Promise<void> {
   await migrate(drizzle(migrationClient), { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
   await migrationClient.end();
 
-  // Build de producción: sin cold-compile por request (estable para el gate); SERVER_MODE se inlinea
-  // en build. NEXT_DIST_DIR aísla este build del .next del dev y del e2e existente.
+  // Build de producción: sin cold-compile por request (estable para el gate).
+  // NEXT_DIST_DIR aísla este build del .next del dev y del e2e existente.
   const buildEnv = {
     ...process.env,
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_SECRET: "e2e-secret-not-for-production-000000000000",
     BETTER_AUTH_URL: E2E_BASE,
-    NEXT_PUBLIC_LEDGER_SERVER_MODE: "true",
     NEXT_PUBLIC_GOOGLE_ENABLED: "false",
     NEXT_DIST_DIR: ".next-e2e-backend",
     // Todo el tráfico e2e viene de 127.0.0.1: el rate limit por IP haría flaky los tests en serie.

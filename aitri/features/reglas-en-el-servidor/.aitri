@@ -1,0 +1,229 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "reglas-en-el-servidor",
+  "createdAt": "2026-09-03T20:39:32.170Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-11T19:00:57.639Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-03T21:29:20.660Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T21:29:39.250Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-03T21:33:31.196Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T21:33:39.024Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-03T21:38:42.227Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 26,
+      "failed": 0,
+      "skipped": 10,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T12:43:36.715Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T13:59:54.250Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-04T14:00:02.122Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-04T14:02:59.278Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-04T16:51:38.855Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T16:51:45.956Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-04T16:52:02.291Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-04T22:27:47.319Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-04T22:27:47.439Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-06T20:07:07.872Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-06T20:07:08.001Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-09T19:45:29.772Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T19:48:05.642Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-11T19:00:16.685Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T19:00:57.610Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "f0de50231ded1483f946cd4c615922388814a8c76aef1c5698d5066bdc324cd3",
+    "2": "2d2e99313c13b2439fd0d96e2032930c7a988cebb25e44667f8f6a3a5ec1de0a",
+    "3": "8c0a030d4be13ff1929069cf0531b45c61a89078385dfc29b5283453abc8cacb",
+    "4": "2d78117845f914c84847b28e230df9898bdbac86c71a708b3766d0b66a506fb8",
+    "5": "a7728f097a4461b16aa9b0816ad15127eed8e676e6f54c9fbd52a7b5e8810290"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2101",
+      "FR-2102",
+      "FR-2103",
+      "FR-2104"
+    ],
+    "3": [
+      "FR-2101",
+      "FR-2102",
+      "FR-2103",
+      "FR-2104"
+    ],
+    "4": [
+      "FR-2101",
+      "FR-2102",
+      "FR-2103",
+      "FR-2104"
+    ],
+    "5": [
+      "FR-2101",
+      "FR-2102",
+      "FR-2103",
+      "FR-2104"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "d934512b18defca988fd072d29818caea67af06dfbae044026e5114b3ba90675",
+  "verifyRanAt": "2026-09-11T19:00:16.543Z",
+  "verifyRanRef": "dc0da7d6204734da46f8e643ab4230a40fa40f0d",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-11T19:00:16.543Z"
+  },
+  "verifySummary": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-04T16:52:02.290Z"
+    }
+  ]
+}

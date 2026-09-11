@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Preview — Reservas (transferencias) · transcripción read-back</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#e9e9ec;color:#1c1c1f;padding:28px 16px 60px}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:20px;margin-bottom:4px}
+  .sub{color:#55555d;font-size:13px;max-width:78ch}
+  .banner{margin:14px 0 22px;padding:9px 13px;border:1px dashed #ad3932;border-radius:8px;background:#fff;color:#ad3932;font-size:12px;font-weight:600}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}}
+  .panel{border-radius:12px;padding:18px;border:1px solid rgba(0,0,0,.12)}
+  .panel h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+  .sw{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px}
+  .chip{width:34px;height:22px;border-radius:5px;flex:none;border:1px solid rgba(128,128,128,.35)}
+  .sw .role{width:190px;flex:none;font-weight:600}
+  .sw .hex{width:70px;flex:none}
+  .sw .why{opacity:.75}
+  .badge{font-size:10px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:6px}
+  h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;margin:16px 0 8px;opacity:.7}
+  /* composición */
+  .grid{border-radius:8px;overflow:hidden;font-size:12px;border:1px solid}
+  .r{display:flex;align-items:center;min-height:30px}
+  .lab{width:150px;flex:none;padding:0 10px;display:flex;align-items:center;gap:6px}
+  .c{width:82px;flex:none;text-align:right;padding:0 10px;position:relative}
+  .dot{position:absolute;top:3px;right:3px;width:4px;height:4px;border-radius:50%}
+  .strip{margin-top:8px;border-radius:7px;padding:7px 10px;font-size:11.5px}
+  .reg{margin-top:14px;border-radius:9px;padding:12px;display:grid;gap:8px;font-size:12px;border:1px solid}
+  .chips{display:flex;gap:6px;overflow:hidden}
+  .ch{padding:6px 10px;border-radius:6px;border:1px solid;white-space:nowrap;font-size:11.5px}
+  .type-scale div{margin:2px 0}
+  .foot{margin-top:26px;font-size:11.5px;color:#55555d}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reservas — UX Preview (transcripción read-back)</h1>
+  <p class="sub">Rendición visual de <b>01_UX_SPEC.md</b>. Todos los valores provienen de los tokens
+  EXISTENTES del sistema (globals.css); esta feature no crea colores nuevos, solo asignaciones.
+  Compara contra el diseño acordado (DESIGN_OPTIONS.md y la maqueta de la sesión): cualquier
+  diferencia es un error de transcripción a corregir antes de aprobar.</p>
+  <div class="banner">ILLUSTRATIVE — non-binding; the spec is the contract</div>
+
+  <div class="cols">
+    <!-- ══════════ CLARO ══════════ -->
+    <section class="panel" style="background:#f7f7f8;color:#1c1c1f">
+      <h2 style="color:#55555d">Tema claro</h2>
+      <div class="sw"><span class="chip" style="background:#f7f7f8"></span><span class="role">--bg (lienzo)</span><span class="hex mono">#f7f7f8</span><span class="why">canvas del sistema</span></div>
+      <div class="sw"><span class="chip" style="background:#f1f1f3"></span><span class="role">--bg-sunken</span><span class="hex mono">#f1f1f3</span><span class="why">filas no editables / encabezados</span></div>
+      <div class="sw"><span class="chip" style="background:#1c1c1f"></span><span class="role">--fg · celda explícita</span><span class="hex mono">#1c1c1f</span><span class="why">dato pleno<span class="badge" style="background:#2f7d53;color:#fff">AA 16.4</span></span></div>
+      <div class="sw"><span class="chip" style="background:#6b6b73"></span><span class="role">--fg-muted · ARRASTRADA</span><span class="hex mono">#6b6b73</span><span class="why">saldo presente, mes sin operar<span class="badge" style="background:#2f7d53;color:#fff">AA 5.5</span></span></div>
+      <div class="sw"><span class="chip" style="background:#c4453e"></span><span class="role">--error · franja de bloqueo</span><span class="hex mono">#c4453e</span><span class="why">mensajes de regla (no --state-over)<span class="badge" style="background:#2f7d53;color:#fff">AA 4.9</span></span></div>
+      <div class="sw"><span class="chip" style="background:#9e4708"></span><span class="role">--state-warning + «!» · plan inviable</span><span class="hex mono">#9e4708</span><span class="why">avisa, no bloquea<span class="badge" style="background:#2f7d53;color:#fff">AA 4.9</span></span></div>
+      <div class="sw"><span class="chip" style="background:#2f6db4"></span><span class="role">--type-transfer · Deshacer / Retiros</span><span class="hex mono">#2f6db4</span><span class="why">identidad del tipo Reserva<span class="badge" style="background:#2f7d53;color:#fff">AA 5.3</span></span></div>
+      <div class="sw"><span class="chip" style="background:#2f6db4"></span><span class="role">--type-transfer-fill + --on-accent</span><span class="hex mono">#2f6db4</span><span class="why">chip De/A activo, texto blanco<span class="badge" style="background:#2f7d53;color:#fff">AA 5.3</span></span></div>
+
+      <h3>Composición — grilla RESERVAS (celda-saldo)</h3>
+      <div class="grid" style="border-color:#e3e3e7;background:#ffffff">
+        <div class="r" style="background:#f1f1f3;border-bottom:1px solid #d3d3d9">
+          <div class="lab" style="color:#2f6db4;font-weight:600">⇄ RESERVAS <span style="font-size:9.5px;border:1px solid #e3e3e7;border-radius:6px;padding:0 4px;color:#55555d;letter-spacing:.06em">SALDO</span></div>
+          <div class="c mono" style="color:#55555d;font-size:10.5px">jul</div><div class="c mono" style="color:#55555d;font-size:10.5px">ago</div><div class="c mono" style="color:#55555d;font-size:10.5px">sep</div><div class="c mono" style="color:#55555d;font-size:10.5px">oct</div>
+        </div>
+        <div class="r" style="border-bottom:1px solid #e3e3e7">
+          <div class="lab">Viaje</div>
+          <div class="c mono">200.000</div>
+          <div class="c mono" style="color:#6b6b73">200.000</div>
+          <div class="c mono">150.000<span class="dot" style="background:#6b6b73"></span></div>
+          <div class="c mono" style="color:#6b6b73">150.000</div>
+        </div>
+        <div class="r">
+          <div class="lab">Fondo emergencia</div>
+          <div class="c mono">800.000</div>
+          <div class="c mono">1.000.000</div>
+          <div class="c mono" style="color:#6b6b73">1.000.000</div>
+          <div class="c mono">0</div>
+        </div>
+      </div>
+      <div class="strip" style="border:1px solid #c4453e;background:#fff;color:#c4453e">No puedes reservar $200.000: tu margen este mes es $150.000</div>
+      <div class="strip" style="border:1px solid #d3d3d9;background:#fff;color:#55555d">Esto convierte agosto en un aporte de $50.000 · <b>Aplicar</b> / Cancelar</div>
+      <div class="strip" style="border:1px solid #e3e3e7;background:#fff;color:#1c1c1f">Sacaste $50.000 de Viaje → Disponible · <b style="color:#2f6db4">Deshacer</b></div>
+      <div class="strip" style="background:#fff;border:1px solid #e3e3e7"><span class="mono" style="color:#9e4708">! 1.400.000</span> <span style="color:#55555d">— plan inviable (Pres.): avisa con color + glifo, se guarda igual</span></div>
+
+      <h3>Composición — registro, tipo Reserva (375px)</h3>
+      <div class="reg" style="background:#ffffff;border-color:#e3e3e7">
+        <div class="chips">
+          <span class="ch" style="border-color:#e3e3e7;color:#55555d">− Gasto</span>
+          <span class="ch" style="border-color:#e3e3e7;color:#55555d">+ Ingreso</span>
+          <span class="ch" style="background:#2f6db4;border-color:#2f6db4;color:#fff;font-weight:600">⇄ Reserva</span>
+        </div>
+        <div style="font-size:10px;letter-spacing:.08em;color:#55555d;font-weight:600">DE</div>
+        <div class="chips">
+          <span class="ch" style="background:#2f6db4;border-color:#2f6db4;color:#fff">Viaje — $150.000</span>
+          <span class="ch" style="border-color:#e3e3e7;color:#55555d">Disponible</span>
+          <span class="ch" style="border-color:#e3e3e7;color:#55555d">Fondo — $1.000.000</span>
+        </div>
+        <div style="font-size:10px;letter-spacing:.08em;color:#55555d;font-weight:600">A</div>
+        <div class="chips">
+          <span class="ch" style="background:#f1f1f3;border-color:#d3d3d9;color:#1c1c1f;font-weight:600">Disponible</span>
+          <span class="ch" style="border-color:#e3e3e7;color:#55555d">Fondo — $1.000.000</span>
+        </div>
+        <div class="mono" style="font-size:24px;text-align:center;font-weight:600">$50.000</div>
+        <div style="text-align:center;font-size:11px;color:#55555d">Máx. $150.000</div>
+        <div style="background:#2f6db4;color:#fff;border-radius:8px;text-align:center;padding:10px;font-weight:600;min-height:48px;display:flex;align-items:center;justify-content:center">Guardar movimiento</div>
+      </div>
+    </section>
+
+    <!-- ══════════ OSCURO ══════════ -->
+    <section class="panel" style="background:#131316;color:#f4f4f5;border-color:#33333a">
+      <h2 style="color:#b4b4bb">Tema oscuro</h2>
+      <div class="sw"><span class="chip" style="background:#131316"></span><span class="role">--bg (lienzo)</span><span class="hex mono">#131316</span><span class="why">nunca negro puro</span></div>
+      <div class="sw"><span class="chip" style="background:#0f0f12"></span><span class="role">--bg-sunken</span><span class="hex mono">#0f0f12</span><span class="why">filas no editables</span></div>
+      <div class="sw"><span class="chip" style="background:#f4f4f5"></span><span class="role">--fg · celda explícita</span><span class="hex mono">#f4f4f5</span><span class="why">dato pleno<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 15+</span></span></div>
+      <div class="sw"><span class="chip" style="background:#9b9ba3"></span><span class="role">--fg-muted · ARRASTRADA</span><span class="hex mono">#9b9ba3</span><span class="why">saldo presente, mes sin operar<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 6.8</span></span></div>
+      <div class="sw"><span class="chip" style="background:#ec6a66"></span><span class="role">--error · franja de bloqueo</span><span class="hex mono">#ec6a66</span><span class="why">mensajes de regla<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 5.6</span></span></div>
+      <div class="sw"><span class="chip" style="background:#e0a458"></span><span class="role">--state-warning + «!» · plan inviable</span><span class="hex mono">#e0a458</span><span class="why">avisa, no bloquea<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 7.4</span></span></div>
+      <div class="sw"><span class="chip" style="background:#6ba6f1"></span><span class="role">--type-transfer · Deshacer / Retiros</span><span class="hex mono">#6ba6f1</span><span class="why">identidad del tipo<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 6.8</span></span></div>
+      <div class="sw"><span class="chip" style="background:#2f6db4"></span><span class="role">--type-transfer-fill + --on-accent</span><span class="hex mono">#2f6db4</span><span class="why">chip activo: MISMO relleno oscuro en ambos temas (blanco 5.3:1)<span class="badge" style="background:#5fbe82;color:#0f0f12">AA 5.3</span></span></div>
+
+      <h3 style="color:#b4b4bb">Composición — grilla RESERVAS</h3>
+      <div class="grid" style="border-color:#33333a;background:#1b1b1f">
+        <div class="r" style="background:#0f0f12;border-bottom:1px solid #43434c">
+          <div class="lab" style="color:#6ba6f1;font-weight:600">⇄ RESERVAS <span style="font-size:9.5px;border:1px solid #33333a;border-radius:6px;padding:0 4px;color:#b4b4bb;letter-spacing:.06em">SALDO</span></div>
+          <div class="c mono" style="color:#b4b4bb;font-size:10.5px">jul</div><div class="c mono" style="color:#b4b4bb;font-size:10.5px">ago</div><div class="c mono" style="color:#b4b4bb;font-size:10.5px">sep</div><div class="c mono" style="color:#b4b4bb;font-size:10.5px">oct</div>
+        </div>
+        <div class="r" style="border-bottom:1px solid #33333a">
+          <div class="lab">Viaje</div>
+          <div class="c mono">200.000</div>
+          <div class="c mono" style="color:#9b9ba3">200.000</div>
+          <div class="c mono">150.000<span class="dot" style="background:#9b9ba3"></span></div>
+          <div class="c mono" style="color:#9b9ba3">150.000</div>
+        </div>
+        <div class="r">
+          <div class="lab">Fondo emergencia</div>
+          <div class="c mono">800.000</div>
+          <div class="c mono">1.000.000</div>
+          <div class="c mono" style="color:#9b9ba3">1.000.000</div>
+          <div class="c mono">0</div>
+        </div>
+      </div>
+      <div class="strip" style="border:1px solid #ec6a66;background:#1b1b1f;color:#ec6a66">«Viaje» solo tiene $150.000</div>
+      <div class="strip" style="border:1px solid #43434c;background:#1b1b1f;color:#b4b4bb">↺ Volver al arrastre — visible solo en celdas explícitas</div>
+      <div class="strip" style="background:#1b1b1f;border:1px solid #33333a"><span class="mono" style="color:#e0a458">! 1.400.000</span> <span style="color:#b4b4bb">— marca de plan: glifo «!» ≠ ›/›› ≠ ‹‹ (tercera semántica, tercera forma)</span></div>
+
+      <h3 style="color:#b4b4bb">Balance — las dos filas nuevas</h3>
+      <div class="grid" style="border-color:#33333a;background:#0f0f12">
+        <div class="r" style="border-bottom:1px solid #33333a"><div class="lab" style="color:#b4b4bb"><span class="mono">−</span> Reservas del mes</div><div class="c mono" style="color:#b4b4bb">200.000</div><div class="c mono" style="color:#b4b4bb">0</div></div>
+        <div class="r" style="border-bottom:1px solid #33333a"><div class="lab" style="color:#6ba6f1"><span class="mono">+</span> Retiros del mes</div><div class="c mono" style="color:#6ba6f1">0</div><div class="c mono" style="color:#6ba6f1">50.000</div></div>
+        <div class="r"><div class="lab" style="font-weight:600"><span class="mono">=</span> Saldo disponible</div><div class="c mono" style="color:#5fbe82;font-weight:600">300.000</div><div class="c mono" style="color:#5fbe82;font-weight:600">300.000</div></div>
+      </div>
+    </section>
+  </div>
+
+  <h3 style="margin-top:22px">Escala tipográfica y espaciado (del sistema, sin cambio)</h3>
+  <div class="cols">
+    <div class="panel type-scale" style="background:#fff">
+      <div style="font-size:24px;font-weight:600">Título 24 — Inter 600</div>
+      <div style="font-size:15px">Cuerpo 15 — Inter 400</div>
+      <div style="font-size:12.5px" class="mono">Celda 12.5 — DM Mono · tabular-nums · 200.000</div>
+      <div style="font-size:11px;color:#55555d">Caption 11 — guías «Máx. $150.000»</div>
+      <div style="font-size:10.5px;letter-spacing:.08em;color:#55555d;font-weight:600">EYEBROW 10.5 — badge SALDO / rótulos DE·A</div>
+    </div>
+    <div class="panel" style="background:#fff">
+      <div style="font-size:12px;color:#55555d">Espaciado: escala 4px del sistema · Radios: --radius-xs 6 / sm 8 / md 10 / lg 14 · Controles: sm 32 / md 40 / lg 48 (táctil móvil ≥48px)</div>
+      <div style="margin-top:10px;font-size:12px;color:#55555d"><b>Nota de huecos honestos:</b> el tooltip de observaciones, el popover del helper de trayectoria y el banner one-shot no se rinden aquí (anatomías estándar del sistema: Popover shadcn y patrón StorageBanner); sus tokens están en la tabla del spec.</div>
+    </div>
+  </div>
+
+  <p class="foot">Generated from 01_UX_SPEC.md — non-binding; the spec is the contract.</p>
+</div>
+</body>
+</html>

@@ -1,132 +1,134 @@
 {
-  "executed_at": "2026-07-10T15:47:49.832Z",
-  "test_runner": "npx vitest run --root ../../.. --reporter verbose --coverage",
+  "executed_at": "2026-09-11T19:56:03.265Z",
+  "test_runner": "../../../unit.sh",
   "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-BSC-401h",
       "status": "pass",
-      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401h: dentro del presupuesto (incluido el 100% exacto) el estado es 'within' 1ms"
+      "notes": "✓ |app| tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401h: dentro del presupuesto (incluido el 100% exacto) el estado es 'within' 1ms"
     },
     {
       "tc_id": "TC-BSC-401e",
       "status": "pass",
-      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401e: valores frontera exactos del umbral: 100 / 101 / 119 / 120 / 121 % 0ms"
+      "notes": "✓ |app| tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401e: valores frontera exactos del umbral: 100 / 101 / 119 / 120 / 121 % 0ms"
     },
     {
       "tc_id": "TC-BSC-401f",
       "status": "pass",
-      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401f: casos degenerados: presupuesto 0, ejecutado 0 y negativos no producen NaN ni Infinity 1ms"
+      "notes": "✓ |app| tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-401f: casos degenerados: presupuesto 0, ejecutado 0 y negativos no producen NaN ni Infinity 1ms"
     },
     {
       "tc_id": "TC-BSC-411e",
       "status": "pass",
-      "notes": "✓ tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-411e: volumen de producción: 6.000 derivaciones (500 nodos × 12 meses) sin degradación ni NaN 2ms"
+      "notes": "✓ |app| tests/domain/budget-state.test.ts > FR-401 · budgetState > TC-BSC-411e: volumen de producción: 6.000 derivaciones (500 nodos × 12 meses) sin degradación ni NaN 6ms"
     },
     {
       "tc_id": "TC-BSC-402h",
       "status": "pass",
-      "notes": "✓    2 [chromium] › tests/e2e/budget-state-color.spec.ts:152:5 › TC-BSC-402h: la celda pasada muestra el glifo antes del monto, en el color del estado (507ms)"
+      "notes": "✓   48 [chromium] › tests/e2e/budget-state-color.spec.ts:153:5 › TC-BSC-402h: la celda pasada muestra el glifo antes del monto, en el color del estado (468ms)"
     },
     {
       "tc_id": "TC-BSC-402e",
       "status": "pass",
-      "notes": "✓    1 [chromium] › tests/e2e/budget-state-color.spec.ts:174:5 › TC-BSC-402e: fronteras del glifo y ancho: 100% sin marca, 120% con '››', y un monto de 7 cifras no desborda (512ms)"
+      "notes": "✓   49 [chromium] › tests/e2e/budget-state-color.spec.ts:175:5 › TC-BSC-402e: fronteras del glifo y ancho: 100% sin marca, 120% con '››', y un monto de 7 cifras no desborda (452ms)"
     },
     {
       "tc_id": "TC-BSC-402f",
       "status": "pass",
-      "notes": "✓    3 [chromium] › tests/e2e/budget-state-color.spec.ts:197:5 › TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transferencia, ni el total por tipo lleva glifo (348ms)"
+      "notes": "✓   50 [chromium] › tests/e2e/budget-state-color.spec.ts:198:5 › TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transferencia, ni el total por tipo lleva glifo (449ms)"
     },
     {
       "tc_id": "TC-BSC-403h",
       "status": "pass",
-      "notes": "✓    4 [chromium] › tests/e2e/budget-state-color.spec.ts:221:5 › TC-BSC-403h: el pie de la grilla contiene la leyenda con los tres estados, su color y su glifo (345ms)"
+      "notes": "✓   51 [chromium] › tests/e2e/budget-state-color.spec.ts:229:5 › TC-BSC-403h: la clave acompaña al glifo y cubre el vocabulario de estado (462ms)"
     },
     {
       "tc_id": "TC-BSC-403e",
       "status": "pass",
-      "notes": "✓    5 [chromium] › tests/e2e/budget-state-color.spec.ts:241:5 › TC-BSC-403e: la leyenda aparece exactamente una vez, no por fila (328ms)"
+      "notes": "✓   52 [chromium] › tests/e2e/budget-state-color.spec.ts:249:5 › TC-BSC-403e: la clave no se repite como chrome — ni franja fija ni bloque por fila (442ms)"
     },
     {
       "tc_id": "TC-BSC-403f",
       "status": "pass",
-      "notes": "✓    6 [chromium] › tests/e2e/budget-state-color.spec.ts:248:5 › TC-BSC-403f: no existe ningún icono de información por fila (325ms)"
+      "notes": "✓   53 [chromium] › tests/e2e/budget-state-color.spec.ts:259:5 › TC-BSC-403f: no existe ningún icono de información por fila (444ms)"
     },
     {
       "tc_id": "TC-BSC-404h",
       "status": "pass",
-      "notes": "✓    7 [chromium] › tests/e2e/budget-state-color.spec.ts:259:5 › TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la fila; la hoja usa el lienzo (329ms)"
+      "notes": "✓   54 [chromium] › tests/e2e/budget-state-color.spec.ts:270:5 › TC-BSC-404h: las filas no editables usan la superficie hundida en TODA la fila; la hoja usa el lienzo (451ms)"
     },
     {
       "tc_id": "TC-BSC-404e",
       "status": "pass",
-      "notes": "✓    8 [chromium] › tests/e2e/budget-state-color.spec.ts:278:5 › TC-BSC-404e: un grupo VACÍO tampoco es editable y también recibe la superficie de estructura (329ms)"
+      "notes": "✓   55 [chromium] › tests/e2e/budget-state-color.spec.ts:289:5 › TC-BSC-404e: un grupo SIN hijos es hoja editable y recibe la superficie de hoja (504ms)"
     },
     {
       "tc_id": "TC-BSC-404f",
       "status": "pass",
-      "notes": "✓    9 [chromium] › tests/e2e/budget-state-color.spec.ts:292:5 › TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad (395ms)"
+      "notes": "✓   56 [chromium] › tests/e2e/budget-state-color.spec.ts:306:5 › TC-BSC-404f: ninguna hoja usa la superficie de estructura, y ninguna fila cambia de altura ni de editabilidad (543ms)"
     },
     {
       "tc_id": "TC-BSC-451h",
       "status": "pass",
-      "notes": "✓   10 [chromium] › tests/e2e/budget-state-color.spec.ts:326:5 › TC-BSC-451h: regresión — el Registro conserva la propagación de color por tipo (525ms)"
+      "notes": "✓   57 [chromium] › tests/e2e/budget-state-color.spec.ts:340:5 › TC-BSC-451h: regresión — el Registro conserva la propagación de color por tipo (609ms)"
     },
     {
       "tc_id": "TC-BSC-451e",
       "status": "pass",
-      "notes": "✓   11 [chromium] › tests/e2e/budget-state-color.spec.ts:343:5 › TC-BSC-451e: regresión — Transferencia también propaga su color en el Registro (468ms)"
+      "notes": "✓   58 [chromium] › tests/e2e/budget-state-color.spec.ts:357:5 › TC-BSC-451e: regresión — Transferencia también propaga su color en el Registro (557ms)"
     },
     {
       "tc_id": "TC-BSC-451f",
       "status": "pass",
-      "notes": "✓   12 [chromium] › tests/e2e/budget-state-color.spec.ts:356:5 › TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de presupuesto (105ms)"
+      "notes": "✓   59 [chromium] › tests/e2e/budget-state-color.spec.ts:370:5 › TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de presupuesto (167ms)"
     },
     {
       "tc_id": "TC-BSC-452h",
       "status": "pass",
-      "notes": "✓   13 [chromium] › tests/e2e/budget-state-color.spec.ts:376:5 › TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warning, superado = success) (297ms)"
+      "notes": "✓   60 [chromium] › tests/e2e/budget-state-color.spec.ts:390:5 › TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warning, superado = success) (433ms)"
     },
     {
       "tc_id": "TC-BSC-452e",
       "status": "pass",
-      "notes": "✓   14 [chromium] › tests/e2e/budget-state-color.spec.ts:389:5 › TC-BSC-452e: regresión — Transferencia sigue neutra (--accent-light) (291ms)"
+      "notes": "✓   61 [chromium] › tests/e2e/budget-state-color.spec.ts:408:5 › TC-BSC-452e: regresión — Transferencia sigue fuera de los umbrales de gasto (459ms)"
     },
     {
       "tc_id": "TC-BSC-452f",
       "status": "pass",
-      "notes": "✓   15 [chromium] › tests/e2e/budget-state-color.spec.ts:397:5 › TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto NO recibe glifo ni color de estado (290ms)"
+      "notes": "✓   62 [chromium] › tests/e2e/budget-state-color.spec.ts:421:5 › TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto NO recibe glifo ni color de estado (460ms)"
     },
     {
       "tc_id": "TC-BSC-453h",
       "status": "pass",
-      "notes": "✓ tests/domain/budget-state-aa.test.ts > NFR-403 · contraste AA de los tokens de estado > TC-BSC-453h: los tokens de estado alcanzan ≥4.5:1 sobre las cuatro superficies, en ambos temas 6ms"
+      "notes": "✓ |app| tests/domain/budget-state-aa.test.ts > NFR-403 · contraste AA de los tokens de estado > TC-BSC-453h: los tokens de estado alcanzan ≥4.5:1 sobre las cuatro superficies, en ambos temas 4ms"
     },
     {
       "tc_id": "TC-BSC-453e",
       "status": "pass",
-      "notes": "✓   16 [chromium] › tests/e2e/budget-state-color.spec.ts:409:5 › TC-BSC-453e: AA en la app real — el estado sobre la celda resaltada de una fila padre cumple ≥4.5:1 (475ms)"
+      "notes": "✓   63 [chromium] › tests/e2e/budget-state-color.spec.ts:434:5 › TC-BSC-453e: AA en la app real — el estado sobre la celda resaltada de una fila padre cumple ≥4.5:1 (788ms)"
     },
     {
       "tc_id": "TC-BSC-453f",
       "status": "pass",
-      "notes": "✓   17 [chromium] › tests/e2e/budget-state-color.spec.ts:432:5 › TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: toda celda coloreada lleva glifo (285ms)"
+      "notes": "✓   64 [chromium] › tests/e2e/budget-state-color.spec.ts:457:5 › TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: toda celda coloreada lleva glifo (454ms)"
     },
     {
       "tc_id": "TC-BSC-454h",
       "status": "pass",
-      "notes": "✓   18 [chromium] › tests/e2e/budget-state-color.spec.ts:457:5 › TC-BSC-454h: regresión — la edición inline de una hoja sigue funcionando y persiste (407ms)"
+      "notes": "✓   65 [chromium] › tests/e2e/budget-state-color.spec.ts:485:5 › TC-BSC-454h: regresión — la edición inline de una hoja sigue funcionando y persiste (689ms)"
     },
     {
       "tc_id": "TC-BSC-454e",
       "status": "pass",
-      "notes": "✓   19 [chromium] › tests/e2e/budget-state-color.spec.ts:473:5 › TC-BSC-454e: regresión — filtro Mes/Año, roll-ups y la lista Recientes siguen intactos (394ms)"
+      "notes": "✓   66 [chromium] › tests/e2e/budget-state-color.spec.ts:501:5 › TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Recientes' retirada (BL-003) (608ms)"
     },
     {
       "tc_id": "TC-BSC-454f",
       "status": "pass",
-      "notes": "✓   20 [chromium] › tests/e2e/budget-state-color.spec.ts:496:5 › TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor (301ms)"
+      "notes": "✓   67 [chromium] › tests/e2e/budget-state-color.spec.ts:531:5 › TC-BSC-454f: regresión — una celda de fila padre sigue sin abrir el editor (455ms)"
     },
     {
       "tc_id": "TC-BSC-455h",
@@ -235,7 +237,6 @@
     "manual": 0,
     "manual_verified": 3
   },
-  "line_coverage": 93.25,
   "low_confidence_tcs": [],
   "quality_gates": [
     {
@@ -244,7 +245,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+      "duration_ms": 1462,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
       "name": "lint",
@@ -252,7 +254,17 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+      "duration_ms": 2076,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 31475,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-11T19:53:50.880Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-11T19:53:50.882Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "smoke",
@@ -260,7 +272,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "[smoke] arrancando la app en :3210\n[smoke] GET / -> 200\n[smoke] OK"
+      "duration_ms": 1176,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -268,14 +281,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": " la grilla de 12 meses sigue funcionando tras la feature (133ms)\n  ✓  160 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (197ms)\n  ✓  161 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (146ms)\n  ✓  162 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (75ms)\n  ✓  158 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.2s)\n\n  162 passed (38.7s)"
-    },
-    {
-      "name": "coverage",
-      "threshold": 80,
-      "measured": 93.25,
-      "required": true,
-      "status": "pass"
+      "duration_ms": 130497,
+      "output": "] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (2.2m)\n\n(node:30080) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
-  ]
+  ],
+  "timings": {
+    "runner_ms": 30183,
+    "e2e_ms": 138880,
+    "gates_ms": 166686,
+    "total_ms": 335795
+  }
 }

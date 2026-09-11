@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>UX Preview — resumen-plegado</title>
+<style>
+  :root{ --mono:'Fira Code','Courier New',monospace; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:#e9e9ec;color:#1c1c1f;font-family:var(--mono);font-size:13px;line-height:1.5}
+  h1{font-size:16px;font-weight:600;margin:0 0 4px}
+  p.sub{margin:0 0 20px;color:#55555c;max-width:80ch}
+  .panels{display:flex;gap:20px;flex-wrap:wrap}
+  .panel{flex:1 1 460px;min-width:0;border-radius:10px;padding:18px;border:1px solid transparent}
+  .light{background:#f7f7f8;border-color:#d3d3d9;color:#1c1c1f}
+  .dark{background:#131316;border-color:#43434c;color:#f4f4f5}
+  .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.65;margin-bottom:12px}
+  .caption{font-size:11px;margin:14px 0 6px;opacity:.75}
+  .strip{overflow-x:auto}
+  table{border-collapse:collapse;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th,td{padding:6px 10px;text-align:right;font-size:12px;border-bottom:1px solid}
+  th{font-size:10px;font-weight:500;opacity:.6;text-align:right}
+  td.lbl,th.lbl{text-align:left;font-weight:600;padding-right:16px}
+  .light th,.light td{border-color:#e2e2e7;background:#f1f1f3}
+  .dark th,.dark td{border-color:#2a2a31;background:#0f0f12}
+  .sep{border-left:2px solid}
+  .light .sep{border-left-color:#d3d3d9}
+  .dark .sep{border-left-color:#43434c}
+  .muted-l{color:#6b6b73}.muted-d{color:#9b9ba3}
+  .neg-l{color:#ad3932}.neg-d{color:#ec6a66}
+  .badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid currentColor;opacity:.8;margin-left:6px}
+  .banner{margin:22px 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+  .tokens{margin-top:26px;width:100%;max-width:960px}
+  .tokens td,.tokens th{background:transparent;text-align:left;border-color:#d3d3d9}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #0002;vertical-align:-2px;margin-right:6px}
+  footer{margin-top:26px;font-size:11px;opacity:.6}
+</style></head><body>
+
+<h1>UX Preview — resumen-plegado</h1>
+<p class="sub">Lámina de aprobación. Muestra la única decisión visual de la feature: qué cifra asoma el encabezado del módulo de Balance cuando está plegado. Cifras reales del libro de prueba (junio: disponible 2.300 · reservado 200 · total 2.500). La fila «hoy» son valores superseded, mostrados solo para comparar.</p>
+
+<div class="panels">
+  <div class="panel light">
+    <div class="eyebrow">Tema claro</div>
+
+    <div class="caption">Hoy — el encabezado plegado muestra el <strong>Saldo total</strong> (FR-909, superseded)</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">▸ BALANCE</th><th class="sep">may pres.</th><th>may ejec.</th><th class="sep">jun pres.</th><th>jun ejec.</th><th class="sep">jul pres.</th><th>jul ejec.</th></tr>
+      <tr><td class="lbl">&nbsp;</td><td class="sep">2.100</td><td>2.500</td><td class="sep">2.500</td><td>2.500</td><td class="sep">2.500</td><td>2.500</td></tr>
+    </table></div>
+
+    <div class="caption">Propuesto — el encabezado plegado muestra el <strong>Saldo disponible</strong> (FR-1501)</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">▸ BALANCE</th><th class="sep">may pres.</th><th>may ejec.</th><th class="sep">jun pres.</th><th>jun ejec.</th><th class="sep">jul pres.</th><th>jul ejec.</th></tr>
+      <tr><td class="lbl">&nbsp;</td><td class="sep">2.100</td><td>2.500</td><td class="sep">2.500</td><td><strong>2.300</strong></td><td class="sep">2.400</td><td>2.500</td></tr>
+    </table></div>
+
+    <div class="caption">Los tres estados de la celda</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">estado</th><th>cifra</th></tr>
+      <tr><td class="lbl">con dato, ≥ 0 — neutro por defecto</td><td>2.300</td></tr>
+      <tr><td class="lbl">sin dato — atenuado</td><td class="muted-l">0</td></tr>
+      <tr><td class="lbl">negativo — color + signo + glifo</td><td class="neg-l">−1.200 ‹‹</td></tr>
+    </table></div>
+  </div>
+
+  <div class="panel dark">
+    <div class="eyebrow">Tema oscuro</div>
+
+    <div class="caption">Hoy — Saldo total (superseded)</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">▸ BALANCE</th><th class="sep">may pres.</th><th>may ejec.</th><th class="sep">jun pres.</th><th>jun ejec.</th><th class="sep">jul pres.</th><th>jul ejec.</th></tr>
+      <tr><td class="lbl">&nbsp;</td><td class="sep">2.100</td><td>2.500</td><td class="sep">2.500</td><td>2.500</td><td class="sep">2.500</td><td>2.500</td></tr>
+    </table></div>
+
+    <div class="caption">Propuesto — Saldo disponible</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">▸ BALANCE</th><th class="sep">may pres.</th><th>may ejec.</th><th class="sep">jun pres.</th><th>jun ejec.</th><th class="sep">jul pres.</th><th>jul ejec.</th></tr>
+      <tr><td class="lbl">&nbsp;</td><td class="sep">2.100</td><td>2.500</td><td class="sep">2.500</td><td><strong>2.300</strong></td><td class="sep">2.400</td><td>2.500</td></tr>
+    </table></div>
+
+    <div class="caption">Los tres estados de la celda</div>
+    <div class="strip"><table>
+      <tr><th class="lbl">estado</th><th>cifra</th></tr>
+      <tr><td class="lbl">con dato, ≥ 0 — neutro por defecto</td><td>2.300</td></tr>
+      <tr><td class="lbl">sin dato — atenuado</td><td class="muted-d">0</td></tr>
+      <tr><td class="lbl">negativo — color + signo + glifo</td><td class="neg-d">−1.200 ‹‹</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="banner">Ilustrativo — no vinculante; el contrato es 01_UX_SPEC.md</div>
+
+<table class="tokens">
+  <tr><th>Rol</th><th>Claro</th><th>Oscuro</th><th>Contraste</th><th>Razón (del spec)</th></tr>
+  <tr><td>Cifra sana</td><td><span class="sw" style="background:#1c1c1f"></span>--fg #1c1c1f</td><td><span class="sw" style="background:#f4f4f5"></span>--fg #f4f4f5</td><td>16,4:1 <span class="badge">AA</span> · 15,9:1 <span class="badge">AA</span></td><td>Neutro por defecto (FR-1403): el color solo señala la excepción</td></tr>
+  <tr><td>Cifra sin dato</td><td><span class="sw" style="background:#6b6b73"></span>--fg-muted #6b6b73</td><td><span class="sw" style="background:#9b9ba3"></span>--fg-muted #9b9ba3</td><td>4,68:1 <span class="badge">AA</span> · 6,8:1 <span class="badge">AA</span></td><td>Una celda sin dato nunca lleva el color de su fila (FR-1404)</td></tr>
+  <tr><td>Cifra negativa</td><td><span class="sw" style="background:#ad3932"></span>--alert-strong #ad3932</td><td><span class="sw" style="background:#ec6a66"></span>--alert-strong #ec6a66</td><td>4,85:1 <span class="badge">AA</span></td><td>Excepción grave: saldo negativo, mismo token que el sobre-consumo</td></tr>
+  <tr><td>Fondo de celda</td><td><span class="sw" style="background:#f1f1f3"></span>--bg-sunken #f1f1f3</td><td><span class="sw" style="background:#0f0f12"></span>--bg-sunken #0f0f12</td><td>—</td><td>Superficie hundida de los encabezados de grilla</td></tr>
+  <tr><td>Separador entre meses</td><td><span class="sw" style="background:#d3d3d9"></span>--border-strong #d3d3d9</td><td><span class="sw" style="background:#43434c"></span>--border-strong #43434c</td><td>—</td><td>Filete de bloque, definido por FR-909 (parte no revocada)</td></tr>
+</table>
+
+<p class="sub" style="margin-top:18px"><strong>Huecos honestos:</strong> no se renderiza la tipografía a escala ni la escala de espaciado, porque la feature no cambia ninguna de las dos — la celda conserva Fira Code peso 600, <code>tabular-nums</code>, <code>min-height:34px</code> y su ancho de columna. El glifo ‹‹ se muestra en línea, no como inventario de íconos.</p>
+
+<footer>Generado desde 01_UX_SPEC.md — no vinculante; el contrato es el spec.</footer>
+</body></html>

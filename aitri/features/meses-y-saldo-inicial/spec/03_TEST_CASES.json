@@ -1,0 +1,1502 @@
+{
+  "test_plan": {
+    "strategy": "Pirámide con el peso en el DOMINIO, porque ahí está el riesgo real de esta feature. El cálculo no se reescribe —computeBalanceSeries ya acepta la apertura— así que el peligro no es que algo reviente sino que algo salga MAL EN SILENCIO: cifras consistentes entre sí sobre una base equivocada. De ahí tres decisiones: (1) la regresión de NFR-2201 se verifica comparando series BYTE A BYTE, no comprobando que no lanza; (2) FLAG-1 del TRD tiene un caso propio y crítico (TC-MSI-018e), porque closingCarry arranca una serie en la cabeza del rango y sin apertura el cierre y el Balance divergirían sin que ninguna prueba actual se pusiera en rojo; (3) las dos reglas de servidor —mes cerrado y huérfanos— se prueban a nivel de integración contra el endpoint, no solo en el dominio, porque NFR-2205 exige que vivan en el servidor y BG-002 documenta el coste de que vivan solo en el navegador.",
+    "coverage_goal": "80% de líneas en los módulos tocados, con el dominio (opening.ts, range.ts) al 100% de ramas",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "type_coverage_matrix": [
+      {
+        "fr": "FR-2201",
+        "type": "logic",
+        "unit": "MUST",
+        "integration": "SHOULD",
+        "e2e": "-",
+        "reason": "Lógica pura de rango: verificable sin montar nada"
+      },
+      {
+        "fr": "FR-2202",
+        "type": "logic",
+        "unit": "MUST",
+        "integration": "SHOULD",
+        "e2e": "-",
+        "reason": "El corazón de la feature. Unit exhaustivo, incluida la costura con el cierre"
+      },
+      {
+        "fr": "FR-2203",
+        "type": "ux",
+        "unit": "-",
+        "integration": "-",
+        "e2e": "MUST",
+        "reason": "FR de tipo ux: e2e siempre MUST. Los cuatro estados solo son observables en el navegador"
+      },
+      {
+        "fr": "FR-2204",
+        "type": "ux",
+        "unit": "-",
+        "integration": "-",
+        "e2e": "MUST",
+        "reason": "FR de tipo ux: e2e siempre MUST. Incluye la navegación entre rutas y los dos viewports"
+      },
+      {
+        "fr": "FR-2205",
+        "type": "logic",
+        "unit": "MUST",
+        "integration": "MUST",
+        "e2e": "SHOULD",
+        "reason": "La regla se evalúa en dos sitios por dos motivos distintos, así que se prueba en los dos"
+      },
+      {
+        "fr": "FR-2206",
+        "type": "logic",
+        "unit": "MUST",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "Unit para la enumeración de huérfanos; integración porque el bloqueo es del servidor"
+      },
+      {
+        "fr": "FR-2207",
+        "type": "data",
+        "unit": "SHOULD",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "FR de persistencia: integración siempre MUST, los tests en memoria no cuentan"
+      },
+      {
+        "fr": "NFR-2201",
+        "type": "regression",
+        "unit": "MUST",
+        "integration": "-",
+        "e2e": "-",
+        "reason": "Comparación byte a byte de series: es una aserción de dominio"
+      },
+      {
+        "fr": "NFR-2202",
+        "type": "regression",
+        "unit": "-",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "Propiedad de la suite completa y del diff: manual por construcción, no puede autoprobarse"
+      },
+      {
+        "fr": "NFR-2203",
+        "type": "regression",
+        "unit": "MUST",
+        "integration": "-",
+        "e2e": "-",
+        "reason": "activeRange es una función pura"
+      },
+      {
+        "fr": "NFR-2204",
+        "type": "performance",
+        "unit": "MUST",
+        "integration": "-",
+        "e2e": "-",
+        "reason": "El guardarraíl de 150 ms se mide sobre la función, no sobre el render"
+      },
+      {
+        "fr": "NFR-2205",
+        "type": "security",
+        "unit": "MUST",
+        "integration": "MUST",
+        "e2e": "-",
+        "reason": "FR de seguridad: unit E integración son ambos MUST"
+      },
+      {
+        "fr": "NFR-2206",
+        "type": "usability",
+        "unit": "-",
+        "integration": "-",
+        "e2e": "MUST",
+        "reason": "«No es un muro» solo se puede afirmar en un navegador real: foco, teclado, movimiento"
+      }
+    ],
+    "coverage_decisions": [
+      "EXCLUIDO · Concurrencia real de dos escrituras simultáneas de apertura. El lock optimista por revision es el mismo mecanismo que ya cubren las pruebas de cierre-de-mes y del ledger; repetirlo aquí probaría el lock, no esta feature. TC-MSI-061f cubre el caso observable (revisión obsoleta → 409).",
+      "EXCLUIDO · Idempotencia de PUT /api/v1/ledger/start (guardar dos veces el mismo par). El efecto es idéntico y solo sube revision dos veces, lo cual es inocuo por diseño snapshot-replace. No hay comportamiento que pueda romperse.",
+      "EXCLUIDO · Montos por encima de 2^53. Es BG-021, un bug ABIERTO del proyecto que afecta a todos los montos por igual, no una regresión que introduzca esta feature. Cubrirlo aquí daría la falsa impresión de que queda resuelto.",
+      "EXCLUIDO · La tarjeta en viewports entre 761px y 1024px. La frontera de 760px es un único breakpoint ya probado por la suite de FR-010; probar anchos intermedios verificaría el CSS del shell, no esta feature. TC-MSI-025e cubre el lado móvil, que es donde la ausencia es una decisión de producto.",
+      "EXCLUIDO · Recuperación tras caída de PostgreSQL a mitad de la escritura. La escritura es una transacción única: o sube revision o no hace nada. No hay estado intermedio que enumerar, y el radio de impacto está documentado en el TRD.",
+      "CUBIERTO A PROPÓSITO aunque no lo pida ningún AC · TC-MSI-018e (FLAG-1, la costura con el cierre), TC-MSI-055e (una observación de celda cuenta como dato) y TC-MSI-063e (los campos sobreviven al parseo de Zod). Los tres son defectos que pasarían TODOS los gates en verde: no fallan, mienten.",
+      "CUBIERTO A PROPÓSITO · TC-MSI-026e (la pregunta de la tarjeta cambia con el mes de inicio). Previene el doble conteo que detectó el usuario el 2026-09-06: declarar el saldo de hoy como apertura de un mes pasado y luego transcribir los ingresos de ese periodo.",
+      "NO APLICA · Pruebas de carga o de escalado. Dos escalares por usuario, sin índices nuevos, sin consultas nuevas. El TRD documenta por qué el coste añadido es O(1) en el camino de render.",
+      "CORREGIDO 2026-09-07 · AC-2201 («declaro junio y recargo, sigue siendo junio») se quedó sin ninguna prueba que lo trazara: los cinco TC de FR-2201 se etiquetaron contra AC-2202 y AC-2203, y la prueba que SÍ demuestra AC-2201 —TC-MSI-060h— iba trazada a AC-2219, que ya tenía otras cuatro. Lo cazó el gate de verify-complete, no una revisión. TC-MSI-060h pasa a ser multi-FR (FR-2201 + FR-2207): es un solo comportamiento que abarca los dos de verdad, y ninguno de los dos pierde cobertura."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-MSI-001h",
+      "requirement_id": "FR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "Mes declarado sin ningún dato ancla el rango en ese mes",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un LedgerState con startMonth='2026-06', openingBalance=null, budgets={}, actuals={}, movements=[], cellNotes={}",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "el array devuelto empieza EXACTAMENTE en '2026-06', contiene '2026-09' y termina en '2028-12'; length === 31",
+      "steps": [
+        "Preparar: un LedgerState con startMonth='2026-06', openingBalance=null, budgets={}, actuals={}, movements=[], cellNotes={}",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: el array devuelto empieza EXACTAMENTE en '2026-06', contiene '2026-09' y termina en '2028-12'; length === 31"
+      ],
+      "expected_result": "activeRange(...)[0] === '2026-06' && length === 31 && incluye '2026-09'",
+      "test_data": {
+        "startMonth": "2026-06",
+        "currentPeriod": "2026-09",
+        "horizon": 2
+      }
+    },
+    {
+      "id": "TC-MSI-002f",
+      "requirement_id": "FR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "Un startMonth con formato inválido se ignora y el rango es el de hoy",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un LedgerState con startMonth='2026-13' (mes 13 no existe) y ningún dato",
+      "when": "activeRange(state, '2026-09', 2) y se compara con activeRange(stateSinStartMonth, '2026-09', 2)",
+      "then": "los dos arrays son ESTRICTAMENTE iguales elemento a elemento; el primero empieza en '2026-09', nunca en '2026-13'",
+      "steps": [
+        "Preparar: un LedgerState con startMonth='2026-13' (mes 13 no existe) y ningún dato",
+        "Ejecutar: activeRange(state, '2026-09', 2) y se compara con activeRange(stateSinStartMonth, '2026-09', 2)",
+        "Verificar: los dos arrays son ESTRICTAMENTE iguales elemento a elemento; el primero empieza en '2026-09', nunca en '2026-13'"
+      ],
+      "expected_result": "normalizeStartMonth('2026-13') === null y los dos rangos son idénticos",
+      "test_data": {
+        "startMonth": "2026-13"
+      }
+    },
+    {
+      "id": "TC-MSI-003e",
+      "requirement_id": "FR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "Un dato ANTERIOR al mes declarado extiende el rango: nunca se oculta dinero",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Estado inalcanzable por la UI (FR-2206 lo bloquea); se construye a mano para probar la degradación segura"
+      ],
+      "given": "startMonth='2026-06' y actuals={'c-comida':{'2026-03': 50000}} (dato anterior al inicio declarado)",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "el array empieza en '2026-03', NO en '2026-06': el mes declarado es un ancla más, no un recorte (ADR-04)",
+      "steps": [
+        "Preparar: startMonth='2026-06' y actuals={'c-comida':{'2026-03': 50000}} (dato anterior al inicio declarado)",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: el array empieza en '2026-03', NO en '2026-06': el mes declarado es un ancla más, no un recorte (ADR-04)"
+      ],
+      "expected_result": "activeRange(...)[0] === '2026-03'",
+      "test_data": {
+        "startMonth": "2026-06",
+        "datoPrevio": "2026-03"
+      }
+    },
+    {
+      "id": "TC-MSI-004e",
+      "requirement_id": "FR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "Un mes de inicio POSTERIOR al mes en curso ancla el rango hacia adelante",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "FR-2206 admite mover el inicio hacia adelante sobre meses vacíos, así que este estado es alcanzable"
+      ],
+      "given": "startMonth='2026-12' sin ningún dato, con el mes en curso en '2026-09'",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "el array empieza en '2026-12' y NO contiene '2026-09': la historia declarada empieza en diciembre",
+      "steps": [
+        "Preparar: startMonth='2026-12' sin ningún dato, con el mes en curso en '2026-09'",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: el array empieza en '2026-12' y NO contiene '2026-09': la historia declarada empieza en diciembre"
+      ],
+      "expected_result": "activeRange(...)[0] === '2026-12' && !incluye('2026-09')",
+      "test_data": {
+        "startMonth": "2026-12",
+        "currentPeriod": "2026-09"
+      }
+    },
+    {
+      "id": "TC-MSI-005e",
+      "requirement_id": "FR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "La frontera del cierre sigue anclando junto al mes declarado",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "startMonth='2026-06' y closure={closedThrough:'2026-04', reopened:null}",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "el array empieza en '2026-04': el ancla del cierre (ADR-14 de multi-anio) sigue viva y gana por ser anterior",
+      "steps": [
+        "Preparar: startMonth='2026-06' y closure={closedThrough:'2026-04', reopened:null}",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: el array empieza en '2026-04': el ancla del cierre (ADR-14 de multi-anio) sigue viva y gana por ser anterior"
+      ],
+      "expected_result": "activeRange(...)[0] === '2026-04'",
+      "test_data": {
+        "startMonth": "2026-06",
+        "closedThrough": "2026-04"
+      }
+    },
+    {
+      "id": "TC-MSI-010h",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "El saldo declarado aparece en «Saldo del mes anterior» del mes de inicio",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-06', openingBalance=3000000, sin ingresos ni gastos ni reservas en 2026-06",
+      "when": "computeBalanceSeries(state, ['2026-06','2026-07'], openingCarry(state, ['2026-06','2026-07']))",
+      "then": "series['2026-06'].actual.prevAvailable === 3000000 y series['2026-06'].actual.available === 3000000",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000, sin ingresos ni gastos ni reservas en 2026-06",
+        "Ejecutar: computeBalanceSeries(state, ['2026-06','2026-07'], openingCarry(state, ['2026-06','2026-07']))",
+        "Verificar: series['2026-06'].actual.prevAvailable === 3000000 y series['2026-06'].actual.available === 3000000"
+      ],
+      "expected_result": "prevAvailable === 3000000 && available === 3000000",
+      "test_data": {
+        "openingBalance": 3000000,
+        "startMonth": "2026-06"
+      }
+    },
+    {
+      "id": "TC-MSI-011h",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2205",
+      "title": "«Resultado del mes» NO incluye el saldo inicial",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-06', openingBalance=3000000, ingresos de 2026-06 = 800000 y gastos = 500000",
+      "when": "se lee series['2026-06'].actual.flow",
+      "then": "flow === 300000 (800000 − 500000) y NO 3300000: el saldo de apertura no entra en el resultado del mes",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000, ingresos de 2026-06 = 800000 y gastos = 500000",
+        "Ejecutar: se lee series['2026-06'].actual.flow",
+        "Verificar: flow === 300000 (800000 − 500000) y NO 3300000: el saldo de apertura no entra en el resultado del mes"
+      ],
+      "expected_result": "flow === 300000",
+      "test_data": {
+        "openingBalance": 3000000,
+        "income": 800000,
+        "expense": 500000
+      }
+    },
+    {
+      "id": "TC-MSI-012h",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2206",
+      "title": "La cascada arrastra la apertura: julio abre con el cierre de junio",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-06', openingBalance=3000000, ingresos 2026-06=800000, gastos 2026-06=500000, julio sin movimientos",
+      "when": "se lee series['2026-07'].actual.prevAvailable",
+      "then": "prevAvailable de julio === 3300000 (3000000 + 800000 − 500000), que es el available de junio",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000, ingresos 2026-06=800000, gastos 2026-06=500000, julio sin movimientos",
+        "Ejecutar: se lee series['2026-07'].actual.prevAvailable",
+        "Verificar: prevAvailable de julio === 3300000 (3000000 + 800000 − 500000), que es el available de junio"
+      ],
+      "expected_result": "series['2026-07'].actual.prevAvailable === 3300000 === series['2026-06'].actual.available",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-013f",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "Un saldo inicial negativo se rechaza y no altera el vigente",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "startMonth='2026-06' y openingBalance vigente = 3000000",
+      "when": "se intenta fijar openingBalance = -500000",
+      "then": "la escritura se rechaza, openingBalance sigue siendo 3000000 y series['2026-06'].actual.prevAvailable sigue en 3000000",
+      "steps": [
+        "Preparar: startMonth='2026-06' y openingBalance vigente = 3000000",
+        "Ejecutar: se intenta fijar openingBalance = -500000",
+        "Verificar: la escritura se rechaza, openingBalance sigue siendo 3000000 y series['2026-06'].actual.prevAvailable sigue en 3000000"
+      ],
+      "expected_result": "valor rechazado; estado sin mutar; prevAvailable === 3000000",
+      "test_data": {
+        "intento": -500000,
+        "vigente": 3000000
+      }
+    },
+    {
+      "id": "TC-MSI-014f",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "Un openingBalance no finito no propaga NaN a toda la serie",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Degradación defensiva: el borde HTTP ya lo rechaza, esto prueba que el dominio tampoco lo propaga"
+      ],
+      "given": "un estado construido a mano con startMonth='2026-06' y openingBalance=NaN",
+      "when": "openingCarry(state, ['2026-06','2026-07']) y después computeBalanceSeries con ese carry",
+      "then": "openingCarry devuelve ZERO_CARRY; ninguna celda de la serie es NaN ni Infinity; series['2026-06'].actual.available === 0",
+      "steps": [
+        "Preparar: un estado construido a mano con startMonth='2026-06' y openingBalance=NaN",
+        "Ejecutar: openingCarry(state, ['2026-06','2026-07']) y después computeBalanceSeries con ese carry",
+        "Verificar: openingCarry devuelve ZERO_CARRY; ninguna celda de la serie es NaN ni Infinity; series['2026-06'].actual.available === 0"
+      ],
+      "expected_result": "Number.isFinite en todas las celdas === true; available === 0",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-015e",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "Un saldo 0 declarado a propósito da las mismas cifras que no declarar",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "estado A con startMonth='2026-06' y openingBalance=0; estado B sin ninguno de los dos campos",
+      "when": "se comparan computeBalanceSeries de A y de B sobre los mismos periodos",
+      "then": "las dos series son iguales campo a campo; la diferencia entre A y B NO está en las cifras sino en el estado (A no vuelve a mostrar la tarjeta)",
+      "steps": [
+        "Preparar: estado A con startMonth='2026-06' y openingBalance=0; estado B sin ninguno de los dos campos",
+        "Ejecutar: se comparan computeBalanceSeries de A y de B sobre los mismos periodos",
+        "Verificar: las dos series son iguales campo a campo; la diferencia entre A y B NO está en las cifras sino en el estado (A no vuelve a mostrar la tarjeta)"
+      ],
+      "expected_result": "JSON.stringify(serieA) === JSON.stringify(serieB)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-016e",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "Si la serie no arranca en el mes de inicio, la apertura NO se aplica",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Riesgo R2 del TRD: degrada a «como hoy», nunca a una cifra inventada"
+      ],
+      "given": "startMonth='2026-06', openingBalance=3000000, y una serie pedida sobre ['2026-07','2026-08']",
+      "when": "openingCarry(state, ['2026-07','2026-08'])",
+      "then": "devuelve ZERO_CARRY ({available:0, reservedBalance:0}), NO el carry declarado: la apertura solo abre SU mes",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000, y una serie pedida sobre ['2026-07','2026-08']",
+        "Ejecutar: openingCarry(state, ['2026-07','2026-08'])",
+        "Verificar: devuelve ZERO_CARRY ({available:0, reservedBalance:0}), NO el carry declarado: la apertura solo abre SU mes"
+      ],
+      "expected_result": "openingCarry(...) === ZERO_CARRY",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-017e",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2205",
+      "title": "Declarar 8M y reservar 5M no dice que se ahorraron 5M ese mes",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Pin de la decisión del no_go_zone: el usuario refutó la supuesta distorsión el 2026-09-06"
+      ],
+      "given": "startMonth='2026-06', openingBalance=8000000, un aporte a alcancía de 5000000 en 2026-06, sin ingresos ni gastos",
+      "when": "se leen flow, available, reservedBalance y total de series['2026-06'].actual",
+      "then": "flow === 0, available === 3000000, reservedBalance === 5000000, total === 8000000: las reservas salen de DISPONIBLE, no del resultado",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=8000000, un aporte a alcancía de 5000000 en 2026-06, sin ingresos ni gastos",
+        "Ejecutar: se leen flow, available, reservedBalance y total de series['2026-06'].actual",
+        "Verificar: flow === 0, available === 3000000, reservedBalance === 5000000, total === 8000000: las reservas salen de DISPONIBLE, no del resultado"
+      ],
+      "expected_result": "flow === 0 && available === 3000000 && reservedBalance === 5000000 && total === 8000000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-018e",
+      "requirement_id": "FR-2202",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2206",
+      "title": "FLAG-1 · El cierre fotografía un saldo que INCLUYE la apertura",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "FLAG-1 del TRD: closingCarry (closure.ts:85) arranca una serie en la cabeza del rango. Sin apertura, cierre y Balance divergen EN SILENCIO"
+      ],
+      "given": "startMonth='2026-06', openingBalance=3000000, ingresos 2026-06=800000, gastos 2026-06=500000, y closure={closedThrough:null}",
+      "when": "se cierra 2026-06 con closeMonth(...) y a continuación se reabre con reopenMonth(...), leyendo closure.reopenBaseline",
+      "then": "reopenBaseline.available === 3300000 — el mismo valor que series['2026-06'].actual.available. NO 300000, que sería el saldo ignorando la apertura",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000, ingresos 2026-06=800000, gastos 2026-06=500000, y closure={closedThrough:null}",
+        "Ejecutar: se cierra 2026-06 con closeMonth(...) y a continuación se reabre con reopenMonth(...), leyendo closure.reopenBaseline",
+        "Verificar: reopenBaseline.available === 3300000 — el mismo valor que series['2026-06'].actual.available. NO 300000, que sería el saldo ignorando la apertura"
+      ],
+      "expected_result": "reopenBaseline.available === 3300000 === series['2026-06'].actual.available",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-020h",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "Sin datos y sin declarar, la tarjeta está y la grilla opera detrás",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un usuario autenticado cuyo ledger tiene budgets={}, actuals={}, movements=[], startMonth=null, openingBalance=null, en viewport 1440x900",
+      "when": "se carga '/' y, con la tarjeta visible, se hace clic en una celda de presupuesto de la grilla que queda detrás",
+      "then": "la tarjeta con data-testid='opening-card' es visible; la celda clicada entra en modo edición (aparece su input); no hay overlay de scrim ni atributo aria-modal en la tarjeta",
+      "steps": [
+        "Preparar: un usuario autenticado cuyo ledger tiene budgets={}, actuals={}, movements=[], startMonth=null, openingBalance=null, en viewport 1440x900",
+        "Ejecutar: se carga '/' y, con la tarjeta visible, se hace clic en una celda de presupuesto de la grilla que queda detrás",
+        "Verificar: la tarjeta con data-testid='opening-card' es visible; la celda clicada entra en modo edición (aparece su input); no hay overlay de scrim ni atributo aria-modal en la tarjeta"
+      ],
+      "expected_result": "tarjeta visible + celda de la grilla editable + sin scrim ni aria-modal",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-021h",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "Guardar un monto retira la tarjeta y el número aparece en el Balance",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la tarjeta visible con el mes de inicio en '2026-09' (mes en curso)",
+      "when": "se teclea 3000000 en el campo de monto y se pulsa «Guardar»",
+      "then": "la tarjeta desaparece del DOM; la celda de la fila «Saldo del mes anterior» de 2026-09 muestra 3.000.000; la fila conserva su rótulo «Saldo del mes anterior», sin rótulo condicional",
+      "steps": [
+        "Preparar: la tarjeta visible con el mes de inicio en '2026-09' (mes en curso)",
+        "Ejecutar: se teclea 3000000 en el campo de monto y se pulsa «Guardar»",
+        "Verificar: la tarjeta desaparece del DOM; la celda de la fila «Saldo del mes anterior» de 2026-09 muestra 3.000.000; la fila conserva su rótulo «Saldo del mes anterior», sin rótulo condicional"
+      ],
+      "expected_result": "tarjeta ausente + celda = 3.000.000 + rótulo intacto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-022e",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2209",
+      "title": "«Empiezo desde cero» retira la tarjeta y no vuelve tras recargar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la tarjeta visible en un ledger sin datos",
+      "when": "se pulsa «Empiezo desde cero» y a continuación se recarga la página",
+      "then": "tras el clic la tarjeta desaparece; tras la recarga sigue ausente; el ledger tiene startMonth='2026-09' y openingBalance=0",
+      "steps": [
+        "Preparar: la tarjeta visible en un ledger sin datos",
+        "Ejecutar: se pulsa «Empiezo desde cero» y a continuación se recarga la página",
+        "Verificar: tras el clic la tarjeta desaparece; tras la recarga sigue ausente; el ledger tiene startMonth='2026-09' y openingBalance=0"
+      ],
+      "expected_result": "tarjeta ausente antes y después de recargar; openingBalance === 0 persistido",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-023e",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2208",
+      "title": "Teclear en la grilla sin responder retira la tarjeta y deja el saldo en 0",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la tarjeta visible en un ledger sin datos",
+      "when": "se teclea 120000 en una celda de presupuesto de la grilla, se confirma con Enter, y se recarga",
+      "then": "la tarjeta desaparece al confirmar la celda; tras recargar sigue ausente; openingBalance === 0 y la celda conserva 120000",
+      "steps": [
+        "Preparar: la tarjeta visible en un ledger sin datos",
+        "Ejecutar: se teclea 120000 en una celda de presupuesto de la grilla, se confirma con Enter, y se recarga",
+        "Verificar: la tarjeta desaparece al confirmar la celda; tras recargar sigue ausente; openingBalance === 0 y la celda conserva 120000"
+      ],
+      "expected_result": "tarjeta ausente + openingBalance === 0 + celda = 120000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-024f",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "Si el guardado falla, la tarjeta NO se retira y el monto no se pierde",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Riesgo R5 del TRD: nunca un falso «guardado»"
+      ],
+      "given": "la tarjeta visible y la ruta PUT /api/v1/ledger/start interceptada para devolver 500",
+      "when": "se teclea 3000000 y se pulsa «Guardar»",
+      "then": "la tarjeta sigue visible; el campo conserva 3000000; el StorageBanner es visible; la fila «Saldo del mes anterior» sigue mostrando 0",
+      "steps": [
+        "Preparar: la tarjeta visible y la ruta PUT /api/v1/ledger/start interceptada para devolver 500",
+        "Ejecutar: se teclea 3000000 y se pulsa «Guardar»",
+        "Verificar: la tarjeta sigue visible; el campo conserva 3000000; el StorageBanner es visible; la fila «Saldo del mes anterior» sigue mostrando 0"
+      ],
+      "expected_result": "tarjeta visible + campo = 3000000 + StorageBanner visible + saldo sin cambiar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-025e",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "En móvil la tarjeta no existe en el DOM",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un usuario sin datos y sin declarar, en viewport 375x812",
+      "when": "se carga '/'",
+      "then": "no existe ningún elemento con data-testid='opening-card'; sí existe data-testid='mobile-shell'; tampoco existe la grilla",
+      "steps": [
+        "Preparar: un usuario sin datos y sin declarar, en viewport 375x812",
+        "Ejecutar: se carga '/'",
+        "Verificar: no existe ningún elemento con data-testid='opening-card'; sí existe data-testid='mobile-shell'; tampoco existe la grilla"
+      ],
+      "expected_result": "opening-card ausente + mobile-shell presente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-026e",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "Con el inicio en un mes PASADO la tarjeta cambia la pregunta",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Previene el doble conteo del flujo A3: declarar el saldo de hoy como apertura de junio"
+      ],
+      "given": "la tarjeta visible con el mes en curso en '2026-09' y el desplegable de mes abierto",
+      "when": "se elige junio de 2026 en el selector de la tarjeta",
+      "then": "el título dice «Tu historia empieza en junio»; la etiqueta del campo dice «¿Cuánto tenías al empezar junio?» y NO «¿Cuánto tienes hoy?»; aparece el apoyo «No incluyas los ingresos de junio en adelante»",
+      "steps": [
+        "Preparar: la tarjeta visible con el mes en curso en '2026-09' y el desplegable de mes abierto",
+        "Ejecutar: se elige junio de 2026 en el selector de la tarjeta",
+        "Verificar: el título dice «Tu historia empieza en junio»; la etiqueta del campo dice «¿Cuánto tenías al empezar junio?» y NO «¿Cuánto tienes hoy?»; aparece el apoyo «No incluyas los ingresos de junio en adelante»"
+      ],
+      "expected_result": "título y etiqueta con la variante de mes pasado; sin la palabra «hoy» en la etiqueta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-027h",
+      "requirement_id": "FR-2203",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "El selector de mes se despliega dentro de la tarjeta, sin navegar",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la tarjeta visible en '/'",
+      "when": "se pulsa el enlace «Mi historia empieza antes»",
+      "then": "la URL sigue siendo '/' (no navega a /configuracion); aparecen los dos selectores de mes y año dentro de la tarjeta; el enlace tiene aria-expanded='true'",
+      "steps": [
+        "Preparar: la tarjeta visible en '/'",
+        "Ejecutar: se pulsa el enlace «Mi historia empieza antes»",
+        "Verificar: la URL sigue siendo '/' (no navega a /configuracion); aparecen los dos selectores de mes y año dentro de la tarjeta; el enlace tiene aria-expanded='true'"
+      ],
+      "expected_result": "URL sin cambiar + selectores visibles + aria-expanded true",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-030h",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2211",
+      "title": "Configuración muestra exactamente cinco ajustes",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un usuario autenticado en viewport 1440x900",
+      "when": "se navega a '/configuracion' desde el botón de la cabecera de escritorio",
+      "then": "la página muestra controles para: tema, ancho de la columna de categorías, horizonte de planeación, mes de inicio y saldo inicial; el conteo de controles de ajuste es EXACTAMENTE 5",
+      "steps": [
+        "Preparar: un usuario autenticado en viewport 1440x900",
+        "Ejecutar: se navega a '/configuracion' desde el botón de la cabecera de escritorio",
+        "Verificar: la página muestra controles para: tema, ancho de la columna de categorías, horizonte de planeación, mes de inicio y saldo inicial; el conteo de controles de ajuste es EXACTAMENTE 5"
+      ],
+      "expected_result": "5 controles, ni uno más: tema · ancho · horizonte · mes de inicio · saldo inicial",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-031h",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2210",
+      "title": "La entrada a Configuración existe también en la cabecera móvil",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "En móvil es el ÚNICO camino al saldo inicial: no hay grilla y por tanto no hay tarjeta"
+      ],
+      "given": "un usuario autenticado en viewport 375x812",
+      "when": "se pulsa el botón con aria-label='Configuración' de la cabecera móvil",
+      "then": "la URL pasa a '/configuracion' y la página muestra el campo de saldo inicial editable",
+      "steps": [
+        "Preparar: un usuario autenticado en viewport 375x812",
+        "Ejecutar: se pulsa el botón con aria-label='Configuración' de la cabecera móvil",
+        "Verificar: la URL pasa a '/configuracion' y la página muestra el campo de saldo inicial editable"
+      ],
+      "expected_result": "URL === '/configuracion' + campo de saldo inicial presente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-032e",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2211",
+      "title": "En móvil el ancho de columna no se muestra",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un usuario en '/configuracion' con viewport 375x812",
+      "when": "se inspeccionan los controles de la página",
+      "then": "no existe el control de ancho de la columna de categorías; sí existen los otros cuatro: tema, horizonte, mes de inicio y saldo inicial",
+      "steps": [
+        "Preparar: un usuario en '/configuracion' con viewport 375x812",
+        "Ejecutar: se inspeccionan los controles de la página",
+        "Verificar: no existe el control de ancho de la columna de categorías; sí existen los otros cuatro: tema, horizonte, mes de inicio y saldo inicial"
+      ],
+      "expected_result": "4 controles en móvil; el de ancho ausente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-033e",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2210",
+      "title": "Volver de Configuración no pierde el estado de la grilla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un usuario en '/' con el filtro de periodo puesto en '2026-11' y la vista en «Resumen»",
+      "when": "se navega a '/configuracion' y se vuelve con el botón «Volver»",
+      "then": "el filtro de periodo sigue en '2026-11', la vista sigue en «Resumen», y no se dispara ninguna petición GET /api/v1/ledger nueva",
+      "steps": [
+        "Preparar: un usuario en '/' con el filtro de periodo puesto en '2026-11' y la vista en «Resumen»",
+        "Ejecutar: se navega a '/configuracion' y se vuelve con el botón «Volver»",
+        "Verificar: el filtro de periodo sigue en '2026-11', la vista sigue en «Resumen», y no se dispara ninguna petición GET /api/v1/ledger nueva"
+      ],
+      "expected_result": "filtro y vista preservados + cero re-hidrataciones",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-034f",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2211",
+      "title": "El selector de horizonte YA NO está en la cabecera de escritorio",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "FR-1907 difería el control definitivo a esta página: un solo control por ajuste"
+      ],
+      "given": "un usuario autenticado en '/' con viewport 1440x900",
+      "when": "se buscan en la cabecera los elementos con data-testid='horizon-select'",
+      "then": "no hay ninguno en la cabecera; el único selector de horizonte de la app vive en '/configuracion'",
+      "steps": [
+        "Preparar: un usuario autenticado en '/' con viewport 1440x900",
+        "Ejecutar: se buscan en la cabecera los elementos con data-testid='horizon-select'",
+        "Verificar: no hay ninguno en la cabecera; el único selector de horizonte de la app vive en '/configuracion'"
+      ],
+      "expected_result": "horizon-select ausente en la cabecera y presente en /configuracion",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-035h",
+      "requirement_id": "FR-2204",
+      "user_story_id": "US-2204",
+      "ac_id": "AC-2212",
+      "title": "Cambiar el tema desde Configuración surte el mismo efecto y persiste",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un usuario en '/configuracion' con el tema resuelto en claro (sin clase 'dark' en <html>)",
+      "when": "se elige la opción «Oscuro» y después se recarga la página",
+      "then": "el elemento <html> gana la clase 'dark' de inmediato; localStorage['theme'] === 'dark'; tras recargar la clase sigue presente",
+      "steps": [
+        "Preparar: un usuario en '/configuracion' con el tema resuelto en claro (sin clase 'dark' en <html>)",
+        "Ejecutar: se elige la opción «Oscuro» y después se recarga la página",
+        "Verificar: el elemento <html> gana la clase 'dark' de inmediato; localStorage['theme'] === 'dark'; tras recargar la clase sigue presente"
+      ],
+      "expected_result": "html.dark presente + localStorage theme='dark' + persiste tras recarga",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-040h",
+      "requirement_id": "FR-2205",
+      "user_story_id": "US-2205",
+      "ac_id": "AC-2215",
+      "title": "Con el mes de inicio abierto, editar el saldo se acepta",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-06', openingBalance=3000000 y closure={closedThrough:null, reopened:null}",
+      "when": "se evalúa isClosed(closureOf(state), '2026-06') y se aplica la edición a 4000000",
+      "then": "isClosed devuelve false; la edición se aplica y series['2026-06'].actual.prevAvailable === 4000000",
+      "steps": [
+        "Preparar: startMonth='2026-06', openingBalance=3000000 y closure={closedThrough:null, reopened:null}",
+        "Ejecutar: se evalúa isClosed(closureOf(state), '2026-06') y se aplica la edición a 4000000",
+        "Verificar: isClosed devuelve false; la edición se aplica y series['2026-06'].actual.prevAvailable === 4000000"
+      ],
+      "expected_result": "isClosed === false + prevAvailable === 4000000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-041f",
+      "requirement_id": "FR-2205",
+      "user_story_id": "US-2205",
+      "ac_id": "AC-2214",
+      "title": "Con el mes de inicio cerrado, el servidor rechaza la edición",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "La regla vive en el SERVIDOR, no solo en el navegador (NFR-2205, lección de BG-002)"
+      ],
+      "given": "un ledger con startMonth='2026-06', openingBalance=3000000, closedThrough='2026-08' y revision=7",
+      "when": "PUT /api/v1/ledger/start { baseRevision: 7, startMonth: '2026-06', openingBalance: 9000000 }",
+      "then": "status 422 con body.error.code === 'month_closed'; al releer, openingBalance sigue en 3000000 y revision sigue en 7",
+      "steps": [
+        "Preparar: un ledger con startMonth='2026-06', openingBalance=3000000, closedThrough='2026-08' y revision=7",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: 7, startMonth: '2026-06', openingBalance: 9000000 }",
+        "Verificar: status 422 con body.error.code === 'month_closed'; al releer, openingBalance sigue en 3000000 y revision sigue en 7"
+      ],
+      "expected_result": "422 month_closed + openingBalance sin cambiar + revision sin subir",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-042e",
+      "requirement_id": "FR-2205",
+      "user_story_id": "US-2205",
+      "ac_id": "AC-2213",
+      "title": "Con el mes cerrado, el campo llega deshabilitado y explica la vía",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un usuario con startMonth='2026-06' y closedThrough='2026-08', en '/configuracion'",
+      "when": "se inspecciona el campo de saldo inicial de la sección «Tu historia»",
+      "then": "el input tiene el atributo disabled; hay un aviso visible que nombra el mes cerrado y ofrece reabrirlo; el usuario no puede teclear en el campo",
+      "steps": [
+        "Preparar: un usuario con startMonth='2026-06' y closedThrough='2026-08', en '/configuracion'",
+        "Ejecutar: se inspecciona el campo de saldo inicial de la sección «Tu historia»",
+        "Verificar: el input tiene el atributo disabled; hay un aviso visible que nombra el mes cerrado y ofrece reabrirlo; el usuario no puede teclear en el campo"
+      ],
+      "expected_result": "input disabled + aviso con el mes nombrado + vía de reapertura ofrecida",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-043h",
+      "requirement_id": "FR-2205",
+      "user_story_id": "US-2205",
+      "ac_id": "AC-2215",
+      "title": "Reabierto el mes de inicio, el campo vuelve a ser editable",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un ledger con startMonth='2026-06', closedThrough='2026-05' y reopened='2026-06'",
+      "when": "PUT /api/v1/ledger/start { baseRevision: <actual>, startMonth: '2026-06', openingBalance: 4000000 }",
+      "then": "status 200; al releer, openingBalance === 4000000 y revision subió exactamente 1",
+      "steps": [
+        "Preparar: un ledger con startMonth='2026-06', closedThrough='2026-05' y reopened='2026-06'",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: <actual>, startMonth: '2026-06', openingBalance: 4000000 }",
+        "Verificar: status 200; al releer, openingBalance === 4000000 y revision subió exactamente 1"
+      ],
+      "expected_result": "200 + openingBalance === 4000000 + revision +1",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-050f",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2216",
+      "title": "Mover el inicio adelante sobre meses con datos devuelve los meses afectados",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-09', actuals con 80000 en '2026-09' y movements con uno en '2026-10'",
+      "when": "orphanedByStart(state, '2026-11')",
+      "then": "devuelve exactamente ['2026-09','2026-10'] en orden ascendente; length === 2",
+      "steps": [
+        "Preparar: startMonth='2026-09', actuals con 80000 en '2026-09' y movements con uno en '2026-10'",
+        "Ejecutar: orphanedByStart(state, '2026-11')",
+        "Verificar: devuelve exactamente ['2026-09','2026-10'] en orden ascendente; length === 2"
+      ],
+      "expected_result": "['2026-09','2026-10']",
+      "test_data": {
+        "candidate": "2026-11"
+      }
+    },
+    {
+      "id": "TC-MSI-051f",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2216",
+      "title": "El servidor rechaza el movimiento y nombra los meses",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un ledger con startMonth='2026-09', datos en 2026-09 y 2026-10, revision=4",
+      "when": "PUT /api/v1/ledger/start { baseRevision: 4, startMonth: '2026-11', openingBalance: 1000000 }",
+      "then": "status 422 con body.error.code === 'would_orphan' y body.error.detail.periods === ['2026-09','2026-10']",
+      "steps": [
+        "Preparar: un ledger con startMonth='2026-09', datos en 2026-09 y 2026-10, revision=4",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: 4, startMonth: '2026-11', openingBalance: 1000000 }",
+        "Verificar: status 422 con body.error.code === 'would_orphan' y body.error.detail.periods === ['2026-09','2026-10']"
+      ],
+      "expected_result": "422 would_orphan + detail.periods con los dos meses",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-052e",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2217",
+      "title": "El rechazo deja el estado exactamente igual",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el escenario de TC-MSI-051f, con openingBalance=500000 y revision=4 antes del intento",
+      "when": "tras recibir el 422, se hace GET /api/v1/ledger",
+      "then": "startMonth sigue en '2026-09', openingBalance sigue en 500000, revision sigue en 4, y las celdas de 2026-09 y 2026-10 conservan sus montos",
+      "steps": [
+        "Preparar: el escenario de TC-MSI-051f, con openingBalance=500000 y revision=4 antes del intento",
+        "Ejecutar: tras recibir el 422, se hace GET /api/v1/ledger",
+        "Verificar: startMonth sigue en '2026-09', openingBalance sigue en 500000, revision sigue en 4, y las celdas de 2026-09 y 2026-10 conservan sus montos"
+      ],
+      "expected_result": "estado idéntico byte a byte al de antes del intento",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-053h",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2218",
+      "title": "Mover el inicio hacia atrás se acepta siempre",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "startMonth='2026-09' con datos en 2026-09 y 2026-10",
+      "when": "orphanedByStart(state, '2026-06') y después se aplica el cambio",
+      "then": "orphanedByStart devuelve []; tras aplicar, activeRange empieza en '2026-06' y los meses 2026-06..2026-08 aparecen sin montos",
+      "steps": [
+        "Preparar: startMonth='2026-09' con datos en 2026-09 y 2026-10",
+        "Ejecutar: orphanedByStart(state, '2026-06') y después se aplica el cambio",
+        "Verificar: orphanedByStart devuelve []; tras aplicar, activeRange empieza en '2026-06' y los meses 2026-06..2026-08 aparecen sin montos"
+      ],
+      "expected_result": "[] devuelto + rango desde 2026-06 + meses nuevos vacíos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-054e",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2218",
+      "title": "Mover el inicio adelante sobre meses VACÍOS se acepta",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "startMonth='2026-09' sin ningún dato en 2026-09 ni 2026-10",
+      "when": "orphanedByStart(state, '2026-11')",
+      "then": "devuelve [] y el cambio se acepta: no hay nada que huerfanar",
+      "steps": [
+        "Preparar: startMonth='2026-09' sin ningún dato en 2026-09 ni 2026-10",
+        "Ejecutar: orphanedByStart(state, '2026-11')",
+        "Verificar: devuelve [] y el cambio se acepta: no hay nada que huerfanar"
+      ],
+      "expected_result": "orphanedByStart(...) === []",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-055e",
+      "requirement_id": "FR-2206",
+      "user_story_id": "US-2206",
+      "ac_id": "AC-2216",
+      "title": "Un mes con SOLO una observación de celda cuenta como mes con datos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Las CUATRO fuentes deben coincidir con las de oldestPeriodWithData, o un mes sería visible para el rango e invisible para el bloqueo"
+      ],
+      "given": "startMonth='2026-09' y cellNotes={'c-comida':{'2026-09':[{id:'n1',createdAt:1,text:'ojo con esto'}]}}, sin ningún monto ni movimiento",
+      "when": "orphanedByStart(state, '2026-11')",
+      "then": "devuelve ['2026-09']: la observación es texto que el usuario escribió y cuenta como dato, igual que en oldestPeriodWithData",
+      "steps": [
+        "Preparar: startMonth='2026-09' y cellNotes={'c-comida':{'2026-09':[{id:'n1',createdAt:1,text:'ojo con esto'}]}}, sin ningún monto ni movimiento",
+        "Ejecutar: orphanedByStart(state, '2026-11')",
+        "Verificar: devuelve ['2026-09']: la observación es texto que el usuario escribió y cuenta como dato, igual que en oldestPeriodWithData"
+      ],
+      "expected_result": "['2026-09']",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-060h",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2201",
+      "title": "El mes de inicio declarado y su saldo vuelven idénticos tras recargar",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un usuario que hizo PUT /api/v1/ledger/start con startMonth='2026-06' y openingBalance=3000000",
+      "when": "se abre un cliente nuevo (cookie de sesión distinta del mismo usuario) y se hace GET /api/v1/ledger",
+      "then": "body.state.startMonth === '2026-06' —el mes declarado SIGUE siendo junio de 2026 tras la recarga— y body.state.openingBalance === 3000000, sin pérdida ni redondeo",
+      "steps": [
+        "Preparar: un usuario que hizo PUT /api/v1/ledger/start con startMonth='2026-06' y openingBalance=3000000",
+        "Ejecutar: se abre un cliente nuevo (cookie de sesión distinta del mismo usuario) y se hace GET /api/v1/ledger",
+        "Verificar: body.state.startMonth === '2026-06' y body.state.openingBalance === 3000000, sin pérdida ni redondeo"
+      ],
+      "expected_result": "startMonth y openingBalance idénticos a lo declarado",
+      "test_data": {},
+      "frs": [
+        "FR-2201",
+        "FR-2207"
+      ]
+    },
+    {
+      "id": "TC-MSI-061f",
+      "requirement_id": "FR-2207",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2220",
+      "title": "Una revisión obsoleta se rechaza sin pisar los valores",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un ledger con revision=9, startMonth='2026-06' y openingBalance=3000000",
+      "when": "PUT /api/v1/ledger/start { baseRevision: 7, startMonth: '2026-06', openingBalance: 9999999 }",
+      "then": "status 409 con body.error.code === 'revision_conflict' y body.revision === 9; al releer, openingBalance sigue en 3000000",
+      "steps": [
+        "Preparar: un ledger con revision=9, startMonth='2026-06' y openingBalance=3000000",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: 7, startMonth: '2026-06', openingBalance: 9999999 }",
+        "Verificar: status 409 con body.error.code === 'revision_conflict' y body.revision === 9; al releer, openingBalance sigue en 3000000"
+      ],
+      "expected_result": "409 revision_conflict + openingBalance intacto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-062e",
+      "requirement_id": "FR-2207",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2221",
+      "title": "Un ledger existente sin las columnas carga sin error",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una fila de ledger creada antes de la migración 0006, con start_month NULL y opening_balance NULL",
+      "when": "GET /api/v1/ledger",
+      "then": "status 200; state.startMonth es null o ausente; state.openingBalance es null o ausente; no hay error ni conversión, y las cifras del Balance son las de siempre",
+      "steps": [
+        "Preparar: una fila de ledger creada antes de la migración 0006, con start_month NULL y opening_balance NULL",
+        "Ejecutar: GET /api/v1/ledger",
+        "Verificar: status 200; state.startMonth es null o ausente; state.openingBalance es null o ausente; no hay error ni conversión, y las cifras del Balance son las de siempre"
+      ],
+      "expected_result": "200 + ambos campos vacíos + cero conversión",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-063e",
+      "requirement_id": "FR-2207",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2219",
+      "title": "Los campos SOBREVIVEN al parseo de ledgerStateSchema",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Es literalmente la trampa que schemas.ts documenta para closure y para cellNotes"
+      ],
+      "given": "un objeto de respuesta con state.startMonth='2026-06' y state.openingBalance=3000000",
+      "when": "ledgerStateSchema.parse(state)",
+      "then": "el resultado conserva startMonth='2026-06' y openingBalance=3000000: Zod descarta lo que no declara, así que ausencia en el esquema equivale a pérdida silenciosa",
+      "steps": [
+        "Preparar: un objeto de respuesta con state.startMonth='2026-06' y state.openingBalance=3000000",
+        "Ejecutar: ledgerStateSchema.parse(state)",
+        "Verificar: el resultado conserva startMonth='2026-06' y openingBalance=3000000: Zod descarta lo que no declara, así que ausencia en el esquema equivale a pérdida silenciosa"
+      ],
+      "expected_result": "los dos campos presentes tras el parse",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-064e",
+      "requirement_id": "FR-2207",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2221",
+      "title": "Borrar el ledger se lleva la declaración y la tarjeta vuelve",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Decisión del usuario 2026-09-06. La función de borrado no se construye aquí; se prueba la consecuencia del ON DELETE CASCADE"
+      ],
+      "given": "un usuario con startMonth='2026-06' y openingBalance=3000000 declarados",
+      "when": "se elimina la fila de ledger del usuario y a continuación se hace GET /api/v1/ledger y se carga '/'",
+      "then": "el GET no devuelve los dos valores; la tarjeta de arranque vuelve a mostrarse como el primer día",
+      "steps": [
+        "Preparar: un usuario con startMonth='2026-06' y openingBalance=3000000 declarados",
+        "Ejecutar: se elimina la fila de ledger del usuario y a continuación se hace GET /api/v1/ledger y se carga '/'",
+        "Verificar: el GET no devuelve los dos valores; la tarjeta de arranque vuelve a mostrarse como el primer día"
+      ],
+      "expected_result": "declaración ausente + tarjeta visible de nuevo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-070h",
+      "requirement_id": "NFR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "Sin declaración, la serie es idéntica BYTE A BYTE a la de hoy",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "R3 del TRD: no basta con que «no reviente»"
+      ],
+      "given": "un LedgerState de referencia con 3 nodos, budgets y actuals en 2026-06..2026-08, y SIN startMonth ni openingBalance",
+      "when": "se compara computeBalanceSeries(state, periodos) contra la salida registrada antes de esta feature",
+      "then": "JSON.stringify de las dos series es idéntico carácter a carácter; ni una celda difiere",
+      "steps": [
+        "Preparar: un LedgerState de referencia con 3 nodos, budgets y actuals en 2026-06..2026-08, y SIN startMonth ni openingBalance",
+        "Ejecutar: se compara computeBalanceSeries(state, periodos) contra la salida registrada antes de esta feature",
+        "Verificar: JSON.stringify de las dos series es idéntico carácter a carácter; ni una celda difiere"
+      ],
+      "expected_result": "serialización idéntica",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-071f",
+      "requirement_id": "NFR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "Añadir los campos como null no cambia ninguna cifra",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el mismo estado de referencia, ahora con startMonth=null y openingBalance=null explícitos",
+      "when": "se compara su serie con la del estado que no tiene los campos en absoluto",
+      "then": "las dos series son idénticas: null y ausente son el mismo caso, y ninguno introduce diferencia",
+      "steps": [
+        "Preparar: el mismo estado de referencia, ahora con startMonth=null y openingBalance=null explícitos",
+        "Ejecutar: se compara su serie con la del estado que no tiene los campos en absoluto",
+        "Verificar: las dos series son idénticas: null y ausente son el mismo caso, y ninguno introduce diferencia"
+      ],
+      "expected_result": "series idénticas entre null y ausente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-072e",
+      "requirement_id": "NFR-2201",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "openingCarry sobre un estado sin declaración devuelve ZERO_CARRY",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un LedgerState sin startMonth ni openingBalance",
+      "when": "openingCarry(state, ['2026-06','2026-07'])",
+      "then": "devuelve exactamente {available: 0, reservedBalance: 0}, el mismo objeto que el defecto de computeBalanceSeries",
+      "steps": [
+        "Preparar: un LedgerState sin startMonth ni openingBalance",
+        "Ejecutar: openingCarry(state, ['2026-06','2026-07'])",
+        "Verificar: devuelve exactamente {available: 0, reservedBalance: 0}, el mismo objeto que el defecto de computeBalanceSeries"
+      ],
+      "expected_result": "openingCarry(...) equivale a ZERO_CARRY",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-075h",
+      "requirement_id": "NFR-2202",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "La suite completa termina en verde tras la feature",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el proyecto con la feature construida y sus ficheros de prueba",
+      "when": "se ejecutan la suite unitaria y la e2e completas mediante aitri feature verify-run",
+      "then": "exit code 0 y la línea de conteo no muestra ningún 'failed'; el total ejecutado no baja de 796 unitarias + 398 e2e",
+      "steps": [
+        "Preparar: el proyecto con la feature construida y sus ficheros de prueba",
+        "Ejecutar: se ejecutan la suite unitaria y la e2e completas mediante aitri feature verify-run",
+        "Verificar: exit code 0 y la línea de conteo no muestra ningún 'failed'; el total ejecutado no baja de 796 unitarias + 398 e2e"
+      ],
+      "expected_result": "exit 0; ≥796 unitarias y ≥398 e2e; cero failed",
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Afirma que la suite COMPLETA termina en verde: no puede vivir dentro de la propia suite sin ser circular. Se verifica leyendo el exit code y la línea 'N failed' que produce aitri feature verify-run."
+    },
+    {
+      "id": "TC-MSI-076f",
+      "requirement_id": "NFR-2202",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "Ninguna prueba existente se relajó ni se marcó como saltada",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el diff completo de la feature contra el commit base c4f0627",
+      "when": "se buscan en el diff apariciones nuevas de it.skip, test.skip, describe.skip, .only y aserciones borradas en ficheros de prueba preexistentes",
+      "then": "cero apariciones nuevas de skip/only en ficheros preexistentes; el conteo de aserciones de esos ficheros no baja",
+      "steps": [
+        "Preparar: el diff completo de la feature contra el commit base c4f0627",
+        "Ejecutar: se buscan en el diff apariciones nuevas de it.skip, test.skip, describe.skip, .only y aserciones borradas en ficheros de prueba preexistentes",
+        "Verificar: cero apariciones nuevas de skip/only en ficheros preexistentes; el conteo de aserciones de esos ficheros no baja"
+      ],
+      "expected_result": "cero skips nuevos y cero aserciones eliminadas en pruebas preexistentes",
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Es una propiedad del DIFF, no del programa en ejecución. Se verifica leyendo el diff antes de sellar la fase."
+    },
+    {
+      "id": "TC-MSI-077e",
+      "requirement_id": "NFR-2202",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2202",
+      "title": "Los gates de calidad declarados siguen en exit 0",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "los quality_gates declarados en el 04_BUILD_REPORT.json de la feature",
+      "when": "se ejecuta aitri feature verify-run meses-y-saldo-inicial y se leen los exit codes de cada gate",
+      "then": "cada gate con required=true termina en exit 0; ninguno se acredita como 'pass' sin exit_code",
+      "steps": [
+        "Preparar: los quality_gates declarados en el 04_BUILD_REPORT.json de la feature",
+        "Ejecutar: se ejecuta aitri feature verify-run meses-y-saldo-inicial y se leen los exit codes de cada gate",
+        "Verificar: cada gate con required=true termina en exit 0; ninguno se acredita como 'pass' sin exit_code"
+      ],
+      "expected_result": "todos los gates required en exit 0, con su exit_code registrado",
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Depende de la ejecución del runner de Aitri, no de una aserción dentro de la suite. Emparentado con BG-027, donde un gate required se acreditó verde sin prueba de haber ejecutado nada."
+    },
+    {
+      "id": "TC-MSI-080h",
+      "requirement_id": "NFR-2203",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "Sin mes declarado, activeRange se comporta como lo dejó multi-anio",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un estado con datos en '2026-03', closedThrough='2026-02' y sin startMonth, con mes en curso '2026-09' y horizonte 2",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "empieza en '2026-02' (la frontera del cierre, que es anterior al dato) y termina en '2028-12': los dos anclas previos siguen funcionando",
+      "steps": [
+        "Preparar: un estado con datos en '2026-03', closedThrough='2026-02' y sin startMonth, con mes en curso '2026-09' y horizonte 2",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: empieza en '2026-02' (la frontera del cierre, que es anterior al dato) y termina en '2028-12': los dos anclas previos siguen funcionando"
+      ],
+      "expected_result": "rango de '2026-02' a '2028-12'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-081f",
+      "requirement_id": "NFR-2203",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "El mes declarado NO sustituye a oldestPeriodWithData",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "startMonth='2026-06' y un dato en '2026-01'",
+      "when": "activeRange(state, '2026-09', 2)",
+      "then": "empieza en '2026-01', no en '2026-06': el ancla nueva se AÑADE, no reemplaza (NFR-2203 literal)",
+      "steps": [
+        "Preparar: startMonth='2026-06' y un dato en '2026-01'",
+        "Ejecutar: activeRange(state, '2026-09', 2)",
+        "Verificar: empieza en '2026-01', no en '2026-06': el ancla nueva se AÑADE, no reemplaza (NFR-2203 literal)"
+      ],
+      "expected_result": "activeRange(...)[0] === '2026-01'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-082e",
+      "requirement_id": "NFR-2203",
+      "user_story_id": "US-2201",
+      "ac_id": "AC-2203",
+      "title": "El horizonte sigue ofreciendo futuro con el mes declarado presente",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "startMonth='2026-06' y horizonte 1, con el mes en curso en '2026-09'",
+      "when": "activeRange(state, '2026-09', 1)",
+      "then": "termina en '2027-12', no en '2026-12': el horizonte de años completos sigue mandando en el extremo futuro",
+      "steps": [
+        "Preparar: startMonth='2026-06' y horizonte 1, con el mes en curso en '2026-09'",
+        "Ejecutar: activeRange(state, '2026-09', 1)",
+        "Verificar: termina en '2027-12', no en '2026-12': el horizonte de años completos sigue mandando en el extremo futuro"
+      ],
+      "expected_result": "último elemento === '2027-12'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-085h",
+      "requirement_id": "NFR-2204",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "La serie de 12 meses con apertura se deriva dentro del guardarraíl",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "El cronómetro se salta bajo instrumentación de cobertura, siguiendo el patrón ya usado en el repo (BG-026/BG-030)"
+      ],
+      "given": "un estado con 60 nodos hoja, montos en los 12 meses de 2026, startMonth='2026-01' y openingBalance=5000000",
+      "when": "se cronometra computeBalanceSeries sobre los 12 periodos con la apertura declarada",
+      "then": "el tiempo medido es < 150 ms",
+      "steps": [
+        "Preparar: un estado con 60 nodos hoja, montos en los 12 meses de 2026, startMonth='2026-01' y openingBalance=5000000",
+        "Ejecutar: se cronometra computeBalanceSeries sobre los 12 periodos con la apertura declarada",
+        "Verificar: el tiempo medido es < 150 ms"
+      ],
+      "expected_result": "duración < 150 ms",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-086f",
+      "requirement_id": "NFR-2204",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "openingCarry no recorre el estado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "dos estados idénticos salvo el tamaño: uno con 5 nodos y otro con 500, ambos con startMonth y openingBalance declarados",
+      "when": "se cronometra openingCarry sobre los dos y se compara",
+      "then": "la diferencia de tiempo entre ambos no supera el ruido de medición: la función es O(1) y no escala con el tamaño del estado",
+      "steps": [
+        "Preparar: dos estados idénticos salvo el tamaño: uno con 5 nodos y otro con 500, ambos con startMonth y openingBalance declarados",
+        "Ejecutar: se cronometra openingCarry sobre los dos y se compara",
+        "Verificar: la diferencia de tiempo entre ambos no supera el ruido de medición: la función es O(1) y no escala con el tamaño del estado"
+      ],
+      "expected_result": "tiempo independiente del tamaño del estado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-087e",
+      "requirement_id": "NFR-2204",
+      "user_story_id": "US-2202",
+      "ac_id": "AC-2204",
+      "title": "Declarar la apertura invalida la memoización del rango",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "BG-001 de multi-anio fue exactamente lo contrario: consumidores atados a una identidad que nunca cambiaba"
+      ],
+      "given": "un estado sin declaración cuyo activeRange ya fue memoizado por periodsFor",
+      "when": "se declara startMonth='2026-06' produciendo un estado nuevo y se vuelve a pedir el rango",
+      "then": "el rango devuelto empieza en '2026-06': la identidad del estado cambió, así que la caché se invalidó sola y no devuelve el rango viejo",
+      "steps": [
+        "Preparar: un estado sin declaración cuyo activeRange ya fue memoizado por periodsFor",
+        "Ejecutar: se declara startMonth='2026-06' produciendo un estado nuevo y se vuelve a pedir el rango",
+        "Verificar: el rango devuelto empieza en '2026-06': la identidad del estado cambió, así que la caché se invalidó sola y no devuelve el rango viejo"
+      ],
+      "expected_result": "rango recalculado, no el memoizado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-090f",
+      "requirement_id": "NFR-2205",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2220",
+      "title": "El endpoint nuevo exige sesión",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una petición sin cookie de sesión",
+      "when": "PUT /api/v1/ledger/start { baseRevision: 0, startMonth: '2026-06', openingBalance: 1000 }",
+      "then": "status 401 y ninguna fila de ledger se crea ni se modifica en la base",
+      "steps": [
+        "Preparar: una petición sin cookie de sesión",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: 0, startMonth: '2026-06', openingBalance: 1000 }",
+        "Verificar: status 401 y ninguna fila de ledger se crea ni se modifica en la base"
+      ],
+      "expected_result": "401 + cero escrituras",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-091f",
+      "requirement_id": "NFR-2205",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2219",
+      "title": "Un usuario no puede escribir la apertura de otro",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "dos usuarios A y B con ledgers propios; B tiene openingBalance=7000000",
+      "when": "A, autenticado con su sesión, hace PUT /api/v1/ledger/start incluyendo ownerId de B en el cuerpo",
+      "then": "el ownerId del cuerpo se ignora; se escribe sobre el ledger de A; el openingBalance de B sigue en 7000000",
+      "steps": [
+        "Preparar: dos usuarios A y B con ledgers propios; B tiene openingBalance=7000000",
+        "Ejecutar: A, autenticado con su sesión, hace PUT /api/v1/ledger/start incluyendo ownerId de B en el cuerpo",
+        "Verificar: el ownerId del cuerpo se ignora; se escribe sobre el ledger de A; el openingBalance de B sigue en 7000000"
+      ],
+      "expected_result": "aislamiento intacto: B sin cambios, A modificado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-092h",
+      "requirement_id": "NFR-2205",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2219",
+      "title": "El monto se valida en el borde antes de tocar el dominio",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un usuario autenticado con revision=3",
+      "when": "PUT /api/v1/ledger/start { baseRevision: 3, startMonth: '2026-06', openingBalance: -1 }",
+      "then": "status 400 por fallo de Zod (z.number().int().gte(0)); ninguna consulta de dominio llega a ejecutarse y revision sigue en 3",
+      "steps": [
+        "Preparar: un usuario autenticado con revision=3",
+        "Ejecutar: PUT /api/v1/ledger/start { baseRevision: 3, startMonth: '2026-06', openingBalance: -1 }",
+        "Verificar: status 400 por fallo de Zod (z.number().int().gte(0)); ninguna consulta de dominio llega a ejecutarse y revision sigue en 3"
+      ],
+      "expected_result": "400 + revision sin subir",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-093e",
+      "requirement_id": "NFR-2205",
+      "user_story_id": "US-2207",
+      "ac_id": "AC-2219",
+      "title": "El CHECK de la base es la última defensa del monto",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "acceso directo a la base, saltándose la aplicación",
+      "when": "UPDATE ledger SET opening_balance = -5 WHERE owner_id = <usuario de prueba>",
+      "then": "la sentencia falla por violación del CHECK ledger_opening_ck / opening_balance >= 0; la fila conserva su valor anterior",
+      "steps": [
+        "Preparar: acceso directo a la base, saltándose la aplicación",
+        "Ejecutar: UPDATE ledger SET opening_balance = -5 WHERE owner_id = <usuario de prueba>",
+        "Verificar: la sentencia falla por violación del CHECK ledger_opening_ck / opening_balance >= 0; la fila conserva su valor anterior"
+      ],
+      "expected_result": "la base rechaza el UPDATE",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-095h",
+      "requirement_id": "NFR-2206",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "La tarjeta no atrapa el foco ni bloquea la página",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la tarjeta visible en viewport 1440x900",
+      "when": "se pulsa Tab repetidamente 15 veces desde el campo de monto de la tarjeta",
+      "then": "el foco sale de la tarjeta y alcanza controles de la cabecera y de la grilla; la tarjeta no tiene role='dialog' ni aria-modal='true'",
+      "steps": [
+        "Preparar: la tarjeta visible en viewport 1440x900",
+        "Ejecutar: se pulsa Tab repetidamente 15 veces desde el campo de monto de la tarjeta",
+        "Verificar: el foco sale de la tarjeta y alcanza controles de la cabecera y de la grilla; la tarjeta no tiene role='dialog' ni aria-modal='true'"
+      ],
+      "expected_result": "foco escapa de la tarjeta + sin role dialog ni aria-modal",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-096f",
+      "requirement_id": "NFR-2206",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2209",
+      "title": "La tarjeta no reaparece tras resolverse por ninguna de las cuatro vías",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "cuatro ledgers, cada uno resuelto por una vía distinta: guardar monto, «Empiezo desde cero», teclear en la grilla, y declarar desde Configuración",
+      "when": "en cada uno se recarga la página tres veces seguidas",
+      "then": "en los cuatro casos la tarjeta está ausente en las tres recargas; ninguna vía la deja volver",
+      "steps": [
+        "Preparar: cuatro ledgers, cada uno resuelto por una vía distinta: guardar monto, «Empiezo desde cero», teclear en la grilla, y declarar desde Configuración",
+        "Ejecutar: en cada uno se recarga la página tres veces seguidas",
+        "Verificar: en los cuatro casos la tarjeta está ausente en las tres recargas; ninguna vía la deja volver"
+      ],
+      "expected_result": "tarjeta ausente en 4 ledgers × 3 recargas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MSI-097e",
+      "requirement_id": "NFR-2206",
+      "user_story_id": "US-2203",
+      "ac_id": "AC-2207",
+      "title": "La tarjeta respeta prefers-reduced-motion",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "un navegador con prefers-reduced-motion: reduce y la tarjeta a punto de aparecer",
+      "when": "se carga '/' y se mide la duración de animación computada de la tarjeta",
+      "then": "getComputedStyle devuelve una animation-duration de 0.001ms o menos: la regla global de globals.css aplica también a esta superficie nueva",
+      "steps": [
+        "Preparar: un navegador con prefers-reduced-motion: reduce y la tarjeta a punto de aparecer",
+        "Ejecutar: se carga '/' y se mide la duración de animación computada de la tarjeta",
+        "Verificar: getComputedStyle devuelve una animation-duration de 0.001ms o menos: la regla global de globals.css aplica también a esta superficie nueva"
+      ],
+      "expected_result": "animation-duration ≤ 0.001ms",
+      "test_data": {}
+    }
+  ]
+}

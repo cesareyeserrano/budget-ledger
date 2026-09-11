@@ -1,0 +1,502 @@
+{
+  "test_plan": {
+    "strategy": "Cambio de presentación de una sola celda: la verificación se concentra en (a) que la cifra plegada sea el Saldo disponible y no el Saldo total —afirmado por VALOR, contra la fila del módulo desplegado, nunca por presencia de nodos—, (b) que la señal de la celda (color computado, signo, glifo, contraste) siga intacta sobre la cifra nueva, y (c) tres bloques de REGRESIÓN que vuelven a afirmar lo que la feature promete no tocar: el módulo desplegado y su plegado en dos niveles, la aritmética del dominio, y que el Balance siga sin renderizarse en móvil. Los TCs de UI son e2e con Playwright sobre la app real y leen estilos COMPUTADOS del navegador (no clases); los de aritmética son unitarios sobre computeBalanceSeries. El TC-BAL-909h de la feature `balance` se re-deriva en esta misma tanda contra la fila «Saldo disponible», con la revocación parcial de FR-909 citada dentro del propio test — no se afloja su aserción: sigue comparando el número plegado contra el de una fila real del módulo.",
+    "coverage_goal": "100% de los FR y NFR de la feature; el objetivo de línea del proyecto (80%) se mide en la suite agregada",
+    "test_types": [
+      "unit",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-RSP-001h",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "Plegado, la celda de Ejecutado muestra el Saldo disponible y no el Saldo total",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Módulo de Balance visible y desplegado"
+      ],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000, con el módulo de Balance desplegado en escritorio (1440px)",
+      "when": "se pulsa el chevron «Colapsar balance» y se lee la celda de Ejecutado de enero del encabezado",
+      "then": "la celda muestra 600.000 (el Saldo disponible), no 700.000 (el Saldo total)",
+      "steps": [
+        "Sembrar el fixture RSP por la API",
+        "Abrir la grilla a 1440px",
+        "Leer la fila «Saldo disponible» de enero (600.000) y la fila «Saldo total» (700.000)",
+        "Pulsar «Colapsar balance»",
+        "Assert celda Ejec. de enero == 600.000",
+        "Assert celda Ejec. de enero != 700.000"
+      ],
+      "expected_result": "La celda de Ejecutado de enero del encabezado plegado vale exactamente 600.000; ninguna celda de enero muestra 700.000",
+      "test_data": {
+        "ene": {
+          "disponible": 600000,
+          "reservado": 100000,
+          "total": 700000
+        }
+      },
+      "ac_id": "AC-1501a"
+    },
+    {
+      "id": "TC-RSP-002e",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "Invariante: las 24 celdas del encabezado plegado coinciden con la fila «Saldo disponible»",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000, con el módulo desplegado y la fila «Saldo disponible» visible en sus 24 celdas",
+      "when": "se leen las 24 celdas de la fila «Saldo disponible» (12 meses × 2 planos), se pliega el módulo y se leen las 24 celdas del encabezado",
+      "then": "los 24 pares de valores coinciden exactamente, mes a mes y plano a plano",
+      "steps": [
+        "Sembrar el fixture RSP",
+        "Leer las 24 celdas de la fila «available»",
+        "Plegar el módulo",
+        "Leer las 24 celdas del encabezado",
+        "Assert los dos arrays de 24 valores son iguales"
+      ],
+      "expected_result": "Los dos vectores de 24 números son idénticos elemento a elemento (comparación estricta, sin tolerancia)",
+      "test_data": {
+        "celdas": 24
+      },
+      "ac_id": "AC-1501b"
+    },
+    {
+      "id": "TC-RSP-003e",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "Cada celda usa el disponible de SU plano: Presupuestado y Ejecutado difieren",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP-DIVERGENTE: ingreso presupuestado 1.000.000 pero ejecutado 600.000; gasto 300.000 en ambos planos; aporte 100.000 en ambos. Enero cierra con Saldo disponible Pres. 600.000 y Ejec. 200.000",
+      "when": "se pliega el módulo y se leen las dos celdas de enero",
+      "then": "la celda de Presupuestado muestra 600.000 y la de Ejecutado 200.000 — cada una el disponible de su propio plano",
+      "steps": [
+        "Sembrar el fixture divergente",
+        "Plegar el módulo",
+        "Assert celda Pres. enero == 600.000",
+        "Assert celda Ejec. enero == 200.000"
+      ],
+      "expected_result": "Celda Pres. de enero == 600.000 y celda Ejec. de enero == 200.000; los dos valores son distintos entre sí",
+      "test_data": {
+        "ene": {
+          "pres_disponible": 600000,
+          "ejec_disponible": 200000
+        }
+      },
+      "ac_id": "AC-1501b"
+    },
+    {
+      "id": "TC-RSP-004f",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "El Saldo total ya no aparece en el encabezado plegado cuando difiere del disponible",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 — en los 12 meses el Saldo reservado es > 0, así que total y disponible difieren en todos ellos",
+      "when": "se pliega el módulo y se recorren las 24 celdas del encabezado buscando el valor del Saldo total de cada mes y plano",
+      "then": "ninguna de las 24 celdas muestra el Saldo total de su mes: el requisito revocado de FR-909 ya no se cumple en ninguna celda",
+      "steps": [
+        "Sembrar el fixture RSP",
+        "Leer las 24 celdas de la fila «total»",
+        "Plegar el módulo",
+        "Leer las 24 celdas del encabezado",
+        "Assert celda[i] != total[i] para los 24"
+      ],
+      "expected_result": "Para los 12 meses y 2 planos, el valor de la celda != valor de la fila «Saldo total» de ese mes y plano (24 desigualdades)",
+      "test_data": {},
+      "ac_id": "AC-1501a"
+    },
+    {
+      "id": "TC-RSP-005e",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "Sin reservas, la cifra plegada no cambia respecto del comportamiento anterior",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "Fixture RSP-SIN-RESERVAS: ingreso 1.000.000/mes, gasto 300.000/mes y aporte 0 en los 12 meses. Enero cierra con Saldo disponible 700.000, Saldo reservado 0 y Saldo total 700.000",
+      "when": "se pliega el módulo y se lee la celda de Ejecutado de enero",
+      "then": "la celda muestra 700.000 — el mismo valor que mostraba antes del cambio, porque sin reservado disponible y total coinciden",
+      "steps": [
+        "Sembrar el fixture sin reservas",
+        "Leer filas «available» y «total» de enero: ambas 700.000",
+        "Plegar",
+        "Assert celda Ejec. enero == 700.000"
+      ],
+      "expected_result": "Celda Ejec. de enero == 700.000 == valor de la fila «Saldo total» == valor de la fila «Saldo disponible»",
+      "test_data": {
+        "ene": {
+          "disponible": 700000,
+          "reservado": 0,
+          "total": 700000
+        }
+      },
+      "ac_id": "AC-1501d"
+    },
+    {
+      "id": "TC-RSP-006h",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "title": "Desplegar de nuevo devuelve la escalera intacta con su cierre en Saldo total",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000, con el módulo ya plegado",
+      "when": "se pulsa «Expandir balance»",
+      "then": "reaparecen las 8 filas del módulo en su orden vigente, la última es «Saldo total» y enero vuelve a mostrar 700.000 en ella",
+      "steps": [
+        "Plegar",
+        "Expandir",
+        "Assert 8 filas",
+        "Assert última fila es total",
+        "Assert total de enero == 700.000"
+      ],
+      "expected_result": "8 filas de balance visibles, la última con data-row=total, y su celda Ejec. de enero == 700.000",
+      "test_data": {},
+      "ac_id": "AC-1501d"
+    },
+    {
+      "id": "TC-RSP-007e",
+      "requirement_id": "FR-1501",
+      "user_story_id": "US-1501",
+      "ac_id": "AC-1501c",
+      "title": "Con disponible negativo y total positivo, la celda plegada muestra el negativo con su señal",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Módulo de Balance visible en escritorio"
+      ],
+      "given": "Fixture RSP-NEG-CON-TOTAL-POSITIVO: ingreso 300.000/mes, gasto 200.000/mes y aporte a la alcancía 200.000/mes, de modo que enero cierra con Saldo disponible −100.000 y Saldo total +100.000 (lo apartado sostiene el bottom-line)",
+      "when": "se pliega el módulo y se lee la celda de Ejecutado de enero",
+      "then": "la celda muestra −100.000 con color de excepción y signo −, no +100.000: las dos cifras difieren en SIGNO, así que la celda no puede estar mostrando el Saldo total",
+      "steps": [
+        "Sembrar el fixture",
+        "Leer fila «available» de enero (−100.000) y fila «total» (+100.000)",
+        "Plegar",
+        "Assert celda == −100.000",
+        "Assert color == --alert-strong",
+        "Assert el texto empieza por −"
+      ],
+      "expected_result": "La celda de Ejecutado de enero vale −100.000, su color computado es rgb(173, 57, 50) y su texto empieza con el signo −; en ningún caso muestra +100.000",
+      "test_data": {
+        "ene": {
+          "disponible": -100000,
+          "reservado": 200000,
+          "total": 100000
+        }
+      }
+    },
+    {
+      "id": "TC-RSP-010h",
+      "requirement_id": "FR-1502",
+      "user_story_id": "US-1502",
+      "title": "Un Saldo disponible negativo conserva sus tres canales en la celda plegada",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP-NEGATIVO: ingreso 100.000/mes y gasto 900.000/mes, aporte 0. Enero cierra con Saldo disponible −800.000",
+      "when": "se pliega el módulo y se inspecciona la celda de Ejecutado de enero (color computado, texto y glifo)",
+      "then": "el color computado es --alert-strong (rgb(173, 57, 50) en tema claro), el texto empieza por el signo − y la celda incluye el glifo ‹‹",
+      "steps": [
+        "Sembrar el fixture negativo en tema claro",
+        "Plegar",
+        "Assert color computado == rgb(173, 57, 50)",
+        "Assert texto empieza por −",
+        "Assert texto contiene ‹‹"
+      ],
+      "expected_result": "getComputedStyle(celda).color == 'rgb(173, 57, 50)', el textContent empieza con '−' y contiene '‹‹'",
+      "test_data": {
+        "ene": {
+          "disponible": -800000
+        },
+        "alert_strong_claro": "rgb(173, 57, 50)"
+      },
+      "ac_id": "AC-1502a"
+    },
+    {
+      "id": "TC-RSP-011e",
+      "requirement_id": "FR-1502",
+      "user_story_id": "US-1502",
+      "title": "Saldo disponible exactamente 0: neutro, sin color de excepción",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP-CERO: ingreso 300.000/mes, gasto 300.000/mes y aporte 0, de modo que el Saldo disponible de enero es exactamente 0",
+      "when": "se pliega el módulo y se inspecciona el color computado de la celda de Ejecutado de enero",
+      "then": "la celda NO usa el color de excepción: cero es el límite exacto, no una mala noticia, y se pinta con --fg-muted por la regla de «sin dato»",
+      "steps": [
+        "Sembrar el fixture cero",
+        "Plegar",
+        "Assert color != alert-strong",
+        "Assert color == fg-muted"
+      ],
+      "expected_result": "getComputedStyle(celda).color != 'rgb(173, 57, 50)' y == 'rgb(107, 107, 115)' (--fg-muted claro)",
+      "test_data": {
+        "ene": {
+          "disponible": 0
+        },
+        "fg_muted_claro": "rgb(107, 107, 115)"
+      },
+      "ac_id": "AC-1502b"
+    },
+    {
+      "id": "TC-RSP-012f",
+      "requirement_id": "FR-1502",
+      "user_story_id": "US-1502",
+      "title": "Un valor positivo no lleva color de excepción ni glifo de negativo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 — enero cierra en Saldo disponible 600.000, positivo",
+      "when": "se pliega el módulo y se inspecciona la celda de Ejecutado de enero",
+      "then": "la celda se pinta neutra con --fg y su texto no contiene ni el signo − ni el glifo ‹‹",
+      "steps": [
+        "Sembrar el fixture RSP",
+        "Plegar",
+        "Assert color == rgb(28, 28, 31)",
+        "Assert texto sin − y sin ‹‹"
+      ],
+      "expected_result": "getComputedStyle(celda).color == 'rgb(28, 28, 31)' (--fg claro); el textContent no contiene '−' ni '‹‹'",
+      "test_data": {
+        "fg_claro": "rgb(28, 28, 31)"
+      },
+      "ac_id": "AC-1502c"
+    },
+    {
+      "id": "TC-RSP-013h",
+      "requirement_id": "FR-1502",
+      "user_story_id": "US-1502",
+      "title": "Contraste de la cifra plegada ≥ 4,5:1 en tema claro y en tema oscuro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 y el fixture negativo, cargados una vez en cada esquema de color",
+      "when": "se pliega el módulo y se calcula el contraste WCAG del color del texto contra el fondo real de la celda, para el valor sano y para el negativo, en claro y en oscuro",
+      "then": "los cuatro contrastes son ≥ 4,5:1",
+      "steps": [
+        "Para cada esquema y cada fixture: abrir, plegar, leer color y background computados",
+        "Calcular el ratio WCAG",
+        "Assert >= 4.5"
+      ],
+      "expected_result": "contraste(color, background) >= 4.5 en los cuatro casos: sano/claro, sano/oscuro, negativo/claro, negativo/oscuro",
+      "test_data": {
+        "minimo": 4.5
+      },
+      "ac_id": "AC-1502a"
+    },
+    {
+      "id": "TC-RSP-020h",
+      "requirement_id": "NFR-1501",
+      "user_story_id": "US-1501",
+      "title": "El módulo desplegado conserva sus ocho filas, su orden y su cierre en Saldo total",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 con el módulo desplegado",
+      "when": "se leen las claves data-row de las filas visibles, en orden de DOM",
+      "then": "son exactamente flow, reserved, retiros, monthAvailable, prevAvailable, available, reservedBalance, total — ocho filas, en ese orden",
+      "steps": [
+        "Abrir la grilla",
+        "Leer las filas visibles",
+        "Assert el array exacto de 8 claves"
+      ],
+      "expected_result": "El array de data-row es ['flow','reserved','retiros','monthAvailable','prevAvailable','available','reservedBalance','total']",
+      "test_data": {},
+      "ac_id": "AC-1501d"
+    },
+    {
+      "id": "TC-RSP-021e",
+      "requirement_id": "NFR-1501",
+      "user_story_id": "US-1501",
+      "title": "El chevron interno sigue ocultando exactamente «Saldo reservado» y «Saldo total»",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 con el módulo desplegado y las ocho filas visibles",
+      "when": "se pulsa «Colapsar saldos» (el chevron de la fila «Saldo disponible»)",
+      "then": "quedan visibles exactamente seis filas —flow, reserved, retiros, monthAvailable, prevAvailable, available— y desaparecen reservedBalance y total, ni una fila más ni una menos",
+      "steps": [
+        "Abrir la grilla",
+        "Pulsar «Colapsar saldos»",
+        "Assert las 6 claves exactas",
+        "Assert count 0 de reservedBalance y total"
+      ],
+      "expected_result": "El array de data-row visibles es ['flow','reserved','retiros','monthAvailable','prevAvailable','available']; balance-row[data-row=reservedBalance] y [data-row=total] tienen count 0",
+      "test_data": {},
+      "ac_id": "AC-1501d"
+    },
+    {
+      "id": "TC-RSP-022f",
+      "requirement_id": "NFR-1501",
+      "user_story_id": "US-1501",
+      "title": "El estado plegado no se persiste: recargar devuelve el módulo desplegado",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 con el módulo plegado por el usuario",
+      "when": "se recarga la página",
+      "then": "el módulo vuelve a su estado por defecto (desplegado, ocho filas visibles): el plegado es local y efímero, no se guarda en el servidor ni en localStorage",
+      "steps": [
+        "Plegar el módulo",
+        "Recargar",
+        "Assert 8 filas visibles",
+        "Assert localStorage sin clave de plegado"
+      ],
+      "expected_result": "Tras el reload hay 8 filas de balance visibles y no existe ninguna clave de plegado en localStorage",
+      "test_data": {},
+      "ac_id": "AC-1501d"
+    },
+    {
+      "id": "TC-RSP-030h",
+      "requirement_id": "NFR-1502",
+      "user_story_id": "US-1501",
+      "title": "Reconciliación: total = disponible + reservado en los 12 meses y los 2 planos",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "El estado del fixture RSP pasado a computeBalanceSeries",
+      "when": "se recorren los 12 meses en los dos planos",
+      "then": "para cada mes y plano se cumple total − available − reservedBalance == 0",
+      "steps": [
+        "Construir el estado del fixture",
+        "computeBalanceSeries",
+        "Assert total - available - reservedBalance === 0 en los 24 casos"
+      ],
+      "expected_result": "Las 24 comprobaciones dan exactamente 0; ninguna usa tolerancia porque la aritmética es entera",
+      "test_data": {},
+      "ac_id": "AC-1501b"
+    },
+    {
+      "id": "TC-RSP-031e",
+      "requirement_id": "NFR-1502",
+      "user_story_id": "US-1501",
+      "title": "El arrastre sigue abriendo ambos planos con el cierre EJECUTADO real del mes previo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP-DIVERGENTE, donde el plan y la realidad de enero cierran distinto (Pres. 600.000, Ejec. 200.000 de disponible)",
+      "when": "se lee el prevAvailable de febrero en los dos planos",
+      "then": "los dos planos abren febrero con el cierre EJECUTADO de enero (200.000), no cada uno con el suyo — la regla de FR-905/ADR-03 no cambia",
+      "steps": [
+        "Construir el estado divergente",
+        "computeBalanceSeries",
+        "Assert los dos prevAvailable de febrero == 200000"
+      ],
+      "expected_result": "series.feb.budget.prevAvailable === 200000 y series.feb.actual.prevAvailable === 200000",
+      "test_data": {},
+      "ac_id": "AC-1501b"
+    },
+    {
+      "id": "TC-RSP-032f",
+      "requirement_id": "NFR-1502",
+      "user_story_id": "US-1501",
+      "title": "Un mes con retiro neto (reservas negativas) no rompe la reconciliación",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP con un retiro de 100.000 registrado en marzo (movimiento De→A alcancía → @disponible), de modo que las reservas netas de marzo son negativas",
+      "when": "se recorren los 12 meses en los dos planos comprobando la reconciliación y el signo",
+      "then": "marzo tiene reserved < 0 y aun así se cumple total = available + reservedBalance en los 12 meses; ningún saldo de alcancía queda negativo",
+      "steps": [
+        "Construir el estado con el retiro de marzo",
+        "computeBalanceSeries",
+        "Assert reserved de marzo < 0",
+        "Assert reconciliación en los 24",
+        "Assert saldo derivado >= 0"
+      ],
+      "expected_result": "series.mar.actual.reserved < 0; las 24 comprobaciones de reconciliación dan 0; resolvedBalance de la alcancía >= 0 en los 12 meses",
+      "test_data": {},
+      "ac_id": "AC-1501b"
+    },
+    {
+      "id": "TC-RSP-040h",
+      "requirement_id": "NFR-1503",
+      "user_story_id": "US-1501",
+      "title": "En escritorio (1440px) el encabezado plegado existe con sus 24 celdas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 a 1440px de ancho",
+      "when": "se pliega el módulo y se cuentan las celdas del encabezado",
+      "then": "hay exactamente 24 celdas (12 meses × 2 planos) y 0 filas de balance visibles",
+      "steps": [
+        "Abrir a 1440px",
+        "Plegar",
+        "Assert 24 celdas",
+        "Assert 0 filas"
+      ],
+      "expected_result": "balance-header-cell count == 24 y balance-row count == 0",
+      "test_data": {},
+      "ac_id": "AC-1501a"
+    },
+    {
+      "id": "TC-RSP-041f",
+      "requirement_id": "NFR-1503",
+      "user_story_id": "US-1501",
+      "title": "A 375px el módulo de Balance no existe: sigue siendo de escritorio",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000 con el viewport a 375px de ancho",
+      "when": "se carga la aplicación y se buscan los nodos del módulo de Balance",
+      "then": "no existe ningún nodo balance-module ni balance-header-cell en el DOM — el módulo no se renderiza en móvil v1 (FR-010 raíz)",
+      "steps": [
+        "Fijar viewport 375x900",
+        "Sembrar y abrir",
+        "Assert count 0 de balance-module",
+        "Assert count 0 de balance-header-cell"
+      ],
+      "expected_result": "balance-module count == 0 y balance-header-cell count == 0 a 375px",
+      "test_data": {
+        "viewport": "375x900"
+      },
+      "ac_id": "AC-1501a"
+    },
+    {
+      "id": "TC-RSP-042e",
+      "requirement_id": "NFR-1503",
+      "user_story_id": "US-1501",
+      "title": "El límite del breakpoint: a 760px no se renderiza y a 761px sí",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "Fixture RSP: ingreso 1.000.000/mes, gasto 300.000/mes, aporte a la alcancía 100.000/mes en los 12 meses (plan = ejecutado). Enero cierra con Saldo disponible 600.000, Saldo reservado 100.000 y Saldo total 700.000, cargado dos veces: a 760px de ancho y a 761px",
+      "when": "se comprueba la existencia del módulo de Balance en cada ancho",
+      "then": "a 760px no existe (el shell móvil llega hasta 760 inclusive) y a 761px existe con su encabezado — el breakpoint del producto no se mueve",
+      "steps": [
+        "Cargar a 760px y assert count 0",
+        "Cargar a 761px y assert count 1"
+      ],
+      "expected_result": "A 760px balance-module count == 0; a 761px balance-module count == 1",
+      "test_data": {
+        "breakpoint": 760
+      },
+      "ac_id": "AC-1501a"
+    }
+  ]
+}

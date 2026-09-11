@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./helpers/fixtures";
+import { mutateNodes } from "./helpers/seed";
 
 // Feature ux-consistency — refinamiento profesional del acabado. Los TCs visuales afirman VALORES
 // computados reales (tokens/superficies/sombras/fuentes/radios/contraste), no presencia de nodos.
@@ -152,7 +153,11 @@ test("TC-UXC-303f: no queda ningún font-[450] en el DOM del escritorio", async 
 // ── FR-304 · cabecera con intención ────────────────────────────────────────────
 test("TC-UXC-304h: escritorio — marca discreta + un único título (no doble LEDGER)", async ({ page }) => {
   await gotoDesk(page, "light");
-  await expect(page.getByTestId("topbar-brand")).toHaveCount(1);
+  // refinamiento-ui FR-1204 SUPERSEDE la parte de «marca discreta» de FR-304: el usuario pidió
+  // retirarla explícitamente («hay algo que dice Ledger, tiene un icono de billetera, eso sobra»).
+  // Lo que FR-304 protegía de verdad —UN solo rótulo de vista, sin el patrón LEDGER + título
+  // grande— sigue vigente y se afirma igual.
+  await expect(page.getByTestId("topbar-brand")).toHaveCount(0);
   await expect(page.getByTestId("page-title")).toHaveCount(1);
   const title = await page.getByTestId("page-title").textContent();
   expect(title).not.toContain("LEDGER");
@@ -294,9 +299,15 @@ test("TC-UXC-308h: dashboard y escritorio usan el MISMO Kpi (mismo padding y reg
     return { pad: `${s.paddingTop}|${s.paddingRight}|${s.paddingBottom}|${s.paddingLeft}`, font: v.fontFamily };
   });
   const deskKpi = await readKpi();
+  const deskCompact = await page.getByTestId("kpi").first().getAttribute("data-compact");
   await page.getByRole("tab", { name: "Dashboard" }).click();
   const dashKpi = await readKpi();
-  expect(dashKpi.pad).toBe(deskKpi.pad);
+  // refinamiento-ui FR-1204 SUPERSEDE la igualdad de PADDING: la franja del escritorio se comprimió
+  // porque tres tarjetas ocupaban 240 px de chrome para mostrar tres cifras, dejando el módulo de
+  // Balance bajo el pliegue a 1024. Lo que FR-308 protegía —que no haya DOS componentes duplicados—
+  // sigue en pie y es lo que se afirma: el mismo Kpi en ambas superficies, en dos densidades.
+  expect(deskCompact).toBe("true");
+  expect(await page.getByTestId("kpi").first().getAttribute("data-compact")).toBeNull();
   expect(/DM.?Mono/i.test(deskKpi.font)).toBe(true);
   expect(/DM.?Mono/i.test(dashKpi.font)).toBe(true);
 });
@@ -336,13 +347,9 @@ test("TC-UXC-309f: categoría con icono desconocido usa fallback sin romper el r
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await gotoDesk(page, "light");
-  await page.evaluate(() => {
-    const raw = localStorage.getItem("ledger.nodes.v1");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    const cat = data.nodes.find((n: { level: string; system?: boolean }) => n.level === "category" && !n.system);
+  await mutateNodes(page, (nodes) => {
+    const cat = nodes.find((n) => n.level === "category" && !n.system);
     if (cat) cat.icon = "__nope__";
-    localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
   });
   await page.reload();
   await expect(page.getByTestId("budget-grid")).toBeVisible();
@@ -358,13 +365,14 @@ test("TC-UXC-310h: calendario e IconPicker usan Popover con foco y sombra --shad
   await expect(pop).toBeVisible();
   const shadow = await pop.evaluate((el) => getComputedStyle(el).boxShadow);
   expect(shadow).not.toBe("none");
-  const focusInside = await pop.evaluate((el) => el.contains(document.activeElement));
-  expect(focusInside).toBe(true);
+  // Radix mueve el foco DESPUÉS de montar el overlay: leerlo una sola vez justo tras abrirlo es una
+  // carrera que solo se ve bajo la carga de la suite completa (aislado siempre llegaba a tiempo).
+  await expect.poll(() => pop.evaluate((el) => el.contains(document.activeElement))).toBe(true);
   await gotoDesk(page, "light");
   await page.locator('button[aria-label="Cambiar ícono"]').first().click();
-  await expect(page.getByTestId("icon-picker")).toBeVisible();
-  const iconFocus = await page.getByTestId("icon-picker").evaluate((el) => el.contains(document.activeElement));
-  expect(iconFocus).toBe(true);
+  const picker = page.getByTestId("icon-picker");
+  await expect(picker).toBeVisible();
+  await expect.poll(() => picker.evaluate((el) => el.contains(document.activeElement))).toBe(true);
 });
 
 test("TC-UXC-310e: el overlay cierra por Escape y por click fuera", async ({ page }) => {
@@ -375,7 +383,11 @@ test("TC-UXC-310e: el overlay cierra por Escape y por click fuera", async ({ pag
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
   await page.locator('button[aria-label="Cambiar ícono"]').first().click();
   await expect(page.getByTestId("icon-picker")).toBeVisible();
-  await page.getByTestId("page-title").click(); // click en un elemento fuera del popover
+  // El «fuera» tiene que ser una superficie FÍSICA. Antes se clicaba `page-title`, que dejó de serlo
+  // al volver el <h1> visualmente oculto: sr-only conserva caja de 1×1, así que Playwright lo da por
+  // visible y entra en el chequeo de accionabilidad, pero el tablist lo cubre y el hit-target nunca
+  // cuadra — 118 reintentos hasta agotar el minuto. El overlay no tenía nada que ver.
+  await page.getByTestId("scope-label").click(); // inerte, visible y fuera del popover
   await expect(page.getByTestId("icon-picker")).toHaveCount(0);
 });
 
@@ -449,13 +461,11 @@ test("TC-UXC-313h: a 1440px la rueda (deltaY>0) sobre la grilla incrementa su sc
 test("TC-UXC-313e: la rueda sobre la fila de categorías que desborda incrementa su scrollLeft", async ({ page }) => {
   await gotoMobile(page, "light");
   // inyecta categorías de Gasto para forzar desborde horizontal de la fila
-  await page.evaluate(() => {
-    const raw = localStorage.getItem("ledger.nodes.v1");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    const grp = data.nodes.find((n: { type: string; level: string }) => n.type === "expense" && n.level === "group");
-    for (let i = 0; i < 16; i++) data.nodes.push({ id: `c-wheel-${i}`, ownerId: "local", type: "expense", level: "category", parentId: grp.id, name: `Cat ${i}`, icon: "tag", order: 100 + i });
-    localStorage.setItem("ledger.nodes.v1", JSON.stringify(data));
+  await mutateNodes(page, (nodes) => {
+    const grp = nodes.find((n) => n.type === "expense" && n.level === "group")!;
+    for (let i = 0; i < 16; i++) {
+      nodes.push({ id: `c-wheel-${i}`, ownerId: "local", type: "expense", level: "category", parentId: grp.id, name: `Cat ${i}`, icon: "tag", order: 100 + i });
+    }
   });
   await page.reload();
   const row = page.getByTestId("category-row");

@@ -1,0 +1,727 @@
+<title>Colisiones de color — grilla de T-Ledger</title>
+<style>
+  :root {
+    /* Neutros: los del propio producto (paleta zinc). El acento es la tinta misma —
+       una página sobre exceso de color no puede permitirse introducir uno propio. */
+    --ground: #f7f7f8;
+    --surface: #ffffff;
+    --sunken: #f1f1f3;
+    --ink: #1c1c1f;
+    --ink-2: #55555d;
+    --ink-3: #6b6b73;
+    --rule: #e2e2e5;
+    --rule-strong: #cfcfd4;
+
+    /* Especímenes — tema CLARO, valores exactos de src/app/globals.css */
+    --l-type-expense: #c4453e;
+    --l-state-over: #ad3932;
+    --l-error-strong: #ad3932;
+    --l-error: #c4453e;
+    --l-type-income: #2f7d53;
+    --l-success: #2f7d53;
+    --l-success-strong: #2d7650;
+    --l-warning: #b45309;
+    --l-state-warning: #9e4708;
+    --l-type-transfer: #2f6db4;
+    /* B+ — hue de ESTRUCTURA, fuera de la paleta de alerta (rojo/ámbar). Reutiliza el azul
+       acero que el sistema ya tiene verificado a 5,3:1 en claro y 6,8:1 en oscuro. */
+    --l-structure: #2f6db4;
+
+    /* Especímenes — tema OSCURO */
+    --d-type-expense: #ec6a66;
+    --d-state-over: #ec6a66;
+    --d-error-strong: #ec6a66;
+    --d-error: #ec6a66;
+    --d-type-income: #5fbe82;
+    --d-success: #5fbe82;
+    --d-success-strong: #5fbe82;
+    --d-warning: #e0a458;
+    --d-state-warning: #e0a458;
+    --d-type-transfer: #6ba6f1;
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #131316;
+      --surface: #1b1b1f;
+      --sunken: #0f0f12;
+      --ink: #f4f4f5;
+      --ink-2: #b4b4bb;
+      --ink-3: #9b9ba3;
+      --rule: #2a2a30;
+      --rule-strong: #3a3a42;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #131316; --surface: #1b1b1f; --sunken: #0f0f12;
+    --ink: #f4f4f5; --ink-2: #b4b4bb; --ink-3: #9b9ba3;
+    --rule: #2a2a30; --rule-strong: #3a3a42;
+  }
+  :root[data-theme="light"] {
+    --ground: #f7f7f8; --surface: #ffffff; --sunken: #f1f1f3;
+    --ink: #1c1c1f; --ink-2: #55555d; --ink-3: #6b6b73;
+    --rule: #e2e2e5; --rule-strong: #cfcfd4;
+  }
+
+  * { box-sizing: border-box; }
+
+  .page {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding: clamp(1.75rem, 4vw, 4rem) clamp(1rem, 4vw, 2rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.75rem, 5vw, 4.25rem);
+    min-height: 100%;
+  }
+  .wrap { width: 100%; max-width: 66rem; margin: 0 auto; }
+
+  .eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  h1 {
+    font-size: clamp(1.7rem, 4.2vw, 2.7rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+    margin: 0.55rem 0 0;
+    text-wrap: balance;
+    max-width: 22ch;
+  }
+  h2 {
+    font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+    letter-spacing: -0.018em;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  p { margin: 0; max-width: 68ch; }
+  .lede { color: var(--ink-2); font-size: 1.02rem; margin-top: 0.9rem; }
+  .note { color: var(--ink-3); font-size: 0.86rem; }
+  strong { font-weight: 650; color: var(--ink); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  header .rule {
+    height: 1px; background: var(--rule-strong);
+    margin-top: 1.75rem;
+  }
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+  .section-head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  /* ── Especímenes ───────────────────────────────────────────── */
+  .specimens {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.85rem;
+  }
+  .spec {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 0.95rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .spec-meaning { font-size: 0.92rem; font-weight: 600; letter-spacing: -0.01em; }
+  .spec-token {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--ink-3);
+    word-break: break-all;
+  }
+  .chips { display: flex; gap: 0.55rem; }
+  .chip { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  .chip-swatch {
+    height: 2.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(128, 128, 134, 0.28);
+  }
+  .chip-meta {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem;
+  }
+  .chip-theme {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .chip-hex {
+    font-family: var(--mono); font-size: 0.72rem;
+    font-variant-numeric: tabular-nums; color: var(--ink-2);
+  }
+
+  .verdict {
+    display: flex; align-items: flex-start; gap: 0.7rem;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule-strong);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+    color: var(--ink-2);
+  }
+  .verdict strong { color: var(--ink); }
+  .verdict .mark {
+    font-family: var(--mono); font-weight: 700; color: var(--ink);
+    flex: none; line-height: 1.5;
+  }
+
+  /* ── Grillas de muestra ────────────────────────────────────── */
+  .variants { display: flex; flex-direction: column; gap: 1.5rem; }
+  .variant {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .variant-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.75rem;
+    padding: 0.9rem 1.05rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .variant-head .tag {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-3); font-family: var(--mono);
+  }
+  .variant-head p { font-size: 0.86rem; color: var(--ink-2); flex-basis: 100%; margin: 0; }
+
+  .gridwrap { overflow-x: auto; }
+  table.g {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 33rem;
+    font-size: 0.76rem;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+  table.g th, table.g td { padding: 0.42rem 0.7rem; border-bottom: 1px solid var(--rule); }
+  table.g thead th {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); text-align: right; background: var(--sunken); font-family: var(--sans);
+  }
+  table.g thead th:first-child { text-align: left; }
+  table.g td.num { text-align: right; }
+  table.g td.label { font-family: var(--sans); white-space: nowrap; }
+  tr.block td { background: var(--sunken); font-weight: 650; }
+  tr.leaf td.label { padding-left: 2rem; color: var(--ink-2); font-family: var(--sans); }
+  td.pres { color: var(--ink-3); }
+  .dot {
+    display: inline-block; width: 0.62em; height: 0.62em; border-radius: 2px;
+    margin-right: 0.5em; vertical-align: baseline;
+  }
+  .glyph { font-weight: 700; margin-right: 0.25em; }
+
+  /* ── Decisión ──────────────────────────────────────────────── */
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 0.85rem; }
+  .option {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 1.05rem 1.15rem; display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .option ul { margin: 0; padding-left: 1.05rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .option li { font-size: 0.87rem; color: var(--ink-2); }
+  .option li::marker { color: var(--ink-3); }
+  .cost { font-size: 0.82rem; color: var(--ink-3); border-top: 1px dashed var(--rule-strong); padding-top: 0.6rem; }
+
+  .count {
+    display: inline-flex; align-items: baseline; gap: 0.3em;
+    font-family: var(--mono); font-weight: 700; color: var(--ink);
+  }
+
+  footer { border-top: 1px solid var(--rule); padding-top: 1.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="wrap">
+    <div class="eyebrow">T-Ledger · feature refinamiento-ui · 5 ago 2026</div>
+    <h1>El rojo dice cuatro cosas. Es el mismo píxel.</h1>
+    <p class="lede">
+      El diagnóstico de julio decía que el color de la grilla significa demasiadas cosas.
+      Al leer los tokens de <span class="mono">globals.css</span> resulta que no son colores
+      parecidos con significados distintos: en tema oscuro <strong>son el mismo valor exacto</strong>.
+      Esta página muestra las colisiones y las dos salidas posibles.
+    </p>
+    <div class="rule"></div>
+  </header>
+
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Colisión 1 · rojo</div>
+      <h2>Cuatro conceptos, un color</h2>
+      <p class="note">
+        Cada tarjeta es un concepto distinto del producto, con su token real y su valor en cada tema.
+      </p>
+    </div>
+
+    <div class="specimens">
+      <div class="spec">
+        <div class="spec-meaning">«Esto es un gasto»</div>
+        <div class="spec-token">--type-expense</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-type-expense)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#c4453e</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-type-expense)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#ec6a66</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Te pasaste ≥120 %»</div>
+        <div class="spec-token">--state-over</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-state-over)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#ad3932</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-state-over)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#ec6a66</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Tu saldo es negativo»</div>
+        <div class="spec-token">--error-strong</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-error-strong)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#ad3932</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-error-strong)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#ec6a66</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Error de la aplicación»</div>
+        <div class="spec-token">--error</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-error)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#c4453e</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-error)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#ec6a66</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <span class="mark">→</span>
+      <span>
+        En <strong>oscuro los cuatro colapsan en <span class="mono">#ec6a66</span></strong>.
+        En claro hay dos valores, <span class="mono">#c4453e</span> y <span class="mono">#ad3932</span>,
+        separados por una diferencia que nadie distingue sin cuentagotas — y
+        <span class="mono">--error</span> coincide exacto con <span class="mono">--type-expense</span>.
+      </span>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Colisiones 2 y 3 · verde y ámbar</div>
+      <h2>El mismo patrón, dos veces más</h2>
+    </div>
+
+    <div class="specimens">
+      <div class="spec">
+        <div class="spec-meaning">«Esto es un ingreso»</div>
+        <div class="spec-token">--type-income</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-type-income)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#2f7d53</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-type-income)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#5fbe82</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Ingreso por encima del plan»</div>
+        <div class="spec-token">--success</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-success)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#2f7d53</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-success)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#5fbe82</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Tu saldo está sano»</div>
+        <div class="spec-token">--success-strong</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-success-strong)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#2d7650</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-success-strong)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#5fbe82</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec-meaning">«Cerca del límite» / «te pasaste poco»</div>
+        <div class="spec-token">--warning &nbsp;·&nbsp; --state-warning</div>
+        <div class="chips">
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--l-warning)"></div>
+            <div class="chip-meta"><span class="chip-theme">Claro</span><span class="chip-hex">#b45309</span></div>
+          </div>
+          <div class="chip">
+            <div class="chip-swatch" style="background: var(--d-warning)"></div>
+            <div class="chip-meta"><span class="chip-theme">Oscuro</span><span class="chip-hex">#e0a458</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <span class="mark">→</span>
+      <span>
+        El verde tiene <strong>tres significados</strong> y un solo valor en oscuro
+        (<span class="mono">#5fbe82</span>). El ámbar tiene <strong>dos</strong> y también
+        colapsa (<span class="mono">#e0a458</span>). No es que el color esté mal elegido:
+        <strong>el canal está saturado</strong>. Ningún ajuste de tono lo arregla — solo se
+        arregla quitándole trabajo.
+      </span>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Comparación</div>
+      <h2>La misma grilla, tres asignaciones de color</h2>
+      <p class="note">
+        Fragmento real: dos bloques, con «Restaurantes» un 32 % por encima del plan y
+        «Mercado» un 8 %. Los glifos <span class="mono">›</span> y <span class="mono">››</span>
+        son el canal no cromático que ya existe hoy (WCAG 1.4.1) y que se conserva en las tres.
+      </p>
+    </div>
+
+    <div class="variants">
+
+      <div class="variant">
+        <div class="variant-head">
+          <span class="tag">Hoy</span>
+          <h3>El color codifica categoría y estado a la vez</h3>
+          <p>Ocho sistemas cromáticos en pantalla; cuatro comparten la misma celda.</p>
+        </div>
+        <div class="gridwrap">
+          <table class="g">
+            <thead>
+              <tr><th scope="col">Categoría</th><th scope="col">Pres.</th><th scope="col">Ejec.</th></tr>
+            </thead>
+            <tbody>
+              <tr class="block">
+                <td class="label" style="color: var(--l-type-income)"><span class="dot" style="background: var(--l-type-income)"></span>INGRESOS</td>
+                <td class="num" style="color: var(--l-type-income)">8.400.000</td>
+                <td class="num" style="color: var(--l-type-income)">8.400.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label"><span class="dot" style="background: var(--l-type-income)"></span>Salario</td>
+                <td class="num pres">8.400.000</td>
+                <td class="num" style="color: var(--l-success)">8.400.000</td>
+              </tr>
+              <tr class="block">
+                <td class="label" style="color: var(--l-type-expense)"><span class="dot" style="background: var(--l-type-expense)"></span>GASTOS</td>
+                <td class="num" style="color: var(--l-type-expense)">2.520.000</td>
+                <td class="num" style="color: var(--l-type-expense)">2.986.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label"><span class="dot" style="background: var(--l-type-expense)"></span>Restaurantes</td>
+                <td class="num pres">420.000</td>
+                <td class="num" style="color: var(--l-state-over)"><span class="glyph">››</span>554.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label"><span class="dot" style="background: var(--l-type-expense)"></span>Mercado</td>
+                <td class="num pres">900.000</td>
+                <td class="num" style="color: var(--l-state-warning)"><span class="glyph">›</span>972.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label"><span class="dot" style="background: var(--l-type-expense)"></span>Transporte</td>
+                <td class="num pres">400.000</td>
+                <td class="num" style="color: var(--ink)">360.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="variant">
+        <div class="variant-head">
+          <span class="tag">Opción A</span>
+          <h3>El color codifica solo estado</h3>
+          <p>Se retira el color de identidad de tipo por completo. La categoría la dicen el rótulo, la indentación y el ícono. El color aparece únicamente donde hay desvío.</p>
+        </div>
+        <div class="gridwrap">
+          <table class="g">
+            <thead>
+              <tr><th scope="col">Categoría</th><th scope="col">Pres.</th><th scope="col">Ejec.</th></tr>
+            </thead>
+            <tbody>
+              <tr class="block">
+                <td class="label"><span class="dot" style="background: var(--ink-3)"></span>INGRESOS</td>
+                <td class="num">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Salario</td>
+                <td class="num pres">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="block">
+                <td class="label"><span class="dot" style="background: var(--ink-3)"></span>GASTOS</td>
+                <td class="num">2.520.000</td>
+                <td class="num">2.986.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Restaurantes</td>
+                <td class="num pres">420.000</td>
+                <td class="num" style="color: var(--l-state-over); font-weight: 650"><span class="glyph">››</span>554.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Mercado</td>
+                <td class="num pres">900.000</td>
+                <td class="num" style="color: var(--l-state-warning)"><span class="glyph">›</span>972.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Transporte</td>
+                <td class="num pres">400.000</td>
+                <td class="num">360.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="variant">
+        <div class="variant-head">
+          <span class="tag">Opción B · intermedia</span>
+          <h3>El color de tipo sobrevive solo en el encabezado de bloque</h3>
+          <p>Tres marcas de color en toda la pantalla en vez de una por fila. Baja el ruido casi como A y conserva la asociación ya aprendida.</p>
+        </div>
+        <div class="gridwrap">
+          <table class="g">
+            <thead>
+              <tr><th scope="col">Categoría</th><th scope="col">Pres.</th><th scope="col">Ejec.</th></tr>
+            </thead>
+            <tbody>
+              <tr class="block">
+                <td class="label"><span class="dot" style="background: var(--l-type-income)"></span>INGRESOS</td>
+                <td class="num">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Salario</td>
+                <td class="num pres">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="block">
+                <td class="label"><span class="dot" style="background: var(--l-type-expense)"></span>GASTOS</td>
+                <td class="num">2.520.000</td>
+                <td class="num">2.986.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Restaurantes</td>
+                <td class="num pres">420.000</td>
+                <td class="num" style="color: var(--l-state-over); font-weight: 650"><span class="glyph">››</span>554.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Mercado</td>
+                <td class="num pres">900.000</td>
+                <td class="num" style="color: var(--l-state-warning)"><span class="glyph">›</span>972.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Transporte</td>
+                <td class="num pres">400.000</td>
+                <td class="num">360.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="variant" style="border-color: var(--rule-strong); border-width: 2px">
+        <div class="variant-head">
+          <span class="tag">Opción B+ · recomendada</span>
+          <h3>B, pero la identidad deja de usar la paleta de alerta</h3>
+          <p>El bloque conserva su ancla cromática, en un hue de <em>estructura</em> —
+            azul acero, ya en el sistema y verificado AA— igual para los tres. Lo que distingue
+            un bloque de otro es el <strong>glifo</strong>: ↑ entra, ↓ sale, ↔ se aparta.
+            El rojo y el ámbar quedan reservados en exclusiva al estado.</p>
+        </div>
+        <div class="gridwrap">
+          <table class="g">
+            <thead>
+              <tr><th scope="col">Categoría</th><th scope="col">Pres.</th><th scope="col">Ejec.</th></tr>
+            </thead>
+            <tbody>
+              <tr class="block">
+                <td class="label" style="color: var(--l-structure)"><span class="glyph">↑</span>INGRESOS</td>
+                <td class="num">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Salario</td>
+                <td class="num pres">8.400.000</td>
+                <td class="num">8.400.000</td>
+              </tr>
+              <tr class="block">
+                <td class="label" style="color: var(--l-structure)"><span class="glyph">↓</span>GASTOS</td>
+                <td class="num">2.520.000</td>
+                <td class="num">2.986.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Restaurantes</td>
+                <td class="num pres">420.000</td>
+                <td class="num" style="color: var(--l-state-over); font-weight: 650"><span class="glyph">››</span>554.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Mercado</td>
+                <td class="num pres">900.000</td>
+                <td class="num" style="color: var(--l-state-warning)"><span class="glyph">›</span>972.000</td>
+              </tr>
+              <tr class="leaf">
+                <td class="label">Transporte</td>
+                <td class="num pres">400.000</td>
+                <td class="num">360.000</td>
+              </tr>
+              <tr class="block">
+                <td class="label" style="color: var(--l-structure)"><span class="glyph">↔</span>RESERVAS</td>
+                <td class="num">600.000</td>
+                <td class="num">600.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="verdict">
+      <span class="mark">→</span>
+      <span>
+        En A, B y B+ el ojo va directo a los dos números que exigen acción. En «Hoy» compiten con
+        catorce elementos coloreados que solo repiten lo que el rótulo ya dice.
+        <strong>La diferencia entre B y B+ está en tema oscuro:</strong> en B el punto de
+        <span class="mono">GASTOS</span> y la celda sobre-consumida son ambos
+        <span class="mono">#ec6a66</span> — el mismo píxel otra vez, solo que una vez por bloque
+        en lugar de una por fila.
+      </span>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">La decisión</div>
+      <h2>Qué se gana y qué cuesta</h2>
+    </div>
+
+    <div class="options">
+      <div class="option">
+        <h3>Opción A — retirar el color de tipo</h3>
+        <ul>
+          <li>Significados por color: <span class="count">1</span> para el rojo y <span class="count">1</span> para el verde. Hoy: 4 y 3.</li>
+          <li><span class="mono">--type-expense</span>, <span class="mono">--state-over</span>, <span class="mono">--error-strong</span> y <span class="mono">--error</span> se unifican en un token único de alerta.</li>
+          <li>El canal de forma (<span class="mono">›</span>/<span class="mono">››</span>) pasa a ser el portador principal de gravedad y deja de competir.</li>
+        </ul>
+        <div class="cost">
+          <strong>Cuesta:</strong> se pierde el barrido cromático que hoy ubica dónde empieza cada
+          bloque. Se compensa con la banda estructural que ya existe y el peso tipográfico.
+          Toca cuatro features cerradas y el registro móvil, que propaga el color de tipo como acento.
+        </div>
+      </div>
+
+      <div class="option">
+        <h3>Opción B — conservarlo solo en el encabezado</h3>
+        <ul>
+          <li>Mismo resultado en las celdas de dato, que es donde ocurría la colisión.</li>
+          <li>Tres marcas de color por pantalla en vez de una por fila.</li>
+          <li>No rompe la asociación tipo↔color ya aprendida.</li>
+        </ul>
+        <div class="cost">
+          <strong>Cuesta:</strong> el rojo sigue teniendo dos significados en la misma pantalla
+          —«bloque de gastos» y «sobre-consumo»—, aunque ya no en la misma celda. Es una mejora
+          grande, no una resolución completa: <strong>no cumple el criterio de 1-y-1.</strong>
+        </div>
+      </div>
+
+      <div class="option" style="border-color: var(--rule-strong); border-width: 2px">
+        <h3>Opción B+ — recomendada</h3>
+        <ul>
+          <li>Conserva el alcance de B: <strong>no obliga a tocar el registro móvil</strong>, que hoy propaga el color de tipo como acento dinámico (FR-203).</li>
+          <li>Conserva el ancla cromática que ubica cada bloque al hacer scroll.</li>
+          <li><strong>Cumple 1-y-1:</strong> rojo y ámbar quedan solo para estado; el hue de estructura no significa nada más.</li>
+          <li>El azul acero ya existe en el sistema y ya está verificado AA en ambos temas: no hay paleta que inventar.</li>
+        </ul>
+        <div class="cost">
+          <strong>Cuesta:</strong> los tres bloques dejan de distinguirse por hue y pasan a
+          distinguirse por glifo (↑ ↓ ↔) y rótulo. Es un cambio de hábito real, aunque el glifo
+          ya está en la fila hoy.
+          <br><br>
+          <strong>Variante si el azul molesta:</strong> el mismo esquema con la identidad en tinta
+          neutra en vez de azul. Pierde el pop de bloque al hacer scroll; gana una pantalla aún más quieta.
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict">
+      <span class="mark">✳</span>
+      <span>
+        <strong>Criterio de éxito propuesto</strong> (decisión 3 de la feature): número de
+        significados por color. Hoy <span class="count">4</span> y <span class="count">3</span>;
+        objetivo <span class="count">1</span> y <span class="count">1</span>. Es objetivo, se
+        audita leyendo los tokens y su uso, y ataca exactamente el problema.
+      </span>
+    </div>
+  </section>
+
+  <footer class="wrap">
+    <p class="note">
+      Valores leídos de <span class="mono">src/app/globals.css</span> y usos verificados en
+      <span class="mono">src/components/BudgetGrid.tsx</span>. Análisis completo en
+      <span class="mono">feature_context/analisis-fintech-grilla.md</span>. Esta página es
+      insumo para la decisión, no la decisión.
+    </p>
+  </footer>
+
+</div>

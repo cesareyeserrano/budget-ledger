@@ -1,0 +1,68 @@
+{
+  "feature": "resumen-plegado",
+  "summary": "Plegado, el encabezado del módulo de Balance resume el mes con el SALDO DISPONIBLE en vez del Saldo total, en sus 24 celdas (12 meses × 2 planos), cada una con el disponible de su propio plano. El Saldo total incluye el reservado —plata ya apartada en alcancías que el usuario no va a gastar—, así que la vista compacta respondía «cuánto tengo» cuando la pregunta que motiva plegar es «cuánto puedo gastar»; medido en el libro del usuario, junio mostraba 2.500 cuando lo gastable eran 2.300. Además alinea los dos niveles de plegado: el chevron interno ya cortaba la escalera justo en «Saldo disponible». El cambio son DOS expresiones en BalanceModule.tsx (`.total` → `.available`) más el comentario que cita la revocación; `HeaderTotalCell` no se tocó, así que color, signo, glifo y caja son por construcción los de siempre. Cero dependencias nuevas, cero tokens nuevos, cero cambios en el dominio: `src/domain/balance.ts` no se tocó y las seis cifras se siguen calculando igual. REVOCACIÓN DECLARADA de FR-909 (feature `balance`) en un solo punto; TC-BAL-909h se re-derivó contra la fila «Saldo disponible» SIN aflojar su aserción (ahora afirma además que el número NO es el del Saldo total, cosa que el original no comprobaba).",
+  "files_created": [
+    "tests/e2e/resumen-plegado.spec.ts",
+    "tests/domain/resumen-plegado.test.ts"
+  ],
+  "files_modified": [
+    "src/components/BalanceModule.tsx",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/balance-jerarquia.spec.ts",
+    "tests/e2e/helpers/globalSetup.ts",
+    "tests/e2e/helpers/globalTeardown.ts"
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_files": [
+    "tests/domain/resumen-plegado.test.ts",
+    "tests/e2e/resumen-plegado.spec.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/balance-jerarquia.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    }
+  ],
+  "technical_debt": [],
+  "notes": [
+    "Sin simplificaciones frente a los MUST: FR-1501 y FR-1502 se entregaron completos, y los tres NFR de regresión (NFR-1501/1502/1503) tienen sus TCs propios en vez de darse por buenos porque «no se tocó nada».",
+    "FR-1502 no aportó código: se satisface por NO modificar `HeaderTotalCell`, que ya aplica `!value ? --fg-muted : exceptionColor(value)` y ya antepone signo y glifo. Su valor está en la verificación —los TCs afirman ese comportamiento sobre la cifra NUEVA—, no en líneas escritas. El borde que sí cambió de frecuencia es el cero exacto: con `available` es más común que con `total`, y TC-RSP-011e lo fija (neutro, nunca excepción).",
+    "Dos TCs de balance-jerarquia (TC-BJE-006e y TC-BJE-011e) hablaban del «Saldo total» en su título o comentario aunque su conducta no dependía de qué cifra se muestre: se actualizó la redacción para que el artefacto no quede describiendo lo revocado. Sus aserciones no se tocaron.",
+    "Corrida local antes de verify: 16/16 del spec nuevo, 47/47 de balance + balance-jerarquia, 3/3 de los unitarios de dominio, typecheck limpio.",
+    "El gate `e2e` declarado por features anteriores se RETIRA aquí: Aitri detecta playwright.config y corre la suite e2e por su cuenta para acreditar los TC ids, así que declararla también como gate lanza DOS corridas de Playwright simultáneas sobre el mismo build. En este proyecto eso no es teórico — la corrida auto-detectada murió dos veces seguidas (una por timeout, otra con exit 1) mientras el gate pasaba, dejando los 17 TCs e2e como `skip` con la suite en verde. Aitri avisa de esta duplicación explícitamente. Con una sola corrida, su exit code sigue gateando igual (un fallo e2e se parsea como TC fallido) y además acredita los ids, que es lo que el gate por exit code NO puede hacer. `test_runner_timeout_ms` sube a 30 min porque ese mismo valor acota la corrida e2e auto-detectada, y la suite completa del proyecto (360 tests) no cabía en el defecto de 5 min.",
+    "BG-016, encontrado al verificar ESTA feature y arreglado en la misma tanda: `globalSetup` arrancaba la app con `spawn('npx',['next','start'],{stdio:'inherit',detached:false})` y guardaba el PID de NPX, mientras `globalTeardown` mataba solo ese PID. El nieto `next-server` sobrevivia y se quedaba con DOS cosas: el puerto 3220 —tumbando la corrida siguiente con EADDRINUSE— y el PIPE de stdout heredado, que es lo caro: el `spawnSync` con el que Aitri lanza Playwright para acreditar los TC ids nunca veia el EOF y colgaba hasta agotar el timeout (30 min en la ultima corrida), reportando «E2E dispatch killed» y dejando los 17 TCs e2e en `skip` CON LA SUITE ENTERA EN VERDE. Verde que no acredita: el sintoma mas caro posible, porque no se distingue de un fallo real sin mirar `lsof`. Arreglo: grupo de procesos propio (`detached:true`) y `process.kill(-pid)` en el teardown, escalando a SIGKILL y confirmando la muerte con la señal 0; mas un guardia de puerto antes de compilar, la misma leccion que `smoke.sh` ya habia aprendido en BG-014. Es infraestructura de pruebas COMPARTIDA, no codigo de esta feature, y por eso se registro como bug del proyecto en vez de colarse sin rastro."
+  ],
+  "test_runner_timeout_ms": 1800000
+}

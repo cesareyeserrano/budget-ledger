@@ -1,0 +1,36 @@
+Evidencia de rendimiento (NFR-001) — RE-MEDICIÓN contra la app actual, 2026-08-02.
+
+Por qué se re-mide: la evidencia anterior (TC-101-perf-2026-07-02.txt) se tomó sobre la app en modo
+localStorage, ANTES de la feature backend (autenticación, Postgres como fuente única, sync SSE). La
+carga inicial dejó de ser una lectura local para convertirse en un round-trip de red con sesión, así
+que los números de julio ya no describían el sistema que se despliega. Los TCs siguen siendo manual
+(el runner no los ejecuta); lo que cambia es que su override se apoya en evidencia vigente.
+
+Método: Playwright/Chromium sobre la app de PRODUCCIÓN arrancada por el globalSetup de la suite e2e
+(build de producción + Postgres efímero + cuenta e2e autenticada), viewport 1440x900, datos semilla
+del año completo restaurados antes de la medición (buildSeed, el mismo baseline de un usuario nuevo).
+5 corridas por medición; se reporta mediana y peor caso, y la aserción se hace contra el PEOR caso.
+
+TC-101e — carga inicial con datos semilla del año hasta que la grilla es visible
+  muestras: 78, 83, 84, 98, 287 ms   ·   mediana 84 ms   ·   peor 287 ms
+  umbral ≤ 2000 ms → PASS (7x de holgura en el peor caso, 23x en la mediana)
+  Nota: la mediana MEJORÓ respecto a julio (250 ms → 84 ms) pese a haber añadido el round-trip a
+  Postgres. La muestra alta de 287 ms es la primera de la serie (arranque en frío del proceso).
+
+TC-101h — desde confirmar la edición de una hoja (Enter) hasta que el total del padre refleja el roll-up
+  muestras: 23, 25, 26, 31, 31 ms   ·   mediana 26 ms   ·   peor 31 ms
+  umbral ≤ 150 ms → PASS (4.8x de holgura en el peor caso)
+  Observable medido: NO basta con que la hoja pinte su valor — se espera a que cambie el texto de las
+  celdas `cell-parent`, que es el roll-up que NFR-001 promete. Ligeramente por encima de julio
+  (21 ms → 26 ms), coherente con haber intercalado la persistencia al servidor.
+
+TC-101f — render granular (inspección de diseño, sin cambio desde 2026-07-02)
+  Los componentes se suscriben a slices vía selectores Zustand (src/state/store.ts + consumidores en
+  src/components/BudgetGrid.tsx), de modo que editar una hoja re-renderiza solo los consumidores del
+  slice afectado, no las 12xN celdas. Sigue siendo verificación por inspección: no hay unit para
+  contar renders. → PASS (inspección de diseño)
+
+Reproducción: el spec de medición fue temporal y no forma parte de la suite (mediría rendimiento en
+cada corrida de CI, donde la contención de recursos lo haría flaky). Para repetirla, un spec que use
+tests/e2e/helpers/fixtures y cronometre `goto('/')` → `budget-grid` visible, y `Enter` → cambio en
+`cell-parent`.

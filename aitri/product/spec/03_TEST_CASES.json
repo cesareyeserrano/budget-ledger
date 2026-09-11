@@ -14,7 +14,7 @@
       "requirement_id": "FR-001",
       "user_story_id": "US-001",
       "ac_id": "AC-001",
-      "title": "Registrar movimiento suma al Ejecutado y confirma con toast (flujo crítico)",
+      "title": "Registrar movimiento suma al Ejecutado y confirma con el overlay (flujo crítico)",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
@@ -23,16 +23,16 @@
       ],
       "given": "el módulo Registrar con tipo=Gasto, categoría='Comida', mes='jun' seleccionados y monto vacío",
       "when": "el usuario escribe 50000 en el input de monto y hace clic en 'Guardar movimiento'",
-      "then": "el Ejecutado de 'Comida' en 'jun' pasa a E0+50000 exactamente, aparece un toast de confirmación y el campo de monto se limpia a 0",
+      "then": "el Ejecutado de 'Comida' en 'jun' pasa a E0+50000 exactamente, aparece el overlay de confirmación (ConfirmOverlay) y el campo de monto se limpia a 0",
       "steps": [
         "Seleccionar tipo Gasto",
         "Seleccionar categoría Comida",
         "Seleccionar mes jun",
         "Escribir 50000",
         "Clic Guardar movimiento",
-        "Leer Ejecutado de Comida, el toast y el campo de monto"
+        "Leer Ejecutado de Comida, el overlay y el campo de monto"
       ],
-      "expected_result": "actuals['Comida']['jun'] === E0+50000, el toast está visible y el input de monto vuelve a 0 (BL-003: sin lista de recientes)",
+      "expected_result": "actuals['Comida']['jun'] === E0+50000, el ConfirmOverlay está visible y el input de monto vuelve a 0 (BL-003: sin lista de recientes)",
       "test_data": {
         "amount": 50000,
         "month": "jun",
@@ -155,23 +155,24 @@
       "requirement_id": "FR-002",
       "user_story_id": "US-002",
       "ac_id": "AC-004",
-      "title": "Tipos fijos y 'Sin asignar' no exponen renombrar/borrar",
+      "title": "Los tipos son fijos y un nodo con hijos no es borrable",
       "type": "unit",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [
-        "Estado con los 3 tipos fijos y una categoría 'Sin asignar' (system:true) en un grupo (Esenciales, tipo Gasto)"
+        "Estado semilla con los 3 tipos fijos y el grupo 'Esenciales' conteniendo categorías"
       ],
-      "given": "los nodos de tipo (expense/income/transfer) y una categoría system 'Sin asignar'",
-      "when": "se consulta canRename(node) y canDelete(node) para un tipo y para 'Sin asignar'",
-      "then": "canRename y canDelete devuelven false para los 3 tipos y para 'Sin asignar' (system:true)",
+      "given": "los tipos (expense/income/transfer) como eje fijo de signo y el grupo 'g-esenciales' con categorías dentro",
+      "when": "se consulta si existe un nodo editable de nivel 'tipo' y se evalúa canDeleteNode/deleteNode sobre el grupo con hijos",
+      "then": "no existe ningún nodo de tipo editable, y el grupo con categorías no es borrable: deleteNode devuelve {blocked:'has_children'}",
       "steps": [
-        "Evaluar canRename/canDelete sobre un tipo",
-        "Evaluar canRename/canDelete sobre 'Sin asignar'"
+        "Verificar que no hay nodos editables de nivel tipo",
+        "Evaluar canDeleteNode('g-esenciales')",
+        "Invocar deleteNode('g-esenciales')"
       ],
-      "expected_result": "canRename===false && canDelete===false para tipos y para 'Sin asignar'",
+      "expected_result": "ningún nodo de tipo editable; canDeleteNode('g-esenciales')===false; deleteNode → {blocked:'has_children'}",
       "test_data": {
-        "system_category": "Sin asignar"
+        "group": "g-esenciales"
       }
     },
     {
@@ -179,24 +180,25 @@
       "requirement_id": "FR-003",
       "user_story_id": "US-003",
       "ac_id": "AC-005",
-      "title": "Borrar categoría con movimientos la convierte en subcategoría de 'Sin asignar' del grupo",
+      "title": "Borrar una categoría CON datos vigentes está bloqueado (no se borra, no se pierde)",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
-        "Estado: 'Café' (grupo Esenciales, tipo Gasto) con 3 movimientos cuyo target='Café'"
+        "Estado con la categoría-hoja 'c-cafe' bajo Esenciales y 3 movimientos registrados vía addMovement (ejecutado > 0)"
       ],
-      "given": "el estado con 'Café' (grupo Esenciales, tipo Gasto) y 3 movimientos con target='Café'",
-      "when": "se llama deleteNode(state, 'Café')",
-      "then": "'Café' pasa a level='sub' con parentId = id de 'Sin asignar' del grupo Esenciales; los 3 movimientos conservan target='Café' y siguen resolviendo un nodo existente",
+      "given": "la categoría 'c-cafe' (grupo Esenciales, tipo Gasto) con Ejecutado > 0 por 3 movimientos",
+      "when": "se evalúa canDeleteNode y se llama deleteNode(state,'c-cafe')",
+      "then": "canDeleteNode devuelve false (la UI no muestra la papelera) y deleteNode devuelve {blocked:'has_data'}; la categoría sigue existiendo y sus 3 movimientos quedan intactos",
       "steps": [
-        "Invocar deleteNode('Café')",
-        "Verificar 'Café'.parentId === id('Sin asignar' del grupo Esenciales)",
-        "Verificar los 3 movimientos siguen con target válido"
+        "Evaluar canDeleteNode('c-cafe')",
+        "Invocar deleteNode('c-cafe')",
+        "Verificar que el nodo sigue existiendo",
+        "Verificar que los 3 movimientos siguen ahí"
       ],
-      "expected_result": "nodes['Café'].level==='sub' && parent es 'Sin asignar'(grupo Esenciales) && 3 movimientos con target resoluble",
+      "expected_result": "canDeleteNode===false && deleteNode==={blocked:'has_data'} && el nodo y sus 3 movimientos intactos",
       "test_data": {
-        "category": "Café",
+        "category": "c-cafe",
         "type": "expense",
         "movements": 3
       }
@@ -206,22 +208,22 @@
       "requirement_id": "FR-003",
       "user_story_id": "US-003",
       "ac_id": "AC-005",
-      "title": "Borrar hoja sin movimientos la elimina directo; 'Sin asignar' solo se muestra con datos",
+      "title": "Borrar una hoja sin datos la elimina directo junto con sus montos",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [
-        "Estado con hoja 'Gimnasio' (grupo Esenciales) sin movimientos y sin 'Sin asignar' materializada en ese grupo"
+        "Estado con la categoría-hoja 'Gimnasio' (grupo Esenciales) recién creada, sin montos ni movimientos"
       ],
-      "given": "una hoja 'Gimnasio' (grupo Esenciales, tipo Gasto) sin movimientos y ninguna reasignación previa en ese grupo",
-      "when": "se llama deleteNode(state, 'Gimnasio')",
-      "then": "'Gimnasio' y sus entradas budgets/actuals se eliminan directo; no se crea/mostrar 'Sin asignar' del grupo Esenciales (isVisible('Sin asignar' del grupo Esenciales)===false)",
+      "given": "una hoja 'Gimnasio' (grupo Esenciales, tipo Gasto) sin datos vigentes ni hijos",
+      "when": "se llama deleteNode(state,'Gimnasio')",
+      "then": "'Gimnasio' desaparece de nodes y sus entradas en budgets/actuals se eliminan con ella",
       "steps": [
         "Invocar deleteNode('Gimnasio')",
-        "Verificar nodo y montos eliminados",
-        "Verificar 'Sin asignar' no visible"
+        "Verificar que el nodo ya no está",
+        "Verificar que budgets/actuals no lo conservan"
       ],
-      "expected_result": "nodes no contiene 'Gimnasio' && budgets/actuals sin 'Gimnasio' && 'Sin asignar' oculta",
+      "expected_result": "nodes no contiene 'Gimnasio' && budgets/actuals sin entradas suyas",
       "test_data": {
         "leaf": "Gimnasio",
         "type": "expense"
@@ -598,11 +600,11 @@
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [
-        "Mismo navegador/localStorage; app responsive"
+        "Misma sesión autenticada contra el servidor; app responsive"
       ],
       "given": "un movimiento de 25000 en 'Comida'/'jun' registrado con viewport 375px",
       "when": "se redimensiona a 1440px y se abre la grilla",
-      "then": "el Ejecutado de 'Comida' en 'jun' en la grilla refleja el +25000 sin importar/exportar datos manualmente",
+      "then": "el Ejecutado de 'Comida' en 'jun' en la grilla refleja el +25000 sin importar/exportar datos manualmente (mismos datos, misma fuente de verdad)",
       "steps": [
         "375px: registrar 25000 en Comida jun",
         "Redimensionar a 1440px",
@@ -644,22 +646,23 @@
       "requirement_id": "FR-011",
       "user_story_id": "US-011",
       "ac_id": "AC-021",
-      "title": "Los datos persisten tras recargar (sobreviven a reinicio del navegador)",
+      "title": "Los datos persisten tras recargar contra el servidor (sobreviven a reinicio)",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
-        "jsdom con localStorage; repositorio LocalStorageRepository"
+        "API stub: el PUT acepta y el GET devuelve el último estado guardado"
       ],
-      "given": "un estado con un movimiento de 40000 guardado vía repository.save",
-      "when": "se crea una nueva instancia y se llama repository.load('local')",
-      "then": "el estado cargado contiene el movimiento de 40000 y ledger.budget.v2 en localStorage lo refleja",
+      "given": "un estado con un movimiento de 40000 guardado vía ServerRepository.save",
+      "when": "una instancia NUEVA de ServerRepository (simula la recarga) llama load()",
+      "then": "el estado cargado contiene el movimiento de 40000",
       "steps": [
-        "save(state con movimiento 40000)",
-        "load('local') en nueva instancia",
-        "Verificar movimiento presente"
+        "save(estado con movimiento 40000)",
+        "Crear una instancia nueva de ServerRepository",
+        "load()",
+        "Verificar el movimiento"
       ],
-      "expected_result": "load() devuelve el movimiento de 40000; localStorage['ledger.budget.v2'] lo contiene",
+      "expected_result": "load() devuelve el estado con el movimiento de 40000",
       "test_data": {
         "amount": 40000
       }
@@ -674,19 +677,19 @@
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [
-        "jsdom con localStorage"
+        "API stub del contrato /api/v1/ledger"
       ],
-      "given": "un estado donde se editó budgets['Mercado']['ene']=900000 y se guardó",
-      "when": "se recarga con repository.load('local')",
-      "then": "el estado cargado tiene budgets['Mercado']['ene']===900000",
+      "given": "un estado donde se editó budgets['s-comida-mercado']['ene']=900000 y se guardó por la API",
+      "when": "una instancia nueva de ServerRepository llama load()",
+      "then": "el estado cargado tiene budgets['s-comida-mercado']['ene']===900000",
       "steps": [
         "Editar y save",
-        "load",
+        "load con instancia nueva",
         "Verificar budget"
       ],
-      "expected_result": "budgets['Mercado']['ene']===900000 tras recargar",
+      "expected_result": "budgets['s-comida-mercado']['ene']===900000 tras recargar",
       "test_data": {
-        "leaf": "Mercado",
+        "leaf": "s-comida-mercado",
         "month": "ene",
         "value": 900000
       }
@@ -696,22 +699,23 @@
       "requirement_id": "FR-011",
       "user_story_id": "US-011",
       "ac_id": "AC-022",
-      "title": "localStorage con JSON inválido se recupera a la semilla sin excepción",
+      "title": "Una respuesta malformada del servidor no lanza: devuelve null y marca malformed",
       "type": "integration",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [
-        "jsdom con localStorage"
+        "fetch stubbeado devolviendo un cuerpo sintácticamente inválido con status 200"
       ],
-      "given": "localStorage['ledger.budget.v2'] = '{corrupto::' (JSON inválido)",
-      "when": "se llama repository.load('local')",
-      "then": "load NO lanza excepción y devuelve null (→ el caller usa buildSeed); el estado resultante es la semilla válida, no una pantalla en blanco",
+      "given": "la API responde 200 con el cuerpo '{corrupto::' (JSON inválido)",
+      "when": "se llama ServerRepository.load()",
+      "then": "load NO lanza y resuelve a null, y el repositorio expone malformed===true para que el caller NO siembre encima de datos que no pudo leer (BG-012)",
       "steps": [
-        "Escribir JSON inválido en la clave",
-        "Invocar load",
-        "Verificar que no lanza y devuelve null/semilla"
+        "Stubbear fetch con cuerpo inválido",
+        "Invocar load()",
+        "Verificar que resuelve a null sin lanzar",
+        "Verificar repo.malformed===true"
       ],
-      "expected_result": "load no lanza; retorna null; buildSeed produce estado válido",
+      "expected_result": "load() resuelve null sin lanzar && repo.malformed===true",
       "test_data": {
         "corruptValue": "{corrupto::"
       }
@@ -721,27 +725,24 @@
       "requirement_id": "FR-012",
       "user_story_id": "US-012",
       "ac_id": "AC-023",
-      "title": "Los CSS custom properties coinciden con los tokens exactos del prototipo",
+      "title": "Los CSS custom properties coinciden con los tokens del sistema de diseño vigente",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
         "App cargada en navegador"
       ],
-      "given": "la app renderizada",
+      "given": "la app renderizada en el tema claro",
       "when": "se leen las variables CSS de :root vía getComputedStyle(document.documentElement)",
-      "then": "--bg==='#080c12', --primary==='#4a7fa5', --success==='#10b981', --warning==='#f59e0b', --error==='#ef4444' y la font-family efectiva incluye 'Fira Code'",
+      "then": "los tokens resuelven a los valores de la paleta zinc theme-aware de stack-upgrade-theme (FR-202), no a los hexadecimales del prototipo oscuro original",
       "steps": [
         "getComputedStyle de :root",
-        "Comparar cada token con el valor esperado"
+        "Comparar cada token con el valor esperado del tema activo"
       ],
-      "expected_result": "todos los tokens coinciden exacto y font-family incluye Fira Code",
+      "expected_result": "los tokens coinciden con la paleta vigente en el tema activo",
       "test_data": {
-        "tokens": {
-          "--bg": "#080c12",
-          "--primary": "#4a7fa5",
-          "--error": "#ef4444"
-        }
+        "theme": "light",
+        "source": "stack-upgrade-theme FR-202"
       }
     },
     {
@@ -797,24 +798,26 @@
       "requirement_id": "FR-013",
       "user_story_id": "US-013",
       "ac_id": "AC-025",
-      "title": "Primer arranque sin datos genera semilla determinista coherente",
+      "title": "Primer arranque sin datos genera semilla determinista y SIN montos",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
-        "localStorage vacío"
+        "El servidor no tiene libro para este usuario (load devuelve null)"
       ],
-      "given": "localStorage sin claves ledger.nodes.v1 / ledger.budget.v2",
-      "when": "se inicializa la app (load devuelve null → buildSeed('local'))",
-      "then": "existe una jerarquía semilla con hojas cuyo actuals de 'ene'..'may' > 0 y 'jul'..'dic' === 0 (factores del prototipo), determinista (dos ejecuciones producen los mismos montos)",
+      "given": "ningún libro persistido para el usuario (load devuelve 204 → null)",
+      "when": "se inicializa la app (load devuelve null → buildSeed('local', P0))",
+      "then": "`budgets` y `actuals` salen SIN UNA SOLA CLAVE —no con claves a valor 0— y `movements` vacío; la jerarquía SÍ se siembra: 12 nodos, entre ellos 's-comida-mercado'; y sigue siendo determinista (dos ejecuciones producen la misma jerarquía y los mismos mapas vacíos, comparados como cadena)",
       "steps": [
-        "load() con storage vacío",
-        "buildSeed('local')",
-        "Verificar actuals por mes",
-        "Repetir y comparar determinismo"
+        "load() sin datos en el servidor (204 → null)",
+        "buildSeed('local', P0) dos veces",
+        "Verificar Object.keys(budgets).length === 0 y Object.keys(actuals).length === 0",
+        "Verificar 12 nodos y la presencia de 's-comida-mercado'",
+        "Verificar determinismo: JSON.stringify de las dos jerarquías coincide"
       ],
-      "expected_result": "semilla con Ene–May>0, Jul–Dic=0 e idéntica entre corridas",
-      "test_data": {}
+      "expected_result": "Object.keys(budgets).length === 0 && Object.keys(actuals).length === 0 && movements.length === 0 && nodes.length === 12 && jerarquías idénticas entre llamadas",
+      "test_data": {},
+      "notes": "Reescrito el 2026-09-07 con FR-013. Antes exigía actuals['s-comida-mercado']['2026-01'] > 0; con la semilla vacía esa expresión no fallaba: REVENTABA con TypeError al indexar undefined. La forma importa —mapas sin claves, no llenos de ceros— porque OpeningCard cuenta claves para decidir si la tarjeta de arranque se muestra (FR-2203 / FR-2302 de semilla-intacta)."
     },
     {
       "id": "TC-013e",
@@ -853,13 +856,13 @@
       "scenario": "negative",
       "priority": "high",
       "preconditions": [
-        "localStorage con datos de usuario previos (1 categoría propia 'Mascotas')"
+        "El servidor devuelve un libro previo del usuario que incluye la categoría 'Mascotas'"
       ],
-      "given": "localStorage con nodes que incluyen una categoría 'Mascotas' creada por el usuario",
+      "given": "un libro persistido que incluye una categoría 'Mascotas' creada por el usuario",
       "when": "se inicializa la app (load encuentra datos)",
       "then": "el estado cargado conserva 'Mascotas' y NO se ejecuta buildSeed (no se sobrescriben los datos)",
       "steps": [
-        "Sembrar storage con 'Mascotas'",
+        "Sembrar el libro con 'Mascotas'",
         "Inicializar app",
         "Verificar 'Mascotas' presente y sin regenerar semilla"
       ],
@@ -873,16 +876,16 @@
       "requirement_id": "FR-015",
       "user_story_id": "US-015",
       "ac_id": "AC-029",
-      "title": "Arrastrar subcategoría de 'Sin asignar' a otra categoría la reubica con sus movimientos",
+      "title": "Arrastrar una subcategoría sobre otra categoría la reubica con sus movimientos",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
-        "'Sin asignar' (Gasto) contiene la subcategoría 'Café' con movimientos; existe categoría 'Restaurantes' (Gasto)"
+        "Existe la subcategoría 'Café' con movimientos y la categoría 'Restaurantes' (ambas Gasto)"
       ],
-      "given": "'Café' como subcategoría dentro de 'Sin asignar' (Gasto) con sus movimientos y la categoría 'Restaurantes' (Gasto)",
+      "given": "la subcategoría 'Café' (Gasto) con sus movimientos y la categoría 'Restaurantes' (Gasto)",
       "when": "el usuario arrastra 'Café' y la suelta sobre 'Restaurantes'",
-      "then": "'Café' queda como subcategoría de 'Restaurantes' (parentId='Restaurantes'), sus movimientos conservan target='Café', y el roll-up de 'Sin asignar' disminuye mientras el de 'Restaurantes' aumenta en el mismo monto",
+      "then": "'Café' queda como subcategoría de 'Restaurantes' (parentId='Restaurantes'), sus movimientos conservan target='Café', y los roll-ups de origen y destino se recalculan sin dejar huérfanos",
       "steps": [
         "Arrastrar 'Café' sobre 'Restaurantes'",
         "Soltar",
@@ -1096,7 +1099,7 @@
         "prefers-reduced-motion: reduce"
       ],
       "given": "el navegador con reduced-motion activo",
-      "when": "se dispara una transición (abrir panel/toast) y se lee la duración efectiva",
+      "when": "se dispara una transición (abrir panel / overlay de confirmación) y se lee la duración efectiva",
       "then": "transition-duration/animation-duration efectivos ≈ 0.001ms (sin movimiento perceptible)",
       "steps": [
         "Activar reduced-motion",
@@ -1111,22 +1114,22 @@
       "requirement_id": "NFR-003",
       "user_story_id": "US-011",
       "ac_id": "AC-021",
-      "title": "Persistencia robusta: los datos sobreviven a reinicio",
+      "title": "Persistencia robusta: 2 movimientos + 1 edición sobreviven al reinicio",
       "type": "integration",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [
-        "jsdom con localStorage"
+        "API stub del contrato /api/v1/ledger"
       ],
-      "given": "un estado guardado con 2 movimientos y 1 edición de presupuesto",
-      "when": "se descarta la instancia y se recarga desde localStorage",
+      "given": "un estado con 2 movimientos y 1 edición de presupuesto guardado por la API",
+      "when": "una instancia nueva de ServerRepository llama load()",
       "then": "los 2 movimientos y la edición se conservan idénticos",
       "steps": [
         "save estado",
-        "Descartar y load",
-        "Comparar igualdad profunda"
+        "load con instancia nueva",
+        "Comparar movimientos y budgets"
       ],
-      "expected_result": "estado recargado === estado guardado (movimientos y budgets)",
+      "expected_result": "2 movimientos y budgets['c-vivienda'].mar===5000 tras recargar",
       "test_data": {}
     },
     {
@@ -1134,24 +1137,24 @@
       "requirement_id": "NFR-003",
       "user_story_id": "US-011",
       "ac_id": "AC-021",
-      "title": "Fallo de setItem (quota) no corrompe el estado en memoria",
+      "title": "Un guardado que no alcanza el servidor no corrompe el estado en memoria",
       "type": "integration",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [
-        "localStorage.setItem mockeado para lanzar QuotaExceededError"
+        "El PUT de la API falla (red o error del servidor)"
       ],
-      "given": "un repositorio cuyo setItem lanza QuotaExceededError",
-      "when": "se llama repository.save(state)",
-      "then": "save captura la excepción (no propaga un crash), el estado en memoria permanece válido y se puede seguir operando en la sesión",
+      "given": "un repositorio cuyo save no consigue confirmar la escritura",
+      "when": "se llama save(state)",
+      "then": "el fallo no propaga un crash, el estado en memoria permanece válido y el usuario queda avisado por el StorageBanner en vez de creer que se guardó (BL-022)",
       "steps": [
-        "Mockear setItem para lanzar",
+        "Forzar el fallo del PUT",
         "Invocar save",
         "Verificar no-crash y estado en memoria intacto"
       ],
-      "expected_result": "save no lanza al caller; estado en memoria intacto",
+      "expected_result": "save no rompe la app; estado en memoria intacto; el fallo es visible, no silencioso",
       "test_data": {
-        "error": "QuotaExceededError"
+        "failure": "PUT no confirmado"
       }
     },
     {
@@ -1159,24 +1162,24 @@
       "requirement_id": "NFR-003",
       "user_story_id": "US-011",
       "ac_id": "AC-022",
-      "title": "Estado corrupto se recupera a semilla sin pantalla en blanco",
+      "title": "Una respuesta ilegible no deja pantalla en blanco ni siembra encima",
       "type": "integration",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [
-        "localStorage con payload no conforme al esquema Zod"
+        "La API responde con un cuerpo que no se puede interpretar"
       ],
-      "given": "localStorage['ledger.nodes.v1'] con un objeto que NO cumple el esquema (p. ej. { foo: 1 })",
-      "when": "se llama repository.load('local') (Zod.safeParse falla)",
-      "then": "load devuelve null sin lanzar; el arranque usa buildSeed y la app muestra la semilla (no pantalla en blanco ni excepción no capturada)",
+      "given": "la API devuelve un cuerpo ilegible",
+      "when": "se llama load() en el arranque",
+      "then": "load devuelve null sin lanzar y marca malformed, de modo que la app no muestra pantalla en blanco NI sobrescribe con la semilla un libro que no pudo leer (BG-012)",
       "steps": [
-        "Escribir payload no conforme",
+        "Responder con cuerpo ilegible",
         "load",
-        "Verificar null + fallback a semilla"
+        "Verificar null + malformed + sin siembra destructiva"
       ],
-      "expected_result": "safeParse falla → load null → semilla renderizada",
+      "expected_result": "load null sin excepción; malformed===true; no se siembra encima",
       "test_data": {
-        "invalid": "{ foo: 1 }"
+        "invalid": "cuerpo ilegible"
       }
     },
     {
@@ -1208,22 +1211,22 @@
       "requirement_id": "NFR-004",
       "user_story_id": "US-010",
       "ac_id": "AC-019",
-      "title": "No se realizan peticiones HTTP externas en runtime (v1 offline)",
+      "title": "No se realizan peticiones HTTP a hosts externos en runtime",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [
         "Playwright con intercepción de red"
       ],
-      "given": "la app en ejecución con un interceptor de red activo (permitiendo solo self y fuentes de Google Fonts)",
+      "given": "la app en ejecución con un interceptor de red activo (permitiendo self y fuentes)",
       "when": "se recorre el flujo end-to-end (registrar, editar, dashboard)",
-      "then": "no se emite ninguna petición HTTP a un host de datos externo (0 requests fuera de self/fonts)",
+      "then": "no se emite ninguna petición HTTP a un host de datos EXTERNO: la app habla solo con su propia API (/api/v1), nunca con terceros",
       "steps": [
         "Interceptar red",
         "Recorrer flujo",
         "Contar requests externos de datos"
       ],
-      "expected_result": "0 peticiones HTTP externas de datos en runtime",
+      "expected_result": "0 peticiones HTTP a hosts de datos externos en runtime (las de /api/v1 son propias y esperadas)",
       "test_data": {}
     },
     {
@@ -1406,6 +1409,143 @@
       "automation": "manual",
       "manual_reason": "Verificable por medición/inspección, no por el runner unitario (perf dependiente del entorno / mecanismo de smoke y CI).",
       "downgraded_from": "skip"
+    },
+    {
+      "id": "TC-016h",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-031",
+      "title": "Franja Resumen en modo Mes: presupuestado, ejecutado, % y disponible del tipo Gasto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Estado con hojas de tipo Gasto cuyo Presupuestado agregado en 'jun' es 800000 y su Ejecutado 200000"
+      ],
+      "given": "un periodo {mode:'month', month:'jun'} sobre ese estado",
+      "when": "se computan las cifras de la franja de indicadores",
+      "then": "presupuestado=800000, ejecutado=200000, pct=25 y available=600000 exactamente",
+      "steps": [
+        "Construir el estado con los montos declarados",
+        "Invocar el cómputo de la franja con el periodo de junio",
+        "Comparar las cuatro cifras"
+      ],
+      "expected_result": "{presupuestado:800000, ejecutado:200000, pct:25, available:600000} — available es la resta exacta y pct el entero redondeado",
+      "test_data": {
+        "month": "jun",
+        "budget": 800000,
+        "actual": 200000,
+        "expected_pct": 25,
+        "expected_available": 600000
+      }
+    },
+    {
+      "id": "TC-016e",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-031",
+      "title": "Bordes de la franja: presupuesto 0 no divide por cero, disponible 0 es 'dentro del plan', y Mes→Año reagrega los 12 meses",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Estado con Presupuestado 0 y Ejecutado 0 en el mes elegido",
+        "Estado con Presupuestado 500000 y Ejecutado 500000 en el mes elegido",
+        "Estado con montos repartidos en varios meses del año"
+      ],
+      "given": "los tres estados de borde",
+      "when": "se computan las cifras de la franja en cada uno",
+      "then": "con presupuesto 0 el pct es 0 y no aparece NaN ni Infinity; con presupuesto igual al ejecutado available es exactamente 0 (no negativo, por tanto 'dentro del plan'); en modo Año las cifras agregan los 12 meses y no solo el mes en foco",
+      "steps": [
+        "Computar con presupuesto 0 y comprobar pct===0 y Number.isFinite en las cuatro cifras",
+        "Computar con 500000/500000 y comprobar available===0",
+        "Computar el mismo estado en modo month y en modo year y comprobar que el anual es la suma de los doce"
+      ],
+      "expected_result": "pct===0 sin NaN/Infinity; available===0 en el empate; el agregado anual iguala la suma de los doce meses",
+      "test_data": {
+        "zero_budget": 0,
+        "tie_budget": 500000,
+        "tie_actual": 500000
+      }
+    },
+    {
+      "id": "TC-016f",
+      "requirement_id": "FR-016",
+      "user_story_id": "US-016",
+      "ac_id": "AC-032",
+      "title": "La franja agrega SOLO tipo Gasto y un disponible negativo señala 'sobre el plan'",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Estado con montos de Gasto y, además, montos de Ingreso y de Transferencia en el mismo mes"
+      ],
+      "given": "ese estado con los tres tipos poblados",
+      "when": "se computan las cifras de la franja y luego se añaden más montos de Ingreso y Transferencia",
+      "then": "ninguna de las cuatro cifras cambia al mover Ingresos o Transferencias; y cuando el Ejecutado de Gasto supera al Presupuestado, available es negativo (la señal de 'sobre el plan')",
+      "steps": [
+        "Computar la franja sobre el estado base",
+        "Aumentar Ingreso y Transferencia del mismo mes",
+        "Re-computar y comprobar que las cuatro cifras son idénticas",
+        "Aumentar el Ejecutado de Gasto por encima del Presupuestado y comprobar available<0"
+      ],
+      "expected_result": "las cifras son invariantes ante Ingreso/Transferencia; con ejecutado>presupuestado available<0",
+      "test_data": {
+        "budget": 300000,
+        "actual": 400000,
+        "expected_available": -100000
+      }
+    },
+    {
+      "id": "TC-003g",
+      "requirement_id": "FR-003",
+      "user_story_id": "US-003",
+      "ac_id": "AC-005",
+      "title": "BG-006: un nodo vaciado a 0 SÍ se borra aunque tenga movimientos históricos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Una subcategoría con movimientos registrados en su journal y todas sus celdas de Presupuestado/Ejecutado puestas a 0"
+      ],
+      "given": "ese nodo vaciado pero con historia en el journal",
+      "when": "se intenta borrarlo",
+      "then": "el borrado procede (la señal es el monto vigente, no el journal) y sus movimientos se retiran con él sin dejar huérfanos",
+      "steps": [
+        "Registrar movimientos sobre la subcategoría",
+        "Poner a 0 todas sus celdas",
+        "Invocar el borrado",
+        "Comprobar que el nodo desaparece y que ningún movimiento superviviente apunta a un target inexistente"
+      ],
+      "expected_result": "deleteNode no devuelve blocked; el nodo ya no está en state.nodes; cero movimientos huérfanos",
+      "test_data": {
+        "bug": "BG-006"
+      }
+    },
+    {
+      "id": "TC-106g",
+      "requirement_id": "NFR-006",
+      "title": "BG-014: el gate smoke no acredita un build obsoleto ni un proceso ajeno, y verifica el contrato de servicio",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "El script del gate de smoke presente en la raíz del repositorio"
+      ],
+      "given": "el gate de smoke tal como lo ejecuta verify-run",
+      "when": "se inspecciona el contrato que el gate se obliga a cumplir",
+      "then": "recompila si alguna fuente es más reciente que el BUILD_ID (no solo si falta), aborta si el puerto ya está ocupado por otro proceso, y verifica el gating 401 de las rutas de datos y los cinco headers de seguridad además del 200 en '/'",
+      "steps": [
+        "Comprobar la condición de recompilación por antigüedad del build",
+        "Comprobar la guarda de puerto ocupado",
+        "Comprobar que el gate sondea las rutas de /api/v1 esperando 401 y los cinco headers"
+      ],
+      "expected_result": "las tres propiedades están presentes en el gate: recompilación por mtime, guarda de puerto, y verificación de gating + headers",
+      "test_data": {
+        "bug": "BG-014"
+      },
+      "user_story_id": "US-013",
+      "ac_id": "AC-025"
     }
   ]
 }

@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildSeed } from "@/domain/seed";
 import { addMovement } from "@/domain/mutations";
-import { LocalStorageRepository } from "@/data/repository";
-import { STORAGE_KEYS } from "@/domain/types";
+import { InMemoryRepository } from "../helpers/inMemoryRepository";
+import { STORAGE_KEYS, type Movement, type LedgerNode } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
 
 const root = resolve(__dirname, "../..");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
@@ -37,16 +38,23 @@ describe("FR-201/FR-202 — tema y tokens", () => {
 
   it("TC-SUT-204h: tokens de color claros exactos en :root", () => {
     const root = globalsCss.split(/\.dark\s*\{/)[0];
-    for (const [tok, hex] of [["--bg", "#f7f7f8"], ["--bg-card", "#ffffff"], ["--primary", "#1c1c1f"], ["--fg", "#1c1c1f"], ["--fg-secondary", "#55555d"], ["--border", "#e3e3e7"], ["--error", "#c4453e"]] as const) {
+    for (const [tok, hex] of [["--bg", "#f7f7f8"], ["--bg-card", "#ffffff"], ["--primary", "#1c1c1f"], ["--fg", "#1c1c1f"], ["--fg-secondary", "#55555d"], ["--border", "#e3e3e7"]] as const) {
       expect(root).toContain(`${tok}: ${hex}`);
     }
+    // refinamiento-ui FR-1201: --error dejó de ser un token propio y pasó a ser ALIAS del rol de
+    // alerta. La validación de entrada señala excepción, igual que el sobre-consumo: es el MISMO
+    // mensaje, así que comparte token en vez de tener un rojo casi idéntico y distinto.
+    expect(root).toContain("--error: var(--alert-strong)");
+    expect(root).toContain("--alert-strong: #ad3932");
   });
 
   it("TC-SUT-205e: tokens de color oscuros exactos bajo .dark", () => {
     const dark = globalsCss.slice(globalsCss.indexOf(".dark"));
-    for (const [tok, hex] of [["--bg", "#131316"], ["--bg-card", "#1b1b1f"], ["--primary", "#f4f4f5"], ["--fg", "#f4f4f5"], ["--fg-secondary", "#b4b4bb"], ["--border", "#33333a"], ["--error", "#ec6a66"]] as const) {
+    for (const [tok, hex] of [["--bg", "#131316"], ["--bg-card", "#1b1b1f"], ["--primary", "#f4f4f5"], ["--fg", "#f4f4f5"], ["--fg-secondary", "#b4b4bb"], ["--border", "#33333a"]] as const) {
       expect(dark).toContain(`${tok}: ${hex}`);
     }
+    expect(dark).toContain("--error: var(--alert-strong)");
+    expect(dark).toContain("--alert-strong: #ec6a66");
   });
 });
 
@@ -63,22 +71,22 @@ describe("FR-206 — stack", () => {
 describe("FR-211/FR-212 — guardado", () => {
   it("TC-SUT-233h: una nota se guarda con el movimiento y el contador muestra '50/280'", () => {
     const note = "c".repeat(50);
-    const next = addMovement(buildSeed("local"), (() => {
-      const seed = buildSeed("local");
+    const next = addMovement(buildSeed("local", P0), (() => {
+      const seed = buildSeed("local", P0);
       const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
-      return { type: "expense" as const, catId: cat.id, subId: null, amount: 1000, month: "jun" as const, date: "2026-06-01T08:00", note };
-    })());
+      return { type: "expense" as const, catId: cat.id, subId: null, amount: 1000, period: "2026-06" as const, date: "2026-06-01T08:00", note };
+    })(), P);
     expect(next.movements[0].note).toBe(note);
     expect(`${note.length}/280`).toBe("50/280");
   });
 
   it("TC-SUT-236h: guardar 50000 aumenta el Ejecutado del destino en 50000 y encabeza recientes", () => {
-    const seed = buildSeed("local");
+    const seed = buildSeed("local", P0);
     const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
-    const before = seed.actuals[cat.id]?.jun ?? 0;
-    const next = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, month: "jun", date: "2026-06-05T09:00", note: null });
-    expect((next.actuals[cat.id]?.jun ?? 0) - before).toBe(50000);
-    expect(next.movements[0]).toMatchObject({ target: cat.id, amount: 50000, month: "jun", date: "2026-06-05T09:00" });
+    const before = seed.actuals[cat.id]?.["2026-06"] ?? 0;
+    const next = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: null }, P);
+    expect((next.actuals[cat.id]?.["2026-06"] ?? 0) - before).toBe(50000);
+    expect(next.movements[0]).toMatchObject({ target: cat.id, amount: 50000, period: "2026-06", date: "2026-06-05T09:00" });
   });
 });
 
@@ -95,33 +103,38 @@ describe("FR-213 — tipografía", () => {
 
 // ── NFR-202 · persistencia sobre las claves ledger.* ────────────────────────
 describe("NFR-202 — persistencia", () => {
-  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note) sobre ledger.budget.v2", async () => {
-    const store = memStorage();
-    const repo = new LocalStorageRepository(store);
-    const seed = buildSeed("local");
-    const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
-    const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, month: "jun", date: "2026-06-05T09:00", note: "almuerzo" });
+  // Re-cimentado por servidor-fuente-unica (FR-1106 / ADR-03): estos dos TCs usaban
+  // LocalStorageRepository como doble de conveniencia — no probaban localStorage, probaban que un
+  // round-trip conserva los deltas y que las preferencias no colisionan. El doble ahora es
+  // InMemoryRepository (tests/helpers), y la coexistencia se verifica en su forma FUERTE: ya no es
+  // "theme convive con ledger.*", es "theme sobrevive y ledger.* NO EXISTE" (FR-1104).
+  it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note)", async () => {
+    const repo = new InMemoryRepository();
+    const seed = buildSeed("local", P0);
+    const cat = seed.nodes.find((n: LedgerNode) => n.type === "expense" && n.level === "category" && !n.system)!;
+    const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: "almuerzo" }, P);
     await repo.save("local", withMv);
-    // "recarga": nueva instancia lee del mismo storage
-    const reloaded = await new LocalStorageRepository(store).load("local");
+    // "recarga": se relee del repositorio, sin compartir el objeto en memoria
+    const reloaded = await repo.load("local");
     expect(reloaded).not.toBeNull();
-    const mv = reloaded!.movements.find((m) => m.target === cat.id && m.amount === 50000)!;
+    const mv = reloaded!.movements.find((m: Movement) => m.target === cat.id && m.amount === 50000)!;
     expect(mv).toBeTruthy();
     expect(mv.date).toBe("2026-06-05T09:00"); // el delta sobrevive a la recarga
     expect(mv.note).toBe("almuerzo");
-    expect(store._map.has("ledger.budget.v2")).toBe(true);
+    expect(repo.saveCount).toBe(1);
   });
 
-  it("TC-SUT-248e: la clave 'theme' no colisiona con ledger.* y ambas coexisten", async () => {
+  it("TC-SUT-248e: 'theme' sobrevive un ciclo de persistencia y no se escribe ninguna clave ledger.*", async () => {
     const store = memStorage();
     store.setItem("theme", "dark"); // la escribiría next-themes
-    const repo = new LocalStorageRepository(store);
-    await repo.save("local", buildSeed("local"));
-    expect(store.getItem("theme")).toBe("dark"); // intacta
-    expect(await repo.load("local")).not.toBeNull(); // datos legibles
-    expect([...store._map.keys()].filter((k) => k.startsWith("ledger."))).toEqual(
-      expect.arrayContaining([STORAGE_KEYS.nodes, STORAGE_KEYS.budget])
-    );
+    const repo = new InMemoryRepository();
+    await repo.save("local", buildSeed("local", P0));
+    expect(store.getItem("theme")).toBe("dark"); // la preferencia del dispositivo, intacta
+    expect(await repo.load("local")).not.toBeNull(); // y los datos, legibles
+    // Forma fuerte tras FR-1104: el espacio ledger.* del navegador queda VACÍO, no coexistiendo.
+    expect([...store._map.keys()].filter((k) => k.startsWith("ledger."))).toEqual([]);
+    // Las constantes siguen existiendo (la limpieza necesita sus nombres), solo no se escriben.
+    expect(Object.values(STORAGE_KEYS).every((k) => k.startsWith("ledger."))).toBe(true);
   });
 });
 
@@ -144,7 +157,42 @@ describe("NFR-207 — CI/CD", () => {
 
   it("TC-SUT-263e: el smoke arranca la app y exige 200 en '/'", () => {
     expect(smokeSh).toMatch(/localhost:\$PORT\//);
-    expect(smokeSh).toContain('"200"');
     expect(smokeSh).toContain("npm run start");
+    // La comprobación de 200 en '/' sigue siendo el corazón del gate; cambió su forma (antes una
+    // comparación literal contra "200", ahora el helper check_code que se reutiliza por ruta).
+    expect(smokeSh).toMatch(/check_code\s+"\/"\s+200/);
+  });
+
+  // BG-014 / RQ-SEC-010 — el gate acreditó durante cuatro semanas un build del 9 de julio porque
+  // solo recompilaba si faltaba BUILD_ID. Estas tres propiedades son las que impiden que vuelva a
+  // pasar; se comprueban sobre el texto del script porque ejecutarlo aquí costaría un build entero
+  // (el gate ya lo ejecuta de verdad en cada verify-run).
+  // @aitri-tc TC-106g
+  it("TC-106g: BG-014 — el smoke no acredita un build obsoleto ni un proceso ajeno, y verifica el contrato de servicio", () => {
+    // (a) Recompila por antigüedad del build, no solo si falta BUILD_ID. Era la causa raíz:
+    //     el gate acreditó durante cuatro semanas un build anterior a la feature `backend`.
+    expect(smokeSh).toMatch(/find\s+src\s+next\.config\.mjs\s+package\.json\s+-newer/);
+    expect(smokeSh).toContain('"$NEXT_DIST_DIR/BUILD_ID"');
+
+    // (b) Aborta si el puerto está ocupado, en vez de sondear el proceso que ya responde ahí.
+    expect(smokeSh).toMatch(/lsof[^\n]*iTCP:"\$PORT"[^\n]*LISTEN/);
+    expect(smokeSh).toMatch(/ya está ocupado/);
+
+    // (c) Verifica el contrato real de servicio: gating 401 de las rutas de datos y los cinco
+    //     headers de seguridad, no solo el 200 en '/'.
+    for (const r of ["/api/v1/ledger", "/api/v1/movements", "/api/v1/sync/stream"]) {
+      expect(smokeSh).toContain(r);
+    }
+    expect(smokeSh).toMatch(/check_code\s+"\$r"\s+401/);
+    for (const h of [
+      "Content-Security-Policy",
+      "Strict-Transport-Security",
+      "X-Content-Type-Options",
+      "X-Frame-Options",
+      "Referrer-Policy",
+    ]) {
+      expect(smokeSh).toContain(h);
+    }
+    expect(smokeSh).toContain("X-Powered-By");
   });
 });

@@ -55,6 +55,12 @@ jobs:
               - ".next/**"
               - ".next-*/**"
               - "test-evidence/**"
+              # Código de pruebas (unit, integración, e2e y sus helpers). No se despliega ni recibe
+              # entrada de usuarios reales: corre en local y en el runner de CI contra bases efímeras.
+              # Decisión del usuario, 2026-09-11. El PR #23 metía 13 alertas, TODAS aquí: regex sin
+              # ancla en aserciones, ficheros de cookie de prueba en tmpdir y el helper que lee el
+              # buzón de Mailpit. Ninguna en src/. CodeQL sigue analizando todo lo que se despliega.
+              - "tests/**"
 
       # JS/TS es interpretado: CodeQL extrae el código directamente, sin paso de build.
       - name: Analizar

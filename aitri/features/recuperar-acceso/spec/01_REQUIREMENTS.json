@@ -1,0 +1,741 @@
+{
+  "project_name": "Ledger (T-Ledger) — feature: recuperar-acceso",
+  "project_summary": "Feature que devuelve el acceso a quien olvida su contraseña. Hoy el titular que la olvida queda fuera de la app SIN camino de vuelta: el login es obligatorio para todos desde la feature `servidor-fuente-unica` (FR-1102), Google está apagado (NEXT_PUBLIC_GOOGLE_ENABLED=false) y no existe ningún flujo de recuperación. La app es donde vive toda su información financiera. La feature añade un flujo de tres pasos sin sesión: solicitar la recuperación desde la pantalla de acceso, recibir por correo un enlace de un solo uso con expiración, y fijar una contraseña nueva que además invalida las sesiones activas. El envío es por SMTP desde el SERVIDOR (nodemailer), decisión del usuario del 2026-08-13 frente a un servicio de terceros o un código sin correo. El alcance es SOLO recuperación: la verificación de email al registrarse queda fuera por decisión explícita de la misma fecha. Los usuarios son un puñado de cuentas conocidas (uso personal o familiar), sin registro abierto — lo que permite un flujo simple y directo, sin la ceremonia defensiva de una superficie pública. NORTH STAR KPI: el 100% de los intentos de recuperación dentro del camino soportado (dirección registrada, enlace vigente, primer uso) termina con el titular dentro de la app sin intervención manual de nadie; hoy ese número es 0% porque el camino no existe. JTBD: recuperar por mí mismo el acceso a mis finanzas cuando olvido la contraseña, sin depender de que alguien me lo arregle. GUARDRAIL METRIC: el núcleo de autenticación no se degrada — argon2id con parámetros OWASP (NFR-501), cookies HttpOnly/Secure/SameSite y el límite de 5 intentos/min en /sign-in/email (NFR-512) siguen intactos, el cliente sigue haciendo CERO peticiones externas (TC-104e / TC-UXC-354h), y el gate de sesión de FR-1102 no gana ninguna puerta lateral: el secreto de recuperación habilita fijar una contraseña, jamás leer ni escribir un dato del ledger.",
+  "functional_requirements": [
+    {
+      "id": "FR-1301",
+      "title": "Entrada al flujo de recuperación desde la pantalla de acceso, sin sesión",
+      "description": "Cuando el usuario está en la pantalla de acceso (AuthForm, la puerta obligatoria de FR-1102) en modo 'Iniciar sesión', el sistema debe ofrecer una acción visible que lleve a solicitar la recuperación de contraseña, alcanzable sin sesión y sin credenciales. La acción NO se ofrece en modo 'Crear cuenta', donde no hay contraseña que recuperar. La pantalla de acceso conserva su contrato de regresión: los 9 data-testid existentes, los aria-label, los autoComplete y los textos de error se mantienen literales.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En la pantalla de acceso en modo 'Iniciar sesión' existe un control con texto visible de recuperación de contraseña que, al activarse, presenta la pantalla de solicitud (FR-1302) sin requerir sesión (happy)",
+        "En modo 'Crear cuenta' ese control NO está presente en el DOM (negativo)",
+        "El control es alcanzable y activable por teclado (recibe foco en el orden natural y responde a Enter) con indicador de foco visible (edge — accesibilidad)",
+        "Los 9 data-testid preexistentes de la pantalla de acceso (auth-form, auth-name, auth-email, auth-password, auth-error, auth-submit, auth-google, auth-toggle, auth-name-input y sus aria-label) siguen presentes e inalterados tras añadir el control (regresión de contrato)"
+      ]
+    },
+    {
+      "id": "FR-1302",
+      "title": "Pantalla de solicitud: pedir la recuperación indicando el correo",
+      "description": "Cuando el usuario llega a la pantalla de solicitud, el sistema debe presentar un único campo de correo electrónico y una acción de envío, y al enviarla debe iniciar el flujo de recuperación para esa dirección. Durante el envío la acción queda deshabilitada y se comunica el estado en curso, para que una doble pulsación no dispare dos solicitudes. La pantalla ofrece siempre una vía de vuelta a la pantalla de acceso.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Con una dirección válida escrita, al activar la acción de envío el sistema procesa la solicitud y presenta el acuse neutro de FR-1303 (happy)",
+        "Con el campo vacío o con un texto que no es una dirección de correo, la acción no envía nada y el campo se marca como inválido (negativo)",
+        "Mientras la solicitud está en curso, la acción de envío está deshabilitada y expone su estado ocupado; una segunda activación no produce una segunda solicitud (edge — doble envío)",
+        "Existe una vía visible de regreso a la pantalla de acceso que no requiere recargar la página",
+        "La pantalla renderiza sin desbordes a 375px y a 1440px, con los controles a la escala canónica del sistema (40px, 48px táctil por debajo de 760px)"
+      ]
+    },
+    {
+      "id": "FR-1303",
+      "title": "Acuse neutro: la respuesta no revela si la dirección corresponde a una cuenta",
+      "description": "Cuando el sistema recibe una solicitud de recuperación, debe responder con un acuse idéntico exista o no una cuenta con esa dirección. El mensaje indica que, si la dirección corresponde a una cuenta, se ha enviado un enlace — sin confirmar ni negar su existencia. El correo solo se envía cuando la cuenta existe; cuando no existe, no se envía nada y el acuse es el mismo. Aunque los usuarios son cuentas conocidas y no hay registro abierto, el coste de esta neutralidad es cercano a cero y su ausencia es un fallo real.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Solicitando la recuperación para una dirección REGISTRADA, la respuesta HTTP tiene código 200 y el texto mostrado al usuario es el acuse neutro (happy)",
+        "Solicitando la recuperación para una dirección NO registrada, el código de respuesta, el cuerpo y el texto mostrado son idénticos byte a byte a los del caso registrado (negativo — no hay enumeración)",
+        "Para la dirección no registrada no se produce ningún envío de correo (edge — se comprueba contra el servidor SMTP de prueba, cero mensajes)",
+        "El acuse no incluye el nombre del titular, ni la fecha de la cuenta, ni ningún dato que solo existiría si la cuenta existe"
+      ]
+    },
+    {
+      "id": "FR-1304",
+      "title": "Emisión del secreto: un solo uso, con expiración, y la solicitud nueva invalida la anterior",
+      "description": "Cuando la solicitud corresponde a una cuenta existente, el sistema debe emitir un secreto de recuperación de un solo uso, ligado a esa cuenta, con una expiración de 30 minutos desde su emisión. El secreto se almacena de forma que no sea reutilizable: al consumirse con éxito queda invalidado. Una solicitud nueva para la misma cuenta invalida el secreto anterior aún vigente, de modo que en todo momento existe como mucho un secreto utilizable por cuenta — así el usuario que pide dos veces porque el primer correo tardó no acaba con dos enlaces vivos. El secreto es imposible de adivinar: se genera con un generador criptográficamente seguro.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Tras una solicitud válida existe exactamente un secreto vigente para esa cuenta, con expiración a 30 minutos de su emisión (happy)",
+        "Consumido el secreto con éxito, queda invalidado: un segundo intento con el mismo valor es rechazado (negativo — un solo uso)",
+        "Emitido un segundo secreto para la misma cuenta, el primero deja de ser válido y solo el más reciente se acepta (edge — la solicitud nueva invalida la anterior)",
+        "El secreto tiene al menos 128 bits de entropía y procede de un generador criptográficamente seguro; dos emisiones consecutivas nunca coinciden",
+        "El secreto está ligado a una sola cuenta: presentado en el flujo, solo permite fijar la contraseña de esa cuenta y de ninguna otra"
+      ]
+    },
+    {
+      "id": "FR-1305",
+      "title": "Entrega del secreto por correo vía SMTP, enviado desde el servidor",
+      "description": "Cuando se emite un secreto de recuperación, el sistema debe entregarlo por correo electrónico a la dirección registrada de la cuenta y a ninguna otra, mediante una conexión SMTP establecida DESDE EL SERVIDOR. El mensaje contiene un enlace a la pantalla de contraseña nueva que porta el secreto, indica su caducidad y advierte de ignorarlo si el usuario no pidió nada. Ninguna parte del envío ocurre en el navegador: el cliente no adquiere ninguna petición a un tercero.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Tras una solicitud válida, el servidor SMTP de prueba recibe exactamente un mensaje, dirigido únicamente a la dirección registrada de esa cuenta (happy)",
+        "El cuerpo del mensaje contiene un enlace absoluto a la pantalla de contraseña nueva construido sobre la URL base configurada, portando el secreto emitido, y menciona la caducidad de 30 minutos",
+        "Durante todo el flujo de solicitud, el navegador no emite ninguna petición a un origen externo: el envío es una conexión saliente del proceso servidor (negativo — se comprueba interceptando el tráfico del cliente)",
+        "El mensaje se dirige exclusivamente a la dirección de la cuenta: no se añade ninguna copia, ni visible ni oculta, a ninguna otra dirección (edge)"
+      ]
+    },
+    {
+      "id": "FR-1306",
+      "title": "Pantalla de contraseña nueva, alcanzable con el enlace y sin sesión",
+      "description": "Cuando el usuario abre el enlace recibido, el sistema debe presentar la pantalla para fijar una contraseña nueva sin exigir sesión, mostrando el campo de contraseña nueva y su confirmación. Esta pantalla es el ÚNICO destino que el secreto habilita: no expone, ni permite alcanzar desde ella, ningún dato del ledger. Si el enlace llega sin secreto o con uno que el sistema no reconoce, se aplica el rechazo de FR-1308 en lugar de mostrar el formulario.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Abriendo el enlace con un secreto vigente y sin ninguna cookie de sesión, se presenta el formulario de contraseña nueva con sus dos campos (happy)",
+        "Abriendo la misma dirección sin secreto alguno, no se presenta el formulario: se muestra el rechazo de FR-1308 (negativo)",
+        "Desde esta pantalla no se realiza ninguna lectura de datos del ledger: no se emite ninguna petición al contrato /api/v1 mientras no exista sesión (negativo — el secreto no es una puerta lateral a los datos)",
+        "La pantalla renderiza sin desbordes a 375px y a 1440px y sus controles siguen la escala canónica del sistema (40px, 48px táctil por debajo de 760px)"
+      ]
+    },
+    {
+      "id": "FR-1307",
+      "title": "Fijar la contraseña nueva con las mismas reglas de fortaleza que el registro",
+      "description": "Cuando el usuario envía una contraseña nueva junto con un secreto vigente, el sistema debe validarla con exactamente las mismas reglas de fortaleza que aplica al registro, guardarla con argon2id y los parámetros OWASP vigentes (NFR-501), y dejar al usuario en condiciones de entrar con ella. Una contraseña que no cumple las reglas, o una confirmación que no coincide, se rechaza indicando el motivo y sin consumir el secreto — para que el usuario pueda reintentar con el mismo enlace.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Con un secreto vigente y una contraseña que cumple las reglas, la operación tiene éxito y a continuación el inicio de sesión con esa contraseña nueva entra en la app (happy — cierra el flujo end-to-end)",
+        "La contraseña anterior deja de servir: intentar iniciar sesión con ella devuelve credenciales inválidas (negativo)",
+        "Una contraseña que incumple las reglas de fortaleza del registro se rechaza con el motivo mostrado, y el secreto SIGUE vigente para reintentar (edge — el fallo de validación no quema el enlace)",
+        "Una confirmación que no coincide con la contraseña nueva se rechaza sin llamar al servidor y sin consumir el secreto (negativo)",
+        "El hash almacenado tras la operación es argon2id con los parámetros OWASP vigentes (m=19456, t=2, p=1): idéntico tratamiento que una contraseña creada en el registro"
+      ]
+    },
+    {
+      "id": "FR-1308",
+      "title": "Rechazo del secreto caducado, ya usado o inválido",
+      "description": "Cuando el sistema recibe un secreto que ha caducado, que ya fue consumido, que fue invalidado por una solicitud posterior o que no reconoce, debe rechazar la operación sin fijar ninguna contraseña, explicar al usuario que el enlace ya no sirve y ofrecerle solicitar uno nuevo. El mensaje es el mismo para los cuatro casos: distinguirlos no ayuda al titular legítimo y solo informa a quien prueba secretos.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Con un secreto cuya expiración de 30 minutos ya pasó, la operación se rechaza, ninguna contraseña cambia y se ofrece solicitar un enlace nuevo (negativo — caducado)",
+        "Con un secreto ya consumido con éxito, la operación se rechaza y la contraseña fijada en el primer uso permanece intacta (negativo — un solo uso)",
+        "Con un secreto invalidado por una solicitud posterior, la operación se rechaza (edge)",
+        "Con un valor inventado que el sistema nunca emitió, la operación se rechaza con el MISMO mensaje que los tres casos anteriores (negativo — no se distingue el motivo)",
+        "En el límite exacto de la ventana, un secreto presentado justo antes de cumplir 30 minutos se acepta y uno presentado después se rechaza (edge/boundary)"
+      ]
+    },
+    {
+      "id": "FR-1309",
+      "title": "Cambiar la contraseña invalida las sesiones activas de la cuenta",
+      "description": "Cuando la contraseña de una cuenta se fija con éxito a través del flujo de recuperación, el sistema debe invalidar todas las sesiones activas de esa cuenta, de modo que un acceso obtenido antes del cambio no sobreviva a la recuperación. El titular vuelve a entrar con su contraseña nueva desde la pantalla de acceso; una sesión previa que siga en un navegador abierto deja de servir en su siguiente petición.",
+      "priority": "MUST",
+      "type": "security",
+      "acceptance_criteria": [
+        "Con una sesión abierta en un navegador y la contraseña recuperada desde otro, la siguiente petición del primer navegador al contrato /api/v1 responde 401 y el gate vuelve a pedir credenciales (happy — la razón de ser del requisito)",
+        "Tras el cambio, no queda ninguna fila de sesión vigente de esa cuenta en la base de datos (edge — se verifica en el almacén, no solo en la UI)",
+        "Las sesiones de OTRAS cuentas no se ven afectadas por la recuperación de ésta (negativo — el alcance de la invalidación es una sola cuenta)",
+        "El titular puede iniciar sesión inmediatamente con la contraseña nueva y obtiene una sesión válida"
+      ]
+    },
+    {
+      "id": "FR-1310",
+      "title": "Fallo de envío: el usuario se entera y el servidor lo registra",
+      "description": "Cuando el envío del correo falla por un problema de infraestructura (SMTP inalcanzable, credenciales rechazadas, tiempo de espera agotado), el sistema debe registrar el fallo en el log del servidor con el motivo técnico y comunicar al usuario que el envío no pudo completarse, invitándole a reintentar. Este caso NO se disfraza con el acuse neutro de FR-1303: el acuse neutro protege la existencia de la cuenta, no oculta una avería, y presentarlo aquí dejaría al usuario esperando indefinidamente un correo que nunca salió. El motivo técnico va al log, nunca a la pantalla.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con el servidor SMTP inalcanzable, la solicitud para una cuenta existente muestra un mensaje de envío fallido con invitación a reintentar, distinto del acuse neutro (happy del caso de error)",
+        "Ese mismo fallo deja en el log del servidor una entrada con el motivo técnico del error de envío (edge — observabilidad del fallo)",
+        "El mensaje mostrado al usuario no incluye el host, el puerto, el usuario SMTP ni el texto de la excepción (negativo — el detalle técnico no llega a la pantalla)",
+        "Restablecido el servidor SMTP, una nueva solicitud para la misma cuenta se envía con éxito y muestra el acuse neutro (edge — el fallo no deja la cuenta bloqueada)"
+      ]
+    },
+    {
+      "id": "FR-1311",
+      "title": "Configuración SMTP por variables de entorno, validada al arrancar",
+      "description": "Cuando el proceso arranca, el sistema debe leer la configuración de envío (host, puerto, usuario, contraseña y dirección remitente) exclusivamente de variables de entorno validadas en el módulo de entorno existente, sin ningún valor de host ni credencial en el código. La configuración se declara en `.env.example` y en la documentación de despliegue. Coherente con NFR-510 (artefacto portable, build agnóstico del entorno), la ausencia de configuración SMTP no aborta el arranque: el resto de la app funciona y solo el flujo de recuperación queda declarado como no disponible, del mismo modo que Google se deshabilita cuando faltan sus credenciales. Ninguna credencial SMTP se expone al cliente: ninguna de estas variables lleva el prefijo `NEXT_PUBLIC_`.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Con las variables SMTP presentes y válidas, el arranque valida la configuración y el flujo de recuperación queda disponible (happy)",
+        "Sin variables SMTP, el proceso arranca igualmente, el resto de la app opera con normalidad y la solicitud de recuperación informa de que el flujo no está disponible en este despliegue (edge — artefacto portable, NFR-510)",
+        "Con una variable SMTP presente pero inválida (por ejemplo un puerto no numérico), el arranque falla nombrando la variable concreta, sin caer a un valor por defecto silencioso (negativo — NFR-510)",
+        "Ninguna variable SMTP lleva el prefijo `NEXT_PUBLIC_`, y ni el host, ni el usuario, ni la contraseña aparecen en ningún bundle servido al navegador (negativo — no hay filtración al cliente)",
+        "No existe en el código ningún host, puerto, usuario, contraseña ni dirección remitente literal: todos proceden del entorno validado, y `.env.example` documenta cada variable nueva"
+      ]
+    },
+    {
+      "id": "FR-1312",
+      "title": "Las dos pantallas nuevas adoptan el sistema de diseño del producto",
+      "description": "Cuando se renderizan las pantallas de solicitud y de contraseña nueva, deben adoptar el sistema de diseño César Augusto igual que hizo la pantalla de acceso en FR-1108: componentes Input/Button compartidos, tokens de color theme-aware, escala canónica de control y roles tipográficos — no estilos en línea ni elementos sin clases. Ambas funcionan en tema claro y oscuro y cumplen los mismos contrastes que el resto del producto.",
+      "priority": "MUST",
+      "type": "visual",
+      "acceptance_criteria": [
+        "Ambas pantallas usan los componentes compartidos Input y Button y los tokens de color theme-aware; no contienen atributos `style` en línea para color, tipografía ni espaciado (happy)",
+        "El contraste de texto primario y secundario sobre el fondo es ≥4.5:1 en AMBOS temas, claro y oscuro (medición, no apreciación)",
+        "Los controles interactivos miden ≥48px de alto por debajo de 760px y exponen indicador de foco visible al navegar con teclado",
+        "No se renderiza ningún emoji, gradiente ni glow en ninguna de las dos pantallas; los íconos, si los hay, son de línea currentColor (negativo — regla dura del sistema)",
+        "Ambas pantallas renderizan sin desbordes horizontales a 375px, 768px y 1440px"
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1301",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El gate de sesión obligatorio (FR-1102) sigue siendo la puerta única a los datos: no existe camino a dato financiero alguno sin sesión válida. El flujo de recuperación NO puede convertirse en una puerta lateral — el secreto habilita fijar una contraseña y nada más. La API sigue respondiendo 401 sin cookie válida (FR-504).",
+      "acceptance_criteria": "Sin sesión, y estando en cualquiera de las dos pantallas nuevas, toda petición al contrato /api/v1 responde 401 y no se devuelve ningún dato del ledger. Presentar un secreto de recuperación válido a un endpoint de datos no concede acceso. Los TCs del gate de la feature servidor-fuente-unica (TC-SFU-102h y siguientes) siguen pasando."
+    },
+    {
+      "id": "NFR-1302",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El hash de contraseñas sigue siendo argon2id con los parámetros OWASP de NFR-501 (m=19456 KiB, t=2, p=1). Una contraseña fijada por recuperación se guarda exactamente igual que una creada en el registro: esta feature no introduce un segundo camino de hashing ni relaja los parámetros.",
+      "acceptance_criteria": "Tras recuperar la contraseña, el hash almacenado tiene el prefijo de argon2id y los parámetros OWASP declarados; el inicio de sesión con la contraseña nueva verifica contra ese hash. Los TCs de hashing de la feature backend siguen pasando."
+    },
+    {
+      "id": "NFR-1303",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las cookies endurecidas (HttpOnly/Secure/SameSite) y los rate limits existentes siguen intactos: 5 intentos/min en /sign-in/email y 10/min en /sign-up/email (NFR-512), y la confianza condicional en x-forwarded-for gobernada por LEDGER_TRUST_PROXY (BG-013). Añadir el endpoint de recuperación no altera ninguna de estas reglas ni sus valores.",
+      "acceptance_criteria": "Tras la feature, el sexto intento de /sign-in/email dentro de la ventana de 60s sigue devolviendo 429; las cookies de sesión conservan HttpOnly, SameSite=lax y Secure en producción; sin LEDGER_TRUST_PROXY=true no se declara ninguna cabecera de IP. Los TCs TC-BE-081f y los de cookies de la feature backend siguen pasando."
+    },
+    {
+      "id": "NFR-1304",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El CLIENTE sigue emitiendo cero peticiones a orígenes externos (TC-104e, TC-UXC-354h). El envío de correo es una conexión saliente del proceso SERVIDOR vía SMTP, declarada explícitamente como tal: ninguna dependencia de envío, plantilla ni recurso se carga desde el navegador.",
+      "acceptance_criteria": "Recorriendo el flujo completo en el navegador (cargar, solicitar recuperación, abrir el enlace, fijar contraseña, entrar), el número de peticiones a orígenes distintos del propio es exactamente 0. Los TCs TC-104e y TC-UXC-354h siguen pasando sin modificarse."
+    },
+    {
+      "id": "NFR-1305",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El aislamiento por `ownerId` se mantiene sin excepción: recuperar el acceso jamás expone ni altera datos de otra cuenta. El secreto está ligado a una sola cuenta y la contraseña que fija es la de esa cuenta.",
+      "acceptance_criteria": "Con dos cuentas pobladas, recuperar la contraseña de la primera no modifica la contraseña, las sesiones ni un solo dato de la segunda; tras entrar con la contraseña nueva, la primera cuenta ve exactamente sus propios datos y ninguno de la segunda. Los TCs de aislamiento por ownerId de la feature backend siguen pasando."
+    },
+    {
+      "id": "NFR-1306",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "La seguridad SÍ aplica: la feature añade un endpoint sin autenticar que emite un secreto capaz de cambiar una contraseña. El secreto se genera con un generador criptográficamente seguro (≥128 bits), tiene un solo uso y caduca a los 30 minutos; viaja únicamente al correo registrado; no se escribe en ningún log ni se refleja en ningún mensaje de error; y el endpoint no permite distinguir una cuenta existente de una inexistente. Las credenciales SMTP viven solo en variables de entorno del servidor y nunca alcanzan el cliente.",
+      "acceptance_criteria": "Un secreto inventado, caducado o ya usado es rechazado (FR-1308). El log del servidor tras un ciclo completo no contiene el valor del secreto en ninguna entrada. Las respuestas a una dirección registrada y a una no registrada son idénticas en código y cuerpo (FR-1303). Ninguna variable SMTP aparece en el bundle del cliente. Un script de comprobación de configuración (ampliación de scripts/security-config.sh) verifica estas afirmaciones y se declara como quality_gate, de modo que cada verify vuelve a comprobar la postura."
+    },
+    {
+      "id": "NFR-1307",
+      "category": "Observability",
+      "priority": "MUST",
+      "requirement": "Cada petición al endpoint de recuperación se registra en stdout con el formato ya vigente en el proyecto — [timestamp] METHOD /path STATUS y el identificador de petición — igual que el resto del contrato. El registro NUNCA incluye el valor del secreto ni la contraseña; un fallo de envío añade su motivo técnico (FR-1310).",
+      "acceptance_criteria": "Tras una solicitud de recuperación, stdout contiene una línea con timestamp, método, ruta y código de estado, con el mismo formato que las líneas de /api/v1 ya existentes. Ninguna línea del log contiene el secreto emitido ni la contraseña enviada, comprobado buscando ambos valores literales en la salida capturada."
+    },
+    {
+      "id": "NFR-1308",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "El pipeline de integración continua ejecuta la suite completa declarada del proyecto —incluidos los runners e2e existentes— en cada push a la rama principal, cubriendo también los tests nuevos de esta feature. La feature no introduce una suite que quede fuera de la corrida por defecto.",
+      "acceptance_criteria": "El fichero de workflow declara el disparador de push sobre la rama principal e invoca los comandos de test del proyecto; los tests nuevos de esta feature quedan bajo un runner que la corrida por defecto ya ejecuta (verificado por aserción estructural sobre el fichero de workflow y sobre la configuración del runner e2e, de modo que no se repita el caso de tests/e2e-backend, que quedó fuera de la corrida por defecto y ocultó una regresión)."
+    },
+    {
+      "id": "NFR-1309",
+      "category": "Reliability",
+      "priority": "MUST",
+      "requirement": "El endpoint de salud existente (GET /health) sigue devolviendo 200 mientras el proceso vive, y su respuesta NO depende de que el servidor SMTP sea alcanzable. Un correo mal configurado o caído degrada el flujo de recuperación, jamás la disponibilidad declarada de la aplicación.",
+      "acceptance_criteria": "Con el servidor SMTP inalcanzable o sin ninguna variable SMTP configurada, GET /health sigue respondiendo 200 y la app sigue sirviendo sus rutas sin error de servidor."
+    },
+    {
+      "id": "NFR-1310",
+      "category": "Usability",
+      "priority": "MUST",
+      "requirement": "El flujo completo es recorrible por el titular sin ayuda ni conocimiento técnico: desde la pantalla de acceso hasta estar dentro con la contraseña nueva, en cuatro pasos visibles (solicitar, abrir el enlace, fijar la contraseña, entrar), con un mensaje comprensible en cada estado — en curso, acuse, enlace caducado y fallo de envío. Todos los textos en español, coherentes con la voz del producto.",
+      "acceptance_criteria": "Un recorrido end-to-end completa el flujo sin recurrir a la consola del navegador, a la base de datos ni a ninguna intervención manual; cada uno de los cuatro estados (en curso, acuse neutro, enlace caducado, fallo de envío) muestra un texto en español que nombra qué ocurrió y qué puede hacer el usuario a continuación."
+    }
+  ],
+  "no_go_zone": [
+    "Verificación de email al registrarse — FUERA por decisión explícita del usuario (2026-08-13, decisión 2). Se acepta a sabiendas el riesgo: quien se registre con un correo mal escrito queda irrecuperable desde el primer día. Es asumible porque las cuentas son conocidas y pocas; con registro abierto dejaría de serlo. Queda como candidato de backlog, no como deuda silenciosa.",
+    "Servicio de correo transaccional de terceros (Resend, Postmark y equivalentes) — descartado a favor de SMTP portátil (decisión 1 del 2026-08-13): evita dependencia externa, cuenta de terceros y dominio verificado.",
+    "Código de recuperación entregado al registrarse, sin correo — descartado (decisión 1): solo mueve el problema de sitio, perder el código es perder el acceso igual.",
+    "Defensas propias de una superficie pública: captcha, backoff progresivo y telemetría de abuso — fuera porque los usuarios son cuentas conocidas sin registro abierto (decisión 3). Si algún día se abre el registro, esto se reabre como feature propia.",
+    "Segundo factor de autenticación, claves de acceso (passkeys) y reactivar el login con Google — fuera de esta feature: son caminos de acceso adicionales, no el camino de vuelta que falta.",
+    "Cambio de contraseña DESDE DENTRO de la app con la sesión ya iniciada (pantalla de perfil o ajustes) — es un flujo distinto, con sesión, y no lo pide el problema: quien puede entrar no está bloqueado.",
+    "Recuperación por un administrador o soporte que restablezca la contraseña de otro — no existe rol de administrador en el producto (single-user autenticado) y crearlo excede el alcance.",
+    "Cambio de la dirección de correo de una cuenta — fuera: sin verificación de email (ver el primer punto) permitirlo abriría un camino a apropiarse de una cuenta.",
+    "Historial o auditoría de intentos de recuperación como superficie de producto — el registro va al log del servidor (NFR-1307), no a una pantalla.",
+    "Plantilla de correo enriquecida con diseño HTML del sistema, imágenes o seguimiento de apertura — el mensaje es funcional y sobrio; el diseño del producto vive en la app, no en el buzón."
+  ],
+  "constraints": [
+    "El envío ocurre EXCLUSIVAMENTE en el servidor: el cliente conserva cero peticiones externas (NFR-1304).",
+    "Sin secretos en el código: host, puerto, usuario, contraseña y remitente SMTP salen del módulo de entorno validado (src/server/env.ts), en sincronía con scripts/check-env.mjs, y ninguno lleva prefijo NEXT_PUBLIC_.",
+    "La ausencia de configuración SMTP no aborta el arranque: el artefacto sigue siendo portable (NFR-510, build once / run anywhere).",
+    "La pantalla de acceso conserva literales sus 9 data-testid, aria-label, autoComplete y textos de error: son contrato de regresión de 85 TCs de la feature backend.",
+    "Idioma de la interfaz y del correo: español. Código e identificadores en inglés.",
+    "El flujo se apoya en la instancia de Better Auth ya configurada (src/server/auth.ts) y su almacén de verificación en PostgreSQL; no se introduce un segundo sistema de autenticación."
+  ],
+  "technology_preferences": [
+    "nodemailer como cliente SMTP en el servidor (decisión 1 del usuario, 2026-08-13).",
+    "Mailpit (o equivalente SMTP local) como servidor de correo en desarrollo y en los tests, para verificar el envío sin salir a Internet.",
+    "Better Auth 1.6.x — se usan sus mecanismos de recuperación y de invalidación de sesiones ya presentes en la dependencia, en lugar de construir un flujo paralelo.",
+    "Zod en el módulo de entorno para validar las variables SMTP, igual que el resto de la configuración."
+  ],
+  "user_personas": [
+    {
+      "role": "Titular de la cuenta que olvidó su contraseña",
+      "tech_level": "mid",
+      "goal": "Volver a entrar a sus finanzas por sí mismo, en pocos minutos, sin pedirle ayuda a nadie ni tocar una base de datos",
+      "pain_point": "Hoy no hay camino de vuelta: olvidar la contraseña equivale a perder el acceso a toda su información financiera, y Google —la única alternativa— está apagado"
+    },
+    {
+      "role": "Operador del despliegue (autor del proyecto)",
+      "tech_level": "high",
+      "goal": "Configurar el envío de correo con variables de entorno, que el arranque avise claro si algo falta o es inválido, y que un SMTP caído no tumbe la app",
+      "pain_point": "Un envío mal configurado se descubre tarde y de la peor forma: cuando alguien ya está bloqueado fuera y el correo que esperaba nunca salió"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1301",
+      "requirement_id": "FR-1301",
+      "as_a": "titular que olvidó su contraseña",
+      "i_want": "encontrar la salida desde la propia pantalla de acceso",
+      "so_that": "no me quedo mirando un formulario que no puedo completar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1301a",
+          "given": "la pantalla de acceso en modo 'Iniciar sesión', sin sesión",
+          "when": "busco una acción para recuperar mi contraseña y la activo",
+          "then": "se presenta la pantalla de solicitud con un campo de correo, sin haber introducido credenciales"
+        },
+        {
+          "id": "AC-1301b",
+          "given": "la pantalla de acceso en modo 'Crear cuenta'",
+          "when": "busco la acción de recuperación",
+          "then": "no existe: no hay contraseña que recuperar al crear una cuenta"
+        }
+      ]
+    },
+    {
+      "id": "US-1302",
+      "requirement_id": "FR-1302",
+      "as_a": "titular que olvidó su contraseña",
+      "i_want": "pedir la recuperación escribiendo solo mi correo",
+      "so_that": "arranco el proceso sin recordar nada más",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1302a",
+          "given": "la pantalla de solicitud con mi dirección registrada escrita",
+          "when": "activo la acción de envío",
+          "then": "la acción se deshabilita mientras se procesa y al terminar aparece el acuse neutro"
+        },
+        {
+          "id": "AC-1302b",
+          "given": "la pantalla de solicitud con el campo vacío",
+          "when": "activo la acción de envío",
+          "then": "no se envía ninguna solicitud y el campo se marca como inválido"
+        },
+        {
+          "id": "AC-1302c",
+          "given": "una solicitud en curso",
+          "when": "pulso la acción de envío por segunda vez",
+          "then": "no se dispara una segunda solicitud: el servidor recibe exactamente una"
+        }
+      ]
+    },
+    {
+      "id": "US-1303",
+      "requirement_id": "FR-1303",
+      "as_a": "titular de una cuenta",
+      "i_want": "que la respuesta a una solicitud no delate qué direcciones tienen cuenta",
+      "so_that": "nadie puede averiguar si estoy registrado probando mi correo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1303a",
+          "given": "una dirección registrada y una que no lo está",
+          "when": "solicito la recuperación para cada una",
+          "then": "el código de respuesta, el cuerpo y el texto en pantalla son idénticos en ambos casos"
+        },
+        {
+          "id": "AC-1303b",
+          "given": "una dirección no registrada",
+          "when": "solicito la recuperación",
+          "then": "el servidor SMTP de prueba no recibe ningún mensaje"
+        }
+      ]
+    },
+    {
+      "id": "US-1304",
+      "requirement_id": "FR-1304",
+      "as_a": "titular que pidió recuperar el acceso",
+      "i_want": "que el enlace que recibo sirva una sola vez y caduque",
+      "so_that": "un correo viejo reenviado o filtrado no sirva para entrar a mi cuenta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1304a",
+          "given": "un secreto recién emitido",
+          "when": "consulto su vigencia",
+          "then": "caduca 30 minutos después de su emisión y es el único vigente para mi cuenta"
+        },
+        {
+          "id": "AC-1304b",
+          "given": "un secreto ya usado con éxito para fijar mi contraseña",
+          "when": "intento usarlo por segunda vez",
+          "then": "es rechazado y ninguna contraseña cambia"
+        },
+        {
+          "id": "AC-1304c",
+          "given": "un primer secreto vigente para mi cuenta",
+          "when": "solicito la recuperación por segunda vez porque el correo tardó",
+          "then": "el primero deja de servir y solo el segundo es aceptado"
+        }
+      ]
+    },
+    {
+      "id": "US-1305",
+      "requirement_id": "FR-1305",
+      "as_a": "titular que pidió recuperar el acceso",
+      "i_want": "recibir el enlace en mi correo registrado",
+      "so_that": "puedo continuar el proceso desde el buzón que ya tengo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1305a",
+          "given": "una solicitud válida para mi cuenta",
+          "when": "reviso el servidor SMTP de prueba",
+          "then": "hay exactamente un mensaje, dirigido solo a mi dirección, con un enlace absoluto a la pantalla de contraseña nueva y la mención de la caducidad de 30 minutos"
+        },
+        {
+          "id": "AC-1305b",
+          "given": "el flujo de solicitud abierto en el navegador con el tráfico interceptado",
+          "when": "completo la solicitud",
+          "then": "el navegador no emite ninguna petición a un origen externo: el envío salió del proceso servidor"
+        }
+      ]
+    },
+    {
+      "id": "US-1306",
+      "requirement_id": "FR-1306",
+      "as_a": "titular con el enlace en la mano",
+      "i_want": "que al abrirlo se me pida directamente la contraseña nueva",
+      "so_that": "no tengo que iniciar sesión para poder cambiar la contraseña que no recuerdo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1306a",
+          "given": "un enlace con secreto vigente y ninguna cookie de sesión",
+          "when": "lo abro en el navegador",
+          "then": "se presenta el formulario de contraseña nueva con su campo de confirmación"
+        },
+        {
+          "id": "AC-1306b",
+          "given": "la pantalla de contraseña nueva abierta sin sesión",
+          "when": "observo las peticiones que hace la página",
+          "then": "no se emite ninguna al contrato /api/v1: el secreto no abre ninguna puerta a los datos"
+        }
+      ]
+    },
+    {
+      "id": "US-1307",
+      "requirement_id": "FR-1307",
+      "as_a": "titular que abrió el enlace",
+      "i_want": "fijar una contraseña nueva y entrar con ella de inmediato",
+      "so_that": "recupero el acceso a mis finanzas en el mismo momento",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1307a",
+          "given": "un secreto vigente y una contraseña que cumple las reglas del registro",
+          "when": "la confirmo y envío",
+          "then": "la operación tiene éxito y a continuación entro en la app con esa contraseña nueva"
+        },
+        {
+          "id": "AC-1307b",
+          "given": "la contraseña ya recuperada",
+          "when": "intento entrar con la contraseña anterior",
+          "then": "el acceso se rechaza con credenciales inválidas"
+        },
+        {
+          "id": "AC-1307c",
+          "given": "un secreto vigente y una contraseña que incumple las reglas de fortaleza",
+          "when": "la envío",
+          "then": "se rechaza indicando el motivo y el enlace sigue sirviendo para reintentar"
+        }
+      ]
+    },
+    {
+      "id": "US-1308",
+      "requirement_id": "FR-1308",
+      "as_a": "titular que tardó en abrir el correo",
+      "i_want": "que un enlace caducado me lo diga claro y me deje pedir otro",
+      "so_that": "no me quedo atascado sin entender qué pasó",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1308a",
+          "given": "un secreto emitido hace más de 30 minutos",
+          "when": "abro el enlace e intento fijar una contraseña",
+          "then": "se rechaza, ninguna contraseña cambia y se me ofrece solicitar un enlace nuevo"
+        },
+        {
+          "id": "AC-1308b",
+          "given": "un valor de secreto inventado que el sistema nunca emitió",
+          "when": "lo presento en el flujo",
+          "then": "se rechaza con exactamente el mismo mensaje que un enlace caducado o ya usado"
+        }
+      ]
+    },
+    {
+      "id": "US-1309",
+      "requirement_id": "FR-1309",
+      "as_a": "titular que recupera el acceso porque sospecha que alguien más entró",
+      "i_want": "que al fijar la contraseña nueva se cierren todas las sesiones abiertas",
+      "so_that": "quien tuviera acceso deja de tenerlo en ese mismo instante",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1309a",
+          "given": "una sesión mía abierta en un navegador y la recuperación completada desde otro",
+          "when": "el primer navegador hace su siguiente petición al contrato /api/v1",
+          "then": "responde 401 y el gate vuelve a pedir credenciales"
+        },
+        {
+          "id": "AC-1309b",
+          "given": "otra cuenta con su propia sesión abierta",
+          "when": "recupero la contraseña de la mía",
+          "then": "la sesión de la otra cuenta sigue siendo válida: la invalidación alcanza a una sola cuenta"
+        }
+      ]
+    },
+    {
+      "id": "US-1310",
+      "requirement_id": "FR-1310",
+      "as_a": "titular que pidió recuperar el acceso",
+      "i_want": "enterarme si el correo no pudo salir",
+      "so_that": "no espero indefinidamente un mensaje que nunca fue enviado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1310a",
+          "given": "el servidor SMTP inalcanzable y una solicitud para mi cuenta existente",
+          "when": "envío la solicitud",
+          "then": "veo un mensaje de envío fallido con invitación a reintentar, distinto del acuse neutro, sin ningún detalle técnico"
+        }
+      ]
+    },
+    {
+      "id": "US-1311",
+      "requirement_id": "FR-1310",
+      "as_a": "operador del despliegue",
+      "i_want": "que un fallo de envío quede registrado con su motivo técnico",
+      "so_that": "puedo diagnosticar por qué el correo no salió sin reproducirlo a ciegas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1311a",
+          "given": "el servidor SMTP rechazando la conexión",
+          "when": "un usuario solicita la recuperación",
+          "then": "el log del servidor contiene una entrada con el motivo técnico del fallo de envío, y ese motivo no aparece en la pantalla del usuario"
+        }
+      ]
+    },
+    {
+      "id": "US-1312",
+      "requirement_id": "FR-1311",
+      "as_a": "operador del despliegue",
+      "i_want": "configurar el envío solo con variables de entorno validadas al arrancar",
+      "so_that": "no hay credenciales en el código y un error de configuración se ve al arrancar, no cuando alguien queda bloqueado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1312a",
+          "given": "las variables SMTP presentes y válidas",
+          "when": "arranca el proceso",
+          "then": "la configuración se valida y el flujo de recuperación queda disponible"
+        },
+        {
+          "id": "AC-1312b",
+          "given": "una variable SMTP con un valor inválido, por ejemplo un puerto no numérico",
+          "when": "arranca el proceso",
+          "then": "el arranque falla nombrando esa variable concreta, sin caer a ningún valor por defecto"
+        },
+        {
+          "id": "AC-1312c",
+          "given": "un despliegue sin ninguna variable SMTP configurada",
+          "when": "arranca el proceso y abro la app",
+          "then": "la app funciona con normalidad y solo la solicitud de recuperación informa de que el flujo no está disponible en este despliegue"
+        }
+      ]
+    },
+    {
+      "id": "US-1313",
+      "requirement_id": "FR-1312",
+      "as_a": "titular que recorre el flujo",
+      "i_want": "que las pantallas nuevas se vean como el resto de la app en mi tema",
+      "so_that": "reconozco que sigo en el mismo producto y puedo leerlo sin esfuerzo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1313a",
+          "given": "las pantallas de solicitud y de contraseña nueva en tema claro y en tema oscuro",
+          "when": "mido el contraste del texto primario y secundario sobre el fondo",
+          "then": "es ≥4.5:1 en ambos temas, y los controles miden ≥48px de alto por debajo de 760px"
+        },
+        {
+          "id": "AC-1313b",
+          "given": "las mismas dos pantallas",
+          "when": "las reviso a 375px, 768px y 1440px",
+          "then": "renderizan sin desbordes horizontales y sin ningún emoji, gradiente ni glow"
+        }
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "FEATURE_IDEA.md lo enuncia concretamente y procede de BL-020 (único P1 del backlog) y del inventario del login del 2026-07-30; el usuario reafirmó construirlo al elegir esta feature el 2026-08-13",
+    "users": "El usuario confirmó en chat el 2026-08-13: cuentas conocidas, uso personal o familiar, sin registro abierto (decisión 3, planteada el 2026-08-03 y diferida hasta hoy)",
+    "baseline": "FEATURE_IDEA.md lo cuantifica: 0 recuperaciones de cada 100 porque el camino no existe; el inventario del login del 2026-07-30 documenta qué existe y qué falta",
+    "success_metric": "FEATURE_IDEA.md lo enuncia medible (100 de cada 100 dentro del camino soportado, flujo end-to-end completo) y el usuario lo mantuvo al elegir el alcance hoy",
+    "no_go_zone": "El usuario confirmó en chat el 2026-08-13 las decisiones 1 y 2 (SMTP frente a servicio de terceros o código sin correo; solo recuperación, sin verificación de email), que son las que definen las exclusiones principales"
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Entrada al flujo de recuperación desde la pantalla de acceso, sin sesión",
+      "disposition": "FR-1301"
+    },
+    {
+      "need": "Pantalla de solicitud donde el usuario indica su correo",
+      "disposition": "FR-1302"
+    },
+    {
+      "need": "La respuesta a la solicitud no revela si la dirección corresponde a una cuenta",
+      "disposition": "FR-1303"
+    },
+    {
+      "need": "Emitir un secreto de un solo uso que no sirva dos veces",
+      "disposition": "FR-1304"
+    },
+    {
+      "need": "El secreto expira: ventana corta, no días",
+      "disposition": "FR-1304"
+    },
+    {
+      "need": "Qué ocurre con una segunda solicitud mientras la primera sigue vigente",
+      "disposition": "FR-1304"
+    },
+    {
+      "need": "Entregar el secreto por correo electrónico vía SMTP",
+      "disposition": "FR-1305"
+    },
+    {
+      "need": "El envío sale del SERVIDOR, no del cliente",
+      "disposition": "FR-1305"
+    },
+    {
+      "need": "El correo llega a la dirección registrada y a ninguna otra",
+      "disposition": "FR-1305"
+    },
+    {
+      "need": "Pantalla de contraseña nueva alcanzable con el enlace y sin sesión",
+      "disposition": "FR-1306"
+    },
+    {
+      "need": "Fijar una contraseña nueva presentando el secreto",
+      "disposition": "FR-1307"
+    },
+    {
+      "need": "La contraseña nueva cumple las mismas reglas de fortaleza que el registro",
+      "disposition": "FR-1307"
+    },
+    {
+      "need": "Volver a entrar con la contraseña nueva sin intervención manual (métrica de éxito)",
+      "disposition": "FR-1307"
+    },
+    {
+      "need": "Rechazar un secreto caducado, ya usado, invalidado o inventado",
+      "disposition": "FR-1308"
+    },
+    {
+      "need": "Invalidar las sesiones activas al cambiar la contraseña",
+      "disposition": "FR-1309"
+    },
+    {
+      "need": "El usuario se entera si el envío del correo falla",
+      "disposition": "FR-1310"
+    },
+    {
+      "need": "Configuración SMTP por variables de entorno, sin secretos en el código",
+      "disposition": "FR-1311"
+    },
+    {
+      "need": "La ausencia de configuración SMTP no rompe el arranque (artefacto portable)",
+      "disposition": "FR-1311"
+    },
+    {
+      "need": "Las pantallas nuevas adoptan el sistema de diseño del producto",
+      "disposition": "FR-1312"
+    },
+    {
+      "need": "Must-not-break: FR-1102, el flujo no puede ser una puerta lateral a los datos",
+      "disposition": "NFR-1301"
+    },
+    {
+      "need": "Must-not-break: NFR-501, la contraseña nueva se guarda con argon2id OWASP",
+      "disposition": "NFR-1302"
+    },
+    {
+      "need": "Must-not-break: NFR-512, cookies endurecidas y rate limits de login y registro intactos",
+      "disposition": "NFR-1303"
+    },
+    {
+      "need": "Must-not-break: TC-104e / TC-UXC-354h, cero peticiones externas desde el cliente",
+      "disposition": "NFR-1304"
+    },
+    {
+      "need": "Must-not-break: aislamiento por ownerId, recuperar no expone datos de otra cuenta",
+      "disposition": "NFR-1305"
+    },
+    {
+      "need": "Postura de seguridad del endpoint nuevo, verificable en cada ciclo",
+      "disposition": "NFR-1306"
+    },
+    {
+      "need": "El endpoint nuevo registra sus peticiones sin filtrar el secreto al log",
+      "disposition": "NFR-1307"
+    },
+    {
+      "need": "Los tests nuevos entran en la corrida por defecto de integración continua",
+      "disposition": "NFR-1308"
+    },
+    {
+      "need": "Un SMTP caído no degrada la disponibilidad declarada de la app",
+      "disposition": "NFR-1309"
+    },
+    {
+      "need": "El flujo es recorrible por el titular sin ayuda ni conocimiento técnico",
+      "disposition": "NFR-1310"
+    },
+    {
+      "need": "Verificación de email al registrarse",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Servicio de correo transaccional de terceros (Resend, Postmark)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Código de recuperación entregado al registrarse, sin correo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Captcha, backoff progresivo y telemetría de abuso",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Segundo factor, passkeys y reactivar el login con Google",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambio de contraseña desde dentro de la app con sesión iniciada",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Restablecimiento por un administrador o soporte",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambio de la dirección de correo de una cuenta",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Historial de intentos de recuperación como pantalla de producto",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Plantilla de correo con diseño HTML, imágenes o seguimiento de apertura",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\n\nDevolver el acceso a quien olvida su contraseña: recuperación de contraseña por correo, con un enlace de un solo uso. Nace de BL-020, el único P1 del backlog.\n\nLas tres decisiones que mantuvieron esta feature aparcada desde el 2026-08-03 quedaron **cerradas por el usuario el 2026-08-13** (ver *Decisiones cerradas* al final). El pipeline puede avanzar.\n\n## Problem / Why\n\nNingún FR cubre recuperar la contraseña. Quien la olvida queda fuera de la app **sin camino de vuelta** — y la app es donde vive toda su información financiera. Google, la única alternativa de acceso, está apagado (`NEXT_PUBLIC_GOOGLE_ENABLED=false`).\n\nLo que convierte esto de incómodo en bloqueante: con la feature `servidor-fuente-unica` el login pasó a ser obligatorio para todos (FR-1102). Antes existía un camino sin sesión; ahora no.\n\nHallazgo del inventario del login (2026-07-30): el núcleo de auth está sólido — argon2id con parámetros OWASP, sesiones en BD que el logout invalida de verdad, cookies HttpOnly/Secure/SameSite, rate limit de 5 intentos/min en `/sign-in/email`. **Lo que falta es exclusivamente el flujo de recuperación**, no el endurecimiento.\n\n## Target Users\n\n**[CONFIRMADO 2026-08-13]** Un puñado de **cuentas conocidas — uso personal o familiar**. No hay registro abierto al público.\n\nConsecuencia directa sobre el rigor exigible: el flujo puede ser **simple y directo**. No se construye la ceremonia defensiva que exigiría una superficie pública (enumeración masiva, campañas de spam sobre el endpoint). Lo que SÍ se mantiene, porque cuesta poco y su ausencia es un fallo real incluso entre cuentas conocidas:\n\n- secreto de un solo uso con expiración corta,\n- el correo llega a la dirección registrada y a ninguna otra,\n- una petición de recuperación no revela por sí sola si una cuenta existe.\n\nLo que NO se construye por esta decisión: rate-limit elaborado con backoff progresivo, captcha, ni telemetría de abuso. Si algún día se abre el registro, esto se reabre como feature propia.\n\n## New Behavior\n\n- El sistema debe permitir **solicitar la recuperación desde la pantalla de acceso, sin sesión**, indicando la dirección de correo.\n- El sistema debe **emitir un secreto de un solo uso, con expiración**, que no sirva dos veces ni después de caducar.\n- El sistema debe **entregar ese secreto por correo electrónico vía SMTP**, enviado **desde el servidor**.\n- El sistema debe permitir **fijar una contraseña nueva** presentando ese secreto, aplicando las mismas reglas de fortaleza que el registro.\n- El sistema debe **invalidar las sesiones activas al cambiar la contraseña**, para que un acceso robado no sobreviva a la recuperación.\n- El sistema debe responder a la solicitud **sin revelar si la dirección corresponde a una cuenta existente**.\n\n## Success Criteria\n\n**Quien olvidó su contraseña vuelve a entrar sin intervención manual de nadie.**\n\nHoy eso ocurre 0 veces de cada 100 (no existe el camino). El objetivo es **100 de cada 100** dentro del camino soportado: dirección registrada, enlace vigente, un solo uso.\n\nMedible en el flujo completo de extremo a extremo: solicitar → recibir el correo → abrir el enlace → fijar contraseña nueva → entrar con ella. Y su contraparte negativa, igual de exigible: el mismo enlace usado por segunda vez **no** deja entrar, y un enlace caducado tampoco.\n\n## Touch Points\n\nMODIFICA: `src/server/auth.ts` (ganchos de better-auth), `src/components/auth/AuthForm.tsx` y `LoginGate.tsx` (entrada al flujo), `.env.example` y el despliegue (variables SMTP nuevas), `scripts/security-config.sh` (el gate debería cubrir el endpoint nuevo).\n\nAÑADE: pantalla de solicitud, pantalla de contraseña nueva, y la capa de envío por SMTP.\n\n## Must Not Break (Regression Boundary)\n\n- **FR-1102** — no existe camino a los datos sin sesión válida. El flujo de recuperación no puede convertirse en una puerta lateral: el secreto habilita **fijar una contraseña**, nunca leer ni escribir datos del ledger.\n- **NFR-501** — el hash sigue siendo argon2id con parámetros OWASP: una contraseña nueva se guarda igual que una de registro.\n- **NFR-512** — cookies endurecidas y los rate-limits de login y registro, intactos.\n- **TC-104e / TC-UXC-354h** — cero peticiones externas **desde el cliente**. El envío SMTP sale del **servidor**, y se declara así explícitamente para no romper estos TCs ni el gate.\n- **Aislamiento por `ownerId`** — recuperar el acceso jamás puede exponer datos de otra cuenta.\n\n## Out of Scope\n\n- **Verificación de email al registrarse.** Fuera por decisión explícita del 2026-08-13 (decisión 2). Se acepta a sabiendas el riesgo conocido: alguien que se registre con un correo mal escrito queda irrecuperable desde el primer día. Es asumible porque las cuentas son conocidas y pocas; con registro abierto dejaría de serlo. Queda como candidato de backlog, no como deuda silenciosa.\n- **Servicio de correo transaccional de terceros** (Resend, Postmark). Descartado a favor de SMTP portátil (decisión 1).\n- **Código de recuperación entregado al registrarse**, sin correo. Descartado (decisión 1): solo mueve el problema de sitio.\n- Defensas propias de una superficie pública: captcha, backoff progresivo, telemetría de abuso (ver *Target Users*).\n- Segundo factor, claves de acceso (passkeys), y reactivar el login con Google.\n\n---\n\n## Decisiones cerradas — 2026-08-13\n\nPlanteadas al usuario el 2026-08-03, diferidas a propósito, y confirmadas por él directamente hoy. Las tres son `confirmed`, no inferidas.\n\n1. **Medio de entrega → SMTP con nodemailer.** Portátil, cuatro variables de entorno, Mailpit en desarrollo. Sin atadura a un proveedor. Se descartan Resend/Postmark (dependencia externa y dominio verificado) y el código sin correo (no resuelve la pérdida del secreto).\n2. **Alcance → solo recuperación de contraseña.** La verificación de email queda explícitamente en *Out of Scope*, con su riesgo declarado arriba.\n3. **Usuarios → cuentas conocidas, uso personal o familiar.** No hay registro abierto. Ver *Target Users* para lo que esto incluye y lo que deja fuera.\n\n### Pendiente de definir en el pipeline, no por el usuario\n\nLo que sigue **no** son decisiones de producto: son parámetros que las fases de requisitos y diseño deben fijar y justificar. Se marcan como supuestos hasta entonces.\n\n- `[ASSUMPTION]` Ventana de expiración del enlace — orden de magnitud de decenas de minutos, no días.\n- `[ASSUMPTION]` Qué ocurre con una segunda solicitud mientras la primera sigue vigente (¿invalida la anterior?).\n- `[ASSUMPTION]` Servidor SMTP concreto del despliegue: es configuración de entorno, no parte del código.\n"
+}

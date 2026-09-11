@@ -13,7 +13,7 @@ test("TC-BE-030h: el tema persiste en localStorage tras recargar", async ({ page
   const themeBefore = await page.evaluate(() => localStorage.getItem("theme"));
   expect(themeBefore).toBeTruthy();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
   const themeAfter = await page.evaluate(() => localStorage.getItem("theme"));
   expect(themeAfter).toBe(themeBefore); // la preferencia sobrevive la recarga desde localStorage
 });
@@ -23,14 +23,14 @@ test("TC-BE-031e: tras guardar movimientos, localStorage no contiene datos finan
   await register(page, uniqueEmail("split"));
   // Guardar varios movimientos vía la API (fuente de verdad = servidor).
   expect(await createMovementViaApi(page, 5000)).toBe(201);
-  expect(await createMovementViaApi(page, 7000, "jul")).toBe(201);
+  expect(await createMovementViaApi(page, 7000, "2026-07")).toBe(201);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
 
   const ls = await dumpLocalStorage(page);
   // No hay llaves financieras.
   expect(ls["ledger.nodes.v1"]).toBeUndefined();
-  expect(ls["ledger.budget.v2"]).toBeUndefined();
+  expect(ls["ledger.budget.v4"]).toBeUndefined();
   // Ningún valor de localStorage contiene montos/movimientos/nodos/presupuestos.
   const blob = JSON.stringify(ls);
   expect(blob).not.toContain("5000");

@@ -1,0 +1,174 @@
+{
+  "project": "cierre-de-mes",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "requirement_compliance": [
+    {
+      "id": "FR-2001",
+      "title": "Un mes puede cerrarse, y su cierre forma parte del ledger",
+      "level": "complete",
+      "evidence": "4/4 TCs. El ledger gana `closure` como delta aditivo (ausente ≡ nada cerrado) persistido en `ledger.closed_through`/`reopened_period`, bajo el mismo lock optimista por `revision`. La frontera es un ESCALAR (ADR-11), así que un estado no contiguo es INDECIBLE en vez de vigilado. Una frontera corrupta degrada a «nada cerrado» sin impedir el arranque."
+    },
+    {
+      "id": "FR-2002",
+      "title": "El cierre es SECUENCIAL: solo se cierra el mes abierto más antiguo",
+      "level": "complete",
+      "evidence": "5/5 TCs. `nextClosable` devuelve el mes abierto más antiguo del rango, descartando el futuro. El endpoint NO acepta un periodo del cliente y su esquema es `.strict()`: un cierre fuera de orden no es EXPRESABLE en el protocolo, no solo rechazado."
+    },
+    {
+      "id": "FR-2003",
+      "title": "Las cifras de un mes cerrado son inmutables: ninguna operación las altera",
+      "level": "partial",
+      "evidence": "10/10 TCs. `closedPeriodsViolated` es un PUNTO DE ESTRANGULAMIENTO (ADR-12) que corre en las dos únicas vías de escritura del servidor —`saveLedger` e `insertMovement`— después del `FOR UPDATE` y antes de escribir, comparando contra el estado que lee el propio servidor. Cubre las seis vías que el requisito enumera y las que aún no existen. TC-CDM-030h lo verifica por PROPIEDAD: fotografía el mes cerrado entero y lo compara tras ejecutar las seis vías sobre el mes abierto. DEUDA DECLARADA: El cliente NO lleva un guardia por diff equivalente al del servidor: se limita a no abrir edición sobre una celda cerrada (startEdit) y a explicar el 422 cuando llega. Una escritura que se cuele por otra vía del cliente se rechaza en el servidor, pero el usuario la ve revertirse tras el viaje de ida y vuelta en vez de al instante."
+    },
+    {
+      "id": "FR-2004",
+      "title": "Las observaciones de celda de un mes cerrado siguen editables",
+      "level": "complete",
+      "evidence": "4/4 TCs. El guardia ignora `cellNotes` deliberadamente, y la celda de un mes cerrado abre en modo SOLO OBSERVACIONES: la cifra se pinta como texto y el panel de notas sigue disponible. Este último detalle lo destapó el gate de criterios — AC-2013 no tenía prueba, y al escribirla apareció que bloquear el editor dejaba las notas inalcanzables, convirtiendo la decisión del usuario en letra muerta."
+    },
+    {
+      "id": "FR-2005",
+      "title": "Reapertura del ÚLTIMO mes cerrado, una sola a la vez y con rastro",
+      "level": "partial",
+      "evidence": "10/10 TCs. `reopenMonth` retrocede la frontera un mes y marca `reopened`, que es el guardia contra caminar hacia atrás (ADR-13): la secuencia reabrir-cerrar repetida nunca desciende (TC-CDM-053e). El rastro se INSERTA en `closure_event` dentro de la misma transacción, así que no existe una reapertura sin rastro (TC-CDM-056f). Tras BG-001, el rango ancla también en la frontera (ADR-14) para que reabrir SIEMPRE devuelva una columna editable. DEUDA DECLARADA: El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan."
+    },
+    {
+      "id": "FR-2006",
+      "title": "Mientras haya meses sin cerrar, la app avisa — y nunca cierra por su cuenta",
+      "level": "complete",
+      "evidence": "5/5 TCs. `unclosedEndedPeriods` alimenta el `ClosureBanner`, que no bloquea nada. La app NUNCA cierra por su cuenta: TC-CDM-064f lo comprueba por barrido del código —las únicas invocaciones de `closeMonth` son el repositorio y la acción del store, ninguna dentro de un temporizador— porque una prueba de ejecución solo demuestra que no ocurrió en SU escenario."
+    },
+    {
+      "id": "FR-2007",
+      "title": "Cerrar fija el punto de partida del mes siguiente; el futuro planeado sigue editable",
+      "level": "complete",
+      "evidence": "4/4 TCs. No tiene implementación propia, y es correcto: es consecuencia de FR-2003. El saldo de cierre de un mes es función de entradas que ya no pueden cambiar, así que la apertura del siguiente es estable sin congelar ningún valor derivado — hacerlo habría creado una segunda fuente de verdad que podría divergir del cálculo."
+    },
+    {
+      "id": "FR-2008",
+      "title": "[ASSUMPTION: needs user confirmation] Solo se cierra un mes ya terminado o el mes en curso; nunca un mes futuro",
+      "level": "complete",
+      "evidence": "3/3 TCs. `nextClosable` descarta todo candidato posterior al mes en curso, que entra por parámetro (ADR-02). El mes EN CURSO sí es cerrable porque el riesgo está acotado: al ser el último cerrado, queda inmediatamente reabrible."
+    },
+    {
+      "id": "FR-2009",
+      "title": "La interfaz muestra qué está cerrado y por qué no se deja editar",
+      "level": "partial",
+      "evidence": "5/5 TCs. Cabeceras y celdas llevan `data-closed` y un CANDADO — segundo canal no cromático (WCAG 1.4.1). El intento de edición explica el rechazo y NOMBRA la salida: reabrir si es el último cerrado, dejar una observación si no. El control dice siempre qué es cerrable, qué reabrible y qué está reabierto. DEUDA DECLARADA: El control de cierre y el aviso solo existen en la pantalla de ESCRITORIO. En móvil no se puede cerrar ni reabrir, y las columnas cerradas del registro móvil no llevan marca. · Las columnas cerradas se marcan en la cabecera y en las celdas de la GRILLA (data-closed + candado), pero el módulo de Balance no marca las suyas."
+    },
+    {
+      "id": "FR-2010",
+      "title": "Editar un mes reabierto muestra qué cambió aguas abajo — y no lo impide",
+      "level": "complete",
+      "evidence": "8/8 TCs (4 unidad, 3 integración contra Postgres real, 1 e2e). `downstreamImpact` corre DOS VECES la misma serie sobre los mismos meses posteriores —una desde el carry actual del mes reabierto y otra desde la línea de base guardada al reabrirlo (ADR-15, migración 0005 + CHECK bicondicional)— y devuelve solo las filas que se movieron, con su antes y su después. TC-CDM-100h fija cifras concretas y comprueba además que la pérdida es idéntica en todos los meses posteriores, así que un atajo que reste un delta constante no cuela si el arrastre no fuera lineal. TC-CDM-101e: una edición que no mueve el saldo de cierre devuelve lista VACÍA, no filas con before === after. `brokenByThisEdit` distingue «lo rompiste tú» de «ya venía roto» y se prueba en los DOS sentidos (TC-CDM-102f y su contraparte), así que devolver `false` siempre no pasaría. TC-CDM-103f prueba que la corrección dañina SE ACEPTA (200 y persiste): protege la decisión del usuario de avisar y no bloquear, y se pondrá roja si alguien la convierte en un rechazo. TC-CDM-104f verifica que ninguna fila del impacto es un mes cerrado y que sus cifras quedan idénticas byte a byte."
+    },
+    {
+      "id": "FR-2011",
+      "title": "El historial de cierres y reaperturas se consulta desde la app",
+      "level": "complete",
+      "evidence": "7/7 TCs (5 integración, 2 e2e). Panel desplegable de solo lectura colgado del control de cierre (ADR-16), alimentado por `GET /api/v1/closure/events` sobre la tabla append-only `closure_event`. Orden `at DESC, id DESC` — el desempate por id evita que dos eventos del mismo instante dejen el orden indeterminado. TC-CDM-111e: cerrar-reabrir-cerrar deja tres entradas y la primera conserva su instante original. TC-CDM-112e: un ledger sin cierres devuelve 200 con lista vacía, y la pantalla lo explica con una frase en vez de quedarse en blanco. TC-CDM-113f: 401 sin sesión y aislamiento estricto por owner_id, verificado contando filas en la base. TC-CDM-116e: con más eventos que el tope de 200 se devuelve `truncated: true` y el panel lo dice al pie, en vez de mentir por omisión. TC-CDM-115f: el panel no contiene ningún control de escritura y abrirlo no mueve `revision` ni la frontera del cierre."
+    },
+    {
+      "id": "NFR-2001",
+      "title": "La suite existente sigue verde: las 645 pruebas unitarias y de integración y las 392 e2e del proyecto y de sus features ",
+      "level": "complete",
+      "evidence": "3/3 TCs. TC-CDM-201f comprueba automáticamente que el número de pruebas desactivadas no creció respecto de la línea base b0aa5fd."
+    },
+    {
+      "id": "NFR-2002",
+      "title": "Un ledger SIN meses cerrados se comporta exactamente como antes de esta feature: mismo arrastre, mismo techo, mismas res",
+      "level": "complete",
+      "evidence": "3/3 TCs. TC-CDM-212f lo comprueba estructuralmente barriendo `balance.ts`, `reserve.ts` y `rollup.ts` — si alguien mete el cierre en el cálculo, esa prueba lo delata."
+    },
+    {
+      "id": "NFR-2003",
+      "title": "El techo de flujo y la maquinaria de reservas conservan su veredicto en los meses ABIERTOS: headrooms encadenados, verdi",
+      "level": "complete",
+      "evidence": "3/3 TCs. Veredictos del techo, `maxWithdrawal` y `monthCarryUsage` idénticos en los meses abiertos, haya o no cierres detrás. TC-CDM-222f comprueba con `git diff` que `reserve.ts` no cambió ni una línea: BL-037 y BL-038 siguen exactamente donde estaban, como declara el no_go_zone."
+    },
+    {
+      "id": "NFR-2004",
+      "title": "multi-anio no se degrada: el horizonte en años completos, el filtro por año, el salto al mes elegido y la banda de año s",
+      "level": "complete",
+      "evidence": "5/5 TCs. El cierre no RECORTA el rango. Redacción corregida en la Fase 1: decía «idéntico», lo que prohibía también ampliarlo y bloqueaba el arreglo de BG-001. Con la frontera dentro del historial las listas son iguales; con la frontera anterior al primer dato, la lista con cierre CONTIENE a la de sin cierre y añade un periodo (TC-CDM-233h). Las pruebas de multi-anio pasan sin modificarse, comprobado por `git diff` en TC-CDM-202e."
+    },
+    {
+      "id": "NFR-2005",
+      "title": "El cierre se valida en el SERVIDOR, no solo en el navegador: la API rechaza cualquier escritura que altere una cifra de ",
+      "level": "complete",
+      "evidence": "4/4 TCs. El guardia corre en el SERVIDOR, dentro de la transacción y contra el estado persistido: un cliente que mienta sobre el estado previo no consigue escribir (TC-CDM-038e). Cuatro vectores verificados: petición fabricada a mano con cookie válida, ausencia de sesión, `ownerId` inyectado en el cuerpo y carrera contra el lock. TC-CDM-252f comprueba que el guardia no es siquiera ALCANZABLE desde el cliente."
+    },
+    {
+      "id": "NFR-2006",
+      "title": "Ni el cierre ni la reapertura degradan el recómputo: con el rango máximo previsto el recálculo completo tras cerrar, rea",
+      "level": "complete",
+      "evidence": "3/3 TCs. Mediana de `closedPeriodsViolated` ≤15ms sobre el estado máximo (23 nodos × 60 periodos), un orden de magnitud bajo el tope de 150ms; cerrar, reabrir y recalcular tras editar caben los tres en 150ms. Las mediciones llevan calentamiento previo: sin él se mide el JIT y no el código, lección heredada de multi-anio."
+    },
+    {
+      "id": "NFR-2007",
+      "title": "La persistencia no pierde nada ni rompe el bloqueo optimista por revision: guardar y recargar un ledger con meses cerrad",
+      "level": "complete",
+      "evidence": "3/3 TCs. Ida y vuelta completa con tres meses cerrados, una reapertura y cuatro eventos de rastro devuelve exactamente lo guardado; un PUT con `baseRevision` anterior sigue recibiendo 409. Un ledger anterior a la migración carga con `closure` nulo y opera sin nada congelado."
+    },
+    {
+      "id": "NFR-2008",
+      "title": "Si el estado de cierre exige tocar el esquema, la migración queda versionada, documentada, idempotente por marca de vers",
+      "level": "complete",
+      "evidence": "3/3 TCs. Migración `0004` puramente aditiva, en transacción e idempotente por marca de versión: re-ejecutarla no duplica nada ni toca las filas de `closure_event`. Los cinco CHECKs existen y rechazan un periodo inválido escrito a mano y un mes reabierto sin frontera."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2003",
+      "substitution": "El cliente NO lleva un guardia por diff equivalente al del servidor: se limita a no abrir edición sobre una celda cerrada (startEdit) y a explicar el 422 cuando llega. Una escritura que se cuele por otra vía del cliente se rechaza en el servidor, pero el usuario la ve revertirse tras el viaje de ida y vuelta en vez de al instante.",
+      "reason": "ADR-12 decide que la autoridad es el punto de estrangulamiento del servidor y que las comprobaciones del cliente son ergonomía, no garantía. Duplicar el diff en el cliente añadiría una segunda implementación de la misma regla que podría divergir — exactamente el defecto que el ADR evita. La única pérdida es la latencia del aviso.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2009",
+      "substitution": "El control de cierre y el aviso solo existen en la pantalla de ESCRITORIO. En móvil no se puede cerrar ni reabrir, y las columnas cerradas del registro móvil no llevan marca.",
+      "reason": "La persona planea en escritorio y captura en móvil (01_REQUIREMENTS user_personas), y cerrar un mes es una decisión de planeación. La frontera vive en la cuenta, así que lo cerrado desde escritorio ya rige en el móvil: el servidor rechaza igual. Falta la SEÑAL visual en móvil, no la protección.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2009",
+      "substitution": "Las columnas cerradas se marcan en la cabecera y en las celdas de la GRILLA (data-closed + candado), pero el módulo de Balance no marca las suyas.",
+      "reason": "El Balance comparte riel de columnas con la grilla, que sí va marcada, y sus filas son derivadas no editables — no hay nada que el usuario pueda intentar escribir allí, así que la señal de «no editable» no aporta lo mismo. AC-2028 nombra las dos superficies, así que se declara en vez de darse por cubierto.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2005",
+      "substitution": "El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan.",
+      "reason": "Es suficiente y coherente: solo el ULTIMO mes cerrado es reabrible (FR-2005), asi que anclar la frontera es exactamente lo que hace falta para que reabrir devuelva una celda. Los anteriores estan congelados para siempre y vacios — no hay nada que ver ni nada que hacer en ellos. Anclarlos todos exigiria guardar el inicio de la racha cerrada, un dato nuevo sin ningun uso.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "El panel de impacto solo existe en la pantalla de ESCRITORIO, igual que el control de cierre y el aviso (misma deuda ya declarada para FR-2009). En movil no se puede reabrir un mes, asi que tampoco hay impacto que enseniar alli.",
+      "reason": "La persona planea en escritorio y captura en movil (user_personas). Corregir un mes reabierto es trabajo de planeacion, y la accion que lo dispara —reabrir— vive solo en escritorio: un panel de impacto en movil no tendria como aparecer.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2011",
+      "substitution": "El historial no se puede enlazar ni marcar como favorito: es un panel desplegable, no una ruta propia. Tampoco se filtra ni se exporta.",
+      "reason": "ADR-16. Una ruta con su entrada de menu permanente es desproporcionada para una lista que un usuario unico consulta unas pocas veces al anio, y esta feature tiene prohibido crear la pagina de Configuracion (no_go_zone). Si algun dia hace falta filtrar o exportar, la ruta es la evolucion natural y este panel es su contenido.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "La linea de base del impacto se guarda en DOS columnas (el carry de cierre del mes reabierto), no en una foto del estado. El «antes» de cada mes posterior se RECALCULA corriendo la serie desde esa linea de base.",
+      "reason": "ADR-15, y es la decision, no un atajo: un snapshot entero costaria ordenes de magnitud mas y no daria nada extra, porque el arrastre es funcion de (carry de apertura, datos del mes). Su unica premisa es ese determinismo; si algun dia dejara de cumplirse, la decision hay que revisarla — queda escrito en el ADR.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "deployment_notes": "Modelo de despliegue: contenedor Docker detrás de Nginx, el del proyecto. El Dockerfile, el docker-compose.yml de producción y el .dockerignore NO existían y se crearon el 2026-09-03 como trabajo del PROYECTO RAÍZ, no de esta feature: el DEPLOYMENT.md de la raíz llevaba tiempo mandando construir una imagen desde un fichero ausente. La imagen se verificó arrancando de verdad — migraciones aplicadas desde el contenedor, /health 200, 401 sin sesión, headers de seguridad presentes, proceso como usuario sin privilegios y HEALTHCHECK en healthy. A esta feature le da igual el envoltorio: su migración 0004 y su código se comportan idénticos dentro del contenedor o sobre Node pelado.\n\nAÑADIDO EL 2026-09-03 (FR-2010/FR-2011, segunda ronda tras la auditoría de requisitos): la feature suma la migración `drizzle/0005_cierre_impacto.sql`, igual de aditiva que la 0004 — dos columnas nulables en `ledger` (`reopen_base_available`, `reopen_base_reserved`) y un CHECK bicondicional que las ata a `reopened_period`. NO sube `data_version`, y es deliberado: esa columna marca el modelo de DATOS y `saveLedger` la re-estampa en cada guardado, así que subirla sería una marca que se borra sola — una idempotencia falsa. La idempotencia real viene de `ADD COLUMN IF NOT EXISTS` y `DROP CONSTRAINT IF EXISTS`. Sigue sin haber ventana peligrosa de despliegue: el código viejo ignora las columnas que no conoce y el nuevo, contra una base sin migrar, degrada a «sin línea de base» → impacto vacío, nunca un «antes» inventado. Las dos migraciones están registradas en `drizzle/meta/_journal.json`; sin su entrada, `db:migrate` termina con éxito sin aplicar nada, que es el fallo silencioso que el DEPLOYMENT.md manda comprobar con una consulta a `information_schema` después de migrar."
+}

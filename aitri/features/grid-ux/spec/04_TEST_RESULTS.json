@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-07-23T18:10:55.830Z",
+  "executed_at": "2026-07-28T20:59:19.058Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,57 +8,57 @@
     {
       "tc_id": "TC-201h",
       "status": "pass",
-      "notes": "✓   93 [chromium] › tests/e2e/grid-ux.spec.ts:24:5 › TC-201h: el '+' en hover del TIPO crea un grupo y abre rename inline (244ms)"
+      "notes": "✓  119 [chromium] › tests/e2e/grid-ux.spec.ts:24:5 › TC-201h: el '+' en hover del TIPO crea un grupo y abre rename inline (352ms)"
     },
     {
       "tc_id": "TC-201e",
       "status": "pass",
-      "notes": "✓   94 [chromium] › tests/e2e/grid-ux.spec.ts:33:5 › TC-201e: al confirmar el nombre, el grupo nuevo queda en la jerarquía (277ms)"
+      "notes": "✓  120 [chromium] › tests/e2e/grid-ux.spec.ts:33:5 › TC-201e: al confirmar el nombre, el grupo nuevo queda en la jerarquía (414ms)"
     },
     {
       "tc_id": "TC-201f",
       "status": "pass",
-      "notes": "✓   95 [chromium] › tests/e2e/grid-ux.spec.ts:45:5 › TC-201f: no hay filas adder persistentes; el '+' de grupo vive en el tipo (179ms)"
+      "notes": "✓  121 [chromium] › tests/e2e/grid-ux.spec.ts:45:5 › TC-201f: no hay filas adder persistentes; el '+' de grupo vive en el tipo (292ms)"
     },
     {
       "tc_id": "TC-202h",
       "status": "pass",
-      "notes": "✓   96 [chromium] › tests/e2e/grid-ux.spec.ts:59:5 › TC-202h: '+' inline en grupo crea categoría hija y abre rename (226ms)"
+      "notes": "✓  122 [chromium] › tests/e2e/grid-ux.spec.ts:59:5 › TC-202h: '+' inline en grupo crea categoría hija y abre rename (354ms)"
     },
     {
       "tc_id": "TC-202e",
       "status": "pass",
-      "notes": "✓   97 [chromium] › tests/e2e/grid-ux.spec.ts:68:5 › TC-202e: '+' inline en categoría-hoja crea una subcategoría (240ms)"
+      "notes": "✓  123 [chromium] › tests/e2e/grid-ux.spec.ts:68:5 › TC-202e: '+' inline en categoría-hoja crea una subcategoría (347ms)"
     },
     {
       "tc_id": "TC-202f",
       "status": "pass",
-      "notes": "✓   98 [chromium] › tests/e2e/grid-ux.spec.ts:77:5 › TC-202f: un nodo NO borrable no muestra 🗑 (categoría con datos, grupo con hijos) (215ms)"
+      "notes": "✓  124 [chromium] › tests/e2e/grid-ux.spec.ts:77:5 › TC-202f: un nodo NO borrable no muestra 🗑 (categoría con datos, grupo con hijos) (337ms)"
     },
     {
       "tc_id": "TC-203h",
       "status": "pass",
-      "notes": "✓   99 [chromium] › tests/e2e/grid-ux.spec.ts:89:5 › TC-203h: hover muestra los controles (renombrar/agregar) accionables (177ms)"
+      "notes": "✓  125 [chromium] › tests/e2e/grid-ux.spec.ts:89:5 › TC-203h: hover muestra los controles (renombrar/agregar) accionables (273ms)"
     },
     {
       "tc_id": "TC-203e",
       "status": "pass",
-      "notes": "✓  100 [chromium] › tests/e2e/grid-ux.spec.ts:97:5 › TC-203e: 🗑 en una categoría vacía abre confirmación ✓/✗ y ✗ cancela (366ms)"
+      "notes": "✓  126 [chromium] › tests/e2e/grid-ux.spec.ts:97:5 › TC-203e: 🗑 en una categoría vacía abre confirmación ✓/✗ y ✗ cancela (498ms)"
     },
     {
       "tc_id": "TC-203f",
       "status": "pass",
-      "notes": "✓  101 [chromium] › tests/e2e/grid-ux.spec.ts:112:5 › TC-203f: los controles son SVG (0 emoji) (180ms)"
+      "notes": "✓  127 [chromium] › tests/e2e/grid-ux.spec.ts:112:5 › TC-203f: los controles son SVG (0 emoji) (264ms)"
     },
     {
       "tc_id": "TC-204h",
       "status": "pass",
-      "notes": "✓  102 [chromium] › tests/e2e/grid-ux.spec.ts:123:5 › TC-204h: arrastrar la manija cambia el ancho de la columna (238ms)"
+      "notes": "✓  128 [chromium] › tests/e2e/grid-ux.spec.ts:123:5 › TC-204h: arrastrar la manija cambia el ancho de la columna (378ms)"
     },
     {
       "tc_id": "TC-204e",
       "status": "pass",
-      "notes": "✓  103 [chromium] › tests/e2e/grid-ux.spec.ts:138:5 › TC-204e: el ancho persiste tras recargar (localStorage) (173ms)"
+      "notes": "✓  129 [chromium] › tests/e2e/grid-ux.spec.ts:138:5 › TC-204e: el ancho persiste tras recargar (localStorage) (308ms)"
     },
     {
       "tc_id": "TC-204f",
@@ -68,182 +68,182 @@
     {
       "tc_id": "TC-205h",
       "status": "pass",
-      "notes": "✓  104 [chromium] › tests/e2e/grid-ux.spec.ts:150:5 › TC-205h: la pestaña muestra 'Resumen' (no 'Budget') (125ms)"
+      "notes": "✓  130 [chromium] › tests/e2e/grid-ux.spec.ts:150:5 › TC-205h: la pestaña muestra 'Resumen' (no 'Budget') (219ms)"
     },
     {
       "tc_id": "TC-205e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-205e\" so it appears on stdout (e.g. test_TC_205e_description, # @aitri-tc TC-205e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-205e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  153 [chromium] › tests/e2e/grid-ux.spec.ts:463:5 › TC-205e: al alternar a Dashboard y volver, la pestaña sigue en 'Resumen' (391ms)"
     },
     {
       "tc_id": "TC-205f",
       "status": "pass",
-      "notes": "✓  105 [chromium] › tests/e2e/grid-ux.spec.ts:157:5 › TC-205f: no aparece 'Budget' en ninguna etiqueta visible (122ms)"
+      "notes": "✓  131 [chromium] › tests/e2e/grid-ux.spec.ts:157:5 › TC-205f: no aparece 'Budget' en ninguna etiqueta visible (213ms)"
     },
     {
       "tc_id": "TC-206h",
       "status": "pass",
-      "notes": "✓  106 [chromium] › tests/e2e/grid-ux.spec.ts:166:5 › TC-206h: al cambiar a 'Año', el KPI 'Ejecutado' agrega y es > 0 (162ms)"
+      "notes": "✓  132 [chromium] › tests/e2e/grid-ux.spec.ts:166:5 › TC-206h: al cambiar a 'Año', el KPI 'Ejecutado' agrega y es > 0 (259ms)"
     },
     {
       "tc_id": "TC-206e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/period-default.test.ts > FR-312 período por defecto = mes en curso > TC-206e: el período inicial del store es el mes en curso (no 'Año') 161ms"
+      "notes": "✓ |app| tests/domain/period-default.test.ts > FR-312 período por defecto = mes en curso > TC-206e: el período inicial del store es el mes en curso (no 'Año') 79ms"
     },
     {
       "tc_id": "TC-206f",
       "status": "pass",
-      "notes": "✓  107 [chromium] › tests/e2e/grid-ux.spec.ts:179:5 › TC-206f: el arranque abre en el MES EN CURSO, no en 'Año' (FR-312) (125ms)"
+      "notes": "✓  133 [chromium] › tests/e2e/grid-ux.spec.ts:179:5 › TC-206f: el arranque abre en el MES EN CURSO, no en 'Año' (FR-312) (225ms)"
     },
     {
       "tc_id": "TC-207h",
       "status": "pass",
-      "notes": "✓  108 [chromium] › tests/e2e/grid-ux.spec.ts:190:5 › TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses (125ms)"
+      "notes": "✓  134 [chromium] › tests/e2e/grid-ux.spec.ts:190:5 › TC-207h: bajo la grilla aparece el pie de ayuda + leyenda de meses (227ms)"
     },
     {
       "tc_id": "TC-207e",
       "status": "pass",
-      "notes": "✓  109 [chromium] › tests/e2e/grid-ux.spec.ts:197:5 › TC-207e: el pie no se renderiza a 375px (móvil) (103ms)"
+      "notes": "✓  135 [chromium] › tests/e2e/grid-ux.spec.ts:197:5 › TC-207e: el pie no se renderiza a 375px (móvil) (170ms)"
     },
     {
       "tc_id": "TC-207f",
       "status": "pass",
-      "notes": "✓  110 [chromium] › tests/e2e/grid-ux.spec.ts:203:5 › TC-207f: el pie no menciona reparto/distribución (D-4) (122ms)"
+      "notes": "✓  136 [chromium] › tests/e2e/grid-ux.spec.ts:203:5 › TC-207f: el pie no menciona reparto/distribución (D-4) (214ms)"
     },
     {
       "tc_id": "TC-208h",
       "status": "pass",
-      "notes": "✓  111 [chromium] › tests/e2e/grid-ux.spec.ts:210:5 › TC-208h: las subcategorías muestran el conector (CornerDownRight) (163ms)"
+      "notes": "✓  137 [chromium] › tests/e2e/grid-ux.spec.ts:210:5 › TC-208h: las subcategorías muestran el conector (CornerDownRight) (306ms)"
     },
     {
       "tc_id": "TC-208e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-208e\" so it appears on stdout (e.g. test_TC_208e_description, # @aitri-tc TC-208e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-208e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  154 [chromium] › tests/e2e/grid-ux.spec.ts:483:5 › TC-208e: el conector se alinea por indentación de profundidad (16px/nivel) (321ms)"
     },
     {
       "tc_id": "TC-208f",
       "status": "pass",
-      "notes": "✓  112 [chromium] › tests/e2e/grid-ux.spec.ts:220:5 › TC-208f: grupos y categorías no comparten el ícono de conector de subs (132ms)"
+      "notes": "✓  138 [chromium] › tests/e2e/grid-ux.spec.ts:220:5 › TC-208f: grupos y categorías no comparten el ícono de conector de subs (228ms)"
     },
     {
       "tc_id": "TC-209h",
       "status": "pass",
-      "notes": "✓  113 [chromium] › tests/e2e/grid-ux.spec.ts:229:5 › TC-209h: la fuente global resuelve a Inter (no Lexend/Fira Code) (117ms)"
+      "notes": "✓  139 [chromium] › tests/e2e/grid-ux.spec.ts:229:5 › TC-209h: la fuente global resuelve a Inter (no Lexend/Fira Code) (239ms)"
     },
     {
       "tc_id": "TC-209e",
       "status": "pass",
-      "notes": "✓  114 [chromium] › tests/e2e/grid-ux.spec.ts:237:5 › TC-209e: las cifras de la grilla usan tabular-nums (126ms)"
+      "notes": "✓  140 [chromium] › tests/e2e/grid-ux.spec.ts:237:5 › TC-209e: las cifras de la grilla usan tabular-nums (278ms)"
     },
     {
       "tc_id": "TC-209f",
       "status": "pass",
-      "notes": "✓  115 [chromium] › tests/e2e/grid-ux.spec.ts:245:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (522ms)"
+      "notes": "✓  141 [chromium] › tests/e2e/grid-ux.spec.ts:245:5 › TC-209f: no hay petición externa para la fuente (self-hosted) (645ms)"
     },
     {
       "tc_id": "TC-210h",
       "status": "pass",
-      "notes": "✓  117 [chromium] › tests/e2e/grid-ux.spec.ts:277:5 › TC-210h: (regresión) editar celda-hoja: Enter fija el valor (193ms)"
+      "notes": "✓  143 [chromium] › tests/e2e/grid-ux.spec.ts:277:5 › TC-210h: (regresión) editar celda-hoja: Enter fija el valor (388ms)"
     },
     {
       "tc_id": "TC-210e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-210e\" so it appears on stdout (e.g. test_TC_210e_description, # @aitri-tc TC-210e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-210e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  155 [chromium] › tests/e2e/grid-ux.spec.ts:508:5 › TC-210e: (regresión) Escape cancela la edición sin cambios (465ms)"
     },
     {
       "tc_id": "TC-210f",
       "status": "pass",
-      "notes": "✓  118 [chromium] › tests/e2e/grid-ux.spec.ts:290:5 › TC-210f: (regresión) una celda de nodo padre no abre editor (140ms)"
+      "notes": "✓  144 [chromium] › tests/e2e/grid-ux.spec.ts:290:5 › TC-210f: (regresión) una celda de nodo padre no abre editor (256ms)"
     },
     {
       "tc_id": "TC-211h",
       "status": "pass",
-      "notes": "✓  119 [chromium] › tests/e2e/grid-ux.spec.ts:298:5 › TC-211h: (regresión) categoría con datos NO borrable; una vacía SÍ se borra (400ms)"
+      "notes": "✓  145 [chromium] › tests/e2e/grid-ux.spec.ts:298:5 › TC-211h: (regresión) categoría con datos NO borrable; una vacía SÍ se borra (549ms)"
     },
     {
       "tc_id": "TC-211e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-211e\" so it appears on stdout (e.g. test_TC_211e_description, # @aitri-tc TC-211e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-211e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  156 [chromium] › tests/e2e/grid-ux.spec.ts:534:5 › TC-211e: (regresión) reparent por arrastre sigue funcionando (832ms)"
     },
     {
       "tc_id": "TC-211f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-211f\" so it appears on stdout (e.g. test_TC_211f_description, # @aitri-tc TC-211f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-211f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  157 [chromium] › tests/e2e/grid-ux.spec.ts:572:5 › TC-211f: (regresión) usar la manija de resize o '+' NO dispara un drag de nodo (674ms)"
     },
     {
       "tc_id": "TC-212h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/rollup-perf.test.ts > NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize > TC-212h: editar una hoja refleja los roll-ups de todos los ancestros en ≤150ms 3ms"
+      "notes": "✓ |app| tests/domain/rollup-perf.test.ts > NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize > TC-212h: editar una hoja refleja los roll-ups de todos los ancestros en ≤150ms 4ms"
     },
     {
       "tc_id": "TC-212e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/rollup-perf.test.ts > NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize > TC-212e: redimensionar la columna (writeCatWidth) NO recomputa ni altera los roll-ups 1ms"
+      "notes": "✓ |app| tests/domain/rollup-perf.test.ts > NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize > TC-212e: redimensionar la columna (writeCatWidth) NO recomputa ni altera los roll-ups 3ms"
     },
     {
       "tc_id": "TC-212f",
       "status": "pass",
-      "notes": "✓  126 [chromium] › tests/e2e/grid-ux.spec.ts:393:5 › TC-212f: la carga inicial con Lexend no supera ~2s y la fuente es self-hosted (sin CDN) (120ms)"
+      "notes": "✓  152 [chromium] › tests/e2e/grid-ux.spec.ts:393:5 › TC-212f: la carga inicial con Lexend no supera ~2s y la fuente es self-hosted (sin CDN) (221ms)"
     },
     {
       "tc_id": "TC-213h",
       "status": "pass",
-      "notes": "✓  120 [chromium] › tests/e2e/grid-ux.spec.ts:316:5 › TC-213h: (regresión) a 375px se muestra solo el registro (sin grilla) (106ms)"
+      "notes": "✓  146 [chromium] › tests/e2e/grid-ux.spec.ts:316:5 › TC-213h: (regresión) a 375px se muestra solo el registro (sin grilla) (173ms)"
     },
     {
       "tc_id": "TC-213e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-213e\" so it appears on stdout (e.g. test_TC_213e_description, # @aitri-tc TC-213e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-213e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  158 [chromium] › tests/e2e/grid-ux.spec.ts:604:5 › TC-213e: (regresión) el módulo de registro no desborda a 375px (222ms)"
     },
     {
       "tc_id": "TC-213f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-213f\" so it appears on stdout (e.g. test_TC_213f_description, # @aitri-tc TC-213f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-213f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  159 [chromium] › tests/e2e/grid-ux.spec.ts:639:5 › TC-213f: (regresión) a 375px NO aparece la grilla ni la manija de resize (184ms)"
     },
     {
       "tc_id": "TC-214h",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-214h\" so it appears on stdout (e.g. test_TC_214h_description, # @aitri-tc TC-214h); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-214h --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  160 [chromium] › tests/e2e/grid-ux.spec.ts:654:5 › TC-214h: (regresión) los datos persisten tras usar el resize y recargar (617ms)"
     },
     {
       "tc_id": "TC-214e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/gridWidth.test.ts > FR-104 ancho de columna persistido > TC-214e: la clave de ancho es independiente de las claves de datos 0ms"
+      "notes": "✓ |app| tests/domain/gridWidth.test.ts > FR-104 ancho de columna persistido > TC-214e: la clave de ancho es independiente de las claves de datos 1ms"
     },
     {
       "tc_id": "TC-214f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-214f\" so it appears on stdout (e.g. test_TC_214f_description, # @aitri-tc TC-214f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-214f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  161 [chromium] › tests/e2e/grid-ux.spec.ts:689:5 › TC-214f: (regresión) ancho corrupto no afecta la carga de datos ni lanza excepción (519ms)"
     },
     {
       "tc_id": "TC-215h",
       "status": "pass",
-      "notes": "✓  121 [chromium] › tests/e2e/grid-ux.spec.ts:324:5 › TC-215h: (regresión) sin emoji ni gradiente en la página (117ms)"
+      "notes": "✓  147 [chromium] › tests/e2e/grid-ux.spec.ts:324:5 › TC-215h: (regresión) sin emoji ni gradiente en la página (220ms)"
     },
     {
       "tc_id": "TC-215e",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-215e\" so it appears on stdout (e.g. test_TC_215e_description, # @aitri-tc TC-215e); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-215e --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  162 [chromium] › tests/e2e/grid-ux.spec.ts:719:5 › TC-215e: (regresión) contraste de texto primario ≥4.5:1 (355ms)"
     },
     {
       "tc_id": "TC-215f",
-      "status": "skip",
-      "notes": "Not detected in runner output. Make the result readable one of three ways: (1) name the test after \"TC-215f\" so it appears on stdout (e.g. test_TC_215f_description, # @aitri-tc TC-215f); (2) if the runner writes a results FILE, point aitri at it: verify-run --results <file|dir> (JUnit-XML — emitted by most runners — or TRX); (3) record it against evidence: tc verify TC-215f --result pass|fail --evidence <path>. E2E tests may also require a browser environment."
+      "status": "pass",
+      "notes": "✓  163 [chromium] › tests/e2e/grid-ux.spec.ts:737:5 › TC-215f: (regresión) 0 emoji/gradiente y 0 petición externa de fuente (820ms)"
     },
     {
       "tc_id": "TC-201g",
       "status": "pass",
-      "notes": "✓  125 [chromium] › tests/e2e/grid-ux.spec.ts:381:5 › TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo (240ms)"
+      "notes": "✓  151 [chromium] › tests/e2e/grid-ux.spec.ts:381:5 › TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo grupo (402ms)"
     },
     {
       "tc_id": "TC-216h",
       "status": "pass",
-      "notes": "✓  122 [chromium] › tests/e2e/grid-ux.spec.ts:342:5 › TC-216h: clic en el ícono de una categoría abre el selector y lo cambia (186ms)"
+      "notes": "✓  148 [chromium] › tests/e2e/grid-ux.spec.ts:342:5 › TC-216h: clic en el ícono de una categoría abre el selector y lo cambia (370ms)"
     },
     {
       "tc_id": "TC-217h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-217h: BG-001: grupo-hoja vaciado (sin hijos, sin valores) se borra y limpia budgets/actuals 1ms"
+      "notes": "✓ |app| tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-217h: BG-001: grupo-hoja vaciado (sin hijos, sin valores) se borra y limpia budgets/actuals 0ms"
     },
     {
       "tc_id": "TC-217e",
@@ -253,17 +253,17 @@
     {
       "tc_id": "TC-217f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-217f: BG-002: una categoría CON subcategorías no es borrable (aunque no tenga valores) 0ms"
+      "notes": "✓ |app| tests/domain/categories.test.ts > Borrado (sin 'Sin asignar' — bloquea si hay datos) > TC-217f: BG-002: una categoría CON subcategorías no es borrable (aunque no tenga valores) 1ms"
     },
     {
       "tc_id": "TC-216e",
       "status": "pass",
-      "notes": "✓  123 [chromium] › tests/e2e/grid-ux.spec.ts:356:5 › TC-216e: buscar en el IconPicker filtra el catálogo (edge) (173ms)"
+      "notes": "✓  149 [chromium] › tests/e2e/grid-ux.spec.ts:356:5 › TC-216e: buscar en el IconPicker filtra el catálogo (edge) (324ms)"
     },
     {
       "tc_id": "TC-216f",
       "status": "pass",
-      "notes": "✓  124 [chromium] › tests/e2e/grid-ux.spec.ts:371:5 › TC-216f: cerrar el IconPicker con Escape no cambia el ícono (negativo) (190ms)"
+      "notes": "✓  150 [chromium] › tests/e2e/grid-ux.spec.ts:371:5 › TC-216f: cerrar el IconPicker con Escape no cambia el ícono (negativo) (311ms)"
     }
   ],
   "fr_coverage": [
@@ -301,9 +301,9 @@
     },
     {
       "fr_id": "FR-105",
-      "tests_passing": 2,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 1,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -325,9 +325,9 @@
     },
     {
       "fr_id": "FR-108",
-      "tests_passing": 2,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 1,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -368,18 +368,18 @@
     {
       "ac_id": "AC-101",
       "fr_id": "FR-101",
-      "tests_passing": 9,
+      "tests_passing": 10,
       "tests_failing": 0,
-      "tests_skipped": 1,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
     {
       "ac_id": "AC-102",
       "fr_id": "FR-102",
-      "tests_passing": 4,
+      "tests_passing": 6,
       "tests_failing": 0,
-      "tests_skipped": 2,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -395,18 +395,18 @@
     {
       "ac_id": "AC-104",
       "fr_id": "FR-104",
-      "tests_passing": 7,
+      "tests_passing": 9,
       "tests_failing": 0,
-      "tests_skipped": 2,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
     {
       "ac_id": "AC-105",
       "fr_id": "FR-105",
-      "tests_passing": 2,
+      "tests_passing": 3,
       "tests_failing": 0,
-      "tests_skipped": 1,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -422,18 +422,18 @@
     {
       "ac_id": "AC-107",
       "fr_id": "FR-107",
-      "tests_passing": 5,
+      "tests_passing": 6,
       "tests_failing": 0,
-      "tests_skipped": 1,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
     {
       "ac_id": "AC-109",
       "fr_id": "FR-109",
-      "tests_passing": 5,
+      "tests_passing": 9,
       "tests_failing": 0,
-      "tests_skipped": 4,
+      "tests_skipped": 0,
       "tests_manual": 0,
       "status": "covered"
     },
@@ -467,10 +467,10 @@
   ],
   "summary": {
     "total": 52,
-    "passed": 41,
+    "passed": 52,
     "failed": 0,
-    "skipped": 11,
-    "skipped_e2e": 11,
+    "skipped": 0,
+    "skipped_e2e": 0,
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
@@ -483,7 +483,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
       "name": "lint",
@@ -491,7 +491,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+      "output": "> t-ledger@0.0.1-beta lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
     },
     {
       "name": "coverage",
@@ -499,7 +499,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-23T18:10:09.985Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-28T20:59:05.017Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
     },
     {
       "name": "smoke",
@@ -512,9 +512,9 @@
       "name": "e2e",
       "command": "npm run test:e2e",
       "required": false,
-      "status": "pass",
-      "exit_code": 0,
-      "output": " la grilla de 12 meses sigue funcionando tras la feature (132ms)\n  ✓  187 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (192ms)\n  ✓  188 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (150ms)\n  ✓  189 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (75ms)\n  ✓  185 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.2s)\n\n  189 passed (45.0s)"
+      "status": "fail",
+      "exit_code": 1,
+      "output": "> t-ledger@0.0.1-beta test:e2e\n> playwright test\n\nError: Process from config.webServer was not able to start. Exit code: 1\n\n\n[WebServer] unhandledRejection [Error [PageNotFoundError]: Cannot find module for page: /_document] {\n[WebServer]   type: 'PageNotFoundError',\n[WebServer]   code: 'ENOENT'\n[WebServer] }"
     }
   ]
 }

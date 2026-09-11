@@ -1,0 +1,147 @@
+{
+  "project": "transferencias",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "compliant",
+  "deployment_files": [
+    "drizzle/0001_transferencias.sql"
+  ],
+  "deployment_model": "El modelo existente sin cambios (contenedor Docker Next standalone + Postgres, o modo localStorage): la feature es dominio puro + componentes de cliente + capa de servidor ya desplegada. Lo ÚNICO nuevo para desplegar es la migración drizzle ADITIVA 0001_transferencias.sql (ledger.data_version, movement.from_id/to_id, tabla cell_note) que corre con `npm run db:migrate` antes del rollout; la migración de DATOS (v2/v3→v4) es lazy por usuario en loadLedger/insertMovement, transaccional, sin ventana de mantenimiento. Sin variables de entorno nuevas, sin endpoints nuevos, sin secretos. Rollback: las columnas/tabla nuevas son inertes para código viejo; revertir el bundle basta. Healthcheck y smoke heredados del pipeline raíz (verificados por el gate smoke en verde).",
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-1001",
+      "title": "Saldo DERIVADO por alcancía — la capa que reglas, registro y balance consumen",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). El saldo derivado (Σ aportes − Σ retiros) vive en resolvedBalance/resolvedSeries (src/domain/reserve.ts, memoizado por identidad). TC-TRF4-001h fija la serie exacta 100/200/300/250 mil con arrastre implícito; 001e cubre la alcancía vacía e ids inexistentes (0×12 sin lanzar); 001f es un fuzz determinista de 60 operaciones mixtas que verifica el piso ≥0 tras CADA operación aceptada."
+    },
+    {
+      "id": "FR-1002",
+      "title": "Las celdas del tipo Reserva son APORTES del mes — misma semántica que los otros tipos",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). Las celdas transfer son aportes del mes. TC-TRF4-002h (e2e) verifica contra el DOM real que la celda dice el aporte de SU mes y la fila total suma por mes (200.000, jamás 300.000 acumulado); 002e verifica la fila padre; 002f escanea el bloque completo tras operar exigiendo cero negativos y cero acumulados."
+    },
+    {
+      "id": "FR-1003",
+      "title": "Editar la celda corrige el aporte del mes — jamás genera retiros ni journal",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-TRF4-003h prueba que editar celdas (subir y bajar) escribe el aporte y deja movements.length idéntico (jamás journaliza); 003f (e2e) verifica la franja inline con el mensaje EXACTO, el foco, la selección de 6 caracteres y que Escape+recarga no persisten nada; 003e verifica el piso en cadena nombrando el mes ofensor con el saldo que quedaría."
+    },
+    {
+      "id": "FR-1004",
+      "title": "Operación De→A en el dominio (applyReserveOp) — journal con from/to; el journal SIGUE a las celdas",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). applyReserveOp con sus tres semánticas verificadas número a número (004h: guardar celda+journal, sacar journal-only, mover celda destino+journal, targets correctos y sentinel jamás en target). 004e y 104e son los TCs negativos de los hallazgos adversariales 2026-07-30: el journal SIGUE a las celdas en createNode/moveNode (saldo fantasma imposible) y deleteNode conserva el retiro del origen vivo. 004f: 6 entradas inválidas rechazadas sin mutar (deep-equal)."
+    },
+    {
+      "id": "FR-1005",
+      "title": "El registro opera Reservas con De→A, mostrando el estado antes de operar",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). TC-TRF4-005h/005f/005e/105h (e2e a 375px reales): saldos derivados visibles en los chips De, Máx./Margen junto al monto, exclusión mutua dinámica De=A, estado vacío con Guardar deshabilitado y rótulo «Reserva», y el guardado completo con from/to/nota + overlay «$50.000 · Viaje → Disponible» + celdas intactas al sacar."
+    },
+    {
+      "id": "FR-1006",
+      "title": "Regla TECHO — global por mes, bloqueante en Ejecutado, con mensaje que explica",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). Techo global verificado con los números del diseño: 006h (límite exacto pasa, +1 peso bloquea global con limit=0), 006e (el agujero del 'O': margen feb=0 con ene −500k/feb +300k; mover con margen 0 pasa), 006f (primera carga: ingreso+reserva mismo mes → disponible 0/reservado 2M/total 2M), 106f (mensaje exacto sin mutar)."
+    },
+    {
+      "id": "FR-1007",
+      "title": "Regla PISO — por alcancía sobre el saldo derivado, bloqueante, y sacar se permite en rojo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). Piso por alcancía sobre el saldo derivado: 007h (sacar el saldo exacto pasa y deja 0; +1 bloquea), 007e (sacar con disponible en −300k PASA y lo deja en 0), 107f (rechazo tipado con el saldo en limit, deep-equal sin mutar), 114f (el dominio rechaza el sobre-retiro también por la puerta del mini-form)."
+    },
+    {
+      "id": "FR-1008",
+      "title": "El plan de APORTES avisa sin bloquear, con marca de forma propia",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 008h: el aporte planeado sobre el margen devuelve ok con warning {techo, mar} y ESCRIBE; planTechoMonths lo expone para la marca. 008e (e2e): la celda porta data-plan-warn, color --state-warning computado, el glifo «!» y NO ›/‹. 008f: los planos no se contaminan en ninguna dirección."
+    },
+    {
+      "id": "FR-1009",
+      "title": "El Balance desdobla el mes en filas de un solo signo y acumula el reservado",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 009h reproduce el escenario del usuario número a número (jul 300/200/500 · ago sin gasto total 500 · con gasto 450) con aportes/retiros de un solo signo; 009e verifica «Disponible del mes» = flujo−aportes+retiros sin arrastre y que el reservado ARRASTRA en meses sin operación; 009f: fuzz de 100 ops verificando total(m)=total(m−1)+flujo(m) en ambos planos."
+    },
+    {
+      "id": "FR-1010",
+      "title": "Persistencia v4 y migraciones versionadas e idempotentes (v2→v4, v3→v4)",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 010h (integration): v3→v4 deshace saldos, sintetiza el retiro de 50k con nota, conserva el plan en @retiros, saldo derivado == resuelto v3 los 12 meses, idempotente por clave. 010e (Postgres real): dos cargas concurrentes migran UNA vez y un POST sobre un ledger v3 migra ANTES de operar (rechaza el retiro del doble con 422). 010f: from/to y cellNotes atraviesan las 5 capas cliente→PUT→BD→GET→cliente sin strip."
+    },
+    {
+      "id": "FR-1011",
+      "title": "Reestructurar el árbol conserva los saldos derivados",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 011h/011e: reparent+promote+demote de una alcancía con aportes Y retiros conservan Σ derivado idéntico mes a mes (helper resolvedYearByMonth); 011f es el negativo que DETECTA la fusión corrupta (retiro desanclado → fuga de 120k visible) y verifica que el camino real no la produce."
+    },
+    {
+      "id": "FR-1012",
+      "title": "Campo de observaciones por celda",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 012h (e2e): la nota «pasaje» de un retiro se lee desde la celda (punto indicador + tooltip + sección del editor) y una manual añadida aflora de inmediato; 012e: sin observaciones no hay indicador y el editor muestra el placeholder; 012f: 281 caracteres y vacío se rechazan SIN truncar, 280 exactos se aceptan íntegros."
+    },
+    {
+      "id": "FR-1014",
+      "title": "Operar y CORREGIR retiros desde la fila «Retiros del mes» (Ejec.)",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped). 014h (e2e): el mini-form lista todas las alcancías con ruta jerárquica y saldo («Ahorro · Fondo · Emergencia — $200.000»), Máx. visible, saca con journal y toast con Deshacer que revierte todo; 014e: eliminar del historial restaura el saldo derivado exacto; 014f: sobre-retiro graduado con la tabla budgetState de gastos (››/rojo al 150% y sin plan, ›/ámbar al 107%); 114f: doble puerta (UI deshabilita, dominio rechaza)."
+    },
+    {
+      "id": "FR-1015",
+      "title": "Retiros PLANEADOS con techo lógico y marca auto-sanadora",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 015h: el techo lógico acumulativo (plan 200k → rechaza 250k con limit, acepta 150k, marzo queda en 50k); 015f: rechazo sin mutar + inválidos no-op; 015e (e2e): franja «Solo hay $200.000 reservados en tu plan hasta febrero» y la marca auto-sanadora «!» + ámbar + tooltip al bajar los aportes del plan."
+    },
+    {
+      "id": "NFR-1001",
+      "title": "La conservación del balance sobrevive: total(m) = total(m−1) + flujo(m) en ambos",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-151h, TC-TRF4-151e, TC-TRF4-151f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 151h: fuzz de 120 operaciones mixtas (incluye retiros planeados y eliminaciones) verificando tras CADA una la identidad total=previo+flujo en ambos planos y Σ saldos derivados == reservedBalance; 151e: planos entrelazados; 151f: mutación centinela — solo los retiros reales (type transfer + from real) cuentan."
+    },
+    {
+      "id": "NFR-1002",
+      "title": "La captura de gastos e ingresos NO cambia: addMovement para expense/income conse",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-152h, TC-TRF4-152e, TC-TRF4-152f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 152h: addMovement expense/income acumula como siempre, journaliza sin extremos; 152f: from/to accidentales en un expense no ganan extremos ni tocan saldos; 152e (e2e): un gasto enorme se registra con margen de reservas 0 — las reglas son de reservas, no del flujo."
+    },
+    {
+      "id": "NFR-1003",
+      "title": "Los datos previos siguen válidos: migraciones no destructivas (v2 identidad; v3 ",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-153h, TC-TRF4-153e, TC-TRF4-153f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 153h: un estado v2 completo carga por IDENTIDAD (nada se convierte ni pierde; movimientos con date/note intactos), el CHECK amount>=0 presente y la migración drizzle aditiva; 153e: claves ajenas intactas y movimientos sin from/to jamás lanzan; 153f: tres blobs corruptos (negativos, no enteros, @retiros negativo) rechazados → semilla."
+    },
+    {
+      "id": "NFR-1004",
+      "title": "Una sola regla, todas las puertas: techo y piso viven en el dominio puro (sin Re",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-154h, TC-TRF4-154e, TC-TRF4-154f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 154h: las tres puertas producen veredictos deep-equal para la misma operación y estados de celdas equivalentes al aceptar; 154e: reserve.ts solo importa de types/months/tree/rollup/validation/ids, sin React/IO; 154f: el PUT confiado documentado (ADR-04 en el TRD) y validateReserveWrite ausente del camino del snapshot."
+    },
+    {
+      "id": "NFR-1005",
+      "title": "La derivación de saldos + validación en cadena de 12 meses corren en cada tecleo",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-155h, TC-TRF4-155e, TC-TRF4-155f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 155h: la ruta real (validate + edit + balance + totales×12) ≤150 ms con 30 alcancías medida con performance.now; 155e: contador de cómputos == 1 en consultas repetidas (misma referencia de serie) y data nuevo recomputa; 155f: contador de validaciones == 0 al editar un gasto."
+    },
+    {
+      "id": "NFR-1006",
+      "title": "La disciplina de accesibilidad sobrevive: todo estado nuevo portado por color ll",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-156h, TC-TRF4-156e, TC-TRF4-156f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 156h (×2 temas): los pares --fg-muted/--bg, --error/--bg-card y --state-warning/--bg ≥4.5:1 con valores resueltos por el navegador real, y la franja de bloqueo real también; 156e: chips De/A y Guardar ≥48px medidos por bounding box; 156f: «!», ›/›› y el mensaje con el número exacto presentes en el DOM sin percepción de color."
+    },
+    {
+      "id": "NFR-1007",
+      "title": "Cero rojo al cierre: los TCs de esta feature (TC-TRF-*) se re-derivan al modelo ",
+      "level": "complete",
+      "evidence": "tc_results: 3/3 passing (TC-TRF4-157h, TC-TRF4-157e, TC-TRF4-157f; derivado de 04_TEST_RESULTS.json — fr_coverage solo lista FRs). 157h: biyección spec↔suite — los 67 TCs presentes exactamente una vez, y el build report documenta la re-derivación v3→v4; 157e: los formatos viejos (v2/v3) solo se siembran en el spec de migración; 157f: cero marcadores TC-TRF4 huérfanos. Agregado del monorepo verificado por verify-run: 67/67 + gates typecheck/lint/coverage/smoke/e2e en verde."
+    }
+  ],
+  "rederivation_note": "Los TCs del modelo v3 (prefijo TC-TRF-) quedaron superseded; la suite vigente es TC-TRF4-* (67 TCs, 67/67 passing). Verificado por TC-TRF4-157h/157e/157f."
+}

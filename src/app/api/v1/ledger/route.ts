@@ -22,6 +22,28 @@ const putHandler = withApi<LedgerPutBody>(
   async ({ userId, body }) => {
     // El ownerId del payload se IGNORA: saveLedger fija el de la sesión.
     const res = await saveLedger(userId, body.state, body.baseRevision);
+    // Feature cierre-de-mes (FR-2003): la escritura tocaba cifras de un mes cerrado. 422 y no 409
+    // porque no es un conflicto de versiones — reintentar con la revisión buena no lo arregla.
+    if (!res.ok && "closedViolation" in res) {
+      return json(
+        { error: { code: "closed_period_violation", detail: { periods: res.periods } } },
+        HTTP.UNPROCESSABLE
+      );
+    }
+    // Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que
+    // estaba. 422 y no 409 por el mismo motivo que el anterior: reintentar no lo arregla, hay que
+    // cambiar QUÉ se escribe. El detalle viaja entero para que la interfaz pueda decir qué arreglar
+    // primero (FR-2102) — sin el periodo y sin el límite, el mensaje sería mudo.
+    if (!res.ok && "periodMismatch" in res) {
+      // Feature ciclos (FR-2405, RV-01/RV-02): claves fuera del calendario o periodo incoherente con la fecha.
+      return json({ error: { code: "period_mismatch", detail: { ids: res.ids } } }, HTTP.UNPROCESSABLE);
+    }
+    if (!res.ok && "domainViolation" in res) {
+      return json(
+        { error: { code: "domain_rule_violation", detail: { violations: res.violations } } },
+        HTTP.UNPROCESSABLE
+      );
+    }
     if (!res.ok) return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     // Notifica a los demás dispositivos del MISMO usuario (FR-511).
     syncHub.publish(userId, { revision: res.revision });

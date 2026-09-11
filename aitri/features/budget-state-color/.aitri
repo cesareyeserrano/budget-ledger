@@ -19,96 +19,63 @@
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-10T15:59:08.001Z",
+  "updatedAt": "2026-09-11T19:56:03.497Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-07-10T01:32:43.710Z",
-      "event": "approved",
+      "at": "2026-09-09T12:38:51.086Z",
+      "event": "started",
       "phase": 4
     },
     {
-      "at": "2026-07-10T12:53:19.305Z",
+      "at": "2026-09-09T12:38:51.192Z",
       "event": "completed",
       "phase": 4
     },
     {
-      "at": "2026-07-10T12:53:19.392Z",
+      "at": "2026-09-09T12:38:51.375Z",
       "event": "approved",
       "phase": 4
     },
     {
-      "at": "2026-07-10T12:54:16.692Z",
+      "at": "2026-09-09T13:04:31.641Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 25,
+      "passed": 23,
       "failed": 0,
-      "skipped": 3,
+      "skipped": 5,
       "manual": 0
     },
     {
-      "at": "2026-07-10T13:04:15.635Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T13:04:15.708Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-10T13:05:17.157Z",
+      "at": "2026-09-09T13:46:34.422Z",
       "event": "verify-run",
       "phase": "verify",
-      "passed": 25,
+      "passed": 23,
       "failed": 0,
-      "skipped": 3,
+      "skipped": 5,
       "manual": 0
     },
     {
-      "at": "2026-07-10T13:06:24.104Z",
-      "event": "verify-complete",
+      "at": "2026-09-09T14:13:09.416Z",
+      "event": "verify-run",
       "phase": "verify",
-      "passed": 28,
-      "failed": 0
+      "passed": 23,
+      "failed": 0,
+      "skipped": 5,
+      "manual": 0
     },
     {
-      "at": "2026-07-10T13:06:34.506Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T13:06:34.542Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T13:06:38.840Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T13:08:46.108Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T13:08:49.865Z",
-      "event": "approved",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T15:45:39.441Z",
+      "at": "2026-09-09T14:14:05.980Z",
       "event": "completed",
       "phase": 4
     },
     {
-      "at": "2026-07-10T15:45:39.516Z",
+      "at": "2026-09-09T14:14:06.142Z",
       "event": "approved",
       "phase": 4
     },
     {
-      "at": "2026-07-10T15:47:49.833Z",
+      "at": "2026-09-09T16:07:26.315Z",
       "event": "verify-run",
       "phase": "verify",
       "passed": 28,
@@ -117,26 +84,81 @@
       "manual": 0
     },
     {
-      "at": "2026-07-10T15:49:13.086Z",
+      "at": "2026-09-09T16:07:26.542Z",
       "event": "verify-complete",
       "phase": "verify",
       "passed": 28,
       "failed": 0
     },
     {
-      "at": "2026-07-10T15:52:01.811Z",
+      "at": "2026-09-09T23:49:38.430Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-09T23:49:57.641Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-09T23:50:04.463Z",
       "event": "started",
       "phase": 5
     },
     {
-      "at": "2026-07-10T15:57:43.828Z",
+      "at": "2026-09-09T23:50:07.202Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-09T23:52:07.780Z",
       "event": "completed",
       "phase": 5
     },
     {
-      "at": "2026-07-10T15:57:43.899Z",
+      "at": "2026-09-10T00:42:34.515Z",
       "event": "approved",
-      "phase": 5
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-11T16:50:39.218Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T16:50:59.093Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-11T19:56:03.319Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T19:56:03.474Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -144,8 +166,8 @@
     "1": "84f8c7b2c0f58254dd21a7d8d5fbbe23b6190248b1e79448e9402a81a86dfa32",
     "2": "4828c2f93578941b05a51f9a5ba93d4592d9d9ec750620baa13e4246c83e49f2",
     "3": "e8cd7eb2b283e67d413cc1899b7727a57fa35cd6f897bd55aea920d102d52d5f",
-    "4": "757260c7393bb041ddb9c0e087897b8a51044963e6b470e652f8a683d063e530",
-    "5": "38f77be2029ea4c350a8daec7b4ddfe818fb9eb034f42d6747327fef218bc2f0",
+    "4": "85880dd74aa0082bf91fa6257d70f404c4913bb844cc844c9064d1e7d1845ecf",
+    "5": "c4652eccdb54258faa6e04e3c2bbcd65e28969d8d454c4f35c2b13eb32446d18",
     "ux": "90c1de7107db0707eb9b41509b62959bb4937ac5c6c1f3bb4762f360c5b87744"
   },
   "coverageAuditLastAt": "2026-07-10T15:59:07.999Z",
@@ -183,14 +205,16 @@
       "FR-404"
     ]
   },
-  "verifyResultsHash": "8880f4d5a769e1f50873e905b1b8d0f22c4fef3bba7d45dc3f4ba24cea9e2d9f",
-  "verifyRanAt": "2026-07-10T15:47:49.833Z",
+  "verifyRanRef": "8945bce4bde4338c36010a463374b0c74657ef51",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "86bda4eb2380ef82fc3efd6d40921da922522fc33bdcd7b2fb585eb6143228a6",
+  "verifyRanAt": "2026-09-11T19:56:03.267Z",
   "lastVerifyRun": {
     "passed": 28,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-10T15:47:49.833Z"
+    "at": "2026-09-11T19:56:03.267Z"
   },
   "verifySummary": {
     "total": 28,
@@ -201,5 +225,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 3
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-10T00:42:34.510Z"
+    }
+  ]
 }

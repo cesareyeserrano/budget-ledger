@@ -4,41 +4,42 @@ import { rollupActual, rollupBudget } from "@/domain/rollup";
 import { setLeafAmount } from "@/domain/mutations";
 import { signOf, varianceOf } from "@/domain/sign";
 import { leafDescendants } from "@/domain/tree";
+import { P, P0 } from "../helpers/periods";
 
 describe("FR-004 roll-up", () => {
   // @aitri-tc TC-004h
   it("TC-004h: Ejecutado de categoría = suma de sus subcategorías", () => {
-    let s = buildSeed("local");
+    let s = buildSeed("local", P0);
     // 'Comida' tiene 3 subs: mercado/restaurantes/cafe → fijar actuals mar 100/200/300
-    s = setLeafAmount(s, "s-comida-mercado", "mar", "actual", 100);
-    s = setLeafAmount(s, "s-comida-restaurantes", "mar", "actual", 200);
-    s = setLeafAmount(s, "s-comida-cafe", "mar", "actual", 300);
-    expect(rollupActual(s, "c-comida", "mar")).toBe(600);
+    s = setLeafAmount(s, "s-comida-mercado", "2026-03", "actual", 100, P);
+    s = setLeafAmount(s, "s-comida-restaurantes", "2026-03", "actual", 200, P);
+    s = setLeafAmount(s, "s-comida-cafe", "2026-03", "actual", 300, P);
+    expect(rollupActual(s, "c-comida", "2026-03")).toBe(600);
     // sube al grupo Esenciales
-    expect(rollupActual(s, "g-esenciales", "mar")).toBeGreaterThanOrEqual(600);
+    expect(rollupActual(s, "g-esenciales", "2026-03")).toBeGreaterThanOrEqual(600);
   });
 
   // @aitri-tc TC-004e
   it("TC-004e: Ejecutado directo en categoría-hoja se cuenta en el grupo", () => {
-    let s = buildSeed("local");
+    let s = buildSeed("local", P0);
     // 'Transporte' es categoría-hoja
-    s = setLeafAmount(s, "c-transporte", "abr", "actual", 120000);
-    const groupActual = rollupActual(s, "g-esenciales", "abr");
+    s = setLeafAmount(s, "c-transporte", "2026-04", "actual", 120000, P);
+    const groupActual = rollupActual(s, "g-esenciales", "2026-04");
     expect(groupActual).toBeGreaterThanOrEqual(120000);
   });
 
   // @aitri-tc TC-004f
   it("TC-004f: Presupuestado del padre === suma de hojas (invariante, sin setter de padre)", () => {
-    let s = buildSeed("local");
-    s = setLeafAmount(s, "s-comida-mercado", "ene", "budget", 500);
-    s = setLeafAmount(s, "s-comida-restaurantes", "ene", "budget", 300);
-    s = setLeafAmount(s, "s-comida-cafe", "ene", "budget", 200);
+    let s = buildSeed("local", P0);
+    s = setLeafAmount(s, "s-comida-mercado", "2026-01", "budget", 500, P);
+    s = setLeafAmount(s, "s-comida-restaurantes", "2026-01", "budget", 300, P);
+    s = setLeafAmount(s, "s-comida-cafe", "2026-01", "budget", 200, P);
     const leaves = leafDescendants(s.nodes, "c-comida");
-    const sum = leaves.reduce((a, id) => a + (s.budgets[id]?.ene ?? 0), 0);
-    expect(rollupBudget(s, "c-comida", "ene")).toBe(sum);
+    const sum = leaves.reduce((a, id) => a + (s.budgets[id]?.["2026-01"] ?? 0), 0);
+    expect(rollupBudget(s, "c-comida", "2026-01")).toBe(sum);
     // editar un padre (no hoja) no altera nada (no hay distribución)
     const before = JSON.stringify(s.budgets);
-    const s2 = setLeafAmount(s, "c-comida", "ene", "budget", 9999);
+    const s2 = setLeafAmount(s, "c-comida", "2026-01", "budget", 9999, P);
     expect(JSON.stringify(s2.budgets)).toBe(before);
   });
 });

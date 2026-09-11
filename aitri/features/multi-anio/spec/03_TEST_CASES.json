@@ -1,0 +1,2086 @@
+{
+  "test_plan": {
+    "strategy": "Tres niveles contra el contrato del TRD. UNIT (Vitest, dominio puro): la clave de periodo y su validación, el arrastre cruzando el borde de año, el cálculo del rango activo y del horizonte, la aritmética de reserve.ts sobre la lista ordenada de periodos —con foco en el rechazo explícito del índice −1, que es la trampa que el tipo MonthKey hacía imposible— y la siembra anclada al periodo en curso. INTEGRATION (Vitest + testcontainers Postgres): el ALTER de las tres tablas, su CHECK y sus llaves primarias, la idempotencia por marca de data_version, la persistencia del horizonte sin tocar revision, y los cuatro vectores de ataque del periodo en el borde del servidor. E2E (Playwright): la tira continua cruzando diciembre→enero, la alineación del Balance en el rango máximo, el selector con año y la captura móvil contra su periodo. Las seis NFR de regresión se prueban por COMPARACIÓN contra valores registrados ANTES de la migración: es la única forma de demostrar que nada cambió, y no de suponerlo.",
+    "type_coverage_matrix": [
+      {
+        "fr_type": "logic",
+        "frs": [
+          "FR-1901",
+          "FR-1903",
+          "FR-1904",
+          "FR-1906",
+          "FR-1909",
+          "FR-1910"
+        ],
+        "required_levels": [
+          "unit",
+          "e2e"
+        ],
+        "note": "El dominio es puro: la unidad es el nivel natural. E2E solo donde el usuario lo ve."
+      },
+      {
+        "fr_type": "persistence",
+        "frs": [
+          "FR-1902",
+          "FR-1907"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "Postgres real vía testcontainers; no se simula el esquema."
+      },
+      {
+        "fr_type": "ui",
+        "frs": [
+          "FR-1905",
+          "FR-1908"
+        ],
+        "required_levels": [
+          "e2e"
+        ],
+        "note": "La tira continua y el selector solo se verifican en el navegador."
+      },
+      {
+        "fr_type": "Regression",
+        "frs": [
+          "NFR-1901",
+          "NFR-1902",
+          "NFR-1903",
+          "NFR-1904",
+          "NFR-1905",
+          "NFR-1906"
+        ],
+        "required_levels": [
+          "unit",
+          "integration",
+          "e2e"
+        ],
+        "note": "Comparación contra la línea base previa a la migración."
+      },
+      {
+        "fr_type": "Security",
+        "frs": [
+          "NFR-1908"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "Cuatro vectores: formato, rango de años, tipo/tamaño e inyección."
+      },
+      {
+        "fr_type": "Performance",
+        "frs": [
+          "NFR-1907"
+        ],
+        "required_levels": [
+          "unit"
+        ],
+        "note": "Tope 150ms heredado de techo-de-flujo, más los contadores de pasadas."
+      },
+      {
+        "fr_type": "Maintainability",
+        "frs": [
+          "NFR-1909"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "El script versionado y su idempotencia comprobada, no supuesta."
+      }
+    ],
+    "coverage_decisions": [
+      "Virtualización de columnas de la grilla: excluida — el TRD decide explícitamente no implementarla por adelantado; se probará si la medición de FR-1905 demuestra que hace falta.",
+      "Ocultar meses pasados vacíos y el filtro visual de rango: excluidos — están en el no_go_zone (feature grilla-dinamica).",
+      "Migración de datos reales del modelo viejo: excluida — ADR-05 decide que no hay datos que migrar; en su lugar se prueba que el script ABORTA si las tablas no están vacías (TC-MAN-014f).",
+      "Multi-moneda, importador de historia, cierre de mes y saldo inicial: excluidos — no_go_zone.",
+      "Comportamiento con años fuera de [2000,2100] en el dominio: excluido del dominio y cubierto solo en la API (TC-MAN-271f) — el acotado es una decisión de borde (ADR-04), no una regla del modelo.",
+      "Concurrencia de dos clientes escribiendo periodos distintos a la vez: excluida — el producto es de usuario único y el bloqueo optimista ya está cubierto por TC-MAN-241f.",
+      "El control de interfaz para cambiar el horizonte: excluido — su sitio es la página de Configuración, que es el punto 4 del orden acordado y no existe. El valor se prueba por API y por dominio."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-MAN-001h",
+      "requirement_id": "FR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1901",
+      "title": "Dos marzos de años distintos conviven sin pisarse",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "un AmountMap vacío"
+      ],
+      "given": "un AmountMap vacío",
+      "when": "se escribe 1000 en '2026-03' y 500 en '2027-03' del mismo nodo",
+      "then": "leer '2026-03' devuelve 1000 y '2027-03' devuelve 500: no colisionan",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "budgets[nodo]['2026-03']===1000 y budgets[nodo]['2027-03']===500",
+      "test_data": {
+        "a": 1000,
+        "b": 500
+      }
+    },
+    {
+      "id": "TC-MAN-002e",
+      "requirement_id": "FR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1902",
+      "title": "Ordenar periodos como texto da el orden cronológico cruzando el año",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "la lista ['2026-01','2025-12','2025-11'] desordenada"
+      ],
+      "given": "la lista ['2026-01','2025-12','2025-11'] desordenada",
+      "when": "se ordena con el comparador de texto",
+      "then": "queda ['2025-11','2025-12','2026-01'] — el salto de año no rompe el orden",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "sort() lexicográfico === orden cronológico",
+      "test_data": {
+        "in": [
+          "2026-01",
+          "2025-12",
+          "2025-11"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-003f",
+      "requirement_id": "FR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1903",
+      "title": "Cuatro claves malformadas se rechazan sin mutar el estado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "un estado con 1000 en '2026-03'"
+      ],
+      "given": "un estado con 1000 en '2026-03'",
+      "when": "se intenta escribir en '2026-13', '26-03', 'marzo' y ''",
+      "then": "isPeriodKey devuelve false en los cuatro; el estado queda idéntico al inicial (deep-equal)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "isPeriodKey('2026-13')=false, ('26-03')=false, ('marzo')=false, ('')=false; estado sin cambios",
+      "test_data": {
+        "malas": [
+          "2026-13",
+          "26-03",
+          "marzo",
+          ""
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-004e",
+      "requirement_id": "FR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1901",
+      "title": "El mes 01 y el 12 son válidos; el 00 y el 13 no",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "el validador de periodo"
+      ],
+      "given": "el validador de periodo",
+      "when": "se prueban '2026-01', '2026-12', '2026-00' y '2026-13'",
+      "then": "los dos primeros son válidos y los dos últimos no: los bordes del mes se aceptan y se rechazan exactamente",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "true, true, false, false",
+      "test_data": {
+        "bordes": [
+          "2026-01",
+          "2026-12",
+          "2026-00",
+          "2026-13"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-010h",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1904",
+      "title": "Tras el ALTER, la columna period acepta YYYY-MM en las tres tablas",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "una base recién migrada con Postgres de testcontainers"
+      ],
+      "given": "una base recién migrada con Postgres de testcontainers",
+      "when": "se inserta una fila con period='2027-03' en amount_cell, movement y cell_note",
+      "then": "las tres inserciones tienen éxito y se leen de vuelta con el mismo valor",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "3 filas insertadas y leídas con period='2027-03'",
+      "test_data": {
+        "period": "2027-03"
+      }
+    },
+    {
+      "id": "TC-MAN-011e",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1905",
+      "title": "La llave primaria admite el mismo nodo en dos años",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "amount_cell migrada, vacía"
+      ],
+      "given": "amount_cell migrada, vacía",
+      "when": "se insertan (nodo N, '2026-03', budget) y (nodo N, '2027-03', budget)",
+      "then": "ambas filas coexisten: la llave primaria incluye el periodo y no hay violación de unicidad",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "2 filas en amount_cell, sin error de constraint",
+      "test_data": {
+        "nodo": "N"
+      }
+    },
+    {
+      "id": "TC-MAN-012f",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1904",
+      "title": "El CHECK de la base rechaza 2026-13 y 2026-00",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "amount_cell migrada"
+      ],
+      "given": "amount_cell migrada",
+      "when": "se intenta insertar period='2026-13' y luego period='2026-00'",
+      "then": "Postgres rechaza ambas con violación del constraint amount_cell_period_ck y no queda ninguna fila",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "error 23514 (check_violation) en las dos; count(*)=0",
+      "test_data": {
+        "malas": [
+          "2026-13",
+          "2026-00"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-013e",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1906",
+      "title": "Correr la migración dos veces seguidas no cambia nada",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "una base ya migrada con data_version=6"
+      ],
+      "given": "una base ya migrada con data_version=6",
+      "when": "se vuelve a ejecutar el script de migración",
+      "then": "no lanza, no altera el esquema y data_version sigue en 6: la idempotencia es por marca de versión, no por heurística",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "segunda ejecución sin efecto; data_version=6",
+      "test_data": {
+        "version": 6
+      }
+    },
+    {
+      "id": "TC-MAN-014f",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1906",
+      "title": "La migración aborta con mensaje claro si las tablas no están vacías",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "una base sin migrar con una fila en amount_cell con month='mar'"
+      ],
+      "given": "una base sin migrar con una fila en amount_cell con month='mar'",
+      "when": "se ejecuta el script de migración",
+      "then": "aborta antes de tocar el esquema, con un mensaje que nombra la tabla y el conteo de filas; la base queda intacta",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "exit≠0, mensaje 'amount_cell tiene 1 fila(s)', esquema sin cambios",
+      "test_data": {
+        "filas": 1
+      }
+    },
+    {
+      "id": "TC-MAN-015f",
+      "requirement_id": "FR-1902",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1905",
+      "title": "El sentinel @retiros migra sin que ninguna comprobación lo trate como nodo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "amount_cell con una fila cuyo node_id es '@retiros', que NO existe en la tabla node"
+      ],
+      "given": "amount_cell con una fila cuyo node_id es '@retiros', que NO existe en la tabla node",
+      "when": "se ejecuta la migración",
+      "then": "la fila migra como cualquier otra y ninguna validación de integridad referencial la rechaza",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "la fila '@retiros' sobrevive con su period; migración exit 0",
+      "test_data": {
+        "node_id": "@retiros"
+      }
+    },
+    {
+      "id": "TC-MAN-020h",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "El disponible de dic-2026 abre ene-2027",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "2026-12 cerrando con 500 de disponible y 2027-01 en el rango"
+      ],
+      "given": "2026-12 cerrando con 500 de disponible y 2027-01 en el rango",
+      "when": "se computa la serie de balance sobre ['2026-11','2026-12','2027-01']",
+      "then": "prevAvailable de '2027-01' es 500, no 0: el borde de año no reinicia nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "series['2027-01'].actual.prevAvailable === 500",
+      "test_data": {
+        "cierre": 500
+      }
+    },
+    {
+      "id": "TC-MAN-021h",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1908",
+      "title": "Lo reservado también cruza el borde de año",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "2026-12 cerrando con 300 de reservado"
+      ],
+      "given": "2026-12 cerrando con 300 de reservado",
+      "when": "se computa la serie hasta 2027-01",
+      "then": "prevReserved de '2027-01' es 300: los dos componentes del arrastre cruzan, no solo el disponible",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "series['2027-01'].actual.prevReserved === 300",
+      "test_data": {
+        "reservado": 300
+      }
+    },
+    {
+      "id": "TC-MAN-022e",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1909",
+      "title": "Solo el primer periodo del rango abre en cero",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "un rango que empieza en '2025-04' con datos en varios eneros posteriores"
+      ],
+      "given": "un rango que empieza en '2025-04' con datos en varios eneros posteriores",
+      "when": "se computa la serie completa",
+      "then": "solo '2025-04' abre en 0/0; ni '2026-01' ni '2027-01' abren en cero por ser enero",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "prevAvailable('2025-04')=0; prevAvailable('2026-01')≠0 y ='cierre de 2025-12'",
+      "test_data": {
+        "inicio": "2025-04"
+      }
+    },
+    {
+      "id": "TC-MAN-023e",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "Un cambio en 2026-11 se propaga hasta 2027-02",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un rango 2026-10…2027-02 con la serie ya calculada"
+      ],
+      "given": "un rango 2026-10…2027-02 con la serie ya calculada",
+      "when": "se sube el ingreso de '2026-11' en 1000 y se recalcula",
+      "then": "el disponible de '2027-01' y '2027-02' sube exactamente 1000: la propagación no se detiene en diciembre",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Δ disponible en 2027-01 y 2027-02 = +1000 exacto",
+      "test_data": {
+        "delta": 1000
+      }
+    },
+    {
+      "id": "TC-MAN-024f",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1909",
+      "title": "La conservación se mantiene en el paso dic→ene",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "un rango que cruza el año con ingresos, gastos y reservas en ambos lados"
+      ],
+      "given": "un rango que cruza el año con ingresos, gastos y reservas en ambos lados",
+      "when": "se verifica disponible + reservado = total en cada periodo",
+      "then": "la identidad se cumple al peso en el borde 2026-12→2027-01 igual que dentro del año; una discrepancia de 1 peso hace fallar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "available + reservedBalance === total en todos los periodos, sin tolerancia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-025e",
+      "requirement_id": "FR-1903",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "Un rango vacío devuelve una serie vacía sin lanzar",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "un estado válido"
+      ],
+      "given": "un estado válido",
+      "when": "se computa la serie con la lista de periodos vacía",
+      "then": "devuelve un objeto vacío y no lanza — el contrato «@throws Nunca» se conserva",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "series = {} y ninguna excepción",
+      "test_data": {
+        "periodos": []
+      }
+    },
+    {
+      "id": "TC-MAN-030h",
+      "requirement_id": "FR-1904",
+      "user_story_id": "US-1904",
+      "ac_id": "AC-1910",
+      "title": "Horizonte de 2 años desde 2026-09 termina en DICIEMBRE de 2028",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "mes en curso '2026-09' y horizonte 24"
+      ],
+      "given": "mes en curso '2026-09' y horizonte de 2 años",
+      "when": "se calcula el último periodo del rango",
+      "then": "es '2028-12', no '2028-08': el horizonte son años completos y ningún año queda partido",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "last === '2028-12'; longitud 28 (sep–dic 2026 + 2027 + 2028)",
+      "test_data": {
+        "h": 2,
+        "hoy": "2026-09"
+      }
+    },
+    {
+      "id": "TC-MAN-031h",
+      "requirement_id": "FR-1904",
+      "user_story_id": "US-1904",
+      "ac_id": "AC-1910",
+      "title": "Horizonte de 1 año desde 2026-09 termina en DICIEMBRE de 2027",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "mes en curso '2026-09' y horizonte 12"
+      ],
+      "given": "mes en curso '2026-09' y horizonte de 1 año",
+      "when": "se calcula el último periodo",
+      "then": "es '2027-12' y la longitud es 16 (sep–dic de 2026 más 2027 entero)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "last === '2027-12'; longitud 16",
+      "test_data": {
+        "h": 1,
+        "hoy": "2026-09"
+      }
+    },
+    {
+      "id": "TC-MAN-032e",
+      "requirement_id": "FR-1904",
+      "user_story_id": "US-1904",
+      "ac_id": "AC-1911",
+      "title": "La ventana rueda al cambiar de AÑO, no de mes",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "horizonte 24 y mes en curso '2026-09' (último '2028-08')"
+      ],
+      "given": "horizonte de 2 años y mes en curso '2026-09' (último '2028-12')",
+      "when": "el mes en curso avanza a '2026-10' y luego a '2026-12', y después a '2027-01'",
+      "then": "dentro de 2026 el último periodo NO se mueve; al entrar 2027-01 salta a '2029-12' de golpe",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "last = 2028-12 en sep/oct/dic de 2026; 2029-12 en ene de 2027",
+      "test_data": {
+        "antes": "2026-09",
+        "despues": "2027-01"
+      }
+    },
+    {
+      "id": "TC-MAN-033e",
+      "requirement_id": "FR-1904",
+      "user_story_id": "US-1904",
+      "ac_id": "AC-1912",
+      "title": "Bajar el horizonte de 24 a 12 no borra datos fuera de la ventana",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "horizonte 24 y un monto de 7000 escrito en '2028-05'"
+      ],
+      "given": "horizonte de 2 años y un monto de 7.000 escrito en '2028-05'",
+      "when": "se baja el horizonte a 1 año y se vuelve a subir a 2",
+      "then": "el monto de '2028-05' sigue siendo 7000: el horizonte es una ventana de vista, nunca borra",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "budgets[nodo]['2028-05'] === 7000 tras el ciclo 24→12→24",
+      "test_data": {
+        "monto": 7000,
+        "de": 2,
+        "a": 1
+      }
+    },
+    {
+      "id": "TC-MAN-034f",
+      "requirement_id": "FR-1904",
+      "user_story_id": "US-1904",
+      "ac_id": "AC-1910",
+      "title": "Un horizonte fuera de {1,2} cae al defecto de 2 años",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "el calculador de rango"
+      ],
+      "given": "el calculador de rango",
+      "when": "se pide horizonte 0, −5, 18, 24 y 'muchos'",
+      "then": "los cinco se rechazan y el rango se calcula con 2 años: termina en '2028-12'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "last === '2028-12' en los cinco casos",
+      "test_data": {
+        "malos": [
+          0,
+          -5,
+          18,
+          24,
+          "muchos"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-040h",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1914",
+      "title": "Se pasa de dic-2026 a ene-2027 scrolleando, sin cambiar de vista",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "la app con datos en 2026-12 y el rango llegando a 2027-02"
+      ],
+      "given": "la app con datos en 2026-12 y el rango llegando a 2027-02",
+      "when": "se desplaza el riel de columnas hacia la derecha desde 2026-12",
+      "then": "2027-01 aparece en la misma grilla sin recarga ni cambio de pantalla, y el encabezado marca el inicio del año nuevo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "columna '2027-01' visible tras el scroll; marca de año presente entre dic y ene",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-041h",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1913",
+      "title": "La banda de año rotula cada tramo, incluido un primer año parcial",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "un rango que contiene '2026-03' y '2027-03'"
+      ],
+      "given": "un rango que empieza en '2026-09' con horizonte de 2 años",
+      "when": "se lee la banda del encabezado",
+      "then": "hay un rótulo «2026» sobre sus cuatro columnas y «2027»/«2028» sobre doce cada uno: ningún tramo queda sin etiqueta",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "tres rótulos de año; el primero cubre 4 columnas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-042e",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1915",
+      "title": "El Balance sigue alineado con la grilla en todo el rango",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "el rango máximo (historial más 24 meses de horizonte)"
+      ],
+      "given": "el rango máximo (historial más 24 meses de horizonte)",
+      "when": "se scrollea horizontalmente hasta el final",
+      "then": "cada columna del Balance queda alineada con la de la grilla en todo el recorrido y el scroll es uno solo, compartido",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "desplazamiento de ambos rieles idéntico en cada paso; 0 px de desalineación",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-043f",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1915",
+      "title": "La columna fija de categorías no se desplaza ni pierde su ancho",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [
+        "el rango máximo y un ancho de columna de categorías personalizado (FR-104)"
+      ],
+      "given": "el rango máximo y un ancho de columna de categorías personalizado (FR-104)",
+      "when": "se scrollea hasta el final del rango",
+      "then": "la columna de categorías sigue anclada a la izquierda y conserva su ancho: el rango largo no rompe FR-104",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "posición izquierda constante y --cat-w sin cambios tras el scroll",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-044h",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1929",
+      "title": "El filtro Año recorta las columnas pero no el cálculo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Rango que abarca 2026 y 2027, con datos en 2026-12"
+      ],
+      "given": "datos en 2026-12 y el filtro puesto en «Año 2027»",
+      "when": "se miran las columnas y el saldo de apertura de 2027-01",
+      "then": "solo se pintan periodos de 2027, ninguna fila pinta más celdas que columnas hay, y la apertura de enero sigue siendo el cierre de 2026-12 — no cero",
+      "steps": [
+        "Sembrar datos en 2026-12",
+        "Filtrar por Año 2027",
+        "Contar columnas y celdas por fila",
+        "Leer el saldo de apertura de enero"
+      ],
+      "expected_result": "columnas todas de 2027; celdas por fila = columnas; prevAvailable de 2027-01 = cierre de 2026-12",
+      "test_data": {
+        "anio": 2027
+      }
+    },
+    {
+      "id": "TC-MAN-045h",
+      "requirement_id": "FR-1905",
+      "user_story_id": "US-1905",
+      "ac_id": "AC-1932",
+      "title": "El posicionamiento inicial no se come el primer gesto de rueda",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Grilla con desborde vertical (viewport 1440×520)"
+      ],
+      "given": "la página recién cargada, con la columna del mes en curso ya a la vista",
+      "when": "se mueve la rueda de inmediato, sin esperar",
+      "then": "la grilla se desplaza en vertical: el scroll de posicionamiento es instantáneo y no deja una animación viva que absorba el gesto",
+      "steps": [
+        "Cargar la página",
+        "Mover la rueda sin esperar",
+        "Verificar scrollTop > 0"
+      ],
+      "expected_result": "scrollTop > 0 sin espera previa (con animación al montar quedaba en 0 durante ~1,5s)",
+      "test_data": {
+        "deltaY": 300
+      }
+    },
+    {
+      "id": "TC-MAN-050h",
+      "requirement_id": "FR-1906",
+      "user_story_id": "US-1906",
+      "ac_id": "AC-1916",
+      "title": "El rango va del dato más antiguo al fin del horizonte",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "dato más antiguo en '2025-04', mes en curso '2026-09', horizonte 24"
+      ],
+      "given": "dato más antiguo en '2025-04', mes en curso '2026-09', horizonte 24",
+      "when": "se calcula el rango activo",
+      "then": "va de '2025-04' a '2028-08', sin huecos y en orden",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first='2025-04', last='2028-08', sin periodos ausentes intermedios",
+      "test_data": {
+        "antiguo": "2025-04"
+      }
+    },
+    {
+      "id": "TC-MAN-051h",
+      "requirement_id": "FR-1906",
+      "user_story_id": "US-1906",
+      "ac_id": "AC-1917",
+      "title": "Un usuario sin datos ve el mes en curso más su horizonte",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "un estado sin ningún monto, movimiento ni observación; mes en curso '2026-09', horizonte 24"
+      ],
+      "given": "un estado sin ningún monto, movimiento ni observación; mes en curso '2026-09', horizonte 24",
+      "when": "se calcula el rango activo",
+      "then": "arranca exactamente en '2026-09' y tiene 24 periodos: sin datos no hay pasado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first='2026-09', longitud=24",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-052e",
+      "requirement_id": "FR-1906",
+      "user_story_id": "US-1906",
+      "ac_id": "AC-1918",
+      "title": "Registrar en un periodo anterior extiende el rango hacia atrás",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "un rango que empieza en '2025-04'"
+      ],
+      "given": "un rango que empieza en '2025-04'",
+      "when": "se escribe un monto en '2024-11'",
+      "then": "el rango pasa a empezar en '2024-11': ningún periodo con datos queda fuera",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first === '2024-11'",
+      "test_data": {
+        "nuevo": "2024-11"
+      }
+    },
+    {
+      "id": "TC-MAN-053e",
+      "requirement_id": "FR-1906",
+      "user_story_id": "US-1906",
+      "ac_id": "AC-1916",
+      "title": "Las cuatro fuentes de dato cuentan para fijar el inicio",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "cuatro estados, cada uno con su único dato en '2025-02': un presupuesto, un ejecutado, un movimiento y una observación de celda"
+      ],
+      "given": "cuatro estados, cada uno con su único dato en '2025-02': un presupuesto, un ejecutado, un movimiento y una observación de celda",
+      "when": "se calcula el inicio del rango en cada uno",
+      "then": "los cuatro arrancan en '2025-02': la observación de celda cuenta como dato igual que un monto",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first==='2025-02' en los 4 casos",
+      "test_data": {
+        "fuentes": [
+          "budgets",
+          "actuals",
+          "movements",
+          "cellNotes"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-054f",
+      "requirement_id": "FR-1906",
+      "user_story_id": "US-1906",
+      "ac_id": "AC-1918",
+      "title": "Un periodo malformado en los datos no corrompe el inicio del rango",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "un estado que contiene una clave basura 'marzo' junto a datos válidos desde '2025-06'"
+      ],
+      "given": "un estado que contiene una clave basura 'marzo' junto a datos válidos desde '2025-06'",
+      "when": "se calcula el inicio del rango",
+      "then": "la clave basura se ignora y el inicio es '2025-06'; no se produce un rango que empiece en un periodo inválido",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first === '2025-06'; 'marzo' ausente del rango",
+      "test_data": {
+        "basura": "marzo"
+      }
+    },
+    {
+      "id": "TC-MAN-060h",
+      "requirement_id": "FR-1907",
+      "user_story_id": "US-1907",
+      "ac_id": "AC-1919",
+      "title": "El horizonte persiste entre sesiones",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "un usuario autenticado con el horizonte en 12"
+      ],
+      "given": "un usuario autenticado con el horizonte en 12",
+      "when": "se cierra la sesión, se vuelve a entrar y se lee la preferencia",
+      "then": "sigue en 12: la preferencia vive en la cuenta, no en el navegador",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "GET /api/v1/preferences/horizon → {horizon:12}",
+      "test_data": {
+        "h": 12
+      }
+    },
+    {
+      "id": "TC-MAN-061e",
+      "requirement_id": "FR-1907",
+      "user_story_id": "US-1907",
+      "ac_id": "AC-1920",
+      "title": "Sin preferencia guardada, el horizonte es 24",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un usuario recién creado, sin preferencia"
+      ],
+      "given": "un usuario recién creado, sin preferencia",
+      "when": "se lee el horizonte",
+      "then": "devuelve 24 — el valor por defecto, no un nulo ni un error",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "GET → {horizon:24}",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-062f",
+      "requirement_id": "FR-1907",
+      "user_story_id": "US-1907",
+      "ac_id": "AC-1921",
+      "title": "Un valor corrupto en la base no rompe el arranque",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "un usuario cuya fila tiene el horizonte en 99"
+      ],
+      "given": "un usuario cuya fila tiene el horizonte en 99",
+      "when": "se carga la app",
+      "then": "arranca con 24 y no lanza: el valor fuera de {12,24} cae al defecto sin propagar el fallo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "la app carga; horizonte efectivo 24; sin excepción",
+      "test_data": {
+        "corrupto": 99
+      }
+    },
+    {
+      "id": "TC-MAN-063f",
+      "requirement_id": "FR-1907",
+      "user_story_id": "US-1907",
+      "ac_id": "AC-1919",
+      "title": "Cambiar el horizonte no sube revision del ledger",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "un ledger con revision R"
+      ],
+      "given": "un ledger con revision R",
+      "when": "se cambia el horizonte de 24 a 12",
+      "then": "revision sigue siendo R: la preferencia no viaja en el snapshot y no marca el ledger como modificado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "revision antes === revision después",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-064f",
+      "requirement_id": "FR-1907",
+      "user_story_id": "US-1907",
+      "ac_id": "AC-1919",
+      "title": "El endpoint rechaza un horizonte inválido y exige sesión",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "la ruta /api/v1/preferences/horizon"
+      ],
+      "given": "la ruta /api/v1/preferences/horizon",
+      "when": "se envía PUT {horizon:18} con sesión, y luego PUT {horizon:12} sin sesión",
+      "then": "el primero responde 400 sin escribir; el segundo responde 401 sin escribir",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "400 y 401; el valor guardado no cambia en ninguno de los dos casos",
+      "test_data": {
+        "malos": [
+          18,
+          null
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-070h",
+      "requirement_id": "FR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1923",
+      "title": "La fecha de captura 2027-03-14 deriva el periodo 2027-03",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "un movimiento con date='2027-03-14T10:30'"
+      ],
+      "given": "un movimiento con date='2027-03-14T10:30'",
+      "when": "se deriva su periodo",
+      "then": "es '2027-03', no '2026-03': el año sale de la fecha, no del año en curso",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "periodFromDate('2027-03-14T10:30') === '2027-03'",
+      "test_data": {
+        "date": "2027-03-14T10:30"
+      }
+    },
+    {
+      "id": "TC-MAN-071h",
+      "requirement_id": "FR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1922",
+      "title": "El selector muestra el año junto al mes",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "un rango que abarca 2026 y 2027"
+      ],
+      "given": "un rango que abarca 2026 y 2027",
+      "when": "se abre el selector de periodo",
+      "then": "cada opción identifica su año, de modo que los dos marzos son distinguibles antes de elegir",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "las opciones contienen el año; no hay dos etiquetas idénticas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-072e",
+      "requirement_id": "FR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Sin fecha de captura, el movimiento va al periodo en curso",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "un movimiento sin campo date (formato previo, ADR-03 de stack-upgrade-theme)"
+      ],
+      "given": "un movimiento sin campo date (formato previo, ADR-03 de stack-upgrade-theme)",
+      "when": "se registra con el mes en curso '2026-09'",
+      "then": "queda en '2026-09': el comportamiento de los movimientos antiguos se conserva",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "movement.period === '2026-09'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-073f",
+      "requirement_id": "FR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "La API rechaza un periodo malformado sin escribir",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "la ruta /api/v1/movements"
+      ],
+      "given": "la ruta /api/v1/movements",
+      "when": "se hace POST con period='2026-13' y luego GET con ?period=marzo",
+      "then": "ambas responden 400 y no se crea ni se devuelve ninguna fila: la validación es del servidor, no del navegador",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "400 en ambas; count(*) de movement sin cambios",
+      "test_data": {
+        "malos": [
+          "2026-13",
+          "marzo"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-080h",
+      "requirement_id": "FR-1909",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1925",
+      "title": "Con un rango de doce meses el techo da lo mismo que antes de migrar",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "el juego de datos de referencia contenido en un solo año y su techo registrado antes del cambio"
+      ],
+      "given": "el juego de datos de referencia contenido en un solo año y su techo registrado antes del cambio",
+      "when": "se calcula reserveHeadroom sobre el rango de doce periodos",
+      "then": "coincide al peso con el valor previo a la migración en los doce periodos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "12 comparaciones exactas contra los valores de referencia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-081h",
+      "requirement_id": "FR-1909",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1926",
+      "title": "Un aporte en 2026-11 se propaga a las series de 2027-01 y 2027-02",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "una alcancía con aportes en 2026-11 y el rango cruzando el año"
+      ],
+      "given": "una alcancía con aportes en 2026-11 y el rango cruzando el año",
+      "when": "se consulta la serie resuelta de la alcancía",
+      "then": "el saldo derivado de '2027-01' y '2027-02' incluye el aporte de noviembre: la serie no se corta en diciembre",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "resolvedSeries incluye el aporte en las posiciones de 2027-01 y 2027-02",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-082e",
+      "requirement_id": "FR-1909",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1927",
+      "title": "Ampliar el horizonte sin datos nuevos no mueve el techo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un estado con datos hasta '2026-12' y horizonte 12"
+      ],
+      "given": "un estado con datos hasta '2026-12' y horizonte 12",
+      "when": "se amplía el horizonte a 24 sin escribir nada",
+      "then": "reserveHeadroom de cada periodo con datos da exactamente el mismo número: los periodos vacíos añadidos no acotan",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "headroom idéntico antes y después en todos los periodos con datos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-083f",
+      "requirement_id": "FR-1909",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1928",
+      "title": "Un periodo fuera del rango se rechaza en vez de operar con índice −1",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "un rango 2026-01…2026-12"
+      ],
+      "given": "un rango 2026-01…2026-12",
+      "when": "se pide reserveHeadroom y maxWithdrawal de '2030-05'",
+      "then": "ambos devuelven 0 por rechazo explícito del periodo desconocido; en ningún caso se ejecuta aritmética con índice −1",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "los dos devuelven 0; ninguna lectura de array en índice negativo",
+      "test_data": {
+        "fuera": "2030-05"
+      }
+    },
+    {
+      "id": "TC-MAN-084e",
+      "requirement_id": "FR-1909",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1928",
+      "title": "El recálculo con el rango máximo cabe en 150ms",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un ledger de 5 años de periodos con los 23 nodos reales"
+      ],
+      "given": "un ledger de 5 años de periodos con los 23 nodos reales",
+      "when": "se edita una celda y se recalcula el estado completo",
+      "then": "termina en ≤150ms y el contador de seriesComputes no sube respecto de la línea base por operación",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "duración ≤150ms; __reservePerfCounters().seriesComputes sin aumento",
+      "test_data": {
+        "anios": 5,
+        "ms": 150
+      }
+    },
+    {
+      "id": "TC-MAN-090h",
+      "requirement_id": "FR-1910",
+      "user_story_id": "US-1910",
+      "ac_id": "AC-1930",
+      "title": "Un usuario nuevo de septiembre de 2026 no recibe celdas anteriores",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "una cuenta nueva con el mes en curso '2026-09'"
+      ],
+      "given": "una cuenta nueva con el mes en curso '2026-09'",
+      "when": "se construye la semilla",
+      "then": "no existe ninguna celda en un periodo anterior a '2026-09': la app no inventa pasado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "min(claves de budgets y actuals) >= '2026-09'",
+      "test_data": {
+        "hoy": "2026-09"
+      }
+    },
+    {
+      "id": "TC-MAN-091e",
+      "requirement_id": "FR-1910",
+      "user_story_id": "US-1910",
+      "ac_id": "AC-1930",
+      "title": "El rango de un usuario recién creado no arranca en enero",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "una cuenta nueva creada en '2026-09' y su semilla"
+      ],
+      "given": "una cuenta nueva creada en '2026-09' y su semilla",
+      "when": "se calcula el rango activo",
+      "then": "empieza en '2026-09' o después; el criterio de FR-1906 deja de ser inalcanzable",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "first >= '2026-09'; nunca '2026-01' por defecto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-092f",
+      "requirement_id": "FR-1910",
+      "user_story_id": "US-1910",
+      "ac_id": "AC-1931",
+      "title": "No queda ningún registro de doce claves de mes fijas en la siembra",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "el módulo de siembra tras la migración"
+      ],
+      "given": "el módulo de siembra tras la migración",
+      "when": "se inspecciona la estructura de factores que usaba FACTOR: Record<MonthKey, number>",
+      "then": "no existe ningún objeto indexado por los doce literales; los factores se aplican por posición dentro de la ventana sembrada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "cero coincidencias de un mapa con claves 'ene'…'dic' en seed.ts",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-093e",
+      "requirement_id": "FR-1910",
+      "user_story_id": "US-1910",
+      "ac_id": "AC-1931",
+      "title": "El fixture freshLedger sigue restaurando un estado equivalente",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "la suite e2e y su fixture freshLedger"
+      ],
+      "given": "la suite e2e y su fixture freshLedger",
+      "when": "se restaura el estado y se corren las pruebas que dependen de él",
+      "then": "el estado restaurado es coherente con el periodo en curso y las pruebas que lo usan conservan su significado, sin cambiar de veredicto",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "las pruebas que usan freshLedger pasan sin relajar aserciones",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-200h",
+      "requirement_id": "NFR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1901",
+      "title": "La suite completa termina en verde tras la migración",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "el proyecto migrado y sus 84 ficheros de prueba"
+      ],
+      "given": "el proyecto migrado y sus 84 ficheros de prueba",
+      "when": "se ejecuta la suite unitaria y la e2e completas",
+      "then": "exit code 0 y cero pruebas en fail; se lee la línea de conteo, no la cola del reporte",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "exit 0; 'N failed' ausente o en 0",
+      "test_data": {
+        "ficheros": 84
+      },
+      "automation": "manual",
+      "manual_reason": "Afirma que la suite COMPLETA termina en verde. No puede vivir dentro de la propia suite sin ser circular: se verifica leyendo el exit code y la linea 'N failed' que produce aitri feature verify-run."
+    },
+    {
+      "id": "TC-MAN-201e",
+      "requirement_id": "NFR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1901",
+      "title": "El número de pruebas ejecutadas no baja",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "el conteo de pruebas registrado antes de la migración"
+      ],
+      "given": "el conteo de pruebas registrado antes de la migración",
+      "when": "se compara con el conteo tras adaptar los 32 ficheros que mencionan meses literales",
+      "then": "el total ejecutado es igual o mayor: ninguna prueba se perdió por el camino",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "ejecutadas_después >= ejecutadas_antes",
+      "test_data": {
+        "tocados": 32
+      },
+      "automation": "manual",
+      "manual_reason": "Afirma que el numero de pruebas EJECUTADAS no baja respecto de la linea base previa a la migracion. Es una comparacion entre dos corridas distintas, no algo que una prueba pueda observar desde dentro de una de ellas: se verifica comparando el conteo de verify-run contra el registrado el 2026-09-02 (576 unitarias, 380 e2e)."
+    },
+    {
+      "id": "TC-MAN-202f",
+      "requirement_id": "NFR-1901",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1901",
+      "title": "Ninguna prueba quedó saltada ni con aserciones relajadas",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "la suite tras la migración"
+      ],
+      "given": "la suite tras la migración",
+      "when": "se cuentan las pruebas en estado skip y las que perdieron aserciones respecto de su versión previa",
+      "then": "cero saltadas que antes pasaran, y ninguna prueba con menos aserciones que antes: adaptar no es desactivar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "skipped=0 sobre las que antes pasaban; conteo de aserciones por fichero no decrece",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-210h",
+      "requirement_id": "NFR-1902",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "Un año completo da los mismos números que antes de migrar",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "el juego de datos de referencia de doce meses de un año y sus valores registrados antes del cambio"
+      ],
+      "given": "el juego de datos de referencia de doce meses de un año y sus valores registrados antes del cambio",
+      "when": "se computa la serie de balance sobre ese año",
+      "then": "disponible, reservado y saldo de apertura coinciden al peso en los doce periodos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "12 × 3 comparaciones exactas contra los valores de referencia",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-211e",
+      "requirement_id": "NFR-1902",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "El plano Presupuestado sigue sin arrastrar su propio cierre",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un año con planes y ejecutados distintos"
+      ],
+      "given": "un año con planes y ejecutados distintos",
+      "when": "se computa la serie y se inspecciona la apertura de cada mes en el plano budget",
+      "then": "ambos planos siguen abriendo en el cierre REAL del mes previo: el cierre presupuestado no se arrastra (ADR-03 de balance)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "prevAvailable del plano budget === cierre del plano actual del mes previo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-212f",
+      "requirement_id": "NFR-1902",
+      "user_story_id": "US-1903",
+      "ac_id": "AC-1907",
+      "title": "Una discrepancia de un peso en el arrastre hace fallar la prueba",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "el juego de referencia y una versión con el arrastre alterado en 1 peso en un mes"
+      ],
+      "given": "el juego de referencia y una versión con el arrastre alterado en 1 peso en un mes",
+      "when": "se comparan las dos series",
+      "then": "la comparación detecta la diferencia y falla: no hay tolerancia que deje pasar un peso perdido",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "la aserción falla con la diferencia de 1 peso localizada en su periodo",
+      "test_data": {
+        "delta": 1
+      }
+    },
+    {
+      "id": "TC-MAN-220h",
+      "requirement_id": "NFR-1903",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1925",
+      "title": "Cien operaciones mixtas en un año dan el mismo estado que antes de migrar",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "una secuencia determinista con semilla fija de ≥100 pasos (reservar, retirar, editar y eliminar retiros, editar celdas, gastos e ingresos), contenida en un solo año"
+      ],
+      "given": "una secuencia determinista con semilla fija de ≥100 pasos (reservar, retirar, editar y eliminar retiros, editar celdas, gastos e ingresos), contenida en un solo año",
+      "when": "se aplica cada paso y se compara el estado y el veredicto con los registrados antes de la migración",
+      "then": "los ≥100 estados y los ≥100 veredictos coinciden uno a uno",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "100/100 estados y veredictos idénticos",
+      "test_data": {
+        "semilla": 1901,
+        "pasos": 100
+      }
+    },
+    {
+      "id": "TC-MAN-221e",
+      "requirement_id": "NFR-1903",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1925",
+      "title": "Las seis funciones auditadas conservan su resultado",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "el mismo juego de datos de un año"
+      ],
+      "given": "el mismo juego de datos de un año",
+      "when": "se comparan headrooms encadenados, verdictOf, límite del techo, regla de déficit, maxWithdrawal y monthCarryUsage",
+      "then": "las seis devuelven exactamente lo mismo que antes de la migración en cada periodo del año",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "6 funciones × 12 periodos, todas idénticas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-222f",
+      "requirement_id": "NFR-1903",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1925",
+      "title": "Un rechazo sigue rechazando y con la misma cifra",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "los casos que antes de migrar eran rechazados por techo y por déficit"
+      ],
+      "given": "los casos que antes de migrar eran rechazados por techo y por déficit",
+      "when": "se reintentan tras la migración",
+      "then": "siguen rechazados, con el mismo tipo de veredicto y el mismo límite informado: no se ablandó ninguna regla",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "mismo veredicto y mismo 'limit' en cada caso de rechazo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-230h",
+      "requirement_id": "NFR-1904",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1903",
+      "title": "Cada ancestro es la suma exacta de sus descendientes, en dos años",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "el árbol de los 23 nodos reales con montos en periodos de 2026 y 2027"
+      ],
+      "given": "el árbol de los 23 nodos reales con montos en periodos de 2026 y 2027",
+      "when": "se calculan los roll-ups en ambos planos",
+      "then": "cada categoría, grupo y tipo es la suma exacta de sus descendientes en cada periodo de los dos años",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "suma(ancestro) === Σ descendientes, sin desviación, en todos los periodos y planos",
+      "test_data": {
+        "nodos": 23
+      }
+    },
+    {
+      "id": "TC-MAN-231e",
+      "requirement_id": "NFR-1904",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1903",
+      "title": "Un periodo sin datos suma cero, no indefinido",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "el árbol con datos solo en '2026-03'"
+      ],
+      "given": "el árbol con datos solo en '2026-03'",
+      "when": "se pide el roll-up de '2027-07', que está en el rango pero vacío",
+      "then": "devuelve 0 en todos los niveles, no undefined ni NaN",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "roll-up === 0 en hoja, categoría, grupo y tipo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-232f",
+      "requirement_id": "NFR-1904",
+      "user_story_id": "US-1901",
+      "ac_id": "AC-1903",
+      "title": "Los montos de un año no se filtran al roll-up de otro",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "1000 en '2026-03' y nada en '2027-03'"
+      ],
+      "given": "1000 en '2026-03' y nada en '2027-03'",
+      "when": "se pide el roll-up de '2027-03'",
+      "then": "es 0: el mes homónimo del otro año no contamina la suma — el fallo que la clave única existe para evitar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "roll-up('2027-03') === 0 mientras roll-up('2026-03') === 1000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-240h",
+      "requirement_id": "NFR-1905",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1904",
+      "title": "Guardar y recargar un ledger de tres años devuelve lo mismo",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "un ledger con datos en 2025, 2026 y 2027 sobre Postgres de testcontainers"
+      ],
+      "given": "un ledger con datos en 2025, 2026 y 2027 sobre Postgres de testcontainers",
+      "when": "se guarda con PUT y se recarga con GET",
+      "then": "el estado recuperado es idéntico al guardado, periodo a periodo, sin perder ni reordenar nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "deep-equal entre el estado enviado y el recuperado",
+      "test_data": {
+        "anios": [
+          2025,
+          2026,
+          2027
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-241f",
+      "requirement_id": "NFR-1905",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1904",
+      "title": "Un PUT con revision vieja sigue siendo rechazado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "un ledger en revision R que otro cliente ya subió a R+1"
+      ],
+      "given": "un ledger en revision R que otro cliente ya subió a R+1",
+      "when": "se envía un PUT con revision R",
+      "then": "responde 409 y no escribe: el bloqueo optimista no se debilitó al cambiar el modelo temporal",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "409; el estado en base sigue en R+1 y sin los datos del PUT rechazado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-242e",
+      "requirement_id": "NFR-1905",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1904",
+      "title": "El snapshot rechaza un periodo inválido antes de escribir nada",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "un snapshot por lo demás válido con una sola celda en '2026-13'"
+      ],
+      "given": "un snapshot por lo demás válido con una sola celda en '2026-13'",
+      "when": "se envía el PUT completo",
+      "then": "responde 400 y NINGUNA de las celdas del snapshot se escribe: la validación es previa y total, no parcial",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "400; conteo de amount_cell sin cambios respecto del previo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-250h",
+      "requirement_id": "NFR-1906",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1923",
+      "title": "Un movimiento capturado en móvil suma al Ejecutado de su periodo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "la vista móvil y una hoja de gasto"
+      ],
+      "given": "la vista móvil y una hoja de gasto",
+      "when": "se captura un gasto de 5000 con fecha 2027-02-10",
+      "then": "el Ejecutado de esa hoja en '2027-02' sube 5000 y el de '2026-02' no cambia",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "actuals[hoja]['2027-02'] += 5000; actuals[hoja]['2026-02'] sin cambio",
+      "test_data": {
+        "monto": 5000
+      }
+    },
+    {
+      "id": "TC-MAN-251f",
+      "requirement_id": "NFR-1906",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1923",
+      "title": "No queda ningún movimiento con periodo fuera de rango o malformado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "el conjunto completo de movimientos tras la migración"
+      ],
+      "given": "el conjunto completo de movimientos tras la migración",
+      "when": "se recorren todos y se valida su periodo",
+      "then": "todos pasan isPeriodKey y todos caen dentro del rango activo: cero huérfanos temporales",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "0 movimientos con periodo inválido; 0 fuera del rango",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-252e",
+      "requirement_id": "NFR-1906",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1923",
+      "title": "El registro móvil apunta por defecto al mes en curso con su año",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "la vista móvil abierta en '2026-09'"
+      ],
+      "given": "la vista móvil abierta en '2026-09'",
+      "when": "se abre el formulario sin tocar la fecha",
+      "then": "el periodo propuesto es '2026-09', no un mes suelto sin año",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "el campo de periodo muestra septiembre de 2026",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-260h",
+      "requirement_id": "NFR-1907",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1928",
+      "title": "El recómputo con cinco años cabe en 150ms",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "un ledger de 5 años de periodos con los 23 nodos reales"
+      ],
+      "given": "un ledger de 5 años de periodos con los 23 nodos reales",
+      "when": "se edita una celda y se mide el recálculo completo",
+      "then": "termina en ≤150ms, el tope vigente heredado de techo-de-flujo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "duración medida ≤150ms",
+      "test_data": {
+        "ms": 150,
+        "anios": 5
+      }
+    },
+    {
+      "id": "TC-MAN-261f",
+      "requirement_id": "NFR-1907",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1928",
+      "title": "El número de recómputos de serie por operación no sube",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "los contadores __reservePerfCounters y la línea base registrada con doce meses"
+      ],
+      "given": "los contadores __reservePerfCounters y la línea base registrada con doce meses",
+      "when": "se ejecuta la misma operación con el rango ampliado",
+      "then": "seriesComputes y validateCalls por operación no superan la línea base: el rango largo no multiplica las pasadas",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "seriesComputes_después <= seriesComputes_antes por operación",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-262e",
+      "requirement_id": "NFR-1907",
+      "user_story_id": "US-1909",
+      "ac_id": "AC-1928",
+      "title": "El coste crece de forma lineal con el número de periodos, no peor",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "el mismo ledger medido con 12, 36 y 84 periodos"
+      ],
+      "given": "el mismo ledger medido con 12, 36 y 84 periodos",
+      "when": "se mide el recálculo completo en los tres tamaños",
+      "then": "el tiempo crece de forma aproximadamente lineal: el de 84 no supera ~7× el de 12, descartando un coste cuadrático oculto",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "t(84) <= 8 × t(12); ninguno supera 150ms",
+      "test_data": {
+        "tamanos": [
+          12,
+          36,
+          84
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-270f",
+      "requirement_id": "NFR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Vector 1 — formato: periodos malformados se rechazan con 400",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "los tres endpoints que aceptan periodo"
+      ],
+      "given": "los tres endpoints que aceptan periodo",
+      "when": "se envían '2026-13', '2026-00', '26-03', 'marzo' y ''",
+      "then": "los cinco responden 400 en los tres endpoints y ninguna fila se escribe",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "5 valores × 3 endpoints = 15 respuestas 400; conteo de filas sin cambios",
+      "test_data": {
+        "vectores": [
+          "2026-13",
+          "2026-00",
+          "26-03",
+          "marzo",
+          ""
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-271f",
+      "requirement_id": "NFR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Vector 2 — rango: años absurdos se rechazan aunque el CHECK los admita",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "la API con el acotado [2000, 2100]"
+      ],
+      "given": "la API con el acotado [2000, 2100]",
+      "when": "se envían '0000-01', '1900-05' y '9999-12', que el CHECK de la base sí aceptaría",
+      "then": "los tres responden 400 en la API: la defensa está en el borde, antes de llegar a la base",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "3 respuestas 400; ninguna fila insertada",
+      "test_data": {
+        "vectores": [
+          "0000-01",
+          "1900-05",
+          "9999-12"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-272f",
+      "requirement_id": "NFR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Vector 3 — tipo y tamaño: valores no textuales y cadenas largas",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "los endpoints de periodo"
+      ],
+      "given": "los endpoints de periodo",
+      "when": "se envían un número, un objeto, un array y una cadena de 1000 caracteres como periodo",
+      "then": "los cuatro responden 400 sin llegar al motor de expresiones regulares ni a la base",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "4 respuestas 400; sin escritura y sin excepción no controlada",
+      "test_data": {
+        "largo": 1000
+      }
+    },
+    {
+      "id": "TC-MAN-273f",
+      "requirement_id": "NFR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Vector 4 — inyección: un periodo con carga SQL no altera la base",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "el endpoint de movimientos"
+      ],
+      "given": "el endpoint de movimientos",
+      "when": "se envía period=\"2026-03'; DROP TABLE movement;--\"",
+      "then": "responde 400, la tabla movement sigue existiendo y su conteo no cambia",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "400; la tabla existe; count(*) idéntico",
+      "test_data": {
+        "payload": "2026-03'; DROP TABLE movement;--"
+      }
+    },
+    {
+      "id": "TC-MAN-274h",
+      "requirement_id": "NFR-1908",
+      "user_story_id": "US-1908",
+      "ac_id": "AC-1924",
+      "title": "Un periodo legítimo atraviesa la validación y se escribe",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "los tres endpoints que aceptan periodo y una sesión válida"
+      ],
+      "given": "los tres endpoints que aceptan periodo y una sesión válida",
+      "when": "se envían '2026-01', '2027-12' y '2100-06' — todos bien formados y dentro del rango admitido",
+      "then": "los tres se aceptan y la fila se escribe: la defensa rechaza lo inválido sin bloquear lo legítimo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "3 respuestas 2xx; las 3 filas presentes en base con su periodo intacto",
+      "test_data": {
+        "validos": [
+          "2026-01",
+          "2027-12",
+          "2100-06"
+        ]
+      }
+    },
+    {
+      "id": "TC-MAN-280h",
+      "requirement_id": "NFR-1909",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1906",
+      "title": "El script de migración está versionado y documentado",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [
+        "el repositorio tras la feature"
+      ],
+      "given": "el repositorio tras la feature",
+      "when": "se busca el fichero de migración y su nota",
+      "then": "existe drizzle/0002_multi_anio.sql versionado, y una nota que describe el estado anterior y el posterior de las tres tablas",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "el fichero existe y la nota nombra las tres tablas y sus llaves antes y después",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-281f",
+      "requirement_id": "NFR-1909",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1906",
+      "title": "Correr la migración dos veces deja la base igual que una vez",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "una base recién migrada"
+      ],
+      "given": "una base recién migrada",
+      "when": "se vuelve a correr el script y se compara el esquema resultante",
+      "then": "el esquema es idéntico y no se lanza ningún error: la idempotencia está probada, no supuesta",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "esquema deep-equal tras la segunda ejecución; exit 0",
+      "test_data": {}
+    },
+    {
+      "id": "TC-MAN-282e",
+      "requirement_id": "NFR-1909",
+      "user_story_id": "US-1902",
+      "ac_id": "AC-1906",
+      "title": "El script deja la base en un estado que el código nuevo lee sin adaptadores",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "una base recién migrada por el script versionado"
+      ],
+      "given": "una base recién migrada por el script versionado",
+      "when": "se arranca el repositorio de datos y se lee un ledger completo",
+      "then": "la lectura funciona sin ninguna capa de compatibilidad ni traducción de nombres: el esquema resultante es el que el código espera",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "GET del ledger devuelve 200 con periodos «YYYY-MM»; cero código de compatibilidad en la ruta de lectura",
+      "test_data": {}
+    }
+  ]
+}

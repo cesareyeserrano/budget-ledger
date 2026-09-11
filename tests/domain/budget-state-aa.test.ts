@@ -16,6 +16,15 @@ function tokens(selector: string): Record<string, string> {
   const body = CSS.slice(start, CSS.indexOf("\n}", start));
   const out: Record<string, string> = {};
   for (const [, name, value] of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[name] = value.trim();
+  // refinamiento-ui FR-1201: los tokens de estado pasaron a ser ALIAS de los roles canónicos
+  // (--state-over → var(--alert-strong)). El contraste se sigue midiendo sobre el valor REAL:
+  // se resuelve la cadena en vez de relajar la comprobación.
+  const resolve = (v: string, depth = 0): string => {
+    const m = /^var\((--[\w-]+)\)$/.exec(v);
+    if (!m || depth > 5) return v;
+    return resolve(out[m[1]] ?? v, depth + 1);
+  };
+  for (const k of Object.keys(out)) out[k] = resolve(out[k]);
   return out;
 }
 

@@ -1,0 +1,2074 @@
+{
+  "test_plan": {
+    "strategy": "Tres niveles contra el contrato del TRD, con el peso puesto donde el diseño dice que está el riesgo. UNIT (Vitest, dominio puro): la aritmética de la frontera —qué es cerrable, qué es reabrible, la secuencia reabrir-cerrar que no debe permitir retroceder— y, sobre todo, la comprobación estructural de que el cierre NO entra en el cálculo, que es la afirmación sobre la que descansa todo el diseño. INTEGRATION (Vitest + testcontainers Postgres): el guardia contra Postgres real en sus dos puntos de estrangulamiento, la migración 0004 y su idempotencia, y los cuatro vectores de ataque contra el borde del servidor —incluida una petición fabricada a mano, porque el navegador no es base de cómputo confiable. E2E (Playwright): lo que solo se puede afirmar en el navegador — el aviso, la distinción visual de las columnas cerradas y el mensaje de rechazo al intentar editar. LA PRUEBA QUE MÁS IMPORTA es TC-CDM-030h, y es de PROPIEDAD, no de ejemplo: fotografía el mes cerrado entero, ejecuta las seis vías de escritura sobre el mes abierto y compara la foto completa. El TRD marca como riesgo alto que un falso negativo del guardia sea silencioso, y una prueba por vía solo cubre las vías que alguien recordó. Las cuatro NFR de regresión se prueban por COMPARACIÓN contra valores registrados en el commit b0aa5fd: es la única forma de demostrar que nada cambió en vez de suponerlo.",
+    "coverage_goal": "80%",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "type_coverage_matrix": [
+      {
+        "fr_type": "logic",
+        "frs": [
+          "FR-2001",
+          "FR-2002",
+          "FR-2003",
+          "FR-2005",
+          "FR-2007",
+          "FR-2008"
+        ],
+        "required_levels": [
+          "unit",
+          "integration"
+        ],
+        "note": "El dominio es puro: la unidad es el nivel natural. Integración obligatoria porque el guardia SOLO es autoridad en el servidor (ADR-12)."
+      },
+      {
+        "fr_type": "persistence",
+        "frs": [
+          "FR-2001",
+          "FR-2004"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "Postgres real vía testcontainers; el esquema no se simula."
+      },
+      {
+        "fr_type": "ui",
+        "frs": [
+          "FR-2006",
+          "FR-2009"
+        ],
+        "required_levels": [
+          "e2e"
+        ],
+        "note": "El aviso y la señal de columna cerrada solo se verifican en el navegador."
+      },
+      {
+        "fr_type": "Regression",
+        "frs": [
+          "NFR-2001",
+          "NFR-2002",
+          "NFR-2003",
+          "NFR-2004",
+          "NFR-2007"
+        ],
+        "required_levels": [
+          "unit",
+          "integration",
+          "e2e"
+        ],
+        "note": "Comparación contra la línea base del commit b0aa5fd, no contra la intuición."
+      },
+      {
+        "fr_type": "Security",
+        "frs": [
+          "NFR-2005"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "Cuatro vectores: petición fabricada a mano, ausencia de sesión, ownerId inyectado y carrera con el lock."
+      },
+      {
+        "fr_type": "Performance",
+        "frs": [
+          "NFR-2006"
+        ],
+        "required_levels": [
+          "unit"
+        ],
+        "note": "Tope de 150ms heredado, más la comprobación de que el guardia no corre en la ruta de render."
+      },
+      {
+        "fr_type": "Maintainability",
+        "frs": [
+          "NFR-2008"
+        ],
+        "required_levels": [
+          "integration"
+        ],
+        "note": "La migración y su idempotencia comprobadas, no supuestas."
+      },
+      {
+        "fr_type": "impact-reporting",
+        "frs": [
+          "FR-2010"
+        ],
+        "required_levels": [
+          "unit",
+          "integration",
+          "e2e"
+        ],
+        "note": "El cálculo del impacto es puro (unit); que la línea de base persista y que la edición NO se bloquee solo se demuestra contra Postgres real (integration); que el usuario lo VEA como panel y no como toast efímero, solo en el navegador (e2e)."
+      },
+      {
+        "fr_type": "ui",
+        "frs": [
+          "FR-2011"
+        ],
+        "required_levels": [
+          "integration",
+          "e2e"
+        ],
+        "note": "El contrato del endpoint —orden, aislamiento por owner, tope declarado— en integración; la consulta desde el control de cierre y su carácter de solo lectura, en e2e."
+      }
+    ],
+    "coverage_decisions": [
+      "Ajuste-en-el-mes-abierto: excluido — no_go_zone. No se prueba una salida que se decidió no construir; TC-CDM-042f cubre que la nota, que es la salida real, no sirva de rodeo para cambiar cifras.",
+      "Cierre automático: excluido como funcionalidad y cubierto en NEGATIVO — TC-CDM-063f y TC-CDM-064f prueban que NO ocurre. La ausencia de un camino se verifica por barrido del código, no ejecutando: una prueba de ejecución solo demuestra que no pasó en su escenario.",
+      "Retirada de BL-037 y BL-038: excluida — no_go_zone. En su lugar TC-CDM-222f prueba que reserve.ts no se toca, que es la promesa que sí se hizo.",
+      "Reabrir dos meses o alcanzar uno anterior al último cerrado: no se prueba como funcionalidad sino como imposibilidad (TC-CDM-051f, TC-CDM-052f, TC-CDM-053e).",
+      "Roles y permisos sobre quién cierra: excluidos — el producto es de usuario único. El aislamiento ENTRE usuarios sí se prueba (TC-CDM-242f), que es cosa distinta.",
+      "Saldo inicial y página de Configuración: excluidos — no_go_zone, punto 4 del orden acordado.",
+      "Paginación del rastro de closure_event: excluida — el TRD acota el crecimiento a ~2 filas al mes para un producto de usuario único y decide explícitamente no diseñar paginación.",
+      "Migración inversa de 0004: excluida — el TRD decide no escribirla, porque borrar las columnas destruiría el rastro. Se prueba en cambio que revertir el CÓDIGO es seguro contra la base migrada (TC-CDM-262e).",
+      "Comportamiento del cierre con más de un dispositivo editando a la vez: cubierto solo en su borde de carrera (TC-CDM-243h) y por el lock ya existente; no se construye un escenario multi-dispositivo completo porque el bloqueo optimista ya está verificado por la feature servidor-fuente-unica.",
+      "El anclaje del rango en la frontera del cierre (ADR-14, arreglo de BG-001) se prueba en UNIDAD —donde vive la aritmética— y con un solo caso e2e que confirma que la columna se pinta. No se construye una matriz e2e de escenarios de anclaje: el navegador no aporta nada que la unidad no demuestre ya, y el riesgo real era el callejón sin salida, no el pintado.",
+      "FR-2010 — NO se prueba que la app bloquee una edición dañina, porque el no_go_zone dice que no debe bloquear: TC-CDM-103f prueba lo CONTRARIO (responde 200 y persiste) para que un futuro desarrollador no 'arregle' el requisito convirtiéndolo en un rechazo.",
+      "FR-2010 — la linealidad del arrastre NO se asume: el «antes» se calcula corriendo la serie real desde la línea de base (ADR-15), y TC-CDM-100h fija cifras concretas para que un atajo que reste un delta constante siga pasando solo si es correcto.",
+      "FR-2011 — no se prueban paginación ni filtros: el diseño los descarta (tope de 200 declarado con `truncated`), y TC-CDM-116e verifica el tope en vez de dar por hecho que nunca se alcanza.",
+      "FR-2011 — no se prueba el motivo escrito de una reapertura: está en el no_go_zone por decisión del usuario del 2026-09-03."
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-CDM-010h",
+      "requirement_id": "FR-2001",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "Cerrado un mes, sobrevive a la recarga",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger del usuario u1 con closed_through=NULL y datos desde 2026-06; mes en curso 2026-09",
+      "when": "POST /api/v1/closure { baseRevision: 7 } y a continuación GET /api/v1/ledger",
+      "then": "el POST responde 200 { revision: 8, closure: { closedThrough: '2026-06', reopened: null } } y el GET devuelve state.closure.closedThrough='2026-06'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closed_through='2026-06' persistido en la fila ledger y devuelto en el snapshot",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-011e",
+      "requirement_id": "FR-2001",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2002",
+      "title": "El cierre sube revision y hace stale al cliente viejo",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ledger de u1 en revision=7, dos clientes con baseRevision=7",
+      "when": "el cliente A hace POST /api/v1/closure { baseRevision: 7 } (200, revision 8) y luego el cliente B hace PUT /api/v1/ledger { baseRevision: 7, state }",
+      "then": "el PUT de B responde 409 { error: { code: 'revision_conflict' }, revision: 8 } y closed_through sigue siendo el que fijó A",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "409 en el cliente stale; el cierre de A no se pisa",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-012h",
+      "requirement_id": "FR-2001",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2003",
+      "title": "Un ledger sin nada cerrado se comporta como antes de la feature",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "LedgerState sin la clave 'closure' (delta aditivo ausente, como todo estado previo a esta feature)",
+      "when": "se invoca isClosed(state.closure, p) para los 36 periodos del rango activo",
+      "then": "las 36 llamadas devuelven false y ninguna lanza",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closure ausente ≡ nada cerrado; ninguna excepción",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-013f",
+      "requirement_id": "FR-2001",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2004",
+      "title": "Un closed_through corrupto degrada a «nada cerrado», no rompe el arranque",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "fila ledger de u1 con closed_through='2026-13' escrito a mano saltándose el CHECK (simulando dato corrupto)",
+      "when": "GET /api/v1/ledger",
+      "then": "responde 200 y state.closure.closedThrough es null; la app arranca y no hay excepción no capturada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "degradación a null, misma política que normalizeHorizon; sin 500",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-020h",
+      "requirement_id": "FR-2002",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2005",
+      "title": "El mes cerrable es el abierto más antiguo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "state con datos desde 2026-06, closure.closedThrough=null, mes en curso 2026-09",
+      "when": "nextClosable(state, '2026-09')",
+      "then": "devuelve '2026-06'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-06' — el más antiguo del rango, no el mes en curso",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-021h",
+      "requirement_id": "FR-2002",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2006",
+      "title": "Cerrado agosto, el siguiente cerrable es septiembre",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "state con closure.closedThrough='2026-08', mes en curso 2026-09",
+      "when": "nextClosable(state, '2026-09')",
+      "then": "devuelve '2026-09'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-09'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-022f",
+      "requirement_id": "FR-2002",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2007",
+      "title": "Un cierre fuera de orden no es expresable en el protocolo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through=NULL y datos desde 2026-06; el cliente quiere cerrar 2026-09 saltándose junio a agosto",
+      "when": "POST /api/v1/closure { baseRevision: 7, period: '2026-09' } — con un campo period que el esquema no acepta",
+      "then": "responde 200 cerrando '2026-06' (el campo period se ignora por completo) o 400 por esquema estricto; en ningún caso closed_through queda en '2026-09'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closed_through nunca vale '2026-09': el cierre fuera de orden no se puede pedir",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-023f",
+      "requirement_id": "FR-2002",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2007",
+      "title": "Sin mes cerrable, el endpoint rechaza sin tocar nada",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 usuario nuevo cuyo historial empieza en el mes en curso 2026-09, con closed_through=NULL... y el mes en curso ya cerrado (closed_through='2026-09')",
+      "when": "POST /api/v1/closure { baseRevision: 9 }",
+      "then": "responde 422 { error: { code: 'not_closable', detail: { closable: null } } }, revision sigue en 9 y closed_through sigue en '2026-09'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 not_closable con closable=null; revision y frontera intactas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-024e",
+      "requirement_id": "FR-2002",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2005",
+      "title": "Un hueco de meses sin datos no rompe la secuencia",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "state con datos SOLO en 2026-06 y 2026-09 (julio y agosto vacíos), closedThrough='2026-06', mes en curso 2026-09",
+      "when": "nextClosable(state, '2026-09')",
+      "then": "devuelve '2026-07' — el periodo vacío también se cierra, porque el rango activo es contiguo (FR-1906)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-07': un mes vacío no se salta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-030h",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "PROPIEDAD: el mes cerrado entero sobrevive intacto a trastear el mes abierto",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "riesgo alto declarado en 02_SYSTEM_DESIGN.md § Technical Risk Flags: un falso negativo del guardia es silencioso"
+      ],
+      "given": "u1 con 2026-08 cerrado (closed_through='2026-08'), 23 nodos y celdas en los 36 periodos del rango; se toma una FOTO completa de 2026-08: budgets, actuals, movimientos, disponible, reservado y los roll-ups de los 23 nodos",
+      "when": "se ejecuta sobre 2026-09 (abierto) la batería COMPLETA de las seis vías de escritura: editar presupuesto, editar ejecutado, alta de movimiento, aporte a reserva, retiro de reserva y traslado entre alcancías; y se vuelve a tomar la foto de 2026-08",
+      "then": "las dos fotos son idénticas campo a campo: los 23 roll-ups, el disponible, el reservado, todas las celdas y la lista de movimientos de 2026-08 no difieren en ningún valor",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Igualdad profunda de la foto de 2026-08 antes y después. Es la ÚNICA prueba que detecta una vía de escritura OLVIDADA: las de rechazo por vía solo cubren las que alguien recordó (riesgo alto del TRD)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-031f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2007",
+      "title": "Editar una celda de presupuesto de un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y budgets['c-mercado']['2026-08']=300000",
+      "when": "PUT /api/v1/ledger con el mismo snapshot salvo budgets['c-mercado']['2026-08']=999000",
+      "then": "responde 422 { error: { code: 'closed_period_violation', detail: { periods: ['2026-08'] } } } y la celda en la base sigue en 300000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 closed_period_violation; celda intacta en 300000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-032f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2007",
+      "title": "Editar una celda de ejecutado de un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y actuals['c-mercado']['2026-08']=250000",
+      "when": "PUT /api/v1/ledger con actuals['c-mercado']['2026-08']=0",
+      "then": "responde 422 con periods=['2026-08'] y actuals['c-mercado']['2026-08'] sigue en 250000 en la base",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; ejecutado intacto en 250000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-033f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2008",
+      "title": "Registrar un movimiento en un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08'",
+      "when": "POST /api/v1/movements { period: '2026-08', catId: 'c-mercado', amount: 50000, kind: 'expense' }",
+      "then": "responde 422 { error: { code: 'closed_period_violation' } }, la tabla movement no gana ninguna fila y el conteo de movimientos de 2026-08 no cambia",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; cero filas insertadas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-034f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2008",
+      "title": "Borrar un movimiento de un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y un movimiento m1 de 80000 en 2026-08",
+      "when": "PUT /api/v1/ledger con el snapshot sin m1 en la lista de movements",
+      "then": "responde 422 con periods=['2026-08'] y m1 sigue existiendo en la tabla movement",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; m1 intacto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-035f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2009",
+      "title": "Aportar, retirar o trasladar en un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08', alcancía a1 con 400000 aportados en 2026-08 y disponible de 2026-08 en 100000",
+      "when": "PUT /api/v1/ledger con un aporte extra de 50000 a a1 en 2026-08; luego otro con un retiro de 50000; luego otro con un traslado a1→a2 de 50000",
+      "then": "las tres respuestas son 422 con periods=['2026-08'], y el disponible y el reservado de 2026-08 siguen en 100000 y 400000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "tres 422; disponible 100000 y reservado 400000 sin cambio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-036e",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2008",
+      "title": "Mover un movimiento HACIA un mes cerrado se rechaza",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y un movimiento m2 de 60000 en 2026-09 (abierto)",
+      "when": "PUT /api/v1/ledger con m2 cambiado a period='2026-08'",
+      "then": "responde 422 con periods=['2026-08'] y m2 sigue apuntando a '2026-09'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; el cambio de periodo hacia un mes cerrado cuenta como violación",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-037e",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "Editar el mes abierto se acepta con normalidad",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' en revision=9",
+      "when": "PUT /api/v1/ledger con budgets['c-mercado']['2026-09'] cambiado de 300000 a 350000",
+      "then": "responde 200 { revision: 10 } y la celda de 2026-09 queda en 350000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200; el guardia no produce falsos positivos sobre meses abiertos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-038e",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "El guardia compara contra el estado PERSISTIDO, no contra lo que diga el cliente",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y budgets['c-mercado']['2026-08']=300000 en la base",
+      "when": "PUT /api/v1/ledger cuyo snapshot afirma budgets['c-mercado']['2026-08']=999000, enviado por un cliente que cree —falsamente— que ese era ya su valor",
+      "then": "responde 422 con periods=['2026-08']: el servidor lee prev de la base y detecta la diferencia contra 300000, sin creerse la versión del cliente",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; un cliente que mienta sobre el estado previo no consigue escribir",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-039f",
+      "requirement_id": "FR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2007",
+      "title": "Una escritura rechazada no deja rastro parcial",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' en revision=9",
+      "when": "PUT /api/v1/ledger con un snapshot que cambia A LA VEZ una celda legal de 2026-09 y una ilegal de 2026-08",
+      "then": "responde 422, revision sigue en 9 y NINGUNA de las dos celdas cambia: tampoco la legal",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; atomicidad — la transacción se aborta entera, la celda legal tampoco se escribe",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-040h",
+      "requirement_id": "FR-2004",
+      "user_story_id": "US-2004",
+      "ac_id": "AC-2011",
+      "title": "Escribir una observación en un mes cerrado se acepta",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y sin observaciones en la celda ('c-mercado','2026-08')",
+      "when": "PUT /api/v1/ledger con cellNotes['c-mercado']['2026-08']=['error de 8.000 detectado en septiembre']",
+      "then": "responde 200 y la observación queda persistida en la tabla cell_note para el periodo 2026-08",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200; la nota persiste en un mes cerrado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-041e",
+      "requirement_id": "FR-2004",
+      "user_story_id": "US-2004",
+      "ac_id": "AC-2012",
+      "title": "Editar una nota de un mes cerrado no mueve ninguna cifra",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "LedgerState con closedThrough='2026-08' y una foto de todas las cifras de 2026-08",
+      "when": "se añade, edita y borra una observación en ('c-mercado','2026-08') y se llama closedPeriodsViolated(prev, next) en cada paso",
+      "then": "las tres llamadas devuelven [] y la foto de cifras de 2026-08 es idéntica en los tres pasos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "[] en las tres; cero cambios en las cifras",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-042f",
+      "requirement_id": "FR-2004",
+      "user_story_id": "US-2004",
+      "ac_id": "AC-2011",
+      "title": "Una nota NO es un caballo de Troya para cambiar cifras",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y budgets['c-mercado']['2026-08']=300000",
+      "when": "PUT /api/v1/ledger que añade una observación legal en 2026-08 Y cambia budgets['c-mercado']['2026-08'] a 999000 en el mismo snapshot",
+      "then": "responde 422 con periods=['2026-08']: la nota no exime a la cifra, y ni la nota ni la cifra se escriben",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; la exención de FR-2004 alcanza solo a cellNotes",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-050h",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2015",
+      "title": "Reabrir el último mes cerrado devuelve la edición",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08', reopened_period=NULL, revision=9",
+      "when": "DELETE /api/v1/closure { baseRevision: 9 } y después PUT /api/v1/ledger cambiando budgets['c-mercado']['2026-08'] a 350000",
+      "then": "el DELETE responde 200 { closure: { closedThrough: '2026-07', reopened: '2026-08' } } y el PUT posterior responde 200 con la celda en 350000",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 y 200; 2026-08 vuelve a ser editable",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-051f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2014",
+      "title": "No se puede reabrir un mes anterior al último cerrado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "closure={ closedThrough: '2026-08', reopened: null }",
+      "when": "nextReopenable(closure)",
+      "then": "devuelve '2026-08' y nunca '2026-07' ni ningún periodo anterior",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-08'; julio inalcanzable",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-052f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2016",
+      "title": "Con un mes ya reabierto, reabrir otro se rechaza",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-07' y reopened_period='2026-08' (agosto ya reabierto), revision=10",
+      "when": "DELETE /api/v1/closure { baseRevision: 10 }",
+      "then": "responde 422 { error: { code: 'not_reopenable', detail: { reason: 'already_reopened' } } }, closed_through sigue en '2026-07' y revision en 10",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 already_reopened; la frontera no retrocede a 2026-06",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-053e",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2017",
+      "title": "La secuencia reabrir–cerrar repetida NO permite retroceder",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "closure={ closedThrough: '2026-08', reopened: null }",
+      "when": "se ejecuta reopenMonth → closeMonth → reopenMonth → closeMonth → reopenMonth sobre el resultado de cada paso",
+      "then": "las tres reaperturas devuelven reopened='2026-08' y en ningún momento closedThrough baja de '2026-07'; '2026-06' nunca queda al alcance",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "reopened='2026-08' en las tres; el suelo es '2026-07'",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-054f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2014",
+      "title": "Sin nada cerrado no hay nada que reabrir",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through=NULL, revision=7",
+      "when": "DELETE /api/v1/closure { baseRevision: 7 }",
+      "then": "responde 422 { error: { code: 'not_reopenable', detail: { reason: 'nothing_closed' } } } y revision sigue en 7",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422 nothing_closed; revision intacta",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-055h",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2018",
+      "title": "El rastro de la reapertura sobrevive a volver a cerrar",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y la tabla closure_event vacía",
+      "when": "DELETE /api/v1/closure, luego POST /api/v1/closure, luego GET /api/v1/closure/events",
+      "then": "devuelve exactamente dos eventos en orden: { period: '2026-08', action: 'reopen' } y { period: '2026-08', action: 'close' }, cada uno con su marca 'at'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "2 eventos con periodo, acción e instante; el de reapertura sigue ahí tras re-cerrar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-056f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2018",
+      "title": "No existe una reapertura sin rastro",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08'; se fuerza el fallo del INSERT en closure_event (constraint violado a propósito dentro de la transacción)",
+      "when": "DELETE /api/v1/closure { baseRevision: 9 }",
+      "then": "la transacción se revierte entera: responde 5xx, closed_through sigue en '2026-08', reopened_period sigue NULL y closure_event sigue sin la fila",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "rollback total; frontera y rastro consistentes entre sí",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-057e",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2015",
+      "title": "Reabrir propaga el recálculo hacia adelante sin tocar meses cerrados",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "state con closedThrough='2026-08', datos desde 2026-06 y una foto de las cifras de 2026-06 y 2026-07",
+      "when": "se reabre 2026-08, se cambia un ingreso de 2026-08 de 1000000 a 1200000 y se recalcula la serie completa",
+      "then": "el saldo de apertura de 2026-09 sube en 200000 y las fotos de 2026-06 y 2026-07 son idénticas a las de antes",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "septiembre se mueve; junio y julio no",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-060h",
+      "requirement_id": "FR-2006",
+      "user_story_id": "US-2006",
+      "ac_id": "AC-2019",
+      "title": "El aviso dice cuántos meses faltan y cuál es el siguiente",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con datos desde 2026-06, nada cerrado y mes en curso 2026-09: junio, julio y agosto están terminados y abiertos",
+      "when": "se carga la página principal",
+      "then": "el elemento [data-testid='closure-banner'] es visible y su texto contiene «3» y «junio de 2026»",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "banner visible con el conteo 3 y el mes cerrable nombrado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-061e",
+      "requirement_id": "FR-2006",
+      "user_story_id": "US-2006",
+      "ac_id": "AC-2020",
+      "title": "El aviso no bloquea el trabajo",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con el banner de cierre visible",
+      "when": "se edita la celda ('c-mercado','2026-09') escribiendo 350000 y se pulsa Enter",
+      "then": "la celda queda en 350000, el banner sigue visible y no aparece ningún modal ni overlay que intercepte el clic",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "la edición se completa con el aviso en pantalla",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-062f",
+      "requirement_id": "FR-2006",
+      "user_story_id": "US-2006",
+      "ac_id": "AC-2021",
+      "title": "Sin meses terminados pendientes, no hay aviso",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "sesión de un usuario cuyo historial empieza en el mes en curso 2026-09 (siembra anclada, FR-1910)",
+      "when": "se carga la página principal",
+      "then": "[data-testid='closure-banner'] tiene count 0: no existe en el DOM",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "cero nodos de banner",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-063f",
+      "requirement_id": "FR-2006",
+      "user_story_id": "US-2006",
+      "ac_id": "AC-2022",
+      "title": "Pasar de mes NO cierra nada",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "state con closedThrough=null y datos desde 2026-06",
+      "when": "se evalúa nextClosable y unclosedEndedPeriods con currentPeriod='2026-09' y después con '2026-10', sin invocar closeMonth",
+      "then": "closedThrough sigue siendo null en ambos casos; el paso de mes solo hace crecer unclosedEndedPeriods de 3 a 4 elementos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closedThrough null tras el cambio de mes; nada se cierra solo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-064f",
+      "requirement_id": "FR-2006",
+      "user_story_id": "US-2006",
+      "ac_id": "AC-2022",
+      "title": "No existe ninguna ruta de cierre automático en el código",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el árbol de src/ completo",
+      "when": "se busca toda invocación de closeMonth y se comprueba su origen",
+      "then": "las únicas invocaciones parten del handler de POST /api/v1/closure y de la acción del store disparada por el ClosureControl; no hay ninguna dentro de un setTimeout, setInterval, useEffect de montaje, cron ni tarea de arranque",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "cero invocaciones automáticas de closeMonth",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-070h",
+      "requirement_id": "FR-2007",
+      "user_story_id": "US-2007",
+      "ac_id": "AC-2023",
+      "title": "El saldo de apertura del mes siguiente queda fijo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "state con 2026-09 cerrado, cuyo cierre deja disponible=500000 y reservado=700000",
+      "when": "se calcula la serie y se lee la apertura de 2026-10; después se edita el plan de 2026-11 y se recalcula",
+      "then": "la apertura de 2026-10 es 500000/700000 en las dos lecturas, sin diferencia",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "apertura de octubre estable en 500000/700000",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-071h",
+      "requirement_id": "FR-2007",
+      "user_story_id": "US-2007",
+      "ac_id": "AC-2024",
+      "title": "Todo el horizonte futuro sigue editable tras cerrar",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-09' y rango hasta 2028-12",
+      "when": "PUT /api/v1/ledger editando una celda de 2026-10, otra de 2027-06 y otra de 2028-12",
+      "then": "responde 200 { revision: n+1 } y las tres celdas quedan con sus nuevos valores",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200; las tres celdas futuras escritas",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-072f",
+      "requirement_id": "FR-2007",
+      "user_story_id": "US-2007",
+      "ac_id": "AC-2025",
+      "title": "Editar el futuro no altera el mes cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-09' y foto de las cifras de 2026-09",
+      "when": "PUT /api/v1/ledger cambiando el presupuesto de 2026-11 de 300000 a 900000",
+      "then": "responde 200 y la foto de 2026-09 es idéntica: ni su disponible, ni su reservado, ni sus roll-ups cambian",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200; foto de septiembre sin cambios",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-073e",
+      "requirement_id": "FR-2007",
+      "user_story_id": "US-2007",
+      "ac_id": "AC-2023",
+      "title": "La conservación se mantiene en el paso cerrado→abierto",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "state con 2026-09 cerrado y 2026-10 abierto",
+      "when": "se calcula la serie y se comprueba disponible + reservado = total en el paso 2026-09 → 2026-10",
+      "then": "la identidad se cumple con diferencia exacta 0, igual que en cualquier paso entre dos meses abiertos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "diferencia 0 en la identidad de conservación",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-080f",
+      "requirement_id": "FR-2008",
+      "user_story_id": "US-2008",
+      "ac_id": "AC-2026",
+      "title": "Un mes futuro no es cerrable",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "state con closedThrough='2026-09' (el mes en curso ya cerrado) y rango hasta 2028-12, mes en curso 2026-09",
+      "when": "nextClosable(state, '2026-09')",
+      "then": "devuelve null: 2026-10 existe en el rango pero es posterior al mes en curso",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "null; octubre no se ofrece",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-081h",
+      "requirement_id": "FR-2008",
+      "user_story_id": "US-2008",
+      "ac_id": "AC-2027",
+      "title": "El mes en curso sí es cerrable, y queda reabrible",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-08' y mes en curso 2026-09",
+      "when": "POST /api/v1/closure { baseRevision: 9 } y a continuación se consulta nextReopenable",
+      "then": "el POST responde 200 con closedThrough='2026-09' y nextReopenable devuelve '2026-09'",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 cerrando el mes en curso; queda inmediatamente reabrible",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-082e",
+      "requirement_id": "FR-2008",
+      "user_story_id": "US-2008",
+      "ac_id": "AC-2026",
+      "title": "El borde exacto: el último día del mes en curso",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "state con closedThrough='2026-08' y mes en curso 2026-09",
+      "when": "nextClosable(state, '2026-09') el día 30 de septiembre y nextClosable(state, '2026-10') el día 1 de octubre",
+      "then": "devuelve '2026-09' en los dos casos: el mes en curso es cerrable el día 30, y sigue siéndolo cuando pasa a ser pasado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-09' en ambos; el cambio de mes no altera qué es cerrable",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-090h",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2028",
+      "title": "Las columnas cerradas se distinguen sin interactuar",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con closed_through='2026-08', rango de 2026-06 a 2028-12",
+      "when": "se carga la página y se leen los atributos data-closed de todos los [data-month-head] de la grilla y del Balance",
+      "then": "los encabezados de 2026-06, 2026-07 y 2026-08 tienen data-closed='true' y los de 2026-09 en adelante data-closed='false', en las dos superficies",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "3 columnas con data-closed=true en grilla y Balance; el resto false",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-091f",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2029",
+      "title": "Intentar editar una celda cerrada explica el rechazo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sesión con closed_through='2026-08'",
+      "when": "se hace doble clic en la celda ('c-mercado','2026-08') y se intenta escribir 999000",
+      "then": "no aparece ningún campo de edición, el valor sigue siendo el original y el Toaster muestra un texto que contiene «cerrado» y nombra la salida (reabrir o dejar una observación)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "sin campo de edición; aviso con la palabra «cerrado» y la salida",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-092e",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2030",
+      "title": "La distinción no depende solo del color",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con closed_through='2026-08' y la página forzada a escala de grises con un filtro CSS",
+      "when": "se inspeccionan los encabezados de las columnas cerradas",
+      "then": "cada encabezado cerrado contiene un elemento de icono de candado además del atributo data-closed, así que la distinción sobrevive sin color",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "icono presente en cada cabecera cerrada; segundo canal no cromático (WCAG 1.4.1)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-093h",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2031",
+      "title": "El control dice siempre qué es cerrable y qué reabrible",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con closed_through='2026-08', reopened_period=NULL, mes en curso 2026-09",
+      "when": "se lee el texto de [data-testid='closure-control']",
+      "then": "ofrece «Cerrar septiembre de 2026» y «Reabrir agosto de 2026»; tras cerrar septiembre pasa a ofrecer solo «Reabrir septiembre de 2026» y ninguna acción de cierre",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "los dos rótulos correctos antes; solo el de reapertura después",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-200h",
+      "requirement_id": "NFR-2001",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "La suite completa termina en verde tras la feature",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el proyecto con la feature construida y sus ficheros de prueba",
+      "when": "se ejecutan la suite unitaria y la e2e completas",
+      "then": "exit code 0, la línea de conteo no muestra ningún 'failed', y el total ejecutado no baja de 645 unitarias + 392 e2e",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "exit 0; ≥645 unit y ≥392 e2e; cero failed",
+      "test_data": {},
+      "automation": "manual",
+      "manual_reason": "Afirma que la suite COMPLETA termina en verde: no puede vivir dentro de la propia suite sin ser circular. Se verifica leyendo el exit code y la linea 'N failed' que produce aitri feature verify-run."
+    },
+    {
+      "id": "TC-CDM-201f",
+      "requirement_id": "NFR-2001",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "Ninguna prueba se desactiva para pasar el gate",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el árbol tests/ completo antes y después de la feature",
+      "when": "se cuentan las apariciones de .skip, .todo, .fixme y xit/xdescribe en los dos estados",
+      "then": "el conteo posterior no es mayor que el previo: cero pruebas nuevas saltadas",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "conteo de skips no crece respecto a la línea base",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-202e",
+      "requirement_id": "NFR-2001",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "Las pruebas de multi-anio pasan sin modificarse",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "tests/e2e/multi-anio.spec.ts y las pruebas unitarias de range.ts, tal como quedaron en el commit b0aa5fd",
+      "when": "se ejecutan tras la feature sin editar ni un carácter de esos ficheros",
+      "then": "todas pasan y el diff de git sobre esos ficheros está vacío",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "verde y diff vacío en los ficheros de multi-anio",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-210h",
+      "requirement_id": "NFR-2002",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "Sin ningún mes cerrado los resultados son idénticos a la línea base",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un conjunto fijo de datos de 36 periodos y los resultados de computeBalanceSeries, verdictOf, maxWithdrawal, monthCarryUsage y los roll-ups registrados ANTES de la feature",
+      "when": "se recalculan los cinco con closure ausente y con closure={ closedThrough: null, reopened: null }",
+      "then": "los cinco resultados coinciden exactamente con los registrados, en las dos formas de expresar «nada cerrado»",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "igualdad exacta con la línea base en los cinco cálculos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-211e",
+      "requirement_id": "NFR-2002",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "closure ausente y closure nulo son indistinguibles",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "dos estados idénticos salvo que uno omite la clave closure y el otro la lleva con closedThrough=null",
+      "when": "se recorren los cinco cálculos y se comparan los resultados campo a campo",
+      "then": "no hay ninguna diferencia: el delta aditivo ausente y el explícitamente vacío se comportan igual",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "cero diferencias entre ambos estados",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-212f",
+      "requirement_id": "NFR-2002",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "El cálculo no recibe el estado de cierre",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "las firmas de computeBalanceSeries, resolveReserves, verdictOf, maxWithdrawal y monthCarryUsage",
+      "when": "se inspeccionan sus parámetros y el cuerpo de src/domain/balance.ts y src/domain/reserve.ts",
+      "then": "ninguna de las cinco recibe Closure ni referencia isClosed, closedThrough o closure: el cierre no entra en el cálculo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "cero referencias al cierre en balance.ts y reserve.ts",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-220h",
+      "requirement_id": "NFR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "El veredicto del techo es el mismo en los meses abiertos",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el mismo conjunto de datos evaluado con closedThrough=null y con closedThrough='2026-08'",
+      "when": "se calcula verdictOf para cada periodo ABIERTO en los dos escenarios",
+      "then": "los veredictos de todos los periodos abiertos coinciden uno a uno entre ambos escenarios",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "veredictos idénticos en los meses abiertos, haya o no meses cerrados detrás",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-221e",
+      "requirement_id": "NFR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "maxWithdrawal y monthCarryUsage no cambian",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una alcancía con 600000 aportados en 2026-06 y 400000 en 2026-07, con y sin esos meses cerrados",
+      "when": "se evalúan maxWithdrawal y monthCarryUsage para 2026-09 en los dos escenarios",
+      "then": "los dos devuelven el mismo valor en ambos escenarios: 1000000 disponible para retirar en 2026-09",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "1000000 en los dos escenarios; el cierre no altera el acumulado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-222f",
+      "requirement_id": "NFR-2003",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "La feature no toca la maquinaria del techo",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "src/domain/reserve.ts en el commit b0aa5fd y tras la implementación",
+      "when": "se compara el diff de git del fichero",
+      "then": "el diff está vacío: reserve.ts no se modifica; BL-037 y BL-038 siguen exactamente donde estaban (no_go_zone)",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "diff vacío en reserve.ts",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-230h",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El rango activo no cambia por haber meses cerrados",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un state con datos desde 2026-06, horizonte 2 y mes en curso 2026-09",
+      "when": "se llama activeRange con closedThrough=null y con closedThrough='2026-08'",
+      "then": "las dos listas son idénticas: mismos 36 periodos, de 2026-06 a 2028-12, en el mismo orden",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "36 periodos idénticos en ambos casos; el cierre no recorta el rango",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-231e",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El filtro por año sigue funcionando con meses cerrados",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión con closed_through='2026-08' y rango de 2026-06 a 2028-12",
+      "when": "se pone el filtro en «Año 2026» y se cuentan las columnas y sus data-closed",
+      "then": "se pintan los 7 periodos de 2026 presentes en el rango, tres de ellos con data-closed='true', y la apertura de 2026-06 sigue siendo correcta",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "7 columnas, 3 cerradas; el filtro recorta la vista y no el cálculo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-232f",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El horizonte no interfiere con la frontera de cierre",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "state con closedThrough='2026-08' y horizonte 2",
+      "when": "se cambia el horizonte a 1 y se vuelve a 2, recalculando el rango cada vez",
+      "then": "closedThrough sigue en '2026-08' en los tres momentos y ningún periodo cerrado queda fuera del rango en ninguno",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-08' estable; ningún mes cerrado se sale del rango",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-240f",
+      "requirement_id": "NFR-2005",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2007",
+      "title": "Una petición fabricada a mano no escribe en un mes cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 autenticado con cookie válida y closed_through='2026-08'; petición construida con fetch directo, sin pasar por la UI",
+      "when": "PUT /api/v1/ledger con Content-Type application/json y un snapshot que altera budgets['c-mercado']['2026-08']",
+      "then": "responde 422 closed_period_violation y la base no cambia: el navegador no es parte de la base de cómputo confiable",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "422; cero escrituras — el control no vive en el cliente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-241f",
+      "requirement_id": "NFR-2005",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2007",
+      "title": "Sin sesión, los endpoints de cierre no responden nada útil",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sin cookie de sesión",
+      "when": "POST /api/v1/closure, DELETE /api/v1/closure y GET /api/v1/closure/events",
+      "then": "los tres responden 401 y no se crea ni se lee ninguna fila de closure_event",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "401 en los tres; cero acceso",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-242f",
+      "requirement_id": "NFR-2005",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2007",
+      "title": "No se puede cerrar el ledger de otro usuario",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "dos usuarios u1 y u2, cada uno con su ledger; sesión válida de u1",
+      "when": "POST /api/v1/closure { baseRevision: 3, ownerId: 'u2' } — con un ownerId inyectado en el cuerpo",
+      "then": "el ownerId del cuerpo se ignora por completo: se cierra un mes de u1 y el ledger de u2 conserva closed_through=NULL",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "el ledger de u2 intacto; el ownerId sale siempre de la sesión",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-243h",
+      "requirement_id": "NFR-2005",
+      "user_story_id": "US-2002",
+      "ac_id": "AC-2005",
+      "title": "El guardia corre dentro del lock, sin ventana entre validar y escribir",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con closed_through='2026-07' en revision=8; dos peticiones concurrentes: una cierra 2026-08 y otra escribe en 2026-08",
+      "when": "las dos se lanzan simultáneamente contra PUT/POST",
+      "then": "una gana y la otra recibe 409 o 422; en ningún orden de llegada queda una escritura de 2026-08 aplicada DESPUÉS de su cierre",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "sin interleaving: el FOR UPDATE serializa y el guardia ve el estado ya bloqueado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-250h",
+      "requirement_id": "NFR-2006",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "El guardia cabe de sobra en el presupuesto",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "dos LedgerState del tamaño máximo previsto: 23 nodos por 60 periodos, con movimientos",
+      "when": "se ejecuta closedPeriodsViolated(prev, next) 100 veces y se toma la mediana",
+      "then": "la mediana es ≤15ms, un orden de magnitud por debajo del tope de 150ms del recómputo completo",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "mediana ≤15ms sobre el estado máximo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-251e",
+      "requirement_id": "NFR-2006",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "Cerrar y reabrir no degradan el recómputo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "state del tamaño máximo con 2026-08 cerrado",
+      "when": "se miden closeMonth, reopenMonth y una edición de celda del mes abierto seguidas de su recálculo completo",
+      "then": "las tres operaciones completan en ≤150ms cada una",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "≤150ms en las tres, el mismo tope que rige hoy",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-252f",
+      "requirement_id": "NFR-2006",
+      "user_story_id": "US-2003",
+      "ac_id": "AC-2010",
+      "title": "El guardia no se ejecuta en la ruta de render",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un contador instrumentado sobre closedPeriodsViolated",
+      "when": "se montan la grilla y el Balance y se hacen 20 renders sin ninguna escritura",
+      "then": "el contador queda en 0: el guardia solo corre al escribir, nunca al pintar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "0 invocaciones en 20 renders",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-260h",
+      "requirement_id": "NFR-2007",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "Ida y vuelta completa con cierres y reaperturas",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un ledger con 3 meses cerrados, un mes reabierto y 4 eventos en closure_event",
+      "when": "se guarda con PUT, se recarga con GET y se comparan los dos estados",
+      "then": "el estado recargado es idéntico al guardado campo a campo, incluidos closure.closedThrough, closure.reopened y las cifras de los 36 periodos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "igualdad profunda tras guardar y recargar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-261f",
+      "requirement_id": "NFR-2007",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2002",
+      "title": "El lock optimista sigue rechazando al cliente viejo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 en revision=12",
+      "when": "PUT /api/v1/ledger { baseRevision: 11, state }",
+      "then": "responde 409 { error: { code: 'revision_conflict' }, revision: 12 } y nada se escribe",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "409 con la revisión actual; cero escrituras",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-262e",
+      "requirement_id": "NFR-2007",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2003",
+      "title": "Un ledger anterior a la feature carga sin closure",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una fila ledger creada antes de la migración 0004, con closed_through y reopened_period a NULL",
+      "when": "GET /api/v1/ledger",
+      "then": "responde 200 y state.closure es { closedThrough: null, reopened: null } o está ausente; la app opera como si nada estuviera cerrado",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200; compatibilidad hacia atrás sin migración de datos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-270h",
+      "requirement_id": "NFR-2008",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "La migración 0004 añade columnas y tabla en transacción",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una base con el esquema del commit b0aa5fd (hasta 0003)",
+      "when": "se ejecuta npm run db:migrate",
+      "then": "ledger tiene closed_through y reopened_period nulables con sus CHECK, existe la tabla closure_event con su índice, y data_version pasa a 4",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "columnas, CHECKs, tabla e índice creados; data_version=4",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-271f",
+      "requirement_id": "NFR-2008",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "Re-ejecutar la migración no la vuelve a aplicar",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "una base ya migrada con data_version=4 y dos filas en closure_event",
+      "when": "se ejecuta npm run db:migrate por segunda vez",
+      "then": "termina con exit 0, no lanza, no duplica columnas ni índices y las dos filas de closure_event siguen intactas",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "idempotente por marca de versión; datos intactos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-272e",
+      "requirement_id": "NFR-2008",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El CHECK de formato rechaza un periodo inválido en la base",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una base migrada",
+      "when": "se intenta un UPDATE directo poniendo ledger.closed_through='2026-13' y otro con '26-08'",
+      "then": "los dos fallan por violación del constraint ledger_closed_through_ck y la fila conserva su valor anterior",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "dos violaciones de CHECK; segunda barrera independiente del código",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-058h",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2015",
+      "title": "Un mes cerrado SIN datos sigue en el rango, y reabrirlo devuelve una celda",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un ledger SIN ningún dato en ningún periodo, con 2026-09 cerrado (closedThrough='2026-09') y datos escritos después solo en 2026-10",
+      "when": "se calcula activeRange con mes en curso 2026-10 y después se reabre 2026-09",
+      "then": "el rango contiene '2026-09' aunque no tenga cifras y aunque el historial de datos empiece en 2026-10; tras reabrirlo sigue contenido, así que hay una columna donde teclear",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "'2026-09' presente en el rango antes y después de reabrir — el callejón sin salida de BG-001 desaparece",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-059f",
+      "requirement_id": "FR-2005",
+      "user_story_id": "US-2005",
+      "ac_id": "AC-2017",
+      "title": "El punto de no retorno lo marca el siguiente cierre, no el paso del mes",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el mismo ledger vacío con 2026-09 cerrado y datos solo en 2026-10, ya en el mes 2026-11",
+      "when": "se comprueba el rango y el reabrible; luego se cierra 2026-10 y se vuelve a comprobar",
+      "then": "antes de cerrar octubre, '2026-09' sigue en el rango y es reabrible; después de cerrar octubre deja de estar anclado y deja de ser reabrible — las dos cosas a la vez",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "septiembre anclado y reabrible antes; fuera del rango y no reabrible después de cerrar octubre",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-233h",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "El cierre no RECORTA el rango: lo contiene entero y añade la frontera",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un state con datos desde 2026-06, horizonte 2 y mes en curso 2026-09",
+      "when": "se compara activeRange sin cierre contra activeRange con closedThrough='2026-08', y después contra un caso con la frontera ANTERIOR al primer dato",
+      "then": "con la frontera dentro del historial las dos listas son idénticas; con la frontera anterior al primer dato la lista con cierre CONTIENE a la de sin cierre y añade los periodos hasta la frontera — nunca pierde ninguno",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "igualdad en el caso normal; superconjunto estricto cuando la frontera precede a los datos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-234f",
+      "requirement_id": "NFR-2004",
+      "user_story_id": "US-2001",
+      "ac_id": "AC-2001",
+      "title": "Una frontera basura no puede fijar el inicio del rango",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un state con datos desde 2026-06 y un closure con closedThrough='2026-13' escrito a mano",
+      "when": "se calcula activeRange con mes en curso 2026-09",
+      "then": "el rango arranca en '2026-06' y no en ningún periodo derivado de la basura: normalizeClosure la descarta ANTES de anclar nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "rango desde '2026-06'; la frontera inválida se ignora",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-094e",
+      "requirement_id": "FR-2009",
+      "user_story_id": "US-2009",
+      "ac_id": "AC-2028",
+      "title": "El mes cerrado sin datos se PINTA como columna cerrada",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión cuyo ledger no tiene ningún dato antes del mes en curso, con el mes en curso cerrado por API y datos escritos en el mes siguiente",
+      "when": "se recarga la página y se leen las cabeceras de columna",
+      "then": "la cabecera del mes cerrado existe con data-closed='true' y su candado, aunque todas sus celdas estén vacías",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "1 cabecera con data-closed=true y su [data-testid=closed-mark], con celdas vacías",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-043e",
+      "requirement_id": "FR-2004",
+      "user_story_id": "US-2004",
+      "ac_id": "AC-2013",
+      "title": "La celda de un mes cerrado dice a la vez «la cifra no» y «la observación sí»",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sesión con 2026-06 y 2026-07 cerrados y datos en la grilla",
+      "when": "se hace doble clic en una celda de 2026-06",
+      "then": "NO aparece ningún campo de importe (el valor se pinta como [data-testid=closed-value], no como input), el panel [data-testid=cell-notes] SÍ aparece con su campo para escribir, y el aviso explica que la cifra no se edita",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "closed-value presente y sin input de importe; cell-notes presente y escribible; aviso con la explicación",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-100h",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2032",
+      "title": "El impacto enumera los meses posteriores con su antes y su después",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger con closedThrough='2026-07', reopened='2026-08', reopenBaseline={available:500000, reservedBalance:200000}; 2026-09 con ingreso 1.000.000 y gasto 400.000; 2026-10 con gasto 300.000; 2026-11 sin datos. Agosto ya corregido: su carry de cierre actual es {available:300000, reservedBalance:200000}",
+      "when": "downstreamImpact(state, ['2026-09','2026-10','2026-11'], closure)",
+      "then": "devuelve exactamente 3 filas: {period:'2026-09', availableBefore:1100000, availableAfter:900000}, {period:'2026-10', availableBefore:800000, availableAfter:600000}, {period:'2026-11', availableBefore:800000, availableAfter:600000}, las tres con brokenByThisEdit=false",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cada mes posterior aparece con su disponible anterior y el nuevo, desplazados los 200.000 que perdió agosto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-101e",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2033",
+      "title": "Una edición que no mueve el saldo de cierre no reporta ningún mes",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el mismo ledger, con reopenBaseline={available:500000, reservedBalance:200000} y el carry de cierre actual de 2026-08 idéntico a la línea de base, tras mover un gasto de 150.000 de la subcategoría 'Mercado' a su hermana 'Restaurantes' dentro de 2026-08",
+      "when": "downstreamImpact(state, ['2026-09','2026-10','2026-11'], closure)",
+      "then": "devuelve [] — longitud 0, no una lista de tres filas con before === after",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Sin cambio en el saldo de cierre no hay impacto: la lista está vacía, no llena de ceros",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-102f",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2034",
+      "title": "Un mes que YA estaba roto antes de la corrección no se le imputa a esta edición",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "closedThrough='2026-07', reopened='2026-08', reopenBaseline={available:100000, reservedBalance:0}; 2026-10 arrastra déficit ya con la línea de base (gastos 900.000 contra 400.000 disponibles). El carry actual de agosto es {available:50000, reservedBalance:0}",
+      "when": "downstreamImpact(state, ['2026-09','2026-10','2026-11'], closure)",
+      "then": "la fila de 2026-10 tiene brokenByThisEdit=false pese a estar en déficit, porque deficit(antes) > 0; el campo distingue «lo rompiste tú» de «ya venía roto»",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "brokenByThisEdit=false en 2026-10: no se culpa a la corrección de un déficit preexistente",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-103f",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2034",
+      "title": "La corrección que rompe un mes posterior se ACEPTA y señala el mes",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 en Postgres con closedThrough='2026-07', reopened='2026-08' y línea de base guardada; 2026-10 con 200.000 de margen",
+      "when": "PUT /api/v1/ledger subiendo un gasto de 2026-08 en 500.000 (lo que deja a 2026-10 con 300.000 sin cubrir)",
+      "then": "responde 200 y la escritura persiste — NO 4xx, NO rechazo — y el impacto devuelto marca {period:'2026-10', brokenByThisEdit:true}",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "La app informa del daño y deja seguir: la edición se guarda y 2026-10 queda señalado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-104f",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2032",
+      "title": "El impacto nunca alcanza un mes que sigue cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con datos desde 2026-01, closedThrough='2026-07' y reopened='2026-08'; rango activo 2026-01…2026-12",
+      "when": "se corrige una celda de 2026-08 y se calcula el impacto sobre TODO el rango activo, no solo sobre la cola",
+      "then": "ninguna fila devuelta tiene period <= '2026-07': los siete meses cerrados están ausentes de la lista, y sus cifras en el snapshot recargado son idénticas byte a byte a las de antes de la corrección",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Cero filas de meses cerrados y cero cambios en sus cifras: la garantía se verifica, no se afirma",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-105e",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2032",
+      "title": "La línea de base sobrevive a la recarga y se borra al volver a cerrar",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "ledger de u1 con closed_through='2026-07' y sin mes reabierto",
+      "when": "DELETE /api/v1/closure (reabre 2026-08), después GET /api/v1/ledger, después POST /api/v1/closure (vuelve a cerrar 2026-08) y de nuevo GET",
+      "then": "tras el DELETE las columnas reopen_base_available y reopen_base_reserved no son NULL y el GET las devuelve idénticas; tras el POST ambas vuelven a NULL y el CHECK ledger_reopen_baseline_ck se satisface en los dos estados",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "La línea de base existe exactamente mientras hay un mes reabierto, y persiste entre sesiones",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-106e",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2032",
+      "title": "El tercer parámetro de computeBalanceSeries no altera ninguna llamada existente",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "el conjunto de datos de referencia del commit b0aa5fd usado por NFR-2001",
+      "when": "se invoca computeBalanceSeries(state, periods) sin el tercer parámetro y se compara con la salida registrada antes de la feature",
+      "then": "las dos series son estrictamente iguales en todos sus campos y periodos: el parámetro opcional por defecto ZERO_CARRY no cambia nada",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Igualdad exacta con la línea base registrada — el cambio de firma es aditivo de verdad",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-107h",
+      "requirement_id": "FR-2010",
+      "user_story_id": "US-2010",
+      "ac_id": "AC-2032",
+      "title": "En el navegador, corregir un mes reabierto pinta el panel de impacto",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión iniciada, agosto de 2026 reabierto desde el control de cierre, con septiembre y octubre visibles en la grilla",
+      "when": "se edita la celda de gasto de 2026-08 y se confirma con Enter",
+      "then": "aparece un panel bajo la grilla con una fila por mes afectado, cada una con el periodo y las dos cifras (anterior y nueva); el panel NO es un toast efímero y sigue visible tras 5 segundos",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Panel de impacto visible con una fila por mes movido y sus dos cifras",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-110h",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2035",
+      "title": "El historial devuelve cierre y reapertura, el más reciente primero",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "u1 ha cerrado 2026-06 y después lo ha reabierto",
+      "when": "GET /api/v1/closure/events",
+      "then": "200 con events de longitud 2, events[0]={period:'2026-06', action:'reopen'} y events[1]={period:'2026-06', action:'close'}, ambos con `at` en ISO-8601, y truncated=false",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Dos entradas en orden descendente por instante, con periodo y acción exactos",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-111e",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2036",
+      "title": "Cerrar-reabrir-cerrar deja tres entradas y no borra ninguna",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 sin ningún cierre previo",
+      "when": "POST /closure (cierra 2026-06), DELETE /closure (reabre 2026-06), POST /closure (vuelve a cerrar 2026-06), y después GET /closure/events",
+      "then": "events tiene longitud 3 en orden close, reopen, close leídos de atrás hacia adelante; el primer evento sigue presente con su `at` original sin modificar",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Tres filas, ninguna reescrita ni podada: la tabla es append-only de verdad",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-112e",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2037",
+      "title": "Un ledger sin cierres devuelve historial vacío, no un error",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "u1 con ledger existente y closed_through=NULL, sin ninguna fila en closure_event",
+      "when": "GET /api/v1/closure/events",
+      "then": "200 con { events: [], truncated: false } — no 404, no 500, no cuerpo vacío",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Lista vacía explícita con 200: la ausencia de historia es un estado válido",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-113f",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2035",
+      "title": "El historial no se sirve sin sesión ni filtra eventos de otro usuario",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "u1 con 3 eventos y u2 con 1 evento propio en closure_event",
+      "when": "GET /api/v1/closure/events sin cookie de sesión, y después con la sesión de u2",
+      "then": "sin sesión responde 401 sin cuerpo de eventos; con la sesión de u2 responde 200 con exactamente 1 evento, el suyo, y ninguno de los 3 de u1",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "401 sin sesión y aislamiento estricto por owner_id",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-114h",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2035",
+      "title": "El historial se abre desde el control de cierre y lista las entradas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "sesión iniciada, con 2026-06 cerrado y después reabierto",
+      "when": "se abre el panel de historial desde el control de cierre",
+      "then": "se ven 2 filas; la primera dice 2026-06 y «reabierto», la segunda 2026-06 y «cerrado», cada una con su fecha y hora legibles",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Panel con las dos entradas, la reapertura arriba",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-115f",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2035",
+      "title": "El historial es de solo lectura: no cambia el estado ni la revisión",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "sesión iniciada con 2026-06 cerrado y revision del ledger = 12",
+      "when": "se abre el panel de historial, se recorren sus filas y se cierra el panel",
+      "then": "no existe en el panel ningún control que cierre, reabra ni edite; tras cerrarlo, GET /api/v1/ledger sigue devolviendo revision=12 y closure.closedThrough='2026-06' sin cambios",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "Revisión intacta y ningún control de escritura en el panel",
+      "test_data": {}
+    },
+    {
+      "id": "TC-CDM-116e",
+      "requirement_id": "FR-2011",
+      "user_story_id": "US-2011",
+      "ac_id": "AC-2036",
+      "title": "Con más de 200 eventos el historial lo declara en vez de mentir por omisión",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "u1 con 201 filas en closure_event sembradas directamente",
+      "when": "GET /api/v1/closure/events",
+      "then": "200 con events de longitud exactamente 200, la más reciente primero, y truncated=true",
+      "steps": [
+        "Preparar el escenario descrito en «given»",
+        "Ejecutar la acción de «when»",
+        "Verificar el resultado esperado"
+      ],
+      "expected_result": "200 filas y truncated=true: el tope se declara, no se oculta",
+      "test_data": {}
+    }
+  ]
+}

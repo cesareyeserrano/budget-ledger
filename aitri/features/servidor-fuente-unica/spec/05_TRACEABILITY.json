@@ -1,0 +1,156 @@
+{
+  "project": "servidor-fuente-unica",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "compliant",
+  "deployment_model": "El modelo existente sin cambios: contenedor Docker multi-stage (Next standalone, usuario `node` no-root) + Postgres, con el entrypoint corriendo las migraciones idempotentes antes de servir. Esta feature no añade infraestructura ni migración de esquema — RETIRA superficie. El único cambio de despliegue es la desaparición de la variable de build NEXT_PUBLIC_LEDGER_SERVER_MODE (NFR-1107): se eliminó del Dockerfile, donde seguía fijada en `true`, y de la nota de docker-compose.dev.yml. La imagen se reconstruyó sin ella para comprobar que ya no la necesita.",
+  "deployment_files": [
+    "Dockerfile",
+    "docker-compose.dev.yml",
+    "scripts/no-legacy-mode.sh"
+  ],
+  "environment_variables": [
+    { "name": "DATABASE_URL", "required": true, "notes": "Cadena de conexión a Postgres. En build se usa un placeholder (postgres.js es lazy); el valor real se inyecta en runtime." },
+    { "name": "BETTER_AUTH_SECRET", "required": true, "notes": "Secreto de sesión de better-auth. Placeholder en build, real en runtime." },
+    { "name": "BETTER_AUTH_URL", "required": true, "notes": "URL pública de la app para better-auth." },
+    { "name": "GOOGLE_CLIENT_ID", "required": false, "notes": "OAuth de Google; sin él el botón queda deshabilitado por diseño." },
+    { "name": "GOOGLE_CLIENT_SECRET", "required": false, "notes": "Par del anterior." },
+    { "name": "LEDGER_ALLOWED_ORIGINS", "required": false, "notes": "Lista de orígenes permitidos para las escrituras." }
+  ],
+  "retired_environment_variables": [
+    { "name": "NEXT_PUBLIC_LEDGER_SERVER_MODE", "notes": "Interruptor de rollout retirado por FR-1101/NFR-1107. Ya no aparece en src/, ni en el Dockerfile, ni en compose, ni en .env.example, ni en la preparación de ninguna suite. Vigilado por el gate no-legacy-mode (sobre src/) y por TC-SFU-208e (sobre los archivos de despliegue y la preparación de tests), que son complementarios: el gate NO mira fuera de src/, y ese punto ciego es justo donde sobrevivía." }
+  ],
+  "requirement_compliance": [
+    {
+      "id": "FR-1101",
+      "title": "Punto único de construcción del repositorio, sin ramas por modo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). makeRepo() en src/state/store.ts es el único punto de construcción y solo conserva el guard de SSR; data/makeRepo.ts y lib/serverMode.ts se eliminaron del árbol. TC-SFU-101h comprueba que una edición sale como PUT a /api/v1/ledger con el monto exacto y cero escrituras ledger.* en localStorage; 101e cubre SSR (sin window el repo es null, hydrate marca hidratado sin emitir petición); 101f define NEXT_PUBLIC_LEDGER_SERVER_MODE='false' —el valor que antes forzaba el modo local— y verifica que ya no cambia nada porque ningún código lo lee."
+    },
+    {
+      "id": "FR-1102",
+      "title": "Sesión obligatoria en toda la app",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). El gate es fail-closed y la barrera real es la API (401 sin cookie). TC-SFU-102h prueba dos entradas, incluida una con parámetro que en el modo retirado habría servido de bypass; 102f verifica cero peticiones a /api/v1/* y cero claves ledger.* sin sesión. AC-1102c (sesión que expira con la app abierta) destapó BG-001 [high]: ServerRepository colapsaba el 401 en el mismo `false` que un fallo de red, así que el store lo mostraba como «no pudimos guardar» y useSession —que solo consulta al montar— nunca se enteraba: las finanzas quedaban en pantalla indefinidamente. Corregido con un flag `unauthorized` distinguible, `sessionExpired` en el store (que además descarta los datos en memoria), prioridad de ese estado sobre la sesión cacheada en LoginGate, y clearSessionExpired al reentrar. Verificado por TC-SFU-102e y por tres TCs de integración que cubren las tres vías (guardado, sync en vivo, re-login). BG-001 en estado verified."
+    },
+    {
+      "id": "FR-1103",
+      "title": "Postgres es la única fuente de verdad de los datos del usuario",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-SFU-103h escribe en un navegador y lee el dato desde otro contexto limpio tras iniciar sesión; 103e tumba la red en el PUT y comprueba que se avisa sin excepción y sin ningún respaldo a localStorage; 103f ejecuta cuatro flujos distintos de datos del usuario (crear nodo, editar celda, registrar movimiento, operar reserva) con un espía sobre setItem y exige cero claves ledger.*. Deuda declarada: el PUT reescribe el snapshot completo (ADR-06, nunca deja estado parcial) — BL-017."
+    },
+    {
+      "id": "FR-1104",
+      "title": "localStorage queda restringido a preferencias del dispositivo",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). La limpieza de hydrate() es incondicional y quirúrgica (ADR-05). TC-SFU-104h recorre login → editar → registrar → operar reserva → recargar y exige cero claves con prefijo ledger.; 104e hace que setItem y removeItem lancen QuotaExceededError en cada llamada y comprueba que los datos del usuario siguen guardándose; 104f siembra restos ledger.* previos y verifica que desaparecen mientras la preferencia `theme` sobrevive intacta."
+    },
+    {
+      "id": "FR-1105",
+      "title": "Retiro declarado del código de migración local y de sus ramas asociadas",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-SFU-105h comprueba en runtime que LocalStorageRepository, stripLegacyUnassigned y LEGACY_BUDGET_KEYS ya no se exportan, y que migrateStateV3toV4 y STORAGE_KEYS sí sobreviven; 105f siembra un ledger marcado data_version=3 en Postgres y verifica que la conversión v3→v4 del servidor sigue operando (ADR-04 corregido: lo retirado fue su llamador local, no la conversión); 105e siembra un nodo system heredado y comprueba que los guards !node.system siguen bloqueando renombrado y borrado. Deuda declarada y aceptada: los nodos system de Postgres quedan sin saneador porque el camino de servidor nunca tuvo uno equivalente — esos guards son ahora su única defensa, y por eso se conservan a propósito."
+    },
+    {
+      "id": "FR-1106",
+      "title": "La cobertura de test apunta al camino que corre en producción",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). TC-SFU-106h hace un round-trip real contra Postgres escribiendo por la ruta que usa el cliente y releyendo con una lectura independiente; 106e verifica que el fake InMemoryRepository respeta el contrato (round-trip por owner, null para owner desconocido y copia profunda en AMBOS sentidos — al escribir y al leer, alineado con el repositorio real durante esta fase); 106f es el TC anti-pass-falso: comprueba que romper el punto REAL de construcción deja al store sin emitir ninguna escritura, la detección que TC-BE-027h no daba porque construía un módulo que producción nunca invocaba."
+    },
+    {
+      "id": "FR-1107",
+      "title": "La descripción pública de la app refleja que es multi-dispositivo con cuenta",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). Prioridad SHOULD. TC-SFU-107h lee meta[name='description'] servida y exige que mencione la cuenta y no localStorage; 107e verifica que tampoco promete uso sin cuenta; 107f busca la subcadena exacta obsoleta 'single-user (localStorage)' en el head y exige cero coincidencias."
+    },
+    {
+      "id": "FR-1108",
+      "title": "La pantalla de login y el control de logout adoptan el sistema de diseño del producto",
+      "level": "complete",
+      "evidence": "fr_coverage: covered (4 passing, 0 failing, 0 skipped) — los cuatro ACs con TC (a/b/c/d) cubiertos. TC-SFU-108h exige cero atributos style y que el color de error resuelva por token --error; 108f comprueba los 9 data-testid, los textos de error literales y el botón de Google deshabilitado — el contrato de regresión de los 85 TCs de la feature backend. Dos defectos aparecieron aquí: (1) los cuatro controles del login medían 48px en TODO viewport porque el override `max-[760px]:` de input.tsx repetía la altura base y auth-submit/auth-google la fijaban sin breakpoint, contradiciendo el UX spec aprobado (40px en escritorio, 48px táctil bajo 760px) — corregido y verificado por 108e, que mide la altura efectiva en 1440px y en 375px; (2) AC-1108c (contraste ≥4.5:1 en ambos temas) se había quedado sin ningún TC, lo que verify-complete bloqueó — se añadió TC-SFU-108c, que mide sobre el DOM real el color efectivo contra el primer ancestro con fondo opaco (no sobre tokens: un token correcto sobre el fondo equivocado sigue siendo ilegible) y pasa en claro y oscuro. El producto ya cumplía el criterio; el hueco era de trazabilidad."
+    },
+    {
+      "id": "NFR-1101",
+      "category": "Regression",
+      "title": "Las preferencias legítimas de navegador siguen funcionando y persistiendo",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-SFU-201h cambia el tema y el ancho de columna y comprueba que ambos sobreviven a la recarga; 201e verifica que el default sigue siendo 'Sistema' afirmando lo que lo define —no se escribe clave `theme` y el tema sigue al sistema en ambas direcciones—; 201f siembra theme, el ancho de columna y una clave ledger.* y comprueba tras hydrate() que la limpieza solo se llevó la última."
+    },
+    {
+      "id": "NFR-1102",
+      "category": "Regression",
+      "title": "El flujo de login existente (better-auth) sigue intacto",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-SFU-202h entra con credenciales válidas y llega al shell; 202e recarga y comprueba que la sesión persiste en la cookie; 202f envía una contraseña incorrecta y exige el mensaje de error literal sin perder lo escrito. Los 85 TCs de la feature backend siguen en verde en la suite completa."
+    },
+    {
+      "id": "NFR-1103",
+      "category": "Regression",
+      "title": "El sync en vivo sigue convergiendo, incluido el resync tras conflicto",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-SFU-203e edita en un contexto y comprueba la propagación por SSE al otro sin recargar; 203h verifica que un 409 converge al estado del servidor; 203f es el que blinda RISK-1: cuenta la recarga que sigue al 409, de modo que retirar el resync deja el estado divergente y lo detecta. Durante esta fase se cerró BL-010: las escrituras se serializan con coalescencia (un save en vuelo), resync se salta los eventos mientras hay uno pendiente, y un 409 —que ya solo puede venir de otra sesión— converge AVISANDO con un toast en vez de descartar en silencio lo que el usuario acababa de teclear. Deuda declarada: no hay merge por campo, se resuelve con last-write-wins informado."
+    },
+    {
+      "id": "NFR-1104",
+      "category": "Regression",
+      "title": "Toda la funcionalidad de las 10 features ya entregadas sigue operando contra Postgres",
+      "level": "complete",
+      "evidence": "3 TCs passing, más la suite completa como evidencia de fondo: 268/268 e2e y 325/325 unit+integration, SIN reintentos. TC-SFU-204h edita una hoja y comprueba que la edición y su roll-up persisten tras recargar; 204e ejerce promote y demote de nodos y verifica que no quedan huérfanos; 204f comprueba que no se retiró ningún archivo de test sin declararlo (tras corregir ADR-04 el diseño no declara ninguno: los cuatro que dependían de la clase retirada se re-apuntaron). Nota honesta: al medir esto salieron dos carreras PREEXISTENTES en tests de otras features (TC-TRF4-014h y TC-UXC-310h) que las retries de Playwright venían enmascarando —leían estado asíncrono una sola vez en vez de esperar su convergencia—; se corrigieron con expect.poll sin cambiar lo que afirman."
+    },
+    {
+      "id": "NFR-1105",
+      "category": "Regression",
+      "title": "El modelo v4 de reservas y su semántica se conservan",
+      "level": "complete",
+      "evidence": "3 TCs passing contra Postgres real. TC-SFU-205h comprueba que la celda sigue siendo el APORTE del mes (no el saldo), que el retiro vive en el journal y que el saldo resuelto es aporte − retiro; 205e verifica la conservación del Balance (ingreso − apartado); 205f exige idempotencia del ciclo load → save → load sin edición intermedia, que es lo que demuestra que retirar la migración local no tocaba este camino."
+    },
+    {
+      "id": "NFR-1106",
+      "category": "Security",
+      "title": "Ningún dato financiero queda accesible sin sesión válida",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-SFU-206h pide GET /api/v1/ledger, GET /api/v1/movements y PUT /api/v1/ledger sin cookie sobre un ledger REAL sembrado con un monto identificable, y exige 401 en las tres más ausencia de ese monto y del id de nodo en el cuerpo; 206f repite con una cookie de sesión inventada y exige el mismo rechazo; 206e comprueba que tras cerrar sesión no queda dato financiero ni en almacenamiento ni en pantalla. Complementado por FR-1102, cuyo BG-001 cerró el caso de la sesión que muere con la app abierta. Carencia declarada: ningún quality_gate hace de chequeo de seguridad — el proyecto tiene CodeQL y scripts/secret-scan.sh en CI, pero no están declarados como gate, así que la promesa de seguridad no se re-verifica mecánicamente en cada verify. Registrado abajo en compliance_gaps."
+    },
+    {
+      "id": "NFR-1107",
+      "category": "Maintainability",
+      "title": "La eliminación del modo reduce superficie de código, no la mueve",
+      "level": "complete",
+      "evidence": "3 TCs passing. Prioridad SHOULD. Se eliminaron src/data/makeRepo.ts y src/lib/serverMode.ts. El gate scripts/no-legacy-mode.sh corre en cada verify y está probado FALLANDO (TC-SFU-207f siembra un archivo con el flag en src/ y exige exit≠0) y probado NO produciendo falsos positivos (207e siembra las mismas cadenas en tests/ y docs/ y exige exit 0, porque explicar qué se retiró es legítimo). Durante esta fase se descubrió el punto ciego del gate: solo mira src/, y el flag seguía vivo en dos sitios fuera de ese alcance — la preparación de la suite e2e-backend y el Dockerfile. Ambos corregidos; TC-SFU-208e los vigila ahora."
+    },
+    {
+      "id": "NFR-1108",
+      "category": "CI/CD",
+      "title": "La suite sigue corriendo en CI contra Postgres tras retirar el modo",
+      "level": "complete",
+      "evidence": "3 TCs passing. TC-SFU-208h comprueba que ninguna preparación de suite inyecta ya el flag (buscando la ASIGNACIÓN, no la mención: los comentarios que documentan la retirada son deseables); 208e ejecuta el validador de entorno del proyecto sin la variable y exige exit 0, y verifica que ni Dockerfile ni compose ni .env.example la fijan — la imagen se reconstruyó sin ella para confirmarlo; 208f corre un test que falla a propósito con el runner del proyecto y exige exit≠0, más la ausencia de continue-on-error en el workflow, porque un pipeline que no puede fallar no verifica nada."
+    }
+  ],
+  "test_evidence_summary": {
+    "total_tcs": 49,
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "low_confidence_tcs": 0,
+    "ac_coverage": "23/23 criterios de aceptación cubiertos",
+    "quality_gates": "6/6 en verde: typecheck, lint, no-legacy-mode, coverage (umbral 80%), smoke (arranca la app y prueba '/'), e2e (suite completa)",
+    "full_suite": "325/325 unit+integration · 268/268 e2e sin reintentos"
+  },
+  "compliance_gaps": [
+    {
+      "id": "SEC-GATE",
+      "severity": "advisory",
+      "gap": "El proyecto declara NFRs de seguridad pero ningún quality_gate hace de chequeo de seguridad, así que la postura declarada no se re-verifica mecánicamente en cada verify.",
+      "mitigation": "CodeQL y scripts/secret-scan.sh ya corren en el workflow de CI (.github/workflows/), y NFR-1106 está cubierto por tres TCs que prueban el 401 real contra Postgres. Lo que falta es declararlos como quality_gate para que verify los ejecute. Queda como decisión del humano; también lo cubriría un `aitri audit security`, que resume sugiere."
+    },
+    {
+      "id": "MUT-GATE",
+      "severity": "advisory",
+      "gap": "No hay gate de mutación declarado. Un test que pasa puede ser falso —mocks o aserciones débiles— y eso es lo único que un verify en verde no puede detectar por sí solo.",
+      "mitigation": "Ningún tooling de mutación está configurado en el stack. Como sustituto parcial: verify-run no marcó ningún TC de baja confianza (0 con ≤1 aserción), y TC-SFU-106f y TC-SFU-207f son deliberadamente TCs anti-pass-falso —comprueban que romper el sujeto hace fallar su verificación—. No sustituye a la mutación sistemática."
+    }
+  ],
+  "notes": "Cuatro defectos reales salieron a la luz durante esta feature y quedaron corregidos y verificados: BG-001 (sesión expirada que dejaba las finanzas en pantalla), la escala de control del login rota en escritorio, el flag retirado que sobrevivía en la preparación de e2e-backend, y el mismo flag fijado en el Dockerfile. Los tres últimos comparten causa: el gate estático solo vigila src/, y todo lo que vive fuera de ese alcance quedaba sin red. Merece registrarse que ninguno de los cuatro lo habría encontrado la suite tal como estaba al empezar la sesión: los 48 TCs de la fase 3 no tenían implementación."
+}

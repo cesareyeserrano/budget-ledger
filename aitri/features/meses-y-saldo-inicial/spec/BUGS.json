@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "verify-run: el runner sale exit 1 con CERO TCs en rojo — design-tokens revienta al copiar su arbol aislado bajo concurrencia",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-07T15:38:20.591Z",
+      "updated_at": "2026-09-09T12:50:42.182Z",
+      "resolution": "Cerrado el 2026-09-09, commit feba977. El beforeAll de design-tokens.test.ts crea el destino explicitamente antes del cpSync y reintenta una vez: cpSync(recursive) daba por hecho que podia crear el destino sobre la marcha, y en /var/folders bajo carga eso falla con ENOENT. No enmascara nada — si la copia falla dos veces, lanza. VERIFICADO contra el escenario que lo rompia: las dos corridas de vitest simultaneas con seis carriles de CPU y carga 4.85, ambas exit 0 y design-tokens sin reventar en ninguna (antes: ENOENT y 10 casos saltados).",
+      "fix_commit_sha": "feba97748e4edec4a720f627f4e83d131266fbcc",
+      "fix_at": "2026-09-09T12:50:42.080Z"
+    }
+  ]
+}

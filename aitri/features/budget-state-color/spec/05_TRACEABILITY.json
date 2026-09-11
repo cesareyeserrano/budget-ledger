@@ -1,7 +1,13 @@
 {
   "project": "Ledger (T-Ledger) — Feature: budget-state-color",
-  "version": "1.0.0",
-  "phases_completed": [1, 2, 3, 4, 5],
+  "version": "0.0.1-beta",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
   "overall_status": "compliant",
   "requirement_compliance": [
     {
@@ -59,13 +65,44 @@
       "evidence": "Los cinco quality gates de 04_TEST_RESULTS.json (verify-run 2026-07-10T15:47:49Z) en pass con exit_code 0: typecheck, lint, smoke, e2e y coverage (93.25% sobre umbral 80%, budgetState.ts al 100% de ramas). El gate e2e (../../../e2e.sh, distDir y puerto propios) reporta '162 passed (38.7s)' con exit 0: es lo que hace que verify-run FALLE mecánicamente si se rompe cualquier test de la suite completa, no solo los que mapean a un TC-BSC-*. Los tres TCs TC-BSC-455h/e/f afirman precisamente estos gates (typecheck+lint en 0, coverage ≥80%, suite verde); se registran contra la evidencia de gates porque su sujeto SON los gates y aitri no parsea su salida buscando TC ids. No hubo aserciones superseded que declarar: el riesgo #2 (aserciones previas fijando bg-elevated en la fila de tipo) no se materializó."
     }
   ],
-  "technical_debt_inherited": [],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "NFR-006",
+      "substitution": "BG-034 — el runner de esta feature era `npx vitest run --root ../../.. --reporter verbose`, la UNICA de las veintiuna que no se situaba en la raiz. `--root` le dice a vitest donde esta la configuracion, pero el CWD del proceso sigue siendo el de la feature, y el globalSetup del proyecto `backend` resuelve las migraciones de Drizzle contra el cwd: reventaba con «Can't find meta/_journal.json» y abortaba el proyecto entero, dejando 5 de los 28 TCs sin acreditar y el runner en exit 1 con CERO rojos. Reproducido dos veces seguidas el 2026-09-09, o sea DETERMINISTA, no la contencion a la que se atribuyo al principio. Pasa a `../../../unit.sh`, que es lo que usan las otras y que documenta este mismo fallo en su cabecera.",
+      "effort": "low"
+    }
+  ],
   "notes": [
-    "technical_debt vacío: cero substituciones respecto de las MUST FR. overall_status 'compliant' porque las cuatro FR MUST están 'complete' con cobertura de test real, y las cinco NFR de regresión también.",
-    "Modelo de despliegue sin cambio: web estática Next.js (next build + next start). Sin Dockerfile — el System Design no declara despliegue containerizado. Sin .env.example — la app no requiere ninguna variable de entorno.",
-    "Esta feature NO declara NFR de CI/CD, así que .github/workflows/ci.yml (preexistente) no se modifica.",
-    "HALLAZGO DE INFRAESTRUCTURA, corregido en esta fase de build: el quality gate 'smoke' —el único que prueba que el producto ensamblado arranca y sirve— NUNCA se había ejecutado en este proyecto. Los 04_TEST_RESULTS.json de grid-ux, stack-upgrade-theme y ux-consistency muestran los tres 'smoke: error (exit_code null)', invisible porque estaba en required:false. Causa raíz: verify-run de una feature ejecuta los gates con el directorio de la FEATURE como working dir, donde './smoke.sh' no existe → spawn ENOENT, cero salida. Corregido (cd al dirname del script + command '../../../smoke.sh'), junto con dos bugs más del script: el guard '[ ! -d .next ]' que un .next de `next dev` satisface sin tener BUILD_ID, y un '|| echo 000' que concatenaba con la salida de curl. Ahora pasa con exit 0 y es required:true.",
-    "OBSERVACIÓN PARA EL USUARIO (no bloquea, no implementada): en tema OSCURO --state-warning y --state-over coinciden con --warning y --error (#e0a458 y #ec6a66). Es consecuencia declarada de ADR-03, no un defecto: en oscuro esos tonos ya cumplían AA. Efecto semántico a registrar: en oscuro un GASTO en over_soft se pinta igual que un INGRESO corto, y lo que los distingue es el GLIFO, no el color — que es exactamente la función del canal redundante de WCAG 1.4.1.",
-    "OBSERVACIÓN PARA EL USUARIO (fuera de alcance, candidata a backlog): la leyenda del ENCABEZADO de la vista Resumen conserva un punto --error rotulado 'Sobre presupuesto'. Tras esta feature 'sobre presupuesto' ya no es un solo rojo, sino ámbar/rojo con glifo, así que esa leyenda quedó desalineada del nuevo código de estado. Cambiarla altera comportamiento visible y no la cubre ningún FR aprobado."
-  ]
+    "overall_status 'compliant': las cuatro FR MUST estan 'complete' con cobertura real (fr_coverage covered en las cuatro, 0 fallando, 0 saltadas) y las cinco NFR de regresion tambien. Re-derivado el 2026-09-09 sobre la corrida de ese dia: 28/28 pasando, exit 0, e2e exit 0, los cinco quality gates en verde y los 4 AC cubiertos.",
+    "*** TRES AFIRMACIONES DE LA VERSION ANTERIOR DE ESTE INFORME HABIAN CADUCADO, y es la razon por la que Aitri reseteo esta fase. Se corrigen aqui en vez de recalcarlas: *** (1) Decia 'Sin Dockerfile — el System Design no declara despliegue containerizado'. FALSO HOY: la raiz tiene Dockerfile, docker-compose.yml, docker-compose.dev.yml y .dockerignore. El producto SI es containerizado; lo volvio la feature backend despues de que esta feature escribiera su fase 5. (2) Decia 'Sin .env.example — la app no requiere ninguna variable de entorno'. FALSO HOY: hay .env.example con 12 variables (DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, LEDGER_ALLOWED_ORIGINS, SMTP_HOST/PORT/USER/PASSWORD/FROM, LEDGER_TRUST_PROXY). (3) Decia 'technical_debt vacio: cero substituciones'. FALSO HOY: la fase 4 dejo una, BG-034, y queda heredada en technical_debt_inherited. El 02_SYSTEM_DESIGN.md de ESTA feature (linea 201) sigue declarando 'web estatica Next.js (next build + next start)', y era cierto cuando se escribio: no se toca, porque el documento describe lo que la feature decidio entonces. Lo que se corrige es este informe, que es el que afirma como se despliega AHORA.",
+    "Containerizacion verificada contra la checklist, no asumida: Dockerfile multi-stage (deps/builder/runner), USER nextjs en la linea 55 — no corre como root —, HEALTHCHECK en la linea 60 con interval 30s y 3 reintentos, y docker-compose.yml con healthcheck tanto en la app como en postgres (pg_isready). Secretos por sustitucion de variables de entorno, ninguno escrito en el fichero.",
+    "Esta feature NO declara NFR de CI/CD, asi que .github/workflows/ci.yml (preexistente) no se modifica ni se evalua aqui.",
+    "DEUDA HEREDADA (1 item, NFR-006, esfuerzo bajo): BG-034. El runner de esta feature era el UNICO de las veintiuna que no se situaba en la raiz, y por eso perdia 5 de sus 28 TCs con el runner en exit 1 y cero rojos. Ya esta corregido a ../../../unit.sh y la corrida de hoy acredita los 28, pero se hereda declarado porque la substitucion existio y un reviewer tiene que verla."
+  ],
+  "version_source": "manifest",
+  "deployment_files": [
+    "Dockerfile (multi-stage; USER nextjs no-root; HEALTHCHECK)",
+    "docker-compose.yml (app + postgres, healthcheck en ambos)",
+    "docker-compose.dev.yml",
+    ".dockerignore",
+    ".env.example (12 variables)",
+    "DEPLOYMENT.md",
+    ".github/workflows/ci.yml"
+  ],
+  "deployment_files_note": "NINGUNO lo crea esta feature. Son del producto (los aporto la feature backend) y se listan porque son el artefacto con el que esta feature se despliega. Esta feature es UI pura: no anade ni cambia un solo fichero de despliegue, ni una variable de entorno.",
+  "verification_evidence": {
+    "executed_at": "2026-09-09T23:49:38.373Z",
+    "exit_code": 0,
+    "e2e_exit_code": 0,
+    "tests": "28/28 pasando · 0 fallando · 0 saltados",
+    "manual_verified": 3,
+    "quality_gates": [
+      "typecheck: pass (exit 0)",
+      "lint: pass (exit 0)",
+      "coverage: pass (exit 0)",
+      "smoke: pass (exit 0)",
+      "e2e: pass (exit 0)"
+    ],
+    "ac_coverage": "los 4 criterios de aceptacion tienen prueba que pasa"
+  }
 }

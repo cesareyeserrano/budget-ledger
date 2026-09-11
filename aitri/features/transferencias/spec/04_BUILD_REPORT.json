@@ -1,0 +1,115 @@
+{
+  "files_created": [
+    "src/domain/reserve.ts",
+    "src/domain/migrate.ts",
+    "src/domain/ids.ts",
+    "src/components/ReserveCells.tsx",
+    "src/components/reserveText.ts",
+    "src/components/register/ReserveRow.tsx",
+    "src/lib/useHorizontalWheel.ts",
+    "drizzle/0001_transferencias.sql",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/reserve-closure.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts"
+  ],
+  "files_modified": [
+    "src/domain/types.ts",
+    "src/domain/validation.ts",
+    "src/domain/mutations.ts",
+    "src/domain/balance.ts",
+    "src/domain/seed.ts",
+    "src/domain/index.ts",
+    "src/data/repository.ts",
+    "src/state/store.ts",
+    "src/components/BalanceModule.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/Toaster.tsx",
+    "src/components/register/Register.tsx",
+    "src/components/register/TypeToggle.tsx",
+    "src/components/register/ConfirmOverlay.tsx",
+    "src/server/db/schema.ts",
+    "src/server/schemas.ts",
+    "src/server/data/ledgerRepo.ts",
+    "tests/helpers/totals.ts",
+    "tests/domain/balance.test.ts",
+    "tests/unit/feature-stack.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e-backend/auth-flow.spec.ts",
+    "tests/e2e-backend/storage-split.spec.ts"
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-1014",
+      "substitution": "La ubicación de la operación de retiros (fila «Retiros del mes» del Balance) es una v1 funcional, no la UX definitiva",
+      "reason": "El usuario validó la operación pero no le resulta amigable operar desde el pie del Balance; el rediseño quedó explícitamente fuera de alcance como BL-019 (feature futura), decisión registrada en el PRD y el UX spec.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declarado en esta feature",
+      "reason": "La feature no añade superficie de red ni de auth (Security Design del TRD); la postura de seguridad se verifica con el job de seguridad del ci.yml existente y el escaneo de secretos del proyecto raíz (scripts/secret-scan.sh), fuera de los gates de esta feature.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "rederivations": {
+    "note": "Re-derivación v3→v4 (2026-07-30): el modelo de celdas-saldo (TCs TC-TRF-1xx/2xx/3xx/4xx del spec anterior) fue construido, validado adversarialmente y REVERTIDO por decisión del usuario en uso real; la suite completa se re-derivó al modelo v4 con el prefijo TC-TRF4-* (67 TCs de 03_TEST_CASES.json). Además se re-basaron al modelo de flujos: TC-BAL-907h/936e (fixtures), TC-BAL-958e y TC-SUT-247h/249f (clave ledger.budget.v4), y los specs e2e que sembraban formatos viejos ahora siembran v4 — los formatos v2/v3 solo se siembran en tests/integration/reserve-migration.test.ts (verificado por TC-TRF4-157e).",
+    "superseded_prefix": "TC-TRF-",
+    "current_prefix": "TC-TRF4-"
+  },
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/domain/reserve.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/reserve-closure.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ]
+}

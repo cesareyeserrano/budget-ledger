@@ -1,0 +1,670 @@
+{
+  "project_name": "multi-anio",
+  "project_summary": "T-Ledger es hoy un único año implícito: MonthKey son doce literales y el esquema no tiene columna de año, así que quien use la app más de doce meses no tiene dónde poner el mes trece, no puede mirar atrás ni planear más allá de diciembre. Sale de una respuesta del usuario al diseñar la grilla dinámica —«pone filtro, mostrar desde enero 2024 y allí scrolea todo lo que necesite»— y de su decisión al ver que ese filtro cruza el año: «hay que hacer multi año, ya lo habíamos discutido». NORTH STAR (puerta de aceptación): el usuario registra y planea meses de otro año en una tira continua, con el saldo de diciembre abriendo enero del año siguiente, y las 610+ pruebas existentes siguen verdes. JTBD: «llevar mi presupuesto durante años sin que la app me obligue a empezar de cero cada diciembre». GUARDRAIL: nada de lo que ya funciona puede empeorar — el arrastre dentro de un año, el techo de flujo y su maquinaria de reservas, los roll-ups, la persistencia con bloqueo optimista y el registro móvil dan los mismos resultados, y el recómputo sigue ≤150ms. LA VENTANA: el 2026-09-02 el usuario vació amount_cell (219 filas), movement (1) y cell_note (2); las tres tablas que llevan month están en cero filas, así que la migración de datos hoy no tiene datos que migrar — es el momento más barato que va a existir.",
+  "technology_preferences": [
+    "TypeScript + Next.js 15 + React (stack vigente)",
+    "Postgres como única fuente de verdad (modo servidor)",
+    "Vitest para dominio e integración; Playwright para e2e",
+    "Clave de periodo única \"YYYY-MM\" ordenable como texto, en vez de año y mes en campos separados"
+  ],
+  "constraints": [
+    "La capa de dominio es PURA: sin React, DOM, IO ni red",
+    "La grilla conserva sus dos planos, su jerarquía agrupable y UN solo riel de columnas con un scroll horizontal compartido con el Balance: cambia el número de columnas, no la estructura",
+    "La migración toca llaves primarias de amount_cell y cell_note: debe correr en transacción y ser idempotente por marca de data_version, nunca por heurística",
+    "Esta feature no crea la página de Configuración: es el punto 4 del orden acordado",
+    "El horizonte es un input del cálculo del techo, no un filtro de presentación"
+  ],
+  "no_go_zone": [
+    "Ocultar meses pasados vacíos y el filtro visual de rango: es la feature grilla-dinamica (punto 2 del orden acordado), que se construye ENCIMA de ésta. Aquí se entrega el modelo con años; allí la presentación. Su expediente ya está escrito en aitri/features/grilla-dinamica/FEATURE_IDEA.md. Confirmado por el usuario el 2026-09-02",
+    "Cierre de mes (punto 3) y saldo inicial + página de Configuración (punto 4): no se tocan, aunque ambos dependan del modelo temporal que esta feature deja montado. Confirmado por el usuario el 2026-09-02",
+    "Multi-moneda: el brief original excluyó «multi-año y multi-moneda» juntos como Fase 2. Multi-año se está haciendo; la moneda sigue siendo COP única. Confirmado por el usuario el 2026-09-02",
+    "Importar historia de años anteriores: ninguna carga masiva ni importador. Si el usuario quiere 2024 y 2025, los teclea. Confirmado por el usuario el 2026-09-02",
+    "Selector de año sobre una grilla de doce columnas: era la frase antigua del usuario («cuando haya mucha historia, poder seleccionarlos desde el selector de año»), superseded por su decisión del 2026-09-02 a favor de la tira continua. Queda registrado para que nadie lo reintroduzca creyendo que se olvidó",
+    "Resolver los bugs high abiertos que tocan el modelo temporal (backend BG-002, transferencias BG-002): siguen abiertos por decisión del usuario a la espera del cierre de mes, y esta feature no los aborda"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de T-Ledger) que lleva más de un año usando la app",
+      "tech_level": "mid",
+      "goal": "Llevar su presupuesto de forma continua a lo largo de los años: planear más allá de diciembre y consultar lo que registró en años anteriores en la misma tira de meses",
+      "pain_point": "La app es un único año implícito: no tiene dónde poner el mes trece, no puede mirar atrás, y al planear a 12 o 24 meses se topa con diciembre como si el tiempo se acabara ahí"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1901",
+      "title": "El periodo del ledger es año y mes: una sola clave ordenable «YYYY-MM» sustituye a MonthKey",
+      "description": "Hoy MonthKey son doce literales (\"ene\"…\"dic\", src/domain/types.ts:9) y AmountMap indexa por ellos, así que todo el producto es un único año implícito. El periodo pasa a ser una clave única PeriodKey de la forma \"YYYY-MM\", ordenable lexicográficamente, que sustituye a MonthKey en el dominio, el estado, la API y la persistencia. Se eligió una clave única en vez de añadir un campo year aparte porque AmountMap y toda la lógica de reserve.ts operan sobre UNA lista ordenada de periodos: con clave única el algoritmo sobrevive con la lista de otro tamaño, mientras que anidar por año obliga igualmente a aplanar para que el arrastre cruce diciembre→enero — el mismo trabajo más la anidación.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Ningún módulo de src/ conserva el tipo MonthKey ni la lista de doce literales como eje de indexación de montos; una búsqueda del tipo MonthKey en src/ devuelve cero resultados fuera de la capa de compatibilidad de migración",
+        "Ordenar una lista de PeriodKey como texto produce el mismo orden que ordenarlas cronológicamente, verificado con periodos que cruzan año (\"2025-11\", \"2025-12\", \"2026-01\")",
+        "AmountMap indexa por PeriodKey: escribir 1.000 en \"2027-03\" y leerlo devuelve 1.000 sin colisionar con \"2026-03\"",
+        "Una clave malformada (\"2026-13\", \"26-03\", \"marzo\", cadena vacía) se rechaza en el borde del dominio sin mutar el estado"
+      ]
+    },
+    {
+      "id": "FR-1902",
+      "title": "La base de datos guarda el periodo con año, con migración de llaves y constraints",
+      "description": "Tres tablas llevan hoy month text con un CHECK contra los doce literales: amount_cell, movement y cell_note. En amount_cell y cell_note month forma PARTE de la llave primaria, así que meter el año toca llaves primarias, constraints y el data_version de la tabla ledger. El 2026-09-02 esas tres tablas quedaron en cero filas por decisión del usuario, así que la migración no tiene datos que migrar — pero debe seguir siendo correcta para cualquier base que sí los tenga. NOMBRADO EXPLÍCITAMENTE para que no se descubra a mitad de la migración: `amount_cell` contiene además filas del sentinel `@retiros` (RETIROS_PLAN_ID), el plan de retiros del mes, que vive como fila con un `node_id` que NO es un nodo del árbol. Migra como cualquier otra fila —lleva su `month` igual— pero ninguna comprobación de la migración puede asumir que todo `node_id` existe en la tabla `node`.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Las tres tablas (amount_cell, movement, cell_note) guardan el periodo con año y su CHECK acepta \"YYYY-MM\" válidos y rechaza \"2026-13\" y \"2026-00\"",
+        "Las llaves primarias de amount_cell y cell_note incluyen el periodo con año, de modo que \"2026-03\" y \"2027-03\" del mismo nodo coexisten como filas distintas",
+        "La migración aplicada sobre una base con filas del modelo anterior las convierte al año en curso del ledger sin perder ni una fila: el conteo antes y después es idéntico",
+        "data_version de la tabla ledger sube, y una base ya migrada no vuelve a migrarse al re-ejecutar (idempotencia por marca de versión, no por heurística)",
+        "La migración corre dentro de una transacción: si falla a mitad, la base queda en su estado anterior",
+        "Las filas del sentinel `@retiros` migran igual que las demás y ninguna comprobación de integridad asume que todo node_id de amount_cell exista en la tabla node"
+      ]
+    },
+    {
+      "id": "FR-1903",
+      "title": "El saldo de diciembre abre enero del año siguiente: el arrastre cruza el borde de año",
+      "description": "computeBalanceSeries (src/domain/balance.ts:142) recorre hoy MONTH_KEYS de principio a fin y abre en ZERO_CARRY porque «el mes 1 no tiene mes previo». Con años, el único periodo que abre en cero es el primero de todo el historial: cada diciembre entrega su saldo a enero del año siguiente igual que cualquier mes entrega al siguiente. Es lo que hace de esto un libro contable continuo y no doce columnas sueltas.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con 2026-12 cerrando con 500 disponibles, la fila «Saldo del mes anterior» de 2027-01 muestra 500",
+        "Lo reservado también arrastra: el reservado con que cierra 2026-12 es el reservado de apertura de 2027-01",
+        "Solo el periodo más antiguo del historial abre en cero; ningún otro periodo, incluidos todos los eneros posteriores, abre en cero por el hecho de ser enero",
+        "La conservación (disponible + reservado = total) se mantiene en el paso 2026-12 → 2027-01 igual que en cualquier paso dentro del año",
+        "Un cambio en un ingreso de 2026-11 se propaga hasta 2027-02 sin detenerse en el borde de año"
+      ]
+    },
+    {
+      "id": "FR-1904",
+      "title": "El horizonte futuro es configurable en AÑOS COMPLETOS: 1 o 2 años",
+      "description": "Decisión del usuario del 2026-09-02, tomada al VER la grilla construida y que SUSTITUYE la formulación anterior («12 o 24 meses rodantes»). Textual: «se ve raro que 2028 solo llegue hasta agosto, debería mostrar el año completo; quizá más que 24 meses la regla es dos años». Contar en meses parte el último año por la mitad: desde septiembre de 2026, veinticuatro meses terminan en agosto de 2028 y la grilla muestra 2028 a medias sin ninguna razón. El horizonte pasa a contarse en años completos: el rango termina en DICIEMBRE del último año del horizonte. CONSECUENCIA ACEPTADA, que no es menor: la ventana rueda una vez al AÑO, no cada mes — con 2 años el último periodo se queda en diciembre de 2028 hasta que entre 2027, y entonces salta un año entero de golpe. La vista es más estable mes a mes, pero deja de avanzar mensualmente. No es adorno de interfaz: el horizonte acota la lista de periodos sobre la que corre el dominio (ver FR-1909).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "El usuario puede fijar el horizonte en 1 o en 2 años, y solo en esos dos valores",
+        "Con horizonte 2 y mes en curso 2026-09, el último periodo del rango es 2028-12 — no 2028-08; con horizonte 1, es 2027-12",
+        "Ningún año del rango queda partido por el final: el último periodo de cada año presente, salvo el año en curso, es su diciembre",
+        "Al pasar el mes en curso de 2026-09 a 2026-12 con horizonte 2, el último periodo sigue siendo 2028-12: dentro del mismo año la ventana no se mueve",
+        "Al pasar el mes en curso a 2027-01 con horizonte 2, el último periodo pasa a 2029-12 sin intervención del usuario",
+        "Cambiar el horizonte de 2 a 1 no borra ni un dato de los periodos que dejan de estar en la ventana: al volver a 2 reaparecen con sus montos intactos",
+        "El horizonte por defecto son 2 años"
+      ]
+    },
+    {
+      "id": "FR-1905",
+      "title": "La grilla es una tira continua que cruza años, con banda de año, filtro por año y salto al mes elegido",
+      "description": "Decisión original del usuario (tira continua, no un año a la vez), AMPLIADA con tres peticiones suyas del 2026-09-02 hechas al ver la grilla funcionando. (a) BANDA DE AÑO en el encabezado, no una marca colgada de enero: un rango que arranca en septiembre no tiene enero hasta el año siguiente, así que su primer tramo se quedaba sin etiqueta — «falta un encabezado o marca de año en la grilla, no se sabe qué mes pertenece a qué año». (b) EL FILTRO AÑO RECORTA las columnas a ese año: «filtro año: solo debe mostrar los meses de ese año seleccionado». Distinción que el diseño DEBE conservar: el filtro recorta lo que se PINTA, jamás el alcance del CÁLCULO — con «Año 2027» el saldo de apertura de enero sale de diciembre de 2026, un periodo que no está en pantalla; recortar el cálculo lo pondría en cero y mostraría cifras falsas sin que nada lo delatara. (c) ELEGIR UN MES LO TRAE AL FRENTE: «selección filtro mes, debe poner ese mes de primero en pantalla automáticamente». El primer posicionamiento al cargar es INSTANTÁNEO y solo los cambios posteriores se animan — con animación al montar, ésta se comía el primer gesto de rueda del usuario (medido: la grilla se quedaba en scrollTop 0 durante ~1,5s). La grilla conserva su estructura: dos planos, jerarquía agrupable y UN riel de columnas con un scroll horizontal compartido con el Balance.",
+      "priority": "MUST",
+      "type": "ui",
+      "acceptance_criteria": [
+        "El encabezado lleva una banda que rotula cada año del rango, incluido un primer año parcial: un rango que empieza en 2026-09 muestra «2026» sobre sus cuatro columnas",
+        "El scroll horizontal recorre el rango completo sin cortes ni paginación por año: se llega de 2026-12 a 2027-01 desplazándose, no cambiando de vista",
+        "Con el filtro en «Año 2027» la grilla pinta exactamente los periodos de 2027 que el rango contiene, y ninguna fila pinta más celdas que columnas hay",
+        "Con el filtro en «Año 2027» el saldo de apertura de 2027-01 sigue siendo el cierre de 2026-12, aunque ese periodo no esté en pantalla: recortar la vista no recorta el cálculo",
+        "Elegir un mes en el filtro deja su columna a la vista sin que el usuario scrollee",
+        "Al cargar la página, la columna del mes en curso ya está a la vista y una rueda inmediata desplaza la grilla: el posicionamiento inicial no consume el primer gesto",
+        "El riel de columnas del Balance sigue alineado columna a columna con el de la grilla, con un único scroll compartido",
+        "La grilla renderiza el rango máximo sin que el navegador supere 2s hasta el primer pintado con la estructura de 23 nodos",
+        "La columna fija de categorías sigue anclada y conserva su ancho redimensionable (FR-104) con el rango en cualquier tamaño"
+      ]
+    },
+    {
+      "id": "FR-1906",
+      "title": "El rango visible va del periodo más antiguo con datos hasta el fin del horizonte",
+      "description": "[ASSUMPTION: needs user confirmation] El futuro ya está acotado por el horizonte configurable; el pasado no lo estaba. Se resuelve sin introducir conceptos nuevos: el rango empieza en el periodo más antiguo que tenga datos (monto presupuestado o ejecutado, movimiento u observación de celda) y termina al final del horizonte. Un usuario sin ningún dato no tiene pasado, así que ve el mes en curso más su horizonte. Se decidió así porque «importar historia de años anteriores» quedó fuera de alcance —el usuario teclea su historia— y porque el «mes de inicio declarado» pertenece a la feature de saldo inicial (punto 4), que aún no existe.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con el dato más antiguo en 2025-04 y mes en curso 2026-09 con horizonte 24, el rango va de 2025-04 a 2028-08",
+        "Un usuario sin ningún dato ve exactamente el mes en curso más su horizonte: 24 periodos empezando en el mes en curso",
+        "Registrar un dato en un periodo anterior al inicio del rango extiende el rango hacia atrás hasta incluirlo",
+        "El rango nunca deja fuera un periodo que tenga datos, ni siquiera si queda por detrás del horizonte pasado"
+      ]
+    },
+    {
+      "id": "FR-1907",
+      "title": "La preferencia de horizonte persiste entre sesiones, con 24 por defecto",
+      "description": "La página de Configuración es el punto 4 del orden acordado (va con el saldo inicial, después del cierre de mes), así que hoy no existe dónde alojar el control definitivo. Lo configurable verificado en el código son dos cosas y ninguna vive en una página de ajustes: el tema claro/oscuro (ThemeToggle.tsx) y el ancho de la columna de categorías (readCatWidth/writeCatWidth, FR-104), que persiste por su cuenta. El horizonte persiste igual que el ancho de columna. Esta feature NO crea una página de ajustes: el control definitivo aterriza en Configuración cuando esa página exista.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Fijado el horizonte en 12, recargar la página lo conserva en 12",
+        "Sin preferencia guardada, el horizonte es 24",
+        "Una preferencia corrupta o fuera de los dos valores admitidos cae a 24 sin romper el arranque de la app",
+        "La preferencia es por usuario y no viaja en el snapshot del ledger: cambiarla no incrementa revision ni marca el ledger como modificado"
+      ]
+    },
+    {
+      "id": "FR-1908",
+      "title": "El registro de movimientos y el selector de periodo operan sobre año y mes",
+      "description": "El selector de DesktopShell.tsx:92 ofrece hoy los doce meses del año implícito, y el registro móvil (register/ReserveRow.tsx, la ruta /api/v1/movements) captura contra un month suelto. Ambos pasan a operar sobre el periodo completo, o el usuario podría capturar un movimiento sin saber a qué año va. La fecha ISO de captura que ya existe en Movement.date (feature stack-upgrade-theme, ADR-03) es la fuente natural del periodo derivado.",
+      "priority": "MUST",
+      "type": "ui",
+      "acceptance_criteria": [
+        "El selector de periodo muestra el año junto al mes, de modo que dos «marzo» de años distintos son distinguibles antes de elegir",
+        "Un movimiento capturado con fecha ISO 2027-03-14 se registra en el periodo 2027-03, no en 2026-03",
+        "La ruta /api/v1/movements acepta el periodo con año y rechaza con 400 un periodo malformado o fuera del rango admitido, sin escribir nada",
+        "El registro móvil, por defecto, apunta al mes en curso con su año"
+      ]
+    },
+    {
+      "id": "FR-1909",
+      "title": "El techo de reserva y las series de reserva operan sobre la lista ordenada de periodos del rango, no sobre doce índices",
+      "description": "src/domain/reserve.ts (25 referencias a MonthKey) opera hoy por ÍNDICE sobre una lista de doce: MONTH_KEYS.indexOf(month), bucles for (let k = i; k < MONTH_KEYS.length; k++), y el techo tomando el mínimo de la serie desde un mes hasta el final. Con un horizonte abierto «el final» deja de existir. La lista de doce se sustituye por la lista ordenada de periodos del rango activo, y «hasta el final» pasa a significar «hasta el fin del horizonte» (FR-1904). El algoritmo no cambia: cambia el tamaño y el origen de la lista sobre la que corre.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "El techo de un periodo se calcula sobre los periodos del rango activo y da el mismo resultado que hoy cuando el rango es exactamente un año de doce meses",
+        "Un aporte en 2026-11 propaga su efecto sobre las series resueltas de 2027-01 y 2027-02, cruzando el borde de año",
+        "El techo de un periodo no cambia al ampliar el horizonte de 12 a 24 si ningún periodo nuevo tiene datos",
+        "maxWithdrawal, monthCarryUsage y el veredicto de estado dan el mismo resultado para los mismos datos dentro de un año que antes de la migración",
+        "El cálculo del techo con el rango máximo (historial más 24 meses) termina en ≤150ms, el mismo tope que rige hoy"
+      ]
+    },
+    {
+      "id": "FR-1910",
+      "title": "La siembra de un usuario nuevo produce periodos del modelo nuevo y no fabrica pasado",
+      "description": "HALLAZGO DE REVISIÓN (2026-09-02), verificado ejecutando `buildSeed`: un usuario nuevo NO arranca vacío. `buildSeed` (src/domain/seed.ts, usado en store.ts:353 por FR-513 y por el fixture `freshLedger` de la suite e2e) llama a `genBudget`, que siembra 8 hojas × 12 meses = 96 celdas, 48 de ellas con importes inventados (enero a junio con valores; julio a diciembre en 0). Esto rompe DOS cosas de esta feature. (a) TÉCNICO, ineludible: `genBudget` declara `FACTOR: Record<MonthKey, number>` — un registro de doce claves fijas que deja de compilar en cuanto el periodo pase a «YYYY-MM». Tocar la siembra no es opcional. (b) DE COHERENCIA: el criterio de FR-1906 «un usuario sin ningún dato ve exactamente el mes en curso más su horizonte» es HOY inalcanzable, porque ningún usuario nace sin datos: su periodo más antiguo con datos sería siempre enero, y su rango arrancaría ahí sin importar cuándo empezó a usar la app — que es exactamente el ruido que el usuario pidió eliminar («si empieza a usar la app en junio, le quedan los meses de enero a mayo vacíos haciendo ruido»). La siembra tiene que anclarse al periodo en curso, no a un año implícito.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "`buildSeed` compila y devuelve un estado cuyas celdas están indexadas por periodos «YYYY-MM», sin ningún registro de doce claves fijas",
+        "Los periodos que siembra pertenecen al año del mes EN CURSO: un usuario que arranca en 2026-09 no recibe celdas de 2025 ni de 2027",
+        "El rango visible de un usuario recién creado empieza en el periodo en curso o después, nunca en enero de un año que él no usó — el criterio de FR-1906 deja de ser inalcanzable",
+        "El fixture `freshLedger` de la suite e2e sigue restaurando un estado equivalente y las pruebas que dependen de él no cambian de significado"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-1901",
+      "requirement_id": "FR-1901",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app sepa de qué año es cada mes que registro",
+      "so_that": "pueda seguir usándola después de diciembre sin que marzo del año que viene pise marzo de éste",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1901",
+          "given": "un monto de 1.000 escrito en marzo de 2026",
+          "when": "escribo 500 en marzo de 2027",
+          "then": "los dos conviven: 2026-03 sigue en 1.000 y 2027-03 queda en 500"
+        },
+        {
+          "id": "AC-1902",
+          "given": "una lista de periodos que cruza el año",
+          "when": "la ordeno como texto",
+          "then": "el orden coincide con el cronológico: 2025-11, 2025-12, 2026-01"
+        },
+        {
+          "id": "AC-1903",
+          "given": "el borde del dominio",
+          "when": "llega un periodo malformado como 2026-13, «26-03» o «marzo»",
+          "then": "se rechaza y el estado no cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-1902",
+      "requirement_id": "FR-1902",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que mis datos sobrevivan al cambio de modelo",
+      "so_that": "no pierda nada de lo que ya había registrado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1904",
+          "given": "una base con filas del modelo anterior",
+          "when": "corro la migración",
+          "then": "el conteo de filas es idéntico antes y después, y cada una queda en el año en curso del ledger"
+        },
+        {
+          "id": "AC-1905",
+          "given": "una base ya migrada",
+          "when": "vuelvo a correr la migración",
+          "then": "no hace nada: la marca de data_version la detiene, no una heurística"
+        },
+        {
+          "id": "AC-1906",
+          "given": "una migración que falla a mitad",
+          "when": "reviso la base",
+          "then": "quedó exactamente como estaba antes: corrió en transacción"
+        }
+      ]
+    },
+    {
+      "id": "US-1903",
+      "requirement_id": "FR-1903",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el saldo con que cierro diciembre abra enero del año siguiente",
+      "so_that": "mi libro sea continuo y no doce columnas que se reinician cada año",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1907",
+          "given": "2026-12 cerrando con 500 disponibles",
+          "when": "miro la fila «Saldo del mes anterior» de 2027-01",
+          "then": "muestra 500, no cero"
+        },
+        {
+          "id": "AC-1908",
+          "given": "un ingreso que cambio en 2026-11",
+          "when": "miro 2027-01 y 2027-02",
+          "then": "el cambio se propagó: no se detuvo en el borde de año"
+        },
+        {
+          "id": "AC-1909",
+          "given": "cualquier periodo que no sea el más antiguo del historial",
+          "when": "consulto su apertura",
+          "then": "no abre en cero por el hecho de ser enero; solo el primero de todo el historial abre en cero"
+        }
+      ]
+    },
+    {
+      "id": "US-1904",
+      "requirement_id": "FR-1904",
+      "as_a": "dueño del presupuesto",
+      "i_want": "elegir si planeo a uno o a dos años completos",
+      "so_that": "la app me muestre años enteros y no uno cortado por la mitad",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1910",
+          "given": "horizonte de 2 años y mes en curso 2026-09",
+          "when": "miro el último periodo",
+          "then": "es 2028-12: diciembre, no agosto — el año se muestra completo"
+        },
+        {
+          "id": "AC-1911",
+          "given": "horizonte de 2 años y que el mes en curso pase de 2026-09 a 2026-12",
+          "when": "abro la app",
+          "then": "el último periodo sigue siendo 2028-12; al entrar 2027-01 salta a 2029-12"
+        },
+        {
+          "id": "AC-1912",
+          "given": "datos escritos en 2028-05 y horizonte 2",
+          "when": "bajo el horizonte a 1 y lo vuelvo a subir",
+          "then": "los montos de 2028-05 siguen ahí intactos"
+        }
+      ]
+    },
+    {
+      "id": "US-1905",
+      "requirement_id": "FR-1905",
+      "as_a": "dueño del presupuesto",
+      "i_want": "ver los meses de varios años con su año rotulado, poder quedarme en uno solo y saltar al mes que elija",
+      "so_that": "no confunda dos marzos ni tenga que buscar a mano el mes en el que estoy trabajando",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1913",
+          "given": "un rango que empieza en 2026-09",
+          "when": "miro el encabezado",
+          "then": "una banda rotula «2026» sobre sus cuatro columnas y «2027» sobre las doce siguientes"
+        },
+        {
+          "id": "AC-1914",
+          "given": "un rango que va de 2026-10 a 2027-02",
+          "when": "scrolleo la grilla",
+          "then": "llego a 2027-01 desplazándome, sin paginación ni cambio de vista"
+        },
+        {
+          "id": "AC-1929",
+          "given": "el filtro en «Año 2027»",
+          "when": "miro la grilla",
+          "then": "pinta solo los periodos de 2027, y el saldo de apertura de enero sigue viniendo de diciembre de 2026"
+        },
+        {
+          "id": "AC-1932",
+          "given": "la página recién cargada",
+          "when": "muevo la rueda de inmediato",
+          "then": "la grilla se desplaza: el posicionamiento inicial no se comió el gesto"
+        },
+        {
+          "id": "AC-1915",
+          "given": "el rango máximo",
+          "when": "scrolleo hasta el final",
+          "then": "el Balance sigue alineado columna a columna y el scroll es uno solo"
+        }
+      ]
+    },
+    {
+      "id": "US-1906",
+      "requirement_id": "FR-1906",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el rango arranque donde arranca mi historia",
+      "so_that": "no vea años vacíos por delante de mi primer dato ni pierda de vista lo que sí registré",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1916",
+          "given": "mi dato más antiguo en 2025-04, mes en curso 2026-09 y horizonte 24",
+          "when": "abro la grilla",
+          "then": "el rango va de 2025-04 a 2028-08"
+        },
+        {
+          "id": "AC-1917",
+          "given": "un usuario nuevo sin ningún dato",
+          "when": "abre la app",
+          "then": "ve 24 periodos empezando en el mes en curso, sin pasado"
+        },
+        {
+          "id": "AC-1918",
+          "given": "un rango que empieza en 2025-04",
+          "when": "registro algo en 2024-11",
+          "then": "el rango se extiende hacia atrás para incluirlo: ningún periodo con datos queda fuera"
+        }
+      ]
+    },
+    {
+      "id": "US-1907",
+      "requirement_id": "FR-1907",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app recuerde mi horizonte entre sesiones",
+      "so_that": "no tenga que volver a elegirlo cada vez que abro",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1919",
+          "given": "el horizonte fijado en 12",
+          "when": "recargo la página",
+          "then": "sigue en 12"
+        },
+        {
+          "id": "AC-1920",
+          "given": "ninguna preferencia guardada, o una guardada corrupta",
+          "when": "abro la app",
+          "then": "arranca en 24 sin romperse"
+        },
+        {
+          "id": "AC-1921",
+          "given": "el horizonte cambiado",
+          "when": "reviso el ledger",
+          "then": "revision no subió: la preferencia no viaja en el snapshot"
+        }
+      ]
+    },
+    {
+      "id": "US-1908",
+      "requirement_id": "FR-1908",
+      "as_a": "dueño del presupuesto",
+      "i_want": "registrar un movimiento sabiendo a qué año va",
+      "so_that": "no acabe apuntando un gasto de 2027 al mismo mes de 2026",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1922",
+          "given": "el selector de periodo abierto",
+          "when": "elijo marzo",
+          "then": "veo el año junto al mes y sé cuál de los dos marzo estoy eligiendo"
+        },
+        {
+          "id": "AC-1923",
+          "given": "un movimiento con fecha de captura 2027-03-14",
+          "when": "lo guardo",
+          "then": "queda registrado en 2027-03"
+        },
+        {
+          "id": "AC-1924",
+          "given": "la ruta /api/v1/movements",
+          "when": "envío un periodo malformado",
+          "then": "responde 400 y no escribe ninguna fila"
+        }
+      ]
+    },
+    {
+      "id": "US-1909",
+      "requirement_id": "FR-1909",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que el techo de mis reservas siga siendo correcto con varios años en juego",
+      "so_that": "pueda apartar plata a futuro sin que la app me ofrezca cupo que no existe",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1925",
+          "given": "un rango de exactamente doce meses de un año",
+          "when": "calculo el techo de un periodo",
+          "then": "da el mismo resultado que antes de la migración"
+        },
+        {
+          "id": "AC-1926",
+          "given": "un aporte en 2026-11",
+          "when": "miro las series resueltas de 2027-01 y 2027-02",
+          "then": "el efecto se propagó cruzando el borde de año"
+        },
+        {
+          "id": "AC-1927",
+          "given": "un horizonte que paso de 12 a 24 sin datos nuevos",
+          "when": "consulto el techo de un periodo",
+          "then": "no cambió"
+        },
+        {
+          "id": "AC-1928",
+          "given": "el rango máximo, historial más 24 meses",
+          "when": "edito una celda",
+          "then": "el techo se recalcula en ≤150ms"
+        }
+      ]
+    },
+    {
+      "id": "US-1910",
+      "requirement_id": "FR-1910",
+      "as_a": "dueño del presupuesto que abre la app por primera vez",
+      "i_want": "que la app no me invente meses pasados que yo nunca usé",
+      "so_that": "mi historia empiece donde yo empiezo y no arrastre ruido desde enero",
+      "acceptance_criteria": [
+        {
+          "id": "AC-1930",
+          "given": "una cuenta nueva creada en septiembre de 2026",
+          "when": "abro la grilla por primera vez",
+          "then": "el rango arranca en 2026-09 o después, y no existe ninguna celda de un periodo anterior"
+        },
+        {
+          "id": "AC-1931",
+          "given": "el código de la siembra tras la migración",
+          "when": "se busca un registro de doce claves de mes fijas",
+          "then": "no existe ninguno: `FACTOR` y cualquier estructura equivalente están indexadas por periodo"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-1901",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde tras la migración: las 610+ pruebas unitarias y e2e del proyecto y de sus features pasan sin relajar aserciones ni marcar pruebas como saltadas. MEDIDO el 2026-09-02: 49 de los 84 ficheros de prueba mencionan literales de mes o MonthKey (19 usan MonthKey/MONTH_KEYS, 46 usan literales, 49 la unión), así que adaptarlos es parte del trabajo, no una excusa para desactivarlos",
+      "acceptance_criteria": "aitri verify-run del proyecto raíz y de cada feature ya cerrada termina con exit code 0 y cero pruebas en fail o skip que antes pasaran; el conteo de pruebas ejecutadas no baja respecto del previo a la migración"
+    },
+    {
+      "id": "NFR-1902",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El arrastre de saldo dentro de un año no cambia: computeBalanceSeries produce, para un conjunto de datos contenido en un solo año, exactamente los mismos números que antes de la migración",
+      "acceptance_criteria": "Un juego de datos de doce meses de un mismo año da valores idénticos de disponible, reservado y saldo de apertura en los doce periodos, comparados contra los valores registrados antes del cambio"
+    },
+    {
+      "id": "NFR-1903",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El techo de flujo y la maquinaria de reservas conservan su veredicto: headrooms encadenados, verdictOf, límite del techo, regla de déficit, maxWithdrawal y monthCarryUsage dan los mismos resultados para los mismos datos dentro de un año. Es la capa que acaba de pasar un pase adversarial de 6.000 pasos sin perder un peso; no puede degradarse",
+      "acceptance_criteria": "Una secuencia determinista de ≥100 operaciones mixtas (reservar, retirar, editar retiros, eliminar retiros, editar celdas, gastos e ingresos) contenida en un solo año produce, tras cada paso, el mismo estado y el mismo veredicto que antes de la migración"
+    },
+    {
+      "id": "NFR-1904",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los roll-ups jerárquicos no cambian: hoja → subcategoría → categoría → grupo → tipo siguen sumando igual en Presupuestado y Ejecutado, en cualquier periodo",
+      "acceptance_criteria": "Para un árbol con los 23 nodos reales del usuario y montos en periodos de dos años distintos, cada ancestro es la suma exacta de sus descendientes en cada periodo y en cada plano"
+    },
+    {
+      "id": "NFR-1905",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La persistencia no pierde nada ni rompe el bloqueo optimista por revision (src/server/data/ledgerRepo.ts): guardar y recargar un ledger con periodos de varios años devuelve exactamente lo guardado, y un cliente con una revisión vieja sigue siendo rechazado",
+      "acceptance_criteria": "Un ciclo guardar→recargar de un ledger con datos en 2025, 2026 y 2027 devuelve un estado idéntico al original; y un PUT con una revision desactualizada se rechaza sin escribir, igual que antes"
+    },
+    {
+      "id": "NFR-1906",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El registro móvil sigue capturando contra el periodo correcto y sumándolo al Ejecutado de la hoja destino, sin huérfanos: ningún movimiento queda apuntando a un periodo que no existe en el rango",
+      "acceptance_criteria": "Capturar un movimiento desde la vista móvil lo suma al Ejecutado de la hoja destino en el periodo derivado de su fecha, y recorrer todos los movimientos tras la migración no encuentra ninguno con un periodo malformado o fuera de rango"
+    },
+    {
+      "id": "NFR-1907",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "El recómputo del dominio no se degrada al crecer el rango: con el rango máximo previsto (historial más 24 meses de horizonte) el recálculo completo tras una edición sigue dentro del tope de 150ms que rige hoy",
+      "acceptance_criteria": "Con un ledger de 5 años de periodos y los 23 nodos reales, editar una celda recalcula el estado completo en ≤150ms medidos en el banco de pruebas del dominio"
+    },
+    {
+      "id": "NFR-1908",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El periodo se valida en el SERVIDOR, no solo en el navegador: la API rechaza cualquier periodo malformado o fuera del rango admitido antes de escribir. Hoy el CHECK de las tres tablas es la única defensa real y se pierde al ampliar el dominio de valores; ampliarlo sin validar en el borde convertiría un campo de texto en una vía de escritura arbitraria",
+      "acceptance_criteria": "Una petición con periodo \"2026-13\", \"0000-01\", una cadena de 1.000 caracteres o un valor no textual devuelve 400 sin escribir ninguna fila, verificado consultando la base tras el intento"
+    },
+    {
+      "id": "NFR-1909",
+      "category": "Maintainability",
+      "priority": "MUST",
+      "requirement": "La migración es reversible en desarrollo y está documentada: el proyecto conserva el script de migración y una nota de qué hacer si hay que volver atrás, porque toca llaves primarias de tres tablas",
+      "acceptance_criteria": "El repositorio contiene el script de migración versionado y una nota que describe el estado anterior y el posterior de las tres tablas; correr la migración dos veces seguidas deja la base en el mismo estado que correrla una vez"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario lo planteó él mismo al responder cómo llegaría a un mes pasado oculto («pone filtro, mostrar desde enero 2024 y allí scrolea todo lo que necesite»); al mostrarle que ese filtro cruza el año y que el año no existe en el modelo, decidió: «hay que hacer multi año, ya lo habíamos discutido» (2026-09-02)",
+    "users": "Usuario único del producto, es él mismo; persona heredada de los requisitos aprobados del proyecto raíz, sin cambio respecto de todas las features previas",
+    "baseline": "Verificado en el código y en la base el 2026-09-02: MonthKey son doce literales (src/domain/types.ts:9), MonthKey aparece en 19 archivos de src/, tres tablas llevan month text con CHECK contra los doce literales y en dos de ellas month es parte de la llave primaria, y 32 de los 84 ficheros de prueba mencionan meses literales",
+    "success_metric": "Elegida por el usuario el 2026-09-02 entre tres opciones: «planear cruzando años sin romper nada» — que el arrastre diciembre→enero funcione en la tira continua Y que las 610+ pruebas existentes sigan verdes",
+    "no_go_zone": "Los cuatro puntos los marcó el usuario explícitamente el 2026-09-02: la presentación de la grilla dinámica, el cierre de mes y el saldo inicial, la multi-moneda, y la importación de historia anterior"
+  },
+  "idea_gaps": [
+    "FR-1906 (hasta dónde llega el pasado) se decidió sin preguntar al usuario: el rango empieza en el periodo más antiguo con datos. Se dedujo de dos decisiones suyas ya tomadas —«importar historia» quedó fuera de alcance y el «mes de inicio declarado» pertenece a la feature de saldo inicial, que aún no existe— pero él no lo confirmó. CONFIRMAR AL APROBAR",
+    "FR-1906 (qué ve un usuario nuevo sin datos: el mes en curso más su horizonte) se dedujo de la misma regla, sin confirmación explícita. CONFIRMAR AL APROBAR",
+    "FR-1907 (dónde vive el control del horizonte): se propone persistirlo como el ancho de columna y que el control definitivo aterrice en Configuración cuando exista, para no bloquear esta feature con una pantalla del punto 4. El usuario dijo «configurable» pero no dijo dónde. CONFIRMAR AL APROBAR",
+    "FR-1910 resuelve el CONFLICTO técnico y de coherencia, pero NO decide una pregunta de producto que el usuario no ha respondido: si un usuario nuevo debe seguir recibiendo datos de ejemplo. Hoy recibe importes inventados en seis meses. Esta feature solo exige que lo sembrado sea coherente con el periodo en curso; si el usuario prefiere que un usuario nuevo arranque VACÍO, es una decisión suya y cabe en el saldo inicial (punto 4). CONFIRMAR AL APROBAR",
+    "FR-1904 — la ventana pasa a rodar una vez al AÑO en vez de cada mes. Es consecuencia directa de contar en años completos, y el usuario eligió esa regla; pero no se le presentó ese efecto por separado. CONFIRMAR AL APROBAR: ¿acepta que el último periodo no avance de octubre a noviembre y salte un año entero al entrar enero?"
+  ],
+  "coverage_map": [
+    {
+      "need": "El año no existe en el modelo: MonthKey son doce literales y el esquema no tiene columna de año",
+      "disposition": "FR-1901"
+    },
+    {
+      "need": "La base de datos guarda el mes como texto con CHECK de doce literales, y en dos tablas forma parte de la llave primaria: hay que migrar esquema y datos",
+      "disposition": "FR-1902"
+    },
+    {
+      "need": "El saldo de diciembre debe abrir enero del año siguiente (arrastre cruzando el borde de año)",
+      "disposition": "FR-1903"
+    },
+    {
+      "need": "«A futuro, poder mostrar al menos 12 o 24 meses hacia adelante» — horizonte configurable a elección del usuario",
+      "disposition": "FR-1904"
+    },
+    {
+      "need": "«Pone filtro, mostrar desde enero 2024 y allí scrolea»: la grilla es un rango continuo que cruza años, no un año a la vez",
+      "disposition": "FR-1905"
+    },
+    {
+      "need": "Distinguir dos meses homónimos de años distintos en el encabezado de la tira continua",
+      "disposition": "FR-1905"
+    },
+    {
+      "need": "Hasta dónde llega el pasado del rango, y qué ve un usuario nuevo sin datos",
+      "disposition": "FR-1906"
+    },
+    {
+      "need": "La preferencia de horizonte tiene que persistir, y hoy no existe la página de Configuración donde alojaría su control",
+      "disposition": "FR-1907"
+    },
+    {
+      "need": "El selector de mes y el registro de movimientos deben saber a qué año apuntan",
+      "disposition": "FR-1908"
+    },
+    {
+      "need": "El techo de reserva toma el mínimo «desde este mes hasta el final»; con horizonte abierto «el final» deja de existir",
+      "disposition": "FR-1909"
+    },
+    {
+      "need": "reserve.ts opera por índice sobre una lista de doce: hay que pasarlo a la lista ordenada de periodos del rango",
+      "disposition": "FR-1909"
+    },
+    {
+      "need": "Que las 610+ pruebas existentes sigan verdes tras la migración (mitad del criterio de éxito del usuario)",
+      "disposition": "NFR-1901"
+    },
+    {
+      "need": "No romper el arrastre de saldo dentro de un año",
+      "disposition": "NFR-1902"
+    },
+    {
+      "need": "No degradar el techo de flujo ni la maquinaria de reservas, recién auditada",
+      "disposition": "NFR-1903"
+    },
+    {
+      "need": "No romper los roll-ups jerárquicos",
+      "disposition": "NFR-1904"
+    },
+    {
+      "need": "No perder datos ni romper el bloqueo optimista por revision",
+      "disposition": "NFR-1905"
+    },
+    {
+      "need": "El registro móvil sigue capturando contra el periodo correcto, sin huérfanos",
+      "disposition": "NFR-1906"
+    },
+    {
+      "need": "El recómputo no puede degradarse al crecer el rango de periodos",
+      "disposition": "NFR-1907"
+    },
+    {
+      "need": "Al ampliar el dominio de valores del periodo, validarlo en el servidor y no solo en el navegador",
+      "disposition": "NFR-1908"
+    },
+    {
+      "need": "La migración toca llaves primarias de tres tablas: debe quedar versionada, documentada e idempotente",
+      "disposition": "NFR-1909"
+    },
+    {
+      "need": "Ocultar meses pasados vacíos y el filtro visual de rango",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cierre de mes, saldo inicial y página de Configuración",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-moneda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Importar historia de años anteriores",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Cuando haya mucha historia, poder seleccionarlos desde el selector de año» (frase antigua del usuario)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "La siembra de un usuario nuevo (buildSeed/genBudget) crea 12 meses de datos y contradice el rango de FR-1906, además de no compilar con el periodo nuevo",
+      "disposition": "FR-1910"
+    },
+    {
+      "need": "«2028 solo llega hasta agosto, debería mostrar el año completo»: el horizonte se cuenta en años completos, no en meses",
+      "disposition": "FR-1904"
+    },
+    {
+      "need": "«Filtro año: solo debe mostrar los meses de ese año seleccionado»",
+      "disposition": "FR-1905"
+    },
+    {
+      "need": "«Selección filtro mes, debe poner ese mes de primero en pantalla automáticamente»",
+      "disposition": "FR-1905"
+    },
+    {
+      "need": "«Falta un encabezado o marca de año en la grilla, no se sabe qué mes pertenece a qué año»",
+      "disposition": "FR-1905"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — multi-anio\n\n_Escrito el 2026-09-02. Punto 1 del orden acordado tras el reorden de esa fecha (ver\n`aitri/BACKLOG.md` § «Orden acordado»). Todo lo marcado como decisión del usuario se confirmó con él\nen esa conversación; nada aquí es inferencia salvo lo que diga [ASSUMPTION]._\n\n## Problem / Why\n\n**El año no existe en el producto.** T-Ledger es un único año implícito: quien lo use más de doce\nmeses no tiene dónde poner el mes trece, no puede mirar atrás y no puede planear más allá de\ndiciembre.\n\nSale de una respuesta concreta del usuario. Diseñando la grilla dinámica se le preguntó cómo llegaría\na un mes pasado que quedó oculto, y contestó, textual:\n\n> «Puede scrolear o con filtro de fechas (meses) para mostrar. Pone filtro, mostrar desde enero 2024\n> y allí scrolea todo lo que necesite.»\n\nEse filtro cruza el año. Se le plantearon las dos salidas —filtro limitado al año en curso, o subir\nmulti-año en el orden— y decidió: **«Hay que hacer multi año, ya lo habíamos discutido.»**\n\nAntecedente suyo del 2026-09-01, en `meses-y-saldo-inicial/FEATURE_IDEA.md`: «a futuro, poder\nmostrar al menos 12 o 24 meses hacia adelante» y «cuando haya mucha historia, poder seleccionarlos\ndesde el selector de año».\n\n**Por qué ahora y no después.** El 2026-09-02, por decisión del usuario, se vaciaron `amount_cell`\n(219 filas), `movement` (1) y `cell_note` (2). Las tres tablas que llevan `month` están hoy en\n**cero filas**; solo sobreviven los 23 nodos de la estructura, que no dependen del año. La migración\nde datos, hoy, no tiene datos que migrar. Es la ventana más barata que va a existir.\n\n## Target Users\n\nEl mismo usuario individual del proyecto raíz —gestiona sus finanzas personales, planea en escritorio\ny captura en móvil— con la diferencia que define esta feature: **lleva más de un año usando la app**,\no quiere transcribir historia anterior a su primer mes. Persona heredada de los requisitos aprobados\ndel proyecto raíz; no se inventa una nueva.\n\n## New Behavior\n\n1. **El periodo pasa a ser año + mes.** Recomendación técnica: sustituir `MonthKey` por una única\n   clave `PeriodKey = \"YYYY-MM\"`, ordenable como texto, en vez de añadir un `year` aparte y anidar\n   los mapas. Razón: `AmountMap` y toda la lógica de `reserve.ts` operan sobre UNA lista ordenada de\n   periodos; con una clave única el algoritmo sobrevive con la lista de otro tamaño, mientras que\n   anidar por año obliga igualmente a aplanar para que el arrastre cruce diciembre→enero — el mismo\n   trabajo más la anidación.\n\n2. **La grilla es un rango continuo que cruza años, no un año a la vez.** Decisión del usuario, tras\n   plantearle las dos formas. Coherente con «mostrar desde enero 2024 y allí scrolea». Consecuencia\n   aceptada: el borde diciembre→enero se lee de corrido, sin cambiar de pantalla.\n\n3. **El arrastre cruza el borde de año.** El saldo de diciembre abre enero del año siguiente. Se le\n   presentó como supuesto y no lo corrigió; es lo que hace de esto un libro contable continuo y no\n   doce columnas sueltas.\n\n4. **El horizonte futuro es configurable: 12 o 24 meses, a elección del usuario.** Textual: «quizá\n   configurable, 12 o 24 meses a elección de usuario». Es un horizonte rodante desde el mes en curso:\n   la ventana avanza sola cada mes. No es un número fijo del sistema.\n\n   *Dónde vive el ajuste, a validar en Fase 2:* la página de Configuración es el punto 4 del orden\n   acordado, así que hoy no existe. Lo configurable verificado en el código son el tema\n   (`ThemeToggle.tsx`) y el ancho de la columna de categorías (`readCatWidth`/`writeCatWidth`,\n   FR-104), que persiste por su cuenta. Propuesta: persistir el horizonte igual que el ancho de\n   columna, con **24 por defecto**, y que el control definitivo aterrice en Configuración cuando esa\n   página exista. Así esta feature no queda bloqueada por una pantalla posterior ni inventa una de\n   ajustes por su cuenta.\n\n## Touch Points\n\nEstado verificado en el código el 2026-09-02 — hechos, no estimaciones.\n\n**Dominio.** `MonthKey` son doce literales (`\"ene\"…\"dic\"`, `src/domain/types.ts:9`); `AmountMap` es\n`Record<nodeId, Partial<Record<MonthKey, number>>>`. `MonthKey` aparece en **19 archivos**:\n`reserve.ts` (25 referencias), `migrate.ts` (12), `BudgetGrid.tsx` (10), `store.ts` (9),\n`ReserveCells.tsx` (7), `ledgerRepo.ts` (6), y el resto con 2–5.\n\n**El supuesto de «doce casillas» está en la LÓGICA, no solo en la vista.**\n`computeBalanceSeries` (`balance.ts:142`) recorre `MONTH_KEYS` entero y abre en `ZERO_CARRY`.\n`reserve.ts` opera por índice sobre esa lista de doce: `MONTH_KEYS.indexOf(month)`, bucles\n`for (let k = i; k < MONTH_KEYS.length; k++)`, y el techo tomando el mínimo de la serie «desde este\nmes hasta el final». Con horizonte abierto «el final» deja de existir — de ahí que el horizonte\nconfigurable no sea un adorno de UI sino un input del cálculo.\n\n**Base de datos.** Tres tablas llevan `month text` con CHECK contra los doce literales:\n`amount_cell`, `movement` y `cell_note`. En `amount_cell` y `cell_note` **`month` forma parte de la\nllave primaria**. La migración toca llaves primarias, constraints y el `data_version` de `ledger`.\n\n**Pruebas.** 32 de los 84 ficheros de prueba mencionan meses literales o `MonthKey` — el 38 % de la\nsuite entra en el radio del cambio.\n\n**Presentación.** `BudgetGrid.tsx`, `BalanceModule.tsx`, `Dashboard.tsx`, `ReserveCells.tsx`,\n`register/ReserveRow.tsx` y el selector de mes de `DesktopShell.tsx` pintan los doce meses sin\ncondición.\n\n## Must Not Break (Regression Boundary)\n\nEsta feature reescribe el eje temporal del que cuelga TODO el producto. Es el mayor riesgo de\nregresión del proyecto hasta la fecha, y el usuario fijó la no-regresión como parte de la medida de\néxito, no como un extra.\n\n- **La suite completa sigue verde.** 610+ pruebas unitarias y e2e existentes pasan tras la\n  migración. Es la mitad del criterio de éxito confirmado por el usuario.\n- **El arrastre de saldo sigue siendo correcto dentro de un año.** `computeBalanceSeries` produce\n  los mismos números para un año que hoy son correctos.\n- **El techo de flujo y la maquinaria de reservas conservan su veredicto.** `reserve.ts` —\n  headrooms encadenados, `verdictOf`, límite del techo, regla de déficit, `maxWithdrawal`,\n  `monthCarryUsage`— da los mismos resultados para los mismos datos dentro de un año. Es la capa que\n  acaba de pasar un pase adversarial de 6.000 pasos; no puede degradarse.\n- **Los roll-ups jerárquicos** (hoja → subcategoría → categoría → grupo → tipo) no cambian.\n- **La persistencia no pierde nada ni rompe el bloqueo optimista** por `revision`\n  (`src/server/data/ledgerRepo.ts`).\n- **El registro móvil sigue capturando** contra el periodo correcto.\n\n## Success Criteria\n\nConfirmado por el usuario el 2026-09-02 — «planear cruzando años sin romper nada». Dos condiciones\nobservables, ambas obligatorias:\n\n1. **Cruzar el año funciona.** El usuario registra y planea meses de 2027, y el saldo de diciembre de\n   2026 abre enero de 2027 encadenado, visible en la misma tira continua sin cambiar de pantalla.\n2. **Nada se rompió.** Las 610+ pruebas existentes siguen verdes tras la migración. Es la condición\n   que protege de verdad: el 38 % de la suite toca meses literales.\n\n## Out of Scope\n\nConfirmado por el usuario el 2026-09-02, los cuatro puntos:\n\n- **Ocultar meses vacíos y el filtro visual de rango** — es la feature `grilla-dinamica` (punto 2),\n  que se construye ENCIMA de ésta. Aquí se entrega el modelo con años; allí, la presentación. Su\n  expediente ya está escrito en `aitri/features/grilla-dinamica/FEATURE_IDEA.md`.\n- **Cierre de mes** (punto 3) y **saldo inicial + página de Configuración** (punto 4). No se tocan,\n  aunque ambos dependan del modelo temporal que esta feature deja montado.\n- **Multi-moneda.** El brief original excluyó «multi-año y multi-moneda» juntos como Fase 2.\n  Multi-año se está haciendo; la moneda sigue siendo COP única y fuera de alcance.\n- **Importar historia de años anteriores.** Ninguna carga masiva ni importador: si el usuario quiere\n  2024 y 2025, los teclea.\n\n## Preguntas abiertas — CONFIRMAR antes de cerrar la Fase 1\n\n1. **¿Hasta dónde llega el pasado?** El futuro ya está acotado por el horizonte configurable; el\n   pasado no. ¿El rango llega hasta el primer mes con datos, o el usuario declara desde cuándo?\n   (Conecta con el «mes de inicio declarado» del punto 4, que aquí todavía no existe.)\n2. **¿Qué ve un usuario nuevo, sin ningún dato?** No tiene pasado: su rango sería el mes en curso más\n   el horizonte. Conviene dejarlo dicho explícitamente.\n"
+}

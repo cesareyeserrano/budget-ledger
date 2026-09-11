@@ -1,9 +1,10 @@
-import type { MonthKey } from "@/domain/types";
-import { MONTH_KEYS } from "@/domain/months";
+import type { PeriodKey } from "@/domain/types";
+import { periodFromDate, periodOf } from "@/domain/periods";
+import type { Calendar } from "@/domain/cycles";
 
 /**
  * Helpers de fecha del registro (FR-210). El campo muestra "Hoy" por defecto; la hora se
- * persiste con el movimiento pero nunca se muestra. El `month` (MonthKey) del modelo se
+ * persiste con el movimiento pero nunca se muestra. El `month` (PeriodKey) del modelo se
  * DERIVA de la fecha (ADR-03) — único puente entre la fecha nueva y los roll-ups por mes.
  */
 
@@ -59,11 +60,52 @@ export function dateLabel(iso: string): string {
 }
 
 /**
- * Deriva el MonthKey (ene…dic) de una fecha ISO — puente al modelo de roll-ups (ADR-03).
+ * Deriva el periodo ("YYYY-MM") de una fecha ISO — puente al modelo de roll-ups (ADR-03, ahora con
+ * año). Una fecha inválida cae al periodo EN CURSO, igual que antes caía al mes en curso.
  *
- * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
+ * @aitri-trace FR-ID: FR-1908, US-ID: US-1908, AC-ID: AC-1923, TC-ID: TC-MAN-070h, TC-MAN-072e
  */
-export function monthKeyFromDate(iso: string): MonthKey {
-  const d = isValidDate(iso) ? new Date(iso) : new Date();
-  return MONTH_KEYS[d.getMonth()];
+export function periodKeyFromDate(iso: string): PeriodKey {
+  return periodFromDate(iso) ?? currentPeriod();
+}
+
+/**
+ * EL RELOJ. Único punto del proyecto que pregunta la fecha para saber en qué periodo estamos.
+ *
+ * Vive aquí, fuera del dominio, por ADR-02 del TRD: si `computeBalanceSeries` o `reserve.ts`
+ * leyeran el reloj dejarían de ser deterministas y la suite se rompería sola cada mes. El borde lo
+ * consulta una vez y se lo PASA al dominio.
+ *
+ * @aitri-trace FR-ID: FR-1904, US-ID: US-1904, AC-ID: AC-1911, TC-ID: TC-MAN-032e
+ */
+export function currentPeriod(): PeriodKey {
+  const d = new Date();
+  return periodOf(d.getFullYear(), d.getMonth() + 1);
+}
+
+/**
+ * Feature ciclos (FLAG-2). «Hoy» como «YYYY-MM-DD». Sin `tz`, la fecha LOCAL del proceso (el
+ * navegador del usuario). Con `tz` (IANA, p. ej. `America/Bogota`), la fecha civil en esa zona: es
+ * lo que usa el servidor, cuyo reloj corre en UTC, para decidir «hoy» como lo vive el usuario.
+ *
+ * @aitri-trace FR-ID: FR-2409, US-ID: US-2409, AC-ID: AC-2430, TC-ID: TC-CIC-088f
+ */
+export function todayISO(tz?: string, now: Date = new Date()): string {
+  if (tz) {
+    // `en-CA` formatea como YYYY-MM-DD: es el locale con ese orden en Intl sin más piezas.
+    return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * Feature ciclos (FR-2407). El periodo «de hoy» según el calendario vigente: en modo mes es
+ * `currentPeriod()`; en ciclos, el ciclo que contiene hoy. Sustituye a `currentPeriod()` en los
+ * 14 sitios que decidían «hoy» (FLAG-1).
+ *
+ * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-071e
+ */
+export function currentPeriodFor(calendar: Calendar, today: string = todayISO()): PeriodKey {
+  return calendar.periodForDate(today);
 }

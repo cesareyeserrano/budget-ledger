@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX Preview — servidor-fuente-unica · Pantalla de acceso</title>
+<style>
+/* Tokens transcritos VERBATIM de src/app/globals.css — sin valores nuevos. */
+.theme-light{
+  --bg:#f7f7f8; --bg-card:#ffffff; --bg-elevated:#ffffff; --bg-sunken:#f1f1f3; --bg-card-hover:#f1f1f3;
+  --primary:#1c1c1f; --primary-foreground:#ffffff; --accent:#1c1c1f; --accent-light:#55555d;
+  --fg:#1c1c1f; --fg-secondary:#55555d; --fg-muted:#6b6b73;
+  --border:#e3e3e7; --border-strong:#d3d3d9; --border-hover:#d3d3d9;
+  --error:#c4453e;
+  --shadow-sm:0 1px 2px rgba(24,24,27,.06);
+  --elev-highlight:0 0 0 0 transparent;
+}
+.theme-dark{
+  --bg:#131316; --bg-card:#1b1b1f; --bg-elevated:#26262b; --bg-sunken:#0f0f12; --bg-card-hover:#26262b;
+  --primary:#f4f4f5; --primary-foreground:#1c1c1f; --accent:#f4f4f5; --accent-light:#9b9ba3;
+  --fg:#f4f4f5; --fg-secondary:#b4b4bb; --fg-muted:#9b9ba3;
+  --border:#33333a; --border-strong:#43434c; --border-hover:#43434c;
+  --error:#ec6a66;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --elev-highlight:inset 0 1px 0 rgba(255,255,255,.04);
+}
+:root{
+  --radius-xs:6px; --radius-sm:8px; --radius-md:10px; --radius-lg:14px; --radius-full:9999px;
+  --control-sm:32px; --control-md:40px; --control-lg:48px;
+  --duration-fast:120ms; --ease-snap:cubic-bezier(.16,1,.3,1);
+  /* Inter/DM Mono no se pueden cargar sin red: fallback del sistema (declarado en el spec). */
+  --font-sans:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-sans);letter-spacing:-.01em;-webkit-font-smoothing:antialiased;
+     background:#8a8a92;color:#fff}
+
+/* ── Roles tipográficos de globals.css ── */
+.title{font-size:1.25rem;font-weight:600;line-height:1.3;letter-spacing:-.02em}
+.label{font-size:.8125rem;font-weight:500;line-height:1.4}
+.caption{font-size:.75rem;font-weight:400;line-height:1.5}
+.eyebrow{font-size:.6875rem;font-weight:600;line-height:1.4;letter-spacing:.09em;
+         text-transform:uppercase;color:var(--fg-muted)}
+.elevated-sm{box-shadow:var(--elev-highlight),var(--shadow-sm)}
+
+/* ── Chrome del preview (no es parte del diseño) ── */
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+h1.pv{font-size:1.05rem;font-weight:600;margin:0 0 4px}
+p.pv{font-size:.82rem;line-height:1.6;color:#e7e7ea;margin:0 0 22px;max-width:74ch}
+.note{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.16);border-radius:10px;
+      padding:11px 14px;font-size:.76rem;line-height:1.6;margin:0 0 24px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:20px}
+.pane{border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+.pane-h{font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+        padding:8px 12px;background:rgba(0,0,0,.3)}
+.stage{background:var(--bg);padding:34px 18px;min-height:430px;display:flex;align-items:center;justify-content:center}
+section{margin-top:38px}
+h2.pv{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+       margin:0 0 12px;color:#e7e7ea}
+.tbl-scroll{overflow-x:auto;border:1px solid rgba(255,255,255,.16);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.76rem;min-width:560px;background:rgba(0,0,0,.2)}
+th,td{text-align:left;padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.1)}
+th{font-weight:600;font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:#c9c9d0}
+tr:last-child td{border-bottom:0}
+code{font-family:ui-monospace,"SF Mono",monospace;font-size:.94em}
+.sw{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;
+    margin-right:7px;border:1px solid rgba(255,255,255,.28)}
+
+/* ══ LA PANTALLA — tokens y escalas reales ══ */
+.card{
+  width:min(340px,100%);
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:22px 20px;
+  display:flex;flex-direction:column;gap:12px;
+  color:var(--fg);
+}
+.brand{display:flex;flex-direction:column;gap:2px;margin-bottom:2px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field > .label{color:var(--fg-secondary)}
+.input{
+  height:var(--control-md);
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--fg);
+  padding:0 11px;
+  font-family:inherit;font-size:.8rem;
+  width:100%;
+  transition:border-color var(--duration-fast) var(--ease-snap);
+}
+.input::placeholder{color:var(--fg-muted)}
+.input:focus-visible{outline:2px solid var(--accent-light);outline-offset:2px;border-color:var(--accent)}
+.input[aria-invalid="true"]{border-color:var(--error)}
+.btn{
+  height:var(--control-md);
+  border-radius:var(--radius-sm);
+  font-family:inherit;font-size:.8rem;font-weight:500;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;width:100%;
+  transition:border-color var(--duration-fast) var(--ease-snap);
+}
+.btn-primary{background:var(--primary);color:var(--primary-foreground);border:1px solid var(--primary)}
+.btn-outline{background:var(--bg-elevated);color:var(--fg);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-ghost{background:none;border:1px solid transparent;color:var(--fg-muted);
+           font-size:.75rem;font-weight:400;height:auto;padding:4px;cursor:pointer}
+.btn-ghost:hover{color:var(--fg)}
+.err{color:var(--error);display:flex;gap:6px;align-items:flex-start}
+.err::before{content:"⚠";line-height:1.4}
+.divider{height:1px;background:var(--border);margin:2px 0}
+.state-tag{font-size:.63rem;letter-spacing:.07em;text-transform:uppercase;font-weight:600;
+           color:var(--fg-muted);margin-bottom:6px}
+.statebox{display:flex;flex-direction:column;gap:16px}
+@media(max-width:760px){ .input,.btn{height:var(--control-lg)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1 class="pv">UX Preview — Pantalla de acceso · feature <code>servidor-fuente-unica</code></h1>
+<p class="pv">FR-1102 vuelve el login obligatorio; FR-1108 lo pone sobre el sistema de diseño del producto.
+Todos los colores, radios y alturas vienen literales de <code>src/app/globals.css</code>. Cero estética nueva.</p>
+
+<div class="note">
+  <strong>Limitación declarada:</strong> el preview no puede cargar Inter ni DM Mono (sin red), así que
+  usa las fuentes del sistema — la <em>tipografía es aproximada</em>. Colores, tamaños, radios y alturas
+  de control <strong>son exactos</strong>. Reduce la ventana a menos de 760px para ver los controles pasar
+  de 40px a 48px.
+</div>
+
+<div class="grid2">
+  <div class="pane theme-light">
+    <div class="pane-h" style="color:#fff">Tema claro</div>
+    <div class="stage">
+      <div class="card elevated-sm">
+        <div class="brand">
+          <span class="eyebrow">Ledger</span>
+          <span class="title">Iniciar sesión</span>
+        </div>
+        <div class="field">
+          <label class="label" for="e1">Email</label>
+          <input class="input" id="e1" type="email" placeholder="tu@correo.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="label" for="p1">Contraseña</label>
+          <input class="input" id="p1" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary">Entrar</button>
+        <button class="btn btn-outline" disabled title="Google no configurado">Continuar con Google</button>
+        <div class="divider"></div>
+        <button class="btn-ghost">¿No tienes cuenta? Regístrate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane theme-dark">
+    <div class="pane-h" style="color:#fff">Tema oscuro</div>
+    <div class="stage">
+      <div class="card elevated-sm">
+        <div class="brand">
+          <span class="eyebrow">Ledger</span>
+          <span class="title">Iniciar sesión</span>
+        </div>
+        <div class="field">
+          <label class="label" for="e2">Email</label>
+          <input class="input" id="e2" type="email" placeholder="tu@correo.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label class="label" for="p2">Contraseña</label>
+          <input class="input" id="p2" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary">Entrar</button>
+        <button class="btn btn-outline" disabled title="Google no configurado">Continuar con Google</button>
+        <div class="divider"></div>
+        <button class="btn-ghost">¿No tienes cuenta? Regístrate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2 class="pv">Estados — los 5 exigidos por el spec</h2>
+  <div class="grid2">
+    <div class="pane theme-light">
+      <div class="pane-h" style="color:#fff">Claro</div>
+      <div class="stage" style="min-height:auto;align-items:flex-start">
+        <div class="card elevated-sm statebox">
+          <div>
+            <div class="state-tag">Error — credenciales inválidas</div>
+            <input class="input" type="email" value="admin@admin.com" aria-invalid="true" style="margin-bottom:8px">
+            <div class="caption err">Credenciales inválidas</div>
+          </div>
+          <div>
+            <div class="state-tag">Loading — envío en curso</div>
+            <button class="btn btn-primary" disabled aria-busy="true">Entrando…</button>
+          </div>
+          <div>
+            <div class="state-tag">Disabled — Google no configurado</div>
+            <button class="btn btn-outline" disabled>Continuar con Google</button>
+          </div>
+          <div>
+            <div class="state-tag">Empty — placeholder</div>
+            <input class="input" placeholder="tu@correo.com">
+          </div>
+          <div>
+            <div class="state-tag">Modo registro — campo extra</div>
+            <input class="input" placeholder="Nombre" autocomplete="name">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane theme-dark">
+      <div class="pane-h" style="color:#fff">Oscuro</div>
+      <div class="stage" style="min-height:auto;align-items:flex-start">
+        <div class="card elevated-sm statebox">
+          <div>
+            <div class="state-tag">Error — credenciales inválidas</div>
+            <input class="input" type="email" value="admin@admin.com" aria-invalid="true" style="margin-bottom:8px">
+            <div class="caption err">Credenciales inválidas</div>
+          </div>
+          <div>
+            <div class="state-tag">Loading — envío en curso</div>
+            <button class="btn btn-primary" disabled aria-busy="true">Entrando…</button>
+          </div>
+          <div>
+            <div class="state-tag">Disabled — Google no configurado</div>
+            <button class="btn btn-outline" disabled>Continuar con Google</button>
+          </div>
+          <div>
+            <div class="state-tag">Empty — placeholder</div>
+            <input class="input" placeholder="tu@correo.com">
+          </div>
+          <div>
+            <div class="state-tag">Modo registro — campo extra</div>
+            <input class="input" placeholder="Nombre" autocomplete="name">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="pv">Tokens usados — literales de globals.css</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Rol</th><th>Token</th><th>Claro</th><th>Oscuro</th><th>Contraste</th></tr></thead>
+    <tbody>
+      <tr><td>canvas</td><td><code>--bg</code></td>
+          <td><span class="sw" style="background:#f7f7f8"></span>#f7f7f8</td>
+          <td><span class="sw" style="background:#131316"></span>#131316</td><td>—</td></tr>
+      <tr><td>tarjeta</td><td><code>--bg-card</code></td>
+          <td><span class="sw" style="background:#ffffff"></span>#ffffff</td>
+          <td><span class="sw" style="background:#1b1b1f"></span>#1b1b1f</td><td>—</td></tr>
+      <tr><td>campo</td><td><code>--bg-elevated</code></td>
+          <td><span class="sw" style="background:#ffffff"></span>#ffffff</td>
+          <td><span class="sw" style="background:#26262b"></span>#26262b</td><td>—</td></tr>
+      <tr><td>acción principal</td><td><code>--primary</code></td>
+          <td><span class="sw" style="background:#1c1c1f"></span>#1c1c1f</td>
+          <td><span class="sw" style="background:#f4f4f5"></span>#f4f4f5</td><td>—</td></tr>
+      <tr><td>texto sobre principal</td><td><code>--primary-foreground</code></td>
+          <td><span class="sw" style="background:#ffffff"></span>#ffffff</td>
+          <td><span class="sw" style="background:#1c1c1f"></span>#1c1c1f</td><td>≥4.5:1</td></tr>
+      <tr><td>texto primario</td><td><code>--fg</code></td>
+          <td><span class="sw" style="background:#1c1c1f"></span>#1c1c1f</td>
+          <td><span class="sw" style="background:#f4f4f5"></span>#f4f4f5</td><td>16.4:1</td></tr>
+      <tr><td>texto secundario</td><td><code>--fg-secondary</code></td>
+          <td><span class="sw" style="background:#55555d"></span>#55555d</td>
+          <td><span class="sw" style="background:#b4b4bb"></span>#b4b4bb</td><td>7.3:1</td></tr>
+      <tr><td>placeholder / muted</td><td><code>--fg-muted</code></td>
+          <td><span class="sw" style="background:#6b6b73"></span>#6b6b73</td>
+          <td><span class="sw" style="background:#9b9ba3"></span>#9b9ba3</td><td>5.28:1 card</td></tr>
+      <tr><td>hairline</td><td><code>--border</code></td>
+          <td><span class="sw" style="background:#e3e3e7"></span>#e3e3e7</td>
+          <td><span class="sw" style="background:#33333a"></span>#33333a</td><td>—</td></tr>
+      <tr><td>anillo de foco</td><td><code>--accent-light</code></td>
+          <td><span class="sw" style="background:#55555d"></span>#55555d</td>
+          <td><span class="sw" style="background:#9b9ba3"></span>#9b9ba3</td><td>7.3:1</td></tr>
+      <tr><td>error</td><td><code>--error</code></td>
+          <td><span class="sw" style="background:#c4453e"></span>#c4453e</td>
+          <td><span class="sw" style="background:#ec6a66"></span>#ec6a66</td><td>≥4.5:1</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2 class="pv">Escalas — ningún valor ad-hoc</h2>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Escala</th><th>Token</th><th>Valor</th><th>Uso aquí</th></tr></thead>
+    <tbody>
+      <tr><td>Altura de control</td><td><code>--control-md</code></td><td>40px</td><td>Campos y botones (≥768px)</td></tr>
+      <tr><td>Altura de control</td><td><code>--control-lg</code></td><td>48px</td><td>Campos y botones (≤760px, táctil)</td></tr>
+      <tr><td>Radio</td><td><code>--radius-sm</code></td><td>8px</td><td>Campos y botones</td></tr>
+      <tr><td>Radio</td><td><code>--radius-lg</code></td><td>14px</td><td>Tarjeta</td></tr>
+      <tr><td>Tipografía</td><td><code>.title</code></td><td>1.25rem / 600</td><td>Título de la pantalla</td></tr>
+      <tr><td>Tipografía</td><td><code>.label</code></td><td>0.8125rem / 500</td><td>Etiquetas de campo</td></tr>
+      <tr><td>Tipografía</td><td><code>.caption</code></td><td>0.75rem / 400</td><td>Error y cambio de modo</td></tr>
+      <tr><td>Tipografía</td><td><code>.eyebrow</code></td><td>0.6875rem / 600</td><td>Marca "Ledger"</td></tr>
+      <tr><td>Elevación</td><td><code>.elevated-sm</code></td><td>shadow-sm + highlight</td><td>Tarjeta</td></tr>
+      <tr><td>Motion</td><td><code>--duration-fast</code></td><td>120ms</td><td>Transición de borde en foco/hover</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

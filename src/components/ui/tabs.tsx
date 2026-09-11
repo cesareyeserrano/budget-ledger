@@ -27,7 +27,7 @@ export const TabsTrigger = React.forwardRef<
     className={cn(
       // radio del segmento activo MENOR que el de la lista (nesting limpio: sin bordes que sobresalgan).
       // control-size-scale FR-802: altura fija del token sm (32) en vez de py-1.5 ad-hoc (~30).
-      "inline-flex h-(--control-sm) items-center gap-1.5 rounded-(--radius-xs) border border-transparent px-3 text-[0.72rem] text-fg-muted transition-colors outline-none cursor-pointer",
+      "inline-flex h-(--control-sm) items-center gap-1.5 rounded-(--radius-xs) border border-transparent px-3 text-caption text-fg-muted transition-colors outline-none cursor-pointer",
       "data-[state=active]:border-accent data-[state=active]:bg-card data-[state=active]:text-fg",
       className
     )}

@@ -1,0 +1,133 @@
+{
+  "files_created": [
+    "src/domain/closure.ts",
+    "src/components/ClosureControl.tsx",
+    "src/components/ClosureBanner.tsx",
+    "src/app/api/v1/closure/route.ts",
+    "src/app/api/v1/closure/events/route.ts",
+    "drizzle/0004_cierre_de_mes.sql",
+    "tests/domain/cierre-de-mes.test.ts",
+    "tests/integration/backend/cierre-de-mes.test.ts",
+    "tests/e2e/cierre-de-mes.spec.ts",
+    "tests/e2e/helpers/closure.ts",
+    "src/components/ImpactPanel.tsx",
+    "src/components/ClosureHistoryPanel.tsx",
+    "drizzle/0005_cierre_impacto.sql"
+  ],
+  "files_modified": [
+    "src/domain/types.ts",
+    "src/domain/index.ts",
+    "src/server/db/schema.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/server/schemas.ts",
+    "src/app/api/v1/ledger/route.ts",
+    "src/app/api/v1/movements/route.ts",
+    "src/data/serverRepository.ts",
+    "src/state/store.ts",
+    "src/components/BudgetGrid.tsx",
+    "src/components/DesktopShell.tsx",
+    "tests/e2e/helpers/fixtures.ts",
+    "drizzle/meta/_journal.json",
+    "src/domain/range.ts",
+    "src/domain/balance.ts",
+    "src/domain/mutations.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate"
+  ],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2003",
+      "substitution": "El cliente NO lleva un guardia por diff equivalente al del servidor: se limita a no abrir edición sobre una celda cerrada (startEdit) y a explicar el 422 cuando llega. Una escritura que se cuele por otra vía del cliente se rechaza en el servidor, pero el usuario la ve revertirse tras el viaje de ida y vuelta en vez de al instante.",
+      "reason": "ADR-12 decide que la autoridad es el punto de estrangulamiento del servidor y que las comprobaciones del cliente son ergonomía, no garantía. Duplicar el diff en el cliente añadiría una segunda implementación de la misma regla que podría divergir — exactamente el defecto que el ADR evita. La única pérdida es la latencia del aviso.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2009",
+      "substitution": "El control de cierre y el aviso solo existen en la pantalla de ESCRITORIO. En móvil no se puede cerrar ni reabrir, y las columnas cerradas del registro móvil no llevan marca.",
+      "reason": "La persona planea en escritorio y captura en móvil (01_REQUIREMENTS user_personas), y cerrar un mes es una decisión de planeación. La frontera vive en la cuenta, así que lo cerrado desde escritorio ya rige en el móvil: el servidor rechaza igual. Falta la SEÑAL visual en móvil, no la protección.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2009",
+      "substitution": "Las columnas cerradas se marcan en la cabecera y en las celdas de la GRILLA (data-closed + candado), pero el módulo de Balance no marca las suyas.",
+      "reason": "El Balance comparte riel de columnas con la grilla, que sí va marcada, y sus filas son derivadas no editables — no hay nada que el usuario pueda intentar escribir allí, así que la señal de «no editable» no aporta lo mismo. AC-2028 nombra las dos superficies, así que se declara en vez de darse por cubierto.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2005",
+      "substitution": "El anclaje del rango cubre la FRONTERA del cierre (el ultimo mes cerrado), no todos los meses cerrados sin datos. Si el usuario cierra varios meses vacios seguidos, solo el ultimo queda anclado al rango; los anteriores no se pintan.",
+      "reason": "Es suficiente y coherente: solo el ULTIMO mes cerrado es reabrible (FR-2005), asi que anclar la frontera es exactamente lo que hace falta para que reabrir devuelva una celda. Los anteriores estan congelados para siempre y vacios — no hay nada que ver ni nada que hacer en ellos. Anclarlos todos exigiria guardar el inicio de la racha cerrada, un dato nuevo sin ningun uso.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "El panel de impacto solo existe en la pantalla de ESCRITORIO, igual que el control de cierre y el aviso (misma deuda ya declarada para FR-2009). En movil no se puede reabrir un mes, asi que tampoco hay impacto que enseniar alli.",
+      "reason": "La persona planea en escritorio y captura en movil (user_personas). Corregir un mes reabierto es trabajo de planeacion, y la accion que lo dispara —reabrir— vive solo en escritorio: un panel de impacto en movil no tendria como aparecer.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2011",
+      "substitution": "El historial no se puede enlazar ni marcar como favorito: es un panel desplegable, no una ruta propia. Tampoco se filtra ni se exporta.",
+      "reason": "ADR-16. Una ruta con su entrada de menu permanente es desproporcionada para una lista que un usuario unico consulta unas pocas veces al anio, y esta feature tiene prohibido crear la pagina de Configuracion (no_go_zone). Si algun dia hace falta filtrar o exportar, la ruta es la evolucion natural y este panel es su contenido.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2010",
+      "substitution": "La linea de base del impacto se guarda en DOS columnas (el carry de cierre del mes reabierto), no en una foto del estado. El «antes» de cada mes posterior se RECALCULA corriendo la serie desde esa linea de base.",
+      "reason": "ADR-15, y es la decision, no un atajo: un snapshot entero costaria ordenes de magnitud mas y no daria nada extra, porque el arrastre es funcion de (carry de apertura, datos del mes). Su unica premisa es ese determinismo; si algun dia dejara de cumplirse, la decision hay que revisarla — queda escrito en el ADR.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/cierre-de-mes.test.ts",
+    "../../../tests/integration/backend/cierre-de-mes.test.ts",
+    "../../../tests/e2e/cierre-de-mes.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "La suite e2e completa. El fixture freshLedger ahora suelta la frontera del cierre antes de restaurar la semilla: sin eso, en cuanto una prueba cierra un mes el PUT de la semilla recibe 422 y mueren TODAS las pruebas siguientes del worker."
+    }
+  ]
+}

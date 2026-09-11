@@ -1,0 +1,504 @@
+{
+  "project_name": "T-Ledger — meses-y-saldo-inicial",
+  "project_summary": {
+    "north_star_kpi": "Un usuario que empieza a usar la app con dinero ya en el bolsillo llega a un Balance correcto en su primer mes SIN falsear ningún ingreso: el «Resultado del mes» de su mes de arranque refleja solo lo que ganó ese mes, no lo que ya traía.",
+    "jtbd": "Cuando abro la app por primera vez y ya tengo dinero, quiero decirle cuánto traigo y desde cuándo cuenta mi historia, para que el Balance cuadre desde el primer día sin tener que inventarme un ingreso que nunca existió.",
+    "guardrail_metric": "Cero cambio en las cifras de quien NO declara saldo inicial: el parámetro `opening` de computeBalanceSeries ya vale ZERO_CARRY por defecto, y toda serie existente debe seguir dando el mismo resultado byte a byte."
+  },
+  "technology_preferences": [
+    "Next.js + React + TypeScript, el stack vigente del proyecto — sin dependencias nuevas.",
+    "El cálculo NO se reescribe: `computeBalanceSeries(state, periods, opening)` ya acepta la apertura (introducido por FR-2010 de cierre-de-mes). El saldo inicial se limita a alimentar ese parámetro.",
+    "Persistencia en Postgres vía el repositorio existente, dentro del snapshot del ledger."
+  ],
+  "constraints": [
+    "El saldo inicial CAMBIA LAS CIFRAS de la serie, así que viaja en el snapshot del ledger y queda sujeto al bloqueo optimista por `revision` — igual que el cierre (FR-2001) y a diferencia del horizonte (FR-1907), que es una preferencia y no altera ningún número.",
+    "La fila del Balance sigue llamándose «Saldo del mes anterior» también en el primer mes: decisión explícita del usuario (2026-09-01) tras plantearle tres alternativas.",
+    "Editar el saldo inicial exige que el mes de inicio esté ABIERTO. Con el mes cerrado hace falta la reapertura auditada, que ya existe (FR-2005 de cierre-de-mes).",
+    "La página de Configuración recoge SOLO lo que ya es configurable hoy más lo que decide esta feature. No se inventan ajustes nuevos."
+  ],
+  "no_go_zone": [
+    "La grilla dinámica por meses NO se construye aquí: YA ESTÁ IMPLEMENTADA. `multi-anio` la entregó en FR-1904 y FR-1906 (`src/domain/range.ts`), verificado en el código el 2026-09-06: `oldestPeriodWithData` oculta el pasado vacío, el horizonte de 1 o 2 años completos ofrece el futuro para planear, `HorizonSelect` deja elegirlo, y un usuario sin datos arranca en el mes en curso. El FEATURE_IDEA la pedía porque en su fecha (2026-09-01) no existía.",
+    "Multi-año NO es alcance: el FEATURE_IDEA lo señalaba como feature propia y grande porque «el año no existe en el modelo». Eso quedó obsoleto — la feature `multi-anio` cerró 5/5 y `PeriodKey` es «YYYY-MM».",
+    "El cierre de mes NO es alcance: es la feature `cierre-de-mes`, cerrada 5/5. Esta feature solo CONSUME su frontera para decidir si el mes de inicio está abierto.",
+    "NO se declara saldo por bolsillo. El saldo inicial es UN número (decisión del usuario, 2026-09-01: «inicio con $X y con eso comienzo a registrar todo»). La supuesta distorsión que `feature_context/diseno-del-arranque.md` dejó como pregunta abierta —declarar 8 teniendo 5 ya apartados y reservarlos hace que el mes «diga que ahorraste 5»— fue REFUTADA por el usuario y verificada en el código el 2026-09-06: las reservas salen de DISPONIBLE, no del resultado. `src/domain/balance.ts:127` calcula `available = prev.available + flow - reserved` y la línea 36 documenta que `flow` es «Ingreso − Gasto. NO incluye el arrastre ni las reservas». Declarada una apertura de 8 y reservados 5: `flow` = 0, `available` = 3, `reservedBalance` = 5, `total` = 8. «Resultado del mes» marca 0, que es la verdad. La comparación con el ingreso falso no aplica: meter el saldo como ingreso SÍ habría inflado `flow`; reservar desde la apertura no lo toca. La única fila que muestra 5 es «Reservas del mes», y es cierta —ese mes sí se movieron 5 a una alcancía—. No hay nada que compensar ni que anotar.",
+    "NO se renombra la fila «Saldo del mes anterior» ni se le pone un rótulo condicional. El usuario eligió dejarla igual sabiendo que en el primer mes el nombre es impreciso. Queda registrado para que nadie lo «corrija» creyéndolo un descuido.",
+    "NO se añaden ajustes nuevos a Configuración más allá del inventario verificado: tema claro/oscuro, ancho de la columna de categorías, horizonte de planeación, mes de inicio y saldo inicial. Son CINCO. El horizonte NO es un ajuste nuevo: existe hoy (HorizonSelect, FR-1904) y FR-1907 —aprobado— difiere su control definitivo a esta página. La versión anterior de esta línea decía «cuatro» por haber heredado el inventario de dos elementos que FR-1907 escribió ANTES de crear el control; corregido el 2026-09-06 en la fase UX.",
+    "NO se construye un formulario de bienvenida a pantalla completa: se maquetó, se presentó y el usuario lo DESCARTÓ por ser un muro antes de ver nada (feature_context/diseno-del-arranque.md).",
+    "SUPERSEDE explícitamente el no_go_zone de la feature `balance`, que declaraba: «Saldo inicial manual del mes 1: DECIDIDO que el mes 1 arranca en 0. No se construye un campo de saldo inicial editable». El usuario revoca esa decisión con una razón nueva —quien empieza a mitad de año ya tiene dinero y hoy no puede decirlo— y la revocación queda registrada aquí, no colada.",
+    "NO se construye una función de «borrar todos mis datos»: hoy no existe ninguna en la app (verificado el 2026-09-06: no hay ruta ni acción de reset en `src/`). Esta feature solo fija la REGLA que la gobernará cuando exista —el borrado se lleva la declaración de saldo inicial y mes de inicio, y la tarjeta de arranque vuelve— porque el usuario la decidió al aprobar la fase 1. Construirla es otra feature.",
+    "La casilla del «Saldo del mes anterior» del mes de inicio NO se teclea en sitio: solo MUESTRA el valor. Hay exactamente dos vías de entrada —la tarjeta de arranque (FR-2203) y Configuración (FR-2204)—, no tres. Queda registrado porque `feature_context/diseno-del-arranque.md` conserva la opción 2 («la fila se vuelve tecleable») como «el mecanismo por debajo de las opciones 3 y 4», y esa frase se refiere a DÓNDE aterriza el dato —en esa fila, no en un almacén aparte—, no a que la celda sea editable. Decisión del usuario, 2026-09-06, al aprobar la fase 1. Que nadie lo «arregle» después creyéndolo un olvido.",
+    "La tarjeta de arranque NO se lleva al móvil. Vive sobre la grilla y la grilla no se renderiza a ≤760px (FR-010: el móvil muestra solo Registrar). Se le planteó al usuario el 2026-09-06 y eligió cubrir al usuario de móvil con la ENTRADA A CONFIGURACIÓN en su cabecera, no con una segunda superficie que FR-2203 no describe. Consecuencia aceptada: quien solo use el teléfono declara su saldo inicial desde Configuración, nunca desde una tarjeta."
+  ],
+  "user_personas": [
+    {
+      "role": "Usuario NUEVO de T-Ledger que abre la app por primera vez teniendo ya dinero ahorrado",
+      "tech_level": "mid",
+      "goal": "Empezar a registrar desde hoy sin que el Balance mienta: que la app sepa cuánto traía antes de empezar",
+      "pain_point": "Hoy solo puede meter su dinero previo como un ingreso, y entonces el mes de arranque dice que GANÓ tres millones cuando ya los tenía — justo lo que «Resultado del mes» existe para responder"
+    },
+    {
+      "role": "Usuario YA en marcha que arrancó de cero y meses después se acuerda de un ahorro viejo que nunca registró",
+      "tech_level": "mid",
+      "goal": "Volver a declarar ese saldo de apertura sin deshacer lo que ya tecleó",
+      "pain_point": "La tarjeta de arranque desaparece en cuanto empieza a teclear, así que sin un camino de vuelta ese dinero se queda fuera para siempre"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2201",
+      "title": "El usuario declara el mes en que empieza su historia",
+      "description": "El ledger gana un MES DE INICIO declarado: «mi historia empieza en junio de 2026». No se deduce del dato más antiguo. Hoy el rango activo se ancla en `oldestPeriodWithData` (FR-1906), y eso basta para PINTAR columnas pero no para anclar una apertura: si el saldo inicial colgara del primer mes con datos, teclear algo en un mes anterior lo mudaría de sitio en silencio y recalcularía toda la serie. El mes de inicio declarado es el ancla estable. Viaja en el snapshot del ledger, no en las preferencias, porque determina DÓNDE se aplica el saldo inicial y por tanto qué cifras salen.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Declarado junio de 2026 como inicio, recargar la página lo sigue mostrando: el valor persiste entre sesiones",
+        "Un ledger sin mes de inicio declarado se comporta EXACTAMENTE como hoy: el rango sigue anclado en el dato más antiguo y ninguna cifra cambia",
+        "El mes de inicio declarado ancla el rango activo aunque no tenga ningún dato: un usuario que declara junio y no ha tecleado nada ve junio y los meses siguientes",
+        "Declarar el mes de inicio sube `revision` del ledger: un cliente con revisión anterior es rechazado al guardar, igual que con cualquier otra mutación"
+      ]
+    },
+    {
+      "id": "FR-2202",
+      "title": "El saldo inicial abre el primer mes del historial",
+      "description": "El usuario declara UN número: cuánto tenía el día que empezó. Ese número ocupa la casilla que hoy ocupa «Saldo del mes anterior» en el mes de inicio, y de ahí en adelante la cascada funciona sin enterarse. En el dominio esto ya está resuelto: `computeBalanceSeries(state, periods, opening)` acepta la apertura desde FR-2010 y por defecto vale `ZERO_CARRY`. Esta feature se limita a alimentar ese parámetro con el valor declarado en vez del cero. NO es un ingreso: no entra en «Resultado del mes», que es precisamente la cifra que se estaría falseando si se metiera como ingreso.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Declarado un saldo inicial de 3.000.000 en junio, la fila «Saldo del mes anterior» de junio muestra 3.000.000 y «Saldo disponible» de junio lo incluye",
+        "«Resultado del mes» de junio NO incluye el saldo inicial: sigue siendo ingresos menos gastos del mes",
+        "El saldo inicial se arrastra por la cascada como cualquier apertura: julio abre con el cierre de junio, que ya lo lleva dentro",
+        "Un saldo inicial de 0 declarado a propósito es indistinguible en las cifras de no haber declarado nada, pero se distingue en el estado: la tarjeta de arranque no vuelve",
+        "El saldo inicial admite cero y valores positivos; un valor negativo o no numérico se rechaza sin alterar el vigente",
+        "La casilla del «Saldo del mes anterior» del mes de inicio es de solo lectura: muestra el saldo inicial pero no admite edición directa en la grilla; se cambia desde la tarjeta de arranque o desde Configuración"
+      ]
+    },
+    {
+      "id": "FR-2203",
+      "title": "La tarjeta de arranque pregunta una vez y se aparta",
+      "description": "Mientras el usuario no tenga datos NI haya declarado saldo, la grilla lleva encima una tarjeta que explica el saldo inicial y lo pide. No es un muro: la app se ve detrás y se puede ignorar. Tiene cuatro estados, decididos por el usuario al maquetar (feature_context/diseno-del-arranque.md): (1) sin datos y sin declarar, la tarjeta está; (2) guardas un monto, desaparece y el número aparece en la fila del Balance; (3) «Empiezo desde cero», desaparece y el saldo queda en 0 declarado a propósito; (4) empiezas a teclear sin responderla, desaparece y el saldo queda en 0. El cuarto estado es el que gobierna el diseño: hay dos caminos legítimos —arrancar de cero, o arrancar de cero y además traer un ahorro viejo— y la tarjeta no puede estorbar a ninguno. Decisión del usuario (2026-09-06): la tarjeta no lleva una marca propia de «ya preguntado» que sobreviva al borrado de los datos. Su condición es la del estado (1) —sin datos y sin saldo declarado—, así que si algún día el usuario borra todo, la declaración cae con el ledger (FR-2207) y la tarjeta vuelve a preguntar desde cero.",
+      "priority": "MUST",
+      "type": "ux",
+      "acceptance_criteria": [
+        "Un usuario sin datos y sin saldo declarado ve la tarjeta sobre la grilla, y la grilla sigue siendo visible y utilizable detrás de ella",
+        "Guardar un monto hace desaparecer la tarjeta y el número aparece en la fila «Saldo del mes anterior» del mes de inicio",
+        "Pulsar «Empiezo desde cero» hace desaparecer la tarjeta y el saldo queda declarado en 0: la tarjeta NO vuelve en sesiones posteriores",
+        "Teclear cualquier dato en la grilla sin responder la tarjeta la hace desaparecer y deja el saldo en 0: la tarjeta NO vuelve",
+        "La tarjeta ofrece un enlace para cambiar el mes de inicio",
+        "La tarjeta no reaparece mientras la declaración exista, resuelta por cualquiera de las cuatro vías: el camino de vuelta es Configuración, no la tarjeta",
+        "Si la declaración desaparece porque se borró el ledger, la tarjeta vuelve a mostrarse como el primer día: la condición que la gobierna es «sin datos y sin saldo declarado», no una marca de «ya preguntado» que sobreviva al borrado"
+      ]
+    },
+    {
+      "id": "FR-2204",
+      "title": "Una página de Configuración que reúne lo configurable",
+      "description": "Se crea una página de Configuración accesible desde la app. Recoge EXCLUSIVAMENTE lo que ya es configurable más lo que decide esta feature, sin inventar ajustes nuevos (decisión del usuario: «por ahora solo lo que tengamos configurable»). Inventario verificado en el código el 2026-09-06: tema claro/oscuro (ThemeToggle, vía next-themes), ancho de la columna de categorías (readCatWidth/writeCatWidth, FR-104, en localStorage) y HORIZONTE de planeación de 1 o 2 años (HorizonSelect, FR-1904/FR-1907, preferencia por cuenta vía /api/v1/preferences/horizon). Más: mes de inicio y saldo inicial. Son CINCO. El horizonte entra por mandato de FR-1907, ya aprobado en multi-anio, que difiere su control definitivo a «Configuración cuando esa página exista»; src/components/HorizonSelect.tsx documenta en su cabecera que su sitio en la barra superior es PROVISIONAL y que se muda aquí. Corregido el 2026-09-06 al detectarse en la fase UX que la fase 1 había heredado el inventario de dos elementos de FR-1907 — escrito cuando el control del horizonte aún no existía, porque ese mismo FR lo estaba creando. Su función principal no es descubrir el saldo inicial —eso lo hace la tarjeta— sino ser el camino de VUELTA para quien se acuerda del ahorro viejo después de haber empezado a teclear, y en móvil es además la ÚNICA vía: la tarjeta vive sobre la grilla y la grilla no se renderiza a ≤760px (FR-010).",
+      "priority": "MUST",
+      "type": "ux",
+      "acceptance_criteria": [
+        "Existe una ruta de Configuración alcanzable desde la navegación de la app, y volver de ella no pierde el estado de la grilla",
+        "La entrada a Configuración está en las DOS cabeceras —la de escritorio junto al conmutador de tema y la de móvil junto a tema y salir— porque en móvil es el único camino al saldo inicial (decisión del usuario, 2026-09-06)",
+        "La página muestra los cinco ajustes y solo esos: tema, ancho de la columna de categorías, horizonte de planeación, mes de inicio y saldo inicial",
+        "Cambiar el tema desde Configuración surte el mismo efecto que el conmutador existente y persiste igual",
+        "Cambiar el ancho de la columna desde Configuración surte el mismo efecto que arrastrar el separador de la grilla y persiste igual",
+        "Cambiar el horizonte desde Configuración surte el mismo efecto que el control provisional de la cabecera y persiste igual: sigue siendo preferencia por cuenta y NO sube `revision` del ledger (FR-1907)",
+        "El control de horizonte DESAPARECE de la cabecera de escritorio al existir Configuración: queda un solo control por ajuste, que es lo que FR-1907 difería a esta página",
+        "En móvil (≤760px) el ancho de la columna de categorías no se muestra: la grilla no existe a ese ancho (FR-010) y el ajuste no tendría efecto observable",
+        "Editar el saldo inicial desde Configuración cambia la fila «Saldo del mes anterior» del mes de inicio y toda la cascada de ahí en adelante"
+      ]
+    },
+    {
+      "id": "FR-2205",
+      "title": "El saldo inicial solo se edita con su mes abierto",
+      "description": "Editar el saldo inicial exige que el mes de inicio esté ABIERTO (decisión del usuario: «sí, siempre y cuando el mes esté abierto»). Con el mes cerrado, la app lo impide y nombra la vía correcta: reabrir el mes, que ya existe con auditoría (FR-2005 de cierre-de-mes). Es la misma disciplina que ya protege cualquier otra escritura sobre un mes cerrado, y la razón es idéntica: cambiar la apertura recalcula toda la serie hacia adelante, incluidos meses que el usuario dio por buenos.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con el mes de inicio cerrado, el campo de saldo inicial de Configuración aparece bloqueado y explica que hay que reabrir el mes",
+        "Un intento de editarlo por la vía de datos con el mes cerrado se rechaza y no altera el valor vigente",
+        "Reabierto el mes de inicio, el campo vuelve a ser editable y el cambio surte efecto",
+        "El rechazo deja el estado exactamente igual que antes del intento: ninguna cifra de ningún mes cambia"
+      ]
+    },
+    {
+      "id": "FR-2206",
+      "title": "Mover el mes de inicio hacia adelante no puede dejar datos huérfanos",
+      "description": "Si el usuario empezó en septiembre, registró, y luego intenta mover el inicio a noviembre, septiembre y octubre quedarían fuera de su historia. La app lo BLOQUEA y dice cuántos meses con datos quedarían fuera. Es el mismo principio de «cero pérdida silenciosa» que ya aplica el borrado de categorías (BG-001 del proyecto): no se avisa y se deja pasar, se impide. Mover el inicio hacia ATRÁS siempre se permite: no puede huerfanar nada, solo amplía la historia.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con datos en septiembre y octubre, mover el inicio a noviembre se rechaza y el mensaje nombra cuántos meses con datos quedarían fuera",
+        "El rechazo deja el mes de inicio y todas las cifras exactamente como estaban",
+        "Mover el inicio hacia atrás (de septiembre a junio) se acepta siempre, y los meses nuevos aparecen vacíos con el saldo inicial en el primero",
+        "Mover el inicio hacia adelante sobre meses VACÍOS se acepta: no hay nada que huerfanar"
+      ]
+    },
+    {
+      "id": "FR-2207",
+      "title": "Mes de inicio y saldo inicial persisten en el servidor como parte del ledger",
+      "description": "Los dos valores se guardan en Postgres dentro del snapshot del ledger, no como preferencias sueltas. La distinción es la misma que estableció FR-2001 para el cierre: el horizonte (FR-1907) es una preferencia y vive aparte porque no altera ninguna cifra; el saldo inicial SÍ las altera, así que tiene que estar sujeto al mismo bloqueo optimista por `revision` que el resto del estado. Dos pestañas abiertas no pueden pisarse el saldo de apertura sin que una de las dos se entere.",
+      "priority": "MUST",
+      "type": "data",
+      "acceptance_criteria": [
+        "Declarados mes de inicio y saldo inicial, una carga desde una conexión nueva los devuelve idénticos",
+        "Guardar con una `revision` anterior se rechaza sin pisar los valores, igual que cualquier otra mutación del ledger",
+        "Un ledger existente sin estos campos se carga sin error y se comporta como hasta ahora: ambos ausentes equivalen a «no declarado»",
+        "La migración es aditiva: ningún ledger existente pierde datos ni requiere conversión",
+        "Los dos valores son parte del snapshot, no un registro aparte: cualquier operación que borre el ledger del usuario se los lleva consigo, y el estado resultante es indistinguible del de un usuario que nunca declaró nada (decisión del usuario, 2026-09-06)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2201",
+      "requirement_id": "FR-2201",
+      "as_a": "usuario nuevo que abre la app en junio",
+      "i_want": "decirle a la app que mi historia empieza en junio",
+      "so_that": "el saldo que declaro se quede anclado ahí y no se mude solo si algún día tecleo algo de un mes anterior",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2201",
+          "given": "un ledger nuevo",
+          "when": "declaro junio de 2026 como mes de inicio y recargo",
+          "then": "sigue siendo junio de 2026"
+        },
+        {
+          "id": "AC-2202",
+          "given": "un ledger sin mes de inicio declarado",
+          "when": "uso la app",
+          "then": "funciona exactamente como hoy y ninguna cifra cambia"
+        },
+        {
+          "id": "AC-2203",
+          "given": "junio declarado y ningún dato tecleado",
+          "when": "miro la grilla",
+          "then": "veo junio y los meses siguientes"
+        }
+      ]
+    },
+    {
+      "id": "US-2202",
+      "requirement_id": "FR-2202",
+      "as_a": "usuario que ya tenía tres millones ahorrados",
+      "i_want": "declararlos como punto de partida y no como un ingreso",
+      "so_that": "el «Resultado del mes» de junio diga lo que gané en junio y no me cuente como ganancia lo que ya era mío",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2204",
+          "given": "saldo inicial de 3.000.000 en junio",
+          "when": "miro el Balance de junio",
+          "then": "«Saldo del mes anterior» muestra 3.000.000 y «Saldo disponible» lo incluye"
+        },
+        {
+          "id": "AC-2205",
+          "given": "lo mismo",
+          "when": "miro «Resultado del mes» de junio",
+          "then": "NO incluye los 3.000.000: sigue siendo ingresos menos gastos"
+        },
+        {
+          "id": "AC-2206",
+          "given": "saldo inicial declarado en junio",
+          "when": "miro julio",
+          "then": "abre con el cierre de junio, que ya lo lleva dentro"
+        }
+      ]
+    },
+    {
+      "id": "US-2203",
+      "requirement_id": "FR-2203",
+      "as_a": "usuario que abre la app por primera vez",
+      "i_want": "que algo me diga que puedo declarar lo que ya tengo, sin obligarme a responder",
+      "so_that": "enterarme de que existe la opción sin que me bloquee el paso si prefiero empezar a teclear",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2207",
+          "given": "un usuario sin datos y sin saldo declarado",
+          "when": "abro la app",
+          "then": "veo la tarjeta y la grilla sigue visible y utilizable detrás"
+        },
+        {
+          "id": "AC-2208",
+          "given": "la tarjeta visible",
+          "when": "tecleo un dato en la grilla sin responderla",
+          "then": "desaparece, el saldo queda en 0 y no vuelve nunca"
+        },
+        {
+          "id": "AC-2209",
+          "given": "la tarjeta visible",
+          "when": "pulso «Empiezo desde cero»",
+          "then": "desaparece, el saldo queda declarado en 0 y no vuelve en sesiones posteriores"
+        }
+      ]
+    },
+    {
+      "id": "US-2204",
+      "requirement_id": "FR-2204",
+      "as_a": "usuario que arrancó de cero y meses después se acuerda de un ahorro viejo",
+      "i_want": "un sitio donde volver a declararlo",
+      "so_that": "no quedarme sin poder registrarlo solo porque la tarjeta ya desapareció",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2210",
+          "given": "la tarjeta ya resuelta y datos tecleados, en escritorio o en móvil",
+          "when": "abro Configuración desde la entrada de la cabecera",
+          "then": "puedo editar el saldo inicial y el cambio se refleja en el Balance"
+        },
+        {
+          "id": "AC-2211",
+          "given": "Configuración abierta",
+          "when": "miro qué ajustes hay",
+          "then": "veo exactamente cinco: tema, ancho de columna, horizonte de planeación, mes de inicio y saldo inicial"
+        },
+        {
+          "id": "AC-2212",
+          "given": "Configuración abierta",
+          "when": "cambio el tema",
+          "then": "surte el mismo efecto que el conmutador existente y persiste igual"
+        }
+      ]
+    },
+    {
+      "id": "US-2205",
+      "requirement_id": "FR-2205",
+      "as_a": "usuario que ya cerró su mes de arranque",
+      "i_want": "que la app no me deje cambiar la apertura sin pasar por la reapertura auditada",
+      "so_that": "no alterar en silencio meses que ya di por buenos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2213",
+          "given": "el mes de inicio cerrado",
+          "when": "abro Configuración",
+          "then": "el campo está bloqueado y me dice que reabra el mes"
+        },
+        {
+          "id": "AC-2214",
+          "given": "el mes de inicio cerrado",
+          "when": "intento cambiarlo por la vía de datos",
+          "then": "se rechaza y ninguna cifra cambia"
+        },
+        {
+          "id": "AC-2215",
+          "given": "el mes de inicio reabierto",
+          "when": "edito el saldo inicial",
+          "then": "se acepta y la cascada se recalcula"
+        }
+      ]
+    },
+    {
+      "id": "US-2206",
+      "requirement_id": "FR-2206",
+      "as_a": "usuario que se equivoca al cambiar su mes de inicio",
+      "i_want": "que la app me impida dejar meses con datos fuera de mi historia",
+      "so_that": "no perder registros sin darme cuenta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2216",
+          "given": "datos en septiembre y octubre, inicio en septiembre",
+          "when": "muevo el inicio a noviembre",
+          "then": "se rechaza y me dice cuántos meses con datos quedarían fuera"
+        },
+        {
+          "id": "AC-2217",
+          "given": "el rechazo anterior",
+          "when": "miro el estado",
+          "then": "el mes de inicio y todas las cifras siguen igual"
+        },
+        {
+          "id": "AC-2218",
+          "given": "inicio en septiembre",
+          "when": "lo muevo a junio",
+          "then": "se acepta y los meses nuevos aparecen vacíos con el saldo inicial en junio"
+        }
+      ]
+    },
+    {
+      "id": "US-2207",
+      "requirement_id": "FR-2207",
+      "as_a": "usuario con la app abierta en dos pestañas",
+      "i_want": "que el saldo de apertura esté protegido como el resto del ledger",
+      "so_that": "una pestaña vieja no pise en silencio lo que declaré en la otra",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2219",
+          "given": "mes de inicio y saldo declarados",
+          "when": "cargo desde una conexión nueva",
+          "then": "vuelven idénticos"
+        },
+        {
+          "id": "AC-2220",
+          "given": "dos pestañas abiertas",
+          "when": "guardo en la segunda con una revisión vieja",
+          "then": "se rechaza y no pisa los valores"
+        },
+        {
+          "id": "AC-2221",
+          "given": "un ledger existente sin estos campos",
+          "when": "lo cargo",
+          "then": "funciona como hasta ahora, sin error ni conversión"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2201",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Quien NO declara saldo inicial no ve cambiar ni una cifra. `computeBalanceSeries` ya toma `opening` con valor por defecto `ZERO_CARRY`, así que la ausencia de declaración tiene que producir series byte a byte idénticas a las de hoy.",
+      "acceptance_criteria": "Sobre un ledger sin mes de inicio ni saldo declarados, la serie completa de los doce meses coincide exactamente con la de antes de la feature, en los dos planos y en todas las filas"
+    },
+    {
+      "id": "NFR-2202",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde: las 796 pruebas unitarias y de integración y las 398 e2e del proyecto y de sus features pasan sin relajar aserciones ni marcar pruebas como saltadas. MEDIDO el 2026-09-06 sobre el commit c4f0627.",
+      "acceptance_criteria": "verify-run del proyecto raíz y de cada feature ya cerrada termina con exit code 0, sin pruebas en fail ni skip que antes pasaran, y el conteo ejecutado no baja de 796 + 398"
+    },
+    {
+      "id": "NFR-2203",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El rango activo sigue comportándose como lo dejó multi-anio para quien no declara mes de inicio: `oldestPeriodWithData` sigue anclando, el horizonte sigue ofreciendo futuro y la frontera de cierre sigue anclando hacia atrás (ADR-14). El mes de inicio declarado se AÑADE como ancla, no sustituye a las existentes.",
+      "acceptance_criteria": "Los TCs de FR-1904 y FR-1906 de multi-anio siguen pasando sin modificarse, y un ledger con mes de inicio declarado ancla en el más antiguo de los tres candidatos: inicio declarado, dato más antiguo y frontera de cierre"
+    },
+    {
+      "id": "NFR-2204",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "Alimentar la apertura no añade coste medible: la serie de doce meses se sigue derivando dentro del guardarraíl vigente de 150 ms del proyecto, y el mes de inicio declarado no introduce ningún barrido nuevo.",
+      "acceptance_criteria": "El recómputo completo con saldo inicial declarado se mantiene bajo 150 ms en el escenario de referencia, y los contadores de barrido del dominio no aumentan respecto de la misma escena sin declarar"
+    },
+    {
+      "id": "NFR-2205",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El mes de inicio y el saldo inicial son datos del usuario y viajan por las rutas ya autenticadas del ledger: ningún endpoint nuevo sin sesión, y un usuario no puede leer ni escribir la apertura de otro. Se validan en el SERVIDOR, no solo en el navegador — la lección de BG-002, donde la regla de dominio vivía únicamente en el cliente.",
+      "acceptance_criteria": "Una petición sin sesión se rechaza; una petición autenticada como otro usuario no alcanza estos valores; y un saldo inicial negativo o no numérico se rechaza en el servidor aunque el cliente lo envíe"
+    },
+    {
+      "id": "NFR-2206",
+      "category": "Usability",
+      "priority": "MUST",
+      "requirement": "La tarjeta de arranque no es un muro y no reaparece. Debe poder ignorarse: la grilla queda visible y operable detrás, y cualquiera de las cuatro salidas la retira definitivamente.",
+      "acceptance_criteria": "Con la tarjeta visible, la grilla es alcanzable e interactuable en escritorio; y tras cualquiera de las cuatro salidas, recargar la app no la vuelve a mostrar"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Palabras del propio usuario recogidas el 2026-09-01 en FEATURE_IDEA.md: «se debe poder dar la opción de saldo inicial […] porque si un usuario quiere iniciar a usar la app y ya tiene dinero pero no tiene los rubros, debería poder tener la opción de saldo inicial», y su confirmación de qué ES: «para mí el saldo inicial es la primera entrada en la app en la historia del usuario».",
+    "users": "Usuario único del producto, es él mismo; persona heredada de los requisitos aprobados del proyecto raíz. La segunda persona (quien se acuerda del ahorro viejo después) sale de sus propias palabras: «también vale hacer eso y además trayendo un ahorro viejo que no fue un ingreso de septiembre».",
+    "baseline": "Verificado en el código el 2026-09-06: `src/domain/balance.ts` abre en `ZERO_CARRY` y documenta «No existe un saldo inicial manual (es la feature del punto 4)»; no hay ninguna ruta de Configuración en `src/app/` (solo api, health, recuperar y la raíz); y `grep` de startMonth/openingBalance/saldoInicial en `src/` no devuelve nada del dominio. En cambio la grilla dinámica SÍ está: `src/domain/range.ts` la entregó en multi-anio.",
+    "success_metric": "CONFIRMADO por el usuario el 2026-09-06. El agente la derivó y se la presentó como decisión pendiente al aprobar la fase 1; el usuario la aceptó explícitamente como criterio de done: que el «Resultado del mes» del mes de arranque cuente solo lo que ganó ese mes, no el dinero que ya traía. La derivación se apoyaba en su propio argumento del 2026-09-01 al descartar meter el saldo como ingreso («tienes razón en lo del saldo inicial como ingreso, no sirve y daña estadísticas»); la confirmación del 2026-09-06 la convierte de inferencia del agente en declaración suya.",
+    "no_go_zone": "Decisiones documentadas del usuario en FEATURE_IDEA.md y feature_context/diseno-del-arranque.md (2026-09-01), más tres respuestas suyas del 2026-09-06: que la grilla dinámica «ya se hizo», que el saldo inicial es «la misma celda y lógica que hoy día significa saldo del mes anterior», y que el mes de inicio sea declarado para anclarlo."
+  },
+  "idea_gaps": [
+    "[ALCANCE REDUCIDO POR HALLAZGO] El FEATURE_IDEA (2026-09-01) pedía además la grilla dinámica por meses. Verificado en el código el 2026-09-06: YA ESTÁ CONSTRUIDA — la entregó multi-anio en FR-1904/FR-1906 (src/domain/range.ts), y cubre las cuatro cosas que el brief pedía (ocultar pasado vacío, futuro visible, selector, y usuario nuevo arrancando en el mes en curso). El usuario lo confirmó el 2026-09-06 con «eso ya se hizo». Queda registrada como out_of_scope en el coverage_map, no como olvido.",
+    "[RESUELTO 2026-09-06] Qué pasa con el saldo inicial si el usuario borra todos sus datos. Se planteó como asunción («permanece») y el usuario decidió lo CONTRARIO: el borrado se lleva también la declaración y la tarjeta de arranque vuelve a preguntar como el primer día. Encajado en FR-2203 (criterio de reaparición) y FR-2207 (los valores viven dentro del snapshot, así que caen con él). La función de borrado no existe hoy en la app y NO se construye aquí: se fija la regla, no la pantalla.",
+    "[RESUELTO 2026-09-06, fase UX] Dónde vive la entrada a Configuración. Se asumió la cabecera de escritorio; el usuario decidió LAS DOS CABECERAS, escritorio y móvil, al plantearle que en móvil no hay grilla y por tanto no hay tarjeta de arranque: sin entrada en móvil, quien solo use el teléfono no tendría ninguna vía para declarar su saldo inicial. Encajado en FR-2204.",
+    "[DEFECTO CORREGIDO 2026-09-06, fase UX] El inventario de Configuración decía CUATRO ajustes y omitía el HORIZONTE de planeación, que ya existe y es configurable. La fase 1 heredó la frase de inventario de FR-1907 («lo configurable son dos cosas: tema y ancho de columna»), escrita cuando el control del horizonte todavía no existía porque ese mismo FR lo estaba creando. Detectado al leer src/components/HorizonSelect.tsx, cuya cabecera dice que su sitio es provisional «hasta que exista la página de Configuración». Corregido a CINCO con la decisión del usuario del 2026-09-06."
+  ],
+  "coverage_map": [
+    {
+      "need": "«Están quemados los meses a mostrar» — la grilla no debe tener doce meses fijos",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Si el usuario empieza a usar la app en junio, le quedan los meses de enero a mayo vacíos haciendo ruido» — ocultar el pasado vacío",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«Cuando haya mucha historia, poder seleccionarlos desde el selector de año»",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "«A futuro, poder mostrar al menos 12 o 24 meses hacia adelante»",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Saldo inicial configurable que ocupa el lugar del «Saldo del mes anterior» en el primer mes",
+      "disposition": "FR-2202"
+    },
+    {
+      "need": "El saldo inicial es el saldo de APERTURA del historial, no un campo por mes",
+      "disposition": "FR-2202"
+    },
+    {
+      "need": "El saldo inicial NO puede flotar: se ancla a un mes declarado, no al primero con datos",
+      "disposition": "FR-2201"
+    },
+    {
+      "need": "«Una página de configuraciones para poner allí todo lo que sea configurable»",
+      "disposition": "FR-2204"
+    },
+    {
+      "need": "En Configuración solo lo ya configurable: tema, ancho de columna y horizonte de planeación, más lo decidido aquí (mes de inicio y saldo inicial) — cinco en total",
+      "disposition": "FR-2204"
+    },
+    {
+      "need": "La tarjeta de arranque en la grilla, con sus cuatro estados",
+      "disposition": "FR-2203"
+    },
+    {
+      "need": "La tarjeta no puede convertirse en un recordatorio permanente: estorbaría al que arranca de cero",
+      "disposition": "FR-2203"
+    },
+    {
+      "need": "Configuración tiene que ser un camino de vuelta de verdad para quien se acuerda del ahorro viejo después",
+      "disposition": "FR-2204"
+    },
+    {
+      "need": "Corregible mientras el mes esté abierto; cerrado exige la reapertura auditada",
+      "disposition": "FR-2205"
+    },
+    {
+      "need": "Mover el mes de inicio hacia adelante no puede dejar datos huérfanos: bloquearlo",
+      "disposition": "FR-2206"
+    },
+    {
+      "need": "Los valores tienen que persistir entre sesiones y no pisarse entre pestañas",
+      "disposition": "FR-2207"
+    },
+    {
+      "need": "«Qué ve un usuario nuevo sin ningún dato»: el mes de inicio y los futuros",
+      "disposition": "FR-2201"
+    },
+    {
+      "need": "El saldo inicial es UN solo número; las alcancías arrancan vacías",
+      "disposition": "FR-2202"
+    },
+    {
+      "need": "La fila sigue llamándose «Saldo del mes anterior» también en el primer mes",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Declarar cuánto hay ya en cada bolsillo, para que el primer mes no diga que ahorraste lo que ya tenías",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Formulario de bienvenida a pantalla completa",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-año real: mostrar 24 meses cruzando el borde de año",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "El cierre de mes en sí (BL-036)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar el modelo de reservas (BL-037 / BL-038)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "FR-1907 (multi-anio, aprobado) difiere el control definitivo del horizonte a «Configuración cuando esa página exista»: esta feature crea la página, así que la deuda se salda aquí",
+      "disposition": "FR-2204"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — meses-y-saldo-inicial\n\n_Capturado el 2026-09-01 de las palabras del usuario. Lo que sigue es SU planteamiento, no una\nreinterpretación; las preguntas abiertas van marcadas aparte al final y deben confirmarse con él\nantes de cerrar la Fase 1._\n\n## El problema, en sus palabras\n\n> «Grilla por meses: problema — están quemados los meses a mostrar, y además si el usuario empieza a\n> usar la app en junio, le quedan los meses de enero a mayo vacíos haciendo ruido.»\n\n> «Se debe poder dar la opción de saldo inicial o configurar saldo inicial, porque si un usuario\n> quiere iniciar a usar la app y ya tiene dinero pero no tiene los rubros, debería poder tener la\n> opción de saldo inicial, que vendría siendo el saldo mes anterior que tenemos hoy día, solo que en\n> ese caso sería saldo inicial.»\n\n> «Adicional se propone crear una página de configuraciones, para poner allí todo lo que sea\n> configurable o personalizaciones.»\n\n## Su propuesta\n\n1. **Solo mostrar los meses con información.** La grilla deja de tener los doce meses quemados.\n2. **Cuando haya mucha historia, poder seleccionarlos desde el selector de año.**\n3. **A futuro, poder mostrar al menos 12 o 24 meses hacia adelante.**\n4. **Saldo inicial configurable**, que ocupa el lugar del «Saldo del mes anterior» en el primer mes\n   que se muestre — con ese nombre: «saldo inicial».\n5. **Una página de configuraciones** donde vivan éste y los demás ajustes.\n\n## Qué ES el saldo inicial (confirmado por el usuario, 2026-09-01)\n\n> «Para mí el saldo inicial es la primera entrada en la app en la historia del usuario. Vendría\n> siendo, digamos, en ese mes, lo que hoy día es saldo del mes anterior.»\n\nEs decir: **el saldo de APERTURA del historial**, no un campo por mes. Ocupa la casilla que hoy\nocupa «Saldo del mes anterior» en el primer mes que el usuario tiene, y solo cambia su rótulo:\nallí se llama «Saldo inicial».\n\nConsecuencia directa sobre el dominio: hoy `computeBalanceSeries` abre en `ZERO_CARRY` («el mes 1\nno tiene mes previo: abre en 0/0»). Con esto, abre en el saldo declarado. Es un cambio pequeño y\nlocalizado — el resto de la cascada no se entera.\n\n### El riesgo que hay que cerrar en el diseño: el saldo inicial NO puede flotar\n\nSi el saldo inicial se ata a «el primer mes con información», entonces **teclear un dato en un mes\nanterior lo movería de sitio en silencio** y recalcularía toda la serie hacia adelante. El usuario\nempieza en junio, declara su saldo inicial, y meses después registra algo de marzo: de golpe marzo\npasa a ser el primer mes y hereda una apertura que no le corresponde.\n\nPropuesta a confirmar: el saldo inicial se ancla a un **mes declarado** («empiezo a usar la app en\njunio de 2026»), no al primero que tenga datos. Los meses anteriores a ese ancla no forman parte del\nhistorial del usuario.\n\n## Lo que esto REVOCA (decisión anterior del propio proyecto)\n\nLa feature `balance` declaró esto en su `no_go_zone`, textual:\n\n> «Saldo inicial manual del mes 1: DECIDIDO que el mes 1 arranca en 0 (no hay mes anterior). No se\n> construye un campo de saldo inicial editable.»\n\nY el código lo documenta en `src/domain/balance.ts`: *«No existe un saldo inicial manual (decisión\nde producto, no_go_zone)»*.\n\nEl usuario está revocando esa decisión con una razón nueva y concreta que antes no estaba sobre la\nmesa: **quien empieza a usar la app a mitad de año ya tiene dinero, y hoy no tiene forma de\ndecírselo.** La revocación es legítima, pero debe quedar registrada como tal —no colada— y el\n`no_go_zone` de esta feature tiene que decir explícitamente que la supersede.\n\n## Su relación con `cierre-de-mes` (BL-036)\n\nEl usuario priorizó `cierre-de-mes` en la misma conversación, y las dos tocan el modelo temporal:\n\n- `cierre-de-mes` congela el pasado (y, según su propio análisis, permitiría **retirar** buena parte\n  de la maquinaria del techo — BL-037 y BL-038 quedarían disueltos).\n- Ésta cambia **qué meses existen** en la vista y de dónde sale el saldo de apertura.\n\nSi un mes cerrado no se toca, «el saldo inicial» y «el cierre del último mes cerrado» son casi la\nmisma idea. Conviene decidir el ORDEN antes de diseñar cualquiera de las dos.\n\n## Respuestas del usuario (2026-09-01) — decisiones tomadas\n\n**El historial empieza donde el usuario empieza.** > «Si inicio en junio, ¿por qué querría meter\nalgo en marzo? Eso no se puede, la historia comienza en junio. Si el usuario quiere iniciar su\nhistoria en marzo estando en junio, tendrá que transcribir su historia manualmente empezando en\nmarzo.» ⇒ El ancla queda resuelta: no hay meses anteriores al de inicio, así que el saldo inicial no\npuede flotar. El riesgo descrito arriba queda cerrado por decisión de producto, no por código.\n\n**El saldo inicial es UN solo número.** > «Inicio con $X y con eso comienzo a registrar todo.»\nLas alcancías arrancan vacías; si al empezar ya tenía algo apartado, lo declara como parte del\ndisponible y lo reserva después.\n\n**Y observa que podría no hacer falta nada:** > «Incluso puede ser un ingreso normal y no\ntendríamos que hacer nada… si crea un rubro único para todo o usa uno como salario; en ese caso\nservirían los comentarios de las celdas.»\n*Contrapunto a resolver en Fase 1:* aritméticamente funciona, pero **miente sobre el resultado del\nmes** — el mes de arranque mostraría como INGRESO plata que el usuario ya tenía, y «Resultado del\nmes» existe justamente para decir si el patrimonio creció. Un campo de apertura propio mantiene esa\ncifra honesta. Sirve como solución provisional mientras la feature no exista.\n\n**Corregible mientras el mes esté abierto.** > «Sí, siempre y cuando el mes esté abierto. Si se\ncerró no se podría, a menos que en la feature de cerrar mes incluyamos reapertura para arreglar\ncosas, y tendríamos que ver cómo se audita.» ⇒ Depende de `cierre-de-mes`, y la reapertura auditada\nse apunta como alcance de ESA feature.\n\n**Qué meses se ven.** > «Solo se ven los meses con datos y a futuro; es decir, no se muestra pasado\nsin datos. Sí meses futuros sin datos, se va a usar.» ⇒ Pasado vacío: oculto. Futuro vacío: visible\n(es donde se planea).\n\n## El rótulo de la fila (decisión del usuario, 2026-09-01)\n\nLa columna de rótulos del Balance es **una sola para los doce meses**, así que la fila no puede\nllamarse «Saldo inicial» en el primer mes y «Saldo del mes anterior» en los demás.\n\nSe le plantearon tres salidas —dejarla igual, renombrarla a «Saldo de apertura» (cierta en ambos\ncasos), o marcar la celda con su observación— y **decidió dejarla como está**: la fila sigue siendo\n«Saldo del mes anterior», y en el primer mes del historial simplemente contiene el saldo inicial.\n\nConsecuencia aceptada: en ese primer mes el rótulo es impreciso (no hay mes anterior). Queda\nregistrado para que nadie lo \"corrija\" más adelante creyendo que es un descuido.\n\n## Dónde aterriza, en el código\n\n`computeBalanceSeries` arranca hoy en `ZERO_CARRY` (`{ available: 0, reservedBalance: 0 }`) porque\n«el mes 1 no tiene mes previo». El saldo inicial reemplaza ese cero de apertura. La fila que lo\nmuestra ya existe: `prevAvailable`. Nada más de la cascada se entera.\n\n## La tarjeta de arranque y la Configuración (decisiones del usuario, 2026-09-01)\n\n**Si el usuario empieza a teclear sin responder la tarjeta:** la tarjeta desaparece y el saldo\ninicial queda en 0. Su razón, textual:\n\n> «Perfectamente puedo iniciar de cero el 13 de septiembre con mi salario del 1º de septiembre y\n> registro todo porque me acuerdo o lo tengo en un Excel. Es también válido. Y también vale hacer\n> eso y además trayendo un ahorro viejo que no fue un ingreso de septiembre.»\n\nSon DOS caminos legítimos que el diseño debe admitir sin estorbar:\n  a) Arrancar en cero y registrar el mes completo (el salario entra como ingreso REAL — lo es).\n  b) Lo mismo, **más** un ahorro viejo que no es ingreso de ese mes → ese ahorro es el saldo inicial.\n\nPor eso la tarjeta no puede convertirse en un recordatorio permanente (estorbaría al camino a) y\nConfiguración tiene que ser un camino de vuelta de verdad (lo necesita el camino b, cuando el\nusuario se acuerda del ahorro viejo después de haber empezado a teclear).\n\n**Qué vive en Configuración:** > «Por ahora solo lo que tengamos configurable, no agreguemos\nconfiguraciones nuevas: lo que estamos decidiendo aquí + lo que ya existe que sea configurable.»\n\nInventario verificado en el código de lo que hoy es configurable y persiste:\n  · **Tema claro/oscuro** (`ThemeToggle.tsx`, vía `next-themes`).\n  · **Ancho de la columna de categorías** (`readCatWidth`/`writeCatWidth`, FR-104).\nMás lo decidido aquí: **mes de inicio** y **saldo inicial**. Nada más — sin inventar ajustes nuevos.\n\n## Hallazgo de alcance: «12 o 24 meses a futuro» es OTRA feature\n\nVerificado en el código: **el año no existe en el modelo.** `MonthKey` son doce literales\n(`\"ene\"…\"dic\"`), `AmountMap` indexa por ellos, y el esquema de base de datos no tiene ninguna columna\nde año. Todo el ledger es un único año implícito.\n\nPor eso hay que separar dos cosas que en el enunciado van juntas:\n\n- **Ocultar el pasado vacío y mostrar el futuro DENTRO del año** → presentación pura, sin tocar el\n  modelo ni la base. Pequeño.\n- **Mostrar 12–24 meses hacia adelante cruzando el año** → exige meter el año en el modelo, migrar\n  los datos y revisar todas las derivaciones y reglas. Es una feature propia y grande (multi-año).\n\n## Preguntas abiertas — CONFIRMAR con el usuario antes de cerrar Fase 1\n\n1. **¿Se parte la feature?** Recomendación técnica pendiente de su visto bueno: (a) grilla dinámica\n   dentro del año —presentación pura, alivio inmediato—, (b) saldo inicial y página de\n   configuración DESPUÉS de `cierre-de-mes`, (c) multi-año como feature propia.\n2. **¿Qué ve un usuario NUEVO, sin ningún dato?** Con la regla «solo meses con datos», su grilla\n   estaría vacía. Propuesta: mostrar siempre el mes de inicio declarado y los futuros.\n3. **Mover el mes de inicio hacia adelante dejaría datos huérfanos.** Si empieza en septiembre,\n   registra, y luego mueve el inicio a noviembre, septiembre y octubre quedarían fuera de su\n   historia. Propuesta: BLOQUEARLO —mismo principio de «cero pérdida silenciosa» que ya aplica el\n   borrado de categorías (BG-001)— en vez de avisar y dejar pasar.\n\n## Fuera de alcance (propuesto, a confirmar)\n\n- El cierre de mes en sí (BL-036) — es su propia feature.\n- Cambiar el modelo de reservas (BL-037 / BL-038), que el usuario decidió congelar a la espera del\n  cierre de mes.\n- Multi-año real: hoy la escala es de doce meses de un año. Mostrar «24 meses a futuro» puede exigir\n  cruzar el año, y eso es un cambio de modelo mayor que hay que dimensionar aparte.\n"
+}

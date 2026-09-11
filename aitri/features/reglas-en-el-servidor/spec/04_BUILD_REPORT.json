@@ -1,0 +1,88 @@
+{
+  "files_created": [
+    "src/domain/guard.ts",
+    "tests/domain/reglas-en-el-servidor.test.ts",
+    "tests/integration/backend/reglas-en-el-servidor.test.ts"
+  ],
+  "files_modified": [
+    "src/domain/reserve.ts",
+    "src/domain/index.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/app/api/v1/ledger/route.ts",
+    "src/app/api/v1/movements/route.ts",
+    "tests/domain/cierre-de-mes.test.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2101",
+      "substitution": "El guardia juzga solo las escrituras que TOCAN reservas. Una peticion fabricada que unicamente baje un ingreso puede dejar un mes excedido, y no se rechaza.",
+      "reason": "No es un atajo: es ADR-20 y lo decidio el usuario el 2026-09-03 tras verse que el alcance ancho contradice NFR-1803 de techo-de-flujo —aprobado y construido— y pone rojas 7 pruebas de dos features cerradas. El guardia reproduce EXACTAMENTE lo que la app ya hace cumplir. Cerrar tambien ese lado exige reabrir NFR-1803 con el usuario delante.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-2102",
+      "substitution": "El rechazo del servidor NO estrena mensaje en la interfaz: se apoya en el que la app ya muestra al frenar una operacion de reserva (blockMessage, FR-1006).",
+      "reason": "Con el alcance acotado el 422 es una RED DE SEGURIDAD, no el camino habitual — al usuario solo le llega si el cliente fallo o si la peticion no vino de la app. Inventar una pantalla para un caso que casi no ocurre seria over-engineering; lo que si se exige es que el cuerpo traiga regla, periodo y limite para poder diagnosticarlo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2103",
+      "substitution": "`chainCheck` y su tipo pasan de privados a exportados: `reserve.ts` gana dos palabras `export` y ninguna linea mas.",
+      "reason": "Es el precio minimo de tener UNA sola implementacion. La alternativa —duplicar la regla en el servidor— es justo el defecto que el FR existe para impedir. TC-RES-032e comprueba que el CUERPO de chainCheck no cambio, asi que ningun veredicto pudo alterarse al exponerla.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-2105",
+      "substitution": "`loadStateInTx` pasa de condicional a incondicional en cada PUT: antes solo se cargaba con meses cerrados.",
+      "reason": "El guardia necesita el estado persistido para comparar. Se carga UNA sola vez y la comparten los dos guardias. TC-RES-242f verifica que el coste no crece con el numero de meses (sin N+1); el escaneo corre en memoria sobre el estado ya cargado.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/reglas-en-el-servidor.test.ts",
+    "../../../tests/integration/backend/reglas-en-el-servidor.test.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000
+    }
+  ]
+}

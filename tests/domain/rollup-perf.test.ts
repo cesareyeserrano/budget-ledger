@@ -4,9 +4,11 @@ import { buildSeed } from "@/domain/seed";
 import { setLeafAmount } from "@/domain/mutations";
 import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
 import { findNode, isLeaf } from "@/domain/tree";
-import { MONTH_KEYS } from "@/domain/months";
+import { P as MONTH_KEYS } from "../helpers/periods";
 import { writeCatWidth, readCatWidth } from "@/lib/gridWidth";
 import type { LedgerState, NodeType } from "@/domain/types";
+import { P, P0 } from "../helpers/periods";
+import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
 
 // Feature grid-ux — NFR-103 (Regression): el roll-up jerárquico sigue en ≤150ms al editar
 // una hoja, y el resize de columna NO desencadena recómputo de roll-ups.
@@ -35,7 +37,7 @@ function recomputeGrid(state: LedgerState): string {
     }
   }
   for (const t of TYPES) {
-    const { budget, actual } = typeTotals(state, t);
+    const { budget, actual } = typeTotals(state, t, P);
     parts.push(budget, actual);
   }
   return parts.join(",");
@@ -47,7 +49,7 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
   });
 
   it("TC-212h: editar una hoja refleja los roll-ups de todos los ancestros en ≤150ms", () => {
-    let state = buildSeed();
+    let state = buildSeed("local", P0);
     const leaf = state.nodes.find((n) => isLeaf(n, state.nodes));
     expect(leaf).toBeTruthy();
     const leafId = leaf!.id;
@@ -56,20 +58,22 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
     expect(ancestors.length).toBeGreaterThan(0);
 
     // Edición + recómputo completo de la grilla, cronometrado.
-    const start = performance.now();
-    state = setLeafAmount(state, leafId, "ene", "actual", 123456);
-    recomputeGrid(state);
-    const elapsed = performance.now() - start;
+    // BG-030: mejor-de-5 — el mínimo mide el algoritmo, no la ráfaga de CPU (tests/helpers/perf.ts).
+    const elapsed = mejorTiempo(() => {
+      state = setLeafAmount(state, leafId, "2026-01", "actual", 123456, P);
+      recomputeGrid(state);
+    });
 
     // El cambio SÍ se refleja hacia arriba: el Ejecutado del ancestro raíz incluye el nuevo monto.
     const rootAncestor = ancestors[ancestors.length - 1];
-    expect(rollupActual(state, rootAncestor, "ene")).toBeGreaterThanOrEqual(123456);
+    expect(rollupActual(state, rootAncestor, "2026-01")).toBeGreaterThanOrEqual(123456);
     // …y en ≤150ms (guardrail de rendimiento).
-    expect(elapsed).toBeLessThanOrEqual(150);
+    // Guardarrail de tiempo: no se afirma bajo instrumentación de cobertura (BG-026).
+    if (CRONOMETRO_FIABLE) expect(elapsed).toBeLessThanOrEqual(150);
   });
 
   it("TC-212e: redimensionar la columna (writeCatWidth) NO recomputa ni altera los roll-ups", () => {
-    const state = buildSeed();
+    const state = buildSeed("local", P0);
     const before = recomputeGrid(state);
 
     // Simular varios pasos de resize dentro del rango [180,480].

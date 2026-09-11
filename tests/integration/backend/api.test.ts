@@ -17,6 +17,7 @@ import { GET as ledgerGET, PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
 import { GET as movsGET, POST as movsPOST } from "@/app/api/v1/movements/route";
 import { GET as movGET, DELETE as movDELETE } from "@/app/api/v1/movements/[id]/route";
 import { GET as healthGET } from "@/app/health/route";
+import { P, P0 } from "../../helpers/periods";
 
 const ROOT = process.cwd();
 const PASSWORD = "Contra$eña123";
@@ -49,7 +50,7 @@ function req(url: string, init: { method?: string; cookie?: string; body?: unkno
 
 /** Siembra el ledger de un usuario vía la API (PUT snapshot). */
 async function seedViaApi(cookie: string, userId: string): Promise<void> {
-  const res = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state: buildSeed(userId) } }));
+  const res = await ledgerPUT(req("/api/v1/ledger", { method: "PUT", cookie, origin: ORIGIN, body: { baseRevision: 0, state: buildSeed(userId, P0) } }));
   expect(res.status).toBe(200);
 }
 
@@ -85,7 +86,7 @@ describe("FR-504 — gating de la API", () => {
     // @aitri-tc TC-BE-016e
     const before = (await testDb().execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
     const res = await movsPOST(
-      req("/api/v1/movements", { method: "POST", cookie: "better-auth.session_token=tampered.invalid", origin: ORIGIN, body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, month: "jun" } })
+      req("/api/v1/movements", { method: "POST", cookie: "better-auth.session_token=tampered.invalid", origin: ORIGIN, body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 5000, period: "2026-06" } })
     );
     expect(res.status).toBe(401);
     const after = (await testDb().execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
@@ -99,7 +100,7 @@ describe("FR-505 — aislamiento por ownerId", () => {
     const a = await newUser("ana@example.com");
     const b = await newUser("beto@example.com");
     await seedViaApi(a.cookie, a.userId);
-    await saveLedger(b.userId, addMovement(buildSeed(b.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 9999, month: "jun" }), 0);
+    await saveLedger(b.userId, addMovement(buildSeed(b.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 9999, period: "2026-06" }, P), 0);
 
     const res = await ledgerGET(req("/api/v1/ledger", { cookie: a.cookie }));
     const body = await res.json();
@@ -111,7 +112,7 @@ describe("FR-505 — aislamiento por ownerId", () => {
     // @aitri-tc TC-BE-018f
     const a = await newUser("ana@example.com");
     const b = await newUser("beto@example.com");
-    await saveLedger(b.userId, addMovement(buildSeed(b.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 7777, month: "jun" }), 0);
+    await saveLedger(b.userId, addMovement(buildSeed(b.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 7777, period: "2026-06" }, P), 0);
     const bMov = (await import("@/server/data/ledgerRepo")).loadLedger;
     const realId = (await bMov(b.userId))!.state.movements[0].id;
 
@@ -125,7 +126,7 @@ describe("FR-505 — aislamiento por ownerId", () => {
     // @aitri-tc TC-BE-019f
     const a = await newUser("ana@example.com");
     const b = await newUser("beto@example.com");
-    await saveLedger(b.userId, addMovement(buildSeed(b.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 8888, month: "jun" }), 0);
+    await saveLedger(b.userId, addMovement(buildSeed(b.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 8888, period: "2026-06" }, P), 0);
     const realId = (await (await import("@/server/data/ledgerRepo")).loadLedger(b.userId))!.state.movements[0].id;
 
     const res = await movDELETE(req(`/api/v1/movements/${realId}`, { method: "DELETE", cookie: a.cookie, origin: ORIGIN }), { params: Promise.resolve({ id: realId }) });
@@ -140,8 +141,8 @@ describe("FR-505 — aislamiento por ownerId", () => {
     const a = await newUser("ana@example.com");
     const b = await newUser("beto@example.com");
     await seedViaApi(a.cookie, a.userId);
-    await saveLedger(a.userId, addMovement(buildSeed(a.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 111, month: "jun" }), 1);
-    await saveLedger(b.userId, addMovement(buildSeed(b.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 222, month: "jun" }), 0);
+    await saveLedger(a.userId, addMovement(buildSeed(a.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 111, period: "2026-06" }, P), 1);
+    await saveLedger(b.userId, addMovement(buildSeed(b.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 222, period: "2026-06" }, P), 0);
 
     const res = await movsGET(req(`/api/v1/movements?ownerId=${b.userId}`, { cookie: a.cookie }));
     const body = await res.json();
@@ -155,7 +156,7 @@ describe("FR-507 — API versionada, filtrada por usuario", () => {
     // @aitri-tc TC-BE-024h
     const a = await newUser("ana@example.com");
     await seedViaApi(a.cookie, a.userId);
-    const post = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 8000, month: "jul" } }));
+    const post = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 8000, period: "2026-07" } }));
     expect(post.status).toBe(201);
     const created = await post.json();
     expect(created.movement.amount).toBe(8000);
@@ -181,7 +182,7 @@ describe("FR-507 — API versionada, filtrada por usuario", () => {
     const a = await newUser("ana@example.com");
     await seedViaApi(a.cookie, a.userId);
     const before = (await testDb().execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
-    const res = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", amount: "cinco mil", month: "jun" } }));
+    const res = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", amount: "cinco mil", period: "2026-06" } }));
     expect([400, 422]).toContain(res.status);
     const after = (await testDb().execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
     expect(after[0].n).toBe(before[0].n);
@@ -226,7 +227,7 @@ describe("NFR-502 — log estructurado por request", () => {
     const a = await newUser("ana@example.com");
     await seedViaApi(a.cookie, a.userId);
     const lines = await captureLogs(() =>
-      movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", amount: "x", month: "jun" } }))
+      movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: ORIGIN, body: { type: "expense", catId: "c-comida", amount: "x", period: "2026-06" } }))
     );
     const line = lines.find((l) => l.includes("POST /api/v1/movements"));
     expect(line).toMatch(/POST \/api\/v1\/movements 422/);
@@ -262,7 +263,7 @@ describe("NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, s
     // @aitri-tc TC-BE-079f
     const a = await newUser("ana@example.com");
     const b = await newUser("beto@example.com");
-    await saveLedger(a.userId, addMovement(buildSeed(a.userId), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 4242, month: "jun" }), 0);
+    await saveLedger(a.userId, addMovement(buildSeed(a.userId, P0), { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 4242, period: "2026-06" }, P), 0);
     // Sin sesión → 401.
     expect((await ledgerGET(req("/api/v1/ledger"))).status).toBe(401);
     // Con la sesión de OTRO usuario (B) → solo datos de B, nunca los de A.
@@ -279,7 +280,7 @@ describe("NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, s
     // @aitri-tc TC-BE-083f
     const a = await newUser("ana@example.com");
     await seedViaApi(a.cookie, a.userId);
-    const res = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: "https://evil.example.com", body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 100, month: "jun" } }));
+    const res = await movsPOST(req("/api/v1/movements", { method: "POST", cookie: a.cookie, origin: "https://evil.example.com", body: { type: "expense", catId: "c-comida", subId: "s-comida-mercado", amount: 100, period: "2026-06" } }));
     expect(res.status).toBe(403);
     expect(res.headers.get("access-control-allow-origin")).not.toBe("*");
   });

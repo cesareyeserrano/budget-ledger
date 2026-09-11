@@ -1,19 +1,43 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Plus, X, Wallet } from "lucide-react";
-import { useLedgerStore } from "@/state/store";
-import { MONTHS, monthLabel, currentMonthKey } from "@/domain/months";
-import { typeTotals } from "@/domain/rollup";
+import { useRouter } from "next/navigation";
+import { Plus, X, Settings } from "lucide-react";
+import { useLedgerStore, useActivePeriods, useCalendar, useNow } from "@/state/store";
+import { periodLabel, periodYear } from "@/domain/periods";
+import { withRange } from "./cycleText";
+import type { PeriodKey } from "@/domain/types";
+import { summaryKpis } from "@/domain/dashboard";
 import { BudgetGrid } from "./BudgetGrid";
 import { Dashboard } from "./Dashboard";
 import { Register } from "./register/Register";
 import { ThemeToggle } from "./ThemeToggle";
+import { ClosureControl } from "./ClosureControl";
+import { ImpactPanel } from "./ImpactPanel";
+import { ClosureBanner } from "./ClosureBanner";
+import { LogoutButton } from "./auth/LogoutButton";
 import { Toaster } from "./Toaster";
+import { StorageBanner } from "./register/StorageBanner";
 import { money } from "./format";
+import { exceptionColor } from "./exceptionColor";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
 import { Kpi } from "./ui/Kpi";
+
+function ConfigLink() {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      aria-label="Configuración"
+      data-testid="config-link"
+      onClick={() => router.push("/configuracion")}
+      className="flex h-(--control-md) w-(--control-md) items-center justify-center rounded-(--radius-sm) text-fg-secondary hover:text-fg"
+    >
+      <Settings className="h-5 w-5" strokeWidth={1.75} />
+    </button>
+  );
+}
 
 type View = "budget" | "dashboard";
 
@@ -21,36 +45,48 @@ type View = "budget" | "dashboard";
 export function DesktopShell() {
   const data = useLedgerStore((s) => s.data);
   const period = useLedgerStore((s) => s.period);
+  // Feature ciclos: calendario vigente y «hoy» según él (FLAG-1).
+  const cal = useCalendar();
+  const hoy = useNow();
   const setPeriod = useLedgerStore((s) => s.setPeriod);
   const [view, setView] = useState<View>("budget");
   const [panel, setPanel] = useState(false);
 
-  const kpis = useMemo(() => {
-    const months = period.mode === "month" ? [period.month] : MONTHS.map((m) => m.k);
-    const exp = typeTotals(data, "expense", months);
-    const available = exp.budget - exp.actual;
-    const pct = exp.budget > 0 ? Math.round((exp.actual / exp.budget) * 100) : 0;
-    return { presupuestado: exp.budget, ejecutado: exp.actual, pct, available };
-  }, [data, period]);
+  // FR-016 — la franja «Resumen». El cómputo vive en el dominio (summaryKpis), no aquí: aquí no era
+  // alcanzable por un test sin montar el componente, y por eso el requisito no tenía verificación.
+  const periods = useActivePeriods();
+  const kpis = useMemo(() => summaryKpis(data, period, periods), [data, period, periods]);
+  // Los años que el rango activo contiene, en orden. Es la lista del selector de Año.
+  const yearsInRange = useMemo(
+    () => [...new Set(periods.map(periodYear))].sort((a, b) => a - b), [periods]);
 
-  const scopeLabel = period.mode === "month" ? `${monthLabel(period.month)} 2026` : "Año 2026";
+  // Sólo el AÑO. Decía «Agosto 2026» a diez píxeles del selector que ya dice «Agosto», y «Año 2026»
+  // junto a la pestaña «Año» ya activa: en ambos modos repetía la palabra que tenía al lado. Lo
+  // único que aporta esta etiqueta —y que no dice ningún otro control— es el año, así que es lo
+  // único que queda. Misma regla que ya se aplicó al <h1> contra la pestaña de vista.
+  //
+  // Se DERIVA del filtro. Estuvo escrito a mano como "2026" desde refinamiento-ui, cuando el año
+  // era implícito y constante y la cadena no podía mentir. Con multi-anio sí miente: en enero
+  // habría seguido diciendo 2026, y en el filtro «Año 2027» decía 2026 al lado del selector que
+  // decía 2027 — la etiqueta cuyo único cometido es el año era la única que no lo sabía.
+  const scopeLabel = String(period.mode === "month" ? periodYear(period.month) : period.year);
 
   return (
     <div className="lx-desktop w-full" style={{ background: "var(--bg)" }}>
       <div className="w-full overflow-hidden flex flex-col relative" style={{ height: "100vh" }}>
-        {/* Header — cabecera con intención (FR-304): marca discreta + UN título; el año va como pill abajo */}
-        <div className="flex items-center justify-between px-6 pt-3 pb-3 border-b border-border gap-4 flex-wrap">
+        {/* Header — refinamiento-ui FR-1204. Fuera la marca y su billetera (decisión del usuario) y
+            fuera el <h1>: decía «Presupuesto» mientras la pestaña de la MISMA vista decía «Resumen»,
+            dos nombres para lo mismo a pocos píxeles. La pestaña activa ES el nombre de la vista.
+            Los controles se agrupan por CLASE — navegación · trabajo | preferencia · cuenta — porque
+            antes los cuatro compartían fila y por eso «Salir» se leía como arbitrario. */}
+        <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border px-6 py-2">
           <div className="flex items-center gap-3">
-            <span data-testid="topbar-brand" className="flex items-center gap-2">
-              <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-(--radius-sm) bg-primary" style={{ color: "var(--primary-foreground)" }}>
-                <Wallet size={13} />
-              </span>
-              <span className="label text-fg-secondary">Ledger</span>
-            </span>
-            <span className="h-4 w-px bg-border" aria-hidden />
-            <h1 data-testid="page-title" className="title text-fg">{view === "budget" ? "Presupuesto" : "Dashboard"}</h1>
-          </div>
-          <div className="flex items-center gap-3">
+            {/* El <h1> vuelve VISUALMENTE OCULTO. Al retirarlo por duplicar el rótulo de la pestaña,
+                la página de escritorio se quedó sin ningún encabezado: el esquema de encabezados
+                desaparecía para un lector de pantalla. Se resuelve la duplicación VISUAL sin
+                sacrificar la semántica — la pestaña activa nombra la vista en pantalla, el h1 la
+                nombra para quien no la ve. */}
+            <h1 data-testid="page-title" className="title sr-only">{view === "budget" ? "Resumen" : "Dashboard"}</h1>
             <Tabs value={view} onValueChange={(v) => setView(v as View)}>
               <TabsList>
                 <TabsTrigger value="budget">Resumen</TabsTrigger>
@@ -60,49 +96,99 @@ export function DesktopShell() {
             <Button onClick={() => setPanel((p) => !p)}>
               <Plus size={15} /> Nuevo movimiento
             </Button>
+          </div>
+          {/* Preferencia y cuenta, separadas del grupo de trabajo por un divisor explícito */}
+          <div className="flex items-center gap-2">
+            {/* FR-1907 saldado: el HorizonSelect que vivía aquí de forma PROVISIONAL se mudó a la
+                página de Configuración, que es lo que ese requisito difería. Un solo control por
+                ajuste. */}
             <ThemeToggle />
+            <ConfigLink />
+            <span className="h-4 w-px bg-border" aria-hidden />
+            <LogoutButton />
           </div>
         </div>
 
-        {/* Controles */}
-        <div className="flex items-center justify-between gap-4 px-6 pt-3.5 flex-wrap">
-          <div className="flex items-center gap-3">
-            {/* Año/periodo como control segmentado discreto (FR-304), con el MISMO radio que las tabs Resumen/Dashboard */}
-            {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso (antes: "jun" fijo) */}
-            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : currentMonthKey() } : { mode: "year" })}>
+        {/* Controles + resumen en UNA fila — FR-1204. Antes eran dos: la barra de periodo y una
+            franja de tres tarjetas de 110 px que mostraban $0, $0, $0. Entre encabezado, controles y
+            tarjetas el chrome ocupaba 240 px antes del primer dato: el 31 % de la altura a 1024×768,
+            donde el módulo de Balance quedaba casi entero bajo el pliegue. */}
+        <div className="flex items-center justify-between gap-4 px-6 py-2 flex-wrap border-b border-border">
+          <div className="flex items-center gap-2">
+            {/* BG-007: al volver de Año→Mes sin mes previo, caer al mes en curso */}
+            <Tabs value={period.mode} onValueChange={(m) => setPeriod(m === "month" ? { mode: "month", month: period.mode === "month" ? period.month : hoy } : { mode: "year", year: period.mode === "month" ? periodYear(period.month) : new Date().getFullYear() })}>
               <TabsList data-testid="period-pill">
                 <TabsTrigger value="month">Mes</TabsTrigger>
                 <TabsTrigger value="year">Año</TabsTrigger>
               </TabsList>
             </Tabs>
             {period.mode === "month" && (
-              <div className="w-[130px]">
-                <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as typeof period.month })}>
-                  <SelectTrigger aria-label="Mes" className="py-1.5 label"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MONTHS.map((m) => <SelectItem key={m.k} value={m.k}>{m.label}</SelectItem>)}</SelectContent>
+              <div className={cal.mode === "cycle" ? "w-[280px]" : "w-[130px]"}>
+                {/* Feature ciclos (FR-2407): nombre + rango en cada opción («Octubre 2026 · 21 sep – 20 oct»). */}
+                <Select value={period.month} onValueChange={(v) => setPeriod({ mode: "month", month: v as PeriodKey })}>
+                  <SelectTrigger aria-label="Mes" className="py-1 label"><SelectValue>{withRange(cal, period.month)}</SelectValue></SelectTrigger>
+                  <SelectContent>{periods.map((p) => <SelectItem key={p} value={p}>{withRange(cal, p)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
-            <span className="caption text-fg-muted">{scopeLabel}</span>
+            {/* Con multi-anio el modo Año tiene que decir CUÁL: no hay un año implícito. Se ofrecen
+                solo los años presentes en el rango activo — ni uno más. */}
+            {period.mode === "year" && (
+              <div className="w-[110px]">
+                <Select value={String(period.year)} onValueChange={(v) => setPeriod({ mode: "year", year: Number(v) })}>
+                  <SelectTrigger aria-label="Año" className="py-1 label"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {yearsInRange.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {/* La etiqueta de alcance aparece UNA sola vez: antes estaba aquí y otra vez como
+                subtítulo de la primera tarjeta. */}
+            <span data-testid="scope-label" className="caption text-fg-muted">{scopeLabel}</span>
+            {/* El cierre va con los controles de PERIODO, no con los de preferencia: es una acción
+                sobre el tiempo del ledger, no un ajuste personal como el tema o el horizonte. */}
+            <span className="h-4 w-px bg-border" aria-hidden />
+            <ClosureControl />
           </div>
           {view === "budget" && (
-            <div className="flex items-center gap-3.5 caption text-fg-muted">
-              {/* BL-005: solo el par Presupuestado/Ejecutado. El "sobre presupuesto" dejó de ser un
-                  rojo único; su código de 3 estados vive en el StateLegend del pie de la grilla. */}
-              <LegendDot border /> Presupuestado
-              <LegendDot fill="var(--accent)" /> Ejecutado
+            <div data-testid="summary-strip" className="flex items-center gap-4 flex-wrap tabular">
+              <Kpi compact label="PRESUPUESTO" value={money(kpis.presupuestado)} />
+              <Kpi compact label="EJECUTADO" value={money(kpis.ejecutado)} sub={`${kpis.pct}%`} />
+              {/* «DISPONIBLE» colisionaba con el «Saldo disponible» del Balance en la MISMA pantalla
+                  midiendo otra cosa (presupuesto restante frente a plata que tienes). Se renombra. */}
+              {/* balance-jerarquia FR-1405: era `available >= 0 ? --favorable : --alert-strong`,
+                  o sea VERDE PERMANENTE salvo en números rojos — el mismo defecto que BL-026
+                  denunció en el Balance, aquí arriba y fuera de aquella captura. Dejarlo verde
+                  mientras el Balance pasaba a neutro habría dejado la pantalla con DOS criterios
+                  de color a la vez. Ahora los tres chips obedecen la misma regla: este cambio
+                  ALINEA el tercero con sus hermanos, no introduce un estilo nuevo.
+                  Nota del borde: `>= 0` pintaba de verde un restante de EXACTAMENTE cero.
+                  `exceptionColor` usa `< 0` estricto, así que el cero cae a neutro. */}
+              <Kpi
+                compact
+                label="RESTANTE"
+                value={money(kpis.available)}
+                color={exceptionColor(kpis.available)}
+              />
             </div>
           )}
         </div>
 
-        {/* KPIs (solo Budget) */}
-        {view === "budget" && (
-          <div className="flex gap-3.5 px-6 pt-3.5 pb-1 flex-wrap">
-            <Kpi className="min-w-[200px]" label="PRESUPUESTO · GASTOS" value={money(kpis.presupuestado)} color="var(--fg)" sub={scopeLabel} />
-            <Kpi className="min-w-[200px]" label="EJECUTADO" value={money(kpis.ejecutado)} color="var(--accent-light)" sub={`${kpis.pct}% del presupuesto`} />
-            <Kpi className="min-w-[200px]" label="DISPONIBLE" value={money(kpis.available)} color={kpis.available >= 0 ? "var(--success)" : "var(--error)"} sub={kpis.available >= 0 ? "dentro del plan" : "sobre el plan"} />
-          </div>
-        )}
+        {/* Aviso de persistencia (BL-022). Vivía SOLO en MobileShell, así que en escritorio ni el
+            fallo de guardado ni la respuesta ilegible del servidor (BG-012) llegaban al usuario:
+            seguía editando sobre datos que la fuente de verdad no confirma. Va antes del cuerpo
+            —encima de la grilla y del dashboard— porque es donde se mira al operar, y alineado con
+            los KPIs. No se envuelve en un div: cuando no hay aviso el componente no pinta nada. */}
+        <StorageBanner className="mx-6 mt-3" />
+        {/* El aviso de meses sin cerrar, hermano del de persistencia y en el mismo sitio: encima
+            del cuerpo, donde se mira al operar. No pinta nada cuando no hay pendientes. */}
+        <ClosureBanner className="mx-6 mt-3" />
+        {/* El impacto de corregir un mes reabierto (FR-2010), hermano de los dos avisos anteriores
+            y en el mismo sitio: encima del cuerpo, donde se mira al operar. No pinta nada mientras
+            no haya un mes reabierto con cifras movidas. Va DEBAJO del aviso de meses sin cerrar
+            porque responde a una acción recién hecha, no a un estado permanente. */}
+        <ImpactPanel className="mx-6 mt-3" />
 
         {/* Cuerpo */}
         <div className="flex flex-1 min-h-0">
@@ -111,7 +197,6 @@ export function DesktopShell() {
               // px-6 en el contenedor (fuera del scroll) → la grilla se alinea con los KPIs y el sticky no se rompe
               <div className="flex-1 min-h-0 flex flex-col px-6">
                 <BudgetGrid />
-                <GridFooter />
               </div>
             ) : <Dashboard />}
           </div>
@@ -134,48 +219,18 @@ export function DesktopShell() {
   );
 }
 
-/** FR-107: pie de ayuda de la grilla + leyenda de meses (solo escritorio). Sin mención a reparto (D-4). */
-function GridFooter() {
-  return (
-    <div className="py-3 border-t border-border caption text-fg-muted leading-[1.7] flex-none">
-      <div>
-        Clic en una celda <b className="text-fg-secondary font-medium">Pres.</b> o <b className="text-fg-secondary font-medium">Ejec.</b> para editar
-        {" · "}Pasa el cursor sobre una fila para <b className="text-fg-secondary font-medium">agregar</b>, <b className="text-fg-secondary font-medium">renombrar</b> o <b className="text-fg-secondary font-medium">eliminar</b>
-        {" · "}Arrastra el borde de la columna para ampliarla.
-      </div>
-      <div>
-        <b className="text-fg-secondary font-medium">Ene–May</b> ejecutado · <b className="text-fg-secondary font-medium">Jun</b> en curso · <b className="text-fg-secondary font-medium">Jul–Dic</b> proyectado.
-      </div>
-      <StateLegend />
-    </div>
-  );
-}
-
-/**
- * FR-403: el código de estado se explica UNA sola vez, aquí en el pie. Cada estado nombra su COLOR
- * y su GLIFO, de modo que la leyenda sirva también a quien no distingue ámbar de rojo. Se rechazó
- * un icono de información por fila: sería ruido y escondería el dato tras una interacción.
+/*
+ * El pie de la grilla YA NO EXISTE — refinamiento-ui FR-1205, decisión del usuario (2026-08-12).
  *
- * @aitri-trace FR-ID: FR-403, US-ID: US-403, AC-ID: AC-403, TC-ID: TC-BSC-403h, TC-BSC-403e, TC-BSC-403f
+ * Cayó en tres tandas, todas por el mismo criterio: un texto fijo que no se deriva del estado no
+ * se gana su sitio. Primero las tres líneas que enseñaban a usar la grilla («hay unas ayudas
+ * escritas abajo, sobra»). Luego «Ene–May ejecutado · Jun en curso · Jul–Dic proyectado», que era
+ * la tabla FACTOR de `domain/seed.ts` escrita a mano y por tanto mentía en cuanto había datos
+ * reales (BL-013). Ahora la leyenda del código de estado, que era lo último que quedaba.
+ *
+ * La leyenda era FR-403 de budget-state-color, un requisito aprobado, así que NO se borra su
+ * intención: la clave se muda al `title` de cada glifo en BudgetGrid (ver GLYPH_TITLE). La
+ * explicación pasa a estar donde está lo explicado, y deja de cobrar 35 px fijos a todo el mundo
+ * para enseñar tres símbolos que se aprenden una vez. El canal no cromático de WCAG 1.4.1 nunca
+ * fue la leyenda — es el glifo, y sigue intacto.
  */
-function StateLegend() {
-  return (
-    <div data-testid="grid-legend" className="flex items-center gap-3.5 flex-wrap">
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--fg)" /> Dentro del presupuesto
-      </span>
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--state-warning)" />
-        <span className="tabular" style={{ color: "var(--state-warning)" }}>›</span> Te pasaste poco
-      </span>
-      <span className="flex items-center gap-1.5">
-        <LegendDot fill="var(--state-over)" />
-        <span className="tabular" style={{ color: "var(--state-over)" }}>››</span> Te pasaste mucho
-      </span>
-    </div>
-  );
-}
-
-function LegendDot({ fill, border }: { fill?: string; border?: boolean }) {
-  return <span className="inline-block w-[9px] h-[9px] rounded-[3px]" style={{ background: fill ?? "var(--bg-sunken)", border: border ? "1px solid var(--border-hover)" : undefined }} />;
-}

@@ -1,0 +1,254 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    "discovery",
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "ciclos",
+  "createdAt": "2026-09-10T01:59:33.395Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-11T17:58:43.073Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-10T22:09:43.502Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-10T22:09:43.570Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-10T22:09:43.638Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-10T22:09:43.756Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-10T22:10:03.034Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-10T22:10:03.104Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-10T22:32:12.908Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-10T22:33:29.486Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-10T22:56:57.191Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-10T23:01:35.851Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-10T23:12:22.398Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-10T23:12:45.788Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-10T23:41:47.135Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-10T23:47:52.782Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-11T00:09:17.589Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-11T14:17:44.002Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "f9fa1f9065336fb15dc4af174ed8d6aeb9dfc4045eda66f9d4bba81af417e92c",
+      "after_hash": "42dfd2f0226b0ebf5d21dcd8e75d63f5ce63f400b05d7ba2e0f4fa0e3f1f353c"
+    },
+    {
+      "at": "2026-09-11T14:17:44.733Z",
+      "event": "rehash",
+      "phase": "2",
+      "artifact": "02_SYSTEM_DESIGN.md",
+      "before_hash": "357226093f91ef99da83cc297b97d33412c4af2da1efff18925f37fcfe97bb97",
+      "after_hash": "f726ea064eb6b40f317f6704433a3456f3f337a1d4314a1e034fb357de8d0ee4"
+    },
+    {
+      "at": "2026-09-11T14:17:45.432Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "4b4e2bf2f73a0844a0a06b8b41290d12b297361f3c7c0524e31bd24bc92b7d97",
+      "after_hash": "d4889d1ea2602c623c90f1531eeb187f2e463b258f0957839b3e36ccd4c5156d"
+    },
+    {
+      "at": "2026-09-11T17:58:30.331Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T17:58:43.044Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "42dfd2f0226b0ebf5d21dcd8e75d63f5ce63f400b05d7ba2e0f4fa0e3f1f353c",
+    "2": "f726ea064eb6b40f317f6704433a3456f3f337a1d4314a1e034fb357de8d0ee4",
+    "3": "d4889d1ea2602c623c90f1531eeb187f2e463b258f0957839b3e36ccd4c5156d",
+    "4": "ecd72b20db110ec8764b8c3797393efee3d5ac27e37251af5e4ea2657ff18421",
+    "5": "78d3c20aa2839050c32c4de7709fddeb7980856adf4ed3aa8d297270d0f48a49",
+    "discovery": "28432e0766585eae8802dfa490969137093d5b53e6f630d6f5f20b6a4845706a",
+    "ux": "a1d116720ea9abd9634af28f6a8e0697b418bcd03acc6fa594dfa54597ae298a"
+  },
+  "coverageAuditLastAt": "2026-09-10T02:34:17.496Z",
+  "coverageAuditReqHash": "82bcbb15051314773f2bea972ec305d3802acf3bad452beea2f3a78d135d7995",
+  "verifyPassed": true,
+  "frSnapshots": {
+    "2": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ],
+    "3": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ],
+    "4": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ],
+    "5": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ],
+    "ux": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ]
+  },
+  "verifyResultsHash": "0b89b2a2899b168b86fdc2dc97b7c94dd523408351f40085703ff1aea00e1b1a",
+  "verifyRanAt": "2026-09-11T17:58:30.242Z",
+  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-11T17:58:30.242Z"
+  },
+  "verifySummary": {
+    "total": 178,
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-11T00:09:17.588Z"
+    }
+  ]
+}

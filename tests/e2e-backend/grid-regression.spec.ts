@@ -19,14 +19,14 @@ async function waitForCount(page: import("@playwright/test").Page, target: numbe
 test("TC-BE-068h: guardar un movimiento suma a Ejecutado y se refleja en la grilla", async ({ page }) => {
   // @aitri-tc TC-BE-068h
   await register(page, uniqueEmail("grid"));
-  const before = await actualFor(page, "s-comida-mercado", "jun");
-  expect(await createMovementViaApi(page, 5000, "jun")).toBe(201);
+  const before = await actualFor(page, "s-comida-mercado", "2026-06");
+  expect(await createMovementViaApi(page, 5000, "2026-06")).toBe(201);
   // El store en vivo (que alimenta la grilla) refleja el nuevo Ejecutado tras el evento SSE.
   expect(await waitForCount(page, 1)).toBe(true);
-  const after = await actualFor(page, "s-comida-mercado", "jun");
+  const after = await actualFor(page, "s-comida-mercado", "2026-06");
   expect(after).toBe(before + 5000);
   // La grilla sigue montada y funcional (misma superficie visible).
-  await expect(page.getByRole("heading", { name: "Presupuesto" })).toBeVisible();
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
   await expect(page.getByText("GASTOS").first()).toBeVisible();
 });
 
@@ -50,7 +50,7 @@ test("TC-BE-070f: guardar con monto 0 no crea movimiento (igual que hoy)", async
   await register(page, uniqueEmail("cero"));
   const before = await movementCount(page);
   // Monto 0 → la API lo rechaza (422), no se crea movimiento.
-  expect(await createMovementViaApi(page, 0, "jun")).toBe(422);
+  expect(await createMovementViaApi(page, 0, "2026-06")).toBe(422);
   await page.waitForTimeout(500);
   expect(await movementCount(page)).toBe(before); // sin cambios
 });

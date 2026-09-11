@@ -41,12 +41,52 @@
     "tests/domain/hardening.test.ts",
     "tests/integration/persistence.test.ts",
     "tests/e2e/critical.spec.ts",
-    "tests/e2e/reparent.spec.ts"
+    "tests/e2e/reparent.spec.ts",
+    "tests/domain/summary-kpis.test.ts",
+    "tests/helpers/seedConMontos.ts",
+    "tests/domain/bg-019-borrar-alcancia-con-saldo.test.ts",
+    "tests/domain/bg-020-retiro-planeado-huerfano.test.ts",
+    "tests/domain/bg-021-tope-de-monto.test.ts",
+    "tests/domain/bg-024-auto-mover-en-la-fusion.test.ts"
   ],
-  "files_modified": [],
-  "setup_commands": ["npm install"],
+  "files_modified": [
+    "src/domain/dashboard.ts",
+    "src/components/DesktopShell.tsx",
+    "smoke.sh",
+    "package.json",
+    "scripts/security-config.sh",
+    "tests/integration/feature-stack.test.ts",
+    "tests/domain/categories.test.ts",
+    "tests/e2e/helpers/fixtures.ts",
+    "drizzle/0005_cierre_impacto.sql",
+    "tests/helpers/perf.ts",
+    "tests/domain/balance.test.ts",
+    "tests/domain/budget-state.test.ts",
+    "tests/domain/cierre-de-mes.test.ts",
+    "tests/domain/contrapartidas-reserva.test.ts",
+    "tests/domain/meses-y-saldo-inicial.test.ts",
+    "tests/domain/multi-anio.test.ts",
+    "tests/domain/refinamiento-ui.test.ts",
+    "tests/domain/reglas-en-el-servidor.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/domain/rollup-perf.test.ts",
+    "tests/domain/techo-de-flujo-perf.test.ts",
+    "src/components/BalanceModule.tsx",
+    "src/domain/reserve.ts",
+    "src/server/schemas.ts",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/techo-de-flujo.test.ts",
+    "package-lock.json",
+    "tests/integration/backend/helpers/globalSetup.ts"
+  ],
+  "setup_commands": [
+    "npm install"
+  ],
   "environment_variables": [
-    { "name": "PORT", "default": "3000" }
+    {
+      "name": "PORT",
+      "default": "3000"
+    }
   ],
   "technical_debt": [
     {
@@ -72,23 +112,161 @@
       "substitution": "Andamiaje multiusuario/API: entidades cargan `ownerId` (default 'local') y toda la persistencia pasa por la interfaz LedgerRepository. Sin TCs dedicados (FR SHOULD sin user story); se ejercita indirectamente en los tests de persistencia.",
       "reason": "Es andamiaje para Fase 2, no funcionalidad activa en v1; su contrato (interfaz + ownerId) está presente y usado por el store.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-013",
+      "substitution": "La semilla dejo de traer montos el 2026-09-07 (feature semilla-intacta, FR-2301). Con ello la necesidad del USUARIO SECUNDARIO del discovery —el revisor tecnico de portafolio, cuya meta textual es «constatar una app coherente end-to-end, no un demo a medias»— queda SIN CUBRIR en el producto: con el libro vacio no ve rejilla con cifras, ni dashboard, ni roll-ups. La decision del usuario del 2026-09-08 es servirla con una accion explicita de «cargar datos de ejemplo» —`genBudget` sigue viva y exportada en src/domain/seed.ts precisamente para eso— pero ESA ACCION NO ESTA CONSTRUIDA: va en una feature aparte junto al recorrido de arranque. Hasta entonces, quien quiera ver el producto lleno tiene que teclear los datos a mano.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "FR-012",
+      "substitution": "Separador de miles INCOHERENTE entre las superficies donde se ESCRIBE dinero, detectado por el usuario el 2026-09-08. `AmountDisplay` del Registro formatea en vivo con `formatCOP` (FR-207) mientras se teclea; en cambio la celda editable de la grilla (BudgetGrid, `replace(/[^0-9]/g,\"\")`), la tarjeta de arranque (OpeningCard) y el saldo inicial de Configuracion aceptan digitos pelados sin agrupar. Al LEER si es coherente en todas las superficies (`money`/`cellNum` con toLocaleString('es-CO')). Es donde mas facil es equivocarse en un cero, porque la tarjeta y Configuracion piden cifras grandes. La pieza para arreglarlo ya existe (`formatCOP` de @/lib/money). Va en la feature del recorrido de arranque.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-011",
+      "substitution": "BG-003 (cierre-de-mes, high) — CERRADO el 2026-09-08, se registra aqui porque toca la cadena de migraciones del proyecto. drizzle/0005_cierre_impacto.sql anadia dos columnas NULABLES y acto seguido un CHECK bicondicional que las exige cuando hay un mes reabierto: cualquier fila ya reabierta lo violaba al crearlo y la migracion abortaba con 23514, dejando SIN aplicar tambien la 0006. Funcionaba en base vacia y fallaba en una con datos. Se anadio el paso de conversion que faltaba y se corrigio la cabecera, que afirmaba «puramente aditiva, no hay datos que convertir» — falso. LA DEUDA QUE QUEDA, y por eso se declara en vez de darlo por cerrado del todo: la linea de base NO se reconstruye, se SUELTA la reapertura (reopened_period = NULL), porque el saldo de cierre en el instante de reabrir no quedo anotado en ninguna parte y fabricar ceros seria peor que no tener el dato. Una base que traiga meses reabiertos de antes de esta migracion los vera como no reabiertos y habra que reabrirlos de nuevo; entonces si nacen con su linea de base. Hoy no afecta a nadie: no hay usuarios ni base de produccion.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "NFR-001",
+      "substitution": "BG-030 (raiz, medium) — CERRADO y VERIFICADO el 2026-09-08. Las 14 aserciones de tiempo de la suite pasan a medirse MEJOR-DE-5 (mejorDe/mejorTiempo en tests/helpers/perf.ts) en vez de con un cronometro suelto: el minimo es la pasada que menos CPU tuvo que compartir. LA DEUDA QUE QUEDA, y por eso se declara: el guardarrail sigue siendo un cronometro de pared dentro de la suite unitaria, no una suite de rendimiento aislada. El minimo lo vuelve robusto a la contencion —probado con 8 carriles de CPU y carga 7.24, cero fallos, cuando antes bastaba carga 3— pero sigue dependiendo de que ALGUNA de las 5 pasadas encuentre la maquina desahogada. En una maquina saturada de forma sostenida volveria a ser fragil. La salida definitiva sigue siendo mover los guardarrailes a una suite de rendimiento que corra sola; no se hizo porque el coste supera al problema hoy. EMPARENTADOS: BG-025 y BG-026 son de la misma familia y conviene revisarlos con este arreglo puesto.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-005",
+      "substitution": "LOS CUATRO BUGS DE DINERO, cerrados el 2026-09-08 tras reproducir cada uno y MEDIRLO antes de tocar codigo. BG-021: el monto no tenia techo — aceptaba hasta Number.MAX_VALUE y lo que caia entre 2^53 y el bigint de Postgres se guardaba con OTRO valor, en silencio; el tope es MAX_SAFE_INTEGER porque ahi deja de ser exacta la representacion. BG-020: el retiro planeado huerfano dejaba el reservado presupuestado en -400.000 sin aviso; se AVISA (tipo nuevo de MonthIssue), no se bloquea, por la misma razon que ya documenta monthIssues. BG-019: una alcancia con dinero dentro se borraba y su saldo se descongelaba a Disponible sin aviso; AHORA SE BLOQUEA por decision del usuario, por coherencia con el resto del producto. BG-024: la fusion dejaba moveres de un bolsillo a si mismo, vivos y EDITABLES. DEUDA QUE QUEDA, declarada y no disimulada: (a) BG-022 (low) sigue abierto — bordes menores del dinero: parseAmount laxo, seq del servidor, mes invalido. (b) HALLAZGO SIN REGISTRAR, pendiente de decision del usuario: vaciar la CELDA de una alcancia a 0 NO la vacia — el mover que le dio el dinero se lo sigue acreditando (medido: celda undefined y balance 100.000 en los doce meses). Es de la misma familia que el resto: el modelo hace lo correcto y la interfaz no lo cuenta. (c) BG-019 se resolvio bloqueando; el AVISO —decir cuanto dinero hay antes de bloquear— sigue sin construirse.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "NFR-006",
+      "substitution": "BG-031 y BG-032, cerrados el 2026-09-08 con la app YA en uso real. BG-031: el techo de reservas no conocia el saldo inicial y TRES constructores de estado del dominio perdian campos al clonar — la app mostraba 36.480.200 disponibles y rechazaba reservar. Arreglado y ademas blindado: los tres PROPAGAN el estado, asi que un campo nuevo no se puede volver a perder. BG-032: el arranque de Testcontainers se rendia a los 10 s bajo la concurrencia de verify-run. DEUDA QUE QUEDA, y es la de fondo: `aitri verify-run` lanza A LA VEZ el runner, el gate de cobertura y DOS suites de Playwright, y AMBAS corridas de vitest incluyen el proyecto backend — dos Postgres levantandose a la vez. BG-026, BG-028, BG-030 y BG-032 son la MISMA familia: demasiado en paralelo, y cada componente se rompe por donde es mas fragil. Los cuatro estan mitigados uno a uno; la causa comun —la concurrencia misma— sigue en pie y volvera a morder por una quinta puerta. La salida de fondo seria que el gate de cobertura no repita el proyecto backend, o que verify-run serialice.",
+      "effort": "medium"
     }
   ],
   "test_runner": "npm run test:run",
   "test_files": [
-    "tests/domain/movement.test.ts",
+    "tests/domain/backend-regression.test.ts",
+    "tests/domain/balance.test.ts",
+    "tests/domain/budget-state-aa.test.ts",
+    "tests/domain/budget-state.test.ts",
     "tests/domain/categories.test.ts",
-    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/demote-node.test.ts",
+    "tests/domain/gridWidth.test.ts",
+    "tests/domain/hardening.test.ts",
     "tests/domain/move-dashboard-seed.test.ts",
-    "tests/integration/persistence.test.ts",
+    "tests/domain/movement.test.ts",
+    "tests/domain/period-default.test.ts",
+    "tests/domain/promote-to-group.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/reserve-notes.test.ts",
+    "tests/domain/reserve-perf.test.ts",
+    "tests/domain/reserve-restructure.test.ts",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/rollup-perf.test.ts",
+    "tests/domain/rollup-sign.test.ts",
+    "tests/domain/seq-monotonic.test.ts",
+    "tests/e2e-backend/auth-flow.spec.ts",
+    "tests/e2e-backend/cross-device.spec.ts",
+    "tests/e2e-backend/grid-regression.spec.ts",
+    "tests/e2e-backend/live-sync.spec.ts",
+    "tests/e2e-backend/storage-split.spec.ts",
+    "tests/e2e/balance.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts",
+    "tests/e2e/control-size-scale.spec.ts",
+    "tests/e2e/coverage-extra.spec.ts",
+    "tests/e2e/coverage-skips.spec.ts",
     "tests/e2e/critical.spec.ts",
-    "tests/e2e/reparent.spec.ts"
+    "tests/e2e/demote-node.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e/grid-ux.spec.ts",
+    "tests/e2e/promote-to-group.spec.ts",
+    "tests/e2e/reparent.spec.ts",
+    "tests/e2e/servidor-fuente-unica.spec.ts",
+    "tests/e2e/storage-banner.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/ux-consistency.spec.ts",
+    "tests/integration/backend/api.test.ts",
+    "tests/integration/backend/auth.test.ts",
+    "tests/integration/backend/config.test.ts",
+    "tests/integration/backend/foundation.test.ts",
+    "tests/integration/backend/oauth.test.ts",
+    "tests/integration/backend/perf.test.ts",
+    "tests/integration/backend/repo-sync.test.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/integration/backend/security.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/integration/backend/trust-proxy.test.ts",
+    "tests/integration/feature-stack.test.ts",
+    "tests/integration/persistence.test.ts",
+    "tests/integration/reserve-closure.test.ts",
+    "tests/integration/reserve-migration.test.ts",
+    "tests/integration/response-validation.test.ts",
+    "tests/integration/seq-seed-on-load.test.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/integration/ux-consistency.test.ts",
+    "tests/integration/write-serialization.test.ts",
+    "tests/unit/backend-gates.test.ts",
+    "tests/unit/feature-stack.test.ts",
+    "tests/unit/servidor-fuente-unica.test.ts",
+    "tests/unit/ux-consistency.test.ts"
   ],
   "quality_gates": [
-    { "name": "typecheck", "command": "npm run typecheck", "required": true },
-    { "name": "lint", "command": "npm run lint", "required": true },
-    { "name": "coverage", "command": "npm run coverage", "required": true },
-    { "name": "smoke", "command": "./smoke.sh", "required": true, "timeout_ms": 180000 },
-    { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "npm run coverage",
+      "required": true,
+      "timeout_ms": 900000,
+      "note": "900s: la suite incluye TC-BE-084h, que ejecuta npm audit (llamada de red real) y bajo la carga del e2e en paralelo ha llegado a 287s por si solo. Con el default de 300s el gate salia error por timeout de forma no determinista. Ver BL-024."
+    },
+    {
+      "name": "smoke",
+      "command": "./smoke.sh",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "security-config",
+      "command": "./scripts/security-config.sh",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "design-tokens",
+      "command": "./scripts/design-tokens.sh",
+      "required": true,
+      "timeout_ms": 120000,
+      "note": "refinamiento-ui ADR-01: convierte las reglas visuales en codigo de salida. Existe porque FR-303 elimino ~17 tamanos ad-hoc, se aprobo y se verifico, y al medirlo habia 18."
+    },
+    {
+      "name": "secret-scan",
+      "command": "./scripts/secret-scan.sh",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "e2e",
+      "command": "npm run test:e2e",
+      "required": false,
+      "timeout_ms": 600000
+    },
+    {
+      "name": "security-audit",
+      "command": "npm audit --audit-level=high",
+      "required": true,
+      "note": "Declared 2026-09-02: mirrors the scheduled CI security job locally (its 08-31 run failed on undici vulns unattended). Network-dependent — offline runs will fail this gate; see also TC-BE-084h which exercises npm audit inside the suite."
+    }
   ]
 }

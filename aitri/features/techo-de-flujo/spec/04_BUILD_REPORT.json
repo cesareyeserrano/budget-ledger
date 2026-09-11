@@ -1,0 +1,91 @@
+{
+  "files_created": [
+    "tests/domain/techo-de-flujo.test.ts",
+    "tests/helpers/reserve.ts",
+    "tests/e2e/techo-de-flujo.spec.ts"
+  ],
+  "files_modified": [
+    "src/domain/reserve.ts",
+    "src/domain/balance.ts",
+    "src/state/store.ts",
+    "src/components/BudgetGrid.tsx",
+    "src/components/BalanceModule.tsx",
+    "src/components/ReserveCells.tsx",
+    "src/components/balanceRows.ts",
+    "src/components/reserveText.ts",
+    "src/components/register/Register.tsx",
+    "tests/domain/reserve.test.ts",
+    "tests/domain/balance-jerarquia-orden.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/contrapartidas-reserva.test.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/domain/balance.test.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "technical_debt": [
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declarado",
+      "reason": "El proyecto ya corre CodeQL como workflow propio de GitHub Actions (.github/workflows/codeql.yml), fuera de los gates de Aitri, y esta feature no añade ni modifica ninguna ruta HTTP, autenticación, secreto ni entrada de red — su NFR de seguridad es una exclusión declarada (NFR-1809).",
+      "effort_to_fix": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_files": [
+    "../../../tests/domain/techo-de-flujo.test.ts",
+    "../../../tests/domain/balance-jerarquia-orden.test.ts",
+    "../../../tests/e2e/techo-de-flujo.spec.ts",
+    "../../../tests/e2e/balance.spec.ts",
+    "../../../tests/e2e/balance-jerarquia.spec.ts",
+    "../../../tests/e2e/resumen-plegado.spec.ts",
+    "../../../tests/e2e/transferencias.spec.ts",
+    "../../../tests/e2e/transferencias-registro.spec.ts"
+  ],
+  "test_runner_timeout_ms": 900000,
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000,
+      "note": "Medido 2026-09-01 tras revertir el plegado por defecto: la suite completa tarda 10,8 min (344 e2e, 0 fallos). Los 39 min y los cuelgues anteriores NO eran contención: eran dos tests esperando filas de bolsillo que el plegado por defecto había hecho desaparecer."
+    }
+  ]
+}

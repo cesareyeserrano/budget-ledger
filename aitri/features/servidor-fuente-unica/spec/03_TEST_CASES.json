@@ -1,0 +1,1272 @@
+{
+  "test_plan": {
+    "strategy": "Feature sustractiva: el riesgo no es que lo nuevo falle, es que al retirar el flag de rollout se pierda lógica viva que vivía dentro de sus ramas (RISK-1 del TRD). Por eso el peso de la suite está en REGRESIÓN, no en funcionalidad nueva. Tres decisiones de diseño de pruebas: (1) Los criterios estáticos de FR-1101/NFR-1107 —'grep SERVER_MODE en src/ devuelve 0'— NO se escriben como test: leer el código fuente como texto viola la regla Behavior-vs-Implementation del pipeline. Se declaran como quality_gate `no-legacy-mode` (scripts/no-legacy-mode.sh, exit≠0 si aparece SERVER_MODE, LEDGER_SERVER_MODE o LocalStorageRepository en src/), que corre en cada verify y es honesto sobre ser una comprobación estática. Los TCs de esos requisitos verifican la CONSECUENCIA observable: que solo existe el camino de servidor. (2) Los tres bloques de lógica sepultados bajo el flag (resync ante 409, limpieza de claves ledger.*, seam __ledgerStore) tienen cada uno su TC negativo dedicado, porque ninguno falla de forma ruidosa si se pierde. (3) Los tests que hoy usan LocalStorageRepository como doble de conveniencia pasan a InMemoryRepository (fake en tests/, ADR-03); los que verifican persistencia real apuntan a ServerRepository contra Postgres.",
+    "coverage_goal": "100% de los 8 FRs y los 8 NFRs con happy/edge/negative. Cobertura de línea ≥80% en los módulos tocados (state/store.ts, components/auth/*, data/*). Los 5 NFR de categoría Regression llevan set completo por ser MUST duro.",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-SFU-101h",
+      "requirement_id": "FR-1101",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101b",
+      "title": "TC-SFU-101h: el store construye un ServerRepository y sus escrituras salen por la API",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con window definido",
+        "fetch interceptado para registrar las llamadas"
+      ],
+      "given": "el store recién inicializado en el navegador, sin ninguna variable NEXT_PUBLIC_LEDGER_SERVER_MODE definida en el entorno",
+      "when": "se invoca setLeafAmount('leaf-mercado','ene','budget',250000) y se espera a que la persistencia resuelva",
+      "then": "se emitió exactamente 1 petición PUT a '/api/v1/ledger' cuyo cuerpo contiene budgets['leaf-mercado'].ene === 250000, y window.localStorage.length no aumentó",
+      "steps": [
+        "Inicializar el store con fetch interceptado",
+        "Llamar setLeafAmount('leaf-mercado','ene','budget',250000)",
+        "Esperar a que la promesa de save resuelva",
+        "Assert 1 PUT a /api/v1/ledger con el monto exacto",
+        "Assert localStorage.length sin cambio"
+      ],
+      "expected_result": "1 PUT a /api/v1/ledger con budgets['leaf-mercado'].ene=250000; cero escrituras en localStorage",
+      "test_data": {
+        "leafId": "leaf-mercado",
+        "month": "ene",
+        "kind": "budget",
+        "value": 250000
+      }
+    },
+    {
+      "id": "TC-SFU-101e",
+      "requirement_id": "FR-1101",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101c",
+      "title": "TC-SFU-101e: en SSR (sin window) la construcción del repositorio devuelve null sin lanzar",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Entorno node sin globalThis.window"
+      ],
+      "given": "el módulo state/store importado con typeof window === 'undefined'",
+      "when": "se importa el módulo y se lee useLedgerStore.getState()",
+      "then": "el import no lanza ninguna excepción, getState().hydrated === false y al invocar hydrate() queda hydrated === true sin emitir ninguna petición fetch",
+      "steps": [
+        "Borrar globalThis.window",
+        "Importar state/store en fresco",
+        "Assert que el import no lanza",
+        "Invocar hydrate() y esperar",
+        "Assert hydrated===true y 0 llamadas a fetch"
+      ],
+      "expected_result": "Import sin excepción; hydrate() marca hydrated=true sin ninguna petición",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-101f",
+      "requirement_id": "FR-1101",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101a",
+      "title": "TC-SFU-101f: ninguna variable de entorno reactiva un repositorio de localStorage",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage real y vacío"
+      ],
+      "given": "process.env.NEXT_PUBLIC_LEDGER_SERVER_MODE definido en 'false' y localStorage vacío",
+      "when": "se inicializa el store y se ejecuta addMovement({type:'expense',catId:'cat-mercado',amount:15000,month:'ene'})",
+      "then": "la escritura sigue saliendo por PUT '/api/v1/ledger' y localStorage.getItem('ledger.nodes.v1') === null y localStorage.getItem('ledger.budget.v4') === null",
+      "steps": [
+        "Definir NEXT_PUBLIC_LEDGER_SERVER_MODE='false'",
+        "Inicializar el store en fresco",
+        "Ejecutar addMovement con monto 15000",
+        "Assert PUT a /api/v1/ledger emitido",
+        "Assert ambas claves ledger.* siguen en null"
+      ],
+      "expected_result": "El flag ya no existe: la escritura va al servidor y localStorage queda intacto",
+      "test_data": {
+        "NEXT_PUBLIC_LEDGER_SERVER_MODE": "false",
+        "amount": 15000
+      }
+    },
+    {
+      "id": "TC-SFU-102h",
+      "requirement_id": "FR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102a",
+      "title": "TC-SFU-102h: sin sesión, cualquier ruta muestra el formulario y nunca el shell",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Navegador sin cookie de sesión",
+        "App servida en modo servidor contra Postgres"
+      ],
+      "given": "un navegador sin cookie de sesión de better-auth",
+      "when": "se navega a '/' y se espera a que la red quede en reposo",
+      "then": "existe el elemento [data-testid='auth-form'] y NO existe ningún [data-testid='budget-grid'] ni [data-testid='desktop-shell'] en el DOM",
+      "steps": [
+        "Limpiar cookies",
+        "Navegar a /",
+        "Esperar networkidle",
+        "Assert auth-form visible",
+        "Assert budget-grid y desktop-shell ausentes del DOM"
+      ],
+      "expected_result": "auth-form presente; ningún contenedor del shell en el DOM",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-102e",
+      "requirement_id": "FR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102c",
+      "title": "TC-SFU-102e: la sesión que expira devuelve al login sin dejar datos en pantalla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Sesión iniciada con admin@admin.com y grilla visible"
+      ],
+      "given": "la app abierta con sesión válida y la grilla mostrando la categoría 'Mercado'",
+      "when": "se borra la cookie de sesión desde el contexto del navegador y se dispara una operación que llama a la API (editar una celda a 90000)",
+      "then": "la API responde 401, el DOM vuelve a mostrar [data-testid='auth-form'], y el texto 'Mercado' ya no está presente en el documento",
+      "steps": [
+        "Iniciar sesión y confirmar grilla",
+        "context.clearCookies()",
+        "Editar una celda a 90000",
+        "Assert respuesta 401",
+        "Assert auth-form visible y 'Mercado' ausente del DOM"
+      ],
+      "expected_result": "401 → vuelve al login; ningún dato financiero visible",
+      "test_data": {
+        "amount": 90000
+      }
+    },
+    {
+      "id": "TC-SFU-102f",
+      "requirement_id": "FR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102b",
+      "title": "TC-SFU-102f: sin sesión no se emite ninguna petición de datos financieros",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Navegador sin cookie de sesión",
+        "Grabación de peticiones activa"
+      ],
+      "given": "un navegador sin sesión con un listener que registra toda petición saliente",
+      "when": "se navega a '/', se espera networkidle y se cambia el tema a oscuro",
+      "then": "cero peticiones a rutas que empiecen por '/api/v1/' (ledger, movements, sync) y localStorage no contiene ninguna clave que empiece por 'ledger.'",
+      "steps": [
+        "Registrar todas las peticiones",
+        "Navegar a / sin sesión",
+        "Cambiar el tema a oscuro",
+        "Assert 0 peticiones a /api/v1/*",
+        "Assert 0 claves ledger.* en localStorage"
+      ],
+      "expected_result": "0 peticiones a /api/v1/* y 0 claves ledger.* sin sesión",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-103h",
+      "requirement_id": "FR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-103h: un dato guardado en un navegador aparece al entrar desde otro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres levantado",
+        "Cuenta admin@admin.com existente"
+      ],
+      "given": "el usuario admin@admin.com con sesión en el contexto de navegador A",
+      "when": "en A registra un movimiento de gasto por 37500 en 'Mercado' mes 'ene', y luego se abre un contexto de navegador B totalmente limpio y se inicia sesión con la misma cuenta",
+      "then": "en B, sin recargar más de una vez, el movimiento de 37500 en 'Mercado'/'ene' está presente en la lista de recientes",
+      "steps": [
+        "Contexto A: login, registrar gasto 37500 en Mercado/ene",
+        "Crear contexto B con storageState vacío",
+        "Contexto B: login con la misma cuenta",
+        "Assert movimiento 37500 visible en B"
+      ],
+      "expected_result": "El movimiento de 37500 creado en A es visible en B",
+      "test_data": {
+        "amount": 37500,
+        "category": "Mercado",
+        "month": "ene"
+      }
+    },
+    {
+      "id": "TC-SFU-103e",
+      "requirement_id": "FR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103c",
+      "title": "TC-SFU-103e: si el guardado falla por red, avisa y NO cae de vuelta a localStorage",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage real y vacío"
+      ],
+      "given": "el store hidratado y fetch configurado para rechazar con TypeError('Failed to fetch') en el PUT",
+      "when": "se ejecuta setLeafAmount('leaf-mercado','feb','actual',64000)",
+      "then": "la promesa no lanza al llamador, el store expone el aviso no bloqueante, y localStorage.getItem('ledger.budget.v4') sigue siendo null",
+      "steps": [
+        "Hidratar el store",
+        "Configurar fetch para rechazar el PUT",
+        "Ejecutar setLeafAmount con 64000",
+        "Assert que no se propaga excepción",
+        "Assert ledger.budget.v4 sigue en null"
+      ],
+      "expected_result": "Fallo de red avisado sin excepción y sin ninguna escritura de respaldo en localStorage",
+      "test_data": {
+        "amount": 64000
+      }
+    },
+    {
+      "id": "TC-SFU-103f",
+      "requirement_id": "FR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103b",
+      "title": "TC-SFU-103f: ningún flujo de datos del usuario escribe una clave ledger.* en localStorage",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage instrumentado para registrar cada setItem"
+      ],
+      "given": "localStorage con setItem envuelto en un espía que registra cada clave escrita",
+      "when": "se ejecutan en secuencia createNode('Ocio'), setLeafAmount('leaf-ocio','mar','budget',80000), addMovement({amount:12000}) y una operación de reserva de 50000",
+      "then": "ninguna clave registrada por el espía empieza por 'ledger.'; las únicas claves admitidas son 'theme' y la de ancho de columna",
+      "steps": [
+        "Instrumentar localStorage.setItem con un espía",
+        "Ejecutar los 4 flujos de datos",
+        "Recolectar todas las claves escritas",
+        "Assert que ninguna empieza por 'ledger.'"
+      ],
+      "expected_result": "0 claves ledger.* escritas en 4 flujos distintos de datos del usuario",
+      "test_data": {
+        "montos": [
+          80000,
+          12000,
+          50000
+        ]
+      }
+    },
+    {
+      "id": "TC-SFU-104h",
+      "requirement_id": "FR-1104",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104a",
+      "title": "TC-SFU-104h: tras un recorrido completo no queda ninguna clave ledger.* en localStorage",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres levantado",
+        "Navegador limpio"
+      ],
+      "given": "un navegador limpio y la cuenta admin@admin.com",
+      "when": "se recorre login → editar una celda a 120000 → registrar un movimiento de 9000 → operar una reserva de 40000 → recargar la página",
+      "then": "Object.keys(localStorage).filter(k => k.startsWith('ledger.')).length === 0",
+      "steps": [
+        "Login",
+        "Editar celda a 120000",
+        "Registrar movimiento 9000",
+        "Operar reserva 40000",
+        "Recargar",
+        "Assert 0 claves con prefijo ledger."
+      ],
+      "expected_result": "0 claves con prefijo 'ledger.' tras el recorrido completo",
+      "test_data": {
+        "celda": 120000,
+        "movimiento": 9000,
+        "reserva": 40000
+      }
+    },
+    {
+      "id": "TC-SFU-104e",
+      "requirement_id": "FR-1104",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104c",
+      "title": "TC-SFU-104e: con localStorage inutilizable los datos del usuario siguen guardándose",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "jsdom con localStorage cuyo setItem y removeItem lanzan QuotaExceededError"
+      ],
+      "given": "un localStorage cuyos setItem y removeItem lanzan QuotaExceededError en cada llamada",
+      "when": "se hidrata el store y se ejecuta setLeafAmount('leaf-mercado','abr','budget',175000)",
+      "then": "hydrate() completa con hydrated===true, se emite el PUT a '/api/v1/ledger' con el monto 175000, y no se propaga ninguna excepción al llamador",
+      "steps": [
+        "Sustituir localStorage por uno que lanza siempre",
+        "Hidratar el store",
+        "Ejecutar setLeafAmount con 175000",
+        "Assert hydrated===true, PUT emitido y sin excepción"
+      ],
+      "expected_result": "Los datos del usuario se guardan aunque localStorage sea inservible",
+      "test_data": {
+        "amount": 175000
+      }
+    },
+    {
+      "id": "TC-SFU-104f",
+      "requirement_id": "FR-1104",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104a",
+      "title": "TC-SFU-104f: la limpieza borra restos ledger.* preexistentes al hidratar",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage sembrado con restos del modo anterior"
+      ],
+      "given": "localStorage sembrado con ledger.nodes.v1='[{\"id\":\"viejo\"}]' y ledger.budget.v4='{\"viejo\":{\"ene\":1}}' antes de arrancar",
+      "when": "se ejecuta hydrate()",
+      "then": "tras hidratar, localStorage.getItem('ledger.nodes.v1') === null y localStorage.getItem('ledger.budget.v4') === null, mientras que localStorage.getItem('theme') conserva su valor previo",
+      "steps": [
+        "Sembrar las dos claves ledger.* y la clave theme='dark'",
+        "Ejecutar hydrate()",
+        "Assert ambas claves ledger.* en null",
+        "Assert theme sigue valiendo 'dark'"
+      ],
+      "expected_result": "Restos ledger.* eliminados; la preferencia theme intacta",
+      "test_data": {
+        "theme": "dark"
+      }
+    },
+    {
+      "id": "TC-SFU-105h",
+      "requirement_id": "FR-1105",
+      "user_story_id": "US-1105",
+      "ac_id": "AC-1105a",
+      "title": "TC-SFU-105h: el contrato LedgerRepository sobrevive al retiro de la implementación local",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el módulo data/repository tras el retiro",
+      "when": "se importa y se inspeccionan sus exports en tiempo de ejecución",
+      "then": "el módulo no exporta ninguna clave llamada 'LocalStorageRepository' ni 'stripLegacyUnassigned', y ServerRepository sigue satisfaciendo el contrato (tiene métodos load y save que devuelven Promise)",
+      "steps": [
+        "Importar data/repository",
+        "Assert exports sin LocalStorageRepository ni stripLegacyUnassigned",
+        "Importar ServerRepository y assert que expone load y save"
+      ],
+      "expected_result": "La interfaz sobrevive; la implementación local y su saneador ya no se exportan",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-105e",
+      "requirement_id": "FR-1105",
+      "user_story_id": "US-1105",
+      "ac_id": "AC-1105c",
+      "title": "TC-SFU-105e: un nodo system legado en Postgres sigue protegido contra renombrado y borrado",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Postgres con un nodo sembrado {id:'g-legado', name:'Sin asignar', system:true}"
+      ],
+      "given": "un nodo con system=true llamado 'Sin asignar' sembrado directamente en Postgres",
+      "when": "se hidrata el store desde el servidor y se intenta renameNode('g-legado','Otro') y deleteNode('g-legado')",
+      "then": "el nombre del nodo sigue siendo 'Sin asignar' y el nodo sigue presente en state.data.nodes tras ambas operaciones",
+      "steps": [
+        "Sembrar el nodo system en Postgres",
+        "Hidratar el store",
+        "Intentar renameNode y deleteNode",
+        "Assert nombre inalterado y nodo presente"
+      ],
+      "expected_result": "Los guards !node.system siguen protegiendo datos legados que ya nadie sanea",
+      "test_data": {
+        "nodeId": "g-legado",
+        "name": "Sin asignar"
+      }
+    },
+    {
+      "id": "TC-SFU-105f",
+      "requirement_id": "FR-1105",
+      "user_story_id": "US-1105",
+      "ac_id": "AC-1105b",
+      "title": "TC-SFU-105f: la clave legada v3 de localStorage se ignora, pero la conversión v3→v4 del servidor sigue viva",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage sembrado con el formato v3",
+        "Postgres con un ledger marcado dataVersion=3"
+      ],
+      "given": "localStorage con la clave legada ledger.budget.v3='{\"c-alcancia\":{\"ene\":50000}}' y, por separado, un ledger en Postgres del mismo usuario marcado con dataVersion=3 y una celda transfer de saldo 130000 en 'mar'",
+      "when": "se ejecuta hydrate() y a continuación se carga el ledger desde el servidor",
+      "then": "el estado NO contiene los 50000 de la clave v3 de localStorage (ese llamador se retiró), Y el ledger de Postgres SÍ queda convertido a v4 por ensureV4InTx con su marca dataVersion=4 — la conversión de dominio no se retiró, solo su llamador local",
+      "steps": [
+        "Sembrar ledger.budget.v3 en localStorage con c-alcancia=50000",
+        "Sembrar en Postgres un ledger con dataVersion=3 y saldo 130000 en mar",
+        "Ejecutar hydrate() y cargar del servidor",
+        "Assert que los 50000 de localStorage NO aparecen en el estado",
+        "Assert que el ledger de Postgres quedó con dataVersion=4 y celdas convertidas a aportes"
+      ],
+      "expected_result": "El llamador de localStorage está retirado; la conversión v3→v4 del servidor sigue operando (ADR-04 corregido)",
+      "test_data": {
+        "localStorage_v3": 50000,
+        "postgres_saldo_mar": 130000
+      }
+    },
+    {
+      "id": "TC-SFU-106h",
+      "requirement_id": "FR-1106",
+      "user_story_id": "US-1106",
+      "ac_id": "AC-1106a",
+      "title": "TC-SFU-106h: el TC del repositorio ejercita el ServerRepository que usa producción",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres levantado",
+        "Sesión válida en el cliente de test"
+      ],
+      "given": "un ServerRepository construido igual que lo construye state/store",
+      "when": "se ejecuta save('local', estado con budgets['leaf-mercado'].may=310000) y a continuación load('local') con una instancia nueva",
+      "then": "el estado devuelto por load contiene budgets['leaf-mercado'].may === 310000, demostrando ida y vuelta real contra Postgres",
+      "steps": [
+        "Construir ServerRepository como en store.ts",
+        "save con may=310000",
+        "load con instancia nueva",
+        "Assert may===310000"
+      ],
+      "expected_result": "Round-trip real contra Postgres con el monto exacto 310000",
+      "test_data": {
+        "amount": 310000
+      }
+    },
+    {
+      "id": "TC-SFU-106e",
+      "requirement_id": "FR-1106",
+      "user_story_id": "US-1106",
+      "ac_id": "AC-1106c",
+      "title": "TC-SFU-106e: el fake InMemoryRepository satisface el mismo contrato que el real",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "el fake InMemoryRepository de tests/ que implementa LedgerRepository",
+      "when": "se ejecuta save('local', estado con budgets['leaf-ocio'].jun=25000) y luego load('local')",
+      "then": "load devuelve un estado con budgets['leaf-ocio'].jun === 25000, y load('otro-owner') devuelve null",
+      "steps": [
+        "Instanciar InMemoryRepository",
+        "save con jun=25000 para owner 'local'",
+        "load('local') y assert 25000",
+        "load('otro-owner') y assert null"
+      ],
+      "expected_result": "El fake respeta el contrato: round-trip por owner y null para owner desconocido",
+      "test_data": {
+        "amount": 25000
+      }
+    },
+    {
+      "id": "TC-SFU-106f",
+      "requirement_id": "FR-1106",
+      "user_story_id": "US-1106",
+      "ac_id": "AC-1106b",
+      "title": "TC-SFU-106f: romper la construcción del repositorio hace fallar su test (hoy no falla)",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
+      "given": "el store inicializado con la construcción del repositorio forzada a devolver null (simulando la rotura)",
+      "when": "se ejecuta setLeafAmount('leaf-mercado','jul','budget',55000) y se espera",
+      "then": "no se emite ninguna petición PUT a '/api/v1/ledger' y la aserción del test falla, demostrando que el test detecta la rotura en vez de pasar en verde sobre un módulo huérfano",
+      "steps": [
+        "Forzar la construcción del repositorio a null",
+        "Ejecutar setLeafAmount con 55000",
+        "Assert que la ausencia de PUT es detectada por el test"
+      ],
+      "expected_result": "La rotura del punto de construcción es detectada (el pass falso de TC-BE-027h queda eliminado)",
+      "test_data": {
+        "amount": 55000
+      }
+    },
+    {
+      "id": "TC-SFU-107h",
+      "requirement_id": "FR-1107",
+      "user_story_id": "US-1107",
+      "ac_id": "AC-1107a",
+      "title": "TC-SFU-107h: la metadata describe una app con cuenta y multi-dispositivo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "la app servida",
+      "when": "se lee el atributo content de <meta name='description'> del documento",
+      "then": "el texto contiene la palabra 'cuenta' y no contiene la subcadena 'localStorage'",
+      "steps": [
+        "Navegar a /",
+        "Leer meta[name=description]",
+        "Assert contiene 'cuenta'",
+        "Assert no contiene 'localStorage'"
+      ],
+      "expected_result": "description menciona cuenta y no menciona localStorage",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-107e",
+      "requirement_id": "FR-1107",
+      "user_story_id": "US-1107",
+      "ac_id": "AC-1107a",
+      "title": "TC-SFU-107e: la descripción tampoco promete acceso sin cuenta",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "low",
+      "preconditions": [],
+      "given": "la app servida",
+      "when": "se lee meta[name='description']",
+      "then": "el texto no contiene ninguna de las subcadenas 'single-user', 'sin cuenta' ni 'offline'",
+      "steps": [
+        "Navegar a /",
+        "Leer la descripción",
+        "Assert que no contiene las 3 subcadenas"
+      ],
+      "expected_result": "Ninguna promesa de uso sin cuenta en la metadata",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-107f",
+      "requirement_id": "FR-1107",
+      "user_story_id": "US-1107",
+      "ac_id": "AC-1107a",
+      "title": "TC-SFU-107f: no queda el texto obsoleto 'single-user (localStorage)'",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "medium",
+      "preconditions": [],
+      "given": "la app servida",
+      "when": "se busca la subcadena exacta 'single-user (localStorage)' en el head del documento",
+      "then": "no aparece ninguna coincidencia",
+      "steps": [
+        "Navegar a /",
+        "Buscar la cadena exacta en el head",
+        "Assert 0 coincidencias"
+      ],
+      "expected_result": "0 coincidencias del texto obsoleto",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-108h",
+      "requirement_id": "FR-1108",
+      "user_story_id": "US-1108",
+      "ac_id": "AC-1108a",
+      "title": "TC-SFU-108h: la pantalla de acceso no usa estilos inline ni colores en hex literal",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Navegador sin sesión, pantalla de acceso visible"
+      ],
+      "given": "la pantalla de acceso renderizada sin sesión",
+      "when": "se recorren [data-testid='auth-form'] y todos sus descendientes leyendo su atributo style",
+      "then": "ningún elemento tiene atributo style no vacío, y el color computado del mensaje de error resuelve al valor de la variable CSS --error del tema activo (no a un hex ajeno como #c0392b)",
+      "steps": [
+        "Abrir la pantalla de acceso",
+        "Recorrer auth-form y descendientes",
+        "Assert 0 atributos style no vacíos",
+        "Provocar un error y comparar su color computado con getComputedStyle(root).getPropertyValue('--error')"
+      ],
+      "expected_result": "0 estilos inline; el color de error resuelve por token --error",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-108e",
+      "requirement_id": "FR-1108",
+      "user_story_id": "US-1108",
+      "ac_id": "AC-1108b",
+      "title": "TC-SFU-108e: los controles del login usan la escala canónica 32/40/48",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
+      "given": "la pantalla de acceso a viewport 1440px y luego a 375px",
+      "when": "se mide la altura efectiva de auth-email, auth-password, auth-submit y auth-google en ambos viewports",
+      "then": "a 1440px cada altura pertenece a {32,40,48} y vale 40; a 375px cada altura vale 48 (objetivo táctil WCAG 2.5.5)",
+      "steps": [
+        "Fijar viewport 1440x900 y medir los 4 controles",
+        "Assert cada altura === 40",
+        "Fijar viewport 375x812 y medir de nuevo",
+        "Assert cada altura === 48"
+      ],
+      "expected_result": "40px en escritorio y 48px en móvil, sin valores fuera de la escala",
+      "test_data": {
+        "viewports": [
+          "1440x900",
+          "375x812"
+        ]
+      }
+    },
+    {
+      "id": "TC-SFU-108f",
+      "requirement_id": "FR-1108",
+      "user_story_id": "US-1108",
+      "ac_id": "AC-1108d",
+      "title": "TC-SFU-108f: el rediseño conserva los 9 data-testid y no altera el flujo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
+      "given": "la pantalla de acceso rediseñada",
+      "when": "se consultan los 9 selectores auth-form, auth-email, auth-password, auth-submit, auth-google, auth-toggle, auth-error (tras un fallo), auth-name (tras cambiar a registro) y logout (tras iniciar sesión)",
+      "then": "los 9 existen; al enviar admin@admin.com con contraseña 'incorrecta' el texto de auth-error es exactamente 'Credenciales inválidas'; y auth-google tiene el atributo disabled con GOOGLE_ENABLED=false",
+      "steps": [
+        "Verificar la existencia de los 7 selectores de la pantalla",
+        "Cambiar a registro y verificar auth-name",
+        "Enviar credenciales incorrectas y assert texto exacto del error",
+        "Assert auth-google deshabilitado",
+        "Iniciar sesión y verificar logout"
+      ],
+      "expected_result": "9 testids presentes, textos de error literales y Google deshabilitado — cero regresión de contrato",
+      "test_data": {
+        "email": "admin@admin.com",
+        "password": "incorrecta"
+      }
+    },
+    {
+      "id": "TC-SFU-108c",
+      "requirement_id": "FR-1108",
+      "user_story_id": "US-1108",
+      "ac_id": "AC-1108c",
+      "title": "TC-SFU-108c: todo texto de la pantalla de acceso alcanza 4.5:1 de contraste en ambos temas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "Navegador sin sesión, pantalla de acceso visible",
+        "El esquema de color del sistema se emula en 'light' y en 'dark' (el default del tema es 'Sistema')"
+      ],
+      "given": "la pantalla de acceso renderizada sin sesión, primero con el sistema en tema claro y después en oscuro",
+      "when": "se recorre [data-testid='auth-form'] y todos sus descendientes que tengan texto propio, y de cada uno se calcula la razón de contraste WCAG entre su color computado y el fondo realmente pintado detrás (el primer ancestro con alpha > 0)",
+      "then": "ningún elemento con texto propio queda por debajo de 4.5:1 en ninguno de los dos temas — se mide sobre el DOM real y no sobre los tokens, porque un token correcto compuesto sobre el fondo equivocado sigue siendo ilegible",
+      "steps": [
+        "Emular colorScheme 'light' y abrir la pantalla de acceso sin sesión",
+        "Recorrer auth-form y descendientes con nodo de texto propio y visibles",
+        "Calcular luminancia relativa de color y del fondo opaco efectivo, y su razón de contraste",
+        "Assert que la lista de elementos por debajo de 4.5:1 está vacía",
+        "Repetir el recorrido completo con colorScheme 'dark'"
+      ],
+      "expected_result": "0 textos por debajo de 4.5:1 en tema claro y 0 en tema oscuro",
+      "test_data": {
+        "umbral": 4.5,
+        "temas": [
+          "light",
+          "dark"
+        ]
+      }
+    },
+    {
+      "id": "TC-SFU-201h",
+      "requirement_id": "NFR-1101",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104b",
+      "title": "TC-SFU-201h: el tema y el ancho de columna siguen persistiendo tras recargar",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Sesión iniciada, escritorio 1440px"
+      ],
+      "given": "la app con sesión iniciada y tema en 'Sistema'",
+      "when": "se cambia el tema a oscuro, se arrastra el ancho de la columna de categorías a 320px y se recarga la página",
+      "then": "tras recargar, el elemento raíz conserva la clase 'dark' y el ancho de la columna de categorías sigue siendo 320px",
+      "steps": [
+        "Cambiar tema a oscuro",
+        "Ajustar el ancho de columna a 320px",
+        "Recargar",
+        "Assert clase dark en el root",
+        "Assert ancho de columna 320px"
+      ],
+      "expected_result": "Ambas preferencias del dispositivo sobreviven a la recarga",
+      "test_data": {
+        "width": 320
+      }
+    },
+    {
+      "id": "TC-SFU-201e",
+      "requirement_id": "NFR-1101",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104b",
+      "title": "TC-SFU-201e: el default del tema sigue siendo 'Sistema'",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Navegador limpio sin clave theme"
+      ],
+      "given": "un navegador sin la clave 'theme' en localStorage",
+      "when": "se abre la app e inicia sesión",
+      "then": "el control de tema muestra la opción 'Sistema' como seleccionada",
+      "steps": [
+        "Limpiar localStorage",
+        "Abrir la app y entrar",
+        "Assert control de tema en 'Sistema'"
+      ],
+      "expected_result": "Default 'Sistema' preservado (TC-UXC-352e sigue vigente)",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-201f",
+      "requirement_id": "NFR-1101",
+      "user_story_id": "US-1104",
+      "ac_id": "AC-1104b",
+      "title": "TC-SFU-201f: la limpieza de ledger.* no borra las claves de preferencias",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con localStorage sembrado"
+      ],
+      "given": "localStorage con theme='dark', la clave de ancho de columna en '320' y ledger.nodes.v1 sembrada",
+      "when": "se ejecuta hydrate() y por tanto la rutina de limpieza",
+      "then": "ledger.nodes.v1 queda en null mientras theme sigue valiendo 'dark' y la clave de ancho sigue valiendo '320'",
+      "steps": [
+        "Sembrar las tres claves",
+        "Ejecutar hydrate()",
+        "Assert ledger.nodes.v1 en null",
+        "Assert theme='dark' y ancho='320' intactos"
+      ],
+      "expected_result": "La limpieza es quirúrgica: solo toca el espacio ledger.*",
+      "test_data": {
+        "theme": "dark",
+        "width": "320"
+      }
+    },
+    {
+      "id": "TC-SFU-202h",
+      "requirement_id": "NFR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102a",
+      "title": "TC-SFU-202h: el login con credenciales válidas sigue entrando",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres levantado, cuenta admin@admin.com existente"
+      ],
+      "given": "la pantalla de acceso y la cuenta admin@admin.com con su contraseña de dev",
+      "when": "se completan email y contraseña correctos y se pulsa auth-submit",
+      "then": "el shell queda visible (existe [data-testid='logout']) y auth-form desaparece del DOM",
+      "steps": [
+        "Abrir el login",
+        "Introducir credenciales válidas",
+        "Enviar",
+        "Assert logout visible y auth-form ausente"
+      ],
+      "expected_result": "Login válido entra al shell",
+      "test_data": {
+        "email": "admin@admin.com"
+      }
+    },
+    {
+      "id": "TC-SFU-202e",
+      "requirement_id": "NFR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102a",
+      "title": "TC-SFU-202e: la sesión sobrevive a recargar la página",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Sesión recién iniciada"
+      ],
+      "given": "una sesión válida recién iniciada con el shell visible",
+      "when": "se recarga la página con F5 y se espera networkidle",
+      "then": "el shell sigue visible ([data-testid='logout'] presente) y no reaparece auth-form",
+      "steps": [
+        "Iniciar sesión",
+        "Recargar",
+        "Assert logout presente y auth-form ausente"
+      ],
+      "expected_result": "La sesión persiste en la cookie tras recargar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-202f",
+      "requirement_id": "NFR-1102",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102a",
+      "title": "TC-SFU-202f: credenciales inválidas no entran y muestran el error literal",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Pantalla de acceso visible"
+      ],
+      "given": "la pantalla de acceso",
+      "when": "se envía admin@admin.com con la contraseña 'noesesta'",
+      "then": "auth-error muestra exactamente 'Credenciales inválidas', auth-form sigue presente, no aparece logout, y el valor de auth-email sigue siendo 'admin@admin.com'",
+      "steps": [
+        "Enviar credenciales incorrectas",
+        "Assert texto exacto del error",
+        "Assert auth-form presente y logout ausente",
+        "Assert que el email escrito se conserva"
+      ],
+      "expected_result": "Rechazo con mensaje literal y sin perder lo escrito",
+      "test_data": {
+        "email": "admin@admin.com",
+        "password": "noesesta"
+      }
+    },
+    {
+      "id": "TC-SFU-203h",
+      "requirement_id": "NFR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103b",
+      "title": "TC-SFU-203h: un 409 stale dispara resync y el estado converge",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
+      "given": "el store hidratado con version=7 y un servidor que responde 409 al PUT y devuelve version=9 con budgets['leaf-mercado'].ago=99000 en el GET siguiente",
+      "when": "se ejecuta setLeafAmount('leaf-mercado','ago','budget',15000) y el PUT recibe 409",
+      "then": "se emite un GET a '/api/v1/ledger' posterior al PUT y el estado del store queda con budgets['leaf-mercado'].ago === 99000 (el valor del servidor), no 15000",
+      "steps": [
+        "Hidratar con version=7",
+        "Configurar el PUT para responder 409 y el GET para devolver ago=99000",
+        "Ejecutar setLeafAmount con 15000",
+        "Assert GET emitido tras el PUT",
+        "Assert estado converge a 99000"
+      ],
+      "expected_result": "409 → resync → el estado converge al del servidor",
+      "test_data": {
+        "local": 15000,
+        "servidor": 99000
+      }
+    },
+    {
+      "id": "TC-SFU-203e",
+      "requirement_id": "NFR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103b",
+      "title": "TC-SFU-203e: el sync en vivo sigue actualizando la vista sin recargar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Dos contextos de navegador con la misma cuenta"
+      ],
+      "given": "dos contextos A y B con sesión de admin@admin.com y la grilla visible en ambos",
+      "when": "en A se edita la celda 'Mercado'/'sep' a 88000 y se espera hasta 5s en B sin recargar",
+      "then": "en B la celda 'Mercado'/'sep' muestra 88000 sin que se haya recargado la página",
+      "steps": [
+        "Abrir A y B con la misma cuenta",
+        "Editar en A a 88000",
+        "Esperar en B hasta 5s",
+        "Assert celda en B con 88000 y sin recarga"
+      ],
+      "expected_result": "El stream SSE propaga el cambio a B sin recargar",
+      "test_data": {
+        "amount": 88000
+      }
+    },
+    {
+      "id": "TC-SFU-203f",
+      "requirement_id": "NFR-1103",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103b",
+      "title": "TC-SFU-203f: si se pierde el resync tras 409, el estado queda divergente y el test lo detecta",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "jsdom con fetch interceptado"
+      ],
+      "given": "el mismo escenario de 409 que TC-SFU-203h pero contando las peticiones emitidas",
+      "when": "el PUT responde 409",
+      "then": "el número de GET a '/api/v1/ledger' posteriores al 409 es exactamente 1 — si fuera 0, el estado quedaría con el valor local 15000 y la aserción falla",
+      "steps": [
+        "Reproducir el 409",
+        "Contar los GET posteriores",
+        "Assert exactamente 1",
+        "Assert que el estado no conserva 15000"
+      ],
+      "expected_result": "La ausencia de resync es detectada — este es el TC que blinda RISK-1",
+      "test_data": {
+        "local": 15000
+      }
+    },
+    {
+      "id": "TC-SFU-204h",
+      "requirement_id": "NFR-1104",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-204h: la grilla de 12 meses sigue operando contra Postgres",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Sesión iniciada, escritorio 1440px"
+      ],
+      "given": "la grilla de presupuesto con sesión válida",
+      "when": "se edita la hoja 'Mercado' del mes 'oct' a 143000 y se recarga la página",
+      "then": "la celda muestra 143000 tras la recarga y el roll-up de su categoría padre incluye ese valor",
+      "steps": [
+        "Editar Mercado/oct a 143000",
+        "Recargar",
+        "Assert celda 143000",
+        "Assert roll-up del padre actualizado"
+      ],
+      "expected_result": "Edición y roll-up persisten contra Postgres",
+      "test_data": {
+        "amount": 143000
+      }
+    },
+    {
+      "id": "TC-SFU-204e",
+      "requirement_id": "NFR-1104",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-204e: promote y demote de nodos siguen funcionando tras el retiro",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Sesión iniciada con una categoría 'Ocio' con una subcategoría"
+      ],
+      "given": "la categoría 'Ocio' con la subcategoría 'Cine' bajo ella",
+      "when": "se promueve 'Ocio' a grupo y luego se degrada de vuelta a categoría",
+      "then": "'Cine' sigue siendo descendiente de 'Ocio' en ambos pasos y no aparece ningún nodo huérfano en state.data.nodes",
+      "steps": [
+        "Promover Ocio a grupo",
+        "Assert Cine sigue bajo Ocio",
+        "Degradar Ocio",
+        "Assert sin huérfanos"
+      ],
+      "expected_result": "Las features promote-to-group y demote-node siguen íntegras",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-204f",
+      "requirement_id": "NFR-1104",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-204f: ningún test de la suite existente se retira sin estar declarado",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "la lista de archivos de test retirados por esta feature",
+      "when": "se compara con la lista declarada en 02_SYSTEM_DESIGN.md, que tras corregir ADR-04 NO declara ningún archivo retirado (los 4 se re-apuntan)",
+      "then": "la diferencia es vacía: todos los archivos de test que existían antes siguen existiendo, porque la corrección de ADR-04 convirtió el único retiro previsto en un re-apuntado",
+      "steps": [
+        "Enumerar los archivos de test presentes antes y después",
+        "Assert que ninguno desapareció",
+        "Assert que reserve-migration.test.ts sigue existiendo y ahora ejercita el camino de servidor"
+      ],
+      "expected_result": "0 archivos de test retirados: la corrección de ADR-04 salvó la cobertura de la migración",
+      "test_data": {
+        "retirados_declarados": []
+      }
+    },
+    {
+      "id": "TC-SFU-205h",
+      "requirement_id": "NFR-1105",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-205h: el modelo v4 de reservas conserva su semántica contra Postgres",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres levantado, sesión válida"
+      ],
+      "given": "una hoja transfer 'c-alcancia' sin datos previos",
+      "when": "se registra un aporte de 200000 en 'jul' y un retiro de 50000 en 'ago', y se recarga desde el servidor",
+      "then": "la celda de 'jul' vale 200000 (aporte del mes, no saldo acumulado), la de 'ago' vale 0, y el journal contiene un retiro de 50000",
+      "steps": [
+        "Aportar 200000 en jul",
+        "Retirar 50000 en ago",
+        "Recargar desde el servidor",
+        "Assert celda jul=200000, celda ago=0, journal con retiro 50000"
+      ],
+      "expected_result": "Semántica v4 intacta: celdas = aportes del mes, retiros por journal",
+      "test_data": {
+        "aporte": 200000,
+        "retiro": 50000
+      }
+    },
+    {
+      "id": "TC-SFU-205e",
+      "requirement_id": "NFR-1105",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-205e: el saldo disponible del Balance sigue derivando de los saldos resueltos",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Postgres levantado, sesión válida"
+      ],
+      "given": "un mes 'jul' con flujo neto de +500000 y un aporte a reserva de 200000",
+      "when": "se consulta el Balance del mes tras recargar desde el servidor",
+      "then": "available === 300000 y reservedBalance === 200000",
+      "steps": [
+        "Sembrar flujo +500000 y aporte 200000 en jul",
+        "Recargar",
+        "Assert available=300000 y reservedBalance=200000"
+      ],
+      "expected_result": "El Balance sigue derivando correctamente (conservación total)",
+      "test_data": {
+        "flujo": 500000,
+        "aporte": 200000
+      }
+    },
+    {
+      "id": "TC-SFU-205f",
+      "requirement_id": "NFR-1105",
+      "user_story_id": "US-1103",
+      "ac_id": "AC-1103a",
+      "title": "TC-SFU-205f: retirar la migración local no altera lo que el servidor lee ni escribe",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Postgres con un estado de reservas conocido"
+      ],
+      "given": "un estado de reservas en Postgres con c-alcancia: jul=200000 y un retiro de 50000 en el journal",
+      "when": "se ejecuta un ciclo completo load → save → load sin ninguna edición intermedia",
+      "then": "el estado final es idénticamente igual al inicial: jul=200000, journal con el mismo retiro de 50000, y ningún campo perdido ni añadido",
+      "steps": [
+        "Sembrar el estado en Postgres",
+        "load → save → load",
+        "Assert igualdad profunda con el estado inicial"
+      ],
+      "expected_result": "Round-trip idempotente: la migración retirada no tocaba este camino",
+      "test_data": {
+        "aporte": 200000,
+        "retiro": 50000
+      }
+    },
+    {
+      "id": "TC-SFU-206h",
+      "requirement_id": "NFR-1106",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102b",
+      "title": "TC-SFU-206h: las rutas de datos responden 401 sin cookie de sesión",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Servidor levantado"
+      ],
+      "given": "un cliente HTTP sin cookie de sesión",
+      "when": "se solicitan GET /api/v1/ledger, GET /api/v1/movements y PUT /api/v1/ledger con un cuerpo válido",
+      "then": "las tres respuestas tienen status 401 y ninguno de los cuerpos contiene las claves 'nodes', 'budgets' ni 'movements'",
+      "steps": [
+        "Solicitar las 3 rutas sin cookie",
+        "Assert status 401 en las tres",
+        "Assert que ningún cuerpo trae datos del usuario"
+      ],
+      "expected_result": "401 en las tres rutas, sin filtración de datos en el cuerpo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-206e",
+      "requirement_id": "NFR-1106",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102b",
+      "title": "TC-SFU-206e: tras cerrar sesión no queda dato financiero en el navegador",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "critical",
+      "preconditions": [
+        "Sesión iniciada con datos visibles"
+      ],
+      "given": "una sesión con la grilla mostrando la categoría 'Mercado'",
+      "when": "se pulsa [data-testid='logout'] y se espera a que aparezca auth-form",
+      "then": "Object.keys(localStorage).filter(k => k.startsWith('ledger.')).length === 0 y el texto 'Mercado' no está en el documento",
+      "steps": [
+        "Cerrar sesión",
+        "Esperar auth-form",
+        "Assert 0 claves ledger.*",
+        "Assert 'Mercado' ausente"
+      ],
+      "expected_result": "Cierre de sesión limpio: sin datos en almacenamiento ni en pantalla",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-206f",
+      "requirement_id": "NFR-1106",
+      "user_story_id": "US-1102",
+      "ac_id": "AC-1102b",
+      "title": "TC-SFU-206f: una cookie de sesión manipulada no da acceso a los datos",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Servidor levantado"
+      ],
+      "given": "un cliente con una cookie de sesión de valor inventado 'better-auth.session_token=deadbeef'",
+      "when": "se solicita GET /api/v1/ledger",
+      "then": "la respuesta tiene status 401 y el cuerpo no contiene ninguna clave 'nodes'",
+      "steps": [
+        "Enviar cookie inventada",
+        "Solicitar /api/v1/ledger",
+        "Assert 401 y cuerpo sin datos"
+      ],
+      "expected_result": "Token inválido rechazado con 401",
+      "test_data": {
+        "cookie": "better-auth.session_token=deadbeef"
+      }
+    },
+    {
+      "id": "TC-SFU-207h",
+      "requirement_id": "NFR-1107",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101a",
+      "title": "TC-SFU-207h: el gate no-legacy-mode pasa cuando el código está limpio",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "scripts/no-legacy-mode.sh presente y ejecutable"
+      ],
+      "given": "el árbol src/ tras completar la feature",
+      "when": "se ejecuta scripts/no-legacy-mode.sh",
+      "then": "el script termina con exit code 0 y no imprime ninguna ruta de src/",
+      "steps": [
+        "Ejecutar el script",
+        "Assert exit code 0",
+        "Assert salida sin rutas"
+      ],
+      "expected_result": "exit 0: sin restos del modo retirado",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-207e",
+      "requirement_id": "NFR-1107",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101a",
+      "title": "TC-SFU-207e: el gate ignora tests y documentación, solo mira src/",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "medium",
+      "preconditions": [
+        "Directorio temporal de prueba"
+      ],
+      "given": "un archivo temporal en tests/ que contiene la cadena 'LocalStorageRepository' y otro en docs con 'SERVER_MODE'",
+      "when": "se ejecuta scripts/no-legacy-mode.sh",
+      "then": "el script sigue terminando con exit code 0, porque su alcance es exclusivamente src/",
+      "steps": [
+        "Crear los dos archivos fuera de src/",
+        "Ejecutar el script",
+        "Assert exit 0"
+      ],
+      "expected_result": "El gate no produce falsos positivos fuera de src/",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-207f",
+      "requirement_id": "NFR-1107",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101a",
+      "title": "TC-SFU-207f: el gate falla si alguien reintroduce el flag en src/",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [
+        "Directorio temporal de prueba"
+      ],
+      "given": "un archivo temporal src/__probe__.ts que contiene la línea 'export const SERVER_MODE = true;'",
+      "when": "se ejecuta scripts/no-legacy-mode.sh",
+      "then": "el script termina con exit code distinto de 0 e imprime la ruta src/__probe__.ts",
+      "steps": [
+        "Crear src/__probe__.ts con el flag",
+        "Ejecutar el script",
+        "Assert exit code != 0 y ruta impresa",
+        "Borrar el archivo de prueba"
+      ],
+      "expected_result": "El gate detecta la reintroducción del flag (si no falla aquí, no protege nada)",
+      "test_data": {
+        "probe": "src/__probe__.ts"
+      }
+    },
+    {
+      "id": "TC-SFU-208h",
+      "requirement_id": "NFR-1108",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101b",
+      "title": "TC-SFU-208h: la suite e2e arranca sin definir NEXT_PUBLIC_LEDGER_SERVER_MODE",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "critical",
+      "preconditions": [
+        "Entorno de CI con Postgres levantado"
+      ],
+      "given": "el entorno de test con la variable NEXT_PUBLIC_LEDGER_SERVER_MODE ausente del entorno",
+      "when": "se ejecuta el globalSetup de la suite e2e-backend y arranca la app",
+      "then": "el servidor arranca, GET '/' responde 200 y el globalSetup no consulta ni define esa variable",
+      "steps": [
+        "Eliminar la variable del entorno",
+        "Ejecutar el globalSetup",
+        "Assert servidor arriba y / responde 200"
+      ],
+      "expected_result": "La suite arranca sin el flag: exit 0 y app sirviendo",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-208e",
+      "requirement_id": "NFR-1108",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101b",
+      "title": "TC-SFU-208e: la app arranca sin la variable en el entorno de ejecución",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [
+        "Build de producción disponible"
+      ],
+      "given": "el proceso de la app arrancado con DATABASE_URL y BETTER_AUTH_* definidas pero sin NEXT_PUBLIC_LEDGER_SERVER_MODE",
+      "when": "se solicita GET '/'",
+      "then": "la respuesta es 200 y el HTML contiene el formulario de acceso (no una pantalla de error de configuración)",
+      "steps": [
+        "Arrancar sin la variable",
+        "GET /",
+        "Assert 200 y presencia del formulario"
+      ],
+      "expected_result": "La variable dejó de ser necesaria para arrancar",
+      "test_data": {}
+    },
+    {
+      "id": "TC-SFU-208f",
+      "requirement_id": "NFR-1108",
+      "user_story_id": "US-1101",
+      "ac_id": "AC-1101b",
+      "title": "TC-SFU-208f: un test roto sigue haciendo fallar el job con exit code distinto de 0",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "critical",
+      "preconditions": [],
+      "given": "un test temporal que ejecuta expect(1).toBe(2)",
+      "when": "se corre el comando de la suite declarado en el proyecto",
+      "then": "el comando termina con exit code distinto de 0 y el nombre del test roto aparece en la salida",
+      "steps": [
+        "Añadir el test que falla",
+        "Correr la suite",
+        "Assert exit != 0 y test nombrado",
+        "Retirar el test"
+      ],
+      "expected_result": "El pipeline sigue siendo capaz de fallar (sin continue-on-error)",
+      "test_data": {}
+    }
+  ]
+}

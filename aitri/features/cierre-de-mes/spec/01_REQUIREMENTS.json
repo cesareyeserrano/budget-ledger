@@ -1,0 +1,745 @@
+{
+  "project_name": "cierre-de-mes",
+  "project_summary": "Hoy cualquier mes pasado de T-Ledger es editable en cualquier momento, así que una edición de enero puede estropear octubre. Es la queja original del usuario: «es el cierre de mes que hay que implementar: después de que se cierre el mes, no se pueden editar movimientos… el único gap a cerrar es el cierre de mes, para evitar dañar cosas ya cerradas». Esta feature introduce el estado CERRADO de un mes: sus cifras quedan congeladas, sus notas siguen editables, y solo el último mes cerrado puede reabrirse. NORTH STAR (puerta de aceptación, elegida por el usuario el 2026-09-03): CERO alteraciones de cifras en meses cerrados — ninguna operación de la app consigue cambiar un número de un mes cerrado, y tras trastear el mes abierto las cifras del cerrado son idénticas a las que tenía al cerrarse. JTBD: «cuando ya llevo meses de historia cuadrada, quiero congelar lo que ya revisé para seguir usando la app sin miedo a estropear lo de atrás». GUARDRAIL (lo que no puede empeorar): el usuario no queda encerrado —siempre puede reabrir el último mes cerrado— y los meses ABIERTOS no se vuelven más difíciles ni más lentos de usar que hoy: el arrastre, el techo de flujo, la maquinaria de reservas, los roll-ups y el recómputo ≤150ms se comportan igual donde no hay meses cerrados. CONSECUENCIA MAYOR REGISTRADA: el usuario eligió cierre VOLUNTARIO con aviso (la app nunca cierra sola), así que los meses cerrados NO están garantizados y la simplificación del modelo de reservas (BL-037/BL-038) no puede darse por conseguida. Se le presentó antes de decidir y lo aceptó. Por eso el criterio de éxito es la congelación y no la simplificación, y el dominio tiene que soportar los dos estados a la vez.",
+  "technology_preferences": [
+    "TypeScript + Next.js 15 + React (stack vigente)",
+    "Postgres como única fuente de verdad (modo servidor)",
+    "Vitest para dominio e integración; Playwright para e2e",
+    "El estado de cierre viaja en el snapshot del ledger, sujeto al bloqueo optimista por revision: cambia qué es editable, así que no es una preferencia de usuario como el horizonte (FR-1907)",
+    "Periodos «YYYY-MM» ordenables como texto, ya vigentes desde multi-anio (FR-1901)"
+  ],
+  "constraints": [
+    "La capa de dominio es PURA: sin React, DOM, IO ni red. El reloj vive fuera (ADR-02): qué mes es hoy entra como parámetro, no se lee dentro",
+    "El cierre es SECUENCIAL por necesidad aritmética, no por gusto: un mes abierto anterior a uno cerrado cambiaría su saldo de apertura y por tanto sus cifras, rompiendo el criterio de éxito",
+    "Esta feature NO crea la página de Configuración ni el saldo inicial: son el punto 4 del orden acordado",
+    "El producto es de usuario único: no hay roles, permisos ni segundo actor que cierre o audite",
+    "Se construye SOBRE multi-anio (cerrada el 2026-09-02): el periodo es «YYYY-MM» y el rango activo lo da activeRange; el cierre no puede recortar ese rango ni el alcance del cálculo"
+  ],
+  "no_go_zone": [
+    "El ajuste-en-el-mes-abierto de la contabilidad clásica NO se construye. Un error en un mes demasiado viejo para reabrirse no tiene corrección: se deja una nota y se vive con él. Confirmado por el usuario el 2026-09-03 tras plantearle la alternativa y su coste",
+    "La app NUNCA cierra un mes por su cuenta: ni al pasar de mes, ni pasados unos días de margen, ni para meses antiguos. Solo avisa. El usuario preguntó expresamente qué pasaría si nunca cerrara, se le explicó el efecto completo, y aun así decidió que nada se congele a sus espaldas (2026-09-03)",
+    "Retirar la maquinaria del techo (BL-037 el castigo, BL-038 el trinquete) NO es alcance de esta feature. El usuario eligió como criterio de éxito la congelación y NO la simplificación, pudiendo elegir ambas (2026-09-03). Con cierre voluntario los meses cerrados no están garantizados, así que la simplificación se decide después y con datos, no aquí",
+    "No se puede reabrir más de un mes a la vez, ni alcanzar ningún mes anterior al último cerrado. Es el límite que el propio usuario propuso («solo el mes anterior, no de julio o antes de julio») y lo que acota el radio del recálculo",
+    "Saldo inicial y página de Configuración: punto 4 del orden acordado, después de ésta. Sus decisiones ya están escritas en aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md y no se adelantan aquí",
+    "Roles, permisos y multi-usuario: el producto tiene un solo usuario, así que «quién puede cerrar» y «quién puede reabrir» tienen una única respuesta y no generan requisitos",
+    "Multi-moneda: sigue siendo COP única, fuera de alcance desde el brief original",
+    "Exportar, imprimir o archivar un mes cerrado: nadie lo ha pedido y no se infiere del cierre",
+    "Frenar en seco una edición del mes reabierto porque rompa un mes posterior: el usuario eligió el 2026-09-03 que la app AVISE y señale el mes roto, pero le deje seguir. Bloquear añadiría más vigilancia automática —la misma maquinaria que la feature aspira a poder retirar— y puede encerrarlo, que es la queja de la que ya salió una vez",
+    "Pedir un motivo escrito al reabrir un mes: el usuario eligió el historial simple (periodo, acción, instante) por encima de la variante con motivo, que añadía un paso a cada reapertura (2026-09-03)"
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del presupuesto (usuario único de T-Ledger) que ya tiene varios meses de historia registrada y cuadrada",
+      "tech_level": "mid",
+      "goal": "Congelar los meses que ya revisó, para poder seguir registrando y planeando sin miedo a que una edición de hoy estropee un mes que ya daba por bueno",
+      "pain_point": "Cualquier mes pasado es editable en cualquier momento: un dedazo en enero puede alterar octubre, y no hay ninguna señal de que eso haya pasado"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2001",
+      "title": "Un mes puede cerrarse, y su cierre forma parte del ledger",
+      "description": "El ledger gana el concepto de mes CERRADO. No es una preferencia de usuario como el horizonte (FR-1907, que vive aparte y no sube revision): el cierre cambia QUÉ ES EDITABLE del ledger, así que viaja en el snapshot y está sujeto al mismo bloqueo optimista por revision que el resto del estado. Los meses cerrados forman una racha continua desde el periodo más antiguo del historial hasta una frontera de cierre; no hay meses cerrados sueltos entre meses abiertos (ver FR-2002).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Cerrado un mes, recargar la página lo sigue mostrando cerrado",
+        "El cierre sube revision del ledger: un cliente con una revisión anterior es rechazado al guardar, igual que con cualquier otra mutación",
+        "Un ledger sin ningún mes cerrado es un estado válido y es el de todo usuario nuevo: la app funciona exactamente como antes de esta feature",
+        "El conjunto de meses cerrados es siempre una racha continua desde el inicio del historial: no existe un estado con marzo cerrado y febrero abierto"
+      ]
+    },
+    {
+      "id": "FR-2002",
+      "title": "El cierre es SECUENCIAL: solo se cierra el mes abierto más antiguo",
+      "description": "Consecuencia forzada por el criterio de éxito, no una preferencia. Si se pudiera cerrar septiembre dejando agosto abierto, cualquier edición de agosto cambiaría el saldo de apertura de septiembre y por tanto sus cifras — y el criterio «ninguna operación altera una cifra de un mes cerrado» quedaría roto sin que nada lo delatara. Por eso el único mes cerrable en cada momento es el más antiguo que siga abierto. Es visible para el usuario: no puede cerrar septiembre si agosto sigue abierto, tiene que cerrar agosto primero.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con agosto y septiembre abiertos, la app ofrece cerrar agosto y rechaza cerrar septiembre",
+        "Cerrado agosto, el siguiente mes cerrable pasa a ser septiembre",
+        "Intentar cerrar un mes que no es el más antiguo abierto se rechaza sin modificar ninguna cifra ni el estado de cierre",
+        "El rechazo explica cuál es el mes que sí se puede cerrar, en vez de fallar en silencio"
+      ]
+    },
+    {
+      "id": "FR-2003",
+      "title": "Las cifras de un mes cerrado son inmutables: ninguna operación las altera",
+      "description": "Es el criterio de éxito convertido en requisito, y se enuncia por ENUMERACIÓN de todas las vías de escritura que hoy existen, porque una vía olvidada es exactamente el fallo que esta feature viene a evitar: celda de presupuesto, celda de ejecutado, alta/edición/borrado de movimiento, aporte a reserva, retiro de reserva y traslado entre alcancías. La prohibición es del PERIODO, no de la pantalla: da igual desde qué vista se intente.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Editar una celda de presupuesto de un mes cerrado se rechaza y la celda conserva su valor",
+        "Editar una celda de ejecutado de un mes cerrado se rechaza y la celda conserva su valor",
+        "Registrar un movimiento nuevo con periodo de un mes cerrado se rechaza y no se crea nada",
+        "Editar o borrar un movimiento que pertenece a un mes cerrado se rechaza y el movimiento queda intacto",
+        "Aportar a una reserva, retirar de una reserva o trasladar entre alcancías en un mes cerrado se rechaza y ni el disponible ni el reservado cambian",
+        "Tras ejecutar sobre el mes ABIERTO la secuencia completa de operaciones anteriores, todas las cifras del mes cerrado —presupuestado, ejecutado, disponible, reservado y los roll-ups de sus ancestros— son idénticas a las que tenía en el instante del cierre"
+      ]
+    },
+    {
+      "id": "FR-2004",
+      "title": "Las observaciones de celda de un mes cerrado siguen editables",
+      "description": "Decisión del usuario del 2026-09-03: se congelan las cifras, no las notas. Una observación de celda (FR-1012) no entra en ningún cálculo, así que editarla no puede alterar una cifra ni violar FR-2003. Y es funcionalmente necesaria: al haber descartado el ajuste-en-el-mes-abierto, la nota es la ÚNICA salida que le queda a un error descubierto en un mes demasiado viejo para reabrirse. Sin ella el cierre sería un callejón sin salida.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Escribir, editar o borrar una observación en una celda de un mes cerrado se acepta y persiste",
+        "Editar esa observación no cambia ninguna cifra del mes cerrado ni de ningún otro mes",
+        "Una celda de un mes cerrado se distingue en pantalla como no editable en su cifra y sí editable en su observación, sin que el usuario tenga que probar para averiguarlo"
+      ]
+    },
+    {
+      "id": "FR-2005",
+      "title": "Reapertura del ÚLTIMO mes cerrado, una sola a la vez y con rastro",
+      "description": "Propuesta del propio usuario (2026-09-03): «yo diría reabrir, pero solo el mes anterior… solo podría corregir algo de agosto, no de julio o antes de julio». Se escribe como «el último mes cerrado» y no «el mes anterior del calendario» para que se porte bien si el usuario se retrasa cerrando, conservando su intención. El límite resuelve un problema técnico de raíz: como todo lo posterior al último mes cerrado está abierto o es plan, el recálculo que dispara la reapertura NUNCA alcanza a otro mes cerrado. Para que no se pueda caminar hacia atrás mes a mes, solo puede haber UN mes reabierto a la vez: hay que volver a cerrarlo antes de poder reabrir otro — y al cerrarlo, el último cerrado vuelve a ser el mismo, así que un mes más antiguo nunca queda al alcance. CRITERIO AÑADIDO el 2026-09-03 tras BG-001: reabrir tiene que devolver una COLUMNA EDITABLE en pantalla, no solo el permiso en el modelo. Se descubrió que con el ledger sin datos el mes reabierto quedaba fuera del rango visible, así que la única acción que la app ofrece para corregir el pasado no producía ningún efecto que el usuario pudiera ver.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con la frontera de cierre en agosto, la app ofrece reabrir agosto y rechaza reabrir julio o cualquier mes anterior",
+        "Reabierto agosto, sus cifras vuelven a ser editables y el recálculo se propaga hacia adelante por los meses abiertos",
+        "Con agosto reabierto, intentar reabrir julio se rechaza: primero hay que volver a cerrar agosto",
+        "Cerrado agosto de nuevo, el mes reabrible sigue siendo agosto y nunca julio: la secuencia reabrir-cerrar repetida no permite retroceder",
+        "Cada reapertura deja un registro con el periodo reabierto y el instante en que ocurrió, que persiste aunque el mes se vuelva a cerrar",
+        "El recálculo que dispara una reapertura no modifica ninguna cifra de un mes que siga cerrado",
+        "El mes reabrible y el reabierto están SIEMPRE en el rango visible, incluso si no tienen ningún dato y el resto del historial empieza después: reabrir siempre deja una columna donde teclear",
+        "Cerrado el mes siguiente, el anterior deja de ser reabrible y deja de estar anclado al rango: el punto de no retorno lo marca el siguiente cierre, no el paso del mes"
+      ]
+    },
+    {
+      "id": "FR-2006",
+      "title": "Mientras haya meses sin cerrar, la app avisa — y nunca cierra por su cuenta",
+      "description": "Decisión del usuario del 2026-09-03, tomada tras preguntar él mismo qué pasaría si nunca cerrase («creo que generaría muchos errores si empieza a tocar cosas») y tras explicársele el efecto completo. La app señala que hay meses ya terminados sin cerrar, y ahí acaba su intervención: no cierra nada, ni al pasar de mes ni con días de margen. El aviso no puede bloquear el trabajo —el usuario tiene derecho a no cerrar— pero tiene que ser visible sin ir a buscarlo.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con al menos un mes ya terminado y sin cerrar, aparece un aviso visible en la pantalla principal que dice cuántos hay y cuál es el siguiente cerrable",
+        "El aviso no bloquea ninguna operación: con el aviso en pantalla se puede editar, registrar y planear con normalidad",
+        "Sin meses terminados pendientes de cerrar, el aviso no aparece",
+        "Un usuario nuevo, cuyo historial empieza en el mes en curso, no ve el aviso: no tiene ningún mes terminado",
+        "Pasar de mes NO cierra nada: transcurrido el cambio de mes, el mes que acaba de terminar sigue abierto y editable hasta que el usuario lo cierre"
+      ]
+    },
+    {
+      "id": "FR-2007",
+      "title": "Cerrar fija el punto de partida del mes siguiente; el futuro planeado sigue editable",
+      "description": "Decisión del usuario del 2026-09-03. Cerrar septiembre congela septiembre y nada más: el saldo con que cierra —disponible y reservado— pasa a ser el saldo de apertura de octubre y ese punto de partida ya no se mueve, pero todo el plan de octubre en adelante se sigue editando con libertad, porque el futuro es plan y el plan cambia.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Cerrado septiembre, la fila «Saldo del mes anterior» de octubre muestra el cierre de septiembre y no cambia por ninguna edición posterior",
+        "Cerrado septiembre, todas las celdas de octubre, noviembre y del resto del horizonte siguen siendo editables",
+        "Editar el plan de noviembre no altera ninguna cifra de septiembre",
+        "La conservación (disponible + reservado = total) se mantiene en el paso del mes cerrado al primer mes abierto igual que en cualquier otro paso"
+      ]
+    },
+    {
+      "id": "FR-2008",
+      "title": "Solo se cierra un mes ya terminado o el mes en curso; nunca un mes futuro",
+      "description": "CONFIRMADO POR EL USUARIO el 2026-09-03, al devolverle la auditoría de requisitos que marcó este FR como suposición sin confirmar. Sus palabras: «cerrar meses pasados y en curso. no futuros». Coincide con lo que la Fase 1 había derivado, así que el texto no cambia — solo deja de ser un supuesto. Razones que sostienen la regla: cerrar un mes futuro congelaría plan que aún no ha ocurrido y contradice el sentido de la feature; y cerrar el mes EN CURSO es recuperable, porque al ser el último cerrado siempre puede reabrirse (FR-2005).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Un mes posterior al mes en curso no se puede cerrar y la app no lo ofrece",
+        "El mes en curso se puede cerrar si es el más antiguo abierto, y queda inmediatamente reabrible por ser el último cerrado",
+        "Intentar cerrar un mes futuro se rechaza sin modificar ninguna cifra ni el estado de cierre"
+      ]
+    },
+    {
+      "id": "FR-2009",
+      "title": "La interfaz muestra qué está cerrado y por qué no se deja editar",
+      "description": "Un mes congelado sin señal visible es indistinguible de una app rota: el usuario teclea, no pasa nada, y concluye que hay un fallo. Como el cierre es exactamente «cosas que dejan de responder», la señal no es adorno sino parte del requisito. Deriva de la decisión de congelar, no de una petición explícita del usuario.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Las columnas de los meses cerrados se distinguen de las abiertas en la grilla y en el Balance sin necesidad de interactuar con ellas",
+        "Al intentar editar una cifra de un mes cerrado, la app explica que el mes está cerrado y cuál es la salida (reabrirlo si es el último cerrado, o dejar una observación si no lo es)",
+        "La distinción visual no depende únicamente del color: hay un segundo canal (icono, texto o estado del control) para no perderse en escala de grises",
+        "El control de cierre indica en todo momento cuál es el mes cerrable y cuál el reabrible, o que no hay ninguno"
+      ]
+    },
+    {
+      "id": "FR-2010",
+      "title": "Editar un mes reabierto muestra qué cambió aguas abajo — y no lo impide",
+      "description": "Decisión del usuario del 2026-09-03, segunda ronda, tras la auditoría de requisitos. Reabrir un mes existe para corregir un error, pero corregirlo PROPAGA el arrastre: cambiar agosto mueve el saldo de apertura de septiembre y con él las cifras de todos los meses abiertos que siguen. Esa propagación es correcta y deseada, así que no se bloquea — pero hoy es INVISIBLE: el usuario edita agosto y septiembre cambia bajo sus pies sin que nada lo diga. El riesgo estaba identificado en la Fase 2 (riesgo #4) y apoyado en FR-2009, que solo exige señalar QUÉ está reabierto, no el IMPACTO de editarlo — es decir, ningún requisito lo pedía. El usuario lo enunció así: «lo que más quiero cuidar es que al reabrir el usuario no cause daños en sus propias cuentas o al menos poderle decir dónde los causó», y eligió AVISAR Y ENSEÑAR DÓNDE por encima de FRENAR: bloquear añadiría más vigilancia automática —la misma maquinaria que la feature aspira a poder retirar— y puede encerrarlo. Nota: las operaciones de RESERVA ya están protegidas por la regla «no empeorar» vigente, que rechaza lo que deje peor el déficit de cualquier mes del rango; este FR cubre el hueco de las ediciones de celda y de movimiento, que hoy no reportan nada.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Editar una cifra de un mes reabierto muestra, sin que el usuario tenga que ir a buscarlo, la lista de meses posteriores cuyas cifras se movieron, y por cada uno su periodo y el valor anterior y el nuevo de su disponible",
+        "La lista contiene exactamente los meses que cambiaron: un mes posterior cuyas cifras quedan iguales no aparece en ella",
+        "Una edición que no altera el saldo de cierre del mes reabierto —por ejemplo mover un gasto de una categoría a otra hermana dentro del mismo mes— no reporta ningún mes afectado",
+        "Si la edición deja un mes posterior en estado inválido (gastos sin cubrir, o un retiro que ya no cabe), ese mes se señala como roto e identificado por su periodo, y la edición SE ACEPTA igualmente: la app no bloquea la corrección",
+        "El impacto nunca incluye un mes que siga cerrado — todo lo posterior al mes reabierto está abierto por construcción (FR-2005), y esta garantía se verifica, no solo se afirma en el diseño"
+      ]
+    },
+    {
+      "id": "FR-2011",
+      "title": "El historial de cierres y reaperturas se consulta desde la app",
+      "description": "Cierra la mitad que la Fase 1 dejó fuera y que la auditoría de requisitos del 2026-09-03 detectó como PARCIAL. El seed lo dejó abierto textualmente: «El rastro de la reapertura: qué se registra exactamente y dónde se consulta». FR-2005 resolvió el «qué se registra» —periodo e instante, persistidos aunque el mes se vuelva a cerrar— y el «dónde se consulta» no lo resolvió nadie: el rastro existía en la base de datos y el usuario no tenía forma de verlo desde el producto, así que «auditada» se quedaba en «registrada». El usuario pidió el historial explícitamente el 2026-09-03. Se registra periodo, acción e instante y NADA MÁS: no hay autor porque el producto es de usuario único, y no hay motivo escrito porque el usuario eligió el historial simple por encima de la variante con motivo, que añadía un paso a cada reapertura.",
+      "priority": "MUST",
+      "type": "ui",
+      "acceptance_criteria": [
+        "Desde la app se abre un historial que lista cada cierre y cada reapertura con su periodo, su acción (cerrado o reabierto) y la fecha y hora en que ocurrió",
+        "Los eventos se listan del más reciente al más antiguo",
+        "Volver a cerrar un mes reabierto AÑADE un evento y no borra ni reescribe los anteriores: la secuencia cerrar-reabrir-cerrar deja tres entradas",
+        "Un ledger sin ningún cierre muestra un historial vacío con una frase que lo explica, no una pantalla en blanco ni un error",
+        "El historial es de solo lectura: ninguna acción disponible en él altera el estado de cierre ni ninguna cifra del ledger"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2001",
+      "requirement_id": "FR-2001",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app se acuerde de qué meses ya di por cerrados",
+      "so_that": "no tener que volver a decidirlo cada vez que abro la app",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2001",
+          "given": "agosto cerrado",
+          "when": "recargo la página",
+          "then": "agosto sigue cerrado"
+        },
+        {
+          "id": "AC-2002",
+          "given": "un ledger abierto en dos pestañas",
+          "when": "cierro un mes en una y guardo en la otra con una revisión vieja",
+          "then": "la segunda se rechaza y no pisa el cierre"
+        },
+        {
+          "id": "AC-2003",
+          "given": "un usuario nuevo sin ningún mes cerrado",
+          "when": "uso la app",
+          "then": "funciona igual que antes: nada está congelado"
+        }
+      ]
+    },
+    {
+      "id": "US-2002",
+      "requirement_id": "FR-2002",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app me obligue a cerrar los meses en orden",
+      "so_that": "no dejar un agujero abierto detrás de un mes que creía a salvo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2004",
+          "given": "agosto y septiembre abiertos",
+          "when": "pido cerrar septiembre",
+          "then": "se rechaza y se me dice que primero cierre agosto"
+        },
+        {
+          "id": "AC-2005",
+          "given": "agosto y septiembre abiertos",
+          "when": "cierro agosto",
+          "then": "el siguiente cerrable pasa a ser septiembre"
+        },
+        {
+          "id": "AC-2006",
+          "given": "un intento de cierre fuera de orden",
+          "when": "se rechaza",
+          "then": "ninguna cifra ni el estado de cierre han cambiado"
+        }
+      ]
+    },
+    {
+      "id": "US-2003",
+      "requirement_id": "FR-2003",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que nada de lo que haga hoy pueda tocar un mes que ya cerré",
+      "so_that": "poder seguir usando la app sin miedo a estropear lo de atrás",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2007",
+          "given": "agosto cerrado con sus cifras cuadradas",
+          "when": "intento editar una celda de presupuesto o de ejecutado de agosto",
+          "then": "se rechaza y la celda conserva su valor"
+        },
+        {
+          "id": "AC-2008",
+          "given": "agosto cerrado",
+          "when": "intento registrar, editar o borrar un movimiento de agosto",
+          "then": "se rechaza y no se crea, cambia ni desaparece nada"
+        },
+        {
+          "id": "AC-2009",
+          "given": "agosto cerrado",
+          "when": "intento aportar, retirar o trasladar entre alcancías en agosto",
+          "then": "se rechaza y ni el disponible ni el reservado de agosto cambian"
+        },
+        {
+          "id": "AC-2010",
+          "given": "agosto cerrado y septiembre abierto",
+          "when": "trasteo septiembre entero: celdas, movimientos, reservas y traslados",
+          "then": "todas las cifras de agosto, incluidos los roll-ups de sus ancestros, son idénticas a las del instante del cierre"
+        }
+      ]
+    },
+    {
+      "id": "US-2004",
+      "requirement_id": "FR-2004",
+      "as_a": "dueño del presupuesto",
+      "i_want": "poder seguir anotando observaciones en un mes cerrado",
+      "so_that": "dejar constancia de un error que ya no puedo corregir",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2011",
+          "given": "agosto cerrado",
+          "when": "escribo una observación en una celda de agosto",
+          "then": "se acepta y persiste"
+        },
+        {
+          "id": "AC-2012",
+          "given": "una observación escrita en un mes cerrado",
+          "when": "reviso las cifras",
+          "then": "ninguna cifra de ningún mes ha cambiado"
+        },
+        {
+          "id": "AC-2013",
+          "given": "una celda de un mes cerrado",
+          "when": "la miro",
+          "then": "se ve que su cifra no es editable y su observación sí, sin tener que probar"
+        }
+      ]
+    },
+    {
+      "id": "US-2005",
+      "requirement_id": "FR-2005",
+      "as_a": "dueño del presupuesto",
+      "i_want": "poder reabrir el último mes que cerré, y solo ése",
+      "so_that": "corregir un error reciente sin poder estropear la historia vieja sin querer",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2014",
+          "given": "la frontera de cierre en agosto",
+          "when": "pido reabrir julio",
+          "then": "se rechaza"
+        },
+        {
+          "id": "AC-2015",
+          "given": "la frontera de cierre en agosto",
+          "when": "reabro agosto",
+          "then": "sus cifras vuelven a ser editables y el recálculo se propaga por los meses abiertos"
+        },
+        {
+          "id": "AC-2016",
+          "given": "agosto reabierto",
+          "when": "pido reabrir julio",
+          "then": "se rechaza: primero hay que volver a cerrar agosto"
+        },
+        {
+          "id": "AC-2017",
+          "given": "agosto reabierto y vuelto a cerrar",
+          "when": "pido reabrir",
+          "then": "lo reabrible sigue siendo agosto y nunca julio"
+        },
+        {
+          "id": "AC-2018",
+          "given": "una reapertura ejecutada",
+          "when": "consulto el rastro",
+          "then": "consta qué periodo se reabrió y cuándo, aunque el mes se haya vuelto a cerrar"
+        }
+      ]
+    },
+    {
+      "id": "US-2006",
+      "requirement_id": "FR-2006",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app me recuerde que tengo meses sin cerrar, sin cerrarlos ella",
+      "so_that": "no olvidarme, pero sin que nada se congele a mis espaldas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2019",
+          "given": "un mes terminado y sin cerrar",
+          "when": "abro la app",
+          "then": "veo un aviso que dice cuántos hay y cuál es el siguiente cerrable"
+        },
+        {
+          "id": "AC-2020",
+          "given": "el aviso en pantalla",
+          "when": "sigo editando y planeando",
+          "then": "no me bloquea nada"
+        },
+        {
+          "id": "AC-2021",
+          "given": "todos los meses terminados ya cerrados",
+          "when": "abro la app",
+          "then": "no hay aviso"
+        },
+        {
+          "id": "AC-2022",
+          "given": "el paso de un mes al siguiente",
+          "when": "llega el día 1",
+          "then": "el mes que acaba de terminar sigue abierto y editable"
+        }
+      ]
+    },
+    {
+      "id": "US-2007",
+      "requirement_id": "FR-2007",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que cerrar un mes no me congele el plan de los meses que vienen",
+      "so_that": "poder seguir replanificando el futuro, que es para lo que planeo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2023",
+          "given": "septiembre cerrado con un saldo de cierre",
+          "when": "miro octubre",
+          "then": "su «Saldo del mes anterior» es el cierre de septiembre y no se mueve"
+        },
+        {
+          "id": "AC-2024",
+          "given": "septiembre cerrado",
+          "when": "edito octubre y noviembre",
+          "then": "se aceptan con normalidad"
+        },
+        {
+          "id": "AC-2025",
+          "given": "septiembre cerrado",
+          "when": "edito el plan de noviembre",
+          "then": "ninguna cifra de septiembre cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-2008",
+      "requirement_id": "FR-2008",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que la app no me deje congelar meses que aún no han pasado",
+      "so_that": "no bloquear un plan que todavía va a cambiar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2026",
+          "given": "el mes en curso es septiembre",
+          "when": "pido cerrar octubre",
+          "then": "se rechaza y la app no lo ofrecía"
+        },
+        {
+          "id": "AC-2027",
+          "given": "septiembre en curso y siendo el más antiguo abierto",
+          "when": "lo cierro",
+          "then": "se acepta y queda inmediatamente reabrible"
+        }
+      ]
+    },
+    {
+      "id": "US-2009",
+      "requirement_id": "FR-2009",
+      "as_a": "dueño del presupuesto",
+      "i_want": "ver de un vistazo qué está cerrado y qué puedo hacer al respecto",
+      "so_that": "no confundir un mes congelado con una app rota",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2028",
+          "given": "meses cerrados y abiertos en la misma tira",
+          "when": "miro la grilla y el Balance",
+          "then": "distingo unos de otros sin interactuar"
+        },
+        {
+          "id": "AC-2029",
+          "given": "una cifra de un mes cerrado",
+          "when": "intento editarla",
+          "then": "la app me dice que está cerrado y cuál es mi salida"
+        },
+        {
+          "id": "AC-2030",
+          "given": "la pantalla en escala de grises",
+          "when": "miro las columnas",
+          "then": "sigo distinguiendo cerrado de abierto: el color no es el único canal"
+        },
+        {
+          "id": "AC-2031",
+          "given": "cualquier estado de cierre",
+          "when": "miro el control",
+          "then": "sé cuál es el mes cerrable y cuál el reabrible, o que no hay ninguno"
+        }
+      ]
+    },
+    {
+      "id": "US-2010",
+      "requirement_id": "FR-2010",
+      "as_a": "dueño del presupuesto",
+      "i_want": "que al corregir un mes reabierto la app me diga qué meses posteriores se movieron",
+      "so_that": "no descubrir semanas después que al arreglar agosto estropeé octubre",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2032",
+          "given": "agosto reabierto, con septiembre, octubre y noviembre abiertos y con cifras",
+          "when": "corrijo un gasto de agosto",
+          "then": "la app me dice qué meses posteriores cambiaron y de qué valor a qué valor"
+        },
+        {
+          "id": "AC-2033",
+          "given": "agosto reabierto",
+          "when": "muevo un gasto de agosto de una categoría a otra hermana sin cambiar el total del mes",
+          "then": "no se reporta ningún mes afectado"
+        },
+        {
+          "id": "AC-2034",
+          "given": "agosto reabierto",
+          "when": "una corrección mía deja octubre con gastos sin cubrir",
+          "then": "la app acepta la edición y me señala octubre como el mes que quedó roto"
+        }
+      ]
+    },
+    {
+      "id": "US-2011",
+      "requirement_id": "FR-2011",
+      "as_a": "dueño del presupuesto",
+      "i_want": "poder consultar qué meses cerré, cuáles reabrí y cuándo",
+      "so_that": "saber qué toqué y cuándo sin tener que mirar la base de datos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2035",
+          "given": "he cerrado agosto y después lo he reabierto",
+          "when": "abro el historial",
+          "then": "veo las dos entradas con su periodo, su acción y su instante, la más reciente primero"
+        },
+        {
+          "id": "AC-2036",
+          "given": "agosto reabierto y vuelto a cerrar",
+          "when": "abro el historial",
+          "then": "siguen las tres entradas: reabrir y volver a cerrar no borra el cierre anterior"
+        },
+        {
+          "id": "AC-2037",
+          "given": "un ledger en el que nunca he cerrado un mes",
+          "when": "abro el historial",
+          "then": "veo un historial vacío con una frase que lo explica, no un error"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2001",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La suite existente sigue verde: las 645 pruebas unitarias y de integración y las 392 e2e del proyecto y de sus features pasan sin relajar aserciones ni marcar pruebas como saltadas. MEDIDO el 2026-09-03 sobre el commit 9ca3944.",
+      "acceptance_criteria": "verify-run del proyecto raíz y de cada feature ya cerrada termina con exit code 0, sin pruebas en fail ni skip que antes pasaran, y el conteo ejecutado no baja de 645 + 392"
+    },
+    {
+      "id": "NFR-2002",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Un ledger SIN meses cerrados se comporta exactamente como antes de esta feature: mismo arrastre, mismo techo, mismas reservas, mismos roll-ups y mismas validaciones. Es la condición que protege al usuario que decide no cerrar nunca — que el propio usuario dejó como camino legítimo al elegir el cierre voluntario.",
+      "acceptance_criteria": "Para un mismo conjunto de datos sin ningún mes cerrado, computeBalanceSeries, el veredicto del techo, maxWithdrawal, monthCarryUsage y los roll-ups devuelven exactamente los mismos valores que antes de la feature"
+    },
+    {
+      "id": "NFR-2003",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El techo de flujo y la maquinaria de reservas conservan su veredicto en los meses ABIERTOS: headrooms encadenados, verdictOf, límite del techo, regla de déficit, maxWithdrawal y monthCarryUsage. Es la capa que pasó un pase adversarial de 6.000 pasos; esta feature no la simplifica (ver no_go_zone) y por tanto tampoco puede degradarla.",
+      "acceptance_criteria": "Para los mismos datos en meses abiertos, las seis funciones citadas dan los mismos resultados que antes de la feature, con y sin meses cerrados por detrás"
+    },
+    {
+      "id": "NFR-2004",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "multi-anio no se degrada: el horizonte en años completos, el filtro por año, el salto al mes elegido y la banda de año siguen comportándose igual, y el cierre NO RECORTA el rango activo ni el alcance del cálculo. REDACCIÓN CORREGIDA el 2026-09-03: antes decía que el rango debía ser «idéntico» con y sin meses cerrados. Esa palabra prohibía también AMPLIARLO, y por eso bloqueaba el arreglo de BG-001 — un mes cerrado SIN datos se caía de la grilla al pasar el mes, y reabrirlo no devolvía la columna. La intención siempre fue que el cierre no quitara meses de la vista; que añada el mes que el usuario cerró es lo contrario de una degradación. El rango arranca en el MÍNIMO entre el periodo más antiguo con datos y la frontera del cierre.",
+      "acceptance_criteria": "Con meses cerrados presentes, el rango activo contiene todos los periodos que contendría sin ellos —no pierde ninguno— y además contiene la frontera del cierre aunque ese periodo no tenga datos; las pruebas e2e de multi-anio pasan sin cambios"
+    },
+    {
+      "id": "NFR-2005",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El cierre se valida en el SERVIDOR, no solo en el navegador: la API rechaza cualquier escritura que altere una cifra de un mes cerrado, un cierre fuera de orden o una reapertura de un mes que no sea el último cerrado, ANTES de escribir. Un congelamiento que solo vive en el cliente es decorativo: hoy PUT /api/v1/ledger acepta cualquier snapshot sin validar los invariantes del dominio (BG-002 de backend, abierto), así que esta feature no puede apoyarse en esa capa tal como está.",
+      "acceptance_criteria": "Una petición construida a mano contra la API que modifique una celda, un movimiento o una reserva de un mes cerrado se rechaza con 4xx y la base queda sin cambios; lo mismo para un cierre fuera de orden y para una reapertura no permitida"
+    },
+    {
+      "id": "NFR-2006",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "Ni el cierre ni la reapertura degradan el recómputo: con el rango máximo previsto el recálculo completo tras cerrar, reabrir o editar sigue dentro del tope de 150ms que rige hoy.",
+      "acceptance_criteria": "Medido sobre el rango máximo (historial más 2 años de horizonte), cerrar un mes, reabrirlo y editar una celda del mes abierto completan su recómputo en ≤150ms cada uno"
+    },
+    {
+      "id": "NFR-2007",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La persistencia no pierde nada ni rompe el bloqueo optimista por revision: guardar y recargar un ledger con meses cerrados y con rastro de reaperturas devuelve exactamente lo guardado, y un cliente con una revisión vieja sigue siendo rechazado.",
+      "acceptance_criteria": "Un ciclo guardar-recargar de un ledger con meses cerrados y reaperturas registradas devuelve un estado idéntico al guardado, y un PUT con baseRevision anterior recibe 409"
+    },
+    {
+      "id": "NFR-2008",
+      "category": "Maintainability",
+      "priority": "MUST",
+      "requirement": "Si el estado de cierre exige tocar el esquema, la migración queda versionada, documentada, idempotente por marca de versión y ejecutada en transacción, igual que las 0002 y 0003 de multi-anio.",
+      "acceptance_criteria": "La migración corre en transacción, sube data_version, no se re-aplica al re-ejecutarse y queda documentada con su orden de despliegue"
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Palabras del propio usuario, recogidas el 2026-09-01: «es el cierre de mes que hay que implementar: después de que se cierre el mes, no se pueden editar movimientos. Es importante para evitar esos problemas», y su diagnóstico «el único gap a cerrar es el cierre de mes, para evitar dañar cosas ya cerradas»",
+    "users": "Usuario único del producto, es él mismo; persona heredada de los requisitos aprobados del proyecto raíz, sin cambio respecto de todas las features previas",
+    "baseline": "Verificado en el código el 2026-09-03: no existe ningún concepto de mes cerrado — ninguna vía de escritura (celdas, movimientos, reservas, traslados) comprueba el periodo contra un estado de cierre, y el análisis ejecutado en feature_context/analisis-del-modelo.md documenta que las reglas del techo existen precisamente porque cualquier mes pasado es editable. Sobre esto se apoya multi-anio, cerrada el 2026-09-02 (periodo «YYYY-MM», rango activo por activeRange)",
+    "success_metric": "Elegido por el usuario el 2026-09-03 entre tres opciones: «que no puedas dañar lo ya cerrado» — ninguna operación de la app altera una cifra de un mes cerrado. Descartó explícitamente «que el modelo de reservas se simplifique» y «las dos cosas»",
+    "no_go_zone": "Cuatro de los ocho puntos son decisiones textuales del usuario del 2026-09-03 (sin ajuste-en-mes-abierto; la app nunca cierra sola; la simplificación del modelo fuera; solo un mes reabierto a la vez sin alcanzar meses anteriores). Los otros cuatro heredan límites ya acordados y verificados: saldo inicial y Configuración son el punto 4 del orden acordado, el producto es de usuario único, multi-moneda quedó fuera desde el brief original, y exportar/archivar no lo ha pedido nadie"
+  },
+  "idea_gaps": [
+    "FR-2008 (qué meses son cerrables) nació derivado, sin preguntar. RESUELTO el 2026-09-03: el usuario lo confirmó textualmente — «cerrar meses pasados y en curso. no futuros» — al devolverle la auditoría de requisitos. Ya no es un supuesto.",
+    "FR-2005 — el CONTENIDO del rastro (periodo e instante) se derivó, y su CONSULTA no la cubría ningún FR. RESUELTO el 2026-09-03: la auditoría de requisitos lo marcó PARCIAL, se le presentó al usuario y pidió el historial consultable → FR-2011. Descartó el motivo escrito y el autor no aplica (usuario único).",
+    "FR-2006 — la FORMA del aviso (dónde vive, si se puede descartar, si reaparece) se derivó. El usuario decidió que la app avise y no cierre; no dijo cómo debe verse. CONFIRMAR AL APROBAR",
+    "FR-2009 (señalar visualmente lo cerrado y explicar el rechazo) es entero derivado: nace de que congelar sin señal es indistinguible de una app rota. El usuario no lo pidió. CONFIRMAR AL APROBAR",
+    "FR-2002 (cierre secuencial) NO es una preferencia sino una consecuencia forzada del criterio de éxito — pero es VISIBLE para el usuario: no podrá cerrar septiembre si agosto sigue abierto. Se le presentó por escrito el 2026-09-03 al devolverle la auditoría de requisitos; no objetó, pero tampoco lo confirmó de forma explícita. CONFIRMAR AL APROBAR.",
+    "La consecuencia mayor de la decisión de cierre voluntario —que BL-037 y BL-038 no quedan disueltos y el dominio tendrá que soportar los dos estados a la vez— SÍ se le presentó y la aceptó, pero su coste real en la Fase 2 aún no está dimensionado. No es un hueco de intención; es un riesgo a vigilar en el diseño",
+    "El arreglo de BG-001 y la corrección de NFR-2004 los DECIDIÓ el usuario el 2026-09-03, tras razonar él mismo la regla («el mes más antiguo con números, y el mes más antiguo que cerraste») y confirmar el punto de no retorno: septiembre deja de ser recuperable cuando se cierra octubre, no cuando pasa el mes. CONFIRMADO, no asumido."
+  ],
+  "coverage_map": [
+    {
+      "need": "«Después de que se cierre el mes, no se pueden editar movimientos» — congelar lo ya cerrado para no dañarlo",
+      "disposition": "FR-2003"
+    },
+    {
+      "need": "El mes cerrado tiene que existir como estado y recordarse entre sesiones",
+      "disposition": "FR-2001"
+    },
+    {
+      "need": "«Mientras el mes esté abierto uno simplemente edita la celda de reserva… siempre y cuando, cuando cerremos ese mes, esa celda ya no se pueda tocar» — las reservas también se congelan",
+      "disposition": "FR-2003"
+    },
+    {
+      "need": "Reapertura auditada: «a menos que en la feature de cerrar mes incluyamos reapertura para arreglar cosas, y tendríamos que ver cómo se audita»",
+      "disposition": "FR-2005"
+    },
+    {
+      "need": "«Reabrir, pero solo el mes anterior»: no poder alcanzar julio estando en septiembre",
+      "disposition": "FR-2005"
+    },
+    {
+      "need": "Las cifras se congelan pero las notas no",
+      "disposition": "FR-2004"
+    },
+    {
+      "need": "Una nota es la única salida de un error demasiado viejo para reabrirse",
+      "disposition": "FR-2004"
+    },
+    {
+      "need": "El cierre lo dispara el usuario a mano, no la app",
+      "disposition": "FR-2006"
+    },
+    {
+      "need": "«¿Qué pasa si el usuario nunca cierra?» — que la app avise sin cerrar por su cuenta",
+      "disposition": "FR-2006"
+    },
+    {
+      "need": "Los meses futuros ya planeados siguen editables al cerrar el mes en curso",
+      "disposition": "FR-2007"
+    },
+    {
+      "need": "Cerrar fija el saldo de apertura del mes siguiente",
+      "disposition": "FR-2007"
+    },
+    {
+      "need": "Qué meses son cerrables (derivado: el en curso sí, los futuros no)",
+      "disposition": "FR-2008"
+    },
+    {
+      "need": "Un mes congelado tiene que verse congelado y explicar el rechazo (derivado)",
+      "disposition": "FR-2009"
+    },
+    {
+      "need": "No se puede cerrar un mes dejando abierto uno anterior, o el cerrado cambiaría por el arrastre",
+      "disposition": "FR-2002"
+    },
+    {
+      "need": "Que la suite existente siga verde",
+      "disposition": "NFR-2001"
+    },
+    {
+      "need": "Que un usuario que nunca cierre siga teniendo la app de hoy",
+      "disposition": "NFR-2002"
+    },
+    {
+      "need": "No degradar el techo ni la maquinaria de reservas en los meses abiertos",
+      "disposition": "NFR-2003"
+    },
+    {
+      "need": "No degradar lo que multi-anio acaba de entregar",
+      "disposition": "NFR-2004"
+    },
+    {
+      "need": "Que el congelamiento no viva solo en el navegador",
+      "disposition": "NFR-2005"
+    },
+    {
+      "need": "Que cerrar y reabrir no degraden el recómputo",
+      "disposition": "NFR-2006"
+    },
+    {
+      "need": "Que la persistencia y el bloqueo optimista no se rompan",
+      "disposition": "NFR-2007"
+    },
+    {
+      "need": "Que una migración de esquema, si hace falta, quede versionada y en transacción",
+      "disposition": "NFR-2008"
+    },
+    {
+      "need": "Ajustar en el mes abierto un error de un mes viejo (contabilidad clásica)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Que la app cierre sola los meses viejos para garantizar la simplificación",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Retirar la maquinaria del techo: BL-037 (el castigo) y BL-038 (el trinquete)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Saldo inicial y página de Configuración",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Roles y permisos sobre quién cierra o reabre",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Multi-moneda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Exportar, imprimir o archivar un mes cerrado",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Un mes cerrado sin datos tiene que seguir en pantalla, o reabrirlo no devuelve ninguna celda (BG-001, 2026-09-03)",
+      "disposition": "FR-2005"
+    },
+    {
+      "need": "El cierre puede AMPLIAR el rango visible, no solo dejarlo intacto (redacción de NFR-2004 corregida)",
+      "disposition": "NFR-2004"
+    },
+    {
+      "need": "«Que al reabrir el usuario no cause daños en sus propias cuentas o al menos poderle decir dónde los causó» (2026-09-03, tras la auditoría de requisitos)",
+      "disposition": "FR-2010"
+    },
+    {
+      "need": "Que la propagación del arrastre al corregir un mes reabierto deje de ser invisible — riesgo #4 de la Fase 2, que ningún FR exigía",
+      "disposition": "FR-2010"
+    },
+    {
+      "need": "«Dónde se consulta» el rastro de la reapertura — la mitad del seed que la Fase 1 dejó abierta y la auditoría marcó PARCIAL",
+      "disposition": "FR-2011"
+    },
+    {
+      "need": "Qué meses son cerrables — CONFIRMADO por el usuario el 2026-09-03: «cerrar meses pasados y en curso. no futuros»",
+      "disposition": "FR-2008"
+    },
+    {
+      "need": "Frenar la edición del mes reabierto que rompa un mes posterior",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Registrar un motivo escrito en cada reapertura",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — cierre-de-mes\n\n_Escrito el 2026-09-02 para que las decisiones dejen de vivir solo en el hilo de una conversación.\nEs el punto 3 del orden acordado (`aitri/BACKLOG.md` § «Orden acordado»), y corresponde a BL-036.\nTodo lo citado como decisión del usuario se confirmó con él el 2026-09-01._\n\n## Problem / Why\n\n### El problema, en sus palabras\n\n> «Es el cierre de mes que hay que implementar: después de que se cierre el mes, no se pueden editar\n> movimientos. Es importante para evitar esos problemas.»\n\nLo dijo mucho antes de que existieran BL-037 y BL-038, cuando revisábamos si `movimientos-internos`\nvalía la pena. Su diagnóstico entonces fue: *«el único gap a cerrar es el cierre de mes, para evitar\ndañar cosas ya cerradas»*.\n\n## Por qué es la feature que más valor libera\n\nNo es «una feature más»: es la única pendiente que permite **borrar** maquinaria en vez de añadirla.\nEl razonamiento es del propio usuario, verificado contra el código:\n\n> «Mientras el mes esté abierto uno simplemente edita la celda de reserva… no sería problema.\n> Siempre y cuando, cuando cerremos ese mes, esa celda ya no se pueda tocar.»\n\nTodas las reglas complicadas del techo —el consumo bruto, el «no empeorar», las marcas permanentes,\nel trinquete— existen **por una sola razón**: hoy se puede editar cualquier mes pasado en cualquier\nmomento, así que una edición de enero puede romper octubre y hay que vigilar los doce meses en cada\noperación. Si un mes cerrado no se toca, esa vigilancia deja de tener sentido y las reglas se\nreducen a las dos que él enunció: no reservar más de lo disponible, y no sacar más de lo que hay.\n\n**Consecuencia registrada:** BL-037 y BL-038 están CONGELADOS a propósito esperando a esta feature,\nporque probablemente los disuelve. Ver `feature_context/analisis-del-modelo.md` para la evidencia\nejecutada.\n\n## New Behavior\n\n### Alcance decidido\n\n- **Congelar un mes cerrado**: sus celdas y sus movimientos dejan de ser editables.\n- **Reapertura auditada.** Decidido al resolver que el saldo inicial solo se corrige con el mes\n  abierto: > «A menos que en la feature de cerrar mes incluyamos reapertura para arreglar cosas, y\n  tendríamos que ver cómo se audita.»\n\n## LA pregunta de diseño central — RESUELTA el 2026-09-03\n\n**¿Qué pasa cuando descubres un error en un mes ya cerrado?**\n\n**Se reabre — pero SOLO el último mes cerrado.** Decisión del usuario, textual: «yo diría reabrir,\npero solo el mes anterior. Que quiere decir: estamos en septiembre inicios, solo podría corregir\nalgo de agosto, no de julio o antes de julio».\n\nEs una restricción de producto que resuelve un problema técnico de raíz, y por eso se adopta tal\ncual. La reapertura sin límite obliga a recalcular hacia adelante todo lo que venga después:\nreabrir enero arrastra los once meses siguientes, varios de ellos cerrados. Acotándola al último\nmes cerrado, **el recálculo nunca alcanza a otro mes cerrado** —todo lo posterior está abierto o es\nplan—, así que el radio de daño queda acotado por construcción y no por disciplina.\n\n*Precisión de redacción sobre las palabras del usuario, con su misma intención:* la regla se escribe\ncomo «el ÚLTIMO MES CERRADO», no «el mes anterior en el calendario». En la cadencia normal son el\nmismo mes, pero así se porta bien cuando el usuario se retrasa cerrando: si está en septiembre y\ntodavía no cerró agosto, lo reabrible es julio, que es el último que congeló. Y no permite caminar\nhacia atrás: reabierto agosto y vuelto a cerrar, agosto sigue siendo el último cerrado — julio nunca\nqueda al alcance.\n\n**Consecuencia aceptada, confirmada por el usuario:** un error en un mes demasiado viejo para\nreabrir NO tiene corrección. No se construye el ajuste-en-el-mes-abierto de la contabilidad clásica.\nLo único que queda es dejar una **nota** en la celda explicando qué pasó — que sí se puede, porque\nlas observaciones no se congelan (ver abajo). Queda registrado para que nadie lo lea como un olvido.\n\n## Target Users\n\nEl mismo usuario individual del proyecto raíz —gestiona sus finanzas personales, planea en\nescritorio y captura en móvil—, con la condición que hace relevante esta feature: **ya tiene\nhistoria acumulada que no quiere estropear**. Persona heredada de los requisitos aprobados del\nproyecto raíz; no se inventa una nueva. Es él quien enunció el problema y quien decidió las cinco\nreglas de abajo.\n\nNo hay segundo rol. No existen contador, auditor ni administrador: no hay multi-usuario en el\nproducto, así que «quién puede cerrar» y «quién puede reabrir» tienen una única respuesta —él— y no\ngeneran requisitos de permisos.\n\n## Success Criteria\n\nConfirmado por el usuario el 2026-09-03, y es UNA sola condición observable, deliberadamente\ntajante:\n\n**Ninguna operación de la app consigue alterar una cifra de un mes cerrado.** Ni editar una celda de\npresupuesto o de ejecutado, ni registrar, editar o borrar un movimiento, ni una reserva, ni un\nretiro, ni un traslado entre alcancías. Tras trastear libremente el mes abierto, las cifras del mes\ncerrado son idénticas a las que tenía al cerrarse.\n\nEs la queja original del usuario, literal —«evitar dañar cosas ya cerradas»— y se eligió por encima\nde la alternativa («que el modelo de reservas se simplifique») porque es comprobable de forma\nbinaria y no depende de que el usuario efectivamente cierre. La simplificación del modelo sigue\nsiendo el mayor valor de la feature, pero NO es su criterio de éxito: con el cierre voluntario que\nel usuario eligió, solo se cumple donde haya meses cerrados (ver la consecuencia de la decisión 3).\n\n## Su relación con las features vecinas\n\n- **Va DESPUÉS de multi-año** (punto 1), que se cerró el 2026-09-02. La grilla dinámica (punto 2)\n  se cerró sin construirse el 2026-09-03: multi-año la absorbió — ver `aitri/BACKLOG.md`. Riesgo\n  asumido y anotado en el backlog: multi-año migró el modelo temporal, y esta feature podría\n  eliminar después parte de esa maquinaria. El usuario lo aceptó porque el filtro por fechas que\n  quiere no existe sin años.\n- **Va ANTES del saldo inicial** (punto 4), por tres razones: la regla que él fijó para corregirlo\n  —«solo mientras el mes esté abierto»— **necesita** que exista el concepto de «abierto»; el saldo\n  inicial es conceptualmente *la apertura congelada del primer mes*, que es la idea que esta feature\n  introduce; y construirlo antes sería apoyarlo sobre reglas a punto de cambiar.\n\n## Decisiones del usuario (2026-09-03) — las cuatro preguntas, resueltas\n\nTomadas en conversación tras plantearle cada una con sus alternativas y su coste. No se re-abren.\n\n1. **Cómo se corrige un mes cerrado** → reapertura acotada al último mes cerrado. Ver la sección\n   central de arriba, con su consecuencia aceptada.\n\n2. **Qué se congela: las CIFRAS sí, las NOTAS no.** Se congelan las celdas y los movimientos —todo\n   lo que entra en un cálculo—, pero las observaciones de celda (FR-1012) siguen editables sobre un\n   mes cerrado. Razón del usuario al elegirlo: una nota no altera ninguna cifra, y poder escribir\n   «esto se corrigió en marzo» sobre un mes cerrado es lo que hace auditable el cierre. Encaja con\n   la decisión 1: es la única salida que le queda a un error demasiado viejo para reabrirse.\n\n3. **Cierre MANUAL, y si el usuario no cierra la app solo AVISA — nunca cierra por su cuenta.**\n   El usuario preguntó expresamente qué pasaría si nunca cerrara («creo que generaría muchos errores\n   si empieza a tocar cosas»), se le explicó el efecto completo, y aun así decidió que la app no\n   congele nada a sus espaldas: aviso visible mientras haya meses sin cerrar, y nada más.\n\n   **CONSECUENCIA QUE EL DISEÑO DEBE ABSORBER — no es un detalle.** Se le presentó antes de decidir\n   y la aceptó. Toda la maquinaria complicada del techo (BL-037, BL-038, las marcas falsas y el\n   trinquete) existe porque hoy cualquier mes pasado es editable en cualquier momento. Esa\n   maquinaria solo puede RETIRARSE si los meses cerrados están garantizados — y con el cierre\n   voluntario no lo están: un usuario que nunca cierre deja la app exactamente como hoy. Por tanto\n   **BL-037 y BL-038 NO quedan disueltos automáticamente por esta feature**, al contrario de lo que\n   supone el § «Por qué es la feature que más valor libera» escrito el 2026-09-02. El dominio tiene\n   que soportar los DOS estados a la vez: reglas simples donde hay meses cerrados, y la vigilancia\n   actual donde no los hay. Dimensionarlo es trabajo de la Fase 2; darlo por resuelto sería el error.\n\n4. **Los meses futuros ya planeados siguen editables.** Cerrar septiembre congela septiembre y nada\n   más. El saldo con que cierra pasa a ser el saldo de apertura de octubre y ese punto de partida\n   queda fijo, pero todo el plan de octubre en adelante se sigue editando con libertad. Razón: el\n   futuro es plan, y el plan cambia.\n\n## Lo que sigue abierto para la Fase 1\n\n- **Qué cuenta como «mes cerrable»**: ¿se puede cerrar un mes futuro? (Presumiblemente no, pero no\n  se le preguntó y no se infiere aquí.)\n- **La forma del aviso** de la decisión 3: dónde vive y cuándo aparece.\n- **El rastro de la reapertura**: qué se registra exactamente y dónde se consulta. El usuario dijo\n  «tendríamos que ver cómo se audita» y no se ha concretado.\n"
+}

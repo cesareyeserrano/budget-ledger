@@ -1,0 +1,174 @@
+{
+  "feature": "ciclos",
+  "summary": "Presupuesto por ciclos de pago (BL-043, primer incremento: el núcleo que reubica las transacciones actuales). Calendario versionado append-only (cycle_config_version, migración 0007); asignación por FECHA de transacción; claves de periodo YYYY-MM nombradas por el mes en que termina el ciclo, con sufijo t solo en colisión de transición; previsualización y aplicación en el servidor con el mismo relocate puro y re-verificación de sumas en SQL; cierre, reapertura, Registro, grilla, selector, historial y Dashboard hablan el calendario; modo mes (por defecto) byte a byte igual al previo (golden y captura del commit base 4ea95eb). Re-derivación del 2026-09-10: el dato sin día sigue al ejecutado de su rubro (tres casos) y cada parte movida queda en la memoria de origen relocation_origin (migración 0008), para que volver a mes a mes sea exacto. Lo diferido está en BL-045.",
+  "files_created": [
+    "drizzle/0007_ciclos.sql",
+    "src/domain/cycles.ts",
+    "src/server/clock.ts",
+    "src/server/data/cyclesRepo.ts",
+    "src/app/api/v1/ledger/cycles/route.ts",
+    "src/app/api/v1/ledger/cycles/preview/route.ts",
+    "src/components/PeriodModeSection.tsx",
+    "src/components/cycleText.ts",
+    "tests/fixtures/ciclos.ts",
+    "tests/fixtures/ciclos-golden-month.json",
+    "tests/domain/ciclos.test.ts",
+    "tests/unit/ciclos-gates.test.ts",
+    "tests/integration/backend/ciclos.test.ts",
+    "tests/e2e/ciclos.spec.ts",
+    "tests/e2e/helpers/cycles.ts",
+    "tests/e2e/__screenshots__/ciclos-header-month.png",
+    "drizzle/0008_ciclos_origen.sql",
+    "tests/fixtures/ciclos-usuario.ts"
+  ],
+  "files_modified": [
+    ".env.example",
+    "drizzle/meta/_journal.json",
+    "src/domain/types.ts",
+    "src/domain/periods.ts",
+    "src/domain/range.ts",
+    "src/domain/closure.ts",
+    "src/domain/validation.ts",
+    "src/domain/index.ts",
+    "src/lib/date.ts",
+    "src/server/env.ts",
+    "src/server/schemas.ts",
+    "src/server/db/schema.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/app/api/v1/ledger/route.ts",
+    "src/app/api/v1/movements/route.ts",
+    "src/app/api/v1/closure/route.ts",
+    "src/app/configuracion/page.tsx",
+    "src/state/store.ts",
+    "src/data/serverRepository.ts",
+    "src/components/BudgetGrid.tsx",
+    "src/components/DesktopShell.tsx",
+    "src/components/register/Register.tsx",
+    "src/components/ClosureControl.tsx",
+    "src/components/ClosureHistoryPanel.tsx",
+    "src/components/Dashboard.tsx",
+    "src/components/OpeningCard.tsx",
+    "tests/e2e/helpers/fixtures.ts",
+    "tests/e2e/helpers/globalSetup.ts",
+    "tests/integration/backend/helpers/setupEnv.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate"
+  ],
+  "environment_variables": [
+    {
+      "name": "LEDGER_TZ",
+      "default": "America/Bogota",
+      "note": "Zona con la que el servidor decide «hoy» (ciclo en curso, cierre, primer pago)."
+    },
+    {
+      "name": "LEDGER_TEST_OVERRIDES",
+      "default": "",
+      "note": "SOLO PRUEBAS. Con 1 el servidor acepta la cabecera x-ledger-today y las tres variables siguientes. NUNCA en producción."
+    },
+    {
+      "name": "LEDGER_TODAY",
+      "default": "",
+      "note": "SOLO PRUEBAS (requiere LEDGER_TEST_OVERRIDES=1): fija «hoy» como YYYY-MM-DD."
+    },
+    {
+      "name": "LEDGER_NOW",
+      "default": "",
+      "note": "SOLO PRUEBAS (requiere LEDGER_TEST_OVERRIDES=1): fija el instante ISO sin falsear Date (la sesión de Better Auth no caduca)."
+    },
+    {
+      "name": "LEDGER_TEST_FAIL_AFTER",
+      "default": "",
+      "note": "SOLO PRUEBAS (requiere LEDGER_TEST_OVERRIDES=1): first_insert fuerza un fallo a mitad de la reubicación para probar el rollback."
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2408",
+      "substitution": "«Fecha de tu primer pago con el día nuevo» (A7 del spec de UX) usa un <input type=\"date\"> nativo en vez del DateCalendar (react-day-picker) del Registro.",
+      "reason": "El primer incremento prioriza el núcleo de reubicación; el campo nativo valida formato y el servidor valida la regla (first_pay_invalid). La paridad visual con el Registro queda para BL-045.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2407",
+      "substitution": "TC-CIC-062h: el peso 600 de la columna actual se aplica en línea SOLO en modo ciclos. En modo mes la cabecera activa sigue en 500 como antes de la feature, porque `.label` es CSS sin capa y gana a `font-semibold`.",
+      "reason": "Corregirlo en modo mes cambiaría la cabecera de mes, que NFR-2401 exige idéntica (TC-CIC-064f compara byte a byte contra el commit base).",
+      "effort": "low"
+    },
+    {
+      "fr_id": "NFR-2401",
+      "substitution": "TC-CIC-102e: la vecindad mensual del cierre (normalizeClosure, reopenMonth por defecto) pasó a periods.monthNext/monthPrev; el gate estático vigila currentPeriod(/periodRange(/addMonths(, no esos nombres.",
+      "reason": "closure.ts no puede importar el calendario (cycles.ts ya importa closure.ts). Son funciones de modo mes por contrato: con claves de transición lanzan, y la vecindad en ciclos la verifica checkClosureNeighbors con calendar.next.",
+      "effort": "medium"
+    },
+    {
+      "fr_id": "FR-2410",
+      "substitution": "El ledger de dev del usuario se activó en ciclos el 2026-09-10 con la regla anterior, antes de existir relocation_origin (migración 0008), y sus presupuestos se alinearon a mano por la API (revisión 84). No tiene memoria de origen: volver a mes a mes usaría los tres casos al revés y no separaría Parqueaderos, Restaurantes y Ropa en agosto y septiembre.",
+      "reason": "La memoria solo la escribe una activación con el código nuevo. Mitigación propuesta (R6 del diseño): un script de un solo uso que reconstruya su memoria desde el respaldo previo a la activación, con permiso del usuario y respaldo previo. Hasta entonces, el usuario no debe volver a mes a mes con esos datos.",
+      "effort": "low"
+    },
+    {
+      "fr_id": "FR-2408",
+      "substitution": "El resumen de la previsualización al cambiar el día de pago muestra «Totales idénticos ✓» en lugar de «Los ciclos hasta <mes> no se tocan ✓» que dicta el flujo A2 del spec de UX.",
+      "reason": "Ningún TC lo cubre (TC-CIC-079e afirma la transición y su nota, no el resumen) y la regla del cambio de día no cambió en la rederivación. Se declara en vez de ampliar el alcance del build; el dato de corte saldría de la primera fila de transición del preview.",
+      "effort": "low"
+    }
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/ciclos.test.ts",
+    "../../../tests/unit/ciclos-gates.test.ts",
+    "../../../tests/integration/backend/ciclos.test.ts",
+    "../../../tests/e2e/ciclos.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "npm run gate:design-tokens",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "security-config",
+      "command": "npm run gate:security-config",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "secret-scan",
+      "command": "npm run gate:secret-scan",
+      "required": true,
+      "timeout_ms": 120000
+    },
+    {
+      "name": "smoke",
+      "command": "npm run gate:smoke",
+      "required": true,
+      "timeout_ms": 180000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 1800000
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "notes": "178 TCs. Generación 2 del BUILD_PLAN (rederivación del 2026-09-10): EP-05 dominio (70 unit: placementContext, placeDateless, returnDateless, restoreParts, relocate con memoria), EP-06 servidor (46 integration: migración 0008, memoria en la transacción de ciclos), EP-07 interfaz (53 e2e: resumen con fusiones, aviso con el nombre del rubro), EP-08 endurecimiento (9: gates, rendimiento, CI). F-USER (tests/fixtures/ciclos-usuario.ts) es la réplica del ledger del usuario previo a activar, con su autorización para usar nombres y montos reales, sin notas. El golden de modo mes y la captura de cabecera salen del commit base 4ea95eb. Las 22 desviaciones de la generación 1 quedaron corregidas en 01/02/03 y re-aprobadas. La migración 0008 se aplicó en la base de dev con respaldo antes de conectar el código que la lee."
+}

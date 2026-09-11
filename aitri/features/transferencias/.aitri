@@ -1,8 +1,254 @@
 {
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
-  "currentPhase": 0,
-  "approvedPhases": [],
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-24T21:00:14.469Z"
+  "updatedAt": "2026-07-30T15:41:58.053Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-07-29T21:41:48.252Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-30T14:29:28.222Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-30T14:31:40.532Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-07-30T14:34:08.108Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-30T14:34:12.107Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-07-30T14:35:37.458Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-30T14:35:44.235Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-30T14:35:44.338Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-07-30T14:44:26.489Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-30T14:44:35.514Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-07-30T15:29:31.155Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-30T15:29:38.784Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-07-30T15:38:19.360Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-07-30T15:38:25.306Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0
+    },
+    {
+      "at": "2026-07-30T15:38:34.226Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-30T15:38:39.199Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-30T15:38:44.987Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-30T15:39:32.531Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-30T15:41:51.798Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-07-30T15:41:58.028Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "ee959b4211db6216f89e3c47b20dd223900ae3be6a847df340aaf3130ee0199b",
+    "2": "503f6f5e087ce6bef75cb56e045b60f0d01dad29dc900d4de15de3890e483670",
+    "3": "a11adeb94170f3ace702279530870e1dde67f467b36110da158078ea8e1918fb",
+    "4": "12f5e2ab6373746ecad7c6c6e76a3f7f3839d15fb6891a457d52f2d61cf9e0ee",
+    "5": "8ab05763a494296da4685a8578c9744031c94ed501c3005bed1f07d300135121",
+    "ux": "931984c95bc79d29bc47697cccf528269617533fcd10152e71afa6f7d6132863"
+  },
+  "coverageAuditLastAt": "2026-07-30T14:29:48.007Z",
+  "coverageAuditReqHash": "ee959b4211db6216f89e3c47b20dd223900ae3be6a847df340aaf3130ee0199b",
+  "frSnapshots": {
+    "2": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1014",
+      "FR-1015"
+    ],
+    "3": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1014",
+      "FR-1015"
+    ],
+    "4": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1014",
+      "FR-1015"
+    ],
+    "5": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1014",
+      "FR-1015"
+    ],
+    "ux": [
+      "FR-1001",
+      "FR-1002",
+      "FR-1003",
+      "FR-1004",
+      "FR-1005",
+      "FR-1006",
+      "FR-1007",
+      "FR-1008",
+      "FR-1009",
+      "FR-1010",
+      "FR-1011",
+      "FR-1012",
+      "FR-1014",
+      "FR-1015"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "9e4bfe2141c085ca934f0d1a8d32a02ba4c4daf30d73967d9772b75d7f32d2cf",
+  "verifyRanAt": "2026-07-30T15:38:19.360Z",
+  "lastVerifyRun": {
+    "passed": 67,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-07-30T15:38:19.360Z"
+  },
+  "verifySummary": {
+    "total": 67,
+    "passed": 67,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-07-30T15:41:58.027Z"
+    }
+  ]
 }

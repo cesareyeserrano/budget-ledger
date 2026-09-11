@@ -1,5 +1,7 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
-import { MONTH_KEYS } from "../../src/domain/months";
+import { test, expect, type Locator, type Page } from "./helpers/fixtures";
+import { seedLedger } from "./helpers/seed";
+import type { LedgerNode } from "@/domain/types";
+import { P as MONTH_KEYS } from "./helpers/periods";
 
 // Feature budget-state-color — el color de la grilla señala el ESTADO del presupuesto, no el tipo.
 // Los TCs visuales afirman VALORES COMPUTADOS reales (color, background, scrollWidth, contraste
@@ -10,18 +12,21 @@ const DESK = { width: 1440, height: 900 };
 const MOBILE = { width: 375, height: 900 };
 
 /** Mes sobre el que se posa el filtro en los tests: fijo, para que el resaltado sea determinista. */
-const PICKED = { key: "ene", label: "Enero", index: MONTH_KEYS.indexOf("ene") };
+const PICKED = { key: "2026-01", label: "Enero 2026", index: MONTH_KEYS.indexOf("2026-01") };
 /** Un mes cualquiera SIN resaltar, para leer superficies sin el tinte del filtro. */
-const PLAIN_INDEX = MONTH_KEYS.indexOf("feb");
+const PLAIN_INDEX = MONTH_KEYS.indexOf("2026-02");
 
 const STATE_WARNING = "rgb(158, 71, 8)"; // --state-warning claro (#9e4708)
 const STATE_OVER = "rgb(173, 57, 50)"; // --state-over claro (#ad3932)
 const FG = "rgb(28, 28, 31)"; // --fg claro
 const BG = "rgb(247, 247, 248)"; // --bg (fila hoja)
 const BG_SUNKEN = "rgb(241, 241, 243)"; // --bg-sunken (fila de estructura)
-const SUCCESS = "rgb(47, 125, 83)"; // --success claro
-const WARNING = "rgb(180, 83, 9)"; // --warning claro (Ingreso corto — NO es --state-warning)
-const ACCENT_LIGHT = "rgb(85, 85, 93)"; // --accent-light (Transferencia)
+const SUCCESS = "rgb(45, 118, 80)"; // --favorable claro (#2d7650) — refinamiento-ui FR-1201 unificó
+                                    // --success/--success-strong/--type-income en un solo rol.
+const WARNING = STATE_WARNING; // refinamiento-ui FR-1201: --warning y --state-warning eran dos ámbares
+                               // casi idénticos para el MISMO mensaje («excepción leve»). Ahora comparten
+                               // el rol --alert-soft: un ingreso corto y un gasto algo pasado son ambos
+                               // «atención, poco». Por eso el ingreso corto ganó su marca «‹» (ver 453f).
 const TYPE_EXPENSE = "rgb(196, 69, 62)"; // --type-expense claro
 
 // ── contraste WCAG calculado a partir de los valores REALES del navegador ──────────────────────
@@ -96,27 +101,24 @@ const ALL_LEAVES = [...EXPENSE_LEAVES, SEVEN_DIGITS, SUB_LEAF, INCOME_SHORT, INC
  * un falso negativo.
  */
 async function seed(page: Page) {
-  await page.addInitScript(
-    ({ nodes, leaves, months }) => {
-      if (localStorage.getItem("ledger.nodes.v1")) return; // arranque en caliente: respetar lo persistido
-      const budgets: Record<string, Record<string, number>> = {};
-      const actuals: Record<string, Record<string, number>> = {};
-      for (const l of leaves) {
-        budgets[l.id] = {};
-        actuals[l.id] = {};
-        for (const m of months) {
-          budgets[l.id][m] = l.budget;
-          actuals[l.id][m] = l.actual;
-        }
-      }
-      localStorage.setItem(
-        "ledger.nodes.v1",
-        JSON.stringify({ version: 1, ownerId: "local", nodes: nodes.map((n) => ({ ...n, ownerId: "local", icon: null })) })
-      );
-      localStorage.setItem("ledger.budget.v2", JSON.stringify({ version: 2, budgets, actuals, movements: [] }));
-    },
-    { nodes: NODES, leaves: ALL_LEAVES, months: MONTH_KEYS }
-  );
+  // Siembra por API autenticada (FR-1104): localStorage dejó de guardar datos financieros.
+  // El PUT es un snapshot completo, así que ya no hace falta la guarda de idempotencia que
+  // necesitaba addInitScript (corría en CADA navegación y pisaba lo editado).
+  const budgets: Record<string, Record<string, number>> = {};
+  const actuals: Record<string, Record<string, number>> = {};
+  for (const l of ALL_LEAVES) {
+    budgets[l.id] = {};
+    actuals[l.id] = {};
+    for (const m of MONTH_KEYS) {
+      budgets[l.id][m] = l.budget;
+      actuals[l.id][m] = l.actual;
+    }
+  }
+  await seedLedger(page, {
+    nodes: NODES.map((n) => ({ ...n, ownerId: "local", icon: null })) as unknown as LedgerNode[],
+    budgets,
+    actuals,
+  });
 }
 
 async function gotoGrid(page: Page, scheme: "light" | "dark" = "light") {
@@ -128,7 +130,6 @@ async function gotoGrid(page: Page, scheme: "light" | "dark" = "light") {
   // filtro en un mes FIJO: el resaltado (y con él la peor superficie de AA) deja de depender de la fecha real
   await page.getByLabel("Mes").click();
   await page.getByRole("option", { name: PICKED.label, exact: true }).click();
-  await expect(page.getByTestId("grid-legend")).toBeVisible();
   await expandEducacion(page);
 }
 
@@ -216,33 +217,43 @@ test("TC-BSC-402f: ninguna celda dentro del presupuesto, ni de Ingreso/Transfere
   }
 });
 
-// ══ FR-403 · leyenda ═══════════════════════════════════════════════════════════════════════════
+// ══ FR-403 · la clave del código de estado ═════════════════════════════════════════════════════
+// SUPERSEDIDO en su FORMA por refinamiento-ui FR-1205 (decisión del usuario, 2026-08-12): la clave
+// era una franja fija al pie de la grilla y pasa a ser el `title` de cada glifo. Cobraba 35 px
+// permanentes a todo el mundo para explicar tres símbolos que se aprenden la primera vez.
+// Lo que FR-403 protegía se sigue afirmando entero, sólo que sobre la nueva forma: que la clave
+// EXISTA y cubra el vocabulario completo, que no se repita como chrome por fila, y que no haya
+// iconos de ayuda sembrados por la grilla. El canal no cromático de WCAG 1.4.1 nunca fue la
+// leyenda —es el glifo— y lo verifica TC-RUI-003i barriendo los tres tipos de 0 % a 200 %.
 
-test("TC-BSC-403h: el pie de la grilla contiene la leyenda con los tres estados, su color y su glifo", async ({ page }) => {
+test("TC-BSC-403h: la clave acompaña al glifo y cubre el vocabulario de estado", async ({ page }) => {
   // @aitri-tc TC-BSC-403h
   await gotoGrid(page);
-  const legend = page.getByTestId("grid-legend");
+  const glyphs = page.getByTestId("cell-glyph");
+  expect(await glyphs.count(), "la semilla debe producir celdas con marca").toBeGreaterThan(0);
 
-  const text = (await legend.textContent())!.toLowerCase();
-  expect(text).toContain("dentro del presupuesto");
-  expect(text).toContain("te pasaste poco");
-  expect(text).toContain("te pasaste mucho");
-  expect(text).toContain("›");
-  expect(text).toContain("››");
+  // cada marca visible lleva su explicación colgada, y ninguna se queda muda
+  const pares = await glyphs.evaluateAll((els) =>
+    els.map((e) => ({ g: (e.textContent ?? "").trim(), t: (e.getAttribute("title") ?? "").toLowerCase() }))
+  );
+  for (const { g, t } of pares) expect(t, `el glifo "${g}" no explica nada`).not.toBe("");
 
-  // un punto de color por estado, con el color computado real de cada token
-  const dots = legend.locator("span[style*='background']");
-  await expect(dots).toHaveCount(3);
-  expect(await bgOf(dots.nth(0))).toBe(FG);
-  expect(await bgOf(dots.nth(1))).toBe(STATE_WARNING);
-  expect(await bgOf(dots.nth(2))).toBe(STATE_OVER);
+  // y el vocabulario dice lo que corresponde a cada umbral
+  const dicc = new Map(pares.map((p) => [p.g, p.t]));
+  if (dicc.has("›")) expect(dicc.get("›")).toContain("te pasaste poco");
+  if (dicc.has("››")) expect(dicc.get("››")).toContain("te pasaste mucho");
+  if (dicc.has("‹")) expect(dicc.get("‹")).toContain("te quedaste corto");
+  expect([...dicc.keys()].length, "ningún umbral quedó representado").toBeGreaterThan(0);
 });
 
-test("TC-BSC-403e: la leyenda aparece exactamente una vez, no por fila", async ({ page }) => {
+test("TC-BSC-403e: la clave no se repite como chrome — ni franja fija ni bloque por fila", async ({ page }) => {
   // @aitri-tc TC-BSC-403e
   await gotoGrid(page);
   expect(await page.getByTestId("node-row").count()).toBeGreaterThanOrEqual(6);
-  await expect(page.getByTestId("grid-legend")).toHaveCount(1); // no se repite por fila
+  // la franja del pie ya no existe: la explicación no ocupa superficie propia
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
+  // y no reapareció como texto visible dentro de las filas
+  await expect(page.getByTestId("budget-grid").getByText(/te pasaste (poco|mucho)/i)).toHaveCount(0);
 });
 
 test("TC-BSC-403f: no existe ningún icono de información por fila", async ({ page }) => {
@@ -250,8 +261,8 @@ test("TC-BSC-403f: no existe ningún icono de información por fila", async ({ p
   await gotoGrid(page);
   const infoIcons = page.getByTestId("budget-grid").locator('[aria-label*="info" i], [title*="info" i], [aria-label*="ayuda" i], [title*="ayuda" i]');
   await expect(infoIcons).toHaveCount(0);
-  // la única explicación del código de estado vive en el pie
-  await expect(page.getByTestId("grid-legend")).toHaveCount(1);
+  // la explicación del código vive en UN solo sitio: el propio glifo, no un adorno junto a él
+  await expect(page.getByTestId("grid-legend")).toHaveCount(0);
 });
 
 // ══ FR-404 · superficie de estructura ══════════════════════════════════════════════════════════
@@ -382,18 +393,28 @@ test("TC-BSC-452h: regresión — Ingreso conserva su semántica (corto = warnin
 
   const short = ejecCell(rowByName(page, "Salario"), PLAIN_INDEX); // 2.000.000 / 3.000.000
   expect(await colorOf(short)).toBe(WARNING);
-  expect(await colorOf(short)).not.toBe(STATE_WARNING); // NO es el token de estado de presupuesto
+  // refinamiento-ui FR-1201: este TC afirmaba que el ámbar del ingreso corto era un token DISTINTO
+  // del ámbar de sobre-consumo. Eran dos valores casi idénticos para el mismo mensaje («excepción
+  // leve»), así que se unificaron. La distinción no se pierde: se mudó del HUE a la FORMA — el
+  // ingreso corto lleva «‹» (te quedaste corto) y el gasto pasado «›» (te pasaste).
+  expect((await short.textContent())!).toContain("‹");
+  expect((await short.textContent())!).not.toContain("›");
 
   const over = ejecCell(rowByName(page, "Bonos"), PLAIN_INDEX); // 1.300.000 / 1.000.000
   expect(await colorOf(over)).toBe(SUCCESS);
   expect(await colorOf(over)).not.toBe(STATE_OVER);
 });
 
-test("TC-BSC-452e: regresión — Transferencia sigue neutra (--accent-light)", async ({ page }) => {
+test("TC-BSC-452e: regresión — Transferencia sigue fuera de los umbrales de gasto", async ({ page }) => {
   // @aitri-tc TC-BSC-452e
+  // Modelo v4 (feature transferencias): la celda transfer es el APORTE del mes con la convención
+  // previa del tipo (--accent-light). Lo que este TC protege sigue intacto: los umbrales/estados
+  // de GASTO no la afectan y jamás lleva la marca de sobre-consumo.
   await gotoGrid(page);
   const cell = ejecCell(rowByName(page, "Ahorro"), PLAIN_INDEX);
-  expect(await colorOf(cell)).toBe(ACCENT_LIGHT); // los umbrales de gasto no la afectan
+  expect(await colorOf(cell)).toBe("rgb(85, 85, 93)"); // --accent-light claro
+  expect(await colorOf(cell)).not.toBe(STATE_WARNING);
+  expect(await colorOf(cell)).not.toBe(STATE_OVER);
   expect((await cell.textContent())!).not.toContain("›");
 });
 
@@ -405,6 +426,7 @@ test("TC-BSC-452f: regresión — una fila de Ingreso que supera su presupuesto 
   expect((await cell.textContent())!).not.toContain("›");
   expect(await colorOf(cell)).toBe(SUCCESS);
   expect(await colorOf(cell)).not.toBe(STATE_OVER);
+  expect((await cell.textContent())!).not.toContain("‹"); // superarlo es bueno: tampoco marca de «corto»
 });
 
 // ══ NFR-403 · AA sobre la app real + WCAG 1.4.1 ════════════════════════════════════════════════
@@ -444,7 +466,10 @@ test("TC-BSC-453f: WCAG 1.4.1 — el estado nunca se codifica solo con color: to
         const c = getComputedStyle(el).color;
         if (c !== warning && c !== over) continue;
         colored++;
-        if (!(el.textContent ?? "").includes("›")) withoutGlyph++;
+        // El vocabulario de marcas creció con refinamiento-ui: «›»/«››» = te pasaste, «‹» = te
+        // quedaste corto (ingreso). El INVARIANTE no cambia: coloreada ⇒ lleva marca.
+        const txt = el.textContent ?? "";
+        if (!txt.includes("›") && !txt.includes("‹")) withoutGlyph++;
       }
       return { colored, withoutGlyph };
     },
@@ -482,7 +507,12 @@ test("TC-BSC-454e: regresión — filtro Mes/Año y roll-ups intactos; 'Reciente
   expect(groupActual).toContain("855.000");
 
   // el filtro Mes/Año recalcula los KPIs (el año agrega los 12 meses), y volver a Mes los restituye
-  const budgetKpi = page.getByTestId("kpi").first().locator(".display");
+  // refinamiento-ui FR-1204: las tres tarjetas de 110 px que mostraban $0 se sustituyeron por una
+  // franja compacta — ocupaban el 31 % de la altura a 1024 y dejaban el Balance bajo el pliegue.
+  // Apuntaba a `summary-value`, el testid de SummaryFigure — un componente que existió sólo entre
+  // dos commits de esta misma tanda y se retiró al ver que re-duplicaba lo que FR-308 consolidó. El
+  // ancla correcta es el Kpi único, acotado a la franja para nombrar la cifra que se quiere leer.
+  const budgetKpi = page.getByTestId("summary-strip").getByTestId("kpi-value").first();
   const kpiMonth = await budgetKpi.textContent();
   await page.getByTestId("period-pill").getByRole("tab", { name: "Año" }).click();
   const kpiYear = await budgetKpi.textContent();

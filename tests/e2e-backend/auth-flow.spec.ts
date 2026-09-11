@@ -20,7 +20,7 @@ test("TC-BE-044e: el ledger inicial no arrastra datos financieros del localStora
   // Precargar localStorage con datos financieros de un uso cliente-puro previo.
   await page.addInitScript(() => {
     localStorage.setItem("ledger.nodes.v1", JSON.stringify({ version: 1, ownerId: "local", nodes: [{ id: "hack", name: "Robado" }] }));
-    localStorage.setItem("ledger.budget.v2", JSON.stringify({ version: 2, budgets: {}, actuals: {}, movements: [{ amount: 99999 }] }));
+    localStorage.setItem("ledger.budget.v4", JSON.stringify({ version: 4, budgets: {}, actuals: {}, movements: [{ amount: 99999 }] }));
   });
   await register(page, uniqueEmail("limpio"));
   // El ledger nuevo NO contiene los datos previos.
@@ -28,7 +28,7 @@ test("TC-BE-044e: el ledger inicial no arrastra datos financieros del localStora
   // Las llaves financieras legadas fueron retiradas de localStorage (split, FR-509).
   const ls = await dumpLocalStorage(page);
   expect(ls["ledger.nodes.v1"]).toBeUndefined();
-  expect(ls["ledger.budget.v2"]).toBeUndefined();
+  expect(ls["ledger.budget.v4"]).toBeUndefined();
 });
 
 test("TC-BE-045f: dos cuentas nuevas obtienen ledgers independientes", async ({ browser }) => {

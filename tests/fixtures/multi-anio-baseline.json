@@ -1,0 +1,667 @@
+{
+  "_nota": "LINEA BASE de multi-anio. Generada el 2026-09-02 ejecutando el codigo ANTERIOR a la migracion (worktree en HEAD) sobre un estado EXPLICITO — deliberadamente sin la semilla, porque su jitter depende del NOMBRE del mes (hash(id + 'ene')) y ese nombre cambia con el modelo, lo que haria incomparables unos numeros que no son una regresion sino datos inventados.\nEl estado: sueldo 1.000.000+50.000*i (plan) y 1.000.000+40.000*i (real); mercado 300.000+10.000*i y 320.000+12.000*i; ahorro 100.000+25.000*i en ambos planos; mas dos retiros reales (may 40.000, sep 75.000). Las NFR-1902/1903/1904 reconstruyen ESE mismo estado sobre el eje nuevo y comparan cifra por cifra: el mes 'ene' corresponde al periodo '2026-01'.",
+  "meses": [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic"
+  ],
+  "balance": {
+    "ene": {
+      "budget": {
+        "prevAvailable": 0,
+        "prevReserved": 0,
+        "income": 1000000,
+        "expense": 300000,
+        "flow": 700000,
+        "reserved": 100000,
+        "available": 600000,
+        "reservedBalance": 100000,
+        "total": 700000
+      },
+      "actual": {
+        "prevAvailable": 0,
+        "prevReserved": 0,
+        "income": 1000000,
+        "expense": 320000,
+        "flow": 680000,
+        "reserved": 100000,
+        "available": 580000,
+        "reservedBalance": 100000,
+        "total": 680000
+      }
+    },
+    "feb": {
+      "budget": {
+        "prevAvailable": 580000,
+        "prevReserved": 100000,
+        "income": 1050000,
+        "expense": 310000,
+        "flow": 740000,
+        "reserved": 125000,
+        "available": 1195000,
+        "reservedBalance": 225000,
+        "total": 1420000
+      },
+      "actual": {
+        "prevAvailable": 580000,
+        "prevReserved": 100000,
+        "income": 1040000,
+        "expense": 332000,
+        "flow": 708000,
+        "reserved": 125000,
+        "available": 1163000,
+        "reservedBalance": 225000,
+        "total": 1388000
+      }
+    },
+    "mar": {
+      "budget": {
+        "prevAvailable": 1163000,
+        "prevReserved": 225000,
+        "income": 1100000,
+        "expense": 320000,
+        "flow": 780000,
+        "reserved": 150000,
+        "available": 1793000,
+        "reservedBalance": 375000,
+        "total": 2168000
+      },
+      "actual": {
+        "prevAvailable": 1163000,
+        "prevReserved": 225000,
+        "income": 1080000,
+        "expense": 344000,
+        "flow": 736000,
+        "reserved": 150000,
+        "available": 1749000,
+        "reservedBalance": 375000,
+        "total": 2124000
+      }
+    },
+    "abr": {
+      "budget": {
+        "prevAvailable": 1749000,
+        "prevReserved": 375000,
+        "income": 1150000,
+        "expense": 330000,
+        "flow": 820000,
+        "reserved": 175000,
+        "available": 2394000,
+        "reservedBalance": 550000,
+        "total": 2944000
+      },
+      "actual": {
+        "prevAvailable": 1749000,
+        "prevReserved": 375000,
+        "income": 1120000,
+        "expense": 356000,
+        "flow": 764000,
+        "reserved": 175000,
+        "available": 2338000,
+        "reservedBalance": 550000,
+        "total": 2888000
+      }
+    },
+    "may": {
+      "budget": {
+        "prevAvailable": 2338000,
+        "prevReserved": 550000,
+        "income": 1200000,
+        "expense": 340000,
+        "flow": 860000,
+        "reserved": 200000,
+        "available": 2998000,
+        "reservedBalance": 750000,
+        "total": 3748000
+      },
+      "actual": {
+        "prevAvailable": 2338000,
+        "prevReserved": 550000,
+        "income": 1160000,
+        "expense": 368000,
+        "flow": 792000,
+        "reserved": 160000,
+        "available": 2970000,
+        "reservedBalance": 710000,
+        "total": 3680000
+      }
+    },
+    "jun": {
+      "budget": {
+        "prevAvailable": 2970000,
+        "prevReserved": 710000,
+        "income": 1250000,
+        "expense": 350000,
+        "flow": 900000,
+        "reserved": 225000,
+        "available": 3645000,
+        "reservedBalance": 935000,
+        "total": 4580000
+      },
+      "actual": {
+        "prevAvailable": 2970000,
+        "prevReserved": 710000,
+        "income": 1200000,
+        "expense": 380000,
+        "flow": 820000,
+        "reserved": 225000,
+        "available": 3565000,
+        "reservedBalance": 935000,
+        "total": 4500000
+      }
+    },
+    "jul": {
+      "budget": {
+        "prevAvailable": 3565000,
+        "prevReserved": 935000,
+        "income": 1300000,
+        "expense": 360000,
+        "flow": 940000,
+        "reserved": 250000,
+        "available": 4255000,
+        "reservedBalance": 1185000,
+        "total": 5440000
+      },
+      "actual": {
+        "prevAvailable": 3565000,
+        "prevReserved": 935000,
+        "income": 1240000,
+        "expense": 392000,
+        "flow": 848000,
+        "reserved": 250000,
+        "available": 4163000,
+        "reservedBalance": 1185000,
+        "total": 5348000
+      }
+    },
+    "ago": {
+      "budget": {
+        "prevAvailable": 4163000,
+        "prevReserved": 1185000,
+        "income": 1350000,
+        "expense": 370000,
+        "flow": 980000,
+        "reserved": 275000,
+        "available": 4868000,
+        "reservedBalance": 1460000,
+        "total": 6328000
+      },
+      "actual": {
+        "prevAvailable": 4163000,
+        "prevReserved": 1185000,
+        "income": 1280000,
+        "expense": 404000,
+        "flow": 876000,
+        "reserved": 275000,
+        "available": 4764000,
+        "reservedBalance": 1460000,
+        "total": 6224000
+      }
+    },
+    "sep": {
+      "budget": {
+        "prevAvailable": 4764000,
+        "prevReserved": 1460000,
+        "income": 1400000,
+        "expense": 380000,
+        "flow": 1020000,
+        "reserved": 300000,
+        "available": 5484000,
+        "reservedBalance": 1760000,
+        "total": 7244000
+      },
+      "actual": {
+        "prevAvailable": 4764000,
+        "prevReserved": 1460000,
+        "income": 1320000,
+        "expense": 416000,
+        "flow": 904000,
+        "reserved": 225000,
+        "available": 5443000,
+        "reservedBalance": 1685000,
+        "total": 7128000
+      }
+    },
+    "oct": {
+      "budget": {
+        "prevAvailable": 5443000,
+        "prevReserved": 1685000,
+        "income": 1450000,
+        "expense": 390000,
+        "flow": 1060000,
+        "reserved": 325000,
+        "available": 6178000,
+        "reservedBalance": 2010000,
+        "total": 8188000
+      },
+      "actual": {
+        "prevAvailable": 5443000,
+        "prevReserved": 1685000,
+        "income": 1360000,
+        "expense": 428000,
+        "flow": 932000,
+        "reserved": 325000,
+        "available": 6050000,
+        "reservedBalance": 2010000,
+        "total": 8060000
+      }
+    },
+    "nov": {
+      "budget": {
+        "prevAvailable": 6050000,
+        "prevReserved": 2010000,
+        "income": 1500000,
+        "expense": 400000,
+        "flow": 1100000,
+        "reserved": 350000,
+        "available": 6800000,
+        "reservedBalance": 2360000,
+        "total": 9160000
+      },
+      "actual": {
+        "prevAvailable": 6050000,
+        "prevReserved": 2010000,
+        "income": 1400000,
+        "expense": 440000,
+        "flow": 960000,
+        "reserved": 350000,
+        "available": 6660000,
+        "reservedBalance": 2360000,
+        "total": 9020000
+      }
+    },
+    "dic": {
+      "budget": {
+        "prevAvailable": 6660000,
+        "prevReserved": 2360000,
+        "income": 1550000,
+        "expense": 410000,
+        "flow": 1140000,
+        "reserved": 375000,
+        "available": 7425000,
+        "reservedBalance": 2735000,
+        "total": 10160000
+      },
+      "actual": {
+        "prevAvailable": 6660000,
+        "prevReserved": 2360000,
+        "income": 1440000,
+        "expense": 452000,
+        "flow": 988000,
+        "reserved": 375000,
+        "available": 7273000,
+        "reservedBalance": 2735000,
+        "total": 10008000
+      }
+    }
+  },
+  "rollups": {
+    "ene": {
+      "income": {
+        "budget": 1000000,
+        "actual": 1000000
+      },
+      "expense": {
+        "budget": 300000,
+        "actual": 320000
+      },
+      "transfer": {
+        "budget": 100000,
+        "actual": 100000
+      }
+    },
+    "feb": {
+      "income": {
+        "budget": 1050000,
+        "actual": 1040000
+      },
+      "expense": {
+        "budget": 310000,
+        "actual": 332000
+      },
+      "transfer": {
+        "budget": 125000,
+        "actual": 125000
+      }
+    },
+    "mar": {
+      "income": {
+        "budget": 1100000,
+        "actual": 1080000
+      },
+      "expense": {
+        "budget": 320000,
+        "actual": 344000
+      },
+      "transfer": {
+        "budget": 150000,
+        "actual": 150000
+      }
+    },
+    "abr": {
+      "income": {
+        "budget": 1150000,
+        "actual": 1120000
+      },
+      "expense": {
+        "budget": 330000,
+        "actual": 356000
+      },
+      "transfer": {
+        "budget": 175000,
+        "actual": 175000
+      }
+    },
+    "may": {
+      "income": {
+        "budget": 1200000,
+        "actual": 1160000
+      },
+      "expense": {
+        "budget": 340000,
+        "actual": 368000
+      },
+      "transfer": {
+        "budget": 200000,
+        "actual": 200000
+      }
+    },
+    "jun": {
+      "income": {
+        "budget": 1250000,
+        "actual": 1200000
+      },
+      "expense": {
+        "budget": 350000,
+        "actual": 380000
+      },
+      "transfer": {
+        "budget": 225000,
+        "actual": 225000
+      }
+    },
+    "jul": {
+      "income": {
+        "budget": 1300000,
+        "actual": 1240000
+      },
+      "expense": {
+        "budget": 360000,
+        "actual": 392000
+      },
+      "transfer": {
+        "budget": 250000,
+        "actual": 250000
+      }
+    },
+    "ago": {
+      "income": {
+        "budget": 1350000,
+        "actual": 1280000
+      },
+      "expense": {
+        "budget": 370000,
+        "actual": 404000
+      },
+      "transfer": {
+        "budget": 275000,
+        "actual": 275000
+      }
+    },
+    "sep": {
+      "income": {
+        "budget": 1400000,
+        "actual": 1320000
+      },
+      "expense": {
+        "budget": 380000,
+        "actual": 416000
+      },
+      "transfer": {
+        "budget": 300000,
+        "actual": 300000
+      }
+    },
+    "oct": {
+      "income": {
+        "budget": 1450000,
+        "actual": 1360000
+      },
+      "expense": {
+        "budget": 390000,
+        "actual": 428000
+      },
+      "transfer": {
+        "budget": 325000,
+        "actual": 325000
+      }
+    },
+    "nov": {
+      "income": {
+        "budget": 1500000,
+        "actual": 1400000
+      },
+      "expense": {
+        "budget": 400000,
+        "actual": 440000
+      },
+      "transfer": {
+        "budget": 350000,
+        "actual": 350000
+      }
+    },
+    "dic": {
+      "income": {
+        "budget": 1550000,
+        "actual": 1440000
+      },
+      "expense": {
+        "budget": 410000,
+        "actual": 452000
+      },
+      "transfer": {
+        "budget": 375000,
+        "actual": 375000
+      }
+    }
+  },
+  "reservas": {
+    "ene": {
+      "reserveHeadroom": 580000,
+      "availableMargin": 680000,
+      "plannedRetiroLimit": 100000,
+      "aportesActual": 100000,
+      "aportesBudget": 100000,
+      "retirosActual": 0,
+      "deltaActual": 100000,
+      "carryActual": null,
+      "maxWithdrawal": 100000,
+      "cellHeadroomActual": 680000
+    },
+    "feb": {
+      "reserveHeadroom": 1163000,
+      "availableMargin": 1288000,
+      "plannedRetiroLimit": 225000,
+      "aportesActual": 125000,
+      "aportesBudget": 125000,
+      "retirosActual": 0,
+      "deltaActual": 125000,
+      "carryActual": null,
+      "maxWithdrawal": 225000,
+      "cellHeadroomActual": 1288000
+    },
+    "mar": {
+      "reserveHeadroom": 1749000,
+      "availableMargin": 1899000,
+      "plannedRetiroLimit": 375000,
+      "aportesActual": 150000,
+      "aportesBudget": 150000,
+      "retirosActual": 0,
+      "deltaActual": 150000,
+      "carryActual": null,
+      "maxWithdrawal": 375000,
+      "cellHeadroomActual": 1899000
+    },
+    "abr": {
+      "reserveHeadroom": 2338000,
+      "availableMargin": 2513000,
+      "plannedRetiroLimit": 550000,
+      "aportesActual": 175000,
+      "aportesBudget": 175000,
+      "retirosActual": 0,
+      "deltaActual": 175000,
+      "carryActual": null,
+      "maxWithdrawal": 550000,
+      "cellHeadroomActual": 2513000
+    },
+    "may": {
+      "reserveHeadroom": 2930000,
+      "availableMargin": 3130000,
+      "plannedRetiroLimit": 750000,
+      "aportesActual": 200000,
+      "aportesBudget": 200000,
+      "retirosActual": 40000,
+      "deltaActual": 160000,
+      "carryActual": null,
+      "maxWithdrawal": 710000,
+      "cellHeadroomActual": 3130000
+    },
+    "jun": {
+      "reserveHeadroom": 3565000,
+      "availableMargin": 3790000,
+      "plannedRetiroLimit": 975000,
+      "aportesActual": 225000,
+      "aportesBudget": 225000,
+      "retirosActual": 0,
+      "deltaActual": 225000,
+      "carryActual": null,
+      "maxWithdrawal": 935000,
+      "cellHeadroomActual": 3790000
+    },
+    "jul": {
+      "reserveHeadroom": 4163000,
+      "availableMargin": 4413000,
+      "plannedRetiroLimit": 1225000,
+      "aportesActual": 250000,
+      "aportesBudget": 250000,
+      "retirosActual": 0,
+      "deltaActual": 250000,
+      "carryActual": null,
+      "maxWithdrawal": 1185000,
+      "cellHeadroomActual": 4413000
+    },
+    "ago": {
+      "reserveHeadroom": 4764000,
+      "availableMargin": 5039000,
+      "plannedRetiroLimit": 1500000,
+      "aportesActual": 275000,
+      "aportesBudget": 275000,
+      "retirosActual": 0,
+      "deltaActual": 275000,
+      "carryActual": null,
+      "maxWithdrawal": 1460000,
+      "cellHeadroomActual": 5039000
+    },
+    "sep": {
+      "reserveHeadroom": 5368000,
+      "availableMargin": 5668000,
+      "plannedRetiroLimit": 1800000,
+      "aportesActual": 300000,
+      "aportesBudget": 300000,
+      "retirosActual": 75000,
+      "deltaActual": 225000,
+      "carryActual": null,
+      "maxWithdrawal": 1685000,
+      "cellHeadroomActual": 5668000
+    },
+    "oct": {
+      "reserveHeadroom": 6050000,
+      "availableMargin": 6375000,
+      "plannedRetiroLimit": 2125000,
+      "aportesActual": 325000,
+      "aportesBudget": 325000,
+      "retirosActual": 0,
+      "deltaActual": 325000,
+      "carryActual": null,
+      "maxWithdrawal": 2010000,
+      "cellHeadroomActual": 6375000
+    },
+    "nov": {
+      "reserveHeadroom": 6660000,
+      "availableMargin": 7010000,
+      "plannedRetiroLimit": 2475000,
+      "aportesActual": 350000,
+      "aportesBudget": 350000,
+      "retirosActual": 0,
+      "deltaActual": 350000,
+      "carryActual": null,
+      "maxWithdrawal": 2360000,
+      "cellHeadroomActual": 7010000
+    },
+    "dic": {
+      "reserveHeadroom": 7273000,
+      "availableMargin": 7648000,
+      "plannedRetiroLimit": 2850000,
+      "aportesActual": 375000,
+      "aportesBudget": 375000,
+      "retirosActual": 0,
+      "deltaActual": 375000,
+      "carryActual": null,
+      "maxWithdrawal": 2735000,
+      "cellHeadroomActual": 7648000
+    }
+  },
+  "serieAhorroActual": [
+    100000,
+    225000,
+    375000,
+    550000,
+    710000,
+    935000,
+    1185000,
+    1460000,
+    1685000,
+    2010000,
+    2360000,
+    2735000
+  ],
+  "serieAhorroBudget": [
+    100000,
+    225000,
+    375000,
+    550000,
+    750000,
+    975000,
+    1225000,
+    1500000,
+    1800000,
+    2125000,
+    2475000,
+    2850000
+  ],
+  "issues": [],
+  "retirosPlan": {},
+  "movimientos": [
+    {
+      "month": "sep",
+      "amount": 75000,
+      "from": "c-ahorro",
+      "to": "@disponible"
+    },
+    {
+      "month": "may",
+      "amount": 40000,
+      "from": "c-ahorro",
+      "to": "@disponible"
+    }
+  ]
+}

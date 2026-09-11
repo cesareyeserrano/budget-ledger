@@ -4,6 +4,11 @@
 
 > Fuente de verdad: `idea_context/Ledger (offline).html` (**prototipo funcional — punto de partida del código**, desempacado y estudiado: CSS `:root`, DOM completo desktop/mobile, y su JS de referencia con roll-up/seed/edición), `idea_context/Ledger - Especificacion Tecnica Completa.md` (§2 tokens, §5–§8 módulos), y los mockups `mockup-dashboard.png`, `mockup-budget-desktop-gastos*.png`. Los tokens fueron **verificados contra el `:root` real del prototipo** (coinciden exacto). Los comportamientos son transcripción del prototipo, salvo las **divergencias intencionales v1** listadas al final (decisiones del cliente que se apartan del prototipo).
 
+> **Preview: not generated** — el producto ya está construido, desplegado y verificado (release `0.0.1-beta`,
+> 12 features cerradas). El look & feel se aprueba contra la **app real** en el navegador, que es una evidencia
+> más fuerte que una maqueta estática; una `UX_PREVIEW.html` derivada de esta sección mostraría además la
+> paleta oscura ÚNICA ya superada por `stack-upgrade-theme`, no lo que el usuario ve hoy.
+
 **Regla de plataforma (v1):** es una APP WEB responsive con un único breakpoint de **760px**.
 - **Pantalla pequeña (≤760px):** SOLO el módulo Registrar (versión compacta). No se renderiza grilla ni dashboard.
 - **Pantalla grande (>760px):** app completa — Presupuesto (grilla 12 meses) + Dashboard + panel Registrar. Navegación por toggle Resumen/Dashboard y botón "Nuevo movimiento".
@@ -20,7 +25,7 @@
   3. Elige mes (default = mes en curso).
   4. Escribe el monto en un **input estándar** (NO teclado numérico ad-hoc). El monto se muestra grande arriba precedido del signo del tipo.
   5. Pulsa "Guardar movimiento".
-- **Exit point:** el movimiento se suma al Ejecutado de la hoja destino en el mes, se recalculan roll-ups, se limpia el monto a 0 y aparece un toast (~2s). (BL-003: sin lista de "recientes".)
+- **Exit point:** el movimiento se suma al Ejecutado de la hoja destino en el mes, se recalculan roll-ups, se limpia el monto a 0 y aparece un **overlay de confirmación a pantalla completa** (`ConfirmOverlay`: círculo con check + monto y signo en el color del tipo), que se autodescarta en ~2000ms (FR-212). (BL-003: sin lista de "recientes".)
 - **Error / prevención:** el botón "Guardar" está **deshabilitado** mientras monto=0 o no hay categoría (H5 error prevention). El input rechaza no-numéricos y negativos; si el usuario intenta un valor inválido, el campo no lo acepta y el botón permanece deshabilitado (mensaje inline "Ingresa un monto mayor a 0").
 
 ### Flujo B — Gestionar categorías (CRUD 3 niveles) (persona: Dueño de finanzas) · FR-002
@@ -28,18 +33,19 @@
 - **Pasos:** crear grupo → crear categoría dentro → crear subcategoría (opcional); renombrar en línea; el CRUD alimenta los selectores de Registrar filtrados por tipo.
 - **Edge:** al crear la primera subcategoría de una categoría-hoja, sus montos se trasladan a esa subcategoría (los totales no caen).
 - **Exit point:** jerarquía persistida; totales por roll-up.
-- **Error path:** los Tipos y la categoría "Sin asignar" no exponen acciones de renombrar/borrar (H3/H5). Intentar renombrar con nombre vacío → se rechaza y se conserva el nombre previo.
+- **Error path:** los Tipos no exponen acciones de renombrar/borrar, y tampoco los nodos marcados como del sistema si existieran en datos heredados (H3/H5). Intentar renombrar con nombre vacío → se rechaza y se conserva el nombre previo.
 
-### Flujo C — Borrar categoría con historial (persona: Dueño de finanzas) · FR-003
-- **Entry point:** icono papelera en la fila de una categoría (hover en grilla).
-- **Pasos:** el usuario confirma el borrado (confirmación explícita, H3). Si la categoría tiene movimientos, **no se destruye**: se convierte en subcategoría dentro de "Sin asignar" del mismo grupo, con sus movimientos agrupados.
-- **Exit point:** "Sin asignar" (del grupo) aparece con la ex-categoría como subcategoría; cero huérfanos.
-- **Error path:** borrar un Grupo que aún contiene categorías → **bloqueado** con mensaje "Mueve o elimina primero las categorías de este grupo" (H9: dice qué hacer). Borrar una hoja sin movimientos → se elimina directo.
+### Flujo C — Borrar un nodo (borrado seguro, bloqueado hasta vaciar) (persona: Dueño de finanzas) · FR-003
+- **Entry point:** icono papelera en la fila de un nodo (hover en grilla). El icono **no se ofrece** cuando el nodo no se puede borrar (el gate `canDeleteNode` apaga el control) — prevención antes que error (H5).
+- **Pasos:** el usuario confirma el borrado (confirmación explícita, H3). El nodo se elimina solo si está **sin hijos y sin datos vigentes**.
+- **Exit point:** el nodo desaparece junto con sus entradas de Presupuestado/Ejecutado y sus movimientos históricos; cero huérfanos.
+- **Error path:** borrar un nodo que aún tiene hijos → **bloqueado** con mensaje que dice qué hacer ("Mueve o elimina primero las categorías de este grupo", H9). Borrar un nodo con Presupuestado o Ejecutado > 0 en algún mes → **bloqueado** hasta vaciar sus celdas. La vía para vaciarlo es sacar su contenido con el arrastre del Flujo D.
+- **Nota de alcance:** la categoría fija "Sin asignar" del prototipo se **RETIRÓ** por decisión del usuario (feature `grid-ux`, FR-110). El borrado ya no reasigna a un contenedor del sistema: se bloquea hasta vaciar.
 
 ### Flujo D — Reorganizar por arrastrar-y-soltar (persona: Dueño de finanzas) · FR-015
-- **Entry point:** escritorio; una subcategoría (incl. las que quedaron en "Sin asignar") con affordance de arrastre (cursor grab).
+- **Entry point:** escritorio; una subcategoría o categoría con affordance de arrastre (cursor grab).
 - **Pasos:** el usuario arrastra la subcategoría; los destinos válidos (categorías/grupos del **mismo tipo**) se resaltan en ≤100ms; suelta sobre una categoría → se vuelve su subcategoría; suelta en zona de grupo → se promueve a categoría nueva.
-- **Exit point:** nodo reubicado, movimientos viajan con él, roll-ups de origen y destino recalculados en ≤150ms; "Sin asignar" se vacía a medida que se reubica su contenido.
+- **Exit point:** nodo reubicado, movimientos viajan con él, roll-ups de origen y destino recalculados en ≤150ms. Éste es también el mecanismo con el que el usuario **vacía un nodo para poder borrarlo** (Flujo C).
 - **Error path:** soltar sobre un Tipo, un Grupo (como grupo), o una categoría de otro tipo → drop rechazado (sin resalte, cursor "no permitido"), la jerarquía queda intacta.
 
 ### Flujo E — Editar presupuesto/ejecutado en la grilla (persona: Dueño de finanzas) · FR-006, FR-004
@@ -56,14 +62,28 @@
 
 ### Flujo G — Primer arranque (persona: Dueño de finanzas / Revisor) · FR-013, FR-011
 - **Entry point:** abrir la app sin datos previos.
-- **Pasos:** se genera jerarquía semilla + montos dummy (Ene–May ejecutado, Jun en curso, Jul–Dic proyectado=0). El usuario opera sin configurar.
-- **Error path (persistencia):** si el localStorage está corrupto (JSON inválido), la app se recupera al estado semilla sin pantalla en blanco (H9), sin exigir acción al usuario.
+- **Pasos:** se genera la jerarquía semilla **SIN montos** — `budgets` y `actuals` salen sin una
+  sola celda (FR-013 reescrito el 2026-09-07; feature `semilla-intacta`, FR-2301). El usuario ve sus
+  categorías vacías y puede teclear en cualquier celda de inmediato: sigue sin haber pasos de
+  configuración obligatorios. **Cambió el porqué, no el resultado operativo:** nadie abre una app de
+  finanzas personales y quiere ver dinero que no tecleó, y aquellos montos de ejemplo además tapaban
+  la tarjeta de arranque —su condición es «sin datos NI declaración»— de modo que esa tarjeta no se
+  le mostró NUNCA a ningún usuario real hasta este cambio.
+- **Tarjeta de arranque (FR-2203 de `meses-y-saldo-inicial`):** con la semilla vacía, el primer
+  arranque muestra la tarjeta sobre la grilla preguntando el mes de inicio y el saldo previo. No es
+  un muro: la grilla opera detrás. Cuatro salidas — guardar un monto, «Empiezo desde cero», teclear
+  en la grilla, o declarar después desde Configuración.
+- **Demo del producto lleno:** la necesidad del *Revisor* —«constatar una app coherente end-to-end,
+  no un demo a medias»— ya NO la cubre la semilla. Se decidió el 2026-09-08 servirla con una acción
+  explícita de «cargar datos de ejemplo» (`genBudget` sigue exportada para alimentarla). **Pendiente
+  de construir:** feature propia. Hasta entonces el Revisor ve el producto vacío.
+- **Error path (persistencia):** si el servidor no devuelve datos, la app arranca con el estado semilla sin pantalla en blanco (H9). Si un guardado no alcanza el servidor o la respuesta es ilegible, se muestra el **aviso de persistencia** (`StorageBanner`, BL-022) en ambos shells: la app no presenta como guardado lo que no lo está (H1: estado del sistema visible).
 
 ---
 
 ## Component Inventory
 
-> Estados por componente: **default · loading · error · empty · disabled**. En una app localStorage síncrona, "loading" es típicamente instantáneo (skeleton solo en el arranque/hidratación); se documenta igual.
+> Estados por componente: **default · loading · error · empty · disabled**. Los datos viven en el servidor (FR-011), así que "loading" es real en el arranque/hidratación (skeleton) y las mutaciones son optimistas con persistencia diferida; el estado "error" de persistencia lo comunica el aviso `StorageBanner`.
 
 ### Pantalla: Registrar (móvil compacto + panel escritorio) — FR-001
 | Componente | Estados | Comportamiento | Heurísticas |
@@ -74,20 +94,21 @@
 | Selector de subcategoría | default · empty (oculto si la categoría no tiene subs) · disabled · error (n/a) · loading | Aparece solo si la categoría tiene subcategorías | H8 minimalista |
 | Selector de mes | default (mes en curso) · disabled · empty (n/a) · error (n/a) · loading | 12 meses | H6 |
 | Botón "Guardar movimiento" | default · **disabled (monto=0 o sin categoría)** · loading (guardando, instantáneo) · error (n/a) · empty (n/a) | Habilitado toma color del tipo con relleno alpha | H5, H1 |
-| Toast de confirmación | default (visible ~2s) · resto n/a | Fade-in 0.2s, autodescarte ~2s; respeta reduced-motion | H1 |
+| Overlay de confirmación (`ConfirmOverlay`) | default (visible ~2000ms) · resto n/a | Pantalla completa: check + monto con el signo y color del tipo; autodescarte ~2000ms; respeta reduced-motion | H1 |
+| Aviso de persistencia (`StorageBanner`) | default (oculto) · **error (visible: guardado no confirmado o respuesta ilegible)** · resto n/a | Montado en ambos shells, móvil y escritorio (BL-022); no bloquea la edición, avisa | H1, H9 |
 
-### Pantalla: Presupuesto — grilla escritorio — FR-006, FR-004, FR-008
+### Pantalla: Presupuesto — grilla escritorio — FR-006, FR-004, FR-008, FR-016
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| Barra de controles (toggle Mes/Año, selector de mes, toggle Resumen/Dashboard) | default (Mes, mes en curso) · disabled · empty (n/a) · error (n/a) · loading | Filtro afecta solo tarjetas de resumen; la grilla siempre muestra 12 meses | H4, H7 |
-| Franja de indicadores (Presupuestado / Ejecutado %/ Disponible) | default · empty (montos 0) · loading (skeleton) · error (n/a) · disabled (n/a) | Disponible: --success si ≥0, --error si <0 | H1 |
+| Barra de controles (toggle Mes/Año, selector de mes, toggle Resumen/Dashboard) | default (Mes, mes en curso) · disabled · empty (n/a) · error (n/a) · loading | El filtro Mes/Año gobierna SOLO la franja de indicadores; la grilla siempre muestra los 12 meses (FR-016) | H4, H7 |
+| **Franja de indicadores «Resumen» — FR-016** (PRESUPUESTO · GASTOS / EJECUTADO con % / DISPONIBLE) | default · empty (montos 0 → 0%, sin división por cero) · loading (skeleton) · error (n/a) · disabled (n/a) | Tres cifras del tipo **Gasto** en el alcance del filtro. Subtítulos: alcance («Junio 2026» / «Año 2026») · «N% del presupuesto» (entero) · «dentro del plan» / «sobre el plan». DISPONIBLE = Presupuestado − Ejecutado, en `--success` si ≥ 0 —incluido el 0 exacto— y `--error` si es negativo. Ingresos y Transferencias no alteran ninguna de las tres | H1 |
 | Columna categoría sticky (240px) | default · empty ("sin categorías, crea una") · loading · error (n/a) · disabled (n/a) | Filas Tipo→Grupo→Categoría→Subcategoría; chevron expandir; indent 16px/nivel | H6, H4 |
 | Celda Pres./Ejec. de HOJA | default · editing (input inline) · error (valor inválido → descarta) · empty (— o 0) · disabled (celda de padre = no editable) | Clic abre input; Enter/blur confirma; Escape cancela; Ejec. colorea por varianza | H3 (Escape=undo), H5 |
 | Fila de total por Tipo | default (no editable, sin acciones) · resto n/a | Fondo --bg-elevated, texto color del tipo, peso 600–700 | H8 |
-| Acciones de fila (hover: + / lápiz / papelera) | default (ocultas) · hover (visibles) · disabled (en filas de Tipo y en "Sin asignar": sin renombrar/borrar) · error (n/a) · empty (n/a) | + agregar hijo (solo categorías); lápiz renombrar; papelera borra (Flujo C) | H3, H6 |
+| Acciones de fila (hover: + / lápiz / papelera) | default (ocultas) · hover (visibles) · **disabled (papelera oculta cuando el nodo tiene hijos o datos vigentes; filas de Tipo sin renombrar/borrar)** · error (n/a) · empty (n/a) | + agregar hijo (solo categorías); lápiz renombrar; papelera borra solo si `canDeleteNode` (Flujo C) | H3, H5, H6 |
 | Filas "+" (nuevo grupo/categoría/subcategoría) | default · disabled · resto n/a | CRUD inline directo en grilla | H7 |
 | Nodo arrastrable (drag handle) | default (grab) · dragging (fantasma + drop targets resaltados ≤100ms) · invalid-drop (cursor no permitido) · disabled (grupos/tipos no arrastrables) · error (drop rechazado, sin cambios) | Reubica subcategorías/categorías (FR-015) | H3, H1 |
-| Categoría "Sin asignar" (por grupo) | default (oculta) · **visible solo con datos** · disabled (no renombrar/borrar; montos sí editables) · error (n/a) · loading | Recibe categorías borradas como subcategorías | H2, H9 |
+| ~~Categoría "Sin asignar" (por grupo)~~ | **RETIRADO** — no existe en el producto | La feature `grid-ux` (FR-110) sustituyó el contenedor del sistema por el borrado bloqueado hasta vaciar. Los guards de nodo `system` se conservan solo como defensa ante datos heredados (FR-1105) | — |
 
 ### Pantalla: Dashboard — escritorio — FR-009
 | Componente | Estados | Comportamiento | Heurísticas |
@@ -101,14 +122,14 @@
 ### Global
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| Shell responsive | móvil (≤760px: solo Registrar) · escritorio (>760px: app completa) · loading (hidratación) · error (recupera a semilla) · empty (semilla) | Conmutación por CSS @media; mismo estado/datos | H4 |
+| Shell responsive | móvil (≤760px: solo Registrar) · escritorio (>760px: app completa) · loading (hidratación) · error (recupera a semilla) · empty (semilla: jerarquía SIN montos, con la tarjeta de arranque encima) | Conmutación por CSS @media; mismo estado/datos | H4 |
 | Confirmación de borrado inline (check / X) | default · disabled · resto n/a | Confirmar/cancelar acción destructiva | H3 |
 
 ---
 
 ## Nielsen Compliance
 
-**Registrar:** H1 (toast + monto se limpia, feedback ≤1s) · H2 (Gasto/Ingreso/Transferencia, "Guardar movimiento", lenguaje del usuario) · H5 (botón deshabilitado si inválido; input rechaza negativos) · H6 (labels en cada campo, chips visibles) · H8 (subcategoría solo si aplica). Trade-off: sin teclado numérico ad-hoc (decisión de plataforma web) — se acepta usar el input nativo.
+**Registrar:** H1 (overlay de confirmación + monto se limpia, feedback ≤1s) · H2 (Gasto/Ingreso/Transferencia, "Guardar movimiento", lenguaje del usuario) · H5 (botón deshabilitado si inválido; input rechaza negativos) · H6 (labels en cada campo, chips visibles) · H8 (subcategoría solo si aplica). Trade-off: sin teclado numérico ad-hoc (decisión de plataforma web) — se acepta usar el input nativo.
 
 **Presupuesto (grilla):** H3 (Escape cancela edición = undo; borrado con confirmación) · H4 (misma mecánica de edición en toda celda-hoja) · H5 (celdas de padre no editables evitan errores de reparto; validación de input) · H6 (íconos de nivel, chevrons, acciones en hover con affordance) · H7 (edición inline en un clic). Trade-off: acciones en hover (menos descubribles en touch) — aceptable porque la grilla es solo escritorio.
 
@@ -116,11 +137,35 @@
 
 **Dashboard:** H1 (indicadores responden al filtro) · H2 (nombres de indicadores en lenguaje financiero simple) · H8 (solo lo relevante del periodo) · H9 (empty states explican el estado, no una pantalla vacía).
 
-**Global/Persistencia:** H4 (mismos datos móvil/escritorio) · H9 (recuperación de estado corrupto a semilla, sin pantalla en blanco) · H10 (semilla al primer arranque actúa como onboarding operable sin configurar).
+**Global/Persistencia:** H4 (mismos datos móvil/escritorio) · H9 (recuperación de estado corrupto a
+semilla, sin pantalla en blanco) · H10 (la semilla al primer arranque sigue actuando como onboarding
+operable sin configurar: desde el 2026-09-07 aporta la ESTRUCTURA —12 nodos, todos renombrables y
+borrables— y ya no los montos; la tarjeta de arranque cubre la parte de reconocimiento que antes
+insinuaban las cifras de ejemplo).
+
+**Deuda de UX conocida (2026-09-08, sin construir):** el separador de miles es incoherente entre las
+superficies donde se ESCRIBE dinero. `AmountDisplay` del Registro formatea en vivo con `formatCOP`
+(FR-207), pero la celda editable de la grilla (`BudgetGrid`, `replace(/[^0-9]/g,"")`), la tarjeta de
+arranque y el saldo inicial de Configuración aceptan dígitos pelados. Al LEER sí es coherente en todas
+(`money`/`cellNum` con `toLocaleString("es-CO")`). Es donde más fácil es equivocarse en un cero, porque
+la tarjeta y Configuración piden cifras grandes. Va en la feature del recorrido de arranque.
 
 ---
 
 ## Design Tokens
+
+> ⚠️ **SUPERADO por la feature `stack-upgrade-theme` (FR-201, FR-202, FR-204, FR-205).** Los valores de esta
+> sección son la paleta OSCURA ÚNICA del prototipo original. El producto vigente tiene **temas claro y oscuro**
+> con preferencia del sistema por defecto y toggle en la UI, sobre una paleta **zinc neutra theme-aware**
+> (FR-202), con el color por tipo cumpliendo AA en **ambos** temas (FR-204). La fuente de verdad actual de los
+> tokens es el spec de esa feature (`aitri/features/stack-upgrade-theme/spec/`) y `src/app/globals.css`.
+>
+> Lo que SIGUE vigente de esta sección: la tipografía mono en todo el producto, la regla de bordes sobre
+> rellenos, la ausencia de emoji/gradientes/glow, el respeto a `prefers-reduced-motion`, la escala de espaciado
+> base 4px y los breakpoints. Lo que NO: los hexadecimales concretos y el supuesto de tema único.
+>
+> Se conserva abajo como registro del diseño provisto por el cliente en v1 — no como instrucción de
+> implementación.
 
 > Verificados VERBATIM contra el `:root` real del prototipo `Ledger (offline).html` (líneas 77–83) y la spec §2. Autoridad: diseño provisto por el cliente. No improvisar estética; el desarrollador implementa exactamente estos tokens.
 >
@@ -202,8 +247,8 @@ El prototipo `Ledger (offline).html` es el punto de partida del código, PERO es
 | 1 | Móvil tiene 3 pantallas + nav inferior (`mNav`: Registrar/Presupuesto/Indicadores, línea 1306) | Móvil (≤760px) muestra **SOLO Registrar**; presupuesto y dashboard son de escritorio. No renderizar `mIsPresupuesto`/`mIsDashboard` ni la nav inferior en v1 | FR-010, FR-007(elim.) |
 | 2 | Registrar móvil usa **teclado numérico** (`.mkey`, grid 3col, monto héroe 3rem) | **Sin teclado ad-hoc**: input estándar de formulario web para el monto | FR-001 |
 | 3 | Editar la celda de un **padre distribuye** proporcionalmente a las subs (`commitEdit`, rama `else`, líneas 874–882; el último hijo absorbe el redondeo) | **Sin distribución**: solo se editan celdas de **hoja**; los padres son de solo lectura (roll-up). Eliminar la rama de distribución | FR-004, FR-005(elim.) |
-| 4 | Borrado de categoría (esquema original del prototipo) | Categoría con movimientos → se convierte en **subcategoría de "Sin asignar"** (una **por grupo**; auto, no renombrable/borrable, montos editables, visible solo con datos) | FR-003 |
-| 5 | Sin arrastrar-y-soltar | **Drag-and-drop** para reubicar (reparent) subcategorías/categorías a categorías o grupos del mismo tipo; mecanismo para vaciar "Sin asignar" | FR-015 |
+| 4 | Borrado de categoría (esquema original del prototipo) | **Borrado seguro**: bloqueado mientras el nodo tenga hijos o datos vigentes (Presupuestado/Ejecutado > 0); se borra solo si está vacío. La categoría fija "Sin asignar" del prototipo se **RETIRÓ** por decisión del usuario (feature `grid-ux`, FR-110) | FR-003 |
+| 5 | Sin arrastrar-y-soltar | **Drag-and-drop** para reubicar (reparent) subcategorías/categorías a categorías o grupos del mismo tipo; es también la vía para vaciar un nodo y poder borrarlo | FR-015 |
 | 6 | App web de escritorio + móvil como shells del mismo bundle | Igual (una app web responsive); no es app nativa | FR-010 |
 
 ## Detalles de referencia verificados en el prototipo (para Fase 2/4)

@@ -1,0 +1,89 @@
+{
+  "project": "T-Ledger — feature reglas-en-el-servidor",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-2101",
+      "title": "El SERVIDOR rechaza toda escritura de RESERVA que deje un mes peor de lo que estaba",
+      "level": "partial",
+      "evidence": "7/7 TCs (TC-RES-010f a TC-RES-016f). `stateGuard` en src/domain/guard.ts compara el estado persistido con el entrante dentro de la transacción del PUT y devuelve las violaciones que el snapshot INTRODUCE; el veredicto lo emite `chainCheck`. RESIDUO DECLARADO (ADR-20, decisión del usuario 2026-09-03): el guardia juzga solo las escrituras que TOCAN reservas, así que una petición fabricada que únicamente baje un ingreso puede dejar un mes excedido sin ser rechazada. El alcance ancho contradice NFR-1803 de techo-de-flujo —aprobado y construido— y pone rojas 7 pruebas de dos features cerradas; cerrarlo exige reabrir NFR-1803 con el usuario delante."
+    },
+    {
+      "id": "FR-2102",
+      "title": "El rechazo del servidor viaja con el detalle que permite explicarlo",
+      "level": "partial",
+      "evidence": "5/5 TCs (TC-RES-020h a TC-RES-024f). El 422 lleva la regla violada, el periodo y el límite operativo, verificado sobre la respuesta real. RESIDUO DECLARADO: no estrena mensaje propio en la interfaz — se apoya en el que la app ya muestra al frenar una operación de reserva (blockMessage, FR-1006). Con el alcance acotado el 422 es una red de seguridad y no el camino habitual: solo llega al usuario si el cliente falló o si la petición no vino de la app."
+    },
+    {
+      "id": "FR-2103",
+      "title": "Una sola implementación de la regla: el servidor llama a la MISMA función que el navegador",
+      "level": "partial",
+      "evidence": "5/5 TCs (TC-RES-030f a TC-RES-034h). guard.ts no reimplementa ni una línea de la regla: delega entera en `chainCheck`, la misma que usa `validateReserveWrite` en el navegador, y solo decide qué se le pasa. RESIDUO DECLARADO: `chainCheck` y su tipo pasaron de privados a exportados — dos palabras `export` en reserve.ts y ninguna línea más. TC-RES-032e comprueba que el CUERPO de chainCheck no cambió, así que ningún veredicto pudo alterarse al exponerla."
+    },
+    {
+      "id": "FR-2104",
+      "title": "Un estado que YA viola el techo nunca queda encerrado",
+      "level": "complete",
+      "evidence": "4/4 TCs (TC-RES-040h a TC-RES-043e), sin deuda declarada. La regla es RELATIVA: se juzga lo que la escritura introduce, no el estado absoluto. Verificado por ejecución desde un exceso de 600.000 — bajar la reserva y subir el ingreso mejoran y se permiten, bajar más el ingreso empeora y se rechaza, una edición neutra se permite. Desde cualquier estado, incluso uno que ya viola el techo, queda al menos una operación que mejora."
+    },
+    {
+      "id": "NFR-2101",
+      "title": "La suite existente sigue verde, sin relajar aserciones ni saltar pruebas",
+      "level": "complete",
+      "evidence": "3/3 TCs (TC-RES-200h, TC-RES-201f, TC-RES-202e). Corrida del 2026-09-04: 36/36 TCs de la feature, 405 e2e en verde y 0 saltadas, más 7 quality gates en pass (typecheck, lint, design-tokens, security-config, secret-scan, smoke, e2e). Ninguna prueba se marcó manual ni se degradó para pasar."
+    },
+    {
+      "id": "NFR-2102",
+      "title": "El guardia NO cambia lo que hoy se permite en las operaciones de RESERVA",
+      "level": "complete",
+      "evidence": "3/3 TCs (TC-RES-210f, TC-RES-211f, TC-RES-212h). El guardia solo juzga el plano EJECUTADO: en Presupuestado `chainCheck` devuelve siempre blocking null por diseño (el plan avisa, no bloquea, ADR-08), así que hacer cumplir el plan aquí dejaría al servidor más estricto que la app. FR-1801 (consumo bruto) y ADR-08 (neto en el plan) quedan intactos. La feature extiende QUIÉN hace cumplir la regla, no QUÉ permite."
+    },
+    {
+      "id": "NFR-2103",
+      "title": "El guardia es INEVITABLE por construcción",
+      "level": "complete",
+      "evidence": "3/3 TCs (TC-RES-220f, TC-RES-221h, TC-RES-222e). Corre en el punto de estrangulamiento de la persistencia —dentro de la transacción del PUT— y no repartido por operación, así que cubre también las vías de escritura que aún no existen. Un cliente que no sea la app (curl, un script, otra versión del front) recibe el mismo veredicto. `affectedLeaves` son TODAS las alcancías y no las que la petición declare: fiarse de eso sería fiarse de quien se está validando (ADR-17)."
+    },
+    {
+      "id": "NFR-2104",
+      "title": "cierre-de-mes no se degrada: los dos guardias conviven",
+      "level": "complete",
+      "evidence": "3/3 TCs (TC-RES-230h, TC-RES-231e, TC-RES-232f). `closedPeriodsViolated` sigue corriendo en el mismo punto y con la misma autoridad; el guardia nuevo no lo sustituye ni lo adelanta. El orden de evaluación está fijado en ADR-19 y las dos comprobaciones comparten la misma transacción y el mismo estado cargado. Los 92 TCs de cierre-de-mes siguen en verde."
+    },
+    {
+      "id": "NFR-2105",
+      "title": "El guardia no degrada la escritura",
+      "level": "partial",
+      "evidence": "3/3 TCs (TC-RES-240h, TC-RES-241e, TC-RES-242f). El escaneo corre en memoria sobre el estado ya cargado y es el mismo que el navegador ya ejecuta en cada render; TC-RES-242f verifica que el coste no crece con el número de meses (sin N+1). RESIDUO DECLARADO: `loadStateInTx` pasó de condicional a incondicional en cada PUT — antes solo se cargaba habiendo meses cerrados. Se carga UNA sola vez y la comparten los dos guardias, pero el PUT sin meses cerrados hace ahora una lectura que antes no hacía."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2101",
+      "substitution": "El guardia juzga solo las escrituras que TOCAN reservas. Una peticion fabricada que unicamente baje un ingreso puede dejar un mes excedido, y no se rechaza.",
+      "reason": "No es un atajo: es ADR-20 y lo decidio el usuario el 2026-09-03 tras verse que el alcance ancho contradice NFR-1803 de techo-de-flujo —aprobado y construido— y pone rojas 7 pruebas de dos features cerradas. El guardia reproduce EXACTAMENTE lo que la app ya hace cumplir. Cerrar tambien ese lado exige reabrir NFR-1803 con el usuario delante.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-2102",
+      "substitution": "El rechazo del servidor NO estrena mensaje en la interfaz: se apoya en el que la app ya muestra al frenar una operacion de reserva (blockMessage, FR-1006).",
+      "reason": "Con el alcance acotado el 422 es una RED DE SEGURIDAD, no el camino habitual — al usuario solo le llega si el cliente fallo o si la peticion no vino de la app. Inventar una pantalla para un caso que casi no ocurre seria over-engineering; lo que si se exige es que el cuerpo traiga regla, periodo y limite para poder diagnosticarlo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2103",
+      "substitution": "`chainCheck` y su tipo pasan de privados a exportados: `reserve.ts` gana dos palabras `export` y ninguna linea mas.",
+      "reason": "Es el precio minimo de tener UNA sola implementacion. La alternativa —duplicar la regla en el servidor— es justo el defecto que el FR existe para impedir. TC-RES-032e comprueba que el CUERPO de chainCheck no cambio, asi que ningun veredicto pudo alterarse al exponerla.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-2105",
+      "substitution": "`loadStateInTx` pasa de condicional a incondicional en cada PUT: antes solo se cargaba con meses cerrados.",
+      "reason": "El guardia necesita el estado persistido para comparar. Se carga UNA sola vez y la comparten los dos guardias. TC-RES-242f verifica que el coste no crece con el numero de meses (sin N+1); el escaneo corre en memoria sobre el estado ya cargado.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

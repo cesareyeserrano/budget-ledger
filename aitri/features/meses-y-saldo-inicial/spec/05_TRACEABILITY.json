@@ -1,0 +1,111 @@
+{
+  "project": "meses-y-saldo-inicial",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "requirement_compliance": [
+    {
+      "id": "FR-2201",
+      "title": "El usuario declara el mes en que empieza su historia",
+      "level": "partial",
+      "evidence": "covered — 6 TC en verde (TC-MSI-001h/002f/003e/004e/005e y TC-MSI-060h, multi-FR). El mes declarado es el TERCER ancla de activeRange, no un recorte: un dato anterior lo extiende en vez de quedar oculto. PARCIAL por deuda declarada: `serverScope` (ledgerRepo.ts:518) no conoce el mes declarado —deriva de oldestPeriodWithData, no de activeRange—, asi que con un ledger sin datos el primer mes CERRABLE es el mes en curso. No se corrige aqui porque cambiaria que mes devuelve nextClosable, comportamiento de cierre-de-mes."
+    },
+    {
+      "id": "FR-2202",
+      "title": "El saldo inicial abre el primer mes del historial",
+      "level": "complete",
+      "evidence": "covered — 9 TC en verde, sin deuda. Alimenta el parametro `opening` que computeBalanceSeries ya aceptaba desde FR-2010: cero formula nueva. TC-MSI-011h fija que «Resultado del mes» NO lo incluye, TC-MSI-012h la cascada, TC-MSI-017e la refutacion del usuario sobre las reservas, y TC-MSI-018e la costura con el cierre (FLAG-1 del TRD): reopenBaseline.available === 3.300.000 y explicitamente no 300.000."
+    },
+    {
+      "id": "FR-2203",
+      "title": "La tarjeta de arranque pregunta una vez y se aparta",
+      "level": "partial",
+      "evidence": "covered — 8 TC e2e en verde, incluidos los cuatro estados, la ausencia en movil y la copia condicional al mes declarado. PARCIAL, y es la deuda mas importante de la feature: la tarjeta NO se le mostrara a ningun usuario nuevo REAL, porque store.ts:537 siembra con buildSeed y genBudget rellena montos de ejemplo, de modo que «sin datos NI declaracion» nunca se cumple. Los 8 TC pasan porque siembran un ledger vacio, que es lo que el spec describe. Resolucion decidida con el usuario (celdas vacias al arrancar) y enrutada como feature propia: cambia FR-013 del proyecto raiz."
+    },
+    {
+      "id": "FR-2204",
+      "title": "Una pagina de Configuracion que reune lo configurable",
+      "level": "partial",
+      "evidence": "covered — 7 TC e2e en verde: los cinco ajustes, las dos entradas de cabecera, el ancho oculto en movil, y que el horizonte YA NO esta en la cabecera (FR-1907 saldado). Dos defectos de producto que las pruebas encontraron y se arreglaron: la ruta no tenia LoginGate —era alcanzable SIN sesion— y no hidrataba el store, asi que al entrar por URL leia el estado inicial en memoria. PARCIAL por deuda declarada: volver conserva el estado de la GRILLA (filtro de periodo, datos, jerarquia) pero no la pestana Resumen/Dashboard, que es useState local del shell."
+    },
+    {
+      "id": "FR-2205",
+      "title": "El saldo inicial solo se edita con su mes abierto",
+      "level": "complete",
+      "evidence": "covered — 4 TC en verde, sin deuda. La regla se evalua en DOS sitios por dos motivos distintos: en el cliente para deshabilitar el campo y explicar la via (prevenir, no castigar), y en el SERVIDOR dentro de la transaccion, que es lo que NFR-2205 exige. TC-MSI-041f prueba el 422 month_closed contra Postgres real y que ni el valor ni la revision se mueven."
+    },
+    {
+      "id": "FR-2206",
+      "title": "Mover el mes de inicio hacia adelante no puede dejar datos huerfanos",
+      "level": "complete",
+      "evidence": "covered — 6 TC en verde, sin deuda. `orphanedByStart` recorre las MISMAS cuatro fuentes que oldestPeriodWithData; TC-MSI-055e fija que un mes con SOLO una observacion de celda cuenta como mes con datos, porque si divergieran un mes seria visible para el rango e invisible para el bloqueo. TC-MSI-051f prueba el 422 would_orphan nombrando los meses concretos, y TC-MSI-052e que el rechazo deja el estado identico byte a byte."
+    },
+    {
+      "id": "FR-2207",
+      "title": "Mes de inicio y saldo inicial persisten en el servidor como parte del ledger",
+      "level": "complete",
+      "evidence": "covered — 5 TC de integracion en verde contra Postgres real, sin deuda. Columnas en `ledger` junto a `revision` (ADR-01), asi que heredan el lock optimista: TC-MSI-061f prueba el 409 sin pisar valores. TC-MSI-062e prueba que un ledger anterior a la migracion carga sin error, y TC-MSI-063e que los campos SOBREVIVEN al parseo de ledgerStateSchema — la trampa que schemas.ts ya documentaba para closure y cellNotes."
+    },
+    {
+      "id": "NFR-2201",
+      "title": "Quien NO declara saldo inicial no ve cambiar ni una cifra",
+      "level": "complete",
+      "evidence": "3 TC en verde. TC-MSI-070h compara las series BYTE A BYTE contra `computeBalanceSeries(state, periods)` SIN tercer argumento, que es literalmente la funcion de antes de esta feature: no es una expectativa escrita a mano, es el pasado. TC-MSI-071f prueba que null y ausente son el mismo caso."
+    },
+    {
+      "id": "NFR-2202",
+      "title": "La suite existente sigue verde",
+      "level": "partial",
+      "evidence": "3 TC manuales verificados con medicion. Unitaria 837/837 exit 0 (dos corridas independientes de ./unit.sh), e2e 426/426 exit 0. Umbrales superados: 837 >= 796 y 426 >= 398. Cero skips u only nuevos en pruebas preexistentes, y cero aserciones eliminadas (multi-anio.spec.ts SUBE de 34 a 35). PARCIAL por BG-001, registrado: bajo la concurrencia de verify-run el runner sale exit 1 con CERO TCs en rojo, porque design-tokens.test.ts revienta en su beforeAll al copiar su arbol aislado a un temporal. A solas ese fichero pasa 10/10. Familia de BG-030 y BG-026."
+    },
+    {
+      "id": "NFR-2203",
+      "title": "El rango activo se conserva para quien no declara mes de inicio",
+      "level": "complete",
+      "evidence": "3 TC en verde. TC-MSI-081f fija literalmente lo que el NFR pide: con un dato en 2026-01 y el inicio declarado en 2026-06, el rango empieza en 2026-01 — el ancla nueva se ANADE, no sustituye. TC-MSI-080h prueba que la frontera del cierre sigue anclando y TC-MSI-082e que el horizonte sigue ofreciendo futuro."
+    },
+    {
+      "id": "NFR-2204",
+      "title": "Alimentar la apertura no anade coste medible",
+      "level": "complete",
+      "evidence": "3 TC en verde. TC-MSI-085h cronometra la serie de 12 meses bajo el guardarrail de 150 ms, con la guarda SALTAR_SI_INSTRUMENTADO del repo (BG-026). TC-MSI-086f verifica que openingCarry es O(1) por COMPORTAMIENTO y no por reloj —devuelve lo mismo sobre 5 nodos y sobre 61—, lo que lo hace inmune a BG-030. TC-MSI-087e fija que declarar invalida la memoizacion del rango, que es lo contrario de BG-001 de multi-anio."
+    },
+    {
+      "id": "NFR-2205",
+      "title": "La apertura es dato del usuario y se valida en el SERVIDOR",
+      "level": "complete",
+      "evidence": "4 TC en verde. TC-MSI-091f prueba el aislamiento entre dos usuarios reales en Postgres: A no alcanza la fila de B ni con su ownerId en el cuerpo. TC-MSI-092h que el monto se rechaza en el borde antes de tocar el dominio, y TC-MSI-093e que el CHECK de la base es la ultima defensa, saltandose la aplicacion por completo con SQL directo. La leccion de BG-002 no se hereda: el snapshot NO es la via de escritura de estos valores."
+    },
+    {
+      "id": "NFR-2206",
+      "title": "La tarjeta no es un muro y no reaparece",
+      "level": "complete",
+      "evidence": "3 TC e2e en verde. TC-MSI-095h prueba que el foco SALE de la tarjeta con quince tabulaciones y que no lleva role=dialog ni aria-modal. TC-MSI-096f prueba cuatro ledgers resueltos por vias distintas por tres recargas cada uno. TC-MSI-097e que respeta prefers-reduced-motion."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2201",
+      "substitution": "`serverScope` (ledgerRepo.ts:518) NO conoce el mes de inicio declarado: deriva su rango de `oldestPeriodWithData`/`newestPeriodWithData` mas el mes en curso, no de `activeRange`, asi que el tercer ancla que esta feature anade no lo alcanza. Consecuencia observable: con un ledger sin datos, el primer mes CERRABLE es el mes en curso, no el mes declarado.",
+      "reason": "Cambiarlo alteraria que mes devuelve `nextClosable`, que es comportamiento de la feature `cierre-de-mes` ya cerrada 5/5 — un cambio de especificacion que el protocolo manda enrutar por la pipeline, no absorber dentro de un build. FR-2205 sigue cumpliendose sin ello porque `closedThrough` es un ESCALAR: cerrar cualquier mes >= el de inicio deja el de inicio cerrado, y `isClosed` lo detecta. TC-MSI-041f se escribio sobre el escenario real (declarar junio, transcribirlo, cerrarlo) en vez de forzar el codigo."
+    },
+    {
+      "fr_id": "FR-2203",
+      "substitution": "La tarjeta de arranque no se le mostrara a ningun usuario nuevo REAL. `store.ts:537` siembra con `buildSeed`, que llama a `genBudget` y rellena presupuestos y ejecutados de ejemplo en todas las hojas, y los persiste de inmediato. Asi que un usuario recien registrado ya tiene datos y el predicado «sin datos NI declaracion» nunca se cumple. Los 11 TC de la tarjeta pasan porque siembran un ledger vacio, que es lo que el spec describe.",
+      "reason": "Es un choque entre FR-2203 y FR-013, que es del proyecto RAIZ. El usuario decidio el 2026-09-07 que el usuario nuevo arranque con las celdas VACIAS —`buildSeed` sigue creando la estructura, sin montos— pero eso cambia el comportamiento de FR-013 y se enruta como feature propia, no se absorbe aqui. Queda documentado en BUILD_PLAN.md con las dos alternativas evaluadas y descartadas."
+    },
+    {
+      "fr_id": "FR-2204",
+      "substitution": "Volver de Configuracion conserva el estado de la GRILLA —filtro de periodo, datos, jerarquia: todo lo que vive en el store, que es un singleton de modulo— pero NO la pestana Resumen/Dashboard, que es `useState` local de `DesktopShell` y se pierde al desmontar la ruta.",
+      "reason": "El criterio de FR-2204 dice «no pierde el estado de la GRILLA», y la pestana selecciona entre grilla y dashboard: no es estado de la grilla, es cual de las dos vistas se muestra. Llevarla al store seria un cambio fuera del alcance aprobado. TC-MSI-033e observa el filtro de periodo, que si es estado de la grilla y si sobrevive."
+    }
+  ],
+  "deployment_notes": "Modelo: contenedor Docker detras de Nginx, el del PROYECTO. Esta feature NO crea ningun artefacto desplegable nuevo —sin Dockerfile ni docker-compose propios, para no duplicar la fuente de verdad de la imagen— y NO introduce ni una variable de entorno (environment_variables: [] en el manifiesto), asi que tampoco lleva .env.example propio. Lo unico que el despliegue gana es la migracion drizzle/0006_saldo_inicial.sql: dos columnas nulables en `ledger` y tres CHECK, puramente aditiva, sin backfill y sin tocar `data_version` por el mismo criterio que dejo escrito la 0005. Registrada en drizzle/meta/_journal.json (entrada 6): sin esa entrada `db:migrate` termina CON EXITO sin aplicar nada, que es el fallo silencioso mas caro de esta familia y que se sufrio de verdad el 2026-09-06 (diez pruebas de integracion cayeron con «column start_month does not exist» hasta registrarla). No hay ventana de despliegue peligrosa: el codigo viejo ignora columnas que no conoce, y el orden correcto es migrar y luego desplegar. Reversion documentada en DEPLOYMENT.md; lo unico que se pierde son las declaraciones de apertura, y nada mas depende de ellas.\n\nPOR QUE overall_status ES 'partial' Y NO 'compliant': los 7 FR y los 6 NFR estan covered y los 62 TC pasan, pero FR-2203 arrastra una deuda que no es cosmetica — la tarjeta de arranque no se le mostrara a ningun usuario nuevo real mientras buildSeed siembre montos de ejemplo. La capacidad titular de la feature (declarar el saldo inicial) funciona de punta a punta por Configuracion, en escritorio y en movil; lo que esta efectivamente inalcanzable en produccion es una de sus dos superficies de entrada. Sellar esto como 'compliant' seria el tipo de verde que el expediente existe para no permitir."
+}
