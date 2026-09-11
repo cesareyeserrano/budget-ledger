@@ -21,6 +21,32 @@
       "resolution": "Se anaden useActivePeriods()/useVisiblePeriods() en src/state/store.ts, que se suscriben a data+horizon+period y devuelven las listas ya memoizadas por periodsFor/visiblesFor (identidad estable: sin bucle de render). Sustituidos los 20 sitios de llamada en 7 componentes (DesktopShell, Dashboard, ReserveCells, BudgetGrid, BalanceModule, Register, ReserveRow). Verificado con prueba e2e nueva en tests/e2e/multi-anio.spec.ts: elegir '1 ano' pasa la grilla de 36 a 24 columnas terminando en diciembre, y la eleccion sobrevive a la recarga. Regresion completa verde: 645 unit/integracion + 392 e2e, typecheck y lint limpios.",
       "fix_commit_sha": "8c809354d5b54538a80e3b33159cb15526f54426",
       "fix_at": "2026-09-03T02:02:10.715Z"
+    },
+    {
+      "id": "BG-002",
+      "title": "TC-MAN-262e (guardarrail de tiempo NFR-1907) vuelve a caer por contencion pese a BG-030: rojo en el verify-run del 2026-09-11 sobre b12ad2a, pasa 8/9 en suite completa y 5/5 aislado",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": "TC-MAN-262e",
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-11T18:38:30.538Z",
+      "updated_at": "2026-09-11T18:38:53.502Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-11T18:38:53.502Z",
+          "text": "EVIDENCIA 2026-09-11, commit b12ad2a, arbol sin cambios de codigo entre corridas. (1) aitri feature verify-run multi-anio: runner ../../../unit.sh exit 1, 78 pass / 1 fail, el unico rojo es TC-MAN-262e con 849ms (aislado tarda ~0,5-0,6s). Todos los gates en exit 0, e2e_exit_code 0. Lanzado con carga 1,99 a 1 min, pero la media de 15 min rondaba 5 al terminar. (2) La misma suite completa (unit.sh o test:run o backend-full) salio exit 0 en las otras 8 corridas del dia sobre el mismo arbol: budget-state-color, backend, balance, refinamiento-ui, balance-jerarquia, ciclos, cierre-de-mes, meses-y-saldo-inicial. (3) Aislado: npx vitest run --project app tests/domain/multi-anio.test.ts -t TC-MAN-262e, cinco veces seguidas con carga 1,97: 5/5 pass. CONCLUSION: intermitente de tiempo, no regresion. El mejor-de-5 de BG-030 reduce el fallo pero no lo elimina. OJO A LA PREMISA DE BG-030: decia que verify-run lanza runner y gate coverage A LA VEZ. En el Aitri actual es falso: runner, auto-run de Playwright y gates corren EN SERIE (spawnCaptured -> spawnSync, lib/commands/verify.js:199, :258, :815; los costes se suman exactos). La competencia de esta corrida no vino del gate de cobertura. CANDIDATOS SIN CONFIRMAR: (a) el proyecto app de vitest.config.ts no tiene tope de workers, asi que el guardarrail compite con los demas ficheros de la misma suite; la maquina tiene 10 nucleos, 4 de rendimiento y 6 de eficiencia, y un cambio de nucleo a mitad de medicion puede romper la razon c168/c12; (b) carga ambiental de otras aplicaciones. NO SE PUDO LEER la razon medida: Aitri trunca la salida cruda del runner a 200 lineas y el mensaje de la asercion queda fuera. Para el proximo fallo, correr unit.sh redirigido a fichero. ARREGLOS POSIBLES, por decidir: sacar las aserciones de tiempo a una suite de rendimiento que corra sola, o fijar un tope de workers en el proyecto app (toca vitest.config.ts y caduca todos los verify)."
+        }
+      ]
     }
   ]
 }

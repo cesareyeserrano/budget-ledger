@@ -17,25 +17,9 @@
   "projectName": "multi-anio",
   "createdAt": "2026-09-02T20:59:38.721Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T19:24:18.338Z",
+  "updatedAt": "2026-09-11T18:47:04.768Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T00:57:48.694Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T00:59:26.274Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T01:03:46.921Z",
-      "event": "approved",
-      "phase": 3,
-      "afterDrift": true
-    },
     {
       "at": "2026-09-03T01:04:12.251Z",
       "event": "completed",
@@ -160,6 +144,31 @@
       "phase": "verify",
       "passed": 79,
       "failed": 0
+    },
+    {
+      "at": "2026-09-11T18:35:28.848Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 78,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T18:46:53.403Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T18:47:04.740Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -221,16 +230,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "ff8f106298ca5730ec30f96050dc2c7bc9c1e1a6b6d02172106f87f36336b220",
-  "verifyRanAt": "2026-09-09T19:22:15.046Z",
-  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
+  "verifyResultsHash": "a81e2491fad98666b9d6b546bc8e312c20df952e769c86c12abaad9528f3db8c",
+  "verifyRanAt": "2026-09-11T18:46:53.271Z",
+  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 79,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-09T19:22:15.046Z"
+    "at": "2026-09-11T18:46:53.271Z"
   },
   "releaseHistory": [
     {

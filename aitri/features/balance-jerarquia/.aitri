@@ -19,21 +19,9 @@
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-09T18:35:17.999Z",
+  "updatedAt": "2026-09-11T17:34:33.540Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T16:15:01.412Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 34,
-      "failed": 0
-    },
-    {
-      "at": "2026-08-27T16:15:35.597Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-08-27T16:15:35.725Z",
       "event": "completed",
@@ -175,6 +163,22 @@
       "phase": "verify",
       "passed": 34,
       "failed": 0
+    },
+    {
+      "at": "2026-09-11T17:34:10.854Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T17:34:33.508Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -224,7 +228,7 @@
       "FR-1405"
     ]
   },
-  "verifyRanRef": "57a48cd4181ef5262ab4f5950775850f48ab8e6d",
+  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -238,14 +242,14 @@
       "at": "2026-08-27T16:15:35.827Z"
     }
   ],
-  "verifyResultsHash": "3103976840edd2a5b061c544e0369279417842f0580f6dd2c18d5f09d368abab",
-  "verifyRanAt": "2026-09-09T18:33:10.779Z",
+  "verifyResultsHash": "d64db572e3d3354d78c7ce46c15b9644fde03cf081dbd9ea03ec3c65d989d1b3",
+  "verifyRanAt": "2026-09-11T17:34:10.766Z",
   "lastVerifyRun": {
     "passed": 34,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-09T18:33:10.779Z"
+    "at": "2026-09-11T17:34:10.766Z"
   },
   "verifySummary": {
     "total": 34,
