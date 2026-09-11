@@ -13,7 +13,7 @@
     "db:migrate": "DATABASE_URL=postgres://ledger:ledger@localhost:5432/ledger node scripts/migrate.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "AITRI_COVERAGE=1 vitest run --coverage",
