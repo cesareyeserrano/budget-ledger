@@ -19,19 +19,9 @@
   "projectName": "budget-state-color",
   "createdAt": "2026-07-09T20:11:10.790Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T16:50:59.122Z",
+  "updatedAt": "2026-09-11T19:56:03.497Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-10T15:57:43.828Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-10T15:57:43.899Z",
-      "event": "approved",
-      "phase": 5
-    },
     {
       "at": "2026-09-09T12:38:51.086Z",
       "event": "started",
@@ -153,6 +143,22 @@
       "phase": "verify",
       "passed": 28,
       "failed": 0
+    },
+    {
+      "at": "2026-09-11T19:56:03.319Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-11T19:56:03.474Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 28,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -199,16 +205,16 @@
       "FR-404"
     ]
   },
-  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
+  "verifyRanRef": "8945bce4bde4338c36010a463374b0c74657ef51",
   "verifyRanDirty": false,
-  "verifyResultsHash": "f5ab0a14d16dff9f491403becdaeee31e791c7a98960a16bbc0e15a394247f8f",
-  "verifyRanAt": "2026-09-11T16:50:39.126Z",
+  "verifyResultsHash": "86bda4eb2380ef82fc3efd6d40921da922522fc33bdcd7b2fb585eb6143228a6",
+  "verifyRanAt": "2026-09-11T19:56:03.267Z",
   "lastVerifyRun": {
     "passed": 28,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-11T16:50:39.126Z"
+    "at": "2026-09-11T19:56:03.267Z"
   },
   "verifySummary": {
     "total": 28,
