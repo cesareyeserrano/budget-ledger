@@ -21,24 +21,9 @@
   "projectName": "ciclos",
   "createdAt": "2026-09-10T01:59:33.395Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T00:09:17.619Z",
+  "updatedAt": "2026-09-11T14:17:45.464Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-10T21:35:22.050Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-10T21:35:22.121Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-10T21:42:34.014Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-09-10T22:09:43.339Z",
       "event": "approved",
@@ -131,13 +116,37 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-11T14:17:44.002Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "f9fa1f9065336fb15dc4af174ed8d6aeb9dfc4045eda66f9d4bba81af417e92c",
+      "after_hash": "42dfd2f0226b0ebf5d21dcd8e75d63f5ce63f400b05d7ba2e0f4fa0e3f1f353c"
+    },
+    {
+      "at": "2026-09-11T14:17:44.733Z",
+      "event": "rehash",
+      "phase": "2",
+      "artifact": "02_SYSTEM_DESIGN.md",
+      "before_hash": "357226093f91ef99da83cc297b97d33412c4af2da1efff18925f37fcfe97bb97",
+      "after_hash": "f726ea064eb6b40f317f6704433a3456f3f337a1d4314a1e034fb357de8d0ee4"
+    },
+    {
+      "at": "2026-09-11T14:17:45.432Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "4b4e2bf2f73a0844a0a06b8b41290d12b297361f3c7c0524e31bd24bc92b7d97",
+      "after_hash": "d4889d1ea2602c623c90f1531eeb187f2e463b258f0957839b3e36ccd4c5156d"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "f9fa1f9065336fb15dc4af174ed8d6aeb9dfc4045eda66f9d4bba81af417e92c",
-    "2": "357226093f91ef99da83cc297b97d33412c4af2da1efff18925f37fcfe97bb97",
-    "3": "4b4e2bf2f73a0844a0a06b8b41290d12b297361f3c7c0524e31bd24bc92b7d97",
+    "1": "42dfd2f0226b0ebf5d21dcd8e75d63f5ce63f400b05d7ba2e0f4fa0e3f1f353c",
+    "2": "f726ea064eb6b40f317f6704433a3456f3f337a1d4314a1e034fb357de8d0ee4",
+    "3": "d4889d1ea2602c623c90f1531eeb187f2e463b258f0957839b3e36ccd4c5156d",
     "4": "ecd72b20db110ec8764b8c3797393efee3d5ac27e37251af5e4ea2657ff18421",
     "5": "78d3c20aa2839050c32c4de7709fddeb7980856adf4ed3aa8d297270d0f48a49",
     "discovery": "28432e0766585eae8802dfa490969137093d5b53e6f630d6f5f20b6a4845706a",

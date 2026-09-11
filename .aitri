@@ -23,23 +23,9 @@
   "aitriVersion": "2.2.0-rc.14",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-11T14:04:49.613Z",
+  "updatedAt": "2026-09-11T14:17:43.231Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-08T23:27:16.804Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-08T23:47:43.098Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-09-08T23:47:43.314Z",
       "event": "verify-complete",
@@ -179,6 +165,22 @@
       "failed": 0,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-11T14:17:42.183Z",
+      "event": "rehash",
+      "phase": "4",
+      "artifact": "04_BUILD_REPORT.json",
+      "before_hash": "2161541340fc05ece527fa0eed3c1d04f59d8a884b77cc11a527650990e765c7",
+      "after_hash": "66c55f22a88232c7eb819f3e105e3eb065036f2e76db7b3d58019059765a41be"
+    },
+    {
+      "at": "2026-09-11T14:17:43.191Z",
+      "event": "rehash",
+      "phase": "5",
+      "artifact": "05_TRACEABILITY.json",
+      "before_hash": "01d0f4fe7a21718069b5a1e2317429cf6ebd916abf387176645102bdda6da5a3",
+      "after_hash": "9193f5f81b5414b2638deec17de43af340928457dcfdbf58ce7f9332b0084a10"
     }
   ],
   "cascadedPhases": [],
@@ -186,8 +188,8 @@
     "1": "ae15f9d05d7f18281e0d94acb3753a3412d6092dc8d1bab42366134935f2ccd4",
     "2": "16f5e103cdea53dcf2bc99bed89ab39063382815af3cd7a1860feb4156e3c4dc",
     "3": "04228856108ca6af87ff3a8a88b3747c2acae36e4c0b1be10dd34e22442d80df",
-    "4": "2161541340fc05ece527fa0eed3c1d04f59d8a884b77cc11a527650990e765c7",
-    "5": "01d0f4fe7a21718069b5a1e2317429cf6ebd916abf387176645102bdda6da5a3",
+    "4": "66c55f22a88232c7eb819f3e105e3eb065036f2e76db7b3d58019059765a41be",
+    "5": "9193f5f81b5414b2638deec17de43af340928457dcfdbf58ce7f9332b0084a10",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
