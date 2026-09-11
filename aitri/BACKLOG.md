@@ -143,11 +143,16 @@ relativa.
    comienza en junio; si quiere empezar en marzo, tendrá que transcribirla desde marzo»— y su
    mecanismo es el **mes de inicio declarado**, que pertenece al punto 4 y está escrito en
    `aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md`. No hace falta feature propia.
-3. **Cierre de mes** (BL-036) — la grande. Es la única que permite **borrar** maquinaria en vez de
-   añadirla, y de ella dependen BL-037 y BL-038, congelados a propósito. Incluye reapertura auditada.
-4. **Saldo inicial + página de Configuración** (resto de BL-040) — ya sobre la base simplificada.
-   Todas las decisiones de producto están tomadas y escritas en
-   `aitri/features/meses-y-saldo-inicial/FEATURE_IDEA.md`.
+3. ~~**Cierre de mes** (BL-036)~~ — **ENTREGADA por la feature `cierre-de-mes` (5/5); BL-036 cerrada
+   en el backlog el 2026-09-11.** FR-2003 congela TODAS las vías de escritura de un mes cerrado
+   (celdas, movimientos, aportes, retiros y traslados) y FR-2009 explica en pantalla que está cerrado y
+   cuál es la salida; incluye la reapertura auditada (FR-2005). Única diferencia con la letra de BL-036,
+   decidida por el usuario el 2026-09-03: las observaciones de celda siguen editables (FR-2004), porque
+   son la única salida para un error en un mes que ya no se puede reabrir. BL-037 y BL-038 quedaron
+   fuera de alcance a propósito y siguen abiertas.
+4. ~~**Saldo inicial + página de Configuración** (resto de BL-040)~~ — **ENTREGADA por la feature
+   `meses-y-saldo-inicial` (5/5, FR-2201–FR-2207); BL-040 cerrada en el backlog el 2026-09-11**, junto
+   con la grilla dinámica del punto 2.
 
 ### Riesgo asumido al poner multi-año antes que el cierre de mes
 

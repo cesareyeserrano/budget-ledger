@@ -345,11 +345,19 @@
       "title": "Cierre de mes: congelar un mes ya cerrado para que no se pueda editar hacia atras",
       "priority": "P1",
       "problem": "Editar un mes viejo puede dejar sin respaldo un movimiento posterior. Ejemplo del usuario: en agosto mete 1.000 en un bolsillo, en septiembre saca los 1.000, y despues corrige agosto a 400 — septiembre queda habiendo sacado 1.000 de un bolsillo que solo tenia 400. Hoy la app valida ese caso para los bolsillos (bloquea nombrando el mes que revienta) pero NO para los ingresos, y por esa puerta el usuario quedo dos veces con mas plata apartada de la que tenia, sin poder escribir nada en ningun mes siguiente. IDEA DEL USUARIO, 2026-08-30: «necesitamos implementar un cierre de mes que no deje editar cosas viejas despues del cierre». Es mejor que validar caso por caso porque la regla es PREDECIBLE: antes de cerrar editas libre, despues de cerrar no se toca — en vez de que la app te bloquee a veces si y a veces no, por un motivo que vive en otro mes.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-08-31T03:34:00.188Z",
       "behavior": "Un mes puede cerrarse. Un mes cerrado no admite ediciones de ninguna clase: ni gastos, ni ingresos, ni movimientos internos.",
       "decisions": "ORDEN ACORDADO CON EL USUARIO (2026-09-01): va DESPUES de la grilla dinamica y ANTES del saldo inicial. Razon tecnica que el propio usuario dedujo: si un mes cerrado no se puede tocar, la vigilancia de los doce meses en cada operacion deja de tener sentido, y buena parte de la maquinaria del techo se puede BORRAR en vez de seguir parcheandola. Es la unica feature pendiente que ELIMINA complejidad. ALCANCE ADICIONAL decidido: incluir REAPERTURA de un mes cerrado, auditada — el usuario la pidio al resolver que el saldo inicial solo se corrige con el mes abierto. PREGUNTA DE DISENO CENTRAL, sin resolver: que pasa cuando se descubre un error en un mes ya cerrado. En contabilidad se ajusta en el mes ABIERTO, no reabriendo el cerrado; la alternativa es la reapertura explicita con su rastro. De ahi sale todo el diseno. EXPEDIENTE CREADO el 2026-09-02: aitri/features/cierre-de-mes/FEATURE_IDEA.md, con el alcance, la pregunta de diseno central y las cuatro preguntas abiertas; su feature_context/ lleva la evidencia ejecutada de por que esta feature disuelve BL-037 y BL-038.",
-      "acceptance": "Dado un mes cerrado, cuando el usuario intenta editar cualquier celda o movimiento de ese mes, entonces la app no lo permite y explica que el mes esta cerrado."
+      "acceptance": "Dado un mes cerrado, cuando el usuario intenta editar cualquier celda o movimiento de ese mes, entonces la app no lo permite y explica que el mes esta cerrado.",
+      "log": [
+        {
+          "at": "2026-09-11T14:56:48.349Z",
+          "text": "CERRADA 2026-09-11: entregada por la feature cierre-de-mes (5/5, 92/92 TCs). FR-2003 congela todas las vias de escritura de un mes cerrado (celdas de presupuesto y ejecutado, alta/edicion/borrado de movimientos, aportes, retiros y traslados) y FR-2009 explica en pantalla que el mes esta cerrado y cual es la salida; incluye reapertura auditada (FR-2005). Diferencia con la letra de esta entrada, decidida por el usuario el 2026-09-03: las observaciones de celda siguen editables (FR-2004). BL-037 y BL-038 quedaron fuera de alcance a proposito y siguen abiertas. Suites completas en verde en el verify de la raiz del 2026-09-11."
+        }
+      ],
+      "updatedAt": "2026-09-11T14:56:48.349Z",
+      "closedAt": "2026-09-11T14:56:48.468Z"
     },
     {
       "id": "BL-037",
@@ -382,8 +390,16 @@
       "title": "Grilla por meses dinamica + saldo inicial + pagina de configuraciones",
       "priority": "P1",
       "problem": "Los meses de la grilla estan quemados: quien empieza a usar la app a mitad de ano ve meses vacios haciendo ruido, y no tiene forma de decirle a la app el dinero que YA tiene",
-      "status": "open",
-      "createdAt": "2026-09-01T23:42:32.216Z"
+      "status": "closed",
+      "createdAt": "2026-09-01T23:42:32.216Z",
+      "log": [
+        {
+          "at": "2026-09-11T14:56:51.897Z",
+          "text": "CERRADA 2026-09-11: entregada en dos partes. Grilla dinamica: absorbida por multi-anio (FR-1901, FR-1904, FR-1905, FR-1906, FR-1910), cerrada sin construirse por decision del usuario el 2026-09-03 (ver aitri/BACKLOG.md, orden acordado, punto 2). Saldo inicial + pagina de Configuracion: feature meses-y-saldo-inicial (5/5, 62/62 TCs, FR-2201 a FR-2207: mes de inicio declarado, saldo inicial que abre el primer mes, tarjeta de arranque, pagina de Configuracion, edicion solo con el mes abierto). Suites completas en verde en el verify de la raiz del 2026-09-11."
+        }
+      ],
+      "updatedAt": "2026-09-11T14:56:51.897Z",
+      "closedAt": "2026-09-11T14:56:52.003Z"
     },
     {
       "id": "BL-041",
