@@ -6,7 +6,8 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     "discovery",
@@ -20,14 +21,9 @@
   "projectName": "ciclos",
   "createdAt": "2026-09-10T01:59:33.395Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-10T23:47:52.840Z",
+  "updatedAt": "2026-09-11T00:09:17.619Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-10T21:33:17.131Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-09-10T21:35:22.050Z",
       "event": "approved",
@@ -128,6 +124,13 @@
       "at": "2026-09-10T23:47:52.782Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-09-11T00:09:17.589Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -180,6 +183,18 @@
       "FR-2409",
       "FR-2410"
     ],
+    "5": [
+      "FR-2401",
+      "FR-2402",
+      "FR-2403",
+      "FR-2404",
+      "FR-2405",
+      "FR-2406",
+      "FR-2407",
+      "FR-2408",
+      "FR-2409",
+      "FR-2410"
+    ],
     "ux": [
       "FR-2401",
       "FR-2402",
@@ -213,5 +228,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-11T00:09:17.588Z"
+    }
+  ]
 }
