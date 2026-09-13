@@ -472,6 +472,16 @@
       ],
       "updatedAt": "2026-09-13T22:52:05.502Z",
       "decisions": "DECIDIDO con el usuario el 2026-09-13: NO se arregla ahora. Se aplica cuando cualquiera de las seis se reabra por otro motivo, aprovechando esa cascada: en su 04_BUILD_REPORT.json el gate smoke pasa a command 'npm run gate:smoke' (igual que ciclos/balance-jerarquia), required:true, timeout_ms 180000. Mientras tanto, el arranque real queda cubierto por el smoke de la raiz y de las otras 15 features."
+    },
+    {
+      "id": "BL-048",
+      "title": "Vitest 3.2.7 vulnerable (path traversal en @vitest/mocker): subir a 4.1.11, salto mayor",
+      "priority": "P2",
+      "problem": "Dependabot #18 y #19 (medium, 2026-09-13): vitest y @vitest/mocker >= 2.1.0 < 4.1.11 permiten lectura arbitraria de ficheros via el redirect mock de @vitest/mocker. Instalado 3.2.7 (directo, via @vitest/coverage-v8 y via better-auth). Solo dependencia de desarrollo: no entra en la imagen de produccion, el riesgo es sobre la maquina que corre los tests. El arreglo es un salto MAYOR 3 -> 4: puede romper la config de vitest/cobertura (unit.sh, coverage.sh, gate coverage required en todas las features) y hay que comprobar que better-auth 1.6.23 acepta vitest 4. Por eso no se hizo sobre la marcha.",
+      "status": "open",
+      "createdAt": "2026-09-13T23:03:38.447Z",
+      "files": "package.json, package-lock.json, vitest.config.*, unit.sh, coverage.sh",
+      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security."
     }
   ]
 }
