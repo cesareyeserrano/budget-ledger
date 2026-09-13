@@ -2,11 +2,16 @@
 # Complementa al gate SCA de CI (`npm audit --audit-level=high`): el gate DETECTA el CVE y rompe el
 # build; Dependabot abre el PR que lo arregla. Sin esto, cada CVE nuevo se arregla a mano (como el de
 # postcss <=8.5.11 en jul-2026), y el gate te bloquea hasta que alguien lo note.
+#
+# target-branch: develop — los PRs entran por desarrollo y suben a staging y main por el flujo normal,
+# nunca directo a produccion. Dependabot lee este fichero SOLO desde la rama por defecto (main), asi
+# que un cambio aqui no surte efecto hasta que llega a main.
 version: 2
 updates:
   # ── npm ──────────────────────────────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -27,6 +32,7 @@ updates:
   # Eso las congelaría para siempre, así que Dependabot es quien las mantiene al día.
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -39,6 +45,7 @@ updates:
   # Imagen base de producción (node:22-alpine): los CVEs del SO base no los ve `npm audit`.
   - package-ecosystem: "docker"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
       day: "monday"
