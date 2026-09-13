@@ -80,7 +80,7 @@ comparan contra commits ancla y reescribir la historia las rompe. Las tres ramas
 contra borrado y force push. Dependabot abre sus PRs contra `develop`.
 
 ## CI/CD
-`.github/workflows/ci.yml` corre en cada push/PR a `main`, `staging` y `develop`: install → typecheck → unit+integration (`npm run test:run`) → build → E2E (Playwright). Falla el pipeline si algo falla (NFR-006).
+`.github/workflows/ci.yml` corre en cada push a `main` y en cada PR a `main`, `staging` o `develop` (un push directo a `develop` no lo dispara; el gate llega con el PR a `staging`): install → typecheck → unit+integration (`npm run test:run`) → build → E2E (Playwright). Falla el pipeline si algo falla (NFR-006).
 
 ## Rollback
 
@@ -281,7 +281,7 @@ Cookies de sesión `HttpOnly; Secure; SameSite`; rate limiting del login (5/60s 
 `LEDGER_ALLOWED_ORIGINS` (nunca `*`).
 
 ## CI/CD
-`.github/workflows/ci.yml` (push/PR a `main`, `staging` y `develop`): typecheck, lint, unit+integration, build, e2e
+`.github/workflows/ci.yml` (push a `main`; PR a `main`, `staging` o `develop`): typecheck, lint, unit+integration, build, e2e
 (localStorage + servidor), SCA (`npm audit --audit-level=high`) y secretos (`scripts/secret-scan.sh`).
 
 ## Rollback (modo servidor)
