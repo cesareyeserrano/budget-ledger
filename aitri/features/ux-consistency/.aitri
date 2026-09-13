@@ -19,19 +19,9 @@
   "projectName": "ux-consistency",
   "createdAt": "2026-07-08T17:09:25.061Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-09T19:08:51.248Z",
+  "updatedAt": "2026-09-13T20:32:58.707Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-08T21:46:34.174Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-08T21:52:18.799Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-07-08T23:16:41.485Z",
       "event": "completed",
@@ -131,6 +121,22 @@
       "at": "2026-07-09T19:08:51.223Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-13T20:32:58.085Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T20:32:58.678Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -225,14 +231,14 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "c62ce84d11551edc033eea8ffab220b1bfad3fb6430a969b25fbfa885c7294dd",
-  "verifyRanAt": "2026-07-09T18:28:33.600Z",
+  "verifyResultsHash": "ccd97732849fad72ecf1d22440ae8512243d36843b927171b1f8b182dedc1abb",
+  "verifyRanAt": "2026-09-13T20:32:58.023Z",
   "lastVerifyRun": {
     "passed": 60,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-09T18:28:33.600Z"
+    "at": "2026-09-13T20:32:58.023Z"
   },
   "verifySummary": {
     "total": 60,
@@ -243,5 +249,7 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

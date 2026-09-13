@@ -17,19 +17,9 @@
   "projectName": "semilla-intacta",
   "createdAt": "2026-09-07T18:44:22.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-10T00:48:38.526Z",
+  "updatedAt": "2026-09-13T19:55:14.337Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T23:02:32.209Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-07T23:04:17.728Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-09-08T01:25:24.709Z",
       "event": "approved",
@@ -149,6 +139,22 @@
       "phase": "verify",
       "passed": 17,
       "failed": 0
+    },
+    {
+      "at": "2026-09-13T19:55:14.083Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T19:55:14.312Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 17,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -177,16 +183,16 @@
       "FR-2302"
     ]
   },
-  "verifyResultsHash": "2fb445cee43d7980571d911c55bec9cb0b4537dfa32548d1d8f2fee1ee75559b",
-  "verifyRanAt": "2026-09-10T00:48:22.540Z",
-  "verifyRanRef": "b94d51fcd90ab8e261767f34f0d3ab8e0a5fbefe",
+  "verifyResultsHash": "3a8d952cd56029d89b45e6ebe9191748bacc85b7aa71ee8c4411b3d409da3323",
+  "verifyRanAt": "2026-09-13T19:55:14.020Z",
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 17,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-10T00:48:22.540Z"
+    "at": "2026-09-13T19:55:14.020Z"
   },
   "verifyPassed": true,
   "releaseHistory": [

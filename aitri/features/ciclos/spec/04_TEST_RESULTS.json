@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-11T17:58:30.238Z",
+  "executed_at": "2026-09-13T18:55:00.640Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,27 +8,27 @@
     {
       "tc_id": "TC-CIC-001h",
       "status": "pass",
-      "notes": "✓   68 [chromium] › tests/e2e/ciclos.spec.ts:144:7 › FR-2401 — el modo en Configuración › TC-CIC-001h: Configuración muestra «Mes a mes» por defecto y nada más cambia (679ms)"
+      "notes": "✓   68 [chromium] › tests/e2e/ciclos.spec.ts:144:7 › FR-2401 — el modo en Configuración › TC-CIC-001h: Configuración muestra «Mes a mes» por defecto y nada más cambia (644ms)"
     },
     {
       "tc_id": "TC-CIC-002h",
       "status": "pass",
-      "notes": "✓   69 [chromium] › tests/e2e/ciclos.spec.ts:158:7 › FR-2401 — el modo en Configuración › TC-CIC-002h: elegir «Ciclos» con día 21 y confirmar persiste y sobrevive la recarga (630ms)"
+      "notes": "✓   69 [chromium] › tests/e2e/ciclos.spec.ts:158:7 › FR-2401 — el modo en Configuración › TC-CIC-002h: elegir «Ciclos» con día 21 y confirmar persiste y sobrevive la recarga (596ms)"
     },
     {
       "tc_id": "TC-CIC-003f",
       "status": "pass",
-      "notes": "✓   70 [chromium] › tests/e2e/ciclos.spec.ts:174:7 › FR-2401 — el modo en Configuración › TC-CIC-003f: día 32 se rechaza en el formulario y el modo no cambia (339ms)"
+      "notes": "✓   70 [chromium] › tests/e2e/ciclos.spec.ts:174:7 › FR-2401 — el modo en Configuración › TC-CIC-003f: día 32 se rechaza en el formulario y el modo no cambia (305ms)"
     },
     {
       "tc_id": "TC-CIC-004f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2401 — el modo en el servidor > TC-CIC-004f: PUT /api/v1/ledger/cycles con anchorDay 40 responde 422 invalid_payload y no escribe 163ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2401 — el modo en el servidor > TC-CIC-004f: PUT /api/v1/ledger/cycles con anchorDay 40 responde 422 invalid_payload y no escribe 161ms"
     },
     {
       "tc_id": "TC-CIC-005e",
       "status": "pass",
-      "notes": "✓   71 [chromium] › tests/e2e/ciclos.spec.ts:187:7 › FR-2401 — el modo en Configuración › TC-CIC-005e: la sección cabe a 1440px sin scroll horizontal, con el día junto a «Ciclos» (360ms)"
+      "notes": "✓   71 [chromium] › tests/e2e/ciclos.spec.ts:187:7 › FR-2401 — el modo en Configuración › TC-CIC-005e: la sección cabe a 1440px sin scroll horizontal, con el día junto a «Ciclos» (343ms)"
     },
     {
       "tc_id": "TC-CIC-006f",
@@ -38,12 +38,12 @@
     {
       "tc_id": "TC-CIC-007e",
       "status": "pass",
-      "notes": "✓   72 [chromium] › tests/e2e/ciclos.spec.ts:201:7 › FR-2401 — el modo en Configuración › TC-CIC-007e: a 375px la sección se apila: dos opciones al 50%, día a 96px, sin desborde (345ms)"
+      "notes": "✓   72 [chromium] › tests/e2e/ciclos.spec.ts:201:7 › FR-2401 — el modo en Configuración › TC-CIC-007e: a 375px la sección se apila: dos opciones al 50%, día a 96px, sin desborde (343ms)"
     },
     {
       "tc_id": "TC-CIC-008e",
       "status": "pass",
-      "notes": "✓   73 [chromium] › tests/e2e/ciclos.spec.ts:218:7 › FR-2401 — el modo en Configuración › TC-CIC-008e: un ledger existente con datos y sin elección se ve idéntico tras el despliegue (662ms)"
+      "notes": "✓   73 [chromium] › tests/e2e/ciclos.spec.ts:218:7 › FR-2401 — el modo en Configuración › TC-CIC-008e: un ledger existente con datos y sin elección se ve idéntico tras el despliegue (667ms)"
     },
     {
       "tc_id": "TC-CIC-009e",
@@ -73,7 +73,7 @@
     {
       "tc_id": "TC-CIC-014e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-014e: Propiedad: duración en [28,31], ninguna fecha en dos ciclos, día 1 = meses calendario 555ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-014e: Propiedad: duración en [28,31], ninguna fecha en dos ciclos, día 1 = meses calendario 575ms"
     },
     {
       "tc_id": "TC-CIC-015e",
@@ -93,22 +93,22 @@
     {
       "tc_id": "TC-CIC-018e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-018e: periodForDate en las cuatro fronteras del 21 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-018e: periodForDate en las cuatro fronteras del 21 1ms"
     },
     {
       "tc_id": "TC-CIC-019e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-019e: Volumen: 36 meses × 3 versiones en <5ms y 10.000 periodForDate en <50ms 97ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2402 — el calendario > TC-CIC-019e: Volumen: 36 meses × 3 versiones en <5ms y 10.000 periodForDate en <50ms 135ms"
     },
     {
       "tc_id": "TC-CIC-020h",
       "status": "pass",
-      "notes": "✓   81 [chromium] › tests/e2e/ciclos.spec.ts:344:7 › FR-2403 — la previsualización › TC-CIC-020h: previsualizar con día 21 sobre la réplica del ledger del usuario lista seis ciclos y el resumen 15 · 10 · 3 (495ms)"
+      "notes": "✓   81 [chromium] › tests/e2e/ciclos.spec.ts:344:7 › FR-2403 — la previsualización › TC-CIC-020h: previsualizar con día 21 sobre la réplica del ledger del usuario lista seis ciclos y el resumen 15 · 10 · 3 (454ms)"
     },
     {
       "tc_id": "TC-CIC-021f",
       "status": "pass",
-      "notes": "✓   82 [chromium] › tests/e2e/ciclos.spec.ts:367:7 › FR-2403 — la previsualización › TC-CIC-021f: cancelar deja el snapshot persistido byte a byte igual (437ms)"
+      "notes": "✓   82 [chromium] › tests/e2e/ciclos.spec.ts:367:7 › FR-2403 — la previsualización › TC-CIC-021f: cancelar deja el snapshot persistido byte a byte igual (436ms)"
     },
     {
       "tc_id": "TC-CIC-022e",
@@ -118,12 +118,12 @@
     {
       "tc_id": "TC-CIC-023e",
       "status": "pass",
-      "notes": "✓   84 [chromium] › tests/e2e/ciclos.spec.ts:393:7 › FR-2403 — la previsualización › TC-CIC-023e: a 1440px cada ciclo lleva nombre y rango en la misma fila, sin scroll (472ms)"
+      "notes": "✓   84 [chromium] › tests/e2e/ciclos.spec.ts:393:7 › FR-2403 — la previsualización › TC-CIC-023e: a 1440px cada ciclo lleva nombre y rango en la misma fila, sin scroll (468ms)"
     },
     {
       "tc_id": "TC-CIC-024h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-024h: POST preview sobre F-USER devuelve los ciclos y el resumen 15 · 10 · 3 sin escribir 132ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-024h: POST preview sobre F-USER devuelve los ciclos y el resumen 15 · 10 · 3 sin escribir 119ms"
     },
     {
       "tc_id": "TC-CIC-025e",
@@ -133,27 +133,27 @@
     {
       "tc_id": "TC-CIC-026f",
       "status": "pass",
-      "notes": "✓   86 [chromium] › tests/e2e/ciclos.spec.ts:426:7 › FR-2403 — la previsualización › TC-CIC-026f: estado error — un 500 al previsualizar muestra el aviso literal con Reintentar y no persiste (379ms)"
+      "notes": "✓   86 [chromium] › tests/e2e/ciclos.spec.ts:426:7 › FR-2403 — la previsualización › TC-CIC-026f: estado error — un 500 al previsualizar muestra el aviso literal con Reintentar y no persiste (384ms)"
     },
     {
       "tc_id": "TC-CIC-027e",
       "status": "pass",
-      "notes": "✓   87 [chromium] › tests/e2e/ciclos.spec.ts:441:7 › FR-2403 — la previsualización › TC-CIC-027e: a 375px las filas van en dos líneas y los botones apilados con Confirmar arriba (426ms)"
+      "notes": "✓   87 [chromium] › tests/e2e/ciclos.spec.ts:441:7 › FR-2403 — la previsualización › TC-CIC-027e: a 375px las filas van en dos líneas y los botones apilados con Confirmar arriba (429ms)"
     },
     {
       "tc_id": "TC-CIC-028f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-028f: previsualizar volver a mes con un ciclo cerrado responde 422 closed_period 176ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-028f: previsualizar volver a mes con un ciclo cerrado responde 422 closed_period 158ms"
     },
     {
       "tc_id": "TC-CIC-029e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-029e: previsualizar dos veces devuelve el mismo cuerpo y no crea versiones 126ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-029e: previsualizar dos veces devuelve el mismo cuerpo y no crea versiones 125ms"
     },
     {
       "tc_id": "TC-CIC-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-030h: relocate sobre F-USER: presupuesto y ejecutado de cada rubro juntos en Septiembre, solo el Salario en Octubre, sumas idénticas 7ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-030h: relocate sobre F-USER: presupuesto y ejecutado de cada rubro juntos en Septiembre, solo el Salario en Octubre, sumas idénticas 6ms"
     },
     {
       "tc_id": "TC-CIC-031e",
@@ -163,7 +163,7 @@
     {
       "tc_id": "TC-CIC-032f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-032f: atomicidad — un fallo tras la primera escritura deja el ledger en modo mes sin ningún cambio 120ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-032f: atomicidad — un fallo tras la primera escritura deja el ledger en modo mes sin ningún cambio 111ms"
     },
     {
       "tc_id": "TC-CIC-033e",
@@ -173,22 +173,22 @@
     {
       "tc_id": "TC-CIC-034e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-034e: el movimiento fechado más antiguo ancla el inicio: 2026-08-15 abre «Agosto» 2ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-034e: el movimiento fechado más antiguo ancla el inicio: 2026-08-15 abre «Agosto» 4ms"
     },
     {
       "tc_id": "TC-CIC-035h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-035h: descomposición exacta con la regla nueva: el residuo tecleado sigue a la mayoría de su mes y cada movimiento a su fecha 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-035h: descomposición exacta con la regla nueva: el residuo tecleado sigue a la mayoría de su mes y cada movimiento a su fecha 1ms"
     },
     {
       "tc_id": "TC-CIC-036e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-036e: residuo negativo con la regla nueva: cae en el ciclo de sus movimientos, la celda queda positiva y la memoria guarda el residuo con signo 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-036e: residuo negativo con la regla nueva: cae en el ciclo de sus movimientos, la celda queda positiva y la memoria guarda el residuo con signo 1ms"
     },
     {
       "tc_id": "TC-CIC-037h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-037h: PUT /cycles sobre F-USER persiste la reubicación y su memoria, sube revision y sobrevive a la recarga 146ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-037h: PUT /cycles sobre F-USER persiste la reubicación y su memoria, sube revision y sobrevive a la recarga 142ms"
     },
     {
       "tc_id": "TC-CIC-038e",
@@ -198,7 +198,7 @@
     {
       "tc_id": "TC-CIC-039f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-039f: baseRevision obsoleta responde 409 y no reubica 141ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-039f: baseRevision obsoleta responde 409 y no reubica 128ms"
     },
     {
       "tc_id": "TC-CIC-040e",
@@ -208,17 +208,17 @@
     {
       "tc_id": "TC-CIC-041e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-041e: los movimientos de reserva conservan sus deltas: saldo derivado idéntico 1ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-041e: los movimientos de reserva conservan sus deltas: saldo derivado idéntico 0ms"
     },
     {
       "tc_id": "TC-CIC-042f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-042f: activar con el mismo día estando en ciclos responde 422 no_change 146ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-042f: activar con el mismo día estando en ciclos responde 422 no_change 137ms"
     },
     {
       "tc_id": "TC-CIC-045h",
       "status": "pass",
-      "notes": "✓   95 [chromium] › tests/e2e/ciclos.spec.ts:580:7 › FR-2405 / FR-2406 — el Registro en modo ciclos › TC-CIC-045h: un gasto fechado 2026-10-05 cae en Octubre y el Registro lo anuncia antes de guardar (1.4s)"
+      "notes": "✓   95 [chromium] › tests/e2e/ciclos.spec.ts:580:7 › FR-2405 / FR-2406 — el Registro en modo ciclos › TC-CIC-045h: un gasto fechado 2026-10-05 cae en Octubre y el Registro lo anuncia antes de guardar (1.5s)"
     },
     {
       "tc_id": "TC-CIC-046e",
@@ -228,27 +228,27 @@
     {
       "tc_id": "TC-CIC-047e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2405 — asignación por fecha > TC-CIC-047e: reassignMovementPeriod mueve el aporte sin duplicar 1ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2405 — asignación por fecha > TC-CIC-047e: reassignMovementPeriod mueve el aporte sin duplicar 2ms"
     },
     {
       "tc_id": "TC-CIC-048f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-048f: POST /movements sin fecha en modo ciclos responde 422 115ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-048f: POST /movements sin fecha en modo ciclos responde 422 112ms"
     },
     {
       "tc_id": "TC-CIC-049f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-049f: POST /movements con periodo incoherente con la fecha responde 422 period_mismatch 114ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-049f: POST /movements con periodo incoherente con la fecha responde 422 period_mismatch 107ms"
     },
     {
       "tc_id": "TC-CIC-050f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-050f: PUT /ledger con un movimiento incoherente responde 422 con los ids afectados 149ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-050f: PUT /ledger con un movimiento incoherente responde 422 con los ids afectados 117ms"
     },
     {
       "tc_id": "TC-CIC-051e",
       "status": "pass",
-      "notes": "✓   96 [chromium] › tests/e2e/ciclos.spec.ts:601:7 › FR-2405 / FR-2406 — el Registro en modo ciclos › TC-CIC-051e: la línea «Ciclo» se actualiza en ≤100ms al cambiar la fecha, sin red (1.5s)"
+      "notes": "✓   96 [chromium] › tests/e2e/ciclos.spec.ts:601:7 › FR-2405 / FR-2406 — el Registro en modo ciclos › TC-CIC-051e: la línea «Ciclo» se actualiza en ≤100ms al cambiar la fecha, sin red (1.4s)"
     },
     {
       "tc_id": "TC-CIC-052f",
@@ -293,7 +293,7 @@
     {
       "tc_id": "TC-CIC-060f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-060f: el servidor acepta period = ciclo siguiente solo dentro de la ventana 132ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2405 / FR-2406 — la asignación por fecha, en el servidor > TC-CIC-060f: el servidor acepta period = ciclo siguiente solo dentro de la ventana 105ms"
     },
     {
       "tc_id": "TC-CIC-061e",
@@ -303,7 +303,7 @@
     {
       "tc_id": "TC-CIC-062h",
       "status": "pass",
-      "notes": "✓  103 [chromium] › tests/e2e/ciclos.spec.ts:759:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-062h: la columna actual es Septiembre con rango legible, 52px y contraste ≥4.5:1 (520ms)"
+      "notes": "✓  103 [chromium] › tests/e2e/ciclos.spec.ts:759:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-062h: la columna actual es Septiembre con rango legible, 52px y contraste ≥4.5:1 (484ms)"
     },
     {
       "tc_id": "TC-CIC-063e",
@@ -313,12 +313,12 @@
     {
       "tc_id": "TC-CIC-064f",
       "status": "pass",
-      "notes": "✓  105 [chromium] › tests/e2e/ciclos.spec.ts:794:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-064f: en modo mes no hay rango, la cabecera mide 38px y no existe marca de transición (577ms)"
+      "notes": "✓  105 [chromium] › tests/e2e/ciclos.spec.ts:794:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-064f: en modo mes no hay rango, la cabecera mide 38px y no existe marca de transición (558ms)"
     },
     {
       "tc_id": "TC-CIC-065e",
       "status": "pass",
-      "notes": "✓  106 [chromium] › tests/e2e/ciclos.spec.ts:809:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-065e: la transición se rotula «Transición» con icono accesible y su rango real (489ms)"
+      "notes": "✓  106 [chromium] › tests/e2e/ciclos.spec.ts:820:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-065e: la transición se rotula «Transición» con icono accesible y su rango real (420ms)"
     },
     {
       "tc_id": "TC-CIC-066e",
@@ -328,17 +328,17 @@
     {
       "tc_id": "TC-CIC-067e",
       "status": "pass",
-      "notes": "✓  107 [chromium] › tests/e2e/ciclos.spec.ts:826:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-067e: control e historial de cierre llevan el rango del ciclo (880ms)"
+      "notes": "✓  107 [chromium] › tests/e2e/ciclos.spec.ts:837:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-067e: control e historial de cierre llevan el rango del ciclo (775ms)"
     },
     {
       "tc_id": "TC-CIC-068e",
       "status": "pass",
-      "notes": "✓  108 [chromium] › tests/e2e/ciclos.spec.ts:841:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-068e: el Dashboard titula «Ejecución por ciclo» solo en modo ciclos (700ms)"
+      "notes": "✓  108 [chromium] › tests/e2e/ciclos.spec.ts:852:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-068e: el Dashboard titula «Ejecución por ciclo» solo en modo ciclos (625ms)"
     },
     {
       "tc_id": "TC-CIC-069e",
       "status": "pass",
-      "notes": "✓  109 [chromium] › tests/e2e/ciclos.spec.ts:855:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-069e: a 768px la cabecera de 52px se desplaza sin truncar el rango (540ms)"
+      "notes": "✓  109 [chromium] › tests/e2e/ciclos.spec.ts:866:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-069e: a 768px la cabecera de 52px se desplaza sin truncar el rango (509ms)"
     },
     {
       "tc_id": "TC-CIC-070f",
@@ -353,22 +353,22 @@
     {
       "tc_id": "TC-CIC-073h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-073h: 21→30 con primer pago 30-oct: Transición 21–29 oct, Noviembre 30 oct–29 nov, previos intactos 1ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-073h: 21→30 con primer pago 30-oct: Transición 21–29 oct, Noviembre 30 oct–29 nov, previos intactos 5ms"
     },
     {
       "tc_id": "TC-CIC-074e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-074e: 21→5 con primer pago 5-nov: transición de 15 días y dos versiones consultables 118ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-074e: 21→5 con primer pago 5-nov: transición de 15 días y dos versiones consultables 120ms"
     },
     {
       "tc_id": "TC-CIC-075f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-075f: primer pago dentro de un ciclo cerrado o no posterior al último pago se rechaza con first_pay_invalid 199ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-075f: primer pago dentro de un ciclo cerrado o no posterior al último pago se rechaza con first_pay_invalid 186ms"
     },
     {
       "tc_id": "TC-CIC-076e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-076e: los balances anteriores son idénticos uno a uno y no hay huecos en la frontera 2ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-076e: los balances anteriores son idénticos uno a uno y no hay huecos en la frontera 3ms"
     },
     {
       "tc_id": "TC-CIC-077e",
@@ -378,12 +378,12 @@
     {
       "tc_id": "TC-CIC-078f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-078f: cambiar el día sin fecha de primer pago se rechaza con first_pay_required 113ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-078f: cambiar el día sin fecha de primer pago se rechaza con first_pay_required 110ms"
     },
     {
       "tc_id": "TC-CIC-079e",
       "status": "pass",
-      "notes": "✓  113 [chromium] › tests/e2e/ciclos.spec.ts:936:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-079e: cambiar el día pide la fecha del primer pago y la previsualización muestra la transición (456ms)"
+      "notes": "✓  113 [chromium] › tests/e2e/ciclos.spec.ts:947:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-079e: cambiar el día pide la fecha del primer pago y la previsualización muestra la transición (463ms)"
     },
     {
       "tc_id": "TC-CIC-080e",
@@ -393,12 +393,12 @@
     {
       "tc_id": "TC-CIC-081e",
       "status": "pass",
-      "notes": "✓  114 [chromium] › tests/e2e/ciclos.spec.ts:955:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-081e: el historial muestra las versiones con fecha de vigencia y día (371ms)"
+      "notes": "✓  114 [chromium] › tests/e2e/ciclos.spec.ts:966:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-081e: el historial muestra las versiones con fecha de vigencia y día (352ms)"
     },
     {
       "tc_id": "TC-CIC-082h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-082h: cerrar Septiembre el 2026-09-25 congela sus cifras y Octubre abre con su resultado 163ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-082h: cerrar Septiembre el 2026-09-25 congela sus cifras y Octubre abre con su resultado 155ms"
     },
     {
       "tc_id": "TC-CIC-083e",
@@ -408,7 +408,7 @@
     {
       "tc_id": "TC-CIC-084f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-084f: registrar en un ciclo cerrado se rechaza; tras reabrir se acepta y queda rastro 168ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-084f: registrar en un ciclo cerrado se rechaza; tras reabrir se acepta y queda rastro 172ms"
     },
     {
       "tc_id": "TC-CIC-085e",
@@ -428,17 +428,17 @@
     {
       "tc_id": "TC-CIC-088f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-088f: el servidor usa LEDGER_TZ: a las 23:30 de Bogotá del 20-sep Octubre sigue sin ser cerrable 171ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-088f: el servidor usa LEDGER_TZ: a las 23:30 de Bogotá del 20-sep Octubre sigue sin ser cerrable 172ms"
     },
     {
       "tc_id": "TC-CIC-089e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-089e: closure_event acepta una clave de transición 158ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2409 — el cierre sobre la frontera del ciclo, en el servidor > TC-CIC-089e: closure_event acepta una clave de transición 148ms"
     },
     {
       "tc_id": "TC-CIC-090h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-090h: ida y vuelta sin ediciones sobre F-USER deja el snapshot persistido byte a byte igual y la memoria vacía 173ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-090h: ida y vuelta sin ediciones sobre F-USER deja el snapshot persistido byte a byte igual y la memoria vacía 160ms"
     },
     {
       "tc_id": "TC-CIC-091e",
@@ -448,7 +448,7 @@
     {
       "tc_id": "TC-CIC-092f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-092f: con un ciclo cerrado, volver a mes se rechaza con closed_period 171ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-092f: con un ciclo cerrado, volver a mes se rechaza con closed_period 156ms"
     },
     {
       "tc_id": "TC-CIC-093e",
@@ -463,27 +463,27 @@
     {
       "tc_id": "TC-CIC-095f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-095f: atomicidad inversa — un fallo a mitad deja el ledger íntegro en ciclos 159ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2410 — volver a mes, en el servidor > TC-CIC-095f: atomicidad inversa — un fallo a mitad deja el ledger íntegro en ciclos 142ms"
     },
     {
       "tc_id": "TC-CIC-096e",
       "status": "pass",
-      "notes": "✓  116 [chromium] › tests/e2e/ciclos.spec.ts:991:7 › FR-2410 — volver a mes desde la interfaz › TC-CIC-096e: volver a mes — resumen inverso, confirmación y cabeceras de 38px (987ms)"
+      "notes": "✓  116 [chromium] › tests/e2e/ciclos.spec.ts:1002:7 › FR-2410 — volver a mes desde la interfaz › TC-CIC-096e: volver a mes — resumen inverso, confirmación y cabeceras de 38px (865ms)"
     },
     {
       "tc_id": "TC-CIC-100h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2401 — el modo mes no cambia > TC-CIC-100h: MONTH_CALENDAR reproduce periodRange y la serie de balance es byte a byte la de antes 6ms"
+      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2401 — el modo mes no cambia > TC-CIC-100h: MONTH_CALENDAR reproduce periodRange y la serie de balance es byte a byte la de antes 8ms"
     },
     {
       "tc_id": "TC-CIC-101f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-101f: en modo mes una clave con sufijo no puede persistirse 95ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-101f: en modo mes una clave con sufijo no puede persistirse 86ms"
     },
     {
       "tc_id": "TC-CIC-102e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2401 — el modo mes no cambia > TC-CIC-102e: gate estático — currentPeriod(, periodRange( y addMonths( no aparecen fuera de la allowlist 34ms"
+      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2401 — el modo mes no cambia > TC-CIC-102e: gate estático — currentPeriod(, periodRange( y addMonths( no aparecen fuera de la allowlist 15ms"
     },
     {
       "tc_id": "TC-CIC-103h",
@@ -528,7 +528,7 @@
     {
       "tc_id": "TC-CIC-111f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-111f: una operación de reserva en el ciclo de transición la juzga la regla, no la clave 138ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-111f: una operación de reserva en el ciclo de transición la juzga la regla, no la clave 121ms"
     },
     {
       "tc_id": "TC-CIC-112h",
@@ -538,27 +538,27 @@
     {
       "tc_id": "TC-CIC-113e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-113e: el saldo inicial solo se edita con el primer ciclo abierto 164ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-113e: el saldo inicial solo se edita con el primer ciclo abierto 150ms"
     },
     {
       "tc_id": "TC-CIC-114f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-114f: un mes de inicio malformado se rechaza; la clave de transición es legítima 142ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2404 / NFR-2405 — reservas y saldo inicial bajo ciclos > TC-CIC-114f: un mes de inicio malformado se rechaza; la clave de transición es legítima 126ms"
     },
     {
       "tc_id": "TC-CIC-115h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-115h: la migración aplicada dos veces no falla ni cambia el esquema 80ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-115h: la migración aplicada dos veces no falla ni cambia el esquema 72ms"
     },
     {
       "tc_id": "TC-CIC-116e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-116e: un snapshot anterior a la feature carga en modo mes y se guarda sin alterar una celda 123ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-116e: un snapshot anterior a la feature carga en modo mes y se guarda sin alterar una celda 129ms"
     },
     {
       "tc_id": "TC-CIC-117f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-117f: los CHECKs relajados aceptan '2026-10t' y siguen rechazando basura 91ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2406 — la migración 0007 > TC-CIC-117f: los CHECKs relajados aceptan '2026-10t' y siguen rechazando basura 78ms"
     },
     {
       "tc_id": "TC-CIC-118h",
@@ -578,72 +578,72 @@
     {
       "tc_id": "TC-CIC-121e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > NFR-2407 — invariantes del modelo > TC-CIC-121e: contigüidad RV-03/RV-06 sobre 200 configuraciones aleatorias con hasta 3 versiones 161ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > NFR-2407 — invariantes del modelo > TC-CIC-121e: contigüidad RV-03/RV-06 sobre 200 configuraciones aleatorias con hasta 3 versiones 158ms"
     },
     {
       "tc_id": "TC-CIC-122f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-122f: sin sesión, preview y apply responden 401 sin cuerpo de datos 36ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-122f: sin sesión, preview y apply responden 401 sin cuerpo de datos 32ms"
     },
     {
       "tc_id": "TC-CIC-123f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-123f: autorización horizontal — la sesión de w1 no ve ni cambia la configuración de w0 160ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-123f: autorización horizontal — la sesión de w1 no ve ni cambia la configuración de w0 153ms"
     },
     {
       "tc_id": "TC-CIC-124f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-124f: valores extremos y de tipo incorrecto se rechazan con 422 invalid_payload 120ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-124f: valores extremos y de tipo incorrecto se rechazan con 422 invalid_payload 88ms"
     },
     {
       "tc_id": "TC-CIC-125f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-125f: caracteres especiales e inyección en el cuerpo no alteran la base 90ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-125f: caracteres especiales e inyección en el cuerpo no alteran la base 86ms"
     },
     {
       "tc_id": "TC-CIC-126f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-126f: Origin fuera de la allowlist responde 403 en las dos rutas 84ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-126f: Origin fuera de la allowlist responde 403 en las dos rutas 78ms"
     },
     {
       "tc_id": "TC-CIC-127h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-127h: el dueño autenticado con Origin válido y cuerpo válido obtiene 200 en apply 89ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-127h: el dueño autenticado con Origin válido y cuerpo válido obtiene 200 en apply 91ms"
     },
     {
       "tc_id": "TC-CIC-128e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-128e: la regla de dominio del primer pago se impone en el servidor aunque el cliente la salte 177ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2408 — seguridad de las rutas nuevas > TC-CIC-128e: la regla de dominio del primer pago se impone en el servidor aunque el cliente la salte 169ms"
     },
     {
       "tc_id": "TC-CIC-129h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2409 — el recómputo en ciclos no se degrada > TC-CIC-129h: el recómputo completo en modo ciclos se mantiene bajo 150 ms 293ms"
+      "notes": "✓ |app| tests/unit/ciclos-gates.test.ts > NFR-2409 — el recómputo en ciclos no se degrada > TC-CIC-129h: el recómputo completo en modo ciclos se mantiene bajo 150 ms 272ms"
     },
     {
       "tc_id": "TC-CIC-130e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-130e: reubicar 5000 celdas y 2000 movimientos tarda menos de 2 s y cumple los invariantes 1245ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-130e: reubicar 5000 celdas y 2000 movimientos tarda menos de 2 s y cumple los invariantes 1190ms"
     },
     {
       "tc_id": "TC-CIC-131f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-131f: una reubicación grande que viola una invariante aborta en < 2 s sin escribir nada 527ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2401 / NFR-2409 — EP-04 en el servidor > TC-CIC-131f: una reubicación grande que viola una invariante aborta en < 2 s sin escribir nada 555ms"
     },
     {
       "tc_id": "TC-CIC-132h",
       "status": "pass",
-      "notes": "✓  117 [chromium] › tests/e2e/ciclos.spec.ts:1017:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-132h: el historial muestra las entradas con fecha, modo y día tras activar, cambiar y volver (389ms)"
+      "notes": "✓  117 [chromium] › tests/e2e/ciclos.spec.ts:1028:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-132h: el historial muestra las entradas con fecha, modo y día tras activar, cambiar y volver (394ms)"
     },
     {
       "tc_id": "TC-CIC-133e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2410 — observabilidad > TC-CIC-133e: cada petición a las rutas nuevas deja una línea de log con método, ruta y estado 90ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2410 — observabilidad > TC-CIC-133e: cada petición a las rutas nuevas deja una línea de log con método, ruta y estado 86ms"
     },
     {
       "tc_id": "TC-CIC-134f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2410 — observabilidad > TC-CIC-134f: un rechazo también queda en el log con su estado, y /health sigue en 200 84ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > NFR-2410 — observabilidad > TC-CIC-134f: un rechazo también queda en el log con su estado, y /health sigue en 200 79ms"
     },
     {
       "tc_id": "TC-CIC-135h",
@@ -663,37 +663,37 @@
     {
       "tc_id": "TC-CIC-138h",
       "status": "pass",
-      "notes": "✓  118 [chromium] › tests/e2e/ciclos.spec.ts:1035:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-138h: ninguna ruta de la interfaz cambia el modo sin previsualización (510ms)"
+      "notes": "✓  118 [chromium] › tests/e2e/ciclos.spec.ts:1046:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-138h: ninguna ruta de la interfaz cambia el modo sin previsualización (375ms)"
     },
     {
       "tc_id": "TC-CIC-139e",
       "status": "pass",
-      "notes": "✓  119 [chromium] › tests/e2e/ciclos.spec.ts:1051:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-139e: el rango se formatea igual en grilla, selector, Registro, historial y Configuración (1.9s)"
+      "notes": "✓  119 [chromium] › tests/e2e/ciclos.spec.ts:1062:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-139e: el rango se formatea igual en grilla, selector, Registro, historial y Configuración (1.8s)"
     },
     {
       "tc_id": "TC-CIC-140f",
       "status": "pass",
-      "notes": "✓  120 [chromium] › tests/e2e/ciclos.spec.ts:1076:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-140f: al bloquear la vuelta a mes, el aviso nombra el ciclo que hay que reabrir (495ms)"
+      "notes": "✓  120 [chromium] › tests/e2e/ciclos.spec.ts:1087:7 › NFR-2410 / NFR-2412 — historial, previsualización obligatoria, formato único › TC-CIC-140f: al bloquear la vuelta a mes, el aviso nombra el ciclo que hay que reabrir (442ms)"
     },
     {
       "tc_id": "TC-CIC-141e",
       "status": "pass",
-      "notes": "✓   75 [chromium] › tests/e2e/ciclos.spec.ts:260:7 › FR-2401 — el modo en Configuración › TC-CIC-141e: estado vacío del historial (280ms)"
+      "notes": "✓   75 [chromium] › tests/e2e/ciclos.spec.ts:260:7 › FR-2401 — el modo en Configuración › TC-CIC-141e: estado vacío del historial (278ms)"
     },
     {
       "tc_id": "TC-CIC-142e",
       "status": "pass",
-      "notes": "✓   76 [chromium] › tests/e2e/ciclos.spec.ts:269:7 › FR-2401 — el modo en Configuración › TC-CIC-142e: campo de día vacío con placeholder «21» y foco al activar por primera vez (322ms)"
+      "notes": "✓   76 [chromium] › tests/e2e/ciclos.spec.ts:269:7 › FR-2401 — el modo en Configuración › TC-CIC-142e: campo de día vacío con placeholder «21» y foco al activar por primera vez (310ms)"
     },
     {
       "tc_id": "TC-CIC-143f",
       "status": "pass",
-      "notes": "✓   88 [chromium] › tests/e2e/ciclos.spec.ts:461:7 › FR-2403 — la previsualización › TC-CIC-143f: estado error con acción — otro dispositivo cerró y el aviso ofrece la vía (485ms)"
+      "notes": "✓   88 [chromium] › tests/e2e/ciclos.spec.ts:461:7 › FR-2403 — la previsualización › TC-CIC-143f: estado error con acción — otro dispositivo cerró y el aviso ofrece la vía (480ms)"
     },
     {
       "tc_id": "TC-CIC-144h",
       "status": "pass",
-      "notes": "✓   77 [chromium] › tests/e2e/ciclos.spec.ts:280:7 › FR-2401 — el modo en Configuración › TC-CIC-144h: tokens — texto primario ≥4.5:1 y controles de 40px, en claro y oscuro (415ms)"
+      "notes": "✓   77 [chromium] › tests/e2e/ciclos.spec.ts:280:7 › FR-2401 — el modo en Configuración › TC-CIC-144h: tokens — texto primario ≥4.5:1 y controles de 40px, en claro y oscuro (430ms)"
     },
     {
       "tc_id": "TC-CIC-145e",
@@ -703,17 +703,17 @@
     {
       "tc_id": "TC-CIC-146e",
       "status": "pass",
-      "notes": "✓   78 [chromium] › tests/e2e/ciclos.spec.ts:297:7 › FR-2401 — el modo en Configuración › TC-CIC-146e: fidelidad — la opción activa usa bg-card-hover + fg (706ms)"
+      "notes": "✓   78 [chromium] › tests/e2e/ciclos.spec.ts:297:7 › FR-2401 — el modo en Configuración › TC-CIC-146e: fidelidad — la opción activa usa bg-card-hover + fg (737ms)"
     },
     {
       "tc_id": "TC-CIC-147e",
       "status": "pass",
-      "notes": "✓   89 [chromium] › tests/e2e/ciclos.spec.ts:480:7 › FR-2403 — la previsualización › TC-CIC-147e: fidelidad — solo la fila del ciclo actual lleva la pastilla «actual» (414ms)"
+      "notes": "✓   89 [chromium] › tests/e2e/ciclos.spec.ts:480:7 › FR-2403 — la previsualización › TC-CIC-147e: fidelidad — solo la fila del ciclo actual lleva la pastilla «actual» (396ms)"
     },
     {
       "tc_id": "TC-CIC-148e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-148e: movementDeltas reproduce actuals; retiro y mover no escriben celda 7ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-148e: movementDeltas reproduce actuals; retiro y mover no escriben celda 10ms"
     },
     {
       "tc_id": "TC-CIC-149e",
@@ -723,27 +723,27 @@
     {
       "tc_id": "TC-CIC-150e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-150e: transición larga (primer pago 5-dic): el 21-nov sigue siendo pago viejo, la transición es 21 nov–4 dic y ninguna clave desaparece 1ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-150e: transición larga (primer pago 5-dic): el 21-nov sigue siendo pago viejo, la transición es 21 nov–4 dic y ninguna clave desaparece 2ms"
     },
     {
       "tc_id": "TC-CIC-151e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-151e: lastPay es el último ancla estrictamente anterior a firstPayDate 1ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-151e: lastPay es el último ancla estrictamente anterior a firstPayDate 3ms"
     },
     {
       "tc_id": "TC-CIC-152f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-152f: firstPayDate '2027-02-30' pasa la regex y se rechaza en dominio con first_pay_invalid 115ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2408 — cambiar el día de pago, en el servidor > TC-CIC-152f: firstPayDate '2027-02-30' pasa la regex y se rechaza en dominio con first_pay_invalid 103ms"
     },
     {
       "tc_id": "TC-CIC-153e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2401 — el modo en el servidor > TC-CIC-153e: la política «desplazar» se persiste y se lee de vuelta 117ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2401 — el modo en el servidor > TC-CIC-153e: la política «desplazar» se persiste y se lee de vuelta 121ms"
     },
     {
       "tc_id": "TC-CIC-154e",
       "status": "pass",
-      "notes": "✓   79 [chromium] › tests/e2e/ciclos.spec.ts:315:7 › FR-2401 — el modo en Configuración › TC-CIC-154e: el selector de fin de mes solo aparece con día ≥ 29, con «Último día del mes» (320ms)"
+      "notes": "✓   79 [chromium] › tests/e2e/ciclos.spec.ts:315:7 › FR-2401 — el modo en Configuración › TC-CIC-154e: el selector de fin de mes solo aparece con día ≥ 29, con «Último día del mes» (319ms)"
     },
     {
       "tc_id": "TC-CIC-155e",
@@ -753,82 +753,82 @@
     {
       "tc_id": "TC-CIC-156f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-156f: baseRevision negativo o ausente se rechaza con invalid_payload 91ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-156f: baseRevision negativo o ausente se rechaza con invalid_payload 81ms"
     },
     {
       "tc_id": "TC-CIC-157e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-157e: PUT /ledger ignora un campo cycles en el cuerpo 130ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-157e: PUT /ledger ignora un campo cycles en el cuerpo 124ms"
     },
     {
       "tc_id": "TC-CIC-158e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-158e: dos PUT /cycles concurrentes con la misma baseRevision: uno 200 y otro 409 140ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-158e: dos PUT /cycles concurrentes con la misma baseRevision: uno 200 y otro 409 134ms"
     },
     {
       "tc_id": "TC-CIC-159e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-159e: tras aplicar, el otro dispositivo recibe el evento SSE con la revisión nueva 110ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-159e: tras aplicar, el otro dispositivo recibe el evento SSE con la revisión nueva 102ms"
     },
     {
       "tc_id": "TC-CIC-160e",
       "status": "pass",
-      "notes": "✓   90 [chromium] › tests/e2e/ciclos.spec.ts:495:7 › FR-2403 — la previsualización › TC-CIC-160e: estado «Calculando…» del botón con ancho fijo (2.1s)"
+      "notes": "✓   90 [chromium] › tests/e2e/ciclos.spec.ts:495:7 › FR-2403 — la previsualización › TC-CIC-160e: estado «Calculando…» del botón con ancho fijo (2.2s)"
     },
     {
       "tc_id": "TC-CIC-161e",
       "status": "pass",
-      "notes": "✓   91 [chromium] › tests/e2e/ciclos.spec.ts:514:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-161e: estado «Aplicando…» — controles deshabilitados y panel atenuado (435ms)"
+      "notes": "✓   91 [chromium] › tests/e2e/ciclos.spec.ts:514:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-161e: estado «Aplicando…» — controles deshabilitados y panel atenuado (422ms)"
     },
     {
       "tc_id": "TC-CIC-162f",
       "status": "pass",
-      "notes": "✓   92 [chromium] › tests/e2e/ciclos.spec.ts:530:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-162f: estado error tras Confirmar — un 500 muestra el aviso y el modo no cambia (483ms)"
+      "notes": "✓   92 [chromium] › tests/e2e/ciclos.spec.ts:530:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-162f: estado error tras Confirmar — un 500 muestra el aviso y el modo no cambia (479ms)"
     },
     {
       "tc_id": "TC-CIC-163e",
       "status": "pass",
-      "notes": "✓   80 [chromium] › tests/e2e/ciclos.spec.ts:327:7 › FR-2401 — el modo en Configuración › TC-CIC-163e: «Descartar» revierte día, política y fecha de primer pago a lo vigente (334ms)"
+      "notes": "✓   80 [chromium] › tests/e2e/ciclos.spec.ts:327:7 › FR-2401 — el modo en Configuración › TC-CIC-163e: «Descartar» revierte día, política y fecha de primer pago a lo vigente (349ms)"
     },
     {
       "tc_id": "TC-CIC-164h",
       "status": "pass",
-      "notes": "✓   94 [chromium] › tests/e2e/ciclos.spec.ts:564:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-164h: tras confirmar aparece el Toaster «Ciclos activados» y el panel se cierra (509ms)"
+      "notes": "✓   94 [chromium] › tests/e2e/ciclos.spec.ts:564:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-164h: tras confirmar aparece el Toaster «Ciclos activados» y el panel se cierra (507ms)"
     },
     {
       "tc_id": "TC-CIC-165f",
       "status": "pass",
-      "notes": "✓  115 [chromium] › tests/e2e/ciclos.spec.ts:971:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-165f: A7 muestra el mensaje literal de first_pay_invalid (583ms)"
+      "notes": "✓  115 [chromium] › tests/e2e/ciclos.spec.ts:982:7 › FR-2408 — cambiar el día de pago desde la interfaz › TC-CIC-165f: A7 muestra el mensaje literal de first_pay_invalid (562ms)"
     },
     {
       "tc_id": "TC-CIC-166e",
       "status": "pass",
-      "notes": "✓  110 [chromium] › tests/e2e/ciclos.spec.ts:874:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-166e: el historial de cierres muestra el rango solo para eventos posteriores a la última versión (752ms)"
+      "notes": "✓  110 [chromium] › tests/e2e/ciclos.spec.ts:885:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-166e: el historial de cierres muestra el rango solo para eventos posteriores a la última versión (708ms)"
     },
     {
       "tc_id": "TC-CIC-167e",
       "status": "pass",
-      "notes": "✓  111 [chromium] › tests/e2e/ciclos.spec.ts:892:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-167e: en el año 2027 el selector muestra «Enero 2027 · 21 dic – 20 ene» (615ms)"
+      "notes": "✓  111 [chromium] › tests/e2e/ciclos.spec.ts:903:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-167e: en el año 2027 el selector muestra «Enero 2027 · 21 dic – 20 ene» (611ms)"
     },
     {
       "tc_id": "TC-CIC-168e",
       "status": "pass",
-      "notes": "✓  112 [chromium] › tests/e2e/ciclos.spec.ts:904:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-168e: la barra del Dashboard lleva el rango en su tooltip en modo ciclos (935ms)"
+      "notes": "✓  112 [chromium] › tests/e2e/ciclos.spec.ts:915:7 › FR-2407 — nombre y rango en las superficies › TC-CIC-168e: la barra del Dashboard lleva el rango en su tooltip en modo ciclos (935ms)"
     },
     {
       "tc_id": "TC-CIC-169h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-169h: tras aplicar y reiniciar el módulo del repositorio, la configuración y las claves se leen igual 160ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2404 — activar en el servidor > TC-CIC-169h: tras aplicar y reiniciar el módulo del repositorio, la configuración y las claves se leen igual 148ms"
     },
     {
       "tc_id": "TC-CIC-170f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-170f: el residuo tecleado sigue al aporte fechado y el retiro anterior queda sin fondos: reserve_floor 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-170f: el residuo tecleado sigue al aporte fechado y el retiro anterior queda sin fondos: reserve_floor 1ms"
     },
     {
       "tc_id": "TC-CIC-171f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-171f: la previsualización devuelve el bloqueo reserve_floor con la alcancía y el ciclo 97ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-171f: la previsualización devuelve el bloqueo reserve_floor con la alcancía y el ciclo 91ms"
     },
     {
       "tc_id": "TC-CIC-172e",
@@ -838,12 +838,12 @@
     {
       "tc_id": "TC-CIC-173e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-173e: caso 2 y caso 3: sin movimientos en el mes decide la costumbre del rubro; sin historia todo queda en el ciclo del mismo nombre 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-173e: caso 2 y caso 3: sin movimientos en el mes decide la costumbre del rubro; sin historia todo queda en el ciclo del mismo nombre 1ms"
     },
     {
       "tc_id": "TC-CIC-174e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-174e: empate en el caso 1: con 50 y 50 a ambos lados del día de pago el presupuesto va al ciclo más antiguo 0ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2404 — activar reubica > TC-CIC-174e: empate en el caso 1: con 50 y 50 a ambos lados del día de pago el presupuesto va al ciclo más antiguo 1ms"
     },
     {
       "tc_id": "TC-CIC-175f",
@@ -853,17 +853,17 @@
     {
       "tc_id": "TC-CIC-176f",
       "status": "pass",
-      "notes": "✓   93 [chromium] › tests/e2e/ciclos.spec.ts:545:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-176f: la previsualización nombra el rubro, no su id, cuando la activación dejaría una celda en negativo (385ms)"
+      "notes": "✓   93 [chromium] › tests/e2e/ciclos.spec.ts:545:7 › FR-2404 — aplicar desde la interfaz › TC-CIC-176f: la previsualización nombra el rubro, no su id, cuando la activación dejaría una celda en negativo (370ms)"
     },
     {
       "tc_id": "TC-CIC-177h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-177h: previsualizar la vuelta sobre F-USER activado devuelve el resumen inverso 15 · 10 · 3 sin escribir 163ms"
+      "notes": "✓ |backend| tests/integration/backend/ciclos.test.ts > FR-2403 — la previsualización > TC-CIC-177h: previsualizar la vuelta sobre F-USER activado devuelve el resumen inverso 15 · 10 · 3 sin escribir 154ms"
     },
     {
       "tc_id": "TC-CIC-178e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-178e: propiedad: ningún cambio de día de pago hace desaparecer una clave 5839ms"
+      "notes": "✓ |app| tests/domain/ciclos.test.ts > FR-2408 — cambiar el día de pago > TC-CIC-178e: propiedad: ningún cambio de día de pago hace desaparecer una clave 5988ms"
     },
     {
       "tc_id": "TC-CIC-179e",
@@ -1430,7 +1430,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2929,
+      "duration_ms": 2492,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -1439,7 +1439,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 3943,
+      "duration_ms": 3575,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -1448,7 +1448,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 448,
+      "duration_ms": 382,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -1457,7 +1457,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1108,
+      "duration_ms": 1072,
       "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
     },
     {
@@ -1466,7 +1466,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 243,
+      "duration_ms": 228,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -1475,7 +1475,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 28896,
+      "duration_ms": 1393,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -1484,8 +1484,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 202427,
-      "output": "  ✓  480 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (353ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.4m)\n\n(node:68804) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 190635,
+      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (180ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.2m)\n\n(node:23306) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     },
     {
       "name": "coverage",
@@ -1493,14 +1493,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 56001,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-11T17:58:29.032Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-11T17:58:29.035Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 52341,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T18:54:59.575Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T18:54:59.577Z WARN [Better Auth]: Reset Password: User not found"
     }
   ],
   "timings": {
-    "runner_ms": 50382,
-    "e2e_ms": 200577,
-    "gates_ms": 295996,
-    "total_ms": 546989
+    "runner_ms": 47975,
+    "e2e_ms": 188275,
+    "gates_ms": 252118,
+    "total_ms": 488436
   }
 }

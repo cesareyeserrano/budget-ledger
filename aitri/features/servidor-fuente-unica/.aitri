@@ -19,19 +19,9 @@
   "projectName": "servidor-fuente-unica",
   "createdAt": "2026-07-30T21:05:04.478Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-08-01T03:43:50.260Z",
+  "updatedAt": "2026-09-13T21:52:38.848Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-31T19:22:06.583Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-31T19:22:19.147Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-08-01T02:50:30.663Z",
       "event": "completed",
@@ -143,6 +133,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-13T21:52:38.590Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:52:38.819Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 49,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -207,14 +213,14 @@
       "FR-1108"
     ]
   },
-  "verifyResultsHash": "f6edfaff02af138592b71e1a28c5b99f4f92d814f79b64ef378feff8c5e59d96",
-  "verifyRanAt": "2026-08-01T03:17:01.628Z",
+  "verifyResultsHash": "3d40eaea8ce0648981266e2962796a84b4f63ba4736202a2ea769cfcc0cfceda",
+  "verifyRanAt": "2026-09-13T21:52:38.522Z",
   "lastVerifyRun": {
     "passed": 49,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-08-01T03:17:01.628Z"
+    "at": "2026-09-13T21:52:38.522Z"
   },
   "verifySummary": {
     "total": 49,
@@ -232,5 +238,7 @@
       "version_source": "manifest",
       "at": "2026-08-01T03:43:50.243Z"
     }
-  ]
+  ],
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

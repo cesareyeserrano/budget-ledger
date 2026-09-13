@@ -19,21 +19,9 @@
   "projectName": "balance-jerarquia",
   "createdAt": "2026-08-24T22:35:15.037Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T17:34:33.540Z",
+  "updatedAt": "2026-09-13T18:45:21.798Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T16:15:35.725Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-08-27T16:15:35.828Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "0.0.1-beta",
-      "version_source": "manifest"
-    },
     {
       "at": "2026-08-27T20:00:55.314Z",
       "event": "verify-run",
@@ -179,6 +167,22 @@
       "phase": "verify",
       "passed": 34,
       "failed": 0
+    },
+    {
+      "at": "2026-09-13T18:45:21.547Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T18:45:21.769Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 34,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -228,7 +232,7 @@
       "FR-1405"
     ]
   },
-  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -242,14 +246,14 @@
       "at": "2026-08-27T16:15:35.827Z"
     }
   ],
-  "verifyResultsHash": "d64db572e3d3354d78c7ce46c15b9644fde03cf081dbd9ea03ec3c65d989d1b3",
-  "verifyRanAt": "2026-09-11T17:34:10.766Z",
+  "verifyResultsHash": "1583438b4e53f8cc23573e3a5aa56448d969e4571c2c00717960840f4653b763",
+  "verifyRanAt": "2026-09-13T18:45:21.478Z",
   "lastVerifyRun": {
     "passed": 34,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-11T17:34:10.766Z"
+    "at": "2026-09-13T18:45:21.478Z"
   },
   "verifySummary": {
     "total": 34,

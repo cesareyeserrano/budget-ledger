@@ -456,6 +456,32 @@
       "problem": "La guarda visual de la cabecera de mes (TC-CIC-064f, FR-2407) compara byte a byte contra tests/e2e/__screenshots__/ciclos-header-month.png, capturada en macOS. En el runner de CI (ubuntu) el texto se dibuja con otras fuentes y otro antialiasing, asi que la igualdad exacta nunca se cumple: en el PR #23 fallo los tres intentos mientras el resto del test pasaba. Desde el 2026-09-11 la comparacion de pixeles corre solo en darwin, asi que en CI la guarda visual NO se comprueba (lo estructural si: sin rango, sin marca de transicion, cabecera de 38px). Para recuperarla en CI hace falta una referencia propia de Linux, generada con la imagen Docker de Playwright, o pasar a toHaveScreenshot, que guarda una referencia por plataforma y admite tolerancia.",
       "status": "open",
       "createdAt": "2026-09-11T22:45:36.486Z"
+    },
+    {
+      "id": "BL-047",
+      "title": "Seis features tienen el gate smoke muerto: ruta relativa mal y declarado advisory",
+      "priority": "P2",
+      "problem": "grid-ux, stack-upgrade-theme, ux-consistency, promote-to-group, control-size-scale y demote-node declaran su quality_gate smoke como './smoke.sh' con required:false. Aitri corre los gates con la carpeta de la FEATURE como cwd, donde ese script no existe, asi que muere con ENOENT y queda registrado como 'error' con exit_code null y duration_ms 1 (control-size-scale lo tiene incluso con duration_ms null, o sea que viene de corridas viejas). Al estar declarado advisory no bloquea nunca: esas seis features se sellan sin ninguna comprobacion de que el producto ensamblado arranque y sirva. Es exactamente el fallo que la cabecera de smoke.sh documenta haber corregido para las demas. Las que estan bien lo declaran '../../../smoke.sh' (transferencias) o 'npm run gate:smoke' (ciclos), las dos con required:true; la raiz usa './smoke.sh' y ahi si es correcto porque sus gates corren desde la raiz. ARREGLO: cambiar el command a '../../../smoke.sh' y required a true en los seis 04_BUILD_REPORT.json. COSTE A TENER EN CUENTA: ese fichero es el artefacto aprobado de la fase 4, asi que editarlo abre deriva en las seis features y obliga a re-aprobar con su cascada. Decision del usuario, no se toca sobre la marcha.",
+      "status": "open",
+      "createdAt": "2026-09-13T20:56:13.018Z",
+      "log": [
+        {
+          "at": "2026-09-13T22:52:05.394Z",
+          "text": "2026-09-13 COMPROBADO: smoke.sh hace cd \"$(dirname \"$0\")\", asi que funciona desde el cwd de la feature con la ruta bien puesta (transferencias/balance/ciclos: pass en ~1,3s; las seis: error ENOENT en 1ms en su sello de hoy). Coste medido en AITRI lib/state.js:644-711: approve 4 invalida la fase 5 Y el sello del verify, o sea por feature re-aprobar 4, verify-run, verify-complete y fase 5 (~90 min las seis, 12 aprobaciones). Beneficio real hoy nulo: smoke.sh no prueba nada propio de la feature (/, /health, 401, headers) y sobre c374aab ya lo pasan la raiz y las otras 15."
+        }
+      ],
+      "updatedAt": "2026-09-13T22:52:05.502Z",
+      "decisions": "DECIDIDO con el usuario el 2026-09-13: NO se arregla ahora. Se aplica cuando cualquiera de las seis se reabra por otro motivo, aprovechando esa cascada: en su 04_BUILD_REPORT.json el gate smoke pasa a command 'npm run gate:smoke' (igual que ciclos/balance-jerarquia), required:true, timeout_ms 180000. Mientras tanto, el arranque real queda cubierto por el smoke de la raiz y de las otras 15 features."
+    },
+    {
+      "id": "BL-048",
+      "title": "Vitest 3.2.7 vulnerable (path traversal en @vitest/mocker): subir a 4.1.11, salto mayor",
+      "priority": "P2",
+      "problem": "Dependabot #18 y #19 (medium, 2026-09-13): vitest y @vitest/mocker >= 2.1.0 < 4.1.11 permiten lectura arbitraria de ficheros via el redirect mock de @vitest/mocker. Instalado 3.2.7 (directo, via @vitest/coverage-v8 y via better-auth). Solo dependencia de desarrollo: no entra en la imagen de produccion, el riesgo es sobre la maquina que corre los tests. El arreglo es un salto MAYOR 3 -> 4: puede romper la config de vitest/cobertura (unit.sh, coverage.sh, gate coverage required en todas las features) y hay que comprobar que better-auth 1.6.23 acepta vitest 4. Por eso no se hizo sobre la marcha.",
+      "status": "open",
+      "createdAt": "2026-09-13T23:03:38.447Z",
+      "files": "package.json, package-lock.json, vitest.config.*, unit.sh, coverage.sh",
+      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security."
     }
   ]
 }

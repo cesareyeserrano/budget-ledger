@@ -19,20 +19,9 @@
   "projectName": "control-size-scale",
   "createdAt": "2026-07-18T23:20:09.168Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-19T00:00:46.017Z",
+  "updatedAt": "2026-09-13T21:33:50.406Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-18T23:25:29.663Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-07-18T23:25:43.295Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
     {
       "at": "2026-07-18T23:26:09.184Z",
       "event": "started",
@@ -128,6 +117,22 @@
       "at": "2026-07-19T00:00:45.992Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-13T21:33:49.612Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:33:50.376Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -161,14 +166,14 @@
       "FR-802"
     ]
   },
-  "verifyResultsHash": "f8c047e2bac5e5f4ce292d8c52fa7425c94cd4bf34bceb090ef98fbc2c098dd4",
-  "verifyRanAt": "2026-07-18T23:59:46.658Z",
+  "verifyResultsHash": "449cb15d3f2be8dd9b9e9d8f6a3a19189ff59c83b20903c351625c83fb0ca6ab",
+  "verifyRanAt": "2026-09-13T21:33:49.540Z",
   "lastVerifyRun": {
-    "passed": 15,
+    "passed": 18,
     "failed": 0,
     "skipped": 0,
-    "manual": 3,
-    "at": "2026-07-18T23:59:46.658Z"
+    "manual": 0,
+    "at": "2026-09-13T21:33:49.540Z"
   },
   "verifySummary": {
     "total": 18,
@@ -180,5 +185,7 @@
     "manual": 0,
     "manual_verified": 3
   },
-  "verifyPassed": true
+  "verifyPassed": true,
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

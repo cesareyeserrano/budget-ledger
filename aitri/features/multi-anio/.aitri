@@ -17,25 +17,9 @@
   "projectName": "multi-anio",
   "createdAt": "2026-09-02T20:59:38.721Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T19:49:13.337Z",
+  "updatedAt": "2026-09-13T19:31:41.485Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T01:10:48.948Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 77,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 2
-    },
-    {
-      "at": "2026-09-03T01:11:19.675Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 79,
-      "failed": 0
-    },
     {
       "at": "2026-09-03T01:11:28.593Z",
       "event": "started",
@@ -175,6 +159,22 @@
       "phase": "verify",
       "passed": 79,
       "failed": 0
+    },
+    {
+      "at": "2026-09-13T19:31:41.231Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T19:31:41.457Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -236,16 +236,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "6eb7f82366995ab1f8297f07843d78f1764c62e6c92fd040925a6743ca6f1d27",
-  "verifyRanAt": "2026-09-11T19:48:25.832Z",
-  "verifyRanRef": "2a2904fc5911be35b9309845166e20bc8610d312",
+  "verifyResultsHash": "5fd57e6897d6a5cd3a06fbb578fd8bd1d69121a593af8d28cd017b09615f8eb5",
+  "verifyRanAt": "2026-09-13T19:31:41.158Z",
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 79,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-11T19:48:25.832Z"
+    "at": "2026-09-13T19:31:41.158Z"
   },
   "releaseHistory": [
     {
