@@ -17,24 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-11T18:11:19.275Z",
+  "updatedAt": "2026-09-13T19:11:44.507Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T19:40:40.210Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T19:40:40.274Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-03T19:40:44.208Z",
-      "event": "completed",
-      "phase": 4
-    },
     {
       "at": "2026-09-03T19:40:44.287Z",
       "event": "approved",
@@ -163,6 +148,31 @@
       "phase": "verify",
       "passed": 92,
       "failed": 0
+    },
+    {
+      "at": "2026-09-13T19:03:27.275Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T19:11:44.255Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T19:11:44.476Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -228,7 +238,7 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "b12ad2acc1a0890b7fcdd467040f99749860f37e",
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -249,14 +259,14 @@
   ],
   "coverageAuditLastAt": "2026-09-03T16:02:32.903Z",
   "coverageAuditReqHash": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-  "verifyResultsHash": "b63a56a67bcf07e5362f6631e6db501a451d387f650a20eef79b2f7b4b8fb99c",
-  "verifyRanAt": "2026-09-11T18:11:06.399Z",
+  "verifyResultsHash": "054d4f8da09e97b26f51407192331e3d63d2c893e932447f7ac66acd68eeef3f",
+  "verifyRanAt": "2026-09-13T19:11:44.186Z",
   "lastVerifyRun": {
     "passed": 92,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-11T18:11:06.399Z"
+    "at": "2026-09-13T19:11:44.186Z"
   },
   "verifySummary": {
     "total": 92,

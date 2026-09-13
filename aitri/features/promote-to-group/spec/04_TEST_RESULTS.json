@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-07-17T18:24:22.314Z",
+  "executed_at": "2026-09-13T20:42:58.004Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,22 +8,22 @@
     {
       "tc_id": "TC-601h",
       "status": "pass",
-      "notes": "✓  106 [chromium] › tests/e2e/promote-to-group.spec.ts:43:5 › TC-601h: arrastrar la subcategoría 'Café' a la fila GASTOS la convierte en grupo (474ms)"
+      "notes": "✓  281 [chromium] › tests/e2e/promote-to-group.spec.ts:43:5 › TC-601h: arrastrar la subcategoría 'Café' a la fila GASTOS la convierte en grupo (915ms)"
     },
     {
       "tc_id": "TC-601e",
       "status": "pass",
-      "notes": "✓  107 [chromium] › tests/e2e/promote-to-group.spec.ts:56:5 › TC-601e: arrastrar una categoría con subcategorías a su tipo la vuelve grupo (sus subs pasan a categorías) (410ms)"
+      "notes": "✓  282 [chromium] › tests/e2e/promote-to-group.spec.ts:56:5 › TC-601e: arrastrar una categoría con subcategorías a su tipo la vuelve grupo (sus subs pasan a categorías) (799ms)"
     },
     {
       "tc_id": "TC-601f",
       "status": "pass",
-      "notes": "✓  108 [chromium] › tests/e2e/promote-to-group.spec.ts:67:5 › TC-601f: soltar un nodo de gasto sobre la fila INGRESOS no realiza ningún cambio (456ms)"
+      "notes": "✓  283 [chromium] › tests/e2e/promote-to-group.spec.ts:67:5 › TC-601f: soltar un nodo de gasto sobre la fila INGRESOS no realiza ningún cambio (882ms)"
     },
     {
       "tc_id": "TC-602h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-601/FR-602 — promover a grupo (moveNode destino raíz) > TC-602h: moveNode(sub, root) → level group, parentId null, montos preservados 1ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-601/FR-602 — promover a grupo (moveNode destino raíz) > TC-602h: moveNode(sub, root) → level group, parentId null, montos preservados 3ms"
     },
     {
       "tc_id": "TC-602e",
@@ -38,17 +38,17 @@
     {
       "tc_id": "TC-603h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603h: isLeaf(grupo sin hijos)=true; setLeafAmount fija; rollup usa el monto propio 1ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603h: isLeaf(grupo sin hijos)=true; setLeafAmount fija; rollup usa el monto propio 0ms"
     },
     {
       "tc_id": "TC-603e",
       "status": "pass",
-      "notes": "✓  109 [chromium] › tests/e2e/promote-to-group.spec.ts:79:5 › TC-603e: la celda Pres. de un grupo sin hijos es editable y persiste tras recargar (296ms)"
+      "notes": "✓  284 [chromium] › tests/e2e/promote-to-group.spec.ts:79:5 › TC-603e: la celda Pres. de un grupo sin hijos es editable y persiste tras recargar (798ms)"
     },
     {
       "tc_id": "TC-603f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603f: grupo CON hijo no es hoja; setLeafAmount es no-op; su valor es la suma del hijo 1ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-603 — grupo sin hijos es hoja editable > TC-603f: grupo CON hijo no es hoja; setLeafAmount es no-op; su valor es la suma del hijo 0ms"
     },
     {
       "tc_id": "TC-604h",
@@ -68,7 +68,7 @@
     {
       "tc_id": "TC-605h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0 > TC-605h: borrar el último hijo vuelve el grupo hoja editable en 0 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0 > TC-605h: borrar el último hijo vuelve el grupo hoja editable en 0 1ms"
     },
     {
       "tc_id": "TC-605e",
@@ -88,12 +88,12 @@
     {
       "tc_id": "TC-606e",
       "status": "pass",
-      "notes": "✓  110 [chromium] › tests/e2e/promote-to-group.spec.ts:95:5 › TC-606e: el registro lista un grupo sin hijos como destino; las categorías siguen listadas (247ms)"
+      "notes": "✓  285 [chromium] › tests/e2e/promote-to-group.spec.ts:95:5 › TC-606e: el registro lista un grupo sin hijos como destino; las categorías siguen listadas (633ms)"
     },
     {
       "tc_id": "TC-606f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-606 — grupo sin hijos como destino de movimientos > TC-606f-unit: un grupo CON hijos no está en la lista de destinos; uno sin hijos sí 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > FR-606 — grupo sin hijos como destino de movimientos > TC-606f-unit: un grupo CON hijos no está en la lista de destinos; uno sin hijos sí 1ms"
     },
     {
       "tc_id": "TC-651h",
@@ -123,32 +123,32 @@
     {
       "tc_id": "TC-652f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos > TC-652f: promover una categoría con 2 subs+movimientos no crea huérfanos ni pierde movimientos 1ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos > TC-652f: promover una categoría con 2 subs+movimientos no crea huérfanos ni pierde movimientos 0ms"
     },
     {
       "tc_id": "TC-653h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653h: canDeleteNode bloquea una categoría con ejecutado > 0 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653h: canDeleteNode bloquea una categoría con ejecutado > 0 8ms"
     },
     {
       "tc_id": "TC-653e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653e: una categoría vaciada (ejecutado 0) se borra y retira sus movimientos 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653e: una categoría vaciada (ejecutado 0) se borra y retira sus movimientos 103ms"
     },
     {
       "tc_id": "TC-653f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653f: borrar un grupo con categorías sigue bloqueado 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-603 — regresión: gate de borrado (FR-003 + BG-006) > TC-653f: borrar un grupo con categorías sigue bloqueado 5ms"
     },
     {
       "tc_id": "TC-654h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654h: moveNode(sub, categoría) reubica sin cruzar de tipo 0ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654h: moveNode(sub, categoría) reubica sin cruzar de tipo 1ms"
     },
     {
       "tc_id": "TC-654e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654e: un grupo con hijos no es hoja ni destino de movimientos 1ms"
+      "notes": "✓ |app| tests/domain/promote-to-group.test.ts > NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados > TC-654e: un grupo con hijos no es hoja ni destino de movimientos 0ms"
     },
     {
       "tc_id": "TC-654f",
@@ -381,7 +381,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 typecheck\n> tsc --noEmit"
+      "duration_ms": 2353,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
       "name": "lint",
@@ -389,7 +390,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": "> t-ledger@1.0.0 lint\n> next lint\n\n✔ No ESLint warnings or errors\n\n`next lint` is deprecated and will be removed in Next.js 16.\nFor new projects, use create-next-app to choose your preferred linter.\nFor existing projects, migrate to the ESLint CLI:\nnpx @next/codemod@canary next-lint-to-eslint-cli ."
+      "duration_ms": 3547,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
       "name": "coverage",
@@ -397,14 +399,16 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "output": ": State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'cualquiera'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}\n\nstderr | tests/integration/backend/oauth.test.ts > FR-502 — callbacks OAuth de Google que NO deben crear sesión > TC-BE-009f: callback con state inválido se rechaza sin sesión\n2026-07-17T18:23:39.403Z ERROR [Better Auth]: Failed to parse state [StateError [BetterAuthError]: State mismatch: verification not found] {\n  code: \u001b[32m'state_mismatch'\u001b[39m,\n  details: { state: \u001b[32m'state-falsificado'\u001b[39m },\n  errorURL: \u001b[90mundefined\u001b[39m\n}"
+      "duration_ms": 52077,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T20:39:51.024Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T20:39:51.027Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "smoke",
       "command": "./smoke.sh",
       "required": false,
       "status": "error",
-      "exit_code": null
+      "exit_code": null,
+      "duration_ms": 1
     },
     {
       "name": "e2e",
@@ -412,7 +416,14 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "output": " la grilla de 12 meses sigue funcionando tras la feature (137ms)\n  ✓  166 [chromium] › tests/e2e/ux-consistency.spec.ts:669:5 › TC-UXC-355e: la persistencia de tema previa sigue funcionando (203ms)\n  ✓  167 [chromium] › tests/e2e/ux-consistency.spec.ts:681:5 › TC-UXC-356h: la app responde 200 en '/' (150ms)\n  ✓  168 [chromium] › tests/e2e/ux-consistency.spec.ts:689:5 › TC-UXC-356f: la raíz no devuelve 5xx en el primer arranque (77ms)\n  ✓  164 [chromium] › tests/e2e/ux-consistency.spec.ts:638:5 › TC-UXC-354f: el Popover de Radix no introduce ninguna petición externa (1.7s)\n\n  168 passed (42.1s)"
+      "duration_ms": 185929,
+      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (181ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.1m)\n\n(node:60417) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
-  ]
+  ],
+  "timings": {
+    "runner_ms": 48213,
+    "e2e_ms": 186695,
+    "gates_ms": 243908,
+    "total_ms": 478862
+  }
 }

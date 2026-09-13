@@ -19,19 +19,9 @@
   "projectName": "promote-to-group",
   "createdAt": "2026-07-17T13:14:29.266Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-17T21:32:45.550Z",
+  "updatedAt": "2026-09-13T20:42:58.958Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-17T16:25:51.432Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-17T16:28:50.116Z",
-      "event": "started",
-      "phase": 2
-    },
     {
       "at": "2026-07-17T16:30:39.403Z",
       "event": "completed",
@@ -137,6 +127,22 @@
       "at": "2026-07-17T19:23:29.126Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-13T20:42:58.076Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T20:42:58.930Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -190,14 +196,14 @@
       "FR-606"
     ]
   },
-  "verifyResultsHash": "5270c04cd3107418dba892038db0c7c14c6c46255c3a85e0d66849f4c5b8bbcf",
-  "verifyRanAt": "2026-07-17T18:24:22.316Z",
+  "verifyResultsHash": "1d375d788f9d23564dd1415b3b44a0d12ad8a20a163d899c48ccddeb83e4e281",
+  "verifyRanAt": "2026-09-13T20:42:58.007Z",
   "lastVerifyRun": {
-    "passed": 32,
+    "passed": 36,
     "failed": 0,
     "skipped": 0,
-    "manual": 4,
-    "at": "2026-07-17T18:24:22.316Z"
+    "manual": 0,
+    "at": "2026-09-13T20:42:58.007Z"
   },
   "verifyPassed": true,
   "verifySummary": {
@@ -211,5 +217,7 @@
     "manual_verified": 4
   },
   "coverageAuditLastAt": "2026-07-17T21:32:45.548Z",
-  "coverageAuditReqHash": "b8c3a107b7b6bcde118ec733b1934c3b0929e7ac5e141c303bf3092a7c85dd71"
+  "coverageAuditReqHash": "b8c3a107b7b6bcde118ec733b1934c3b0929e7ac5e141c303bf3092a7c85dd71",
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

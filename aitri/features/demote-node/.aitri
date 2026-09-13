@@ -19,30 +19,9 @@
   "projectName": "demote-node",
   "createdAt": "2026-07-17T22:59:10.589Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-18T22:14:34.248Z",
+  "updatedAt": "2026-09-13T21:24:42.573Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-17T23:16:22.386Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-07-17T23:16:32.148Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-17T23:17:14.049Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-17T23:17:32.310Z",
-      "event": "completed",
-      "phase": "ux"
-    },
     {
       "at": "2026-07-17T23:20:59.791Z",
       "event": "approved",
@@ -132,6 +111,40 @@
       "at": "2026-07-18T22:14:34.224Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-13T20:53:16.467Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:04:37.885Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:24:42.313Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:24:42.545Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -172,14 +185,14 @@
   },
   "coverageAuditLastAt": "2026-07-18T21:28:47.952Z",
   "coverageAuditReqHash": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
-  "verifyResultsHash": "9fbb5c69d6141d4fa2d5354a4a3c1e7fcfedffc843b5183f6a0513f232f3e2f0",
-  "verifyRanAt": "2026-07-18T22:12:29.961Z",
+  "verifyResultsHash": "b428848f850b80d947c2ce21706823ce96323855692250dbe997bebde29d51b1",
+  "verifyRanAt": "2026-09-13T21:24:42.249Z",
   "lastVerifyRun": {
-    "passed": 21,
+    "passed": 24,
     "failed": 0,
     "skipped": 0,
-    "manual": 3,
-    "at": "2026-07-18T22:12:29.961Z"
+    "manual": 0,
+    "at": "2026-09-13T21:24:42.249Z"
   },
   "verifySummary": {
     "total": 24,
@@ -191,5 +204,7 @@
     "manual": 0,
     "manual_verified": 3
   },
-  "verifyPassed": true
+  "verifyPassed": true,
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

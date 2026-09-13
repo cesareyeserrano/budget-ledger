@@ -19,19 +19,9 @@
   "projectName": "stack-upgrade-theme",
   "createdAt": "2026-07-04T03:13:12.351Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-08T17:08:59.265Z",
+  "updatedAt": "2026-09-13T20:23:39.207Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-08T02:48:16.666Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-08T02:48:45.335Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-07-08T02:50:02.633Z",
       "event": "approved",
@@ -141,6 +131,22 @@
       "at": "2026-07-08T17:08:59.243Z",
       "event": "approved",
       "phase": 5
+    },
+    {
+      "at": "2026-09-13T20:23:38.700Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T20:23:39.179Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -230,14 +236,14 @@
       "FR-213"
     ]
   },
-  "verifyResultsHash": "b4c31f11d6d0fcdfcf42852ce38931ccdbb5b9d258f4831e8015a5dc48d86c61",
-  "verifyRanAt": "2026-07-08T15:54:24.533Z",
+  "verifyResultsHash": "0854c903e3eb0eca3cf0bc555c6a1542907f6878fff6af8ab0bfb53fff69463e",
+  "verifyRanAt": "2026-09-13T20:23:38.624Z",
   "lastVerifyRun": {
     "passed": 64,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-08T15:54:24.533Z"
+    "at": "2026-09-13T20:23:38.624Z"
   },
   "verifySummary": {
     "total": 64,
@@ -248,5 +254,7 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }

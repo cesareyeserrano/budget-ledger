@@ -456,6 +456,14 @@
       "problem": "La guarda visual de la cabecera de mes (TC-CIC-064f, FR-2407) compara byte a byte contra tests/e2e/__screenshots__/ciclos-header-month.png, capturada en macOS. En el runner de CI (ubuntu) el texto se dibuja con otras fuentes y otro antialiasing, asi que la igualdad exacta nunca se cumple: en el PR #23 fallo los tres intentos mientras el resto del test pasaba. Desde el 2026-09-11 la comparacion de pixeles corre solo en darwin, asi que en CI la guarda visual NO se comprueba (lo estructural si: sin rango, sin marca de transicion, cabecera de 38px). Para recuperarla en CI hace falta una referencia propia de Linux, generada con la imagen Docker de Playwright, o pasar a toHaveScreenshot, que guarda una referencia por plataforma y admite tolerancia.",
       "status": "open",
       "createdAt": "2026-09-11T22:45:36.486Z"
+    },
+    {
+      "id": "BL-047",
+      "title": "Seis features tienen el gate smoke muerto: ruta relativa mal y declarado advisory",
+      "priority": "P2",
+      "problem": "grid-ux, stack-upgrade-theme, ux-consistency, promote-to-group, control-size-scale y demote-node declaran su quality_gate smoke como './smoke.sh' con required:false. Aitri corre los gates con la carpeta de la FEATURE como cwd, donde ese script no existe, asi que muere con ENOENT y queda registrado como 'error' con exit_code null y duration_ms 1 (control-size-scale lo tiene incluso con duration_ms null, o sea que viene de corridas viejas). Al estar declarado advisory no bloquea nunca: esas seis features se sellan sin ninguna comprobacion de que el producto ensamblado arranque y sirva. Es exactamente el fallo que la cabecera de smoke.sh documenta haber corregido para las demas. Las que estan bien lo declaran '../../../smoke.sh' (transferencias) o 'npm run gate:smoke' (ciclos), las dos con required:true; la raiz usa './smoke.sh' y ahi si es correcto porque sus gates corren desde la raiz. ARREGLO: cambiar el command a '../../../smoke.sh' y required a true en los seis 04_BUILD_REPORT.json. COSTE A TENER EN CUENTA: ese fichero es el artefacto aprobado de la fase 4, asi que editarlo abre deriva en las seis features y obliga a re-aprobar con su cascada. Decision del usuario, no se toca sobre la marcha.",
+      "status": "open",
+      "createdAt": "2026-09-13T20:56:13.018Z"
     }
   ]
 }

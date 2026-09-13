@@ -19,19 +19,9 @@
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-07-30T15:41:58.053Z",
+  "updatedAt": "2026-09-13T21:43:14.393Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-29T21:41:48.252Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-30T14:29:28.222Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-07-30T14:31:40.532Z",
       "event": "approved",
@@ -129,6 +119,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-13T21:43:14.135Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-13T21:43:14.363Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -225,14 +231,14 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "9e4bfe2141c085ca934f0d1a8d32a02ba4c4daf30d73967d9772b75d7f32d2cf",
-  "verifyRanAt": "2026-07-30T15:38:19.360Z",
+  "verifyResultsHash": "fadf54a6e336f67d5ca6871035063d33e6c985059f8fdfcafb5b17fa798cdad9",
+  "verifyRanAt": "2026-09-13T21:43:14.064Z",
   "lastVerifyRun": {
     "passed": 67,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-07-30T15:38:19.360Z"
+    "at": "2026-09-13T21:43:14.064Z"
   },
   "verifySummary": {
     "total": 67,
@@ -250,5 +256,7 @@
       "version_source": "manifest",
       "at": "2026-07-30T15:41:58.027Z"
     }
-  ]
+  ],
+  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanDirty": false
 }
