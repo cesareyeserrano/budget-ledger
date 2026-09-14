@@ -7,9 +7,9 @@ name: CodeQL
 # Los hallazgos aparecen en la pestaña Security → Code scanning, y como anotación en el PR.
 on:
   push:
-    branches: [main]
+    branches: [main, staging, develop]
   pull_request:
-    branches: [main]
+    branches: [main, staging, develop]
   # Semanal: las queries de CodeQL evolucionan, así que código sin tocar puede volverse vulnerable
   # a ojos de una regla nueva. Lunes 04:17 UTC (fuera de hora punta del runner compartido).
   schedule:
