@@ -80,7 +80,12 @@ export type Env = z.infer<typeof baseSchema> & {
  * @throws Error con el nombre de la(s) variable(s) faltante(s)/ inválida(s) si la validación falla
  */
 export function parseEnv(source: Record<string, string | undefined> = process.env): Env {
-  const parsed = baseSchema.safeParse(source);
+  // BG-038: una variable definida pero VACÍA cuenta como ausente, el mismo criterio que ya aplica
+  // scripts/check-env.mjs. docker-compose.yml pasa las opcionales como `${VAR:-}`, así que sin correo
+  // configurado SMTP_PORT llegaba como "" y su regex la rechazaba: la app respondía 500 en todas las
+  // rutas, /health incluido. Una requerida vacía sigue abortando, nombrando la variable.
+  const present = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== ""));
+  const parsed = baseSchema.safeParse(present);
   if (!parsed.success) {
     const detail = parsed.error.issues
       .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
