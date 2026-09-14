@@ -7,7 +7,9 @@ import path from "node:path";
 export default defineConfig({
   // Transforma JSX con el runtime automático (react/jsx-runtime), como Next, para que los tests que
   // renderizan componentes en jsdom no requieran React en scope (ux-consistency FR-308).
-  esbuild: { jsx: "automatic" },
+  // Vitest 4 transforma con oxc e ignora `esbuild` (BL-048). Sin esto oxc hereda `jsx: "preserve"`
+  // de tsconfig.json —que es para Next— y los .tsx importados por los tests no se pueden analizar.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -33,7 +35,9 @@ export default defineConfig({
           environment: "node",
           include: ["tests/domain/**/*.test.ts", "tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
           exclude: ["tests/integration/backend/**"],
-          environmentMatchGlobs: [["tests/integration/**", "jsdom"]],
+          // Los tests de tests/integration/ corren en jsdom: cada fichero lo declara en su cabecera
+          // con `// @vitest-environment jsdom`. Vitest 4 retiró environmentMatchGlobs (BL-048), y un
+          // proyecto aparte para jsdom rompería TC-CIC-135h, que fija los proyectos en app y backend.
         },
       },
       {
@@ -47,8 +51,9 @@ export default defineConfig({
           testTimeout: 30_000,
           hookTimeout: 180_000,
           // Los archivos backend comparten un ÚNICO Postgres y truncan en beforeEach: deben correr
-          // en serie. singleFork los corre en un solo proceso, uno por uno (sin pisarse los datos).
-          poolOptions: { forks: { singleFork: true } },
+          // en serie, uno por uno, sin pisarse los datos. Vitest 4 retiró poolOptions.singleFork
+          // (BL-048): fileParallelism:false fija un solo worker y conserva el aislamiento por fichero.
+          fileParallelism: false,
         },
       },
     ],

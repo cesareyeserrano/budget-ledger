@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Feature transferencias · modelo v4 — FR-1010 (conversión v2/v3→v4), NFR-1003 (no destructiva) y
  * NFR-1004 (PUT confiado documentado).
