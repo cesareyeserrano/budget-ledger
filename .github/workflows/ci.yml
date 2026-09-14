@@ -1,12 +1,16 @@
 name: CI
 
-# NFR-503: corre la suite completa (unit + e2e) en cada push/PR a main; falla si algo falla.
+# NFR-503: corre la suite completa (unit + e2e) en cada push a main y en cada PR a las tres ramas; falla si algo falla.
 # NFR-513: gates de seguridad automatizados — SCA (npm audit) + escaneo de secretos.
+# Ramas: develop (desarrollo, push directo) → staging (pruebas, por PR) → main (produccion, por PR).
+# El push queda SOLO en main: en develop se commitea sin gate, y el CI corre al abrir el PR a staging y a
+# main, que es donde se exigen build-and-test y security. Seis tests (TC-BE-053h, TC-BE-086f, TC-TDF-271h,
+# TC-SUT-262h, TC-SUT-264f, TC-REC-222h) comprueban que el push a main siga declarado tal cual.
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, staging, develop]
   # Semanal SOLO para el job de seguridad: un CVE nuevo aparece en una dependencia que no has tocado,
   # así que sin cron no te enterarías hasta el siguiente commit. Lunes 05:17 UTC.
   schedule:
