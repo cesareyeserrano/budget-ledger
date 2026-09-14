@@ -482,6 +482,22 @@
       "createdAt": "2026-09-13T23:03:38.447Z",
       "files": "package.json, package-lock.json, vitest.config.*, unit.sh, coverage.sh",
       "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security."
+    },
+    {
+      "id": "BL-049",
+      "title": "Lunes 14-sep: cerrar los 12 PRs viejos de Dependabot contra main",
+      "priority": "P1",
+      "problem": "Desde el 13-sep (PR #27, 1abfe87) dependabot.yml en main apunta a develop. Siguen abiertos 12 PRs de Dependabot contra main: #4 node 26-alpine, #8 zod 4, #9 jest-dom 7, #10 react-day-picker 10, #13 actions, #14 undici, #16 js-yaml, #17 postcss+next, #18 prod-minor-patch, #21 vitest, #22 sharp+next, #24 dev-minor-patch. Decision del usuario: esperar a la corrida del lunes 14-sep, ver que abre el bot contra develop y cerrar entonces los viejos (obsoletos seguros: #14, #16, #22). Ojo: #21 (vitest) toca BL-048. Cerrar un PR no borra nada, pero los cierra el usuario o se confirma antes.",
+      "status": "open",
+      "createdAt": "2026-09-14T00:38:33.440Z"
+    },
+    {
+      "id": "BL-050",
+      "title": "recuperar-acceso no funciona en la app real: el sello solo prueba el flujo contra Mailpit",
+      "priority": "P3",
+      "problem": "El 13-sep la feature quedo sellada (87/87), pero el usuario confirma que en la app real la recuperacion de contrasena NO funciona y que la feature nunca se termino de verdad. Los tests usan su propio Mailpit (Testcontainers), asi que no ejercitan la entrega real: .env.local apunta a un relay externo (Brevo) y el correo esta en pausa por decision del usuario desde el 7-sep. Retomar cuando se reactive el correo: probar el flujo completo de punta a punta contra el proveedor real y ver que falta.",
+      "status": "open",
+      "createdAt": "2026-09-14T00:57:22.430Z"
     }
   ]
 }

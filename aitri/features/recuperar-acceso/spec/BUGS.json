@@ -9,7 +9,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -17,8 +17,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-02T19:50:51.270Z",
-      "updated_at": "2026-09-02T19:50:51.270Z",
-      "resolution": null
+      "updated_at": "2026-09-14T00:57:17.959Z",
+      "resolution": "Era una corrida degradada por concurrencia, no un fallo de codigo (familia BG-035/BG-036, corregida 9-11 sep). El 13-sep, con carga 1,76 y una sola suite, TC-REC-203f paso dentro de un verify-run limpio de 87/87 con exit 0.",
+      "close_commit_sha": "a749050ca873da264b73aee5788c2bcb9f4904df",
+      "close_at": "2026-09-14T00:57:17.959Z"
     }
   ]
 }
