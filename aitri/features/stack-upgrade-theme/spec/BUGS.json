@@ -9,7 +9,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "verified",
       "fr": "FR-210",
       "tc_reference": null,
       "phase_detected": null,
@@ -17,7 +17,7 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-15T15:17:33.810Z",
-      "updated_at": "2026-09-15T15:20:53.179Z",
+      "updated_at": "2026-09-15T15:31:34.737Z",
       "resolution": "DateCalendar pasa required a DayPicker: re-elegir el dia seleccionado ya no lo deselecciona y el popover se cierra. TC-SUT-230e fija el reloj (2026-07-07T14:30) como pide el TC. Prueba BG-001 en tests/e2e/feature-stack.spec.ts: roja sin el arreglo, verde con el.",
       "fix_commit_sha": "35418fc5a60e076b1ce6e00d7c7fbcdcaefc2b4e",
       "fix_at": "2026-09-15T15:20:53.179Z"

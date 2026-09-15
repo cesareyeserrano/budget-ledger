@@ -949,7 +949,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "fixed",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -957,7 +957,7 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-15T13:02:49.891Z",
-      "updated_at": "2026-09-15T14:10:34.565Z",
+      "updated_at": "2026-09-15T15:31:34.629Z",
       "resolution": "moveNode (rama destino grupo): los montos y movimientos del grupo-hoja van a la primera hoja del nodo movido (leafDescendants), no al nodo movido. Si el movido ya es hoja, nada cambia. Prueba: tests/domain/bg-039-mover-a-grupo-hoja.test.ts (BG-039a-d).",
       "fix_commit_sha": "553929aa91da3539a6c6a0784d883dd0d7eb80ec",
       "fix_at": "2026-09-15T14:10:34.565Z"
