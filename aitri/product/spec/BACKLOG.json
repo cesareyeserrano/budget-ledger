@@ -498,6 +498,38 @@
       "problem": "El 13-sep la feature quedo sellada (87/87), pero el usuario confirma que en la app real la recuperacion de contrasena NO funciona y que la feature nunca se termino de verdad. Los tests usan su propio Mailpit (Testcontainers), asi que no ejercitan la entrega real: .env.local apunta a un relay externo (Brevo) y el correo esta en pausa por decision del usuario desde el 7-sep. Retomar cuando se reactive el correo: probar el flujo completo de punta a punta contra el proveedor real y ver que falta.",
       "status": "open",
       "createdAt": "2026-09-14T00:57:22.430Z"
+    },
+    {
+      "id": "BL-051",
+      "title": "Reglas de techo y piso no vigilan gastos ni ingresos",
+      "priority": "P3",
+      "problem": "Verificado el 2026-09-14 (feature diario-de-celda, fase 2): worsenedBy solo evalua diffs que tocan hojas o movimientos de bolsillos (src/domain/guard.ts:37-55 touchesReserves, :103). Bajar o borrar un ingreso, o editar un gasto, no pasa por las reglas de techo y piso, asi que puede dejar reservas sin respaldo sin rechazo. Hoy pasa igual al teclear un ingreso menor en la grilla. El usuario acepto mantener la paridad en diario-de-celda: no ve casos de uso con techos ahi. Retomar solo si aparece un caso real.",
+      "status": "open",
+      "createdAt": "2026-09-14T22:57:16.424Z"
+    },
+    {
+      "id": "BL-052",
+      "title": "Deuda de diseno: lo gastado se guarda dos veces (celda y diario); derivarlo del diario",
+      "priority": "P2",
+      "problem": "Revision contable del 2026-09-15 (feature diario-de-celda, fase 2). El valor de Ejecutado de gasto e ingreso vive guardado en amount_cell (kind='actual', src/server/data/ledgerRepo.ts:138-142) y a la vez en el diario de movimientos. Dos fuentes de verdad son la raiz de todo descuadre posible. En contabilidad el saldo se DERIVA del diario, no se guarda aparte. diario-de-celda eligio conservar el guardado (ADR-01, opcion A) porque derivarlo toca cierre, reubicacion de ciclos, balance, migraciones v4/v5 y las suites de mas de 20 features; la alerta de descuadre (FR-2511) y el bloqueo de cierre (FR-2512) son el parche. El usuario acepto anotarlo como deuda.",
+      "status": "open",
+      "createdAt": "2026-09-15T13:10:35.309Z"
+    },
+    {
+      "id": "BL-053",
+      "title": "Saldo inicial negativo: una deuda previa no deberia registrarse como gasto del mes",
+      "priority": "P3",
+      "problem": "Revision contable del 2026-09-15. La tarjeta de apertura rechaza un saldo inicial negativo y dice 'El saldo inicial no puede ser negativo. Si empiezas debiendo, registralo como un gasto del mes' (src/components/OpeningCard.tsx:194). Una deuda o sobregiro que ya se traia no es un gasto de ese mes: infla el gasto del primer mes y distorsiona la ejecucion del presupuesto. Contablemente un saldo inicial negativo es valido. El usuario acepto anotarlo.",
+      "status": "open",
+      "createdAt": "2026-09-15T13:10:35.387Z"
+    },
+    {
+      "id": "BL-054",
+      "title": "Devoluciones: que un reembolso reste del gasto que lo origino, no que cuente como ingreso",
+      "priority": "P2",
+      "problem": "Revision contable del 2026-09-15 (feature diario-de-celda). Hoy un reembolso es un INGRESO positivo (ciclos FR-2405, FR-2406 y no_go 'NO montos negativos'; TC-CIC-053h). Ejemplo: gastas 100.000 en Restaurantes y te devuelven 40.000 -> Restaurantes sigue en 100.000 y aparece un ingreso de 40.000. El saldo final cuadra, pero el gasto real por categoria (60.000) y la adherencia al presupuesto quedan mal, y los ingresos inflados. Contablemente una devolucion resta del gasto. El usuario eligio NO hacerlo dentro de diario-de-celda al ver el costo. OPCIONES ANALIZADAS: (A) la devolucion resta en el ciclo en que llega y la celda de gasto puede quedar negativa: exige change requests en ciclos (checkRelocationInvariants rechaza toda celda negativa, cycles.ts:926; FR-2404, TC-CIC-175f/176f, no_go), en transferencias (TC-TRF4-153h exige el CHECK amount >= 0, tests/integration/reserve-migration.test.ts:114) y en balance (no_go 'NO se toca el CHECK amount >= 0'), mas cambiar amount_cell_amount_ck (schema.ts:188) y cellAmountSchema (validation.ts:63). (B) resta en el ciclo en que llega hasta dejar la celda en 0; el sobrante se registra como ingreso con aviso: un solo change request en ciclos. (C) dejarlo para despues: elegido. Decisiones ya tomadas por el usuario si se retoma: registrarla en Nuevo movimiento y en el Detalle con un interruptor 'Es una devolucion' dentro de Gasto; distinguir devolucion (resta del gasto) de reintegro que no devuelve un gasto propio (sigue siendo ingreso). En la base del usuario no hay reembolsos ni categoria de reembolsos (verificado el 2026-09-15).",
+      "status": "open",
+      "createdAt": "2026-09-15T13:42:07.264Z"
     }
   ]
 }

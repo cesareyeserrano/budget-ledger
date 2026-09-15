@@ -1,0 +1,781 @@
+{
+  "project_name": "diario-de-celda",
+  "project_summary": "Feature de Ledger (T-Ledger), BL-044. Registrar gastos ya está resuelto con «Nuevo movimiento», pero lo registrado no se ve: una celda de la grilla muestra un total sin su detalle, y la nota que el usuario escribe en cada movimiento no aparece en ninguna parte (27 de 27 movimientos con nota, 0 visibles, medido el 2026-09-14). Esta feature convierte el editor de la celda en su Detalle: lista los movimientos que la forman, permite añadirlos, corregirlos y borrarlos ahí mismo, conserva los comentarios de solo texto y hace que teclear un valor en la celda cree un ajuste en vez de reemplazar el total en silencio. North Star KPI: al abrir cualquier celda de Ejecutado de gasto o ingreso, el 100 % de sus movimientos aparece con fecha, monto y nota, y su suma es exactamente el valor de la celda. JTBD: «saber en qué se fue la plata de una celda y corregirlo ahí mismo, sin alargar la grilla con una fila por gasto». Guardrail metric: ninguna operación de la feature crea un descuadre nuevo (una celda de Ejecutado de gasto o ingreso distinta de la suma de sus movimientos), y el roll-up de los ancestros se refleja en ≤150 ms (guardrail de la raíz).",
+  "functional_requirements": [
+    {
+      "id": "FR-2501",
+      "title": "El Detalle de una celda lista los movimientos que la forman",
+      "description": "Cuando el usuario abre una celda hoja de Ejecutado de tipo gasto o ingreso, el sistema muestra su Detalle: los movimientos de esa hoja en ese mes o ciclo, en orden cronológico ascendente, cada uno con su fecha (día y mes), su monto con el signo del tipo y su nota. Un movimiento sin nota muestra «Sin nota». La sección se titula «Detalle» y sustituye al rótulo «Observaciones».",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Dada una celda de gasto con 3 movimientos —50.000 el 18 sep con nota «Almuerzo», 30.000 el 19 sep sin nota y 20.000 el 20 sep con nota «Taxi»—, al abrirla el Detalle lista exactamente esos 3 en ese orden y la suma de sus montos (100.000) es igual al valor de la celda (happy)",
+        "Un movimiento sin nota se lista con su fecha, su monto y el texto «Sin nota» (edge)",
+        "Una celda sin movimientos ni comentarios muestra «Sin movimientos ni comentarios» y ninguna fila (edge — estado vacío)",
+        "Los movimientos de otro mes o ciclo, o de otra hoja, no aparecen en el Detalle de esta celda (negative)",
+        "El Detalle se muestra completo sin desbordar horizontalmente el editor de la celda en viewports de 1440 px y 768 px, con contraste de texto ≥4.5:1 en tema claro y oscuro (UX medible)"
+      ]
+    },
+    {
+      "id": "FR-2502",
+      "title": "Añadir un movimiento desde el Detalle, con monto y nota",
+      "description": "Cuando el usuario escribe un monto y una nota opcional en la línea «Añadir movimiento» del Detalle y confirma, el sistema crea un movimiento del tipo de la celda contra esa hoja, con la fecha que define FR-2503, y la celda de Ejecutado sube en ese monto sin que el usuario teclee el total. Es la misma operación que «Nuevo movimiento» (FR-001): mismas validaciones y mismas reglas de periodo. No abre otro formulario.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dada una celda en 100.000, al añadir 30.000 con nota «Almuerzo» la celda pasa a 130.000 y el Detalle lista el movimiento nuevo con esa nota, sin abrir otro formulario (happy)",
+        "El movimiento añadido persiste: tras recargar la página sigue en el Detalle y la celda conserva 130.000 (edge — persistencia)",
+        "Con el monto vacío o en 0 la línea no se puede confirmar y no se crea ningún movimiento (negative)",
+        "Una nota de más de 280 caracteres se rechaza con un mensaje visible y no se crea el movimiento (negative — límite)"
+      ]
+    },
+    {
+      "id": "FR-2503",
+      "title": "Fecha propuesta y fecha válida de un movimiento añadido o de un ajuste",
+      "description": "Cuando se crea un movimiento desde el Detalle (FR-2502) o un ajuste (FR-2504), el sistema propone como fecha la de hoy si hoy cae dentro del mes o ciclo de la celda y, si no, el último día de ese mes o ciclo. El usuario puede cambiarla a cualquier fecha dentro de ese mismo mes o ciclo; una fecha fuera de él se rechaza.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con modo ciclos y día de pago 21, siendo hoy 14 sep, al añadir en la celda del ciclo «Septiembre» (21 ago – 20 sep) la fecha propuesta es 14 sep (happy)",
+        "Siendo hoy 22 sep y con «Septiembre» todavía abierto, al añadir en su celda la fecha propuesta es 20 sep, el último día del ciclo (edge)",
+        "El usuario cambia la fecha a 25 ago para la celda de «Septiembre» y el movimiento se crea en ese ciclo (edge)",
+        "Una fecha fuera del mes o ciclo de la celda (21 sep para «Septiembre») se rechaza con un mensaje visible y no se crea nada (negative)"
+      ]
+    },
+    {
+      "id": "FR-2504",
+      "title": "Teclear un valor en la celda de Ejecutado crea un ajuste por la diferencia",
+      "description": "Cuando el usuario teclea un valor en una celda hoja de Ejecutado de tipo gasto o ingreso y lo confirma, el sistema crea un movimiento de ajuste por la diferencia entre el valor tecleado y la suma de sus movimientos —positiva o negativa— con la nota «Ajuste manual», de modo que la celda queda en el valor tecleado y sigue siendo la suma de sus movimientos. Si el valor coincide con esa suma no crea nada. Así, teclear el valor de una celda descuadrada (FR-2511) la cuadra. En una celda sin movimientos el ajuste es por el total. La nota del ajuste se puede cambiar después (FR-2505). Ninguna celda baja de 0. El plano de Presupuestado no cambia.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dada una celda en 100.000, al teclear 120.000 se crea un movimiento de +20.000 con nota «Ajuste manual» y la celda queda en 120.000 (happy)",
+        "Dada una celda en 100.000, al teclear 90.000 se crea un movimiento de −10.000 con nota «Ajuste manual» y la celda queda en 90.000 (edge — ajuste negativo)",
+        "En una celda vacía, teclear 45.000 crea un ajuste de +45.000 (edge)",
+        "En una celda que cuadra, teclear el mismo valor que ya tiene no crea ningún movimiento (edge)",
+        "Dada una celda descuadrada que vale 45.000 y no tiene movimientos, teclear 45.000 crea un ajuste de +45.000 y la celda deja de estar descuadrada (edge — cuadrar tecleando)",
+        "El valor mínimo aceptado es 0: teclear 0 en una celda en 100.000 crea un ajuste de −100.000 y la celda nunca queda negativa (negative — límite)",
+        "Teclear en una celda de Presupuestado no crea movimientos: se asigna el valor como hoy (negative — otro plano)"
+      ]
+    },
+    {
+      "id": "FR-2505",
+      "title": "Editar un movimiento: monto, nota, fecha y categoría",
+      "description": "Cuando el usuario edita un movimiento desde el Detalle, puede cambiar su monto, su nota, su fecha y su categoría (una hoja del mismo tipo). El sistema recalcula la celda de origen y, si cambió la categoría o la fecha cae en otro mes o ciclo, la de destino. La fecha se valida con las mismas reglas que «Nuevo movimiento»: rango activo del ledger, asignación de ciclo por fecha (FR-2405) y propuesta del ingreso adelantado (FR-2406). Cambiar la fecha a otro mes o ciclo mueve el movimiento siempre que ni el origen ni el destino estén cerrados. Una edición que dejaría alguna celda por debajo de 0 se rechaza.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al cambiar un movimiento de 50.000 a 5.000, la celda baja exactamente 45.000 (happy)",
+        "Al cambiar la nota de un «Ajuste manual» por «Regalo de cumpleaños», el Detalle muestra la nota nueva y la celda no cambia (happy)",
+        "Al pasar un gasto de 20.000 de Restaurantes a Mercado en el mismo ciclo, Restaurantes baja 20.000 y Mercado sube 20.000 (edge — categoría)",
+        "Con día de pago 21, al cambiar la fecha de 20 oct a 21 oct el movimiento sale de «Octubre» y entra en «Noviembre»: la columna de origen baja el monto, la de destino lo sube y el movimiento no aparece en ambas (edge — reasignación)",
+        "No se ofrece cambiar la categoría a una hoja de otro tipo, por ejemplo de un gasto a un ingreso (negative)",
+        "Si el mes o ciclo de destino está cerrado, la edición se rechaza con el mensaje de mes cerrado y el movimiento queda como estaba (negative)",
+        "Dada una celda de 10.000 formada por un movimiento de 50.000 y un ajuste de −40.000, bajar el movimiento a 30.000 la dejaría en −10.000: se rechaza con un mensaje visible y nada cambia (negative — celda negativa)",
+        "Tras una edición, los totales de los ancestros reflejan el cambio en ≤150 ms (guardrail)"
+      ]
+    },
+    {
+      "id": "FR-2506",
+      "title": "Borrar un movimiento",
+      "description": "Cuando el usuario borra un movimiento desde el Detalle y confirma, el sistema lo elimina y la celda baja en su monto. Un borrado que dejaría la celda por debajo de 0 se rechaza.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dado un movimiento repetido de 15.000, al borrarlo y confirmar desaparece del Detalle y la celda baja 15.000 (happy)",
+        "El borrado persiste: tras recargar la página el movimiento no está y la celda conserva el valor rebajado (edge — persistencia)",
+        "Si el usuario cancela la confirmación, el movimiento sigue en el Detalle y la celda no cambia (edge)",
+        "En un mes o ciclo cerrado la acción de borrar no se ofrece, y una petición directa de borrado se rechaza sin alterar nada (negative)",
+        "Dada una celda en 0 formada por un movimiento de 100.000 y un ajuste de −100.000, borrar el movimiento la dejaría en −100.000: se rechaza con un mensaje visible y nada cambia (negative — celda negativa)"
+      ]
+    },
+    {
+      "id": "FR-2507",
+      "title": "Los periodos cerrados congelan las vías nuevas; los abiertos y el reabierto las admiten",
+      "description": "Cuando el mes o ciclo de la celda está cerrado, el sistema no permite añadir movimientos, teclear un ajuste, editar —tampoco la nota ni la fecha— ni borrar, y el Detalle indica que el mes está cerrado; los comentarios siguen editables (FR-2004). En un mes o ciclo abierto —terminado o en curso— y en el último reabierto (FR-2005), todo está permitido. Extiende FR-2003 a las vías de escritura que introduce esta feature.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "En un ciclo cerrado, el Detalle no muestra «Añadir movimiento» ni las acciones de editar y borrar, y muestra el aviso de mes cerrado (happy del guardrail)",
+        "En un ciclo terminado pero no cerrado —hoy 22 sep, «Septiembre» abierto— se puede añadir un movimiento con fecha 18 sep (edge)",
+        "Tras reabrir el último ciclo cerrado se puede editar un movimiento de ese ciclo (edge)",
+        "En un ciclo cerrado se puede añadir un comentario (edge — FR-2004)",
+        "Una petición de crear, ajustar, editar o borrar un movimiento en un periodo cerrado se rechaza en el servidor con «closed_period_violation» y no altera nada (negative)",
+        "En un ciclo cerrado tampoco se puede cambiar la nota ni la fecha de un movimiento: la petición se rechaza con «closed_period_violation» y nada cambia (negative)"
+      ]
+    },
+    {
+      "id": "FR-2508",
+      "title": "Comentarios de solo texto en el Detalle, con el mismo estilo que los movimientos",
+      "description": "Cuando el usuario abre el Detalle, el sistema muestra los comentarios de la celda —manuales y automáticos, sin monto— junto a sus movimientos, y permite añadir un comentario nuevo. Movimientos, comentarios manuales y comentarios automáticos comparten un mismo estilo de fila y se distinguen por un ícono. Un comentario nunca suma a la celda.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Los comentarios existentes de una celda aparecen todos en su Detalle (happy)",
+        "Añadir un comentario de entre 1 y 280 caracteres lo muestra en el Detalle y persiste tras recargar (happy)",
+        "Movimientos, comentarios manuales y el comentario automático de bolsillos usan la misma fila: mismo tamaño de texto, espaciado y fondo, con un ícono con etiqueta accesible que indica el tipo; contraste ≥4.5:1 en tema claro y oscuro (UX medible)",
+        "Un comentario vacío o de más de 280 caracteres se rechaza sin alterar los existentes (negative)",
+        "Añadir un comentario no cambia el valor de la celda (negative)"
+      ]
+    },
+    {
+      "id": "FR-2509",
+      "title": "Un solo nombre por concepto en toda la app: Detalle, Movimiento, Nota y Comentario",
+      "description": "Cuando la interfaz se refiere a estos conceptos, usa un solo nombre por nivel: «Detalle» para lo que se ve al abrir la celda, «Movimiento» para cada línea con fecha y monto, «Nota» para el texto de un movimiento y «Comentario» para una línea solo de texto.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El editor de la celda titula su sección «Detalle», el campo de texto libre dice «Añadir comentario» y ningún texto visible de la grilla dice «Observaciones» ni «Añadir observación» (happy)",
+        "El formulario «Nuevo movimiento» conserva el campo «Nota (opcional)» y el botón «Nuevo movimiento» (edge — sin cambio)",
+        "Ningún texto visible llama «nota» a una línea sin monto ni «comentario» al texto de un movimiento (negative)"
+      ]
+    },
+    {
+      "id": "FR-2511",
+      "title": "Las celdas descuadradas se señalan como un problema del mes",
+      "description": "Cuando una celda hoja de Ejecutado de gasto o ingreso no coincide con la suma de sus movimientos (descuadre), el sistema lo señala con el mismo patrón que ya usa para los problemas del mes: el triángulo rojo en el encabezado del mes y una línea en el aviso del Balance que dice cuántas celdas no cuadran y cuáles son. No corrige nada por sí solo: el usuario cuadra tecleando el valor (FR-2504) o corrigiendo movimientos.",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Dada «Septiembre» con 2 celdas descuadradas —Restaurantes vale 120.000 y sus movimientos suman 100.000; Taxi vale 45.000 sin movimientos—, el encabezado de «Septiembre» muestra el triángulo y el aviso del Balance dice «Septiembre: 2 celdas no cuadran con sus movimientos» y nombra Restaurantes y Taxi (happy)",
+        "Al cuadrar las 2 celdas, el triángulo y la línea del aviso desaparecen (edge)",
+        "Un mes sin celdas descuadradas no muestra triángulo ni línea de descuadre (negative)",
+        "Las celdas de bolsillos y las de Presupuestado nunca cuentan como descuadre (negative)",
+        "La app no crea ajustes ni cambia ninguna cifra por sí sola al detectar un descuadre (negative — nada automático)"
+      ]
+    },
+    {
+      "id": "FR-2512",
+      "title": "Un mes o ciclo con celdas descuadradas no se puede cerrar",
+      "description": "Cuando el mes o ciclo que toca cerrar tiene al menos una celda descuadrada (FR-2511), el sistema no lo cierra: el botón «Cerrar» se deshabilita con un mensaje que nombra las celdas descuadradas, y el servidor rechaza el cierre aunque llegue la petición. Cuadradas todas, se puede cerrar. Si el usuario nunca cuadra ni cierra, es su decisión: la app no fuerza nada.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Dada «Septiembre», el mes que toca cerrar, con Taxi descuadrada, el botón «Cerrar Septiembre» está deshabilitado y su mensaje dice «No se puede cerrar: 1 celda no cuadra (Taxi)» (happy del guardrail)",
+        "Tras cuadrar Taxi, «Cerrar Septiembre» se habilita y cierra el mes (edge)",
+        "Un descuadre en «Octubre», mes abierto posterior, no impide cerrar «Septiembre» (edge)",
+        "Una petición directa de cierre de «Septiembre» con celdas descuadradas se rechaza en el servidor y no cierra nada (negative)",
+        "Reabrir el último mes cerrado no se bloquea por descuadres: la regla solo aplica al cierre (negative)"
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal, usuario único en producción",
+      "tech_level": "mid",
+      "goal": "Saber en qué se fue la plata de cada celda del ciclo en curso y corregir un error ahí mismo, sin alargar la grilla con una fila por gasto",
+      "pain_point": "Anota una nota en cada gasto (27 de 27), pero al abrir una celda solo ve un total: no puede saber qué la forma, y teclear un número reemplaza el valor en silencio"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2501",
+      "requirement_id": "FR-2501",
+      "as_a": "presupuestador personal",
+      "i_want": "abrir una celda y ver los movimientos que la forman con su fecha, monto y nota",
+      "so_that": "sepa en qué se fue esa plata sin tener que recordarlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2501a",
+          "given": "la celda Restaurantes de «Septiembre» vale 100.000 y la forman 3 movimientos (50.000 «Almuerzo», 30.000 sin nota, 20.000 «Taxi»)",
+          "when": "abro la celda",
+          "then": "el Detalle lista los 3 en orden cronológico, el segundo con «Sin nota», y su suma es 100.000"
+        },
+        {
+          "id": "AC-2501b",
+          "given": "una celda sin movimientos ni comentarios",
+          "when": "la abro",
+          "then": "veo «Sin movimientos ni comentarios» y ninguna fila"
+        },
+        {
+          "id": "AC-2501c",
+          "given": "Restaurantes tiene movimientos en «Septiembre» y en «Octubre»",
+          "when": "abro la celda de «Septiembre»",
+          "then": "no aparece ningún movimiento de «Octubre»"
+        }
+      ]
+    },
+    {
+      "id": "US-2502",
+      "requirement_id": "FR-2502",
+      "as_a": "presupuestador personal",
+      "i_want": "añadir un gasto escribiendo su monto y su nota dentro del Detalle",
+      "so_that": "la celda sume sola sin hacer cuentas de cabeza ni abrir otro formulario",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2502a",
+          "given": "la celda Restaurantes vale 100.000",
+          "when": "escribo 30.000 y «Almuerzo» en «Añadir movimiento» y confirmo",
+          "then": "la celda vale 130.000 y el Detalle muestra el movimiento con nota «Almuerzo»"
+        },
+        {
+          "id": "AC-2502b",
+          "given": "la línea «Añadir movimiento» con el monto vacío",
+          "when": "intento confirmar",
+          "then": "no se crea ningún movimiento y la celda no cambia"
+        },
+        {
+          "id": "AC-2502c",
+          "given": "una nota de 281 caracteres",
+          "when": "confirmo el movimiento",
+          "then": "se rechaza con un mensaje visible y no se crea nada"
+        }
+      ]
+    },
+    {
+      "id": "US-2503",
+      "requirement_id": "FR-2503",
+      "as_a": "presupuestador personal",
+      "i_want": "que la fecha de lo que añado caiga en el ciclo de la celda y poder cambiarla dentro de él",
+      "so_that": "cada gasto quede en el ciclo que le corresponde aunque lo anote tarde",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2503a",
+          "given": "modo ciclos con día 21 y hoy 14 sep",
+          "when": "añado un movimiento en la celda de «Septiembre»",
+          "then": "la fecha propuesta es 14 sep"
+        },
+        {
+          "id": "AC-2503b",
+          "given": "hoy 22 sep y «Septiembre» abierto",
+          "when": "añado un movimiento en la celda de «Septiembre»",
+          "then": "la fecha propuesta es 20 sep"
+        },
+        {
+          "id": "AC-2503c",
+          "given": "la celda de «Septiembre» (21 ago – 20 sep)",
+          "when": "elijo la fecha 21 sep",
+          "then": "se rechaza con un mensaje visible y no se crea nada"
+        }
+      ]
+    },
+    {
+      "id": "US-2504",
+      "requirement_id": "FR-2504",
+      "as_a": "presupuestador personal",
+      "i_want": "seguir tecleando un total directo en la grilla",
+      "so_that": "pueda corregir un total rápido sin que la celda y sus movimientos dejen de cuadrar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2504a",
+          "given": "la celda vale 100.000",
+          "when": "tecleo 120.000",
+          "then": "aparece un movimiento de +20.000 con nota «Ajuste manual» y la celda vale 120.000"
+        },
+        {
+          "id": "AC-2504b",
+          "given": "la celda vale 100.000",
+          "when": "tecleo 90.000",
+          "then": "aparece un movimiento de −10.000 con nota «Ajuste manual» y la celda vale 90.000"
+        },
+        {
+          "id": "AC-2504c",
+          "given": "la celda vale 100.000",
+          "when": "tecleo 100.000",
+          "then": "no se crea ningún movimiento"
+        },
+        {
+          "id": "AC-2504d",
+          "given": "la celda de Presupuestado vale 80.000",
+          "when": "tecleo 90.000",
+          "then": "la celda vale 90.000 y no se crea ningún movimiento"
+        }
+      ]
+    },
+    {
+      "id": "US-2505",
+      "requirement_id": "FR-2505",
+      "as_a": "presupuestador personal",
+      "i_want": "corregir el monto, la nota, la fecha o la categoría de un movimiento mal cargado",
+      "so_that": "el error desaparezca en lugar de acumular correcciones",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2505a",
+          "given": "un movimiento de 50.000 en una celda de 100.000",
+          "when": "cambio su monto a 5.000",
+          "then": "la celda vale 55.000"
+        },
+        {
+          "id": "AC-2505b",
+          "given": "un gasto de 20.000 en Restaurantes",
+          "when": "cambio su categoría a Mercado",
+          "then": "Restaurantes baja 20.000 y Mercado sube 20.000 en el mismo ciclo"
+        },
+        {
+          "id": "AC-2505c",
+          "given": "día de pago 21 y un movimiento del 20 oct en «Octubre», con «Octubre» y «Noviembre» abiertos",
+          "when": "cambio su fecha a 21 oct",
+          "then": "sale de «Octubre», entra en «Noviembre» y no aparece en ambos"
+        },
+        {
+          "id": "AC-2505d",
+          "given": "«Noviembre» cerrado",
+          "when": "intento mover a esa fecha un movimiento de «Octubre»",
+          "then": "se rechaza con el mensaje de mes cerrado y el movimiento queda en «Octubre»"
+        }
+      ]
+    },
+    {
+      "id": "US-2506",
+      "requirement_id": "FR-2506",
+      "as_a": "presupuestador personal",
+      "i_want": "borrar un movimiento que cargué dos veces",
+      "so_that": "la celda deje de contarlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2506a",
+          "given": "dos movimientos idénticos de 15.000 en una celda de 30.000",
+          "when": "borro uno y confirmo",
+          "then": "queda uno y la celda vale 15.000"
+        },
+        {
+          "id": "AC-2506b",
+          "given": "la confirmación de borrado abierta",
+          "when": "cancelo",
+          "then": "el movimiento sigue y la celda no cambia"
+        },
+        {
+          "id": "AC-2506c",
+          "given": "un movimiento de un ciclo cerrado",
+          "when": "abro su Detalle",
+          "then": "no aparece la acción de borrar"
+        }
+      ]
+    },
+    {
+      "id": "US-2507",
+      "requirement_id": "FR-2507",
+      "as_a": "presupuestador personal",
+      "i_want": "que un ciclo cerrado no se pueda alterar desde el Detalle y que uno abierto sí",
+      "so_that": "lo cerrado quede firme y pueda seguir anotando lo que olvidé en ciclos todavía abiertos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2507a",
+          "given": "«Agosto» cerrado",
+          "when": "abro una celda de «Agosto»",
+          "then": "no hay «Añadir movimiento», editar ni borrar, y se ve el aviso de mes cerrado"
+        },
+        {
+          "id": "AC-2507b",
+          "given": "hoy 22 sep y «Septiembre» terminado pero no cerrado",
+          "when": "añado un gasto del 18 sep en su celda",
+          "then": "se crea y la celda de «Septiembre» sube"
+        },
+        {
+          "id": "AC-2507c",
+          "given": "«Agosto» cerrado",
+          "when": "se envía directamente una edición de un movimiento de «Agosto»",
+          "then": "el servidor responde «closed_period_violation» y nada cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-2508",
+      "requirement_id": "FR-2508",
+      "as_a": "presupuestador personal",
+      "i_want": "seguir viendo y añadiendo comentarios de solo texto junto a mis movimientos",
+      "so_that": "no pierda las notas que ya escribí y pueda anotar cosas que no son un gasto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2508a",
+          "given": "una celda con 2 comentarios manuales y 1 movimiento",
+          "when": "abro su Detalle",
+          "then": "veo los 2 comentarios y el movimiento con el mismo estilo de fila y un ícono distinto"
+        },
+        {
+          "id": "AC-2508b",
+          "given": "el Detalle abierto",
+          "when": "añado el comentario «Revisar la factura del 18»",
+          "then": "aparece en el Detalle, persiste tras recargar y la celda no cambia"
+        },
+        {
+          "id": "AC-2508c",
+          "given": "el Detalle abierto",
+          "when": "intento añadir un comentario vacío",
+          "then": "se rechaza y los comentarios existentes siguen igual"
+        }
+      ]
+    },
+    {
+      "id": "US-2509",
+      "requirement_id": "FR-2509",
+      "as_a": "presupuestador personal",
+      "i_want": "que la app use siempre la misma palabra para cada cosa",
+      "so_that": "no confunda una nota de un movimiento con un comentario de la celda",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2509a",
+          "given": "la grilla en escritorio",
+          "when": "abro el editor de una celda",
+          "then": "la sección se titula «Detalle» y el campo de texto dice «Añadir comentario»"
+        },
+        {
+          "id": "AC-2509b",
+          "given": "cualquier pantalla de la app",
+          "when": "busco los textos «Observaciones» y «Añadir observación»",
+          "then": "no aparece ninguno"
+        },
+        {
+          "id": "AC-2509c",
+          "given": "el formulario «Nuevo movimiento»",
+          "when": "lo abro",
+          "then": "el campo sigue diciendo «Nota (opcional)»"
+        }
+      ]
+    },
+    {
+      "id": "US-2511",
+      "requirement_id": "FR-2511",
+      "as_a": "presupuestador personal",
+      "i_want": "ver qué celdas no cuadran con sus movimientos",
+      "so_that": "sepa dónde falta registrar o corregir algo antes de cerrar el mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2511a",
+          "given": "«Septiembre» con Restaurantes en 120.000 y movimientos que suman 100.000",
+          "when": "miro la grilla y el Balance",
+          "then": "el encabezado de «Septiembre» tiene el triángulo y el aviso dice «Septiembre: 1 celda no cuadra con sus movimientos (Restaurantes)»"
+        },
+        {
+          "id": "AC-2511b",
+          "given": "esa misma celda",
+          "when": "tecleo 100.000 o añado el movimiento de 20.000 que faltaba",
+          "then": "el triángulo y la línea del aviso desaparecen"
+        },
+        {
+          "id": "AC-2511c",
+          "given": "un mes donde todas las celdas cuadran",
+          "when": "miro la grilla",
+          "then": "no hay triángulo ni línea de descuadre para ese mes"
+        }
+      ]
+    },
+    {
+      "id": "US-2512",
+      "requirement_id": "FR-2512",
+      "as_a": "presupuestador personal",
+      "i_want": "que la app no me deje cerrar un mes que tiene celdas descuadradas",
+      "so_that": "lo que cierro quede firme y cuadrado, sin que me obligue a cerrar nada",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2512a",
+          "given": "«Septiembre» es el mes que toca cerrar y Taxi está descuadrada",
+          "when": "miro el control de cierre",
+          "then": "«Cerrar Septiembre» está deshabilitado con el mensaje «No se puede cerrar: 1 celda no cuadra (Taxi)»"
+        },
+        {
+          "id": "AC-2512b",
+          "given": "cuadré Taxi",
+          "when": "pulso «Cerrar Septiembre»",
+          "then": "el mes se cierra"
+        },
+        {
+          "id": "AC-2512c",
+          "given": "«Septiembre» con Taxi descuadrada",
+          "when": "llega directamente una petición de cierre",
+          "then": "el servidor la rechaza y el mes sigue abierto"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2501",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "Solo el dueño de un movimiento puede editarlo o borrarlo, y toda escritura nueva se valida en el servidor. Editar o borrar un movimiento de otra cuenta responde 404 sin revelar ni alterar nada (misma regla de aislamiento por dueño que FR-505, verificada hoy por TC-BE-018f y TC-BE-019f). Las escrituras exigen sesión y un Origin permitido. Se rechaza sin escribir: un monto no entero o fuera de límites, una nota de más de 280 caracteres, una fecha no válida o fuera del rango activo y una categoría que no sea una hoja del mismo tipo y del mismo dueño. Editar o borrar por esta vía un movimiento de bolsillo (transfer) se rechaza: queda fuera del alcance de la feature.",
+      "acceptance_criteria": [
+        "La cuenta A edita o borra un movimiento de la cuenta B: responde 404 y el movimiento de B queda intacto (monto, fecha, nota y fila presentes)",
+        "Una edición o un borrado sin sesión responde 401; sin un Origin permitido responde 403; en ambos casos nada cambia",
+        "Una edición que apunta a una categoría de otra cuenta o de otro tipo se rechaza con 4xx y no escribe nada",
+        "Una nota de 281 caracteres o una fecha fuera del rango activo se rechaza con 4xx y no escribe nada",
+        "Una edición o un borrado de un movimiento de bolsillo (transfer) por las rutas nuevas se rechaza con 4xx y no escribe nada"
+      ]
+    },
+    {
+      "id": "NFR-2502",
+      "category": "Reliability",
+      "priority": "MUST",
+      "requirement": "No empeora: ninguna operación de esta feature (añadir, ajustar, editar o borrar) crea un descuadre nuevo. En cada celda hoja de Ejecutado de gasto o ingreso que la operación toca, si antes cuadraba con la suma de sus movimientos, después sigue cuadrando. Un descuadre previo no bloquea operaciones sobre otras celdas (mismo criterio relativo que las reglas de techo, FR-2104/ADR-18).",
+      "acceptance_criteria": [
+        "Partiendo de celdas que cuadran, una secuencia aleatoria de al menos 200 operaciones mezcladas no deja ninguna celda de Ejecutado de gasto o ingreso descuadrada",
+        "Con una celda previamente descuadrada, guardar un cambio en otra celda se acepta y el descuadre previo sigue igual",
+        "Una operación rechazada (periodo cerrado, validación, celda negativa) deja todas las celdas exactamente como estaban"
+      ]
+    },
+    {
+      "id": "NFR-2503",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las celdas de bolsillos (tipo transfer) conservan su comportamiento: teclear en ellas sigue usando la regla de reservas, sus observaciones derivadas del journal y el comentario automático del saldo anterior se muestran como hoy, y sus TCs existentes pasan sin cambios.",
+      "acceptance_criteria": [
+        "Teclear un valor en una celda de bolsillo no crea un movimiento de «Ajuste manual» y aplica la misma regla de reservas que antes de la feature",
+        "La nota de una operación De→A sigue apareciendo en la celda del bolsillo",
+        "Las suites de las features transferencias y techo-de-flujo pasan; los únicos TCs que cambian son TC-TRF4-012e y TC-TRF4-012h de transferencias, y solo en el texto que renombra FR-2509 (change request aprobado por el usuario el 2026-09-14). En techo-de-flujo cambia solo la etiqueta del campo en el código de su e2e"
+      ]
+    },
+    {
+      "id": "NFR-2504",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "«Nuevo movimiento» sigue funcionando como hoy: suma su monto al Ejecutado de la hoja destino, asigna el ciclo por la fecha de la transacción (FR-2405), ofrece la propuesta del ingreso adelantado (FR-2406) y muestra la confirmación de guardado.",
+      "acceptance_criteria": [
+        "Guardar un gasto de 50.000 desde «Nuevo movimiento» sube en exactamente 50.000 el Ejecutado de la hoja destino y el movimiento aparece en el Detalle de esa celda",
+        "Con día de pago 21, un gasto fechado el 25 oct cae en «Noviembre»",
+        "Con monto 0 o sin categoría, «Guardar» sigue deshabilitado y no se crea nada"
+      ]
+    },
+    {
+      "id": "NFR-2505",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas de techo y piso siguen validándose en el servidor y aplican también a las escrituras nuevas: ningún movimiento añadido, ajuste, edición o borrado puede dejar el ledger en un estado que esas reglas rechazan.",
+      "acceptance_criteria": [
+        "Una edición o un borrado que violaría el piso o el techo vigentes se rechaza en el servidor con el mismo código que hoy usa esa regla, y nada cambia",
+        "Las suites de la feature reglas-en-el-servidor pasan sin modificar sus TCs"
+      ]
+    },
+    {
+      "id": "NFR-2506",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El plano de Presupuestado se sigue tecleando como hoy: asignar un valor no crea movimientos y el roll-up de los padres no cambia de regla.",
+      "acceptance_criteria": [
+        "Teclear 90.000 en una celda de Presupuestado de 80.000 la deja en 90.000 sin crear movimientos",
+        "El Presupuestado de una categoría padre sigue siendo la suma de sus hojas tras la edición"
+      ]
+    },
+    {
+      "id": "NFR-2507",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El cierre de mes sigue valiendo íntegro: FR-2003 (cifras inmutables), FR-2004 (comentarios editables en un mes cerrado) y FR-2005 (reapertura del último cerrado, con rastro) mantienen su comportamiento y sus TCs.",
+      "acceptance_criteria": [
+        "Cerrar «Agosto» sigue congelando todas sus cifras, incluidas las vías que añade esta feature",
+        "Reabrir el último ciclo cerrado sigue dejando rastro en el historial de cierres",
+        "La suite de la feature cierre-de-mes pasa sin cambiar el comportamiento esperado de sus TCs; si alguno siembra celdas de Ejecutado sin movimientos (y FR-2512 le impediría cerrar), se ajusta su fixture para que las celdas cuadren, no su resultado esperado"
+      ]
+    },
+    {
+      "id": "NFR-2508",
+      "category": "Observability",
+      "priority": "MUST",
+      "requirement": "Las rutas nuevas de editar y borrar un movimiento pasan por el mismo envoltorio de peticiones que las rutas existentes de /api/v1 y registran una línea con timestamp, método, ruta, estado y duración (NFR-502 de backend).",
+      "acceptance_criteria": [
+        "Una edición y un borrado de un movimiento producen cada uno una línea de registro con método PATCH o DELETE, la ruta del movimiento y el código de estado",
+        "Las rutas de editar y borrar están envueltas por el mismo mecanismo de peticiones que la ruta de crear movimientos (comprobación estructural)"
+      ]
+    },
+    {
+      "id": "NFR-2509",
+      "category": "CI/CD",
+      "priority": "MUST",
+      "requirement": "Las pruebas de esta feature corren en el pipeline existente, sin workflow nuevo: el CI ejecuta la suite unitaria y de integración y la suite e2e en cada push a main y en cada PR a develop, staging y main (NFR-503 de backend).",
+      "acceptance_criteria": [
+        "El workflow de CI existente sigue ejecutando la suite unitaria e integración y la e2e, y no se añade ningún workflow nuevo para esta feature (comprobación estructural sobre el fichero)",
+        "Los ficheros de prueba de la feature caen bajo los globs que ese CI ya ejecuta"
+      ]
+    }
+  ],
+  "no_go_zone": [
+    "Notas con monto que sumen a la celda — descartadas por el usuario: esa función la cumplen los movimientos, y una nota con valor sería un tercer escritor del mismo número",
+    "Un segundo formulario de captura — «Nuevo movimiento» sigue siendo la vía principal; desde la celda solo existe la línea compacta de monto y nota (FR-2502)",
+    "Arrastrar un movimiento de una celda a otra — para cambiarlo de lugar se edita su categoría o su fecha (FR-2505), o se borra y se crea de nuevo",
+    "Añadir, ajustar, editar o borrar movimientos en un mes o ciclo cerrado — para corregirlo se usa la reapertura que ya existe (FR-2005)",
+    "Movimientos negativos cargados a mano — solo un ajuste creado al teclear un valor menor puede ser negativo (supuesto aceptado al aprobar el discovery)",
+    "Historial de ediciones de un movimiento — el usuario eligió corregir el movimiento en lugar de acumular correcciones; editar o borrar no deja rastro propio",
+    "Ligar un gasto con la alcancía que lo financió — BL-035, diferido por el usuario el 2026-08-29",
+    "El Detalle en la vista móvil — en móvil la app sigue mostrando solo el registro de movimientos (FR-010 de la raíz); la grilla y su Detalle son de escritorio",
+    "BG-017 (re-apuntar ingresos y gastos al crear el primer hijo de una hoja) — ya arreglado antes de esta feature",
+    "Cuadre automático de celdas descuadradas — decisión del usuario del 2026-09-14: nada automático. La app señala el descuadre (FR-2511) y bloquea el cierre de ese mes (FR-2512); cuadrar es decisión y acción del usuario (FR-2504)"
+  ],
+  "constraints": [
+    "Plataforma y stack de la raíz sin cambios: app web responsive, Next.js 15, Tailwind v4, shadcn/ui, TypeScript; UI en español y moneda COP",
+    "PostgreSQL sigue siendo la única fuente de verdad tras el contrato /api/v1 filtrado por ownerId (FR-505, FR-507)",
+    "El healthcheck GET /health no cambia: sigue respondiendo 200 sin autenticación (NFR-504 de backend)",
+    "Supera la exclusión de la raíz «Editar o BORRAR un movimiento ya registrado — el journal es INMUTABLE en v1»: ese mismo ítem anticipaba que dar edición y borrado a gastos e ingresos «sería una feature nueva», y es esta. La exclusión de la raíz sobre la vía de corregir la celda de Ejecutado queda sustituida por FR-2504",
+    "Supera la exclusión «Mover un movimiento a otro mes o ciclo» de 00_DISCOVERY.md: al preparar la fase 1, el usuario eligió que gane FR-2405 de ciclos, y editar la fecha puede mover un movimiento entre ciclos abiertos (FR-2505)",
+    "Rollback: una vez desplegada la feature y creados ajustes negativos, volver a la imagen anterior exige restaurar el respaldo de la base tomado antes de desplegar (el código anterior no acepta montos negativos)",
+    "Change request aprobado por el usuario el 2026-09-14 sobre la feature transferencias: TC-TRF4-012e y TC-TRF4-012h cambian solo en el texto renombrado por FR-2509 (se tramita re-derivando su fase de pruebas)"
+  ],
+  "technology_preferences": [],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Brief de la feature (BL-044, en 01_REQUIREMENTS.json#original_brief) y 00_DISCOVERY.md, aprobado por el usuario el 2026-09-14 tras el discovery guiado en chat",
+    "users": "00_DISCOVERY.md aprobado por el usuario el 2026-09-14",
+    "baseline": "Medido en la base del usuario el 2026-09-14 (27/27 movimientos con nota, 17 celdas con movimientos, 2 tecleadas sin movimientos) y aprobado en 00_DISCOVERY.md",
+    "success_metric": "Los 8 criterios de éxito confirmados por el usuario en el chat del 2026-09-14 («sí, solo cambia la dos») y aprobados en 00_DISCOVERY.md; cambios del 2026-09-14 tras la revisión adversarial del TRD (sin el cuadre inicial automático, con la alerta de descuadre y el bloqueo de cierre) confirmados por el usuario en el chat",
+    "no_go_zone": "Decisiones del usuario en el chat del 2026-09-14 (D1-D10 del brief de la feature, en 01_REQUIREMENTS.json#original_brief), aprobadas en 00_DISCOVERY.md; cuadre automático descartado por el usuario el 2026-09-14"
+  },
+  "idea_gaps": [
+    "FR-2503: la fecha propuesta cuando hoy no cae en el ciclo de la celda (el último día de ese ciclo) no la confirmó el usuario; él solo dijo que por defecto va la fecha del sistema y que se puede elegir cualquiera dentro del ciclo",
+    "FR-2506: que borrar pida confirmación (con opción de cancelar) sigue el patrón de borrado que ya usa la grilla; no se discutió",
+    "FR-2501 y FR-2508: el texto del estado vacío («Sin movimientos ni comentarios») y el de un movimiento sin nota («Sin nota») los propone el agente; el usuario no los vio",
+    "FR-2505: que editar la fecha pueda mover un movimiento entre ciclos abiertos lo decidió el usuario al presentarle FR-2405, y supera la exclusión de 00_DISCOVERY.md, que no se editó porque ya estaba aprobado",
+    "FR-2504: calcular el ajuste contra la suma de movimientos (no contra el valor actual de la celda) lo derivó el agente para que la política del usuario «se cuadra tecleando» funcione en celdas descuadradas; en celdas que cuadran es idéntico",
+    "FR-2511 y FR-2512: los textos «N celdas no cuadran con sus movimientos» y «No se puede cerrar: 1 celda no cuadra (Taxi)» los propone el agente",
+    "FR-2512: bloquear el cierre por descuadre puede afectar TCs de cierre-de-mes cuyas fixtures siembran Ejecutado sin movimientos; se verifica en la fase 3 (NFR-2507)",
+    "FR-2505 y FR-2506: rechazar ediciones y borrados que dejarían una celda negativa sale de la revisión adversarial del TRD (amount_cell >= 0), no de una pregunta al usuario; es coherente con su confirmación de que ninguna celda baja de 0"
+  ],
+  "coverage_map": [
+    {
+      "need": "Ver los movimientos que forman una celda",
+      "disposition": "FR-2501"
+    },
+    {
+      "need": "Ver la nota de cada gasto e ingreso",
+      "disposition": "FR-2501"
+    },
+    {
+      "need": "Añadir un gasto desde la celda sin cuentas mentales ni otro formulario",
+      "disposition": "FR-2502"
+    },
+    {
+      "need": "Que lo añadido caiga en el ciclo de la celda y se pueda elegir la fecha dentro de él",
+      "disposition": "FR-2503"
+    },
+    {
+      "need": "Seguir tecleando un total en la grilla sin descuadrar la celda",
+      "disposition": "FR-2504"
+    },
+    {
+      "need": "Ajustes hacia abajo al teclear un valor menor",
+      "disposition": "FR-2504"
+    },
+    {
+      "need": "Poder escribir después la nota de un ajuste",
+      "disposition": "FR-2505"
+    },
+    {
+      "need": "Editar el monto, la nota y la fecha de un movimiento",
+      "disposition": "FR-2505"
+    },
+    {
+      "need": "Cambiar la categoría de un movimiento",
+      "disposition": "FR-2505"
+    },
+    {
+      "need": "Que cambiar la fecha reasigne el ciclo (FR-2405)",
+      "disposition": "FR-2505"
+    },
+    {
+      "need": "Validar la fecha al editar igual que «Nuevo movimiento», incluido el ingreso adelantado",
+      "disposition": "FR-2505"
+    },
+    {
+      "need": "Borrar un movimiento repetido",
+      "disposition": "FR-2506"
+    },
+    {
+      "need": "Respetar el cierre: nada se altera en un ciclo cerrado; abiertos y reabierto admiten cambios",
+      "disposition": "FR-2507"
+    },
+    {
+      "need": "Conservar los 28 comentarios manuales existentes",
+      "disposition": "FR-2508"
+    },
+    {
+      "need": "Seguir añadiendo comentarios nuevos",
+      "disposition": "FR-2508"
+    },
+    {
+      "need": "Un mismo estilo visual para movimientos, comentarios y comentarios automáticos",
+      "disposition": "FR-2508"
+    },
+    {
+      "need": "Un solo nombre por concepto en toda la app",
+      "disposition": "FR-2509"
+    },
+    {
+      "need": "Que las 2 celdas tecleadas a mano sin movimientos se vean descuadradas y se puedan cuadrar tecleando",
+      "disposition": "FR-2511"
+    },
+    {
+      "need": "Ninguna operación crea un descuadre nuevo",
+      "disposition": "NFR-2502"
+    },
+    {
+      "need": "Solo el dueño edita o borra sus movimientos",
+      "disposition": "NFR-2501"
+    },
+    {
+      "need": "Las celdas de bolsillos no cambian",
+      "disposition": "NFR-2503"
+    },
+    {
+      "need": "«Nuevo movimiento» sigue igual",
+      "disposition": "NFR-2504"
+    },
+    {
+      "need": "Las reglas de techo y piso del servidor aplican a las escrituras nuevas",
+      "disposition": "NFR-2505"
+    },
+    {
+      "need": "El Presupuestado se sigue tecleando como hoy",
+      "disposition": "NFR-2506"
+    },
+    {
+      "need": "El cierre de mes existente sigue íntegro",
+      "disposition": "NFR-2507"
+    },
+    {
+      "need": "Notas con monto que sumen a la celda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Un segundo formulario de captura",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Arrastrar un movimiento a otra celda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Ligar un gasto con la alcancía que lo financió (BL-035)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Movimientos negativos cargados a mano",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Historial de ediciones de un movimiento",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "El Detalle en la vista móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cerrar BG-017 dentro de esta feature",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Señalar las celdas descuadradas",
+      "disposition": "FR-2511"
+    },
+    {
+      "need": "No dejar cerrar un mes con celdas descuadradas",
+      "disposition": "FR-2512"
+    },
+    {
+      "need": "Ninguna edición o borrado deja una celda negativa",
+      "disposition": "FR-2506"
+    },
+    {
+      "need": "En un periodo cerrado tampoco se cambia la nota ni la fecha de un movimiento",
+      "disposition": "FR-2507"
+    },
+    {
+      "need": "Cuadre automático de celdas",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "# FEATURE_IDEA — diario-de-celda\n\n_Escrito el 2026-09-14 a partir de BL-044 (`aitri/product/spec/BACKLOG.json`), que se redactó el\n2026-09-09 midiendo el código y con los datos reales del usuario. Lo marcado `[ASSUMPTION]` todavía no\nlo confirmó el usuario; lo marcado `[DECISIÓN ABIERTA]` se resuelve en el discovery._\n\n## Feature\nAl abrir cualquier celda hoja, su panel muestra los movimientos que la forman —día, monto y nota— y\npermite cargar uno nuevo desde ahí, de modo que la celda suma sola.\n\n## Problem / Why\nLa nota de un movimiento de **ingreso o gasto** no se ve en ninguna parte de la aplicación. El dato se\nguarda (`movement.note`) y nada lo lee.\n\nCaso real que originó la petición (2026-09-09, con 27 movimientos cargados): al abrir\nTecnología > Accesorios de agosto (187.500) el usuario no podía saber qué fue. La celda decía «Sin\nobservaciones este mes» mientras la nota «Accesorio de cámara» estaba en la base.\n\nMedido en el código:\n- `cellObservations` (`src/domain/reserve.ts`) arma las observaciones de una celda con las notas\n  manuales y las notas de movimientos, pero filtra por `m.type === \"transfer\"`: los gastos e ingresos\n  quedan fuera por construcción.\n- Ninguna pantalla lista movimientos. El diario de ingresos y gastos no existe como superficie.\n- Esa invisibilidad ya costó un bug: BG-017 (un ingreso de 6.500.000 apuntado a un nodo que ya no era\n  hoja) se detectó solo mirando la base.\n\nLo que el usuario pidió, en sus palabras: que la observación «tenga un campo de valor y la celda sume\nsola». **No se construye así:** hoy ya hay dos escritores del mismo número (`setLeafAmount` asigna,\n`addMovement` acumula) y una nota con valor sería un tercero. El mecanismo que el usuario describe ya\nexiste —es el movimiento—; lo que falta es la superficie.\n\n## Target Users\nEl usuario del ledger (hoy, una sola cuenta en producción) cuando revisa o carga sus gastos e ingresos\ndel mes.\n\n## New Behavior\n- Al abrir el editor de cualquier celda hoja, el panel lista los movimientos de ese nodo y ese periodo\n  en orden cronológico, cada uno con día, monto y nota. Un movimiento sin nota se lista igual.\n- Desde el panel se puede añadir un movimiento: monto, concepto y fecha, con la fecha por defecto\n  dentro del periodo de la celda. Delega en `addMovement` y la celda sube sola; el usuario nunca teclea\n  el total.\n- Las notas manuales de la celda (`cellNotes`) se siguen mostrando, visualmente distinguibles de las\n  notas de movimientos (`CellObservation.source` ya distingue `movement` de `manual`).\n- Una celda cuyo valor tecleado no coincide con la suma de sus movimientos lo dice. No se elige un\n  ganador en silencio.\n\n## Success Criteria\n- Dado agosto con el movimiento «Accesorio de cámara» de 187.500, cuando abro Tecnología > Accesorios\n  de agosto, entonces veo «26 ago · 187.500 · Accesorio de cámara» en lugar de «Sin observaciones este mes».\n- Dada Restaurantes de agosto formada por cuatro consumos, cuando abro la celda, entonces veo los\n  cuatro en orden cronológico y su suma es exactamente el valor de la celda (336.700).\n- Dado el panel abierto, cuando añado un movimiento, entonces el total de la celda sube sin teclearlo.\n- Dada una celda con movimientos, cuando tecleo un valor distinto de su suma, entonces la interfaz\n  muestra el descuadre. `[ASSUMPTION]` La forma exacta depende de la decisión abierta 1.\n\n## Touch Points\nModifica:\n- `src/domain/reserve.ts` — `cellObservations`, que hoy excluye gastos e ingresos.\n- `src/components/ReserveCells.tsx` — `CellNotesSection`, el panel de la celda.\n- `src/components/BudgetGrid.tsx` — `EditableCell`, y la edición directa del valor (`setLeafAmount`).\n- `src/domain/mutations.ts` — `addMovement` y `setLeafAmount`.\n- `src/app/api/v1/movements/…` — hoy PATCH y DELETE responden «no soportado» (decisión abierta 3).\n\nInteractúa con reglas ya entregadas: cierre de mes (un mes cerrado congela el alta de movimientos),\nciclos de pago (el periodo de una celda puede ser un ciclo, y el movimiento se asigna por su fecha) y\nlas reglas del servidor (`reglas-en-el-servidor`).\n\n## Must Not Break (Regression Boundary)\n- Las celdas de bolsillos (tipo `transfer`) muestran sus observaciones derivadas del journal exactamente\n  como hoy, y pasan sus TCs existentes sin cambios.\n- Un mes cerrado sigue sin admitir movimientos nuevos por ninguna vía, incluido este panel; las\n  observaciones manuales de la celda siguen siendo editables en un mes cerrado.\n- En modo ciclos, un movimiento cargado desde el panel cae en el ciclo que corresponde a su fecha, igual\n  que un movimiento cargado por la vía actual.\n- Cargar un movimiento por la vía actual sigue sumando a su celda igual que hoy.\n- Las reglas de techo y piso siguen validándose en el servidor para cualquier movimiento nuevo.\n\n## Out of Scope\n- Notas con valor que sumen a la celda: descartado a propósito (sería un tercer escritor del mismo número).\n- Ligar un gasto a la alcancía que lo financió (BL-035, diferido por decisión del usuario del 2026-08-29).\n\n## Decisiones del usuario (discovery guiado, 2026-09-14)\n- **D1 — escribir a mano crea un ajuste.** Teclear un valor en la celda de EJECUTADO crea un movimiento de\n  ajuste por la diferencia (sube o baja), con descripción vacía y un texto por defecto; el usuario puede\n  escribirle la descripción después. La celda y su lista de movimientos siempre cuadran. (El presupuesto\n  no tiene movimientos y se sigue tecleando como hoy.)\n- **D1a-final — manda el CIERRE, no la fecha de fin (opción a, elegida tras repasar las reglas de\n  cierre-de-mes FR-2002..FR-2010).** Se puede anotar, editar y borrar en cualquier mes/ciclo que NO esté\n  cerrado —terminado o en curso—, y en el último reabierto; la fecha tiene que caer dentro de ese\n  mes/ciclo (con la excepción del ingreso adelantado de D9). Un mes/ciclo cerrado no admite nada y lo\n  olvidado va como movimiento en uno abierto. Es como la app funciona hoy con «Nuevo movimiento».\n  SUPERA a la versión intermedia de abajo, que decía «un ciclo que ya terminó no admite registros».\n- **D1a (versión intermedia, superada por D1a-final)** — dónde y con qué fecha se anota. Solo se\n  anota en el mes/ciclo EN CURSO, o en uno REABIERTO. La fecha puede ser cualquiera DENTRO de ese mes/ciclo\n  (por defecto la del sistema). Un mes/ciclo que ya terminó, o que está cerrado, no admite más registros:\n  lo olvidado se anota como ajuste en el mes/ciclo actual. Primera versión de esta respuesta, ya superada:\n  «la fecha es el timestamp del sistema».\n- **D1b — también en celdas sin movimientos**, con nota automática por defecto.\n- **D1c — ajustes negativos, sí.** Hoy la app no acepta movimientos negativos; esta feature los introduce\n  solo para los ajustes. La celda nunca baja de 0.\n\n- **D2 — las 28 notas manuales se quedan.** Conviven con los movimientos en la misma sección de la celda,\n  y TODAS las entradas (movimientos, notas manuales y notas automáticas de bolsillos) comparten un estilo\n  visual similar al de las notas automáticas actuales.\n- **D4 — alcance recortado tras revisar «Nuevo movimiento» (el usuario lo pidió).** Cargar transacciones YA\n  está resuelto: el formulario existente (`src/components/register/Register.tsx`) pide tipo, monto,\n  categoría, fecha (que asigna mes o ciclo) y «Nota (opcional)». Lo que falta es VERLAS: ninguna pantalla\n  lista movimientos después de guardarlos. Por tanto:\n  - la **vía principal** para registrar es «Nuevo movimiento», sin formulario nuevo;\n  - el detalle de la celda **lista** sus movimientos y comentarios;\n  - **escribir directo en la grilla sigue permitido** como vía secundaria y crea el ajuste de D1.\n  Sin notas con monto y sin un segundo formulario.\n- **D6 — «Añadir movimiento» dentro del detalle de la celda (UX elegida, opción b).** Se descartó abrir el\n  formulario grande desde la celda: el usuario lo vio raro, porque al tocar la celda ya se está escribiendo\n  en ella. En su lugar, el detalle ofrece una línea compacta **monto + nota** (fecha por defecto la de hoy,\n  editable dentro del mes/ciclo), como el campo de comentario que ya existe: escribir «30.000 · Almuerzo»\n  suma a la celda sin cuentas mentales y con la nota en el momento. Motivo con datos del usuario: sus 27\n  movimientos tienen nota (el 100 %) y hay celdas con varios gastos (hasta 7), así que la opción (a)\n  —teclear el total nuevo y poner la nota después— obligaba a sumar de cabeza y dejaba ajustes sin contexto.\n  Teclear el número en la celda sigue creando el ajuste (D1) para corregir un total.\n- **D5 — un movimiento guardado se puede EDITAR: monto, nota y fecha («todo»).** Con las mismas reglas de\n  D1a: solo en el mes/ciclo en curso o en uno reabierto, y la nueva fecha tiene que quedar dentro de ese\n  mismo mes/ciclo. Hoy no existe (la API responde «Operación no soportada en v1»). Confirmado además:\n  - **se puede BORRAR** un movimiento (p. ej. un gasto cargado dos veces);\n  - **se puede cambiar la CATEGORÍA**: el monto sale de una celda y entra en la otra, dentro del mismo\n    mes/ciclo.\n- **D7 — comentarios nuevos, sí.** Se pueden seguir agregando comentarios (solo texto) en la celda, con el\n  mismo formato nuevo que movimientos y comentarios automáticos.\n- **D10 — editar la FECHA sí puede mover un movimiento a otro mes/ciclo (supera en parte a D8).** Al preparar la\n  fase 1 apareció que FR-2405 (feature `ciclos`, aprobada) ya dice: «editar la fecha de un movimiento de 20-oct a\n  21-oct lo mueve de Octubre a Noviembre». Presentada la contradicción con D8, el usuario eligió que gane FR-2405:\n  cambiar la fecha reasigna el ciclo, siempre que ni el de origen ni el de destino estén cerrados. Queda fuera\n  solo arrastrar un movimiento a otra celda.\n- **D8 (superada en parte por D10)** — mover un movimiento a OTRO mes/ciclo queda FUERA. Si hace falta, se borra y se crea de nuevo en el\n  ciclo correcto. El usuario pidió que se le avise si aparece una buena razón para incluirlo.\n- **D9 — editar valida la fecha igual que «Nuevo movimiento».** Motivo: el formulario ya permite que un\n  INGRESO cercano al día de pago cuente en el ciclo que abre aunque su fecha caiga en el anterior\n  (`Register.tsx`, propuesta de pago adelantado, FR-2405/FR-2406). Exigir «fecha dentro de su ciclo» al\n  editar rechazaría esa fecha legítima. Cargar y editar se comportan igual. (En los datos del usuario hoy\n  no hay ningún ingreso en ese caso.)\n- **Criterios de éxito confirmados por el usuario:** los 8 propuestos en el discovery, con el 2 cambiado a\n  «Añadir movimiento» dentro del detalle.\n- **D3 — un nombre para cada cosa, en toda la app** (el usuario pidió dejar de alternar entre notas,\n  observaciones y detalles). Confirmado:\n  - **Detalle**: lo que se ve al abrir la celda (reemplaza a «Observaciones»).\n  - **Movimiento**: cada línea con fecha y monto; un ajuste también es un movimiento.\n  - **Nota**: el texto de un movimiento (el formulario ya lo llama «Nota (opcional)»). Donde este documento\n    dice «descripción» de un ajuste, es su nota.\n  - **Comentario**: una línea solo de texto, sin monto (las 28 manuales y las automáticas de bolsillos).\n  «Un movimiento tiene nota; la celda tiene comentarios.»\n\n## Decisiones abiertas (se resuelven en el discovery, con el usuario)\n1. **La central:** qué manda cuando el valor tecleado de la celda y la suma de sus movimientos\n   discrepan. (a) la celda pasa a solo lectura cuando tiene movimientos; (b) teclear crea un movimiento\n   de ajuste por la diferencia; (c) la celda sigue mandando y se marca el descuadre.\n2. Si las notas de movimientos sustituyen a las 27 observaciones manuales duplicadas escritas el\n   2026-09-09 (y entonces se borran) o si conviven.\n3. Si entra en alcance editar o borrar un movimiento, que hoy el producto no tiene.\n\n_BG-017, que BL-044 proponía cerrar aquí, ya está arreglado: `repointMovements` re-apunta todos los\ntipos de movimiento. Queda fuera de esta feature._\n\n_Las cifras de los ejemplos (187.500, 336.700, 6.500.000, «Accesorio de cámara») son las anonimizadas\nde BL-044 y NO existen en la base real. Los criterios de éxito se comprueban con datos de prueba._\n"
+}
