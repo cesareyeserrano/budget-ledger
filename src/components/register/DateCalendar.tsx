@@ -20,6 +20,9 @@ export default function DateCalendar({ selected, onSelect }: Props) {
   return (
     <DayPicker
       mode="single"
+      // BG-001 (stack-upgrade-theme): sin `required`, tocar el día ya elegido lo deselecciona
+      // (onSelect(undefined)) y el popover no se cierra. Con él, re-elegirlo cierra como cualquier otro día.
+      required
       locale={es}
       captionLayout="dropdown"
       startMonth={new Date(2000, 0)}
