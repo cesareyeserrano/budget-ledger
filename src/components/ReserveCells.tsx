@@ -254,8 +254,9 @@ export function ReserveCellEditor(props: {
 // ── Observaciones por celda ────────────────────────────────────────────────────────────────────
 
 /**
- * Sección «Observaciones» del editor: las notas de las operaciones De→A del mes llegan solas
- * (derivadas del journal) y se pueden añadir manuales (≤280, contador en --error al exceder).
+ * Sección «Detalle» del editor (antes «Observaciones», renombrada por FR-2509): las notas de las
+ * operaciones De→A del mes llegan solas (derivadas del journal) y se pueden añadir comentarios
+ * manuales (≤280, contador en --error al exceder).
  */
 /**
  * Las observaciones de una celda: las existentes y el campo para añadir una.
@@ -283,7 +284,7 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Per
 
   return (
     <div data-testid="cell-notes" className="flex flex-col gap-1 text-[12px]">
-      <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Observaciones</span>
+      <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Detalle</span>
       {carry ? (
         <div data-testid="carry-note" className="flex items-start gap-1.5 rounded-(--radius-xs) px-1.5 py-1" style={{ background: "color-mix(in srgb, var(--alert-soft) 8%, transparent)" }}>
           <Info size={12} className="flex-none mt-[2px]" style={{ color: "var(--alert-soft)" }} aria-hidden="true" />
@@ -295,7 +296,7 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Per
         </div>
       ) : null}
       {observations.length === 0 && !carry ? (
-        <span data-testid="cell-notes-empty" style={{ color: "var(--fg-muted)" }}>Sin observaciones este mes</span>
+        <span data-testid="cell-notes-empty" style={{ color: "var(--fg-muted)" }}>Sin movimientos ni comentarios</span>
       ) : (
         <ul className="flex flex-col gap-0.5">
           {observations.map((o, i) => (
@@ -307,9 +308,9 @@ export function CellNotesSection({ leafId, month }: { leafId: string; month: Per
       )}
       <div className="flex items-center gap-2">
         <input
-          aria-label="Añadir observación"
+          aria-label="Añadir comentario"
           value={draft}
-          placeholder="Añadir observación"
+          placeholder="Añadir comentario"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             // Solo el ENTER se retiene: es el que, si burbujeara, cometería la celda al añadir una

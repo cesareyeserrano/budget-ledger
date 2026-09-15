@@ -190,19 +190,19 @@ test.describe("FR-1012 — observaciones por celda", () => {
     await cell.click();
     const notes = page.getByTestId("cell-notes");
     await expect(notes.getByTestId("cell-note")).toHaveText("pasaje");
-    await page.getByLabel("Añadir observación").fill("meta del viaje");
+    await page.getByLabel("Añadir comentario").fill("meta del viaje");
     await page.getByTestId("cell-note-add").click();
     await expect(notes.getByTestId("cell-note")).toHaveCount(2);
     await expect(notes.getByTestId("cell-note").nth(1)).toHaveText("meta del viaje");
   });
 
-  test("TC-TRF4-012e: celda sin observaciones: sin indicador y con placeholder en el editor", async ({ page }) => {
+  test("TC-TRF4-012e: celda sin movimientos ni comentarios: sin indicador y con placeholder en el editor", async ({ page }) => {
     // @aitri-tc TC-TRF4-012e
     await gotoGrid(page);
     const cell = reserveCell(page, "Viaje", 4, "actual");
     await expect(cell.getByTestId("note-dot")).toHaveCount(0);
     await cell.click();
-    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin observaciones este mes");
+    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin movimientos ni comentarios");
   });
 });
 

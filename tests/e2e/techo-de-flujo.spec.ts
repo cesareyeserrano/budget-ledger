@@ -336,7 +336,7 @@ test.describe("FR-1809 y FR-1804 · observaciones", () => {
     await expect(seccion).toBeVisible();
     await expect(page.getByTestId("cell-notes-empty")).toBeVisible();
 
-    await seccion.getByLabel("Añadir observación").fill("mercado de la quincena");
+    await seccion.getByLabel("Añadir comentario").fill("mercado de la quincena");
     await seccion.getByTestId("cell-note-add").click();
     await expect(seccion.getByTestId("cell-note")).toHaveText(/mercado de la quincena/);
 

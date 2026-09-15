@@ -65,7 +65,10 @@
   "rederivations": {
     "note": "Re-derivación v3→v4 (2026-07-30): el modelo de celdas-saldo (TCs TC-TRF-1xx/2xx/3xx/4xx del spec anterior) fue construido, validado adversarialmente y REVERTIDO por decisión del usuario en uso real; la suite completa se re-derivó al modelo v4 con el prefijo TC-TRF4-* (67 TCs de 03_TEST_CASES.json). Además se re-basaron al modelo de flujos: TC-BAL-907h/936e (fixtures), TC-BAL-958e y TC-SUT-247h/249f (clave ledger.budget.v4), y los specs e2e que sembraban formatos viejos ahora siembran v4 — los formatos v2/v3 solo se siembran en tests/integration/reserve-migration.test.ts (verificado por TC-TRF4-157e).",
     "superseded_prefix": "TC-TRF-",
-    "current_prefix": "TC-TRF4-"
+    "current_prefix": "TC-TRF4-",
+    "change_requests": [
+      "2026-09-15 — FR-2509 de diario-de-celda (aprobado el 2026-09-14): TC-TRF4-012h y TC-TRF4-012e cambian solo en el texto visible. src/components/ReserveCells.tsx: «Observaciones» → «Detalle», «Añadir observación» → «Añadir comentario» (aria-label y placeholder), «Sin observaciones este mes» → «Sin movimientos ni comentarios»; mismos data-testid. Tests: tests/e2e/transferencias.spec.ts (012h y 012e) y la etiqueta de tests/e2e/techo-de-flujo.spec.ts (TC-TDF-080h), sin cambio de comportamiento."
+    ]
   },
   "test_runner": "../../../unit.sh",
   "test_runner_timeout_ms": 900000,

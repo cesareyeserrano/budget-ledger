@@ -1,52 +1,25 @@
 {
-  "currentPhase": 5,
+  "currentPhase": 4,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T21:43:14.393Z",
+  "updatedAt": "2026-09-15T19:59:34.355Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T14:31:40.532Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-07-30T14:34:08.108Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-30T14:34:12.107Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-30T14:35:37.458Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-30T14:35:44.235Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-07-30T14:35:44.338Z",
       "event": "approved",
@@ -135,15 +108,41 @@
       "phase": "verify",
       "passed": 67,
       "failed": 0
+    },
+    {
+      "at": "2026-09-15T19:12:56.306Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-15T19:13:32.915Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-15T19:13:43.161Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-15T19:16:55.406Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-15T19:59:34.327Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
     "1": "ee959b4211db6216f89e3c47b20dd223900ae3be6a847df340aaf3130ee0199b",
     "2": "503f6f5e087ce6bef75cb56e045b60f0d01dad29dc900d4de15de3890e483670",
-    "3": "a11adeb94170f3ace702279530870e1dde67f467b36110da158078ea8e1918fb",
-    "4": "12f5e2ab6373746ecad7c6c6e76a3f7f3839d15fb6891a457d52f2d61cf9e0ee",
-    "5": "8ab05763a494296da4685a8578c9744031c94ed501c3005bed1f07d300135121",
+    "3": "a5973b20def37f9e940ecc17765b5127b7c088b2fd564ef79abae7c6905273f7",
+    "4": "05a29618500597fdf78a73590ee88fe61d93dbe4c2a773223d0c447f2ba2c201",
     "ux": "931984c95bc79d29bc47697cccf528269617533fcd10152e71afa6f7d6132863"
   },
   "coverageAuditLastAt": "2026-07-30T14:29:48.007Z",
@@ -230,26 +229,7 @@
       "FR-1015"
     ]
   },
-  "verifyPassed": true,
-  "verifyResultsHash": "fadf54a6e336f67d5ca6871035063d33e6c985059f8fdfcafb5b17fa798cdad9",
-  "verifyRanAt": "2026-09-13T21:43:14.064Z",
-  "lastVerifyRun": {
-    "passed": 67,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-09-13T21:43:14.064Z"
-  },
-  "verifySummary": {
-    "total": 67,
-    "passed": 67,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 0
-  },
+  "verifyPassed": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",

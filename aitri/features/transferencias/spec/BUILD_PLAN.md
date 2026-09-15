@@ -60,6 +60,13 @@ Nota de alcance: FR-1013 (SHOULD, helper de trayectoria) no tiene US ni TCs prop
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Solo puede cerrarse al final: perf medida sobre el sistema completo (≤150ms/30 alcancías), AA en ambos temas sobre las tintas ya montadas, y la suite agregada del monorepo en verde con las re-derivaciones documentadas (build report).
 
+## EP-09 — Change request FR-2509: textos de la sección de la celda   [status: done]
+  Delivers:    US-1012 (sin cambio de comportamiento)
+  FRs:         FR-1012
+  Makes pass:  TC-TRF4-012h, TC-TRF4-012e
+  Build steps: skeleton → persistence/integrations → hardening (solo textos: sin persistencia ni lógica)
+  Why here:    Change request aprobado el 2026-09-14 desde diario-de-celda (FR-2509), fase 3 re-aprobada el 2026-09-15. «Observaciones» → «Detalle», «Añadir observación» → «Añadir comentario», «Sin observaciones este mes» → «Sin movimientos ni comentarios». Mismos data-testid. También cambia la etiqueta en techo-de-flujo.spec.ts (TC-TDF-080h), solo en el código del e2e.
+
 ---
 
 ## Checkpoints / evidencia
@@ -187,3 +194,12 @@ Nota de alcance: FR-1013 (SHOULD, helper de trayectoria) no tiene US ni TCs prop
   typecheck y lint limpios.
 - Los hallazgos adversariales del 2026-07-30 quedaron como TCs negativos permanentes
   (TC-TRF4-004e/104e/011f) y la migración v3→v4 con retiros sintetizados como TC-TRF4-010h/010e.
+
+### EP-09 (2026-09-15) — done · change request FR-2509
+- Fase 3 re-aprobada con TC-TRF4-012h/012e cambiados solo en texto (ids y campos verificados contra HEAD).
+- `ReserveCells.tsx`: «Detalle», «Añadir comentario» (aria-label y placeholder), «Sin movimientos ni comentarios».
+  Sin cambio de lógica ni de data-testid. Etiqueta también en `techo-de-flujo.spec.ts` (TC-TDF-080h).
+- Runs: Playwright TC-TRF4-012h, TC-TRF4-012e y TC-TDF-080h **3 passed** (exit 0) · reserve-closure
+  TC-TRF4-157h/157e/157f **3/3 ✓** · typecheck y lint exit 0 · sin restos de los textos viejos en src ni tests.
+- Pendiente fuera de esta feature: `BudgetGrid.tsx:364-365` («dejar una observación») y su
+  `cierre-de-mes.spec.ts:159` — lo resuelve diario-de-celda (FR-2509).
