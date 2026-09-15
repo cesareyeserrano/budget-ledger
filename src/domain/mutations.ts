@@ -636,14 +636,19 @@ export function moveNode(
   const moved = findNode(next.nodes, id)!;
   moved.level = "category";
   moved.parentId = dest.id;
-  // FR-604 — el grupo-hoja gana su PRIMER hijo → traslada sus montos al hijo (suma, no pierde los del hijo).
+  // FR-604 — el grupo-hoja gana su PRIMER hijo → traslada sus montos a una HOJA (suma, no pierde los de la hoja).
+  // BG-039: el nodo movido NO siempre es hoja. Una categoría con subcategorías conserva sus hijos en esta
+  // rama, y mandarle los montos los dejaba en un nodo no editable, fuera del roll-up de Presupuestado y de
+  // todo Detalle. Van a su primera hoja, como hace createNode con el primer hijo. Si el movido ya es hoja,
+  // `leafDescendants` lo devuelve a él mismo y el comportamiento es el de siempre.
   if (groupWasChildlessLeaf && groupHadAmounts) {
-    next.budgets[id] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[id]);
-    next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
+    const receiver = leafDescendants(next.nodes, id)[0] ?? id;
+    next.budgets[receiver] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[receiver]);
+    next.actuals[receiver] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[receiver]);
     delete next.budgets[dest.id];
     delete next.actuals[dest.id];
     // Los movimientos del grupo-hoja cedente siguen a sus celdas (hallazgo adversarial 2, BG-017).
-    repointMovements(next, dest.id, id);
+    repointMovements(next, dest.id, receiver);
   }
   return { state: next };
 }

@@ -939,6 +939,28 @@
       "resolution": "parseEnv descarta las variables vacias antes de validar (mismo criterio que scripts/check-env.mjs), commit 12ca690. Pruebas BG-038a/b en config.test.ts arman el entorno leyendo el docker-compose.yml real; fallan con el env.ts anterior y pasan con el arreglo. Verify de la raiz limpio: 59/59, exit 0, 9 gates. En Ultron sigue la mitigacion SMTP_PORT=465 en el .env hasta redesplegar la imagen.",
       "fix_commit_sha": "1d3b0402020d0fb58806836ce3db69cea5b6af73",
       "fix_at": "2026-09-14T13:42:08.297Z"
+    },
+    {
+      "id": "BG-039",
+      "title": "Mover una categoria con subcategorias a un grupo-hoja con montos deja los montos del grupo en una categoria que no es hoja",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "fixed",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-15T13:02:49.891Z",
+      "updated_at": "2026-09-15T14:10:34.565Z",
+      "resolution": "moveNode (rama destino grupo): los montos y movimientos del grupo-hoja van a la primera hoja del nodo movido (leafDescendants), no al nodo movido. Si el movido ya es hoja, nada cambia. Prueba: tests/domain/bg-039-mover-a-grupo-hoja.test.ts (BG-039a-d).",
+      "fix_commit_sha": "553929aa91da3539a6c6a0784d883dd0d7eb80ec",
+      "fix_at": "2026-09-15T14:10:34.565Z"
     }
   ]
 }
