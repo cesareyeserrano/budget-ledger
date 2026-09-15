@@ -82,6 +82,11 @@ export interface Movement {
   from?: string;
   /** Extremo DESTINO de una operación de reserva (hoja transfer o "@disponible"). */
   to?: string;
+  /** Delta aditivo (feature diario-de-celda, FR-2504): `adjustment` marca el movimiento que nace
+   *  de teclear un valor en la celda — el ÚNICO que admite monto negativo, y solo en gasto o
+   *  ingreso. Ausente ≡ `manual`, así que los movimientos previos siguen siendo válidos. El campo
+   *  es inmutable: un ajuste no se convierte en manual ni al revés. */
+  kind?: "adjustment";
 }
 
 /** Observación manual de una celda (FR-1012). Texto ≤ 280; id/createdAt como los movimientos. */

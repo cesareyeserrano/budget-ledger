@@ -12,7 +12,8 @@ import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } fro
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { planTechoMonths, monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
-import { CellNotesSection, ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
+import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
+import { CellDetail } from "./CellDetail";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cellNum, money } from "./format";
 import { NodeIcon } from "./NodeIcon";
@@ -355,14 +356,18 @@ export function BudgetGrid() {
           // Es ERGONOMÍA, no garantía: la autoridad sigue estando en el servidor (ADR-12). Y la
           // salida se NOMBRA — un rechazo que no dice qué hacer manda al usuario a probar cosas.
           if (cerrados.has(mk)) {
-            // NO se corta el camino: se abre el editor en modo SOLO OBSERVACIONES. Cortarlo dejaba
-            // las notas inalcanzables —el panel de observaciones vive DENTRO de este editor— y las
-            // notas son la única salida que le queda a un error demasiado viejo para reabrirse
+            // NO se corta el camino: se abre el editor en modo SOLO LECTURA del Detalle. Cortarlo
+            // dejaba los comentarios inalcanzables —el Detalle vive DENTRO de este editor— y un
+            // comentario es la única salida que le queda a un error demasiado viejo para reabrirse
             // (FR-2004). Bloquear la celda entera habría convertido esa decisión en letra muerta.
+            //
+            // «observación» → «comentario» por FR-2509 (un solo nombre por concepto): ningún texto
+            // visible dice ya «observación» (TC-DDC-173f, TC-DDC-175f). El aviso sigue nombrando la
+            // salida, que es lo que pide TC-CDM-091f de cierre-de-mes.
             showToast(
               mk === reopenable
-                ? `${cycleMonthLabel(cal, mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar una observación.`
-                : `${cycleMonthLabel(cal, mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar una observación en la celda.`
+                ? `${cycleMonthLabel(cal, mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar un comentario.`
+                : `${cycleMonthLabel(cal, mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar un comentario en la celda.`
             );
             setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
             return;
@@ -807,12 +812,9 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
           className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />
         )}
-        {/* FR-1809: cualquier celda admite observación, no solo las de bolsillos. */}
-        {props.nodeId && props.month && (
-          <div className="absolute left-0 top-full z-20 mt-1 min-w-[230px] rounded-(--radius-sm) border border-border bg-elevated p-2" style={{ boxShadow: "var(--shadow-md)" }}>
-            <CellNotesSection leafId={props.nodeId} month={props.month} />
-          </div>
-        )}
+        {/* FR-2501: el editor de cualquier celda monta el Detalle — qué movimientos la forman y qué
+            comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
+        {props.nodeId && props.month && <CellDetail leafId={props.nodeId} month={props.month} />}
       </div>
     );
   }

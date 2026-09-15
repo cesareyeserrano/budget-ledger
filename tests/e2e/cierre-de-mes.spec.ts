@@ -153,10 +153,15 @@ test("TC-CDM-091f: intentar editar una celda cerrada explica el rechazo y su sal
   await expect(page.locator("input:focus")).toHaveCount(0);
 
   // Dice que está cerrado Y qué hacer. Junio NO es el último cerrado, así que la salida ofrecida
-  // es la observación, no reabrir.
+  // es el comentario, no reabrir.
+  //
+  // «observación» → «comentario» por FR-2509 de diario-de-celda (un solo nombre por concepto), que
+  // exige que ningún texto visible diga «observación» (TC-DDC-173f, TC-DDC-175f). TC-CDM-091f pide
+  // que el aviso NOMBRE la salida, y la sigue nombrando: cambia la palabra, no el comportamiento
+  // (decisión del usuario del 2026-09-15; mismo criterio que la etiqueta de techo-de-flujo).
   const toast = page.getByTestId("toast");
   await expect(toast).toContainText("cerrado");
-  await expect(toast).toContainText("observación");
+  await expect(toast).toContainText("comentario");
 
   // Y al cerrar el panel la cifra sigue siendo la misma. Se comprueba DESPUÉS de Escape porque
   // mientras el panel está abierto el editor sustituye el nodo de la celda: comparar el texto en

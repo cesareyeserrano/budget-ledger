@@ -340,8 +340,27 @@ function makeCalendar(config: CycleConfig, entries: CycleEntry[]): Calendar {
  * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-066e
  */
 export function formatRange(start: string, end: string): string {
-  const f = (iso: string) => `${Number(iso.slice(8, 10))} ${MONTH_LABELS_SHORT[Number(iso.slice(5, 7)) - 1]!.toLowerCase()}`;
-  return `${f(start)} – ${f(end)}`;
+  return `${formatDay(start)} – ${formatDay(end)}`;
+}
+
+/**
+ * «21 ago»: un día suelto, con el MISMO formato que los extremos de un rango.
+ *
+ * Extraída de `formatRange` al necesitarla la fila del Detalle (FR-2501): dos implementaciones del
+ * mismo formato es exactamente lo que NFR-2412 («formato único en toda la app») prohíbe, así que
+ * hay una sola y las dos superficies la comparten. `Intl` NO sirve aquí: con `es-CO` devuelve
+ * «1 de sept», que no es el formato del producto.
+ *
+ * @param iso Fecha ISO, con hora o sin ella («2026-09-18» o «2026-09-18T12:00»).
+ * @returns El día sin cero y el mes en tres letras minúsculas; cadena vacía si la fecha no es ISO.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-001h, TC-DDC-010e
+ */
+export function formatDay(iso: string): string {
+  const day = Number(iso.slice(8, 10));
+  const month = MONTH_LABELS_SHORT[Number(iso.slice(5, 7)) - 1];
+  return Number.isFinite(day) && day > 0 && month ? `${day} ${month.toLowerCase()}` : "";
 }
 
 /** El calendario que corresponde a un estado, con cotas de mes generosas alrededor de sus datos. */

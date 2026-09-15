@@ -38,7 +38,7 @@ import { cellNum, money } from "./format";
 import { CELL_W } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Info } from "lucide-react";
+import { CellDetail } from "./CellDetail";
 
 
 /** Marca de forma del aviso de plan: canal no cromático PROPIO — ≠ ›/›› y ≠ ‹‹ (WCAG 1.4.1). */
@@ -91,6 +91,12 @@ export function ReserveLeafCell(props: {
     <div
       onClick={props.onStart}
       data-testid="cell-leaf"
+      // Los mismos atributos que emite `Cell` para gasto e ingreso (BudgetGrid): sin ellos una celda
+      // de bolsillo solo se podía localizar contando columnas, y el Detalle —que ahora vive también
+      // aquí (FR-2501)— no tenía forma estable de señalarla. Aditivo: nada los consumía antes.
+      data-cell={props.leafId}
+      data-month={props.month}
+      data-plane={props.plane}
       {...(planWarn ? { "data-plan-warn": "true" } : {})}
       title={title}
       className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
@@ -238,111 +244,18 @@ export function ReserveCellEditor(props: {
             {block}
           </div>
         )}
-        {!block && plane === "actual" && (
-          <div
-            className="rounded-(--radius-sm) border border-border px-2.5 py-1.5 flex flex-col gap-1.5 min-w-[230px]"
-            style={{ background: "var(--bg-card)", boxShadow: "var(--shadow-md)" }}
-          >
-            <CellNotesSection leafId={leafId} month={month} />
-          </div>
-        )}
+        {/* FR-2501/FR-2508: el panel de la celda de bolsillo es el MISMO Detalle que el de gasto e
+            ingreso — el aviso automático y las notas De→A se leen como filas de comentario. La
+            regla de edición del valor del bolsillo no cambia (NFR-2503). */}
+        {!block && plane === "actual" && <CellDetail leafId={leafId} month={month} />}
       </div>
     </div>
   );
 }
 
-// ── Observaciones por celda ────────────────────────────────────────────────────────────────────
-
-/**
- * Sección «Detalle» del editor (antes «Observaciones», renombrada por FR-2509): las notas de las
- * operaciones De→A del mes llegan solas (derivadas del journal) y se pueden añadir comentarios
- * manuales (≤280, contador en --error al exceder).
- */
-/**
- * Las observaciones de una celda: las existentes y el campo para añadir una.
- *
- * Exportada desde FR-1809: hasta esta feature solo vivía en las celdas de bolsillos, y el usuario
- * pidió que TODAS las celdas admitan observación. La consume también el editor de celdas de gasto e
- * ingreso de `BudgetGrid`, en vez de duplicarla allí y dejar que las dos copias divergan.
- */
-export function CellNotesSection({ leafId, month }: { leafId: string; month: PeriodKey }) {
-  const data = useLedgerStore((s) => s.data);
-  const periods = useActivePeriods();
-  const addNote = useLedgerStore((s) => s.addCellNote);
-  const [draft, setDraft] = useState("");
-  const observations = cellObservations(data, leafId, month, periods);
-  // FR-1804 — la observación AUTOMÁTICA del mes, en la celda donde se reservó (que es donde el
-  // usuario la busca). Se muestra solo si ESTA celda es un BOLSILLO y aportó ese mes: con FR-1809
-  // esta sección vive también en celdas de gasto e ingreso, y sin la guarda de tipo la nota de
-  // reservas aparecía al editar un GASTO cualquiera (auditoría 2026-09-01) — «de los $600
-  // reservados…» en una celda que no reservó nada.
-  const esBolsillo = findNode(data.nodes, leafId)?.type === "transfer";
-  const aporto = esBolsillo && (data.actuals[leafId]?.[month] ?? 0) > 0;
-  const carry = aporto ? monthCarryUsage(data, month, "actual", periods) : null;
-  const over = draft.length > CELL_NOTE_MAX;
-  const canAdd = draft.trim().length > 0 && !over;
-
-  return (
-    <div data-testid="cell-notes" className="flex flex-col gap-1 text-[12px]">
-      <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Detalle</span>
-      {carry ? (
-        <div data-testid="carry-note" className="flex items-start gap-1.5 rounded-(--radius-xs) px-1.5 py-1" style={{ background: "color-mix(in srgb, var(--alert-soft) 8%, transparent)" }}>
-          <Info size={12} className="flex-none mt-[2px]" style={{ color: "var(--alert-soft)" }} aria-hidden="true" />
-          <span style={{ color: "var(--fg)" }}>
-            De los <span className="tabular">{money(carry.reservado)}</span> reservados este mes,{" "}
-            <span className="tabular">{money(carry.delSaldoAnterior)}</span> salieron del saldo de{" "}
-            {periodLabel(carry.mesAnterior).toLowerCase()}.
-          </span>
-        </div>
-      ) : null}
-      {observations.length === 0 && !carry ? (
-        <span data-testid="cell-notes-empty" style={{ color: "var(--fg-muted)" }}>Sin movimientos ni comentarios</span>
-      ) : (
-        <ul className="flex flex-col gap-0.5">
-          {observations.map((o, i) => (
-            <li key={`${o.createdAt}-${i}`} data-testid="cell-note" className="break-words" style={{ color: "var(--fg)" }}>
-              {o.text}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="flex items-center gap-2">
-        <input
-          aria-label="Añadir comentario"
-          value={draft}
-          placeholder="Añadir comentario"
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            // Solo el ENTER se retiene: es el que, si burbujeara, cometería la celda al añadir una
-            // observación. Escape SÍ debe subir — el UX spec declara «Esc cierra sin guardar» para
-            // esta sección, y reteniéndolo el editor quedaba abierto sin forma de cerrarlo con
-            // teclado desde el campo de la nota.
-            if (e.key === "Enter") {
-              e.stopPropagation();
-              if (canAdd && addNote(leafId, month, draft)) setDraft("");
-            }
-          }}
-          className="w-full bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent"
-        />
-        <span data-testid="cell-note-counter" className="flex-none tabular" style={{ color: over ? "var(--error)" : "var(--fg-muted)" }}>
-          {draft.length}/{CELL_NOTE_MAX}
-        </span>
-        <button
-          data-testid="cell-note-add"
-          disabled={!canAdd}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            if (addNote(leafId, month, draft)) setDraft("");
-          }}
-          className="flex-none cursor-pointer border-0 bg-transparent p-0 font-semibold disabled:cursor-default disabled:opacity-50"
-          style={{ color: "var(--fg)" }}
-        >
-          Añadir
-        </button>
-      </div>
-    </div>
-  );
-}
+// El campo de comentario de una celda vive ahora en `CellNoteInput` y el panel entero en
+// `CellDetail` (feature diario-de-celda, FR-2508): esta sección era el panel completo —título,
+// aviso automático, lista y campo— y se repartió en esas dos piezas.
 
 // ── Fila «Retiros» (operar desde la grilla) ────────────────────────────────────────────────────
 
