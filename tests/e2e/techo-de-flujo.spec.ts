@@ -323,9 +323,13 @@ test.describe("FR-1806 · la señal del mes vive en sus dos superficies", () => 
 test.describe("FR-1809 y FR-1804 · observaciones", () => {
   test("TC-TDF-080h: una celda de GASTO admite observación, y su marca aparece al guardarla", async ({ page }) => {
     await page.setViewportSize(DESK);
+    // NFR-2502: Mercado se siembra EN CERO. Con una cifra, la siembra le añade el movimiento que la
+    // respalda (el servidor ya no admite una celda sin él) y el panel listaría esa fila, así que el
+    // estado vacío no aparecería. Lo que esta prueba verifica —que una celda de GASTO admite
+    // comentario y que su marca aparece al guardarlo— no depende de que la celda tenga cifra.
     await abrir(page, {
       nodes: NODES,
-      actuals: { "c-salario": { "2026-01": 1000 }, "c-mercado": { "2026-01": 300 } },
+      actuals: { "c-salario": { "2026-01": 1000 }, "c-mercado": { "2026-01": 0 } },
     });
 
     // Antes de FR-1809 esto solo existía en celdas de bolsillo.

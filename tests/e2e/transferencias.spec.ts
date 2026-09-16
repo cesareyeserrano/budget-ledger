@@ -71,7 +71,14 @@ async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellM
  * como para fallar ~1 de cada 3 corridas.
  */
 async function expectMovementCount(page: Page, n: number): Promise<void> {
-  await expect.poll(async () => (await persisted(page)).movements.length, { timeout: 10_000 }).toBe(n);
+  // NFR-2502: se cuentan los movimientos DE LA PRUEBA. Desde que el servidor exige que cada celda
+  // de gasto o ingreso cuadre con sus movimientos, la siembra añade el respaldo que falte
+  // (`helpers/seed.ts`), y esas filas no son lo que estas pruebas miden — aquí se opera con
+  // reservas. Contarlas habría obligado a cambiar el número esperado, que es justo lo que no se hace.
+  await expect.poll(
+    async () => (await persisted(page)).movements.filter((m) => !m.id.startsWith("respaldo-")).length,
+    { timeout: 10_000 }
+  ).toBe(n);
 }
 
 /** Un retiro ya operado, para las fixtures que lo necesitan. */

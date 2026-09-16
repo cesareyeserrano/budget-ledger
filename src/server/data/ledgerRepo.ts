@@ -15,6 +15,9 @@ import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
+// Feature diario-de-celda (NFR-2502): el cuadre RELATIVO — una escritura no puede descuadrar una
+// celda que antes cuadraba, y un descuadre previo no bloquea operaciones sobre otras celdas.
+import { worsenedCellMismatches } from "@/domain/detail";
 import { comparePeriods, isPeriodKey, monthOf } from "@/domain/periods";
 import {
   buildCalendar, isValidMovementPeriod, normalizeCycleConfig, NO_CYCLES, type Calendar,
@@ -54,7 +57,10 @@ export type SaveResult =
   /** Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que estaba. */
   | { ok: false; domainViolation: true; violations: ReserveWarning[] }
   /** Feature ciclos (FR-2405/NFR-2408): claves fuera del calendario o periodo incoherente con la fecha. */
-  | { ok: false; periodMismatch: true; ids: string[] };
+  | { ok: false; periodMismatch: true; ids: string[] }
+  /** Feature diario-de-celda (NFR-2502): la escritura DESCUADRA una celda que antes cuadraba con la
+   *  suma de sus movimientos. Relativo: un descuadre previo no bloquea otras celdas. */
+  | { ok: false; cellMismatch: true; cells: { nodeId: string; period: PeriodKey; cell: number; sum: number }[] };
 
 // ── Feature ciclos: la configuración versionada y el calendario del dueño ───────────────────────
 
@@ -156,6 +162,9 @@ function rowsToState(
     // FR-1010: quinta capa del precedente date/note — sin esto los extremos se perderían al leer.
     ...(r.fromId != null ? { from: r.fromId } : {}),
     ...(r.toId != null ? { to: r.toId } : {}),
+    // FR-2504: solo el ajuste se marca. 'manual' es la ausencia del campo, así que un ledger previo
+    // se lee exactamente igual que antes de la migración 0009.
+    ...(r.kind === "adjustment" ? { kind: "adjustment" as const } : {}),
   }));
 
   // FR-1012: observaciones manuales por celda.
@@ -351,6 +360,9 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
         note: mv.note ?? null,
         fromId: mv.from ?? null,
         toId: mv.to ?? null,
+        // FR-2504: tercer punto que escribe movimientos (los retiros sintetizados de la migración
+        // v3→v4). Son siempre manuales, pero se declara explícito para no depender del DEFAULT.
+        kind: mv.kind ?? "manual",
       });
     }
   }
@@ -431,6 +443,9 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
     note: m.note ?? null,
     fromId: m.from ?? null,
     toId: m.to ?? null,
+    // FR-2504: el snapshot se BORRA y se reinserta en cada guardado, así que sin esta línea el
+    // `kind` se perdería en el primer PUT y un ajuste negativo chocaría con el CHECK de la 0009.
+    kind: m.kind ?? "manual",
   }));
 
   for (let i = 0; i < nodeValues.length; i += INSERT_CHUNK) {
@@ -561,6 +576,15 @@ export async function saveLedger(
       // El rango juzgado es la UNIÓN de los dos alcances: un mes que la escritura estrena tiene que
       // entrar en el juicio, o crear un mes sería la puerta de escape (TC-RES-015e).
       const scope = unionScope(state, serverScope(prev), serverScope(state));
+
+      // ── CUADRE RELATIVO (NFR-2502, feature diario-de-celda) ──────────────────────────────────
+      // Va ANTES de las reglas de reservas y DESPUÉS del cierre, en el orden que fija el TRD. Es
+      // relativo como `worsenedBy`: solo rechaza lo que la escritura EMPEORA, así que un descuadre
+      // que ya venía en los datos no deja el libro entero en solo lectura — el usuario lo resuelve
+      // cuando quiera (FR-2511), pero nadie puede crear uno nuevo sin enterarse.
+      const descuadres = worsenedCellMismatches(prev, state, scope);
+      if (descuadres.length > 0) return { ok: false, cellMismatch: true, cells: descuadres };
+
       const violations = worsenedBy(prev, state, scope);
       if (violations.length > 0) return { ok: false, domainViolation: true, violations };
     }

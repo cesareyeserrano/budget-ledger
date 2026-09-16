@@ -226,7 +226,18 @@ test("TC-CDM-094e: un mes cerrado SIN datos se pinta como columna cerrada", asyn
   // hacia adelante y dejaba el mes cerrado fuera de pantalla.
   const l2 = await page.request.get("/api/v1/ledger");
   const body = (await l2.json()) as { revision: number; state: Record<string, unknown> };
-  const conDatos = { ...body.state, actuals: { "c-sueldo": { [siguiente]: 1_000_000 } } };
+  // NFR-2502: la celda va con el movimiento que la respalda. Este PUT se arma a mano (no pasa por
+  // `seedLedger`), así que el respaldo se escribe aquí. Lo que la prueba necesita sigue siendo
+  // «datos SOLO en el mes siguiente», que es lo que tiene.
+  const conDatos = {
+    ...body.state,
+    actuals: { "c-sueldo": { [siguiente]: 1_000_000 } },
+    movements: [{
+      id: "respaldo-sueldo", ownerId: "local", type: "income", catId: "c-sueldo", subId: null,
+      target: "c-sueldo", amount: 1_000_000, period: siguiente, createdAt: 1,
+      date: `${siguiente}-10T12:00`,
+    }],
+  };
   const put = await page.request.put("/api/v1/ledger", {
     data: { baseRevision: body.revision, state: conDatos },
   });
@@ -264,8 +275,12 @@ test("TC-CDM-043e: la celda cerrada dice a la vez «la cifra no» y «la observa
   // La OBSERVACIÓN sí: el panel está y se puede escribir en él.
   const notas = page.getByTestId("cell-notes");
   await expect(notas).toBeVisible();
-  await notas.locator("input").first().fill("error de 8.000 detectado en septiembre");
-  await expect(notas.locator("input").first()).toHaveValue("error de 8.000 detectado en septiembre");
+  // FR-2508: el panel tiene ahora más de un campo (la línea «Añadir movimiento» va primero), así que
+  // el comentario se busca por su etiqueta y no por posición. Lo que la prueba afirma no cambia: en
+  // un mes cerrado la cifra no se edita y el comentario sí.
+  const comentario = notas.getByLabel("Añadir comentario");
+  await comentario.fill("error de 8.000 detectado en septiembre");
+  await expect(comentario).toHaveValue("error de 8.000 detectado en septiembre");
   // Y el aviso lo explica.
   await expect(page.getByTestId("toast")).toContainText("cerrado");
 

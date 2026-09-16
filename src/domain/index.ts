@@ -13,5 +13,7 @@ export * from "./migrate";
 export * from "./dashboard";
 export * from "./closure";
 export * from "./cycles";
-// Feature diario-de-celda: el Detalle de una celda (selector puro, no escribe).
+// Feature diario-de-celda: el Detalle de una celda (selector puro, no escribe) y el ajuste que
+// nace de teclear un total en ella.
 export * from "./detail";
+export * from "./adjust";

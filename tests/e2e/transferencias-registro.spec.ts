@@ -115,8 +115,11 @@ test.describe("FR-1005 — el registro opera Reservas con De→A", () => {
     await expect(page.getByTestId("amount-input")).toHaveValue("");
 
     const stored = await persisted(page);
-    expect(stored.movements).toHaveLength(1);
-    const mv = stored.movements[0];
+    // NFR-2502: los de respaldo que añade la siembra no son lo que esta prueba mide (la operación
+    // De→A que acaba de guardarse), así que se excluyen en vez de cambiar el número esperado.
+    const propios = stored.movements.filter((m) => !m.id.startsWith("respaldo-"));
+    expect(propios).toHaveLength(1);
+    const mv = propios[0];
     expect(mv.from).toBe("c-viaje");
     expect(mv.to).toBe("@disponible");
     expect(mv.note).toBe("pasaje");

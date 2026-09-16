@@ -7,7 +7,7 @@
  * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { PERIOD_KEY, amountSchema, cellAmountSchema } from "@/domain";
+import { PERIOD_KEY, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -43,22 +43,48 @@ const apiNodeSchema = z.object({
 // PUT terminaba en 500 al chocar con el bigint de Postgres, o guardaba en silencio otro numero.
 const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, cellAmountSchema));
 
-const apiMovementSchema = z.object({
-  id: z.string(),
-  ownerId: z.string(),
-  type: nodeType,
-  catId: z.string(),
-  subId: z.string().nullable(),
-  target: z.string(),
-  amount: amountSchema, // BG-021: con tope superior
-  period: PERIOD_KEY,
-  createdAt: z.number(),
-  date: z.string().optional(),
-  note: z.string().nullable().optional(),
-  // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
-  from: z.string().optional(),
-  to: z.string().optional(),
-});
+const apiMovementSchema = z
+  .object({
+    id: z.string(),
+    ownerId: z.string(),
+    type: nodeType,
+    catId: z.string(),
+    subId: z.string().nullable(),
+    target: z.string(),
+    // La regla del monto DEPENDE del kind (FR-2504), así que el campo solo exige «entero finito» y
+    // el resto lo decide el refinamiento de abajo. Con `amountSchema` (>= 1) aquí, un ajuste
+    // negativo legítimo se rechazaba antes de poder juzgarlo.
+    amount: z
+      .number({ invalid_type_error: "El monto debe ser numérico" })
+      .finite("El monto debe ser un número finito")
+      .int("El monto debe ser un entero"),
+    period: PERIOD_KEY,
+    createdAt: z.number(),
+    date: z.string().optional(),
+    note: z.string().nullable().optional(),
+    // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
+    from: z.string().optional(),
+    to: z.string().optional(),
+    // Feature diario-de-celda (FR-2504). Ausente ≡ 'manual': los movimientos previos y los del
+    // registro no lo traen, y el borde no debe inventarlo.
+    kind: z.literal("adjustment").optional(),
+  })
+  .superRefine((m, ctx) => {
+    const issue = (message: string) =>
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ["amount"] });
+    if (Math.abs(m.amount) > MONTO_MAX) return issue(`El monto no puede superar ${MONTO_MAX.toLocaleString("es-CO")}`);
+    if (m.kind === undefined) {
+      // Movimiento normal: la regla de siempre. Un negativo SIN kind no entra (TC-DDC-073f).
+      if (m.amount < 1) issue("El monto debe ser mayor a 0");
+      return;
+    }
+    // Ajuste: nunca cero —«no hacer nada» no se guarda— y solo en gasto o ingreso; los bolsillos
+    // tienen su propia regla (NFR-2503), así que un transfer con kind es un payload inválido.
+    if (m.amount === 0) issue("Un ajuste no puede ser de 0");
+    if (m.type === "transfer") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Un bolsillo no admite ajustes", path: ["kind"] });
+    }
+  });
 
 /** Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`). */
 const apiCellNotes = z.record(

@@ -6,6 +6,9 @@ import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
   addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, plannedRetiroLimit, seedSeqFrom,
+  // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
+  // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
+  adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -183,6 +186,9 @@ interface LedgerStore {
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
    *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
   addMovement: (input: NewMovement) => boolean;
+  /** FR-2502: añade un movimiento DESDE la celda — el tipo y la categoría salen de la hoja. true si
+   *  se persistió; false si el monto es inválido, la fecha cae fuera del periodo o es un doble-tap. */
+  addMovementInCell: (input: { leafId: string; period: PeriodKey; amount: number; note?: string | null; date: string }) => boolean;
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
@@ -675,8 +681,62 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       persist(res.state);
       return "ok";
     },
+    /**
+     * Añadir un movimiento DESDE el Detalle de una celda (FR-2502).
+     *
+     * Reutiliza `addMovement` del dominio —la misma vía que «Nuevo movimiento»— derivando el tipo y
+     * la categoría de la HOJA que se está editando: la celda ya dice dónde va, así que no hay un
+     * segundo formulario que pueda discrepar del primero (NFR-2504).
+     *
+     * La fecha se valida contra el periodo de la CELDA antes de tocar nada: un movimiento fechado
+     * fuera de su ciclo lo rechazaría el servidor con `period_mismatch`, y esperar a ese viaje sería
+     * darle al usuario un error tarde y sin contexto.
+     *
+     * @returns true si se creó y se persistió; false si fue inválido o un doble-tap.
+     *
+     * @aitri-trace FR-ID: FR-2502, US-ID: US-2502, AC-ID: AC-2502a, TC-ID: TC-DDC-022h, TC-DDC-030e, TC-DDC-048f
+     */
+    addMovementInCell: ({ leafId, period, amount, note, date }) => {
+      const prev = get().data;
+      const node = findNode(prev.nodes, leafId);
+      if (!node || node.type === "transfer") return false; // los bolsillos no se registran así (NFR-2503)
+      if (!isDateInPeriod(calendarFor(prev), period, date)) return false;
+      // FR-2502: una nota de más de 280 se RECHAZA, no se recorta. `normalizeNote` (FR-211) sí
+      // recorta duro, y esa regla del registro móvil no se toca: la puerta nueva es más estricta
+      // que el dominio a propósito, porque aquí el usuario ve el contador y puede corregir.
+      if (note != null && note.trim().length > CELL_NOTE_MAX) return false;
+
+      const catId = node.level === "sub" && node.parentId ? node.parentId : leafId;
+      const subId = node.level === "sub" ? leafId : null;
+      // Anti doble-tap: la MISMA ventana y la misma firma que el registro (FR-212).
+      const sig = [node.type, catId, subId ?? "", amount, period, date, note ?? "", "", ""].join("|");
+      const now = Date.now();
+      if (lastSig === sig && now - lastAt < DOUBLE_TAP_MS) return false;
+
+      const data = addMovement(prev, { type: node.type, catId, subId, amount, period, date, ...(note !== undefined ? { note } : {}) }, get().activePeriods());
+      if (data === prev) return false; // monto inválido: no se persiste
+      lastSig = sig;
+      lastAt = now;
+      set({ data });
+      persist(data);
+      return true;
+    },
     setLeafAmount: (leafId, month, kind, value) => {
-      const data = setLeafAmount(get().data, leafId, month, kind, value, get().activePeriods());
+      const prev = get().data;
+      const node = findNode(prev.nodes, leafId);
+      // FR-2504: teclear el Ejecutado de una hoja de gasto o ingreso no ASIGNA la cifra — crea un
+      // ajuste por la diferencia con lo que suman sus movimientos, y así la celda nunca deja de
+      // estar respaldada por el journal. El plano Presupuestado (NFR-2506) y los bolsillos
+      // (NFR-2503) siguen exactamente por donde iban.
+      if (kind === "actual" && node && node.type !== "transfer") {
+        const fecha = proposedDate(calendarFor(prev), month, new Date());
+        const r = adjustCell(prev, leafId, month, value, fecha, get().activePeriods());
+        if ("rejected" in r) return;
+        set({ data: r.state });
+        persist(r.state);
+        return;
+      }
+      const data = setLeafAmount(prev, leafId, month, kind, value, get().activePeriods());
       set({ data });
       persist(data);
     },

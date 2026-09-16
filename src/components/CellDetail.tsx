@@ -15,6 +15,7 @@ import type { NodeType, PeriodKey } from "@/domain/types";
 import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { money } from "./format";
 import { CellNoteInput } from "./CellNoteInput";
+import { AddMovementLine } from "./AddMovementLine";
 
 /** Ancho del panel y alto máximo de la lista (UX spec § Component Inventory). */
 const PANEL_MAX_W = 320;
@@ -160,6 +161,10 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
           ))}
         </div>
       )}
+
+      {/* FR-2502: la línea de añadir es de gasto e ingreso. Un bolsillo no registra movimientos
+          desde aquí — sus operaciones De→A tienen su propia vía (NFR-2503, TC-DDC-343e). */}
+      {node.type !== "transfer" && <AddMovementLine leafId={leafId} month={month} />}
 
       <CellNoteInput leafId={leafId} month={month} />
     </div>

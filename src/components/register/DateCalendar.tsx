@@ -1,6 +1,6 @@
 "use client";
 
-import { DayPicker } from "react-day-picker";
+import { DayPicker, type Matcher } from "react-day-picker";
 import { es } from "react-day-picker/locale";
 import "react-day-picker/style.css";
 import type { CSSProperties } from "react";
@@ -8,6 +8,12 @@ import type { CSSProperties } from "react";
 interface Props {
   selected: Date | undefined;
   onSelect: (day: Date | undefined) => void;
+  /**
+   * Días que NO se pueden elegir (feature diario-de-celda, FR-2503). El Detalle lo usa para acotar
+   * el calendario al mes o ciclo de la celda: un movimiento fechado fuera lo rechazaría el servidor,
+   * así que no se ofrece. Ausente ≡ todos los días habilitados, que es el registro de siempre.
+   */
+  disabled?: Matcher | Matcher[];
 }
 
 /**
@@ -16,7 +22,7 @@ interface Props {
  *
  * @aitri-trace FR-ID: FR-210, US-ID: US-210, AC-ID: AC-212, TC-ID: TC-SUT-230e
  */
-export default function DateCalendar({ selected, onSelect }: Props) {
+export default function DateCalendar({ selected, onSelect, disabled }: Props) {
   return (
     <DayPicker
       mode="single"
@@ -29,6 +35,7 @@ export default function DateCalendar({ selected, onSelect }: Props) {
       endMonth={new Date(2100, 11)}
       selected={selected}
       onSelect={onSelect}
+      disabled={disabled}
       styles={{
         root: {
           fontSize: "0.875rem",

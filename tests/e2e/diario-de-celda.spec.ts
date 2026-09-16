@@ -453,7 +453,10 @@ test.describe("FR-2509 — un solo nombre por concepto", () => {
     expect(await closeViaApi(page)).toBe(200);
     await page.reload();
     await expect(page.getByTestId("budget-grid")).toBeVisible();
-    await expect(page.locator('[data-month-head][data-closed="true"]')).toHaveCount(1, { timeout: 15_000 });
+    // Lo que esta prueba necesita es que ESTA celda esté cerrada, no cuántos meses lo están: la
+    // semilla puebla doce periodos, así que el cierre deja cerrada toda la franja hasta el mes
+    // cerrable. Contar cabeceras ataba el test a un detalle de la siembra que no le incumbe.
+    await expect(celda(page, "c-rest", AGO)).toHaveAttribute("data-closed", "true", { timeout: 15_000 });
 
     await celda(page, "c-rest", AGO).dblclick();
     const toast = page.getByTestId("toast");
