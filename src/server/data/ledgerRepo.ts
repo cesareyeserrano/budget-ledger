@@ -15,6 +15,9 @@ import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
+// Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
+// el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
+import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
 // Feature diario-de-celda (NFR-2502): el cuadre RELATIVO — una escritura no puede descuadrar una
 // celda que antes cuadraba, y un descuadre previo no bloquea operaciones sobre otras celdas.
 import { worsenedCellMismatches } from "@/domain/detail";
@@ -784,6 +787,140 @@ export async function insertMovement(
     await tx.update(ledger).set({ revision, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
     return { movement: mv, revision };
   });
+}
+
+// ── Feature diario-de-celda: editar y borrar un movimiento (FR-2505, FR-2506) ───────────────────
+
+/** Lo que devuelven `updateMovement` y `removeMovement`. El éxito trae la revisión nueva. */
+export type MovementWriteResult =
+  | { ok: true; movement: Movement; revision: number }
+  | { ok: false; notFound: true }
+  | { ok: false; rejected: "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+  | { ok: false; closedViolation: true; periods: PeriodKey[] }
+  | { ok: false; negativeCell: true; cells: NegativeCell[] }
+  | { ok: false; cellMismatch: true; cells: { nodeId: string; period: PeriodKey; cell: number; sum: number }[] }
+  | { ok: false; domainViolation: true; violations: ReserveWarning[] };
+
+/**
+ * El cuerpo compartido de PATCH y DELETE: una transacción con `FOR UPDATE`, la mutación pura del
+ * dominio y el mismo orden de validación que el PUT (ADR-02, TC-DDC-326e).
+ *
+ * EL ORDEN NO ES ARBITRARIO (TC-DDC-328e): dueño → tipo → CIERRE → lo que el cambio provoca. Un
+ * movimiento de un mes cerrado se rechaza por estar cerrado, no por la celda que dejaría negativa:
+ * «ese mes está cerrado» es una respuesta completa, y mandar al usuario a arreglar la celda sería
+ * pedirle trabajo que no desbloquea nada.
+ */
+async function writeMovement(
+  ownerId: string,
+  id: string,
+  mutar: (prev: LedgerState, cal: Calendar, scope: readonly PeriodKey[]) =>
+    | { state: LedgerState }
+    | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+    | { rejected: "negative_cell"; cells: NegativeCell[] }
+): Promise<MovementWriteResult> {
+  return db.transaction(async (tx) => {
+    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    if (!head) return { ok: false, notFound: true };
+    const prev = await loadStateInTx(tx, ownerId);
+    const cal = calendarOf(prev);
+
+    // Dueño: el movimiento se busca DENTRO del estado del owner, así que uno ajeno simplemente no
+    // está — 404 indistinguible de inexistente, sin filtrar si existe en otra cuenta (NFR-2501).
+    const actual = prev.movements.find((m) => m.id === id);
+    if (!actual) return { ok: false, notFound: true };
+
+    // TIPO antes que CIERRE (TC-DDC-328e), y el orden tiene consecuencia: un movimiento de bolsillo
+    // en un mes cerrado no se edita por aquí NI aunque se reabra el mes, así que responder «mes
+    // cerrado» mandaría al usuario a reabrirlo para nada. Lo primero que se le dice es lo que de
+    // verdad le bloquea.
+    if (actual.type === "transfer") return { ok: false, rejected: "unsupported_type" };
+
+    // CIERRE, antes que nada de lo que el cambio provoque. Se mira el periodo DE ORIGEN aquí; el de
+    // destino lo caza `closedPeriodsViolated` más abajo, sobre el estado ya mutado.
+    const closure = closureFromRow(head, cal);
+    if (isClosed(closure, actual.period)) {
+      return { ok: false, closedViolation: true, periods: [actual.period] };
+    }
+
+    const scope = serverScope(prev, actual.period);
+    const res = mutar(prev, cal, scope);
+    if ("rejected" in res) {
+      if (res.rejected === "not_found") return { ok: false, notFound: true };
+      if (res.rejected === "negative_cell") return { ok: false, negativeCell: true, cells: res.cells };
+      return { ok: false, rejected: res.rejected };
+    }
+    const next = res.state;
+
+    // El mismo guardia estructural del PUT: caza mover un movimiento HACIA un mes cerrado y también
+    // cambiarle solo la nota, la fecha o el kind dentro de uno (FR-2507, `diffMovements`).
+    const violated = closedPeriodsViolated({ ...prev, closure }, next);
+    if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
+
+    const juicio = unionScope(prev, scope, serverScope(next, actual.period));
+    const descuadres = worsenedCellMismatches(prev, next, juicio);
+    if (descuadres.length > 0) return { ok: false, cellMismatch: true, cells: descuadres };
+
+    const violations = worsenedBy(prev, next, juicio);
+    if (violations.length > 0) return { ok: false, domainViolation: true, violations };
+
+    // Persistir: la fila del movimiento y el DIFF de celdas que la mutación produjo. Editar puede
+    // tocar DOS celdas (origen y destino) y borrar una; el diff las cubre sin saber cuál es cuál.
+    const mv = next.movements.find((m) => m.id === id);
+    if (mv) {
+      await tx.update(movement).set({
+        type: mv.type, catId: mv.catId, subId: mv.subId, target: mv.target,
+        amount: mv.amount, period: mv.period, date: mv.date ?? null, note: mv.note ?? null,
+      }).where(and(eq(movement.ownerId, ownerId), eq(movement.id, id)));
+    } else {
+      await tx.delete(movement).where(and(eq(movement.ownerId, ownerId), eq(movement.id, id)));
+    }
+
+    for (const [nodeId, months] of Object.entries(next.actuals)) {
+      for (const [month, amount] of Object.entries(months)) {
+        if (amount == null || prev.actuals[nodeId]?.[month as PeriodKey] === amount) continue;
+        await tx
+          .insert(amountCell)
+          .values({ ownerId, nodeId, period: month, kind: "actual", amount })
+          .onConflictDoUpdate({
+            target: [amountCell.ownerId, amountCell.nodeId, amountCell.period, amountCell.kind],
+            set: { amount },
+          });
+      }
+    }
+
+    const revision = head.revision + 1;
+    await tx.update(ledger).set({ revision, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
+    return { ok: true, movement: mv ?? actual, revision };
+  });
+}
+
+/**
+ * Edita un movimiento del usuario: monto, nota, fecha y categoría (FR-2505).
+ *
+ * El `kind` guardado NO se toca y es lo que juzga el monto: un ajuste puede pasar a negativo, un
+ * movimiento manual nunca (TC-DDC-077e, TC-DDC-097f).
+ *
+ * @param ownerId Usuario autenticado — nunca sale del cuerpo de la petición.
+ * @param id Movimiento a editar.
+ * @param patch Campos a cambiar (validados en el borde por Zod).
+ * @returns El movimiento ya editado y la revisión nueva, o el motivo del rechazo.
+ *
+ * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505a, TC-ID: TC-DDC-095h, TC-DDC-091f, TC-DDC-302f
+ */
+export async function updateMovement(
+  ownerId: string, id: string, patch: MovementPatch
+): Promise<MovementWriteResult> {
+  return writeMovement(ownerId, id, (prev, cal, scope) => editMovement(prev, id, patch, cal, scope));
+}
+
+/**
+ * Borra un movimiento del usuario (FR-2506). La celda baja lo que él aportaba; borrar un ajuste
+ * negativo la SUBE, que es como se deshace una corrección de más (TC-DDC-121e).
+ *
+ * @aitri-trace FR-ID: FR-2506, US-ID: US-2506, AC-ID: AC-2506a, TC-ID: TC-DDC-114e, TC-DDC-117f, TC-DDC-303f
+ */
+export async function removeMovement(ownerId: string, id: string): Promise<MovementWriteResult> {
+  return writeMovement(ownerId, id, (prev) => deleteMovement(prev, id));
 }
 
 // ── Feature cierre-de-mes ────────────────────────────────────────────────────────────────────────

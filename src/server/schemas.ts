@@ -27,6 +27,42 @@ export const movementInputSchema = z.object({
 });
 export type MovementInput = z.infer<typeof movementInputSchema>;
 
+/**
+ * Parche de un movimiento (PATCH /api/v1/movements/{id}), feature diario-de-celda (FR-2505).
+ *
+ * `.strict()` y al menos un campo: un cuerpo vacío no es una edición, y un campo de más es un
+ * cliente que cree estar cambiando algo que no existe — mejor un 422 que un silencio.
+ *
+ * El PERIODO no viaja: lo deriva el servidor de `date` con el calendario del dueño (FR-2405). Si el
+ * cliente pudiera mandarlo habría dos fuentes del mismo dato y podrían discrepar.
+ *
+ * Lo que este esquema NO puede juzgar es la regla del monto según el `kind`: el kind está GUARDADO,
+ * no en el cuerpo. Eso lo decide el dominio (`editMovement` → `invalid_amount`) y la ruta lo traduce
+ * a 422 `invalid_payload` (TC-DDC-312f) — aquí solo se acota lo que el borde sí conoce.
+ */
+export const movementPatchSchema = z
+  .object({
+    amount: z
+      .number({ invalid_type_error: "El monto debe ser numérico" })
+      .finite("El monto debe ser un número finito")
+      .int("El monto debe ser un entero")
+      .refine((n) => Math.abs(n) <= MONTO_MAX, `El monto no puede superar ${MONTO_MAX.toLocaleString("es-CO")}`)
+      .optional(),
+    // La nota se NORMALIZA en el borde, como en el resto de la app: se recorta y una nota vacía es
+    // `null`, no `""`. Sin esto, «   » y "" entrarían como notas distintas de «sin nota» y el
+    // Detalle pintaría una fila con texto invisible (FR-2505).
+    note: z.string().max(280).nullable().optional()
+      .transform((n) => (n == null ? n : n.trim() === "" ? null : n.trim())),
+    date: z.string().min(1).optional(),
+    /** FR-2406: un ingreso fechado en la ventana de pago puede contarse en el ciclo que ABRE. */
+    countInOpeningCycle: z.boolean().optional(),
+    catId: z.string().min(1).max(64).optional(),
+    subId: z.string().min(1).max(64).nullable().optional(),
+  })
+  .strict()
+  .refine((p) => Object.keys(p).length > 0, "Nada que cambiar");
+export type MovementPatchInput = z.infer<typeof movementPatchSchema>;
+
 const apiNodeSchema = z.object({
   id: z.string(),
   ownerId: z.string(),
@@ -43,7 +79,14 @@ const apiNodeSchema = z.object({
 // PUT terminaba en 500 al chocar con el bigint de Postgres, o guardaba en silencio otro numero.
 const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, cellAmountSchema));
 
-const apiMovementSchema = z
+/**
+ * Un movimiento tal como viaja en el snapshot del PUT.
+ *
+ * Exportado desde la feature diario-de-celda (NFR-2501): la regla del monto DEPENDE del `kind`, y esa
+ * decisión merece prueba propia en vez de ejercitarse solo de rebote a través del estado completo
+ * (TC-DDC-310e). Sigue siendo el mismo esquema que usa `ledgerStateSchema` — no una copia.
+ */
+export const apiMovementSchema = z
   .object({
     id: z.string(),
     ownerId: z.string(),

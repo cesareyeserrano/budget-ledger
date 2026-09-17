@@ -35,7 +35,7 @@ epic. EP-02 queda en 48 TCs y EP-03 en 65; el reparto sigue cubriendo los 171 ex
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Introduce lo que todo lo demás necesita: migración `0009` (`kind` + CHECK), mapeo de `kind` en las cuatro lecturas y reescrituras del snapshot, `apiMovementSchema` con ajustes negativos, `proposedDate`/`isDateInPeriod`, `adjustCell`/`movementSum` y el cuadre relativo del PUT. Como ese cuadre rechaza siembras con Ejecutado sin movimientos, AQUÍ se arreglan los datos de prueba (decisión del usuario del 2026-09-15, NFR-2507): `buildSeedConMontos`, el paso holgado de `seedLedger`, `tests/fixtures/ciclos-usuario.ts` y las siembras de integración listadas en `03_TEST_CASES.json#test_plan.strategy`, siempre ajustando el fixture y nunca el resultado esperado. TCs NFR alojados aquí: NFR-2503 (bolsillos), NFR-2504 («Nuevo movimiento» sin cambios), NFR-2506 (Presupuestado sin cambios).
 
-## EP-03 — Editar y borrar movimientos   [status: pending]
+## EP-03 — Editar y borrar movimientos   [status: done]
   Delivers:    US-2505, US-2506
   FRs:         FR-2505, FR-2506
   Makes pass:  TC-DDC-081h, TC-DDC-082h, TC-DDC-083h, TC-DDC-084e, TC-DDC-085e, TC-DDC-086e, TC-DDC-087e, TC-DDC-088f, TC-DDC-089f, TC-DDC-090f, TC-DDC-091f, TC-DDC-092f, TC-DDC-093f, TC-DDC-094f, TC-DDC-095h, TC-DDC-096e, TC-DDC-097f, TC-DDC-098e, TC-DDC-099e, TC-DDC-100f, TC-DDC-101f, TC-DDC-103e, TC-DDC-174f, TC-DDC-077e, TC-DDC-111h, TC-DDC-112h, TC-DDC-113e, TC-DDC-114e, TC-DDC-115e, TC-DDC-116f, TC-DDC-117f, TC-DDC-118f, TC-DDC-119f, TC-DDC-120f, TC-DDC-121e, TC-DDC-122f, TC-DDC-123f, TC-DDC-301h, TC-DDC-302f, TC-DDC-303f, TC-DDC-304f, TC-DDC-305f, TC-DDC-306f, TC-DDC-307e, TC-DDC-308f, TC-DDC-309f, TC-DDC-310e, TC-DDC-311e, TC-DDC-312f, TC-DDC-328e, TC-DDC-321h, TC-DDC-322e, TC-DDC-323f, TC-DDC-324f, TC-DDC-325e, TC-DDC-326e, TC-DDC-327e, TC-DDC-361h, TC-DDC-362f, TC-DDC-363e, TC-DDC-364e, TC-DDC-391h, TC-DDC-392e, TC-DDC-393f, TC-DDC-394e
@@ -131,3 +131,47 @@ decir. Ninguno de los seis cambió su resultado esperado.
 
 **Pendiente para EP-03, ya detectado:** las rutas `PATCH`/`DELETE` se apoyan en el `kind` persistido y en el cuadre relativo
 que este epic deja puestos; TC-DDC-077e y TC-DDC-174f ya están asignados allí.
+
+### EP-03 (2026-09-17) — done
+**Runs.** Vitest, suite completa: **91 ficheros, 1.097 passed, exit 0**. Playwright, suite COMPLETA (los doce specs):
+**535 passed, exit 0** (3,6 min). `typecheck` y `lint` exit 0. Los **65 TCs declarados** para este epic tienen prueba
+etiquetada —barrido de `@aitri-tc` contra el plan—, sin huecos y sin etiquetas adelantadas a EP-04; EP-01 y EP-02 siguen
+enteros (cero casos suyos sin cubrir).
+
+**Qué se construyó.**
+- `editMovement`, `deleteMovement` y `wouldGoNegative` en `src/domain/adjust.ts` — junto a `adjustCell`, que es la otra vía de
+  escritura de esta feature. Van AHÍ y no en `mutations.ts` para no duplicar por tercera vez su `clone` privado y para evitar
+  por construcción el ciclo de imports (`adjust` ya depende de `cycles`; `mutations` no).
+- `PATCH` y `DELETE /api/v1/movements/{id}`: la ruta deja de ser un tapón `unsupported_operation`. Las dos comparten
+  `writeMovement` (transacción con `FOR UPDATE`) y **una sola función traduce los rechazos**, porque si cada puerta tradujera
+  por su cuenta acabarían divergiendo — que es justo lo que TC-DDC-326e vigila.
+- `movementPatchSchema` (`.strict()`, al menos un campo) y `apiMovementSchema` exportado para poder probarlo de frente.
+- Store: `editMovement`/`deleteMovement` corren la MISMA función del dominio que el servidor, y comprueban el cierre antes
+  para no lanzar una escritura optimista que volvería rebotada.
+- UI: `MovementEditor` (monto, nota, fecha con «Pasará a …» y categoría del mismo tipo), lápiz y papelera en la fila
+  reutilizando la confirmación en línea que ya usaba la grilla, aviso de celda negativa, y el mes cerrado en solo lectura.
+
+**TRES defectos REALES del producto, encontrados por pruebas nuevas** (ninguno es un test ajustado para pasar):
+1. **El panel se quedaba sin salida por teclado.** Al desmontarse el bloque de edición (guardar, cancelar o confirmar un
+   borrado) el foco caía al `body`, y el Escape que cierra el editor se atiende en su CONTENEDOR: dejaba de llegar. Seis
+   casos en rojo resultaron ser este único defecto. Es el tercer arreglo de esta misma clase en `BudgetGrid.tsx`.
+2. **El orden de validación estaba mal**: se comprobaba el cierre ANTES que el tipo. Un movimiento de bolsillo en un mes
+   cerrado respondía «mes cerrado», mandando al usuario a reabrir un mes para hacer algo que tampoco iba a poder hacer.
+   Lo declara TC-DDC-328e y lo encontré leyendo el caso ANTES de escribirlo — al revés habría consagrado el orden erróneo.
+3. **El editor no bloqueaba un destino cerrado.** El ensayo que habilita «Guardar» corre la mutación del dominio, y el
+   dominio no conoce la frontera de cierre: se dejaba guardar y el rechazo llegaba del servidor.
+
+**Una pieza que me faltaba, no un defecto:** `movementPatchSchema` no normalizaba la nota (recortar, vacía→null) aunque el
+TRD lo declara. Lo delató TC-DDC-309f al exigir «dos normalizaciones exactas».
+
+**Lo que me equivoqué, dicho como fue.** (a) Anticipé que TC-DDC-362f y TC-DDC-363e fallarían por divergir mi implementación
+de lo declarado: **pasaron los dos**; la predicción era mía, no un problema del código. (b) TC-DDC-305f falló y mi premisa
+era falsa, no el producto: `buildSeed` deriva los ids del NOMBRE, así que todas las cuentas comparten identificadores de
+nodo y «la hoja de B» era también una hoja de A. El aislamiento no vive en ids únicos sino en el filtro por `owner_id`; la
+prueba ahora usa un nodo que A realmente no tiene. (c) Una prueba de integración que inventé daba por hecho que mover un
+movimiento de categoría dejaría la celda de origen descuadrada: no es así —la cifra viaja con él— y la reescribí para
+afirmar lo que el producto hace de verdad.
+
+**Pendiente para EP-04, ya detectado:** `closedPeriodsViolated` ya compara `note`, `date` y `kind`, así que congelar las dos
+vías nuevas está puesto; faltan `cellMismatches`/`monthIssues` en la grilla y el Balance, y `closeBlockers` bloqueando el
+cierre (422 `unbalanced_cells`).

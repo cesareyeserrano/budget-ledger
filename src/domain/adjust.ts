@@ -7,12 +7,13 @@
 //               con lo que ya suman sus movimientos. Nada aquí escribe ni conoce la UI.
 // Dependencias: ./types, ./periods, ./tree, ./detail (movementSum), ./cycles (Calendar).
 
-import type { Calendar } from "./cycles";
+import { isValidMovementPeriod, proposeOpeningCycle, type Calendar } from "./cycles";
 import { monthOf } from "./periods";
 import type { LedgerState, Movement, PeriodKey } from "./types";
 import { findNode, isLeaf } from "./tree";
 import { movementSum } from "./detail";
 import { uid, nextSeq } from "./ids";
+import { MONTO_MAX, normalizeNote } from "./validation";
 
 /**
  * Copia del estado con lo que esta función MUTA clonado en profundidad.
@@ -153,4 +154,194 @@ export function adjustCell(
   };
   next.movements = [created, ...next.movements];
   return { state: next, created };
+}
+
+// ── FR-2505 / FR-2506: editar y borrar un movimiento ─────────────────────────────────────────────
+
+/** Una celda que quedaría por debajo de 0, con el valor al que llegaría. */
+export interface NegativeCell {
+  nodeId: string;
+  period: PeriodKey;
+  value: number;
+}
+
+/**
+ * Las celdas que una escritura METERÍA bajo cero (FR-2505, FR-2506).
+ *
+ * El criterio es RELATIVO, igual que el del cuadre y el de las reglas de reservas: una celda que YA
+ * estaba en negativo —un dato torcido de antes— no bloquea la operación; solo cuenta lo que este
+ * cambio empeora. Sin eso, un solo valor malo dejaría el resto del libro en solo lectura.
+ *
+ * Solo hojas de gasto e ingreso: la celda de un bolsillo es un aporte y tiene su propio piso
+ * (NFR-2503, `applyReserveOp`).
+ *
+ * @param prev Estado antes del cambio.
+ * @param next Estado propuesto.
+ * @returns Una entrada por celda que el cambio deja negativa; `[]` si ninguna.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505g, TC-ID: TC-DDC-092f, TC-DDC-100f, TC-DDC-118f
+ */
+export function wouldGoNegative(prev: LedgerState, next: LedgerState): NegativeCell[] {
+  const out: NegativeCell[] = [];
+  for (const [nodeId, meses] of Object.entries(next.actuals)) {
+    const node = findNode(next.nodes, nodeId);
+    if (!node || node.type === "transfer" || !isLeaf(node, next.nodes)) continue;
+    for (const [period, value] of Object.entries(meses)) {
+      const v = value ?? 0;
+      if (v >= 0) continue;
+      if ((prev.actuals[nodeId]?.[period as PeriodKey] ?? 0) < 0) continue; // ya venía torcida
+      out.push({ nodeId, period: period as PeriodKey, value: v });
+    }
+  }
+  return out;
+}
+
+/**
+ * Lo que se puede cambiar de un movimiento (FR-2505). Todos opcionales; al menos uno.
+ *
+ * `catId` sin `subId` significa «va a esa hoja»: la subcategoría se limpia. Es el caso de mover un
+ * gasto de una categoría hoja a otra, y evita que quede un `subId` huérfano apuntando al padre viejo.
+ */
+export interface MovementPatch {
+  amount?: number;
+  note?: string | null;
+  date?: string;
+  /** FR-2406: un ingreso fechado en la ventana de pago puede contarse en el ciclo que ABRE. */
+  countInOpeningCycle?: boolean;
+  catId?: string;
+  subId?: string | null;
+}
+
+/** Lo que devuelve `editMovement`: el estado nuevo, o el primer motivo por el que no se puede. */
+export type EditResult =
+  | { state: LedgerState }
+  | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+  | { rejected: "negative_cell"; cells: NegativeCell[] };
+
+/** Lo que devuelve `deleteMovement`. (`DeleteResult` a secas ya es de `mutations`: borrar un NODO.) */
+export type DeleteMovementResult =
+  | { state: LedgerState }
+  | { rejected: "not_found" | "unsupported_type" }
+  | { rejected: "negative_cell"; cells: NegativeCell[] };
+
+/** El monto respeta lo que el `kind` guardado permite: manual ≥1, ajuste ≠0, y ninguno pasa el tope. */
+function montoValido(amount: number, kind: Movement["kind"]): boolean {
+  if (!Number.isFinite(amount) || !Number.isInteger(amount)) return false;
+  if (Math.abs(amount) > MONTO_MAX) return false;
+  return kind === "adjustment" ? amount !== 0 : amount >= 1;
+}
+
+/** Resta `amount` de la celda de `target` en `period` (y la deja creada si no existía). */
+function bumpCell(state: LedgerState, target: string, period: PeriodKey, delta: number): void {
+  state.actuals[target] = { ...(state.actuals[target] ?? {}) };
+  state.actuals[target][period] = (state.actuals[target][period] ?? 0) + delta;
+}
+
+/**
+ * Editar un movimiento: monto, nota, fecha y categoría (FR-2505).
+ *
+ * Resta el monto viejo de su celda, aplica el parche y suma el nuevo en la celda de DESTINO — que
+ * puede ser otra hoja (cambió la categoría) u otro periodo (cambió la fecha). El periodo no se
+ * recibe: se DERIVA de la fecha con el calendario del dueño, igual que al registrar, para que no
+ * existan dos fuentes del mismo dato que puedan discrepar (FR-2405).
+ *
+ * El orden de los rechazos es el del contrato y no es casual: primero lo que ni siquiera identifica
+ * al movimiento, después lo que el movimiento ES, y solo al final lo que el cambio PROVOCA. Así el
+ * mensaje que ve el usuario nombra la causa primera, no un efecto colateral.
+ *
+ * Un ajuste sigue siendo un ajuste: `kind` no se toca aquí, y por eso el monto se juzga contra el
+ * `kind` GUARDADO — un ajuste puede pasar a negativo, un movimiento manual nunca (TC-DDC-097f).
+ *
+ * @param state Estado del ledger.
+ * @param id Movimiento a editar.
+ * @param patch Campos a cambiar.
+ * @param cal Calendario del dueño: deriva el periodo de la fecha.
+ * @param periods Rango activo.
+ * @returns El estado nuevo, o el motivo del rechazo.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505a, TC-ID: TC-DDC-081h, TC-DDC-084e, TC-DDC-089f, TC-DDC-092f, TC-DDC-097f
+ */
+export function editMovement(
+  state: LedgerState, id: string, patch: MovementPatch, cal: Calendar, periods: readonly PeriodKey[]
+): EditResult {
+  const mv = state.movements.find((m) => m.id === id);
+  if (!mv) return { rejected: "not_found" };
+  // Una operación De→A no se edita por aquí: su celda es un aporte con techo y piso propios, y
+  // cambiarla a mano saltándose `applyReserveOp` rompería esas reglas (NFR-2503).
+  if (mv.type === "transfer") return { rejected: "unsupported_type" };
+
+  const amount = patch.amount ?? mv.amount;
+  if (patch.amount !== undefined && !montoValido(patch.amount, mv.kind)) return { rejected: "invalid_amount" };
+
+  // Destino: `catId` sin `subId` limpia la subcategoría (se va a esa hoja).
+  const catId = patch.catId ?? mv.catId;
+  const subId = patch.subId !== undefined ? patch.subId : patch.catId !== undefined ? null : mv.subId;
+  const target = subId ?? catId;
+  if (target !== mv.target) {
+    const destino = findNode(state.nodes, target);
+    // Del MISMO tipo y hoja: un gasto no se convierte en ingreso cambiándole la categoría, y una
+    // categoría con hijos no guarda cifras propias (su valor es la suma de los suyos).
+    if (!destino || !isLeaf(destino, state.nodes) || destino.type !== mv.type) return { rejected: "invalid_target" };
+  }
+
+  const date = patch.date ?? mv.date;
+  let period = mv.period;
+  if (date !== undefined && date !== mv.date) {
+    let derivado: PeriodKey | null = null;
+    try { derivado = cal.periodForDate(date); } catch { derivado = null; }
+    // FR-2406: un ingreso fechado en la ventana de pago puede contarse en el ciclo que abre, si el
+    // usuario lo pidió. Es la MISMA regla que valida el servidor al registrar, no una copia.
+    const apertura = patch.countInOpeningCycle ? proposeOpeningCycle(cal, mv.type, date) : null;
+    period = apertura ?? derivado ?? mv.period;
+    if (derivado === null && apertura === null) return { rejected: "period_mismatch" };
+  }
+  if (!periods.includes(period)) return { rejected: "period_mismatch" };
+  if (!isValidMovementPeriod(cal, { type: mv.type, period, ...(date ? { date } : {}) })) {
+    return { rejected: "period_mismatch" };
+  }
+
+  const next = clone(state);
+  bumpCell(next, mv.target, mv.period, -mv.amount);
+  bumpCell(next, target, period, amount);
+  next.movements = next.movements.map((m) =>
+    m.id !== id ? m : {
+      ...m, amount, catId, subId, target, period,
+      ...(date !== undefined ? { date } : {}),
+      ...(patch.note !== undefined ? { note: normalizeNote(patch.note) } : {}),
+    }
+  );
+
+  const negativas = wouldGoNegative(state, next);
+  if (negativas.length > 0) return { rejected: "negative_cell", cells: negativas };
+  return { state: next };
+}
+
+/**
+ * Borrar un movimiento: desaparece del journal y su celda baja lo que él aportaba (FR-2506).
+ *
+ * Borrar un AJUSTE negativo sube la celda — es justo lo que hace falta para deshacer una corrección
+ * de más (TC-DDC-121e). Y por eso el piso se comprueba igual que al editar: quitar un movimiento
+ * real de una celda que un ajuste ya había bajado puede dejarla negativa.
+ *
+ * @param state Estado del ledger.
+ * @param id Movimiento a borrar.
+ * @returns El estado sin él, o el motivo del rechazo.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2506, US-ID: US-2506, AC-ID: AC-2506a, TC-ID: TC-DDC-111h, TC-DDC-120f, TC-DDC-121e
+ */
+export function deleteMovement(state: LedgerState, id: string): DeleteMovementResult {
+  const mv = state.movements.find((m) => m.id === id);
+  if (!mv) return { rejected: "not_found" };
+  if (mv.type === "transfer") return { rejected: "unsupported_type" };
+
+  const next = clone(state);
+  bumpCell(next, mv.target, mv.period, -mv.amount);
+  next.movements = next.movements.filter((m) => m.id !== id);
+
+  const negativas = wouldGoNegative(state, next);
+  if (negativas.length > 0) return { rejected: "negative_cell", cells: negativas };
+  return { state: next };
 }

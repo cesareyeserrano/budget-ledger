@@ -9,6 +9,8 @@ import {
   // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
   // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
   adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
+  // FR-2505/FR-2506: editar y borrar. Las MISMAS funciones que corre el servidor (ADR-02).
+  editMovement, deleteMovement, type MovementPatch, type NegativeCell,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -32,6 +34,18 @@ import { periodYear } from "@/domain/periods";
  * "year" no llevaba dato porque solo existía uno.
  */
 export type PeriodFilter = { mode: "month"; month: PeriodKey } | { mode: "year"; year: number };
+
+/**
+ * Lo que devuelven `editMovement` y `deleteMovement` del store (FR-2505, FR-2506).
+ *
+ * El motivo viaja porque la UI tiene que decir QUÉ pasa, no «no se pudo»: «la celda quedaría en
+ * −10.000» y «ese mes está cerrado» piden acciones distintas del usuario. `cells` solo acompaña al
+ * rechazo por celda negativa, que es el único que tiene una cifra que enseñar.
+ */
+export type MovementEditOutcome =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "closed" }
+  | { ok: false; reason: "negative_cell"; cells: NegativeCell[] };
 /** Feature ciclos: lo que devuelve la previsualización (misma forma que la respuesta del servidor). */
 export type PeriodModePreview =
   | { ok: true; cycles: Array<{ key: PeriodKey; label: string; start: string; end: string; transition: boolean; current: boolean }>; relocation: RelocationSummary & { note: string } }
@@ -189,6 +203,10 @@ interface LedgerStore {
   /** FR-2502: añade un movimiento DESDE la celda — el tipo y la categoría salen de la hoja. true si
    *  se persistió; false si el monto es inválido, la fecha cae fuera del periodo o es un doble-tap. */
   addMovementInCell: (input: { leafId: string; period: PeriodKey; amount: number; note?: string | null; date: string }) => boolean;
+  /** FR-2505: edita un movimiento desde el Detalle. El motivo permite decir QUÉ falla, no solo que falló. */
+  editMovement: (id: string, patch: MovementPatch) => MovementEditOutcome;
+  /** FR-2506: borra un movimiento desde el Detalle. */
+  deleteMovement: (id: string) => MovementEditOutcome;
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
@@ -737,6 +755,55 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       persist(data);
       return true;
     },
+    /**
+     * Editar un movimiento desde el Detalle (FR-2505).
+     *
+     * Corre la MISMA función que el servidor (`editMovement` del dominio), así que lo que el
+     * navegador acepta y lo que el PATCH acepta no pueden divergir. El cierre se comprueba ANTES
+     * aquí porque el dominio no conoce la frontera: sin esto la escritura saldría optimista y
+     * volvería rebotada, y el usuario vería su cambio aparecer y desaparecer.
+     *
+     * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505a, TC-ID: TC-DDC-082h, TC-DDC-093f
+     */
+    editMovement: (id, patch) => {
+      const prev = get().data;
+      const mv = prev.movements.find((m) => m.id === id);
+      if (!mv) return { ok: false, reason: "not_found" };
+      if (isClosed(prev.closure, mv.period)) return { ok: false, reason: "closed" };
+
+      const r = editMovement(prev, id, patch, calendarFor(prev), get().activePeriods());
+      if ("rejected" in r) {
+        return r.rejected === "negative_cell"
+          ? { ok: false, reason: "negative_cell", cells: r.cells }
+          : { ok: false, reason: r.rejected };
+      }
+      set({ data: r.state });
+      persist(r.state);
+      return { ok: true };
+    },
+
+    /**
+     * Borrar un movimiento desde el Detalle (FR-2506).
+     *
+     * @aitri-trace FR-ID: FR-2506, US-ID: US-2506, AC-ID: AC-2506a, TC-ID: TC-DDC-112h, TC-DDC-119f
+     */
+    deleteMovement: (id) => {
+      const prev = get().data;
+      const mv = prev.movements.find((m) => m.id === id);
+      if (!mv) return { ok: false, reason: "not_found" };
+      if (isClosed(prev.closure, mv.period)) return { ok: false, reason: "closed" };
+
+      const r = deleteMovement(prev, id);
+      if ("rejected" in r) {
+        return r.rejected === "negative_cell"
+          ? { ok: false, reason: "negative_cell", cells: r.cells }
+          : { ok: false, reason: r.rejected };
+      }
+      set({ data: r.state });
+      persist(r.state);
+      return { ok: true };
+    },
+
     setLeafAmount: (leafId, month, kind, value) => {
       const prev = get().data;
       const node = findNode(prev.nodes, leafId);

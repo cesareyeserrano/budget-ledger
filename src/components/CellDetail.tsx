@@ -9,13 +9,17 @@
 // Dependencias: @/domain (cellDetail, displayAmount), @/state/store, ./format, ./CellNoteInput.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Info, MessageSquare, Receipt, SlidersHorizontal } from "lucide-react";
-import { cellDetail, displayAmount, firstDayOf, findNode, formatDay, type DetailEntry } from "@/domain";
-import type { NodeType, PeriodKey } from "@/domain/types";
+import { Check, Info, Lock, MessageSquare, Pencil, Receipt, SlidersHorizontal, Trash2, TriangleAlert, X } from "lucide-react";
+import {
+  cellDetail, deleteMovement as ensayarBorrado, displayAmount, firstDayOf, findNode, formatDay,
+  isClosed, periodLabel, type DetailEntry,
+} from "@/domain";
+import type { LedgerState, Movement, NodeType, PeriodKey } from "@/domain/types";
 import { useLedgerStore, useActivePeriods } from "@/state/store";
 import { money } from "./format";
 import { CellNoteInput } from "./CellNoteInput";
 import { AddMovementLine } from "./AddMovementLine";
+import { MovementEditor } from "./MovementEditor";
 
 /** Ancho del panel y alto máximo de la lista (UX spec § Component Inventory). */
 const PANEL_MAX_W = 320;
@@ -53,7 +57,13 @@ export function dayLabel(iso: string): string {
  * Una línea del Detalle. Las cuatro formas comparten anatomía (ícono 12 px · contenido · monto a la
  * derecha) y se distinguen por el ícono y su etiqueta accesible, no por el color (WCAG 1.4.1).
  */
-function DetailRow({ entry, type, period, resaltado }: { entry: DetailEntry; type: NodeType; period: PeriodKey; resaltado?: boolean }) {
+function DetailRow({
+  entry, type, period, resaltado, acciones,
+}: {
+  entry: DetailEntry; type: NodeType; period: PeriodKey; resaltado?: boolean;
+  /** Ausente en un mes cerrado: ahí la lista se ve igual pero no se puede tocar (FR-2507). */
+  acciones?: { onEdit: () => void; onDelete: () => void; onCancel: () => void; bloqueo: number | null };
+}) {
   const base = "flex items-start gap-1.5 rounded-(--radius-xs) px-1.5 py-1 text-caption";
   // FR-2504: el ajuste recién creado se señala un instante. Es la respuesta a una acción, no un
   // estado permanente, así que el borde se apaga solo (H1: el usuario ve QUÉ pasó al teclear).
@@ -82,7 +92,7 @@ function DetailRow({ entry, type, period, resaltado }: { entry: DetailEntry; typ
   const { sign, abs, addsToCell } = displayAmount(type, m.amount);
   const Icon = entry.kind === "adjustment" ? SlidersHorizontal : Receipt;
   return (
-    <div data-testid="detail-row" data-kind={entry.kind} className={base} style={{ background: ROW_TINT, ...borde }}>
+    <div data-testid="detail-row" data-kind={entry.kind} className={`group ${base}`} style={{ background: ROW_TINT, ...borde }}>
       <Icon
         size={12}
         strokeWidth={1.5}
@@ -110,8 +120,64 @@ function DetailRow({ entry, type, period, resaltado }: { entry: DetailEntry; typ
       >
         {sign}{money(abs).replace("$", "")}
       </span>
+      {acciones && <AccionesDeFila {...acciones} />}
     </div>
   );
+}
+
+/**
+ * Lápiz y papelera de una fila (FR-2505, FR-2506). Aparecen al pasar el ratón o al enfocar con el
+ * teclado — `focus-within` no es un adorno: sin él las acciones serían INALCANZABLES sin ratón.
+ *
+ * La papelera se sustituye por la confirmación en línea que ya usa la grilla (check / X), en vez de
+ * inventar un segundo gesto de borrado para el mismo producto. Y si el borrado dejaría la celda bajo
+ * cero, en su lugar aparece el motivo: el check no llega a existir, así que no hay nada que pulsar
+ * para provocar un error (UX spec F5).
+ */
+function AccionesDeFila({ onEdit, onDelete, onCancel, bloqueo }: { onEdit: () => void; onDelete: () => void; onCancel: () => void; bloqueo: number | null }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const btn = "inline-flex p-[3px] rounded-md cursor-pointer bg-transparent border-0";
+  // Al cerrar la confirmación desaparece el botón que tenía el foco: hay que devolverlo al panel o
+  // el Escape deja de alcanzar al contenedor que cierra el editor.
+  const cerrar = () => { setConfirmando(false); onCancel(); };
+
+  if (confirmando) {
+    return bloqueo !== null ? (
+      <span className="flex items-start gap-1 flex-none" style={{ color: "var(--error)" }}>
+        <TriangleAlert size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
+        <span data-testid="delete-blocked">No se puede borrar: la celda quedaría en {money(bloqueo)}.</span>
+        <button aria-label="Cancelar borrado" onClick={cerrar} className={btn} style={{ color: "var(--fg-muted)" }}>
+          <X size={12} />
+        </button>
+      </span>
+    ) : (
+      <span className="flex gap-1 flex-none">
+        <button aria-label="Confirmar borrado" onClick={() => { setConfirmando(false); onDelete(); }} className={btn} style={{ color: "var(--error)" }}>
+          <Check size={12} />
+        </button>
+        <button aria-label="Cancelar borrado" onClick={cerrar} className={btn} style={{ color: "var(--fg-muted)" }}>
+          <X size={12} />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex gap-px flex-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
+      <button aria-label="Editar movimiento" onClick={onEdit} className={btn} style={{ color: "var(--fg-muted)" }}>
+        <Pencil size={12} />
+      </button>
+      <button aria-label="Borrar movimiento" onClick={() => setConfirmando(true)} className={btn} style={{ color: "var(--fg-muted)" }}>
+        <Trash2 size={12} />
+      </button>
+    </span>
+  );
+}
+
+/** Cuánto quedaría la celda si se borrara ese movimiento, o `null` si no la deja negativa. */
+function bloqueoDeBorrado(state: LedgerState, m: Movement): number | null {
+  const r = ensayarBorrado(state, m.id);
+  return "rejected" in r && r.rejected === "negative_cell" ? r.cells[0].value : null;
 }
 
 /**
@@ -137,6 +203,22 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
 
   const node = findNode(data.nodes, leafId);
   const entries = cellDetail(data, leafId, month, periods);
+  const borrar = useLedgerStore((s) => s.deleteMovement);
+  /**
+   * Devuelve el foco AL PANEL cuando se desmonta algo de dentro (el bloque de edición, el check de
+   * confirmar borrado).
+   *
+   * No es cosmética: el Escape que cierra el editor de la celda se atiende en su CONTENEDOR
+   * (`BudgetGrid.tsx`), así que solo llega si el foco está dentro. Al desaparecer el botón o el
+   * campo que lo tenía, el foco cae al `body` y el panel se queda abierto sin salida por teclado —
+   * el mismo fallo que ese fichero ya arregló dos veces para el mes cerrado y para el modo de solo
+   * comentarios.
+   */
+  const volverElFoco = () => ref.current?.focus();
+  // FR-2507: en un mes cerrado la lista se ve IGUAL, pero sin acciones y sin línea de añadir. El
+  // panel lo deriva él mismo del estado, como hace la grilla — no hace falta pasárselo.
+  const cerrado = isClosed(data.closure, month);
+  const [editando, setEditando] = useState<string | null>(null);
 
   // FR-2504: el ajuste que acaba de nacer se señala un instante y el borde se apaga solo. Se
   // detecta comparando la lista con la del render anterior —el panel no recibe avisos del store— y
@@ -173,6 +255,9 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
     <div
       ref={ref}
       data-testid="cell-notes"
+      // Enfocable por código (nunca con Tab): es lo que permite devolverle el foco cuando un bloque
+      // de dentro se desmonta, para que el Escape del contenedor siga alcanzable.
+      tabIndex={-1}
       className="absolute top-full z-20 mt-1 flex flex-col gap-2 rounded-(--radius-sm) border border-border p-2"
       style={{
         background: "var(--bg-elevated)",
@@ -183,27 +268,57 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
     >
       <span className={EYEBROW} style={{ color: "var(--fg-secondary)" }}>Detalle</span>
 
+      {cerrado && (
+        <span data-testid="closed-notice" className="flex items-start gap-1.5 text-caption" style={{ color: "var(--fg-secondary)" }}>
+          <Lock size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
+          {periodLabel(month)} está cerrado. Para cambiar sus movimientos, reábrelo desde el cierre de mes.
+        </span>
+      )}
+
       {entries.length === 0 ? (
         <span data-testid="cell-notes-empty" className="text-caption" style={{ color: "var(--fg-muted)" }}>
           Sin movimientos ni comentarios
         </span>
       ) : (
         <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: LIST_MAX_H }}>
-          {entries.map((e, i) => (
-            <DetailRow
-              key={entryKey(e, i)}
-              entry={e}
-              type={node.type}
-              period={month}
-              resaltado={(e.kind === "movement" || e.kind === "adjustment") && e.movement.id === recien}
-            />
-          ))}
+          {entries.map((e, i) => {
+            const esMovimiento = e.kind === "movement" || e.kind === "adjustment";
+            if (esMovimiento && editando === e.movement.id) {
+              return (
+                <MovementEditor
+                  key={entryKey(e, i)}
+                  movement={e.movement}
+                  month={month}
+                  onDone={() => { setEditando(null); volverElFoco(); }}
+                />
+              );
+            }
+            return (
+              <DetailRow
+                key={entryKey(e, i)}
+                entry={e}
+                type={node.type}
+                period={month}
+                resaltado={esMovimiento && e.movement.id === recien}
+                {...(esMovimiento && !cerrado
+                  ? {
+                      acciones: {
+                        onEdit: () => setEditando(e.movement.id),
+                        onDelete: () => { borrar(e.movement.id); volverElFoco(); },
+                        onCancel: volverElFoco,
+                        bloqueo: bloqueoDeBorrado(data, e.movement),
+                      },
+                    }
+                  : {})}
+              />
+            );
+          })}
         </div>
       )}
 
       {/* FR-2502: la línea de añadir es de gasto e ingreso. Un bolsillo no registra movimientos
           desde aquí — sus operaciones De→A tienen su propia vía (NFR-2503, TC-DDC-343e). */}
-      {node.type !== "transfer" && <AddMovementLine leafId={leafId} month={month} />}
+      {node.type !== "transfer" && !cerrado && <AddMovementLine leafId={leafId} month={month} />}
 
       <CellNoteInput leafId={leafId} month={month} />
     </div>

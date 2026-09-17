@@ -916,3 +916,417 @@ test.describe("FR-2509 — un solo nombre por concepto", () => {
     expect((await toast.textContent()) ?? "").not.toMatch(/observaci/i);
   });
 });
+
+// ══ EP-03 · editar y borrar desde el Detalle ═══════════════════════════════════════════════════
+
+/** Un ajuste: el único movimiento que puede ser negativo, y solo en gasto o ingreso (FR-2504). */
+function ajuste(id: string, target: string, amount: number, period: string, date: string, createdAt: number): Movement {
+  return {
+    id, ownerId: "local", type: "expense", catId: target, subId: null, target, amount,
+    period: period as Movement["period"], createdAt, date, note: "Ajuste manual", kind: "adjustment",
+  };
+}
+
+/** Abre el bloque de edición de la fila que contenga ese texto y lo devuelve. */
+async function editarFila(page: Page, panel: ReturnType<Page["locator"]>, texto: string) {
+  await panel.getByTestId("detail-row").filter({ hasText: texto }).first().getByLabel("Editar movimiento").click();
+  const editor = panel.getByTestId("movement-editor");
+  await expect(editor).toBeVisible();
+  return editor;
+}
+
+test.describe("FR-2505 — editar un movimiento desde el Detalle", () => {
+    test("TC-DDC-082h: editar el monto con el lápiz actualiza la fila y la celda", async ({ page }) => {
+      // @aitri-tc TC-DDC-082h
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 100_000 } },
+        movements: [
+          mv("m-1", "expense", "c-rest", 50_000, SEP, "2026-09-18T12:00", 1, "Almuerzo"),
+          mv("m-2", "expense", "c-rest", 50_000, SEP, "2026-09-19T12:00", 2, "Cena"),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Almuerzo");
+      await editor.getByLabel("Monto").fill("5000");
+      await editor.getByTestId("edit-save").click();
+
+      // La FILA baja a 5.000…
+      const fila = panel.getByTestId("detail-row").filter({ hasText: "Almuerzo" });
+      await expect(fila.getByTestId("detail-amount")).toHaveText("−5.000");
+      // …y la celda, 45.000 exactos. Se lee con el editor CERRADO: mientras está abierto ocupa su sitio.
+      await page.keyboard.press("Escape");
+      await expect(celda(page, "c-rest", SEP)).toContainText("55.000");
+    });
+
+    test("TC-DDC-085e: pasar un gasto de Restaurantes a Mercado desde el select actualiza ambas celdas", async ({ page }) => {
+      // @aitri-tc TC-DDC-085e
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 70_000 }, "c-mercado": { [SEP]: 30_000 } },
+        movements: [
+          mv("m-cena", "expense", "c-rest", 20_000, SEP, "2026-09-18T12:00", 1, "Cena"),
+          mv("m-otro", "expense", "c-rest", 50_000, SEP, "2026-09-19T12:00", 2, "Almuerzo"),
+          mv("m-merc", "expense", "c-mercado", 30_000, SEP, "2026-09-17T12:00", 3, "Frutas"),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Cena");
+      await editor.getByTestId("edit-category").click();
+      await page.getByRole("option", { name: "Mercado", exact: true }).click();
+      // El portal de Radix tapa la pantalla mientras está abierto: esperar a que se cierre no es
+      // cosmética, es lo que permite pulsar «Guardar» (mismo patrón que meses-y-saldo-inicial).
+      await expect(page.getByRole("listbox")).toHaveCount(0);
+      await editor.getByTestId("edit-save").click();
+
+      // «Cena» ya no está en Restaurantes…
+      await expect(panel.getByTestId("detail-row").filter({ hasText: "Cena" })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(celda(page, "c-rest", SEP)).toContainText("50.000");
+      await expect(celda(page, "c-mercado", SEP)).toContainText("50.000");
+
+      // …sino en Mercado, y UNA sola vez: mover no duplica.
+      const enMercado = await abrirCelda(page, "c-mercado", SEP);
+      await expect(enMercado.getByTestId("detail-row").filter({ hasText: "Cena" })).toHaveCount(1);
+    });
+
+    test("TC-DDC-087e: el aviso «Pasará a …» aparece antes de guardar y el movimiento cambia de columna", async ({ page }) => {
+      // @aitri-tc TC-DDC-087e
+      // Con día de pago 21, el 21 de septiembre ya es «Octubre»: un día mueve la columna entera.
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 15_000 } },
+        movements: [mv("m-x", "expense", "c-rest", 15_000, SEP, "2026-09-18T12:00", 1, "Café")],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Café");
+      await editor.getByTestId("edit-date").click();
+      const pop = page.getByTestId("edit-date-popover");
+      await expect(pop.locator("select.rdp-years_dropdown")).toBeVisible();
+      await pop.locator("select.rdp-years_dropdown").selectOption("2026");
+      await pop.locator("select.rdp-months_dropdown").selectOption("8"); // septiembre (0-based)
+      await pop.locator('[data-day="2026-09-21"]:not([data-outside]) button').click();
+
+      // El aviso aparece ANTES de guardar: el usuario ve a dónde va a parar antes de decidir.
+      const aviso = editor.getByTestId("edit-period-notice");
+      await expect(aviso).toBeVisible();
+      await expect(aviso).toContainText("Pasará a");
+      await expect(aviso).toContainText("20 oct"); // el ciclo de destino, por su rango
+
+      await editor.getByTestId("edit-save").click();
+      await expect(panel.getByTestId("detail-row").filter({ hasText: "Café" })).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(celda(page, "c-rest", SEP)).toContainText("—");
+      await expect(celda(page, "c-rest", OCT)).toContainText("15.000");
+    });
+
+    test("TC-DDC-088f: el select de categoría solo ofrece hojas del mismo tipo", async ({ page }) => {
+      // @aitri-tc TC-DDC-088f
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 20_000 } },
+        movements: [mv("m-x", "expense", "c-rest", 20_000, SEP, "2026-09-18T12:00", 1, "Café")],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Café");
+      await editor.getByTestId("edit-category").click();
+      const opciones = await page.getByRole("option").allTextContents();
+
+      // Las dos hojas de GASTO, y solo esas: ni el ingreso ni el bolsillo aparecen. Un gasto no se
+      // convierte en ingreso cambiándole la categoría (FR-2505).
+      expect(opciones.sort()).toEqual(["Mercado", "Restaurantes"]);
+      expect(opciones).not.toContain("Salario");
+      expect(opciones).not.toContain("Viaje");
+    });
+
+    test("TC-DDC-093f: el aviso de celda negativa aparece al cambiar el monto y deshabilita «Guardar»", async ({ page }) => {
+      // @aitri-tc TC-DDC-093f
+      // La celda vale 10.000 porque un ajuste de −40.000 ya bajó un movimiento de 50.000.
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 10_000 } },
+        movements: [
+          mv("m-1", "expense", "c-rest", 50_000, SEP, "2026-09-18T12:00", 1, "Almuerzo"),
+          ajuste("a-1", "c-rest", -40_000, SEP, "2026-09-19T12:00", 2),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Almuerzo");
+      await editor.getByLabel("Monto").fill("30000");
+
+      const aviso = editor.getByTestId("negative-cell-warning");
+      await expect(aviso).toBeVisible();
+      await expect(aviso).toContainText("Restaurantes");
+      await expect(aviso).toContainText("10.000");
+      // El botón no se puede pulsar: el error se IMPIDE, no se reporta después.
+      await expect(editor.getByTestId("edit-save")).toBeDisabled();
+
+      await page.keyboard.press("Escape"); // cancela la edición
+      await page.keyboard.press("Escape"); // cierra el panel
+      await expect(celda(page, "c-rest", SEP)).toContainText("10.000");
+    });
+
+    test("TC-DDC-099e: Escape en dos niveles — primero cancela la edición, luego cierra el editor", async ({ page }) => {
+      // @aitri-tc TC-DDC-099e
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 100_000 } },
+        movements: [
+          mv("m-1", "expense", "c-rest", 50_000, SEP, "2026-09-18T12:00", 1, "Almuerzo"),
+          mv("m-2", "expense", "c-rest", 50_000, SEP, "2026-09-19T12:00", 2, "Cena"),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const editor = await editarFila(page, panel, "Almuerzo");
+      await editor.getByLabel("Monto").fill("1");
+
+      // PRIMER Escape: se va el bloque, el panel SIGUE abierto y la fila conserva su valor.
+      await page.keyboard.press("Escape");
+      await expect(panel.getByTestId("movement-editor")).toHaveCount(0);
+      await expect(panel).toBeVisible();
+      await expect(panel.getByTestId("detail-row").filter({ hasText: "Almuerzo" }).getByTestId("detail-amount"))
+        .toHaveText("−50.000");
+
+      // SEGUNDO Escape: ahora sí se cierra el panel.
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("cell-notes")).toHaveCount(0);
+      await expect(celda(page, "c-rest", SEP)).toContainText("100.000");
+    });
+
+    test("TC-DDC-101f: el «−» inicial solo se admite al editar un ajuste", async ({ page }) => {
+      // @aitri-tc TC-DDC-101f
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 47_000 } },
+        movements: [
+          mv("m-1", "expense", "c-rest", 50_000, SEP, "2026-09-18T12:00", 1, "Almuerzo"),
+          ajuste("a-1", "c-rest", -3_000, SEP, "2026-09-19T12:00", 2),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      // En un movimiento MANUAL el signo se descarta al teclearlo: no existe un gasto negativo.
+      const manual = await editarFila(page, panel, "Almuerzo");
+      await manual.getByLabel("Monto").fill("-3000");
+      await expect(manual.getByLabel("Monto")).toHaveValue("3000");
+      await page.keyboard.press("Escape");
+
+      // En un AJUSTE sí: es el único movimiento que puede ser negativo (FR-2504).
+      const aj = await editarFila(page, panel, "Ajuste manual");
+      await aj.getByLabel("Monto").fill("-5000");
+      await expect(aj.getByLabel("Monto")).toHaveValue("-5000");
+    });
+  });
+
+  test.describe("FR-2506 — borrar un movimiento desde el Detalle", () => {
+    /** El escenario de borrado: dos «Café» idénticos de 15.000 y la celda en 30.000. */
+    const DOS_CAFES = {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 30_000 } },
+      movements: [
+        mv("d-1", "expense", "c-rest", 15_000, SEP, "2026-09-10T12:00", 1, "Café"),
+        mv("d-2", "expense", "c-rest", 15_000, SEP, "2026-09-10T12:00", 2, "Café"),
+      ],
+    } as unknown as Seed;
+
+    test("TC-DDC-112h: borrar con la papelera y confirmar deja una fila y la celda en 15.000", async ({ page }) => {
+      // @aitri-tc TC-DDC-112h
+      await abrir(page, DOS_CAFES);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+      await expect(panel.getByTestId("detail-row")).toHaveCount(2);
+
+      // Idénticos salvo el id: es el caso que delata un borrado que empareje por contenido.
+      await panel.getByTestId("detail-row").first().getByLabel("Borrar movimiento").click();
+      await panel.getByLabel("Confirmar borrado").click();
+
+      await expect(panel.getByTestId("detail-row")).toHaveCount(1);
+      await page.keyboard.press("Escape");
+      await expect(celda(page, "c-rest", SEP)).toContainText("15.000");
+    });
+
+    test("TC-DDC-113e: el borrado persiste tras recargar", async ({ page }) => {
+      // @aitri-tc TC-DDC-113e
+      await abrir(page, DOS_CAFES);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+      await panel.getByTestId("detail-row").first().getByLabel("Borrar movimiento").click();
+      await panel.getByLabel("Confirmar borrado").click();
+      await put;
+
+      await page.reload();
+      await expect(page.getByTestId("budget-grid")).toBeVisible();
+      await expect(celda(page, "c-rest", SEP)).toContainText("15.000");
+      const dePuesta = await abrirCelda(page, "c-rest", SEP);
+      await expect(dePuesta.getByTestId("detail-row")).toHaveCount(1);
+    });
+
+    test("TC-DDC-115e: cancelar la confirmación deja todo igual", async ({ page }) => {
+      // @aitri-tc TC-DDC-115e
+      await abrir(page, DOS_CAFES);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      // Cero escrituras: cancelar no puede tocar la fuente de verdad ni «por si acaso».
+      let puts = 0;
+      page.on("request", (r) => { if (r.method() === "PUT" && r.url().includes("/api/v1/ledger")) puts += 1; });
+
+      await panel.getByTestId("detail-row").first().getByLabel("Borrar movimiento").click();
+      await panel.getByLabel("Cancelar borrado").click();
+
+      await expect(panel.getByTestId("detail-row")).toHaveCount(2);
+      await page.keyboard.press("Escape");
+      await expect(celda(page, "c-rest", SEP)).toContainText("30.000");
+      expect(puts).toBe(0);
+    });
+
+    test("TC-DDC-119f: la papelera muestra el aviso de celda negativa en lugar del check", async ({ page }) => {
+      // @aitri-tc TC-DDC-119f
+      // Celda en 0 = gasto de 100.000 + ajuste de −100.000. Borrar el GASTO la dejaría en −100.000.
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 0 } },
+        movements: [
+          mv("b-1", "expense", "c-rest", 100_000, SEP, "2026-09-18T12:00", 1, "Almuerzo"),
+          ajuste("a-1", "c-rest", -100_000, SEP, "2026-09-19T12:00", 2),
+        ],
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      await panel.getByTestId("detail-row").filter({ hasText: "Almuerzo" }).getByLabel("Borrar movimiento").click();
+
+      const aviso = panel.getByTestId("delete-blocked");
+      await expect(aviso).toBeVisible();
+      await expect(aviso).toContainText("100.000");
+      // Y NO hay nada que pulsar para provocarlo: el check ni siquiera existe (UX spec F5).
+      await expect(panel.getByLabel("Confirmar borrado")).toHaveCount(0);
+    });
+
+    test("TC-DDC-116f: en un ciclo cerrado no se ofrece la papelera", async ({ page }) => {
+      // @aitri-tc TC-DDC-116f
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-salario": { [AGO]: 1_000_000 }, "c-rest": { [AGO]: 80_000 } },
+        movements: [
+          mv("m-a1", "expense", "c-rest", 50_000, AGO, "2026-08-18T12:00", 1, "Almuerzo"),
+          mv("m-a2", "expense", "c-rest", 30_000, AGO, "2026-08-19T12:00", 2, "Taxi"),
+        ],
+      } as unknown as Seed);
+
+      expect(await closeViaApi(page)).toBe(200);
+      await page.reload();
+      await expect(page.getByTestId("budget-grid")).toBeVisible();
+      await expect(celda(page, "c-rest", AGO)).toHaveAttribute("data-closed", "true", { timeout: 15_000 });
+
+      // El panel SÍ se abre en un mes cerrado: es solo lectura, no un muro. Si se cortara el camino
+      // los comentarios quedarían inalcanzables, y un comentario es la única salida que le queda a
+      // un error demasiado viejo para reabrirlo (FR-2004).
+      const panel = await abrirCelda(page, "c-rest", AGO);
+      await expect(panel.getByTestId("closed-notice")).toBeVisible();
+      await expect(panel.getByTestId("detail-row")).toHaveCount(2); // la lista se ve igual…
+
+      // …pero no se puede tocar: ni editar, ni borrar, ni añadir.
+      await expect(panel.getByLabel("Borrar movimiento")).toHaveCount(0);
+      await expect(panel.getByLabel("Editar movimiento")).toHaveCount(0);
+      await expect(panel.getByTestId("add-movement")).toHaveCount(0);
+      // El comentario, en cambio, sigue disponible (FR-2004).
+      await expect(panel.getByPlaceholder("Añadir comentario")).toBeVisible();
+    });
+  });
+
+  test.describe("FR-2509 — «Comentario» y «Nota» en el Detalle", () => {
+    test("TC-DDC-174f: la línea sin monto se llama «Comentario» y el texto de un movimiento, «Nota»", async ({ page }) => {
+      // @aitri-tc TC-DDC-174f
+      await abrir(page, {
+        nodes: NODES,
+        actuals: { "c-rest": { [SEP]: 20_000 } },
+        movements: [mv("m-1", "expense", "c-rest", 20_000, SEP, "2026-09-18T12:00", 1, "Almuerzo")],
+        cellNotes: { "c-rest": { [SEP]: [{ id: "n1", createdAt: 1, text: "Pedir factura" }] } },
+      } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+
+      // La línea SIN monto es un comentario, y así se llama.
+      const comentario = panel.getByTestId("detail-row").filter({ hasText: "Pedir factura" });
+      await expect(comentario.getByLabel("Comentario")).toHaveCount(1);
+      await expect(comentario.getByTestId("detail-amount")).toHaveCount(0);
+
+      // El texto de un MOVIMIENTO se llama «Nota», nunca «observación».
+      const editor = await editarFila(page, panel, "Almuerzo");
+      await expect(editor.getByLabel("Nota")).toHaveValue("Almuerzo");
+      expect((await panel.textContent()) ?? "").not.toMatch(/observaci/i);
+    });
+  });
+
+test.describe("FR-2507 / NFR-2501 — lo que el editor NO deja hacer", () => {
+  test("TC-DDC-090f: mover a una fecha de un ciclo cerrado se bloquea con el mensaje de mes cerrado", async ({ page }) => {
+    // @aitri-tc TC-DDC-090f
+    // El cierre es un PREFIJO: no se puede cerrar «Octubre» dejando «Septiembre» abierto. Así que el
+    // caso realizable es el que describe el AC al revés: origen ABIERTO, destino cerrado ANTERIOR.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-salario": { [AGO]: 1_000_000 }, "c-rest": { [AGO]: 100_000, [SEP]: 15_000 } },
+      movements: [
+        mv("m-ago", "expense", "c-rest", 100_000, AGO, "2026-08-18T12:00", 1, "Agosto"),
+        mv("m-sep", "expense", "c-rest", 15_000, SEP, "2026-09-10T12:00", 2, "Café"),
+      ],
+    } as unknown as Seed);
+
+    expect(await closeViaApi(page)).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+    await expect(celda(page, "c-rest", AGO)).toHaveAttribute("data-closed", "true", { timeout: 15_000 });
+
+    // Septiembre sigue abierto: su movimiento SÍ se puede editar…
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const editor = await editarFila(page, panel, "Café");
+
+    // …pero no llevarlo a agosto, que ya está cerrado.
+    await editor.getByTestId("edit-date").click();
+    const pop = page.getByTestId("edit-date-popover");
+    await expect(pop.locator("select.rdp-years_dropdown")).toBeVisible();
+    await pop.locator("select.rdp-years_dropdown").selectOption("2026");
+    await pop.locator("select.rdp-months_dropdown").selectOption("7"); // agosto (0-based)
+    await pop.locator('[data-day="2026-08-18"]:not([data-outside]) button').click();
+
+    const aviso = editor.getByTestId("edit-closed-warning");
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText("cerrado");
+    await expect(aviso).toContainText("reábrelo");
+    // El error se IMPIDE, no se reporta después de intentarlo.
+    await expect(editor.getByTestId("edit-save")).toBeDisabled();
+
+    // Y el movimiento sigue donde estaba, con su fecha y su celda intactas.
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await expect(celda(page, "c-rest", SEP)).toContainText("15.000");
+    await expect(celda(page, "c-rest", AGO)).toContainText("100.000");
+  });
+
+  test("TC-DDC-311e: una nota con HTML se pinta como texto", async ({ page }) => {
+    // @aitri-tc TC-DDC-311e
+    const NOTA = '<img src=x onerror="window.__xss=1">';
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 1_000 } },
+      movements: [mv("m-xss", "expense", "c-rest", 1_000, SEP, "2026-09-10T12:00", 1, NOTA)],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    // Se lee como TEXTO, carácter por carácter…
+    await expect(panel.getByTestId("detail-note")).toHaveText(NOTA);
+    // …no hay ninguna imagen que el navegador haya intentado cargar…
+    await expect(panel.locator("img")).toHaveCount(0);
+    // …y nada se ejecutó: el manejador del `onerror` nunca corrió.
+    expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+
+    // Tampoco al editarla: el campo la trae literal, no interpretada.
+    const editor = await editarFila(page, panel, "img src");
+    await expect(editor.getByLabel("Nota")).toHaveValue(NOTA);
+    await expect(editor.locator("img")).toHaveCount(0);
+  });
+});
