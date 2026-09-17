@@ -8,7 +8,7 @@
 //               salir bien; la autoridad sigue siendo el servidor.
 // Dependencias: @/domain (CELL_NOTE_MAX, isDateInPeriod, proposedDate), @/state/store, ./format.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarClock, Plus } from "lucide-react";
 import { CELL_NOTE_MAX, formatDay, isDateInPeriod, proposedDate } from "@/domain";
@@ -50,12 +50,17 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
   // «Hoy» solo si la propuesta es hoy; si no, el día corto — el usuario ve SIEMPRE qué fecha va.
   const etiquetaFecha = fecha.slice(0, 10) === isoMinute(new Date()).slice(0, 10) ? "Hoy" : formatDay(fecha);
 
+  const montoRef = useRef<HTMLInputElement>(null);
+
   function confirmar() {
     if (!puedeAñadir) return;
     if (!add({ leafId, period: month, amount, note: nota.trim() === "" ? null : nota, date: fecha })) return;
     setMonto("");
     setNota("");
     setFecha(propuesta);
+    // El foco vuelve a «Monto» (FR-2502): añadir gastos es una ráfaga —el usuario transcribe varios
+    // seguidos—, y obligarle a volver con el ratón rompería justo eso.
+    montoRef.current?.focus();
   }
 
   return (
@@ -65,6 +70,7 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
       </span>
       <div className="flex items-center gap-1.5 text-caption">
         <input
+          ref={montoRef}
           aria-label="Monto"
           inputMode="numeric"
           value={monto}

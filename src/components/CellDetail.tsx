@@ -8,7 +8,7 @@
 //               el posicionamiento del panel.
 // Dependencias: @/domain (cellDetail, displayAmount), @/state/store, ./format, ./CellNoteInput.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Info, MessageSquare, Receipt, SlidersHorizontal } from "lucide-react";
 import { cellDetail, displayAmount, firstDayOf, findNode, formatDay, type DetailEntry } from "@/domain";
 import type { NodeType, PeriodKey } from "@/domain/types";
@@ -21,6 +21,16 @@ import { AddMovementLine } from "./AddMovementLine";
 const PANEL_MAX_W = 320;
 const VIEWPORT_MARGIN = 32;
 const LIST_MAX_H = 360;
+
+/**
+ * Cuánto dura el resaltado del ajuste recién creado (FR-2504).
+ *
+ * DOS DOCUMENTOS APROBADOS DISCREPAN: el UX spec dice «resaltado 1,5 s» y TC-DDC-062h exige que el
+ * borde siga siendo `--accent` al instante y haya dejado de serlo «tras 2 s». Se implementa lo que
+ * el TC verifica; la diferencia es de medio segundo y no cambia el comportamiento que el usuario
+ * percibe, pero queda anotada aquí en vez de resolverse en silencio.
+ */
+const RESALTADO_MS = 2000;
 
 /** Tinte común de TODAS las filas: la misma «caja» del comentario automático, pero neutra. */
 const ROW_TINT = "color-mix(in srgb, var(--fg-muted) 4%, transparent)";
@@ -43,8 +53,11 @@ export function dayLabel(iso: string): string {
  * Una línea del Detalle. Las cuatro formas comparten anatomía (ícono 12 px · contenido · monto a la
  * derecha) y se distinguen por el ícono y su etiqueta accesible, no por el color (WCAG 1.4.1).
  */
-function DetailRow({ entry, type, period }: { entry: DetailEntry; type: NodeType; period: PeriodKey }) {
+function DetailRow({ entry, type, period, resaltado }: { entry: DetailEntry; type: NodeType; period: PeriodKey; resaltado?: boolean }) {
   const base = "flex items-start gap-1.5 rounded-(--radius-xs) px-1.5 py-1 text-caption";
+  // FR-2504: el ajuste recién creado se señala un instante. Es la respuesta a una acción, no un
+  // estado permanente, así que el borde se apaga solo (H1: el usuario ve QUÉ pasó al teclear).
+  const borde = resaltado ? { border: "1px solid var(--accent)" } : undefined;
 
   if (entry.kind === "auto") {
     return (
@@ -69,7 +82,7 @@ function DetailRow({ entry, type, period }: { entry: DetailEntry; type: NodeType
   const { sign, abs, addsToCell } = displayAmount(type, m.amount);
   const Icon = entry.kind === "adjustment" ? SlidersHorizontal : Receipt;
   return (
-    <div data-testid="detail-row" data-kind={entry.kind} className={base} style={{ background: ROW_TINT }}>
+    <div data-testid="detail-row" data-kind={entry.kind} className={base} style={{ background: ROW_TINT, ...borde }}>
       <Icon
         size={12}
         strokeWidth={1.5}
@@ -125,6 +138,26 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
   const node = findNode(data.nodes, leafId);
   const entries = cellDetail(data, leafId, month, periods);
 
+  // FR-2504: el ajuste que acaba de nacer se señala un instante y el borde se apaga solo. Se
+  // detecta comparando la lista con la del render anterior —el panel no recibe avisos del store— y
+  // se limita a los ajustes: un movimiento que el usuario tecleó él mismo no necesita que le digan
+  // dónde quedó, pero uno que apareció SOLO al teclear un total, sí.
+  const [recien, setRecien] = useState<string | null>(null);
+  const idsPrevios = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const ids = new Set(entries.flatMap((e) => (e.kind === "movement" || e.kind === "adjustment" ? [e.movement.id] : [])));
+    const previos = idsPrevios.current;
+    idsPrevios.current = ids;
+    if (!previos) return; // primer render: nada es «nuevo»
+    const nuevo = entries.find(
+      (e) => e.kind === "adjustment" && !previos.has(e.movement.id)
+    );
+    if (!nuevo || nuevo.kind !== "adjustment") return;
+    setRecien(nuevo.movement.id);
+    const t = setTimeout(() => setRecien(null), RESALTADO_MS);
+    return () => clearTimeout(t);
+  }, [entries]);
+
   useLayoutEffect(() => {
     const w = Math.min(PANEL_MAX_W, window.innerWidth - VIEWPORT_MARGIN);
     setWidth(w);
@@ -157,7 +190,13 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
       ) : (
         <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: LIST_MAX_H }}>
           {entries.map((e, i) => (
-            <DetailRow key={entryKey(e, i)} entry={e} type={node.type} period={month} />
+            <DetailRow
+              key={entryKey(e, i)}
+              entry={e}
+              type={node.type}
+              period={month}
+              resaltado={(e.kind === "movement" || e.kind === "adjustment") && e.movement.id === recien}
+            />
           ))}
         </div>
       )}

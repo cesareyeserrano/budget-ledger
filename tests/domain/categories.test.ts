@@ -69,7 +69,11 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     expect(res).toEqual({ blocked: "has_data" });
     // la categoría sigue existiendo con sus movimientos intactos
     expect(findNode(s.nodes, "c-cafe")).toBeDefined();
-    expect(s.movements.length).toBe(3);
+    // NFR-2502: se cuentan LOS SUYOS. La semilla poblada de esta suite crea ahora el movimiento que
+    // respalda cada celda (el servidor ya no admite una celda sin respaldo), así que el total del
+    // ledger dejó de ser 3 — pero lo que esta prueba afirma es que el borrado bloqueado no se llevó
+    // por delante los movimientos de la categoría.
+    expect(s.movements.filter((m) => m.target === "c-cafe")).toHaveLength(3);
   });
 
   // BG-006: una categoría/sub VACIADA (ejecutado en 0 en todos los meses) debe poder borrarse,
@@ -107,7 +111,11 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
   // BG-003 (revisado): el seed trae ejecutado (actuals) SIN movements; borrar una categoría
   // semilla con ejecutado está BLOQUEADO (hay que vaciarla primero) — no se pierde el dato.
   it("BG-003: borrar categoría semilla con ejecutado (sin movements) está bloqueado", () => {
-    const s = buildSeed("local", P0);
+    // El escenario de este caso es literal: celdas CON ejecutado y SIN movimientos. La semilla
+    // poblada de la suite ahora crea el respaldo de cada celda (NFR-2502: el servidor ya no admite
+    // una celda sin él), así que aquí se le quitan — es el estado que la prueba describe y el que
+    // sigue existiendo en la realidad: un ledger anterior a esta feature.
+    const s = { ...buildSeed("local", P0), movements: [] };
     expect(s.movements.length).toBe(0); // el seed no genera movimientos
     const leafCat = s.nodes.find(
       (n) => n.level === "category" && isLeaf(n, s.nodes) && Object.values(s.actuals[n.id] ?? {}).some((v) => (v ?? 0) > 0)

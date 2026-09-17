@@ -11,7 +11,7 @@
  * 2026-08-21 al 2026-09-20 y su clave es «2026-09». «Hoy» se fija en el servidor y en el navegador.
  */
 import { test, expect, type Page } from "./helpers/fixtures";
-import { seedLedger } from "./helpers/seed";
+import { readLedger, seedLedger } from "./helpers/seed";
 import { applyCycles, closeViaApi, fixToday } from "./helpers/cycles";
 import type { LedgerNode, Movement } from "@/domain/types";
 
@@ -89,6 +89,24 @@ async function abrir(page: Page, seed: Seed, viewport = DESK): Promise<void> {
 /** La celda de Ejecutado de una hoja en un periodo. */
 const celda = (page: Page, leafId: string, period: string) =>
   page.locator(`[data-cell="${leafId}"][data-month="${period}"][data-plane="actual"]`).first();
+
+/**
+ * Elige un día en el calendario de la línea «Añadir movimiento».
+ *
+ * Es react-day-picker con DESPLEGABLES de mes y año (`captionLayout="dropdown"`), no con flechas:
+ * hay que mover los selects y pulsar el día por su `data-day`. Buscarlo por su nombre accesible no
+ * sirve cuando el día cae en otro mes — el calendario abre en el de la fecha propuesta y el día
+ * sencillamente no está en el DOM. Mismo patrón que `fijarFecha` de ciclos.spec.ts.
+ */
+async function elegirFecha(page: Page, panel: ReturnType<Page["locator"]>, iso: string): Promise<void> {
+  const [y, m] = iso.split("-").map(Number) as [number, number];
+  await panel.getByTestId("add-date").click();
+  const pop = page.getByTestId("add-date-popover");
+  await expect(pop.locator("select.rdp-years_dropdown")).toBeVisible();
+  await pop.locator("select.rdp-years_dropdown").selectOption(String(y));
+  await pop.locator("select.rdp-months_dropdown").selectOption(String(m - 1));
+  await pop.locator(`[data-day="${iso}"]:not([data-outside]) button`).click();
+}
 
 /** Abre el editor de esa celda y devuelve el panel «Detalle». */
 async function abrirCelda(page: Page, leafId: string, period: string) {
@@ -409,6 +427,439 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
       }
     });
   }
+});
+
+test.describe("FR-2502 — añadir un movimiento desde el Detalle", () => {
+  test("TC-DDC-021h: añadir 30.000 «Almuerzo» sube la celda a 130.000 sin abrir otro formulario", async ({ page }) => {
+    // @aitri-tc TC-DDC-021h
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    // Nota PROPIA de este caso: el escenario ya trae una fila «Almuerzo» (m-1), así que reutilizar
+    // ese texto haría que el filtro encontrara dos y la prueba no distinguiría la suya.
+    await panel.getByLabel("Monto").fill("30000");
+    await panel.getByLabel("Nota").fill("Café de la tarde");
+    await panel.getByLabel("Nota").press("Enter");
+
+    const fila = panel.getByTestId("detail-row").filter({ hasText: "Café de la tarde" });
+    await expect(fila).toHaveCount(1);
+    await expect(fila.getByTestId("detail-date")).toHaveText("10 sep"); // la fecha propuesta: HOY
+    await expect(fila.getByTestId("detail-amount")).toHaveText("−30.000");
+    // Se añade DENTRO de la celda: no hay un segundo formulario que llenar.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Y la línea queda lista para el siguiente, con el foco en Monto.
+    await expect(panel.getByLabel("Monto")).toHaveValue("");
+    await expect(panel.getByLabel("Nota")).toHaveValue("");
+    await expect(panel.getByLabel("Monto")).toBeFocused();
+    // El total se lee en la CELDA, no en «Editar valor»: ese input conserva el valor capturado al
+    // abrir el editor y solo cambia si el usuario teclea. Y la celda solo existe con el editor
+    // CERRADO —mientras está abierto, el editor ocupa su sitio—, así que se cierra antes de leerla.
+    await page.keyboard.press("Escape");
+    await expect(celda(page, "c-rest", SEP)).toContainText("130.000");
+  });
+
+  test("TC-DDC-023e: el movimiento añadido persiste tras recargar", async ({ page }) => {
+    // @aitri-tc TC-DDC-023e
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    // Texto propio, por lo mismo que en TC-DDC-021h: el escenario ya trae una fila «Almuerzo».
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await panel.getByLabel("Monto").fill("30000");
+    await panel.getByLabel("Nota").fill("Café de la tarde");
+    await panel.getByLabel("Nota").press("Enter");
+    await put;
+
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+    const panel2 = await abrirCelda(page, "c-rest", SEP);
+    await expect(page.getByLabel("Editar valor")).toHaveValue("130000");
+    await expect(panel2.getByTestId("detail-row").filter({ hasText: "Café de la tarde" })).toHaveCount(1);
+  });
+
+  test("TC-DDC-025f: con el monto vacío o en 0 no se confirma ni se escribe", async ({ page }) => {
+    // @aitri-tc TC-DDC-025f
+    await abrir(page, {
+      nodes: NODES, actuals: { "c-rest": { [SEP]: 100_000 } },
+      movements: [mv("m-u", "expense", "c-rest", 100_000, SEP, "2026-09-18T12:00", 1)],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    let puts = 0;
+    page.on("request", (r) => { if (r.method() === "PUT" && r.url().includes("/api/v1/ledger")) puts++; });
+
+    // (a) monto vacío, con nota: Enter no hace nada.
+    await panel.getByLabel("Nota").fill("x");
+    await expect(panel.getByTestId("add-movement-confirm")).toBeDisabled();
+    await panel.getByLabel("Nota").press("Enter");
+
+    // (b) monto 0: el botón sigue deshabilitado.
+    await panel.getByLabel("Monto").fill("0");
+    await expect(panel.getByTestId("add-movement-confirm")).toBeDisabled();
+
+    await expect(panel.getByTestId("detail-row")).toHaveCount(1);
+    await expect(page.getByLabel("Editar valor")).toHaveValue("100000");
+    expect(puts, "nada inválido llega al servidor").toBe(0);
+  });
+
+  test("TC-DDC-027f: una nota de 281 caracteres deshabilita «Añadir» y no se trunca", async ({ page }) => {
+    // @aitri-tc TC-DDC-027f
+    await abrir(page, {
+      nodes: NODES, actuals: { "c-rest": { [SEP]: 100_000 } },
+      movements: [mv("m-u", "expense", "c-rest", 100_000, SEP, "2026-09-18T12:00", 1)],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    const larga = "a".repeat(281);
+    await panel.getByLabel("Monto").fill("30000");
+    await panel.getByLabel("Nota").fill(larga);
+
+    const contador = panel.getByTestId("add-note-counter");
+    await expect(contador).toHaveText("281/280");
+    expect(await contador.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--error"));
+    await expect(panel.getByTestId("add-movement-confirm")).toBeDisabled();
+    // El texto NO se recorta: el exceso es un error del input, no algo que se corta en silencio.
+    await expect(panel.getByLabel("Nota")).toHaveValue(larga);
+
+    await panel.getByLabel("Nota").press("Enter");
+    await expect(panel.getByTestId("detail-row")).toHaveCount(1);
+    await expect(page.getByLabel("Editar valor")).toHaveValue("100000");
+  });
+
+  test("TC-DDC-031f: si el servidor rechaza, se avisa y la celda vuelve al valor del servidor", async ({ page }) => {
+    // @aitri-tc TC-DDC-031f
+    await abrir(page, {
+      nodes: NODES, actuals: { "c-rest": { [SEP]: 100_000 } },
+      movements: [mv("m-u", "expense", "c-rest", 100_000, SEP, "2026-09-18T12:00", 1)],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    // El PUT se intercepta DESPUÉS de sembrar: el rechazo que se ejercita es el del guardado.
+    await page.route("**/api/v1/ledger", (route) => {
+      if (route.request().method() !== "PUT") return route.fallback();
+      return route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "closed_period_violation", detail: { periods: [SEP] } } }),
+      });
+    });
+
+    await panel.getByLabel("Monto").fill("30000");
+    await panel.getByLabel("Nota").fill("Almuerzo");
+    await panel.getByLabel("Nota").press("Enter");
+
+    // El aviso nombra el motivo, y tras el resync la celda vuelve a lo que dice el servidor.
+    const toast = page.getByTestId("toast");
+    await expect(toast).toContainText("cerrado");
+    await expect(page.getByLabel("Editar valor")).toHaveValue("100000", { timeout: 10_000 });
+    await expect(panel.getByTestId("detail-row")).toHaveCount(1);
+  });
+});
+
+test.describe("FR-2503 — la fecha que la celda propone y acepta", () => {
+  test("TC-DDC-042h: el botón dice «Hoy» y el movimiento nace con la fecha de hoy", async ({ page }) => {
+    // @aitri-tc TC-DDC-042h
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    await expect(panel.getByTestId("add-date")).toHaveText(/Hoy/);
+
+    // Con NOTA propia, y se busca por ella: identificar el movimiento por su monto lo confundía con
+    // cualquier otro del mismo importe (el de la siembra, sin ir más lejos), y la prueba acababa
+    // leyendo la fecha de un movimiento que no era el suyo.
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await panel.getByLabel("Monto").fill("12000");
+    await panel.getByLabel("Nota").fill("Con fecha de hoy");
+    await panel.getByLabel("Nota").press("Enter");
+    await put;
+
+    const estado = await readLedger(page);
+    const nuevo = estado!.movements.find((m) => m.note === "Con fecha de hoy")!;
+    expect(nuevo, "el movimiento se guardó").toBeDefined();
+    // «Hoy» es el día que fija este fichero (HOY), no el que cita el enunciado del caso: el reloj lo
+    // pone `abrir()` y de ahí sale la fecha propuesta.
+    expect(nuevo.date?.startsWith(HOY), `fecha ${nuevo.date}`).toBe(true);
+  });
+
+  test("TC-DDC-044e: con hoy fuera del ciclo, el botón propone su último día", async ({ page }) => {
+    // @aitri-tc TC-DDC-044e
+    // Hoy es 22 de septiembre: ya es «Octubre», así que la celda de «Septiembre» propone su último
+    // día (20 sep) — una fecha real dentro del periodo que se está editando.
+    await page.setViewportSize(DESK);
+    await fixToday(page, "2026-09-22");
+    await applyCycles(page, { mode: "cycle", anchorDay: 21 });
+    await seedLedger(page, REST_SEP);
+    await page.goto("/");
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await expect(panel.getByTestId("add-date")).toHaveText(/20 sep/);
+  });
+
+  test("TC-DDC-046e: elegir el 25 de agosto deja el movimiento en «Septiembre»", async ({ page }) => {
+    // @aitri-tc TC-DDC-046e
+    // Con día de pago 21, el ciclo «Septiembre» empieza el 21 de agosto: el 25 de agosto es suyo.
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    await elegirFecha(page, panel, "2026-08-25");
+    await expect(panel.getByTestId("add-date")).toHaveText(/25 ago/);
+
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await panel.getByLabel("Monto").fill("8000");
+    await panel.getByLabel("Monto").press("Enter");
+    await put;
+
+    // La celda de «Septiembre» lo recibe; la columna de «Agosto» no se mueve. Se lee la CELDA, no
+    // el input: «Editar valor» conserva el valor que se capturó al ABRIR el editor y solo cambia si
+    // el usuario teclea, así que mirar ahí no dice nada de lo que la celda vale ahora.
+    await page.keyboard.press("Escape");
+    await expect(celda(page, "c-rest", SEP)).toContainText("108.000");
+    const estado = await readLedger(page);
+    expect(estado!.movements.find((m) => m.amount === 8_000)!.period).toBe(SEP);
+    expect(estado!.actuals["c-rest"]?.[AGO] ?? 0).toBe(0);
+  });
+
+  test("TC-DDC-047f: el calendario no deja elegir un día de otro ciclo", async ({ page }) => {
+    // @aitri-tc TC-DDC-047f
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    await panel.getByTestId("add-date").click();
+    const calendario = page.getByTestId("add-date-popover");
+    await expect(calendario).toBeVisible();
+
+    // El 21 de septiembre ya es «Octubre» y el 20 de agosto todavía es «Agosto»: el calendario los
+    // muestra, pero deshabilitados — no se ofrecen días que el servidor rechazaría.
+    const dia = (iso: string) => calendario.locator(`[data-day="${iso}"]:not([data-outside]) button`);
+    await expect(dia("2026-09-21")).toBeDisabled();
+    await calendario.locator("select.rdp-months_dropdown").selectOption("7"); // agosto
+    await expect(dia("2026-08-20")).toBeDisabled();
+    // Y el 25 de agosto SÍ está habilitado: sin esto, lo anterior pasaría con todo deshabilitado.
+    await expect(dia("2026-08-25")).toBeEnabled();
+
+    await page.keyboard.press("Escape");
+    await expect(panel.getByTestId("add-date")).toHaveText(/Hoy/); // sigue en la propuesta
+  });
+});
+
+test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", () => {
+  test("TC-DDC-062h: teclear 120.000 crea el ajuste, resaltado, y la celda queda en 120.000", async ({ page }) => {
+    // @aitri-tc TC-DDC-062h
+    await abrir(page, REST_SEP);
+    await abrirCelda(page, "c-rest", SEP);
+
+    await page.getByLabel("Editar valor").fill("120000");
+    await page.getByLabel("Editar valor").press("Enter");
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const ajuste = panel.locator('[data-testid="detail-row"][data-kind="adjustment"]');
+    await expect(ajuste).toHaveCount(1);
+    await expect(ajuste.getByLabel("Ajuste", { exact: true })).toHaveCount(1);
+    await expect(ajuste.getByTestId("detail-note")).toHaveText("Ajuste manual");
+    await expect(ajuste.getByTestId("detail-amount")).toHaveText("−20.000");
+    await expect(page.getByLabel("Editar valor")).toHaveValue("120000");
+
+    // El resaltado es una respuesta a la acción, no un estado: se apaga solo.
+    expect(await ajuste.evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(await cssVar(page, "--accent"));
+    await expect
+      .poll(async () => ajuste.evaluate((el) => getComputedStyle(el).borderTopWidth), { timeout: 10_000 })
+      .toBe("0px");
+  });
+
+  test("TC-DDC-064e: el ajuste negativo de un gasto se ve «+10.000» y persiste", async ({ page }) => {
+    // @aitri-tc TC-DDC-064e
+    await abrir(page, REST_SEP);
+    await abrirCelda(page, "c-rest", SEP);
+
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await page.getByLabel("Editar valor").fill("90000");
+    await page.getByLabel("Editar valor").press("Enter");
+    await put;
+
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    await expect(page.getByLabel("Editar valor")).toHaveValue("90000");
+    const ajuste = panel.locator('[data-testid="detail-row"][data-kind="adjustment"]');
+    const monto = ajuste.getByTestId("detail-amount");
+    // Le QUITA gasto a la celda, así que se ve «+», y en secundario porque no suma al total.
+    await expect(monto).toHaveText("+10.000");
+    expect(await monto.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--fg-secondary"));
+
+    const estado = await readLedger(page);
+    const guardado = estado!.movements.find((m) => m.note === "Ajuste manual")!;
+    expect(guardado.amount).toBe(-10_000);
+    expect((guardado as { kind?: string }).kind).toBe("adjustment");
+  });
+
+  test("TC-DDC-009e: el color separa lo que suma de lo que resta", async ({ page }) => {
+    // @aitri-tc TC-DDC-009e
+    await abrir(page, REST_SEP);
+    await abrirCelda(page, "c-rest", SEP);
+    // El ajuste se crea por la vía del producto: teclear un total menor que la suma.
+    await page.getByLabel("Editar valor").fill("90000");
+    await page.getByLabel("Editar valor").press("Enter");
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const gasto = panel.locator('[data-testid="detail-row"][data-kind="movement"]').first();
+    const ajuste = panel.locator('[data-testid="detail-row"][data-kind="adjustment"]').first();
+
+    expect(await gasto.getByTestId("detail-amount").evaluate((el) => getComputedStyle(el).color))
+      .toBe(await cssVar(page, "--type-expense"));
+    expect(await ajuste.getByTestId("detail-amount").evaluate((el) => getComputedStyle(el).color))
+      .toBe(await cssVar(page, "--fg-secondary"));
+  });
+
+  test("TC-DDC-070f: teclear en Presupuestado no añade ningún movimiento", async ({ page }) => {
+    // @aitri-tc TC-DDC-070f
+    await abrir(page, {
+      nodes: NODES,
+      budgets: { "c-rest": { [SEP]: 80_000 } },
+      actuals: { "c-rest": { [SEP]: 10_000 } },
+      movements: [mv("m-u", "expense", "c-rest", 10_000, SEP, "2026-09-18T12:00", 1)],
+    } as unknown as Seed);
+
+    const presupuesto = page.locator(`[data-cell="c-rest"][data-month="${SEP}"][data-plane="budget"]`).first();
+    await presupuesto.click();
+    await page.getByLabel("Editar valor").fill("90000");
+    await page.getByLabel("Editar valor").press("Enter");
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await expect(panel.getByTestId("detail-row")).toHaveCount(1); // el suyo, ninguno nuevo
+    const estado = await readLedger(page);
+    expect(estado!.movements).toHaveLength(1);
+    expect(estado!.budgets["c-rest"]?.[SEP]).toBe(90_000);
+  });
+});
+
+test.describe("NFR-2503 — los bolsillos no cambian", () => {
+  test("TC-DDC-341h: la nota De→A sigue en la celda del bolsillo y en su Detalle", async ({ page }) => {
+    // @aitri-tc TC-DDC-341h
+    await abrir(page, BOLSILLO);
+
+    const celdaBolsillo = celda(page, "c-viaje", SEP);
+    await expect(celdaBolsillo.getByTestId("note-dot")).toBeVisible();
+    // El `title` de la celda prioriza el aviso automático del arrastre sobre las notas (regla
+    // vigente, `ReserveCells.tsx`), y este escenario lo tiene. La nota De→A se lee donde el usuario
+    // la busca: dentro del Detalle, que es lo que esta prueba verifica abajo.
+    await expect(celdaBolsillo).toHaveAttribute("title", /salieron del saldo/);
+
+    const panel = await abrirCelda(page, "c-viaje", SEP);
+    await expect(panel.getByTestId("cell-note").filter({ hasText: "pasaje" })).toHaveCount(1);
+  });
+
+  test("TC-DDC-343e: el Detalle de un bolsillo no ofrece añadir movimientos", async ({ page }) => {
+    // @aitri-tc TC-DDC-343e
+    await abrir(page, BOLSILLO);
+    const panel = await abrirCelda(page, "c-viaje", SEP);
+
+    await expect(panel.getByTestId("add-movement")).toHaveCount(0);
+    await expect(panel.getByTestId("add-movement-confirm")).toHaveCount(0);
+    // Pero comentar SÍ se puede: es la vía que el bolsillo siempre tuvo.
+    await expect(panel.getByLabel("Añadir comentario")).toBeVisible();
+  });
+
+  test("TC-DDC-344e: el comentario automático del saldo anterior se sigue mostrando", async ({ page }) => {
+    // @aitri-tc TC-DDC-344e
+    await abrir(page, BOLSILLO);
+    const panel = await abrirCelda(page, "c-viaje", SEP);
+
+    const auto = panel.getByTestId("carry-note");
+    await expect(auto).toHaveCount(1);
+    await expect(auto).toContainText("saldo de");
+  });
+});
+
+test.describe("NFR-2504 — «Nuevo movimiento» sigue igual", () => {
+  test("TC-DDC-351h: guardar 50.000 desde el registro sube la hoja y aparece en su Detalle", async ({ page }) => {
+    // @aitri-tc TC-DDC-351h
+    await abrir(page, {
+      nodes: NODES, actuals: { "c-rest": { [SEP]: 20_000 } },
+      movements: [mv("m-u", "expense", "c-rest", 20_000, SEP, "2026-09-10T12:00", 1)],
+    } as unknown as Seed);
+
+    await page.getByRole("button", { name: "Nuevo movimiento" }).click();
+    await page.getByTestId("amount-input").fill("50000");
+    // Por `data-testid` y no por nombre: en la grilla, el rótulo de la fila «Restaurantes» también
+    // es un botón (es arrastrable), así que buscar por nombre encuentra dos elementos.
+    await page.getByTestId("category-c-rest").click();
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await page.getByTestId("save-button").click();
+    await expect(page.getByTestId("confirm-overlay")).toBeVisible();
+    await put;
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await expect(page.getByLabel("Editar valor")).toHaveValue("70000");
+    await expect(panel.getByTestId("detail-row")).toHaveCount(2);
+    await expect(panel.getByTestId("detail-amount").filter({ hasText: "−50.000" })).toHaveCount(1);
+  });
+
+  test("TC-DDC-352e: un gasto del 25 oct guardado desde el registro cae en «Noviembre»", async ({ page }) => {
+    // @aitri-tc TC-DDC-352e
+    // Con día de pago 21, el ciclo «Noviembre» empieza el 21 de octubre: el 25 de octubre es suyo.
+    // La asignación por FECHA es de la feature `ciclos` (FR-2405) y esta prueba verifica que sigue
+    // intacta — el Detalle no cambió por dónde entra un movimiento del registro.
+    await page.setViewportSize(DESK);
+    await fixToday(page, "2026-10-22");
+    await applyCycles(page, { mode: "cycle", anchorDay: 21 });
+    await seedLedger(page, { nodes: NODES } as unknown as Seed);
+    await page.goto("/");
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    await page.getByRole("button", { name: "Nuevo movimiento" }).click();
+    await page.getByTestId("amount-input").fill("1000");
+    // Por `data-testid` y no por nombre: en la grilla, el rótulo de la fila «Restaurantes» también
+    // es un botón (es arrastrable), así que buscar por nombre encuentra dos elementos.
+    await page.getByTestId("category-c-rest").click();
+
+    // La fecha se elige en el calendario del registro, y ANTES de guardar la línea dice a qué ciclo
+    // va: el usuario no descubre el destino después.
+    await page.getByTestId("date-field").click();
+    await page.getByTestId("date-popover").getByRole("button", { name: /25 de octubre/ }).click();
+    await expect(page.getByTestId("register-cycle")).toContainText("Noviembre");
+
+    const put = page.waitForResponse((r) => r.url().includes("/api/v1/ledger") && r.request().method() === "PUT" && r.status() === 200);
+    await page.getByTestId("save-button").click();
+    await put;
+
+    const estado = await readLedger(page);
+    expect(estado!.actuals["c-rest"]?.["2026-11"]).toBe(1_000);
+    expect(estado!.actuals["c-rest"]?.[OCT] ?? 0, "octubre no se mueve").toBe(0);
+  });
+
+  test("TC-DDC-353f: con monto 0 o sin categoría, «Guardar» sigue deshabilitado", async ({ page }) => {
+    // @aitri-tc TC-DDC-353f
+    await abrir(page, REST_SEP);
+    await page.getByRole("button", { name: "Nuevo movimiento" }).click();
+
+    let puts = 0;
+    page.on("request", (r) => { if (r.method() === "PUT" && r.url().includes("/api/v1/ledger")) puts++; });
+
+    // (a) monto 0 con categoría elegida.
+    // Por `data-testid` y no por nombre: en la grilla, el rótulo de la fila «Restaurantes» también
+    // es un botón (es arrastrable), así que buscar por nombre encuentra dos elementos.
+    await page.getByTestId("category-c-rest").click();
+    await expect(page.getByTestId("save-button")).toBeDisabled();
+
+    // (b) monto válido SIN categoría. Pulsar otra vez NO la suelta: `onCategoryClick` sobre una
+    // categoría-hoja siempre selecciona. La vía real es cambiar de tipo, que conserva el monto y
+    // limpia la selección (FR-208/209) — y se vuelve a gasto, ya sin categoría elegida.
+    await page.getByTestId("type-income").click();
+    await page.getByTestId("type-expense").click();
+    await expect(page.getByTestId("category-c-rest")).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId("amount-input").fill("5000");
+    const antes = (await readLedger(page))!.movements.length;
+
+    // «Guardar» se habilita con monto > 0 aunque no haya categoría (`saveEnabled` no la mira): la
+    // guarda real está en `onSave`, que sin categoría marca el error y NO crea nada. Eso es lo que
+    // el TC protege —que no se cree un movimiento sin destino—, y es lo que se afirma.
+    await page.getByTestId("save-button").click();
+    await expect(page.getByTestId("confirm-overlay")).toHaveCount(0);
+    expect((await readLedger(page))!.movements).toHaveLength(antes);
+    expect(puts).toBe(0);
+  });
 });
 
 test.describe("FR-2509 — un solo nombre por concepto", () => {

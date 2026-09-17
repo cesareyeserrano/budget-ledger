@@ -17,6 +17,10 @@ criterio que el diseño aprobado ya aplicó a la etiqueta de `techo-de-flujo`. Q
 ajuste `kind:'adjustment'` negativo → EP-02), TC-DDC-174f (abre el bloque de edición del movimiento → EP-03), TC-DDC-157f
 (usa `cellMismatches` → EP-04) y TC-DDC-173f (barre también el aviso de descuadre del Balance → EP-04).
 
+**Un quinto movido el 2026-09-16:** TC-DDC-077e (`kind` y signo sobreviven a un PATCH del ajuste y al cierre) → **EP-03**.
+Necesita `PATCH /api/v1/movements/{id}`, que hoy responde `unsupported` (`movements/[id]/route.ts:27`) y se construye en ese
+epic. EP-02 queda en 48 TCs y EP-03 en 65; el reparto sigue cubriendo los 171 exactamente una vez.
+
 ## EP-01 — Ver el Detalle de la celda   [status: done]
   Delivers:    US-2501, US-2508, US-2509
   FRs:         FR-2501, FR-2508, FR-2509
@@ -24,17 +28,17 @@ ajuste `kind:'adjustment'` negativo → EP-02), TC-DDC-174f (abre el bloque de e
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Superficie de solo lectura (`cellDetail`, `displayAmount`, `CellDetail`, `DetailRow`) más los textos de FR-2509 y su test estructural. No cambia el servidor ni el esquema, y las acciones de los epics siguientes se montan dentro de este panel. Incluye el renombre del aviso de mes cerrado y el ajuste de `cierre-de-mes.spec.ts:159`.
 
-## EP-02 — Añadir un movimiento y teclear un ajuste   [status: pending]
+## EP-02 — Añadir un movimiento y teclear un ajuste   [status: done]
   Delivers:    US-2502, US-2503, US-2504
   FRs:         FR-2502, FR-2503, FR-2504
-  Makes pass:  TC-DDC-021h, TC-DDC-022h, TC-DDC-023e, TC-DDC-024e, TC-DDC-025f, TC-DDC-026f, TC-DDC-027f, TC-DDC-028f, TC-DDC-029e, TC-DDC-030e, TC-DDC-031f, TC-DDC-041h, TC-DDC-042h, TC-DDC-043e, TC-DDC-044e, TC-DDC-045e, TC-DDC-046e, TC-DDC-047f, TC-DDC-048f, TC-DDC-049f, TC-DDC-061h, TC-DDC-062h, TC-DDC-063e, TC-DDC-064e, TC-DDC-065e, TC-DDC-066e, TC-DDC-067e, TC-DDC-068f, TC-DDC-069f, TC-DDC-070f, TC-DDC-071e, TC-DDC-072f, TC-DDC-073f, TC-DDC-074e, TC-DDC-075e, TC-DDC-076e, TC-DDC-077e, TC-DDC-009e, TC-DDC-341h, TC-DDC-342f, TC-DDC-343e, TC-DDC-344e, TC-DDC-345e, TC-DDC-351h, TC-DDC-352e, TC-DDC-353f, TC-DDC-371h, TC-DDC-372e, TC-DDC-373f
+  Makes pass:  TC-DDC-021h, TC-DDC-022h, TC-DDC-023e, TC-DDC-024e, TC-DDC-025f, TC-DDC-026f, TC-DDC-027f, TC-DDC-028f, TC-DDC-029e, TC-DDC-030e, TC-DDC-031f, TC-DDC-041h, TC-DDC-042h, TC-DDC-043e, TC-DDC-044e, TC-DDC-045e, TC-DDC-046e, TC-DDC-047f, TC-DDC-048f, TC-DDC-049f, TC-DDC-061h, TC-DDC-062h, TC-DDC-063e, TC-DDC-064e, TC-DDC-065e, TC-DDC-066e, TC-DDC-067e, TC-DDC-068f, TC-DDC-069f, TC-DDC-070f, TC-DDC-071e, TC-DDC-072f, TC-DDC-073f, TC-DDC-074e, TC-DDC-075e, TC-DDC-076e, TC-DDC-009e, TC-DDC-341h, TC-DDC-342f, TC-DDC-343e, TC-DDC-344e, TC-DDC-345e, TC-DDC-351h, TC-DDC-352e, TC-DDC-353f, TC-DDC-371h, TC-DDC-372e, TC-DDC-373f
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Introduce lo que todo lo demás necesita: migración `0009` (`kind` + CHECK), mapeo de `kind` en las cuatro lecturas y reescrituras del snapshot, `apiMovementSchema` con ajustes negativos, `proposedDate`/`isDateInPeriod`, `adjustCell`/`movementSum` y el cuadre relativo del PUT. Como ese cuadre rechaza siembras con Ejecutado sin movimientos, AQUÍ se arreglan los datos de prueba (decisión del usuario del 2026-09-15, NFR-2507): `buildSeedConMontos`, el paso holgado de `seedLedger`, `tests/fixtures/ciclos-usuario.ts` y las siembras de integración listadas en `03_TEST_CASES.json#test_plan.strategy`, siempre ajustando el fixture y nunca el resultado esperado. TCs NFR alojados aquí: NFR-2503 (bolsillos), NFR-2504 («Nuevo movimiento» sin cambios), NFR-2506 (Presupuestado sin cambios).
 
 ## EP-03 — Editar y borrar movimientos   [status: pending]
   Delivers:    US-2505, US-2506
   FRs:         FR-2505, FR-2506
-  Makes pass:  TC-DDC-081h, TC-DDC-082h, TC-DDC-083h, TC-DDC-084e, TC-DDC-085e, TC-DDC-086e, TC-DDC-087e, TC-DDC-088f, TC-DDC-089f, TC-DDC-090f, TC-DDC-091f, TC-DDC-092f, TC-DDC-093f, TC-DDC-094f, TC-DDC-095h, TC-DDC-096e, TC-DDC-097f, TC-DDC-098e, TC-DDC-099e, TC-DDC-100f, TC-DDC-101f, TC-DDC-103e, TC-DDC-174f, TC-DDC-111h, TC-DDC-112h, TC-DDC-113e, TC-DDC-114e, TC-DDC-115e, TC-DDC-116f, TC-DDC-117f, TC-DDC-118f, TC-DDC-119f, TC-DDC-120f, TC-DDC-121e, TC-DDC-122f, TC-DDC-123f, TC-DDC-301h, TC-DDC-302f, TC-DDC-303f, TC-DDC-304f, TC-DDC-305f, TC-DDC-306f, TC-DDC-307e, TC-DDC-308f, TC-DDC-309f, TC-DDC-310e, TC-DDC-311e, TC-DDC-312f, TC-DDC-328e, TC-DDC-321h, TC-DDC-322e, TC-DDC-323f, TC-DDC-324f, TC-DDC-325e, TC-DDC-326e, TC-DDC-327e, TC-DDC-361h, TC-DDC-362f, TC-DDC-363e, TC-DDC-364e, TC-DDC-391h, TC-DDC-392e, TC-DDC-393f, TC-DDC-394e
+  Makes pass:  TC-DDC-081h, TC-DDC-082h, TC-DDC-083h, TC-DDC-084e, TC-DDC-085e, TC-DDC-086e, TC-DDC-087e, TC-DDC-088f, TC-DDC-089f, TC-DDC-090f, TC-DDC-091f, TC-DDC-092f, TC-DDC-093f, TC-DDC-094f, TC-DDC-095h, TC-DDC-096e, TC-DDC-097f, TC-DDC-098e, TC-DDC-099e, TC-DDC-100f, TC-DDC-101f, TC-DDC-103e, TC-DDC-174f, TC-DDC-077e, TC-DDC-111h, TC-DDC-112h, TC-DDC-113e, TC-DDC-114e, TC-DDC-115e, TC-DDC-116f, TC-DDC-117f, TC-DDC-118f, TC-DDC-119f, TC-DDC-120f, TC-DDC-121e, TC-DDC-122f, TC-DDC-123f, TC-DDC-301h, TC-DDC-302f, TC-DDC-303f, TC-DDC-304f, TC-DDC-305f, TC-DDC-306f, TC-DDC-307e, TC-DDC-308f, TC-DDC-309f, TC-DDC-310e, TC-DDC-311e, TC-DDC-312f, TC-DDC-328e, TC-DDC-321h, TC-DDC-322e, TC-DDC-323f, TC-DDC-324f, TC-DDC-325e, TC-DDC-326e, TC-DDC-327e, TC-DDC-361h, TC-DDC-362f, TC-DDC-363e, TC-DDC-364e, TC-DDC-391h, TC-DDC-392e, TC-DDC-393f, TC-DDC-394e
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Las rutas nuevas `PATCH` y `DELETE /api/v1/movements/{id}` (transacción con `FOR UPDATE`, 404 por dueño, `negative_cell`, `invalid_target`) y `editMovement`/`deleteMovement`/`wouldGoNegative` se apoyan en el `kind` persistido y en el cuadre relativo de EP-02. Con todas las vías de escritura ya existentes se cierran aquí sus NFRs transversales: NFR-2501 (seguridad), NFR-2502 (no empeora), NFR-2505 (techo y piso) y NFR-2508 (registro vía `withApi`).
 
@@ -85,3 +89,45 @@ donde la app solo monta el registro.
 **Pendiente para EP-02, ya detectado:** `TC-DDC-152h` afirma que el comentario persiste tras recargar, y pasa; el cuadre
 relativo del PUT que llega en EP-02 va a rechazar las siembras con Ejecutado sin movimientos, así que los datos de prueba de
 este spec se revisan con el resto (NFR-2507).
+
+### EP-02 (2026-09-17) — done
+**Runs.** Playwright, suite COMPLETA (los doce specs, porque estos casos comparten fixture con todos): **520 passed, exit 0**
+(3,5 min); el spec propio, 37/37. Vitest, suite completa: **86 ficheros, 1.043 passed, exit 0**. `typecheck` y `lint` exit 0.
+Los 48 TCs declarados para este epic tienen prueba etiquetada —comprobado por barrido de `@aitri-tc` contra el plan—, sin
+huecos y sin etiquetas adelantadas de EP-03/EP-04.
+
+**Qué se construyó.**
+- Migración `0009` (`kind` + `movement_kind_ck` + `movement_amount_ck`), reflejada en `schema.ts` y mapeada en las cuatro
+  lecturas/reescrituras del snapshot de `ledgerRepo`. El ajuste es el ÚNICO movimiento que puede ser negativo, y solo en
+  gasto e ingreso.
+- `src/domain/adjust.ts` (nuevo): `proposedDate`, `isDateInPeriod` y `adjustCell` — teclear un total ya no cambia solo la
+  cifra, crea el ajuste que la respalda (FR-2504).
+- Cuadre RELATIVO en el PUT (`worsenedCellMismatches`): se rechaza solo lo que la escritura EMPEORA, no un descuadre que ya
+  venía de antes. Va entre el guardia del cierre y las reglas de reserva, y viaja hasta el usuario como aviso propio
+  (422 `cell_movement_mismatch` → `repo.cellMismatch` → toast), no como «no se pudo guardar».
+- `AddMovementLine` (nuevo): monto, nota y fecha en una fila, con el calendario acotado al periodo de la celda y el foco de
+  vuelta en Monto para transcribir en ráfaga.
+- Resaltado del ajuste recién creado. **Discrepancia documentada, no resuelta en silencio:** el UX spec dice 1,5 s y
+  TC-DDC-062h exige 2 s; se implementa lo que el TC verifica y queda anotado en `CellDetail.tsx`.
+
+**Un defecto REAL del producto, encontrado por un test** (no un test ajustado para pasar): `placementContext` usaba
+`Math.abs(delta)` al pesar los meses en el paso a ciclos. Hasta esta feature ningún movimiento era negativo y el valor
+absoluto no se notaba; con los ajustes, un −10.000 contaba como +10.000 e inflaba el peso de su mes, pudiendo colocar la
+celda en el mes equivocado (TC-DDC-074e).
+
+**El barrido de datos de prueba** (decisión del usuario del 2026-09-15: ajustar el FIXTURE, jamás el resultado esperado).
+Se creó `tests/helpers/cuadre.ts` — `celdaCuadrada` y `ajustarCelda`, esta última por la MISMA vía del producto
+(`adjustCell`)— y se aplicó a `buildSeedConMontos`, al paso holgado de `seedLedger`, al fixture de ciclos, a
+`categories.test.ts` y a las siembras de integración. Para el único escenario que debe NACER descuadrado (TC-CIC-176f) se
+sembró por SQL directo (`tests/e2e/helpers/descuadre.ts`), siguiendo el precedente de `closure.ts`.
+
+**Lo que se me escapó, dicho como fue.** `cierre-de-mes.test.ts` no entró en ese barrido y solo salió en la corrida completa,
+con 6 rojos. Ninguno era defecto del producto: tres escribían la cifra a pelo (ahora van por la vía real), dos contaban
+filas contra cero cuando la siembra ya puebla el mes (ahora contra el estado previo) y uno movía el periodo de un
+movimiento sin su fecha. Ese último escondía **un segundo fallo que el mensaje de error no mostraba**: su última aserción
+—«ningún movimiento queda en el mes cerrado»— habría pasado a ser falsa aunque el rechazo fuera correcto, porque la siembra
+ahora pone siete ahí. Se reescribió como «el mes cerrado conserva exactamente los suyos», que es lo que la prueba quiere
+decir. Ninguno de los seis cambió su resultado esperado.
+
+**Pendiente para EP-03, ya detectado:** las rutas `PATCH`/`DELETE` se apoyan en el `kind` persistido y en el cuadre relativo
+que este epic deja puestos; TC-DDC-077e y TC-DDC-174f ya están asignados allí.

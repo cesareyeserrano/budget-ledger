@@ -311,6 +311,22 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           );
           return;
         }
+        if (repo.cellMismatch) {
+          // Feature diario-de-celda (NFR-2502): la escritura habría descuadrado una celda. Es
+          // definitivo como el cierre —el mismo snapshot nunca se va a aceptar—, así que se descarta
+          // lo pendiente, se converge al servidor y se dice. Sin esta rama caía en «no se pudo
+          // guardar» y el usuario reintentaría para siempre.
+          const celdas = repo.cellMismatch;
+          repo.cellMismatch = null;
+          pendingSave = null;
+          await doResync();
+          get().showToast(
+            celdas.length === 1
+              ? "Esa celda no cuadra con sus movimientos: el cambio no se guardó."
+              : "Esas celdas no cuadran con sus movimientos: el cambio no se guardó."
+          );
+          return;
+        }
         if (repo.conflicted) {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.

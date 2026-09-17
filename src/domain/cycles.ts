@@ -577,7 +577,12 @@ export function placementContext(state: LedgerState, cycleCal: Calendar, directi
     const month = day.slice(0, 7);
     const late = comparePeriods(monthOf(cyc), month) > 0;
     for (const { leafId, delta } of movementDeltas(mv)) {
-      const amount = Math.abs(delta);
+      // El signo IMPORTA desde que existen los ajustes (FR-2504): un ajuste de −10.000 le quita
+      // 10.000 a la celda, así que contarlo como +10.000 —lo que hacía `Math.abs`— inflaba el peso
+      // de su mes al decidir dónde cae el dato en el paso a ciclos, y podía mover la celda al mes
+      // equivocado. Hasta esta feature ningún movimiento era negativo y el valor absoluto no se
+      // notaba; ahora sí (TC-DDC-074e).
+      const amount = delta;
       bump(byMonth, leafId, month, cyc, amount);
       bump(byCycle, leafId, cyc, month, amount);
       const h = habit.get(leafId) ?? { late: 0, early: 0 };
