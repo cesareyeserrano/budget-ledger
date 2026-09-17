@@ -15,5 +15,7 @@ export * from "./closure";
 export * from "./cycles";
 // Feature diario-de-celda: el Detalle de una celda (selector puro, no escribe) y el ajuste que
 // nace de teclear un total en ella.
+// El cuadre de una celda: hoja del grafo, para que `reserve` y `detail` puedan usarlo sin ciclo.
+export * from "./mismatch";
 export * from "./detail";
 export * from "./adjust";

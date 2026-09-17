@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, TriangleAlert } from "lucide-react";
+import { closeBlockerText } from "@/domain/mismatch";
 import { useClosureStatus, useLedgerStore } from "@/state/store";
 import { useCalendar } from "@/state/store";
 import { cycleLabel, withRange } from "./cycleText";
@@ -24,7 +25,10 @@ import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
 export function ClosureControl() {
   // Feature ciclos (FR-2407): el título del botón lleva el rango del ciclo; el texto, el nombre.
   const cal = useCalendar();
-  const { closable, reopenable, reopened } = useClosureStatus();
+  const { closable, reopenable, reopened, blockedBy } = useClosureStatus();
+  // FR-2512: el motivo se calcula con la MISMA función del dominio que usa el servidor, así que lo
+  // que el botón dice y lo que el 422 rechaza no pueden divergir.
+  const motivo = closeBlockerText(blockedBy);
   const closeMonth = useLedgerStore((s) => s.closeMonth);
   const reopenMonth = useLedgerStore((s) => s.reopenMonth);
   const [busy, setBusy] = useState(false);
@@ -60,9 +64,31 @@ export function ClosureControl() {
       data-reopened={reopened ?? ""}
     >
       {closable && (
-        <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, closable)} onClick={() => void run(closeMonth)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          // FR-2512: con celdas descuadradas el botón NO se pulsa. Es ergonomía —el servidor lo
+          // rechazaría igual—, pero dejar pulsar para luego negar es pedirle al usuario que
+          // descubra la regla chocando con ella.
+          disabled={busy || motivo !== ""}
+          title={motivo !== "" ? motivo : withRange(cal, closable)}
+          onClick={() => void run(closeMonth)}
+        >
           <Lock size={14} /> Cerrar {cycleLabel(cal, closable)}
         </Button>
+      )}
+      {/* El motivo, al lado del botón: un botón apagado sin explicación obliga a adivinar (AC-2031).
+          `truncate` con el texto completo en `title` para que a 768 px no empuje al resto fuera. */}
+      {closable && motivo !== "" && (
+        <span
+          data-testid="close-blocked"
+          title={motivo}
+          className="caption flex items-center gap-1 min-w-0 truncate"
+          style={{ color: "var(--alert-strong)" }}
+        >
+          <TriangleAlert size={13} aria-hidden="true" className="flex-none" />
+          <span className="truncate">{motivo}</span>
+        </span>
       )}
       {reopenable && (
         <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, reopenable)} onClick={() => void run(reopenMonth)}>

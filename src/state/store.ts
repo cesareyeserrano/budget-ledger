@@ -9,6 +9,8 @@ import {
   // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
   // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
   adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
+  // FR-2512: las celdas descuadradas que bloquean el cierre — la misma función que el servidor.
+  closeBlockers,
   // FR-2505/FR-2506: editar y borrar. Las MISMAS funciones que corre el servidor (ADR-02).
   editMovement, deleteMovement, type MovementPatch, type NegativeCell,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
@@ -935,6 +937,8 @@ export interface ClosureStatus {
   reopened: PeriodKey | null;
   /** Meses ya terminados y sin cerrar. Alimenta el aviso (FR-2006). */
   pending: PeriodKey[];
+  /** FR-2512: las celdas descuadradas que impiden cerrar `closable`. Vacío = se puede cerrar. */
+  blockedBy: { nodeId: string; name: string }[];
 }
 
 /**
@@ -947,8 +951,16 @@ export function useClosureStatus(): ClosureStatus {
   const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
   const reopened = useLedgerStore((s) => closureFor(s.data).reopened);
   const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, nowFor(s.data)));
-  return { closable, reopenable, reopened, pending };
+  // FR-2512: lo que impide cerrar. Se deriva del MISMO `closeBlockers` que corre el servidor, así
+  // que el botón y el 422 no pueden discrepar: aquí es ergonomía, allí es la autoridad (ADR-12).
+  const blockedBy = useLedgerStore((s) =>
+    closable === null ? VACIO : closeBlockers(s.data, closable, periodsFor(s.data, s.horizon, nowFor(s.data)))
+  );
+  return { closable, reopenable, reopened, pending, blockedBy };
 }
+
+/** Lista vacía ESTABLE: devolver `[]` nuevo en cada llamada re-renderiza el control sin motivo. */
+const VACIO: { nodeId: string; name: string }[] = [];
 
 /**
  * `unclosedEndedPeriods` MEMOIZADO por identidad — igual que `periodsFor` y por el mismo motivo.

@@ -12,6 +12,8 @@ import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } fro
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { planTechoMonths, monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
+// FR-2511: los descuadres son la OTRA lista de problemas del mes; se juntan aquí al pintar.
+import { mismatchIssues } from "@/domain/mismatch";
 import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
 import { CellDetail } from "./CellDetail";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -258,9 +260,14 @@ export function BudgetGrid() {
   // FR-1606: los meses cuyas reservas superan el margen. UNA derivación por render — el selector
   // está memoizado en el dominio, así que las doce columnas leen un mapa ya calculado.
   const breachByMonth = useMemo(() => {
-    const out: Partial<Record<PeriodKey, MonthIssue>> = {};
+    const out: Partial<Record<PeriodKey, MonthIssue[]>> = {};
     if (!hydrated) return out; // durante la hidratación no se pinta: un falso positivo sería peor
-    for (const b of monthIssues(data, scope)) out[b.period] = b;
+    // FR-2511: un mes puede tener VARIOS problemas a la vez —su techo y sus celdas descuadradas— y
+    // comparten UN solo triángulo con los textos unidos. Por eso una lista: guardando solo el último
+    // que llegara, el segundo problema desaparecería sin que nada lo dijera.
+    for (const b of [...monthIssues(data, scope), ...mismatchIssues(data, scope)]) {
+      (out[b.period] ??= []).push(b);
+    }
     return out;
   }, [data, hydrated, scope]);
 
@@ -483,12 +490,14 @@ export function BudgetGrid() {
                           <Lock size={12} aria-hidden="true" />
                         </span>
                       ) : null}
-                      {breachByMonth[m] ? (
+                      {breachByMonth[m]?.length ? (
                         <span
                           data-testid="techo-mark"
                           data-month={m}
-                          title={`${cycleMonthLabel(cal, m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
-                          aria-label={`${cycleMonthLabel(cal, m)}: ${monthIssueText(breachByMonth[m]!, money)}`}
+                          // Los textos van unidos por « · » en UN solo triángulo (TC-DDC-195e): dos
+                          // marcas para el mismo mes competirían por el sitio y dirían lo mismo dos veces.
+                          title={`${cycleMonthLabel(cal, m)}: ${breachByMonth[m]!.map((b) => monthIssueText(b, money)).join(" · ")}`}
+                          aria-label={`${cycleMonthLabel(cal, m)}: ${breachByMonth[m]!.map((b) => monthIssueText(b, money)).join(" · ")}`}
                           className="flex-none inline-flex"
                           style={{ color: "var(--alert-strong)" }}
                         >

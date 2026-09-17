@@ -771,7 +771,10 @@ export function monthCarryUsage(
  */
 export type MonthIssue =
   | { kind: "techo"; period: PeriodKey; margin: number; excess: number }
-  | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number };
+  | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number }
+  /** FR-2511: celdas cuyo valor no coincide con la suma de sus movimientos. No trae cifras: lo que
+   *  el usuario necesita saber es CUÁLES son, para ir a cuadrarlas. */
+  | { kind: "descuadre"; period: PeriodKey; cells: { nodeId: string; name: string }[] };
 
 /**
  * Los errores registrados en cada mes (FR-1806). Hoy un solo tipo —el mes cuyas reservas superan su
@@ -799,6 +802,13 @@ export type MonthIssue =
  * cálculo: una sola fuente, no dos que se parecen.
  */
 export function monthIssueText(issue: MonthIssue, money: (n: number) => string): string {
+  // FR-2511: el descuadre se cuenta, no se cifra. Decir «120.000 ≠ 100.000» obligaría al usuario a
+  // restar mentalmente; decir cuántas celdas no cuadran le dice cuánto trabajo tiene por delante.
+  if (issue.kind === "descuadre") {
+    return issue.cells.length === 1
+      ? "1 celda no cuadra con sus movimientos"
+      : `${issue.cells.length} celdas no cuadran con sus movimientos`;
+  }
   return issue.kind === "techo"
     ? `reservas ${money(issue.excess)} por encima del margen del mes`
     : `retiro planeado ${money(issue.excess)} por encima de lo que el plan reserva`;
@@ -806,6 +816,11 @@ export function monthIssueText(issue: MonthIssue, money: (n: number) => string):
 
 export function monthIssues(state: LedgerState, periods: PeriodScope): readonly MonthIssue[] {
   const scan = techoScan(state, "actual", periods);
+  // Los DESCUADRES (FR-2511) no se componen aquí: los produce `mismatchIssues` en su propio módulo y
+  // las superficies juntan las dos listas. Vivían aquí en la primera versión, pero eso obligaba a
+  // `reserve` a importar el cuadre y rompía tres guardias aprobados de otras features — entre ellos
+  // el que exige que este módulo solo importe de una lista cerrada (TC-TRF4-154e). El `kind`
+  // discriminado se comparte igual, así que el triángulo y el Balance los pintan sin distinguir.
   const out: MonthIssue[] = [];
   for (let i = 0; i < periods.length; i++) {
     if (scan.excess[i] > 0) {

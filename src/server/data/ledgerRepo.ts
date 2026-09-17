@@ -20,7 +20,7 @@ import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement }
 import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
 // Feature diario-de-celda (NFR-2502): el cuadre RELATIVO — una escritura no puede descuadrar una
 // celda que antes cuadraba, y un descuadre previo no bloquea operaciones sobre otras celdas.
-import { worsenedCellMismatches } from "@/domain/detail";
+import { closeBlockers, worsenedCellMismatches } from "@/domain/mismatch";
 import { comparePeriods, isPeriodKey, monthOf } from "@/domain/periods";
 import {
   buildCalendar, isValidMovementPeriod, normalizeCycleConfig, NO_CYCLES, type Calendar,
@@ -853,6 +853,12 @@ async function writeMovement(
 
     // El mismo guardia estructural del PUT: caza mover un movimiento HACIA un mes cerrado y también
     // cambiarle solo la nota, la fecha o el kind dentro de uno (FR-2507, `diffMovements`).
+    //
+    // ESTE COMENTARIO ERA FALSO cuando se escribió (EP-03): `diffMovements` no comparaba esos tres
+    // campos, así que el guardia NO cazaba esos cambios. Los casos de esta ruta pasaban por otra
+    // razón —la comprobación de cierre de arriba rechaza por el periodo de ORIGEN antes de llegar
+    // aquí—, de modo que el agujero solo era alcanzable por el PUT del snapshot. Se tapó en EP-04
+    // añadiendo los tres campos a la comparación (TC-DDC-137f, 2026-09-17).
     const violated = closedPeriodsViolated({ ...prev, closure }, next);
     if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
 
@@ -928,7 +934,10 @@ export async function removeMovement(ownerId: string, id: string): Promise<Movem
 export type ClosureResult =
   | { ok: true; revision: number; closure: Closure }
   | { ok: false; conflict: true; revision: number }
-  | { ok: false; rejected: "not_closable" | "nothing_closed" | "already_reopened" };
+  | { ok: false; rejected: "not_closable" | "nothing_closed" | "already_reopened" }
+  /** Feature diario-de-celda (FR-2512): el mes que toca cerrar tiene celdas descuadradas. Viajan
+   *  NOMBRADAS: «no se puede cerrar» sin decir cuáles manda al usuario a buscarlas una por una. */
+  | { ok: false; rejected: "unbalanced_cells"; period: PeriodKey; cells: { nodeId: string; name: string }[] };
 
 /**
  * Cierra el mes cerrable del usuario. El CLIENTE NO PROPONE cuál: el servidor lo deriva.
@@ -960,6 +969,18 @@ export async function closeMonthFor(
     const conCierre = { ...state, closure: closureFromRow(head, cal) };
     const res = closeMonth(conCierre, currentPeriod, serverScope(conCierre, currentPeriod));
     if (!res.ok) return { ok: false, rejected: res.reason };
+
+    // FR-2512: un mes con celdas descuadradas NO se cierra. Va aquí y no antes porque hasta esta
+    // línea no se sabe QUÉ mes se cierra —lo deriva el servidor, el cliente no lo propone— y la
+    // regla es sobre ESE mes: un descuadre en uno posterior no bloquea, porque todavía se puede
+    // arreglar. Y va antes de la primera escritura: el rechazo no deja rastro (TC-DDC-215f).
+    //
+    // Reabrir NO pasa por aquí a propósito (TC-DDC-216f): la regla es del cierre. Bloquear la
+    // reapertura por descuadres dejaría al usuario sin la única vía que tiene para arreglarlos.
+    const bloqueantes = closeBlockers(conCierre, res.closed, serverScope(conCierre, currentPeriod));
+    if (bloqueantes.length > 0) {
+      return { ok: false, rejected: "unbalanced_cells", period: res.closed, cells: bloqueantes };
+    }
 
     const revision = current + 1;
     await tx
