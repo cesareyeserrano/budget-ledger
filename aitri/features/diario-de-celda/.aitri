@@ -5,7 +5,8 @@
     1,
     "ux",
     2,
-    3
+    3,
+    4
   ],
   "completedPhases": [
     "discovery",
@@ -18,19 +19,9 @@
   "projectName": "diario-de-celda",
   "createdAt": "2026-09-14T16:27:23.430Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-18T02:32:52.414Z",
+  "updatedAt": "2026-09-18T15:22:40.970Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-15T01:38:22.102Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-15T01:38:22.240Z",
-      "event": "started",
-      "phase": 2
-    },
     {
       "at": "2026-09-15T01:43:11.906Z",
       "event": "completed",
@@ -120,6 +111,20 @@
       "at": "2026-09-18T02:32:52.383Z",
       "event": "completed",
       "phase": 4
+    },
+    {
+      "at": "2026-09-18T12:48:03.795Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-18T15:22:40.930Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 171,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
     }
   ],
   "cascadedPhases": [],
@@ -158,6 +163,19 @@
       "FR-2511",
       "FR-2512"
     ],
+    "4": [
+      "FR-2501",
+      "FR-2502",
+      "FR-2503",
+      "FR-2504",
+      "FR-2505",
+      "FR-2506",
+      "FR-2507",
+      "FR-2508",
+      "FR-2509",
+      "FR-2511",
+      "FR-2512"
+    ],
     "ux": [
       "FR-2501",
       "FR-2502",
@@ -172,5 +190,16 @@
       "FR-2512"
     ]
   },
-  "verifyPassed": false
+  "verifyPassed": false,
+  "verifyResultsHash": "abdb72123b324ec371fcde7853b2e531d900e0864221734d817e3b7829c9939f",
+  "verifyRanAt": "2026-09-18T15:22:40.833Z",
+  "verifyRanRef": "1991cea2c484b912643166a9f7a207db8fbc9d71",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 171,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-18T15:22:40.833Z"
+  }
 }

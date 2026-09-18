@@ -18,6 +18,7 @@ import { cellMismatches, closeBlockers, closeBlockerText, mismatchIssues, mismat
 import { monthIssueText } from "@/domain/reserve";
 import type { LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
 import { P, M } from "../helpers/periods";
+import { mejorTiempo } from "../helpers/perf";
 
 const SEP = M.sep;
 const OCT = M.oct;
@@ -159,9 +160,17 @@ describe("FR-2511 · detectar las celdas que no cuadran", () => {
     }
 
     const s = estado({ nodes, actuals, movements });
-    const t0 = performance.now();
-    const fuera = cellMismatches(s, P);
-    const ms = performance.now() - t0;
+
+    // MEJOR DE CINCO, no una sola toma (tests/helpers/perf.ts). El tope de 50 ms no se mueve: lo
+    // que cambia es la MEDIDA. Una toma única mide la máquina tanto como el algoritmo, y bajo la
+    // suite completa —donde otra corrida compite por CPU— se fue a 64,5 ms y tumbó el gate de
+    // cobertura el 2026-09-18, mientras aislada daba 18-22 ms (instrumentada o no: la cobertura
+    // NO era la causa, la contención sí). El mínimo devuelve el coste real del algoritmo, así que
+    // el mismo tope pasa a ser MÁS exigente, no menos: una regresión cuadrática no puede producir
+    // un mínimo rápido por muy desahogada que esté la máquina. Es la lección que este proyecto ya
+    // pagó en BG-026, BG-030 y BG-002 de multi-anio.
+    let fuera: ReturnType<typeof cellMismatches> = [];
+    const ms = mejorTiempo(() => { fuera = cellMismatches(s, P); });
 
     expect(fuera).toHaveLength(17);
     expect(fuera.every((c) => c.cell === 10_000 && c.sum === 0)).toBe(true);

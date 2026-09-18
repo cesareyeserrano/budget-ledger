@@ -13,6 +13,7 @@ import { buildCalendar, MONTH_CALENDAR } from "@/domain/cycles";
 import { MONTO_MAX } from "@/domain/validation";
 import type { CycleConfig, LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
 import { P, M } from "../helpers/periods";
+import { mejorTiempo } from "../helpers/perf";
 
 const SEP = M.sep;
 const OCT = M.oct;
@@ -351,9 +352,11 @@ describe("NFR-2502 · solo se juzga lo que la escritura empeora", () => {
     const antesCat = rollupActual(s, "c-25", SEP);
     const antesGrupo = rollupActual(s, "g-big", SEP);
 
-    const t0 = performance.now();
-    const r = editMovement(s, suyo.id, { amount: nuevoMonto }, MONTH_CALENDAR, P);
-    const ms = performance.now() - t0;
+    // Mejor de cinco, por el mismo motivo que TC-DDC-200e: con una sola toma el guardarraíl mide
+    // la contención de la máquina, no el coste de editar (tests/helpers/perf.ts). El tope de 150 ms
+    // es el mismo.
+    let r!: ReturnType<typeof editMovement>;
+    const ms = mejorTiempo(() => { r = editMovement(s, suyo.id, { amount: nuevoMonto }, MONTH_CALENDAR, P); });
 
     expect("state" in r).toBe(true);
     if (!("state" in r)) return;
