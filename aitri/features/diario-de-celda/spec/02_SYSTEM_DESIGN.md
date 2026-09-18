@@ -230,14 +230,22 @@ type DetailEntry =
   | { kind: "movement" | "adjustment"; movement: Movement }
   | { kind: "comment"; note: CellNote };
 cellDetail(state, leafId, period, periods): DetailEntry[]           // orden: auto → movimientos (date, createdAt) → comentarios
-displayAmount(type, amount): { sign: "+" | "−"; abs: number; addsToCell: boolean }
+displayAmount(amount): { sign: "" | "−"; abs: number; addsToCell: boolean }   // FR-2501: signo del APORTE, no del tipo
+  // Ya NO recibe `type`: el signo no depende de si la celda es de gasto o de ingreso, solo de si el
+  // movimiento sube (sign "") o baja (sign "−") esa celda. `addsToCell` sigue gobernando el color,
+  // de modo que la distinción viaja por dos vías y no solo por el signo (WCAG 1.4.1).
 proposedDate(cal, period, now: Date): string                        // hoy si cae en el periodo; si no, su último día (FR-2503)
 isDateInPeriod(cal, period, date): boolean
 movementSum(state, leafId, period): number
 adjustCell(state, leafId, period, value, date, periods):
   { state; created: Movement | null } | { rejected: "not_leaf" | "transfer" | "closed" }   // diff = value − movementSum
 editMovement(state, id, patch, cal, periods):
-  { state } | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "negative_cell" }
+  { state; deleted?: true } | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "negative_cell" }
+  // FR-2505: `patch.amount === 0` NO es `invalid_amount` — DELEGA en `deleteMovement` y devuelve
+  // `deleted: true`. Delegar en vez de duplicar es deliberado: el borrado ya valida celda negativa
+  // y tipo, y dos implementaciones del mismo acto acabarían divergiendo (es la lección de
+  // TC-DDC-326e, que vigila justo eso en las rutas HTTP). El `0` sigue rechazándose en `montoValido`
+  // para un movimiento que se GUARDA; la diferencia es que ahora nunca llega ahí.
 deleteMovement(state, id): { state } | { rejected: "not_found" | "unsupported_type" | "negative_cell" }
 wouldGoNegative(prev, next): { nodeId; period; value }[]
 cellMismatches(state, periods): { nodeId; name; period; cell; sum }[]
@@ -301,6 +309,8 @@ de la fecha (o de la propuesta de ingreso adelantado, FR-2406), suma en la celda
 Antes de habilitar «Guardar», el componente llama a `wouldGoNegative(prev, next)` e `isClosed` sobre el destino. Persistencia por
 PUT; el servidor aplica cierre, celda negativa y cuadre relativo.
 I/O: `(id, patch)` → `{state}` o `{rejected: reason}`; aviso «Pasará a «Octubre · 21 sep – 20 oct»» cuando cambia el periodo.
+Cero elimina: con `patch.amount === 0` el editor rotula su botón «Eliminar» (`--error`) y `editMovement` delega en
+`deleteMovement`, así que el resultado es indistinguible del de la papelera (F5) — misma validación y mismo aviso.
 Failure: `negative_cell` → «No se puede: Restaurantes quedaría en −10.000…» y «Guardar» deshabilitado; destino cerrado → mensaje y
 «Guardar» deshabilitado; si igual llega al servidor, 422 → `resync`. La operación es atómica en el snapshot: el movimiento no se pierde.
 

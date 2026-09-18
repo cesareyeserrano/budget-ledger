@@ -146,6 +146,31 @@ describe("FR-2507 — un periodo cerrado congela las vías nuevas, también las 
     expect((await loadLedger(a.userId))!.revision).toBe(revision);
   });
 
+  /** @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505e, TC-ID: TC-DDC-127f */
+  it("TC-DDC-127f: en un mes cerrado, editar el monto a 0 se rechaza — el cierre gana sobre el borrado", async () => {
+    // @aitri-tc TC-DDC-127f
+    // Desde FR-2505 el 0 ELIMINA, y eso lo convierte en una vía de borrado más. El cierre tiene que
+    // ganarle igual que le gana a la papelera: si no, quedaría una puerta trasera para vaciar un mes
+    // cerrado escribiendo un cero en vez de pulsar un icono.
+    const a = await newUser("congelado-cero@example.com");
+    const { state } = await sembrarAgosto(a.userId);
+    const k = state.movements[0].id;
+    const revision = await cerrarAgosto(a.cookie, (await loadLedger(a.userId))!.revision);
+    const movimientosAntes = await numeroDeMovimientos(a.userId);
+
+    const cuerpo = await esperar422(
+      await movPATCH(req(`/api/v1/movements/${k}`, { method: "PATCH", cookie: a.cookie, body: { amount: 0 } }), ctx(k)),
+      "closed_period_violation"
+    );
+    expect((cuerpo.error.detail as { periods: string[] }).periods).toContain(AGO);
+
+    // El movimiento sigue ahí, entero, y nada se escribió.
+    const kFinal = (await kEnBd(a.userId, k))!;
+    expect(kFinal.amount).toBe(7_000);
+    expect(await numeroDeMovimientos(a.userId)).toBe(movimientosAntes);
+    expect((await loadLedger(a.userId))!.revision).toBe(revision);
+  });
+
   /** @aitri-trace FR-ID: FR-2507, US-ID: US-2507, AC-ID: AC-2507a, TC-ID: TC-DDC-136f */
   it("TC-DDC-136f: los tres PUT sobre un mes cerrado —nota, fecha y ajuste nuevo— se rechazan", async () => {
     // @aitri-tc TC-DDC-136f

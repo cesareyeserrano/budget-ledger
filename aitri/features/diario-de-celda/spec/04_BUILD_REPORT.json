@@ -19,6 +19,7 @@
     "src/components/CellDetail.tsx",
     "src/components/ClosureControl.tsx",
     "src/components/ReserveCells.tsx",
+    "src/components/format.ts",
     "src/components/register/DateCalendar.tsx",
     "src/data/serverRepository.ts",
     "src/domain/closure.ts",
@@ -119,12 +120,6 @@
       "effort_to_fix": "low"
     },
     {
-      "fr_id": "FR-2511",
-      "substitution": "Las pruebas de pantalla afirman los rotulos de periodo CON el ano («Septiembre 2026»), y los TCs los escriben sin el («Septiembre»)",
-      "reason": "periodLabel incluye el ano desde la feature multi-anio (FR-1905) y la franja del Balance es compartida con techo-de-flujo, que ya afirma sobre ella; cambiar el producto para que case con la abreviatura de un TC habria roto a las features vecinas. El triangulo del encabezado usa cycleMonthLabel y si dice «Septiembre» a secas: son dos rotulos distintos del producto y cada prueba afirma el suyo. Lo que el caso garantiza —que la marca y la linea nombran el mes y las celdas— se verifica igual.",
-      "effort_to_fix": "low"
-    },
-    {
       "fr_id": "NFR-2509",
       "substitution": "El matcher de globs de TC-DDC-402e esta escrito a mano (12 lineas) en vez de usar picomatch, el motor real de Vitest",
       "reason": "picomatch solo esta presente de forma transitiva y sin declaraciones de tipos, asi que importarlo rompe npm run typecheck y anadirlo a package.json seria una dependencia nueva solo para una prueba. El matcher cubre exactamente la sintaxis que los dos configs usan (**/ y *) y LANZA ante cualquier otra, de modo que un patron mas rico rompe la prueba en vez de devolver un falso negativo en silencio; se verifico contra ocho rutas que discrimina de verdad.",
@@ -135,7 +130,13 @@
       "substitution": "no security quality_gate declared",
       "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade superficie de red nueva mas alla de PATCH y DELETE /api/v1/movements/{id}, cuyo aislamiento por dueno se verifica en TC-DDC-301h a TC-DDC-312f.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2501",
+      "substitution": "Las pruebas de pantalla afirman los rotulos de periodo CON el año («Septiembre 2026») y los TCs los escriben sin el",
+      "reason": "periodLabel incluye el año desde multi-anio (FR-1905) y la franja del Balance es compartida con techo-de-flujo, que ya afirma sobre ella; cambiar el producto para que case con la abreviatura de un TC habria roto a las features vecinas. Es una desviacion de TEXTO en la asercion, no de comportamiento.",
+      "effort_to_fix": "low"
     }
   ],
-  "notes": "EP-04 cierra la feature: los 171 TCs de 03_TEST_CASES.json tienen prueba etiquetada (barrido de @aitri-tc). Verificado el 2026-09-17 con Vitest 96 ficheros / 1.122 passed y Playwright 549 passed, los dos exit 0, mas typecheck y lint en 0. Durante EP-04 se arreglaron cuatro defectos reales del producto —el bucle infinito de render que tumbaba la app entera (React #185, heredado del punto seguro 2b894c1), la falta de resincronizacion ante unbalanced_cells, el bloque de edicion que sobrevivia al cierre del mes y el motivo de bloqueo que no truncaba— y se registro BG-040 (high, abierto), una divergencia ENTRE CLIENTE Y SERVIDOR sobre que mes toca cerrar que es ANTERIOR a esta feature y que ningun TC cubre: exige una decision de producto con el usuario y bloquea el verify-complete de la raiz."
+  "notes": "RE-DERIVADO el 2026-09-18 tras corregir FR-2501 y FR-2505 en la fase 1 — dos requisitos MAL DERIVADOS que el usuario detecto usando la app («eso no se pidio asi, arreglalo de raiz»), no un cambio de alcance. (1) El signo: displayAmount pasa de (type, amount) a (amount), de modo que la regla retirada —«signo del tipo x signo del monto»— ya no es EXPRESABLE: una funcion que no sabe si la celda es de gasto o de ingreso no puede hacer depender el signo de eso. Lo que suma va sin signo y solo lo que resta lleva «−», asi que las filas suman a la vista el valor de la celda, que es lo unico que el panel promete. (2) El cero: editMovement con amount 0 DELEGA en deleteMovement en vez de rechazar, alineandose con FR-1802 de techo-de-flujo, que ya habia fijado ese idioma con palabras del usuario; el boton del editor pasa a decir «Eliminar» en rojo para que la consecuencia se lea antes de pulsar. El servidor no necesito cambios: persiste por diff y ya borraba la fila cuando el movimiento no esta en el estado resultante. UN DEFECTO REAL LO CAZO UNA PRUEBA NUEVA: TC-DDC-126f comparo los dos avisos de celda negativa y eran DISTINTOS segun se llegara por la papelera o por el cero — se unifico el texto en un solo sitio (textoBorradoNegativo en components/format.ts) para que no puedan volver a divergir. Ademas se hizo determinista un test intermitente PREEXISTENTE (TC-DDC-090f): confiaba en que dos pulsaciones de Escape a ciegas cerraran el editor, y con el editor abierto la celda no existe como nodo; ahora un ayudante pulsa hasta que el panel se va. Se comprobo que ya fallaba ANTES de estos cambios, asi que no era regresion. Evidencia: Vitest 96 ficheros / 1.128 passed, Playwright 553 passed y CERO flaky, typecheck y lint en 0. Los 177 TCs tienen prueba etiquetada."
 }

@@ -86,13 +86,24 @@ describe("FR-2501 · el Detalle lista lo que forma la celda", () => {
     expect(ids).not.toContain("m-res");
   });
 
-  it("TC-DDC-008e: displayAmount aplica el signo del tipo por el signo del monto", () => {
+  it("TC-DDC-008e: displayAmount aplica el signo del APORTE a la celda, no el del tipo", () => {
     // @aitri-tc TC-DDC-008e
-    expect(displayAmount("expense", 50_000)).toEqual({ sign: "−", abs: 50_000, addsToCell: true });
-    // Un ajuste NEGATIVO de gasto le quita gasto a la celda: se ve «+10.000» y no suma.
-    expect(displayAmount("expense", -10_000)).toEqual({ sign: "+", abs: 10_000, addsToCell: false });
-    expect(displayAmount("income", 20_000)).toEqual({ sign: "+", abs: 20_000, addsToCell: true });
-    expect(displayAmount("income", -10_000)).toEqual({ sign: "−", abs: 10_000, addsToCell: false });
+    // Lo que SUMA va sin signo; solo lo que RESTA lleva «−». Ningún monto lleva «+».
+    expect(displayAmount(50_000)).toEqual({ sign: "", abs: 50_000, addsToCell: true });
+    expect(displayAmount(-10_000)).toEqual({ sign: "−", abs: 10_000, addsToCell: false });
+    expect(displayAmount(20_000)).toEqual({ sign: "", abs: 20_000, addsToCell: true });
+    expect(displayAmount(-40_000)).toEqual({ sign: "−", abs: 40_000, addsToCell: false });
+
+    // LA GUARDA QUE IMPIDE QUE VUELVA LA REGLA RETIRADA. Antes la firma era (type, amount) y el
+    // signo salía de «signo del tipo × signo del monto», así que el mismo importe se pintaba al
+    // revés según la celda en la que estuviera. Ahora la función NO recibe el tipo: la regla vieja
+    // ya no es expresable. Esto lo comprueba de frente — un solo argumento, y aridad 1.
+    expect(displayAmount.length).toBe(1);
+    // Y ningún resultado puede llevar «+», que era el signo con el que un ajuste que baja la celda
+    // se disfrazaba de ingreso.
+    for (const v of [1, -1, 50_000, -50_000, 999_999]) {
+      expect(displayAmount(v).sign).not.toBe("+");
+    }
   });
 
   it("TC-DDC-010e: un movimiento sin fecha se lista y se muestra con el primer día del periodo", () => {
@@ -164,5 +175,52 @@ describe("FR-2508 · comentarios en el Detalle", () => {
     const bolsilloEntries = cellDetail(bolsillo, "c-viaje", M.feb, P);
     expect(bolsilloEntries.map((e) => e.kind)).toEqual(["auto", "reserveNote"]);
     expect(bolsilloEntries[1]).toMatchObject({ kind: "reserveNote", text: "pasaje" });
+  });
+});
+
+// ══ FR-2501 corregido (2026-09-18) — el signo es el del APORTE, no el del tipo ══════════════════
+
+describe("FR-2501 · ningún signo contradice el efecto sobre la celda", () => {
+  it("TC-DDC-013f: cero contradicciones entre el signo pintado y lo que el movimiento hace", () => {
+    // @aitri-tc TC-DDC-013f
+    // La guarda de la regla RETIRADA. Antes, dentro de un gasto, todo lo que SUBÍA la celda se
+    // pintaba «−» y lo que la BAJABA se pintaba «+»: el signo era siempre el contrario del efecto.
+    // Este caso lo prohíbe de frente, y en las dos direcciones, para que no vuelva por descuido.
+    const montos = [1, 800, 40_000, 50_000, 150_000, 999_999, -1, -10_000, -40_000, -999_999];
+    for (const amount of montos) {
+      const { sign, abs, addsToCell } = displayAmount(amount);
+      expect(abs, `abs de ${amount}`).toBe(Math.abs(amount));
+      // Nunca «+»: era el signo con el que un ajuste que resta se disfrazaba de ingreso.
+      expect(sign, `signo de ${amount}`).not.toBe("+");
+      // Y el signo dice exactamente lo que el movimiento hace con la celda.
+      expect(addsToCell, `aporte de ${amount}`).toBe(amount > 0);
+      expect(sign, `coherencia de ${amount}`).toBe(amount > 0 ? "" : "−");
+    }
+  });
+
+  it("TC-DDC-012e: el caso real del usuario — cuatro montos que suman a la vista el total", () => {
+    // @aitri-tc TC-DDC-012e
+    // Agua, octubre: el escenario EXACTO en el que el usuario detectó el fallo. Antes se leía
+    // «−150.000 −40.000 −50.000 −10.000» bajo una celda que decía 250.000 en positivo.
+    const pintados = [150_000, 40_000, 50_000, 10_000].map((a) => {
+      const { sign, abs } = displayAmount(a);
+      return { texto: `${sign}${abs}`, valor: a };
+    });
+    expect(pintados.map((p) => p.texto)).toEqual(["150000", "40000", "50000", "10000"]);
+    // Lo que el panel promete: las cifras TAL COMO SE LEEN suman el valor de la celda.
+    const comoSeLeen = pintados.reduce((t, p) => t + Number(p.texto), 0);
+    expect(comoSeLeen).toBe(250_000);
+  });
+
+  it("TC-DDC-012e (bis): con un ajuste que resta, las cifras leídas siguen sumando la celda", () => {
+    // @aitri-tc TC-DDC-012e
+    // La otra mitad: si algo resta, su «−» hace que la suma a la vista SIGA dando el total. Es la
+    // razón por la que el signo no se quita del todo.
+    const leidos = [100_000, -10_000].map((a) => {
+      const { sign, abs } = displayAmount(a);
+      return Number(`${sign === "−" ? "-" : ""}${abs}`);
+    });
+    expect(leidos).toEqual([100_000, -10_000]);
+    expect(leidos.reduce((t, n) => t + n, 0)).toBe(90_000);
   });
 });

@@ -132,10 +132,33 @@ describe("FR-2505 · editar un movimiento", () => {
       actuals: { "s-rest": { [SEP]: 2_000 } },
       movements: [gasto("m", "s-rest", 5_000, SEP, 1), ajuste("a", "s-rest", -3_000, SEP, 2)],
     });
-    // Los tres que NO entran: un manual en 0, un manual negativo y un ajuste en 0 («no hacer nada»).
-    expect(editMovement(s, "m", { amount: 0 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
+    // Los que NO entran: un manual negativo y un no entero. El manual sigue exigiendo ≥1 PARA
+    // GUARDARSE.
     expect(editMovement(s, "m", { amount: -1 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
-    expect(editMovement(s, "a", { amount: 0 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
+    expect(editMovement(s, "m", { amount: 1.5 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
+
+    // EL 0 YA NO ES UN MONTO INVÁLIDO, ES LA ORDEN DE ELIMINAR (FR-2505, corregido el 2026-09-18).
+    // Antes este caso lo usaba como sonda de «monto inválido»; esa sonda se cambió, no se relajó la
+    // regla. Vale igual para un manual y para un ajuste: los dos desaparecen.
+    // Borrar el AJUSTE de −3.000 es legal: la celda sube de 2.000 a 5.000.
+    const borradoAjuste = editMovement(s, "a", { amount: 0 }, MONTH_CALENDAR, P);
+    expect("state" in borradoAjuste && borradoAjuste.deleted).toBe(true);
+    expect("state" in borradoAjuste && borradoAjuste.state.movements.map((x) => x.id)).toEqual(["m"]);
+    expect("state" in borradoAjuste && borradoAjuste.state.actuals["s-rest"]?.[SEP]).toBe(5_000);
+
+    // Y vale igual para un MANUAL, en una celda donde quitarlo no la deja negativa.
+    const s2 = estado({
+      actuals: { "s-rest": { [SEP]: 30_000 } },
+      movements: [gasto("m1", "s-rest", 15_000, SEP, 1), gasto("m2", "s-rest", 15_000, SEP, 2)],
+    });
+    const borradoManual = editMovement(s2, "m1", { amount: 0 }, MONTH_CALENDAR, P);
+    expect("state" in borradoManual && borradoManual.deleted).toBe(true);
+    expect("state" in borradoManual && borradoManual.state.actuals["s-rest"]?.[SEP]).toBe(15_000);
+
+    // DELEGA, no reimplementa: sobre `s` original, borrar «m» dejaría la celda en −3.000 y el 0
+    // hereda EXACTAMENTE el rechazo del borrado, con sus celdas nombradas. Si el 0 tuviera su propia
+    // validación, este caso pasaría por alto la celda negativa.
+    expect(editMovement(s, "m", { amount: 0 }, MONTH_CALENDAR, P)).toMatchObject({ rejected: "negative_cell" });
     // El ajuste SÍ admite negativo: es lo que le da sentido.
     const r = editMovement(s, "m", { amount: 7_000 }, MONTH_CALENDAR, P);
     expect("state" in r && r.state.actuals["s-rest"]?.[SEP]).toBe(4_000);
@@ -378,7 +401,10 @@ describe("NFR-2502 · solo se juzga lo que la escritura empeora", () => {
     const copia = structuredClone(s);
 
     // Tres rechazos de familias distintas: monto inválido, destino inválido y celda negativa.
-    expect(editMovement(s, "m", { amount: 0 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
+    // La sonda de «monto inválido» es un NEGATIVO y ya no un 0: desde FR-2505 el 0 elimina, así que
+    // usarlo aquí probaría un borrado exitoso, no un rechazo — y este caso afirma que un RECHAZO no
+    // deja rastro.
+    expect(editMovement(s, "m", { amount: -1 }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_amount" });
     expect(editMovement(s, "m", { catId: "c-salario" }, MONTH_CALENDAR, P)).toEqual({ rejected: "invalid_target" });
     expect(editMovement(s, "m", { amount: 30_000 }, MONTH_CALENDAR, P)).toMatchObject({ rejected: "negative_cell" });
 
@@ -451,5 +477,51 @@ describe("NFR-2502 · solo se juzga lo que la escritura empeora", () => {
     const next = { ...prev, actuals: { ...prev.actuals, "s-rest": { [SEP]: 120_000 } } };
     expect(worsenedCellMismatches(prev, next, P))
       .toEqual([{ nodeId: "s-rest", period: SEP, cell: 120_000, sum: 100_000 }]);
+  });
+});
+
+// ══ FR-2505 corregido (2026-09-18) — poner el monto en cero ELIMINA ═════════════════════════════
+
+describe("FR-2505 · cero elimina, delegando en el borrado", () => {
+  it("TC-DDC-125e: editMovement con amount 0 produce el MISMO estado que deleteMovement", () => {
+    // @aitri-tc TC-DDC-125e
+    // La prueba que impide que el borrado se reimplemente. Las dos vías tienen que ser una sola:
+    // si alguien escribiera un borrado propio para el caso del 0, las dos podrían «funcionar» y aun
+    // así divergir —en el recálculo de la celda, en el orden de los movimientos, en una validación
+    // que una hace y la otra no—. Comparar los ESTADOS RESULTANTES caza eso; comparar solo «se
+    // borró» no lo caza.
+    const base = () => estado({
+      actuals: { "s-rest": { [SEP]: 30_000 } },
+      movements: [gasto("m1", "s-rest", 15_000, SEP, 1), gasto("m2", "s-rest", 15_000, SEP, 2)],
+    });
+
+    const porEdicion = editMovement(base(), "m1", { amount: 0 }, MONTH_CALENDAR, P);
+    const porPapelera = deleteMovement(base(), "m1");
+
+    expect("state" in porEdicion).toBe(true);
+    expect("state" in porPapelera).toBe(true);
+    if (!("state" in porEdicion) || !("state" in porPapelera)) return;
+
+    // Profundamente iguales: celdas, movimientos y su orden.
+    expect(porEdicion.state).toEqual(porPapelera.state);
+    // Y la edición lo DECLARA, para que la UI sepa que la fila desapareció y no intente repintarla.
+    expect(porEdicion.deleted).toBe(true);
+  });
+
+  it("TC-DDC-125e (bis): el 0 hereda las validaciones del borrado, no las suyas propias", () => {
+    // @aitri-tc TC-DDC-125e
+    // Celda en 0 = gasto de 100.000 + ajuste de −100.000. Quitar el gasto la dejaría en −100.000.
+    const s = estado({
+      actuals: { "s-rest": { [SEP]: 0 } },
+      movements: [gasto("m", "s-rest", 100_000, SEP, 1), ajuste("a", "s-rest", -100_000, SEP, 2)],
+    });
+    const porEdicion = editMovement(s, "m", { amount: 0 }, MONTH_CALENDAR, P);
+    const porPapelera = deleteMovement(s, "m");
+    // El MISMO rechazo, con las mismas celdas nombradas: un aviso distinto según la vía le diría al
+    // usuario que son operaciones distintas, y no lo son.
+    expect(porEdicion).toEqual(porPapelera);
+    expect(porEdicion).toMatchObject({ rejected: "negative_cell" });
+    // Una hoja de bolsillo tampoco se edita por aquí, ni siquiera para borrarla.
+    expect(editMovement(s, "no-existe", { amount: 0 }, MONTH_CALENDAR, P)).toEqual({ rejected: "not_found" });
   });
 });

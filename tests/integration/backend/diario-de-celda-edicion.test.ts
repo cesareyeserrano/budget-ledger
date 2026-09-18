@@ -156,9 +156,11 @@ describe("FR-2505 — el PATCH contra Postgres", () => {
   it("TC-DDC-312f: un monto que no respeta el kind se rechaza — nunca un 500", async () => {
     // @aitri-tc TC-DDC-312f
     const { hoja } = await sembrarSimple();
-    // Un movimiento MANUAL no admite 0 ni negativo: esa licencia es solo del ajuste (FR-2504).
-    expect(await updateMovement(A, `m-base-${A}`, { amount: 0 })).toEqual({ ok: false, rejected: "invalid_amount" });
+    // Un movimiento MANUAL no admite un monto negativo: esa licencia es solo del ajuste (FR-2504).
+    // El 0 NO se prueba aquí porque ya no es un monto inválido: desde FR-2505 elimina el movimiento,
+    // y eso lo cubre TC-DDC-127f contra esta misma base.
     expect(await updateMovement(A, `m-base-${A}`, { amount: -5_000 })).toEqual({ ok: false, rejected: "invalid_amount" });
+    expect(await updateMovement(A, `m-base-${A}`, { amount: 1.5 })).toEqual({ ok: false, rejected: "invalid_amount" });
     // El rechazo llega ANTES del CHECK de la base: la celda y la revisión siguen donde estaban.
     const fin = (await loadLedger(A))!;
     expect(fin.state.actuals[hoja]?.[SEP]).toBe(100_000);

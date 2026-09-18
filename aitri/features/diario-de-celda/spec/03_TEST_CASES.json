@@ -21,8 +21,8 @@
       "preconditions": [],
       "given": "modo ciclos con día de pago 21: «Septiembre» = 2026-08-21 a 2026-09-20, «Octubre» = 2026-09-21 a 2026-10-20, «Noviembre» = 2026-10-21 a 2026-11-20; hoja de gasto Restaurantes con Ejecutado de «Septiembre» = 100000 y 3 movimientos manuales: 50000 fecha 2026-09-18T12:00 nota «Almuerzo»; 30000 fecha 2026-09-19T12:00 sin nota; 20000 fecha 2026-09-20T12:00 nota «Taxi»; escritorio 1440x900, tema claro",
       "when": "se abre la celda de Ejecutado de Restaurantes en «Septiembre»",
-      "then": "el panel con título «Detalle» tiene 3 filas de movimiento; fechas «18 sep», «19 sep», «20 sep» en ese orden; notas «Almuerzo», «Sin nota», «Taxi»; montos «−50.000», «−30.000», «−20.000»; la celda muestra 100.000",
-      "expected_result": "3 filas exactas en orden 18→19→20 sep, la del 19 con «Sin nota», y 50000+30000+20000 = 100000 = valor de la celda"
+      "then": "el panel con título «Detalle» tiene 3 filas de movimiento; fechas «18 sep», «19 sep», «20 sep» en ese orden; notas «Almuerzo», «Sin nota», «Taxi»; montos «50.000», «30.000», «20.000», los tres SIN signo; la celda muestra 100.000",
+      "expected_result": "3 filas exactas en orden 18→19→20 sep, la del 19 con «Sin nota», y las cifras tal como se leen en pantalla suman 100.000 = valor de la celda (la promesa del panel, comprobable a ojo)"
     },
     {
       "id": "TC-DDC-002h",
@@ -119,15 +119,15 @@
       "requirement_id": "FR-2501",
       "user_story_id": "US-2501",
       "ac_id": "AC-2501a",
-      "title": "displayAmount aplica la regla de signo: signo del tipo × signo del monto",
+      "title": "displayAmount aplica el signo del APORTE a la celda, no el del tipo",
       "type": "unit",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "tipos expense e income",
-      "when": "displayAmount('expense', 50000); displayAmount('expense', -10000); displayAmount('income', 20000); displayAmount('income', -10000)",
-      "then": "devuelve {sign:'−',abs:50000,addsToCell:true}; {sign:'+',abs:10000,addsToCell:false}; {sign:'+',abs:20000,addsToCell:true}; {sign:'−',abs:10000,addsToCell:false}",
-      "expected_result": "los 4 objetos exactos; un ajuste negativo de gasto se muestra «+10.000» y no suma"
+      "given": "la función ya no recibe el tipo: el signo no puede depender de si la celda es de gasto o de ingreso",
+      "when": "displayAmount(50000); displayAmount(-10000); displayAmount(20000); displayAmount(-40000)",
+      "then": "devuelve {sign:'',abs:50000,addsToCell:true}; {sign:'−',abs:10000,addsToCell:false}; {sign:'',abs:20000,addsToCell:true}; {sign:'−',abs:40000,addsToCell:false}. Ningún resultado lleva '+', y el mismo monto da el mismo signo venga de una celda de gasto o de ingreso",
+      "expected_result": "los 4 objetos exactos; cero apariciones de '+' y el signo independiente del tipo"
     },
     {
       "id": "TC-DDC-009e",
@@ -141,8 +141,8 @@
       "preconditions": [],
       "given": "hoja de gasto Restaurantes en «Septiembre» con un movimiento manual de 50000 (2026-09-18) y un ajuste kind 'adjustment' de −10000 (2026-09-19); Ejecutado 40000",
       "when": "se abre la celda",
-      "then": "la fila de 50000 muestra «−50.000» con color computado = --type-expense; la fila del ajuste muestra «+10.000» con color computado = --fg-secondary",
-      "expected_result": "color del monto que suma = rgb de --type-expense (#c4453e claro); del que resta = rgb de --fg-secondary (#55555d claro)"
+      "then": "la fila de 50000 muestra «50.000» SIN signo con color computado = --type-expense; la fila del ajuste muestra «−10.000» con color computado = --fg-secondary. El color y el signo coinciden en señalar lo mismo, así que la distinción no depende solo del signo (WCAG 1.4.1)",
+      "expected_result": "color del que suma = rgb de --type-expense (#c4453e claro); del que resta = rgb de --fg-secondary (#55555d claro); el que suma sin signo"
     },
     {
       "id": "TC-DDC-010e",
@@ -488,8 +488,8 @@
       "preconditions": [],
       "given": "modo ciclos con día de pago 21: «Septiembre» = 2026-08-21 a 2026-09-20, «Octubre» = 2026-09-21 a 2026-10-20, «Noviembre» = 2026-10-21 a 2026-11-20; fixToday 2026-09-14; Restaurantes con movimiento de 100000 y Ejecutado 100000",
       "when": "se abre la celda, se teclea 120000 en «Editar valor» y Enter",
-      "then": "la celda muestra 120.000; el Detalle tiene una fila con ícono de aria-label «Ajuste», nota «Ajuste manual» y monto «−20.000»; su border-color computado = --accent inmediatamente y deja de serlo tras 2 s",
-      "expected_result": "fila «Ajuste manual −20.000», resaltado --accent ≤1.5 s, celda 120.000"
+      "then": "la celda muestra 120.000; el Detalle tiene una fila con ícono de aria-label «Ajuste», nota «Ajuste manual» y monto «20.000» SIN signo (el ajuste SUBE la celda de 100.000 a 120.000); su border-color computado = --accent inmediatamente y deja de serlo tras 2 s",
+      "expected_result": "fila «Ajuste manual 20.000», resaltado --accent ≤2 s, celda 120.000"
     },
     {
       "id": "TC-DDC-063e",
@@ -511,15 +511,15 @@
       "requirement_id": "FR-2504",
       "user_story_id": "US-2504",
       "ac_id": "AC-2504b",
-      "title": "El ajuste negativo de un gasto se ve «+10.000» y la celda queda en 90.000 tras recargar",
+      "title": "El ajuste que BAJA la celda se ve «−10.000» y la celda queda en 90.000 tras recargar",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
       "given": "modo ciclos con día de pago 21: «Septiembre» = 2026-08-21 a 2026-09-20, «Octubre» = 2026-09-21 a 2026-10-20, «Noviembre» = 2026-10-21 a 2026-11-20; fixToday 2026-09-14; Restaurantes con movimiento de 100000 y Ejecutado 100000",
       "when": "se teclea 90000 con Enter, se espera el PUT 200 y se recarga la página",
-      "then": "la celda muestra 90.000; la fila «Ajuste manual» muestra «+10.000» en --fg-secondary; el GET devuelve el movimiento con kind 'adjustment' y amount -10000",
-      "expected_result": "90.000 persistido y ajuste con amount -10000 y kind 'adjustment'"
+      "then": "la celda muestra 90.000; la fila «Ajuste manual» muestra «−10.000» en --fg-secondary (es el único con signo: resta); el GET devuelve el movimiento con kind 'adjustment' y amount -10000",
+      "expected_result": "90.000 persistido, ajuste con amount -10000 y kind 'adjustment', pintado «−10.000»"
     },
     {
       "id": "TC-DDC-065e",
@@ -2337,15 +2337,15 @@
       "requirement_id": "FR-2501",
       "user_story_id": "US-2501",
       "ac_id": "AC-2501a",
-      "title": "Una celda de ingreso lista sus movimientos con signo + y color de ingreso",
+      "title": "Una celda de ingreso lista sus montos con el mismo criterio que una de gasto: sin signo lo que suma",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
       "given": "hoja de ingreso Salario en «Septiembre» con un movimiento de 3000000 (2026-09-01, nota «Nómina») y Ejecutado 3000000",
       "when": "se abre la celda de Ejecutado de Salario",
-      "then": "1 fila «1 sep · Nómina · +3.000.000» con color computado del monto = --type-income",
-      "expected_result": "signo + y color rgb de --type-income (#2f7d53 claro)"
+      "then": "1 fila «1 sep · Nómina · 3.000.000» SIN signo, con color computado del monto = --type-income",
+      "expected_result": "ningún «+» y color rgb de --type-income (#2f7d53 claro) — simetría exacta con la celda de gasto"
     },
     {
       "id": "TC-DDC-076e",
@@ -2586,6 +2586,96 @@
       "when": "POST /api/v1/movements, PATCH /api/v1/movements/x y DELETE /api/v1/movements/x sin cookie",
       "then": "las 3 responden 401 con el mismo cuerpo de error JSON y cada una deja una línea de registro con su método, ruta y 401",
       "expected_result": "3 × 401 con cuerpo idéntico y 3 líneas de registro"
+    },
+    {
+      "id": "TC-DDC-012e",
+      "requirement_id": "FR-2501",
+      "user_story_id": "US-2501",
+      "ac_id": "AC-2501d",
+      "title": "Caso real del usuario: cuatro montos de una celda de gasto suman a la vista el total",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la celda de gasto Agua de octubre con cuatro movimientos de 150.000, 40.000, 50.000 y 10.000 (Ejecutado 250.000) — el escenario exacto en el que el usuario detectó el fallo el 2026-09-18",
+      "when": "se abre la celda",
+      "then": "las cuatro filas muestran «150.000», «40.000», «50.000» y «10.000», ninguna con signo, y la celda muestra 250.000; sumando las cifras tal como están escritas se obtiene el valor de la celda",
+      "expected_result": "4 montos sin signo que suman 250.000 = celda"
+    },
+    {
+      "id": "TC-DDC-013f",
+      "requirement_id": "FR-2501",
+      "user_story_id": "US-2501",
+      "ac_id": "AC-2501e",
+      "title": "Ningún monto lleva un signo que contradiga su efecto sobre la celda",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un ledger con celdas de gasto y de ingreso, cada una con movimientos que suman y ajustes que restan",
+      "when": "se abren todas y se reúnen los montos pintados con su efecto real sobre la celda",
+      "then": "cero filas que suben la celda muestran «−», cero filas que la bajan se muestran sin signo, y cero montos llevan «+» — la regla retirada producía exactamente los dos primeros casos",
+      "expected_result": "0 contradicciones entre el signo pintado y el efecto sobre la celda"
+    },
+    {
+      "id": "TC-DDC-124h",
+      "requirement_id": "FR-2505",
+      "user_story_id": "US-2505",
+      "ac_id": "AC-2505e",
+      "title": "Editar el monto a 0 elimina el movimiento, igual que la papelera",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda de 30.000 formada por dos movimientos de 15.000; el bloque de edición abierto sobre uno de ellos",
+      "when": "se deja el campo Monto en 0 y se pulsa el botón",
+      "then": "el botón dice «Eliminar» en --error en cuanto el monto es 0 (no «Guardar»); tras pulsarlo queda una sola fila y la celda muestra 15.000 — el mismo resultado que borrar con la papelera",
+      "expected_result": "1 fila restante, celda 15.000 y el rótulo del botón cambiado antes de pulsar"
+    },
+    {
+      "id": "TC-DDC-125e",
+      "requirement_id": "FR-2505",
+      "user_story_id": "US-2505",
+      "ac_id": "AC-2505e",
+      "title": "editMovement con amount 0 delega en deleteMovement en vez de reimplementarlo",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "un estado con un movimiento de 15.000 en una celda de 30.000",
+      "when": "se llama editMovement(state, id, {amount: 0}, cal, periods) y, por separado, deleteMovement(state, id)",
+      "then": "editMovement devuelve {state, deleted:true} y su estado resultante es PROFUNDAMENTE IGUAL al de deleteMovement; el 0 no devuelve 'invalid_amount'",
+      "expected_result": "estados idénticos por las dos vías — una sola implementación del borrado, no dos que podrían divergir"
+    },
+    {
+      "id": "TC-DDC-126f",
+      "requirement_id": "FR-2505",
+      "user_story_id": "US-2505",
+      "ac_id": "AC-2505e",
+      "title": "Editar a 0 un movimiento cuya eliminación dejaría la celda negativa se rechaza con el aviso del borrado",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda en 0 formada por un movimiento de 100.000 y un ajuste de −100.000",
+      "when": "se edita el movimiento de 100.000 y se deja su monto en 0",
+      "then": "el botón «Eliminar» queda deshabilitado y aparece el MISMO texto que da la papelera («No se puede borrar: la celda quedaría en −100.000.»); nada cambia",
+      "expected_result": "mensaje idéntico al de F5 y cero escrituras"
+    },
+    {
+      "id": "TC-DDC-127f",
+      "requirement_id": "FR-2505",
+      "user_story_id": "US-2505",
+      "ac_id": "AC-2505e",
+      "title": "En un periodo cerrado, editar a 0 se rechaza en el servidor con closed_period_violation",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "usuario en Postgres; «Agosto» cerrado con un movimiento K de 7.000",
+      "when": "PATCH /api/v1/movements/K {amount: 0}",
+      "then": "422 {error:{code:'closed_period_violation'}}; K sigue en la base con 7.000 y la celda no cambia",
+      "expected_result": "HTTP 422 y cero escrituras — el cierre gana también sobre el 0"
     }
   ]
 }

@@ -110,6 +110,27 @@ async function elegirFecha(page: Page, panel: ReturnType<Page["locator"]>, iso: 
   await pop.locator(`[data-day="${iso}"]:not([data-outside]) button`).click();
 }
 
+/**
+ * Cierra el editor de la celda y ESPERA a que se haya ido.
+ *
+ * No basta con pulsar Escape una o dos veces. El editor se cierra en niveles —primero el bloque de
+ * edición de la fila, luego el panel— y el Escape se atiende en el CONTENEDOR, así que solo llega si
+ * el foco sigue dentro; cuando un popover se acaba de cerrar, o un bloque se desmontó, el foco puede
+ * caer al `body` y la tecla se pierde. Con dos pulsaciones a ciegas el resultado depende del momento,
+ * que es como TC-DDC-090f se volvió intermitente: fallaba al leer la celda porque, con el editor
+ * abierto, la grilla pinta ahí el editor y el nodo `[data-cell]` de ese mes NO EXISTE.
+ *
+ * Esto pulsa hasta que el panel desaparece de verdad, con un tope para no colgarse.
+ */
+async function cerrarEditor(page: Page): Promise<void> {
+  const panel = page.getByTestId("cell-notes");
+  for (let i = 0; i < 4 && (await panel.count()) > 0; i += 1) {
+    await page.keyboard.press("Escape");
+    await panel.waitFor({ state: "detached", timeout: 1_500 }).catch(() => {});
+  }
+  await expect(panel).toHaveCount(0);
+}
+
 /** Abre el editor de esa celda y devuelve el panel «Detalle». */
 async function abrirCelda(page: Page, leafId: string, period: string) {
   await celda(page, leafId, period).click();
@@ -210,7 +231,7 @@ test.describe("FR-2501 — el Detalle lista los movimientos que forman la celda"
     await expect(filas).toHaveCount(3);
     await expect(filas.getByTestId("detail-date")).toHaveText(["18 sep", "19 sep", "20 sep"]);
     await expect(filas.getByTestId("detail-note")).toHaveText(["Almuerzo", "Sin nota", "Taxi"]);
-    await expect(filas.getByTestId("detail-amount")).toHaveText(["−50.000", "−30.000", "−20.000"]);
+    await expect(filas.getByTestId("detail-amount")).toHaveText(["50.000", "30.000", "20.000"]);
     // Y la celda sigue diciendo el total: 50.000 + 30.000 + 20.000.
     await expect(page.getByLabel("Editar valor")).toHaveValue("100000");
   });
@@ -255,7 +276,7 @@ test.describe("FR-2501 — el Detalle lista los movimientos que forman la celda"
     await expect(fila.getByTestId("detail-date")).toHaveText("1 sep");
     await expect(fila.getByTestId("detail-note")).toHaveText("Nómina");
     const monto = fila.getByTestId("detail-amount");
-    await expect(monto).toHaveText("+3.000.000");
+    await expect(monto).toHaveText("3.000.000");
     expect(await monto.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--type-income"));
   });
 
@@ -446,7 +467,7 @@ test.describe("FR-2502 — añadir un movimiento desde el Detalle", () => {
     const fila = panel.getByTestId("detail-row").filter({ hasText: "Café de la tarde" });
     await expect(fila).toHaveCount(1);
     await expect(fila.getByTestId("detail-date")).toHaveText("10 sep"); // la fecha propuesta: HOY
-    await expect(fila.getByTestId("detail-amount")).toHaveText("−30.000");
+    await expect(fila.getByTestId("detail-amount")).toHaveText("30.000");
     // Se añade DENTRO de la celda: no hay un segundo formulario que llenar.
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // Y la línea queda lista para el siguiente, con el foco en Monto.
@@ -456,7 +477,7 @@ test.describe("FR-2502 — añadir un movimiento desde el Detalle", () => {
     // El total se lee en la CELDA, no en «Editar valor»: ese input conserva el valor capturado al
     // abrir el editor y solo cambia si el usuario teclea. Y la celda solo existe con el editor
     // CERRADO —mientras está abierto, el editor ocupa su sitio—, así que se cierra antes de leerla.
-    await page.keyboard.press("Escape");
+    await cerrarEditor(page);
     await expect(celda(page, "c-rest", SEP)).toContainText("130.000");
   });
 
@@ -615,7 +636,7 @@ test.describe("FR-2503 — la fecha que la celda propone y acepta", () => {
     // La celda de «Septiembre» lo recibe; la columna de «Agosto» no se mueve. Se lee la CELDA, no
     // el input: «Editar valor» conserva el valor que se capturó al ABRIR el editor y solo cambia si
     // el usuario teclea, así que mirar ahí no dice nada de lo que la celda vale ahora.
-    await page.keyboard.press("Escape");
+    await cerrarEditor(page);
     await expect(celda(page, "c-rest", SEP)).toContainText("108.000");
     const estado = await readLedger(page);
     expect(estado!.movements.find((m) => m.amount === 8_000)!.period).toBe(SEP);
@@ -659,7 +680,7 @@ test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", (
     await expect(ajuste).toHaveCount(1);
     await expect(ajuste.getByLabel("Ajuste", { exact: true })).toHaveCount(1);
     await expect(ajuste.getByTestId("detail-note")).toHaveText("Ajuste manual");
-    await expect(ajuste.getByTestId("detail-amount")).toHaveText("−20.000");
+    await expect(ajuste.getByTestId("detail-amount")).toHaveText("20.000");
     await expect(page.getByLabel("Editar valor")).toHaveValue("120000");
 
     // El resaltado es una respuesta a la acción, no un estado: se apaga solo.
@@ -669,7 +690,7 @@ test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", (
       .toBe("0px");
   });
 
-  test("TC-DDC-064e: el ajuste negativo de un gasto se ve «+10.000» y persiste", async ({ page }) => {
+  test("TC-DDC-064e: el ajuste que BAJA la celda se ve «−10.000» y persiste", async ({ page }) => {
     // @aitri-tc TC-DDC-064e
     await abrir(page, REST_SEP);
     await abrirCelda(page, "c-rest", SEP);
@@ -687,7 +708,7 @@ test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", (
     const ajuste = panel.locator('[data-testid="detail-row"][data-kind="adjustment"]');
     const monto = ajuste.getByTestId("detail-amount");
     // Le QUITA gasto a la celda, así que se ve «+», y en secundario porque no suma al total.
-    await expect(monto).toHaveText("+10.000");
+    await expect(monto).toHaveText("−10.000");
     expect(await monto.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--fg-secondary"));
 
     const estado = await readLedger(page);
@@ -795,7 +816,7 @@ test.describe("NFR-2504 — «Nuevo movimiento» sigue igual", () => {
     const panel = await abrirCelda(page, "c-rest", SEP);
     await expect(page.getByLabel("Editar valor")).toHaveValue("70000");
     await expect(panel.getByTestId("detail-row")).toHaveCount(2);
-    await expect(panel.getByTestId("detail-amount").filter({ hasText: "−50.000" })).toHaveCount(1);
+    await expect(panel.getByTestId("detail-amount").filter({ hasText: "50.000" })).toHaveCount(1);
   });
 
   test("TC-DDC-352e: un gasto del 25 oct guardado desde el registro cae en «Noviembre»", async ({ page }) => {
@@ -956,7 +977,7 @@ test.describe("FR-2505 — editar un movimiento desde el Detalle", () => {
 
       // La FILA baja a 5.000…
       const fila = panel.getByTestId("detail-row").filter({ hasText: "Almuerzo" });
-      await expect(fila.getByTestId("detail-amount")).toHaveText("−5.000");
+      await expect(fila.getByTestId("detail-amount")).toHaveText("5.000");
       // …y la celda, 45.000 exactos. Se lee con el editor CERRADO: mientras está abierto ocupa su sitio.
       await page.keyboard.press("Escape");
       await expect(celda(page, "c-rest", SEP)).toContainText("55.000");
@@ -1093,7 +1114,7 @@ test.describe("FR-2505 — editar un movimiento desde el Detalle", () => {
       await expect(panel.getByTestId("movement-editor")).toHaveCount(0);
       await expect(panel).toBeVisible();
       await expect(panel.getByTestId("detail-row").filter({ hasText: "Almuerzo" }).getByTestId("detail-amount"))
-        .toHaveText("−50.000");
+        .toHaveText("50.000");
 
       // SEGUNDO Escape: ahora sí se cierra el panel.
       await page.keyboard.press("Escape");
@@ -1303,8 +1324,7 @@ test.describe("FR-2507 / NFR-2501 — lo que el editor NO deja hacer", () => {
     await expect(editor.getByTestId("edit-save")).toBeDisabled();
 
     // Y el movimiento sigue donde estaba, con su fecha y su celda intactas.
-    await page.keyboard.press("Escape");
-    await page.keyboard.press("Escape");
+    await cerrarEditor(page);
     await expect(celda(page, "c-rest", SEP)).toContainText("15.000");
     await expect(celda(page, "c-rest", AGO)).toContainText("100.000");
   });
@@ -1486,7 +1506,7 @@ test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abie
     await expect(panel.getByTestId("detail-date")).toHaveText("18 sep");
     // Se cierra el editor antes de mirar la celda: mientras está abierto, la grilla pinta ahí el
     // campo de edición y no la cifra.
-    await page.keyboard.press("Escape");
+    await cerrarEditor(page);
     await expect(celda(page, "c-rest", SEP)).toContainText("12.000");
   });
 
@@ -1512,7 +1532,7 @@ test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abie
     await editor.getByLabel("Monto").fill("6000");
     await editor.getByRole("button", { name: "Guardar" }).click();
 
-    await page.keyboard.press("Escape");
+    await cerrarEditor(page);
     await expect(celda(page, "c-rest", AGO)).toContainText("6.000");
   });
 
@@ -1586,7 +1606,7 @@ test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abie
     await expect(panel.getByTestId("add-movement")).toHaveCount(0);
 
     // La cifra sigue en 9.000 en pantalla y en la fuente de verdad, y nada se escribió.
-    await expect(panel.getByTestId("detail-amount")).toHaveText("−9.000");
+    await expect(panel.getByTestId("detail-amount")).toHaveText("9.000");
     const fin = await readLedger(page);
     expect(fin?.actuals["c-rest"]?.[SEP]).toBe(9_000);
     expect(respuestas.filter((c) => c >= 200 && c < 300)).toHaveLength(0);
@@ -1856,5 +1876,143 @@ test.describe("FR-2512 — un mes con celdas descuadradas no se puede cerrar", (
       document.documentElement.scrollWidth - document.documentElement.clientWidth
     );
     expect(desborde).toBeLessThanOrEqual(0);
+  });
+});
+
+// ══ FR-2505 corregido (2026-09-18) — poner el monto en cero ELIMINA ═════════════════════════════
+
+test.describe("FR-2505 — cero elimina, con el rótulo que lo anuncia", () => {
+  test("TC-DDC-124h: dejar el Monto en 0 cambia el botón a «Eliminar» y borra la fila", async ({ page }) => {
+    // @aitri-tc TC-DDC-124h
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 30_000 } },
+      movements: [
+        mv("m-1", "expense", "c-rest", 15_000, SEP, "2026-09-10T12:00", 1, "Uno"),
+        mv("m-2", "expense", "c-rest", 15_000, SEP, "2026-09-11T12:00", 2, "Dos"),
+      ],
+    } as unknown as Seed);
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const editor = await editarFila(page, panel, "Uno");
+
+    // Con el monto original el botón guarda…
+    const boton = editor.getByTestId("edit-save");
+    await expect(boton).toHaveText("Guardar");
+
+    // …y en cuanto el monto es 0 ANUNCIA lo que va a hacer, antes de que nadie pulse. Esa es la
+    // razón por la que no se pide una segunda confirmación: la consecuencia ya se leyó.
+    await editor.getByLabel("Monto").fill("0");
+    await expect(boton).toHaveText("Eliminar");
+    await expect(boton).toBeEnabled();
+    const rojo = await cssVar(page, "--error");
+    expect(await boton.evaluate((el) => getComputedStyle(el).color)).toBe(rojo);
+
+    await boton.click();
+
+    // Queda una sola fila y la celda baja: el mismo resultado que la papelera.
+    await expect(panel.getByTestId("detail-row")).toHaveCount(1);
+    await expect(panel.getByTestId("detail-note")).toHaveText("Dos");
+    await cerrarEditor(page);
+    await expect(celda(page, "c-rest", SEP)).toContainText("15.000");
+
+    // Y persiste: no era solo pantalla.
+    const fin = await readLedger(page);
+    expect(fin?.movements.filter((m) => m.target === "c-rest").map((m) => m.note)).toEqual(["Dos"]);
+  });
+
+  test("TC-DDC-126f: si eliminar con 0 dejara la celda negativa, sale el MISMO aviso que la papelera", async ({ page }) => {
+    // @aitri-tc TC-DDC-126f
+    // Dos vías para el mismo acto no pueden dar mensajes distintos: el usuario creería que son
+    // operaciones diferentes y buscaría la «que sí funciona».
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 0 } },
+      movements: [
+        mv("m-gasto", "expense", "c-rest", 100_000, SEP, "2026-09-10T12:00", 1, "Compra"),
+        ajuste("m-aj", "c-rest", -100_000, SEP, "2026-09-11T12:00", 2),
+      ],
+    } as unknown as Seed);
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+
+    // 1) Por la PAPELERA: se captura el texto que da hoy.
+    const fila = panel.getByTestId("detail-row").filter({ hasText: "Compra" });
+    await fila.getByLabel("Borrar movimiento").click();
+    const porPapelera = (await panel.getByTestId("delete-blocked").innerText()).replace(/\s+/g, " ").trim();
+    expect(porPapelera).toContain("No se puede borrar");
+    // El aviso se cierra con su propia X, NO con Escape: el Escape cierra el editor de la celda
+    // entero (es su salida por teclado) y dejaría el panel sin el lápiz que hace falta después.
+    await fila.getByLabel("Cancelar borrado").click();
+
+    // 2) Por el CERO: tiene que decir lo mismo y no dejar pulsar.
+    const editor = await editarFila(page, panel, "Compra");
+    await editor.getByLabel("Monto").fill("0");
+    const aviso = editor.getByTestId("negative-cell-warning").or(panel.getByTestId("delete-blocked"));
+    await expect(aviso).toBeVisible();
+    const porCero = (await aviso.innerText()).replace(/\s+/g, " ").trim();
+    await expect(editor.getByTestId("edit-save")).toBeDisabled();
+
+    expect(porCero, `papelera: «${porPapelera}» · cero: «${porCero}»`).toBe(porPapelera);
+
+    // Y nada cambió por ninguna de las dos vías.
+    const fin = await readLedger(page);
+    expect(fin?.movements.filter((m) => m.target === "c-rest")).toHaveLength(2);
+  });
+});
+
+test.describe("FR-2501 — las cifras del Detalle suman a la vista el valor de la celda", () => {
+  test("TC-DDC-012e: el caso real de Agua/octubre, sin un solo signo", async ({ page }) => {
+    // @aitri-tc TC-DDC-012e
+    // El escenario EXACTO en el que el usuario detectó el fallo el 2026-09-18: cuatro gastos que
+    // se pintaban «−150.000 −40.000 −50.000 −10.000» bajo una celda que decía 250.000 en positivo.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 250_000 } },
+      movements: [
+        mv("a-1", "expense", "c-rest", 150_000, SEP, "2026-09-05T12:00", 1, "Uno"),
+        mv("a-2", "expense", "c-rest", 40_000, SEP, "2026-09-06T12:00", 2, "Dos"),
+        mv("a-3", "expense", "c-rest", 50_000, SEP, "2026-09-07T12:00", 3, "Tres"),
+        mv("a-4", "expense", "c-rest", 10_000, SEP, "2026-09-08T12:00", 4, "Cuatro"),
+      ],
+    } as unknown as Seed);
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const montos = await panel.getByTestId("detail-amount").allInnerTexts();
+    expect(montos).toEqual(["150.000", "40.000", "50.000", "10.000"]);
+
+    // LA PROMESA DEL PANEL, comprobada como la comprobaría el usuario: sumando lo que ve.
+    const suma = montos.reduce((t, m) => t + Number(m.replace(/\./g, "")), 0);
+    expect(suma).toBe(250_000);
+    await cerrarEditor(page);
+    await expect(celda(page, "c-rest", SEP)).toContainText("250.000");
+  });
+
+  test("TC-DDC-013f: ningún monto lleva «+», y solo lleva «−» lo que resta", async ({ page }) => {
+    // @aitri-tc TC-DDC-013f
+    // La guarda de la regla retirada, sobre la PÁGINA: gasto e ingreso a la vez, cada uno con un
+    // movimiento que suma y un ajuste que resta.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 90_000 }, "c-salario": { [SEP]: 90_000 } },
+      movements: [
+        mv("g-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Gasto"),
+        ajuste("g-aj", "c-rest", -10_000, SEP, "2026-09-06T12:00", 2),
+        mv("i-1", "income", "c-salario", 100_000, SEP, "2026-09-05T12:00", 3, "Ingreso"),
+        { ...ajuste("i-aj", "c-salario", -10_000, SEP, "2026-09-06T12:00", 4), type: "income", catId: "c-salario", target: "c-salario" },
+      ],
+    } as unknown as Seed);
+
+    for (const hoja of ["c-rest", "c-salario"]) {
+      const panel = await abrirCelda(page, hoja, SEP);
+      const montos = await panel.getByTestId("detail-amount").allInnerTexts();
+      // Idéntico en gasto y en ingreso: la celda ya dice de qué tipo es.
+      expect(montos, hoja).toEqual(["100.000", "−10.000"]);
+      expect(montos.some((m) => m.includes("+")), `${hoja} no lleva «+»`).toBe(false);
+      // Y leídos tal cual, suman el valor de la celda.
+      const suma = montos.reduce((t, m) => t + Number(m.replace(/\./g, "").replace("−", "-")), 0);
+      expect(suma, hoja).toBe(90_000);
+      await page.keyboard.press("Escape");
+    }
   });
 });

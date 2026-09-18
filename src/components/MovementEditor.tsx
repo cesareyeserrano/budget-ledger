@@ -12,12 +12,12 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarClock, TriangleAlert } from "lucide-react";
 import {
-  CELL_NOTE_MAX, editMovement as dryRun, formatDay, isClosed, isLeaf, periodLabel,
+  CELL_NOTE_MAX, deleteMovement as ensayarBorrado, editMovement as dryRun, formatDay, isClosed, isLeaf, periodLabel,
   type MovementPatch,
 } from "@/domain";
 import type { Movement, PeriodKey } from "@/domain/types";
 import { useActivePeriods, useCalendar, useLedgerStore } from "@/state/store";
-import { money } from "./format";
+import { money, textoBorradoNegativo } from "./format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
@@ -65,7 +65,11 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
 
   const amount = Number(monto);
   const notaLarga = nota.length > CELL_NOTE_MAX;
-  const montoOk = monto !== "" && Number.isInteger(amount) && (esAjuste ? amount !== 0 : amount >= 1);
+  // CERO = ELIMINAR (FR-2505), no un monto inválido. Es el idioma que la app ya tiene para los
+  // retiros de bolsillo (FR-1802 de `techo-de-flujo`, fijado con palabras del usuario), y tenerlo
+  // solo en la mitad de la app obligaba a aprender dos reglas para la misma intención.
+  const eliminar = monto !== "" && amount === 0;
+  const montoOk = monto !== "" && Number.isInteger(amount) && (eliminar || (esAjuste ? amount !== 0 : amount >= 1));
 
   const patch: MovementPatch = {
     amount,
@@ -76,7 +80,11 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
 
   // El ENSAYO: se corre la misma mutación que correrá el servidor y se mira si la rechazaría. No es
   // una validación paralela —que podría divergir—, es LA validación, ejecutada antes de escribir.
-  const ensayo = montoOk && !notaLarga ? dryRun(data, movement.id, patch, cal, periods) : null;
+  // Con el monto en 0 el ensayo es el del BORRADO —la misma función que corre la papelera— para que
+  // las dos vías den el mismo veredicto y el mismo texto. Una validación propia acabaría divergiendo.
+  const ensayo = montoOk && !notaLarga
+    ? (eliminar ? ensayarBorrado(data, movement.id) : dryRun(data, movement.id, patch, cal, periods))
+    : null;
   const negativa = ensayo && "rejected" in ensayo && ensayo.rejected === "negative_cell" ? ensayo.cells[0] : null;
   const otroRechazo = ensayo && "rejected" in ensayo && ensayo.rejected !== "negative_cell" ? ensayo.rejected : null;
 
@@ -188,9 +196,18 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
       )}
 
       {negativa && (
-        <span data-testid="negative-cell-warning" className="flex items-start gap-1 text-caption" style={{ color: "var(--error)" }}>
+        <span
+          // Con el monto en 0 esto es un BORRADO, así que lleva el testid y el texto de la papelera:
+          // dos vías para el mismo acto tienen que decir lo mismo, o el usuario creerá que son
+          // operaciones distintas y que quizá una sí le deje (TC-DDC-126f compara los dos textos).
+          data-testid={eliminar ? "delete-blocked" : "negative-cell-warning"}
+          className="flex items-start gap-1 text-caption"
+          style={{ color: "var(--error)" }}
+        >
           <TriangleAlert size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
-          No se puede: {nombreDe(data.nodes, negativa.nodeId)} quedaría en {money(negativa.value)}, y ninguna celda puede quedar por debajo de 0.
+          {eliminar
+            ? textoBorradoNegativo(negativa.value)
+            : `No se puede: ${nombreDe(data.nodes, negativa.nodeId)} quedaría en ${money(negativa.value)}, y ninguna celda puede quedar por debajo de 0.`}
         </span>
       )}
 
@@ -221,9 +238,13 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
           disabled={!puedeGuardar}
           onClick={confirmar}
           className="text-caption cursor-pointer rounded-(--radius-sm) border border-border px-2 py-1 disabled:cursor-default disabled:opacity-50"
-          style={{ color: "var(--fg)" }}
+          // El rótulo cambia con el valor tecleado: la consecuencia se lee ANTES de pulsar, así que
+          // nadie borra creyendo que guarda. Por eso no se pide una segunda confirmación — teclear 0
+          // y pulsar un botón que dice «Eliminar» ya son dos actos deliberados, igual que la
+          // papelera no la pide dos veces (UX spec F4).
+          style={{ color: eliminar ? "var(--error)" : "var(--fg)" }}
         >
-          Guardar
+          {eliminar ? "Eliminar" : "Guardar"}
         </button>
       </div>
     </div>

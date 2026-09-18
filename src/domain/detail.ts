@@ -63,27 +63,42 @@ function cop(n: number): string {
 }
 
 /**
- * Cómo se MUESTRA el monto de una línea (UX spec § regla de signo y color).
+ * Cómo se PINTA el monto de un movimiento en su fila del Detalle (FR-2501).
  *
- * El signo visible es el del TIPO por el del monto guardado: en un gasto, 50.000 se ve «−50.000» y
- * un ajuste de −10.000 se ve «+10.000», porque le QUITA gasto a la celda (como una devolución).
- * `addsToCell` dice si esa línea suma al total de la celda — la UI lo usa para el color, de modo que
- * un «+10.000» dentro de un gasto no se lea como un ingreso.
+ * El signo mostrado es el del APORTE A LA CELDA, no el del tipo del nodo: lo que suma va sin signo
+ * y solo lo que resta lleva «−». Ningún monto lleva «+».
  *
- * @param type Tipo de la hoja: `expense` resta a la vista, `income` suma.
- * @param amount Monto GUARDADO, con su signo (un ajuste puede ser negativo, FR-2504).
- * @returns Signo a pintar, valor absoluto y si la línea suma al total de la celda.
+ * POR QUÉ YA NO RECIBE EL TIPO, y por qué eso importa más que el cambio de signo. La versión
+ * anterior era `displayAmount(type, amount)` y hacía «signo del tipo × signo del monto»: dentro de
+ * una celda de gasto, un gasto de 50.000 se pintaba «−50.000» y un ajuste de −10.000 se pintaba
+ * «+10.000». Es decir, el signo en pantalla era SIEMPRE el contrario del guardado.
+ *
+ * Eso rompía lo único que el panel promete —que sus filas suman el valor de la celda—: el usuario
+ * veía −150.000, −40.000, −50.000 y −10.000 bajo una celda que decía 250.000 en positivo. Sus
+ * palabras al detectarlo (2026-09-18): «ya por defecto se sabe que es gasto, y no tiene lógica
+ * cuando esas cifras suman en cada celda». Tenía razón, y de raíz: la regla nunca estuvo en el
+ * brief —que solo pide «día, monto y nota»— sino que se introdujo al redactar la fase 1.
+ *
+ * Al quitar el parámetro `type`, la regla vieja deja de ser EXPRESABLE: una función que no sabe si
+ * la celda es de gasto o de ingreso no puede hacer depender el signo de eso. Es más fuerte que
+ * corregir el cálculo, porque impide que vuelva por descuido.
+ *
+ * `addsToCell` se conserva y gobierna el COLOR, así que la distinción entre lo que suma y lo que
+ * resta viaja por dos vías y no solo por el signo (WCAG 1.4.1).
+ *
+ * @param amount Monto guardado del movimiento, con su signo (un ajuste puede ser negativo).
+ * @returns `sign` vacío si suma y «−» si resta; `abs` para formatear; `addsToCell` para el color.
  * @throws Nunca.
  *
- * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-008e, TC-DDC-009e
+ * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501d, TC-ID: TC-DDC-008e, TC-DDC-012e, TC-DDC-013f
  */
 export function displayAmount(
-  type: NodeType, amount: number
-): { sign: "+" | "−"; abs: number; addsToCell: boolean } {
+  amount: number
+): { sign: "" | "−"; abs: number; addsToCell: boolean } {
   const addsToCell = amount > 0;
-  const positiveForType = type === "expense" ? !addsToCell : addsToCell;
-  return { sign: positiveForType ? "+" : "−", abs: Math.abs(amount), addsToCell };
+  return { sign: addsToCell ? "" : "−", abs: Math.abs(amount), addsToCell };
 }
+
 
 /**
  * Las líneas que forman una celda, en el orden en que se leen: el aviso automático de arrastre (solo

@@ -76,12 +76,25 @@ tecleado se confirma al perder el foco, como hoy).
   «Nuevo movimiento», FR-2405). «Guardar» (Enter) y «Cancelar» (Escape).
 - **Exit:** la fila vuelve a su forma normal con los valores nuevos; si cambió de celda, desaparece de este Detalle y
   el total de ambas celdas se actualiza.
+- **Poner el monto en CERO elimina el movimiento (FR-2505, corregido el 2026-09-18).** Es la salida que el usuario ya
+  conoce: FR-1802 de `techo-de-flujo` la fijó con sus propias palabras para los retiros de bolsillo. Al dejar el
+  campo **Monto** en `0`, el botón dice **«Eliminar»** en lugar de «Guardar» y se pinta en `--error`, de modo que la
+  consecuencia se lee ANTES de pulsar y nadie borra sin querer; al confirmarlo la fila desaparece y la celda baja en
+  su monto, exactamente igual que con la papelera (F5). No se pide una segunda confirmación: teclear 0 y pulsar un
+  botón que dice «Eliminar» ya son dos actos deliberados.
+  *La versión anterior de esta sección deshabilitaba «Guardar» con el monto en 0, obligando a aprender dos idiomas
+  distintos para la misma intención según se estuviera en un bolsillo o en un gasto.*
 - **Error path:**
-  - Monto vacío o 0 → «Guardar» deshabilitado. En un ajuste el monto admite un «−» inicial; en un movimiento normal,
-    no.
+  - Monto vacío → «Guardar» deshabilitado. (Monto `0` NO es un error: elimina, ver arriba.) En un ajuste el monto
+    admite un «−» inicial; en un movimiento normal, no.
   - **La edición dejaría una celda por debajo de 0** → bajo el bloque: «No se puede: Restaurantes quedaría en
     −10.000, y ninguna celda puede quedar por debajo de 0.» y «Guardar» deshabilitado. Se calcula al cambiar el
     monto, la categoría o la fecha, antes de guardar (H5).
+  - **Eliminar con 0 dejaría la celda por debajo de 0** → el botón «Eliminar» se deshabilita y aparece el MISMO aviso
+    que da la papelera en F5 («No se puede borrar: la celda quedaría en −100.000.»). Dos vías para el mismo acto
+    tienen que dar el mismo mensaje, o el usuario creerá que son cosas distintas.
+  - **Mes o ciclo cerrado** → en un mes cerrado no hay lápiz, así que esta vía no se ofrece; una petición directa se
+    rechaza con `closed_period_violation` (FR-2507). El cierre gana también sobre el 0.
   - Fecha en un mes o ciclo **cerrado** → bajo la fecha: «Agosto está cerrado: no se puede mover ahí. Elige una fecha
     de un ciclo abierto.» y «Guardar» deshabilitado.
   - Fecha fuera del rango activo del ledger → el calendario no habilita esos días.
@@ -152,6 +165,7 @@ campos de añadir quedan siempre visibles.
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
 | **Campo de valor** (input vigente, «Editar valor») | default (valor actual) · loading (n/a: la escritura es optimista) · error (el servidor rechaza → vuelve al valor anterior + mensaje bajo el editor) · empty (0) · disabled (mes cerrado → texto «Valor de un mes cerrado, no editable») | Enter o perder el foco confirma; Escape descarta. En gasto o ingreso, un valor distinto de la suma de movimientos crea un ajuste (F3) | H3, H5, H1 |
+| **Botón del bloque de edición** (F4) | default («Guardar», `--accent`) · **monto en 0 («Eliminar», `--error`)** · disabled (monto vacío, o la operación dejaría una celda bajo 0) · loading (n/a: escritura optimista) · error (mensaje bajo el bloque) | El rótulo cambia con el valor tecleado, así que la consecuencia se lee antes de pulsar. «Eliminar» hace lo mismo que la papelera de F5 | H1, H3, H5 |
 | **Panel Detalle** (contenedor) | default (lista) · loading (n/a: los datos ya están hidratados al abrir) · error (mensaje en su franja inferior) · empty («Sin movimientos ni comentarios», `caption`, `--fg-muted`) · disabled (mes cerrado: F7) | Superficie `--bg-elevated`, borde `--border`, `--radius-sm`, sombra `--shadow-md`, padding 8 px, ancho `min(320px, 100vw − 32px)`. Título en `eyebrow`: «Detalle» | H8, H1 |
 | **Fila de movimiento** | default · hover/focus (borde `--border-strong`; aparecen lápiz y papelera) · loading (n/a) · error (aviso de celda negativa al intentar borrar, F5) · empty (sin nota → «Sin nota» en `--fg-muted`) · disabled (mes cerrado: sin acciones) | Ícono `Receipt` 12 px · fecha «18 sep» (`tabular`, `--fg-muted`, ancho fijo 44 px) · nota en 1 línea con puntos suspensivos y el texto completo en `title` · monto a la derecha (ver regla de signo). Todo en `caption` | H6, H4, H8 |
 | **Fila de ajuste** (variante de movimiento) | igual que la fila de movimiento · resaltado 1,5 s al crearse (borde `--accent`) | Ícono `SlidersHorizontal` 12 px en lugar de `Receipt`. Nota por defecto «Ajuste manual» | H1, H6 |
@@ -166,14 +180,27 @@ campos de añadir quedan siempre visibles.
 | **Campo «Añadir comentario»** (renombrado del vigente) | default · disabled (n/a) · error (>280: contador en `--error`, rechazo sin truncar) · empty (placeholder «Añadir comentario») · loading (n/a) | Input al pie del panel. Enter añade | H5, H6 |
 | **Marcador de celda** (vigente, FR-1809) | default (sin marca) · con comentarios (punto `--alert-soft` 7 px) · resto n/a | **Sin cambio de regla: marca solo las celdas con COMENTARIOS, no con movimientos.** Justificación: 17 de las 19 celdas con valor del usuario tienen movimientos; marcarlas pintaría casi toda la grilla y contradice «la grilla no gana ruido donde no hay nada anotado» (FR-1809). Un descuadre NO se marca en la celda: se señala en el encabezado del mes y en el Balance (F8) | H8 |
 
-**Regla de signo y color del monto en la fila** (resuelve la tensión entre FR-2501 «con el signo del tipo» y FR-2504
-«un ajuste de −10.000»):
-- Signo mostrado = signo del tipo × signo del monto guardado. Gasto (tipo −): un movimiento de 50.000 se ve
-  «−50.000»; un ajuste de −10.000 se ve «+10.000» (le quita gasto a la celda, como una devolución). Ingreso (tipo +):
-  20.000 se ve «+20.000» y un ajuste de −10.000, «−10.000».
-- Color: `--type-expense` o `--type-income` cuando el movimiento suma al total de la celda; `--fg-secondary` cuando
-  resta. Así un «+10.000» dentro de un gasto no se lee como un ingreso.
-- Los datos no cambian: el movimiento guarda su monto con signo (FR-2504) y los tests afirman sobre ese valor.
+**Regla de signo y color del monto en la fila** (FR-2501):
+
+> **CORREGIDA el 2026-09-18.** La versión anterior de esta sección decía «signo mostrado = signo del tipo × signo del
+> monto guardado», y se presentaba a sí misma como la solución a «la tensión entre FR-2501 "con el signo del tipo" y
+> FR-2504 "un ajuste de −10.000"». Esa tensión no venía del cliente: el brief solo pide «día, monto y nota», y la
+> frase «con el signo del tipo» se había introducido en la fase 1 sin respaldo. La regla que se construyó encima
+> producía, en el ledger real del usuario, cuatro filas de −150.000, −40.000, −50.000 y −10.000 bajo una celda que
+> mostraba 250.000 en positivo. Palabras del usuario al verlo: «ya por defecto se sabe que es gasto, y no tiene
+> lógica cuando esas cifras suman en cada celda».
+
+- **El signo mostrado es el del APORTE A LA CELDA, no el del tipo.** Lo que suma se muestra sin signo; solo lo que
+  resta lleva «−». Gasto: un movimiento de 50.000 se ve «50.000»; un ajuste de −10.000 se ve «−10.000». Ingreso:
+  exactamente igual — 20.000 se ve «20.000» y un ajuste de −10.000, «−10.000». Ningún monto lleva «+».
+- **Por qué sin signo y no con «+»:** la celda ya dice de qué tipo es; repetirlo en cada fila es ruido, y anteponer
+  «−» a cada gasto contradice lo único que el panel promete, que sus filas sumen el valor de la celda. Con esta
+  regla las cifras se leen como una cuenta: se suman tal cual están escritas y dan el total de la celda.
+- **Color:** `--type-expense` o `--type-income` cuando el movimiento suma al total de la celda; `--fg-secondary`
+  cuando resta. El color y el «−» dicen lo mismo por dos vías, que es lo que pide WCAG 1.4.1 — el signo no es el
+  único portador de la distinción.
+- **Los datos no cambian:** el movimiento sigue guardando su monto con signo (FR-2504, ajustes negativos aprobados
+  en el discovery D1c) y las pruebas de dominio siguen afirmando sobre ese valor. Lo que cambia es la PRESENTACIÓN.
 
 ### Pantalla: Presupuesto — encabezado de mes y Balance (escritorio) — FR-2511
 | Componente | Estados | Comportamiento | Heurísticas |

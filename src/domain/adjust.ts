@@ -215,7 +215,7 @@ export interface MovementPatch {
 
 /** Lo que devuelve `editMovement`: el estado nuevo, o el primer motivo por el que no se puede. */
 export type EditResult =
-  | { state: LedgerState }
+  | { state: LedgerState; deleted?: true }
   | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
   | { rejected: "negative_cell"; cells: NegativeCell[] };
 
@@ -271,6 +271,21 @@ export function editMovement(
   // Una operación De→A no se edita por aquí: su celda es un aporte con techo y piso propios, y
   // cambiarla a mano saltándose `applyReserveOp` rompería esas reglas (NFR-2503).
   if (mv.type === "transfer") return { rejected: "unsupported_type" };
+
+  // PONER EL MONTO EN CERO ELIMINA EL MOVIMIENTO (FR-2505). No es un monto inválido: es la salida
+  // que el usuario ya conoce del resto de la app — FR-1802 de `techo-de-flujo` la fijó con sus
+  // propias palabras para los retiros de bolsillo, y rechazar el 0 aquí le obligaría a aprender dos
+  // idiomas distintos para la misma intención.
+  //
+  // DELEGA en `deleteMovement` en vez de reimplementar el borrado. No es elegancia: el borrado ya
+  // valida la celda negativa y el tipo, y dos implementaciones del mismo acto acabarían divergiendo
+  // —es exactamente lo que TC-DDC-326e vigila en las dos puertas HTTP—. Así «poner cero» y
+  // «papelera» son indistinguibles por construcción, no por disciplina (TC-DDC-125e lo comprueba
+  // comparando los estados que producen).
+  if (patch.amount === 0) {
+    const r = deleteMovement(state, id);
+    return "state" in r ? { state: r.state, deleted: true } : r;
+  }
 
   const amount = patch.amount ?? mv.amount;
   if (patch.amount !== undefined && !montoValido(patch.amount, mv.kind)) return { rejected: "invalid_amount" };

@@ -16,7 +16,7 @@ import {
 } from "@/domain";
 import type { LedgerState, Movement, NodeType, PeriodKey } from "@/domain/types";
 import { useLedgerStore, useActivePeriods } from "@/state/store";
-import { money } from "./format";
+import { money, textoBorradoNegativo } from "./format";
 import { CellNoteInput } from "./CellNoteInput";
 import { AddMovementLine } from "./AddMovementLine";
 import { MovementEditor } from "./MovementEditor";
@@ -89,7 +89,7 @@ function DetailRow({
   }
 
   const m = entry.movement;
-  const { sign, abs, addsToCell } = displayAmount(type, m.amount);
+  const { sign, abs, addsToCell } = displayAmount(m.amount);
   const Icon = entry.kind === "adjustment" ? SlidersHorizontal : Receipt;
   return (
     <div data-testid="detail-row" data-kind={entry.kind} className={`group ${base}`} style={{ background: ROW_TINT, ...borde }}>
@@ -115,7 +115,8 @@ function DetailRow({
         data-testid="detail-amount"
         className="tabular flex-none"
         // El color separa lo que SUMA al total de la celda (color del tipo) de lo que le resta
-        // (secundario): así un «+10.000» dentro de un gasto no se lee como un ingreso.
+        // (secundario). Desde FR-2501 el signo dice lo mismo —solo lo que resta lleva «−»—, así que
+        // la distinción no depende del color a solas: es la redundancia que pide WCAG 1.4.1.
         style={{ color: addsToCell ? `var(--type-${type})` : "var(--fg-secondary)" }}
       >
         {sign}{money(abs).replace("$", "")}
@@ -145,7 +146,7 @@ function AccionesDeFila({ onEdit, onDelete, onCancel, bloqueo }: { onEdit: () =>
     return bloqueo !== null ? (
       <span className="flex items-start gap-1 flex-none" style={{ color: "var(--error)" }}>
         <TriangleAlert size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
-        <span data-testid="delete-blocked">No se puede borrar: la celda quedaría en {money(bloqueo)}.</span>
+        <span data-testid="delete-blocked">{textoBorradoNegativo(bloqueo)}</span>
         <button aria-label="Cancelar borrado" onClick={cerrar} className={btn} style={{ color: "var(--fg-muted)" }}>
           <X size={12} />
         </button>

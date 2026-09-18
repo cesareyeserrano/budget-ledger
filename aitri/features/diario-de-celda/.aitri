@@ -1,13 +1,12 @@
 {
-  "currentPhase": 5,
+  "currentPhase": 4,
   "approvedPhases": [
     "discovery",
     1,
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     "discovery",
@@ -15,90 +14,14 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "diario-de-celda",
   "createdAt": "2026-09-14T16:27:23.430Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-18T15:45:18.465Z",
+  "updatedAt": "2026-09-18T23:50:13.828Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-15T22:16:33.496Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-17T15:01:11.304Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-17T15:01:33.545Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-17T16:20:42.515Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T01:22:37.981Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T01:22:41.572Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T01:22:44.998Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T02:32:52.383Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T12:48:03.795Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T15:22:40.930Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 171,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-18T15:38:49.061Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 171,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-18T15:39:05.703Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 171,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-18T15:39:12.336Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-09-18T15:39:17.842Z",
       "event": "started",
@@ -135,17 +58,83 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-18T21:10:43.072Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-18T21:15:43.732Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-18T21:15:57.895Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-18T21:16:53.636Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-18T21:17:25.967Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-18T21:20:12.861Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-18T21:20:17.540Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-18T21:20:45.817Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-18T21:23:19.718Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-18T21:24:18.588Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-18T22:31:15.436Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-18T22:53:35.538Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-18T23:50:13.810Z",
+      "event": "approved",
+      "phase": 4
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
-    "1": "aed10c5f84bf3a8be53e424e2f8ec389d1327b6c44362625c41728f8cf699b50",
-    "2": "8cc85b1e2de35a2108aec6a7c7c852ee607db3d78a48030d4f021c4c1bf34b9f",
-    "3": "efe2316b144cb37bf7a25f5785fd473665948631e6dc8ace8e47a9a71de48f1c",
-    "4": "1b972f7a02c3d520d3d4f40872012cbde7197188b14a085f7881b876fa79cc40",
-    "5": "855f97aa2421b7495a45270f9689efa3c90ab1c85843b21cc9d372c9556bd314",
+    "1": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09",
+    "2": "ffcbc40556deb50e302f534bada9037a1190bdf83f7386ae646f368d84f1b820",
+    "3": "27c4a7c12a0345f254a7ae9e04ab4e6a0dee9746ce8ec0ddddc60b35e16102ab",
+    "4": "d1492eb57e5f20d0df2c5fd5522bf411338e105e25bc3ab770074ea6c0571d82",
     "discovery": "6c1a4ddec921d014a8b62fe4a3f4149284c1e24275a065c735f9d1f8931e4341",
-    "ux": "3f914c8f686cfd3c8bb579af308de35a956535ef231b836021b30c6c82139157"
+    "ux": "4b4e656fc44199e65891a4c8bbd8c7f78daa0bf066a0c9ab1cfeebe74b91074e"
   },
   "frSnapshots": {
     "2": [
@@ -214,33 +203,16 @@
       "FR-2512"
     ]
   },
-  "verifyPassed": true,
-  "verifyResultsHash": "ce33b9b0423d93f10117749c84cdc1d0b161a5df782b79671108945afdc901c2",
-  "verifyRanAt": "2026-09-18T15:38:48.947Z",
+  "verifyPassed": false,
   "verifyRanRef": "9dd59171e054ffd49cf297065120b05088815096",
   "verifyRanDirty": false,
-  "lastVerifyRun": {
-    "passed": 171,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-09-18T15:38:48.947Z"
-  },
-  "verifySummary": {
-    "total": 171,
-    "passed": 171,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 0
-  },
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-09-18T15:45:18.434Z"
     }
-  ]
+  ],
+  "coverageAuditLastAt": "2026-09-18T21:10:54.418Z",
+  "coverageAuditReqHash": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09"
 }
