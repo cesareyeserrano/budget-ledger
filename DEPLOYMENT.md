@@ -105,6 +105,34 @@ docker compose up -d            # relanza con la imagen anterior
 
 Si el despliegue que falló **no tocó la estructura de la base**, con esto has terminado.
 
+> ### ⚠ Excepción: si ya se desplegó `diario-de-celda`, volver la imagen NO basta
+>
+> Esa feature introdujo el **ajuste**, el único movimiento que puede tener monto **negativo** (se crea
+> al teclear en una celda un total menor que la suma de sus movimientos). La migración `0009` lo
+> permite en la base con un CHECK por `kind`.
+>
+> **El código anterior no sabe leerlo.** Su validación de monto exige `>= 1` y rechaza negativos y
+> cero (`amountSchema` en `src/domain/validation.ts`), y esa validación corre **al LEER** el snapshot,
+> no solo al escribir. Así que una imagen previa, frente a una base que ya contiene un solo ajuste
+> negativo, no arranca degradada: **rechaza el ledger entero de ese usuario**.
+>
+> Consecuencia práctica: **en cuanto un usuario teclea un total menor una sola vez, el rollback de
+> solo-código deja de ser posible** y hay que ir al punto 2 — restaurar el respaldo tomado antes de
+> desplegar, con la pérdida de todo lo escrito después.
+>
+> Por eso, para esta feature, **el respaldo previo no es una recomendación sino un requisito**: sin
+> él no hay marcha atrás de ninguna clase. Tómalo antes de correr `npm run db:migrate`.
+>
+> Cómo saber si ya estás en ese caso, antes de decidir:
+>
+> ```bash
+> docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+>   -c "SELECT count(*) FROM movement WHERE kind = 'adjustment' AND amount < 0;"
+> ```
+>
+> `0` → la imagen anterior todavía puede leer la base y el punto 1 sirve.
+> `> 0` → el rollback de solo-código **no** sirve; vas al punto 2.
+
 ### 2. La base de datos — restaura el respaldo
 
 Solo si la base quedó dañada de verdad. **Restaurar te devuelve la base al momento en que se hizo el
