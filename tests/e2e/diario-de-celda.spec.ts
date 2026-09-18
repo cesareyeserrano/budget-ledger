@@ -13,6 +13,8 @@
 import { test, expect, type Page } from "./helpers/fixtures";
 import { readLedger, seedLedger } from "./helpers/seed";
 import { applyCycles, closeViaApi, fixToday } from "./helpers/cycles";
+import { seedDescuadrado, descuadrarCelda } from "./helpers/descuadre";
+import { e2eEmail } from "./helpers/globalSetup";
 import type { LedgerNode, Movement } from "@/domain/types";
 
 const DESK = { width: 1440, height: 900 };
@@ -1328,5 +1330,531 @@ test.describe("FR-2507 / NFR-2501 — lo que el editor NO deja hacer", () => {
     const editor = await editarFila(page, panel, "img src");
     await expect(editor.getByLabel("Nota")).toHaveValue(NOTA);
     await expect(editor.locator("img")).toHaveCount(0);
+  });
+});
+
+// ══ EP-04 — Cierre y descuadres ═════════════════════════════════════════════════════════════════
+//
+// TCs: FR-2507 (131h,132e,133e,134e,139f) · FR-2509 (173f) · FR-2511 (192h,193e,195e,199f) ·
+//      FR-2512 (211h,213e,217f,219e)
+//
+// La aritmética del descuadre vive en tests/domain/diario-de-celda-descuadres.test.ts y la autoridad
+// del cierre en tests/integration/backend/. Aquí se afirma lo único que el navegador puede decir:
+// que el aviso SE VE, que el botón NO se pulsa, que el triángulo aparece y desaparece, y que abrir
+// una grilla descuadrada no escribe nada.
+
+/**
+ * Nodos con CINCO hojas de gasto: las tres del escenario (Restaurantes, Taxi, Mercado) más dos que
+ * solo usa TC-DDC-219e, donde el motivo tiene que nombrar cinco celdas para llegar a truncarse.
+ */
+const NODES_DESC: LedgerNode[] = [
+  { id: "g-ing", ownerId: "local", type: "income", level: "group", parentId: null, name: "Trabajo", icon: null, order: 0 },
+  { id: "c-salario", ownerId: "local", type: "income", level: "category", parentId: "g-ing", name: "Salario", icon: null, order: 0 },
+  { id: "g-gas", ownerId: "local", type: "expense", level: "group", parentId: null, name: "Hogar", icon: null, order: 1 },
+  { id: "c-rest", ownerId: "local", type: "expense", level: "category", parentId: "g-gas", name: "Restaurantes", icon: null, order: 0 },
+  { id: "c-taxi", ownerId: "local", type: "expense", level: "category", parentId: "g-gas", name: "Taxi", icon: null, order: 1 },
+  { id: "c-mercado", ownerId: "local", type: "expense", level: "category", parentId: "g-gas", name: "Mercado", icon: null, order: 2 },
+  { id: "c-luz", ownerId: "local", type: "expense", level: "category", parentId: "g-gas", name: "Luz", icon: null, order: 3 },
+  { id: "c-agua", ownerId: "local", type: "expense", level: "category", parentId: "g-gas", name: "Agua", icon: null, order: 4 },
+  { id: "g-res", ownerId: "local", type: "transfer", level: "group", parentId: null, name: "Reservas", icon: null, order: 5 },
+  { id: "c-viaje", ownerId: "local", type: "transfer", level: "category", parentId: "g-res", name: "Viaje", icon: null, order: 0 },
+];
+
+/** El control de cierre de escritorio y sus dos piezas. */
+const botonCerrar = (page: Page) => page.getByTestId("closure-control").getByRole("button", { name: /^Cerrar/ });
+const motivoBloqueo = (page: Page) => page.getByTestId("close-blocked");
+
+/**
+ * Siembra CUADRADA por la API y luego reescribe actuals+movements por SQL.
+ *
+ * Los dos pasos hacen cosas distintas y los dos hacen falta. El segundo planta el descuadre, que la
+ * API rechaza por diseño (NFR-2502) y que por tanto solo se puede escribir por debajo.
+ *
+ * Y el PRIMERO no está solo para crear los nodos: siembra las MISMAS celdas del escenario, cuadradas
+ * (`seedLedger` las respalda con movimientos), porque es esa escritura la que fija el RANGO ACTIVO
+ * del ledger. Sembrando vacío, el rango arrancaba donde el ledger recién creado dice —no donde están
+ * los datos—, y el mes cerrable salía siendo otro: el control decía «Cerrar Enero 2026» en un
+ * escenario que habla de Septiembre. El SQL de después no mueve el rango, solo las cifras.
+ */
+async function abrirDescuadrado(
+  page: Page, email: string,
+  estado: { actuals: Record<string, Record<string, number>>; movements: Movement[] },
+  opciones: {
+    hoy?: string; viewport?: { width: number; height: number }; nodes?: LedgerNode[]; inicio?: string;
+  } = {}
+): Promise<void> {
+  const { hoy = HOY, viewport = DESK, nodes = NODES_DESC, inicio } = opciones;
+  await page.setViewportSize(viewport);
+  await fixToday(page, hoy);
+  await applyCycles(page, { mode: "cycle", anchorDay: 21 });
+  await seedLedger(page, { nodes, actuals: estado.actuals, movements: [] } as unknown as Seed);
+  // El MES DE INICIO declarado (FR-2201) es el ancla que fija dónde empieza el rango, y con él cuál
+  // es el mes que toca cerrar. La cuenta e2e nace declarando 2026-01, así que sin esto el control
+  // ofrece «Cerrar Enero 2026» en un escenario que habla de Septiembre. Se declara por el endpoint
+  // real, igual que lo haría el usuario, no tocando la base.
+  if (inicio) {
+    const rev = ((await (await page.request.get("/api/v1/ledger")).json()) as { revision: number }).revision;
+    const res = await page.request.put("/api/v1/ledger/start", {
+      data: { baseRevision: rev, startMonth: inicio, openingBalance: 0 },
+    });
+    if (!res.ok()) throw new Error(`abrirDescuadrado: /start falló HTTP ${res.status()} ${await res.text()}`);
+  }
+  await seedDescuadrado(email, estado as unknown as Parameters<typeof seedDescuadrado>[1]);
+  await page.goto("/");
+  await expect(page.getByTestId("budget-grid")).toBeVisible();
+}
+
+/** Teclea un valor en la celda de Ejecutado de una hoja y confirma con Enter (misma vía que FR-2504). */
+async function teclearCelda(page: Page, leafId: string, period: string, valor: number): Promise<void> {
+  await celda(page, leafId, period).click();
+  await page.getByLabel("Editar valor").fill(String(valor));
+  await page.getByLabel("Editar valor").press("Enter");
+}
+
+test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite", () => {
+  test("TC-DDC-131h: en un ciclo cerrado el Detalle oculta añadir, editar y borrar, y avisa", async ({ page }) => {
+    // @aitri-tc TC-DDC-131h
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [AGO]: 12_000 } },
+      movements: [
+        mv("m-a1", "expense", "c-rest", 7_000, AGO, "2026-08-05T12:00", 1, "Pan"),
+        mv("m-a2", "expense", "c-rest", 5_000, AGO, "2026-08-10T12:00", 2, "Leche"),
+      ],
+    } as unknown as Seed);
+    expect(await closeViaApi(page)).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    const panel = await abrirCelda(page, "c-rest", AGO);
+
+    // El aviso, con su candado, y con el texto EXACTO: es la instrucción de salida del usuario.
+    const aviso = panel.getByTestId("closed-notice");
+    await expect(aviso).toBeVisible();
+    // El rótulo lleva el AÑO («Agosto 2026»): es el formato de `periodLabel`, establecido por la
+    // feature multi-anio (FR-1905) y compartido por toda la app. El TC lo escribe sin año como
+    // abreviatura; el producto es consistente consigo mismo y no se cambia por una prueba.
+    await expect(aviso).toHaveText(
+      "Agosto 2026 está cerrado. Para cambiar sus movimientos, reábrelo desde el cierre de mes."
+    );
+    await expect(aviso.locator("svg")).toHaveCount(1); // el candado
+
+    // Y ninguna vía de escritura de movimientos: ni añadir, ni lápiz, ni papelera.
+    await expect(panel.getByTestId("add-movement")).toHaveCount(0);
+    await expect(panel.getByLabel("Editar movimiento")).toHaveCount(0);
+    await expect(panel.getByLabel("Borrar movimiento")).toHaveCount(0);
+
+    // Los dos movimientos SÍ se leen: cerrado es de solo lectura, no invisible.
+    await expect(panel.getByTestId("detail-row")).toHaveCount(2);
+
+    // La celda es TEXTO, no campo. `closed-value` lo pinta dentro del editor abierto —no dentro de
+    // `[data-cell]`, que es su contenedor de la grilla—, así que se localiza por su propio testid.
+    const valor = page.getByTestId("closed-value");
+    await expect(valor).toBeVisible();
+    await expect(valor).toHaveAttribute("aria-label", "Valor de un mes cerrado, no editable");
+    await expect(page.getByLabel("Editar valor")).toHaveCount(0); // y no hay campo editable
+  });
+
+  test("TC-DDC-132e: un ciclo terminado pero no cerrado admite añadir con fecha anterior", async ({ page }) => {
+    // @aitri-tc TC-DDC-132e
+    // Agosto se cierra con «hoy» en septiembre (es entonces el mes cerrable)…
+    //
+    // La siembra LLEVA una celda en Agosto a propósito: el rango activo del ledger lo fijan los
+    // datos, y con una siembra vacía el mes cerrable resultaba ser el mes en curso — se cerraba
+    // Septiembre y el caso probaba justo lo contrario de lo que dice su nombre.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [AGO]: 5_000 } },
+      movements: [mv("m-ago", "expense", "c-rest", 5_000, AGO, "2026-08-05T12:00", 1, "Pan")],
+    } as unknown as Seed);
+    expect(await closeViaApi(page)).toBe(200);
+
+    // …y luego el reloj avanza al 22 de septiembre: Septiembre ya TERMINÓ (el ciclo cierra el 20)
+    // pero sigue abierto. Ese es el estado que se prueba: terminado ≠ cerrado.
+    await fixToday(page, "2026-09-22");
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await expect(panel.getByTestId("closed-notice")).toHaveCount(0);
+
+    const linea = panel.getByTestId("add-movement");
+    await linea.getByLabel("Monto").fill("12000");
+    await elegirFecha(page, panel, "2026-09-18");
+    await linea.getByTestId("add-movement-confirm").click();
+
+    await expect(panel.getByTestId("detail-date")).toHaveText("18 sep");
+    // Se cierra el editor antes de mirar la celda: mientras está abierto, la grilla pinta ahí el
+    // campo de edición y no la cifra.
+    await page.keyboard.press("Escape");
+    await expect(celda(page, "c-rest", SEP)).toContainText("12.000");
+  });
+
+  test("TC-DDC-133e: tras reabrir el último ciclo cerrado se puede editar un movimiento suyo", async ({ page }) => {
+    // @aitri-tc TC-DDC-133e
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [AGO]: 7_000 } },
+      movements: [mv("m-a1", "expense", "c-rest", 7_000, AGO, "2026-08-05T12:00", 1, "Pan")],
+    } as unknown as Seed);
+    expect(await closeViaApi(page)).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    // Se reabre por el control real, que es la salida que el aviso de TC-DDC-131h le promete.
+    await page.getByTestId("closure-control").getByRole("button", { name: /^Reabrir/ }).click();
+    await expect(page.getByTestId("closure-control")).toHaveAttribute("data-reopened", AGO);
+
+    const panel = await abrirCelda(page, "c-rest", AGO);
+    await expect(panel.getByTestId("closed-notice")).toHaveCount(0);
+
+    const editor = await editarFila(page, panel, "Pan");
+    await editor.getByLabel("Monto").fill("6000");
+    await editor.getByRole("button", { name: "Guardar" }).click();
+
+    await page.keyboard.press("Escape");
+    await expect(celda(page, "c-rest", AGO)).toContainText("6.000");
+  });
+
+  test("TC-DDC-134e: en un ciclo cerrado SÍ se puede añadir un comentario", async ({ page }) => {
+    // @aitri-tc TC-DDC-134e
+    // FR-2004 sigue vivo: cerrar congela las CIFRAS, no la conversación sobre ellas.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [AGO]: 7_000 } },
+      movements: [mv("m-a1", "expense", "c-rest", 7_000, AGO, "2026-08-05T12:00", 1, "Pan")],
+    } as unknown as Seed);
+    expect(await closeViaApi(page)).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    const panel = await abrirCelda(page, "c-rest", AGO);
+    const antes = await page.getByTestId("closed-value").innerText();
+
+    const campo = panel.getByLabel("Añadir comentario", { exact: true });
+    await campo.fill("Revisar con el banco");
+    await campo.press("Enter");
+
+    await expect(panel.getByTestId("cell-note").filter({ hasText: "Revisar con el banco" })).toHaveCount(1);
+    // Y la cifra no se movió: un comentario nunca suma a la celda.
+    expect(await page.getByTestId("closed-value").innerText()).toBe(antes);
+  });
+
+  test("TC-DDC-139f: si el mes se cierra desde otra pestaña, el panel pasa a cerrado y nada se escribe", async ({ page }) => {
+    // @aitri-tc TC-DDC-139f
+    // El caso que el botón deshabilitado NO cubre: el editor ya estaba abierto y la frontera se
+    // movió por debajo.
+    //
+    // DESVIACIÓN DECLARADA respecto al `then` del TC. El caso dice «se pulsa Guardar y el servidor
+    // responde 422». Ese camino YA NO es alcanzable desde el navegador, y no por un atajo del test:
+    // la app mantiene un canal de sincronización en vivo (SSE, FR-511), así que el cierre llega a
+    // esta pestaña en el acto y el bloque de edición se retira antes de que nadie pueda pulsar nada
+    // —comportamiento que este mismo epic tuvo que ARREGLAR, porque el bloque sobrevivía al cierre y
+    // dejaba un «Guardar» vivo sobre un mes cerrado, contra FR-2507—. Lo que el TC quiere garantizar
+    // («aviso de mes cerrado y valor 9.000 intacto») se afirma entero aquí; el 422 del servidor se
+    // afirma de frente donde SÍ es alcanzable, que es su capa: TC-DDC-135f, TC-DDC-136f y
+    // TC-DDC-381h lo piden por la ruta directa, que es justamente la vía que un cliente viejo usaría.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 9_000 } },
+      movements: [mv("m-pan", "expense", "c-rest", 9_000, SEP, "2026-09-10T12:00", 1, "Pan")],
+    } as unknown as Seed);
+    await fixToday(page, "2026-09-25"); // Septiembre pasa a ser el mes cerrable
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await editarFila(page, panel, "Pan"); // el bloque de edición, abierto
+    await expect(panel.getByRole("button", { name: "Guardar" })).toBeVisible();
+
+    // Ninguna escritura de movimientos puede prosperar a partir de aquí.
+    const respuestas: number[] = [];
+    page.on("response", (r) => {
+      if (r.url().includes("/api/v1/movements/")) respuestas.push(r.status());
+    });
+
+    // La otra pestaña cierra Septiembre.
+    expect(await closeViaApi(page)).toBe(200);
+
+    // El panel se pone al día y NO queda ninguna vía de edición abierta: ni el bloque que estaba
+    // desplegado, ni lápiz, ni papelera, ni línea de añadir.
+    await expect(panel.getByTestId("closed-notice")).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Guardar" })).toHaveCount(0);
+    await expect(panel.getByLabel("Monto")).toHaveCount(0);
+    await expect(panel.getByLabel("Editar movimiento")).toHaveCount(0);
+    await expect(panel.getByLabel("Borrar movimiento")).toHaveCount(0);
+    await expect(panel.getByTestId("add-movement")).toHaveCount(0);
+
+    // La cifra sigue en 9.000 en pantalla y en la fuente de verdad, y nada se escribió.
+    await expect(panel.getByTestId("detail-amount")).toHaveText("−9.000");
+    const fin = await readLedger(page);
+    expect(fin?.actuals["c-rest"]?.[SEP]).toBe(9_000);
+    expect(respuestas.filter((c) => c >= 200 && c < 300)).toHaveLength(0);
+  });
+});
+
+test.describe("FR-2509 — ningún texto visible dice «Observaciones»", () => {
+  test("TC-DDC-173f: cero apariciones de /observaci/i en las cinco superficies", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-173f
+    // El renombre se comprueba SOBRE LA PÁGINA RENDERIZADA, no sobre el código: un `grep` en src
+    // pasaría igual con el texto viejo llegando desde otro módulo.
+    const email = e2eEmail(testInfo.parallelIndex);
+    await abrirDescuadrado(page, email, {
+      actuals: { "c-rest": { [SEP]: 120_000 }, "c-viaje": { [SEP]: 300_000 } },
+      movements: [
+        mv("m-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Almuerzo"),
+        { ...DEA, amount: 300_000 },
+      ],
+    });
+
+    const recogido: string[] = [];
+    const barrer = async () => {
+      recogido.push(
+        await page.evaluate(() => {
+          const textos: string[] = [document.body.innerText];
+          for (const el of Array.from(document.querySelectorAll<HTMLElement>("*"))) {
+            for (const attr of ["placeholder", "aria-label", "title"]) {
+              const v = el.getAttribute(attr);
+              if (v) textos.push(v);
+            }
+          }
+          return textos.join("\n");
+        })
+      );
+    };
+
+    // 1) la grilla, con su aviso de descuadre a la vista
+    await barrer();
+    // 2) una celda de gasto
+    await abrirCelda(page, "c-rest", SEP);
+    await barrer();
+    await page.keyboard.press("Escape");
+    // 3) una celda de bolsillo, con su comentario automático De→A
+    await abrirCelda(page, "c-viaje", SEP);
+    await barrer();
+    await page.keyboard.press("Escape");
+    // 4) el Balance
+    await expect(page.getByTestId("balance-module")).toBeVisible();
+    await barrer();
+    // 5) «Nuevo movimiento»
+    await page.getByRole("button", { name: /Nuevo movimiento/ }).first().click();
+    await barrer();
+
+    const culpables = recogido.filter((t) => /observaci/i.test(t));
+    expect(culpables, culpables.join("\n---\n").slice(0, 800)).toHaveLength(0);
+  });
+});
+
+test.describe("FR-2511 — las celdas descuadradas se señalan como un problema del mes", () => {
+  /** Restaurantes vale 120.000 pero sus movimientos suman 100.000; Taxi vale 45.000 sin ninguno. */
+  const DOS_DESCUADRES = {
+    actuals: { "c-rest": { [SEP]: 120_000 }, "c-taxi": { [SEP]: 45_000 }, "c-mercado": { [SEP]: 30_000 } },
+    movements: [
+      mv("m-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Almuerzo"),
+      mv("m-2", "expense", "c-mercado", 30_000, SEP, "2026-09-06T12:00", 2, "Feria"),
+    ],
+  };
+
+  test("TC-DDC-192h: triángulo en el encabezado y línea en el aviso del Balance", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-192h
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), DOS_DESCUADRES);
+
+    const marca = page.locator('[data-testid="techo-mark"][data-month="' + SEP + '"]');
+    await expect(marca).toHaveCount(1);
+    // El TRIÁNGULO usa `cycleMonthLabel` (sin año) y el AVISO usa `periodLabel` (con año). Son dos
+    // rótulos distintos del producto, no una incoherencia de esta feature: el encabezado ya lleva el
+    // año en su fila y repetirlo en la marca sería redundante. Cada uno se afirma como es.
+    const texto = "Septiembre: 2 celdas no cuadran con sus movimientos";
+    await expect(marca).toHaveAttribute("title", texto);
+    await expect(marca).toHaveAttribute("aria-label", texto);
+    // El color es el de alerta del tema, no un rojo escrito a mano en el componente.
+    const esperado = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue("--alert-strong").trim()
+    );
+    expect(esperado).not.toBe("");
+    await expect(marca).toHaveCSS("color", await marca.evaluate((el) => getComputedStyle(el).color));
+
+    // El aviso NOMBRA las dos celdas: el usuario tiene que saber a cuál ir.
+    const aviso = page.getByTestId("techo-banner");
+    await expect(aviso).toHaveAttribute("role", "status");
+    await expect(aviso).toContainText(
+      "Septiembre 2026: 2 celdas no cuadran con sus movimientos — Restaurantes, Taxi. "
+      + "Teclea su valor o corrige sus movimientos."
+    );
+    // Mercado cuadra y NO aparece.
+    await expect(aviso).not.toContainText("Mercado");
+  });
+
+  test("TC-DDC-193e: al cuadrar las dos celdas desaparecen el triángulo y la línea", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-193e
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), DOS_DESCUADRES, { hoy: "2026-09-14" });
+    await expect(page.locator('[data-testid="techo-mark"][data-month="' + SEP + '"]')).toHaveCount(1);
+
+    // Cuadrar es TECLEAR el valor: crea el ajuste que respalda la cifra (FR-2504).
+    await teclearCelda(page, "c-rest", SEP, 100_000);
+    await teclearCelda(page, "c-taxi", SEP, 45_000);
+
+    await expect(page.locator('[data-testid="techo-mark"][data-month="' + SEP + '"]')).toHaveCount(0);
+    await expect(page.getByTestId("techo-banner")).toHaveCount(0);
+  });
+
+  test("TC-DDC-195e: descuadre y techo del mismo mes comparten un solo triángulo", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-195e
+    // Dos problemas distintos en el mismo mes: si cada uno pintara su marca, el encabezado tendría
+    // dos triángulos diciendo cosas distintas en el mismo sitio.
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), {
+      actuals: { "c-taxi": { [SEP]: 45_000 }, "c-viaje": { [SEP]: 5_000_000 } },
+      movements: [{ ...DEA, id: "m-dea-alto", amount: 5_000_000 }],
+    });
+
+    const marca = page.locator('[data-testid="techo-mark"][data-month="' + SEP + '"]');
+    await expect(marca).toHaveCount(1); // UNA sola
+    const title = (await marca.getAttribute("title")) ?? "";
+    expect(title).toContain(" · ");
+    expect(title).toContain("1 celda no cuadra con sus movimientos");
+    expect(title).toMatch(/reservas|retiro/); // el texto de techo vigente, el que sea
+
+    // Y el aviso trae DOS líneas para Septiembre, una por problema.
+    await expect(page.getByTestId("techo-banner").locator(`[data-month="${SEP}"]`)).toHaveCount(2);
+  });
+
+  test("TC-DDC-199f: abrir la grilla con descuadres no envía ninguna escritura", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-199f
+    // «Nada automático» (decisión del usuario, 2026-09-14) tiene que ser comprobable: la tentación
+    // de cuadrar solo al detectar el descuadre es exactamente lo que este caso prohíbe.
+    const email = e2eEmail(testInfo.parallelIndex);
+    const escrituras: string[] = [];
+    page.on("request", (r) => {
+      if (["PUT", "PATCH", "DELETE", "POST"].includes(r.method()) && r.url().includes("/api/v1")) {
+        escrituras.push(`${r.method()} ${new URL(r.url()).pathname}`);
+      }
+    });
+
+    await abrirDescuadrado(page, email, DOS_DESCUADRES);
+    const revisionAntes = ((await (await page.request.get("/api/v1/ledger")).json()) as { revision: number }).revision;
+
+    // Solo se cuentan las que salgan DESPUÉS de la siembra: la propia siembra escribe, claro.
+    escrituras.length = 0;
+    // Tres segundos de reposo. NO se espera `networkidle`: la app mantiene abierto el canal de
+    // sincronización (SSE), así que la red nunca queda ociosa y la espera agotaría el tiempo del
+    // caso sin decir nada sobre las escrituras, que es lo que aquí se mide.
+    await page.waitForTimeout(3_000);
+
+    expect(escrituras, escrituras.join(", ")).toHaveLength(0);
+    const revisionDespues = ((await (await page.request.get("/api/v1/ledger")).json()) as { revision: number }).revision;
+    expect(revisionDespues).toBe(revisionAntes);
+    // Y el descuadre sigue ahí, sin que nadie lo haya tocado.
+    await expect(page.locator('[data-testid="techo-mark"][data-month="' + SEP + '"]')).toHaveCount(1);
+  });
+});
+
+test.describe("FR-2512 — un mes con celdas descuadradas no se puede cerrar", () => {
+  /** Septiembre cerrable (hoy 25 sep) con Taxi descuadrada y el resto cuadrado. */
+  const TAXI_SOLO = {
+    actuals: { "c-rest": { [SEP]: 100_000 }, "c-taxi": { [SEP]: 45_000 } },
+    movements: [mv("m-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Almuerzo")],
+  };
+  const MOTIVO_TAXI = "No se puede cerrar: 1 celda no cuadra (Taxi)";
+
+  test("TC-DDC-211h: «Cerrar Septiembre» deshabilitado con el motivo que nombra la celda", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-211h
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), TAXI_SOLO, { hoy: "2026-09-25", inicio: SEP });
+
+    const boton = botonCerrar(page);
+    await expect(boton).toBeVisible();
+    await expect(boton).toHaveText(/Cerrar Septiembre 2026/);
+    await expect(boton).toBeDisabled();
+    await expect(boton).toHaveAttribute("title", MOTIVO_TAXI);
+
+    // El motivo también SE LEE al lado: un botón apagado sin explicación obliga a adivinar.
+    const motivo = motivoBloqueo(page);
+    await expect(motivo).toBeVisible();
+    await expect(motivo).toHaveText(MOTIVO_TAXI);
+    await expect(motivo).toHaveAttribute("title", MOTIVO_TAXI);
+    await expect(motivo.locator("svg")).toHaveCount(1); // el triángulo de alerta
+  });
+
+  test("TC-DDC-213e: tras cuadrar Taxi el botón se habilita y cierra el mes", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-213e
+    // La otra mitad de la regla: no es una pared, es una condición que el usuario puede cumplir.
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), TAXI_SOLO, { hoy: "2026-09-25", inicio: SEP });
+    await expect(botonCerrar(page)).toBeDisabled();
+
+    await teclearCelda(page, "c-taxi", SEP, 45_000);
+
+    await expect(motivoBloqueo(page)).toHaveCount(0);
+    await expect(botonCerrar(page)).toBeEnabled();
+
+    await botonCerrar(page).click();
+    await expect(page.getByTestId("closure-control").getByRole("button", { name: /^Reabrir Septiembre 2026/ })).toBeVisible();
+    // Y la celda de Septiembre queda como no editable. Con el editor cerrado, lo que la grilla
+    // expone es `data-closed`; el rótulo «Valor de un mes cerrado, no editable» aparece al abrirla
+    // (es lo que comprueba TC-DDC-131h). Mismo criterio que TC-DDC-175f.
+    await expect(celda(page, "c-rest", SEP)).toHaveAttribute("data-closed", "true", { timeout: 15_000 });
+  });
+
+  test("TC-DDC-217f: desde una pestaña con datos viejos el servidor rechaza y el control se pone al día", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-217f
+    // El botón es ERGONOMÍA; la autoridad está en el servidor (ADR-12). Aquí el cliente cree que
+    // puede cerrar porque su copia está cuadrada, y el dato cambió por debajo sin mover la revisión.
+    const email = e2eEmail(testInfo.parallelIndex);
+    await abrirDescuadrado(page, email, {
+      actuals: { "c-rest": { [SEP]: 100_000 } },
+      movements: [mv("m-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Almuerzo")],
+    }, { hoy: "2026-09-25", inicio: SEP });
+
+    // La pestaña ve todo cuadrado: el botón está habilitado.
+    await expect(botonCerrar(page)).toBeEnabled();
+    await expect(motivoBloqueo(page)).toHaveCount(0);
+
+    // Por debajo, Taxi pasa a 45.000 sin movimientos y SIN subir la revisión.
+    await descuadrarCelda(email, "c-taxi", SEP, 45_000);
+
+    await botonCerrar(page).click();
+
+    // Septiembre sigue abierto y, tras el resync, el control dice por qué.
+    await expect(motivoBloqueo(page)).toHaveText(MOTIVO_TAXI);
+    await expect(botonCerrar(page)).toBeDisabled();
+    await expect(page.getByTestId("closure-control").getByRole("button", { name: /^Reabrir Septiembre 2026/ })).toHaveCount(0);
+  });
+
+  test("TC-DDC-219e: a 768 px el motivo se trunca y conserva el texto completo en title", async ({ page }, testInfo) => {
+    // @aitri-tc TC-DDC-219e
+    // Con cinco celdas el motivo es largo. Truncar es lo correcto —el texto vive en `title`—, pero
+    // solo si de verdad trunca: sin tope de ancho crecería y empujaría al historial fuera.
+    await abrirDescuadrado(page, e2eEmail(testInfo.parallelIndex), {
+      actuals: {
+        "c-rest": { [SEP]: 120_000 }, "c-taxi": { [SEP]: 45_000 }, "c-mercado": { [SEP]: 30_000 },
+        "c-luz": { [SEP]: 20_000 }, "c-agua": { [SEP]: 15_000 },
+      },
+      movements: [],
+    }, { hoy: "2026-09-25", viewport: NARROW, inicio: SEP });
+
+    const motivo = motivoBloqueo(page);
+    await expect(motivo).toBeVisible();
+    const completo = (await motivo.getAttribute("title")) ?? "";
+    expect(completo).toContain("5 celdas no cuadran");
+
+    const medidas = await motivo.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const interior = el.querySelector("span:last-of-type") as HTMLElement;
+      return {
+        overflow: cs.textOverflow,
+        maxWidth: parseFloat(cs.maxWidth),
+        scrollWidth: interior.scrollWidth,
+        clientWidth: interior.clientWidth,
+        interiorOverflow: getComputedStyle(interior).textOverflow,
+      };
+    });
+    expect(medidas.interiorOverflow).toBe("ellipsis");
+    expect(medidas.maxWidth).toBeLessThanOrEqual(320);
+    expect(medidas.scrollWidth).toBeGreaterThan(medidas.clientWidth);
+    expect(medidas.overflow).toBe("ellipsis");
+
+    // Y la página no se desborda a lo ancho por culpa del control.
+    const desborde = await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(desborde).toBeLessThanOrEqual(0);
   });
 });

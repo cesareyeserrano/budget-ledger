@@ -220,6 +220,26 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
   const cerrado = isClosed(data.closure, month);
   const [editando, setEditando] = useState<string | null>(null);
 
+  /**
+   * Si el mes se CIERRA con el bloque de edición abierto, ese bloque se retira (FR-2507).
+   *
+   * Pasa de verdad: el mes se cierra desde otro dispositivo, el canal de sincronización trae el
+   * estado nuevo y este panel se vuelve a pintar. Sin esto, el bloque sobrevivía al cambio y el
+   * usuario se quedaba con un campo «Monto» y un botón «Guardar» VIVOS sobre un mes cerrado — la
+   * fila ya no ofrecía lápiz ni papelera, pero la vía que estaba abierta seguía abierta, que es
+   * justo lo que FR-2507 prohíbe. El servidor lo rechazaba igual (422), así que nunca llegó a
+   * corromper nada; lo que fallaba era la promesa de la pantalla (TC-DDC-139f).
+   *
+   * Se devuelve el foco al panel al retirarlo, por el mismo motivo que `volverElFoco`: si no, cae
+   * al `body` y el Escape que cierra el editor de la celda deja de alcanzar a su contenedor.
+   */
+  useEffect(() => {
+    if (cerrado && editando !== null) {
+      setEditando(null);
+      volverElFoco();
+    }
+  }, [cerrado, editando]);
+
   // FR-2504: el ajuste que acaba de nacer se señala un instante y el borde se apaga solo. Se
   // detecta comparando la lista con la del render anterior —el panel no recibe avisos del store— y
   // se limita a los ajustes: un movimiento que el usuario tecleó él mismo no necesita que le digan
@@ -283,7 +303,10 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
         <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: LIST_MAX_H }}>
           {entries.map((e, i) => {
             const esMovimiento = e.kind === "movement" || e.kind === "adjustment";
-            if (esMovimiento && editando === e.movement.id) {
+            // `!cerrado` además del efecto de arriba: el efecto corre DESPUÉS del pintado, así
+            // que sin esta guarda habría un fotograma con el bloque de edición vivo sobre un mes
+            // ya cerrado. Dos líneas de defensa para una promesa que es de la pantalla.
+            if (esMovimiento && editando === e.movement.id && !cerrado) {
               return (
                 <MovementEditor
                   key={entryKey(e, i)}

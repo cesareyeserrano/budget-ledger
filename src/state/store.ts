@@ -408,6 +408,17 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
         return;
       }
+      // FR-2512: el cierre se rechazó porque hay celdas descuadradas que ESTA pestaña no conocía —
+      // si las conociera, el botón ni siquiera se habría podido pulsar. Hay que RESINCRONIZAR, igual
+      // que con un conflicto de revisión y por el mismo motivo: sin traerse el estado real, el
+      // control seguiría ofreciendo cerrar un mes que el servidor no va a cerrar nunca, y el usuario
+      // repetiría el clic sin entender nada. Tras el resync, `blockedBy` se recalcula solo y el botón
+      // queda deshabilitado con las celdas nombradas (TC-DDC-217f).
+      if (res.reason === "unbalanced_cells") {
+        await doResync();
+        get().showToast("No se pudo cerrar: hay celdas que no cuadran con sus movimientos.");
+        return;
+      }
       get().showToast(
         res.reason === "not_closable"
           ? "No hay ningún mes por cerrar."
@@ -954,7 +965,7 @@ export function useClosureStatus(): ClosureStatus {
   // FR-2512: lo que impide cerrar. Se deriva del MISMO `closeBlockers` que corre el servidor, así
   // que el botón y el 422 no pueden discrepar: aquí es ergonomía, allí es la autoridad (ADR-12).
   const blockedBy = useLedgerStore((s) =>
-    closable === null ? VACIO : closeBlockers(s.data, closable, periodsFor(s.data, s.horizon, nowFor(s.data)))
+    closable === null ? VACIO : blockersFor(s.data, closable, periodsFor(s.data, s.horizon, nowFor(s.data)))
   );
   return { closable, reopenable, reopened, pending, blockedBy };
 }
@@ -979,4 +990,27 @@ function pendingFor(data: LedgerState, horizon: Horizon, now: PeriodKey): Period
   let list = byKey.get(key);
   if (!list) { list = unclosedEndedPeriods(data, now, periodsFor(data, horizon, now)); byKey.set(key, list); }
   return list;
+}
+
+/**
+ * `closeBlockers` MEMOIZADO por identidad, por el MISMO motivo que `pendingFor` de arriba (FR-2512).
+ *
+ * Sin esto la app entera se caía al cargar con «Maximum update depth exceeded» (React #185): el
+ * selector construía un array nuevo en cada llamada, así que `useSyncExternalStore` veía un snapshot
+ * distinto en cada comprobación y volvía a renderizar sin fin. El caso vacío ya estaba resuelto con
+ * la constante `VACIO`; faltaba la otra mitad, que es justo la que se ejecuta cuando hay algo que
+ * mostrar — o sea, el bucle solo aparecía con celdas descuadradas de verdad.
+ *
+ * La `WeakMap` va sobre `data`: cada escritura del ledger crea un estado nuevo, así que la caché se
+ * invalida sola y no puede servir una lista vieja.
+ */
+const blockersMemo = new WeakMap<object, Map<string, { nodeId: string; name: string }[]>>();
+function blockersFor(data: LedgerState, period: PeriodKey, periods: PeriodKey[]): { nodeId: string; name: string }[] {
+  let byKey = blockersMemo.get(data);
+  if (!byKey) { byKey = new Map(); blockersMemo.set(data, byKey); }
+  const key = `${period}:${periods.join(",")}`;
+  let list = byKey.get(key);
+  if (!list) { list = closeBlockers(data, period, periods); byKey.set(key, list); }
+  // Lista vacía: se devuelve la constante estable, no un `[]` recién cacheado por cada clave.
+  return list.length === 0 ? VACIO : list;
 }

@@ -42,7 +42,7 @@ epic. EP-02 queda en 48 TCs y EP-03 en 65; el reparto sigue cubriendo los 171 ex
   Build steps: skeleton → persistence/integrations → hardening
   Why here:    Las rutas nuevas `PATCH` y `DELETE /api/v1/movements/{id}` (transacción con `FOR UPDATE`, 404 por dueño, `negative_cell`, `invalid_target`) y `editMovement`/`deleteMovement`/`wouldGoNegative` se apoyan en el `kind` persistido y en el cuadre relativo de EP-02. Con todas las vías de escritura ya existentes se cierran aquí sus NFRs transversales: NFR-2501 (seguridad), NFR-2502 (no empeora), NFR-2505 (techo y piso) y NFR-2508 (registro vía `withApi`).
 
-## EP-04 — Cierre y descuadres   [status: pending]
+## EP-04 — Cierre y descuadres   [status: done]
   Delivers:    US-2507, US-2511, US-2512
   FRs:         FR-2507, FR-2511, FR-2512
   Makes pass:  TC-DDC-131h, TC-DDC-132e, TC-DDC-133e, TC-DDC-134e, TC-DDC-135f, TC-DDC-136f, TC-DDC-137f, TC-DDC-138e, TC-DDC-139f, TC-DDC-191h, TC-DDC-192h, TC-DDC-193e, TC-DDC-194e, TC-DDC-195e, TC-DDC-196f, TC-DDC-197f, TC-DDC-198f, TC-DDC-199f, TC-DDC-200e, TC-DDC-157f, TC-DDC-173f, TC-DDC-211h, TC-DDC-212h, TC-DDC-213e, TC-DDC-214e, TC-DDC-215f, TC-DDC-216f, TC-DDC-217f, TC-DDC-218e, TC-DDC-219e, TC-DDC-381h, TC-DDC-382e, TC-DDC-383f, TC-DDC-384e, TC-DDC-401h, TC-DDC-402e, TC-DDC-403f
@@ -175,3 +175,91 @@ afirmar lo que el producto hace de verdad.
 **Pendiente para EP-04, ya detectado:** `closedPeriodsViolated` ya compara `note`, `date` y `kind`, así que congelar las dos
 vías nuevas está puesto; faltan `cellMismatches`/`monthIssues` en la grilla y el Balance, y `closeBlockers` bloqueando el
 cierre (422 `unbalanced_cells`).
+
+### EP-04 (2026-09-17) — done
+**Runs.** Vitest, suite completa: **96 ficheros, 1.122 passed, exit 0** (65 s). Playwright, suite COMPLETA
+(los doce specs, una sola corrida): **549 passed, exit 0** (3,7 min); el spec propio, 66/66. `typecheck` y `lint` exit 0.
+Los **37 TCs** del epic tienen prueba etiquetada —barrido de `@aitri-tc` contra el plan— y la feature entera cierra en
+**171/171**, sin huecos.
+
+**Qué se construyó** (sobre lo que el punto seguro `2b894c1` ya dejaba puesto: `mismatch.ts`, el 422 `unbalanced_cells`
+y el botón con su motivo).
+- `tests/unit/diario-de-celda-guardas.test.ts` (nuevo): las guardas estáticas. El workflow de CI se PARSEA (no se
+  hace `grep`) para exigir sus cuatro condiciones, y se comprueba además que vitest y Playwright corran en pasos
+  DISTINTOS —en el mismo `run`, un fallo de vitest cortaría la corrida y el e2e no llegaría a ejecutarse nunca—.
+  El matcher de globs se escribió a mano (12 líneas) en vez de importar `picomatch`, que solo está de forma
+  transitiva y sin tipos: importarlo rompe `npm run typecheck`. Lanza ante cualquier sintaxis que no cubra, para no
+  devolver un falso negativo en silencio; se verificó contra 8 rutas que discrimina de verdad.
+- `tests/integration/backend/diario-de-celda-congelado.test.ts` (nuevo): las cinco de integración, por los handlers
+  reales y con sesión real. Los dos casos que importan son los que NO tocan cifras —cambiar solo la nota, solo la
+  fecha dentro del mismo mes—, que es justo lo que un guardia por importes deja pasar.
+- `descuadrarCelda` en `tests/e2e/helpers/descuadre.ts`: descuadra una celda SIN subir la revisión. La diferencia con
+  `seedDescuadrado` es todo el escenario de TC-DDC-217f: si subiera la revisión, el lock optimista detectaría el
+  conflicto y el cierre nunca llegaría a pedirse.
+- 14 pruebas de pantalla en `tests/e2e/diario-de-celda.spec.ts`.
+
+**UN DEFECTO QUE TUMBABA LA APP ENTERA, heredado del punto seguro.** `2b894c1` se commiteó con Vitest en verde y sin
+correr Playwright, y dejó la app muerta al cargar: **React #185, «Maximum update depth exceeded»**. El selector
+`blockedBy` de `useClosureStatus` llamaba a `closeBlockers` directamente, y esa función construye un array NUEVO en
+cada llamada: `useSyncExternalStore` veía un snapshot distinto en cada comprobación y volvía a renderizar sin fin.
+Lo irónico es que el comentario que hay JUSTO ENCIMA de `pendingMemo`, en ese mismo fichero, describe este fallo
+palabra por palabra; y el caso vacío ya estaba resuelto con la constante `VACIO` — faltaba la otra mitad, la que se
+ejecuta cuando SÍ hay celdas descuadradas. O sea que el bucle solo aparecía con un descuadre real, que es
+exactamente lo que este epic introduce. Arreglado con `blockersFor`, el mismo patrón de `WeakMap` que sus vecinos.
+Se aisló descartando primero mi propio cambio (`git stash`) y capturando el `pageerror` del navegador, no por
+sospecha.
+
+**TRES defectos REALES más, cada uno encontrado por el caso escrito para encontrarlo** (ninguno es un test ajustado
+para pasar):
+1. **La pestaña vieja se quedaba sin explicación (TC-DDC-217f).** `closeMonth` del store resincronizaba ante un
+   `revision_conflict` pero NO ante `unbalanced_cells`: caía al toast genérico «No se pudo cerrar el mes» sin
+   traerse el estado real, así que el botón seguía habilitado y el usuario podía repetir el clic indefinidamente
+   sin enterarse de por qué. Ahora resincroniza, y `blockedBy` se recalcula solo con las celdas nombradas.
+2. **Un mes cerrado seguía mostrando un formulario de edición (TC-DDC-139f, FR-2507).** Si el mes se cerraba con el
+   bloque de edición abierto, ese bloque SOBREVIVÍA al cambio: la fila perdía su lápiz y su papelera, pero el campo
+   «Monto» y el botón «Guardar» que ya estaban desplegados seguían vivos sobre un mes cerrado. El servidor lo
+   rechazaba igual (422), así que nunca corrompió nada; lo que fallaba era la promesa de la pantalla. Arreglado con
+   dos líneas de defensa: la guarda `!cerrado` en el render (el efecto corre DESPUÉS del pintado, y ese fotograma
+   intermedio ya enseñaba la vía prohibida) y el efecto que retira el estado y devuelve el foco.
+3. **El motivo de bloqueo no truncaba (TC-DDC-219e).** `truncate` + `min-w-0` solo encogen cuando la fila ya no
+   cabe; con cinco celdas nombradas el motivo crecía y empujaba el historial fuera de la pantalla a 768 px antes de
+   recortar un carácter. Se le puso el tope de 320 px que lo obliga a ceder ANTES de estorbar.
+
+**UN DEFECTO AJENO, medido y NO arreglado: `BG-040` (high, abierto).** El control ofrece «Cerrar Enero 2026» y el
+servidor, ante esa misma petición, cierra hasta **2026-09**: el usuario cree que cierra un mes y se le congelan
+nueve, y FR-2005 solo deja reabrir el último, de uno en uno. Cliente y servidor derivan el mes objetivo de rangos
+distintos (el del cliente lo ancla `startMonth`; el del servidor no). Medido de frente —`data-closable` contra el
+`closedThrough` que devuelve el POST—, no inferido. **No es de esta feature** (el cableado viene de
+`meses-y-saldo-inicial` y `cierre-de-mes`) y **ningún TC lo cubre**: cuál de los dos rangos es el correcto es una
+decisión de producto que hay que tomar con el usuario. Salió construyendo TC-DDC-211h, que exige que el botón nombre
+el mes correcto; las pruebas de FR-2512 declaran su mes de inicio por la vía real del producto
+(`PUT /api/v1/ledger/start`) para que las dos mitades coincidan. **Es `high` y está abierto, así que bloquea el
+`verify-complete` de la RAÍZ hasta que se decida.**
+
+**DOS DESVIACIONES DECLARADAS respecto al texto de los TCs** (ninguna cambia lo que el caso garantiza):
+1. **Los rótulos llevan el año.** Los TCs escriben «Agosto está cerrado…» y «Septiembre: 2 celdas…»; el producto
+   dice «Agosto 2026» y «Septiembre 2026» porque `periodLabel` incluye el año desde `multi-anio` (FR-1905), y la
+   feature vecina `techo-de-flujo` ya afirma sobre esa misma franja. El TC lo escribe abreviado; cambiar el producto
+   por una prueba habría roto a los vecinos. El triángulo, que usa `cycleMonthLabel`, sí dice «Septiembre» a secas —
+   son dos rótulos distintos del producto, y cada uno se afirma como es.
+2. **TC-DDC-139f ya no puede pulsar «Guardar».** Su `then` describe un 422 del servidor tras pulsar Guardar con el
+   mes recién cerrado. Ese camino dejó de ser alcanzable DESDE EL NAVEGADOR precisamente por el arreglo (2) de
+   arriba: el canal de sincronización en vivo (SSE, FR-511) trae el cierre en el acto y el bloque se retira antes de
+   que nadie pueda pulsar nada. El `expected_result` del caso —«aviso de mes cerrado y valor 9.000 intacto»— se
+   afirma entero, junto con que ninguna escritura prospera; el 422 se exige de frente donde SÍ es alcanzable, que es
+   su capa: TC-DDC-135f, TC-DDC-136f y TC-DDC-381h lo piden por la ruta directa, que es la vía que usaría un cliente
+   viejo. Se comprobó midiendo, no suponiendo: el panel ya mostraba «Septiembre 2026 está cerrado» en el instante
+   del clic.
+
+**Las pruebas se verificaron por MUTACIÓN, no por su color.** Las cinco de integración nacieron verdes, que es
+justo cuando hay que desconfiar: se rompieron a propósito los dos guardias de periodo cerrado
+(`diffMovements` y la comprobación de origen de `updateMovement`) y TC-DDC-135f y TC-DDC-136f se pusieron rojos, cada
+uno por su puerta —el PATCH y el PUT—; con un solo guardia roto seguían verdes, que es la defensa en profundidad
+que el código ya documenta. El código se restauró desde copia y se confirmó `git status` limpio antes de seguir.
+
+**Lo que me equivoqué, dicho como fue.** Las 14 de pantalla salieron rojas en bloque la primera vez y tardé dos
+vueltas en aceptar que el escenario, no el producto, era lo que fallaba: di por hecho que el rango activo del ledger
+lo fijaban los datos sembrados, y lo fija el `startMonth` declarado de la cuenta e2e (2026-01). Hasta que no lo
+MEDÍ —imprimiendo `startMonth`, `closure` y `data-closable`— estuve corrigiendo síntomas. Lo mismo con la celda
+«que no aparecía»: mientras el editor está abierto la grilla pinta ahí el editor y el nodo `[data-cell]` de ese mes
+no existe; se vio listando los `data-month` presentes en el DOM, no razonando sobre el componente.

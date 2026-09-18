@@ -1,0 +1,141 @@
+{
+  "files_created": [
+    "drizzle/0009_diario_de_celda.sql",
+    "src/components/AddMovementLine.tsx",
+    "src/components/CellDetail.tsx",
+    "src/components/CellNoteInput.tsx",
+    "src/components/MovementEditor.tsx",
+    "src/domain/adjust.ts",
+    "src/domain/detail.ts",
+    "src/domain/mismatch.ts"
+  ],
+  "files_modified": [
+    "drizzle/meta/_journal.json",
+    "src/app/api/v1/closure/route.ts",
+    "src/app/api/v1/ledger/route.ts",
+    "src/app/api/v1/movements/[id]/route.ts",
+    "src/components/BalanceModule.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/CellDetail.tsx",
+    "src/components/ClosureControl.tsx",
+    "src/components/ReserveCells.tsx",
+    "src/components/register/DateCalendar.tsx",
+    "src/data/serverRepository.ts",
+    "src/domain/closure.ts",
+    "src/domain/cycles.ts",
+    "src/domain/index.ts",
+    "src/domain/reserve.ts",
+    "src/domain/types.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/server/db/schema.ts",
+    "src/server/schemas.ts",
+    "src/state/store.ts"
+  ],
+  "test_files": [
+    "tests/domain/categories.test.ts",
+    "tests/domain/ciclos.test.ts",
+    "tests/domain/diario-de-celda-agregados.test.ts",
+    "tests/domain/diario-de-celda-ajuste.test.ts",
+    "tests/domain/diario-de-celda-change-request.test.ts",
+    "tests/domain/diario-de-celda-cierre.test.ts",
+    "tests/domain/diario-de-celda-descuadres.test.ts",
+    "tests/domain/diario-de-celda-detalle.test.ts",
+    "tests/domain/diario-de-celda-edicion.test.ts",
+    "tests/domain/diario-de-celda-paridad.test.ts",
+    "tests/domain/diario-de-celda-store.test.ts",
+    "tests/e2e/ciclos.spec.ts",
+    "tests/e2e/cierre-de-mes.spec.ts",
+    "tests/e2e/diario-de-celda.spec.ts",
+    "tests/e2e/techo-de-flujo.spec.ts",
+    "tests/e2e/transferencias-registro.spec.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/integration/backend/ciclos.test.ts",
+    "tests/integration/backend/cierre-de-mes.test.ts",
+    "tests/integration/backend/diario-de-celda-api.test.ts",
+    "tests/integration/backend/diario-de-celda-cierre.test.ts",
+    "tests/integration/backend/diario-de-celda-congelado.test.ts",
+    "tests/integration/backend/diario-de-celda-edicion.test.ts",
+    "tests/integration/backend/diario-de-celda.test.ts",
+    "tests/integration/backend/meses-y-saldo-inicial.test.ts",
+    "tests/integration/backend/reglas-en-el-servidor.test.ts",
+    "tests/unit/diario-de-celda-esquemas.test.ts",
+    "tests/unit/diario-de-celda-guardas.test.ts"
+  ],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2509",
+      "substitution": "El aviso de mes cerrado de la grilla cambio su texto («dejar una observacion» → «dejar un comentario») y con el la asercion de cierre-de-mes.spec.ts:159, sin tramitar un change request sobre esa feature",
+      "reason": "TC-DDC-173f exige CERO apariciones de /observaci/i en cinco superficies visibles y TC-DDC-175f exige que ese aviso concreto diga «comentario»; el aviso es una de esas superficies. TC-CDM-091f de cierre-de-mes pide que el aviso «nombre la salida», y la sigue nombrando: cambia la palabra, no lo que el caso garantiza. Decision del usuario del 2026-09-15, mismo criterio que el diseno aprobado ya aplico a la etiqueta de techo-de-flujo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2504",
+      "substitution": "El resaltado del ajuste recien creado dura 2 s y el UX spec dice 1,5 s",
+      "reason": "TC-DDC-062h verifica 2 s de forma explicita. Se implementa lo que el caso aprobado mide, no lo que el documento describe, y la discrepancia queda anotada en CellDetail.tsx para que se resuelva en una de las dos direcciones en vez de quedar oculta.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2511",
+      "substitution": "Los descuadres NO los compone monthIssues: se producen en mismatchIssues, con la misma forma MonthIssue, y cada superficie junta las dos listas",
+      "reason": "El TRD declara que monthIssues los devuelva. No se pudo: obligaba a src/domain/reserve.ts a importar el modulo del cuadre, y eso rompe TC-TRF4-154e —que fija que puede importar ese fichero— y arrastraba a modificar los datos de prueba de tres features vecinas, que a su vez tienen guardias contra exactamente eso (TC-CDM-202e, TC-RES-202e). El coste es una linea en cada superficie que consume las dos listas. Decision del usuario del 2026-09-17.",
+      "effort_to_fix": "medium"
+    },
+    {
+      "fr_id": "FR-2507",
+      "substitution": "TC-DDC-139f no pulsa «Guardar» contra un mes recien cerrado: afirma que la pantalla no deja ninguna via de edicion abierta y que ninguna escritura prospera",
+      "reason": "El then del caso describe un 422 del servidor tras pulsar Guardar. Ese camino dejo de ser alcanzable desde el navegador por el propio arreglo de este epic: el canal de sincronizacion en vivo (SSE, FR-511) trae el cierre en el acto y el bloque de edicion se retira antes de que nadie pueda pulsar nada — se comprobo midiendo el DOM en el instante del clic, no suponiendo. El expected_result del caso («aviso de mes cerrado y valor 9.000 intacto») se afirma entero; el 422 se exige de frente donde si es alcanzable, que es la capa de integracion: TC-DDC-135f, TC-DDC-136f y TC-DDC-381h lo piden por la ruta directa, que es la via que usaria un cliente viejo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2511",
+      "substitution": "Las pruebas de pantalla afirman los rotulos de periodo CON el ano («Septiembre 2026»), y los TCs los escriben sin el («Septiembre»)",
+      "reason": "periodLabel incluye el ano desde la feature multi-anio (FR-1905) y la franja del Balance es compartida con techo-de-flujo, que ya afirma sobre ella; cambiar el producto para que case con la abreviatura de un TC habria roto a las features vecinas. El triangulo del encabezado usa cycleMonthLabel y si dice «Septiembre» a secas: son dos rotulos distintos del producto y cada prueba afirma el suyo. Lo que el caso garantiza —que la marca y la linea nombran el mes y las celdas— se verifica igual.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-2509",
+      "substitution": "El matcher de globs de TC-DDC-402e esta escrito a mano (12 lineas) en vez de usar picomatch, el motor real de Vitest",
+      "reason": "picomatch solo esta presente de forma transitiva y sin declaraciones de tipos, asi que importarlo rompe npm run typecheck y anadirlo a package.json seria una dependencia nueva solo para una prueba. El matcher cubre exactamente la sintaxis que los dos configs usan (**/ y *) y LANZA ante cualquier otra, de modo que un patron mas rico rompe la prueba en vez de devolver un falso negativo en silencio; se verifico contra ocho rutas que discrimina de verdad.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade superficie de red nueva mas alla de PATCH y DELETE /api/v1/movements/{id}, cuyo aislamiento por dueno se verifica en TC-DDC-301h a TC-DDC-312f.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": "EP-04 cierra la feature: los 171 TCs de 03_TEST_CASES.json tienen prueba etiquetada (barrido de @aitri-tc). Verificado el 2026-09-17 con Vitest 96 ficheros / 1.122 passed y Playwright 549 passed, los dos exit 0, mas typecheck y lint en 0. Durante EP-04 se arreglaron cuatro defectos reales del producto —el bucle infinito de render que tumbaba la app entera (React #185, heredado del punto seguro 2b894c1), la falta de resincronizacion ante unbalanced_cells, el bloque de edicion que sobrevivia al cierre del mes y el motivo de bloqueo que no truncaba— y se registro BG-040 (high, abierto), una divergencia ENTRE CLIENTE Y SERVIDOR sobre que mes toca cerrar que es ANTERIOR a esta feature y que ningun TC cubre: exige una decision de producto con el usuario y bloquea el verify-complete de la raiz."
+}

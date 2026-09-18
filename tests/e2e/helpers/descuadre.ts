@@ -63,3 +63,28 @@ export async function seedDescuadrado(
   }
   await c`UPDATE ledger SET revision = revision + 1 WHERE owner_id IN ${owner}`;
 }
+
+/**
+ * Descuadra UNA celda sin tocar `revision` (feature diario-de-celda, TC-DDC-217f).
+ *
+ * La diferencia con `seedDescuadrado` es justo la revisión, y es TODO el escenario: simula el dato
+ * que cambió por debajo mientras una pestaña seguía abierta. Si subiera la revisión, el cliente
+ * detectaría el conflicto por el lock optimista y nunca llegaría a pedir el cierre — que es
+ * precisamente lo que el caso quiere que ocurra, para comprobar que el servidor lo rechaza y el
+ * control se pone al día tras el resync.
+ *
+ * @param email Correo de la cuenta e2e del worker (aislamiento por cuenta, como el resto).
+ * @param nodeId Hoja cuya celda de Ejecutado se descuadra.
+ * @param period Periodo de la celda.
+ * @param amount Valor que se le escribe, sin movimientos que lo respalden.
+ * @throws Nunca — sin base configurada no hace nada.
+ */
+export async function descuadrarCelda(
+  email: string, nodeId: string, period: string, amount: number
+): Promise<void> {
+  const c = db();
+  if (!c) return;
+  await c`INSERT INTO amount_cell (owner_id, node_id, period, kind, amount)
+          SELECT id, ${nodeId}, ${period}, 'actual', ${amount} FROM "user" WHERE email = ${email}
+          ON CONFLICT (owner_id, node_id, period, kind) DO UPDATE SET amount = ${amount}`;
+}
