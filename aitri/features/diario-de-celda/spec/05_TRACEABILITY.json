@@ -20,8 +20,8 @@
     {
       "id": "FR-2501",
       "title": "El Detalle de una celda lista los movimientos que la forman",
-      "level": "complete",
-      "evidence": "11 TCs en verde. El Detalle lista los movimientos de la hoja en ese periodo, en orden cronologico. TC-DDC-001h fija los tres movimientos del escenario y que su suma es el valor de la celda; 003e cubre «Sin nota»; 005f verifica que no se cuelan los de otro mes ni los de otra hoja; 006e mide que el panel no desborda a 1440 y 768 px con contraste >=4.5:1 en los dos temas."
+      "level": "partial",
+      "evidence": "13 TCs en verde tras la CORRECCION DE DERIVACION del 2026-09-18. El signo mostrado es el del APORTE a la celda y no el del tipo: lo que suma va sin signo y solo lo que resta lleva «−». La regla anterior —«signo del tipo x signo del monto»— no estaba en el brief del cliente, que solo pide «dia, monto y nota»: se introdujo al redactar la fase 1 y el UX spec construyo encima una regla entera para resolver una tension que esa misma frase habia creado. En uso real pintaba -150.000, -40.000, -50.000 y -10.000 bajo una celda que mostraba 250.000 en positivo. TC-DDC-008e fija la regla y ademas comprueba la ARIDAD de displayAmount (1 argumento): al no recibir el tipo, la regla retirada ya no es expresable. TC-DDC-012e reproduce el caso real del usuario (Agua/octubre) y suma las cifras tal como se leen. TC-DDC-013f prohibe de frente las dos contradicciones posibles y cualquier «+», en gasto y en ingreso."
     },
     {
       "id": "FR-2502",
@@ -43,9 +43,9 @@
     },
     {
       "id": "FR-2505",
-      "title": "Editar un movimiento: monto, nota, fecha y categoría",
+      "title": "Editar un movimiento: monto, nota, fecha y categoria; ponerlo en cero lo elimina",
       "level": "complete",
-      "evidence": "22 TCs en verde, el mas extenso. Cambiar monto, nota, fecha y categoria, con recalculo de origen y destino (TC-DDC-081h a 095h); mover entre ciclos por la fecha (086e); rechazo de categoria de otro tipo (092f), de destino cerrado (093f) y de toda edicion que dejaria una celda negativa (094f). El servidor es la autoridad: PATCH /api/v1/movements/{id} en transaccion con FOR UPDATE."
+      "evidence": "26 TCs en verde. Ademas de monto, nota, fecha y categoria, editar el monto a 0 ELIMINA el movimiento, alineando esta feature con el idioma que la app YA tenia: FR-1802 de techo-de-flujo fija con palabras del usuario que «el monto de un retiro se edita, y ponerlo en cero lo elimina». Rechazar el 0 aqui obligaba a aprender dos idiomas para la misma intencion. `editMovement` DELEGA en `deleteMovement` en vez de reimplementarlo, y TC-DDC-125e lo comprueba comparando los ESTADOS que producen las dos vias —no solo que ambas borren—, que es lo que impide que diverjan. TC-DDC-124h verifica que el boton anuncia «Eliminar» en --error ANTES de pulsarlo. TC-DDC-126f comparo los avisos de celda negativa de las dos vias y CAZO QUE ERAN DISTINTOS: el texto se unifico en un solo sitio (textoBorradoNegativo). TC-DDC-127f exige que el cierre gane tambien sobre el 0 (422)."
     },
     {
       "id": "FR-2506",
@@ -164,12 +164,6 @@
       "effort_to_fix": "low"
     },
     {
-      "fr_id": "FR-2511",
-      "substitution": "Las pruebas de pantalla afirman los rotulos de periodo CON el ano («Septiembre 2026»), y los TCs los escriben sin el («Septiembre»)",
-      "reason": "periodLabel incluye el ano desde la feature multi-anio (FR-1905) y la franja del Balance es compartida con techo-de-flujo, que ya afirma sobre ella; cambiar el producto para que case con la abreviatura de un TC habria roto a las features vecinas. El triangulo del encabezado usa cycleMonthLabel y si dice «Septiembre» a secas: son dos rotulos distintos del producto y cada prueba afirma el suyo. Lo que el caso garantiza —que la marca y la linea nombran el mes y las celdas— se verifica igual.",
-      "effort_to_fix": "low"
-    },
-    {
       "fr_id": "NFR-2509",
       "substitution": "El matcher de globs de TC-DDC-402e esta escrito a mano (12 lineas) en vez de usar picomatch, el motor real de Vitest",
       "reason": "picomatch solo esta presente de forma transitiva y sin declaraciones de tipos, asi que importarlo rompe npm run typecheck y anadirlo a package.json seria una dependencia nueva solo para una prueba. El matcher cubre exactamente la sintaxis que los dos configs usan (**/ y *) y LANZA ante cualquier otra, de modo que un patron mas rico rompe la prueba en vez de devolver un falso negativo en silencio; se verifico contra ocho rutas que discrimina de verdad.",
@@ -180,8 +174,15 @@
       "substitution": "no security quality_gate declared",
       "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade superficie de red nueva mas alla de PATCH y DELETE /api/v1/movements/{id}, cuyo aislamiento por dueno se verifica en TC-DDC-301h a TC-DDC-312f.",
       "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2501",
+      "substitution": "Las pruebas de pantalla afirman los rotulos de periodo CON el año («Septiembre 2026») y los TCs los escriben sin el",
+      "reason": "periodLabel incluye el año desde multi-anio (FR-1905) y la franja del Balance es compartida con techo-de-flujo, que ya afirma sobre ella; cambiar el producto para que case con la abreviatura de un TC habria roto a las features vecinas. Es una desviacion de TEXTO en la asercion, no de comportamiento.",
+      "effort_to_fix": "low"
     }
   ],
-  "verification_note": "Evidencia: aitri feature verify-run diario-de-celda del 2026-09-18 — 171/171 TCs en verde (108 unit + 63 e2e), 0 fallidos, 0 saltados, 0 manuales, y los cinco quality gates en exit 0 (typecheck, lint, coverage 93,59% de lineas, smoke, e2e 549 passed). Cero TCs de baja confianza. Los niveles salen de fr_coverage y de la deuda declarada, no de una lectura optimista del codigo: los cinco requisitos marcados `partial` estan TODOS cubiertos por pruebas en verde y su unica diferencia con `complete` es arrastrar una desviacion declarada en 04_BUILD_REPORT.json.",
-  "overall_status_note": "`partial` y no `compliant` porque cinco requisitos MUST (FR-2504, FR-2507, FR-2509, FR-2511 y NFR-2509) arrastran deuda tecnica declarada, y la regla del briefing es que cubierto + deuda = partial. Ninguno esta sin cubrir ni tiene pruebas en rojo: las desviaciones son de texto, de composicion interna o de donde se afirma un caso, todas argumentadas y ninguna silenciosa. APARTE, y sin relacion con los niveles de arriba: BG-040 (high, abierto) documenta una divergencia entre cliente y servidor sobre que mes toca cerrar. Es ANTERIOR a esta feature, ningun TC suyo lo cubre y exige una decision de producto con el usuario; bloquea el verify-complete de la RAIZ, no el de esta feature."
+  "verification_note": "Evidencia: aitri feature verify-run diario-de-celda del 2026-09-18 tras la re-derivacion — 177/177 TCs en verde, 0 fallidos, 0 saltados, y los cinco quality gates en exit 0 (typecheck, lint, coverage, smoke, e2e). Cero TCs de baja confianza. Los niveles salen de fr_coverage y de la deuda declarada.",
+  "overall_status_note": "`partial` y no `compliant` porque cinco requisitos MUST (FR-2504, FR-2507, FR-2509, FR-2511 y NFR-2509) arrastran deuda tecnica declarada, y la regla del briefing es que cubierto + deuda = partial. Ninguno esta sin cubrir ni tiene pruebas en rojo: las desviaciones son de texto, de composicion interna o de donde se afirma un caso, todas argumentadas y ninguna silenciosa. APARTE, y sin relacion con los niveles de arriba: BG-040 (high, abierto) documenta una divergencia entre cliente y servidor sobre que mes toca cerrar. Es ANTERIOR a esta feature, ningun TC suyo lo cubre y exige una decision de producto con el usuario; bloquea el verify-complete de la RAIZ, no el de esta feature.",
+  "rederivation_note": "RE-DERIVADO desde la FASE 1 el 2026-09-18 por decision del usuario («eso no se pidio asi, arreglalo de raiz»). No fue un cambio de alcance sino la correccion de dos requisitos MAL DERIVADOS: FR-2501 llevaba una regla de signo que el cliente nunca pidio y que se habia endurecido en cuatro capas (requisito -> UX spec -> TCs -> codigo), y FR-2505 se habia desviado del idioma que FR-1802 de techo-de-flujo ya tenia fijado para poner un monto en cero. Se re-derivaron y re-aprobaron las cinco fases; 171 -> 177 TCs. Lo que NO cambio: los ajustes negativos como DATO siguen aprobados (discovery D1c). La leccion queda escrita en 01_REQUIREMENTS.json#constraints y en el encabezado de displayAmount para que un re-derivado futuro no la reinvente."
 }
