@@ -22,7 +22,7 @@ import { AddMovementLine } from "./AddMovementLine";
 import { MovementEditor } from "./MovementEditor";
 
 /** Ancho del panel y alto máximo de la lista (UX spec § Component Inventory). */
-const PANEL_MAX_W = 320;
+const PANEL_MAX_W = 440; // antes 320: cortaba las notas (corregido 2026-09-21)
 const VIEWPORT_MARGIN = 32;
 const LIST_MAX_H = 360;
 
@@ -106,7 +106,7 @@ function DetailRow({
       <span
         data-testid="detail-note"
         title={m.note ?? undefined}
-        className="flex-1 min-w-0 truncate"
+        className="flex-1 min-w-0 break-words"
         style={{ color: m.note ? "var(--fg)" : "var(--fg-muted)" }}
       >
         {m.note || "Sin nota"}
@@ -198,7 +198,13 @@ function bloqueoDeBorrado(state: LedgerState, m: Movement): number | null {
  *
  * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-001h, TC-DDC-003e, TC-DDC-006e
  */
-export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey }) {
+export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
+  leafId: string; month: PeriodKey;
+  /** Confirma el valor tecleado en la celda — lo mismo que Enter. Sin él (mes cerrado, bolsillo) no hay «Guardar». */
+  onGuardar?: () => void;
+  /** Descarta lo tecleado y cierra — lo mismo que Escape. */
+  onCancelar?: () => void;
+}) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const ref = useRef<HTMLDivElement>(null);
@@ -290,7 +296,27 @@ export function CellDetail({ leafId, month }: { leafId: string; month: PeriodKey
         ...(alignRight ? { right: 0 } : { left: 0 }),
       }}
     >
-      <span className={EYEBROW} style={{ color: "var(--fg-secondary)" }}>Detalle</span>
+      {/* Botones visibles: la salida no puede depender de conocer Enter y Escape (pedido del usuario,
+          2026-09-21). Están DENTRO del editor, así que pulsarlos no dispara el guardado por blur. */}
+      <div className="flex items-center justify-between gap-2">
+        <span className={EYEBROW} style={{ color: "var(--fg-secondary)" }}>Detalle</span>
+        {(onGuardar || onCancelar) && (
+          <div className="flex items-center gap-1.5">
+            {onCancelar && (
+              <button type="button" data-testid="cell-cancel" onClick={onCancelar}
+                className="text-caption cursor-pointer bg-transparent border-0 px-1 py-0.5" style={{ color: "var(--fg-secondary)" }}>
+                {onGuardar ? "Cancelar" : "Cerrar"}
+              </button>
+            )}
+            {onGuardar && (
+              <button type="button" data-testid="cell-save" onClick={onGuardar}
+                className="text-caption cursor-pointer rounded-(--radius-sm) border border-border px-2 py-0.5" style={{ color: "var(--fg)" }}>
+                Guardar
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {cerrado && (
         <span data-testid="closed-notice" className="flex items-start gap-1.5 text-caption" style={{ color: "var(--fg-secondary)" }}>

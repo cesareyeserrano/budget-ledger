@@ -296,7 +296,7 @@ test.describe("FR-2501 — el Detalle lista los movimientos que forman la celda"
       const box = (await panel.boundingBox())!;
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 1);
-      expect(Math.round(box.width)).toBe(Math.min(320, vp.width - 32));
+      expect(Math.round(box.width)).toBe(Math.min(440, vp.width - 32));
     });
   }
 
@@ -1590,7 +1590,7 @@ test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abie
 
     const panel = await abrirCelda(page, "c-rest", SEP);
     await editarFila(page, panel, "Pan"); // el bloque de edición, abierto
-    await expect(panel.getByRole("button", { name: "Guardar" })).toBeVisible();
+    await expect(panel.getByTestId("edit-save")).toBeVisible();
 
     // Ninguna escritura de movimientos puede prosperar a partir de aquí.
     const respuestas: number[] = [];
@@ -1604,7 +1604,7 @@ test.describe("FR-2507 — un periodo cerrado congela las vías nuevas; uno abie
     // El panel se pone al día y NO queda ninguna vía de edición abierta: ni el bloque que estaba
     // desplegado, ni lápiz, ni papelera, ni línea de añadir.
     await expect(panel.getByTestId("closed-notice")).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Guardar" })).toHaveCount(0);
+    await expect(panel.getByTestId("edit-save")).toHaveCount(0);
     await expect(panel.getByLabel("Monto")).toHaveCount(0);
     await expect(panel.getByLabel("Editar movimiento")).toHaveCount(0);
     await expect(panel.getByLabel("Borrar movimiento")).toHaveCount(0);
@@ -2052,5 +2052,49 @@ test.describe("FR-1201 — el Detalle no clasifica con color", () => {
       for (const c of colores) expect(prohibidos, `${hoja}: ${c}`).not.toContain(c);
       await cerrarEditor(page);
     }
+  });
+});
+
+test.describe("Tarjeta del Detalle — legible y con salida visible (2026-09-21)", () => {
+  test("TC-DDC-015e: una nota larga se lee entera, partida en varias líneas", async ({ page }) => {
+    // @aitri-tc TC-DDC-015e
+    // Con 320 px y una sola línea las notas salían «Almuerzo cum…», «Cena cumple…».
+    const LARGA = "Almuerzo de cumpleaños con la familia en el restaurante del centro, propina incluida";
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 50_000 } },
+      movements: [mv("m-larga", "expense", "c-rest", 50_000, SEP, "2026-09-10T12:00", 1, LARGA)],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const nota = panel.getByTestId("detail-note");
+    await expect(nota).toHaveText(LARGA);
+    const m = await nota.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { overflow: s.textOverflow, sw: el.scrollWidth, cw: el.clientWidth, alto: el.getBoundingClientRect().height, lh: parseFloat(s.lineHeight) || 16 };
+    });
+    expect(m.overflow).not.toBe("ellipsis");
+    expect(m.sw).toBeLessThanOrEqual(m.cw);
+    expect(m.alto).toBeGreaterThan(m.lh * 1.5); // ocupa más de una línea
+    await expect(panel.getByTestId("detail-amount")).toBeVisible();
+    expect((await panel.boundingBox())!.width).toBeLessThanOrEqual(440);
+  });
+
+  test("TC-DDC-016h: «Cancelar» descarta lo tecleado y «Guardar» equivale a Enter", async ({ page }) => {
+    // @aitri-tc TC-DDC-016h
+    await abrir(page, REST_SEP); // celda en 100.000
+    let panel = await abrirCelda(page, "c-rest", SEP);
+    await page.getByLabel("Editar valor").fill("120000");
+    await panel.getByTestId("cell-cancel").click();
+    await expect(panel).toHaveCount(0);
+    await expect(celda(page, "c-rest", SEP)).toContainText("100.000");
+    expect((await readLedger(page))?.movements.filter((m) => m.kind === "adjustment")).toHaveLength(0);
+
+    panel = await abrirCelda(page, "c-rest", SEP);
+    await page.getByLabel("Editar valor").fill("120000");
+    await panel.getByTestId("cell-save").click();
+    await expect(celda(page, "c-rest", SEP)).toContainText("120.000");
+    await expect.poll(async () =>
+      (await readLedger(page))?.movements.filter((m) => m.kind === "adjustment").map((m) => m.amount)
+    ).toEqual([20_000]);
   });
 });

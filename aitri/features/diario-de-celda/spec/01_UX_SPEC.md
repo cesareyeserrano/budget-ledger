@@ -159,15 +159,15 @@ tecleado se confirma al perder el foco, como hoy).
 
 Posición del panel: debajo de la celda, alineado a su borde izquierdo. **Si no cabe a la derecha del viewport, se
 alinea al borde derecho de la celda** (FR-2501: sin desborde horizontal a 768 px ni a 1440 px). Ancho:
-`min(320px, 100vw − 32px)`. La lista tiene `max-height: 360px` y scroll vertical propio; el campo de valor y los
+`min(440px, 100vw − 32px)`. La lista tiene `max-height: 360px` y scroll vertical propio; el campo de valor y los
 campos de añadir quedan siempre visibles.
 
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| **Campo de valor** (input vigente, «Editar valor») | default (valor actual) · loading (n/a: la escritura es optimista) · error (el servidor rechaza → vuelve al valor anterior + mensaje bajo el editor) · empty (0) · disabled (mes cerrado → texto «Valor de un mes cerrado, no editable») | Enter o perder el foco confirma; Escape descarta. En gasto o ingreso, un valor distinto de la suma de movimientos crea un ajuste (F3) | H3, H5, H1 |
+| **Campo de valor** (input vigente, «Editar valor») | default (valor actual) · loading (n/a: la escritura es optimista) · error (el servidor rechaza → vuelve al valor anterior + mensaje bajo el editor) · empty (0) · disabled (mes cerrado → texto «Valor de un mes cerrado, no editable») | Enter o perder el foco confirma; Escape descarta. ADEMÁS la tarjeta muestra dos botones visibles en su cabecera, «Cancelar» y «Guardar», para que la salida no dependa de conocer las teclas (corregido el 2026-09-21 a pedido del usuario: «le falta un botón de guardar… también uno de cancelar»). En un mes cerrado, sin valor que guardar, solo «Cerrar». En gasto o ingreso, un valor distinto de la suma de movimientos crea un ajuste (F3) | H3, H5, H1 |
 | **Botón del bloque de edición** (F4) | default («Guardar», `--accent`) · **monto en 0 («Eliminar», `--error`)** · disabled (monto vacío, o la operación dejaría una celda bajo 0) · loading (n/a: escritura optimista) · error (mensaje bajo el bloque) | El rótulo cambia con el valor tecleado, así que la consecuencia se lee antes de pulsar. «Eliminar» hace lo mismo que la papelera de F5 | H1, H3, H5 |
-| **Panel Detalle** (contenedor) | default (lista) · loading (n/a: los datos ya están hidratados al abrir) · error (mensaje en su franja inferior) · empty («Sin movimientos ni comentarios», `caption`, `--fg-muted`) · disabled (mes cerrado: F7) | Superficie `--bg-elevated`, borde `--border`, `--radius-sm`, sombra `--shadow-md`, padding 8 px, ancho `min(320px, 100vw − 32px)`. Título en `eyebrow`: «Detalle» | H8, H1 |
-| **Fila de movimiento** | default · hover/focus (borde `--border-strong`; aparecen lápiz y papelera) · loading (n/a) · error (aviso de celda negativa al intentar borrar, F5) · empty (sin nota → «Sin nota» en `--fg-muted`) · disabled (mes cerrado: sin acciones) | Ícono `Receipt` 12 px · fecha «18 sep» (`tabular`, `--fg-muted`, ancho fijo 44 px) · nota en 1 línea con puntos suspensivos y el texto completo en `title` · monto a la derecha (ver regla de signo). Todo en `caption` | H6, H4, H8 |
+| **Panel Detalle** (contenedor) | default (lista) · loading (n/a: los datos ya están hidratados al abrir) · error (mensaje en su franja inferior) · empty («Sin movimientos ni comentarios», `caption`, `--fg-muted`) · disabled (mes cerrado: F7) | Superficie `--bg-elevated`, borde `--border`, `--radius-sm`, sombra `--shadow-md`, padding 8 px, ancho `min(440px, 100vw − 32px)`. Título en `eyebrow`: «Detalle», con los botones «Cancelar» y «Guardar» alineados a la derecha en la misma línea | H8, H1, H3 |
+| **Fila de movimiento** | default · hover/focus (borde `--border-strong`; aparecen lápiz y papelera) · loading (n/a) · error (aviso de celda negativa al intentar borrar, F5) · empty (sin nota → «Sin nota» en `--fg-muted`) · disabled (mes cerrado: sin acciones) | Ícono `Receipt` 12 px · fecha «18 sep» (`tabular`, `--fg-muted`, ancho fijo 44 px) · nota que se PARTE EN VARIAS LÍNEAS cuando no cabe —nunca se corta con puntos suspensivos—, con la fecha y el monto alineados arriba (corregido el 2026-09-21: con 320 px y una sola línea las notas salían «Almuerzo cum…», «Cena cumple…», difíciles de leer) · monto a la derecha (ver regla de signo). Todo en `caption` | H6, H4, H8 |
 | **Fila de ajuste** (variante de movimiento) | igual que la fila de movimiento · resaltado 1,5 s al crearse (borde `--accent`) | Ícono `SlidersHorizontal` 12 px en lugar de `Receipt`. Nota por defecto «Ajuste manual» | H1, H6 |
 | **Fila de comentario manual** | default · hover (n/a: no se edita desde aquí) · loading (n/a) · error (n/a) · empty (n/a) · disabled (n/a: editable también en mes cerrado) | Ícono `MessageSquare` 12 px · texto del comentario (sin monto ni fecha), en varias líneas | H6, H4 |
 | **Fila de comentario automático** (bolsillos, FR-1804) | default · resto n/a | Ícono `Info` 12 px en `--fg-muted` sobre el MISMO tinte neutro de las demás filas (FR-2508). La distingue su ícono, no un color. *Corregido el 2026-09-21: antes iba en `--alert-soft` (ámbar), un color de alerta que FR-1201 prohíbe para clasificar, y contradecía el «mismo fondo» de FR-2508. Decisión del usuario: filas en columnas y la automática en neutro.* | H1 |
@@ -355,7 +355,7 @@ Todos los pares pasan AA. El más ajustado es el monto de gasto sobre la fila ti
 - Fila: padding 4 px vertical y 6 px horizontal; separación interna de 6 px; ícono 12 px con trazo 1,5.
 - Radios: fila `--radius-xs` (6 px), como el comentario automático; panel e inputs `--radius-sm` (8 px).
 - Sombra del panel: `--shadow-md`.
-- Medidas: ancho del panel `min(320px, 100vw − 32px)`; `max-height` de la lista 360 px; fecha 44 px; input de monto
+- Medidas: ancho del panel `min(440px, 100vw − 32px)`; `max-height` de la lista 360 px; fecha 44 px; input de monto
   96 px; motivo de cierre bloqueado con `max-width` 320 px y puntos suspensivos.
 - Aviso del Balance y triángulo del mes: sin cambios de medida (vigentes).
 - Motion: ninguna animación nueva. Resaltado del ajuste = cambio de borde durante 1,5 s, sin transición con
@@ -364,7 +364,7 @@ Todos los pares pasan AA. El más ajustado es el monto de gasto sobre la fila ti
 ### Responsive
 - **375 px:** el Detalle, el aviso del Balance y el control de cierre no existen; la app muestra solo «Nuevo
   movimiento», sin cambios.
-- **768 px:** shell de escritorio con la grilla en scroll horizontal. El panel mide `min(320px, 100vw − 32px)` y se
+- **768 px:** shell de escritorio con la grilla en scroll horizontal. El panel mide `min(440px, 100vw − 32px)` y se
   alinea al borde derecho de la celda cuando no cabe a la derecha; nunca desborda el viewport. El motivo de cierre
   bloqueado se trunca con puntos suspensivos y conserva el texto completo en `title`.
 - **1440 px:** igual que 768 px; en columnas cercanas al borde derecho aplica la misma regla de alineación.

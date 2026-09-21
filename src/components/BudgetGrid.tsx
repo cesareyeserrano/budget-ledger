@@ -823,7 +823,10 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
         )}
         {/* FR-2501: el editor de cualquier celda monta el Detalle — qué movimientos la forman y qué
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
-        {props.nodeId && props.month && <CellDetail leafId={props.nodeId} month={props.month} />}
+        {props.nodeId && props.month && (
+          <CellDetail leafId={props.nodeId} month={props.month}
+            onGuardar={props.closed ? undefined : props.commit} onCancelar={props.cancel} />
+        )}
       </div>
     );
   }

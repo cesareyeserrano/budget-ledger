@@ -2691,6 +2691,36 @@
       "when": "se abren y se lee el color computado de cada monto",
       "then": "ningún monto tiene el color de --type-expense ni de --type-income. Es el agujero por el que se coló el fallo: FR-1201 de refinamiento-ui prohíbe usar rojo o verde para clasificar el tipo, pero sus pruebas solo miraban la grilla y el Balance, y el Detalle es una superficie posterior que ninguna miraba",
       "expected_result": "0 montos en color de tipo, en gasto y en ingreso"
+    },
+    {
+      "id": "TC-DDC-015e",
+      "requirement_id": "FR-2501",
+      "user_story_id": "US-2501",
+      "ac_id": "AC-2501a",
+      "title": "Una nota larga se lee entera: se parte en varias líneas y no se corta con puntos suspensivos",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda de gasto con un movimiento cuya nota tiene 90 caracteres",
+      "when": "se abre la celda a 1440 px",
+      "then": "la nota muestra el texto completo (scrollWidth ≤ clientWidth, text-overflow distinto de ellipsis), la fila crece en alto y el monto sigue visible a la derecha; el panel mide como máximo 440 px",
+      "expected_result": "nota completa en varias líneas, sin corte, en un panel de ≤440 px"
+    },
+    {
+      "id": "TC-DDC-016h",
+      "requirement_id": "FR-2504",
+      "user_story_id": "US-2504",
+      "ac_id": "AC-2504a",
+      "title": "La tarjeta muestra Guardar y Cancelar: Guardar confirma el valor tecleado y Cancelar lo descarta",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda de gasto en 100.000 con el editor abierto",
+      "when": "se teclea 120000 y se pulsa «Cancelar»; luego se abre de nuevo, se teclea 120000 y se pulsa «Guardar»",
+      "then": "con «Cancelar» la celda sigue en 100.000 y no se crea ningún ajuste; con «Guardar» la celda queda en 120.000 y se crea el ajuste de 20.000 — lo mismo que pulsar Enter",
+      "expected_result": "Cancelar no escribe nada; Guardar equivale a Enter"
     }
   ]
 }
