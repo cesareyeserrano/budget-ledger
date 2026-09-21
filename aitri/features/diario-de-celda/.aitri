@@ -1,5 +1,5 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     "discovery",
     1,
@@ -14,50 +14,15 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "diario-de-celda",
   "createdAt": "2026-09-14T16:27:23.430Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-21T03:03:48.060Z",
+  "updatedAt": "2026-09-21T15:44:46.519Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-18T21:24:18.588Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-18T22:31:15.436Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-18T22:53:35.538Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-18T23:50:13.810Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-19T00:03:34.115Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 177,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-19T00:03:48.602Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 177,
-      "failed": 0
-    },
     {
       "at": "2026-09-19T00:04:14.080Z",
       "event": "started",
@@ -129,16 +94,59 @@
       "at": "2026-09-21T03:03:48.036Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-21T03:39:20.344Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 177,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-21T14:54:49.432Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-21T15:11:19.421Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-21T15:44:33.166Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-21T15:44:46.347Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-21T15:44:46.489Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
-  "cascadedPhases": [
-    "5"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09",
     "2": "8435741323d6811c2b705c08ce762bab75df727f0da5758c380f0020543ef98a",
     "3": "8e6eec20152a4bc2c5c27bc0b591a68879d9a0b935f388c5d7db245414400185",
     "4": "fa9558cd0ca037b934ffb5e6fb492c45f856790739ac870943e5f1f77065fd6e",
+    "5": "8ce150f4c8672fc188efa4de70b4e58d8ae3f49803474eff4514e6de7e576f73",
     "discovery": "6c1a4ddec921d014a8b62fe4a3f4149284c1e24275a065c735f9d1f8931e4341",
     "ux": "5e6458f332ec088ed8bf01aa4fc023d2d9ea660a0dbb07d87ca38b9db74bf945"
   },
@@ -209,8 +217,8 @@
       "FR-2512"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "8eb85ee7b8b93250129c4dde21c12b308b3d49e1",
+  "verifyPassed": true,
+  "verifyRanRef": "439f6de84275d325382943bbef28625fb6c3528b",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -225,5 +233,24 @@
     }
   ],
   "coverageAuditLastAt": "2026-09-18T21:10:54.418Z",
-  "coverageAuditReqHash": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09"
+  "coverageAuditReqHash": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09",
+  "verifyResultsHash": "fff5290d41377752ad47a9c014a81a2164e840a54affb8fd5c30c4679b7c9508",
+  "verifyRanAt": "2026-09-21T15:11:19.348Z",
+  "lastVerifyRun": {
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-21T15:11:19.348Z"
+  },
+  "verifySummary": {
+    "total": 178,
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
 }
