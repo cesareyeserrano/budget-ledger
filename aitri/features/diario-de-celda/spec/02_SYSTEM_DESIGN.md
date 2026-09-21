@@ -232,8 +232,9 @@ type DetailEntry =
 cellDetail(state, leafId, period, periods): DetailEntry[]           // orden: auto → movimientos (date, createdAt) → comentarios
 displayAmount(amount): { sign: "" | "−"; abs: number; addsToCell: boolean }   // FR-2501: signo del APORTE, no del tipo
   // Ya NO recibe `type`: el signo no depende de si la celda es de gasto o de ingreso, solo de si el
-  // movimiento sube (sign "") o baja (sign "−") esa celda. `addsToCell` sigue gobernando el color,
-  // de modo que la distinción viaja por dos vías y no solo por el signo (WCAG 1.4.1).
+  // movimiento sube (sign "") o baja (sign "−") esa celda. `addsToCell` gobierna el color: `--fg` si
+  // suma y `--fg-secondary` si resta — NUNCA un `--type-*` (FR-1201 de refinamiento-ui: el rojo y el
+  // verde solo señalan excepción, jamás clasifican el tipo). Signo + gris = dos vías (WCAG 1.4.1).
 proposedDate(cal, period, now: Date): string                        // hoy si cae en el periodo; si no, su último día (FR-2503)
 isDateInPeriod(cal, period, date): boolean
 movementSum(state, leafId, period): number

@@ -277,7 +277,8 @@ test.describe("FR-2501 — el Detalle lista los movimientos que forman la celda"
     await expect(fila.getByTestId("detail-note")).toHaveText("Nómina");
     const monto = fila.getByTestId("detail-amount");
     await expect(monto).toHaveText("3.000.000");
-    expect(await monto.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--type-income"));
+    // Color NORMAL, no el verde de ingreso: FR-1201 reserva el verde para «situación favorable».
+    expect(await monto.evaluate((el) => getComputedStyle(el).color)).toBe(await cssVar(page, "--fg"));
   });
 
   for (const vp of [NARROW, DESK]) {
@@ -729,8 +730,9 @@ test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", (
     const gasto = panel.locator('[data-testid="detail-row"][data-kind="movement"]').first();
     const ajuste = panel.locator('[data-testid="detail-row"][data-kind="adjustment"]').first();
 
+    // Color NORMAL, no el rojo de gasto: FR-1201 reserva el rojo para señalar una excepción.
     expect(await gasto.getByTestId("detail-amount").evaluate((el) => getComputedStyle(el).color))
-      .toBe(await cssVar(page, "--type-expense"));
+      .toBe(await cssVar(page, "--fg"));
     expect(await ajuste.getByTestId("detail-amount").evaluate((el) => getComputedStyle(el).color))
       .toBe(await cssVar(page, "--fg-secondary"));
   });
@@ -2013,6 +2015,39 @@ test.describe("FR-2501 — las cifras del Detalle suman a la vista el valor de l
       const suma = montos.reduce((t, m) => t + Number(m.replace(/\./g, "").replace("−", "-")), 0);
       expect(suma, hoja).toBe(90_000);
       await page.keyboard.press("Escape");
+    }
+  });
+});
+
+test.describe("FR-1201 — el Detalle no clasifica con color", () => {
+  test("TC-DDC-014f: ningún monto del Detalle se pinta con un color de tipo", async ({ page }) => {
+    // @aitri-tc TC-DDC-014f
+    // El agujero por el que se coló el fallo. FR-1201 (refinamiento-ui) prohíbe usar el rojo o el
+    // verde para decir «esto es un gasto / un ingreso»: los reserva para señalar una excepción. Sus
+    // pruebas miraban la grilla y el Balance — las superficies de entonces —, y el Detalle, que llegó
+    // después, pintaba cada gasto de rojo sin que nada lo viera. Además el color se escribía como
+    // `var(--type-${type})`, una cadena armada al vuelo que ninguna búsqueda literal encontraba.
+    // Esta prueba mira el color COMPUTADO, que no se deja engañar por cómo esté escrito.
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 90_000 }, "c-salario": { [SEP]: 90_000 } },
+      movements: [
+        mv("g-1", "expense", "c-rest", 100_000, SEP, "2026-09-05T12:00", 1, "Gasto"),
+        ajuste("g-aj", "c-rest", -10_000, SEP, "2026-09-06T12:00", 2),
+        mv("i-1", "income", "c-salario", 100_000, SEP, "2026-09-05T12:00", 3, "Ingreso"),
+        { ...ajuste("i-aj", "c-salario", -10_000, SEP, "2026-09-06T12:00", 4), type: "income", catId: "c-salario", target: "c-salario" },
+      ],
+    } as unknown as Seed);
+
+    const prohibidos = [await cssVar(page, "--type-expense"), await cssVar(page, "--type-income")];
+    for (const hoja of ["c-rest", "c-salario"]) {
+      const panel = await abrirCelda(page, hoja, SEP);
+      const colores = await panel.getByTestId("detail-amount").evaluateAll(
+        (els) => els.map((el) => getComputedStyle(el).color)
+      );
+      expect(colores.length, hoja).toBe(2);
+      for (const c of colores) expect(prohibidos, `${hoja}: ${c}`).not.toContain(c);
+      await cerrarEditor(page);
     }
   });
 });

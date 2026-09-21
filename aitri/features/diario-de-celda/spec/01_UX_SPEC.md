@@ -196,9 +196,17 @@ campos de añadir quedan siempre visibles.
 - **Por qué sin signo y no con «+»:** la celda ya dice de qué tipo es; repetirlo en cada fila es ruido, y anteponer
   «−» a cada gasto contradice lo único que el panel promete, que sus filas sumen el valor de la celda. Con esta
   regla las cifras se leen como una cuenta: se suman tal cual están escritas y dan el total de la celda.
-- **Color:** `--type-expense` o `--type-income` cuando el movimiento suma al total de la celda; `--fg-secondary`
-  cuando resta. El color y el «−» dicen lo mismo por dos vías, que es lo que pide WCAG 1.4.1 — el signo no es el
-  único portador de la distinción.
+- **Color (CORREGIDO el 2026-09-20):** el monto que suma va en el color normal del texto, `--fg`; el que resta, en
+  `--fg-secondary`. Ni rojo ni verde.
+  *La versión anterior pintaba cada gasto en `--type-expense` (rojo) y cada ingreso en `--type-income` (verde). Salía
+  de la misma sección inventada que la regla de signo, y cuando se corrigió el signo el color se conservó por error.
+  Contradecía lo que el rojo ya significaba en la app: la grilla (feature `budget-state-color`) pinta en rojo solo el
+  gasto que SE PASÓ de su presupuesto; un gasto dentro de presupuesto va en color normal. Con la regla retirada, el
+  Detalle pintaba en color de alarma diecinueve gastos que estaban exactamente en su presupuesto, y el usuario lo leyó
+  —con razón— como que algo iba mal: «veo los números en rojo aún».*
+- **La distinción entre lo que suma y lo que resta sigue viajando por DOS vías** —el «−» y el gris— así que no depende
+  del color a solas (WCAG 1.4.1). Lo que se quita es el color del TIPO, que no distinguía nada: la celda ya dice de qué
+  tipo es.
 - **Los datos no cambian:** el movimiento sigue guardando su monto con signo (FR-2504, ajustes negativos aprobados
   en el discovery D1c) y las pruebas de dominio siguen afirmando sobre ese valor. Lo que cambia es la PRESENTACIÓN.
 

@@ -39,7 +39,7 @@
   .note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .note.none { color: var(--fg-muted); }
   .amt { flex: none; font-variant-numeric: tabular-nums; }
-  .exp { color: var(--type-expense); }
+  .exp { color: var(--fg); }
   .rest { color: var(--fg-secondary); }
   .acts { flex: none; display: flex; gap: 4px; color: var(--fg-muted); }
   .add { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
@@ -83,7 +83,7 @@
     "--bg":"Lienzo de la grilla","--bg-elevated":"Fondo del panel Detalle (popover) e inputs","--bg-card":"Fondo del aviso de problemas del Balance","--fg":"Nota, comentario y aviso",
     "--fg-secondary":"Etiquetas, mes cerrado, motivo de cierre, montos que restan","--fg-muted":"Fechas, «Sin nota», vacío, íconos de acción",
     "--border":"Borde del panel y de las filas","--border-strong":"Borde de fila en hover o foco","--accent":"Foco de input y ajuste recién creado",
-    "--error":"Celda negativa, rechazos, triángulo del mes, motivo de cierre","--type-expense":"Monto de gasto que suma","--type-income":"Monto de ingreso que suma",
+    "--error":"Celda negativa, rechazos, triángulo del mes, motivo de cierre","--type-expense":"Identidad del tipo gasto — NO se usa en los montos del Detalle","--type-income":"Identidad del tipo ingreso — NO se usa en los montos del Detalle",
     "--alert-soft":"Comentario automático y marcador de celda"
   };
   const hex = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
@@ -149,7 +149,7 @@
         <button class="btn" disabled title="No se puede cerrar: 1 celda no cuadra (Taxi)">Cerrar Septiembre</button>
         <span class="why" title="No se puede cerrar: 1 celda no cuadra (Taxi)">${ico}No se puede cerrar: 1 celda no cuadra (Taxi)</span>
       </div>
-      <p class="caption" style="color:var(--fg-muted);margin-top:6px">Montos inventados. Las filas suman EXACTAMENTE el valor de la celda leyéndolas tal cual: 50.000 + 30.000 + 20.000 + 40.000 − 10.000 = 130.000. Los gastos van SIN signo —la celda ya dice que lo son— y el único con «−» es el ajuste que resta, en gris: signo y color dicen lo mismo por dos vías (WCAG 1.4.1). El aviso rojo es el de celda negativa al editar. Debajo: triángulo del mes, línea de descuadre en el aviso del Balance y botón de cierre bloqueado con su motivo.</p>`;
+      <p class="caption" style="color:var(--fg-muted);margin-top:6px">Montos inventados. Las filas suman EXACTAMENTE el valor de la celda leyéndolas tal cual: 50.000 + 30.000 + 20.000 + 40.000 − 10.000 = 130.000. Los gastos van SIN signo y en el color normal del texto —la celda ya dice que lo son, y en esta app el rojo significa «te pasaste del presupuesto»—. El único que se distingue es el ajuste que resta: «−» y gris, dos señales a la vez (WCAG 1.4.1). El aviso rojo es el de celda negativa al editar. Debajo: triángulo del mes, línea de descuadre en el aviso del Balance y botón de cierre bloqueado con su motivo.</p>`;
   }
 </script>
 </body>

@@ -114,10 +114,13 @@ function DetailRow({
       <span
         data-testid="detail-amount"
         className="tabular flex-none"
-        // El color separa lo que SUMA al total de la celda (color del tipo) de lo que le resta
-        // (secundario). Desde FR-2501 el signo dice lo mismo —solo lo que resta lleva «−»—, así que
-        // la distinción no depende del color a solas: es la redundancia que pide WCAG 1.4.1.
-        style={{ color: addsToCell ? `var(--type-${type})` : "var(--fg-secondary)" }}
+        // Lo que SUMA va en el color normal del texto; lo que RESTA, en gris y con «−». NUNCA un
+        // color de tipo: FR-1201 (refinamiento-ui) reserva el rojo y el verde para señalar una
+        // excepción —pasarse del presupuesto, un saldo negativo— y prohíbe usarlos para decir «esto
+        // es un gasto». Pintar aquí cada gasto de rojo contradecía a la grilla, donde el rojo
+        // significa «te pasaste», y el usuario leía como alarma diecinueve gastos que estaban en su
+        // presupuesto. La distinción suma/resta no se pierde: viaja por el signo y el gris (WCAG 1.4.1).
+        style={{ color: addsToCell ? "var(--fg)" : "var(--fg-secondary)" }}
       >
         {sign}{money(abs).replace("$", "")}
       </span>
