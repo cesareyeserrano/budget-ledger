@@ -987,6 +987,28 @@
           "text": "severity high → medium: Medido en la base de desarrollo DESPUES de abrir el bug: el defecto esta LATENTE, no activo. La severidad high se asigno sin comprobar si se manifiesta en datos reales, y no se manifiesta — en admin@admin.com el inicio declarado y el dato mas antiguo coinciden (start_month=2026-09, MIN(movement.period)=2026-09, MIN(amount_cell.period con amount<>0)=2026-09), asi que cliente y servidor apuntan hoy al mismo mes y el usuario no ve discrepancia alguna; la otra cuenta no tiene datos. Solo despierta si se declara un inicio ANTERIOR al primer dato. El defecto no cambia, cambia el riesgo. Decision del usuario del 2026-09-18: queda como trampa conocida en el backlog en vez de arreglarse ahora, porque cual de los dos rangos debe mandar es una decision de producto y el arreglo tiene tamaño de feature (cambia una regla de negocio ya desplegada sobre una accion dificil de deshacer), asi que entrara por el pipeline con sus propios TCs."
         }
       ]
+    },
+    {
+      "id": "BG-041",
+      "title": "La nota automatica de FR-1804 no aparece en el MES DE INICIO: el primer mes del rango se trata como si no tuviera de donde sacar dinero, y desde el saldo inicial si lo tiene",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "fixed",
+      "fr": "FR-1804",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-21T16:14:36.983Z",
+      "updated_at": "2026-09-21T16:25:19.975Z",
+      "resolution": "monthCarryUsage ya no descarta el primer mes del rango: si hay saldo inicial declarado lo toma como disponible previo y lo nombra ('salieron del saldo inicial'); sin saldo inicial conserva el comportamiento de siempre (sin nota). El texto de la nota paso a un solo sitio (carryUsageText en reserve.ts), que ahora usan el Detalle y el titulo de la celda de bolsillo en vez de dos copias. Pruebas en tests/domain/bg-041-nota-saldo-inicial.test.ts, verificadas por mutacion (con la guarda vieja reinyectada caen dos). Comprobado en la app de dev: Ahorros/septiembre muestra 'De los 30.000.000 reservados este mes, 26.000.000 salieron del saldo inicial'.",
+      "fix_commit_sha": "75da810409d089e358b660f53c08122d5ae05eda",
+      "fix_at": "2026-09-21T16:25:19.975Z"
     }
   ]
 }

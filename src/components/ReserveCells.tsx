@@ -23,6 +23,7 @@ import {
   plannedRetiroLimit,
   cellHeadroom,
   maxWithdrawal,
+  carryUsageText,
   monthCarryUsage,
   monthReserveOps,
   reserveLeafIds,
@@ -82,7 +83,7 @@ export function ReserveLeafCell(props: {
   const title = planWarn
     ? `Este plan supera tu margen de ${periodLabel(props.month).toLowerCase()}`
     : carry
-      ? `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron del saldo de ${periodLabel(carry.mesAnterior).toLowerCase()}.`
+      ? carryUsageText(carry, money)
       : observations.length > 0
         ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
         : undefined;

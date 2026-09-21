@@ -14,7 +14,7 @@
 import type { AmountMap, CellNote, LedgerState, PeriodKey, Movement } from "./types";
 import { findNode, isLeaf } from "./tree";
 import { typeTotals } from "./rollup";
-import { isPeriodKey } from "./periods";
+import { isPeriodKey, periodLabel } from "./periods";
 import { normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
 import { openingCarry } from "./opening";
@@ -715,8 +715,34 @@ export interface CarryUsage {
   reservado: number;
   /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
   delSaldoAnterior: number;
-  /** El mes de cuyo cierre salió — el que la observación nombra. */
-  mesAnterior: PeriodKey;
+  /**
+   * El mes de cuyo cierre salió, o `null` si salió del SALDO INICIAL declarado — lo que ocurre en el
+   * primer mes del rango, que no tiene un mes anterior dentro de él pero sí de dónde sacar (BG-041).
+   */
+  mesAnterior: PeriodKey | null;
+}
+
+/**
+ * El texto de la observación automática de FR-1804, en UN SOLO SITIO.
+ *
+ * Antes lo armaban por separado el Detalle (`detail.ts`) y el título de la celda de bolsillo
+ * (`ReserveCells.tsx`), con la misma frase copiada. Dos copias de un texto acaban diciendo cosas
+ * distintas —esta misma feature lo sufrió con el aviso de celda negativa—, y BG-041 obligaba a
+ * cambiar la frase en las dos. Ahora las dos llaman aquí.
+ *
+ * @param carry Lo que devolvió `monthCarryUsage`.
+ * @param money Formateador de montos del llamador (el dominio no decide el formato de moneda).
+ * @returns «De los X reservados este mes, Y salieron del saldo de agosto.» o, en el mes de inicio,
+ *   «…salieron del saldo inicial.»
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1804, US-ID: US-1804, AC-ID: AC-1804, TC-ID: TC-TDF-030h
+ */
+export function carryUsageText(carry: CarryUsage, money: (n: number) => string): string {
+  const origen = carry.mesAnterior === null
+    ? "del saldo inicial"
+    : `del saldo de ${periodLabel(carry.mesAnterior).toLowerCase()}`;
+  return `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron ${origen}.`;
 }
 
 /**
@@ -743,7 +769,13 @@ export function monthCarryUsage(
   state: LedgerState, month: PeriodKey, plane: Plane, periods: PeriodScope
 ): CarryUsage | null {
   const i = periods.indexOf(month);
-  if (i <= 0) return null; // enero no tiene mes anterior que nombrar
+  // BG-041. Antes esto era `if (i <= 0) return null` —«enero no tiene mes anterior que nombrar»—, y
+  // era cierto cuando el rango SIEMPRE empezaba en enero. Desde meses-y-saldo-inicial el rango
+  // empieza en el MES DE INICIO declarado, y ese mes sí tiene de dónde sacar: el saldo inicial. Con
+  // la guarda vieja, quien declaraba septiembre como inicio perdía la nota justo el mes en que más
+  // dinero movía del saldo anterior (43,7 millones en el caso real que lo destapó). Ahora el primer
+  // mes solo calla si NO hay saldo inicial declarado, que es cuando de verdad no hay nada antes.
+  if (i < 0) return null;
   const scan = techoScan(state, plane, periods);
   const income = typeTotals(state, "income", [month]);
   const expense = typeTotals(state, "expense", [month]);
@@ -752,13 +784,15 @@ export function monthCarryUsage(
   // Sin reservas no hay nada que explicar — antes un mes con solo GASTOS producía
   // {reservado: 0, delSaldoAnterior: 300}: un desglose imposible (auditoría 2026-09-01).
   if (reservado <= 0) return null;
-  const disponiblePrevio = Math.max(0, scan.arrastre[i - 1]);
+  const disponiblePrevio = i === 0
+    ? Math.max(0, openingCarry(state, periods).available) // el saldo inicial declarado, o 0
+    : Math.max(0, scan.arrastre[i - 1]);
   // Lo que salió del saldo anterior jamás puede exceder lo reservado: primero se atribuye al flujo
   // del mes lo que quepa (un flujo NEGATIVO no financia nada: se acota a 0, no infla el término).
   const delFlujo = Math.max(0, Math.min(reservado, flujo));
   const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
-  return { reservado, delSaldoAnterior, mesAnterior: periods[i - 1] };
+  return { reservado, delSaldoAnterior, mesAnterior: i === 0 ? null : periods[i - 1] };
 }
 
 /**

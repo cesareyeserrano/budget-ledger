@@ -8,7 +8,7 @@
 
 import type { CellNote, LedgerState, Movement, NodeType, PeriodKey } from "./types";
 import { monthOf, periodLabel } from "./periods";
-import { cellObservations, monthCarryUsage } from "./reserve";
+import { carryUsageText, cellObservations, monthCarryUsage } from "./reserve";
 import { findNode, isLeaf } from "./tree";
 
 type PeriodScope = readonly PeriodKey[];
@@ -133,9 +133,7 @@ export function cellDetail(
     if (carry) {
       entries.push({
         kind: "auto",
-        text:
-          `De los ${cop(carry.reservado)} reservados este mes, ${cop(carry.delSaldoAnterior)} ` +
-          `salieron del saldo de ${periodLabel(carry.mesAnterior).toLowerCase()}.`,
+        text: carryUsageText(carry, cop),
       });
     }
     for (const o of cellObservations(state, leafId, period, periods)) {
