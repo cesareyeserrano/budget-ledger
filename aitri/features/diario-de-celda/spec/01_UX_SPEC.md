@@ -170,7 +170,7 @@ campos de añadir quedan siempre visibles.
 | **Fila de movimiento** | default · hover/focus (borde `--border-strong`; aparecen lápiz y papelera) · loading (n/a) · error (aviso de celda negativa al intentar borrar, F5) · empty (sin nota → «Sin nota» en `--fg-muted`) · disabled (mes cerrado: sin acciones) | Ícono `Receipt` 12 px · fecha «18 sep» (`tabular`, `--fg-muted`, ancho fijo 44 px) · nota en 1 línea con puntos suspensivos y el texto completo en `title` · monto a la derecha (ver regla de signo). Todo en `caption` | H6, H4, H8 |
 | **Fila de ajuste** (variante de movimiento) | igual que la fila de movimiento · resaltado 1,5 s al crearse (borde `--accent`) | Ícono `SlidersHorizontal` 12 px en lugar de `Receipt`. Nota por defecto «Ajuste manual» | H1, H6 |
 | **Fila de comentario manual** | default · hover (n/a: no se edita desde aquí) · loading (n/a) · error (n/a) · empty (n/a) · disabled (n/a: editable también en mes cerrado) | Ícono `MessageSquare` 12 px · texto del comentario (sin monto ni fecha), en varias líneas | H6, H4 |
-| **Fila de comentario automático** (bolsillos, FR-1804) | default · resto n/a | Ícono `Info` 12 px en `--alert-soft` sobre tinte `--alert-soft` 8 % (su aspecto actual, que es el modelo de estilo pedido por el usuario) | H1 |
+| **Fila de comentario automático** (bolsillos, FR-1804) | default · resto n/a | Ícono `Info` 12 px en `--fg-muted` sobre el MISMO tinte neutro de las demás filas (FR-2508). La distingue su ícono, no un color. *Corregido el 2026-09-21: antes iba en `--alert-soft` (ámbar), un color de alerta que FR-1201 prohíbe para clasificar, y contradecía el «mismo fondo» de FR-2508. Decisión del usuario: filas en columnas y la automática en neutro.* | H1 |
 | **Línea «Añadir movimiento»** | default · disabled (monto vacío o 0; o mes cerrado → la línea no se renderiza) · error (nota >280 → contador en `--error`; rechazo del servidor → mensaje debajo) · empty (campos vacíos, fecha propuesta visible) · loading (n/a: optimista) | Etiqueta `eyebrow` «Añadir movimiento» sobre una fila: Monto (input `tabular`, 96 px, aria-label «Monto») · Nota (input flexible, aria-label «Nota», placeholder «Nota (opcional)») · botón Fecha (ícono `CalendarClock` + «Hoy»/«20 sep», abre el calendario vigente limitado al mes o ciclo) · botón `Plus` «Añadir». Enter confirma | H5, H6, H7 |
 | **Bloque de edición de movimiento** | default (valores actuales) · disabled («Guardar» deshabilitado con monto vacío/0, nota >280, fecha en periodo cerrado o **celda que quedaría negativa**) · error (mensaje junto al campo que falla, o bajo el bloque) · empty (n/a) · loading (n/a) | Sustituye a la fila. Campos con etiqueta visible (`label`, `--fg-secondary`): Monto · Nota (contador) · Fecha (calendario; aviso «Pasará a …» si cambia de ciclo) · Categoría (select vigente de shadcn con las hojas del mismo tipo). Botones «Guardar» (primario) y «Cancelar» (ghost). Enter guarda; Escape cancela | H3, H5, H9, H6 |
 | **Aviso de celda negativa** (nuevo) | default (oculto) · error (visible) · resto n/a | Bajo el bloque de edición o en la fila al intentar borrar: ícono `TriangleAlert` 12 px + «No se puede: Restaurantes quedaría en −10.000, y ninguna celda puede quedar por debajo de 0.» (en borrar: «No se puede borrar: la celda quedaría en −100.000.»), en `--error`, `caption` | H5, H9 |
@@ -307,7 +307,7 @@ prototipo) están superados por esa feature y no se usan.
 | border (hover) | `--border-strong` | #d3d3d9 | #43434c | Borde de fila en hover o foco: en el sistema el hover cambia el borde, no el relleno |
 | tipo gasto | `--type-expense` | #c4453e | #ec6a66 | Monto de un gasto que suma a la celda; el color por tipo ya es AA en ambos temas (FR-204) |
 | tipo ingreso | `--type-income` | #2f7d53 | #5fbe82 | Monto de un ingreso que suma a la celda |
-| alerta leve | `--alert-soft` | #9e4708 | #e0a458 | Ícono y tinte del comentario automático, y marcador de celda: su aspecto vigente |
+| alerta leve | `--alert-soft` | #9e4708 | #e0a458 | Marcador de celda (vigente, FR-1809). YA NO la nota automática: ver FR-1201 |
 
 **Tintes compuestos (sin hex nuevo):**
 - Fila de movimiento, ajuste y comentario: `background: color-mix(in srgb, var(--fg-muted) 4%, transparent)`.
@@ -315,7 +315,7 @@ prototipo) están superados por esa feature y no se usan.
   que el color siga reservado a la semántica. **Por qué 4 % y no más:** es el tinte más fuerte en el que todos los
   pares de texto siguen en AA en ambos temas. Con 6 %, el monto de un gasto en tema oscuro cae a 4,45:1 (falla);
   con 5 % queda en 4,51:1, un margen de 0,01 que el redondeo de `color-mix` podría romper.
-- Fila de comentario automático: `color-mix(in srgb, var(--alert-soft) 8%, transparent)`, sin cambio.
+- Fila de comentario automático: el mismo tinte neutro que las demás (`--fg-muted` 4 %). Corregido el 2026-09-21 (FR-2508, FR-1201).
 
 **Contraste** (texto de 12-14 px, objetivo WCAG AA ≥4,5:1). Ratios calculados con la fórmula de luminancia relativa
 de WCAG 2.1 sobre los hex de los tokens:

@@ -1295,15 +1295,15 @@
       "requirement_id": "FR-2508",
       "user_story_id": "US-2508",
       "ac_id": "AC-2508a",
-      "title": "El comentario automático de un bolsillo usa la anatomía común con su ícono Info",
+      "title": "El comentario automático de un bolsillo usa la anatomía y el fondo comunes; lo distingue su ícono Info",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
       "given": "bolsillo Viaje con saldo anterior que genera el comentario automático en «Septiembre» y 1 nota De→A «pasaje»",
       "when": "se abre la celda de Ejecutado del bolsillo",
-      "then": "la fila automática tiene ícono aria-label «Automático» y fondo = mezcla 8% de --alert-soft; su font-size y padding coinciden con la fila «pasaje»; título del panel «Detalle»",
-      "expected_result": "misma anatomía, tinte --alert-soft 8% solo en la automática"
+      "then": "la fila automática tiene ícono aria-label «Automático» en color neutro (no --alert-soft); su font-size, padding y FONDO coinciden con la fila «pasaje»; título del panel «Detalle»",
+      "expected_result": "misma anatomía y mismo fondo que las demás filas; ningún color de alerta en la fila automática (FR-2508, FR-1201)"
     },
     {
       "id": "TC-DDC-154e",

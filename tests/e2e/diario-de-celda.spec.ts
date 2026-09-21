@@ -419,7 +419,7 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
     await expect(auto.getByLabel("Automático", { exact: true })).toHaveCount(1);
     const nota = panel.locator('[data-testid="detail-row"][data-kind="comment"]').first();
     await expect(nota).toContainText("pasaje");
-    // Misma anatomía: solo el tinte del fondo distingue a la automática.
+    // Misma anatomía Y mismo fondo (FR-2508): la distingue su ícono, nunca un color de alerta (FR-1201).
     const [a, n] = await Promise.all([
       auto.evaluate((el) => { const s = getComputedStyle(el); return `${s.fontSize}|${s.padding}`; }),
       nota.evaluate((el) => { const s = getComputedStyle(el); return `${s.fontSize}|${s.padding}`; }),
@@ -429,7 +429,10 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
       auto.evaluate((el) => getComputedStyle(el).backgroundColor),
       nota.evaluate((el) => getComputedStyle(el).backgroundColor),
     ]);
-    expect(bgAuto).not.toBe(bgNota);
+    expect(bgAuto).toBe(bgNota);
+    // Y el ícono tampoco va en ámbar: antes era --alert-soft (BG-042).
+    const iconColor = await auto.locator("svg").first().evaluate((el) => getComputedStyle(el).color);
+    expect(iconColor).not.toBe(await cssVar(page, "--alert-soft"));
   });
 
   for (const scheme of ["light", "dark"] as const) {

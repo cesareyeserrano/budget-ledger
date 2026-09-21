@@ -38,8 +38,6 @@ const RESALTADO_MS = 2000;
 
 /** Tinte común de TODAS las filas: la misma «caja» del comentario automático, pero neutra. */
 const ROW_TINT = "color-mix(in srgb, var(--fg-muted) 4%, transparent)";
-/** Tinte propio del comentario automático (su aspecto vigente, FR-1804). */
-const AUTO_TINT = "color-mix(in srgb, var(--alert-soft) 8%, transparent)";
 /** «Eyebrow» del sistema: el `caption` en versalitas con tracking (no hay utilidad propia). */
 const EYEBROW = "text-caption font-semibold uppercase tracking-[0.09em]";
 
@@ -70,9 +68,11 @@ function DetailRow({
   const borde = resaltado ? { border: "1px solid var(--accent)" } : undefined;
 
   if (entry.kind === "auto") {
+    // El MISMO fondo que las demás filas (FR-2508): la distingue su ícono, no un color. Antes iba en
+    // ámbar (--alert-soft), color de ALERTA que FR-1201 prohíbe para clasificar (BG-042).
     return (
-      <div data-testid="detail-row" data-kind="auto" className={base} style={{ background: AUTO_TINT }}>
-        <Info size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-label="Automático" style={{ color: "var(--alert-soft)" }} />
+      <div data-testid="detail-row" data-kind="auto" className={base} style={{ background: ROW_TINT }}>
+        <Info size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-label="Automático" style={{ color: "var(--fg-muted)" }} />
         <span data-testid="carry-note" style={{ color: "var(--fg)" }}>{entry.text}</span>
       </div>
     );

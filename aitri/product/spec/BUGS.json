@@ -1009,6 +1009,28 @@
       "resolution": "monthCarryUsage ya no descarta el primer mes del rango: si hay saldo inicial declarado lo toma como disponible previo y lo nombra ('salieron del saldo inicial'); sin saldo inicial conserva el comportamiento de siempre (sin nota). El texto de la nota paso a un solo sitio (carryUsageText en reserve.ts), que ahora usan el Detalle y el titulo de la celda de bolsillo en vez de dos copias. Pruebas en tests/domain/bg-041-nota-saldo-inicial.test.ts, verificadas por mutacion (con la guarda vieja reinyectada caen dos). Comprobado en la app de dev: Ahorros/septiembre muestra 'De los 30.000.000 reservados este mes, 26.000.000 salieron del saldo inicial'.",
       "fix_commit_sha": "75da810409d089e358b660f53c08122d5ae05eda",
       "fix_at": "2026-09-21T16:25:19.975Z"
+    },
+    {
+      "id": "BG-042",
+      "title": "La nota automatica del Detalle usa fondo e icono ambar (--alert-soft): incumple el 'mismo fondo' de FR-2508 y el uso exclusivo de colores de alerta de FR-1201",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "fixed",
+      "fr": "FR-2508",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-21T16:55:33.218Z",
+      "updated_at": "2026-09-21T17:05:01.514Z",
+      "resolution": "Fila automatica del Detalle con el tinte neutro comun (--fg-muted 4%) y el icono Info en --fg-muted; corregidos UX spec, TC-DDC-153e y la prueba e2e, que exigia un fondo distinto. Verificado por mutacion.",
+      "fix_commit_sha": "7bfe2b4bb8bc2baf20b766a63fd76c24ac5140f6",
+      "fix_at": "2026-09-21T17:05:01.514Z"
     }
   ]
 }
