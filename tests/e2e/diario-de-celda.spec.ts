@@ -131,6 +131,16 @@ async function cerrarEditor(page: Page): Promise<void> {
   await expect(panel).toHaveCount(0);
 }
 
+/**
+ * Despliega el campo «Añadir comentario» si está a un clic (gasto o ingreso de un mes ABIERTO, donde
+ * la línea del movimiento ya tiene su «Nota»: decisión del usuario del 2026-09-21). En bolsillos y
+ * meses cerrados el campo ya está a la vista y esto no hace nada.
+ */
+async function desplegarComentario(panel: ReturnType<Page["locator"]>): Promise<void> {
+  const enlace = panel.getByTestId("comment-reveal");
+  if (await enlace.count()) await enlace.click();
+}
+
 /** Abre el editor de esa celda y devuelve el panel «Detalle». */
 async function abrirCelda(page: Page, leafId: string, period: string) {
   await celda(page, leafId, period).click();
@@ -359,6 +369,7 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
       movements: [mv("m-u", "expense", "c-rest", 20_000, SEP, "2026-09-18T12:00", 1)],
     } as unknown as Seed);
     const panel = await abrirCelda(page, "c-rest", SEP);
+    await desplegarComentario(panel);
 
     await panel.getByLabel("Añadir comentario").fill("Revisar la factura del 18");
     await panel.getByTestId("cell-note-add").click();
@@ -383,6 +394,7 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
       ] } },
     } as unknown as Seed);
     const panel = await abrirCelda(page, "c-rest", SEP);
+    await desplegarComentario(panel);
 
     let puts = 0;
     page.on("request", (r) => { if (r.method() === "PUT" && r.url().includes("/api/v1/ledger")) puts++; });
@@ -899,6 +911,7 @@ test.describe("FR-2509 — un solo nombre por concepto", () => {
       movements: [mv("m-u", "expense", "c-rest", 20_000, SEP, "2026-09-18T12:00", 1)],
     } as unknown as Seed);
     const panel = await abrirCelda(page, "c-rest", SEP);
+    await desplegarComentario(panel);
 
     await expect(panel.getByText("Detalle", { exact: true })).toBeVisible();
     const campo = panel.getByLabel("Añadir comentario");
@@ -2096,5 +2109,45 @@ test.describe("Tarjeta del Detalle — legible y con salida visible (2026-09-21)
     await expect.poll(async () =>
       (await readLedger(page))?.movements.filter((m) => m.kind === "adjustment").map((m) => m.amount)
     ).toEqual([20_000]);
+  });
+});
+
+test.describe("FR-2508 — el comentario a un clic donde ya está la nota del movimiento", () => {
+  test("TC-DDC-017e: gasto abierto → enlace; bolsillo y mes cerrado → campo visible", async ({ page }) => {
+    // @aitri-tc TC-DDC-017e
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-salario": { [AGO]: 2_000_000 }, "c-rest": { [AGO]: 7_000, [SEP]: 10_000 }, "c-viaje": { [SEP]: 1_000_000 } },
+      movements: [
+        mv("m-ago", "expense", "c-rest", 7_000, AGO, "2026-08-05T12:00", 1, "Pan"),
+        mv("m-sep", "expense", "c-rest", 10_000, SEP, "2026-09-05T12:00", 2, "Café"),
+        DEA,
+      ],
+    } as unknown as Seed);
+
+    // Gasto de un mes ABIERTO: una sola caja visible (la del movimiento) y el comentario a un clic.
+    let panel = await abrirCelda(page, "c-rest", SEP);
+    await expect(panel.getByLabel("Añadir comentario", { exact: true })).toHaveCount(0);
+    await panel.getByTestId("comment-reveal").click();
+    const campo = panel.getByLabel("Añadir comentario", { exact: true });
+    await expect(campo).toBeFocused();
+    await campo.fill("Revisar el recibo");
+    await campo.press("Enter");
+    await expect(panel.getByTestId("cell-note").filter({ hasText: "Revisar el recibo" })).toHaveCount(1);
+    await cerrarEditor(page);
+
+    // Bolsillo: no hay línea de movimiento, el comentario es la única caja y se ve siempre.
+    panel = await abrirCelda(page, "c-viaje", SEP);
+    await expect(panel.getByLabel("Añadir comentario", { exact: true })).toBeVisible();
+    await expect(panel.getByTestId("comment-reveal")).toHaveCount(0);
+    await cerrarEditor(page);
+
+    // Mes CERRADO: tampoco hay línea de movimiento.
+    expect(await closeViaApi(page)).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("budget-grid")).toBeVisible();
+    panel = await abrirCelda(page, "c-rest", AGO);
+    await expect(panel.getByLabel("Añadir comentario", { exact: true })).toBeVisible();
+    await expect(panel.getByTestId("comment-reveal")).toHaveCount(0);
   });
 });

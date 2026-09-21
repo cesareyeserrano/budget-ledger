@@ -27,7 +27,11 @@ import { useLedgerStore } from "@/state/store";
  *
  * @aitri-trace FR-ID: FR-2508, US-ID: US-2508, AC-ID: AC-2508b, TC-ID: TC-DDC-152h, TC-DDC-155f
  */
-export function CellNoteInput({ leafId, month }: { leafId: string; month: PeriodKey }) {
+export function CellNoteInput({ leafId, month, autoFocus = false }: {
+  leafId: string; month: PeriodKey;
+  /** Pone el foco al montarse: cuando el campo se despliega desde «+ Añadir comentario». */
+  autoFocus?: boolean;
+}) {
   const addNote = useLedgerStore((s) => s.addCellNote);
   const [draft, setDraft] = useState("");
   const over = draft.length > CELL_NOTE_MAX;
@@ -36,6 +40,7 @@ export function CellNoteInput({ leafId, month }: { leafId: string; month: Period
   return (
     <div className="flex items-center gap-2 text-caption">
       <input
+        autoFocus={autoFocus}
         aria-label="Añadir comentario"
         value={draft}
         placeholder="Añadir comentario"

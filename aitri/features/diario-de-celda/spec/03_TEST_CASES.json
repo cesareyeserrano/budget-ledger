@@ -2721,6 +2721,21 @@
       "when": "se teclea 120000 y se pulsa «Cancelar»; luego se abre de nuevo, se teclea 120000 y se pulsa «Guardar»",
       "then": "con «Cancelar» la celda sigue en 100.000 y no se crea ningún ajuste; con «Guardar» la celda queda en 120.000 y se crea el ajuste de 20.000 — lo mismo que pulsar Enter",
       "expected_result": "Cancelar no escribe nada; Guardar equivale a Enter"
+    },
+    {
+      "id": "TC-DDC-017e",
+      "requirement_id": "FR-2508",
+      "user_story_id": "US-2508",
+      "ac_id": "AC-2508a",
+      "title": "En gasto o ingreso de un mes abierto el comentario se despliega con «+ Añadir comentario»; en bolsillos y meses cerrados sigue visible",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "una celda de gasto de un mes abierto, una celda de bolsillo y una celda de gasto de un mes cerrado",
+      "when": "se abre cada una",
+      "then": "en la de gasto abierto no hay campo «Añadir comentario» visible sino el enlace «+ Añadir comentario»; al pulsarlo aparece el campo con el foco puesto y un comentario escrito se guarda. En la de bolsillo y en la del mes cerrado el campo está visible desde el principio",
+      "expected_result": "una sola caja de texto visible en gasto/ingreso abierto; el comentario sigue a un clic y funciona igual"
     }
   ]
 }

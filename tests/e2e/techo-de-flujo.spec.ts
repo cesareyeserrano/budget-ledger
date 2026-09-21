@@ -340,6 +340,10 @@ test.describe("FR-1809 y FR-1804 · observaciones", () => {
     await expect(seccion).toBeVisible();
     await expect(page.getByTestId("cell-notes-empty")).toBeVisible();
 
+    // En un gasto de mes abierto el comentario se despliega con «+ Añadir comentario» (diario-de-celda,
+    // decisión del usuario del 2026-09-21). Cambia un PASO de la interacción, no lo que el caso verifica:
+    // que una celda de gasto admite comentario y que su marca aparece al guardarlo.
+    await seccion.getByTestId("comment-reveal").click();
     await seccion.getByLabel("Añadir comentario").fill("mercado de la quincena");
     await seccion.getByTestId("cell-note-add").click();
     await expect(seccion.getByTestId("cell-note")).toHaveText(/mercado de la quincena/);

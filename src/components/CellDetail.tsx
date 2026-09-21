@@ -229,6 +229,9 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
   // panel lo deriva él mismo del estado, como hace la grilla — no hace falta pasárselo.
   const cerrado = isClosed(data.closure, month);
   const [editando, setEditando] = useState<string | null>(null);
+  /** Hay línea «Añadir movimiento» (gasto o ingreso de un mes abierto): el comentario va a un clic. */
+  const conLineaDeMovimiento = !!node && node.type !== "transfer" && !cerrado;
+  const [comentarioAbierto, setComentarioAbierto] = useState(false);
 
   /**
    * Si el mes se CIERRA con el bloque de edición abierto, ese bloque se retira (FR-2507).
@@ -373,7 +376,24 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
           desde aquí — sus operaciones De→A tienen su propia vía (NFR-2503, TC-DDC-343e). */}
       {node.type !== "transfer" && !cerrado && <AddMovementLine leafId={leafId} month={month} />}
 
-      <CellNoteInput leafId={leafId} month={month} />
+      {/* Divulgación progresiva (decisión del usuario, 2026-09-21): donde ya está la línea del
+          movimiento con su «Nota», una segunda caja de texto a la vista confundía. El comentario
+          queda a un clic. En bolsillos y meses cerrados es la ÚNICA caja, así que se ve siempre.
+          No se fundieron las dos en una: un campo que cambia de tipo según haya monto es un modo
+          oculto, y olvidar el monto al anotar un gasto lo guardaría como comentario. */}
+      {conLineaDeMovimiento && !comentarioAbierto ? (
+        <button
+          type="button"
+          data-testid="comment-reveal"
+          onClick={() => setComentarioAbierto(true)}
+          className="self-start text-caption cursor-pointer bg-transparent border-0 p-0"
+          style={{ color: "var(--fg-secondary)" }}
+        >
+          + Añadir comentario
+        </button>
+      ) : (
+        <CellNoteInput leafId={leafId} month={month} autoFocus={conLineaDeMovimiento} />
+      )}
     </div>
   );
 }
