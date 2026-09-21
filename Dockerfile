@@ -8,14 +8,14 @@
 # declarado en DEPLOYMENT.md, una Raspberry Pi 5.
 
 # ── 1. Dependencias ──────────────────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 # Solo los manifiestos: así esta capa se cachea y `npm ci` no se repite en cada cambio de código.
 COPY package.json package-lock.json ./
 RUN npm ci
 
 # ── 2. Build ─────────────────────────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -27,7 +27,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ── 3. Runtime ───────────────────────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
