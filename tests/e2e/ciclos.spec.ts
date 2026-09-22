@@ -16,6 +16,8 @@ import path from "node:path";
 import { test, expect, type Page } from "./helpers/fixtures";
 import { seedLedger } from "./helpers/seed";
 import { applyCycles, closeViaApi, fixToday } from "./helpers/cycles";
+import { seedDescuadrado } from "./helpers/descuadre";
+import { e2eEmail } from "./helpers/globalSetup";
 import { estadoReal, estadoSyn, mv, resetSeq } from "../fixtures/ciclos";
 import { estadoUsuario, F_USER_INICIO } from "../fixtures/ciclos-usuario";
 import { computeBalanceSeries } from "@/domain/balance";
@@ -56,6 +58,23 @@ async function seedUser(page: Page): Promise<LedgerState> {
 async function seedSyn(page: Page, over: Partial<LedgerState> = {}): Promise<void> {
   const st = estadoSyn(over);
   await seedLedger(page, { nodes: st.nodes, budgets: st.budgets, actuals: st.actuals, movements: st.movements });
+}
+
+/**
+ * Siembra un escenario DESCUADRADO por SQL directo (NFR-2502, decisión del usuario del 2026-09-15).
+ *
+ * Lo necesita SOLO TC-CIC-176f: el aviso «la celda quedaría en negativo» existe precisamente cuando
+ * la celda NO cuadra con sus movimientos, así que su escenario es un descuadre previo — y desde esta
+ * feature el servidor no permite crear uno por la API, con razón. (Su hermana TC-CIC-175f cubre lo
+ * mismo en el dominio, sin base ni API, así que no necesita nada de esto.)
+ * Los nodos van por la vía normal; las celdas de Ejecutado y los movimientos, por debajo.
+ */
+async function seedSynDescuadrado(
+  page: Page, email: string, over: Partial<LedgerState> = {}
+): Promise<void> {
+  const st = estadoSyn(over);
+  await seedLedger(page, { nodes: st.nodes, budgets: st.budgets });
+  await seedDescuadrado(email, { actuals: st.actuals, movements: st.movements });
 }
 async function snapshot(page: Page): Promise<unknown> {
   return (await page.request.get("/api/v1/ledger")).json();
@@ -542,7 +561,7 @@ test.describe("FR-2404 — aplicar desde la interfaz", () => {
     await expect(page.getByTestId("config-period-month")).toHaveAttribute("aria-checked", "true");
   });
 
-  test("TC-CIC-176f: la previsualización nombra el rubro, no su id, cuando la activación dejaría una celda en negativo", async ({ page }) => {
+  test("TC-CIC-176f: la previsualización nombra el rubro, no su id, cuando la activación dejaría una celda en negativo", async ({ page }, testInfo) => {
     // @aitri-tc TC-CIC-176f
     await fixToday(page, HOY);
     resetSeq();
@@ -552,7 +571,11 @@ test.describe("FR-2404 — aplicar desde la interfaz", () => {
       mv("expense", "c-comida", 20, "2026-09-25", "2026-09"),
       mv("expense", "c-comida", 100, "2026-10-05", "2026-10"),
     ];
-    await seedSyn(page, { movements, actuals: { "c-comida": { "2026-08": 0, "2026-09": 0, "2026-10": 100 } } });
+    // El escenario ES un descuadre (celdas en 0 con movimientos que suman 100 y 50), así que se
+    // siembra por debajo de la API: el servidor ya no deja crearlo, y con razón (NFR-2502).
+    await seedSynDescuadrado(page, e2eEmail(testInfo.parallelIndex), {
+      movements, actuals: { "c-comida": { "2026-08": 0, "2026-09": 0, "2026-10": 100 } },
+    });
     await abrirConfig(page);
     await elegirCiclos(page);
     await page.getByTestId("config-preview").click();

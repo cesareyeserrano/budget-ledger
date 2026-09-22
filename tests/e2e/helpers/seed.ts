@@ -19,6 +19,58 @@ export interface SeedInput {
   actuals?: AmountMap;
   movements?: Movement[];
   cellNotes?: Record<string, Record<string, string>>;
+  /**
+   * Siembra TAL CUAL, sin completar el respaldo de las celdas (NFR-2502). Solo para las pruebas que
+   * necesitan un ledger DESCUADRADO a propósito — el aviso de descuadre de FR-2511. Por defecto la
+   * siembra cuadra, que es el estado que cualquier otra prueba da por supuesto.
+   */
+  sinCuadrar?: boolean;
+}
+
+/**
+ * Los movimientos del escenario MÁS el respaldo que falte (NFR-2502, feature diario-de-celda).
+ *
+ * Desde esta feature el servidor rechaza una celda de Ejecutado de gasto o ingreso que no cuadre con
+ * la suma de sus movimientos. Muchos specs sembraban la cifra suelta —su intención era «esta celda
+ * vale N», no «una celda sin respaldo»— y el PUT empezó a responder 422. En vez de retocar doce
+ * specs, el respaldo se completa AQUÍ: por cada celda descuadrada se añade un movimiento por la
+ * diferencia, que es exactamente lo que hace la app cuando el usuario teclea un total (FR-2504).
+ *
+ * Los bolsillos (`transfer`) se quedan fuera: su celda es el aporte del mes y nunca descuadra
+ * (NFR-2503). Un spec que necesite sembrar una celda DESCUADRADA a propósito —las pruebas del aviso
+ * de descuadre, FR-2511— pasa `sinCuadrar: true` y siembra tal cual.
+ */
+function conRespaldo(input: SeedInput): Movement[] {
+  const movements = [...(input.movements ?? [])];
+  const tipoDe = new Map(input.nodes.map((n) => [n.id, n] as const));
+  let seq = 0;
+
+  for (const [nodeId, meses] of Object.entries(input.actuals ?? {})) {
+    const node = tipoDe.get(nodeId);
+    if (!node || node.type === "transfer") continue;
+    for (const [period, cell] of Object.entries(meses as Record<string, number>)) {
+      const suma = movements
+        .filter((m) => m.type !== "transfer" && m.target === nodeId && m.period === period)
+        .reduce((a, m) => a + m.amount, 0);
+      const diff = (cell ?? 0) - suma;
+      if (diff === 0) continue;
+      movements.push({
+        id: `respaldo-${nodeId}-${period}-${++seq}`,
+        ownerId: "local",
+        type: node.type,
+        catId: node.level === "sub" && node.parentId ? node.parentId : nodeId,
+        subId: node.level === "sub" ? nodeId : null,
+        target: nodeId,
+        amount: diff,
+        period: period as Movement["period"],
+        createdAt: 800_000 + seq,
+        // Día 10: dentro del mes natural y del ciclo que ese mes nombra.
+        date: `${period.slice(0, 7)}-10T12:00`,
+        ...(diff < 0 ? { kind: "adjustment" as const } : {}),
+      });
+    }
+  }
+  return movements;
 }
 
 /**
@@ -39,7 +91,7 @@ export async function seedLedger(page: Page, input: SeedInput): Promise<void> {
     nodes: input.nodes,
     budgets: input.budgets ?? {},
     actuals: input.actuals ?? {},
-    movements: input.movements ?? [],
+    movements: input.sinCuadrar ? (input.movements ?? []) : conRespaldo(input),
     ...(input.cellNotes ? { cellNotes: input.cellNotes } : {}),
   };
 
@@ -84,6 +136,31 @@ export async function seedLedger(page: Page, input: SeedInput): Promise<void> {
   for (const m of state.movements) periodos.add(m.period);
 
   const HOLGURA = 1_000_000_000_000; // muy por encima de cualquier escenario, y muy por debajo de 2^53
+  // NFR-2502: el ingreso inflado va CON su movimiento. Sin él, este primer paso es una celda sin
+  // respaldo y el servidor responde 422 `cell_movement_mismatch` — el atajo de dos pasos moría antes
+  // de llegar al escenario real. Lo que el paso holgado hace sigue siendo lo mismo: dar margen de
+  // sobra para que las reservas quepan, y bajarlo después.
+  // El respaldo es la DIFERENCIA hasta la holgura, no la holgura entera: `state.movements` ya trae
+  // el que respalda la cifra original del escenario, y sumar otro por el total dejaba la celda en
+  // HOLGURA con sus movimientos sumando HOLGURA + lo anterior — descuadrada otra vez, al revés.
+  const yaSumado = (p: string) =>
+    state.movements
+      .filter((m) => m.type !== "transfer" && m.target === hojaIngreso.id && m.period === p)
+      .reduce((a, m) => a + m.amount, 0);
+  const respaldo: Movement[] = [...periodos]
+    .map((p, i) => ({
+      id: `holgura-${i + 1}`,
+      ownerId: "local",
+      type: "income" as const,
+      catId: hojaIngreso.id,
+      subId: null,
+      target: hojaIngreso.id,
+      amount: HOLGURA - yaSumado(p),
+      period: p as Movement["period"],
+      createdAt: 900_000 + i,
+      date: `${p.slice(0, 7)}-10T12:00`,
+    }))
+    .filter((m) => m.amount !== 0);
   const holgado = {
     ...state,
     actuals: {
@@ -93,6 +170,9 @@ export async function seedLedger(page: Page, input: SeedInput): Promise<void> {
         ...Object.fromEntries([...periodos].map((p) => [p, HOLGURA])),
       },
     },
+    // Los movimientos del escenario real se conservan: el paso holgado solo AÑADE el respaldo del
+    // ingreso inflado, que el paso 2 retira junto con la cifra.
+    movements: [...respaldo, ...state.movements],
   };
 
   const paso1 = await ctx.put("/api/v1/ledger", { data: { baseRevision, state: holgado } });

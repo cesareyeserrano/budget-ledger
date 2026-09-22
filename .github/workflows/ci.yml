@@ -86,7 +86,28 @@ jobs:
         run: npm ci
       # SCA (NFR-513): falla ante vulnerabilidad de dependencias de severidad alta/crítica.
       - name: SCA — npm audit
-        run: npm audit --audit-level=high
+        # `npm audit` sale con 1 en DOS situaciones opuestas: cuando encuentra una vulnerabilidad
+        # alta y cuando el escaneo NO LLEGA A EJECUTARSE (endpoint caido, 400, sin red). Sin separar
+        # los dos casos, el rojo no dice si hay que subir una dependencia o arreglar el CI — y, peor,
+        # «no hay vulnerabilidades» y «no mire» se ven exactamente igual.
+        #
+        # Paso REAL: entre el 10-ago y el 7-sep de 2026 el cron semanal fallo cinco veces por una
+        # vulnerabilidad alta de verdad (brace-expansion, GHSA-mh99-v99m-4gvg) y el 14-sep fallo una
+        # sexta con la vulnerabilidad YA CERRADA, esta vez porque el endpoint devolvio
+        # «400 Invalid package tree». Seis puntos rojos identicos, dos causas opuestas, y por eso un
+        # aviso de DoS estuvo un mes sin que nadie lo mirara.
+        #
+        # Lo que NO se hace aqui: `|| true`. Eso arreglaria el color y apagaria el gate.
+        run: |
+          set +e
+          salida=$(npm audit --audit-level=high 2>&1); rc=$?
+          set -e
+          echo "$salida"
+          if [ $rc -ne 0 ] && echo "$salida" | grep -qiE 'audit endpoint returned an error|Invalid package tree|Bad Request|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET'; then
+            echo "::error title=SCA no ejecutado::npm audit no pudo completar el escaneo. Esto NO es un hallazgo de seguridad: el gate no llego a mirar. Revisa el error de arriba (endpoint de npm, red o arbol de paquetes) y vuelve a lanzarlo."
+            exit 1
+          fi
+          exit $rc
       # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol de fuentes.
       # El script prefiere gitleaks si está instalado; en el runner cae al fallback de patrones.
       - name: Secret scan

@@ -323,9 +323,13 @@ test.describe("FR-1806 · la señal del mes vive en sus dos superficies", () => 
 test.describe("FR-1809 y FR-1804 · observaciones", () => {
   test("TC-TDF-080h: una celda de GASTO admite observación, y su marca aparece al guardarla", async ({ page }) => {
     await page.setViewportSize(DESK);
+    // NFR-2502: Mercado se siembra EN CERO. Con una cifra, la siembra le añade el movimiento que la
+    // respalda (el servidor ya no admite una celda sin él) y el panel listaría esa fila, así que el
+    // estado vacío no aparecería. Lo que esta prueba verifica —que una celda de GASTO admite
+    // comentario y que su marca aparece al guardarlo— no depende de que la celda tenga cifra.
     await abrir(page, {
       nodes: NODES,
-      actuals: { "c-salario": { "2026-01": 1000 }, "c-mercado": { "2026-01": 300 } },
+      actuals: { "c-salario": { "2026-01": 1000 }, "c-mercado": { "2026-01": 0 } },
     });
 
     // Antes de FR-1809 esto solo existía en celdas de bolsillo.
@@ -336,7 +340,11 @@ test.describe("FR-1809 y FR-1804 · observaciones", () => {
     await expect(seccion).toBeVisible();
     await expect(page.getByTestId("cell-notes-empty")).toBeVisible();
 
-    await seccion.getByLabel("Añadir observación").fill("mercado de la quincena");
+    // En un gasto de mes abierto el comentario se despliega con «+ Añadir comentario» (diario-de-celda,
+    // decisión del usuario del 2026-09-21). Cambia un PASO de la interacción, no lo que el caso verifica:
+    // que una celda de gasto admite comentario y que su marca aparece al guardarlo.
+    await seccion.getByTestId("comment-reveal").click();
+    await seccion.getByLabel("Añadir comentario").fill("mercado de la quincena");
     await seccion.getByTestId("cell-note-add").click();
     await expect(seccion.getByTestId("cell-note")).toHaveText(/mercado de la quincena/);
 

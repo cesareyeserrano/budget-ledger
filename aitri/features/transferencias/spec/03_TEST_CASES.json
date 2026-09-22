@@ -486,7 +486,7 @@
       "preconditions": [],
       "given": "un retiro con nota 'pasaje' en sep",
       "when": "se inspecciona la celda Ejec. de sep de la alcancía y se abre su editor",
-      "then": "punto indicador visible, tooltip contiene 'pasaje', la sección Observaciones la lista y una manual añadida aparece de inmediato",
+      "then": "punto indicador visible, tooltip contiene 'pasaje', la sección Detalle la lista y un comentario escrito en 'Añadir comentario' aparece de inmediato",
       "expected_result": "lectura e ingreso desde la celda"
     },
     {
@@ -494,14 +494,14 @@
       "requirement_id": "FR-1012",
       "user_story_id": "US-1012",
       "ac_id": "AC-1012",
-      "title": "Celda sin observaciones: sin indicador y con placeholder",
+      "title": "Celda sin movimientos ni comentarios: sin indicador y con placeholder",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
       "given": "una celda transfer sin notas del mes",
       "when": "se inspecciona y se abre el editor",
-      "then": "sin punto indicador; la sección muestra 'Sin observaciones este mes'",
+      "then": "sin punto indicador; la sección muestra 'Sin movimientos ni comentarios'",
       "expected_result": "cero ruido sin datos"
     },
     {

@@ -353,6 +353,15 @@ function diffAmountMaps(
  * Marca los periodos tocados por altas, bajas, cambios de importe/destino y —el caso que se
  * escapa si no se piensa— movimientos que CAMBIAN de periodo: cuentan las dos puntas, así que
  * arrastrar un movimiento hacia un mes cerrado se rechaza igual que editarlo dentro de él.
+ *
+ * Desde diario-de-celda (FR-2507) se comparan TAMBIÉN `note`, `date` y `kind`. Faltaban, y era un
+ * agujero real: con editar y borrar movimientos ya en el producto, cambiar solo la nota o solo la
+ * fecha de un movimiento DENTRO de un mes cerrado se aceptaba — el mes quedaba congelado en sus
+ * cifras pero no en su contenido. Lo destapó TC-DDC-137f (2026-09-17).
+ *
+ * OJO a la distinción, que es fácil de confundir: la `note` de un MOVIMIENTO sí se congela; los
+ * `cellNotes` —los comentarios de la celda— siguen ignorados a propósito, porque FR-2004 los deja
+ * editables en un mes cerrado. Son dos cosas distintas con el mismo nombre coloquial.
  */
 function diffMovements(
   a: LedgerState["movements"],
@@ -372,8 +381,14 @@ function diffMovements(
       mark(om.period);
       mark(nm.period);
     }
+    // `??` en los tres campos opcionales: ausente y `null` son el MISMO dato («sin nota», «sin
+    // fecha», «manual»), y tratarlos como distintos marcaría una violación al releer un movimiento
+    // viejo sin haberlo tocado nadie.
     if (om.amount !== nm.amount || om.target !== nm.target || om.catId !== nm.catId ||
-        om.subId !== nm.subId || om.type !== nm.type) {
+        om.subId !== nm.subId || om.type !== nm.type ||
+        (om.note ?? null) !== (nm.note ?? null) ||
+        (om.date ?? null) !== (nm.date ?? null) ||
+        (om.kind ?? "manual") !== (nm.kind ?? "manual")) {
       mark(nm.period);
       mark(om.period);
     }

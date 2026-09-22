@@ -13,6 +13,7 @@ import { buildSeed, setLeafAmount } from "@/domain";
 import { isLeaf } from "@/domain/tree";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
+import { ajustarCelda, celdaCuadrada } from "../../helpers/cuadre";
 import type { LedgerState, PeriodKey } from "@/domain/types";
 
 const A = "user-res";
@@ -44,9 +45,13 @@ async function alTecho(ingreso = 1_000_000): Promise<{ state: LedgerState; revis
   const { state, revision } = await sembrar();
   const ing = hoja(state, "income");
   const res = hoja(state, "transfer");
+  // NFR-2502: el ingreso se siembra CON su movimiento. Antes se ponía la cifra suelta, y desde el
+  // cuadre relativo eso es una celda descuadrada que el servidor rechaza — el escenario quedaba sin
+  // montar por el fixture, no por el guardia. La reserva sí va suelta: un bolsillo nunca descuadra.
+  const conIngreso = celdaCuadrada({ ...state, actuals: {}, movements: [] }, ing, INICIO, ingreso);
   const limpio: LedgerState = {
-    ...state,
-    actuals: { [ing]: { [INICIO]: ingreso }, [res]: { [INICIO]: ingreso } },
+    ...conIngreso,
+    actuals: { ...conIngreso.actuals, [res]: { [INICIO]: ingreso } },
   };
   const r = await saveLedger(A, limpio, revision);
   expect(r.ok, "el escenario al techo debe poder escribirse: margen = consumo, exceso 0").toBe(true);
@@ -105,7 +110,11 @@ describe("FR-2101 — el guardia en el servidor", () => {
     const { state, revision, res } = await alTecho();
     // Se deja el estado violado bajando el ingreso (permitido: no toca reservas, ADR-20).
     const ing = hoja(state, "income");
-    const bajado = setLeafAmount(state, ing, INICIO, "actual", 400_000, [INICIO]);
+    // NFR-2502: se baja por la MISMA vía que el producto (`adjustCell`), que deja el ajuste de la
+    // diferencia. Bajar la cifra suelta dejaba la celda sin respaldo y el servidor la rechaza — el
+    // permiso de ADR-20 («bajar un ingreso sin tocar reservas se acepta») sigue intacto y es lo que
+    // estas pruebas afirman.
+    const bajado = ajustarCelda(state, ing, INICIO, 400_000, [INICIO]);
     const r1 = await saveLedger(A, bajado, revision);
     expect(r1.ok).toBe(true);
 
@@ -136,14 +145,22 @@ describe("FR-2101 — el guardia en el servidor", () => {
     // @aitri-tc TC-RES-016f
     const { state } = await alTecho();
     const res = hoja(state, "transfer");
+    // El escenario ya trae el movimiento que respalda el ingreso (NFR-2502): la foto se toma ANTES
+    // del intento, para poder afirmar que el rechazo no añadió ninguna fila.
+    const movimientosAntes = ([...(await testDb().execute(
+      sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
     const r = await insertMovement(A, {
       type: "transfer", from: "__available__", to: res, period: INICIO, amount: "900000",
     } as never);
     // Rechazado por el dominio (null) o por el guardia: en ninguno de los dos casos se escribe.
     expect(r === null || (r !== null && "domainViolation" in r)).toBe(true);
-    const filas = [...(await testDb().execute(
-      sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number };
-    expect(filas.n).toBe(0);
+    // Lo que esta prueba afirma es que EL RECHAZO no escribió nada. Antes bastaba con `count = 0`
+    // porque el escenario no tenía movimientos; desde NFR-2502 el ingreso de `alTecho()` va con su
+    // respaldo, así que la forma fiel de decir lo mismo es «ni una fila NUEVA» (contar 1 aquí sería
+    // cambiar el resultado esperado, que es justo lo que no se hace).
+    const contar = async () => ([...(await testDb().execute(
+      sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
+    expect(await contar()).toBe(movimientosAntes);
   });
 });
 
@@ -152,7 +169,11 @@ describe("FR-2101/ADR-20 — el acotamiento contra la base real", () => {
     // @aitri-tc TC-RES-033e
     const { state, revision } = await alTecho();
     const ing = hoja(state, "income");
-    const bajado = setLeafAmount(state, ing, INICIO, "actual", 400_000, [INICIO]);
+    // NFR-2502: se baja por la MISMA vía que el producto (`adjustCell`), que deja el ajuste de la
+    // diferencia. Bajar la cifra suelta dejaba la celda sin respaldo y el servidor la rechaza — el
+    // permiso de ADR-20 («bajar un ingreso sin tocar reservas se acepta») sigue intacto y es lo que
+    // estas pruebas afirman.
+    const bajado = ajustarCelda(state, ing, INICIO, 400_000, [INICIO]);
     const r = await saveLedger(A, bajado, revision);
     expect(r.ok).toBe(true); // NFR-1803: ninguna escritura de ingresos adquiere validación nueva
     expect((await loadLedger(A))!.state.actuals[ing]?.[INICIO]).toBe(400_000);
@@ -225,7 +246,9 @@ describe("NFR-2103/2104/2105 — seguridad, convivencia y coste", () => {
     // @aitri-tc TC-RES-221h
     const { state, revision } = await sembrar();
     const ing = hoja(state, "income");
-    const next = setLeafAmount(state, ing, INICIO, "actual", 800_000, [INICIO]);
+    // NFR-2502: la escritura legítima que atraviesa el guardia sigue siendo la misma —un ingreso de
+    // 800.000 en el mes de inicio—, pero ahora se monta como la monta el producto: con su respaldo.
+    const next = ajustarCelda(state, ing, INICIO, 800_000, [INICIO]);
     expect((await saveLedger(A, next, revision)).ok).toBe(true);
   });
 
@@ -276,7 +299,9 @@ describe("NFR-2103/2104/2105 — seguridad, convivencia y coste", () => {
     const medir = async (meses: PeriodKey[]): Promise<number> => {
       const cur = (await loadLedger(A))!;
       let next = cur.state;
-      for (const m of meses) next = setLeafAmount(next, ing, m, "actual", 100_000, meses);
+      // NFR-2502: cada mes con su respaldo. Lo que estas dos pruebas miden es el COSTE del guardia
+      // sobre N meses, y eso no cambia: siguen siendo N celdas de ingreso escritas de una vez.
+      for (const m of meses) next = ajustarCelda(next, ing, m, 100_000, meses);
       const t0 = performance.now();
       const r = await saveLedger(A, next, cur.revision);
       expect(r.ok).toBe(true);
@@ -348,7 +373,9 @@ describe("Casos que necesitan su propia prueba para acreditarse", () => {
     const medir = async (meses: PeriodKey[]): Promise<number> => {
       const cur = (await loadLedger(A))!;
       let next = cur.state;
-      for (const m of meses) next = setLeafAmount(next, ing, m, "actual", 100_000, meses);
+      // NFR-2502: cada mes con su respaldo. Lo que estas dos pruebas miden es el COSTE del guardia
+      // sobre N meses, y eso no cambia: siguen siendo N celdas de ingreso escritas de una vez.
+      for (const m of meses) next = ajustarCelda(next, ing, m, 100_000, meses);
       const t0 = performance.now();
       expect((await saveLedger(A, next, cur.revision)).ok).toBe(true);
       return performance.now() - t0;

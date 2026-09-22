@@ -153,10 +153,15 @@ test("TC-CDM-091f: intentar editar una celda cerrada explica el rechazo y su sal
   await expect(page.locator("input:focus")).toHaveCount(0);
 
   // Dice que está cerrado Y qué hacer. Junio NO es el último cerrado, así que la salida ofrecida
-  // es la observación, no reabrir.
+  // es el comentario, no reabrir.
+  //
+  // «observación» → «comentario» por FR-2509 de diario-de-celda (un solo nombre por concepto), que
+  // exige que ningún texto visible diga «observación» (TC-DDC-173f, TC-DDC-175f). TC-CDM-091f pide
+  // que el aviso NOMBRE la salida, y la sigue nombrando: cambia la palabra, no el comportamiento
+  // (decisión del usuario del 2026-09-15; mismo criterio que la etiqueta de techo-de-flujo).
   const toast = page.getByTestId("toast");
   await expect(toast).toContainText("cerrado");
-  await expect(toast).toContainText("observación");
+  await expect(toast).toContainText("comentario");
 
   // Y al cerrar el panel la cifra sigue siendo la misma. Se comprueba DESPUÉS de Escape porque
   // mientras el panel está abierto el editor sustituye el nodo de la celda: comparar el texto en
@@ -221,7 +226,18 @@ test("TC-CDM-094e: un mes cerrado SIN datos se pinta como columna cerrada", asyn
   // hacia adelante y dejaba el mes cerrado fuera de pantalla.
   const l2 = await page.request.get("/api/v1/ledger");
   const body = (await l2.json()) as { revision: number; state: Record<string, unknown> };
-  const conDatos = { ...body.state, actuals: { "c-sueldo": { [siguiente]: 1_000_000 } } };
+  // NFR-2502: la celda va con el movimiento que la respalda. Este PUT se arma a mano (no pasa por
+  // `seedLedger`), así que el respaldo se escribe aquí. Lo que la prueba necesita sigue siendo
+  // «datos SOLO en el mes siguiente», que es lo que tiene.
+  const conDatos = {
+    ...body.state,
+    actuals: { "c-sueldo": { [siguiente]: 1_000_000 } },
+    movements: [{
+      id: "respaldo-sueldo", ownerId: "local", type: "income", catId: "c-sueldo", subId: null,
+      target: "c-sueldo", amount: 1_000_000, period: siguiente, createdAt: 1,
+      date: `${siguiente}-10T12:00`,
+    }],
+  };
   const put = await page.request.put("/api/v1/ledger", {
     data: { baseRevision: body.revision, state: conDatos },
   });
@@ -259,8 +275,12 @@ test("TC-CDM-043e: la celda cerrada dice a la vez «la cifra no» y «la observa
   // La OBSERVACIÓN sí: el panel está y se puede escribir en él.
   const notas = page.getByTestId("cell-notes");
   await expect(notas).toBeVisible();
-  await notas.locator("input").first().fill("error de 8.000 detectado en septiembre");
-  await expect(notas.locator("input").first()).toHaveValue("error de 8.000 detectado en septiembre");
+  // FR-2508: el panel tiene ahora más de un campo (la línea «Añadir movimiento» va primero), así que
+  // el comentario se busca por su etiqueta y no por posición. Lo que la prueba afirma no cambia: en
+  // un mes cerrado la cifra no se edita y el comentario sí.
+  const comentario = notas.getByLabel("Añadir comentario");
+  await comentario.fill("error de 8.000 detectado en septiembre");
+  await expect(comentario).toHaveValue("error de 8.000 detectado en septiembre");
   // Y el aviso lo explica.
   await expect(page.getByTestId("toast")).toContainText("cerrado");
 

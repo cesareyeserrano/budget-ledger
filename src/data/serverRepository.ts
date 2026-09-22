@@ -63,6 +63,14 @@ export class ServerRepository implements LedgerRepository {
    * que el servidor nunca va a aceptar. Aquí el rechazo es DEFINITIVO y hay que decirlo.
    */
   public closedViolation: string[] | null = null;
+  /**
+   * Celdas que la última escritura habría DESCUADRADO (NFR-2502), o `null` si no fue ese el motivo.
+   *
+   * Se distingue del fallo de red por lo mismo que `closedViolation`: es definitivo. Reintentar el
+   * mismo snapshot nunca va a pasar, así que el caller converge al servidor y lo dice, en vez de
+   * dejar al usuario reintentando algo que el servidor jamás aceptará.
+   */
+  public cellMismatch: { nodeId: string; period: string }[] | null = null;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -144,10 +152,17 @@ export class ServerRepository implements LedgerRepository {
         return false;
       }
       if (res.status === UNPROCESSABLE) {
-        const body = (await res.json().catch(() => ({}))) as
-          { error?: { code?: string; detail?: { periods?: string[] } } };
+        const body = (await res.json().catch(() => ({}))) as {
+          error?: { code?: string; detail?: { periods?: string[] } | { nodeId: string; period: string }[] };
+        };
         if (body.error?.code === "closed_period_violation") {
-          this.closedViolation = body.error.detail?.periods ?? [];
+          this.closedViolation = (body.error.detail as { periods?: string[] })?.periods ?? [];
+        }
+        // Feature diario-de-celda (NFR-2502): la escritura descuadraba una celda. Es un rechazo
+        // DEFINITIVO como el del cierre —reintentar no lo arregla—, así que se distingue para que el
+        // caller converja y avise en vez de dejarlo en «no pudimos guardar» y reintentar sin fin.
+        if (body.error?.code === "cell_movement_mismatch") {
+          this.cellMismatch = (body.error.detail as { nodeId: string; period: string }[]) ?? [];
         }
         return false;
       }
@@ -157,6 +172,7 @@ export class ServerRepository implements LedgerRepository {
       this.conflicted = false;
       this.unauthorized = false;
       this.closedViolation = null;
+      this.cellMismatch = null;
       return true;
     } catch {
       // Fallo de red: no propagar; el estado en memoria sigue válido y la fuente de verdad no recibió parcial.

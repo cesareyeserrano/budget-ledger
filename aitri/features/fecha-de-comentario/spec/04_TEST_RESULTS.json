@@ -1,0 +1,419 @@
+{
+  "executed_at": "2026-09-22T16:18:26.347Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-FDC-001h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2601 · un comentario nuevo guarda el día en que se escribe > TC-FDC-001h: escrito el 21-sep a las 10:00 guarda date = 2026-09-21 56ms"
+    },
+    {
+      "tc_id": "TC-FDC-002e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2601 · un comentario nuevo guarda el día en que se escribe > TC-FDC-002e: a las 21:30 locales (02:30 UTC del 22) el día guardado es el 21 12ms"
+    },
+    {
+      "tc_id": "TC-FDC-003e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2601 · un comentario nuevo guarda el día en que se escribe > TC-FDC-003e: localDay en los bordes de medianoche y de cambio de mes 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-004h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > FR-2601 — el día viaja y persiste en Postgres > TC-FDC-004h: el día persiste en Postgres y sobrevive a una conexión nueva 230ms"
+    },
+    {
+      "tc_id": "TC-FDC-005h",
+      "status": "pass",
+      "notes": "✓  288 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:170:7 › FR-2601 — el día del comentario sobrevive a la recarga › TC-FDC-005h: flujo F1 hasta la recarga — el comentario sigue mostrando «21 sep» (706ms)"
+    },
+    {
+      "tc_id": "TC-FDC-006f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > FR-2601 — el día viaja y persiste en Postgres > TC-FDC-006f: un comentario antiguo sin día sigue sin día al leerlo y al reescribir el snapshot 120ms"
+    },
+    {
+      "tc_id": "TC-FDC-007e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > FR-2601 — el día viaja y persiste en Postgres > TC-FDC-007e: cambiar el día de pago conserva el día y la ausencia de día 130ms"
+    },
+    {
+      "tc_id": "TC-FDC-008f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > FR-2601 — el día viaja y persiste en Postgres > TC-FDC-008f: un día de calendario inexistente (2026-02-30) se rechaza sin escribir 92ms"
+    },
+    {
+      "tc_id": "TC-FDC-009f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2601 · un comentario nuevo guarda el día en que se escribe > TC-FDC-009f: el dominio rechaza un día inválido como invalid_note y no muta el estado 2ms"
+    },
+    {
+      "tc_id": "TC-FDC-010e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > FR-2601 — el día viaja y persiste en Postgres > TC-FDC-010e: el esquema del cliente no descarta date — ida y vuelta PUT → GET → ServerRepository.load 106ms"
+    },
+    {
+      "tc_id": "TC-FDC-020h",
+      "status": "pass",
+      "notes": "✓  289 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:190:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-020h: movimiento y comentario del 18 sep muestran «18 sep» en la misma columna y color (504ms)"
+    },
+    {
+      "tc_id": "TC-FDC-021e",
+      "status": "pass",
+      "notes": "✓  290 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:207:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-021e: un comentario de hoy dice «21 sep», no «Hoy» (520ms)"
+    },
+    {
+      "tc_id": "TC-FDC-022e",
+      "status": "pass",
+      "notes": "✓  291 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:217:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-022e: un comentario sin día deja la columna vacía de 44 px y el texto alineado (462ms)"
+    },
+    {
+      "tc_id": "TC-FDC-023f",
+      "status": "pass",
+      "notes": "✓  292 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:232:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-023f: un comentario sin día nunca muestra una fecha sacada del contador interno (432ms)"
+    },
+    {
+      "tc_id": "TC-FDC-024h",
+      "status": "pass",
+      "notes": "✓  293 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:245:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-024h: en una celda de bolsillo el comentario fechado muestra «18 sep» (425ms)"
+    },
+    {
+      "tc_id": "TC-FDC-025e",
+      "status": "pass",
+      "notes": "✓  294 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:261:9 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-025e: un comentario largo se parte en varias líneas con la fecha arriba (768 px) (463ms)"
+    },
+    {
+      "tc_id": "TC-FDC-026e",
+      "status": "pass",
+      "notes": "✓  296 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:280:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-026e: a 375 px no hay Detalle — la feature no cambia la vista móvil (321ms)"
+    },
+    {
+      "tc_id": "TC-FDC-027h",
+      "status": "pass",
+      "notes": "✓  297 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:290:9 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-027h: la fecha del comentario pasa contraste ≥4,5:1 en tema light (426ms)"
+    },
+    {
+      "tc_id": "TC-FDC-028e",
+      "status": "pass",
+      "notes": "✓  299 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:305:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-028e: estado de carga — el comentario aparece con su día antes de que responda el servidor (551ms)"
+    },
+    {
+      "tc_id": "TC-FDC-029f",
+      "status": "pass",
+      "notes": "✓  300 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:320:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-029f: estado de error — un 422 aplica el manejo vigente y no borra lo que hay en pantalla (538ms)"
+    },
+    {
+      "tc_id": "TC-FDC-030e",
+      "status": "pass",
+      "notes": "✓  301 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:343:7 › FR-2602 — la fila del comentario muestra su día como la de un movimiento › TC-FDC-030e: estado vacío sin cambios — «Sin movimientos ni comentarios» (439ms)"
+    },
+    {
+      "tc_id": "TC-FDC-040h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-040h: un comentario del 19 sep queda entre los movimientos del 18 y del 20 4ms"
+    },
+    {
+      "tc_id": "TC-FDC-041e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-041e: a igual día el comentario va después del movimiento, y dos comentarios del mismo día por createdAt 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-042e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-042e: un comentario sin día va al final, después de un movimiento del 20 4ms"
+    },
+    {
+      "tc_id": "TC-FDC-043f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-043f: los comentarios sin día no se reordenan entre sí ni se adelantan a los fechados 2ms"
+    },
+    {
+      "tc_id": "TC-FDC-044f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-044f: 10.000 movimientos y 500 comentarios no alteran el orden de los movimientos 77ms"
+    },
+    {
+      "tc_id": "TC-FDC-045e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-045e: bordes del periodo — comentario anterior a todos los movimientos y posterior al último 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-046h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > FR-2603 · los comentarios con día se ordenan entre los movimientos > TC-FDC-046h: bolsillo — tras la nota automática y las operaciones, comentarios por fecha y luego los sin día 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-047h",
+      "status": "pass",
+      "notes": "✓  302 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:356:7 › FR-2603 — el comentario de hoy entra en su lugar cronológico › TC-FDC-047h: flujo F1 completo — el comentario de hoy aparece entre los movimientos del 18 y del 25 (570ms)"
+    },
+    {
+      "tc_id": "TC-FDC-060h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2601 — la migración 0010 deja los comentarios existentes intactos > TC-FDC-060h: migrar a 0010 conserva el número y el texto exacto de los comentarios 695ms"
+    },
+    {
+      "tc_id": "TC-FDC-061e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2601 — la migración 0010 deja los comentarios existentes intactos > TC-FDC-061e: la migración 0010 es idempotente 179ms"
+    },
+    {
+      "tc_id": "TC-FDC-062f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2601 — la migración 0010 deja los comentarios existentes intactos > TC-FDC-062f: el CHECK de 0010 rechaza días con forma inválida en la propia base 99ms"
+    },
+    {
+      "tc_id": "TC-FDC-070h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2602 · un comentario, con o sin día, no suma a la celda > TC-FDC-070h: un comentario fechado no cambia la celda ni el total del grupo 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-071e",
+      "status": "pass",
+      "notes": "✓  303 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:377:7 › NFR-2602 — comentar no cambia ninguna cifra › TC-FDC-071e: en la grilla la celda sigue en 100.000 tras comentar y recargar (713ms)"
+    },
+    {
+      "tc_id": "TC-FDC-072f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2602 — un PUT que solo comenta no toca cifras > TC-FDC-072f: un PUT que solo añade un comentario fechado no toca montos ni movimientos 99ms"
+    },
+    {
+      "tc_id": "TC-FDC-080h",
+      "status": "pass",
+      "notes": "✓  304 [chromium] › tests/e2e/fecha-de-comentario.spec.ts:404:7 › NFR-2603 — en un mes cerrado se comenta, con el día de hoy › TC-FDC-080h: en «Agosto» cerrado el comentario se guarda y muestra «21 sep» (953ms)"
+    },
+    {
+      "tc_id": "TC-FDC-081f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2603 — en un mes cerrado se comenta, y las cifras siguen congeladas > TC-FDC-081f: un PUT que comenta y además cambia un monto del mes cerrado sigue rechazado 103ms"
+    },
+    {
+      "tc_id": "TC-FDC-082e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2603 — en un mes cerrado se comenta, y las cifras siguen congeladas > TC-FDC-082e: un PUT que solo añade un comentario fechado a un mes cerrado se acepta 107ms"
+    },
+    {
+      "tc_id": "TC-FDC-090h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2604 · el orden de los movimientos entre sí no cambia > TC-FDC-090h: sin comentarios, el orden de los movimientos es el de siempre 2ms"
+    },
+    {
+      "tc_id": "TC-FDC-091e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2604 · el orden de los movimientos entre sí no cambia > TC-FDC-091e: con comentarios del 18, 19 y 20 el orden relativo de los movimientos se mantiene 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-092f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2604 · el orden de los movimientos entre sí no cambia > TC-FDC-092f: el createdAt del comentario (contador) no se compara con el de los movimientos (ms) 4ms"
+    },
+    {
+      "tc_id": "TC-FDC-100h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2605 — el límite de 280 sigue igual con día > TC-FDC-100h: un comentario de 280 caracteres con día se guarda completo 90ms"
+    },
+    {
+      "tc_id": "TC-FDC-101f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2605 — el límite de 280 sigue igual con día > TC-FDC-101f: un comentario de 281 caracteres con día válido se rechaza 88ms"
+    },
+    {
+      "tc_id": "TC-FDC-102e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2605 · el límite de 280 caracteres sigue igual, con día > TC-FDC-102e: en el dominio, 280 entra con día y 281 no 3ms"
+    },
+    {
+      "tc_id": "TC-FDC-110h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-110h: un día bien formado de la propia cuenta se acepta 93ms"
+    },
+    {
+      "tc_id": "TC-FDC-111f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-111f: días con forma inválida se rechazan con 422 91ms"
+    },
+    {
+      "tc_id": "TC-FDC-112f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-112f: un día con inyección SQL o marcado se rechaza y la tabla sigue intacta 85ms"
+    },
+    {
+      "tc_id": "TC-FDC-113f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-113f: un día de tipo equivocado se rechaza 86ms"
+    },
+    {
+      "tc_id": "TC-FDC-114e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/fecha-de-comentario.test.ts > NFR-2606 · el día se valida como día de calendario > TC-FDC-114e: isCalendarDay en los bordes del calendario 2ms"
+    },
+    {
+      "tc_id": "TC-FDC-115f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-115f: un día escrito por otra cuenta no toca los comentarios de la primera 146ms"
+    },
+    {
+      "tc_id": "TC-FDC-116f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/fecha-de-comentario.test.ts > NFR-2606 — el día se valida en el servidor antes de escribir > TC-FDC-116f: un día desmesurado (10.000 caracteres) se rechaza sin escribir 92ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2601",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2602",
+      "tests_passing": 11,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2603",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2601a",
+      "fr_id": "FR-2601",
+      "tests_passing": 19,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2601b",
+      "fr_id": "FR-2601",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2601c",
+      "fr_id": "FR-2601",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2602a",
+      "fr_id": "FR-2602",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2602b",
+      "fr_id": "FR-2602",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2603a",
+      "fr_id": "FR-2603",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2603b",
+      "fr_id": "FR-2603",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 51,
+    "passed": 51,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2691,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 4045,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 75090,
+      "output": " WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-22T16:13:50.570Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 28837,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 243414,
+      "output": "e/resumen-plegado.spec.ts:98:54)\n        at /Users/cesareyeserrano/PROJECTS/T-Ledger/tests/e2e/resumen-plegado.spec.ts:291:3\n\n    Error Context: test-results/resumen-plegado-TC-RSP-011-9d942-utro-sin-color-de-excepción-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/resumen-plegado.spec.ts:289:5 › TC-RSP-011e: un disponible de exactamente 0 se pinta neutro, sin color de excepción \n  580 passed (4.0m)\n\n(node:80640) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 70971,
+    "e2e_ms": 230134,
+    "gates_ms": 354077,
+    "total_ms": 655258
+  }
+}

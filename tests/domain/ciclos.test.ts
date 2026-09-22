@@ -192,7 +192,10 @@ describe("FR-2404 — activar reubica", () => {
     const s = estadoUsuario();
     expect(celdas(s)).toBe(50);
     expect(ceros(s)).toBe(5);
-    expect(s.movements.length).toBe(27);
+    // 28 desde diario-de-celda (FR-2511): F-USER ganó el movimiento que respalda la celda de
+    // «Internet», que tenía 96.400 y ninguno. Las celdas no cambian (siguen 50, con 5 en cero) y las
+    // sumas que este caso compara tampoco: solo hay una fila más en el journal.
+    expect(s.movements.length).toBe(28);
     const r = ok(relocate(s, MONTH_CALENDAR, CAL21, HOY));
     const hojas = [...new Set([...Object.keys(s.budgets), ...Object.keys(s.actuals)])];
     expect(hojas.length).toBe(19);

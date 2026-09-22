@@ -6,6 +6,13 @@ import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
   addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, plannedRetiroLimit, seedSeqFrom,
+  // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
+  // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
+  adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
+  // FR-2512: las celdas descuadradas que bloquean el cierre — la misma función que el servidor.
+  closeBlockers,
+  // FR-2505/FR-2506: editar y borrar. Las MISMAS funciones que corre el servidor (ADR-02).
+  editMovement, deleteMovement, type MovementPatch, type NegativeCell,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { retiroToast } from "@/components/reserveText";
@@ -29,6 +36,18 @@ import { periodYear } from "@/domain/periods";
  * "year" no llevaba dato porque solo existía uno.
  */
 export type PeriodFilter = { mode: "month"; month: PeriodKey } | { mode: "year"; year: number };
+
+/**
+ * Lo que devuelven `editMovement` y `deleteMovement` del store (FR-2505, FR-2506).
+ *
+ * El motivo viaja porque la UI tiene que decir QUÉ pasa, no «no se pudo»: «la celda quedaría en
+ * −10.000» y «ese mes está cerrado» piden acciones distintas del usuario. `cells` solo acompaña al
+ * rechazo por celda negativa, que es el único que tiene una cifra que enseñar.
+ */
+export type MovementEditOutcome =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" | "closed" }
+  | { ok: false; reason: "negative_cell"; cells: NegativeCell[] };
 /** Feature ciclos: lo que devuelve la previsualización (misma forma que la respuesta del servidor). */
 export type PeriodModePreview =
   | { ok: true; cycles: Array<{ key: PeriodKey; label: string; start: string; end: string; transition: boolean; current: boolean }>; relocation: RelocationSummary & { note: string } }
@@ -183,6 +202,13 @@ interface LedgerStore {
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
    *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
   addMovement: (input: NewMovement) => boolean;
+  /** FR-2502: añade un movimiento DESDE la celda — el tipo y la categoría salen de la hoja. true si
+   *  se persistió; false si el monto es inválido, la fecha cae fuera del periodo o es un doble-tap. */
+  addMovementInCell: (input: { leafId: string; period: PeriodKey; amount: number; note?: string | null; date: string }) => boolean;
+  /** FR-2505: edita un movimiento desde el Detalle. El motivo permite decir QUÉ falla, no solo que falló. */
+  editMovement: (id: string, patch: MovementPatch) => MovementEditOutcome;
+  /** FR-2506: borra un movimiento desde el Detalle. */
+  deleteMovement: (id: string) => MovementEditOutcome;
   createNode: (input: NewNode) => string | null;
   renameNode: (id: string, name: string) => void;
   setNodeIcon: (id: string, icon: string) => void;
@@ -305,6 +331,22 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           );
           return;
         }
+        if (repo.cellMismatch) {
+          // Feature diario-de-celda (NFR-2502): la escritura habría descuadrado una celda. Es
+          // definitivo como el cierre —el mismo snapshot nunca se va a aceptar—, así que se descarta
+          // lo pendiente, se converge al servidor y se dice. Sin esta rama caía en «no se pudo
+          // guardar» y el usuario reintentaría para siempre.
+          const celdas = repo.cellMismatch;
+          repo.cellMismatch = null;
+          pendingSave = null;
+          await doResync();
+          get().showToast(
+            celdas.length === 1
+              ? "Esa celda no cuadra con sus movimientos: el cambio no se guardó."
+              : "Esas celdas no cuadran con sus movimientos: el cambio no se guardó."
+          );
+          return;
+        }
         if (repo.conflicted) {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
@@ -364,6 +406,17 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (res.reason === "revision_conflict") {
         await doResync();
         get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        return;
+      }
+      // FR-2512: el cierre se rechazó porque hay celdas descuadradas que ESTA pestaña no conocía —
+      // si las conociera, el botón ni siquiera se habría podido pulsar. Hay que RESINCRONIZAR, igual
+      // que con un conflicto de revisión y por el mismo motivo: sin traerse el estado real, el
+      // control seguiría ofreciendo cerrar un mes que el servidor no va a cerrar nunca, y el usuario
+      // repetiría el clic sin entender nada. Tras el resync, `blockedBy` se recalcula solo y el botón
+      // queda deshabilitado con las celdas nombradas (TC-DDC-217f).
+      if (res.reason === "unbalanced_cells") {
+        await doResync();
+        get().showToast("No se pudo cerrar: hay celdas que no cuadran con sus movimientos.");
         return;
       }
       get().showToast(
@@ -544,8 +597,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       return { ok: true };
     },
 
+    // fecha-de-comentario (FR-2601): el día es el LOCAL del navegador en el momento del Enter; el
+    // servidor corre en UTC y de noche daría el día siguiente (ADR-02 del TRD).
+    //
+    // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-002e
     addCellNote: (leafId, month, text) => {
-      const result = addCellNote(get().data, leafId, month, text, get().activePeriods());
+      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO());
       if ("rejected" in result) return false;
       set({ data: result.state });
       persist(result.state);
@@ -675,8 +732,111 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       persist(res.state);
       return "ok";
     },
+    /**
+     * Añadir un movimiento DESDE el Detalle de una celda (FR-2502).
+     *
+     * Reutiliza `addMovement` del dominio —la misma vía que «Nuevo movimiento»— derivando el tipo y
+     * la categoría de la HOJA que se está editando: la celda ya dice dónde va, así que no hay un
+     * segundo formulario que pueda discrepar del primero (NFR-2504).
+     *
+     * La fecha se valida contra el periodo de la CELDA antes de tocar nada: un movimiento fechado
+     * fuera de su ciclo lo rechazaría el servidor con `period_mismatch`, y esperar a ese viaje sería
+     * darle al usuario un error tarde y sin contexto.
+     *
+     * @returns true si se creó y se persistió; false si fue inválido o un doble-tap.
+     *
+     * @aitri-trace FR-ID: FR-2502, US-ID: US-2502, AC-ID: AC-2502a, TC-ID: TC-DDC-022h, TC-DDC-030e, TC-DDC-048f
+     */
+    addMovementInCell: ({ leafId, period, amount, note, date }) => {
+      const prev = get().data;
+      const node = findNode(prev.nodes, leafId);
+      if (!node || node.type === "transfer") return false; // los bolsillos no se registran así (NFR-2503)
+      if (!isDateInPeriod(calendarFor(prev), period, date)) return false;
+      // FR-2502: una nota de más de 280 se RECHAZA, no se recorta. `normalizeNote` (FR-211) sí
+      // recorta duro, y esa regla del registro móvil no se toca: la puerta nueva es más estricta
+      // que el dominio a propósito, porque aquí el usuario ve el contador y puede corregir.
+      if (note != null && note.trim().length > CELL_NOTE_MAX) return false;
+
+      const catId = node.level === "sub" && node.parentId ? node.parentId : leafId;
+      const subId = node.level === "sub" ? leafId : null;
+      // Anti doble-tap: la MISMA ventana y la misma firma que el registro (FR-212).
+      const sig = [node.type, catId, subId ?? "", amount, period, date, note ?? "", "", ""].join("|");
+      const now = Date.now();
+      if (lastSig === sig && now - lastAt < DOUBLE_TAP_MS) return false;
+
+      const data = addMovement(prev, { type: node.type, catId, subId, amount, period, date, ...(note !== undefined ? { note } : {}) }, get().activePeriods());
+      if (data === prev) return false; // monto inválido: no se persiste
+      lastSig = sig;
+      lastAt = now;
+      set({ data });
+      persist(data);
+      return true;
+    },
+    /**
+     * Editar un movimiento desde el Detalle (FR-2505).
+     *
+     * Corre la MISMA función que el servidor (`editMovement` del dominio), así que lo que el
+     * navegador acepta y lo que el PATCH acepta no pueden divergir. El cierre se comprueba ANTES
+     * aquí porque el dominio no conoce la frontera: sin esto la escritura saldría optimista y
+     * volvería rebotada, y el usuario vería su cambio aparecer y desaparecer.
+     *
+     * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505a, TC-ID: TC-DDC-082h, TC-DDC-093f
+     */
+    editMovement: (id, patch) => {
+      const prev = get().data;
+      const mv = prev.movements.find((m) => m.id === id);
+      if (!mv) return { ok: false, reason: "not_found" };
+      if (isClosed(prev.closure, mv.period)) return { ok: false, reason: "closed" };
+
+      const r = editMovement(prev, id, patch, calendarFor(prev), get().activePeriods());
+      if ("rejected" in r) {
+        return r.rejected === "negative_cell"
+          ? { ok: false, reason: "negative_cell", cells: r.cells }
+          : { ok: false, reason: r.rejected };
+      }
+      set({ data: r.state });
+      persist(r.state);
+      return { ok: true };
+    },
+
+    /**
+     * Borrar un movimiento desde el Detalle (FR-2506).
+     *
+     * @aitri-trace FR-ID: FR-2506, US-ID: US-2506, AC-ID: AC-2506a, TC-ID: TC-DDC-112h, TC-DDC-119f
+     */
+    deleteMovement: (id) => {
+      const prev = get().data;
+      const mv = prev.movements.find((m) => m.id === id);
+      if (!mv) return { ok: false, reason: "not_found" };
+      if (isClosed(prev.closure, mv.period)) return { ok: false, reason: "closed" };
+
+      const r = deleteMovement(prev, id);
+      if ("rejected" in r) {
+        return r.rejected === "negative_cell"
+          ? { ok: false, reason: "negative_cell", cells: r.cells }
+          : { ok: false, reason: r.rejected };
+      }
+      set({ data: r.state });
+      persist(r.state);
+      return { ok: true };
+    },
+
     setLeafAmount: (leafId, month, kind, value) => {
-      const data = setLeafAmount(get().data, leafId, month, kind, value, get().activePeriods());
+      const prev = get().data;
+      const node = findNode(prev.nodes, leafId);
+      // FR-2504: teclear el Ejecutado de una hoja de gasto o ingreso no ASIGNA la cifra — crea un
+      // ajuste por la diferencia con lo que suman sus movimientos, y así la celda nunca deja de
+      // estar respaldada por el journal. El plano Presupuestado (NFR-2506) y los bolsillos
+      // (NFR-2503) siguen exactamente por donde iban.
+      if (kind === "actual" && node && node.type !== "transfer") {
+        const fecha = proposedDate(calendarFor(prev), month, new Date());
+        const r = adjustCell(prev, leafId, month, value, fecha, get().activePeriods());
+        if ("rejected" in r) return;
+        set({ data: r.state });
+        persist(r.state);
+        return;
+      }
+      const data = setLeafAmount(prev, leafId, month, kind, value, get().activePeriods());
       set({ data });
       persist(data);
     },
@@ -792,6 +952,8 @@ export interface ClosureStatus {
   reopened: PeriodKey | null;
   /** Meses ya terminados y sin cerrar. Alimenta el aviso (FR-2006). */
   pending: PeriodKey[];
+  /** FR-2512: las celdas descuadradas que impiden cerrar `closable`. Vacío = se puede cerrar. */
+  blockedBy: { nodeId: string; name: string }[];
 }
 
 /**
@@ -804,8 +966,16 @@ export function useClosureStatus(): ClosureStatus {
   const reopenable = useLedgerStore((s) => nextReopenable(s.data.closure));
   const reopened = useLedgerStore((s) => closureFor(s.data).reopened);
   const pending = useLedgerStore((s) => pendingFor(s.data, s.horizon, nowFor(s.data)));
-  return { closable, reopenable, reopened, pending };
+  // FR-2512: lo que impide cerrar. Se deriva del MISMO `closeBlockers` que corre el servidor, así
+  // que el botón y el 422 no pueden discrepar: aquí es ergonomía, allí es la autoridad (ADR-12).
+  const blockedBy = useLedgerStore((s) =>
+    closable === null ? VACIO : blockersFor(s.data, closable, periodsFor(s.data, s.horizon, nowFor(s.data)))
+  );
+  return { closable, reopenable, reopened, pending, blockedBy };
 }
+
+/** Lista vacía ESTABLE: devolver `[]` nuevo en cada llamada re-renderiza el control sin motivo. */
+const VACIO: { nodeId: string; name: string }[] = [];
 
 /**
  * `unclosedEndedPeriods` MEMOIZADO por identidad — igual que `periodsFor` y por el mismo motivo.
@@ -824,4 +994,27 @@ function pendingFor(data: LedgerState, horizon: Horizon, now: PeriodKey): Period
   let list = byKey.get(key);
   if (!list) { list = unclosedEndedPeriods(data, now, periodsFor(data, horizon, now)); byKey.set(key, list); }
   return list;
+}
+
+/**
+ * `closeBlockers` MEMOIZADO por identidad, por el MISMO motivo que `pendingFor` de arriba (FR-2512).
+ *
+ * Sin esto la app entera se caía al cargar con «Maximum update depth exceeded» (React #185): el
+ * selector construía un array nuevo en cada llamada, así que `useSyncExternalStore` veía un snapshot
+ * distinto en cada comprobación y volvía a renderizar sin fin. El caso vacío ya estaba resuelto con
+ * la constante `VACIO`; faltaba la otra mitad, que es justo la que se ejecuta cuando hay algo que
+ * mostrar — o sea, el bucle solo aparecía con celdas descuadradas de verdad.
+ *
+ * La `WeakMap` va sobre `data`: cada escritura del ledger crea un estado nuevo, así que la caché se
+ * invalida sola y no puede servir una lista vieja.
+ */
+const blockersMemo = new WeakMap<object, Map<string, { nodeId: string; name: string }[]>>();
+function blockersFor(data: LedgerState, period: PeriodKey, periods: PeriodKey[]): { nodeId: string; name: string }[] {
+  let byKey = blockersMemo.get(data);
+  if (!byKey) { byKey = new Map(); blockersMemo.set(data, byKey); }
+  const key = `${period}:${periods.join(",")}`;
+  let list = byKey.get(key);
+  if (!list) { list = closeBlockers(data, period, periods); byKey.set(key, list); }
+  // Lista vacía: se devuelve la constante estable, no un `[]` recién cacheado por cada clave.
+  return list.length === 0 ? VACIO : list;
 }

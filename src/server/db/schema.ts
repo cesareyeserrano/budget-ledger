@@ -201,7 +201,7 @@ export const movement = pgTable(
     catId: text("cat_id").notNull(),
     subId: text("sub_id"),
     target: text("target").notNull(),
-    amount: bigint("amount", { mode: "number" }).notNull(), // >= 1 (CHECK en migración)
+    amount: bigint("amount", { mode: "number" }).notNull(), // manual >= 1; ajuste <> 0 (CHECK en migración 0009)
     period: text("period").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     date: text("date"),
@@ -210,13 +210,22 @@ export const movement = pgTable(
     // Sin FK (como target); NULL en movimientos previos y en gastos/ingresos.
     fromId: text("from_id"),
     toId: text("to_id"),
+    // Feature diario-de-celda (FR-2504): 'manual' (lo que el usuario registró) o 'adjustment' (lo
+    // que nace de teclear un total en la celda). Las filas previas reciben 'manual' por el DEFAULT.
+    kind: text("kind").notNull().default("manual"),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.id] }),
     index("movement_owner_created_idx").on(t.ownerId, t.createdAt),
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
     check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
-    check("movement_amount_ck", sql`${t.amount} >= 1`),
+    check("movement_kind_ck", sql`${t.kind} in ('manual','adjustment')`),
+    // El monto depende del kind: solo un AJUSTE admite negativo, nunca cero, y solo en gasto o
+    // ingreso — las reservas tienen su propia regla (NFR-2503). Debe decir lo mismo que la 0009.
+    check(
+      "movement_amount_ck",
+      sql`(${t.kind} = 'manual' AND ${t.amount} >= 1) OR (${t.kind} = 'adjustment' AND ${t.amount} <> 0 AND ${t.type} in ('expense','income'))`
+    ),
   ]
 );
 
@@ -282,10 +291,15 @@ export const cellNote = pgTable(
     id: text("id").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     text: text("text").notNull(),
+    // fecha-de-comentario (FR-2601, ADR-01): el día LOCAL en que se escribió, como texto
+    // «AAAA-MM-DD» (igual que movement.date, sin zona). NULL = comentario anterior a la feature.
+    date: text("date"),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.id] }),
     check("cell_note_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("cell_note_text_ck", sql`char_length(${t.text}) <= 280`),
+    // Solo la FORMA; la validez de calendario (30-feb) la juzga zod en el borde (NFR-2606).
+    check("cell_note_date_ck", sql`${t.date} IS NULL OR ${t.date} ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'`),
   ]
 );

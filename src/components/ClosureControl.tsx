@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, TriangleAlert } from "lucide-react";
+import { closeBlockerText } from "@/domain/mismatch";
 import { useClosureStatus, useLedgerStore } from "@/state/store";
 import { useCalendar } from "@/state/store";
 import { cycleLabel, withRange } from "./cycleText";
 import { Button } from "./ui/button";
 import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
+
+/**
+ * Tope de ancho del motivo de bloqueo, en píxeles (TC-DDC-219e).
+ *
+ * 320 px es lo que cabe al lado del botón a 768 px sin desplazar el historial: por encima de eso el
+ * control empieza a empujar en vez de recortar. El texto completo nunca se pierde — vive en `title`.
+ */
+const MOTIVO_MAX_W = 320;
 
 /**
  * Cerrar el mes cerrable y reabrir el último cerrado (FR-2002, FR-2005, FR-2009).
@@ -24,7 +33,10 @@ import { ClosureHistoryPanel } from "./ClosureHistoryPanel";
 export function ClosureControl() {
   // Feature ciclos (FR-2407): el título del botón lleva el rango del ciclo; el texto, el nombre.
   const cal = useCalendar();
-  const { closable, reopenable, reopened } = useClosureStatus();
+  const { closable, reopenable, reopened, blockedBy } = useClosureStatus();
+  // FR-2512: el motivo se calcula con la MISMA función del dominio que usa el servidor, así que lo
+  // que el botón dice y lo que el 422 rechaza no pueden divergir.
+  const motivo = closeBlockerText(blockedBy);
   const closeMonth = useLedgerStore((s) => s.closeMonth);
   const reopenMonth = useLedgerStore((s) => s.reopenMonth);
   const [busy, setBusy] = useState(false);
@@ -60,9 +72,36 @@ export function ClosureControl() {
       data-reopened={reopened ?? ""}
     >
       {closable && (
-        <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, closable)} onClick={() => void run(closeMonth)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          // FR-2512: con celdas descuadradas el botón NO se pulsa. Es ergonomía —el servidor lo
+          // rechazaría igual—, pero dejar pulsar para luego negar es pedirle al usuario que
+          // descubra la regla chocando con ella.
+          disabled={busy || motivo !== ""}
+          title={motivo !== "" ? motivo : withRange(cal, closable)}
+          onClick={() => void run(closeMonth)}
+        >
           <Lock size={14} /> Cerrar {cycleLabel(cal, closable)}
         </Button>
+      )}
+      {/* El motivo, al lado del botón: un botón apagado sin explicación obliga a adivinar (AC-2031).
+          `truncate` con el texto completo en `title` para que a 768 px no empuje al resto fuera.
+
+          El TOPE de ancho es lo que hace que trunque de verdad. Con solo `truncate` y `min-w-0`, el
+          span se encoge únicamente cuando la fila ya no cabe; mientras quepa crece todo lo que pida
+          y, con cinco celdas nombradas, empuja al historial fuera de la pantalla a 768 px antes de
+          recortar un solo carácter. El tope lo obliga a ceder ANTES de estorbar (TC-DDC-219e). */}
+      {closable && motivo !== "" && (
+        <span
+          data-testid="close-blocked"
+          title={motivo}
+          className="caption flex items-center gap-1 min-w-0 truncate"
+          style={{ color: "var(--alert-strong)", maxWidth: MOTIVO_MAX_W }}
+        >
+          <TriangleAlert size={13} aria-hidden="true" className="flex-none" />
+          <span className="truncate">{motivo}</span>
+        </span>
       )}
       {reopenable && (
         <Button variant="ghost" size="sm" disabled={busy} title={withRange(cal, reopenable)} onClick={() => void run(reopenMonth)}>

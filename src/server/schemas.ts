@@ -7,7 +7,7 @@
  * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { PERIOD_KEY, amountSchema, cellAmountSchema } from "@/domain";
+import { PERIOD_KEY, NOTE_DAY, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -27,6 +27,42 @@ export const movementInputSchema = z.object({
 });
 export type MovementInput = z.infer<typeof movementInputSchema>;
 
+/**
+ * Parche de un movimiento (PATCH /api/v1/movements/{id}), feature diario-de-celda (FR-2505).
+ *
+ * `.strict()` y al menos un campo: un cuerpo vacío no es una edición, y un campo de más es un
+ * cliente que cree estar cambiando algo que no existe — mejor un 422 que un silencio.
+ *
+ * El PERIODO no viaja: lo deriva el servidor de `date` con el calendario del dueño (FR-2405). Si el
+ * cliente pudiera mandarlo habría dos fuentes del mismo dato y podrían discrepar.
+ *
+ * Lo que este esquema NO puede juzgar es la regla del monto según el `kind`: el kind está GUARDADO,
+ * no en el cuerpo. Eso lo decide el dominio (`editMovement` → `invalid_amount`) y la ruta lo traduce
+ * a 422 `invalid_payload` (TC-DDC-312f) — aquí solo se acota lo que el borde sí conoce.
+ */
+export const movementPatchSchema = z
+  .object({
+    amount: z
+      .number({ invalid_type_error: "El monto debe ser numérico" })
+      .finite("El monto debe ser un número finito")
+      .int("El monto debe ser un entero")
+      .refine((n) => Math.abs(n) <= MONTO_MAX, `El monto no puede superar ${MONTO_MAX.toLocaleString("es-CO")}`)
+      .optional(),
+    // La nota se NORMALIZA en el borde, como en el resto de la app: se recorta y una nota vacía es
+    // `null`, no `""`. Sin esto, «   » y "" entrarían como notas distintas de «sin nota» y el
+    // Detalle pintaría una fila con texto invisible (FR-2505).
+    note: z.string().max(280).nullable().optional()
+      .transform((n) => (n == null ? n : n.trim() === "" ? null : n.trim())),
+    date: z.string().min(1).optional(),
+    /** FR-2406: un ingreso fechado en la ventana de pago puede contarse en el ciclo que ABRE. */
+    countInOpeningCycle: z.boolean().optional(),
+    catId: z.string().min(1).max(64).optional(),
+    subId: z.string().min(1).max(64).nullable().optional(),
+  })
+  .strict()
+  .refine((p) => Object.keys(p).length > 0, "Nada que cambiar");
+export type MovementPatchInput = z.infer<typeof movementPatchSchema>;
+
 const apiNodeSchema = z.object({
   id: z.string(),
   ownerId: z.string(),
@@ -43,27 +79,68 @@ const apiNodeSchema = z.object({
 // PUT terminaba en 500 al chocar con el bigint de Postgres, o guardaba en silencio otro numero.
 const apiAmountMap = z.record(z.string(), z.record(PERIOD_KEY, cellAmountSchema));
 
-const apiMovementSchema = z.object({
-  id: z.string(),
-  ownerId: z.string(),
-  type: nodeType,
-  catId: z.string(),
-  subId: z.string().nullable(),
-  target: z.string(),
-  amount: amountSchema, // BG-021: con tope superior
-  period: PERIOD_KEY,
-  createdAt: z.number(),
-  date: z.string().optional(),
-  note: z.string().nullable().optional(),
-  // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
-  from: z.string().optional(),
-  to: z.string().optional(),
-});
+/**
+ * Un movimiento tal como viaja en el snapshot del PUT.
+ *
+ * Exportado desde la feature diario-de-celda (NFR-2501): la regla del monto DEPENDE del `kind`, y esa
+ * decisión merece prueba propia en vez de ejercitarse solo de rebote a través del estado completo
+ * (TC-DDC-310e). Sigue siendo el mismo esquema que usa `ledgerStateSchema` — no una copia.
+ */
+export const apiMovementSchema = z
+  .object({
+    id: z.string(),
+    ownerId: z.string(),
+    type: nodeType,
+    catId: z.string(),
+    subId: z.string().nullable(),
+    target: z.string(),
+    // La regla del monto DEPENDE del kind (FR-2504), así que el campo solo exige «entero finito» y
+    // el resto lo decide el refinamiento de abajo. Con `amountSchema` (>= 1) aquí, un ajuste
+    // negativo legítimo se rechazaba antes de poder juzgarlo.
+    amount: z
+      .number({ invalid_type_error: "El monto debe ser numérico" })
+      .finite("El monto debe ser un número finito")
+      .int("El monto debe ser un entero"),
+    period: PERIOD_KEY,
+    createdAt: z.number(),
+    date: z.string().optional(),
+    note: z.string().nullable().optional(),
+    // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
+    from: z.string().optional(),
+    to: z.string().optional(),
+    // Feature diario-de-celda (FR-2504). Ausente ≡ 'manual': los movimientos previos y los del
+    // registro no lo traen, y el borde no debe inventarlo.
+    kind: z.literal("adjustment").optional(),
+  })
+  .superRefine((m, ctx) => {
+    const issue = (message: string) =>
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ["amount"] });
+    if (Math.abs(m.amount) > MONTO_MAX) return issue(`El monto no puede superar ${MONTO_MAX.toLocaleString("es-CO")}`);
+    if (m.kind === undefined) {
+      // Movimiento normal: la regla de siempre. Un negativo SIN kind no entra (TC-DDC-073f).
+      if (m.amount < 1) issue("El monto debe ser mayor a 0");
+      return;
+    }
+    // Ajuste: nunca cero —«no hacer nada» no se guarda— y solo en gasto o ingreso; los bolsillos
+    // tienen su propia regla (NFR-2503), así que un transfer con kind es un payload inválido.
+    if (m.amount === 0) issue("Un ajuste no puede ser de 0");
+    if (m.type === "transfer") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Un bolsillo no admite ajustes", path: ["kind"] });
+    }
+  });
 
-/** Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`). */
+/**
+ * Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`).
+ * fecha-de-comentario: `date` opcional validado con NOTE_DAY; un día inválido → 422 invalid_payload
+ * sin escribir. Declararlo aquí NO es opcional: sin él zod lo descartaría en silencio (NFR-2606).
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-008f, TC-FDC-111f, TC-FDC-112f
+ */
 const apiCellNotes = z.record(
   z.string(),
-  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280) })))
+  z.record(PERIOD_KEY, z.array(z.object({
+    id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280), date: NOTE_DAY.optional(),
+  })))
 );
 
 /** Estado completo del ledger para el snapshot PUT. */

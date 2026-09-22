@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fecha de comentario — vista previa</title>
+<style>
+  body { margin: 0; padding: 16px; font-family: ui-monospace, "SF Mono", Menlo, monospace; background: #e9e9ec; color: #1c1c1f; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p.sub { font-size: 12px; margin: 0 0 16px; color: #55555d; }
+  .panels { display: flex; flex-wrap: wrap; gap: 16px; }
+  .panel { flex: 1 1 360px; max-width: 480px; border-radius: 10px; padding: 12px; }
+  .claro { --bg:#f7f7f8; --el:#ffffff; --fg:#1c1c1f; --sec:#55555d; --muted:#6b6b73; --border:#e3e3e7; background: var(--bg); color: var(--fg); }
+  .oscuro { --bg:#131316; --el:#26262b; --fg:#f4f4f5; --sec:#b4b4bb; --muted:#9b9ba3; --border:#33333a; background: var(--bg); color: var(--fg); }
+  .tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin-bottom: 8px; }
+  .banner { font-size: 11px; border: 1px dashed var(--muted); color: var(--sec); padding: 4px 6px; border-radius: 6px; margin-bottom: 8px; }
+  .detalle { background: var(--el); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .row { display: flex; align-items: flex-start; gap: 6px; padding: 4px 6px; border-radius: 6px; font-size: 12px;
+         background: color-mix(in srgb, var(--muted) 4%, transparent); }
+  .ico { flex: none; width: 12px; text-align: center; color: var(--muted); }
+  .date { flex: none; width: 44px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .amt { flex: none; font-variant-numeric: tabular-nums; }
+  .note { font-size: 11px; color: var(--sec); margin: 2px 0 8px 2px; }
+  table { border-collapse: collapse; font-size: 12px; margin-top: 12px; width: 100%; }
+  td, th { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; border: 1px solid var(--border); }
+  .badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--muted); }
+  footer { font-size: 11px; color: #55555d; margin-top: 16px; }
+</style>
+</head>
+<body>
+<h1>Fecha de comentario — vista previa</h1>
+<p class="sub">El comentario gana la columna de fecha de los movimientos. Sin tokens nuevos.</p>
+
+<div class="panels">
+  <section class="panel claro" data-theme="claro"></section>
+  <section class="panel oscuro" data-theme="oscuro"></section>
+</div>
+
+<template id="contenido">
+  <div class="tag"></div>
+  <div class="banner">ILUSTRATIVO: no es vinculante; el contrato es el spec</div>
+  <div class="detalle">
+    <div class="row"><span class="ico">▤</span><span class="date">18 sep</span><span class="txt">Almuerzo</span><span class="amt">50.000</span></div>
+    <div class="row"><span class="ico">✎</span><span class="date">19 sep</span><span class="txt">Pagué en efectivo, pedir la factura la próxima vez</span></div>
+    <div class="row"><span class="ico">▤</span><span class="date">20 sep</span><span class="txt">Taxi</span><span class="amt">20.000</span></div>
+    <div class="row"><span class="ico">✎</span><span class="date">21 sep</span><span class="txt">Escrito hoy: dice «21 sep», no «Hoy»</span></div>
+    <div class="row"><span class="ico">✎</span><span class="date"></span><span class="txt">Comentario antiguo: sin día, al final, texto alineado</span></div>
+  </div>
+  <div class="note">▤ movimiento · ✎ comentario. En la app los íconos son Receipt y MessageSquare de Lucide, de 12 px.</div>
+  <table>
+    <tr><th>Rol</th><th>Token</th><th>Hex</th><th>Razón</th></tr>
+    <tr><td>fecha / ícono</td><td>--fg-muted</td><td class="hx" data-v="muted"></td><td>Mismo token que la fecha del movimiento</td></tr>
+    <tr><td>texto</td><td>--fg</td><td class="hx" data-v="fg"></td><td>Texto del comentario (vigente)</td></tr>
+    <tr><td>panel</td><td>--bg-elevated</td><td class="hx" data-v="el"></td><td>Superficie de popover (vigente)</td></tr>
+  </table>
+  <table>
+    <tr><th>Par sobre la fila tintada al 4 %</th><th>Contraste</th></tr>
+    <tr><td>--fg-muted (fecha)</td><td class="cr" data-v="muted"></td></tr>
+    <tr><td>--fg (texto)</td><td class="cr" data-v="fg"></td></tr>
+  </table>
+</template>
+
+<footer>Generado a partir de 01_UX_SPEC.md: no es vinculante; el contrato es el spec. Pendiente, con motivo: la tipografía DM Mono no se incrusta (cero peticiones externas); se usa la mono del sistema.</footer>
+
+<script>
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lum = (c) => { const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const PAL = {
+    claro: { fg: "#1c1c1f", muted: "#6b6b73", el: "#ffffff" },
+    oscuro: { fg: "#f4f4f5", muted: "#9b9ba3", el: "#26262b" },
+  };
+  for (const panel of document.querySelectorAll(".panel")) {
+    const t = panel.dataset.theme, p = PAL[t];
+    panel.appendChild(document.getElementById("contenido").content.cloneNode(true));
+    panel.querySelector(".tag").textContent = "Detalle · tema " + t;
+    for (const td of panel.querySelectorAll(".hx")) {
+      const v = p[td.dataset.v];
+      td.innerHTML = '<span class="sw" style="background:' + v + '"></span> ' + v;
+    }
+    // Fila = --fg-muted al 4 % sobre --bg-elevated.
+    const fila = hex(p.el).map((c, i) => Math.round(c * 0.96 + hex(p.muted)[i] * 0.04));
+    for (const td of panel.querySelectorAll(".cr")) {
+      const r = ratio(hex(p[td.dataset.v]), fila);
+      td.innerHTML = '<span class="badge">' + (r >= 4.5 ? "AA " : "FALLA ") + r.toFixed(1) + "</span>";
+    }
+  }
+</script>
+</body>
+</html>

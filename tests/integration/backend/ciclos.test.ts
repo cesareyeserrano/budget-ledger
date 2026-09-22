@@ -159,7 +159,11 @@ describe("FR-2403 — la previsualización", () => {
     const body = await res.json();
     expect(body.cycles[0]).toEqual({ key: "2026-09", label: "Septiembre 2026", start: "2026-08-21", end: "2026-09-20", transition: false, current: true });
     expect(body.cycles).toHaveLength(6);
-    expect(body.relocation).toMatchObject({ cellsMoved: 15, movementsMoved: 27, movementsKeyChanged: 10, mergedCells: 3, identical: true, historyStart: "2026-09" });
+    // 28 desde diario-de-celda (FR-2511): F-USER tenía la celda de «Internet» con 96.400 y CERO
+    // movimientos detrás. Nadie lo notaba porque nada miraba el cuadre; ahora un mes con celdas sin
+    // respaldo no se cierra, así que el fixture ganó el movimiento que faltaba. Lo que este caso
+    // afirma no cambia: cuenta cuántos movimientos reubica, no cuántos debería haber.
+    expect(body.relocation).toMatchObject({ cellsMoved: 15, movementsMoved: 28, movementsKeyChanged: 10, mergedCells: 3, identical: true, historyStart: "2026-09" });
     expect((await getLedger(s)).revision).toBe(R);
     expect(await count(sql`SELECT count(*)::int AS n FROM cycle_config_version WHERE owner_id=${s.userId}`)).toBe(0);
     expect(await filasMemoria(s.userId)).toBe(0);
@@ -223,7 +227,8 @@ describe("FR-2404 — activar en el servidor", () => {
     expect((await res.json()).revision).toBe(R + 1);
     expect(await count(sql`SELECT count(*)::int AS n FROM amount_cell WHERE owner_id=${s.userId} AND period='2026-08' AND amount <> 0`)).toBe(0);
     expect(await count(sql`SELECT count(*)::int AS n FROM amount_cell WHERE owner_id=${s.userId} AND period='2026-09'`)).toBeGreaterThan(0);
-    expect(await count(sql`SELECT count(*)::int AS n FROM movement WHERE owner_id=${s.userId} AND period='2026-09'`)).toBe(27);
+    // 28: F-USER ganó el movimiento que respalda «Internet» (ver TC-CIC-024h).
+    expect(await count(sql`SELECT count(*)::int AS n FROM movement WHERE owner_id=${s.userId} AND period='2026-09'`)).toBe(28);
     const head = [...(await testDb().execute(sql`SELECT start_month FROM ledger WHERE owner_id=${s.userId}`))] as Array<{ start_month: string }>;
     expect(head[0]?.start_month).toBe("2026-09");
     expect(await filasMemoria(s.userId)).toBe(50);
@@ -338,7 +343,7 @@ describe("FR-2404 — activar en el servidor", () => {
     expect(loaded?.revision).toBe(R + 1);
     expect(loaded?.state.cycles?.mode).toBe("cycle");
     expect(loaded?.state.cycles?.versions[0]?.anchorDay).toBe(21);
-    expect(loaded?.state.movements.filter((m) => m.period === "2026-09")).toHaveLength(27);
+    expect(loaded?.state.movements.filter((m) => m.period === "2026-09")).toHaveLength(28);
     for (const m of [loaded!.state.budgets, loaded!.state.actuals]) for (const cells of Object.values(m)) expect(cells?.["2026-08"] ?? 0).toBe(0);
   });
 });
