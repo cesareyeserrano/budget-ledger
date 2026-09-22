@@ -1,5 +1,5 @@
 "use client";
-// @aitri-trace components:CellDetail — feature diario-de-celda (FR-2501, FR-2508, FR-2509).
+// @aitri-trace components:CellDetail — feature diario-de-celda (FR-2501, FR-2508, FR-2509) y fecha-de-comentario (FR-2602).
 //
 // Módulo:       src/components/CellDetail.tsx
 // Propósito:    El panel «Detalle» del editor de una celda: qué movimientos la forman y qué
@@ -54,6 +54,8 @@ export function dayLabel(iso: string): string {
 /**
  * Una línea del Detalle. Las cuatro formas comparten anatomía (ícono 12 px · contenido · monto a la
  * derecha) y se distinguen por el ícono y su etiqueta accesible, no por el color (WCAG 1.4.1).
+ *
+ * @aitri-trace FR-ID: FR-2602, US-ID: US-2602, AC-ID: AC-2602a, TC-ID: TC-FDC-020h, TC-FDC-022e, TC-FDC-023f
  */
 function DetailRow({
   entry, type, period, resaltado, acciones,
@@ -80,10 +82,18 @@ function DetailRow({
 
   if (entry.kind === "comment" || entry.kind === "reserveNote") {
     const text = entry.kind === "comment" ? entry.note.text : entry.text;
+    // fecha-de-comentario (FR-2602): la misma columna de 44 px que la fila de movimiento, con el día
+    // en que se escribió. Sin día —un comentario anterior a la feature, o una nota de operación de
+    // bolsillo— la columna sigue ahí, VACÍA, para que el texto quede alineado con las notas. Nunca
+    // se deriva un día del `createdAt`, que es un contador y no una fecha.
+    const day = entry.kind === "comment" && entry.note.date ? dayLabel(entry.note.date) : "";
     return (
       <div data-testid="detail-row" data-kind="comment" className={base} style={{ background: ROW_TINT }}>
         <MessageSquare size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-label="Comentario" style={{ color: "var(--fg-muted)" }} />
-        <span data-testid="cell-note" className="break-words" style={{ color: "var(--fg)" }}>{text}</span>
+        <span data-testid="detail-date" className="tabular flex-none w-[44px]" style={{ color: "var(--fg-muted)" }}>
+          {day}
+        </span>
+        <span data-testid="cell-note" className="flex-1 min-w-0 break-words" style={{ color: "var(--fg)" }}>{text}</span>
       </div>
     );
   }

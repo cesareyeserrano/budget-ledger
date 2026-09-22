@@ -355,10 +355,12 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
     // «Añadir comentario» (el campo del pie) también contaba como «Comentario».
     await expect(panel.getByLabel("Movimiento", { exact: true })).toHaveCount(1);
     await expect(panel.getByLabel("Comentario", { exact: true })).toHaveCount(2);
-    // Un comentario no lleva monto ni fecha.
+    // Un comentario no lleva monto, y este —sin día, como todos los anteriores a fecha-de-comentario—
+    // no muestra fecha. Desde FR-2602 de esa feature la fila SÍ tiene la columna de fecha, vacía, para
+    // alinear el texto: por eso se afirma que está vacía y no que no existe.
     const comentario = filas.nth(1);
     await expect(comentario.getByTestId("detail-amount")).toHaveCount(0);
-    await expect(comentario.getByTestId("detail-date")).toHaveCount(0);
+    await expect(comentario.getByTestId("detail-date")).toHaveText("");
   });
 
   test("TC-DDC-152h: un comentario nuevo se ve, persiste al recargar y no cambia la celda", async ({ page }) => {

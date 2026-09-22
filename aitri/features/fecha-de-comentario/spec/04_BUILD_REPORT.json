@@ -1,0 +1,91 @@
+{
+  "files_created": [
+    "drizzle/0010_fecha_de_comentario.sql",
+    "tests/domain/fecha-de-comentario.test.ts",
+    "tests/integration/backend/fecha-de-comentario.test.ts",
+    "tests/e2e/fecha-de-comentario.spec.ts"
+  ],
+  "files_modified": [
+    "drizzle/meta/_journal.json",
+    "src/domain/types.ts",
+    "src/domain/cycles.ts",
+    "src/domain/validation.ts",
+    "src/domain/reserve.ts",
+    "src/domain/detail.ts",
+    "src/lib/date.ts",
+    "src/state/store.ts",
+    "src/server/schemas.ts",
+    "src/server/db/schema.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/components/CellDetail.tsx",
+    "tests/e2e/diario-de-celda.spec.ts"
+  ],
+  "setup_commands": [
+    "npm run db:migrate"
+  ],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/domain/fecha-de-comentario.test.ts",
+    "tests/integration/backend/fecha-de-comentario.test.ts",
+    "tests/e2e/fecha-de-comentario.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2601",
+      "substitution": "addCellNote(state, leafId, month, text, periods, day?) recibe el dia como parametro OPCIONAL, y el TRD lo declara obligatorio (day: string)",
+      "reason": "Obligatorio rompia el typecheck de 16 llamadas en suites de otras features (techo-de-flujo, transferencias, diario-de-celda, seq-monotonic), y las de techo-de-flujo estan protegidas contra modificacion por TC-RES-202e. La app lo pasa SIEMPRE: el store lo calcula con todayISO() (TC-FDC-001h, 002e), asi que ningun comentario escrito desde la pantalla nace sin dia. Solo una llamada directa al dominio sin el sexto argumento lo crea sin dia, que es exactamente como se leen los comentarios anteriores a la feature.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2602",
+      "substitution": "TC-DDC-151h de diario-de-celda afirmaba que la fila de comentario NO tiene elemento detail-date (toHaveCount(0)); ahora afirma que lo tiene VACIO (toHaveText('')), sin tramitar un change request sobre esa feature",
+      "reason": "FR-2602 aprobado exige que la fila de comentario tenga SIEMPRE la columna de fecha de 44 px, vacia cuando el comentario no tiene dia, para alinear el texto. El caso de diario-de-celda garantizaba que un comentario no muestra fecha; con su fixture (comentarios sin dia) lo sigue garantizando: cambia el paso de la asercion, no lo que el caso protege. Mismo criterio que el cambio de texto de cierre-de-mes que diario-de-celda declaro en su FR-2509.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2601",
+      "substitution": "isCalendarDay vive en src/domain/validation.ts y no en src/domain/cycles.ts como dice el TRD; todayISO() sin zona delega en localDay",
+      "reason": "cycles.ts importa reserve.ts, y reserve.ts necesita isCalendarDay para rechazar un dia invalido: en cycles habria un ciclo de imports. validation.ts solo depende de zod y es donde ya vive el resto del contrato del borde, asi que la misma regla sirve al dominio, al cliente y al servidor. todayISO ya calculaba el dia local con la misma aritmetica; delegar evita dos copias.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade rutas nuevas, y la validacion del unico dato nuevo que entra por la red —el dia del comentario— se verifica con seis vectores en TC-FDC-111f a TC-FDC-116f.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": "Dos epics, los dos cerrados con sus TCs en verde (BUILD_PLAN.md). Durante la fase 4 se reabrieron dos veces fases anteriores por decision del usuario, sin cambio de alcance: (1) el codigo de rechazo de un dia invalido pasa de 400 a 422 invalid_payload, que es el que withApi devuelve para todo cuerpo invalido (fases 1, UX y 2); (2) TC-FDC-029f contradecia el manejo vigente de un 422 que el UX manda no cambiar (fase 3). La migracion 0010 es aditiva e idempotente; respaldo obligatorio antes de migrar, como desde la 0009."
+}

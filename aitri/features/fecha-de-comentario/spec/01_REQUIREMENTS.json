@@ -1,0 +1,276 @@
+{
+  "project_name": "T-Ledger — fecha-de-comentario",
+  "project_summary": "Feature de Ledger (T-Ledger). En el Detalle de una celda los movimientos muestran su día («18 sep»), pero los comentarios no: no guardan fecha, su createdAt es un contador interno. El usuario lo pidió el 21-sep-2026 («a ese comentario le falta poner fecha») y eligió que el día sea el de escritura, sin selector. North Star KPI: el 100 % de los comentarios escritos desde esta feature muestran en el Detalle el día en que se escribieron. JTBD: «saber cuándo anoté algo en una celda, leyéndolo en la misma línea de tiempo que los gastos». Guardrail: ningún comentario existente se pierde, cambia de texto ni recibe una fecha inventada.",
+  "functional_requirements": [
+    {
+      "id": "FR-2601",
+      "title": "Un comentario nuevo guarda el día en que se escribe",
+      "description": "Cuando el usuario añade un comentario a una celda desde el Detalle, el sistema guarda con él el día en que se escribió, en la hora local del usuario (UTC-5), sin preguntarlo y sin ofrecer un selector de fecha. El día viaja al servidor y persiste en Postgres junto al comentario: al recargar la app o abrirla en otro dispositivo, el comentario conserva ese mismo día. Los comentarios guardados antes de esta feature no tienen día y se conservan así, sin inventarles uno.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Con el reloj en el 21-sep-2026 a las 10:00 hora local, añadir el comentario «Pagar en efectivo» a una celda guarda el día 2026-09-21 con ese comentario (happy)",
+        "Con el reloj en el 21-sep-2026 a las 21:30 hora local (02:30 del 22-sep en UTC), el día guardado es 2026-09-21, no 2026-09-22 (edge — el día es el local, no el del servidor)",
+        "Tras añadir el comentario y recargar la página, el comentario sigue mostrando el mismo día: el dato viene de Postgres, no del estado en memoria (happy)",
+        "Un comentario existente sin día, leído desde Postgres, llega al cliente sin día (null o ausente) y el sistema no le asigna ninguno al cargar, al guardar otro comentario ni al re-escribir el snapshot (negative)",
+        "El servidor rechaza con 422 invalid_payload un comentario cuyo día no tiene la forma AAAA-MM-DD o no es una fecha de calendario válida (p. ej. 2026-02-30), y no guarda nada (negative)"
+      ]
+    },
+    {
+      "id": "FR-2602",
+      "title": "La fila del comentario muestra su día, igual que la de un movimiento",
+      "description": "En el Detalle, la fila de un comentario con día muestra ese día en la misma columna, con el mismo formato («18 sep»: día y mes corto, sin año ni hora) y el mismo color que la fecha de un movimiento. Un comentario sin día (anterior a esta feature) deja esa columna vacía con el mismo ancho, de modo que su texto sigue alineado con las notas de los movimientos; nunca muestra un día inventado. Aplica a las celdas de gasto, de ingreso y de bolsillo.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Un comentario con día 2026-09-18 muestra «18 sep» en la columna de fecha de su fila, en la misma posición horizontal (±1 px) que «18 sep» de un movimiento de la misma lista (happy)",
+        "Un comentario escrito hoy muestra el día de hoy en formato «21 sep», no el texto «Hoy», igual que un movimiento de hoy (edge)",
+        "Un comentario sin día muestra la columna de fecha vacía, sin texto, y el inicio de su texto queda alineado (±1 px) con el inicio de la nota de un movimiento de la misma lista (edge)",
+        "Un comentario sin día nunca muestra «1 ene», «31 dic» ni ninguna otra fecha derivada del contador interno (negative)",
+        "En una celda de bolsillo, un comentario con día muestra ese día con el mismo formato (happy)"
+      ]
+    },
+    {
+      "id": "FR-2603",
+      "title": "Los comentarios con día se ordenan entre los movimientos por fecha",
+      "description": "En el Detalle de una celda de gasto o ingreso, los comentarios con día se intercalan con los movimientos en orden cronológico ascendente: un comentario del 19 sep aparece después de los movimientos del 18 sep y antes de los del 20 sep. A igual día, el comentario va después de los movimientos de ese día. Los comentarios sin día van al final, en su orden de siempre (por antigüedad). En una celda de bolsillo, cuyas líneas no tienen fecha, los comentarios siguen al final: con día primero por fecha, y después los que no lo tienen.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con movimientos del 18 sep y del 20 sep y un comentario del 19 sep, el Detalle lista: movimiento 18 sep, comentario 19 sep, movimiento 20 sep (happy)",
+        "Con un movimiento del 19 sep y un comentario del 19 sep, el comentario aparece después del movimiento (edge — empate de día)",
+        "Con un comentario sin día y un movimiento del 20 sep, el comentario sin día aparece al final, después del movimiento (edge)",
+        "Dos comentarios sin día conservan entre sí el orden de antigüedad que tenían antes de la feature (negative — no se reordenan)",
+        "El orden relativo de los movimientos entre sí es idéntico con y sin comentarios en la celda (negative)"
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal, usuario único en producción",
+      "tech_level": "mid",
+      "goal": "Anotar en una celda lo que no es un gasto y saber después cuándo lo anotó",
+      "pain_point": "Sus comentarios salen sin fecha en una lista donde todo lo demás la tiene, así que no sabe a qué día se refieren"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2601",
+      "requirement_id": "FR-2601",
+      "as_a": "presupuestador personal",
+      "i_want": "que cada comentario que escribo quede con el día en que lo escribí, sin tener que elegirlo",
+      "so_that": "sepa cuándo anoté algo sin añadir un paso más al comentar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2601a",
+          "given": "es el 21 sep por la mañana y abro la celda Restaurantes de «Septiembre»",
+          "when": "escribo «Pagar en efectivo» y pulso Enter",
+          "then": "el comentario queda guardado con el día 21 sep"
+        },
+        {
+          "id": "AC-2601b",
+          "given": "son las 21:30 del 21 sep en mi hora local",
+          "when": "añado un comentario",
+          "then": "queda con el día 21 sep, no 22 sep"
+        },
+        {
+          "id": "AC-2601c",
+          "given": "añadí un comentario hoy",
+          "when": "recargo la app",
+          "then": "el comentario sigue mostrando el día de hoy"
+        }
+      ]
+    },
+    {
+      "id": "US-2602",
+      "requirement_id": "FR-2602",
+      "as_a": "presupuestador personal",
+      "i_want": "ver el día de cada comentario igual que veo el de cada movimiento",
+      "so_that": "lea la lista de la celda como una sola historia con fechas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2602a",
+          "given": "una celda con un movimiento del 18 sep y un comentario del 18 sep",
+          "when": "abro su Detalle",
+          "then": "las dos filas muestran «18 sep» en la misma columna"
+        },
+        {
+          "id": "AC-2602b",
+          "given": "una celda con un comentario que escribí antes de esta mejora",
+          "when": "abro su Detalle",
+          "then": "el comentario aparece con su texto intacto y sin fecha, alineado con los demás"
+        }
+      ]
+    },
+    {
+      "id": "US-2603",
+      "requirement_id": "FR-2603",
+      "as_a": "presupuestador personal",
+      "i_want": "que un comentario aparezca junto a los gastos del día en que lo escribí",
+      "so_that": "entienda a qué se refería sin buscarlo al final de la lista",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2603a",
+          "given": "gastos del 18 y del 20 sep y un comentario del 19 sep",
+          "when": "abro la celda",
+          "then": "el comentario aparece entre los dos gastos"
+        },
+        {
+          "id": "AC-2603b",
+          "given": "comentarios antiguos sin fecha",
+          "when": "abro la celda",
+          "then": "siguen al final, en el mismo orden de antes"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2601",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los comentarios existentes (sin día) siguen apareciendo todos en el Detalle con su texto intacto tras aplicar la migración (FR-2508 de diario-de-celda).",
+      "acceptance_criteria": [
+        "Una base con comentarios sin día, tras aplicar la migración, muestra en el Detalle el mismo número de comentarios con el mismo texto carácter por carácter que antes de migrar"
+      ]
+    },
+    {
+      "id": "NFR-2602",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Un comentario, con o sin día, no suma a la celda (FR-2508 de diario-de-celda).",
+      "acceptance_criteria": [
+        "Añadir un comentario con día a una celda de 100.000 deja la celda en 100.000 y el total de su grupo sin cambios"
+      ]
+    },
+    {
+      "id": "NFR-2603",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "En un periodo cerrado se siguen pudiendo añadir comentarios (FR-2004 de cierre-de-mes, reafirmado por FR-2507 de diario-de-celda: los comentarios no se congelan), ahora con su día; y el cierre sigue congelando las cifras y los movimientos.",
+      "acceptance_criteria": [
+        "En una celda de un mes cerrado, el Detalle ofrece el campo de comentario y añadir uno lo guarda con el día de hoy; el servidor lo acepta",
+        "En ese mismo mes cerrado, un snapshot que además cambia un monto o un movimiento se sigue rechazando con el mismo error que antes de la feature"
+      ]
+    },
+    {
+      "id": "NFR-2604",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El orden de los movimientos entre sí en el Detalle no cambia (FR-2501 de diario-de-celda).",
+      "acceptance_criteria": [
+        "Las pruebas de orden de FR-2501 de diario-de-celda pasan sin modificarse"
+      ]
+    },
+    {
+      "id": "NFR-2605",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El límite de 280 caracteres del comentario sigue igual (FR-1012 de transferencias).",
+      "acceptance_criteria": [
+        "Un comentario de 281 caracteres se sigue rechazando y uno de 280 se sigue aceptando, con día"
+      ]
+    },
+    {
+      "id": "NFR-2606",
+      "category": "Security",
+      "priority": "MUST",
+      "requirement": "El día de un comentario se valida en el servidor (forma AAAA-MM-DD y fecha de calendario válida) antes de escribirlo en Postgres, y solo se escribe en comentarios del propio ownerId, como el resto del contrato /api/v1.",
+      "acceptance_criteria": [
+        "Un snapshot con un día mal formado o inexistente en un comentario se rechaza con 422 invalid_payload y no escribe nada",
+        "Un día que intenta inyectar SQL o texto arbitrario («2026-09-21'; DROP») se rechaza con 422 invalid_payload"
+      ]
+    }
+  ],
+  "no_go_zone": [
+    "Elegir o editar el día de un comentario: siempre es el día en que se escribe (decisión del usuario, 21-sep-2026)",
+    "Reconstruir o inventar días para los comentarios anteriores a la feature: no hay dato real del que sacarlos",
+    "Mostrar la hora del comentario: solo el día, como los movimientos",
+    "Dar fecha a la nota automática de arrastre de los bolsillos (FR-1804): no es un comentario escrito",
+    "Editar o borrar comentarios: no existe hoy y no lo pide esta feature"
+  ],
+  "constraints": [
+    "Stack de la raíz sin cambios: Next.js 15, TypeScript, Postgres con drizzle; UI en español",
+    "PostgreSQL sigue siendo la única fuente de verdad tras /api/v1 filtrado por ownerId (FR-505, FR-507)",
+    "La columna nueva es opcional (nullable) y la migración no reescribe filas existentes: es aditiva y reversible sin pérdida",
+    "Observabilidad y healthcheck: no aplican cambios — no hay rutas nuevas; las existentes siguen registradas por el mismo envoltorio (NFR-502 de backend) y GET /health no cambia",
+    "CI/CD: sin cambios en el pipeline; la migración entra por el mismo mecanismo que las anteriores (0000-0009)"
+  ],
+  "technology_preferences": [],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "assumed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Pedido del usuario en el chat del 21-sep-2026: «a ese comentario le falta poner fecha»",
+    "users": "Usuario único de producción (memoria del proyecto, decisión del 13-sep-2026)",
+    "baseline": "Medido en el código y la base de dev el 21-sep-2026: cell_note no tiene columna de fecha y los 29 comentarios tienen createdAt de contador",
+    "success_metric": "El usuario eligió el 21-sep-2026 la opción recomendada («1.»): día de escritura, visible como el de un movimiento, orden junto a los movimientos, los antiguos sin fecha",
+    "no_go_zone": "Sin selector de fecha y sin fechas para los antiguos: confirmados en la misma elección. Sin hora, sin fecha para la nota automática y sin editar/borrar comentarios: los propone el agente"
+  },
+  "idea_gaps": [
+    "no_go_zone: excluir la hora, la fecha de la nota automática de arrastre y editar/borrar comentarios lo propone el agente; el usuario no lo vio",
+    "FR-2602: dejar la columna de fecha vacía (con su ancho) en los comentarios antiguos, para que el texto quede alineado, lo propone el agente",
+    "FR-2603: a igual día, el comentario va después de los movimientos de ese día — lo decide el agente (los contadores de creación de movimientos y comentarios no son comparables)",
+    "FR-2603: en celdas de bolsillo los comentarios siguen al final (con día primero): lo decide el agente, porque sus líneas no tienen fecha con la que intercalar",
+    "FR-2601: el día se toma en la hora local del navegador (UTC-5) y no en la del servidor (UTC), siguiendo la preferencia del usuario de ver horas en hora local"
+  ],
+  "coverage_map": [
+    {
+      "need": "Guardar el día en que se escribe un comentario, sin preguntar",
+      "disposition": "FR-2601"
+    },
+    {
+      "need": "Mostrar ese día en la fila del comentario como el de un movimiento",
+      "disposition": "FR-2602"
+    },
+    {
+      "need": "Ordenar los comentarios con día entre los movimientos",
+      "disposition": "FR-2603"
+    },
+    {
+      "need": "Los comentarios antiguos se muestran sin fecha y al final",
+      "disposition": "FR-2602"
+    },
+    {
+      "need": "Los comentarios existentes no se pierden ni cambian",
+      "disposition": "NFR-2601"
+    },
+    {
+      "need": "Un comentario no suma a la celda",
+      "disposition": "NFR-2602"
+    },
+    {
+      "need": "Un periodo cerrado sigue admitiendo comentarios (FR-2004) y sigue congelando cifras y movimientos",
+      "disposition": "NFR-2603"
+    },
+    {
+      "need": "El orden de los movimientos no cambia",
+      "disposition": "NFR-2604"
+    },
+    {
+      "need": "El límite de 280 caracteres sigue igual",
+      "disposition": "NFR-2605"
+    },
+    {
+      "need": "Elegir o editar la fecha del comentario",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Reconstruir fechas para los comentarios existentes",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Mostrar la hora del comentario",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Fecha para la nota automática de arrastre de bolsillos",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nLos comentarios de una celda llevan la fecha del día en que se escribieron, visible en el Detalle igual que la de un movimiento.\n\n## Problem / Why\nPedido del usuario el 21-sep-2026, al revisar la tarjeta del Detalle: «a ese comentario le falta poner fecha».\nHoy un comentario (cell_note) no guarda fecha: su `createdAt` es un contador interno de secuencia, no un\ninstante, así que no hay nada que mostrar. Los movimientos sí muestran su día («18 sep») en la misma lista,\ny el comentario queda como la única fila sin fecha.\n\n## Target Users\nEl presupuestador personal (único usuario de la app) que anota comentarios en las celdas del Ejecutado.\n\n## New Behavior\n- Al añadir un comentario, el sistema guarda el día en que se escribe (hora local del usuario, UTC-5), sin preguntar.\n- El Detalle muestra ese día en la fila del comentario, en el mismo lugar y formato que la fecha de un movimiento («18 sep», o «Hoy»).\n- En el Detalle, los comentarios con fecha se ordenan junto a los movimientos por fecha.\n- Los comentarios anteriores a esta feature (29 en dev, los de producción) no tienen fecha real: se muestran sin fecha y conservan su lugar al final de la lista, como hoy.\n\n## Success Criteria\n- Given una celda abierta en el Detalle, When el usuario añade un comentario, Then la fila del comentario muestra el día de hoy como fecha.\n- Given un comentario escrito un día anterior, When se abre el Detalle, Then la fila muestra ese día («18 sep»), no «Hoy».\n- Given un comentario creado antes de esta feature, When se abre el Detalle, Then se muestra sin fecha, sin inventar una, y sin error.\n- Given un comentario con fecha y movimientos de días distintos, When se abre el Detalle, Then el comentario aparece entre los movimientos según su fecha.\n\n## Touch Points\n- Modifica: FR-2508 de diario-de-celda (fila de comentario en el Detalle) y FR-1012 de transferencias (el comentario de celda).\n- Esquema: tabla `cell_note` gana una columna de fecha opcional (migración drizzle nueva).\n- Dominio: `CellNote` (src/domain/types.ts), `addCellNote` (mutations), `cellDetail` (detail.ts, orden).\n- Servidor: schemas.ts (validación del snapshot / la nota), ledgerRepo.ts (leer y escribir la columna).\n- UI: CellDetail.tsx (fila del comentario); CellNoteInput.tsx solo si hace falta pasar la fecha.\n\n## Must Not Break (Regression Boundary)\n- Los comentarios existentes (sin fecha) siguen apareciendo todos, con su texto intacto, en el Detalle (FR-2508).\n- Un comentario sigue sin sumar a la celda (FR-2508).\n- Un periodo cerrado sigue sin admitir comentarios nuevos (FR-2507).\n- El orden de los movimientos entre sí no cambia (FR-2501).\n- El límite de 280 caracteres del comentario sigue igual (FR-1012).\n\n## Out of Scope\n- Elegir o editar la fecha de un comentario: siempre es el día en que se escribe (decisión del usuario, 21-sep).\n- Inventar o reconstruir fechas para los comentarios ya existentes.\n- Mostrar la hora del comentario (solo el día).\n- La nota automática de arrastre de los bolsillos (FR-1804): no es un comentario escrito y no lleva fecha.\n"
+}

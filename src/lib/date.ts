@@ -1,6 +1,6 @@
 import type { PeriodKey } from "@/domain/types";
 import { periodFromDate, periodOf } from "@/domain/periods";
-import type { Calendar } from "@/domain/cycles";
+import { localDay, type Calendar } from "@/domain/cycles";
 
 /**
  * Helpers de fecha del registro (FR-210). El campo muestra "Hoy" por defecto; la hora se
@@ -95,8 +95,7 @@ export function todayISO(tz?: string, now: Date = new Date()): string {
     // `en-CA` formatea como YYYY-MM-DD: es el locale con ese orden en Intl sin más piezas.
     return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
   }
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return localDay(now);
 }
 
 /**

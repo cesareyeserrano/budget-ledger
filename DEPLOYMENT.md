@@ -133,6 +133,18 @@ Si el despliegue que falló **no tocó la estructura de la base**, con esto has 
 > `0` → la imagen anterior todavía puede leer la base y el punto 1 sirve.
 > `> 0` → el rollback de solo-código **no** sirve; vas al punto 2.
 
+> ### Nota: si ya se desplegó `fecha-de-comentario`, volver la imagen pierde los días
+>
+> La migración `0010` añade `cell_note.date`, el día en que se escribió cada comentario. La imagen
+> anterior la ignora al leer, así que **sí arranca**; pero su primer guardado reescribe el ledger sin
+> esa columna, y los comentarios escritos después del despliegue **conservan el texto y pierden el
+> día**. Si esos días importan, solo el respaldo del punto 2 los devuelve. Cuántos hay en juego:
+>
+> ```bash
+> docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+>   -c "SELECT count(*) FROM cell_note WHERE date IS NOT NULL;"
+> ```
+
 ### 2. La base de datos — restaura el respaldo
 
 Solo si la base quedó dañada de verdad. **Restaurar te devuelve la base al momento en que se hizo el
@@ -284,6 +296,11 @@ comprueba después que el esquema cambió — no te fíes del mensaje de éxito.
   nueva, que consulta sus dos tablas. El código viejo funciona sobre la base migrada mientras nadie
   haya activado ciclos. Las variables `LEDGER_TEST_OVERRIDES`, `LEDGER_TODAY`, `LEDGER_NOW` y
   `LEDGER_TEST_FAIL_AFTER` son solo de pruebas: NUNCA en producción.
+- `0009` (**diario-de-celda**): aditiva; migrar ANTES de la imagen nueva. Su rollback tiene la
+  excepción de los ajustes negativos (ver Rollback).
+- `0010` (**fecha-de-comentario**): aditiva e idempotente; migrar ANTES de la imagen nueva, que
+  selecciona `cell_note.date` al leer. Volver la imagen pierde el DÍA de los comentarios escritos
+  después (no su texto). Detalle en `aitri/features/fecha-de-comentario/DEPLOYMENT.md`.
 
 ## Cifrado (NFR-511)
 

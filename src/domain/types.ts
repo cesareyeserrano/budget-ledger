@@ -94,6 +94,10 @@ export interface CellNote {
   id: string;
   createdAt: number;
   text: string;
+  /** Delta aditivo (feature fecha-de-comentario, FR-2601): el día LOCAL en que se escribió,
+   *  «AAAA-MM-DD». Ausente = comentario anterior a la feature, y así se queda: nadie le inventa un
+   *  día. `createdAt` sigue siendo el contador de `nextSeq()`, nunca un instante. */
+  date?: string;
 }
 
 /** Mapa nodeId → mes → observaciones manuales de esa celda (feature transferencias, FR-1012). */

@@ -38,6 +38,20 @@ export function isIsoDate(iso: unknown): iso is string {
   const d = new Date(`${iso}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
 }
+/**
+ * El día LOCAL de un instante, «AAAA-MM-DD». Usa los getters locales a propósito: a las 21:30 del
+ * 21-sep en Bogotá ya son las 02:30 del 22 en UTC, y `toISOString()` daría el día equivocado.
+ *
+ * @param d Instante; el llamador pone el reloj (este módulo no lee la hora por su cuenta).
+ * @returns El día civil en la zona del proceso que ejecuta.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601b, TC-ID: TC-FDC-002e, TC-FDC-003e
+ */
+export function localDay(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 function toUtc(iso: string): number {
   return Date.parse(`${iso}T00:00:00Z`);
 }

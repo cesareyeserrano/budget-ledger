@@ -597,8 +597,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       return { ok: true };
     },
 
+    // fecha-de-comentario (FR-2601): el día es el LOCAL del navegador en el momento del Enter; el
+    // servidor corre en UTC y de noche daría el día siguiente (ADR-02 del TRD).
+    //
+    // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-002e
     addCellNote: (leafId, month, text) => {
-      const result = addCellNote(get().data, leafId, month, text, get().activePeriods());
+      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO());
       if ("rejected" in result) return false;
       set({ data: result.state });
       persist(result.state);

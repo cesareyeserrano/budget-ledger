@@ -7,7 +7,7 @@
  * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { PERIOD_KEY, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
+import { PERIOD_KEY, NOTE_DAY, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -129,10 +129,18 @@ export const apiMovementSchema = z
     }
   });
 
-/** Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`). */
+/**
+ * Observaciones por celda (FR-1012): nodeId → mes → notas manuales (texto ≤280, como `note`).
+ * fecha-de-comentario: `date` opcional validado con NOTE_DAY; un día inválido → 422 invalid_payload
+ * sin escribir. Declararlo aquí NO es opcional: sin él zod lo descartaría en silencio (NFR-2606).
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-008f, TC-FDC-111f, TC-FDC-112f
+ */
 const apiCellNotes = z.record(
   z.string(),
-  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280) })))
+  z.record(PERIOD_KEY, z.array(z.object({
+    id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280), date: NOTE_DAY.optional(),
+  })))
 );
 
 /** Estado completo del ledger para el snapshot PUT. */

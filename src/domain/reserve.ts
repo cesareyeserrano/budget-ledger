@@ -15,7 +15,7 @@ import type { AmountMap, CellNote, LedgerState, PeriodKey, Movement } from "./ty
 import { findNode, isLeaf } from "./tree";
 import { typeTotals } from "./rollup";
 import { isPeriodKey, periodLabel } from "./periods";
-import { normalizeNote, parseAmount } from "./validation";
+import { isCalendarDay, normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
 import { openingCarry } from "./opening";
 
@@ -1287,23 +1287,32 @@ export const CELL_NOTE_MAX = 280;
  * amplía el ALCANCE, no el modelo. La guarda pasa a exigir una hoja existente: los nodos padre son
  * roll-up y no tienen celda propia que anotar.
  *
+ * fecha-de-comentario (FR-2601): `day` es el día local en que se escribe y se guarda con la nota.
+ * Es opcional solo para no reescribir las suites de otras features que ya llaman a esta función; la
+ * app lo pasa siempre (el store lo calcula con `localDay`). Un día que no existe se rechaza como
+ * `invalid_note`, igual que un texto inválido.
+ *
+ * @param day Día local «AAAA-MM-DD»; si falta, la nota queda sin día.
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-1809, US-ID: US-1809, AC-ID: AC-1835, TC-ID: TC-TDF-080h, TC-TDF-083e
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-009f, TC-FDC-102e
  */
 export function addCellNote(
   state: LedgerState,
   leafId: string,
   month: PeriodKey,
   text: string,
-  periods: PeriodScope
+  periods: PeriodScope,
+  day?: string
 ): { state: LedgerState } | { rejected: "invalid_note" | "invalid_target" } {
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes) || !isPeriodKey(month) || !periods.includes(month)) return { rejected: "invalid_target" };
   const trimmed = text.trim();
   if (trimmed.length === 0 || trimmed.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
+  if (day !== undefined && !isCalendarDay(day)) return { rejected: "invalid_note" };
   const next = cloneState(state);
-  const note: CellNote = { id: uid(), createdAt: nextSeq(), text: trimmed };
+  const note: CellNote = { id: uid(), createdAt: nextSeq(), text: trimmed, ...(day !== undefined ? { date: day } : {}) };
   const byLeaf = { ...(next.cellNotes ?? {}) };
   const byMonth = { ...(byLeaf[leafId] ?? {}) };
   byMonth[month] = [...(byMonth[month] ?? []), note];

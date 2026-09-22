@@ -100,10 +100,33 @@ export function displayAmount(
 }
 
 
+/** Longitud de «AAAA-MM-DD»: el día de un movimiento es el prefijo de su fecha de minuto. */
+const DAY_LENGTH = 10;
+
+/**
+ * Los comentarios de una celda partidos en dos listas ordenadas (fecha-de-comentario, FR-2603): los
+ * que tienen día, por día y a igual día por antigüedad; y los que no, por antigüedad (el orden de
+ * siempre). `createdAt` de un comentario es el contador de `nextSeq()`: solo se compara ENTRE
+ * comentarios, nunca con el de un movimiento, que es otra escala (ADR-03).
+ */
+function splitComments(notes: readonly CellNote[]): { dated: CellNote[]; undated: CellNote[] } {
+  const byAge = (a: CellNote, b: CellNote) => a.createdAt - b.createdAt;
+  const dated = notes.filter((n) => n.date !== undefined)
+    .sort((a, b) => a.date!.localeCompare(b.date!) || byAge(a, b));
+  const undated = notes.filter((n) => n.date === undefined).sort(byAge);
+  return { dated, undated };
+}
+
 /**
  * Las líneas que forman una celda, en el orden en que se leen: el aviso automático de arrastre (solo
  * bolsillos), después los movimientos del periodo por fecha y, a igual fecha, por orden de creación,
- * y al final los comentarios por antigüedad.
+ * con los comentarios fechados intercalados por su día, y al final los comentarios sin día por
+ * antigüedad.
+ *
+ * fecha-de-comentario (FR-2603, ADR-03): es una fusión ESTABLE de dos listas ya ordenadas. Un
+ * comentario entra justo antes del primer movimiento de un día POSTERIOR al suyo, así que a igual
+ * día va después de los movimientos. El orden relativo de los movimientos no cambia nunca
+ * (NFR-2604). En un bolsillo, cuyas líneas no tienen fecha, los comentarios fechados van tras ellas.
  *
  * Una hoja `transfer` no tiene movimientos propios en el Detalle: sus operaciones De→A se leen como
  * notas (`reserveNote`), exactamente como hasta ahora (NFR-2503). Los movimientos `transfer` nunca
@@ -117,6 +140,7 @@ export function displayAmount(
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-002h, TC-DDC-004f, TC-DDC-159e
+ * @aitri-trace FR-ID: FR-2603, US-ID: US-2603, AC-ID: AC-2603a, TC-ID: TC-FDC-040h, TC-FDC-041e, TC-FDC-042e, TC-FDC-043f, TC-FDC-044f, TC-FDC-046h
  */
 export function cellDetail(
   state: LedgerState, leafId: string, period: PeriodKey, periods: PeriodScope
@@ -124,6 +148,8 @@ export function cellDetail(
   const node = findNode(state.nodes, leafId);
   if (!node) return [];
   const entries: DetailEntry[] = [];
+  const { dated, undated } = splitComments(state.cellNotes?.[leafId]?.[period] ?? []);
+  let next = 0; // siguiente comentario fechado aún sin colocar
 
   if (node.type === "transfer") {
     // El aviso de arrastre es del mes, no de la celda: solo aparece si ESTA alcancía aportó (la
@@ -148,12 +174,14 @@ export function cellDetail(
         return byDate !== 0 ? byDate : a.createdAt - b.createdAt;
       });
     for (const m of propios) {
+      const day = sortDate(m, period).slice(0, DAY_LENGTH);
+      while (next < dated.length && dated[next].date! < day) entries.push({ kind: "comment", note: dated[next++] });
       entries.push({ kind: m.kind === "adjustment" ? "adjustment" : "movement", movement: m });
     }
   }
 
-  const comentarios = [...(state.cellNotes?.[leafId]?.[period] ?? [])].sort((a, b) => a.createdAt - b.createdAt);
-  for (const note of comentarios) entries.push({ kind: "comment", note });
+  while (next < dated.length) entries.push({ kind: "comment", note: dated[next++] });
+  for (const note of undated) entries.push({ kind: "comment", note });
 
   return entries;
 }

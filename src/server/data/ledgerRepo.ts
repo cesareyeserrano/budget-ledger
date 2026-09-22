@@ -173,7 +173,11 @@ function rowsToState(
   // FR-1012: observaciones manuales por celda.
   const cellNotes: CellNotesMap = {};
   for (const r of cellNoteRows) {
-    ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({ id: r.id, createdAt: r.createdAt, text: r.text });
+    // fecha-de-comentario: NULL en la columna → clave AUSENTE en memoria, nunca `date: null`.
+    // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601c, TC-ID: TC-FDC-004h, TC-FDC-006f
+    ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({
+      id: r.id, createdAt: r.createdAt, text: r.text, ...(r.date !== null ? { date: r.date } : {}),
+    });
   }
   for (const byMonth of Object.values(cellNotes)) {
     for (const list of Object.values(byMonth)) list?.sort((a, b) => a.createdAt - b.createdAt);
@@ -469,7 +473,7 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
   for (const [nodeId, byMonth] of Object.entries(state.cellNotes ?? {})) {
     for (const [month, notes] of Object.entries(byMonth)) {
       for (const n of notes ?? []) {
-        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text });
+        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text, date: n.date ?? null });
       }
     }
   }

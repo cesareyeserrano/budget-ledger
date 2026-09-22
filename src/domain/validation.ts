@@ -156,10 +156,41 @@ export const persistedBudgetV2Schema = z.object({
 });
 export type PersistedBudgetV2 = z.infer<typeof persistedBudgetV2Schema>;
 
+/** Longitud de «AAAA-MM-DD»: corta una cadena desmesurada antes de la regex. */
+const NOTE_DAY_LENGTH = 10;
+const NOTE_DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * True si `s` es un día de calendario que existe, con la forma «AAAA-MM-DD» (NFR-2606). La regex
+ * sola deja pasar «2026-02-30»: se construye la fecha en UTC y se comprueba que devuelve los mismos
+ * año, mes y día.
+ *
+ * @param s Valor sin validar (puede venir del cuerpo de un PUT).
+ * @returns `true` solo para un día existente bien formado.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-114e, TC-FDC-008f
+ */
+export function isCalendarDay(s: unknown): s is string {
+  if (typeof s !== "string" || s.length !== NOTE_DAY_LENGTH || !NOTE_DAY_RE.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d));
+  return utc.getUTCFullYear() === y && utc.getUTCMonth() === m - 1 && utc.getUTCDate() === d;
+}
+
+/**
+ * El día de un comentario en el borde (fecha-de-comentario, NFR-2606). Lo usan los DOS esquemas que
+ * validan comentarios —el PUT del servidor y la carga del cliente—: zod descarta en silencio una
+ * clave no declarada, así que si faltara en cualquiera de los dos el día se perdería sin error.
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601c, TC-ID: TC-FDC-010e, TC-FDC-111f
+ */
+export const NOTE_DAY = z.string().max(NOTE_DAY_LENGTH).refine(isCalendarDay, "Día inexistente: se espera AAAA-MM-DD");
+
 /** Observaciones por celda (FR-1012): nodeId → mes → lista de notas manuales. */
 export const cellNotesSchema = z.record(
   z.string(),
-  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280) })))
+  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280), date: NOTE_DAY.optional() })))
 );
 
 /** Formato intermedio v3 (saldos con arrastre — revertido). Se acepta SOLO para migrar a v4. */

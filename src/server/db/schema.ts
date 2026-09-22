@@ -291,10 +291,15 @@ export const cellNote = pgTable(
     id: text("id").notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     text: text("text").notNull(),
+    // fecha-de-comentario (FR-2601, ADR-01): el día LOCAL en que se escribió, como texto
+    // «AAAA-MM-DD» (igual que movement.date, sin zona). NULL = comentario anterior a la feature.
+    date: text("date"),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.id] }),
     check("cell_note_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("cell_note_text_ck", sql`char_length(${t.text}) <= 280`),
+    // Solo la FORMA; la validez de calendario (30-feb) la juzga zod en el borde (NFR-2606).
+    check("cell_note_date_ck", sql`${t.date} IS NULL OR ${t.date} ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'`),
   ]
 );
