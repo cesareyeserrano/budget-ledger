@@ -2151,3 +2151,101 @@ test.describe("FR-2508 — el comentario a un clic donde ya está la nota del mo
     await expect(panel.getByTestId("comment-reveal")).toHaveCount(0);
   });
 });
+
+test.describe("FR-2502 / FR-2505 — Enter registra desde cualquier campo, también tras elegir la fecha", () => {
+  // Hueco que encontró el usuario: tras elegir un día, el foco se quedaba en el botón de fecha y Enter
+  // REABRÍA el calendario en vez de registrar. Monto y Nota ya respondían a Enter; la fecha no.
+  test("añadir: elegir la fecha y pulsar Enter registra el movimiento", async ({ page }) => {
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const antes = (await readLedger(page))?.movements.length ?? 0;
+    await panel.getByLabel("Monto").fill("1000");
+    await panel.getByLabel("Nota").fill("Pan");
+    await elegirFecha(page, panel, "2026-09-05");
+    await expect(page.getByTestId("add-date-popover")).toHaveCount(0);
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await readLedger(page))?.movements.length ?? 0).toBe(antes + 1);
+    await expect(page.getByTestId("add-date-popover")).toHaveCount(0);
+  });
+
+  test("añadir: Enter con el foco en el botón de fecha registra si ya hay monto", async ({ page }) => {
+    await abrir(page, REST_SEP);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const antes = (await readLedger(page))?.movements.length ?? 0;
+    await panel.getByLabel("Monto").fill("1000");
+    await panel.getByTestId("add-date").focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await readLedger(page))?.movements.length ?? 0).toBe(antes + 1);
+  });
+
+  test("editar: elegir la fecha y pulsar Enter guarda el cambio", async ({ page }) => {
+    await abrir(page, {
+      nodes: NODES,
+      actuals: { "c-rest": { [SEP]: 15_000 } },
+      movements: [mv("m-x", "expense", "c-rest", 15_000, SEP, "2026-09-18T12:00", 1, "Café")],
+    } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    const editor = await editarFila(page, panel, "Café");
+    await editor.getByTestId("edit-date").click();
+    const pop = page.getByTestId("edit-date-popover");
+    await expect(pop.locator("select.rdp-years_dropdown")).toBeVisible();
+    await pop.locator('[data-day="2026-09-15"]:not([data-outside]) button').click();
+    await expect(pop).toHaveCount(0);
+    await page.keyboard.press("Enter");
+    await expect(panel.getByTestId("movement-editor")).toHaveCount(0);
+    await expect.poll(async () => (await readLedger(page))?.movements.find((m) => m.id === "m-x")?.date)
+      .toMatch(/^2026-09-15/);
+  });
+});
+
+test.describe("BG-001 — cerrar el Detalle no anula los movimientos recién añadidos", () => {
+  // Lo que vio el usuario en Peluquería de octubre: añadía un movimiento desde el Detalle, cerraba con
+  // «Guardar» (o Enter, o un clic fuera) y aparecía un «Ajuste manual» por el mismo monto en negativo.
+  // El campo del valor guardaba la cifra de cuando se ABRIÓ la celda y guardar la re-tecleaba.
+  const cierres: [string, (page: Page, panel: ReturnType<Page["locator"]>) => Promise<void>][] = [
+    ["Guardar", async (_page, panel) => { await panel.getByTestId("cell-save").click(); }],
+    ["Enter en el valor", async (page) => { await page.getByLabel("Editar valor").press("Enter"); }],
+    // El clic fuera solo cierra cuando el foco está en el campo del valor (su blur comitea); tras añadir,
+    // el foco queda en «Monto», así que primero se vuelve al valor, como haría el usuario.
+    ["clic fuera", async (page) => {
+      await page.getByLabel("Editar valor").click();
+      await page.getByTestId("budget-grid").click({ position: { x: 5, y: 5 } });
+    }],
+  ];
+  for (const [como, cerrar] of cierres) {
+    test(`añadir 1.000 y cerrar con ${como} deja la celda en 1.000, sin ajuste`, async ({ page }) => {
+      await abrir(page, { nodes: NODES, actuals: {}, movements: [] } as unknown as Seed);
+      const panel = await abrirCelda(page, "c-rest", SEP);
+      await panel.getByLabel("Monto").fill("1000");
+      await panel.getByLabel("Nota").fill("Prueba");
+      await panel.getByLabel("Nota").press("Enter");
+      // El campo del valor pasa a la cifra nueva: no se queda mostrando el 0 de cuando se abrió.
+      await expect(page.getByLabel("Editar valor")).toHaveValue("1000");
+      await cerrar(page, panel);
+      await expect(page.getByTestId("cell-notes")).toHaveCount(0);
+      await expect.poll(async () => {
+        const s = await readLedger(page);
+        return {
+          celda: s?.actuals["c-rest"]?.[SEP] ?? 0,
+          ajustes: (s?.movements ?? []).filter((m) => m.kind === "adjustment").length,
+        };
+      }).toEqual({ celda: 1000, ajustes: 0 });
+    });
+  }
+
+  test("si el usuario SÍ teclea un total, guardar lo sigue aplicando con su ajuste (FR-2504)", async ({ page }) => {
+    await abrir(page, { nodes: NODES, actuals: {}, movements: [] } as unknown as Seed);
+    const panel = await abrirCelda(page, "c-rest", SEP);
+    await panel.getByLabel("Monto").fill("1000");
+    await panel.getByLabel("Nota").press("Enter");
+    await page.getByLabel("Editar valor").fill("1500");
+    await panel.getByTestId("cell-save").click();
+    await expect.poll(async () => {
+      const s = await readLedger(page);
+      return {
+        celda: s?.actuals["c-rest"]?.[SEP] ?? 0,
+        ajustes: (s?.movements ?? []).filter((m) => m.kind === "adjustment").map((m) => m.amount),
+      };
+    }).toEqual({ celda: 1500, ajustes: [500] });
+  });
+});

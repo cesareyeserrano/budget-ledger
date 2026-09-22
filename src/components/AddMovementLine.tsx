@@ -92,6 +92,9 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
             <button
               data-testid="add-date"
               type="button"
+              // Con un monto ya escrito, Enter aquí registra como en cualquier otro campo de la línea;
+              // el calendario se sigue abriendo con clic o espacio.
+              onKeyDown={(e) => { if (e.key === "Enter" && monto !== "") { e.preventDefault(); e.stopPropagation(); confirmar(); } }}
               className="flex-none flex items-center gap-1 rounded-(--radius-sm) border border-border px-1.5 py-1 cursor-pointer"
               style={{ color: "var(--fg-secondary)" }}
             >
@@ -99,7 +102,16 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
               {etiquetaFecha}
             </button>
           </PopoverTrigger>
-          <PopoverContent data-testid="add-date-popover" className="w-auto p-2" align="start">
+          <PopoverContent
+            data-testid="add-date-popover"
+            className="w-auto p-2"
+            align="start"
+            // Al elegir un día el foco va al monto, no al botón de fecha: así el siguiente Enter registra
+            // en vez de reabrir el calendario. Se mueve YA en `onSelect` —esperar al cierre dejaba ~0,5 s
+            // de animación con el foco en el body, donde un Enter rápido se perdía—; esto solo evita que
+            // Radix lo devuelva luego al botón.
+            onCloseAutoFocus={(e) => { e.preventDefault(); montoRef.current?.focus(); }}
+          >
             <DateCalendar
               selected={new Date(fecha)}
               // El calendario solo habilita los días del mes o ciclo de ESTA celda (FR-2503): un
@@ -109,6 +121,7 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
                 if (!d) return;
                 setFecha(`${isoMinute(d).slice(0, 10)}T12:00`);
                 setAbierto(false);
+                montoRef.current?.focus();
               }}
             />
           </PopoverContent>

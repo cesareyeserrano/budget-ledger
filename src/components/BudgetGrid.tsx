@@ -164,7 +164,8 @@ export function BudgetGrid() {
   const period = useLedgerStore((s) => s.period);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => initialExpanded(data.nodes));
-  const [editing, setEditing] = useState<{ id: string; mk: PeriodKey; field: "budget" | "actual" } | null>(null);
+  // `tecleado`: el usuario escribió en el campo del valor desde que abrió la celda (BG-001, ver `commitEdit`).
+  const [editing, setEditing] = useState<{ id: string; mk: PeriodKey; field: "budget" | "actual"; tecleado: boolean } | null>(null);
   const [editVal, setEditVal] = useState("");
   const [namingId, setNamingId] = useState<string | null>(null);
   const [catW, setCatW] = useState<number>(() => readCatWidth()); // FR-104: ancho persistido de la columna categoría
@@ -272,13 +273,27 @@ export function BudgetGrid() {
   }, [data, hydrated, scope]);
 
   function toggle(id: string) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
-  function commitEdit() {
+  /**
+   * @param confirmado Enter en el campo del valor: el usuario confirma la cifra que ve, la haya cambiado
+   *   o no. Es la vía de cuadrar una celda descuadrada con su propia cifra (FR-2511).
+   */
+  function commitEdit(confirmado = false) {
     if (!editing) return;
     // FR-2003: en un mes cerrado el editor se abrió en modo SOLO OBSERVACIONES —no hay campo de
     // importe— así que aquí no hay nada que comitear. Cerrar sin escribir es la única salida
     // correcta: el servidor rechazaría igual, pero mandar la escritura provocaría un resync
     // innecesario y un aviso confuso.
     if (cerrados.has(editing.mk)) { setEditing(null); return; }
+    // BG-001 (diario-de-celda): si el usuario NO tecleó en el campo del valor, guardar es solo cerrar.
+    // Antes se escribía siempre el campo, y el campo guardaba la cifra de cuando se ABRIÓ la celda: tras
+    // añadir movimientos desde el Detalle, «Guardar», Enter o un clic fuera re-tecleaban la cifra vieja
+    // y el ajuste de FR-2504 anulaba en silencio los movimientos recién añadidos.
+    //
+    // La señal es HABER TECLEADO (o pulsar Enter en el valor), no que la cifra cambie: cuadrar una celda
+    // descuadrada es justamente confirmar la MISMA cifra que ya muestra (FR-2511: «el usuario cuadra
+    // tecleando el valor»), y comparar valores se tragaba ese caso (TC-DDC-193e, TC-DDC-213e). Enter ya
+    // no puede re-teclear una cifra vieja: mientras no se teclea, el campo sigue a la celda (EditableCell).
+    if (!confirmado && !editing.tecleado) { setEditing(null); return; }
     // Las hojas transfer no pasan por aquí: su editor (ReserveCellEditor) comitea vía el camino de
     // reserva del dominio (FR-1003) — este commit es el de flujo (expense/income).
     setLeafAmount(editing.id, editing.mk, editing.field, Math.max(0, Math.round(Number(editVal) || 0)));
@@ -376,12 +391,13 @@ export function BudgetGrid() {
                 ? `${cycleMonthLabel(cal, mk)} está cerrado: su cifra no se edita. Puedes reabrirlo para corregirlo, o dejar un comentario.`
                 : `${cycleMonthLabel(cal, mk)} está cerrado y no es el último cerrado, así que no se puede reabrir. Puedes dejar un comentario en la celda.`
             );
-            setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
+            setEditing({ id: row.node!.id, mk, field, tecleado: false }); setEditVal(String(cur || 0));
             return;
           }
-          setEditing({ id: row.node!.id, mk, field }); setEditVal(String(cur || 0));
+          setEditing({ id: row.node!.id, mk, field, tecleado: false }); setEditVal(String(cur || 0));
         }}
-        setEditVal={setEditVal}
+        setEditVal={(v) => { setEditVal(v); setEditing((e) => (e ? { ...e, tecleado: true } : e)); }}
+        resyncEdit={setEditVal}
         commitEdit={commitEdit}
         cancelEdit={() => setEditing(null)}
         startNaming={() => setNamingId(row.node!.id)}
@@ -630,7 +646,7 @@ function useNotesOf(data: LedgerState) {
 
 function NodeRow(props: {
   row: Row;
-  editing: { id: string; mk: PeriodKey; field: "budget" | "actual" } | null;
+  editing: { id: string; mk: PeriodKey; field: "budget" | "actual"; tecleado: boolean } | null;
   /** Periodos CERRADOS visibles (FR-2009). Se pasa ya calculado: la fila no consulta el store. */
   closedPeriods: Set<PeriodKey>;
   editVal: string;
@@ -640,7 +656,8 @@ function NodeRow(props: {
   onToggle: () => void;
   startEdit: (mk: PeriodKey, field: "budget" | "actual", cur: number) => void;
   setEditVal: (v: string) => void;
-  commitEdit: () => void;
+  resyncEdit: (v: string) => void;
+  commitEdit: (confirmado?: boolean) => void;
   cancelEdit: () => void;
   startNaming: () => void;
   commitName: (name: string) => void;
@@ -758,8 +775,8 @@ function NodeRow(props: {
           const act = rollupActual(data, node.id, m);
           return (
             <div key={m} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
@@ -768,7 +785,16 @@ function NodeRow(props: {
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; commit: () => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; tecleado?: boolean; resync?: (v: string) => void; commit: (confirmado?: boolean) => void; cancel: () => void }) {
+  // BG-001: si la celda cambia mientras está abierta —un movimiento añadido, editado o borrado desde el
+  // Detalle— y el usuario no ha tecleado nada, el campo pasa a mostrar la cifra nueva. Si ya tecleó, se
+  // respeta lo que tecleó: es una decisión explícita (FR-2504).
+  const { editing, value, editVal, tecleado, resync } = props;
+  useEffect(() => {
+    if (!editing || tecleado !== false || !resync) return;
+    const actual = String(value || 0);
+    if (editVal !== actual) resync(actual);
+  }, [editing, value, editVal, tecleado, resync]);
   const rootRef = useRef<HTMLDivElement>(null);
   // El foco tiene que entrar en el contenedor cuando NO hay input que lo tome (mes cerrado), o la
   // tecla Escape se queda en el body y el panel no se cierra nunca.
@@ -817,7 +843,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
             if (rootRef.current?.contains(e.relatedTarget as Node)) return;
             props.commit();
           }}
-          onKeyDown={(e) => { if (e.key === "Enter") props.commit(); if (e.key === "Escape") props.cancel(); }}
+          onKeyDown={(e) => { if (e.key === "Enter") props.commit(true); if (e.key === "Escape") props.cancel(); }}
           className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />
         )}
@@ -825,7 +851,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
         {props.nodeId && props.month && (
           <CellDetail leafId={props.nodeId} month={props.month}
-            onGuardar={props.closed ? undefined : props.commit} onCancelar={props.cancel} />
+            onGuardar={props.closed ? undefined : () => props.commit()} onCancelar={props.cancel} />
         )}
       </div>
     );

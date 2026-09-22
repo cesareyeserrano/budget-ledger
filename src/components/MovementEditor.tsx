@@ -8,7 +8,7 @@
 //               se deshabilita es exactamente lo que allí se rechazaría.
 // Dependencias: @/domain (editMovement, isDateInPeriod), @/state/store, ./ui/select, ./ui/popover.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarClock, TriangleAlert } from "lucide-react";
 import {
@@ -107,6 +107,7 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
     onDone();
   }
 
+  const montoRef = useRef<HTMLInputElement>(null);
   const campo = "bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent";
   const etiqueta = "text-caption";
 
@@ -125,6 +126,7 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
           <span className={etiqueta} style={{ color: "var(--fg-secondary)" }}>Monto</span>
           <input
             autoFocus
+            ref={montoRef}
             aria-label="Monto"
             inputMode="numeric"
             value={monto}
@@ -155,10 +157,16 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
                 {formatDay(fecha)}
               </button>
             </PopoverTrigger>
-            <PopoverContent data-testid="edit-date-popover" className="w-auto p-2" align="start">
+            <PopoverContent
+              data-testid="edit-date-popover"
+              className="w-auto p-2"
+              align="start"
+              // Igual que en la línea de añadir: tras elegir la fecha, Enter guarda, no reabre el calendario.
+              onCloseAutoFocus={(e) => { e.preventDefault(); montoRef.current?.focus(); }}
+            >
               <DateCalendar
                 selected={new Date(fecha)}
-                onSelect={(d) => { if (!d) return; setFecha(`${isoMinute(d).slice(0, 10)}T12:00`); setAbierto(false); }}
+                onSelect={(d) => { if (!d) return; setFecha(`${isoMinute(d).slice(0, 10)}T12:00`); setAbierto(false); montoRef.current?.focus(); }}
               />
             </PopoverContent>
           </Popover>
