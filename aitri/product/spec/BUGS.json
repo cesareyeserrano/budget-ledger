@@ -971,7 +971,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -979,14 +979,16 @@
       "evidence": "admin@admin.com: start_month=2026-09 · MIN(movement.period)=2026-09 · MIN(amount_cell.period WHERE amount<>0)=2026-09 · closed_through=NULL · 29 movimientos / 46 celdas. cesareyeserrano@gmail.com: sin datos. Consulta sobre ledger-dev-db (docker exec ledger-dev-db psql -U ledger -d ledger), 2026-09-18.",
       "reported_by": null,
       "created_at": "2026-09-18T02:29:27.620Z",
-      "updated_at": "2026-09-18T15:57:30.350Z",
-      "resolution": null,
+      "updated_at": "2026-09-23T00:58:19.819Z",
+      "resolution": "El servidor pasa a anclar el rango del cierre en el mes de inicio declarado, igual que ya hacia el cliente: closureScope (nueva en ledgerRepo, sobre serverScope) mas start_month en el estado que componen closeMonthFor y reopenMonthFor. serverScope queda intacto para las escrituras (ADR-01) y el dominio del cierre no cambia (ADR-03). Feature cierre-coherente, FR-2701/FR-2702/FR-2703, 30 TCs; la invariante 'el mes que el boton nombra es el que el servidor cierra' queda fijada por TC-CCO-040h/041e/042f, que antes no existia.",
       "log": [
         {
           "at": "2026-09-18T15:57:30.348Z",
           "text": "severity high → medium: Medido en la base de desarrollo DESPUES de abrir el bug: el defecto esta LATENTE, no activo. La severidad high se asigno sin comprobar si se manifiesta en datos reales, y no se manifiesta — en admin@admin.com el inicio declarado y el dato mas antiguo coinciden (start_month=2026-09, MIN(movement.period)=2026-09, MIN(amount_cell.period con amount<>0)=2026-09), asi que cliente y servidor apuntan hoy al mismo mes y el usuario no ve discrepancia alguna; la otra cuenta no tiene datos. Solo despierta si se declara un inicio ANTERIOR al primer dato. El defecto no cambia, cambia el riesgo. Decision del usuario del 2026-09-18: queda como trampa conocida en el backlog en vez de arreglarse ahora, porque cual de los dos rangos debe mandar es una decision de producto y el arreglo tiene tamaño de feature (cambia una regla de negocio ya desplegada sobre una accion dificil de deshacer), asi que entrara por el pipeline con sus propios TCs."
         }
-      ]
+      ],
+      "fix_commit_sha": "7841b46fdb0d2e1d80d7fc0619f5a8d0b10cf6b4",
+      "fix_at": "2026-09-23T00:58:11.259Z"
     },
     {
       "id": "BG-041",

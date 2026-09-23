@@ -1,0 +1,90 @@
+{
+  "project": "cierre-coherente",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale) y SIN MIGRACIONES: es el primer despliegue desde la 0009 que no toca el esquema. No añade columnas, rutas, servicios ni variables de entorno. El orden respecto a la imagen es indiferente y el rollback es volver la imagen, sin pérdida de datos: lo único que revierte es el comportamiento del cierre, es decir, vuelve BG-040. Escrito en aitri/features/cierre-coherente/DEPLOYMENT.md, con la consulta para confirmar tras el despliegue que en la cuenta real el inicio declarado y el primer dato siguen coincidiendo (NFR-2701).",
+  "deployment_files": [
+    "aitri/features/cierre-coherente/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-2701",
+      "title": "El servidor ancla su rango también en el mes de inicio declarado",
+      "level": "complete",
+      "evidence": "5 TCs en verde. closureScope ancla en el inicio declarado y devuelve un rango continuo hasta el mes en curso (TC-CCO-001h); con inicio igual al primer dato es idéntico a serverScope (002e); un dato anterior al inicio extiende el rango hacia atrás, porque el inicio AÑADE suelo y no lo fija (003e, ADR-02); sin inicio declarado o con uno inválido no se inventa ningún mes (004f); y serverScope NO cambia, así que las escrituras siguen juzgando el mismo rango (005f, ADR-01). Un hueco propio salió en la construcción y lo cazó TC-CCO-023f: el suelo se apoyaba en el mes en curso y con un inicio declarado en el futuro dejaba cerrable octubre; ahora sale solo del inicio declarado y de los datos."
+    },
+    {
+      "id": "FR-2702",
+      "title": "Cerrar avanza mes a mes desde el mes de inicio declarado",
+      "level": "partial",
+      "evidence": "4 TCs en verde por la RUTA REAL (POST /api/v1/closure) leyendo closed_through EN LA BASE, que es lo que descarta el riesgo alto del TRD —que el arreglo quedara inerte por no llevar start_month al estado del cierre—. La primera petición cierra el inicio declarado y solo ese, y agosto sigue escribible (TC-CCO-020h); tres peticiones cierran julio, agosto y septiembre en ese orden (021h); un mes vacío se cierra igual (022e); un objetivo posterior al mes en curso responde 422 not_closable sin escribir (023f). DEUDA: la siembra de los e2e de diario-de-celda pasa a declarar su mes de inicio donde empiezan sus datos, porque ocho de sus casos daban por cerrado Agosto apoyándose en la divergencia que esta feature corrige."
+    },
+    {
+      "id": "FR-2703",
+      "title": "El mes que el botón nombra es el que el servidor cierra",
+      "level": "complete",
+      "evidence": "3 TCs en verde, y es la invariante que no existía antes. Sobre el mismo estado, el mes del cliente (activeBounds) y el del servidor (closureScope) coinciden (TC-CCO-040h); siguen coincidiendo tras cerrar cada mes (041e); y no hay ninguna de las seis combinaciones de (inicio declarado, primer dato) en la que difieran, incluidas «sin inicio», «sin datos» y el dato anterior al inicio (042f). El caso que reproducía BG-040 —inicio julio, dato septiembre— ahora da 2026-07 en las dos capas."
+    },
+    {
+      "id": "NFR-2701",
+      "title": "La cuenta real no cambia",
+      "level": "complete",
+      "evidence": "3 TCs en verde: con inicio igual al primer dato el cierre deja closed_through en 2026-09, como antes (TC-CCO-060h); los dos rangos son idénticos elemento a elemento (061e); y la frontera no se adelanta —no es julio ni agosto—, con el rechazo de agosto siendo el mismo que ya existía porque cerrar un mes congela los anteriores (062f, corregido en la fase 3 el 2026-09-22)."
+    },
+    {
+      "id": "NFR-2702",
+      "title": "El cierre sigue en orden y sin alcanzar el futuro",
+      "level": "complete",
+      "evidence": "3 TCs en verde: el cierre no se salta meses y tras julio va agosto, no el mes con datos (TC-CCO-070h); con hoy en agosto, la tercera petición responde 422 not_closable y la frontera no se mueve (071e); una petición con una revisión vieja responde 409 y no avanza el cierre (072f)."
+    },
+    {
+      "id": "NFR-2703",
+      "title": "Reabrir sigue alcanzando solo al último mes cerrado",
+      "level": "complete",
+      "evidence": "3 TCs en verde: reabrir devuelve la frontera a agosto y marca septiembre como reabierto (TC-CCO-080h); una segunda reapertura seguida se rechaza con 422 y el estado del cierre no cambia (081e); el mes reabierto es septiembre y nunca julio, que sigue congelado ante un PUT (082f)."
+    },
+    {
+      "id": "NFR-2704",
+      "title": "Un mes cerrado sigue congelado",
+      "level": "complete",
+      "evidence": "3 TCs en verde por las tres puertas: un PUT que cambia una cifra del mes cerrado responde 422 closed_period_violation sin mover la revisión (TC-CCO-090h); el mes VACÍO recién cerrado también congela y no aparece ninguna celda nueva (091e); PATCH y DELETE de un movimiento responden 422 y el movimiento sigue con su monto (092f)."
+    },
+    {
+      "id": "NFR-2705",
+      "title": "En un mes cerrado se sigue comentando",
+      "level": "complete",
+      "evidence": "3 TCs en verde: un comentario fechado entra en un mes cerrado y queda con su periodo y su día (TC-CCO-100h); también en un mes vacío recién cerrado, que sigue sin cifras (101e); y un PUT que además cambia una cifra se rechaza con 422 sin guardar el comentario ni mover la revisión (102f)."
+    },
+    {
+      "id": "NFR-2706",
+      "title": "El cierre sigue siendo del dueño y con sesión",
+      "level": "complete",
+      "evidence": "3 TCs en verde, declarado «No aplica» en la fase 1 y verificado igualmente: sin sesión el cierre responde 401 unauthorized y nada se escribe (TC-CCO-110f); con sesión válida escribe en el ledger de su dueño (111h); y el cierre de una cuenta no toca la frontera de otra (112e). El escaneo general de seguridad corre en CI (SEC-GATE declarado)."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2702",
+      "substitution": "La siembra de tests/e2e/diario-de-celda.spec.ts pasa a DECLARAR como mes de inicio el primer periodo con datos del escenario (nuevo helper declararInicio); antes heredaba el 2026-01 con el que nace la cuenta e2e",
+      "reason": "La cuenta de pruebas e2e nace declarando 2026-01 y sus escenarios hablan de Agosto y Septiembre. Antes el servidor IGNORABA el inicio declarado, asi que cerrar dejaba cerrado Agosto y ocho casos de cierre lo daban por hecho; esos casos codificaban precisamente la divergencia que esta feature corrige (BG-040) — el propio comentario del helper abrirDescuadrado ya documentaba que el boton ofrecia «Cerrar Enero 2026» en un escenario de Septiembre. Declarar el inicio donde empiezan los datos deja el comportamiento del servidor IDENTICO al de antes en esos ocho casos y alinea la siembra con la realidad. Se declara por el endpoint real /api/v1/ledger/start, no tocando la base. Verificado: los ocho vuelven a verde y la suite completa queda en 580 passed exit 0.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade rutas ni entradas nuevas y NFR-2706 esta declarado «No aplica», con el aislamiento por dueno y la exigencia de sesion verificados en TC-CCO-110f, 111h y 112e.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "verification_note": "Evidencia: aitri feature verify-run cierre-coherente del 2026-09-22 — 30/30 TCs, cinco quality gates en pass (typecheck, lint, coverage, smoke, e2e), exit 0, arrancado con carga 1,41 y sin procesos huérfanos. Antes, en la fase 4: ./unit.sh 100 ficheros y 1198 tests exit 0; ./e2e.sh 580 passed exit 0 (un flaky en recuperar-acceso, ajeno al cambio, verde al reintentar). BG-040 (medium, abierto) es el defecto que esta feature corrige: queda por marcar como arreglado y verificado al cerrar el ciclo.",
+  "overall_status_note": "partial y no compliant porque FR-2702 (MUST) arrastra la deuda declarada de la siembra de los e2e de diario-de-celda: ocho de sus casos de cierre daban por cerrado Agosto apoyándose en la divergencia que esta feature corrige, y su siembra ahora declara el mes de inicio donde empiezan sus datos, lo que deja el comportamiento del servidor idéntico al de antes en esos ocho casos. Ningún requisito está sin cubrir ni tiene pruebas en rojo. Durante la fase 4 se reabrió la fase 3 una vez, por decisión del usuario y sin cambio de alcance, para corregir TC-CCO-062f, que afirmaba algo falso sobre el producto."
+}
