@@ -71,7 +71,14 @@ async function persisted(page: Page): Promise<{ budgets: CellMap; actuals: CellM
  * como para fallar ~1 de cada 3 corridas.
  */
 async function expectMovementCount(page: Page, n: number): Promise<void> {
-  await expect.poll(async () => (await persisted(page)).movements.length, { timeout: 10_000 }).toBe(n);
+  // NFR-2502: se cuentan los movimientos DE LA PRUEBA. Desde que el servidor exige que cada celda
+  // de gasto o ingreso cuadre con sus movimientos, la siembra añade el respaldo que falte
+  // (`helpers/seed.ts`), y esas filas no son lo que estas pruebas miden — aquí se opera con
+  // reservas. Contarlas habría obligado a cambiar el número esperado, que es justo lo que no se hace.
+  await expect.poll(
+    async () => (await persisted(page)).movements.filter((m) => !m.id.startsWith("respaldo-")).length,
+    { timeout: 10_000 }
+  ).toBe(n);
 }
 
 /** Un retiro ya operado, para las fixtures que lo necesitan. */
@@ -190,19 +197,19 @@ test.describe("FR-1012 — observaciones por celda", () => {
     await cell.click();
     const notes = page.getByTestId("cell-notes");
     await expect(notes.getByTestId("cell-note")).toHaveText("pasaje");
-    await page.getByLabel("Añadir observación").fill("meta del viaje");
+    await page.getByLabel("Añadir comentario").fill("meta del viaje");
     await page.getByTestId("cell-note-add").click();
     await expect(notes.getByTestId("cell-note")).toHaveCount(2);
     await expect(notes.getByTestId("cell-note").nth(1)).toHaveText("meta del viaje");
   });
 
-  test("TC-TRF4-012e: celda sin observaciones: sin indicador y con placeholder en el editor", async ({ page }) => {
+  test("TC-TRF4-012e: celda sin movimientos ni comentarios: sin indicador y con placeholder en el editor", async ({ page }) => {
     // @aitri-tc TC-TRF4-012e
     await gotoGrid(page);
     const cell = reserveCell(page, "Viaje", 4, "actual");
     await expect(cell.getByTestId("note-dot")).toHaveCount(0);
     await cell.click();
-    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin observaciones este mes");
+    await expect(page.getByTestId("cell-notes-empty")).toHaveText("Sin movimientos ni comentarios");
   });
 });
 

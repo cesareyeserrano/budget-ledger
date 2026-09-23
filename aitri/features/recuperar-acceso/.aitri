@@ -19,23 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-05T01:12:34.951Z",
+  "updatedAt": "2026-09-14T00:49:51.093Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-14T20:25:42.524Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-08-14T20:43:15.023Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-14T20:44:37.665Z",
       "event": "verify-complete",
@@ -177,6 +163,22 @@
       "failed": 1,
       "skipped": 0,
       "manual": 0
+    },
+    {
+      "at": "2026-09-14T00:49:33.105Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-14T00:49:51.066Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -260,23 +262,33 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "255f40a78284eaf17269f39a31854caf824ed0d28008f0e334e2e9f4e24bbdbd",
-  "verifyRanAt": "2026-09-05T01:12:34.862Z",
-  "verifyRanRef": "75e88692fe3c00e1c6ba8bf3cff01c629b46c032",
+  "verifyResultsHash": "c7cdf7ddbab9891ee4b8d89afe85c2ad1036c423806ec76777fcdf891a18f05c",
+  "verifyRanAt": "2026-09-14T00:49:33.037Z",
+  "verifyRanRef": "a749050ca873da264b73aee5788c2bcb9f4904df",
   "verifyRanDirty": false,
   "lastVerifyRun": {
-    "passed": 86,
-    "failed": 1,
+    "passed": 87,
+    "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-05T01:12:34.862Z"
+    "at": "2026-09-14T00:49:33.037Z"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-08-14T20:58:23.388Z"
     }
-  ]
+  ],
+  "verifySummary": {
+    "total": 87,
+    "passed": 87,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  }
 }

@@ -15,6 +15,12 @@ import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
+// Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
+// el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
+import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
+// Feature diario-de-celda (NFR-2502): el cuadre RELATIVO — una escritura no puede descuadrar una
+// celda que antes cuadraba, y un descuadre previo no bloquea operaciones sobre otras celdas.
+import { closeBlockers, worsenedCellMismatches } from "@/domain/mismatch";
 import { comparePeriods, isPeriodKey, monthOf } from "@/domain/periods";
 import {
   buildCalendar, isValidMovementPeriod, normalizeCycleConfig, NO_CYCLES, type Calendar,
@@ -54,7 +60,10 @@ export type SaveResult =
   /** Feature reglas-en-el-servidor (FR-2101): la escritura dejaba algún mes peor de lo que estaba. */
   | { ok: false; domainViolation: true; violations: ReserveWarning[] }
   /** Feature ciclos (FR-2405/NFR-2408): claves fuera del calendario o periodo incoherente con la fecha. */
-  | { ok: false; periodMismatch: true; ids: string[] };
+  | { ok: false; periodMismatch: true; ids: string[] }
+  /** Feature diario-de-celda (NFR-2502): la escritura DESCUADRA una celda que antes cuadraba con la
+   *  suma de sus movimientos. Relativo: un descuadre previo no bloquea otras celdas. */
+  | { ok: false; cellMismatch: true; cells: { nodeId: string; period: PeriodKey; cell: number; sum: number }[] };
 
 // ── Feature ciclos: la configuración versionada y el calendario del dueño ───────────────────────
 
@@ -156,12 +165,19 @@ function rowsToState(
     // FR-1010: quinta capa del precedente date/note — sin esto los extremos se perderían al leer.
     ...(r.fromId != null ? { from: r.fromId } : {}),
     ...(r.toId != null ? { to: r.toId } : {}),
+    // FR-2504: solo el ajuste se marca. 'manual' es la ausencia del campo, así que un ledger previo
+    // se lee exactamente igual que antes de la migración 0009.
+    ...(r.kind === "adjustment" ? { kind: "adjustment" as const } : {}),
   }));
 
   // FR-1012: observaciones manuales por celda.
   const cellNotes: CellNotesMap = {};
   for (const r of cellNoteRows) {
-    ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({ id: r.id, createdAt: r.createdAt, text: r.text });
+    // fecha-de-comentario: NULL en la columna → clave AUSENTE en memoria, nunca `date: null`.
+    // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601c, TC-ID: TC-FDC-004h, TC-FDC-006f
+    ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({
+      id: r.id, createdAt: r.createdAt, text: r.text, ...(r.date !== null ? { date: r.date } : {}),
+    });
   }
   for (const byMonth of Object.values(cellNotes)) {
     for (const list of Object.values(byMonth)) list?.sort((a, b) => a.createdAt - b.createdAt);
@@ -351,6 +367,9 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
         note: mv.note ?? null,
         fromId: mv.from ?? null,
         toId: mv.to ?? null,
+        // FR-2504: tercer punto que escribe movimientos (los retiros sintetizados de la migración
+        // v3→v4). Son siempre manuales, pero se declara explícito para no depender del DEFAULT.
+        kind: mv.kind ?? "manual",
       });
     }
   }
@@ -431,6 +450,9 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
     note: m.note ?? null,
     fromId: m.from ?? null,
     toId: m.to ?? null,
+    // FR-2504: el snapshot se BORRA y se reinserta en cada guardado, así que sin esta línea el
+    // `kind` se perdería en el primer PUT y un ajuste negativo chocaría con el CHECK de la 0009.
+    kind: m.kind ?? "manual",
   }));
 
   for (let i = 0; i < nodeValues.length; i += INSERT_CHUNK) {
@@ -451,7 +473,7 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
   for (const [nodeId, byMonth] of Object.entries(state.cellNotes ?? {})) {
     for (const [month, notes] of Object.entries(byMonth)) {
       for (const n of notes ?? []) {
-        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text });
+        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text, date: n.date ?? null });
       }
     }
   }
@@ -561,6 +583,15 @@ export async function saveLedger(
       // El rango juzgado es la UNIÓN de los dos alcances: un mes que la escritura estrena tiene que
       // entrar en el juicio, o crear un mes sería la puerta de escape (TC-RES-015e).
       const scope = unionScope(state, serverScope(prev), serverScope(state));
+
+      // ── CUADRE RELATIVO (NFR-2502, feature diario-de-celda) ──────────────────────────────────
+      // Va ANTES de las reglas de reservas y DESPUÉS del cierre, en el orden que fija el TRD. Es
+      // relativo como `worsenedBy`: solo rechaza lo que la escritura EMPEORA, así que un descuadre
+      // que ya venía en los datos no deja el libro entero en solo lectura — el usuario lo resuelve
+      // cuando quiera (FR-2511), pero nadie puede crear uno nuevo sin enterarse.
+      const descuadres = worsenedCellMismatches(prev, state, scope);
+      if (descuadres.length > 0) return { ok: false, cellMismatch: true, cells: descuadres };
+
       const violations = worsenedBy(prev, state, scope);
       if (violations.length > 0) return { ok: false, domainViolation: true, violations };
     }
@@ -762,12 +793,155 @@ export async function insertMovement(
   });
 }
 
+// ── Feature diario-de-celda: editar y borrar un movimiento (FR-2505, FR-2506) ───────────────────
+
+/** Lo que devuelven `updateMovement` y `removeMovement`. El éxito trae la revisión nueva. */
+export type MovementWriteResult =
+  | { ok: true; movement: Movement; revision: number }
+  | { ok: false; notFound: true }
+  | { ok: false; rejected: "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+  | { ok: false; closedViolation: true; periods: PeriodKey[] }
+  | { ok: false; negativeCell: true; cells: NegativeCell[] }
+  | { ok: false; cellMismatch: true; cells: { nodeId: string; period: PeriodKey; cell: number; sum: number }[] }
+  | { ok: false; domainViolation: true; violations: ReserveWarning[] };
+
+/**
+ * El cuerpo compartido de PATCH y DELETE: una transacción con `FOR UPDATE`, la mutación pura del
+ * dominio y el mismo orden de validación que el PUT (ADR-02, TC-DDC-326e).
+ *
+ * EL ORDEN NO ES ARBITRARIO (TC-DDC-328e): dueño → tipo → CIERRE → lo que el cambio provoca. Un
+ * movimiento de un mes cerrado se rechaza por estar cerrado, no por la celda que dejaría negativa:
+ * «ese mes está cerrado» es una respuesta completa, y mandar al usuario a arreglar la celda sería
+ * pedirle trabajo que no desbloquea nada.
+ */
+async function writeMovement(
+  ownerId: string,
+  id: string,
+  mutar: (prev: LedgerState, cal: Calendar, scope: readonly PeriodKey[]) =>
+    | { state: LedgerState }
+    | { rejected: "not_found" | "unsupported_type" | "invalid_amount" | "invalid_target" | "period_mismatch" }
+    | { rejected: "negative_cell"; cells: NegativeCell[] }
+): Promise<MovementWriteResult> {
+  return db.transaction(async (tx) => {
+    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    if (!head) return { ok: false, notFound: true };
+    const prev = await loadStateInTx(tx, ownerId);
+    const cal = calendarOf(prev);
+
+    // Dueño: el movimiento se busca DENTRO del estado del owner, así que uno ajeno simplemente no
+    // está — 404 indistinguible de inexistente, sin filtrar si existe en otra cuenta (NFR-2501).
+    const actual = prev.movements.find((m) => m.id === id);
+    if (!actual) return { ok: false, notFound: true };
+
+    // TIPO antes que CIERRE (TC-DDC-328e), y el orden tiene consecuencia: un movimiento de bolsillo
+    // en un mes cerrado no se edita por aquí NI aunque se reabra el mes, así que responder «mes
+    // cerrado» mandaría al usuario a reabrirlo para nada. Lo primero que se le dice es lo que de
+    // verdad le bloquea.
+    if (actual.type === "transfer") return { ok: false, rejected: "unsupported_type" };
+
+    // CIERRE, antes que nada de lo que el cambio provoque. Se mira el periodo DE ORIGEN aquí; el de
+    // destino lo caza `closedPeriodsViolated` más abajo, sobre el estado ya mutado.
+    const closure = closureFromRow(head, cal);
+    if (isClosed(closure, actual.period)) {
+      return { ok: false, closedViolation: true, periods: [actual.period] };
+    }
+
+    const scope = serverScope(prev, actual.period);
+    const res = mutar(prev, cal, scope);
+    if ("rejected" in res) {
+      if (res.rejected === "not_found") return { ok: false, notFound: true };
+      if (res.rejected === "negative_cell") return { ok: false, negativeCell: true, cells: res.cells };
+      return { ok: false, rejected: res.rejected };
+    }
+    const next = res.state;
+
+    // El mismo guardia estructural del PUT: caza mover un movimiento HACIA un mes cerrado y también
+    // cambiarle solo la nota, la fecha o el kind dentro de uno (FR-2507, `diffMovements`).
+    //
+    // ESTE COMENTARIO ERA FALSO cuando se escribió (EP-03): `diffMovements` no comparaba esos tres
+    // campos, así que el guardia NO cazaba esos cambios. Los casos de esta ruta pasaban por otra
+    // razón —la comprobación de cierre de arriba rechaza por el periodo de ORIGEN antes de llegar
+    // aquí—, de modo que el agujero solo era alcanzable por el PUT del snapshot. Se tapó en EP-04
+    // añadiendo los tres campos a la comparación (TC-DDC-137f, 2026-09-17).
+    const violated = closedPeriodsViolated({ ...prev, closure }, next);
+    if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
+
+    const juicio = unionScope(prev, scope, serverScope(next, actual.period));
+    const descuadres = worsenedCellMismatches(prev, next, juicio);
+    if (descuadres.length > 0) return { ok: false, cellMismatch: true, cells: descuadres };
+
+    const violations = worsenedBy(prev, next, juicio);
+    if (violations.length > 0) return { ok: false, domainViolation: true, violations };
+
+    // Persistir: la fila del movimiento y el DIFF de celdas que la mutación produjo. Editar puede
+    // tocar DOS celdas (origen y destino) y borrar una; el diff las cubre sin saber cuál es cuál.
+    const mv = next.movements.find((m) => m.id === id);
+    if (mv) {
+      await tx.update(movement).set({
+        type: mv.type, catId: mv.catId, subId: mv.subId, target: mv.target,
+        amount: mv.amount, period: mv.period, date: mv.date ?? null, note: mv.note ?? null,
+      }).where(and(eq(movement.ownerId, ownerId), eq(movement.id, id)));
+    } else {
+      await tx.delete(movement).where(and(eq(movement.ownerId, ownerId), eq(movement.id, id)));
+    }
+
+    for (const [nodeId, months] of Object.entries(next.actuals)) {
+      for (const [month, amount] of Object.entries(months)) {
+        if (amount == null || prev.actuals[nodeId]?.[month as PeriodKey] === amount) continue;
+        await tx
+          .insert(amountCell)
+          .values({ ownerId, nodeId, period: month, kind: "actual", amount })
+          .onConflictDoUpdate({
+            target: [amountCell.ownerId, amountCell.nodeId, amountCell.period, amountCell.kind],
+            set: { amount },
+          });
+      }
+    }
+
+    const revision = head.revision + 1;
+    await tx.update(ledger).set({ revision, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
+    return { ok: true, movement: mv ?? actual, revision };
+  });
+}
+
+/**
+ * Edita un movimiento del usuario: monto, nota, fecha y categoría (FR-2505).
+ *
+ * El `kind` guardado NO se toca y es lo que juzga el monto: un ajuste puede pasar a negativo, un
+ * movimiento manual nunca (TC-DDC-077e, TC-DDC-097f).
+ *
+ * @param ownerId Usuario autenticado — nunca sale del cuerpo de la petición.
+ * @param id Movimiento a editar.
+ * @param patch Campos a cambiar (validados en el borde por Zod).
+ * @returns El movimiento ya editado y la revisión nueva, o el motivo del rechazo.
+ *
+ * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505a, TC-ID: TC-DDC-095h, TC-DDC-091f, TC-DDC-302f
+ */
+export async function updateMovement(
+  ownerId: string, id: string, patch: MovementPatch
+): Promise<MovementWriteResult> {
+  return writeMovement(ownerId, id, (prev, cal, scope) => editMovement(prev, id, patch, cal, scope));
+}
+
+/**
+ * Borra un movimiento del usuario (FR-2506). La celda baja lo que él aportaba; borrar un ajuste
+ * negativo la SUBE, que es como se deshace una corrección de más (TC-DDC-121e).
+ *
+ * @aitri-trace FR-ID: FR-2506, US-ID: US-2506, AC-ID: AC-2506a, TC-ID: TC-DDC-114e, TC-DDC-117f, TC-DDC-303f
+ */
+export async function removeMovement(ownerId: string, id: string): Promise<MovementWriteResult> {
+  return writeMovement(ownerId, id, (prev) => deleteMovement(prev, id));
+}
+
 // ── Feature cierre-de-mes ────────────────────────────────────────────────────────────────────────
 
 export type ClosureResult =
   | { ok: true; revision: number; closure: Closure }
   | { ok: false; conflict: true; revision: number }
-  | { ok: false; rejected: "not_closable" | "nothing_closed" | "already_reopened" };
+  | { ok: false; rejected: "not_closable" | "nothing_closed" | "already_reopened" }
+  /** Feature diario-de-celda (FR-2512): el mes que toca cerrar tiene celdas descuadradas. Viajan
+   *  NOMBRADAS: «no se puede cerrar» sin decir cuáles manda al usuario a buscarlas una por una. */
+  | { ok: false; rejected: "unbalanced_cells"; period: PeriodKey; cells: { nodeId: string; name: string }[] };
 
 /**
  * Cierra el mes cerrable del usuario. El CLIENTE NO PROPONE cuál: el servidor lo deriva.
@@ -799,6 +973,18 @@ export async function closeMonthFor(
     const conCierre = { ...state, closure: closureFromRow(head, cal) };
     const res = closeMonth(conCierre, currentPeriod, serverScope(conCierre, currentPeriod));
     if (!res.ok) return { ok: false, rejected: res.reason };
+
+    // FR-2512: un mes con celdas descuadradas NO se cierra. Va aquí y no antes porque hasta esta
+    // línea no se sabe QUÉ mes se cierra —lo deriva el servidor, el cliente no lo propone— y la
+    // regla es sobre ESE mes: un descuadre en uno posterior no bloquea, porque todavía se puede
+    // arreglar. Y va antes de la primera escritura: el rechazo no deja rastro (TC-DDC-215f).
+    //
+    // Reabrir NO pasa por aquí a propósito (TC-DDC-216f): la regla es del cierre. Bloquear la
+    // reapertura por descuadres dejaría al usuario sin la única vía que tiene para arreglarlos.
+    const bloqueantes = closeBlockers(conCierre, res.closed, serverScope(conCierre, currentPeriod));
+    if (bloqueantes.length > 0) {
+      return { ok: false, rejected: "unbalanced_cells", period: res.closed, cells: bloqueantes };
+    }
 
     const revision = current + 1;
     await tx

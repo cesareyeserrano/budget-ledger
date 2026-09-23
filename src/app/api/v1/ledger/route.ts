@@ -44,6 +44,16 @@ const putHandler = withApi<LedgerPutBody>(
         HTTP.UNPROCESSABLE
       );
     }
+    // Feature diario-de-celda (NFR-2502): la escritura descuadraba una celda que antes cuadraba con
+    // la suma de sus movimientos. 422 por el mismo motivo que los anteriores —reintentar no lo
+    // arregla— y el detalle nombra la celda y las dos cifras, que es lo que el cliente necesita para
+    // decir qué pasó sin volver a preguntar.
+    if (!res.ok && "cellMismatch" in res) {
+      return json(
+        { error: { code: "cell_movement_mismatch", detail: res.cells } },
+        HTTP.UNPROCESSABLE
+      );
+    }
     if (!res.ok) return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     // Notifica a los demás dispositivos del MISMO usuario (FR-511).
     syncHub.publish(userId, { revision: res.revision });

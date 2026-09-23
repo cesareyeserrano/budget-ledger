@@ -1,0 +1,199 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "fecha-de-comentario",
+  "createdAt": "2026-09-21T20:39:30.810Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-22T16:33:07.727Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-22T14:10:48.710Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-22T14:10:48.817Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-22T14:10:56.526Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T14:10:56.600Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T14:10:56.706Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T14:11:04.636Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T14:13:40.630Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T14:44:45.876Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T14:44:55.611Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T15:09:06.185Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T15:09:06.304Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T15:09:12.991Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T15:09:13.106Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T15:16:22.937Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T16:07:10.562Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T16:18:26.468Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 51,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-22T16:18:36.321Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 51,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-22T16:26:07.836Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-22T16:27:24.921Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-22T16:33:07.697Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "8d2462516e9f9525590544c33ea056427adc0d395a7206d8d32b3e4db5828579",
+    "2": "3147364d750e57859659d6cae323767a1b7ed812df7a9856e6963a7a70fb7dec",
+    "3": "2ea6ef7aca45987a07c631f47dff9ab52edef7ac6c2b336eb81eb20835b51360",
+    "4": "d7b7b42b097aac4bd2d072be9bf1e88d1b1ebb6a833a728684a04b025a4d8714",
+    "5": "b94e14d55fb62a5a04d17d8941ad1b01090d5945fe521190f44d545bb348e827",
+    "ux": "1587baa9a276741e7f7998ceeefc53015a252baea6749fa2b2ec9b48ced1eba8"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2601",
+      "FR-2602",
+      "FR-2603"
+    ],
+    "3": [
+      "FR-2601",
+      "FR-2602",
+      "FR-2603"
+    ],
+    "4": [
+      "FR-2601",
+      "FR-2602",
+      "FR-2603"
+    ],
+    "5": [
+      "FR-2601",
+      "FR-2602",
+      "FR-2603"
+    ],
+    "ux": [
+      "FR-2601",
+      "FR-2602",
+      "FR-2603"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "43562dbd721983b2a161b8e84450315a41a6ca4fa889172e23b32f99d8286ce9",
+  "verifyRanAt": "2026-09-22T16:18:26.353Z",
+  "verifyRanRef": "16c6794afbed25c2221b94c897491d7272df90ee",
+  "verifyRanDirty": true,
+  "lastVerifyRun": {
+    "passed": 51,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-22T16:18:26.353Z"
+  },
+  "verifySummary": {
+    "total": 51,
+    "passed": 51,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-22T16:33:07.696Z"
+    }
+  ]
+}

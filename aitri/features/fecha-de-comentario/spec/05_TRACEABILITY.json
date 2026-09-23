@@ -1,0 +1,105 @@
+{
+  "project": "fecha-de-comentario",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale). Lo único nuevo es la migración ADITIVA e idempotente 0010_fecha_de_comentario.sql (columna cell_note.date nullable + CHECK de forma), que se aplica con el paso vigente de migrate.mjs, tras el respaldo y ANTES de levantar la imagen nueva. No hay rutas, servicios ni variables de entorno nuevas. Rollback: volver la imagen funciona, pero su primer guardado reescribe el snapshot sin la columna y los comentarios escritos después conservan el texto y pierden el día; solo el respaldo los recupera. Escrito en el DEPLOYMENT.md de la feature y en el de la raíz (Migraciones y Rollback).",
+  "deployment_files": [
+    "drizzle/0010_fecha_de_comentario.sql",
+    "drizzle/meta/_journal.json",
+    "aitri/features/fecha-de-comentario/DEPLOYMENT.md",
+    "DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-2601",
+      "title": "Un comentario nuevo guarda el día en que se escribe",
+      "level": "partial",
+      "evidence": "10 TCs en verde, en las tres capas. Store: a las 10:00 del 21-sep guarda 2026-09-21 (TC-FDC-001h) y a las 21:30 locales —02:30 UTC del 22— sigue guardando el 21 (002e), con bordes de medianoche y de mes (003e). Postgres: el día persiste y vuelve con una conexión nueva (004h); un comentario antiguo sigue SIN día al leerlo, al reescribir el snapshot (006f) y al cambiar el día de pago (007e); un día inexistente se rechaza con 422 invalid_payload sin escribir (008f) y el dominio lo rechaza como invalid_note (009f). El riesgo alto del TRD —zod descarta en silencio una clave no declarada— lo cubre la ida y vuelta PUT → GET → ServerRepository.load (010e); verificado por mutación: sin `date` en apiCellNotes caen 11 de los 19 tests de integración. E2E: el día sobrevive a la recarga (005h). DEUDA declarada: addCellNote recibe el día como parámetro opcional (la app lo pasa siempre) e isCalendarDay vive en validation.ts y no en cycles.ts."
+    },
+    {
+      "id": "FR-2602",
+      "title": "La fila del comentario muestra su día, igual que la de un movimiento",
+      "level": "partial",
+      "evidence": "11 TCs en verde (e2e, Playwright a 768 y 1440 px, claro y oscuro, zona America/Bogota). Movimiento y comentario del 18 sep muestran «18 sep» en la misma x (±1 px) y en --fg-muted (TC-FDC-020h); uno de hoy dice «21 sep» y nunca «Hoy» (021e); sin día, la columna queda vacía de 44 px con el texto alineado (022e) y nunca muestra una fecha sacada del contador (023f); también en bolsillos (024h); un texto largo se parte en varias líneas con la fecha arriba (025e); a 375 px no hay Detalle (026e); contraste ≥4,5:1 en los dos temas (027h); aparece con su día antes de que responda el servidor (028e); ante un 422 aplica el aviso vigente y no borra lo que hay en pantalla (029f); el estado vacío no cambia (030e). DEUDA declarada: TC-DDC-151h de diario-de-celda pasa de «sin columna de fecha» a «columna vacía», que es lo que FR-2602 exige."
+    },
+    {
+      "id": "FR-2603",
+      "title": "Los comentarios con día se ordenan entre los movimientos por fecha",
+      "level": "complete",
+      "evidence": "8 TCs en verde. Dominio (cellDetail, fusión estable del ADR-03): 18 · comentario 19 · 20 (TC-FDC-040h); a igual día el comentario va después y dos del mismo día por antigüedad (041e); sin día al final (042e) y sin reordenarse entre sí (043f); bordes del periodo (045e); bolsillo: nota automática, operaciones, fechados y sin día (046h). Volumen de producción: 10.000 movimientos y 500 comentarios con la subsecuencia de movimientos idéntica (044f). E2E del flujo F1: el comentario de hoy entra entre el 18 y el 25 y el campo queda vacío y con foco (047h)."
+    },
+    {
+      "id": "NFR-2601",
+      "title": "Los comentarios existentes siguen intactos tras la migración",
+      "level": "complete",
+      "evidence": "3 TCs en verde contra Postgres real, en una base aparte migrada hasta la 0009: aplicar la 0010 conserva el número y el texto byte a byte de 3 comentarios (con emoji y 280 caracteres) y los deja con date NULL (TC-FDC-060h); aplicarla dos veces no falla y deja un solo CHECK (061e); el CHECK rechaza días mal formados en la propia base (062f)."
+    },
+    {
+      "id": "NFR-2602",
+      "title": "Un comentario, con o sin día, no suma a la celda",
+      "level": "complete",
+      "evidence": "3 TCs en verde: la celda sigue en 100.000 y el grupo en 180.000 (TC-FDC-070h); un PUT que solo comenta deja intactas la suma de amount_cell y el número de movimientos (072f); en la grilla, la celda y los totales del grupo no cambian tras comentar y recargar (071e)."
+    },
+    {
+      "id": "NFR-2603",
+      "title": "En un periodo cerrado se sigue comentando, ahora con su día",
+      "level": "complete",
+      "evidence": "3 TCs en verde: en Agosto cerrado el campo está visible y el comentario se guarda con «21 sep», también tras recargar (TC-FDC-080h); un PUT que solo comenta en el mes cerrado se acepta (082e); uno que además cambia una cifra sigue rechazado con 422 closed_period_violation sin escribir nada (081f)."
+    },
+    {
+      "id": "NFR-2604",
+      "title": "El orden de los movimientos entre sí no cambia",
+      "level": "complete",
+      "evidence": "3 TCs en verde: sin comentarios el orden es el de siempre (TC-FDC-090h); con comentarios del 18, 19 y 20 la subsecuencia de movimientos no cambia (091e); el createdAt del comentario (contador) no se compara con el de los movimientos (ms) (092f). Las pruebas de orden de FR-2501 de diario-de-celda siguen en verde sin modificarse en la misma corrida."
+    },
+    {
+      "id": "NFR-2605",
+      "title": "El límite de 280 caracteres sigue igual",
+      "level": "complete",
+      "evidence": "3 TCs en verde: 280 caracteres con día se guardan completos (TC-FDC-100h); 281 con día válido → 422 invalid_payload sin escribir (101f); en el dominio, 280 entra con día y 281 es invalid_note sin mutar el estado (102e)."
+    },
+    {
+      "id": "NFR-2606",
+      "title": "El día se valida en el servidor antes de escribirlo",
+      "level": "complete",
+      "evidence": "7 TCs en verde con seis vectores: un día válido de la propia cuenta se acepta (TC-FDC-110h); forma inválida ×4 (111f), inyección SQL y marcado con la tabla intacta (112f), tipos equivocados —número, null, array— (113f) y 10.000 caracteres (116f) → 422 invalid_payload sin escribir; otra cuenta no toca los comentarios de la primera (115f); isCalendarDay en los bordes del calendario (114e). Segunda línea: CHECK cell_note_date_ck en Postgres. El escaneo general de seguridad corre en CI (SEC-GATE declarado)."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-2601",
+      "substitution": "addCellNote(state, leafId, month, text, periods, day?) recibe el dia como parametro OPCIONAL, y el TRD lo declara obligatorio (day: string)",
+      "reason": "Obligatorio rompia el typecheck de 16 llamadas en suites de otras features (techo-de-flujo, transferencias, diario-de-celda, seq-monotonic), y las de techo-de-flujo estan protegidas contra modificacion por TC-RES-202e. La app lo pasa SIEMPRE: el store lo calcula con todayISO() (TC-FDC-001h, 002e), asi que ningun comentario escrito desde la pantalla nace sin dia. Solo una llamada directa al dominio sin el sexto argumento lo crea sin dia, que es exactamente como se leen los comentarios anteriores a la feature.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2602",
+      "substitution": "TC-DDC-151h de diario-de-celda afirmaba que la fila de comentario NO tiene elemento detail-date (toHaveCount(0)); ahora afirma que lo tiene VACIO (toHaveText('')), sin tramitar un change request sobre esa feature",
+      "reason": "FR-2602 aprobado exige que la fila de comentario tenga SIEMPRE la columna de fecha de 44 px, vacia cuando el comentario no tiene dia, para alinear el texto. El caso de diario-de-celda garantizaba que un comentario no muestra fecha; con su fixture (comentarios sin dia) lo sigue garantizando: cambia el paso de la asercion, no lo que el caso protege. Mismo criterio que el cambio de texto de cierre-de-mes que diario-de-celda declaro en su FR-2509.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2601",
+      "substitution": "isCalendarDay vive en src/domain/validation.ts y no en src/domain/cycles.ts como dice el TRD; todayISO() sin zona delega en localDay",
+      "reason": "cycles.ts importa reserve.ts, y reserve.ts necesita isCalendarDay para rechazar un dia invalido: en cycles habria un ciclo de imports. validation.ts solo depende de zod y es donde ya vive el resto del contrato del borde, asi que la misma regla sirve al dominio, al cliente y al servidor. todayISO ya calculaba el dia local con la misma aritmetica; delegar evita dos copias.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade rutas nuevas, y la validacion del unico dato nuevo que entra por la red —el dia del comentario— se verifica con seis vectores en TC-FDC-111f a TC-FDC-116f.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "verification_note": "Evidencia: aitri feature verify-run fecha-de-comentario del 2026-09-22 — 51/51 TCs (36 unit + 15 e2e), cinco quality gates en pass (typecheck, lint, coverage, smoke, e2e), exit 0, sin procesos huérfanos. Antes, en la fase 4: ./unit.sh 1168/1168 y ./e2e.sh 581/581. Revisión adversarial independiente del diff: sin defectos altos ni medios; tres notas bajas (la base acepta un día de calendario inexistente escrito a mano por SQL —decisión del TRD, CHECK solo de forma—; años 0000-0099 rechazados; los e2e no cubren la noche, que cubre TC-FDC-002e).",
+  "overall_status_note": "partial y no compliant porque FR-2601 y FR-2602 (MUST) arrastran deuda declarada: el día opcional en addCellNote y la ubicación de isCalendarDay (FR-2601), y el ajuste de la aserción TC-DDC-151h de diario-de-celda (FR-2602). Ninguna afecta al comportamiento que ve el usuario ni a un TC en rojo. Durante el pipeline se corrigieron dos veces las fases aprobadas por decisión del usuario, sin cambio de alcance: 400 → 422 invalid_payload (fases 1, UX y 2) y TC-FDC-029f alineado con el manejo vigente de un 422 (fase 3)."
+}

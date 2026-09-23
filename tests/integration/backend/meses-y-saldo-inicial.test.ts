@@ -16,6 +16,7 @@ import { setLeafAmount } from "@/domain";
 import { activeRange } from "@/domain/range";
 import { startPutSchema } from "@/server/schemas";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
+import { celdaCuadrada } from "../../helpers/cuadre";
 import type { LedgerState, PeriodKey } from "@/domain/types";
 
 const A = "user-msi";
@@ -118,8 +119,9 @@ describe("FR-2205 — el saldo inicial solo se edita con su mes abierto", () => 
     // (Sin datos, `serverScope` arranca en el mes en curso: no conoce el mes declarado, porque se
     // deriva de `oldestPeriodWithData`, no de `activeRange`. Se documenta como interacción conocida.)
     const { state, revision } = await sembrar();
-    const rango = activeRange(state, AHORA, 2);
-    const conDatos = setLeafAmount(state, hojaDeGasto(state), INICIO, "actual", 40_000, rango);
+    // NFR-2502: la celda va con su movimiento. Lo que esta prueba necesita es «junio CON datos»
+    // —para que `serverScope` lo incluya—, no «una celda sin respaldo», que hoy el servidor rechaza.
+    const conDatos = celdaCuadrada(state, hojaDeGasto(state), INICIO, 40_000);
     const guardado = await saveLedger(A, conDatos, revision);
     expect(guardado.ok).toBe(true);
 
@@ -161,9 +163,10 @@ describe("FR-2206 — mover el inicio adelante no puede dejar datos huérfanos",
   async function conDatosSepOct(): Promise<number> {
     const { state, revision } = await sembrar();
     const hoja = hojaDeGasto(state);
-    const rango = activeRange(state, AHORA, 2);
-    let s = setLeafAmount(state, hoja, "2026-09", "actual", 80_000, rango);
-    s = setLeafAmount(s, hoja, "2026-10", "actual", 12_000, rango);
+    // NFR-2502: cada celda con su movimiento. La prueba necesita «datos en septiembre y octubre»,
+    // que es lo que sigue teniendo; lo que ya no puede es tenerlos sin respaldo en el journal.
+    let s = celdaCuadrada(state, hoja, "2026-09", 80_000);
+    s = celdaCuadrada(s, hoja, "2026-10", 12_000);
     const res = await saveLedger(A, s, revision);
     if (!res.ok) throw new Error("no se pudo guardar el escenario");
     return (await loadLedger(A))!.revision;

@@ -75,9 +75,20 @@ ENVS=$(git ls-files 2>/dev/null | grep -E '(^|/)\.env' | grep -v '\.env\.example
 [ -z "$ENVS" ]; check "Secretos: hay ficheros .env versionados en git: $ENVS" $?
 
 # ── dependencias: nada alto/crítico ──────────────────────────────────────────
+# Se separan DOS casos que `npm audit` colapsa en el mismo exit 1: encontrar una vulnerabilidad
+# alta, y no poder ejecutar el escaneo (endpoint caído, 400, sin red). La versión anterior mandaba
+# la salida a /dev/null y reportaba SIEMPRE «npm audit reporta vulnerabilidades altas o críticas»
+# — un mensaje que MIENTE cuando el escaneo ni siquiera corrió, y que además borraba la única pista
+# para averiguarlo. Lo vimos en el cron semanal del CI: seis rojos idénticos con dos causas
+# opuestas (2026-09-18).
 if command -v npm >/dev/null 2>&1; then
-  npm audit --audit-level=high >/dev/null 2>&1
-  check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas" $?
+  SCA_OUT=$(npm audit --audit-level=high 2>&1); SCA_RC=$?
+  if [ $SCA_RC -ne 0 ] && printf '%s' "$SCA_OUT" | grep -qiE 'audit endpoint returned an error|Invalid package tree|Bad Request|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET'; then
+    # Falla igual —un escaneo que no corre no acredita nada— pero dice la verdad sobre por qué.
+    check "RQ-SEC-005: el escaneo NO SE EJECUTÓ (npm audit no pudo completar; esto no es un hallazgo): $(printf '%s' "$SCA_OUT" | tr '\n' ' ' | cut -c1-200)" 1
+  else
+    check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas" $SCA_RC
+  fi
 fi
 
 # ── recuperación de contraseña: postura del flujo (NFR-1306) ─────────────────

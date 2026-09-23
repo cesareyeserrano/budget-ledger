@@ -59,3 +59,23 @@ export function typeFillVar(type: NodeType): string {
       return "var(--type-transfer-fill)";
   }
 }
+
+/**
+ * El aviso de que un BORRADO dejaría la celda por debajo de 0 (FR-2505, FR-2506).
+ *
+ * Vive aquí y no en cada componente porque hay DOS vías para el mismo acto —la papelera de la fila
+ * y dejar el monto en 0 en el bloque de edición— y el usuario tiene que leer exactamente lo mismo
+ * por las dos. Cuando cada una tenía su texto, decían cosas distintas de la misma situación
+ * («No se puede borrar: la celda quedaría en …» frente a «No se puede: Restaurantes quedaría en …,
+ * y ninguna celda puede quedar por debajo de 0»), y eso le sugiere al usuario que son operaciones
+ * diferentes y que quizá una sí le deje. Lo cazó TC-DDC-126f, que compara los dos textos.
+ *
+ * @param value Valor en el que quedaría la celda (negativo).
+ * @returns El aviso, idéntico venga de donde venga.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2505, US-ID: US-2505, AC-ID: AC-2505e, TC-ID: TC-DDC-126f
+ */
+export function textoBorradoNegativo(value: number): string {
+  return `No se puede borrar: la celda quedaría en ${money(value)}.`;
+}

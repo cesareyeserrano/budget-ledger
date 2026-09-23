@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "Cerrar el Detalle con Guardar, Enter en el valor o clic fuera re-teclea el valor que la celda tenia AL ABRIR y crea un ajuste que anula los movimientos recien anadidos desde el Detalle. commitEdit (BudgetGrid.tsx) llama siempre a setLeafAmount con editVal, que se fijo en startEdit y no se entera de los movimientos anadidos; adjustCell (FR-2504) crea la diferencia. Reproducido por el usuario el 21-sep en dev, Peluqueria octubre: Prueba 1 +1000 -> ajuste -1000; Prueba 2+3 +5000 -> ajuste -5000. Por Nuevo movimiento y movil no pasa. Escape/Cancelar no lo provocan.",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "high",
+      "status": "verified",
+      "fr": "FR-2504",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-21T22:29:00.794Z",
+      "updated_at": "2026-09-21T23:04:48.869Z",
+      "resolution": "BudgetGrid: mientras el usuario no teclea, el campo del valor sigue a la celda (resync en EditableCell); Guardar y clic fuera solo escriben si se tecleo; Enter en el valor confirma la cifra visible (cuadrar, FR-2511). 4 e2e BG-001 en diario-de-celda.spec.ts; mutacion verificada; 16 suites que editan celdas 387/387.",
+      "fix_commit_sha": "bfd67e52218f7bca3720428f3c604ab70e83f88a",
+      "fix_at": "2026-09-21T22:45:12.341Z"
+    }
+  ]
+}

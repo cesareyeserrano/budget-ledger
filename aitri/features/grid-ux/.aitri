@@ -19,27 +19,9 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T20:14:14.216Z",
+  "updatedAt": "2026-09-15T15:59:32.430Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-23T17:04:20.478Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-23T17:29:05.583Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
     {
       "at": "2026-07-23T17:34:00.382Z",
       "event": "verify-run",
@@ -162,6 +144,22 @@
       "phase": "verify",
       "passed": 52,
       "failed": 0
+    },
+    {
+      "at": "2026-09-15T15:59:02.128Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-15T15:59:32.401Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -246,14 +244,14 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "695a0265c5152252117204a7bc413a75e36c96ad1e7493ee987794012a1a9fee",
-  "verifyRanAt": "2026-09-13T20:14:13.892Z",
+  "verifyResultsHash": "c06761fe5de0be32c35fa718bccea74d24fed90460840c79d750c3cf4384579e",
+  "verifyRanAt": "2026-09-15T15:59:02.050Z",
   "lastVerifyRun": {
     "passed": 52,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T20:14:13.892Z"
+    "at": "2026-09-15T15:59:02.050Z"
   },
   "verifySummary": {
     "total": 52,
@@ -265,6 +263,6 @@
     "manual": 0,
     "manual_verified": 0
   },
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "4fbf27297530437d73adfc745a1961a082c53ea0",
   "verifyRanDirty": false
 }

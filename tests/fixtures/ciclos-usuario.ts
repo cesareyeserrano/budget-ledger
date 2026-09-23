@@ -1,7 +1,7 @@
 /**
  * Module: tests/fixtures/ciclos-usuario
  * Purpose: F-USER — réplica ANONIMIZADA del ledger del usuario antes de activar ciclos. Conserva la forma
- *   del respaldo del 2026-09-10 (35 nodos, 19 hojas con celdas, 50 celdas (5 en 0), 27 movimientos del
+ *   del respaldo del 2026-09-10 (35 nodos, 19 hojas con celdas, 50 celdas (5 en 0), 28 movimientos del
  *   21-ago al 8-sep, sus fechas, el presupuesto espejo del ejecutado y cada Ejecutado igual a la suma de
  *   sus movimientos), pero los MONTOS son inventados: no son los del usuario. SIN notas de celda y SIN
  *   el texto de las notas de movimientos. El dueño es el sintético de F-SYN.
@@ -130,6 +130,15 @@ const MOVIMIENTOS: ReadonlyArray<readonly [string, NodeType, string, string | nu
   ["5a3db14c-4849-4203-a0be-32c32b3aa785", "expense", "e6fe80c1-ccbf-48ac-b680-6ae8ae06c6ea", null, "e6fe80c1-ccbf-48ac-b680-6ae8ae06c6ea", 3800, "2026-09", 25, "2026-09-08T12:00"],
   ["db333c30-ea0f-49a7-82b3-d3f26cbca7ab", "expense", "711d5f78-0657-4b6c-87f2-311b564f091a", null, "711d5f78-0657-4b6c-87f2-311b564f091a", 302300, "2026-09", 26, "2026-09-08T12:00"],
   ["00d5e2e0-3abf-4ae2-8877-a550b27677ca", "expense", "e6fe80c1-ccbf-48ac-b680-6ae8ae06c6ea", null, "e6fe80c1-ccbf-48ac-b680-6ae8ae06c6ea", 10700, "2026-09", 27, "2026-09-08T12:00"],
+  // El respaldo de «Internet» en septiembre. La celda existía con 96.400 y CERO movimientos desde
+  // que este fixture se compuso; nadie lo notaba porque nada miraba el cuadre. Desde FR-2512 un mes
+  // con celdas descuadradas no se cierra, así que esa celda dejaba siete casos de ciclos sin poder
+  // cerrar septiembre — no por un fallo suyo, sino por un descuadre que el fixture arrastraba.
+  //
+  // Se añade el MOVIMIENTO, no se baja la celda: la intención de este dato siempre fue «Internet
+  // costó 96.400 en septiembre», y así queda representable. Fecha dentro del ciclo (día de pago 21:
+  // «2026-09» va del 21 de agosto al 20 de septiembre), o el servidor lo rechazaría por incoherente.
+  ["0b9f4c3e-77a1-4d52-9e18-1c4a6f2b8d05", "expense", "0cc96c6d-9158-4fd6-8b45-8ccaec693ca1", "4ffa83dd-4c21-494c-836b-4f5b191cd921", "4ffa83dd-4c21-494c-836b-4f5b191cd921", 96400, "2026-09", 28, "2026-09-08T12:00"],
 ];
 
 export const F_USER_INICIO = { startMonth: "2026-08", openingBalance: 32180000 } as const;

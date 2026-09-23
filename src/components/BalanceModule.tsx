@@ -19,7 +19,9 @@ import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/sto
 import { periodMonthLabel, periodLabel, isYearStart, periodYear } from "@/domain/periods";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
-import { reserveAportes, reserveRetiros, monthIssues, type MonthIssue } from "@/domain/reserve";
+import { reserveAportes, reserveRetiros, monthIssues, monthIssueText, type MonthIssue } from "@/domain/reserve";
+// FR-2511: la otra lista de problemas del mes, y los nombres de sus celdas resumidos con «y N más».
+import { mismatchIssues, mismatchNamesText } from "@/domain/mismatch";
 import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
@@ -556,8 +558,14 @@ function TechoBanner() {
   const data = useLedgerStore((s) => s.data);
   const hydrated = useLedgerStore((s) => s.hydrated);
   const scope = useActivePeriods();
-  const breaches = useMemo<readonly MonthIssue[]>(
-    () => (hydrated ? monthIssues(data, scope) : []), [data, hydrated, scope]);
+  const breaches = useMemo<readonly MonthIssue[]>(() => {
+    if (!hydrated) return [];
+    // FR-2511: las dos listas se juntan y se reordenan por CALENDARIO. Concatenarlas sin más dejaría
+    // todos los problemas de reserva antes que todos los descuadres, y el aviso debe leerse mes a
+    // mes, no por tipo de problema (UX spec § F8).
+    const todos = [...monthIssues(data, scope), ...mismatchIssues(data, scope)];
+    return todos.sort((a, b) => scope.indexOf(a.period) - scope.indexOf(b.period));
+  }, [data, hydrated, scope]);
   if (breaches.length === 0) return null;
   return (
     <div
@@ -567,7 +575,9 @@ function TechoBanner() {
       style={{ borderColor: "var(--alert-strong)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)", color: "var(--fg)" }}
     >
       {breaches.map((b) => (
-        <div key={b.period} className="flex items-start gap-2" data-month={b.period}>
+        // La clave lleva el KIND: desde FR-2511 un mismo mes puede traer dos entradas (su techo y
+        // su descuadre), y con solo el periodo React vería dos hijos con la misma clave.
+        <div key={`${b.kind}-${b.period}`} className="flex items-start gap-2" data-month={b.period}>
           <span className="flex-none mt-[1px]" style={{ color: "var(--alert-strong)" }} aria-hidden="true">
             <TriangleAlert size={14} />
           </span>
@@ -578,11 +588,18 @@ function TechoBanner() {
                 reservas <span className="tabular">{money(b.excess)}</span> por encima del margen del
                 mes — los meses siguientes quedan sin margen.
               </>
-            ) : (
+            ) : b.kind === "retiro_planeado" ? (
               <>
                 retiro planeado <span className="tabular">{money(b.excess)}</span> por encima de lo
                 que el plan reserva — baja el retiro o sube el aporte planeado.
               </>
+            ) : (
+              // FR-2511: se nombran las celdas, no se cifra la diferencia. El usuario no necesita
+              // saber cuánto falta sino DÓNDE mirar; la cifra la ve al abrir la celda.
+              <span data-testid="descuadre-line">
+                {monthIssueText(b, money)} — {mismatchNamesText(b.cells)}. Teclea su valor o corrige
+                sus movimientos.
+              </span>
             )}
           </span>
         </div>

@@ -230,6 +230,9 @@ test("TC-SUT-229h: el campo de fecha muestra 'Hoy' por defecto", async ({ page }
 });
 
 test("TC-SUT-230e: abrir el calendario y elegir el día 15 muestra la fecha y cierra el popover", async ({ page }) => {
+  // Reloj fijo como pide el TC (BG-001): sin él, cada día 15 el 15 ya viene elegido y el test deja de probar
+  // «elegir otro día».
+  await page.clock.setFixedTime(new Date("2026-07-07T14:30:00"));
   await gotoMobile(page);
   await page.getByTestId("date-field").click();
   await expect(page.getByTestId("date-popover")).toBeVisible();
@@ -237,6 +240,17 @@ test("TC-SUT-230e: abrir el calendario y elegir el día 15 muestra la fecha y ci
   await expect(page.getByTestId("date-popover")).toHaveCount(0);
   await expect(page.getByTestId("date-label")).toContainText("15");
   await expect(page.getByTestId("date-label")).not.toContainText(":"); // la hora no se muestra
+});
+
+test("BG-001: tocar el día ya elegido cierra el popover y conserva la fecha", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-07T14:30:00"));
+  await gotoMobile(page);
+  await page.getByTestId("date-field").click();
+  const popover = page.getByTestId("date-popover");
+  await expect(popover).toBeVisible();
+  await popover.getByRole("gridcell", { selected: true }).getByRole("button").click(); // hoy, ya elegido
+  await expect(popover).toHaveCount(0);
+  await expect(page.getByTestId("date-label")).toHaveText("Hoy");
 });
 
 test("TC-SUT-231f: clic fuera del popover lo cierra sin cambiar la fecha", async ({ page }) => {

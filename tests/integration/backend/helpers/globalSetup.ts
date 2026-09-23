@@ -16,7 +16,7 @@
  *   de readiness de Postgres, que además es más rápido (684 ms medidos frente a 1130 ms).
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres
  */
-import type { GlobalSetupContext } from "vitest/node";
+import type { TestProject } from "vitest/node";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { GenericContainer, type StartedTestContainer, Wait } from "testcontainers";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -38,7 +38,10 @@ declare module "vitest" {
 let container: StartedPostgreSqlContainer | undefined;
 let mailpit: StartedTestContainer | undefined;
 
-export default async function setup({ provide }: GlobalSetupContext): Promise<() => Promise<void>> {
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+  // Vitest 4 (BL-048) pasa el TestProject en vez de un GlobalSetupContext. `provide` es un método:
+  // se enlaza al proyecto para conservar las llamadas de abajo tal cual.
+  const provide = project.provide.bind(project);
   await sweepOrphanedContainers();
 
   container = await new PostgreSqlContainer("postgres:16-alpine")

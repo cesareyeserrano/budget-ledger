@@ -55,6 +55,51 @@ describe("FR-512 / NFR-510 — arranque fail-fast por variable faltante", () => 
   });
 });
 
+/**
+ * El entorno que docker-compose.yml le entrega a la app, leído del fichero real: `${VAR:-x}` vale su
+ * default (a menudo ""), y `${VAR:?…}` —las requeridas, que el operador pone en .env— un valor válido.
+ */
+function envFromCompose(): Record<string, string> {
+  const compose = read("docker-compose.yml");
+  const app = compose.slice(compose.indexOf("\n  app:"), compose.indexOf("\nvolumes:"));
+  const required: Record<string, string> = {
+    DATABASE_URL: "postgres://ledger:secreto@db:5432/ledger",
+    BETTER_AUTH_SECRET: "s".repeat(64),
+    BETTER_AUTH_URL: "https://ledger.example.test",
+  };
+  const env: Record<string, string> = { NODE_ENV: "production" };
+  for (const m of app.matchAll(/^\s+([A-Z_]+):\s*\$\{([A-Z_]+):([-?])([^}]*)\}/gm)) {
+    const [, key, , mode, rest] = m;
+    env[key] = mode === "-" ? rest : required[key] ?? "valor-requerido";
+  }
+  return env;
+}
+
+describe("BG-038 — la app arranca con el entorno exacto de docker-compose.yml", () => {
+  it("BG-038a: sin correo ni Google configurados, las opcionales llegan vacías y la app arranca igual", () => {
+    const env = envFromCompose();
+    // La prueba solo vale si ejerce la forma real del compose: opcionales definidas pero vacías.
+    expect(env.SMTP_PORT).toBe("");
+    expect(env.SMTP_HOST).toBe("");
+    expect(env.GOOGLE_CLIENT_ID).toBe("");
+
+    const parsed = parseEnv(env);
+    expect(parsed.smtpEnabled).toBe(false);
+    expect(parsed.googleEnabled).toBe(false);
+    expect(parsed.trustProxy).toBe(false);
+    expect(parsed.allowedOrigins).toEqual(["https://ledger.example.test"]);
+  });
+
+  it("BG-038b: vacía no es inválida, pero un valor presente y malo sigue abortando (TC-REC-050f intacto)", () => {
+    const env = envFromCompose();
+    expect(() => parseEnv({ ...env, SMTP_PORT: "" })).not.toThrow();
+    expect(() => parseEnv({ ...env, SMTP_PORT: "no-es-un-numero" })).toThrow(/SMTP_PORT/);
+    // Una REQUERIDA vacía sigue abortando y nombra la variable: vacía cuenta como ausente, no como válida.
+    expect(() => parseEnv({ ...env, DATABASE_URL: "" })).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ ...env, BETTER_AUTH_SECRET: "" })).toThrow(/BETTER_AUTH_SECRET/);
+  });
+});
+
 describe("NFR-505 / NFR-510 — persistencia y config host-agnósticas", () => {
   it("TC-BE-060e: la config de datos usa env + volumen nombrado, sin rutas/IPs de host", () => {
     // @aitri-tc TC-BE-060e

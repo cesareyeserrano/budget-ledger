@@ -38,6 +38,20 @@ export function isIsoDate(iso: unknown): iso is string {
   const d = new Date(`${iso}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
 }
+/**
+ * El día LOCAL de un instante, «AAAA-MM-DD». Usa los getters locales a propósito: a las 21:30 del
+ * 21-sep en Bogotá ya son las 02:30 del 22 en UTC, y `toISOString()` daría el día equivocado.
+ *
+ * @param d Instante; el llamador pone el reloj (este módulo no lee la hora por su cuenta).
+ * @returns El día civil en la zona del proceso que ejecuta.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601b, TC-ID: TC-FDC-002e, TC-FDC-003e
+ */
+export function localDay(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 function toUtc(iso: string): number {
   return Date.parse(`${iso}T00:00:00Z`);
 }
@@ -340,8 +354,27 @@ function makeCalendar(config: CycleConfig, entries: CycleEntry[]): Calendar {
  * @aitri-trace FR-ID: FR-2407, US-ID: US-2407, AC-ID: AC-2422, TC-ID: TC-CIC-066e
  */
 export function formatRange(start: string, end: string): string {
-  const f = (iso: string) => `${Number(iso.slice(8, 10))} ${MONTH_LABELS_SHORT[Number(iso.slice(5, 7)) - 1]!.toLowerCase()}`;
-  return `${f(start)} – ${f(end)}`;
+  return `${formatDay(start)} – ${formatDay(end)}`;
+}
+
+/**
+ * «21 ago»: un día suelto, con el MISMO formato que los extremos de un rango.
+ *
+ * Extraída de `formatRange` al necesitarla la fila del Detalle (FR-2501): dos implementaciones del
+ * mismo formato es exactamente lo que NFR-2412 («formato único en toda la app») prohíbe, así que
+ * hay una sola y las dos superficies la comparten. `Intl` NO sirve aquí: con `es-CO` devuelve
+ * «1 de sept», que no es el formato del producto.
+ *
+ * @param iso Fecha ISO, con hora o sin ella («2026-09-18» o «2026-09-18T12:00»).
+ * @returns El día sin cero y el mes en tres letras minúsculas; cadena vacía si la fecha no es ISO.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-001h, TC-DDC-010e
+ */
+export function formatDay(iso: string): string {
+  const day = Number(iso.slice(8, 10));
+  const month = MONTH_LABELS_SHORT[Number(iso.slice(5, 7)) - 1];
+  return Number.isFinite(day) && day > 0 && month ? `${day} ${month.toLowerCase()}` : "";
 }
 
 /** El calendario que corresponde a un estado, con cotas de mes generosas alrededor de sus datos. */
@@ -558,7 +591,12 @@ export function placementContext(state: LedgerState, cycleCal: Calendar, directi
     const month = day.slice(0, 7);
     const late = comparePeriods(monthOf(cyc), month) > 0;
     for (const { leafId, delta } of movementDeltas(mv)) {
-      const amount = Math.abs(delta);
+      // El signo IMPORTA desde que existen los ajustes (FR-2504): un ajuste de −10.000 le quita
+      // 10.000 a la celda, así que contarlo como +10.000 —lo que hacía `Math.abs`— inflaba el peso
+      // de su mes al decidir dónde cae el dato en el paso a ciclos, y podía mover la celda al mes
+      // equivocado. Hasta esta feature ningún movimiento era negativo y el valor absoluto no se
+      // notaba; ahora sí (TC-DDC-074e).
+      const amount = delta;
       bump(byMonth, leafId, month, cyc, amount);
       bump(byCycle, leafId, cyc, month, amount);
       const h = habit.get(leafId) ?? { late: 0, early: 0 };

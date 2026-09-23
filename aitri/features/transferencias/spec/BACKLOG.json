@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "items": [
+    {
+      "id": "BL-001",
+      "title": "Fase 5: deuda heredada sin copiar, FR-1014 como complete con deuda y sin DEPLOYMENT.md propio",
+      "priority": "P3",
+      "problem": "Visto al re-aprobar la fase 5 el 2026-09-15 (change request FR-2509). 05_TRACEABILITY.json no tiene technical_debt_inherited aunque 04_BUILD_REPORT.json declara 2 entradas (FR-1014 ubicacion v1 de retiros, BL-019; SEC-GATE). FR-1014 figura level complete con deuda declarada; la regla de Aitri dice partial, y overall_status pasaria a partial. La feature no tiene DEPLOYMENT.md propio (la raiz y otras 8 features si). El usuario eligio aprobar sin cambios y corregirlo aparte.",
+      "status": "open",
+      "createdAt": "2026-09-15T21:41:20.334Z"
+    }
+  ]
+}

@@ -23,6 +23,16 @@ function rejected(reason: "not_closable" | "nothing_closed" | "already_reopened"
   return json({ error: { code, detail } }, HTTP.UNPROCESSABLE);
 }
 
+/**
+ * 422 del cierre bloqueado por celdas descuadradas (FR-2512).
+ *
+ * Las celdas viajan NOMBRADAS: el control las repite en su motivo, y un rechazo que solo dijera
+ * «no se puede» obligaría al usuario a recorrer el mes buscando cuál falla.
+ */
+function unbalanced(period: string, cells: { nodeId: string; name: string }[]): Response {
+  return json({ error: { code: "unbalanced_cells", detail: { period, cells } } }, HTTP.UNPROCESSABLE);
+}
+
 const postHandler = withApi<ClosurePostBody>(
   { auth: "required", schema: closurePostSchema, mutation: true },
   async ({ userId, body, req }) => {
@@ -33,6 +43,7 @@ const postHandler = withApi<ClosurePostBody>(
     if (!res.ok && "conflict" in res) {
       return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     }
+    if (!res.ok && res.rejected === "unbalanced_cells") return unbalanced(res.period, res.cells);
     if (!res.ok) return rejected(res.rejected);
     syncHub.publish(userId, { revision: res.revision }); // los demás dispositivos, al día (FR-511)
     return json({ revision: res.revision, closure: res.closure });
@@ -46,6 +57,11 @@ const deleteHandler = withApi<ClosurePostBody>(
     if (!res.ok && "conflict" in res) {
       return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     }
+    // `unbalanced_cells` es un motivo del CIERRE y solo del cierre (FR-2512, TC-DDC-216f): reabrir
+    // no se bloquea por descuadres, porque la reapertura es la única vía que le queda al usuario
+    // para arreglarlos. Como `ClosureResult` es el tipo compartido por las dos operaciones, aquí se
+    // descarta explícitamente en vez de ensanchar `rejected` con un caso que nunca va a llegar.
+    if (!res.ok && res.rejected === "unbalanced_cells") return unbalanced(res.period, res.cells);
     if (!res.ok) return rejected(res.rejected);
     syncHub.publish(userId, { revision: res.revision });
     return json({ revision: res.revision, closure: res.closure });

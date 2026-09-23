@@ -86,7 +86,7 @@
       "id": "FR-1012",
       "title": "Campo de observaciones por celda",
       "level": "complete",
-      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped). 012h (e2e): la nota «pasaje» de un retiro se lee desde la celda (punto indicador + tooltip + sección del editor) y una manual añadida aflora de inmediato; 012e: sin observaciones no hay indicador y el editor muestra el placeholder; 012f: 281 caracteres y vacío se rechazan SIN truncar, 280 exactos se aceptan íntegros."
+      "evidence": "fr_coverage: covered (3 passing, 0 failing, 0 skipped; verify del 2026-09-15 sobre e4542a6). 012h (e2e): la nota «pasaje» de un retiro se lee desde la celda (punto indicador + tooltip + sección «Detalle» del editor) y un comentario escrito en «Añadir comentario» aflora de inmediato; 012e: sin notas no hay indicador y el editor muestra «Sin movimientos ni comentarios»; 012f: 281 caracteres y vacío se rechazan SIN truncar, 280 exactos se aceptan íntegros. Textos renombrados por el change request FR-2509 de diario-de-celda (2026-09-15), sin cambio de comportamiento."
     },
     {
       "id": "FR-1014",

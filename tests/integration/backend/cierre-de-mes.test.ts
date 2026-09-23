@@ -15,6 +15,10 @@ import { sql } from "drizzle-orm";
 // producto sale vacía, así que componen la semilla poblada de siempre con este helper.
 import { setLeafAmount } from "@/domain";
 import { buildSeedConMontos as buildSeed } from "../../helpers/seedConMontos";
+// Desde diario-de-celda (NFR-2502) una celda de Ejecutado tiene que valer lo que suman sus
+// movimientos. `ajustarCelda` pone la cifra POR LA VÍA DEL PRODUCTO —crea el ajuste que la
+// respalda—, que es lo que hace la app cuando el usuario teclea un total (FR-2504).
+import { ajustarCelda } from "../../helpers/cuadre";
 import { isLeaf } from "@/domain/tree";
 import {
   loadLedger, saveLedger, insertMovement, closeMonthFor, reopenMonthFor, getClosureEvents,
@@ -172,9 +176,18 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     expect(JSON.parse(antes).cells.length).toBeGreaterThan(0);
 
     // Batería completa sobre el mes ABIERTO. Cada paso recarga para llevar la revisión buena.
-    for (const [campo, valor] of [["budget", 900_000], ["actual", 500_000]] as const) {
+    // El Presupuestado se teclea directo; el Ejecutado va por la vía del producto, que crea su
+    // respaldo. Escribir la cifra a pelo produciría una celda que el usuario ya no puede fabricar y
+    // que el servidor rechaza con razón (NFR-2502) — lo que esta prueba AFIRMA no cambia: se trastea
+    // el mes abierto y el cerrado no se mueve.
+    {
       const l = (await loadLedger(A))!;
-      const next = setLeafAmount(l.state, hoja, AHORA, campo, valor, [AHORA]);
+      const next = setLeafAmount(l.state, hoja, AHORA, "budget", 900_000, [AHORA]);
+      expect((await saveLedger(A, next, l.revision)).ok).toBe(true);
+    }
+    {
+      const l = (await loadLedger(A))!;
+      const next = ajustarCelda(l.state, hoja, AHORA, 500_000, [AHORA]);
       expect((await saveLedger(A, next, l.revision)).ok).toBe(true);
     }
     const l = (await loadLedger(A))!;
@@ -221,13 +234,20 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     await sembrar();
     const { state } = await cerrar(1);
     const hoja = hojaDeGasto(state);
+    // Se cuenta contra el ANTES, no contra cero: desde diario-de-celda la siembra trae el
+    // movimiento que respalda cada celda (NFR-2502), así que el mes cerrado ya tiene filas propias.
+    // Lo que esta prueba afirma es lo mismo de siempre — el rechazo no insertó NADA.
+    const enInicio = async () => {
+      const filas = await testDb().execute(sql`SELECT count(*)::int AS n FROM movement
+                                               WHERE owner_id = ${A} AND period = ${INICIO}`);
+      return ([...filas][0] as { n: number }).n;
+    };
+    const antes = await enInicio();
     const res = await insertMovement(A, {
       type: "expense", catId: hoja, subId: null, amount: 50_000, period: INICIO,
     } as Parameters<typeof insertMovement>[1]);
     expect(res).toEqual({ closedViolation: true });
-    const filas = await testDb().execute(sql`SELECT count(*)::int AS n FROM movement
-                                             WHERE owner_id = ${A} AND period = ${INICIO}`);
-    expect(([...filas][0] as { n: number }).n).toBe(0);
+    expect(await enInicio()).toBe(antes);
   });
 
   it("TC-CDM-034f: borrar un movimiento de un mes cerrado se rechaza", async () => {
@@ -241,13 +261,20 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     expect(ins).not.toBeNull();
     await cerrar(1);
 
+    const enInicio = async () => {
+      const filas = await testDb().execute(sql`SELECT count(*)::int AS n FROM movement
+                                               WHERE owner_id = ${A} AND period = ${INICIO}`);
+      return ([...filas][0] as { n: number }).n;
+    };
     const l = (await loadLedger(A))!;
+    // El borrado intentado se los lleva TODOS los del mes cerrado; lo que se afirma es que no se
+    // fue ninguno. Se compara contra el antes porque la siembra ya puebla ese mes (NFR-2502).
+    const antes = await enInicio();
+    expect(antes).toBeGreaterThan(0);
     const sinEl = { ...l.state, movements: l.state.movements.filter((m) => m.period !== INICIO) };
     const res = await saveLedger(A, sinEl, l.revision);
     expect(res).toMatchObject({ closedViolation: true, periods: [INICIO] });
-    const filas = await testDb().execute(sql`SELECT count(*)::int AS n FROM movement
-                                             WHERE owner_id = ${A} AND period = ${INICIO}`);
-    expect(([...filas][0] as { n: number }).n).toBe(1);
+    expect(await enInicio()).toBe(antes);
   });
 
   it("TC-CDM-035f: aportar en un mes cerrado se rechaza y el reservado no cambia", async () => {
@@ -273,12 +300,24 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     } as Parameters<typeof insertMovement>[1]);
     await cerrar(1);
     const l = (await loadLedger(A))!;
+    /** Los movimientos que VIVEN en el mes cerrado, por id: lo que no debe cambiar. */
+    const idsEnInicio = (s: LedgerState) =>
+      s.movements.filter((m) => m.period === INICIO).map((m) => m.id).sort().join(",");
+    const antes = idsEnInicio(l.state);
     const movido = {
       ...l.state,
-      movements: l.state.movements.map((m) => (m.period === AHORA ? { ...m, period: INICIO } : m)),
+      // La fecha viaja CON el periodo. Desde diario-de-celda los movimientos llevan fecha, y mover
+      // solo el periodo choca antes con la validación de fecha-en-periodo, que corre por delante de
+      // la del cierre: la prueba seguiría en rojo, pero por el motivo equivocado, y dejaría de
+      // vigilar lo único que dice vigilar — que el mes CERRADO rechaza la llegada.
+      movements: l.state.movements.map((m) =>
+        m.period === AHORA ? { ...m, period: INICIO, ...(m.date ? { date: `${INICIO}-10T12:00` } : {}) } : m
+      ),
     };
     expect(await saveLedger(A, movido, l.revision)).toMatchObject({ closedViolation: true });
-    expect((await loadLedger(A))!.state.movements.every((m) => m.period !== INICIO)).toBe(true);
+    // No llegó ninguno: el mes cerrado conserva EXACTAMENTE los suyos (la siembra ya le puso los
+    // que respaldan sus celdas, así que «ninguno» dejó de ser «cero»).
+    expect(idsEnInicio((await loadLedger(A))!.state)).toBe(antes);
   });
 
   it("TC-CDM-037e: editar el mes ABIERTO se acepta con normalidad", async () => {
@@ -675,8 +714,11 @@ describe("FR-2010 — el impacto contra Postgres real", () => {
 
     const l = (await loadLedger(A))!;
     const hoja = hojaDeGasto(l.state);
-    // Un gasto enorme en el mes REABIERTO: arrastra a todos los meses abiertos que siguen.
-    const next = setLeafAmount(l.state, hoja, INICIO, "actual", 99_000_000, [INICIO]);
+    // Un gasto enorme en el mes REABIERTO: arrastra a todos los meses abiertos que siguen. Se pone
+    // por la vía del producto (crea el ajuste que respalda la celda, FR-2504); escribir la cifra a
+    // pelo dejaría la celda sin respaldo y el rechazo sería de NFR-2502, no de esta regla. Lo que
+    // esta prueba defiende NO cambia: la corrección se ACEPTA y el mes roto se señala.
+    const next = ajustarCelda(l.state, hoja, INICIO, 99_000_000, [INICIO]);
 
     const guardado = await saveLedger(A, next, l.revision);
     // NO 4xx, NO rechazo: la escritura entra.
@@ -709,7 +751,7 @@ describe("FR-2010 — el impacto contra Postgres real", () => {
 
     const l = (await loadLedger(A))!;
     const hoja = hojaDeGasto(l.state);
-    const next = setLeafAmount(l.state, hoja, "2026-07", "actual", 777_000, ["2026-07"]);
+    const next = ajustarCelda(l.state, hoja, "2026-07", 777_000, ["2026-07"]);
     expect(await saveLedger(A, next, l.revision)).toEqual({ ok: true, revision: l.revision + 1 });
 
     const fin = (await loadLedger(A))!;

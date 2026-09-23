@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Feature transferencias · modelo v4 — NFR-1007: la suite re-derivada está completa (biyección
  * spec↔tests) y los formatos viejos viven solo en el spec de migración.

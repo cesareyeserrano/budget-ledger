@@ -14,8 +14,8 @@
 import type { AmountMap, CellNote, LedgerState, PeriodKey, Movement } from "./types";
 import { findNode, isLeaf } from "./tree";
 import { typeTotals } from "./rollup";
-import { isPeriodKey } from "./periods";
-import { normalizeNote, parseAmount } from "./validation";
+import { isPeriodKey, periodLabel } from "./periods";
+import { isCalendarDay, normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
 import { openingCarry } from "./opening";
 
@@ -715,8 +715,34 @@ export interface CarryUsage {
   reservado: number;
   /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
   delSaldoAnterior: number;
-  /** El mes de cuyo cierre salió — el que la observación nombra. */
-  mesAnterior: PeriodKey;
+  /**
+   * El mes de cuyo cierre salió, o `null` si salió del SALDO INICIAL declarado — lo que ocurre en el
+   * primer mes del rango, que no tiene un mes anterior dentro de él pero sí de dónde sacar (BG-041).
+   */
+  mesAnterior: PeriodKey | null;
+}
+
+/**
+ * El texto de la observación automática de FR-1804, en UN SOLO SITIO.
+ *
+ * Antes lo armaban por separado el Detalle (`detail.ts`) y el título de la celda de bolsillo
+ * (`ReserveCells.tsx`), con la misma frase copiada. Dos copias de un texto acaban diciendo cosas
+ * distintas —esta misma feature lo sufrió con el aviso de celda negativa—, y BG-041 obligaba a
+ * cambiar la frase en las dos. Ahora las dos llaman aquí.
+ *
+ * @param carry Lo que devolvió `monthCarryUsage`.
+ * @param money Formateador de montos del llamador (el dominio no decide el formato de moneda).
+ * @returns «De los X reservados este mes, Y salieron del saldo de agosto.» o, en el mes de inicio,
+ *   «…salieron del saldo inicial.»
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-1804, US-ID: US-1804, AC-ID: AC-1804, TC-ID: TC-TDF-030h
+ */
+export function carryUsageText(carry: CarryUsage, money: (n: number) => string): string {
+  const origen = carry.mesAnterior === null
+    ? "del saldo inicial"
+    : `del saldo de ${periodLabel(carry.mesAnterior).toLowerCase()}`;
+  return `De los ${money(carry.reservado)} reservados este mes, ${money(carry.delSaldoAnterior)} salieron ${origen}.`;
 }
 
 /**
@@ -743,7 +769,13 @@ export function monthCarryUsage(
   state: LedgerState, month: PeriodKey, plane: Plane, periods: PeriodScope
 ): CarryUsage | null {
   const i = periods.indexOf(month);
-  if (i <= 0) return null; // enero no tiene mes anterior que nombrar
+  // BG-041. Antes esto era `if (i <= 0) return null` —«enero no tiene mes anterior que nombrar»—, y
+  // era cierto cuando el rango SIEMPRE empezaba en enero. Desde meses-y-saldo-inicial el rango
+  // empieza en el MES DE INICIO declarado, y ese mes sí tiene de dónde sacar: el saldo inicial. Con
+  // la guarda vieja, quien declaraba septiembre como inicio perdía la nota justo el mes en que más
+  // dinero movía del saldo anterior (43,7 millones en el caso real que lo destapó). Ahora el primer
+  // mes solo calla si NO hay saldo inicial declarado, que es cuando de verdad no hay nada antes.
+  if (i < 0) return null;
   const scan = techoScan(state, plane, periods);
   const income = typeTotals(state, "income", [month]);
   const expense = typeTotals(state, "expense", [month]);
@@ -752,13 +784,15 @@ export function monthCarryUsage(
   // Sin reservas no hay nada que explicar — antes un mes con solo GASTOS producía
   // {reservado: 0, delSaldoAnterior: 300}: un desglose imposible (auditoría 2026-09-01).
   if (reservado <= 0) return null;
-  const disponiblePrevio = Math.max(0, scan.arrastre[i - 1]);
+  const disponiblePrevio = i === 0
+    ? Math.max(0, openingCarry(state, periods).available) // el saldo inicial declarado, o 0
+    : Math.max(0, scan.arrastre[i - 1]);
   // Lo que salió del saldo anterior jamás puede exceder lo reservado: primero se atribuye al flujo
   // del mes lo que quepa (un flujo NEGATIVO no financia nada: se acota a 0, no infla el término).
   const delFlujo = Math.max(0, Math.min(reservado, flujo));
   const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
-  return { reservado, delSaldoAnterior, mesAnterior: periods[i - 1] };
+  return { reservado, delSaldoAnterior, mesAnterior: i === 0 ? null : periods[i - 1] };
 }
 
 /**
@@ -771,7 +805,10 @@ export function monthCarryUsage(
  */
 export type MonthIssue =
   | { kind: "techo"; period: PeriodKey; margin: number; excess: number }
-  | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number };
+  | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number }
+  /** FR-2511: celdas cuyo valor no coincide con la suma de sus movimientos. No trae cifras: lo que
+   *  el usuario necesita saber es CUÁLES son, para ir a cuadrarlas. */
+  | { kind: "descuadre"; period: PeriodKey; cells: { nodeId: string; name: string }[] };
 
 /**
  * Los errores registrados en cada mes (FR-1806). Hoy un solo tipo —el mes cuyas reservas superan su
@@ -799,6 +836,13 @@ export type MonthIssue =
  * cálculo: una sola fuente, no dos que se parecen.
  */
 export function monthIssueText(issue: MonthIssue, money: (n: number) => string): string {
+  // FR-2511: el descuadre se cuenta, no se cifra. Decir «120.000 ≠ 100.000» obligaría al usuario a
+  // restar mentalmente; decir cuántas celdas no cuadran le dice cuánto trabajo tiene por delante.
+  if (issue.kind === "descuadre") {
+    return issue.cells.length === 1
+      ? "1 celda no cuadra con sus movimientos"
+      : `${issue.cells.length} celdas no cuadran con sus movimientos`;
+  }
   return issue.kind === "techo"
     ? `reservas ${money(issue.excess)} por encima del margen del mes`
     : `retiro planeado ${money(issue.excess)} por encima de lo que el plan reserva`;
@@ -806,6 +850,11 @@ export function monthIssueText(issue: MonthIssue, money: (n: number) => string):
 
 export function monthIssues(state: LedgerState, periods: PeriodScope): readonly MonthIssue[] {
   const scan = techoScan(state, "actual", periods);
+  // Los DESCUADRES (FR-2511) no se componen aquí: los produce `mismatchIssues` en su propio módulo y
+  // las superficies juntan las dos listas. Vivían aquí en la primera versión, pero eso obligaba a
+  // `reserve` a importar el cuadre y rompía tres guardias aprobados de otras features — entre ellos
+  // el que exige que este módulo solo importe de una lista cerrada (TC-TRF4-154e). El `kind`
+  // discriminado se comparte igual, así que el triángulo y el Balance los pintan sin distinguir.
   const out: MonthIssue[] = [];
   for (let i = 0; i < periods.length; i++) {
     if (scan.excess[i] > 0) {
@@ -1238,23 +1287,32 @@ export const CELL_NOTE_MAX = 280;
  * amplía el ALCANCE, no el modelo. La guarda pasa a exigir una hoja existente: los nodos padre son
  * roll-up y no tienen celda propia que anotar.
  *
+ * fecha-de-comentario (FR-2601): `day` es el día local en que se escribe y se guarda con la nota.
+ * Es opcional solo para no reescribir las suites de otras features que ya llaman a esta función; la
+ * app lo pasa siempre (el store lo calcula con `localDay`). Un día que no existe se rechaza como
+ * `invalid_note`, igual que un texto inválido.
+ *
+ * @param day Día local «AAAA-MM-DD»; si falta, la nota queda sin día.
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-1809, US-ID: US-1809, AC-ID: AC-1835, TC-ID: TC-TDF-080h, TC-TDF-083e
+ * @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-009f, TC-FDC-102e
  */
 export function addCellNote(
   state: LedgerState,
   leafId: string,
   month: PeriodKey,
   text: string,
-  periods: PeriodScope
+  periods: PeriodScope,
+  day?: string
 ): { state: LedgerState } | { rejected: "invalid_note" | "invalid_target" } {
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes) || !isPeriodKey(month) || !periods.includes(month)) return { rejected: "invalid_target" };
   const trimmed = text.trim();
   if (trimmed.length === 0 || trimmed.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
+  if (day !== undefined && !isCalendarDay(day)) return { rejected: "invalid_note" };
   const next = cloneState(state);
-  const note: CellNote = { id: uid(), createdAt: nextSeq(), text: trimmed };
+  const note: CellNote = { id: uid(), createdAt: nextSeq(), text: trimmed, ...(day !== undefined ? { date: day } : {}) };
   const byLeaf = { ...(next.cellNotes ?? {}) };
   const byMonth = { ...(byLeaf[leafId] ?? {}) };
   byMonth[month] = [...(byMonth[month] ?? []), note];
