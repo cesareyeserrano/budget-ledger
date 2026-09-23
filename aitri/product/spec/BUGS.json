@@ -1033,6 +1033,28 @@
       "resolution": "Fila automatica del Detalle con el tinte neutro comun (--fg-muted 4%) y el icono Info en --fg-muted; corregidos UX spec, TC-DDC-153e y la prueba e2e, que exigia un fondo distinto. Verificado por mutacion.",
       "fix_commit_sha": "7bfe2b4bb8bc2baf20b766a63fd76c24ac5140f6",
       "fix_at": "2026-09-21T17:05:01.514Z"
+    },
+    {
+      "id": "BG-043",
+      "title": "Las celdas cargadas antes del Detalle quedan descuadradas y la app se lo pasa al usuario: la actualizacion no reconcilio los datos que ya existian",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "fixed",
+      "fr": "FR-2511",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-23T16:46:06.356Z",
+      "updated_at": "2026-09-23T16:50:31.494Z",
+      "resolution": "Migracion 0011_reconciliar_celdas_viejas.sql: por cada celda de Ejecutado de una hoja de gasto o ingreso cuyo valor no coincide con la suma de sus movimientos, crea UN movimiento kind='adjustment' por la diferencia exacta — el mismo que la app crea al teclear un total (FR-2504). No toca ninguna cifra (amount_cell intacta), no toca los comentarios (cell_note ni se lee), no mueve la frontera del cierre y entra tambien en meses cerrados, que es donde estan las celdas viejas. Fecha: primer dia del mes de la celda, lo unico que el dato garantiza; sin fecha no era opcion porque en modo ciclos un movimiento sin fecha se marca incoherente. Idempotente por id determinista + ON CONFLICT DO NOTHING. 8 tests en tests/integration/backend/bg-043-reconciliar-celdas.test.ts.",
+      "fix_commit_sha": "f1f37576b3f85aa05ccec945185dd44d04b895c4",
+      "fix_at": "2026-09-23T16:50:31.494Z"
     }
   ]
 }
