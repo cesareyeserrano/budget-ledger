@@ -171,6 +171,24 @@ el esquema, y viene con la pérdida de datos que dice ahí.
 
 **Regla práctica:** vuelve la imagen primero. Toca el respaldo solo si la base está rota, y sabiendo
 lo que cuesta.
+
+## Verificación post-despliegue (obligatoria)
+
+Aitri **no prueba contra producción**: su gate `smoke` arranca la app en un entorno de pruebas local y
+no sabe que existe la Pi. Así que el último paso de todo despliegue es:
+
+```bash
+ssh ultron 'cd ~/apps/budget-ledger && scripts/verificar-prod.sh ~/respaldo-<fecha>.sql'
+```
+
+Comprueba, y falla en voz alta si algo no cuadra: (1) `/health` responde; (2) la imagen que CORRE es la
+del commit desplegado y ese commit es el de la rama remota; (3) hay tantas migraciones aplicadas como
+ficheros en el journal; (4) cero celdas descuadradas; (5) cero movimientos con fecha fuera de su
+periodo; (6) con un respaldo como argumento, que NINGUNA cifra de `amount_cell` haya cambiado.
+
+**Por qué es obligatoria.** El 2026-09-23 un despliegue quedó incompleto en silencio: `migrate.mjs`
+corrió con la imagen ANTERIOR —las migraciones viajan DENTRO de la imagen— y no aplicó nada. La app
+seguía sana, `/health` respondía 200 y nada lo delataba. La comprobación 3 lo caza en el acto.
 ```
 
 ---
