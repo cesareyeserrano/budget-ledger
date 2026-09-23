@@ -84,8 +84,38 @@ async function abrir(page: Page, seed: Seed, viewport = DESK): Promise<void> {
   await fixToday(page, HOY);
   await applyCycles(page, { mode: "cycle", anchorDay: 21 });
   await seedLedger(page, seed);
+  await declararInicio(page, seed);
   await page.goto("/");
   await expect(page.getByTestId(viewport.width < 760 ? "mobile-shell" : "budget-grid")).toBeVisible();
+}
+
+/**
+ * Declara como MES DE INICIO el primer periodo con datos de la siembra (FR-2201).
+ *
+ * La cuenta e2e nace declarando 2026-01, y desde la feature cierre-coherente el SERVIDOR respeta ese
+ * inicio declarado igual que ya lo respetaba el botón (FR-2701): sin esto, cerrar en un escenario que
+ * habla de Agosto cerraría Enero, que es justo la divergencia que esa feature corrige (BG-040). Se
+ * declara por el endpoint real, como lo haría el usuario, y el valor es el que estos casos ya daban por
+ * supuesto: el ledger empieza donde empiezan sus datos.
+ */
+async function declararInicio(page: Page, seed: Seed): Promise<void> {
+  const s = seed as unknown as {
+    actuals?: Record<string, Record<string, number>>;
+    budgets?: Record<string, Record<string, number>>;
+    movements?: { period: string }[];
+  };
+  const periodos: string[] = [];
+  for (const mapa of [s.actuals, s.budgets]) {
+    for (const celdas of Object.values(mapa ?? {})) periodos.push(...Object.keys(celdas ?? {}));
+  }
+  for (const m of s.movements ?? []) periodos.push(m.period);
+  const inicio = periodos.sort()[0];
+  if (!inicio) return;
+  const rev = ((await (await page.request.get("/api/v1/ledger")).json()) as { revision: number }).revision;
+  const res = await page.request.put("/api/v1/ledger/start", {
+    data: { baseRevision: rev, startMonth: inicio.slice(0, 7), openingBalance: 0 },
+  });
+  if (!res.ok()) throw new Error(`declararInicio: /start falló HTTP ${res.status()} ${await res.text()}`);
 }
 
 /** La celda de Ejecutado de una hoja en un periodo. */

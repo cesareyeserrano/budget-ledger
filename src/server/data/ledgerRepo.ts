@@ -651,6 +651,43 @@ export function unionScope(state: LedgerState, a: readonly PeriodKey[], b: reado
   return calendarOf(state, from, to).keys(monthOf(from), monthOf(to));
 }
 
+/**
+ * El rango con el que se decide el CIERRE (feature cierre-coherente, FR-2701): los mismos extremos que
+ * `serverScope` MÁS el mes de inicio declarado (`ledger.start_month`) como suelo.
+ *
+ * POR QUÉ ES UNA FUNCIÓN APARTE Y NO UN CAMBIO EN `serverScope` (ADR-01): `serverScope` gobierna también
+ * el juicio de TODAS las escrituras —techo, piso y arrastre de PUT, POST, PATCH y DELETE—. Ampliarlo allí
+ * cambiaría el veredicto de rutas que esta feature no toca. Aquí el radio queda acotado al cierre y a la
+ * reapertura.
+ *
+ * El inicio declarado AÑADE suelo, nunca recorta (ADR-02): el extremo inferior es el MÍNIMO, así que un
+ * dato anterior al inicio sigue extendiendo el rango hacia atrás. `normalizeStartMonth` degrada un valor
+ * ausente o corrupto a `null`, que se filtra igual que hoy: sin inicio declarado, esto es `serverScope`.
+ *
+ * Es la MISMA regla que el cliente ya aplica en `activeBounds` (`src/domain/range.ts`), y esa coincidencia
+ * es justamente lo que FR-2703 exige: el mes que el botón nombra y el que el servidor cierra.
+ *
+ * @param state Estado del ledger; debe llevar `startMonth` (lo componen `closeMonthFor`/`reopenMonthFor`).
+ * @param extra Periodo adicional a cubrir, normalmente el mes en curso.
+ * @returns El rango continuo de periodos, del calendario del dueño.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2701, US-ID: US-2701, AC-ID: AC-2701a, TC-ID: TC-CCO-001h, TC-CCO-003e, TC-CCO-004f
+ */
+export function closureScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
+  const declarado = normalizeStartMonth(state.startMonth);
+  const base = serverScope(state, extra);
+  if (!declarado) return base;
+  // El SUELO sale del inicio declarado y de los datos, NUNCA de `extra`: `extra` es el mes en curso, que
+  // `serverScope` añade para cubrir el presente, no un periodo que el usuario tenga. Tomarlo como suelo
+  // dejaba cerrable un mes ANTERIOR al inicio declarado cuando el ledger está vacío (TC-CCO-023f).
+  const conDatos = oldestPeriodWithData(state);
+  const desde = conDatos && comparePeriods(conDatos, declarado) < 0 ? conDatos : declarado;
+  if (base.length === 0) return calendarOf(state, extra).keys(monthOf(desde), monthOf(desde));
+  const hasta = comparePeriods(base[base.length - 1], desde) > 0 ? base[base.length - 1] : desde;
+  return calendarOf(state, extra).keys(monthOf(desde), monthOf(hasta));
+}
+
 export function serverScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
   const oldest = oldestPeriodWithData(state);
   const newest = newestPeriodWithData(state);
@@ -970,8 +1007,11 @@ export async function closeMonthFor(
     const esPeriodo: boolean = isPeriodKey(currentPeriodOrToday);
     const cal = calendarOf(state, esPeriodo ? currentPeriodOrToday : currentPeriodOrToday.slice(0, 7));
     const currentPeriod: PeriodKey = esPeriodo ? currentPeriodOrToday : currentPeriodFor(cal, currentPeriodOrToday);
-    const conCierre = { ...state, closure: closureFromRow(head, cal) };
-    const res = closeMonth(conCierre, currentPeriod, serverScope(conCierre, currentPeriod));
+    // cierre-coherente (FR-2701): `loadStateInTx` NO carga el mes de inicio, así que sin esta línea el
+    // estado con el que se cierra no lo conocería y anclar en él sería un cambio INERTE (riesgo alto del
+    // TRD). Sale de la fila `ledger` que esta transacción ya tiene bloqueada.
+    const conCierre = { ...state, closure: closureFromRow(head, cal), ...openingFromRow(head) };
+    const res = closeMonth(conCierre, currentPeriod, closureScope(conCierre, currentPeriod));
     if (!res.ok) return { ok: false, rejected: res.reason };
 
     // FR-2512: un mes con celdas descuadradas NO se cierra. Va aquí y no antes porque hasta esta
@@ -981,7 +1021,7 @@ export async function closeMonthFor(
     //
     // Reabrir NO pasa por aquí a propósito (TC-DDC-216f): la regla es del cierre. Bloquear la
     // reapertura por descuadres dejaría al usuario sin la única vía que tiene para arreglarlos.
-    const bloqueantes = closeBlockers(conCierre, res.closed, serverScope(conCierre, currentPeriod));
+    const bloqueantes = closeBlockers(conCierre, res.closed, closureScope(conCierre, currentPeriod));
     if (bloqueantes.length > 0) {
       return { ok: false, rejected: "unbalanced_cells", period: res.closed, cells: bloqueantes };
     }
@@ -1087,11 +1127,12 @@ export async function reopenMonthFor(ownerId: string, baseRevision: number): Pro
 
     const state = await loadStateInTx(tx, ownerId);
     const cal = calendarOf(state);
-    const conCierre = { ...state, closure: closureFromRow(head, cal) };
-    // El rango entra como parámetro (ADR-02) y es el mismo `serverScope` que usa el cierre: la
-    // línea de base se calcula sobre los periodos que REALMENTE existen, no sobre el horizonte del
-    // navegador, que el servidor no conoce.
-    const res = reopenMonth(conCierre, serverScope(conCierre), cal.prev);
+    const conCierre = { ...state, closure: closureFromRow(head, cal), ...openingFromRow(head) };
+    // El rango entra como parámetro (ADR-02) y es el MISMO que usa el cierre (`closureScope`, feature
+    // cierre-coherente): la línea de base se calcula sobre los periodos que REALMENTE existen más el mes de
+    // inicio declarado, no sobre el horizonte del navegador, que el servidor no conoce. Si cerrar y reabrir
+    // usaran rangos distintos, la línea de base saldría de otra serie.
+    const res = reopenMonth(conCierre, closureScope(conCierre), cal.prev);
     if (!res.ok) return { ok: false, rejected: res.reason };
 
     const revision = current + 1;

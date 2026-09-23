@@ -1,0 +1,192 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "cierre-coherente",
+  "createdAt": "2026-09-22T20:38:05.054Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-23T00:58:11.163Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-22T22:30:25.357Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-22T22:30:41.464Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-09-22T22:30:49.893Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T22:32:36.489Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T22:51:22.858Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-22T22:51:22.973Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T22:53:07.742Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T22:54:03.064Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T22:54:03.198Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T23:22:04.889Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T23:22:05.011Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T23:22:05.145Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-22T23:22:18.738Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T23:38:41.121Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-22T23:53:06.441Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-23T00:04:31.987Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-23T00:04:48.738Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 30,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-23T00:04:57.570Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-23T00:05:50.100Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-23T00:58:11.111Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "5d573f961aab0fc5d54db14905e4b9178c502c0ea49aaf6df67c42f428ab8eb3",
+    "2": "307f4ade8b5329bce87cc8e66ebf3de75ec8804d088425c063a4d999b6f832f8",
+    "3": "68480995260314d65ec34527d7a0c2dc5084454548219b006fb8280c94f40634",
+    "4": "c18fb98e7030cefd9b44cab33813b96a14652dbd1846280a3afd439f7550b89b",
+    "5": "6e35519412cd910a7cd87a439d9ba8c4cf521b329d5e501cfd9c011339380f9f"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2701",
+      "FR-2702",
+      "FR-2703"
+    ],
+    "3": [
+      "FR-2701",
+      "FR-2702",
+      "FR-2703"
+    ],
+    "4": [
+      "FR-2701",
+      "FR-2702",
+      "FR-2703"
+    ],
+    "5": [
+      "FR-2701",
+      "FR-2702",
+      "FR-2703"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "418c0c3209b2fcaecdc71c58ce328e807d21a20ab56228e42bfbb614a968ed9c",
+  "verifyRanAt": "2026-09-23T00:04:31.913Z",
+  "verifyRanRef": "7841b46fdb0d2e1d80d7fc0619f5a8d0b10cf6b4",
+  "verifyRanDirty": true,
+  "lastVerifyRun": {
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-23T00:04:31.913Z"
+  },
+  "verifySummary": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-23T00:58:11.110Z"
+    }
+  ]
+}
