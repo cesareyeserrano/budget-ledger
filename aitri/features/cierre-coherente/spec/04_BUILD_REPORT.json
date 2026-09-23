@@ -1,0 +1,61 @@
+{
+  "files_created": [
+    "tests/integration/backend/cierre-coherente.test.ts"
+  ],
+  "files_modified": [
+    "src/server/data/ledgerRepo.ts",
+    "tests/e2e/diario-de-celda.spec.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/integration/backend/cierre-coherente.test.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-2702",
+      "substitution": "La siembra de tests/e2e/diario-de-celda.spec.ts pasa a DECLARAR como mes de inicio el primer periodo con datos del escenario (nuevo helper declararInicio); antes heredaba el 2026-01 con el que nace la cuenta e2e",
+      "reason": "La cuenta de pruebas e2e nace declarando 2026-01 y sus escenarios hablan de Agosto y Septiembre. Antes el servidor IGNORABA el inicio declarado, asi que cerrar dejaba cerrado Agosto y ocho casos de cierre lo daban por hecho; esos casos codificaban precisamente la divergencia que esta feature corrige (BG-040) — el propio comentario del helper abrirDescuadrado ya documentaba que el boton ofrecia «Cerrar Enero 2026» en un escenario de Septiembre. Declarar el inicio donde empiezan los datos deja el comportamiento del servidor IDENTICO al de antes en esos ocho casos y alinea la siembra con la realidad. Se declara por el endpoint real /api/v1/ledger/start, no tocando la base. Verificado: los ocho vuelven a verde y la suite completa queda en 580 passed exit 0.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como un job propio (npm audit --audit-level=high y scripts/secret-scan.sh, mas CodeQL en su propio workflow), fuera de los gates de Aitri; esta feature no anade rutas ni entradas nuevas y NFR-2706 esta declarado «No aplica», con el aislamiento por dueno y la exigencia de sesion verificados en TC-CCO-110f, 111h y 112e.",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": "Epic unico. El cambio vive en el borde: closureScope (nueva) + startMonth en el estado que componen closeMonthFor y reopenMonthFor. serverScope, el dominio del cierre y el cliente quedan intactos. Un hueco propio salio en el primer paso de tests (TC-CCO-023f): el suelo se apoyaba en `extra` —el mes en curso— y con un inicio declarado en el futuro y sin datos dejaba cerrable octubre; corregido para que el suelo salga solo del inicio declarado y de los datos. TC-CCO-062f se corrigio en la fase 3 (decision del usuario 2026-09-22): afirmaba que agosto quedaba escribible tras cerrar septiembre, y cerrar un mes congela tambien los anteriores desde cierre-de-mes."
+}

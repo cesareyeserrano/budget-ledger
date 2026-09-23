@@ -1,0 +1,314 @@
+{
+  "executed_at": "2026-09-23T00:04:31.910Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-CCO-001h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2701 — el rango del cierre ancla en el mes de inicio declarado > TC-CCO-001h: closureScope ancla en el mes de inicio declarado 71ms"
+    },
+    {
+      "tc_id": "TC-CCO-002e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2701 — el rango del cierre ancla en el mes de inicio declarado > TC-CCO-002e: inicio declarado igual al primer dato — el rango no cambia 33ms"
+    },
+    {
+      "tc_id": "TC-CCO-003e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2701 — el rango del cierre ancla en el mes de inicio declarado > TC-CCO-003e: un dato anterior al inicio declarado extiende el rango hacia atrás 33ms"
+    },
+    {
+      "tc_id": "TC-CCO-004f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2701 — el rango del cierre ancla en el mes de inicio declarado > TC-CCO-004f: sin inicio declarado, o con uno inválido, no se inventa ningún mes 32ms"
+    },
+    {
+      "tc_id": "TC-CCO-005f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2701 — el rango del cierre ancla en el mes de inicio declarado > TC-CCO-005f: serverScope NO cambia — las escrituras siguen juzgando el mismo rango 32ms"
+    },
+    {
+      "tc_id": "TC-CCO-020h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2702 — cerrar avanza mes a mes desde el inicio declarado > TC-CCO-020h: la primera petición cierra el mes de inicio, y solo ese 206ms"
+    },
+    {
+      "tc_id": "TC-CCO-021h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2702 — cerrar avanza mes a mes desde el inicio declarado > TC-CCO-021h: tres peticiones cierran julio, agosto y septiembre en ese orden 135ms"
+    },
+    {
+      "tc_id": "TC-CCO-022e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2702 — cerrar avanza mes a mes desde el inicio declarado > TC-CCO-022e: un mes vacío anterior al primer dato se cierra igual 109ms"
+    },
+    {
+      "tc_id": "TC-CCO-023f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2702 — cerrar avanza mes a mes desde el inicio declarado > TC-CCO-023f: un mes objetivo posterior al mes en curso se rechaza 102ms"
+    },
+    {
+      "tc_id": "TC-CCO-040h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2703 — el mes que el botón nombra es el que el servidor cierra > TC-CCO-040h: cliente y servidor proponen el mismo mes 34ms"
+    },
+    {
+      "tc_id": "TC-CCO-041e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2703 — el mes que el botón nombra es el que el servidor cierra > TC-CCO-041e: tras cada cierre las dos capas coinciden en el siguiente mes 31ms"
+    },
+    {
+      "tc_id": "TC-CCO-042f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > FR-2703 — el mes que el botón nombra es el que el servidor cierra > TC-CCO-042f: ninguna combinación de inicio y primer dato los hace diferir 31ms"
+    },
+    {
+      "tc_id": "TC-CCO-060h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2701 — la cuenta real no cambia > TC-CCO-060h: con inicio igual al primer dato, el cierre da el mismo mes que antes 103ms"
+    },
+    {
+      "tc_id": "TC-CCO-061e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2701 — la cuenta real no cambia > TC-CCO-061e: con inicio igual al primer dato los dos rangos son idénticos 35ms"
+    },
+    {
+      "tc_id": "TC-CCO-062f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2701 — la cuenta real no cambia > TC-CCO-062f: no se cierra ningún mes de más en la cuenta real 104ms"
+    },
+    {
+      "tc_id": "TC-CCO-070h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2702 — el cierre sigue en orden y sin futuro > TC-CCO-070h: el cierre no se salta meses 121ms"
+    },
+    {
+      "tc_id": "TC-CCO-071e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2702 — el cierre sigue en orden y sin futuro > TC-CCO-071e: no se cierra hacia el futuro 115ms"
+    },
+    {
+      "tc_id": "TC-CCO-072f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2702 — el cierre sigue en orden y sin futuro > TC-CCO-072f: una petición con una revisión vieja no avanza el cierre 111ms"
+    },
+    {
+      "tc_id": "TC-CCO-080h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2703 — reabrir sigue alcanzando solo al último cerrado > TC-CCO-080h: reabrir devuelve el último mes cerrado 132ms"
+    },
+    {
+      "tc_id": "TC-CCO-081e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2703 — reabrir sigue alcanzando solo al último cerrado > TC-CCO-081e: no se encadenan dos reaperturas sin volver a cerrar 140ms"
+    },
+    {
+      "tc_id": "TC-CCO-082f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2703 — reabrir sigue alcanzando solo al último cerrado > TC-CCO-082f: reabrir no alcanza un mes anterior al último cerrado 145ms"
+    },
+    {
+      "tc_id": "TC-CCO-090h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2704 — un mes cerrado sigue congelado > TC-CCO-090h: un PUT sobre un mes cerrado responde closed_period_violation 114ms"
+    },
+    {
+      "tc_id": "TC-CCO-091e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2704 — un mes cerrado sigue congelado > TC-CCO-091e: el mes VACÍO recién cerrado también congela 114ms"
+    },
+    {
+      "tc_id": "TC-CCO-092f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2704 — un mes cerrado sigue congelado > TC-CCO-092f: las otras puertas tampoco escriben en un mes cerrado 115ms"
+    },
+    {
+      "tc_id": "TC-CCO-100h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2705 — en un mes cerrado se sigue comentando > TC-CCO-100h: un comentario fechado entra en un mes cerrado 117ms"
+    },
+    {
+      "tc_id": "TC-CCO-101e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2705 — en un mes cerrado se sigue comentando > TC-CCO-101e: también en un mes vacío recién cerrado 117ms"
+    },
+    {
+      "tc_id": "TC-CCO-102f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2705 — en un mes cerrado se sigue comentando > TC-CCO-102f: comentar no abre la puerta a cambiar cifras del mes cerrado 113ms"
+    },
+    {
+      "tc_id": "TC-CCO-110f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2706 — el cierre sigue siendo del dueño y con sesión > TC-CCO-110f: sin sesión, el cierre responde 401 91ms"
+    },
+    {
+      "tc_id": "TC-CCO-111h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2706 — el cierre sigue siendo del dueño y con sesión > TC-CCO-111h: con sesión válida el cierre escribe en el ledger del dueño 102ms"
+    },
+    {
+      "tc_id": "TC-CCO-112e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/cierre-coherente.test.ts > NFR-2706 — el cierre sigue siendo del dueño y con sesión > TC-CCO-112e: el cierre de una cuenta no toca el de otra 155ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2701",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2702",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2703",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2701a",
+      "fr_id": "FR-2701",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2701b",
+      "fr_id": "FR-2701",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2701c",
+      "fr_id": "FR-2701",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2702a",
+      "fr_id": "FR-2702",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2702b",
+      "fr_id": "FR-2702",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2702c",
+      "fr_id": "FR-2702",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2703a",
+      "fr_id": "FR-2703",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2577,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 4017,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 82055,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-22T23:59:56.084Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-22T23:59:56.087Z WARN [Better Auth]: Reset Password: User not found"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 35742,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 237514,
+      "output": "\n  ✓  579 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (336ms)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (3.9m)\n\n(node:3589) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 76247,
+    "e2e_ms": 240175,
+    "gates_ms": 361906,
+    "total_ms": 678399
+  }
+}

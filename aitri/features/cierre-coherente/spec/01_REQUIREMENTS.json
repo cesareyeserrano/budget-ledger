@@ -1,0 +1,276 @@
+{
+  "project_name": "T-Ledger — cierre-coherente",
+  "project_summary": "El mes que el botón de cierre NOMBRA y el mes que el servidor CIERRA son siempre el mismo, porque las dos capas anclan su rango en el mes de inicio declarado. Corrige BG-040, hoy latente.",
+  "technology_preferences": [],
+  "constraints": [
+    "Stack de la raíz sin cambios: Next.js 15, TypeScript, Postgres con drizzle; UI en español",
+    "Sin migraciones ni cambios de esquema: el mes de inicio ya se guarda en ledger.start_month (FR-2201 de meses-y-saldo-inicial)",
+    "Sin rutas nuevas: el cierre sigue siendo POST /api/v1/closure con baseRevision",
+    "Observabilidad y healthcheck: sin cambios — no hay rutas nuevas y las existentes siguen registradas por el mismo envoltorio (NFR-502 de backend)",
+    "CI/CD: sin cambios en el pipeline; los tests nuevos corren dentro de las suites que el CI ya ejecuta"
+  ],
+  "no_go_zone": [
+    "Reabrir varios meses de golpe o reabrir un mes que no sea el último cerrado: FR-2005 de cierre-de-mes sigue igual",
+    "Cerrar varios meses en una sola acción: el cierre sigue siendo de uno en uno",
+    "Cambiar cómo o dónde se declara el mes de inicio (FR-2201 de meses-y-saldo-inicial)",
+    "Tocar cifras, arrastre o saldo inicial: esta feature solo cambia QUÉ MES se cierra",
+    "Inventar un mes de inicio cuando no hay ninguno declarado: sin inicio declarado, el rango del servidor sigue anclando donde hoy"
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal, usuario único en producción",
+      "tech_level": "mid",
+      "goal": "Cerrar sus meses uno a uno y saber de antemano cuál se va a cerrar",
+      "pain_point": "El botón puede nombrar un mes y el servidor cerrar otro, congelando de paso meses que él no cerró, y deshacerlo exige reabrir de uno en uno"
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-2701",
+      "title": "El servidor ancla su rango también en el mes de inicio declarado",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el servidor calcula el rango de periodos con el que decide qué mes es cerrable, el sistema debe tomar como suelo el más antiguo entre el mes de inicio declarado (ledger.start_month) y el primer periodo con datos, igual que ya hace el cliente. Sin mes de inicio declarado, el suelo sigue siendo el primer periodo con datos, como hoy.",
+      "acceptance_criteria": [
+        "Con inicio declarado 2026-07 y primer dato en 2026-09, el rango del servidor empieza en 2026-07 (happy)",
+        "Con inicio declarado 2026-09 y primer dato en 2026-09, el rango del servidor empieza en 2026-09: el caso real de hoy no cambia (edge)",
+        "Con un dato en 2026-05 anterior al inicio declarado 2026-07, el rango del servidor empieza en 2026-05: el inicio declarado es un suelo que se AÑADE, nunca recorta el historial (edge)",
+        "Sin mes de inicio declarado (start_month nulo), el rango del servidor empieza donde hoy, en el primer periodo con datos, y no en un mes inventado (negative)"
+      ]
+    },
+    {
+      "id": "FR-2702",
+      "title": "Cerrar avanza mes a mes desde el mes de inicio declarado",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el usuario pide cerrar y no hay ningún mes cerrado, el sistema debe cerrar el mes de inicio declarado y solo ese; en cada petición siguiente debe cerrar el mes inmediatamente posterior al último cerrado. Un mes sin datos se cierra igual que uno con datos: lo que decide es el orden, no el contenido.",
+      "acceptance_criteria": [
+        "Con inicio declarado 2026-07, primer dato en 2026-09 y hoy 2026-10, la primera petición de cierre deja closed_through = 2026-07 y agosto y septiembre siguen abiertos (happy)",
+        "Tres peticiones seguidas dejan closed_through en 2026-07, 2026-08 y 2026-09, en ese orden (happy)",
+        "Un mes vacío anterior al primer dato se cierra igual, sin exigir que tenga movimientos ni cifras (edge)",
+        "Una petición de cierre cuyo mes objetivo sería posterior al mes en curso se rechaza y no cambia closed_through (negative)"
+      ]
+    },
+    {
+      "id": "FR-2703",
+      "title": "El mes que el botón nombra es el que el servidor cierra",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "Cuando el cliente y el servidor calculan el mes cerrable sobre el mismo estado del ledger, el sistema debe producir el mismo periodo en las dos capas. La coincidencia deja de depender de que los dos anclajes casen por casualidad y pasa a estar fijada por una prueba.",
+      "acceptance_criteria": [
+        "Sobre el estado con inicio declarado 2026-07 y primer dato en 2026-09, el mes que propone el cliente y el que decide el servidor son los dos 2026-07 (happy)",
+        "Tras cerrar cada mes, cliente y servidor vuelven a coincidir en el siguiente: 2026-08 y después 2026-09 (edge)",
+        "Sobre un conjunto de estados con inicio declarado y primer dato distintos, no existe ninguno en el que el mes propuesto por el cliente difiera del decidido por el servidor (negative)"
+      ]
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2701",
+      "requirement_id": "FR-2701",
+      "as_a": "presupuestador personal",
+      "i_want": "que el servidor cuente el mes de inicio que declaré",
+      "so_that": "el cierre parta de donde yo dije que empieza mi presupuesto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2701a",
+          "given": "declaré que mi presupuesto empieza en julio de 2026 y mi primer movimiento es de septiembre",
+          "when": "el servidor calcula desde qué mes puede cerrar",
+          "then": "su rango empieza en 2026-07, no en 2026-09"
+        },
+        {
+          "id": "AC-2701b",
+          "given": "declaré septiembre y mi primer movimiento también es de septiembre",
+          "when": "el servidor calcula su rango",
+          "then": "empieza en 2026-09, igual que antes de esta feature"
+        },
+        {
+          "id": "AC-2701c",
+          "given": "no declaré ningún mes de inicio",
+          "when": "el servidor calcula su rango",
+          "then": "empieza en el primer mes con datos, sin inventar ninguno"
+        }
+      ]
+    },
+    {
+      "id": "US-2702",
+      "requirement_id": "FR-2702",
+      "as_a": "presupuestador personal",
+      "i_want": "cerrar mis meses de uno en uno desde el inicio declarado",
+      "so_that": "no se me congelen meses que no cerré",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2702a",
+          "given": "inicio declarado en julio, primer dato en septiembre y nada cerrado",
+          "when": "pulso el botón de cierre",
+          "then": "queda cerrado julio y agosto y septiembre siguen abiertos"
+        },
+        {
+          "id": "AC-2702b",
+          "given": "ese mismo ledger",
+          "when": "pulso el botón tres veces",
+          "then": "quedan cerrados julio, agosto y septiembre, en ese orden"
+        },
+        {
+          "id": "AC-2702c",
+          "given": "julio está vacío",
+          "when": "pulso el botón",
+          "then": "julio se cierra igual, sin pedirme que tenga movimientos"
+        }
+      ]
+    },
+    {
+      "id": "US-2703",
+      "requirement_id": "FR-2703",
+      "as_a": "presupuestador personal",
+      "i_want": "que el botón diga la verdad",
+      "so_that": "sepa qué va a pasar antes de pulsarlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2703a",
+          "given": "cualquier estado de mi ledger",
+          "when": "leo el mes que nombra el botón y pulso",
+          "then": "el mes que se cierra es exactamente ese"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2701",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Con el inicio declarado igual al primer periodo con datos (la cuenta real de producción), el mes cerrable y el resultado del cierre no cambian respecto a hoy.",
+      "acceptance_criteria": [
+        "Sobre un ledger con start_month = 2026-09 y primer dato en 2026-09, el mes cerrable, el closed_through resultante y la respuesta de la API son idénticos a los de antes de la feature"
+      ]
+    },
+    {
+      "id": "NFR-2702",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El cierre sigue sin saltarse meses ni alcanzar el futuro (FR-2002 y FR-2008 de cierre-de-mes).",
+      "acceptance_criteria": [
+        "No se puede cerrar un mes posterior al mes en curso",
+        "No se puede cerrar un mes dejando sin cerrar otro anterior dentro del rango"
+      ]
+    },
+    {
+      "id": "NFR-2703",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Reabrir sigue alcanzando solo al último mes cerrado, de uno en uno (FR-2005 de cierre-de-mes).",
+      "acceptance_criteria": [
+        "Con julio, agosto y septiembre cerrados, reabrir devuelve agosto como cerrado hasta y no permite saltar a julio sin volver a cerrar antes"
+      ]
+    },
+    {
+      "id": "NFR-2704",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Un mes cerrado sigue congelado: una escritura sobre sus cifras o movimientos se rechaza con 422 closed_period_violation (FR-2507 y NFR-2507 de diario-de-celda).",
+      "acceptance_criteria": [
+        "Un PUT que cambia un monto de un mes cerrado responde 422 closed_period_violation y no escribe nada"
+      ]
+    },
+    {
+      "id": "NFR-2705",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "En un mes cerrado se siguen pudiendo escribir comentarios, con su día (FR-2004 de cierre-de-mes y FR-2601 de fecha-de-comentario).",
+      "acceptance_criteria": [
+        "Un PUT que solo añade un comentario fechado a un mes cerrado responde 200 y la fila queda guardada con su día"
+      ]
+    },
+    {
+      "id": "NFR-2706",
+      "category": "Security",
+      "requirement": "No aplica: la feature no añade rutas, entradas ni datos nuevos. El cierre sigue siendo POST /api/v1/closure con sesión requerida y filtrado por ownerId, y el único valor que se empieza a leer (ledger.start_month) ya está validado y es del propio dueño.",
+      "acceptance_criteria": [
+        "El cierre sigue exigiendo sesión: sin cookie responde 401"
+      ]
+    }
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Confirmado con el usuario el 2026-09-22 tras explicarle el caso; él mismo propuso el arreglo («si el botón lo convierte en dato»). Reproducido con el código real ese día: botón 2026-07 vs servidor 2026-09. Origen: BG-040 y BL-055 (2026-09-18).",
+    "users": "Confirmado: usuario único de producción, cesareyeserrano@gmail.com (decisión del usuario del 2026-09-13).",
+    "baseline": "Medido en la base de dev el 2026-09-22: start_month = 2026-09 y primer dato 2026-09 en admin@admin.com, así que hoy el defecto está LATENTE y el botón acierta.",
+    "success_metric": "Confirmado con el usuario el 2026-09-22: con inicio en julio y datos desde septiembre, pulsar una vez cierra solo julio; tres pulsaciones cierran julio, agosto y septiembre en ese orden; con los datos actuales nada cambia.",
+    "no_go_zone": "Confirmado con el usuario el 2026-09-22: no se toca reabrir, ni el cierre múltiple, ni cómo se declara el mes de inicio, ni ninguna cifra."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "El servidor debe contar el mes de inicio declarado como ancla de su rango",
+      "disposition": "FR-2701"
+    },
+    {
+      "need": "Sin inicio declarado, el rango del servidor no cambia",
+      "disposition": "FR-2701"
+    },
+    {
+      "need": "Un dato anterior al inicio declarado sigue extendiendo el rango hacia atrás",
+      "disposition": "FR-2701"
+    },
+    {
+      "need": "Cerrar avanza mes a mes desde el inicio declarado",
+      "disposition": "FR-2702"
+    },
+    {
+      "need": "Un mes vacío anterior al primer dato se cierra igual",
+      "disposition": "FR-2702"
+    },
+    {
+      "need": "El mes que nombra el botón y el que cierra el servidor coinciden siempre",
+      "disposition": "FR-2703"
+    },
+    {
+      "need": "Esa coincidencia queda fijada por una prueba que hoy no existe",
+      "disposition": "FR-2703"
+    },
+    {
+      "need": "Con la cuenta real (inicio = primer dato) no cambia nada",
+      "disposition": "NFR-2701"
+    },
+    {
+      "need": "No cerrar fuera de orden ni hacia el futuro",
+      "disposition": "NFR-2702"
+    },
+    {
+      "need": "Reabrir sigue siendo solo el último cerrado, de uno en uno",
+      "disposition": "NFR-2703"
+    },
+    {
+      "need": "Un mes cerrado sigue congelado",
+      "disposition": "NFR-2704"
+    },
+    {
+      "need": "Se sigue pudiendo comentar en un mes cerrado",
+      "disposition": "NFR-2705"
+    },
+    {
+      "need": "Reabrir varios meses o cualquier mes cerrado",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cerrar varios meses en una sola acción",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar cómo se declara el mes de inicio",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Tocar cifras, arrastre o saldo inicial",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nEl mes que el botón de cierre NOMBRA y el mes que el servidor CIERRA son siempre el mismo, porque los dos\ncuentan desde el mes de inicio declarado.\n\n## Problem / Why\nCerrar un mes congela ese mes y todos los anteriores, y solo se puede reabrir el último cerrado, de uno en\nuno. Hoy el cliente y el servidor deciden «qué mes toca cerrar» desde anclajes DISTINTOS: la app parte del\nmes de inicio declarado (`activeBounds`, `src/domain/range.ts:105`, que ya cuenta `startMonth` como ancla) y\nel servidor parte del primer periodo CON DATOS (`serverScope` → `oldestPeriodWithData`,\n`src/domain/range.ts:52`, que ignora `startMonth`). Los dos proponen «el primer mes de su rango»\n(`nextClosable`, `src/domain/closure.ts:154`), así que cualquier diferencia entre los rangos convierte el\nbotón en una promesa falsa.\n\nREPRODUCIDO con el código real el 2026-09-22 (inicio declarado 2026-07, primer dato 2026-09, hoy 2026-10):\nel botón propone `2026-07` y el servidor cerraría `2026-09`. Como cerrar septiembre congela también julio y\nagosto, el usuario pide cerrar un mes y se le congelan tres, y deshacerlo exige reabrir de uno en uno.\n\nLATENTE hoy, no activo: en la cuenta real el inicio declarado y el primer dato coinciden (2026-09), así que\nel botón acierta. Despierta en cuanto se declare un inicio anterior al primer dato. Registrado como BG-040\n(medium, abierto) y BL-055.\n\n## Target Users\nEl usuario único de producción (presupuestador personal). No abre tipos de usuario nuevos.\n\n## New Behavior\n- El servidor debe contar el MES DE INICIO DECLARADO como ancla de su rango, igual que ya hace el cliente:\n  el mes objetivo del cierre sale del mismo punto de partida en las dos capas.\n- El cierre debe seguir siendo mes a mes y en orden: con inicio declarado en julio y datos desde septiembre,\n  cerrar tres veces cierra julio, luego agosto y luego septiembre.\n- El mes que el botón nombra y el que el servidor cierra deben coincidir SIEMPRE, y eso debe quedar fijado\n  por una prueba que hoy no existe.\n\n## Success Criteria\n- Dado un ledger con mes de inicio declarado 2026-07 y su primer movimiento en 2026-09, cuando el usuario\n  pulsa el botón de cierre, entonces el servidor cierra 2026-07 (`closed_through = 2026-07`) y ni agosto ni\n  septiembre quedan congelados.\n- Dado ese mismo ledger, cuando se pulsa el botón tres veces seguidas, entonces se cierran julio, agosto y\n  septiembre en ese orden, y el botón nombra cada vez el mes que se va a cerrar.\n- Dado un ledger donde el inicio declarado y el primer dato coinciden (el caso real de hoy), entonces el\n  comportamiento del cierre no cambia en nada.\n- Existe una prueba que compara el mes que propone el cliente con el que decide el servidor sobre el mismo\n  estado y falla si difieren.\n\n## Touch Points\nMODIFICA:\n- `src/server/data/ledgerRepo.ts` — `serverScope` (y los sitios que lo usan para el cierre: `closeMonth` en\n  la línea ~974 y `reopenMonth` en la ~1094).\n- FR-2002 / FR-2005 / FR-2008 de **cierre-de-mes** (qué mes es cerrable y cuál reabrible).\n- FR-2201 de **meses-y-saldo-inicial** (el mes de inicio declarado como ancla).\nAÑADE: las pruebas de coherencia cliente/servidor.\n\n## Must Not Break (Regression Boundary)\n- Con inicio declarado igual al primer dato (la cuenta real), el mes cerrable y el cierre no cambian.\n- No se cierra fuera de orden ni hacia el futuro: sigue sin poder cerrarse un mes posterior al actual\n  (FR-2008) ni saltarse meses (FR-2002).\n- Reabrir sigue alcanzando solo al último mes cerrado, de uno en uno (FR-2005).\n- El cierre sigue congelando cifras y movimientos de los meses cerrados: un PUT sobre un mes cerrado sigue\n  respondiendo 422 `closed_period_violation` (NFR-2507 de diario-de-celda, FR-2507).\n- Los comentarios se siguen pudiendo escribir en un mes cerrado (FR-2004).\n- Un mes vacío anterior al inicio declarado no entra en el rango: el suelo es el inicio declarado, no un mes\n  arbitrario.\n\n## Out of Scope\n- Reabrir varios meses de golpe o reabrir cualquier mes cerrado: FR-2005 sigue igual.\n- Cerrar varios meses en una sola acción.\n- Cambiar cómo se declara el mes de inicio, ni la pantalla donde se declara.\n- Tocar el arrastre, el saldo inicial o cualquier cifra: esta feature solo cambia QUÉ MES se cierra.\n"
+}
