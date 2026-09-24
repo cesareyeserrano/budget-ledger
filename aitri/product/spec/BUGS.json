@@ -1099,7 +1099,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": "TC-RUI-001f",
       "phase_detected": null,
@@ -1107,8 +1107,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-24T20:21:54.967Z",
-      "updated_at": "2026-09-24T20:21:54.967Z",
-      "resolution": null
+      "updated_at": "2026-09-24T20:35:06.696Z",
+      "resolution": "Timeout explicito de 30s en TC-RUI-001f (84ee4b0), mismo arreglo que BG-025. Evidencia: verify-run de la raiz sobre 84ee4b0 con el gate required 'coverage' en verde (la suite completa bajo cobertura, justo donde caia) y los nueve gates pasando, 59/59.",
+      "fix_commit_sha": "84ee4b0ed6a04aebc83502712b8d52bf04375eef",
+      "fix_at": "2026-09-24T20:35:06.562Z"
     }
   ]
 }
