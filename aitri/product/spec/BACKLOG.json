@@ -499,8 +499,16 @@
       "title": "Lunes 14-sep: cerrar los 12 PRs viejos de Dependabot contra main",
       "priority": "P1",
       "problem": "Desde el 13-sep (PR #27, 1abfe87) dependabot.yml en main apunta a develop. Siguen abiertos 12 PRs de Dependabot contra main: #4 node 26-alpine, #8 zod 4, #9 jest-dom 7, #10 react-day-picker 10, #13 actions, #14 undici, #16 js-yaml, #17 postcss+next, #18 prod-minor-patch, #21 vitest, #22 sharp+next, #24 dev-minor-patch. Decision del usuario: esperar a la corrida del lunes 14-sep, ver que abre el bot contra develop y cerrar entonces los viejos (obsoletos seguros: #14, #16, #22). Ojo: #21 (vitest) toca BL-048. Cerrar un PR no borra nada, pero los cierra el usuario o se confirma antes.",
-      "status": "open",
-      "createdAt": "2026-09-14T00:38:33.440Z"
+      "status": "closed",
+      "createdAt": "2026-09-14T00:38:33.440Z",
+      "log": [
+        {
+          "at": "2026-09-24T23:33:43.086Z",
+          "text": "24-sep: ya no queda ningun PR de Dependabot contra main. #8 (zod 4), #9 (jest-dom 7) y #10 (react-day-picker 10) se pasaron a develop en vez de cerrarse: son majors que aun no se aplicaron, y cerrar un PR de Dependabot hace que ignore esa version. #13 (actions) ya apuntaba a develop. Los majors quedan para revisar uno por uno."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:33:43.086Z",
+      "closedAt": "2026-09-24T23:33:43.205Z"
     },
     {
       "id": "BL-050",
