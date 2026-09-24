@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-13T21:24:42.246Z",
+  "executed_at": "2026-09-24T16:58:19.900Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,27 +8,27 @@
     {
       "tc_id": "TC-701h",
       "status": "pass",
-      "notes": "✓  164 [chromium] › tests/e2e/demote-node.spec.ts:51:5 › TC-701h: arrastrar un grupo sin hijos dentro de otro grupo lo baja a categoría (848ms)"
+      "notes": "✓  164 [chromium] › tests/e2e/demote-node.spec.ts:51:5 › TC-701h: arrastrar un grupo sin hijos dentro de otro grupo lo baja a categoría (852ms)"
     },
     {
       "tc_id": "TC-701e",
       "status": "pass",
-      "notes": "✓  165 [chromium] › tests/e2e/demote-node.spec.ts:63:5 › TC-701e: arrastrar un grupo sin hijos dentro de una categoría lo baja a subcategoría (905ms)"
+      "notes": "✓  165 [chromium] › tests/e2e/demote-node.spec.ts:63:5 › TC-701e: arrastrar un grupo sin hijos dentro de una categoría lo baja a subcategoría (921ms)"
     },
     {
       "tc_id": "TC-701f",
       "status": "pass",
-      "notes": "✓  166 [chromium] › tests/e2e/demote-node.spec.ts:80:5 › TC-701f: soltar un grupo de gasto sobre un destino de ingreso no realiza ningún cambio (845ms)"
+      "notes": "✓  166 [chromium] › tests/e2e/demote-node.spec.ts:80:5 › TC-701f: soltar un grupo de gasto sobre un destino de ingreso no realiza ningún cambio (882ms)"
     },
     {
       "tc_id": "TC-702h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados 6ms"
     },
     {
       "tc_id": "TC-702e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos 9ms"
     },
     {
       "tc_id": "TC-702f",
@@ -38,7 +38,7 @@
     {
       "tc_id": "TC-703h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703h: moveNode que desborda el techo devuelve 'would_overflow' sin cambiar el estado 11ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703h: moveNode que desborda el techo devuelve 'would_overflow' sin cambiar el estado 1ms"
     },
     {
       "tc_id": "TC-703e",
@@ -63,22 +63,22 @@
     {
       "tc_id": "TC-751f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-701 — el seam de política de desborde > TC-751f: la política NO se consulta cuando el movimiento cabe 0ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-701 — el seam de política de desborde > TC-751f: la política NO se consulta cuando el movimiento cabe 1ms"
     },
     {
       "tc_id": "TC-752h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752h: promover una sub a grupo sigue funcionando 0ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752h: promover una sub a grupo sigue funcionando 1ms"
     },
     {
       "tc_id": "TC-752e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752e: un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos 0ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752e: un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos 1ms"
     },
     {
       "tc_id": "TC-752f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752f: el traslado al primer hijo y el reverso a 0 siguen intactos 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752f: el traslado al primer hijo y el reverso a 0 siguen intactos 3ms"
     },
     {
       "tc_id": "TC-753h",
@@ -93,12 +93,12 @@
     {
       "tc_id": "TC-753f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753f: moveNode cross-type se rechaza sin mutar 0ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753f: moveNode cross-type se rechaza sin mutar 2ms"
     },
     {
       "tc_id": "TC-754h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754h: canDeleteNode bloquea una categoría con ejecutado > 0 0ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754h: canDeleteNode bloquea una categoría con ejecutado > 0 1ms"
     },
     {
       "tc_id": "TC-754e",
@@ -241,7 +241,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2439,
+      "duration_ms": 2539,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
     },
     {
@@ -250,7 +250,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 3472,
+      "duration_ms": 4066,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -259,16 +259,17 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 50651,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T21:21:36.017Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-13T21:21:36.020Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 79176,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:54:27.935Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:54:27.938Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "smoke",
-      "command": "./smoke.sh",
+      "command": "../../../smoke.sh",
       "required": false,
-      "status": "error",
-      "exit_code": null,
-      "duration_ms": 1
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 1254,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -276,14 +277,14 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 185178,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (175ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.1m)\n\n(node:74364) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 228199,
+      "output": "  ✓  579 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (332ms)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (3.8m)\n\n(node:85288) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
     }
   ],
   "timings": {
-    "runner_ms": 46743,
-    "e2e_ms": 183927,
-    "gates_ms": 241741,
-    "total_ms": 472470
+    "runner_ms": 74177,
+    "e2e_ms": 226313,
+    "gates_ms": 315234,
+    "total_ms": 615793
   }
 }

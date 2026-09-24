@@ -19,76 +19,9 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-15T15:59:32.430Z",
+  "updatedAt": "2026-09-24T21:54:32.815Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-23T17:34:00.382Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-23T17:34:00.436Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-23T17:38:52.392Z",
-      "event": "approved",
-      "phase": 3,
-      "afterDrift": true
-    },
-    {
-      "at": "2026-07-23T17:55:00.294Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-23T17:55:18.190Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-23T17:57:25.677Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-23T17:57:33.559Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0
-    },
-    {
-      "at": "2026-07-23T18:08:55.507Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-23T18:08:55.580Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-23T18:10:55.832Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 41,
-      "failed": 0,
-      "skipped": 11,
-      "manual": 0
-    },
     {
       "at": "2026-07-23T18:11:04.924Z",
       "event": "verify-complete",
@@ -160,6 +93,70 @@
       "phase": "verify",
       "passed": 52,
       "failed": 0
+    },
+    {
+      "at": "2026-09-24T12:08:48.467Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T12:11:58.190Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-24T21:23:52.327Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T21:23:56.104Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T21:24:01.761Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T21:37:09.652Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T21:37:20.219Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-24T21:37:25.643Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T21:37:29.739Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T21:54:32.786Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -167,7 +164,7 @@
     "1": "27ecd284e84f158bdaaf5ac8dcdcbccd1b3241be7596fd0d5b4b762f10bacc5c",
     "2": "ed8265015b7475ae26d1105433a14c02d7265deee9f61840de9260b0298ee449",
     "3": "5512bcf57971ba464eae362773e3d88a2c0a59046e4d83a341bab2026a2a2324",
-    "4": "6924fcd8991a70e56f5ca2df1e56a456fbc5c05ee32d3743770f3883ee32c108",
+    "4": "eabf6a48951f2a51a8437c98acb983bcd4eadc68e62cf93ac8145db31671f8a8",
     "5": "ebcd13d652310a2a8bef815f0a858708d2feb5a0436d09576bd5086aced77e6d",
     "ux": "4357d4fb199df0c62ef80fb6c34cfc6994d283e95697112718b8b2ccfc334df5"
   },
@@ -244,14 +241,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "c06761fe5de0be32c35fa718bccea74d24fed90460840c79d750c3cf4384579e",
-  "verifyRanAt": "2026-09-15T15:59:02.050Z",
+  "verifyRanRef": "2055b14fedcf6ff966599b9f9a02b069cccd58c0",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "5468acdc38abcc6a9bdd951b4a303a259fd9c0afbce6b57b614ad7a07149a641",
+  "verifyRanAt": "2026-09-24T21:37:09.582Z",
   "lastVerifyRun": {
     "passed": 52,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-15T15:59:02.050Z"
+    "at": "2026-09-24T21:37:09.582Z"
   },
   "verifySummary": {
     "total": 52,
@@ -263,6 +262,11 @@
     "manual": 0,
     "manual_verified": 0
   },
-  "verifyRanRef": "4fbf27297530437d73adfc745a1961a082c53ea0",
-  "verifyRanDirty": false
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-09-24T21:54:32.785Z"
+    }
+  ]
 }

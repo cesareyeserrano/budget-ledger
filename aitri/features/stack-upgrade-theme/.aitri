@@ -19,53 +19,9 @@
   "projectName": "stack-upgrade-theme",
   "createdAt": "2026-07-04T03:13:12.351Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T20:23:39.207Z",
+  "updatedAt": "2026-09-24T17:20:51.982Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-08T02:50:02.633Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-08T02:50:41.574Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-08T03:06:28.580Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-08T03:08:49.556Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-08T04:16:50.647Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-08T13:43:58.896Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-08T13:44:21.848Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-08T13:52:43.832Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 5,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-07-08T14:08:48.837Z",
       "event": "verify-run",
@@ -147,6 +103,54 @@
       "phase": "verify",
       "passed": 64,
       "failed": 0
+    },
+    {
+      "at": "2026-09-24T17:09:20.428Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:09:20.504Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:09:20.670Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:20:35.939Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T17:20:51.623Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-24T17:20:51.737Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T17:20:51.844Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T17:20:51.953Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -154,7 +158,7 @@
     "1": "b8b72fa3030a282241b9a47b78e87e84443968d1c9ea563ab4c3a1945a3e9f9d",
     "2": "191860a2d95ab60eb57463dd3187398b0cb94cf33740996ac7724acfb82fb09a",
     "3": "ec411b67fb6a902c516077e639c27370535836944d85414e494f4986f24a9de2",
-    "4": "4ba5d2bde35df11086a452cb8def5c312598d6f05cfb2b5332e74737a66a9481",
+    "4": "14354879a35c2e3762057578e9917881dc5cd11b64f55245ca98c423a04d039b",
     "5": "4a53d7f34d19062f3b1c5fb922aa8b904e92973c94a42d6ab786ec63131a1769",
     "ux": "06d1425ec1f8285add2f88f041837aeff8406c826f59447fd36727b4406f6028"
   },
@@ -236,14 +240,16 @@
       "FR-213"
     ]
   },
-  "verifyResultsHash": "0854c903e3eb0eca3cf0bc555c6a1542907f6878fff6af8ab0bfb53fff69463e",
-  "verifyRanAt": "2026-09-13T20:23:38.624Z",
+  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "04e974a032c0c556aa9147f02e13b869f98c0ae66a0db78b0834fe066397b8fe",
+  "verifyRanAt": "2026-09-24T17:20:35.867Z",
   "lastVerifyRun": {
     "passed": 64,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T20:23:38.624Z"
+    "at": "2026-09-24T17:20:35.867Z"
   },
   "verifySummary": {
     "total": 64,
@@ -255,6 +261,11 @@
     "manual": 0,
     "manual_verified": 0
   },
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
-  "verifyRanDirty": false
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-09-24T17:20:51.952Z"
+    }
+  ]
 }

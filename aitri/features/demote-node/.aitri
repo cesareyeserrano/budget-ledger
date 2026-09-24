@@ -19,49 +19,9 @@
   "projectName": "demote-node",
   "createdAt": "2026-07-17T22:59:10.589Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T21:24:42.573Z",
+  "updatedAt": "2026-09-24T16:58:38.273Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-17T23:20:59.791Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-07-17T23:20:59.963Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-17T23:23:21.080Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-17T23:24:04.331Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-07-17T23:24:04.464Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-17T23:26:13.600Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-17T23:29:39.798Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-18T21:01:07.501Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-07-18T21:22:24.986Z",
       "event": "completed",
@@ -145,6 +105,54 @@
       "phase": "verify",
       "passed": 24,
       "failed": 0
+    },
+    {
+      "at": "2026-09-24T16:43:48.833Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T16:43:48.910Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T16:43:49.074Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T16:58:19.972Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T16:58:34.803Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-24T16:58:34.921Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T16:58:38.133Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T16:58:38.243Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -152,7 +160,7 @@
     "1": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
     "2": "eb84fca5a371e8e8d4dedecacbdf6c2fbeebed91ebad83acb8a49c7ef6701fe6",
     "3": "17b557ffb5f87f9e13c966a9c28fcc55204972ba3198caed88bfce27b75c4c0c",
-    "4": "e7db3d0f4e5c166a24ba16bd30c9a7f0da0955da2c8546ce5bab16835ea6bd63",
+    "4": "05ddccc4e524a44c23777b5125f14622abf445c8c43c6f82c45b3de769993ebe",
     "5": "db185311857bf5a03bd9d7e85f95a8ef7dba499cd01e5ffef2e7a104cd13e147",
     "ux": "292bdb84d430cd09663df14e2a269febdd9704267527f2c2ec9e7d28054c43c0"
   },
@@ -185,14 +193,17 @@
   },
   "coverageAuditLastAt": "2026-07-18T21:28:47.952Z",
   "coverageAuditReqHash": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
-  "verifyResultsHash": "b428848f850b80d947c2ce21706823ce96323855692250dbe997bebde29d51b1",
-  "verifyRanAt": "2026-09-13T21:24:42.249Z",
+  "verifyPassed": true,
+  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "858db09eef884c12138f9785f4a086a85d1b8c49e35f37bca9ccf14f889c60d2",
+  "verifyRanAt": "2026-09-24T16:58:19.902Z",
   "lastVerifyRun": {
     "passed": 24,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T21:24:42.249Z"
+    "at": "2026-09-24T16:58:19.902Z"
   },
   "verifySummary": {
     "total": 24,
@@ -204,7 +215,11 @@
     "manual": 0,
     "manual_verified": 3
   },
-  "verifyPassed": true,
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
-  "verifyRanDirty": false
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-09-24T16:58:38.242Z"
+    }
+  ]
 }
