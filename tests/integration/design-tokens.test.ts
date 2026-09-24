@@ -118,7 +118,11 @@ function conInfraccionPlantada(rel: string, mutar: (original: string) => string)
 
 describe("FR-1201 — el gate impide que el color vuelva a clasificar", () => {
   // @aitri-tc TC-RUI-001f
-  it("TC-RUI-001f: el gate pasa limpio y FALLA si el color de tipo sale del registro", () => {
+  // Timeout explicito (BG-045, misma clase que BG-025). El test corre el script del gate CUATRO
+  // veces: ~1,3 s aislado, pero dentro de la suite completa bajo cobertura pasa de los 5 s por
+  // defecto y tumbaba el gate coverage. No se recortan las corridas: los dos sentidos y la
+  // comprobacion de que el arbol real sigue limpio son lo que el test afirma.
+  it("TC-RUI-001f: el gate pasa limpio y FALLA si el color de tipo sale del registro", { timeout: 30_000 }, () => {
     // Sentido 1: con el árbol como está, pasa.
     expect(runGate()).toBe(0);
 
