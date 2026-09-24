@@ -1055,6 +1055,40 @@
       "resolution": "Migracion 0011_reconciliar_celdas_viejas.sql: por cada celda de Ejecutado de una hoja de gasto o ingreso cuyo valor no coincide con la suma de sus movimientos, crea UN movimiento kind='adjustment' por la diferencia exacta — el mismo que la app crea al teclear un total (FR-2504). No toca ninguna cifra (amount_cell intacta), no toca los comentarios (cell_note ni se lee), no mueve la frontera del cierre y entra tambien en meses cerrados, que es donde estan las celdas viejas. Fecha: primer dia del mes de la celda, lo unico que el dato garantiza; sin fecha no era opcion porque en modo ciclos un movimiento sin fecha se marca incoherente. Idempotente por id determinista + ON CONFLICT DO NOTHING. 8 tests en tests/integration/backend/bg-043-reconciliar-celdas.test.ts.",
       "fix_commit_sha": "f1f37576b3f85aa05ccec945185dd44d04b895c4",
       "fix_at": "2026-09-23T16:50:31.494Z"
+    },
+    {
+      "id": "BG-044",
+      "title": "El quality_gate 'smoke' NUNCA se ha ejecutado en seis features: lo declaran como './smoke.sh', y los gates de una feature corren con el cwd en aitri/features/<nombre>/, donde ese fichero no existe. Aitri lo registra como status:error, exit_code:null, duration_ms:1 — no es un fallo del smoke, es que el proceso no llega a arrancar (reproducido: spawn sin shell de './smoke.sh' desde el dir de la feature da FileNotFoundError; desde la raiz arranca y sigue vivo a los 6s). Los demas gates de esas features sobreviven por casualidad: son 'npm run <script>', y npm sube el arbol buscando el package.json de la raiz, asi que resuelven; el unico gate con ruta relativa se cae. Como en las seis esta declarado required:false, nunca bloqueo un verify-complete y nadie lo noto: las seis sellaron 5/5 aparentando una comprobacion de arranque que no tuvieron. AFECTADAS (6): control-size-scale, demote-node, grid-ux, promote-to-group, stack-upgrade-theme, ux-consistency. El arreglo ya existe en el repo — las otras 8 features usan '../../../smoke.sh' y pasan (1.2s-35s), y otras 10 usan 'npm run gate:smoke' (que es './smoke.sh' ejecutado por npm con cwd en la raiz, por eso si resuelve). La raiz declara './smoke.sh' y es CORRECTO ahi, porque su cwd es la raiz: no tocar. Detectado el 2026-09-24 leyendo 04_TEST_RESULTS.json tras 'aitri feature verify-run grid-ux' (52/52 en verde con el gate en error, que es justo la firma 'TCs verdes con un gate en rojo')",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-24T14:21:04.449Z",
+      "updated_at": "2026-09-24T20:09:52.577Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-24T14:24:24.948Z",
+          "text": "Alcance acordado con el usuario el 2026-09-24: se arreglan y re-derivan las CINCO que ya estaban STALE a nivel de feature (control-size-scale, demote-node, promote-to-group, stack-upgrade-theme, ux-consistency) — ya debian re-verificarse, asi que el coste incremental de la re-derivacion es casi cero. grid-ux queda EXPRESAMENTE FUERA por ahora: se acaba de sellar fresca (52/52 el 2026-09-24) y corregirla le costaria perder el sello y pagar otro verify-run de ~10 min. QUEDA PENDIENTE: grid-ux sigue declarando './smoke.sh' y su gate de smoke sigue sin ejecutarse; corregirlo la proxima vez que esa feature se toque por cualquier otro motivo. Medido antes de tocar nada: editar el 04_BUILD_REPORT.json de una feature aprobada marca 'DRIFT: artifact modified after approval' en la fase build y el next-action pasa a 'approve build', que cascade-invalida verify y deploy — por eso cada feature cuesta approve build + verify-run + verify-complete + approve deploy, no solo la edicion. NO se usa 'aitri rehash': el contenido cambia de verdad y con efecto (el gate pasa de no ejecutarse a ejecutarse), asi que no es bookkeeping drift y rehash seria saltarse la revision."
+        },
+        {
+          "at": "2026-09-24T15:28:35.937Z",
+          "text": "MISMA CAUSA RAIZ, segunda manifestacion (24-sep): 'aitri feature complete control-size-scale 4' avisa «1 test_file(s) declared in manifest not found on disk: tests/e2e/control-size-scale.spec.ts». El fichero SI EXISTE — 'find tests -iname *control-size*' lo encuentra y es donde viven sus TCs (los 18 corrieron y pasaron). El aviso es un FALSO POSITIVO por el mismo motivo que el gate de smoke: la ruta relativa del manifiesto se resuelve contra aitri/features/<nombre>/ en vez de contra la raiz del proyecto, donde 'tests/e2e/...' si existe. O sea que el problema no es solo de quality_gates: afecta a CUALQUIER ruta relativa declarada en el 04_BUILD_REPORT.json de una feature. Consecuencia practica de este segundo caso: es un aviso que aparece siempre y por tanto se ignora siempre — ruido que entrena a saltarse los avisos de 'complete', que es justo donde no conviene. Vale la pena mirarlo del lado de Aitri (resolver las rutas del manifiesto de una feature contra la raiz del proyecto), no parcheando cada feature."
+        },
+        {
+          "at": "2026-09-24T20:09:52.577Z",
+          "text": "PROGRESO 24-sep: las CINCO features acordadas quedan arregladas y re-selladas 5/5, cada una por la via sancionada (run-phase build -> complete 4 -> approve build -> verify-run -> verify-complete -> run-phase 5 -> complete 5 -> approve deploy), y en TODAS el gate smoke corre de verdad y pasa (exit 0): control-size-scale 18/18, demote-node 24/24, promote-to-group 36/36, stack-upgrade-theme 64/64, ux-consistency 60/60 — los cinco gates en verde en cada una. Se descartaron sin acreditar tres corridas degradadas por lentitud de la suite Playwright DENTRO de verify-run (control-size-scale 1a: gate e2e 36m43s en error; ux-consistency 1a y 2a: la suite autodetectada muerta por el tope de 15 min, e2e saltados); la misma suite a mano tarda 3m48s. NO SE CIERRA el bug: (1) grid-ux sigue declarando './smoke.sh' (fuera del alcance acordado, recien sellada); (2) la causa raiz esta del lado de Aitri — resuelve las rutas relativas del manifiesto de una feature contra aitri/features/<n>/ en vez de contra la raiz, lo que tambien produce el falso positivo 'test_file not found on disk' visto en control-size-scale y demote-node."
+        }
+      ]
     }
   ]
 }

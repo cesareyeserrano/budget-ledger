@@ -19,54 +19,9 @@
   "projectName": "ux-consistency",
   "createdAt": "2026-07-08T17:09:25.061Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T20:32:58.707Z",
+  "updatedAt": "2026-09-24T20:09:39.615Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-08T23:16:41.485Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-09T16:22:32.771Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T16:22:39.763Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T16:22:44.478Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T16:25:13.665Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T17:27:11.263Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-09T18:03:03.428Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T18:03:03.508Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-07-09T18:03:03.623Z",
-      "event": "approved",
-      "phase": 3
-    },
     {
       "at": "2026-07-09T18:03:03.725Z",
       "event": "completed",
@@ -137,6 +92,63 @@
       "phase": "verify",
       "passed": 60,
       "failed": 0
+    },
+    {
+      "at": "2026-09-24T17:20:52.077Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:20:52.154Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:20:52.312Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-24T17:56:44.625Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 55,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T20:09:18.048Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T20:09:39.246Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 60,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-24T20:09:39.361Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T20:09:39.475Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-24T20:09:39.585Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -144,7 +156,7 @@
     "1": "17469e4b5b732e6e6c4b7972b966ebd23540f22f07cecd3a9b406811d3e0e36f",
     "2": "b40fd30fc1dd92d47bc746f3ab9af79a5a916d48f63c2c0d4c962e540cb4b07c",
     "3": "4d2b4e87cd9bf898dfb2e30228ffde5265c06e0c69fc215ef42edbc68f11d0fd",
-    "4": "2776c82ab9c9aa05c0bf8836dfe6fbd9192632cce1ffb0e0ab8eb87d90f3cd63",
+    "4": "65a1355253495b88a710b77697ee3612039453c989b182d690b4c59c68ffe065",
     "5": "e4871727cb22dc8a0f7b8990205d13c011df0a96bdd896ecfa8c14639aae1bf0",
     "ux": "f124bf457b22971005303442c924b0c28109f003b6103ea8880c4655a4cd9b07"
   },
@@ -231,14 +243,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "ccd97732849fad72ecf1d22440ae8512243d36843b927171b1f8b182dedc1abb",
-  "verifyRanAt": "2026-09-13T20:32:58.023Z",
+  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanDirty": false,
+  "verifyResultsHash": "17f12e2a0fde5798dcd82da2d17071e0f35abc9b44888972210e3f7ef14f959b",
+  "verifyRanAt": "2026-09-24T20:09:17.981Z",
   "lastVerifyRun": {
     "passed": 60,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T20:32:58.023Z"
+    "at": "2026-09-24T20:09:17.981Z"
   },
   "verifySummary": {
     "total": 60,
@@ -250,6 +264,11 @@
     "manual": 0,
     "manual_verified": 0
   },
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
-  "verifyRanDirty": false
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-09-24T20:09:39.584Z"
+    }
+  ]
 }

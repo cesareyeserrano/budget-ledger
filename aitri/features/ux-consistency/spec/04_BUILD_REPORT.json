@@ -48,7 +48,7 @@
     { "name": "typecheck", "command": "npm run typecheck", "required": true },
     { "name": "lint", "command": "npm run lint", "required": true },
     { "name": "coverage", "command": "npm run coverage", "required": true },
-    { "name": "smoke", "command": "./smoke.sh", "required": false, "timeout_ms": 180000 },
+    { "name": "smoke", "command": "../../../smoke.sh", "required": false, "timeout_ms": 180000 },
     { "name": "e2e", "command": "npm run test:e2e", "required": false, "timeout_ms": 600000 }
   ],
   "technical_debt": [

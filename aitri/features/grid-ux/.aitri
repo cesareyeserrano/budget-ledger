@@ -19,25 +19,9 @@
   "projectName": "grid-ux",
   "createdAt": "2026-07-03T00:43:21.553Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-15T15:59:32.430Z",
+  "updatedAt": "2026-09-24T12:11:58.222Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-23T17:34:00.382Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0,
-      "skipped": 14,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-23T17:34:00.436Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 38,
-      "failed": 0
-    },
     {
       "at": "2026-07-23T17:38:52.392Z",
       "event": "approved",
@@ -160,6 +144,22 @@
       "phase": "verify",
       "passed": 52,
       "failed": 0
+    },
+    {
+      "at": "2026-09-24T12:08:48.467Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-24T12:11:58.190Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 52,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -244,14 +244,14 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "c06761fe5de0be32c35fa718bccea74d24fed90460840c79d750c3cf4384579e",
-  "verifyRanAt": "2026-09-15T15:59:02.050Z",
+  "verifyResultsHash": "ff5bc98397acdfe4173b4b20df11d2c3bebdce79b0e1b5b48b5adbed32757a30",
+  "verifyRanAt": "2026-09-24T12:08:48.374Z",
   "lastVerifyRun": {
     "passed": 52,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-15T15:59:02.050Z"
+    "at": "2026-09-24T12:08:48.374Z"
   },
   "verifySummary": {
     "total": 52,
@@ -263,6 +263,6 @@
     "manual": 0,
     "manual_verified": 0
   },
-  "verifyRanRef": "4fbf27297530437d73adfc745a1961a082c53ea0",
+  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
   "verifyRanDirty": false
 }
