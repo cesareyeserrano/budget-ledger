@@ -366,7 +366,14 @@
       "problem": "El ciclo prescrito retirar-para-gastar deja el mes marcado como error permanente y congela la plata fresca del mes (y, sin holgura, tambien los aportes de meses anteriores)",
       "status": "open",
       "createdAt": "2026-09-01T16:15:40.993Z",
-      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
+      "log": [
+        {
+          "at": "2026-09-24T23:43:43.269Z",
+          "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:43:43.269Z"
     },
     {
       "id": "BL-038",
@@ -375,7 +382,14 @@
       "problem": "En un mes con violacion tolerada, toda edicion que mejora es irreversible: un dedazo vuelve irrecuperable el valor verdadero y el journal queda mintiendo",
       "status": "open",
       "createdAt": "2026-09-01T16:15:41.035Z",
-      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
+      "log": [
+        {
+          "at": "2026-09-24T23:43:43.383Z",
+          "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:43:43.383Z"
     },
     {
       "id": "BL-039",
@@ -489,10 +503,18 @@
       "title": "Vitest 3.2.7 vulnerable (path traversal en @vitest/mocker): subir a 4.1.11, salto mayor",
       "priority": "P2",
       "problem": "Dependabot #18 y #19 (medium, 2026-09-13): vitest y @vitest/mocker >= 2.1.0 < 4.1.11 permiten lectura arbitraria de ficheros via el redirect mock de @vitest/mocker. Instalado 3.2.7 (directo, via @vitest/coverage-v8 y via better-auth). Solo dependencia de desarrollo: no entra en la imagen de produccion, el riesgo es sobre la maquina que corre los tests. El arreglo es un salto MAYOR 3 -> 4: puede romper la config de vitest/cobertura (unit.sh, coverage.sh, gate coverage required en todas las features) y hay que comprobar que better-auth 1.6.23 acepta vitest 4. Por eso no se hizo sobre la marcha.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-13T23:03:38.447Z",
       "files": "package.json, package-lock.json, vitest.config.*, unit.sh, coverage.sh",
-      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security."
+      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security.",
+      "log": [
+        {
+          "at": "2026-09-24T23:35:29.247Z",
+          "text": "Ya estaba hecho y sin cerrar: d1781fa subio vitest, @vitest/mocker y @vitest/coverage-v8 a 4.1.11. Comprobado el 2026-09-24: npm ls sin duplicados vulnerables (better-auth tambien resuelve 4.1.11), npm audit 0 vulnerabilidades, Dependabot #20 y #21 cerrados, y la raiz verificada hoy con 59/59 y el gate coverage en verde."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:35:29.247Z",
+      "closedAt": "2026-09-24T23:35:29.355Z"
     },
     {
       "id": "BL-049",
