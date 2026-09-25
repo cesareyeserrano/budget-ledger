@@ -80,9 +80,17 @@
       "title": "Memoizar los roll-ups de la grilla y medir NFR-103 a escala real",
       "priority": "P2",
       "problem": "BudgetGrid.tsx:435-444 y :325-334 recalculan rollupBudget/rollupActual y typeTotals por celda (12 meses x fila), cada uno O(n^2) por los escaneos de childrenOf/isLeaf. Ademas NodeRow y TypeTotalRow se suscriben al objeto data completo, asi que toda fila re-renderiza ante cualquier cambio (el diseno prometia selectores memoizados). El test del guardrail tests/domain/rollup-perf.test.ts:49 solo mide sobre buildSeed() (12 nodos), el unico tamano donde no puede fallar.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-07-28T19:58:59.134Z",
-      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms."
+      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms.",
+      "log": [
+        {
+          "at": "2026-09-25T22:04:07.999Z",
+          "text": "Hecho el 2026-09-25 en 0b2d8f8: rollupTable (src/domain/rollup.ts) arma el indice hijos-por-padre una vez y calcula todos los roll-ups y totales por tipo en una pasada; BudgetGrid lee de una tabla cacheada por identidad de data y columnas (useRollups). Equivalencia celda a celda en tests/domain/rollup-table.test.ts (200 arboles aleatorios, mutacion comprobada). NFR-103 gana el caso de 216 hojas y 24 meses (rollup-perf.test.ts). Medido: 444 nodos/24 meses de ~62-119 ms a ~2 ms. No se toco el re-render por fila: medirlo solo si la grilla se nota lenta. Verify raiz 59/59 con nueve gates y reconcile resuelto."
+        }
+      ],
+      "updatedAt": "2026-09-25T22:04:07.999Z",
+      "closedAt": "2026-09-25T22:04:08.047Z"
     },
     {
       "id": "BL-010",
