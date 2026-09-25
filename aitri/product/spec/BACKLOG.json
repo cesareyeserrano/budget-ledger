@@ -364,32 +364,42 @@
       "title": "Decision de modelo: el ciclo retirar-para-gastar no debe castigarse como exceso",
       "priority": "P1",
       "problem": "El ciclo prescrito retirar-para-gastar deja el mes marcado como error permanente y congela la plata fresca del mes (y, sin holgura, tambien los aportes de meses anteriores)",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-01T16:15:40.993Z",
       "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
       "log": [
         {
           "at": "2026-09-24T23:43:43.269Z",
           "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        },
+        {
+          "at": "2026-09-25T15:17:23.364Z",
+          "text": "Resuelto el 2026-09-25 por la feature retirar-para-gastar (5/5, verify 56/56 con cinco gates): el techo de Ejecutado se consume con lo reservado NETO (FR-2801, commit d22b1b0). Sacar de un bolsillo para cubrir un gasto ya no marca el mes, la plata que entra despues se reserva entera y el trinquete del ciclo prescrito desaparece. El encierro sigue bloqueado por el deficit. Queda aparte BL-041 (que muestra la celda de un bolsillo)."
         }
       ],
-      "updatedAt": "2026-09-24T23:43:43.269Z"
+      "updatedAt": "2026-09-25T15:17:23.364Z",
+      "closedAt": "2026-09-25T15:17:23.416Z"
     },
     {
       "id": "BL-038",
       "title": "Decision de modelo: el no-empeora es un trinquete — corregir la correccion queda prohibido",
       "priority": "P1",
       "problem": "En un mes con violacion tolerada, toda edicion que mejora es irreversible: un dedazo vuelve irrecuperable el valor verdadero y el journal queda mintiendo",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-01T16:15:41.035Z",
       "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
       "log": [
         {
           "at": "2026-09-24T23:43:43.383Z",
           "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        },
+        {
+          "at": "2026-09-25T15:17:23.467Z",
+          "text": "Resuelto el 2026-09-25 por la feature retirar-para-gastar (5/5, verify 56/56 con cinco gates): el techo de Ejecutado se consume con lo reservado NETO (FR-2801, commit d22b1b0). Sacar de un bolsillo para cubrir un gasto ya no marca el mes, la plata que entra despues se reserva entera y el trinquete del ciclo prescrito desaparece. El encierro sigue bloqueado por el deficit. Queda aparte BL-041 (que muestra la celda de un bolsillo)."
         }
       ],
-      "updatedAt": "2026-09-24T23:43:43.383Z"
+      "updatedAt": "2026-09-25T15:17:23.467Z",
+      "closedAt": "2026-09-25T15:17:23.518Z"
     },
     {
       "id": "BL-039",

@@ -4,7 +4,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -16,14 +17,9 @@
   "projectName": "retirar-para-gastar",
   "createdAt": "2026-09-24T23:58:52.294Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-25T14:14:41.872Z",
+  "updatedAt": "2026-09-25T15:17:12.383Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-25T13:42:40.986Z",
-      "event": "approved",
-      "phase": 1
-    },
     {
       "at": "2026-09-25T13:42:47.287Z",
       "event": "started",
@@ -124,6 +120,13 @@
       "at": "2026-09-25T14:14:41.857Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-09-25T15:17:12.363Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -161,6 +164,15 @@
       "FR-2805",
       "FR-2806",
       "FR-2807"
+    ],
+    "5": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
     ]
   },
   "verifyPassed": true,
@@ -184,5 +196,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-25T15:17:12.360Z"
+    }
+  ]
 }
