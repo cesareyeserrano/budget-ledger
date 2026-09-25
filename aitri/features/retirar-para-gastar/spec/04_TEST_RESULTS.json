@@ -1,0 +1,584 @@
+{
+  "executed_at": "2026-09-25T14:13:17.106Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-RPG-001h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-001h: tras reservar 1.000 y sacar 500 el cupo de enero es 500 3ms"
+    },
+    {
+      "tc_id": "TC-RPG-002f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-002f: reservar 501 con cupo 500 se rechaza sin mutar 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-003e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-003e: reservar exactamente el cupo de 500 se acepta y deja disponible 0 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-004e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-004e: un mover alcancía→alcancía no libera cupo 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-005e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-005e: mes de retiro neto: consumo negativo acotado por el arrastre 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-006e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2801 · el techo de Ejecutado se consume con lo reservado neto > TC-RPG-006e: propiedad a escala: el «Máx.» anunciado se acepta tal cual y con un peso más se rechaza 607ms"
+    },
+    {
+      "tc_id": "TC-RPG-021h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2802 · sacar de un bolsillo para cubrir un gasto no marca el mes > TC-RPG-021h: sacar 300 para cubrir el gasto se acepta y junio queda sin marca 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-022f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2802 · sacar de un bolsillo para cubrir un gasto no marca el mes > TC-RPG-022f: antes de sacar, el gasto sin cubrir sí marca junio 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-023e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2802 · sacar de un bolsillo para cubrir un gasto no marca el mes > TC-RPG-023e: sacar solo 200 deja la marca en 100 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-024e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2802 · sacar de un bolsillo para cubrir un gasto no marca el mes > TC-RPG-024e: con junio cerrado las marcas son las mismas que abierto 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-025f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2802 · sacar de un bolsillo para cubrir un gasto no marca el mes > TC-RPG-025f: sacar más de lo que tiene el bolsillo sigue rechazado 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-031h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2803 · la plata que entra después de sacar se puede reservar entera > TC-RPG-031h: la plata nueva se reserva entera 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-032f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2803 · la plata que entra después de sacar se puede reservar entera > TC-RPG-032f: reservar 401 se rechaza con límite 400 sin mutar 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-033e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2803 · la plata que entra después de sacar se puede reservar entera > TC-RPG-033e: el «Máx.» del registro y el de la celda dicen la misma cifra que el rechazo 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-041h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2804 · una celda corregida en el ciclo de sacar para gastar se puede volver a subir > TC-RPG-041h: el dedazo 1.000→900 se deshace volviendo a 1.000 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-042f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2804 · una celda corregida en el ciclo de sacar para gastar se puede volver a subir > TC-RPG-042f: subir a 1.001 desde 900 se rechaza con el incremento exacto 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-043e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2804 · una celda corregida en el ciclo de sacar para gastar se puede volver a subir > TC-RPG-043e: bajar la celda hasta lo ya sacado es el límite del piso 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-051f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2805 · la observación «salieron del saldo anterior» cuenta el neto > TC-RPG-051f: la observación falsa «300 salieron del saldo de mayo» ya no aparece 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-052h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2805 · la observación «salieron del saldo anterior» cuenta el neto > TC-RPG-052h: sin retiros la observación sigue atribuyendo lo que no cabe en el flujo 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-053e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2805 · la observación «salieron del saldo anterior» cuenta el neto > TC-RPG-053e: un retiro parcial reduce la parte atribuida al saldo anterior 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-061h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2806 · los meses marcados con la regla vieja se re-evalúan solos > TC-RPG-061h: un snapshot guardado con el ciclo prescrito carga sin marca 3ms"
+    },
+    {
+      "tc_id": "TC-RPG-062f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > FR-2806 · los meses marcados con la regla vieja se re-evalúan solos > TC-RPG-062f: un mes realmente violado sigue marcado 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-063e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2806 · ida y vuelta por la base > TC-RPG-063e: ida y vuelta por la base: el ledger se guarda y se lee idéntico y sin marca 150ms"
+    },
+    {
+      "tc_id": "TC-RPG-071h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2807 · el servidor acepta y rechaza lo mismo que el navegador > TC-RPG-071h: PUT con el retiro para cubrir el gasto responde 200 y lo persiste 69ms"
+    },
+    {
+      "tc_id": "TC-RPG-072f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2807 · el servidor acepta y rechaza lo mismo que el navegador > TC-RPG-072f: PUT que reserva 401 con disponible 400 responde 422 y no persiste 59ms"
+    },
+    {
+      "tc_id": "TC-RPG-073f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2807 · el servidor acepta y rechaza lo mismo que el navegador > TC-RPG-073f: PUT que borra el retiro del encierro responde 422 52ms"
+    },
+    {
+      "tc_id": "TC-RPG-074e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2807 · el servidor acepta y rechaza lo mismo que el navegador > TC-RPG-074e: PUT que reserva exactamente 400 responde 200 52ms"
+    },
+    {
+      "tc_id": "TC-RPG-075h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > FR-2807 · el servidor acepta y rechaza lo mismo que el navegador > TC-RPG-075h: POST /api/v1/movements con el retiro responde 201 58ms"
+    },
+    {
+      "tc_id": "TC-RPG-101h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2801 · sacar más de lo que tiene el bolsillo sigue rechazado > TC-RPG-101h: sacar todo lo que tiene el bolsillo se acepta 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-102f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2801 · sacar más de lo que tiene el bolsillo sigue rechazado > TC-RPG-102f: sacar un peso más de lo que tiene se rechaza por el piso 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-103e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2801 · sacar más de lo que tiene el bolsillo sigue rechazado > TC-RPG-103e: el tope encadenado ve un retiro posterior 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-111f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2802 · ninguna operación deja un mes con gastos sin cubrir > TC-RPG-111f: borrar el retiro del encierro se rechaza 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-112f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2802 · ninguna operación deja un mes con gastos sin cubrir > TC-RPG-112f: bajar el retiro del encierro a 400 se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-113h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2802 · ninguna operación deja un mes con gastos sin cubrir > TC-RPG-113h: con un sobregasto legado, editar otro mes se sigue aceptando 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-114e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2802 · ninguna operación deja un mes con gastos sin cubrir > TC-RPG-114e: subir el retiro del encierro a 600 se acepta (mejora) 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-121h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2803 · no hay doble consumo entre meses > TC-RPG-121h: los disponibles del Balance no cambian con la feature 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-122e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2803 · no hay doble consumo entre meses > TC-RPG-122e: la identidad del disponible se cumple mes a mes 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-123f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2803 · no hay doble consumo entre meses > TC-RPG-123f: reservar en enero y sacar en marzo no consume dos veces 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-131f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > NFR-2804 · un mes cerrado no admite el retiro aunque la regla neta lo acepte > TC-RPG-131f: PUT con retiro en un mes cerrado responde closed_period_violation 70ms"
+    },
+    {
+      "tc_id": "TC-RPG-132h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > NFR-2804 · un mes cerrado no admite el retiro aunque la regla neta lo acepte > TC-RPG-132h: el mismo PUT con junio abierto responde 200 63ms"
+    },
+    {
+      "tc_id": "TC-RPG-133e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > NFR-2804 · un mes cerrado no admite el retiro aunque la regla neta lo acepte > TC-RPG-133e: reabrir junio y sacar se acepta 73ms"
+    },
+    {
+      "tc_id": "TC-RPG-141h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2805 · el plano Presupuestado no cambia > TC-RPG-141h: el plano Presupuestado da exactamente lo mismo que antes 2ms"
+    },
+    {
+      "tc_id": "TC-RPG-142f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2805 · el plano Presupuestado no cambia > TC-RPG-142f: una escritura de plan por encima del techo sigue avisando sin bloquear 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-143e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2805 · el plano Presupuestado no cambia > TC-RPG-143e: en el plan un retiro planeado no cambia de semántica 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-151f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2806 · borrar un bolsillo que afectaría a otro sigue bloqueado > TC-RPG-151f: borrar un bolsillo que recibió y entregó sigue bloqueado 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-152h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2806 · borrar un bolsillo que afectaría a otro sigue bloqueado > TC-RPG-152h: borrar un bolsillo que recibió y sacó todo (saldo 0) sigue permitido 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-153e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2806 · borrar un bolsillo que afectaría a otro sigue bloqueado > TC-RPG-153e: borrar un gasto con journal histórico sigue permitido (BG-006) 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-161f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2807 · el retiro planeado por encima de lo planeado reservar sigue marcado > TC-RPG-161f: retiro planeado mayor que lo planeado reservar sigue marcado 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-162h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2807 · el retiro planeado por encima de lo planeado reservar sigue marcado > TC-RPG-162h: retiro planeado igual al aporte planeado no marca 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-163e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2807 · el retiro planeado por encima de lo planeado reservar sigue marcado > TC-RPG-163e: retiro planeado un peso por encima marca 1 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-171f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > NFR-2808 · los descuadres siguen bloqueando el cierre > TC-RPG-171f: una celda descuadrada bloquea el cierre 60ms"
+    },
+    {
+      "tc_id": "TC-RPG-172h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/retirar-para-gastar.test.ts > NFR-2808 · los descuadres siguen bloqueando el cierre > TC-RPG-172h: con la celda cuadrada el cierre se acepta 57ms"
+    },
+    {
+      "tc_id": "TC-RPG-173e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2808 · los descuadres siguen marcándose > TC-RPG-173e: el aviso de descuadre sigue saliendo junto a las marcas del techo 1ms"
+    },
+    {
+      "tc_id": "TC-RPG-181h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2809 · el cambio de regla no añade barridos > TC-RPG-181h: un solo barrido por estado y plano 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-182f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2809 · el cambio de regla no añade barridos > TC-RPG-182f: un estado nuevo sí provoca un barrido nuevo 0ms"
+    },
+    {
+      "tc_id": "TC-RPG-183e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/retirar-para-gastar.test.ts > NFR-2809 · el cambio de regla no añade barridos > TC-RPG-183e: consultar el mismo estado otra vez no barre de nuevo 0ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2801",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2802",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2803",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2804",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2805",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2806",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2807",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2801",
+      "fr_id": "FR-2801",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2802",
+      "fr_id": "FR-2801",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2803",
+      "fr_id": "FR-2801",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2804",
+      "fr_id": "FR-2802",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2805",
+      "fr_id": "FR-2802",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2806",
+      "fr_id": "FR-2802",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2807",
+      "fr_id": "FR-2802",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2808",
+      "fr_id": "FR-2803",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2809",
+      "fr_id": "FR-2803",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2810",
+      "fr_id": "FR-2803",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2811",
+      "fr_id": "FR-2804",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2812",
+      "fr_id": "FR-2804",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2813",
+      "fr_id": "FR-2805",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2814",
+      "fr_id": "FR-2805",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2815",
+      "fr_id": "FR-2806",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2816",
+      "fr_id": "FR-2806",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2817",
+      "fr_id": "FR-2807",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2818",
+      "fr_id": "FR-2807",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2819",
+      "fr_id": "FR-2807",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 1502,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2369,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 47839,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-25T14:10:20.212Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-25T14:10:20.213Z WARN [Better Auth]: Reset Password: User not found"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 16252,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 159194,
+      "output": "] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (2.6m)\n\n(node:61861) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 45021,
+    "e2e_ms": 158397,
+    "gates_ms": 227157,
+    "total_ms": 430627
+  }
+}

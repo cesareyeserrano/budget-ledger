@@ -1,0 +1,70 @@
+{
+  "files_created": [
+    "tests/domain/retirar-para-gastar.test.ts",
+    "tests/integration/backend/retirar-para-gastar.test.ts",
+    "tests/fixtures/retirar-para-gastar-balance-base.json",
+    "tests/fixtures/retirar-para-gastar-plan-base.json",
+    "tests/fixtures/retirar-para-gastar-snapshot.json"
+  ],
+  "files_modified": [
+    "src/domain/reserve.ts",
+    "src/components/register/Register.tsx",
+    "tests/domain/techo-de-flujo.test.ts",
+    "tests/domain/reglas-en-el-servidor.test.ts",
+    "tests/domain/cierre-de-mes.test.ts",
+    "tests/fixtures/multi-anio-baseline.json"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/domain/retirar-para-gastar.test.ts",
+    "tests/integration/backend/retirar-para-gastar.test.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "NFR-2805",
+      "substitution": "TC-RPG-141h observa el plano Presupuestado a través de las cuatro funciones públicas que derivan de su barrido (cellHeadroom, monthCarryUsage, validateReserveWrite y la marca retiro_planeado de monthIssues) en vez de leer directamente margen, consumo y exceso del barrido del plan",
+      "reason": "techoScan/techoScanRaw no se exportan y exportarlos solo para la prueba ampliaría la superficie pública del dominio; las cuatro funciones consumen exactamente esas series, así que un cambio en ellas se ve en su salida. La línea base se capturó sobre 99c7513, con el código anterior al cambio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como job propio (npm audit --audit-level=high y scripts/secret-scan.sh, más CodeQL en su workflow), fuera de los gates de Aitri; esta feature no añade rutas, entradas ni dependencias y NFR-2810 está declarado «No aplica».",
+      "effort_to_fix": "low"
+    }
+  ],
+  "notes": "Epic única EP-01. El cambio de regla es una línea de techoScanRaw (const gasta = deltaActual) más comentarios que describían la regla vieja (reserve.ts, Register.tsx). Orden seguido: (1) líneas base capturadas con el código ANTERIOR sobre 99c7513; (2) pruebas nuevas corridas contra el código viejo — fallaron las de la regla nueva y pasaron las de regresión, prueba de que muerden (la propiedad a escala TC-RPG-006e encontraba 1.311 discrepancias); (3) cambio en d22b1b0; (4) pruebas que fijaban la regla vieja reescritas en 0684671 y cbfd3f5. Fueron OCHO, no las siete que midió el TRD: TC-RES-202e (ancla sobre techo-de-flujo.test.ts) no salía en la medición porque aquella solo tocó src/; se trató igual (ancla avanzada con la razón escrita). Durante el build se corrigió un error de la fase 1: NFR-2806 afirmaba que borrar un bolsillo que solo recibió seguía permitido, falso desde BG-019; se reabrieron las fases 1-3 con decisión del usuario y se precisó el caso permitido (recibió por un mover y sacó todo). Suite completa unit.sh: 1261/1261 antes de añadir TC-RPG-152h; typecheck y lint limpios."
+}

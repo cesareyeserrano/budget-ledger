@@ -101,21 +101,30 @@ function casoUsuario(): { state: LedgerState; retiroId: string } {
   return { state: r.state, retiroId: r.id };
 }
 
-// ── FR-1801 · El techo del mes lo consumen las reservas brutas ─────────────────────────────────
+// ── FR-1801 · El techo del mes ─────────────────────────────────────────────────────────────────
+//
+// REESCRITO el 2026-09-25 por la feature retirar-para-gastar (FR-2801, ADR-03 de su TRD). FR-1801
+// consumía el techo de Ejecutado con los aportes BRUTOS: un retiro no devolvía cupo. Esa regla
+// castigaba el ciclo que la app prescribe para cubrir un gasto con reservas (BL-037, BL-038), y el
+// usuario la sustituyó por el consumo NETO. TC-TDF-001h cambia de cifra (0 → 500); TC-TDF-002f y
+// TC-TDF-072f conservan su intención («con el cupo agotado…») sobre un estado cuyo cupo está agotado
+// de verdad — el de casoUsuario ya no lo está. Se conservan los ids; no se desactiva ninguno.
 
-describe("FR-1801 · el techo es del mes y lo consumen las brutas", () => {
+describe("FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801)", () => {
   // @aitri-tc TC-TDF-001h
-  it("TC-TDF-001h: tras reservar 1.000 y retirar 500, el cupo de enero es 0", () => {
+  it("TC-TDF-001h: tras reservar 1.000 y retirar 500, el cupo de enero es 500", () => {
     const { state } = casoUsuario();
-    // Con el consumo NETO que había antes, aquí quedaban 500 de cupo y por ahí se colaba el 1.500.
-    expect(reserveHeadroom(state, "2026-01", P)).toBe(0);
-    // La plata sí volvió a la cuenta: el disponible del mes es 500, no 0.
+    // Con el consumo BRUTO de FR-1801 aquí quedaba 0. Desde FR-2801 el retiro devuelve cupo: lo que
+    // sigue impidiendo el encierro es el déficit, no el techo (ver TC-RPG-111f).
+    expect(reserveHeadroom(state, "2026-01", P)).toBe(500);
+    // La plata sí volvió a la cuenta: el disponible del mes es 500.
     expect(computeBalanceSeries(state, P)["2026-01"].actual.available).toBe(500);
   });
 
   // @aitri-tc TC-TDF-002f
   it("TC-TDF-002f: con el cupo agotado, subir la celda 1 peso se rechaza sin mutar", () => {
-    const { state } = casoUsuario();
+    // Cupo agotado de verdad: todo el ingreso de enero está reservado y no se sacó nada.
+    const state = llevar(base({ "2026-01": 1000 }), "A", "2026-01", 1000);
     const antes = deep(state);
     const r = applyReserveCellEdit(state, { leafId: "A", period: "2026-01", plane: "actual", newAmount: 1001 }, P);
     expect("rejected" in r).toBe(true);
@@ -447,7 +456,9 @@ describe("FR-1806 · la lista de errores del mes", () => {
 describe("FR-1808 · el «Máx.» de la celda es el total tecleable", () => {
   // @aitri-tc TC-TDF-072f
   it("TC-TDF-072f: con el cupo del mes agotado, la celda sigue admitiendo su propio total", () => {
-    const { state } = casoUsuario(); // enero: celda A = 1.000, cupo del mes = 0
+    // enero: celda A = 1.000 con todo el ingreso reservado, cupo del mes = 0 (reescrito por FR-2801:
+    // casoUsuario ya tiene 500 de cupo porque su retiro lo devuelve).
+    const state = llevar(base({ "2026-01": 1000 }), "A", "2026-01", 1000);
     expect(reserveHeadroom(state, "2026-01", P)).toBe(0); // el INCREMENTO que cabe es 0
     expect(cellHeadroom(state, "A", "2026-01", "actual", P)).toBe(1000); // el TOTAL tecleable, no 0
     // Y bajarla es una escritura perfectamente válida:
