@@ -7,7 +7,7 @@ import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/
 import { periodMonthLabel, isYearStart, periodYear, monthOf } from "@/domain/periods";
 import { cycleMonthLabel, withRange } from "./cycleText";
 import { isClosed } from "@/domain/closure";
-import { rollupBudget, rollupActual, typeTotals } from "@/domain/rollup";
+import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
@@ -595,6 +595,7 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
   // celdas bajo un encabezado de 12 con el filtro en Año — celdas sin mes encima.
   const periods = useVisiblePeriods();
   const data = useLedgerStore((s) => s.data);
+  const rollups = useRollups(data, periods);
   // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
   // rechazó el hue de estructura al verlo ("prefiero blancos, color neutro"), así que la grilla
   // queda con cero color de identidad y el canal cromático se libera para el estado.
@@ -624,7 +625,7 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
       {periods.map((m) => {
         // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
         // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
-        const t = typeTotals(data, type, [m]);
+        const t = rollups.type(type, m);
         return (
           <div key={m} className="flex">
             {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
@@ -638,6 +639,23 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
 }
 
 
+
+/**
+ * BL-009: los roll-ups de la grilla se calculan UNA vez por estado del ledger y columnas visibles, y
+ * todas las filas leen de la misma tabla. Antes cada celda llamaba a `rollupBudget`/`rollupActual`,
+ * que vuelven a recorrer el árbol en cada llamada. El caché se indexa por la identidad de `data` (el
+ * store lo reemplaza entero en cada cambio), así que una edición invalida la tabla sola y un
+ * redibujado sin cambios la reutiliza.
+ */
+const rollupCache = new WeakMap<LedgerState, Map<string, ReturnType<typeof rollupTable>>>();
+function useRollups(data: LedgerState, periods: readonly PeriodKey[]) {
+  let porColumnas = rollupCache.get(data);
+  if (!porColumnas) rollupCache.set(data, (porColumnas = new Map()));
+  const key = periods.join(",");
+  let table = porColumnas.get(key);
+  if (!table) porColumnas.set(key, (table = rollupTable(data, periods)));
+  return table;
+}
 
 /** Nº de observaciones de una celda — el indicador que la marca (FR-1809). */
 function useNotesOf(data: LedgerState) {
@@ -675,6 +693,7 @@ function NodeRow(props: {
   const node = row.node!;
   const data = useLedgerStore((s) => s.data);
   const notesOf = useNotesOf(data);
+  const rollups = useRollups(data, periods);
   const [hover, setHover] = useState(false);
   const [nameVal, setNameVal] = useState(node.name);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -771,8 +790,7 @@ function NodeRow(props: {
               </div>
             );
           }
-          const bud = rollupBudget(data, node.id, m);
-          const act = rollupActual(data, node.id, m);
+          const { budget: bud, actual: act } = rollups.cell(node.id, m);
           return (
             <div key={m} className="flex">
               <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
