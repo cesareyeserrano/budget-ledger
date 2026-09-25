@@ -186,8 +186,16 @@
       "title": "UI de retiros: rediseñar cómo se opera un retiro",
       "priority": "P2",
       "problem": "La operación de retiros quedó unificada en la fila «Retiros del mes» del Balance (decisión 2026-07-29), pero al usuario no le resulta amigable operar desde ahí abajo.",
-      "status": "open",
-      "createdAt": "2026-07-30T14:25:30.238Z"
+      "status": "closed",
+      "createdAt": "2026-07-30T14:25:30.238Z",
+      "log": [
+        {
+          "at": "2026-09-25T20:53:16.623Z",
+          "text": "Cerrado como resuelto (confirmado por el usuario 2026-09-25). FR-1805 (feature techo-de-flujo) movio la fila «Retiros del mes» del pie del Balance al final del segmento de Reservas, junto a los bolsillos, y declara explicitamente que resuelve esta queja por un camino mas simple que el boton por fila. retirar-para-gastar (2026-09-25) corrigio ademas el techo para que retirar no marque error. Si vuelve a incomodar, abrir una feature nueva (p.ej. boton Sacar por bolsillo)."
+        }
+      ],
+      "updatedAt": "2026-09-25T20:53:16.623Z",
+      "closedAt": "2026-09-25T20:53:16.732Z"
     },
     {
       "id": "BL-020",
