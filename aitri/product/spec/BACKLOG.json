@@ -493,7 +493,7 @@
       "title": "Seis features tienen el gate smoke muerto: ruta relativa mal y declarado advisory",
       "priority": "P2",
       "problem": "grid-ux, stack-upgrade-theme, ux-consistency, promote-to-group, control-size-scale y demote-node declaran su quality_gate smoke como './smoke.sh' con required:false. Aitri corre los gates con la carpeta de la FEATURE como cwd, donde ese script no existe, asi que muere con ENOENT y queda registrado como 'error' con exit_code null y duration_ms 1 (control-size-scale lo tiene incluso con duration_ms null, o sea que viene de corridas viejas). Al estar declarado advisory no bloquea nunca: esas seis features se sellan sin ninguna comprobacion de que el producto ensamblado arranque y sirva. Es exactamente el fallo que la cabecera de smoke.sh documenta haber corregido para las demas. Las que estan bien lo declaran '../../../smoke.sh' (transferencias) o 'npm run gate:smoke' (ciclos), las dos con required:true; la raiz usa './smoke.sh' y ahi si es correcto porque sus gates corren desde la raiz. ARREGLO: cambiar el command a '../../../smoke.sh' y required a true en los seis 04_BUILD_REPORT.json. COSTE A TENER EN CUENTA: ese fichero es el artefacto aprobado de la fase 4, asi que editarlo abre deriva en las seis features y obliga a re-aprobar con su cascada. Decision del usuario, no se toca sobre la marcha.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-13T20:56:13.018Z",
       "log": [
         {
@@ -506,7 +506,8 @@
         }
       ],
       "updatedAt": "2026-09-24T23:18:04.123Z",
-      "decisions": "DECIDIDO con el usuario el 2026-09-13: NO se arregla ahora. Se aplica cuando cualquiera de las seis se reabra por otro motivo, aprovechando esa cascada: en su 04_BUILD_REPORT.json el gate smoke pasa a command 'npm run gate:smoke' (igual que ciclos/balance-jerarquia), required:true, timeout_ms 180000. Mientras tanto, el arranque real queda cubierto por el smoke de la raiz y de las otras 15 features."
+      "decisions": "DECIDIDO con el usuario el 2026-09-13: NO se arregla ahora. Se aplica cuando cualquiera de las seis se reabra por otro motivo, aprovechando esa cascada: en su 04_BUILD_REPORT.json el gate smoke pasa a command 'npm run gate:smoke' (igual que ciclos/balance-jerarquia), required:true, timeout_ms 180000. Mientras tanto, el arranque real queda cubierto por el smoke de la raiz y de las otras 15 features.",
+      "closedAt": "2026-09-25T19:18:19.093Z"
     },
     {
       "id": "BL-048",
