@@ -416,8 +416,17 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // entera—, y se anadio un caso de regresion que fija que lo que una persona si escribe sigue
     // entrando. Ver el mensaje del commit.
     //
+    // ANCLA AVANZADA a 0684671 el 2026-09-25. Lo que tocó `techo-de-flujo.test.ts` NO fue esta
+    // feature ni un vecino acomodándose para pasar: fue la feature retirar-para-gastar, que por
+    // decisión del usuario cambió la REGLA del techo de Ejecutado de consumo bruto a neto (FR-2801,
+    // BL-037/BL-038). Tres TC de techo-de-flujo fijaban la regla vieja a propósito (TC-TDF-001h,
+    // 002f, 072f) y se reescribieron conservando su id y su intención, con la razón escrita junto a
+    // cada uno; TC-TDF-002f y 072f siguen afirmando el rechazo con el cupo agotado, sobre un estado
+    // cuyo cupo está agotado de verdad. `contrapartidas-reserva.test.ts` no se tocó. El guardia de
+    // esta feature tampoco: sigue delegando entero en `chainCheck`.
+    //
     const tocadas = execSync(
-      "git diff --name-only a673f31 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only 0684671 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
