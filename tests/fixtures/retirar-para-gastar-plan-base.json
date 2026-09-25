@@ -1,0 +1,1119 @@
+{
+  "_nota": "Línea base de TC-RPG-141h/143e (NFR-2805), capturada sobre 99c7513 con el código ANTERIOR a retirar-para-gastar. El plano Presupuestado no debe cambiar: estas salidas se observan con las funciones exportadas que derivan del barrido del plan (cellHeadroom, monthCarryUsage, validateReserveWrite y la marca retiro_planeado).",
+  "periodos": [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09",
+    "2026-10",
+    "2026-11",
+    "2026-12"
+  ],
+  "ledgers": {
+    "L1": {
+      "ownerId": "l",
+      "nodes": [
+        {
+          "id": "g-i",
+          "ownerId": "l",
+          "type": "income",
+          "level": "group",
+          "parentId": null,
+          "name": "Ingresos",
+          "icon": null,
+          "order": 0
+        },
+        {
+          "id": "ing",
+          "ownerId": "l",
+          "type": "income",
+          "level": "category",
+          "parentId": "g-i",
+          "name": "Sueldo",
+          "icon": null,
+          "order": 1
+        },
+        {
+          "id": "g-e",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "group",
+          "parentId": null,
+          "name": "Gastos",
+          "icon": null,
+          "order": 2
+        },
+        {
+          "id": "gas",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "category",
+          "parentId": "g-e",
+          "name": "Mercado",
+          "icon": null,
+          "order": 3
+        },
+        {
+          "id": "g-t",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "group",
+          "parentId": null,
+          "name": "Reservas",
+          "icon": null,
+          "order": 4
+        },
+        {
+          "id": "A",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Ahorro",
+          "icon": null,
+          "order": 5
+        },
+        {
+          "id": "B",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Viaje",
+          "icon": null,
+          "order": 6
+        }
+      ],
+      "budgets": {},
+      "actuals": {
+        "ing": {
+          "2026-01": 1000,
+          "2026-02": 1000,
+          "2026-03": 1000,
+          "2026-04": 1000,
+          "2026-05": 1000,
+          "2026-06": 1000,
+          "2026-07": 1000,
+          "2026-08": 1000,
+          "2026-09": 1000,
+          "2026-10": 1000,
+          "2026-11": 1000,
+          "2026-12": 1000
+        },
+        "gas": {
+          "2026-01": 200,
+          "2026-02": 300,
+          "2026-03": 250,
+          "2026-04": 400,
+          "2026-05": 100,
+          "2026-06": 300,
+          "2026-07": 500,
+          "2026-08": 200,
+          "2026-09": 300,
+          "2026-10": 250,
+          "2026-11": 600,
+          "2026-12": 400
+        },
+        "A": {
+          "2026-01": 500,
+          "2026-02": 600,
+          "2026-04": 400,
+          "2026-08": 700
+        },
+        "B": {
+          "2026-01": 200,
+          "2026-06": 500,
+          "2026-11": 300
+        }
+      },
+      "movements": [
+        {
+          "id": "032cf5ec-e08c-4645-a865-11e8e7397096",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "B",
+          "subId": null,
+          "target": "B",
+          "amount": 300,
+          "period": "2026-11",
+          "createdAt": 11,
+          "from": "@disponible",
+          "to": "B",
+          "date": "2026-11-15"
+        },
+        {
+          "id": "30eb09b5-2cdc-4ace-8df4-bad5c494e0ab",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 500,
+          "period": "2026-10",
+          "createdAt": 10,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-10-15"
+        },
+        {
+          "id": "4f19c614-ba36-424e-a6dd-34446b6ae060",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 700,
+          "period": "2026-08",
+          "createdAt": 9,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-08-15"
+        },
+        {
+          "id": "e6ff37ee-3afb-41a6-8633-69629e923a16",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "B",
+          "subId": null,
+          "target": "B",
+          "amount": 400,
+          "period": "2026-07",
+          "createdAt": 8,
+          "from": "B",
+          "to": "@disponible",
+          "date": "2026-07-15"
+        },
+        {
+          "id": "e6cab5f3-3878-45df-a5a8-2bea59b30180",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "B",
+          "subId": null,
+          "target": "B",
+          "amount": 500,
+          "period": "2026-06",
+          "createdAt": 7,
+          "from": "@disponible",
+          "to": "B",
+          "date": "2026-06-15"
+        },
+        {
+          "id": "f033533d-78e1-4319-b238-711ed9ba6d02",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "B",
+          "subId": null,
+          "target": "B",
+          "amount": 250,
+          "period": "2026-05",
+          "createdAt": 6,
+          "from": "A",
+          "to": "B",
+          "date": "2026-05-15"
+        },
+        {
+          "id": "b9c12947-938c-41b9-9059-f193f099ef7c",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 400,
+          "period": "2026-04",
+          "createdAt": 5,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-04-15"
+        },
+        {
+          "id": "c646fd2d-7742-4b48-ba64-d1e01179e4e0",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 300,
+          "period": "2026-03",
+          "createdAt": 4,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-03-15"
+        },
+        {
+          "id": "129e4180-3e82-41b7-8fee-9b04ad14e0ad",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 600,
+          "period": "2026-02",
+          "createdAt": 3,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-02-15"
+        },
+        {
+          "id": "13a90066-4ec5-44ec-bdb1-1d690105d0c8",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "B",
+          "subId": null,
+          "target": "B",
+          "amount": 200,
+          "period": "2026-01",
+          "createdAt": 2,
+          "from": "@disponible",
+          "to": "B",
+          "date": "2026-01-15"
+        },
+        {
+          "id": "73dddce6-9f5f-4f0c-b2b9-774ab7076050",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 500,
+          "period": "2026-01",
+          "createdAt": 1,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-01-15"
+        }
+      ]
+    },
+    "L2": {
+      "ownerId": "l",
+      "nodes": [
+        {
+          "id": "g-i",
+          "ownerId": "l",
+          "type": "income",
+          "level": "group",
+          "parentId": null,
+          "name": "Ingresos",
+          "icon": null,
+          "order": 0
+        },
+        {
+          "id": "ing",
+          "ownerId": "l",
+          "type": "income",
+          "level": "category",
+          "parentId": "g-i",
+          "name": "Sueldo",
+          "icon": null,
+          "order": 1
+        },
+        {
+          "id": "g-e",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "group",
+          "parentId": null,
+          "name": "Gastos",
+          "icon": null,
+          "order": 2
+        },
+        {
+          "id": "gas",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "category",
+          "parentId": "g-e",
+          "name": "Mercado",
+          "icon": null,
+          "order": 3
+        },
+        {
+          "id": "g-t",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "group",
+          "parentId": null,
+          "name": "Reservas",
+          "icon": null,
+          "order": 4
+        },
+        {
+          "id": "A",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Ahorro",
+          "icon": null,
+          "order": 5
+        },
+        {
+          "id": "B",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Viaje",
+          "icon": null,
+          "order": 6
+        }
+      ],
+      "budgets": {},
+      "actuals": {
+        "ing": {
+          "2026-01": 1200,
+          "2026-02": 1200,
+          "2026-03": 500,
+          "2026-04": 1200,
+          "2026-05": 1200,
+          "2026-06": 1200,
+          "2026-07": 1200,
+          "2026-08": 1200,
+          "2026-09": 1200,
+          "2026-10": 1200,
+          "2026-11": 1200,
+          "2026-12": 1200
+        },
+        "gas": {
+          "2026-01": 300,
+          "2026-02": 300,
+          "2026-03": 900,
+          "2026-04": 300,
+          "2026-05": 300,
+          "2026-06": 300,
+          "2026-07": 300,
+          "2026-08": 300,
+          "2026-09": 300,
+          "2026-10": 300,
+          "2026-11": 300,
+          "2026-12": 300
+        },
+        "A": {
+          "2026-01": 1500,
+          "2026-05": 900
+        }
+      },
+      "movements": [
+        {
+          "id": "eb36886e-7dbf-4317-91ca-2c990868da71",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 600,
+          "period": "2026-09",
+          "createdAt": 15,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-09-15"
+        },
+        {
+          "id": "081b32dc-74ec-46a2-b389-b8b25ee5d33f",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 900,
+          "period": "2026-05",
+          "createdAt": 14,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-05-15"
+        },
+        {
+          "id": "23817720-6529-44ab-9e35-d5925ce20adb",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 400,
+          "period": "2026-03",
+          "createdAt": 13,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-03-15"
+        },
+        {
+          "id": "45b3ff27-e9d7-4c92-b6a4-eae75743a4d5",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 1500,
+          "period": "2026-01",
+          "createdAt": 12,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-01-15"
+        }
+      ],
+      "startMonth": "2026-01",
+      "openingBalance": 800
+    },
+    "L3": {
+      "ownerId": "l",
+      "nodes": [
+        {
+          "id": "g-i",
+          "ownerId": "l",
+          "type": "income",
+          "level": "group",
+          "parentId": null,
+          "name": "Ingresos",
+          "icon": null,
+          "order": 0
+        },
+        {
+          "id": "ing",
+          "ownerId": "l",
+          "type": "income",
+          "level": "category",
+          "parentId": "g-i",
+          "name": "Sueldo",
+          "icon": null,
+          "order": 1
+        },
+        {
+          "id": "g-e",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "group",
+          "parentId": null,
+          "name": "Gastos",
+          "icon": null,
+          "order": 2
+        },
+        {
+          "id": "gas",
+          "ownerId": "l",
+          "type": "expense",
+          "level": "category",
+          "parentId": "g-e",
+          "name": "Mercado",
+          "icon": null,
+          "order": 3
+        },
+        {
+          "id": "g-t",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "group",
+          "parentId": null,
+          "name": "Reservas",
+          "icon": null,
+          "order": 4
+        },
+        {
+          "id": "A",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Ahorro",
+          "icon": null,
+          "order": 5
+        },
+        {
+          "id": "B",
+          "ownerId": "l",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Viaje",
+          "icon": null,
+          "order": 6
+        }
+      ],
+      "budgets": {
+        "ing": {
+          "2026-01": 2000,
+          "2026-02": 2000,
+          "2026-03": 2000,
+          "2026-04": 2000,
+          "2026-05": 2000,
+          "2026-06": 2000,
+          "2026-07": 2000,
+          "2026-08": 2000,
+          "2026-09": 2000,
+          "2026-10": 2000,
+          "2026-11": 2000,
+          "2026-12": 2000
+        },
+        "gas": {
+          "2026-01": 800,
+          "2026-02": 800,
+          "2026-03": 800,
+          "2026-04": 800,
+          "2026-05": 800,
+          "2026-06": 800,
+          "2026-07": 800,
+          "2026-08": 800,
+          "2026-09": 800,
+          "2026-10": 800,
+          "2026-11": 800,
+          "2026-12": 800
+        },
+        "A": {
+          "2026-01": 600,
+          "2026-02": 700,
+          "2026-03": 800,
+          "2026-04": 600,
+          "2026-05": 700,
+          "2026-06": 800,
+          "2026-07": 600,
+          "2026-08": 700,
+          "2026-09": 800,
+          "2026-10": 600,
+          "2026-11": 700,
+          "2026-12": 800
+        },
+        "@retiros": {
+          "2026-04": 300,
+          "2026-08": 900,
+          "2026-11": 100
+        }
+      },
+      "actuals": {
+        "ing": {
+          "2026-01": 2000,
+          "2026-02": 2000,
+          "2026-03": 2000,
+          "2026-04": 2000,
+          "2026-05": 2000,
+          "2026-06": 2000,
+          "2026-07": 2000,
+          "2026-08": 2000,
+          "2026-09": 2000,
+          "2026-10": 2000,
+          "2026-11": 2000,
+          "2026-12": 2000
+        },
+        "gas": {
+          "2026-01": 700,
+          "2026-02": 700,
+          "2026-03": 700,
+          "2026-04": 700,
+          "2026-05": 700,
+          "2026-06": 700,
+          "2026-07": 700,
+          "2026-08": 700,
+          "2026-09": 700,
+          "2026-10": 700,
+          "2026-11": 700,
+          "2026-12": 700
+        },
+        "A": {
+          "2026-02": 1000
+        }
+      },
+      "movements": [
+        {
+          "id": "c750222e-a165-4f71-89f5-423529addaf4",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 500,
+          "period": "2026-06",
+          "createdAt": 17,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-06-15"
+        },
+        {
+          "id": "1e40b953-23c8-41da-aace-9627c01dd309",
+          "ownerId": "l",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 1000,
+          "period": "2026-02",
+          "createdAt": 16,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-02-15"
+        }
+      ]
+    }
+  },
+  "plan": {
+    "L1": [
+      {
+        "cellHeadroomA": 0,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-01",
+              "limit": 0
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 100,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-02",
+              "limit": 100
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 200,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-03",
+              "limit": 200
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 1250,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-04",
+              "limit": 1250
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 1450,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-05",
+              "limit": 1450
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2350,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-06",
+              "limit": 2350
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2550,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-07",
+              "limit": 2550
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 3450,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-08",
+              "limit": 3450
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 3550,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-09",
+              "limit": 3550
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 4250,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-10",
+              "limit": 4250
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 5500,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 5600,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      }
+    ],
+    "L2": [
+      {
+        "cellHeadroomA": 800,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-01",
+              "limit": 800
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 200,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-02",
+              "limit": 200
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 1100,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-03",
+              "limit": 1100
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 1100,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-04",
+              "limit": 1100
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2000,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-05",
+              "limit": 2000
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2000,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-06",
+              "limit": 2000
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2900,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-07",
+              "limit": 2900
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 3800,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-08",
+              "limit": 3800
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 4700,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-09",
+              "limit": 4700
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 6200,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 7100,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 8000,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      }
+    ],
+    "L3": [
+      {
+        "cellHeadroomA": 1200,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-01",
+              "limit": 600
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2500,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-02",
+              "limit": 1800
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 2800,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-03",
+              "limit": 2000
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 4400,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": [
+            {
+              "rule": "techo",
+              "period": "2026-04",
+              "limit": 3800
+            }
+          ]
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 5400,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 6700,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 8500,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 10700,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 11100,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 12400,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 13800,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      },
+      {
+        "cellHeadroomA": 15000,
+        "carry": null,
+        "verdict": {
+          "ok": true,
+          "warnings": []
+        },
+        "retiroPlaneado": []
+      }
+    ]
+  }
+}
