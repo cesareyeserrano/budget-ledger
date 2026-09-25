@@ -1,15 +1,17 @@
 {
-  "currentPhase": 1,
+  "currentPhase": 2,
   "approvedPhases": [
-    1
+    1,
+    2
   ],
   "completedPhases": [
-    1
+    1,
+    2
   ],
   "projectName": "retirar-para-gastar",
   "createdAt": "2026-09-24T23:58:52.294Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-25T00:23:41.469Z",
+  "updatedAt": "2026-09-25T13:23:58.017Z",
   "driftPhases": [],
   "events": [
     {
@@ -32,10 +34,37 @@
       "event": "approved",
       "phase": 1,
       "ideaArchived": true
+    },
+    {
+      "at": "2026-09-25T12:29:32.547Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T12:33:11.884Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:23:57.993Z",
+      "event": "approved",
+      "phase": 2
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "ad09ec0686382a4e0462c35871d66b6b3e8593b5fce9397ab361627605e8d1b6"
+    "1": "ad09ec0686382a4e0462c35871d66b6b3e8593b5fce9397ab361627605e8d1b6",
+    "2": "8aa856c020d8fba77188f1c9a2e40342de657753fc39ac12ca08cebe5a2d4a22"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
+    ]
   }
 }
