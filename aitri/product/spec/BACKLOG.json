@@ -80,17 +80,9 @@
       "title": "Memoizar los roll-ups de la grilla y medir NFR-103 a escala real",
       "priority": "P2",
       "problem": "BudgetGrid.tsx:435-444 y :325-334 recalculan rollupBudget/rollupActual y typeTotals por celda (12 meses x fila), cada uno O(n^2) por los escaneos de childrenOf/isLeaf. Ademas NodeRow y TypeTotalRow se suscriben al objeto data completo, asi que toda fila re-renderiza ante cualquier cambio (el diseno prometia selectores memoizados). El test del guardrail tests/domain/rollup-perf.test.ts:49 solo mide sobre buildSeed() (12 nodos), el unico tamano donde no puede fallar.",
-      "status": "closed",
+      "status": "open",
       "createdAt": "2026-07-28T19:58:59.134Z",
-      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms.",
-      "log": [
-        {
-          "at": "2026-09-25T20:34:59.336Z",
-          "text": "Cerrado como no necesario por decision del usuario (2026-09-25). Medido el recomputo completo de la grilla (rollupBudget/rollupActual por nodo y mes + typeTotals) con el codigo actual: 30 nodos/12 meses 0.6 ms; 234 nodos (180 hojas)/12 meses 9.6 ms; 234/24 meses 18 ms; 444 nodos (360 hojas)/24 meses 62 ms. Umbral NFR-103: 150 ms; la cuenta de dev tiene 35 nodos. El criterio del item (~200 hojas bajo 150 ms) ya se cumple sin cambios. Comparado: Excel/Actual Budget usan grafo de dependencias con recalculo incremental; hledger recalcula todo en cada corrida. Recalcular todo es valido a esta escala y nunca muestra un total viejo. No se midio el coste de re-render de React; retomar solo si el usuario nota la grilla lenta."
-        }
-      ],
-      "updatedAt": "2026-09-25T20:34:59.336Z",
-      "closedAt": "2026-09-25T20:34:59.446Z"
+      "acceptance": "Un indice hijos-por-padre y una tabla de roll-ups por mes calculados una vez en un useMemo del contenedor; rollup-perf.test.ts incluye un caso con ~200 hojas que sigue bajo 150ms."
     },
     {
       "id": "BL-010",
