@@ -1,0 +1,150 @@
+{
+  "project": "retirar-para-gastar",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale) y SIN MIGRACIONES. Cambia una regla del dominio, que navegador y servidor aplican desde la misma función. Rollback: volver la imagen, sin pérdida de datos. Escrito en aitri/features/retirar-para-gastar/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/retirar-para-gastar/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-2801",
+      "title": "El techo de Ejecutado se consume con lo reservado neto del mes",
+      "level": "complete",
+      "evidence": "6 TCs en verde. El retiro devuelve cupo: tras reservar 1.000 y sacar 500 quedan 500 (TC-RPG-001h, antes 0); 501 se rechaza con limit 500 sin mutar (002f); el límite exacto entra (003e); un mover no libera cupo (004e); un mes de retiro neto queda acotado por el arrastre (005e); y la propiedad a escala de 24 meses y 2.000 operaciones da 0 discrepancias entre el «Máx.» anunciado y el veredicto (006e) — la misma propiedad encontraba 1.311 contra el código anterior."
+    },
+    {
+      "id": "FR-2802",
+      "title": "Sacar de un bolsillo para cubrir un gasto del mes no marca el mes como error",
+      "level": "complete",
+      "evidence": "5 TCs en verde. Sacar 300 para cubrir el gasto deja junio sin marca (TC-RPG-021h, antes techo:300); sin sacar, la marca legítima de 300 sigue (022f); sacar 200 la deja en 100 (023e); cerrar el mes no cambia el veredicto (024e); sacar más de lo que hay sigue rechazado por el piso (025f)."
+    },
+    {
+      "id": "FR-2803",
+      "title": "La plata que entra después de sacar se puede reservar entera",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Con disponible 400 se reservan los 400 (TC-RPG-031h, antes rechazado con limit 100); 401 se rechaza con limit 400 sin mutar (032f); el «Máx.» del registro (400) y el de la celda (1.400) son exactamente el límite del rechazo (033e)."
+    },
+    {
+      "id": "FR-2804",
+      "title": "Una celda de bolsillo corregida en el ciclo de sacar para gastar se puede volver a subir",
+      "level": "complete",
+      "evidence": "3 TCs en verde. El dedazo 1.000→900 se deshace volviendo a 1.000 (TC-RPG-041h, antes rechazado con limit 0); 1.001 se rechaza con el incremento exacto y la celda no cambia (042f); bajar hasta lo ya sacado es el límite del piso (043e)."
+    },
+    {
+      "id": "FR-2805",
+      "title": "La observación «salieron del saldo anterior» cuenta lo reservado neto",
+      "level": "complete",
+      "evidence": "3 TCs en verde. La nota falsa «300 salieron del saldo de mayo» ya no aparece (TC-RPG-051f); sin retiros la nota sigue atribuyendo lo que no cabe en el flujo, con el texto exacto de la app (052h); un retiro parcial reduce lo atribuido (053e)."
+    },
+    {
+      "id": "FR-2806",
+      "title": "Los meses marcados con la regla vieja se re-evalúan solos con la regla nueva",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Un snapshot guardado con el ciclo prescrito, que con la regla vieja daba exceso 300, carga sin marca (TC-RPG-061h); un mes realmente violado sigue marcado con 200 (062f); ida y vuelta por Postgres real: celdas y movimientos idénticos y sin marca (063e). Sin migraciones."
+    },
+    {
+      "id": "FR-2807",
+      "title": "El servidor aplica la misma regla neta que el navegador",
+      "level": "complete",
+      "evidence": "5 TCs en verde. Contra Postgres real y las rutas reales: el PUT con el retiro responde 200 y lo persiste (TC-RPG-071h); reservar 401 responde 422 domain_rule_violation con limit 400 y no persiste (072f); borrar el retiro del encierro responde 422 (073f); reservar exactamente 400 responde 200 (074e); POST /api/v1/movements con el retiro responde 201 (075h). El guardia sigue delegando en chainCheck."
+    },
+    {
+      "id": "NFR-2801",
+      "title": "Sacar de un bolsillo más de lo que tiene sigue rechazado (regla del piso, FR-1802), incluido el tope encadenado de maxWithdrawal.",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Sacar todo lo que tiene el bolsillo entra; un peso más se rechaza por el piso; el tope encadenado ve un retiro posterior (TC-RPG-101h, 102f, 103e)."
+    },
+    {
+      "id": "NFR-2802",
+      "title": "El encierro original sigue bloqueado: ninguna operación puede dejar un mes con el disponible más negativo de lo que ya estaba (regla del déf",
+      "level": "complete",
+      "evidence": "4 TCs en verde. El encierro sigue bloqueado: borrar el retiro (111f) y bajarlo a 400 (112f) se rechazan sin mutar; un sobregasto legado no bloquea escrituras de otro mes (113h); subir el retiro, que mejora, se acepta (114e)."
+    },
+    {
+      "id": "NFR-2803",
+      "title": "No hay doble consumo entre meses: disponible(m) = disponible(m−1) + ingresos(m) − gastos(m) − (aportes(m) − retiros(m)) se sigue cumpliendo ",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Los 36 disponibles del Balance de tres ledgers son idénticos a la línea base capturada con el código anterior sobre 99c7513 (TC-RPG-121h); la identidad del disponible se cumple mes a mes (122e); reservar en enero y sacar en marzo no consume dos veces (123f)."
+    },
+    {
+      "id": "NFR-2804",
+      "title": "Los meses cerrados siguen congelados: una escritura sobre un mes cerrado sigue rechazada con 422 closed_period_violation (FR-2507), también ",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Con junio cerrado, el PUT con el retiro responde 422 closed_period_violation aunque la regla neta lo aceptaría (TC-RPG-131f); abierto responde 200 (132h); reabierto también (133e)."
+    },
+    {
+      "id": "NFR-2805",
+      "title": "El plano Presupuestado no cambia: su consumo, su margen, sus avisos (que no bloquean) y su observación siguen idénticos.",
+      "level": "partial",
+      "evidence": "3 TCs en verde. El plano Presupuestado da exactamente lo mismo que la línea base capturada sobre 99c7513 en 3 ledgers × 12 meses (TC-RPG-141h); una escritura de plan sobre el techo sigue avisando sin bloquear (142f); el retiro planeado conserva su semántica (143e). partial y no complete por la deuda declarada: el barrido del plan no se exporta y se observa a través de las cuatro funciones públicas que derivan de él."
+    },
+    {
+      "id": "NFR-2806",
+      "title": "El guardia de borrado de bolsillos no cambia: borrar un bolsillo que recibió y entregó plata sigue bloqueado si alteraría el saldo de otro b",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Recibe y entrega a un tercero: bloqueado con has_operations (TC-RPG-151f); recibió por un mover y sacó todo: se borra, y con saldo dentro se bloquea con has_data (152h); un gasto con journal histórico sigue borrable (153e). Corregido durante la fase 4: la versión anterior del requisito afirmaba algo falso desde BG-019."
+    },
+    {
+      "id": "NFR-2807",
+      "title": "El retiro planeado por encima de lo que el plan reserva sigue marcándose como error del mes (BG-020).",
+      "level": "complete",
+      "evidence": "3 TCs en verde. El retiro planeado por encima del aporte planeado sigue marcado con su exceso exacto: 400, 0 y 1 (TC-RPG-161f, 162h, 163e)."
+    },
+    {
+      "id": "NFR-2808",
+      "title": "Las celdas descuadradas contra sus movimientos siguen marcándose como problema del mes y bloqueando su cierre (FR-2511, FR-2512).",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Una celda descuadrada bloquea el cierre con 422 unbalanced_cells (TC-RPG-171f); cuadrada, el cierre entra (172h); el aviso de descuadre sale junto al veredicto neto del techo (173e)."
+    },
+    {
+      "id": "NFR-2809",
+      "title": "El cambio de regla no añade barridos del techo: la memoización de techoScan sigue sirviendo el encabezado de mes, el «Máx.» y las marcas con",
+      "level": "complete",
+      "evidence": "3 TCs en verde. Un barrido por estado y plano (TC-RPG-181h); un estado nuevo provoca uno nuevo (182f); repetir consultas no barre de nuevo (183e)."
+    },
+    {
+      "id": "NFR-2810",
+      "title": "Seguridad — no aplica",
+      "level": "complete",
+      "evidence": "Declarado «No aplica» en la fase 1: sin rutas, entradas ni dependencias nuevas. Las pruebas de autenticación y del guardia existentes siguen en verde en unit.sh (1261/1261). El escaneo general corre en CI (SEC-GATE declarado)."
+    },
+    {
+      "id": "NFR-2811",
+      "title": "Observabilidad — no aplica",
+      "level": "complete",
+      "evidence": "Sin procesos, rutas ni trabajos nuevos: git diff 99c7513..HEAD no toca src/server ni src/app."
+    },
+    {
+      "id": "NFR-2812",
+      "title": "CI existente sin cambios",
+      "level": "complete",
+      "evidence": ".github/workflows/ci.yml no se modificó: dispara en push a main y en pull_request a main, staging y develop; instala con npm ci; corre npm run test:run (vitest run, la misma suite que ../../../unit.sh) y la suite Playwright de backend. Las pruebas nuevas viven bajo tests/, donde ese job ya las recoge."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "NFR-2805",
+      "substitution": "TC-RPG-141h observa el plano Presupuestado a través de las cuatro funciones públicas que derivan de su barrido (cellHeadroom, monthCarryUsage, validateReserveWrite y la marca retiro_planeado de monthIssues) en vez de leer directamente margen, consumo y exceso del barrido del plan",
+      "reason": "techoScan/techoScanRaw no se exportan y exportarlos solo para la prueba ampliaría la superficie pública del dominio; las cuatro funciones consumen exactamente esas series, así que un cambio en ellas se ve en su salida. La línea base se capturó sobre 99c7513, con el código anterior al cambio.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "SEC-GATE",
+      "substitution": "no security quality_gate declared",
+      "reason": "El escaneo de seguridad del proyecto corre en CI como job propio (npm audit --audit-level=high y scripts/secret-scan.sh, más CodeQL en su workflow), fuera de los gates de Aitri; esta feature no añade rutas, entradas ni dependencias y NFR-2810 está declarado «No aplica».",
+      "effort_to_fix": "low"
+    }
+  ],
+  "verification_note": "Evidencia: aitri feature verify-run retirar-para-gastar del 2026-09-25 — 56/56 TCs, cinco quality gates en pass (typecheck, lint, coverage, smoke, e2e 2m39s), exit 0, arrancado con carga 1,43 y sin procesos de prueba vivos. Antes, en la fase 4: ./unit.sh completo 1261/1261 exit 0. Las pruebas nuevas se corrieron primero contra el código anterior: fallaron las de la regla nueva y pasaron las de regresión.",
+  "overall_status_note": "partial y no compliant por NFR-2805 (MUST, regresión), que arrastra la deuda declarada: el plano Presupuestado se verifica a través de las funciones públicas que derivan de su barrido, no leyendo el barrido. Ningún requisito está sin cubrir ni tiene pruebas en rojo. Durante la fase 4 se reabrieron las fases 1-3, con decisión del usuario y sin cambio de alcance, para corregir NFR-2806, que afirmaba algo falso desde BG-019. Ocho pruebas de otras features que fijaban la regla vieja se reescribieron conservando su id y su intención (ADR-03/04/05)."
+}
