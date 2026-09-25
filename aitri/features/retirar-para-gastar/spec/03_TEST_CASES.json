@@ -711,15 +711,15 @@
       "requirement_id": "NFR-2806",
       "user_story_id": "US-2802",
       "ac_id": "AC-2804",
-      "title": "borrar un bolsillo que solo recibió sigue permitido",
+      "title": "borrar un bolsillo que recibió y sacó todo (saldo 0) sigue permitido",
       "type": "unit",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "A recibió 500 de @disponible y no entregó nada",
-      "when": "deleteNode(state, 'A')",
-      "then": "se permite y la plata vuelve a Disponible",
-      "expected_result": "aceptado; available del mes sube 500"
+      "given": "B recibe 500 de @disponible en enero y los mueve a A (el mover no escribe celda en A, FR-1601); en febrero A saca los 500 a @disponible (saldo de A 0)",
+      "when": "deleteBlockReason(state, 'A') y deleteNode(state, 'A')",
+      "then": "no hay bloqueo y el borrado se acepta; en cambio, con A todavía con los 500 dentro, el bloqueo es 'has_data' (BG-019)",
+      "expected_result": "deleteBlockReason = null y deleteNode devuelve {state}; con saldo 500, deleteBlockReason = 'has_data'"
     },
     {
       "id": "TC-RPG-153e",

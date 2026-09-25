@@ -1,5 +1,5 @@
 {
-  "currentPhase": 3,
+  "currentPhase": 4,
   "approvedPhases": [
     1,
     2,
@@ -8,50 +8,15 @@
   "completedPhases": [
     1,
     2,
-    3
+    3,
+    4
   ],
   "projectName": "retirar-para-gastar",
   "createdAt": "2026-09-24T23:58:52.294Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-25T13:28:57.107Z",
+  "updatedAt": "2026-09-25T13:44:19.719Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-25T00:00:34.214Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-25T00:04:03.349Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-25T00:23:41.308Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-25T00:23:41.439Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
-    {
-      "at": "2026-09-25T12:29:32.547Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-25T12:33:11.884Z",
-      "event": "completed",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-25T13:23:57.993Z",
-      "event": "approved",
-      "phase": 2
-    },
     {
       "at": "2026-09-25T13:24:11.917Z",
       "event": "started",
@@ -66,13 +31,99 @@
       "at": "2026-09-25T13:28:57.091Z",
       "event": "approved",
       "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:28:57.185Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-25T13:42:40.932Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:42:40.986Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:42:47.287Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.619Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.673Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.728Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:42:56.813Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:42:56.866Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:36.913Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:43:36.968Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:43:37.032Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:40.980Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:43:41.032Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:43:41.085Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:49.321Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-25T13:44:19.702Z",
+      "event": "completed",
+      "phase": 4
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "ad09ec0686382a4e0462c35871d66b6b3e8593b5fce9397ab361627605e8d1b6",
+    "1": "659442e3b7644703217dba3e63282274bfec012115a2e8452796ab6e6c28543f",
     "2": "8aa856c020d8fba77188f1c9a2e40342de657753fc39ac12ca08cebe5a2d4a22",
-    "3": "4f2bd930d13763c4aa8653a9ac9cb86060bcfdae1effe0839a87278daf91de75"
+    "3": "e168d0a8536a689c5b4da3914ed9e995ef7db2dc330a848f0353e9306d28e79b",
+    "4": "b115fec00d0641bfde590fb0c8d9cf338c483076abdfab488bdb0cc892ac847b"
   },
   "frSnapshots": {
     "2": [
@@ -93,5 +144,6 @@
       "FR-2806",
       "FR-2807"
     ]
-  }
+  },
+  "verifyPassed": false
 }

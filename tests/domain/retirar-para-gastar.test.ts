@@ -561,6 +561,20 @@ describe("NFR-2806 · borrar un bolsillo que afectaría a otro sigue bloqueado",
     expect("blocked" in d && d.blocked).toBe("has_operations");
   });
 
+  it("TC-RPG-152h: borrar un bolsillo que recibió y sacó todo (saldo 0) sigue permitido", () => {
+    // @aitri-tc TC-RPG-152h
+    // A recibe su plata por un MOVER desde B, que no escribe celda en A (FR-1601): así lo único que
+    // puede bloquear el borrado es su SALDO. Con saldo dentro se bloquea desde BG-019 (decisión del
+    // usuario, 2026-09-08); vaciado del todo, se borra. Un aporte desde Disponible sí escribiría la
+    // celda de A, y una celda con monto bloquea por datos (FR-110) sea cual sea el saldo.
+    const recibido = op(op(ledger({ [ENE]: { ing: 500 } }), D, "B", ENE, 500), "B", "A", ENE, 500);
+    expect(deleteBlockReason(recibido, "A", P)).toBe("has_data");
+    const vacio = op(recibido, "A", D, FEB, 500);
+    expect(resolvedSeries(vacio, "A", "actual", P)[P.length - 1]).toBe(0);
+    expect(deleteBlockReason(vacio, "A", P)).toBeNull();
+    expect("state" in deleteNode(vacio, "A", P)).toBe(true);
+  });
+
   it("TC-RPG-153e: borrar un gasto con journal histórico sigue permitido (BG-006)", () => {
     // @aitri-tc TC-RPG-153e
     let s = ledger({ [ENE]: { ing: 1000 } });

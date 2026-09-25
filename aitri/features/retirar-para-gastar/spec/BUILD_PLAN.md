@@ -2,7 +2,7 @@
 
 Plan de la primera generación (2026-09-25). Una sola epic: la feature es una línea de regla y sus pruebas.
 
-## EP-01 — El techo de Ejecutado se consume en neto   [status: in-progress]
+## EP-01 — El techo de Ejecutado se consume en neto   [status: done]
   Delivers:    US-2801, US-2802, US-2803, US-2804, US-2805, US-2806, US-2807
   FRs:         FR-2801, FR-2802, FR-2803, FR-2804, FR-2805, FR-2806, FR-2807
   Makes pass:  TC-RPG-001h, TC-RPG-002f, TC-RPG-003e, TC-RPG-004e, TC-RPG-005e, TC-RPG-006e,
@@ -29,4 +29,7 @@ Orden interno:
 5. Correr unit.sh, typecheck y lint; después `aitri feature verify-run`.
 
 ## Evidencia
-(se completa al cerrar la epic)
+- 2026-09-25: los 56 TCs escritos. Contra el código viejo fallaron los de la regla nueva y pasaron los de regresión.
+- d22b1b0: cambio de regla. 0684671 y cbfd3f5: las 8 pruebas que fijaban la regla vieja, reescritas y con anclas avanzadas.
+- unit.sh completo: 1261/1261 (EXIT 0). Tras reabrir fases 1-3 por NFR-2806, TC-RPG-152h añadido: dominio 45/45, integración 11/11.
+- typecheck 0 errores, lint limpio.

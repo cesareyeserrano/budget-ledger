@@ -318,8 +318,8 @@
       "id": "NFR-2806",
       "category": "Regression",
       "priority": "MUST",
-      "requirement": "Borrar un bolsillo que recibió y entregó plata sigue bloqueado si alteraría el saldo de otro bolsillo superviviente (BG-023), y borrar uno que solo recibió sigue permitido.",
-      "acceptance_criteria": "Los tres casos de regresión de BG-023 en tests/domain/techo-de-flujo.test.ts siguen pasando: recibe+entrega → bloqueado con 'has_operations'; solo recibe → permitido; gasto con journal histórico → permitido (BG-006)."
+      "requirement": "El guardia de borrado de bolsillos no cambia: borrar un bolsillo que recibió y entregó plata sigue bloqueado si alteraría el saldo de otro bolsillo superviviente (BG-023); borrar un bolsillo que todavía tiene saldo sigue bloqueado (BG-019, decisión del usuario del 2026-09-08); y borrar uno que recibió su plata por un mover desde otro bolsillo y la sacó toda (sin celda propia, saldo 0) sigue permitido. Un aporte desde Disponible escribe la celda del bolsillo, y una celda con monto bloquea por datos (FR-110) sea cual sea el saldo. Corregido el 2026-09-25: la versión anterior decía que borrar un bolsillo que solo recibió seguía permitido, lo que dejó de ser cierto con BG-019.",
+      "acceptance_criteria": "Recibe de B y entrega a C, que después saca: deleteBlockReason('A') = 'has_operations' y deleteNode rechaza sin mutar; recibe 500 por un mover desde B y no saca nada: deleteBlockReason('A') = 'has_data'; recibe 500 por un mover desde B y saca los 500 (saldo 0, sin celda): deleteBlockReason('A') = null y deleteNode lo acepta; un gasto con journal histórico y celda en 0 sigue borrable (BG-006)."
     },
     {
       "id": "NFR-2807",
