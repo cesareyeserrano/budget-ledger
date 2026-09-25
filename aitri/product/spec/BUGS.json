@@ -7066,6 +7066,29 @@
         "tests/fixtures/retirar-para-gastar-snapshot.json",
         "tests/integration/backend/retirar-para-gastar.test.ts"
       ]
+    },
+    {
+      "id": "BG-046",
+      "title": "Volver de ciclos a mes a mes puede descuadrar celdas de Ejecutado: restoreParts reparte el residuo de una celda que junto dos meses sin mirar sus movimientos, y applyCyclesFor no comprueba descuadres (solo totales). Afecta a memoria de origen grabada antes de diario-de-celda (residuo != 0) cuando hoy el residuo real es 0",
+      "description": "",
+      "steps_to_reproduce": [
+        "Celda de ciclo 2026-09 = 1000 con un ajuste de 1000 y memoria de origen {2026-08: 600, 2026-09: 400}",
+        "Volver a modo mes a mes (applyCyclesFor → relocate → restoreParts, cycles.ts:681-697 y 803-808)"
+      ],
+      "expected_result": "Cada celda de Ejecutado de gasto/ingreso sigue igual a la suma de sus movimientos (el movimiento de 1000 vuelve a su mes y la celda con el)",
+      "actual_result": "Agosto = 600 con suma 0 y septiembre = 400 con suma 1000: dos celdas descuadradas; cyclesRepo.ts:153 solo compara totales",
+      "environment": "dominio (reproducido con script tsx en el scratchpad); BD de dev sin el caso",
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": 4,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-25T22:44:04.731Z",
+      "updated_at": "2026-09-25T22:44:04.731Z",
+      "resolution": null
     }
   ]
 }

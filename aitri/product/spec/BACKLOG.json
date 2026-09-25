@@ -588,8 +588,16 @@
       "title": "Deuda de diseno: lo gastado se guarda dos veces (celda y diario); derivarlo del diario",
       "priority": "P2",
       "problem": "Revision contable del 2026-09-15 (feature diario-de-celda, fase 2). El valor de Ejecutado de gasto e ingreso vive guardado en amount_cell (kind='actual', src/server/data/ledgerRepo.ts:138-142) y a la vez en el diario de movimientos. Dos fuentes de verdad son la raiz de todo descuadre posible. En contabilidad el saldo se DERIVA del diario, no se guarda aparte. diario-de-celda eligio conservar el guardado (ADR-01, opcion A) porque derivarlo toca cierre, reubicacion de ciclos, balance, migraciones v4/v5 y las suites de mas de 20 features; la alerta de descuadre (FR-2511) y el bloqueo de cierre (FR-2512) son el parche. El usuario acepto anotarlo como deuda.",
-      "status": "open",
-      "createdAt": "2026-09-15T13:10:35.309Z"
+      "status": "closed",
+      "createdAt": "2026-09-15T13:10:35.309Z",
+      "log": [
+        {
+          "at": "2026-09-25T22:44:04.519Z",
+          "text": "Cerrado como resuelto en la practica (decision del usuario 2026-09-25). Auditoria de todas las vias de escritura: addMovement, teclear Ejecutado (adjustCell, que ademas repara), editar/borrar movimiento, crear/mover/fusionar/borrar nodos, POST/PATCH/DELETE del servidor y la activacion de ciclos mantienen celda == suma de movimientos; el PUT rechaza cualquier descuadre nuevo (worsenedCellMismatches, ledgerRepo.ts:592). BD de dev: 25 celdas de gasto/ingreso, 0 descuadres. El diseno sigue guardando dos valores, pero ninguna via normal los separa. Excepcion encontrada (volver de ciclos a mes con memoria de origen previa a diario-de-celda) registrada como bug aparte."
+        }
+      ],
+      "updatedAt": "2026-09-25T22:44:04.519Z",
+      "closedAt": "2026-09-25T22:44:04.635Z"
     },
     {
       "id": "BL-053",
