@@ -1,0 +1,207 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "retirar-para-gastar",
+  "createdAt": "2026-09-24T23:58:52.294Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-25T15:17:12.383Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-25T13:42:47.287Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.619Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.673Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:42:56.728Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:42:56.813Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:42:56.866Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:36.913Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:43:36.968Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:43:37.032Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:40.980Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-25T13:43:41.032Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-25T13:43:41.085Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-25T13:43:49.321Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-25T13:44:19.702Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-25T14:06:00.602Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-25T14:13:17.148Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-25T14:13:29.565Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-25T14:13:35.707Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-25T14:14:41.857Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-25T15:17:12.363Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "659442e3b7644703217dba3e63282274bfec012115a2e8452796ab6e6c28543f",
+    "2": "8aa856c020d8fba77188f1c9a2e40342de657753fc39ac12ca08cebe5a2d4a22",
+    "3": "e168d0a8536a689c5b4da3914ed9e995ef7db2dc330a848f0353e9306d28e79b",
+    "4": "b115fec00d0641bfde590fb0c8d9cf338c483076abdfab488bdb0cc892ac847b",
+    "5": "59071c1df90a25621d96fac10a93f5f14e569c6240c4f0c185da5bce02d8475c"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
+    ],
+    "3": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
+    ],
+    "4": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
+    ],
+    "5": [
+      "FR-2801",
+      "FR-2802",
+      "FR-2803",
+      "FR-2804",
+      "FR-2805",
+      "FR-2806",
+      "FR-2807"
+    ]
+  },
+  "verifyPassed": true,
+  "verifyResultsHash": "791d9a3276ad929ac30402847d727a5c7b76170b2321572d902759c91022c2ad",
+  "verifyRanAt": "2026-09-25T14:13:17.108Z",
+  "verifyRanRef": "92d5d76426f33dde63418aad5729d9ecad1a449e",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-25T14:13:17.108Z"
+  },
+  "verifySummary": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-25T15:17:12.360Z"
+    }
+  ]
+}

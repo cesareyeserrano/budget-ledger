@@ -686,9 +686,9 @@ export function cellHeadroom(
  * posteriores ya retiraron de esa misma plata).
  *
  * Un retiro de Δ en el mes `m` baja el saldo de la alcancía en `m..dic`, así que el tope es el
- * MÍNIMO de su serie de saldos de ahí en adelante. Es la única regla que un retiro puede romper: el
- * techo no ve retiros (consumo bruto, FR-1801) y el déficit solo MEJORA al sacar (la plata vuelve a
- * la cuenta). También vale para el origen de un MOVER, que enfrenta el mismo piso.
+ * MÍNIMO de su serie de saldos de ahí en adelante. Es la única regla que un retiro puede romper:
+ * sacar baja el consumo neto del mes (FR-2801) y sube el arrastre, así que techo y déficit solo
+ * MEJORAN al sacar. También vale para el origen de un MOVER, que enfrenta el mismo piso.
  *
  * @param state Estado del ledger (no se muta).
  * @param leafId Alcancía de origen.
@@ -711,7 +711,7 @@ export function maxWithdrawal(
 
 /** Lo que un mes tomó del saldo que traía, cuando sus reservas no cupieron en su propio flujo. */
 export interface CarryUsage {
-  /** Lo reservado en el mes: bruto en Ejecutado; en el plan es el neto (ADR-08). */
+  /** Lo reservado NETO en el mes (aportes − retiros), en los dos planos (FR-2805; el plan, ADR-08). */
   reservado: number;
   /** Cuánto de eso salió del saldo con que cerró el mes anterior. Siempre > 0. */
   delSaldoAnterior: number;
@@ -887,21 +887,31 @@ export function monthIssues(state: LedgerState, periods: PeriodScope): readonly 
  *     excess(m)   = max(0, consumo − margen)     → gobierna las escrituras de aporte
  *     deficit(m)  = max(0, −arrastre)            → gobierna las operaciones sobre retiros
  *
- * En Ejecutado el consumo son los aportes BRUTOS: un retiro devuelve la plata a la cuenta, pero NO
- * devuelve cupo del mes. Regla del usuario (2026-08-31): «el techo para reservas = ingresos del mes
- * − gastos del mes + Saldo mes anterior». Con el consumo NETO que había antes, reservar 1.000 de un
- * ingreso de 1.000 y retirar 500 volvía a ofrecer 500 de cupo y dejaba teclear 1.500 en el mes.
+ * En Ejecutado el consumo es lo reservado NETO del mes (aportes − retiros a Disponible): sacar de un
+ * bolsillo devuelve la plata a la cuenta Y devuelve cupo. Regla del usuario (2026-09-01, confirmada
+ * el 2026-09-24 en la feature retirar-para-gastar): «puedes reservar hasta lo que tengas disponible
+ * en el mes; puedes sacar hasta lo que haya en el bolsillo; ninguna operación puede dejar un mes con
+ * gastos sin cubrir». Puede ser negativo en un mes de retiro neto; `excess`, el cupo y la
+ * observación de FR-1804 ya lo acotan con `max(0, ·)`.
  *
- * En Presupuestado el consumo sigue siendo el NETO (ADR-08): la operación que motivó la regla
- * —retirar y volver a reservar el mismo mes— no existe en el plan, donde el retiro planeado es una
- * cifra y no un journal. El aviso del plan conserva así su comportamiento exacto (NFR-1803).
+ * HISTORIA — por qué hubo consumo BRUTO y por qué se retiró. FR-1801 (techo-de-flujo, 2026-08-31)
+ * lo introdujo para que reservar 1.000 de un ingreso de 1.000, sacar 500 y teclear 1.500 no se
+ * aceptara. Pero castigaba el ciclo que la propia app prescribe para cubrir un gasto con reservas:
+ * reservar, gastar y sacar de la reserva dejaba el mes marcado como error para siempre, impedía
+ * reservar la plata que entraba después y hacía irreversible corregir esa celda (BL-037, BL-038).
+ * Medido el 2026-09-24: junio con 1.000 de ingreso, 1.000 reservados, 300 de gasto y 300 sacados
+ * quedaba con techo:300; bajar la celda a 700 daba los MISMOS números sin marca. El caso del 1.500
+ * se acepta ahora a sabiendas: la celda dice lo aportado y el cajón lo que hay (BL-041, aparte).
+ * Lo que sigue bloqueado es el encierro: `deficit` impide dejar un mes en negativo.
  *
- * `deficit` es la serie que hace falta para que la validación vea las operaciones sobre retiros:
- * bajo consumo bruto, quitar o bajar un retiro NO cambia el consumo de su mes —luego tampoco su
- * exceso— pero sí empeora el arrastre. Se mide sobre `arrastre` ANTES del acote a 0 de `margen`,
- * que es justo lo que oculta un disponible negativo.
+ * En Presupuestado el consumo ya era el NETO (ADR-08) y no cambia (NFR-2805).
  *
- * @aitri-trace FR-ID: FR-1801, US-ID: US-1801, AC-ID: AC-1801, TC-ID: TC-TDF-001h, TC-TDF-006e
+ * `deficit` es la regla que ve dejar un mes con gastos sin cubrir. Con consumo neto coincide con el
+ * exceso cuando el mes arranca en positivo; se conserva porque es la única que ve un mes que YA
+ * arrancaba en negativo (sobregasto legado, NFR-1803). Se mide sobre `arrastre` ANTES del acote a 0
+ * de `margen`, que es justo lo que oculta un disponible negativo.
+ *
+ * @aitri-trace FR-ID: FR-2801, US-ID: US-2801, AC-ID: AC-2801, TC-ID: TC-RPG-001h, TC-RPG-002f, TC-RPG-006e
  */
 function techoScanRaw(
   state: LedgerState,
@@ -933,7 +943,7 @@ function techoScanRaw(
     const deltaActual = reserveDelta(state, m, "actual");
     if (plane === "actual") {
       const mar = Math.max(0, availActual + flowActual);
-      const gasta = reserveAportes(state, m, "actual"); // BRUTO: el retiro no devuelve cupo
+      const gasta = deltaActual; // NETO: sacar de un bolsillo devuelve cupo (retirar-para-gastar)
       margin.push(mar);
       consumo.push(gasta);
       excess.push(Math.max(0, gasta - mar));

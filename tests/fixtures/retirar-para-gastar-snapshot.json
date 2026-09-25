@@ -1,0 +1,114 @@
+{
+  "_nota": "Fixture de TC-RPG-061h (FR-2806): la respuesta de GET /api/v1/ledger ({revision, state}) de un ledger con el ciclo prescrito de junio (ingreso 1.000, 1.000 reservados en A, gasto 300, 300 sacados de A). excesoConLaReglaVieja es la marca que devolvía monthIssues con el código ANTERIOR a retirar-para-gastar, capturada sobre 99c7513.",
+  "excesoConLaReglaVieja": 300,
+  "respuesta": {
+    "revision": 7,
+    "state": {
+      "ownerId": "u-fixture",
+      "nodes": [
+        {
+          "id": "g-i",
+          "ownerId": "u-fixture",
+          "type": "income",
+          "level": "group",
+          "parentId": null,
+          "name": "Ingresos",
+          "icon": null,
+          "order": 0
+        },
+        {
+          "id": "ing",
+          "ownerId": "u-fixture",
+          "type": "income",
+          "level": "category",
+          "parentId": "g-i",
+          "name": "Sueldo",
+          "icon": null,
+          "order": 1
+        },
+        {
+          "id": "g-e",
+          "ownerId": "u-fixture",
+          "type": "expense",
+          "level": "group",
+          "parentId": null,
+          "name": "Gastos",
+          "icon": null,
+          "order": 2
+        },
+        {
+          "id": "gas",
+          "ownerId": "u-fixture",
+          "type": "expense",
+          "level": "category",
+          "parentId": "g-e",
+          "name": "Mercado",
+          "icon": null,
+          "order": 3
+        },
+        {
+          "id": "g-t",
+          "ownerId": "u-fixture",
+          "type": "transfer",
+          "level": "group",
+          "parentId": null,
+          "name": "Reservas",
+          "icon": null,
+          "order": 4
+        },
+        {
+          "id": "A",
+          "ownerId": "u-fixture",
+          "type": "transfer",
+          "level": "category",
+          "parentId": "g-t",
+          "name": "Ahorro",
+          "icon": null,
+          "order": 5
+        }
+      ],
+      "budgets": {},
+      "actuals": {
+        "ing": {
+          "2026-06": 1000
+        },
+        "A": {
+          "2026-06": 1000
+        },
+        "gas": {
+          "2026-06": 300
+        }
+      },
+      "movements": [
+        {
+          "id": "95e0619b-3444-4ddd-8a92-8b9822e1514c",
+          "ownerId": "u-fixture",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 300,
+          "period": "2026-06",
+          "createdAt": 2,
+          "from": "A",
+          "to": "@disponible",
+          "date": "2026-06-20"
+        },
+        {
+          "id": "135c5896-95d7-4cfd-a902-9b12e78bea3c",
+          "ownerId": "u-fixture",
+          "type": "transfer",
+          "catId": "A",
+          "subId": null,
+          "target": "A",
+          "amount": 1000,
+          "period": "2026-06",
+          "createdAt": 1,
+          "from": "@disponible",
+          "to": "A",
+          "date": "2026-06-05"
+        }
+      ]
+    }
+  }
+}

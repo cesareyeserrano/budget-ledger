@@ -364,18 +364,42 @@
       "title": "Decision de modelo: el ciclo retirar-para-gastar no debe castigarse como exceso",
       "priority": "P1",
       "problem": "El ciclo prescrito retirar-para-gastar deja el mes marcado como error permanente y congela la plata fresca del mes (y, sin holgura, tambien los aportes de meses anteriores)",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-01T16:15:40.993Z",
-      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036 (decision del usuario, 2026-09-01). No se parchea ahora porque congelar el pasado probablemente lo disuelve: el castigo nace de que el techo vigila los doce meses, y esa vigilancia existe solo porque el pasado es editable. MODELO CANDIDATO que el usuario enuncio y que YO VERIFIQUE ejecutando el dominio: (1) puedes reservar hasta lo que tengas DISPONIBLE en el mes; (2) puedes sacar hasta lo que haya en el cajon; (3) ninguna operacion puede dejar un mes con gastos sin cubrir. Evidencia medida: con la regla actual, tras reservar 1.000, sacar 300 para un gasto y recibir 400 mas, reservar esos 400 se RECHAZA; con el modelo simple se acepta. Y el encierro original (celda 1.500 con retiro de 500, borrar el retiro) SIGUE bloqueado por la regla 3, que deja los doce meses sin cubrir. LO QUE SE CEDE con ese modelo: la celda podria decir 1.500 con 1.000 en el cajon. El usuario lo rechazo —«la realidad es lo que tengo»— y de ahi salio la pregunta abierta de si la celda de un bolsillo debe mostrar el SALDO en vez del aporte del mes. Sin resolver; ver BL-041. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
+      "log": [
+        {
+          "at": "2026-09-24T23:43:43.269Z",
+          "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        },
+        {
+          "at": "2026-09-25T15:17:23.364Z",
+          "text": "Resuelto el 2026-09-25 por la feature retirar-para-gastar (5/5, verify 56/56 con cinco gates): el techo de Ejecutado se consume con lo reservado NETO (FR-2801, commit d22b1b0). Sacar de un bolsillo para cubrir un gasto ya no marca el mes, la plata que entra despues se reserva entera y el trinquete del ciclo prescrito desaparece. El encierro sigue bloqueado por el deficit. Queda aparte BL-041 (que muestra la celda de un bolsillo)."
+        }
+      ],
+      "updatedAt": "2026-09-25T15:17:23.364Z",
+      "closedAt": "2026-09-25T15:17:23.416Z"
     },
     {
       "id": "BL-038",
       "title": "Decision de modelo: el no-empeora es un trinquete — corregir la correccion queda prohibido",
       "priority": "P1",
       "problem": "En un mes con violacion tolerada, toda edicion que mejora es irreversible: un dedazo vuelve irrecuperable el valor verdadero y el journal queda mintiendo",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-01T16:15:41.035Z",
-      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+      "decisions": "CONGELADO A PROPOSITO hasta que exista BL-036, por la misma razon que BL-037 (decision del usuario, 2026-09-01). VERIFICADO ADEMAS que 037 y 038 son UN SOLO defecto con dos caras: los dos caminos para cubrir un gasto con reservas llegan a numeros identicos (disponible 0, cajon 700, total 700), pero el camino honesto —sacar de la reserva, que CONSERVA el registro— queda marcado como error para siempre, mientras el camino que PIERDE informacion —bajar la celda, que borra que llegaste a meter 1.000— sale impune y ademas te encierra. El trinquete solo aparece porque bajar la celda es la unica escapatoria de una marca falsa. Si BL-036 disuelve la marca, el trinquete deja de aparecer en la practica. Si aun asi quedara (datos importados de fuera, sin gasto al que culpar), la opcion A —recordar la peor situacion que el mes ya tuvo— sigue siendo la salida recomendada. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
+      "log": [
+        {
+          "at": "2026-09-24T23:43:43.383Z",
+          "text": "Re-medido el 2026-09-24 contra el dominio actual (sonda fuera del repo, sobre 7a05403), ya con cierre-de-mes (BL-036) entregado: NO lo disolvio. Junio: entran 1.000, reservo 1.000, gasto 300. (A) sacar 300 de la reserva: aceptado, disponible 0, y junio queda MARCADO techo:300. (B) bajar la celda 1.000->700: aceptado, disponible 0, SIN marca; volver a subirla a 1.000: RECHAZADO (techo, limit 0) — el trinquete sigue. (C) plata fresca: tras sacar 300 y gastarlos entran 400 mas (disponible 400); reservar esos 400: RECHAZADO, solo caben 100 (techo = 1.400-300 = 1.100, consumo bruto 1.000). Con junio CERRADO la marca techo:300 SIGUE. Esperable: cierre-de-mes prometio no tocar el techo (TC-CDM-222f vigila que techoScanRaw, reserveAportes y chainCheck no cambien). Lo que queda es decidir el modelo; el candidato del usuario (reservar hasta el disponible del mes, sacar hasta el cajon, ningun mes con gastos sin cubrir) resolveria A y C."
+        },
+        {
+          "at": "2026-09-25T15:17:23.467Z",
+          "text": "Resuelto el 2026-09-25 por la feature retirar-para-gastar (5/5, verify 56/56 con cinco gates): el techo de Ejecutado se consume con lo reservado NETO (FR-2801, commit d22b1b0). Sacar de un bolsillo para cubrir un gasto ya no marca el mes, la plata que entra despues se reserva entera y el trinquete del ciclo prescrito desaparece. El encierro sigue bloqueado por el deficit. Queda aparte BL-041 (que muestra la celda de un bolsillo)."
+        }
+      ],
+      "updatedAt": "2026-09-25T15:17:23.467Z",
+      "closedAt": "2026-09-25T15:17:23.518Z"
     },
     {
       "id": "BL-039",
@@ -432,14 +456,21 @@
       "title": "El panel de la celda pasa a ser su diario: muestra los movimientos que la componen y permite capturar desde ahi",
       "priority": "P1",
       "problem": "La nota de un movimiento de INGRESO o GASTO no se ve en ninguna parte de la aplicacion. El dato se guarda (Movement.note, columna note de la tabla movement) y nada lo lee. Detectado el 2026-09-09 con datos reales del usuario: 27 movimientos cargados, y al abrir la celda Tecnologia > Accesorios de agosto (187.500) el usuario no podia saber que fue. La celda dice \"Sin observaciones este mes\" mientras la nota \"Accesorio de camara\" esta en la base.\n\n*** LO QUE SE MIDIO EN EL CODIGO EL 2026-09-09 ***\n\n1. LA CAUSA EXACTA. cellObservations (src/domain/reserve.ts:1213) construye la lista de observaciones de una celda desde dos fuentes: las notas manuales (cellNotes) y las notas de movimientos. Pero la segunda filtra por m.type === \"transfer\" (linea 1217). Todo movimiento de gasto o ingreso queda fuera por construccion. No es un bug de datos: es el alcance con el que se escribio la funcion, cuando las observaciones solo existian para bolsillos.\n\n2. NO HAY OTRA PANTALLA DONDE MIRAR. La aplicacion tiene tres paginas (/, /recuperar, /configuracion) y ningun componente lista movimientos: un grep de movements.map / movements.filter sobre src/components y src/app no devuelve nada. El diario de ingresos y gastos no existe como superficie.\n\n3. ESTA INVISIBILIDAD YA COSTO UN BUG, Y ESTA ABIERTO. BG-017 dice literalmente: \"Como ninguna pantalla muestra el diario de ingresos/gastos, la desincronizacion es invisible: movimiento fantasma (caso real: ingreso de 6.500.000/ago contra el grupo Trabajo, detectado 2026-08-31 solo mirando la BD)\". O sea que esta feature no es cosmetica: es la observabilidad que habria cazado BG-017 en el momento y que cazara su clase en el futuro.\n\n4. LA TRAMPA DE DISENO QUE HAY QUE EVITAR. El usuario lo pidio como \"que la observacion tenga un campo de valor y la celda sume sola\". NO se debe construir asi. Hoy ya hay DOS escritores del mismo numero: setLeafAmount (src/domain/mutations.ts) ASIGNA (store[leafId][month] = v) y addMovement (src/domain/mutations.ts:96) ACUMULA (actuals[target][period] += amount). Una nota-con-valor seria un TERCER escritor de la misma celda y la pregunta \"cual manda\" dejaria de tener respuesta. El mecanismo que el usuario quiere YA EXISTE: es el movimiento. Lo que falta es la superficie, no el motor.\n\n5. HUECO PREEXISTENTE QUE ESTA FEATURE TIENE QUE RESOLVER. Teclear un valor en una celda que ya tiene movimientos SOBRESCRIBE el acumulado: setLeafAmount asigna, no suma. Los movimientos siguen en la base, la celda deja de valer su suma, y nada avisa. Reproducible: Restaurantes 2026-08 vale 336.700 formado por 4 movimientos; teclear 400.000 deja los 4 movimientos vivos y la celda en 400.000. Verificado el 2026-09-09 sobre los datos reales: hoy la deriva es cero en las 20 celdas, pero el camino esta abierto. Esta pregunta es anterior a la feature y es su contenido real.\n\n6. QUE SE PROPONE. El panel de observaciones de la celda deja de ser un cuaderno de notas y pasa a ser el DIARIO de esa celda: lista los movimientos que componen su total (dia, monto, concepto) y ofrece un campo para anadir uno mas ahi mismo, delegando en addMovement. Reutiliza el motor que ya funciona, no crea una segunda contabilidad, y de paso da por fin superficie a la nota del gasto. La nota manual de celda (cellNotes, FR-1809) se queda como esta, para observaciones que NO son dinero.\n\n7. TAMANO Y RUTA. Es una feature del pipeline, no un cambio pequeno: toca el panel de celda, el filtro de observaciones y la relacion entre celda y movimientos. Es INDEPENDIENTE de BL-043 (Cadencia) y mucho menor, pero la ayuda: bajo ciclos, un movimiento con fecha se reasigna solo y una celda tecleada no, asi que empujar la captura hacia el movimiento reduce la superficie del problema de ciclos. Conviene hacerla ANTES.\n\nCONTEXTO DEL HALLAZGO: mientras se cargaban los datos reales del usuario (ciclo 21-ago a 8-sep 2026) se escribieron 27 observaciones manuales de celda como parche, duplicando el texto de la nota de cada movimiento. Ese parche es texto muerto que no se entera si el movimiento cambia, y esta feature lo hace innecesario.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-09T16:20:34.364Z",
       "fr_id": "FR-1809, FR-1012, FR-507",
       "files": "src/domain/reserve.ts:1213 (cellObservations), src/components/ReserveCells.tsx (CellNotesSection), src/components/BudgetGrid.tsx (EditableCell), src/domain/mutations.ts:96 (addMovement) y setLeafAmount, src/app/api/v1/movements/[id]/route.ts",
       "behavior": "- Al abrir el editor de CUALQUIER celda hoja, el panel lista los movimientos de ese nodo y ese periodo en orden cronologico, cada uno con dia, monto y su nota.\n- Desde ese panel se puede anadir un movimiento: monto, concepto y fecha (por defecto dentro del periodo de la celda). Delega en addMovement, y la celda sube sola. El usuario no teclea el total nunca.\n- Las notas manuales (cellNotes) siguen mostrandose, visualmente distinguibles de los movimientos. CellObservation ya lleva source: \"movement\" | \"manual\", asi que la distincion existe en el modelo.\n- Las celdas de tipo transfer conservan su comportamiento actual byte a byte: sus observaciones derivadas del journal se siguen viendo igual (NFR de regresion).\n- Una celda cuyo valor tecleado NO coincide con la suma de sus movimientos LO DICE. No se elige un ganador en silencio.",
       "decisions": "A RESOLVER EN DISCOVERY, CON EL USUARIO:\n1. Que manda cuando el valor tecleado de la celda y la suma de sus movimientos discrepan. Tres caminos: (a) la celda pasa a solo-lectura cuando tiene movimientos; (b) teclear genera un movimiento de ajuste por la diferencia; (c) la celda sigue mandando y se marca la discrepancia. Es la decision central de la feature y es anterior a ella.\n2. Si la nota del movimiento sustituye a las 27 observaciones manuales duplicadas escritas el 2026-09-09, o si conviven. Si las sustituye, hay que borrarlas para no ver el mismo texto dos veces.\n3. Si entra en alcance editar o borrar un movimiento. Hoy el producto NO lo tiene: src/app/api/v1/movements/[id]/route.ts responde PATCH y DELETE como no soportados, y el comentario dice \"En v1 el producto no tiene editar/borrar movimiento\". Un panel que LISTA movimientos vuelve esa ausencia evidente e incomoda: el usuario vera el error y no podra corregirlo. Decidir si se acota (solo listar) o se amplia.\n4. Si al listar movimientos se aprovecha para cerrar BG-017, que es el mismo hueco visto desde el otro lado.",
       "acceptance": "- Abrir Tecnologia > Accesorios de agosto muestra \"26 ago - 187.500 - Accesorio de camara\". Hoy muestra \"Sin observaciones este mes\". Es el caso que origino la peticion.\n- Abrir Restaurantes de agosto lista sus CUATRO consumos en orden cronologico y su suma es exactamente el valor de la celda (336.700).\n- Anadir un movimiento desde el panel sube el total de la celda sin que el usuario teclee el total.\n- Teclear un valor en una celda que tiene movimientos NO deja el descuadre mudo: la interfaz lo dice.\n- Las celdas de bolsillos (transfer) pasan sus TCs existentes sin cambios.\n- Un movimiento sin nota se lista igual, por su dia y su monto: la nota es opcional en el modelo.",
-      "updatedAt": "2026-09-09T16:21:08.658Z"
+      "updatedAt": "2026-09-24T23:18:03.900Z",
+      "log": [
+        {
+          "at": "2026-09-24T23:18:03.900Z",
+          "text": "Entregado por la feature diario-de-celda (5/5, verificada el 2026-09-21): FR-2501..2512 cubren el panel como diario, anadir/editar/borrar movimientos, y la decision central quedo resuelta como opcion (b): teclear crea un ajuste por la diferencia (FR-2504). Descuadres señalados y bloqueando el cierre (FR-2511/2512)."
+        }
+      ],
+      "closedAt": "2026-09-24T23:18:04.011Z"
     },
     {
       "id": "BL-045",
@@ -468,9 +499,13 @@
         {
           "at": "2026-09-13T22:52:05.394Z",
           "text": "2026-09-13 COMPROBADO: smoke.sh hace cd \"$(dirname \"$0\")\", asi que funciona desde el cwd de la feature con la ruta bien puesta (transferencias/balance/ciclos: pass en ~1,3s; las seis: error ENOENT en 1ms en su sello de hoy). Coste medido en AITRI lib/state.js:644-711: approve 4 invalida la fase 5 Y el sello del verify, o sea por feature re-aprobar 4, verify-run, verify-complete y fase 5 (~90 min las seis, 12 aprobaciones). Beneficio real hoy nulo: smoke.sh no prueba nada propio de la feature (/, /health, 401, headers) y sobre c374aab ya lo pasan la raiz y las otras 15."
+        },
+        {
+          "at": "2026-09-24T23:18:04.123Z",
+          "text": "24-sep: la RUTA ya esta corregida en las seis (BG-044: '../../../smoke.sh', las seis re-selladas 5/5 y el smoke pasando). Lo que queda de la decision del 13-sep: el gate sigue declarado required:false en las seis (la decision decia required:true). Pasarlo a required exige otra vuelta de re-sellado por feature; se aplica la proxima vez que se reabra cada una."
         }
       ],
-      "updatedAt": "2026-09-13T22:52:05.502Z",
+      "updatedAt": "2026-09-24T23:18:04.123Z",
       "decisions": "DECIDIDO con el usuario el 2026-09-13: NO se arregla ahora. Se aplica cuando cualquiera de las seis se reabra por otro motivo, aprovechando esa cascada: en su 04_BUILD_REPORT.json el gate smoke pasa a command 'npm run gate:smoke' (igual que ciclos/balance-jerarquia), required:true, timeout_ms 180000. Mientras tanto, el arranque real queda cubierto por el smoke de la raiz y de las otras 15 features."
     },
     {
@@ -478,18 +513,34 @@
       "title": "Vitest 3.2.7 vulnerable (path traversal en @vitest/mocker): subir a 4.1.11, salto mayor",
       "priority": "P2",
       "problem": "Dependabot #18 y #19 (medium, 2026-09-13): vitest y @vitest/mocker >= 2.1.0 < 4.1.11 permiten lectura arbitraria de ficheros via el redirect mock de @vitest/mocker. Instalado 3.2.7 (directo, via @vitest/coverage-v8 y via better-auth). Solo dependencia de desarrollo: no entra en la imagen de produccion, el riesgo es sobre la maquina que corre los tests. El arreglo es un salto MAYOR 3 -> 4: puede romper la config de vitest/cobertura (unit.sh, coverage.sh, gate coverage required en todas las features) y hay que comprobar que better-auth 1.6.23 acepta vitest 4. Por eso no se hizo sobre la marcha.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-13T23:03:38.447Z",
       "files": "package.json, package-lock.json, vitest.config.*, unit.sh, coverage.sh",
-      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security."
+      "acceptance": "npm ls vitest @vitest/mocker muestra >= 4.1.11 sin duplicados vulnerables; unit.sh y coverage.sh en verde; Dependabot #18 y #19 cerradas; verify de la raiz fresco. Valorar hacerlo junto con aitri audit security.",
+      "log": [
+        {
+          "at": "2026-09-24T23:35:29.247Z",
+          "text": "Ya estaba hecho y sin cerrar: d1781fa subio vitest, @vitest/mocker y @vitest/coverage-v8 a 4.1.11. Comprobado el 2026-09-24: npm ls sin duplicados vulnerables (better-auth tambien resuelve 4.1.11), npm audit 0 vulnerabilidades, Dependabot #20 y #21 cerrados, y la raiz verificada hoy con 59/59 y el gate coverage en verde."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:35:29.247Z",
+      "closedAt": "2026-09-24T23:35:29.355Z"
     },
     {
       "id": "BL-049",
       "title": "Lunes 14-sep: cerrar los 12 PRs viejos de Dependabot contra main",
       "priority": "P1",
       "problem": "Desde el 13-sep (PR #27, 1abfe87) dependabot.yml en main apunta a develop. Siguen abiertos 12 PRs de Dependabot contra main: #4 node 26-alpine, #8 zod 4, #9 jest-dom 7, #10 react-day-picker 10, #13 actions, #14 undici, #16 js-yaml, #17 postcss+next, #18 prod-minor-patch, #21 vitest, #22 sharp+next, #24 dev-minor-patch. Decision del usuario: esperar a la corrida del lunes 14-sep, ver que abre el bot contra develop y cerrar entonces los viejos (obsoletos seguros: #14, #16, #22). Ojo: #21 (vitest) toca BL-048. Cerrar un PR no borra nada, pero los cierra el usuario o se confirma antes.",
-      "status": "open",
-      "createdAt": "2026-09-14T00:38:33.440Z"
+      "status": "closed",
+      "createdAt": "2026-09-14T00:38:33.440Z",
+      "log": [
+        {
+          "at": "2026-09-24T23:33:43.086Z",
+          "text": "24-sep: ya no queda ningun PR de Dependabot contra main. #8 (zod 4), #9 (jest-dom 7) y #10 (react-day-picker 10) se pasaron a develop en vez de cerrarse: son majors que aun no se aplicaron, y cerrar un PR de Dependabot hace que ignore esa version. #13 (actions) ya apuntaba a develop. Los majors quedan para revisar uno por uno."
+        }
+      ],
+      "updatedAt": "2026-09-24T23:33:43.086Z",
+      "closedAt": "2026-09-24T23:33:43.205Z"
     },
     {
       "id": "BL-050",

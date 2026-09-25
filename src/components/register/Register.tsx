@@ -76,9 +76,9 @@ export function Register() {
   const isReserve = type === "transfer";
   const reserveLimit = useMemo(() => {
     if (!isReserve || !ends.from) return null;
-    // FR-1808/AC-1834 — el CUPO que queda, no el margen bruto: bajo la regla de consumo bruto el
-    // margen promete plata que el dominio va a rechazar (en el enero del usuario: margen 1.000,
-    // cupo 0). El número mostrado es exactamente el que el rechazo usa como límite.
+    // FR-1808/AC-1834 — el CUPO que queda, no el margen del mes: el margen no descuenta lo ya
+    // reservado y prometería plata que el dominio va a rechazar. El número mostrado es exactamente
+    // el que el rechazo usa como límite (FR-2803).
     if (isAvailable(ends.from)) return { label: "Cupo del mes", value: reserveHeadroom(data, month, periods) };
     // Sacar o mover DESDE una alcancía: el tope es lo extraíble viendo la serie completa, no el
     // saldo del mes — un retiro posterior ya pudo usar esa plata (auditoría 2026-09-01).
