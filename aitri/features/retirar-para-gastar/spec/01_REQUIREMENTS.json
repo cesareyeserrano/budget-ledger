@@ -1,0 +1,483 @@
+{
+  "project_name": "retirar-para-gastar",
+  "project_summary": "Cambio de REGLA en el techo de reservas del plano Ejecutado. Hoy el techo de un mes se consume con los aportes BRUTOS (FR-1801 de techo-de-flujo): sacar plata de un bolsillo no devuelve cupo, así que el ciclo que la propia app prescribe para cubrir un gasto con reservas —reservar, y luego sacar de la reserva para pagar— deja el mes marcado como error para siempre, impide reservar la plata que entra después, y hace irreversible cualquier corrección posterior de esa celda (el trinquete). Con esta feature el techo se consume con lo reservado NETO del mes (aportes − retiros): se puede reservar hasta lo que haya disponible en el mes, se puede sacar hasta lo que haya en el bolsillo, y ninguna operación puede dejar un mes con gastos sin cubrir. Origen: BL-037 y BL-038 del backlog de la raíz, re-medidos el 2026-09-24 con el dominio actual tras entregarse cierre-de-mes, que no los disolvió. North Star KPI: en el ciclo reservar → gastar → sacar para cubrir, el mes termina SIN marca de error y la plata que entra después se puede reservar entera (medible: monthIssues vacío para el mes y reserveHeadroom igual al disponible del mes). JTBD: cubrir un gasto imprevisto con mis ahorros sin que la app me lo cuente como un error ni me bloquee la plata que me entra después. Guardrail metric: ninguna operación puede dejar un mes con el disponible más negativo de lo que ya estaba (el encierro original sigue bloqueado), y el plano Presupuestado no cambia en nada.",
+  "functional_requirements": [
+    {
+      "id": "FR-2801",
+      "title": "El techo de Ejecutado se consume con lo reservado neto del mes",
+      "description": "When se evalúa el techo de un mes en el plano Ejecutado (al escribir una reserva, al calcular el «Máx.» o al marcar los errores del mes), the system shall tomar como consumo del mes lo reservado NETO: aportes del mes menos retiros del mes a Disponible. El margen del mes sigue siendo max(0, disponible con que cerró el mes anterior + ingresos del mes − gastos del mes). Sustituye la regla de consumo bruto de FR-1801 (techo-de-flujo) solo en Ejecutado.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con junio: ingreso 1.000, 1.000 reservados en un bolsillo y un retiro de 300 a Disponible, el consumo de junio en Ejecutado es 700, no 1.000.",
+        "Con enero: ingreso 1.000, 1.000 reservados y un retiro de 500, el cupo que queda en enero (reserveHeadroom) es 500; reservar 500 más se acepta y reservar 501 se rechaza con rule 'techo' y limit 500.",
+        "Un mover alcancía→alcancía no cuenta como retiro: con ingreso 1.000, 1.000 reservados en A y un mover de 400 de A a B, el cupo que queda sigue siendo 0.",
+        "El consumo del plano Presupuestado no cambia: para los mismos datos devuelve exactamente lo mismo que antes de la feature."
+      ]
+    },
+    {
+      "id": "FR-2802",
+      "title": "Sacar de un bolsillo para cubrir un gasto del mes no marca el mes como error",
+      "description": "When el usuario saca plata de un bolsillo hacia Disponible en un mes cuyo disponible quedó negativo por un gasto, the system shall aceptar la operación y dejar de marcar el mes con un error de techo en cuanto el disponible del mes vuelve a ser ≥ 0. La marca de techo solo aparece cuando lo reservado neto supera el margen del mes.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con junio: ingreso 1.000, 1.000 reservados en A y un gasto de 300, sacar 300 de A se acepta y monthIssues no devuelve ninguna marca de techo para junio; el disponible de junio es 0.",
+        "Con ese mismo estado ANTES de sacar los 300, junio SÍ está marcado con techo y exceso 300: el gasto dejó un mes con gastos sin cubrir y la marca es legítima.",
+        "Sacar solo 200 de los 300 deja junio marcado con exceso 100, no 300 ni 0.",
+        "Cerrar el mes no cambia la marca: un junio cerrado muestra exactamente las mismas marcas que abierto."
+      ]
+    },
+    {
+      "id": "FR-2803",
+      "title": "La plata que entra después de sacar se puede reservar entera",
+      "description": "When entra un ingreso en un mes donde ya se reservó y se sacó plata, the system shall permitir reservar hasta el disponible del mes completo, y el «Máx.» que anuncian el editor de celda del bolsillo y el registro de operaciones debe ser esa misma cifra.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con junio: ingreso 1.400, gasto 300, 1.000 reservados y 300 sacados (disponible 400), reservar 400 en un bolsillo se acepta.",
+        "En ese mismo estado reservar 401 se rechaza con rule 'techo' (o 'deficit') y limit 400, sin cambiar el estado.",
+        "En ese mismo estado reserveHeadroom de junio es 400 y cellHeadroom de la celda del bolsillo (que vale 1.000) es 1.400: el «Máx.» anunciado se acepta tal cual y con un peso más se rechaza.",
+        "Hoy (antes de la feature) esa reserva de 400 se rechaza con limit 100; con la feature ese rechazo desaparece."
+      ]
+    },
+    {
+      "id": "FR-2804",
+      "title": "Una celda de bolsillo corregida en el ciclo de sacar para gastar se puede volver a subir",
+      "description": "When el usuario baja la celda de un bolsillo en un mes donde ya sacó plata para cubrir un gasto y después la vuelve a subir, the system shall aceptar la subida mientras el disponible del mes la cubra y rechazarla, con el límite exacto, cuando no. Es el trinquete de BL-038 en el caso que lo producía en la práctica.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con junio: ingreso 1.000, gasto 300, 1.000 reservados en A y 300 sacados de A, bajar la celda de A a 900 se acepta (disponible 100) y volver a subirla a 1.000 se acepta (disponible 0). Hoy esa subida se rechaza con limit 0.",
+        "En ese mismo estado con la celda en 900, subirla a 1.001 se rechaza con limit 100 (el incremento que aún cabe) y cellHeadroom de la celda es 1.000 (el total tecleable que anuncia el editor); el estado no cambia.",
+        "Con la celda en 900, junio no tiene ninguna marca de techo; con la celda de vuelta en 1.000 tampoco."
+      ]
+    },
+    {
+      "id": "FR-2805",
+      "title": "La observación «salieron del saldo anterior» cuenta lo reservado neto",
+      "description": "When la app explica de dónde salió lo reservado en un mes de Ejecutado (la observación automática de FR-1804, «De los X reservados este mes, Y salieron del saldo de <mes>»), the system shall calcular X e Y sobre lo reservado NETO del mes, de modo que no atribuya al saldo anterior plata que el flujo del propio mes cubrió.",
+      "priority": "MUST",
+      "type": "reporting",
+      "acceptance_criteria": [
+        "Con mayo: ingreso 500 (y nada más); junio: ingreso 1.000, gasto 300, 1.000 reservados y 300 sacados, la observación de junio NO aparece (lo reservado neto, 700, cabe entero en el flujo del mes, 700). Hoy dice «De los 1.000 reservados este mes, 300 salieron del saldo de mayo».",
+        "Con mayo: ingreso 500; junio: ingreso 1.000, gasto 300 y 900 reservados sin retiros, la observación dice que de los 900 reservados, 200 salieron del saldo de mayo.",
+        "En el plano Presupuestado la observación dice exactamente lo mismo que antes de la feature."
+      ]
+    },
+    {
+      "id": "FR-2806",
+      "title": "Los meses marcados con la regla vieja se re-evalúan solos con la regla nueva",
+      "description": "When se carga un ledger existente después de desplegar la feature, the system shall mostrar solo las marcas de techo que la regla nueva considera violadas, sin migración de datos y sin que el usuario tenga que editar nada. Las marcas que existían únicamente por contar los aportes en bruto desaparecen.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Un ledger guardado con junio en el estado del camino de sacar para gastar (ingreso 1.000, gasto 300, 1.000 reservados, 300 sacados), que hoy muestra junio marcado con exceso 300, al cargarse con la feature no muestra ninguna marca en junio ni en la grilla ni en la franja del Balance.",
+        "Un ledger con un mes realmente violado (ingreso 1.000, 1.200 reservados sin retiros) sigue marcado con exceso 200 después de la feature.",
+        "No se añade ninguna migración de base de datos: el esquema y las filas de amount_cell y movement quedan byte a byte iguales."
+      ]
+    },
+    {
+      "id": "FR-2807",
+      "title": "El servidor aplica la misma regla neta que el navegador",
+      "description": "When llega una escritura del ledger al servidor (PUT /api/v1/ledger), the system shall juzgarla con la misma regla neta del techo que usa el navegador, a través de la misma función (chainCheck), aceptando el ciclo de sacar para gastar y rechazando con 422 lo que deje un mes con gastos sin cubrir o supere el disponible del mes.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Un PUT que aplica el retiro de 300 del caso de FR-2802 sobre el estado persistido responde 200 y persiste el retiro.",
+        "Un PUT que reserva 400 en el caso de FR-2803 responde 200; uno que reserva 401 responde 422 y no persiste nada.",
+        "Un PUT que borra el retiro del encierro original (enero: ingreso 1.000, celda del bolsillo 1.500, retiro 500) responde 422 y no persiste nada.",
+        "El guardia del servidor no reimplementa la regla: delega en la misma chainCheck que el navegador (comprobable leyendo src/domain/guard.ts)."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Llevar su presupuesto mensual con bolsillos de ahorro y poder usarlos para cubrir gastos imprevistos sin que la app lo trate como un error.",
+      "pain_point": "Cuando saca plata de un bolsillo para pagar un gasto, la app marca el mes como error para siempre, le impide ahorrar la plata que entra después, y la única forma de quitar la marca es falsear la celda, que después ya no puede corregir."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2801",
+      "requirement_id": "FR-2801",
+      "as_a": "presupuestador personal",
+      "i_want": "que el cupo de ahorro del mes descuente lo que saqué de mis bolsillos",
+      "so_that": "el límite que me pone la app sea lo que de verdad tengo libre",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2801",
+          "given": "enero con ingreso 1.000, 1.000 reservados en un bolsillo y un retiro de 500 a Disponible",
+          "when": "consulto el «Máx.» para reservar en enero",
+          "then": "el «Máx.» es 500"
+        },
+        {
+          "id": "AC-2802",
+          "given": "el mismo enero",
+          "when": "intento reservar 501",
+          "then": "se rechaza con límite 500 y el estado no cambia"
+        },
+        {
+          "id": "AC-2803",
+          "given": "enero con ingreso 1.000, 1.000 reservados en A y un mover de 400 de A a B",
+          "when": "consulto el «Máx.» para reservar en enero",
+          "then": "el «Máx.» sigue siendo 0: un mover no libera cupo"
+        }
+      ]
+    },
+    {
+      "id": "US-2802",
+      "requirement_id": "FR-2802",
+      "as_a": "presupuestador personal",
+      "i_want": "sacar de un bolsillo para pagar un gasto imprevisto sin que el mes quede marcado como error",
+      "so_that": "la app no me castigue por usar mis ahorros para lo que son",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2804",
+          "given": "junio con ingreso 1.000, 1.000 reservados en A y un gasto de 300",
+          "when": "saco 300 de A a Disponible",
+          "then": "se acepta, el disponible de junio queda en 0 y junio no tiene ninguna marca de error"
+        },
+        {
+          "id": "AC-2805",
+          "given": "el mismo junio antes de sacar nada",
+          "when": "miro el encabezado de junio",
+          "then": "junio está marcado con reservas 300 por encima del margen, porque el gasto quedó sin cubrir"
+        },
+        {
+          "id": "AC-2806",
+          "given": "el mismo junio",
+          "when": "saco solo 200 de A",
+          "then": "junio sigue marcado, ahora con 100 por encima del margen"
+        },
+        {
+          "id": "AC-2807",
+          "given": "junio en el estado de AC-2804 y ya cerrado",
+          "when": "miro el encabezado de junio",
+          "then": "no tiene marca: cerrar el mes no cambia el veredicto"
+        }
+      ]
+    },
+    {
+      "id": "US-2803",
+      "requirement_id": "FR-2803",
+      "as_a": "presupuestador personal",
+      "i_want": "ahorrar entera la plata que me entra después de haber sacado de un bolsillo",
+      "so_that": "un ingreso extra a mitad de mes pueda ir a mis reservas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2808",
+          "given": "junio con ingreso 1.400, gasto 300, 1.000 reservados y 300 sacados (disponible 400)",
+          "when": "reservo 400 en un bolsillo",
+          "then": "se acepta y el disponible de junio queda en 0"
+        },
+        {
+          "id": "AC-2809",
+          "given": "el mismo junio",
+          "when": "intento reservar 401",
+          "then": "se rechaza con límite 400 y el estado no cambia"
+        },
+        {
+          "id": "AC-2810",
+          "given": "el mismo junio con la celda del bolsillo en 1.000",
+          "when": "abro el editor de esa celda",
+          "then": "el «Máx.» anunciado es 1.400"
+        }
+      ]
+    },
+    {
+      "id": "US-2804",
+      "requirement_id": "FR-2804",
+      "as_a": "presupuestador personal",
+      "i_want": "deshacer un error de tecleo en la celda de un bolsillo del que ya saqué plata",
+      "so_that": "un dedazo no me deje la celda en un valor que no es el verdadero",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2811",
+          "given": "junio con ingreso 1.000, gasto 300, 1.000 reservados en A y 300 sacados de A",
+          "when": "bajo la celda de A a 900 y luego la vuelvo a poner en 1.000",
+          "then": "las dos ediciones se aceptan y junio queda sin marca y con disponible 0"
+        },
+        {
+          "id": "AC-2812",
+          "given": "el mismo junio con la celda de A en 900",
+          "when": "intento poner 1.001",
+          "then": "se rechaza anunciando 1.000 como máximo y la celda sigue en 900"
+        }
+      ]
+    },
+    {
+      "id": "US-2805",
+      "requirement_id": "FR-2805",
+      "as_a": "presupuestador personal",
+      "i_want": "que la nota de «salieron del saldo anterior» cuente lo que de verdad reservé neto",
+      "so_that": "no me diga que gasté ahorros del mes pasado cuando no los toqué",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2813",
+          "given": "mayo con ingreso 500; junio con ingreso 1.000, gasto 300, 1.000 reservados y 300 sacados",
+          "when": "abro la celda del bolsillo de junio",
+          "then": "no aparece ninguna nota de «salieron del saldo de mayo»"
+        },
+        {
+          "id": "AC-2814",
+          "given": "mayo con ingreso 500; junio con ingreso 1.000, gasto 300 y 900 reservados sin retiros",
+          "when": "abro la celda del bolsillo de junio",
+          "then": "la nota dice que de los 900 reservados, 200 salieron del saldo de mayo"
+        }
+      ]
+    },
+    {
+      "id": "US-2806",
+      "requirement_id": "FR-2806",
+      "as_a": "presupuestador personal",
+      "i_want": "que los meses que la regla vieja marcó por sacar para gastar se limpien solos",
+      "so_that": "no tenga que ir mes por mes arreglando datos que nunca estuvieron mal",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2815",
+          "given": "un ledger guardado con junio en el estado de AC-2804, que antes de la feature se veía marcado",
+          "when": "lo abro con la feature desplegada",
+          "then": "junio no tiene marca ni en la grilla ni en la franja del Balance, sin que yo edite nada"
+        },
+        {
+          "id": "AC-2816",
+          "given": "un ledger con un mes de ingreso 1.000 y 1.200 reservados sin retiros",
+          "when": "lo abro con la feature desplegada",
+          "then": "ese mes sigue marcado con 200 por encima del margen"
+        }
+      ]
+    },
+    {
+      "id": "US-2807",
+      "requirement_id": "FR-2807",
+      "as_a": "presupuestador personal",
+      "i_want": "que el servidor acepte y rechace exactamente lo mismo que la pantalla",
+      "so_that": "lo que la app me deja hacer se guarde, y lo que no me deja no entre por otra puerta",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2817",
+          "given": "el estado persistido de AC-2804 antes de sacar",
+          "when": "el navegador envía el PUT con el retiro de 300",
+          "then": "el servidor responde 200 y el retiro queda guardado"
+        },
+        {
+          "id": "AC-2818",
+          "given": "el estado persistido de AC-2808",
+          "when": "llega un PUT que reserva 401",
+          "then": "el servidor responde 422 y no guarda nada"
+        },
+        {
+          "id": "AC-2819",
+          "given": "enero persistido con ingreso 1.000, celda del bolsillo 1.500 y un retiro de 500",
+          "when": "llega un PUT que borra el retiro",
+          "then": "el servidor responde 422 y no guarda nada"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2801",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Sacar de un bolsillo más de lo que tiene sigue rechazado (regla del piso, FR-1802), incluido el tope encadenado de maxWithdrawal.",
+      "acceptance_criteria": "Con un bolsillo de saldo 700 en junio, sacar 700 se acepta, sacar 701 se rechaza con rule 'piso'; con un retiro posterior en octubre de 500, el máximo extraíble en junio es 200."
+    },
+    {
+      "id": "NFR-2802",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El encierro original sigue bloqueado: ninguna operación puede dejar un mes con el disponible más negativo de lo que ya estaba (regla del déficit, FR-1803).",
+      "acceptance_criteria": "Enero con ingreso 1.000, celda del bolsillo 1.500 y un retiro de 500: borrar el retiro se rechaza (rule 'techo' o 'deficit': las dos reglas lo ven) y el estado no cambia; bajar el retiro a 400 también se rechaza; con un sobregasto real legado (gasto > ingreso) editar otro mes sigue aceptándose."
+    },
+    {
+      "id": "NFR-2803",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "No hay doble consumo entre meses: disponible(m) = disponible(m−1) + ingresos(m) − gastos(m) − (aportes(m) − retiros(m)) se sigue cumpliendo en Ejecutado.",
+      "acceptance_criteria": "Sobre un ledger de 12 meses con aportes, retiros y movers en varios meses, computeBalanceSeries devuelve exactamente los mismos disponibles antes y después de la feature, y la identidad se cumple mes a mes; reservar 600 en enero y sacarlos en marzo deja el disponible de marzo en 600 más su flujo."
+    },
+    {
+      "id": "NFR-2804",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Los meses cerrados siguen congelados: una escritura sobre un mes cerrado sigue rechazada con 422 closed_period_violation (FR-2507), también cuando la regla neta la aceptaría.",
+      "acceptance_criteria": "Con junio cerrado, un PUT que saca 300 de un bolsillo en junio responde 422 closed_period_violation y no persiste nada; el mismo PUT con junio abierto responde 200."
+    },
+    {
+      "id": "NFR-2805",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El plano Presupuestado no cambia: su consumo, su margen, sus avisos (que no bloquean) y su observación siguen idénticos.",
+      "acceptance_criteria": "Para un conjunto fijo de ledgers con plan de aportes y retiros planeados, techoScan en plano 'budget', chainCheck en 'budget' y monthCarryUsage en 'budget' devuelven exactamente lo mismo antes y después de la feature; una escritura de plan por encima del techo sigue devolviendo ok:true con warning."
+    },
+    {
+      "id": "NFR-2806",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Borrar un bolsillo que recibió y entregó plata sigue bloqueado si alteraría el saldo de otro bolsillo superviviente (BG-023), y borrar uno que solo recibió sigue permitido.",
+      "acceptance_criteria": "Los tres casos de regresión de BG-023 en tests/domain/techo-de-flujo.test.ts siguen pasando: recibe+entrega → bloqueado con 'has_operations'; solo recibe → permitido; gasto con journal histórico → permitido (BG-006)."
+    },
+    {
+      "id": "NFR-2807",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El retiro planeado por encima de lo que el plan reserva sigue marcándose como error del mes (BG-020).",
+      "acceptance_criteria": "Con un aporte planeado de 100 y un retiro planeado de 500 en agosto, monthIssues devuelve para agosto una marca kind 'retiro_planeado' con exceso 400; con el retiro planeado en 100, ninguna."
+    },
+    {
+      "id": "NFR-2808",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las celdas descuadradas contra sus movimientos siguen marcándose como problema del mes y bloqueando su cierre (FR-2511, FR-2512).",
+      "acceptance_criteria": "Con una celda de gasto que vale 120 y movimientos que suman 100, el mes muestra el aviso '1 celda no cuadra con sus movimientos' y cerrarlo se rechaza; con la celda cuadrada el cierre se acepta."
+    },
+    {
+      "id": "NFR-2809",
+      "category": "Performance",
+      "priority": "SHOULD",
+      "requirement": "El cambio de regla no añade barridos del techo: la memoización de techoScan sigue sirviendo el encabezado de mes, el «Máx.» y las marcas con un solo barrido por estado y plano.",
+      "acceptance_criteria": "Con __resetReservePerfCounters, pedir monthIssues, reserveHeadroom de los 12 meses y cellHeadroom de un bolsillo sobre el mismo estado produce techoScans = 1 en el plano Ejecutado."
+    },
+    {
+      "id": "NFR-2810",
+      "category": "Security",
+      "requirement": "No aplica: la feature no cambia autenticación, sesiones, endpoints, entradas aceptadas ni secretos; el guardia del servidor ya existente hereda la regla nueva a través de chainCheck (FR-2807) sin superficie nueva.",
+      "acceptance_criteria": "No se añaden rutas ni campos al contrato /api/v1; las pruebas de autenticación y de guardia existentes siguen pasando."
+    },
+    {
+      "id": "NFR-2811",
+      "category": "Observability",
+      "requirement": "No aplica: la feature no añade procesos, rutas ni trabajos en segundo plano; el registro de peticiones del servidor existente no cambia.",
+      "acceptance_criteria": "Sin cambios en src/server fuera del efecto heredado por chainCheck."
+    },
+    {
+      "id": "NFR-2812",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente (build-and-test en PR a develop/staging/main y en push a main) corre las pruebas nuevas de esta feature sin cambios en el workflow.",
+      "acceptance_criteria": ".github/workflows/ci.yml no se modifica y las pruebas de la feature viven bajo tests/ donde el job build-and-test ya las recoge."
+    }
+  ],
+  "no_go_zone": [
+    "Qué número muestra la celda de un bolsillo (lo aportado en el mes o el saldo que hay en el cajón): es BL-041 y se decide aparte, decisión del usuario del 2026-09-24. Consecuencia aceptada: poner 1.000, sacar 500 y volver a meter 500 deja la celda del mes en 1.500 con 1.000 en el cajón.",
+    "El plano Presupuestado y el techo del plan (BL-039): siguen exactamente como están; el plan ya consume en neto.",
+    "Cambios en el cierre de mes o en la reapertura: el cierre sigue congelando igual; esta feature solo cambia cómo se calcula la marca y el límite.",
+    "Recordar la peor situación que un mes ya tuvo (la opción A de BL-038) para meses realmente violados: la regla 'no empeora' sigue igual para ellos; esta feature quita la marca falsa, que es lo que producía el trinquete en la práctica.",
+    "Migración de datos: las marcas se calculan al vuelo y se re-evalúan solas; no se escribe nada en la base.",
+    "Cambios de interfaz: no hay pantallas, textos ni controles nuevos; las superficies existentes (marca del encabezado, franja del Balance, «Máx.», observación de FR-1804) muestran cifras distintas porque cambia la regla, no el diseño."
+  ],
+  "constraints": [
+    "El cálculo sigue viviendo en una sola función compartida por navegador y servidor (chainCheck / techoScanRaw en src/domain/reserve.ts, ADR-01): no se crea un cálculo paralelo.",
+    "TC-CDM-222f (cierre-de-mes) compara el texto de techoScanRaw, reserveAportes y chainCheck contra el commit ancla 4b941d0 para vigilar que ESA feature no tocó el techo. Esta feature lo cambia a propósito: el ancla se avanza al commit de esta feature con la justificación escrita junto a ella, como ya se hizo el 2026-09-08. No se borra la prueba.",
+    "Las pruebas de techo-de-flujo que fijan el consumo bruto (entre ellas TC-TDF-001h: cupo 0 tras reservar 1.000 y sacar 500, y TC-TDF-002f) cambian de expectativa porque FR-2801 sustituye FR-1801 en Ejecutado; se actualizan con referencia a esta feature, no se desactivan (TC-CDM-201f vigila que no crezcan los .skip).",
+    "Los commits que lleguen a main se mergean con merge commit (cuatro pruebas comparan contra commits ancla)."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas: TypeScript y Vitest ya presentes."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "BL-037 y BL-038 los originó el usuario el 2026-09-01 («si a mitad de mes me ingresa más dinero… o lo ahorro en reservas»); el 2026-09-24 confirmó en el chat la explicación y el cambio de regla («ok»).",
+    "users": "El brief de la feature: usuario único de producción, sin tipos nuevos; es el mismo usuario de todo el proyecto.",
+    "baseline": "Medido por el agente el 2026-09-24 con el dominio real sobre 7a05403 (sonda fuera del repo) y presentado al usuario con los números: marca techo:300, rechazo de la subida con limit 0, rechazo de los 400 nuevos con limit 100.",
+    "success_metric": "Confirmado por el usuario el 2026-09-24 en el chat: «Sí, eso es» a la meta de que sacar para gastar no marque error y la plata nueva se pueda ahorrar entera, manteniendo prohibido sacar más de lo que hay y dejar gastos sin cubrir.",
+    "no_go_zone": "BL-041 fuera de alcance: confirmado por el usuario el 2026-09-24 («Dejarlo para después»). Las otras cinco exclusiones (Presupuestado/BL-039, cierre de mes, opción A de BL-038, migración, interfaz) las propuso el agente y el usuario las confirmó en el chat el 2026-09-24 («si») al aprobar la fase 1."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "El techo de Ejecutado deja de contar en bruto: se consume con lo reservado neto del mes",
+      "disposition": "FR-2801"
+    },
+    {
+      "need": "Se puede reservar hasta lo que haya disponible en el mes",
+      "disposition": "FR-2801"
+    },
+    {
+      "need": "Sacar de un bolsillo para cubrir un gasto no marca el mes como error",
+      "disposition": "FR-2802"
+    },
+    {
+      "need": "Cerrar el mes no debe ser la forma de quitar la marca (hoy no la quita)",
+      "disposition": "FR-2802"
+    },
+    {
+      "need": "La plata que entra después de sacar se puede reservar entera",
+      "disposition": "FR-2803"
+    },
+    {
+      "need": "El «Máx.» del editor y del registro dice la misma cifra que el rechazo",
+      "disposition": "FR-2803"
+    },
+    {
+      "need": "Una celda de bolsillo bajada se puede volver a subir mientras quepa (trinquete)",
+      "disposition": "FR-2804"
+    },
+    {
+      "need": "Lo que consuma el techo en Ejecutado sigue coherente: la observación de FR-1804",
+      "disposition": "FR-2805"
+    },
+    {
+      "need": "Los meses ya marcados en los datos existentes se re-evalúan solos al desplegar",
+      "disposition": "FR-2806"
+    },
+    {
+      "need": "El servidor aplica la misma regla que el navegador vía chainCheck",
+      "disposition": "FR-2807"
+    },
+    {
+      "need": "Se puede sacar hasta lo que haya en el bolsillo (sin cambios)",
+      "disposition": "NFR-2801"
+    },
+    {
+      "need": "Ninguna operación deja un mes con gastos sin cubrir; el encierro original sigue bloqueado",
+      "disposition": "NFR-2802"
+    },
+    {
+      "need": "No hay doble consumo entre meses",
+      "disposition": "NFR-2803"
+    },
+    {
+      "need": "Los meses cerrados siguen congelados (422 closed_period_violation)",
+      "disposition": "NFR-2804"
+    },
+    {
+      "need": "El plano Presupuestado no cambia",
+      "disposition": "NFR-2805"
+    },
+    {
+      "need": "El guardia de borrado de bolsillos de BG-023 se mantiene",
+      "disposition": "NFR-2806"
+    },
+    {
+      "need": "El retiro planeado huérfano sigue marcándose (BG-020)",
+      "disposition": "NFR-2807"
+    },
+    {
+      "need": "Los descuadres siguen marcándose y bloqueando el cierre (FR-2511, FR-2512)",
+      "disposition": "NFR-2808"
+    },
+    {
+      "need": "Qué muestra la celda de un bolsillo: aporte del mes o saldo del cajón (BL-041)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar el techo del plan (BL-039)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambios en el cierre de mes o en la reapertura",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "## Feature\nEl techo de un mes deja de contar la plata que sacas de un bolsillo como si siguiera ahorrada: sacar de\nuna reserva para pagar un gasto no marca el mes como error, y la plata que entra después se puede reservar\nentera.\n\n## Problem / Why\nEl techo del mes en Ejecutado se consume con los aportes BRUTOS: un retiro no devuelve cupo\n(`reserveAportes` y `techoScanRaw` en `src/domain/reserve.ts`, FR-1801 de techo-de-flujo). Se hizo así\npara cerrar un caso real (enero: entran 1.000, reservo 1.000, saco 500, y con consumo neto la app dejaba\nteclear 1.500), pero castiga el ciclo que la propia app prescribe para cubrir un gasto con reservas.\n\nREPRODUCIDO con el dominio actual el 2026-09-24, sobre `7a05403` y ya con cierre-de-mes entregado. Junio:\nentran 1.000, reservo 1.000, aparece un gasto de 300.\n- Sacar 300 de la reserva para pagarlo: aceptado, disponible 0, y junio queda MARCADO `techo:300` para\n  siempre. Cerrar junio no quita la marca.\n- Bajar la celda de 1.000 a 700 (el camino que PIERDE información): aceptado, disponible 0, sin marca.\n  Los números son idénticos al camino anterior; solo cambia el veredicto.\n- Volver a subir esa celda a 1.000: RECHAZADO (`techo`, límite 0). Es el trinquete de BL-038.\n- Plata fresca: tras sacar 300 y gastarlos entran 400 más (disponible 400). Reservar esos 400: RECHAZADO,\n  solo caben 100.\n\nOrigen: BL-037 y BL-038 del backlog de la raíz, que son un solo defecto con dos caras. Se congelaron el\n2026-09-01 hasta tener el cierre de mes (BL-036), con la hipótesis de que lo disolvería. La medición de\narriba muestra que no: cierre-de-mes prometió no tocar el techo y lo cumplió. El análisis ejecutado del\n2026-09-01 está en `aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md`.\n\n## Target Users\nEl usuario único de producción (presupuestador personal). No abre tipos de usuario nuevos.\n\n## New Behavior\nRegla que el usuario enunció el 2026-09-01 y confirmó el 2026-09-24:\n1. En Ejecutado, se puede reservar hasta lo que haya DISPONIBLE en el mes. El techo se consume con lo\n   reservado NETO del mes (aportes − retiros), no con los aportes brutos.\n2. Se puede sacar hasta lo que haya en el bolsillo. Sin cambios: la regla vigente ya lo exige.\n3. Ninguna operación puede dejar un mes con gastos sin cubrir (disponible negativo en ningún mes). Esta\n   regla es la que mantiene bloqueado el encierro original.\n- Sacar de una reserva para cubrir un gasto del mismo mes no produce marca de techo en ese mes.\n- Una celda de bolsillo que se bajó se puede volver a subir mientras quepa en el disponible del mes: el\n  trinquete desaparece.\n- Los meses ya marcados en los datos existentes se re-evalúan con la regla nueva al desplegar: la marca\n  que solo existía por contar en bruto desaparece sola, sin que el usuario tenga que tocar nada.\n- El servidor aplica la misma regla que el navegador (el guardia de reglas-en-el-servidor delega en\n  `chainCheck`, así que deben seguir siendo una sola función).\n\n## Success Criteria\n- Dado junio con 1.000 de ingreso, 1.000 reservados y un gasto de 300, cuando el usuario saca 300 de la\n  reserva, entonces se acepta y junio NO tiene ninguna marca.\n- Dado ese mismo estado tras bajar la celda del bolsillo a 700, cuando el usuario la vuelve a subir a\n  1.000, entonces se acepta si el disponible del mes lo cubre y se rechaza con el límite correcto si no.\n- Dado junio con 1.400 de ingreso, 300 de gasto, 1.000 reservados y 300 retirados (disponible 400),\n  cuando el usuario reserva 400 más, entonces se acepta; y reservar 401 se rechaza.\n- Dado enero con 1.000 de ingreso, la celda del bolsillo en 1.500 y un retiro de 500 (en el cajón hay\n  1.000), cuando el usuario intenta borrar el retiro, entonces se rechaza porque dejaría meses con gastos\n  sin cubrir (el encierro original sigue bloqueado).\n- Dado un ledger con meses marcados por la regla vieja, cuando se carga con la regla nueva, entonces solo\n  quedan marcados los meses que la regla nueva considera violados.\n\n## Touch Points\nMODIFICA:\n- `src/domain/reserve.ts`: `reserveAportes`, `techoScanRaw`, `chainCheck`, `reserveHeadroom`,\n  `cellHeadroom`, `monthIssues` (la marca de techo) y lo que consuma el techo en Ejecutado.\n- FR-1801 de **techo-de-flujo** (el techo lo consumen los aportes brutos) y sus pruebas, que fijan el\n  comportamiento viejo (TC-TDF-001h: cupo 0 tras reservar 1.000 y sacar 500).\n- TC-CDM-222f de **cierre-de-mes**: compara el texto de `techoScanRaw`, `reserveAportes` y `chainCheck`\n  contra el commit ancla `4b941d0` para vigilar que ESA feature no tocara el techo. Esta feature lo cambia\n  a propósito, así que el ancla hay que avanzarla con la justificación escrita junto a ella, como ya se\n  hizo antes. Sin ancla nueva, esa prueba falla.\n- El guardia del servidor (`src/domain/guard.ts`, reglas-en-el-servidor) hereda el cambio vía `chainCheck`.\n- La franja de avisos del Balance y el triángulo de la grilla, que pintan `monthIssues`.\n\n## Must Not Break (Regression Boundary)\n- Sacar de un bolsillo más de lo que tiene sigue rechazado.\n- El encierro original sigue bloqueado: en enero con 1.000 de ingreso, la celda del bolsillo en 1.500 y\n  un retiro de 500, borrar el retiro se rechaza.\n- No hay doble consumo entre meses: la fórmula `disponible = saldo anterior + ingresos − gastos −\n  reservado neto` se sigue cumpliendo mes a mes.\n- Los meses cerrados siguen congelados: un PUT sobre un mes cerrado sigue respondiendo 422\n  `closed_period_violation`.\n- El plano Presupuestado no cambia (ya consumía el techo en neto).\n- Borrar un bolsillo que recibió y entregó plata sigue bloqueado si alteraría el saldo de otro bolsillo\n  (BG-023).\n- El retiro planeado por encima de lo que el plan reserva sigue marcándose (BG-020).\n- Los descuadres de celda contra sus movimientos siguen marcándose y bloqueando el cierre (FR-2511,\n  FR-2512).\n\n## Out of Scope\n- Qué número muestra la celda de un bolsillo (lo aportado en el mes o el saldo que hay en el cajón).\n  Es BL-041 y se decide aparte (decisión del usuario del 2026-09-24). Consecuencia aceptada: con la regla\n  nueva, poner 1.000, sacar 500 y volver a meter 500 deja la celda del mes en 1.500 con 1.000 en el cajón.\n- Cambiar el plano Presupuestado o el techo del plan (BL-039).\n- Cambios en el cierre de mes o en la reapertura.\n"
+}
