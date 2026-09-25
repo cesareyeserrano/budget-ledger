@@ -766,8 +766,18 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     // el arrastre, que antes era un cero implícito y ahora es lo que el usuario declaró tener.
     //
     // `reserveAportes` y `chainCheck` NO se tocaron y siguen comparándose contra el ancla nueva.
+    //
+    // ANCLA AVANZADA de 4b941d0 a d22b1b0 el 2026-09-25, y otra vez por una razón que NO es la que
+    // esta prueba vigila: la promesa de cierre-de-mes —no tocar el techo— sigue intacta. Lo cambió,
+    // a propósito y por decisión del usuario, la feature retirar-para-gastar (FR-2801, ADR-04 de su
+    // TRD): el consumo de Ejecutado pasa de los aportes BRUTOS a lo reservado NETO, una línea de
+    // `techoScanRaw` (`const gasta = deltaActual`). Era la regla que castigaba sacar de un bolsillo
+    // para cubrir un gasto (BL-037, BL-038), y la que cierre-de-mes había dejado fuera de su alcance
+    // a sabiendas. `reserveAportes` y `chainCheck` siguen sin cambios: su texto es el mismo en los
+    // dos commits. Si esta prueba vuelve a fallar, la salida legítima es la misma — avanzar el ancla
+    // y escribir aquí por qué —, nunca borrarla.
     const actual = readFileSync("src/domain/reserve.ts", "utf8");
-    const base = execSync("git show 4b941d0:src/domain/reserve.ts", { encoding: "utf8" });
+    const base = execSync("git show d22b1b0:src/domain/reserve.ts", { encoding: "utf8" });
 
     /** Extrae el cuerpo de una función por su nombre, hasta el cierre en la columna 0. */
     const cuerpo = (src: string, nombre: string): string => {

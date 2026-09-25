@@ -1,5 +1,5 @@
 {
-  "_nota": "LINEA BASE de multi-anio. Generada el 2026-09-02 ejecutando el codigo ANTERIOR a la migracion (worktree en HEAD) sobre un estado EXPLICITO — deliberadamente sin la semilla, porque su jitter depende del NOMBRE del mes (hash(id + 'ene')) y ese nombre cambia con el modelo, lo que haria incomparables unos numeros que no son una regresion sino datos inventados.\nEl estado: sueldo 1.000.000+50.000*i (plan) y 1.000.000+40.000*i (real); mercado 300.000+10.000*i y 320.000+12.000*i; ahorro 100.000+25.000*i en ambos planos; mas dos retiros reales (may 40.000, sep 75.000). Las NFR-1902/1903/1904 reconstruyen ESE mismo estado sobre el eje nuevo y comparan cifra por cifra: el mes 'ene' corresponde al periodo '2026-01'.",
+  "_nota": "LINEA BASE de multi-anio. Generada el 2026-09-02 ejecutando el codigo ANTERIOR a la migracion (worktree en HEAD) sobre un estado EXPLICITO — deliberadamente sin la semilla, porque su jitter depende del NOMBRE del mes (hash(id + 'ene')) y ese nombre cambia con el modelo, lo que haria incomparables unos numeros que no son una regresion sino datos inventados.\nEl estado: sueldo 1.000.000+50.000*i (plan) y 1.000.000+40.000*i (real); mercado 300.000+10.000*i y 320.000+12.000*i; ahorro 100.000+25.000*i en ambos planos; mas dos retiros reales (may 40.000, sep 75.000). Las NFR-1902/1903/1904 reconstruyen ESE mismo estado sobre el eje nuevo y comparan cifra por cifra: el mes 'ene' corresponde al periodo '2026-01'. || ACTUALIZADA el 2026-09-25 por la feature retirar-para-gastar (FR-2801, ADR-05 de su TRD): el techo de Ejecutado pasa a consumirse con lo reservado NETO, asi que en los dos meses con retiro real el cupo crece exactamente en el retiro. Cambian SOLO cuatro cifras: may.reserveHeadroom 2930000->2970000 y may.cellHeadroomActual 3130000->3170000 (retiro de 40.000); sep.reserveHeadroom 5368000->5443000 y sep.cellHeadroomActual 5668000->5743000 (retiro de 75.000). Todas las demas cifras siguen siendo las capturadas antes de la migracion y TC-MAN-220h las sigue afirmando: la migracion a multi-anio no cambio nada.",
   "meses": [
     "ene",
     "feb",
@@ -524,7 +524,7 @@
       "cellHeadroomActual": 2513000
     },
     "may": {
-      "reserveHeadroom": 2930000,
+      "reserveHeadroom": 2970000,
       "availableMargin": 3130000,
       "plannedRetiroLimit": 750000,
       "aportesActual": 200000,
@@ -533,7 +533,7 @@
       "deltaActual": 160000,
       "carryActual": null,
       "maxWithdrawal": 710000,
-      "cellHeadroomActual": 3130000
+      "cellHeadroomActual": 3170000
     },
     "jun": {
       "reserveHeadroom": 3565000,
@@ -572,7 +572,7 @@
       "cellHeadroomActual": 5039000
     },
     "sep": {
-      "reserveHeadroom": 5368000,
+      "reserveHeadroom": 5443000,
       "availableMargin": 5668000,
       "plannedRetiroLimit": 1800000,
       "aportesActual": 300000,
@@ -581,7 +581,7 @@
       "deltaActual": 225000,
       "carryActual": null,
       "maxWithdrawal": 1685000,
-      "cellHeadroomActual": 5668000
+      "cellHeadroomActual": 5743000
     },
     "oct": {
       "reserveHeadroom": 6050000,

@@ -223,10 +223,14 @@ describe("NFR-2102 — el alcance no se pasó de la raya", () => {
     }
   });
 
-  it("TC-RES-211f: FR-1801 sigue en pie — el consumo del plano Ejecutado sigue siendo BRUTO", () => {
+  it("TC-RES-211f: el consumo del plano Ejecutado es el que fija el dominio — NETO desde FR-2801", () => {
     // @aitri-tc TC-RES-211f
-    // Con ingreso 1.000.000, reserva 1.000.000 y un retiro de 500.000, el cupo NO se recarga: si el
-    // consumo fuera neto, reservar 400.000 más cabría. Debe rechazarse.
+    // REESCRITO el 2026-09-25 por retirar-para-gastar (FR-2801, ADR-03 de su TRD). Esta prueba fijaba
+    // que el consumo de Ejecutado seguía siendo BRUTO (FR-1801) para vigilar que ESTA feature no lo
+    // cambiara; esa promesa se cumplió. Lo cambió después el usuario, a propósito, en otra feature. Lo
+    // que se conserva es lo que importa aquí: el guardia no tiene regla propia, hereda la del dominio.
+    // Con ingreso 1.000.000, reserva 1.000.000 y un retiro de 500.000, el cupo SÍ se recarga en
+    // 500.000: la celda admite 1.500.000 y ni un peso más.
     let s = st(1_000_000, 0);
     const ap = applyReserveOp(s, { from: AVAILABLE_ID, to: "A", period: "2026-06", amount: 1_000_000 }, P);
     expect("rejected" in ap).toBe(false);
@@ -235,8 +239,10 @@ describe("NFR-2102 — el alcance no se pasó de la raya", () => {
     expect("rejected" in ret).toBe(false);
     if ("rejected" in ret) return;
     s = ret.state;
-    const v = validateReserveWrite(s, { leafId: "A", period: "2026-06", plane: "actual", newAmount: 1_400_000 }, P);
-    expect(v.ok).toBe(false); // el retiro NO devolvió cupo
+    const cabe = validateReserveWrite(s, { leafId: "A", period: "2026-06", plane: "actual", newAmount: 1_500_000 }, P);
+    expect(cabe.ok).toBe(true); // el retiro devolvió su cupo
+    const unPesoMas = validateReserveWrite(s, { leafId: "A", period: "2026-06", plane: "actual", newAmount: 1_500_001 }, P);
+    expect(unPesoMas).toMatchObject({ ok: false, rule: "techo", period: "2026-06", limit: 500_000 });
   });
 
   it("TC-RES-210f: el veredicto de las operaciones de reserva no cambia", () => {
