@@ -485,8 +485,16 @@
       "title": "Referencia de imagen de Linux para TC-CIC-064f",
       "priority": "P2",
       "problem": "La guarda visual de la cabecera de mes (TC-CIC-064f, FR-2407) compara byte a byte contra tests/e2e/__screenshots__/ciclos-header-month.png, capturada en macOS. En el runner de CI (ubuntu) el texto se dibuja con otras fuentes y otro antialiasing, asi que la igualdad exacta nunca se cumple: en el PR #23 fallo los tres intentos mientras el resto del test pasaba. Desde el 2026-09-11 la comparacion de pixeles corre solo en darwin, asi que en CI la guarda visual NO se comprueba (lo estructural si: sin rango, sin marca de transicion, cabecera de 38px). Para recuperarla en CI hace falta una referencia propia de Linux, generada con la imagen Docker de Playwright, o pasar a toHaveScreenshot, que guarda una referencia por plataforma y admite tolerancia.",
-      "status": "open",
-      "createdAt": "2026-09-11T22:45:36.486Z"
+      "status": "closed",
+      "createdAt": "2026-09-11T22:45:36.486Z",
+      "log": [
+        {
+          "at": "2026-09-25T19:28:40.222Z",
+          "text": "Cerrado sin hacer por decision del usuario (2026-09-25). La guarda visual de TC-CIC-064f sigue activa en macOS, donde corre todo verify-run y Aitri acredita el TC; CI (Linux) mantiene la parte estructural (sin rango, sin marca, 38px). Una referencia Linux byte a byte seria fragil porque ubuntu-latest cambia fuentes al actualizarse, y la tolerancia romperia el contrato 'byte a byte' de la ficha de fase 3 de ciclos (feature sellada). Coste > valor."
+        }
+      ],
+      "updatedAt": "2026-09-25T19:28:40.222Z",
+      "closedAt": "2026-09-25T19:28:40.276Z"
     },
     {
       "id": "BL-047",
