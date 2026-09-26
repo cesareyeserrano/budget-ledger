@@ -342,7 +342,14 @@
       "problem": "BL-029 tenia dos mitades. La primera —que plegado se muestre el Saldo disponible en vez del Saldo total— se entrego el 2026-08-28 con la feature resumen-plegado (FR-1501/FR-1502, 20/20 TCs). La segunda sigue pendiente por decision del usuario del 2026-08-27: que sea EL USUARIO quien elija que cifra resume el modulo plegado. No es una linea de codigo como la primera: necesita una preferencia persistida, decidir su alcance (por cuenta o global) y un sitio donde ajustarla — hoy el producto no tiene pantalla de ajustes, asi que la feature arrastra crear esa superficie o meter el control en el propio encabezado. El punto de extension esta identificado y es uno solo: el MONTHS.map de BalanceModule.tsx que hoy elige el campo `available`, documentado en el ADR-01 de la feature (se descarto parametrizar HeaderTotalCell por adelantado: andamiaje especulativo sin segundo llamador).",
       "status": "open",
       "createdAt": "2026-08-28T16:28:27.855Z",
-      "acceptance": "El usuario elige entre Saldo disponible y Saldo total para el encabezado plegado; la eleccion persiste entre sesiones y dispositivos con el alcance que se decida; el valor por defecto sigue siendo Saldo disponible"
+      "acceptance": "El usuario elige entre Saldo disponible y Saldo total para el encabezado plegado; la eleccion persiste entre sesiones y dispositivos con el alcance que se decida; el valor por defecto sigue siendo Saldo disponible",
+      "log": [
+        {
+          "at": "2026-09-26T00:03:16.888Z",
+          "text": "Premisa desactualizada (revision del 2026-09-25): 'hoy el producto no tiene pantalla de ajustes' ya no es cierto. Existe src/app/configuracion/page.tsx (meses-y-saldo-inicial, FR-2201-2207) y ciclos le sumo PeriodModeSection. La feature ya no arrastra crear la superficie: queda la preferencia persistida (columna en ledger o en la cuenta), su alcance (por cuenta o global) y el control en Configuracion. Sigue P3: nadie lo ha vuelto a pedir."
+        }
+      ],
+      "updatedAt": "2026-09-26T00:03:16.888Z"
     },
     {
       "id": "BL-035",
@@ -444,19 +451,33 @@
     {
       "id": "BL-041",
       "title": "Decision de modelo: la celda de un bolsillo, aporte del mes o saldo que tengo",
-      "priority": "P2",
+      "priority": "P1",
       "problem": "La celda de un bolsillo muestra lo APORTADO ese mes, no lo que hay en el cajon, y el usuario lo declaro incorrecto: «la realidad es lo que tengo; si dice 1.500 cuando tengo 1.000, esta mal»",
       "status": "open",
       "createdAt": "2026-09-02T00:00:00.000Z",
-      "decisions": "VERIFICADO que la divergencia YA EXISTE hoy, no la introduce ninguna propuesta: tras reservar 1.000 y sacar 300, la celda dice 1.000 y el cajon tiene 700; y reservando 600 en enero y 400 en febrero, la celda de febrero dice 400 cuando hay 1.000. La objecion del usuario es contra el diseno vigente. OPCIONES: (a) la grilla muestra el SALDO del cajon al cierre de cada mes —la foto— y los flujos del mes siguen visibles en el Balance («Reservas del mes» / «Retiros de reservas») y en la lista de operaciones; (b) dejarlo como esta. LA PREGUNTA DIFICIL de la opcion (a): que significa BAJAR el numero de la celda — «no meti tanto» (corregir) o «saque plata» (retiro real). Propuesta: bajar la celda corrige lo aportado, y sacar plata se hace por la fila de retiros, que ademas pone fecha. Esa separacion disolveria la ambiguedad de la que nacen BL-037 y BL-038. NOTA HISTORICA: el modelo v3 guardaba SALDOS y la migracion a v4 los convirtio en APORTES; el motivo registrado fue que con semantica de saldo una celda ausente resolvia 0 e inventaba retiros fantasma. Eso afecta al ALMACENAMIENTO, no a la presentacion: se puede seguir guardando aportes y MOSTRAR el saldo derivado, que es lo que ya hace resolvedSeries. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md."
+      "decisions": "VERIFICADO que la divergencia YA EXISTE hoy, no la introduce ninguna propuesta: tras reservar 1.000 y sacar 300, la celda dice 1.000 y el cajon tiene 700; y reservando 600 en enero y 400 en febrero, la celda de febrero dice 400 cuando hay 1.000. La objecion del usuario es contra el diseno vigente. OPCIONES: (a) la grilla muestra el SALDO del cajon al cierre de cada mes —la foto— y los flujos del mes siguen visibles en el Balance («Reservas del mes» / «Retiros de reservas») y en la lista de operaciones; (b) dejarlo como esta. LA PREGUNTA DIFICIL de la opcion (a): que significa BAJAR el numero de la celda — «no meti tanto» (corregir) o «saque plata» (retiro real). Propuesta: bajar la celda corrige lo aportado, y sacar plata se hace por la fila de retiros, que ademas pone fecha. Esa separacion disolveria la ambiguedad de la que nacen BL-037 y BL-038. NOTA HISTORICA: el modelo v3 guardaba SALDOS y la migracion a v4 los convirtio en APORTES; el motivo registrado fue que con semantica de saldo una celda ausente resolvia 0 e inventaba retiros fantasma. Eso afecta al ALMACENAMIENTO, no a la presentacion: se puede seguir guardando aportes y MOSTRAR el saldo derivado, que es lo que ya hace resolvedSeries. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
+      "updatedAt": "2026-09-26T00:03:11.076Z",
+      "log": [
+        {
+          "at": "2026-09-26T00:03:11.076Z",
+          "text": "Subida a P1 en la revision del backlog del 2026-09-25: los dos P1 nuevos la nombran como deuda previa. BL-056 (movil) copiaria al telefono una semantica que el usuario ya declaro incorrecta, y BL-057 (Tony) tiene que responder 'cuanto tengo en el bolsillo X' con una sola respuesta. Es una decision, no una feature: tomarla desbloquea las dos. Recomendacion: opcion (a) mostrar el saldo del cajon, con la separacion propuesta (bajar la celda corrige lo aportado; sacar plata va por la fila de retiros). Lo unico por decidir de verdad es la pregunta dificil sobre BAJAR la celda."
+        }
+      ]
     },
     {
       "id": "BL-042",
       "title": "Decision de UX: devolverle color al Balance — tres formas maquetadas, sin elegir",
-      "priority": "P2",
+      "priority": "P3",
       "problem": "El Balance quedo sin color tras la reestructuracion de FR-1810 y el usuario pidio devolverselo, pero la decision de cual de las tres formas no se tomo y no estaba registrada en ninguna parte",
       "status": "open",
-      "createdAt": "2026-09-02T21:34:53.848Z"
+      "createdAt": "2026-09-02T21:34:53.848Z",
+      "updatedAt": "2026-09-26T00:07:36.801Z",
+      "log": [
+        {
+          "at": "2026-09-26T00:07:36.801Z",
+          "text": "Bajada a P3 el 2026-09-25 por decision del usuario: «el color del balance no lo veo tan importante». Deja de ser deuda previa de BL-056: el resumen del Balance en movil hereda el estado actual (sin color salvo el rojo del negativo). Si algun dia se decide, aplicar la misma forma a escritorio y movil."
+        }
+      ]
     },
     {
       "id": "BL-043",
@@ -494,7 +515,14 @@
       "priority": "P2",
       "problem": "El discovery de la feature ciclos (aitri/features/ciclos/spec/00_DISCOVERY.md, 2026-09-10) fijo por decision del usuario un PRIMER INCREMENTO = el nucleo que ajusta sus transacciones actuales: modo mes/ciclos en Configuracion, un dia de pago del mes versionable con ciclo de transicion, asignacion por fecha de transaccion, nombre por mes en que termina con rango visible, cierre y arrastre iguales a hoy. Todo lo demas del documento del cliente (aitri/product/idea_context/cadencia/requerimiento-ciclos-de-pago.md) queda APLAZADO, no perdido: (a) frecuencias quincenal 15/30, quincenal fin de mes, semanal, catorcenal y fechas manuales (RF-03, RF-04, §2.2.2); (b) prorrateo de un gasto entre los ciclos que lo anteceden (RF-09c, RV-10, §2.2.6) — BL-043 sugiere reusar el motor de alcancias de transferencias; (c) gastos recurrentes con dia de vencimiento proyectados (RF-12) y cuotas de compras diferidas (RF-13); (d) ingreso extraordinario asignado a otro ciclo (RF-14) y varias fuentes con una designada (RF-15); (e) vista alterna por mes calendario para reportes tributarios (RF-16, §9); (f) disponible tras comprometidos (RF-17), alerta de ciclo futuro en deficit (RF-18), aviso de duracion distinta al comparar (RF-19); (g) ingreso de monto variable proyectado vs confirmado (§8.3). RETIRADOS, no aplazados: calendario de festivos y politica de dia no habil (RF-02 en esa parte, RV-09), porque la frontera del ciclo es nominal por decision del usuario. Cada inciso es candidato a feature propia; priorizar con el usuario cuando el nucleo este sellado.",
       "status": "open",
-      "createdAt": "2026-09-10T02:24:43.615Z"
+      "createdAt": "2026-09-10T02:24:43.615Z",
+      "log": [
+        {
+          "at": "2026-09-26T00:03:23.636Z",
+          "text": "El nucleo de ciclos esta sellado (5/5, 178 TCs), asi que toca lo que esta entrada pedia: priorizar los incrementos con el usuario. ORDEN RECOMENDADO en la revision del 2026-09-25, PENDIENTE DE CONFIRMAR: (1) RF-12/13 recurrentes y cuotas + RF-17 disponible tras comprometidos, juntos: son una sola idea (que tengo comprometido y que me queda libre) y es la cifra que mas se consulta en un presupuesto mensual; incluye §8.3 ingreso variable proyectado vs confirmado. (2) RF-14/15 ingreso extraordinario y varias fuentes. (3) RF-18/19 alertas de ciclo futuro en deficit y duracion distinta. (4) RF-16 vista por mes calendario: valor estacional (impuestos). (5) RF-09c prorrateo. (6) RF-03/04 frecuencias quincenal/semanal/manual: el usuario cobra una vez al mes (el nucleo implemento 'un dia de pago del mes'), asi que sirven a otros usuarios, no a este. Al elegir el primero, abrirlo como entrada propia y dejar esta como indice del resto."
+        }
+      ],
+      "updatedAt": "2026-09-26T00:03:23.636Z"
     },
     {
       "id": "BL-046",
@@ -581,7 +609,14 @@
       "priority": "P3",
       "problem": "Verificado el 2026-09-14 (feature diario-de-celda, fase 2): worsenedBy solo evalua diffs que tocan hojas o movimientos de bolsillos (src/domain/guard.ts:37-55 touchesReserves, :103). Bajar o borrar un ingreso, o editar un gasto, no pasa por las reglas de techo y piso, asi que puede dejar reservas sin respaldo sin rechazo. Hoy pasa igual al teclear un ingreso menor en la grilla. El usuario acepto mantener la paridad en diario-de-celda: no ve casos de uso con techos ahi. Retomar solo si aparece un caso real.",
       "status": "open",
-      "createdAt": "2026-09-14T22:57:16.424Z"
+      "createdAt": "2026-09-14T22:57:16.424Z",
+      "log": [
+        {
+          "at": "2026-09-26T00:03:16.978Z",
+          "text": "Condicion de escalada (revision del 2026-09-25): el 'caso real' que esta entrada espera aparece si BL-057 (Tony) decide ESCRIBIR movimientos — un agente que registra o baja ingresos/gastos pasa por fuera de las reglas de techo y piso. Si el discovery de BL-057 incluye escritura, subir esta entrada a P2 y resolverla dentro o antes de esa feature. Si Tony queda en solo lectura, sigue P3."
+        }
+      ],
+      "updatedAt": "2026-09-26T00:03:16.978Z"
     },
     {
       "id": "BL-052",
@@ -642,7 +677,14 @@
       "files": "src/app/page.tsx, src/components/MobileShell.tsx, src/components/BudgetGrid.tsx, src/components/BalanceModule.tsx, src/components/Dashboard.tsx, src/domain/rollup.ts (tabla de roll-ups de BL-009, reutilizable), aitri/product/spec/01_REQUIREMENTS.json (FR-010, no_go_zone)",
       "behavior": "Una vista de presupuesto pensada para el telefono, NO la grilla de 12 meses encogida. Forma a decidir en discovery/UX con maquetas (el usuario no la ha elegido): p.ej. UN mes a la vez con selector de mes, lista plegable Tipo > Grupo > Categoria con Presupuestado / Ejecutado / Restante y el color de estado de budget-state-color, mas un resumen del Balance arriba. Lee el mismo estado y las mismas reglas que escritorio (FR-010 lo exige ya).",
       "decisions": "ABIERTAS, para discovery: (1) solo lectura o tambien editar presupuesto/ejecutado desde el movil — recomendacion: v1 de solo lectura + el registro que ya existe; editar celdas en el telefono arrastra BL-052 y BL-017; (2) que incluye: grilla, Balance, Dashboard, cierre de mes (si incluye cerrar, BL-055 va antes: el boton puede nombrar un mes y cerrar otro); (3) navegacion entre Registro y Presupuesto en movil. DEUDAS A RESOLVER ANTES (revision del backlog del 2026-09-25): BL-041 — que muestra la celda de un bolsillo (aporte del mes o saldo); disenar la vista movil sin decidirlo copia al telefono una semantica que el usuario ya declaro incorrecta. BL-042 — el color del Balance; decidirlo una vez para las dos superficies, no dos veces. BL-009 ya esta resuelto (0b2d8f8), asi que el calculo de roll-ups no es obstaculo.",
-      "acceptance": "A 375px el usuario ve, para el mes elegido, Presupuestado/Ejecutado/Restante por categoria y el resumen del Balance, con las mismas cifras que escritorio para el mismo mes (TC de paridad movil-escritorio sobre los mismos datos); FR-010 re-aprobado con su nuevo alcance; sin desbordes a 375px"
+      "acceptance": "A 375px el usuario ve, para el mes elegido, Presupuestado/Ejecutado/Restante por categoria y el resumen del Balance, con las mismas cifras que escritorio para el mismo mes (TC de paridad movil-escritorio sobre los mismos datos); FR-010 re-aprobado con su nuevo alcance; sin desbordes a 375px",
+      "log": [
+        {
+          "at": "2026-09-26T00:07:36.891Z",
+          "text": "Revision del 2026-09-25, correccion: BL-042 (color del Balance) ya NO es deuda previa de esta feature; el usuario la bajo a P3 por poco importante. El resumen del Balance en movil se disena con el estado actual del Balance de escritorio, sin decidir color. Siguen como deuda previa: BL-041 (que muestra la celda de un bolsillo) y, solo si se incluye cerrar mes, BL-055."
+        }
+      ],
+      "updatedAt": "2026-09-26T00:07:36.891Z"
     },
     {
       "id": "BL-057",
@@ -654,7 +696,36 @@
       "files": "src/app/api/v1/movements/route.ts y [id]/route.ts (escritura por movimiento, la via correcta para un agente), src/app/api/v1/ledger/route.ts (PUT snapshot-replace: el agente NO debe usarlo), src/server/auth.ts (hoy solo sesion por cookie + cabecera Origin), src/domain/guard.ts, src/domain/balance.ts, src/domain/rollup.ts",
       "behavior": "Por definir en discovery. Minimo razonable: el usuario pregunta en lenguaje natural ('cuanto llevo en restaurantes este mes', 'como voy contra el presupuesto') y Tony responde con las mismas cifras que la app; opcionalmente registra movimientos dictados ('gaste 45.000 en mercado') pasando por las mismas reglas del servidor que el registro manual, con confirmacion antes de escribir.",
       "decisions": "ABIERTAS, para discovery con el usuario: (1) CANAL: chat dentro de la app, Telegram/WhatsApp, o servidor MCP para usarlo desde Claude; (2) ALCANCE: solo lectura o tambien escritura; si escribe, que acciones (movimientos si; cierre de mes, borrar, reservas/retiros — recomendacion: no en v1); (3) PROVEEDOR/MODELO y costo mensual aceptable; (4) PRIVACIDAD: los montos y notas reales saldrian hacia un proveedor externo — decision del usuario, y el repo es publico: nada de claves ni datos reales en el codigo; (5) AUTENTICACION: si el agente vive fuera del navegador hace falta un token por usuario revocable, superficie nueva que pide aitri audit security. DEUDAS A RESOLVER ANTES O DENTRO (revision del backlog del 2026-09-25): BL-041 — 'cuanto tengo en el bolsillo X' tiene hoy dos respuestas posibles (aporte vs saldo); un agente que responde eso en voz alta necesita la semantica decidida. BL-054 — 'me devolvieron 40.000' hoy entra como ingreso e infla ingresos; el agente tiene que saber que hacer con esa frase. BL-052 — lo gastado vive en celda y diario; el agente debe escribir SOLO por movimientos y apoyarse en la alerta de descuadre (FR-2511). BL-051 — si el agente registra o baja ingresos/gastos, las reglas de techo y piso no lo vigilan; con un agente escribiendo, el 'retomar solo si aparece un caso real' de BL-051 aparece. BL-017 — irrelevante si el agente usa /movements y no el PUT del ledger completo. BL-055 — solo si el agente puede cerrar meses.",
-      "acceptance": "Para un conjunto fijo de preguntas sobre datos de prueba (admin@admin.com), las cifras de Tony coinciden con las de la app; si escribe, cada escritura pasa por las mismas validaciones del servidor, pide confirmacion y queda en el diario como cualquier movimiento; ningun secreto ni dato real en el repositorio; aitri audit security sin hallazgos P0 sobre la nueva superficie"
+      "acceptance": "Para un conjunto fijo de preguntas sobre datos de prueba (admin@admin.com), las cifras de Tony coinciden con las de la app; si escribe, cada escritura pasa por las mismas validaciones del servidor, pide confirmacion y queda en el diario como cualquier movimiento; ningun secreto ni dato real en el repositorio; aitri audit security sin hallazgos P0 sobre la nueva superficie",
+      "log": [
+        {
+          "at": "2026-09-26T15:28:15.479Z",
+          "text": "Discovery previo del 2026-09-26 (lectura en solo lectura del perfil real). TONY YA EXISTE: perfil Hermes 'ledger' en Ultron (~/.hermes/profiles/ledger, en el contenedor hermes /opt/data/profiles/ledger), Telegram, glm-5.2 via Ollama Cloud (los datos reales ya salen a un proveedor externo: la decision de privacidad esta tomada de hecho). Captura correos del banco (alias +ledger) con un watcher determinista, pregunta/propone por Telegram, clasifica con el helper ledger_record.py sobre su propio libro data/movimientos.json (197 movimientos 31-may a 25-sep, ~50/mes, 10 campos, operador +/-/0), catalogo Grupo>Categoria en categorias.json (43 categorias en uso), cuentas por pagar (AP), informes por ciclo de nomina 21->21 calculados por el LLM con Python inline; NO tiene calculo determinista de saldo. Cero referencias a T-Ledger en su codigo o prompts: hoy son dos libros desconectados. El usuario declaro el 26-sep que el valor esta en BL-056 y BL-057, quiza primero esta. MAPA DE DESAJUSTES a resolver en discovery: (1) dos taxonomias de categorias (Tony: Grupo>Categoria semantica; T-Ledger: arbol tipo>grupo>categoria por catId/subId) -> tabla de mapeo; (2) Tony registra alcancias como cuentas de ahorro del usuario con dos patas -/+; T-Ledger las modela como bolsillos con reserva/retiro De->A ('@disponible'): el mapeo depende de BL-041; (3) ciclo: Tony lo nombra por el salario que lo abre, ciclos FR-2407 por el mes en que termina; coinciden solo con dia de pago 21; (4) reembolsos: Tony 'ajuste +'; T-Ledger ajuste manual FR-2504 / editar movimiento FR-2505 (BL-054 cerrada); (5) Tony guarda anulados en el libro con operador 0; T-Ledger borra (FR-2506); (6) volumen: ~50 movimientos/mes de Tony contra ~14/mes cargados a mano en T-Ledger. PREPARACION DEL CODIGO DE T-LEDGER: LECTURA casi lista: GET /api/v1/ledger (snapshot completo), GET /api/v1/movements?period=, cierre y ciclos; falta un endpoint de resumen (presupuestado/ejecutado/restante por categoria + Balance) que reutilice rollupTable/computeBalanceSeries del dominio TS, porque hoy esas cifras solo se calculan en el navegador y Tony (Python) tendria que reimplementarlas. ESCRITURA lista en el servidor: POST /api/v1/movements valida con zod, cierre, periodo vs fecha, reglas de dominio y publica sync; PATCH/DELETE existen; exige catId/subId -> necesita el mapeo (1). AUTENTICACION es el hueco real: withApi solo acepta cookie de sesion de better-auth (sin plugins bearer/apiKey) y las mutaciones exigen Origin en LEDGER_ALLOWED_ORIGINS; un script puede iniciar sesion con correo+contrasena y Origin, pero guardar la contrasena del usuario en el perfil de Tony es peor que un token revocable: superficie nueva -> aitri audit security. RED: la app corre en la misma Pi (budget-ledger-app-1, 127.0.0.1:3000, Tailscale :34004); el contenedor hermes esta en otra red Docker, llega por el host o por Tailscale. RECOMENDACION v1: Tony LEE T-Ledger (token + endpoint de resumen) y responde con las cifras de la app; v2: Tony ESCRIBE por POST /movements con el mapeo de categorias y confirmacion; el canal ya esta decidido de hecho: Telegram via Hermes."
+        },
+        {
+          "at": "2026-09-26T15:51:16.870Z",
+          "text": "DECISION DEL USUARIO 2026-09-26: INTEGRACION, no un agente propio fuera de Hermes, y sobre una COPIA del perfil Hermes 'ledger'. El Tony original se queda donde esta, con su libro actual (datos reales pero de POC), y los dos trabajan en paralelo temporalmente; la integracion con T-Ledger se hace sobre la copia. Alternativa descartada: agente propio en T-Ledger fuera de Hermes — lo caro de Tony es la captura (watcher, identidad bancaria, declinadas, dos patas, pendientes, AP), no la conversacion, y reconstruirla anadiria proceso, proveedor y secretos nuevos a un repo publico sin arreglar lo que falla (modelo debil que se salta prosa y suma a mano; eso lo arregla mover reglas y aritmetica al servidor de T-Ledger). CHECKLIST PARA LA COPIA, verificado en el perfil real el 26-sep (una copia ingenua seguiria leyendo y escribiendo el libro del ORIGINAL): (1) la ruta /opt/data/profiles/ledger esta grabada en 10 scripts (ledger_record.py la fuerza salvo LEDGER_ALLOW_HOME_OVERRIDE; los tres *_cron.py fijan HERMES_HOME; ledger_sync.py tiene DATA y gdrive:Ledger literales), 11 veces en SOUL.md, 6 en SKILL.md, 15 en references/*.md y 1 en config.yaml (terminal.cwd) -> reescribir todas a la ruta del perfil nuevo; (2) Drive: LEDGER_DRIVE_REMOTE en .env y GDRIVE_DIR literal en ledger_sync.py -> carpeta propia o sync apagado; (3) Telegram: el .env lleva el token del bot y el chat del usuario; dos gateways con el MISMO token chocan en getUpdates -> bot nuevo (BotFather) para la copia, mismo chat permitido; (4) crons: cron/jobs.json trae watcher cada 1m, recordatorios cada 120m y 08:00, y cuatro avisos mensuales -> en la copia DESACTIVARLOS al inicio (v1 solo lee T-Ledger; el original sigue capturando); si la copia llega a correr el watcher contra el mismo alias +ledger, o se usa un alias distinto con otra regla de reenvio, o se copia processed_emails.json para no re-procesar toda la bandeja (pitfall documentado en el SKILL) y se apaga el watcher del original; (5) gateway: cada perfil con gateway tiene un servicio s6 propio (gateway-default, gateway-fpl, gateway-ledger) declarado en la imagen hermes-agent:local (src/docker/stage2-hook.sh + Dockerfile): la copia necesita gateway-<perfil> y reconstruir la imagen; el run del servicio hace unset de TELEGRAM_* del default y ejecuta hermes -p <perfil> gateway run; (6) datos: copiar categorias.json y category_rules.json (insumo del mapeo de categorias); movimientos.json de la copia puede arrancar vacio porque el libro sera T-Ledger; (7) config.yaml lleva la api_key del modelo en claro: misma cuota de Ollama Cloud para los dos. NOTA: los perfiles viven en ~/.hermes/profiles/<nombre> en la Pi (= /opt/data/profiles/<nombre> en el contenedor)."
+        },
+        {
+          "at": "2026-09-26T15:52:13.415Z",
+          "text": "CORRECCION al punto (5) de la nota anterior, verificado en hermes-agent/src/hermes_cli/container_boot.py y docker/cont-init.d/02-reconcile-profiles: el servicio s6 gateway-<perfil> NO esta grabado en la imagen ni exige reconstruirla. Al arrancar el contenedor, 02-reconcile-profiles llama a reconcile_profile_gateways, que recorre /opt/data/profiles/<nombre>/ y registra un slot gateway-<nombre> por perfil persistente, arrancandolo solo si su ultimo estado grabado fue 'running' (gateway_state.json del perfil); ademas hay hooks de creacion/borrado de perfil que registran el slot en caliente. Para la copia basta: crear el perfil bajo ~/.hermes/profiles/<nombre> (con su config.yaml, .env y api_key), y arrancarlo con hermes -p <nombre> gateway start; el run del servicio hace unset de TELEGRAM_* del default y ejecuta hermes -p <nombre> gateway run --replace. Sigue vigente el resto de la checklist (rutas grabadas, Drive, token de bot propio, crons apagados al inicio, categorias.json como insumo)."
+        },
+        {
+          "at": "2026-09-26T16:18:32.428Z",
+          "text": "PLAN DE LA COPIA acordado el 2026-09-26: (a) sin Drive ni xlsx — el libro es la base de T-Ledger; en la copia ledger_sync.py queda como no-op y rclone apunta a /bin/true; (b) Telegram si — bot NUEVO creado por el usuario en BotFather, mismo chat permitido; es el unico artefacto duplicado que hace falta a mano; (c) el token de T-Ledger para el agente lo produce la feature (fase de requisitos), no la copia. Mecanismo: hermes profile create <nombre> --clone-from ledger (copia config.yaml, .env, SOUL.md y skills, y registra el gateway en caliente, sin reiniciar el contenedor) + copiar scripts/, ENGRAM.md, ARCHITECTURE.md y categorias.json/category_rules.json/reglas.md; libro vacio conservando last_id_number; reescritura de todas las rutas /opt/data/profiles/ledger en la copia; sin crons (el perfil nuevo nace sin jobs.json; el original sigue capturando). Dentro del contenedor el usuario hermes es uid 1000 (= el usuario de la Pi), asi que los permisos de la copia quedan bien. Script preparado para revision del usuario: crear-perfil-tony-tledger.sh (scratchpad de la sesion del 26-sep; copiar a ~/bin de la Pi al ejecutarlo). Nombre propuesto del perfil: tledger. Dos vias en paralelo: la copia (Hermes, fuera de Aitri) y la feature de T-Ledger (aitri feature init) con token revocable + endpoint de resumen en v1."
+        }
+      ],
+      "updatedAt": "2026-09-26T16:18:32.428Z"
+    },
+    {
+      "id": "BL-058",
+      "title": "Despliegue automatico a Ultron al mergear a main (como Render), conservando siempre los datos de produccion",
+      "priority": "P2",
+      "problem": "Pedido del usuario el 2026-09-26 como idea a futuro: que un merge o push a main despliegue solo en el servidor, sin pasos manuales. Hoy el despliegue es manual (DEPLOYMENT.md, 'Deploying a new version'): respaldo, build, migrar con la imagen NUEVA, levantar y verificar con scripts/verificar-prod.sh. Ultron solo es alcanzable por Tailscale, asi que GitHub Actions no llega sin un puente.",
+      "status": "open",
+      "createdAt": "2026-09-26T16:59:56.052Z",
+      "decisions": "Abiertas: (1) como llega GitHub a Ultron: runner self-hosted en Ultron (el mas simple; el runner debe aceptar SOLO main y nunca PRs de forks, el repo es publico), accion oficial de Tailscale con clave efimera y ACL minima, o un pull desde Ultron (watchtower/cron sobre la rama); (2) donde se construye la imagen: en Ultron o en CI y publicada en GHCR; (3) aprobacion manual (environment de GitHub con revisor) o totalmente automatico; (4) rollback automatico si falla la verificacion.",
+      "acceptance": "Un merge a main despliega sin intervencion y aplica las cinco reglas de DEPLOYMENT.md: pg_dump antes de tocar nada, nunca borrar volumenes, migraciones con la imagen nueva, levantar y correr verificar-prod.sh con el respaldo; si verificar-prod falla, el despliegue se marca rojo y vuelve a la imagen anterior sin tocar la base; ningun secreto de produccion en el repo ni en logs; los respaldos rotan y quedan cifrados; un PR (incluido uno de un fork) nunca ejecuta nada en Ultron."
     }
   ]
 }
