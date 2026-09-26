@@ -8,7 +8,7 @@
  *   al salir del proceso.
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres, child_process
  */
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { startTestPostgres } from "../../helpers/testPostgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -36,7 +36,7 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 
   const migrationClient = postgres(databaseUrl, { max: 1 });

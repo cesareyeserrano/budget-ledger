@@ -11,7 +11,7 @@
  * Dependencies: @playwright/test
  */
 import type { Page } from "@playwright/test";
-import type { LedgerNode, AmountMap, Movement } from "@/domain/types";
+import type { LedgerNode, LedgerState, AmountMap, Movement } from "@/domain/types";
 
 export interface SeedInput {
   nodes: LedgerNode[];
@@ -212,9 +212,10 @@ export async function readLedger(page: Page): Promise<{
   budgets: AmountMap;
   actuals: AmountMap;
   movements: Movement[];
+  cellNotes?: LedgerState["cellNotes"];
 } | null> {
   const res = await page.request.get("/api/v1/ledger");
   if (res.status() !== 200) return null;
-  const body = (await res.json()) as { state: { budgets: AmountMap; actuals: AmountMap; movements: Movement[] } };
+  const body = (await res.json()) as { state: { budgets: AmountMap; actuals: AmountMap; movements: Movement[]; cellNotes?: LedgerState["cellNotes"] } };
   return body.state;
 }
