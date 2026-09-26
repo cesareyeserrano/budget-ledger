@@ -15,12 +15,23 @@
 const buckets = new Map<string, number[]>();
 
 /**
- * El limitador se puede desactivar SÓLO en el arnés e2e, igual que el de Better Auth: todo el
- * tráfico de los tests viene de 127.0.0.1 y compartiría cubo, haciendo flaky la suite en serie.
- * En producción queda SIEMPRE activo.
+ * ¿Están apagados los límites? Solo en los arneses de prueba: todo el tráfico de los tests viene de
+ * 127.0.0.1 y compartiría cubo, haciendo flaky la suite en serie. En producción quedan SIEMPRE activos.
+ *
+ * BG-048 (RQ-SEC-109): el interruptor `LEDGER_RATE_LIMIT_DISABLED` solo actúa si además está abierta
+ * la puerta de pruebas `LEDGER_TEST_OVERRIDES=1`, la misma que protege el reloj (`clock.ts`). Antes
+ * bastaba el interruptor: copiarlo por descuido al `.env` de producción apagaba el anti-fuerza-bruta
+ * del login sin que nada lo delatara. Un despliegue real no define la puerta, así que el interruptor
+ * solo no hace nada. No se usa `NODE_ENV`: el arnés e2e arranca un build de producción.
+ *
+ * La usan este limitador y el de Better Auth (`server/auth.ts`).
  */
+export function rateLimitDisabled(): boolean {
+  return process.env.LEDGER_RATE_LIMIT_DISABLED === "true" && process.env.LEDGER_TEST_OVERRIDES === "1";
+}
+
 function disabled(): boolean {
-  return process.env.LEDGER_RATE_LIMIT_DISABLED === "true";
+  return rateLimitDisabled();
 }
 
 /**

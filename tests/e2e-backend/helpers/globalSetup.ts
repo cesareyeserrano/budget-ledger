@@ -55,6 +55,8 @@ export default async function globalSetup(): Promise<void> {
     // Todo el tráfico e2e viene de 127.0.0.1: el rate limit por IP haría flaky los tests en serie.
     // Se desactiva SOLO aquí; en producción queda activo (NFR-512), verificado en TC-BE-081f.
     LEDGER_RATE_LIMIT_DISABLED: "true",
+    // BG-048: el interruptor de arriba solo actúa con la puerta de pruebas abierta.
+    LEDGER_TEST_OVERRIDES: "1",
   };
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 

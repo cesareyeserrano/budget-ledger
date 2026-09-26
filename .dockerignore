@@ -1,6 +1,7 @@
 node_modules
-.next
-.next-e2e
+# Toda salida de build: .next y los distDir propios de cada suite (.next-e2e, .next-e2e-gate,
+# .next-e2e-backend, .next-smoke…). Antes solo se excluían dos y cada build local enviaba ~2 GB.
+.next*
 .git
 .github
 aitri

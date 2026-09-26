@@ -74,7 +74,8 @@ docker exec -it ledger-dev-db psql -U ledger      # \dt, SELECT * FROM movement;
   (`localhost:1025`) and the emails stay in its inbox without leaving your machine.
 - **The `app` service of `docker-compose.dev.yml`** runs a production build of the app in Docker
   (http://localhost:3100, no hot reload). It does **not** apply migrations, so run
-  `npm run db:migrate` first; its port is published on all interfaces with a fixed development
-  secret, so do not leave it running on an untrusted network.
+  `npm run db:migrate` first. Like the other services it listens on `127.0.0.1` only.
+- **Testing from a phone** on the same network: `npm run dev:lan` serves the dev app on all
+  interfaces. It is an explicit choice; stop it when you are done.
 - **Production** uses `docker-compose.yml` (real secrets from the environment, no development
   defaults). See `DEPLOYMENT.md`.

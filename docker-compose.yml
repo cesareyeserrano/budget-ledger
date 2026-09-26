@@ -43,13 +43,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       LEDGER_ALLOWED_ORIGINS: ${LEDGER_ALLOWED_ORIGINS:-}
-      # Default SEGURO false, igual que .env.example (BG-013). Detrás de Nginx hay que ponerlo en
-      # true en el .env — pero SOLO si el proxy REEMPLAZA X-Forwarded-For, como manda la sección de
-      # Nginx del DEPLOYMENT.md. Con true y un proxy que lo anexa, el anti-fuerza-bruta se puede
-      # esquivar mandando el header a mano.
+      # Default SEGURO false, igual que .env.example (BG-013). Ponerlo en true SOLO detrás de un proxy
+      # que REEMPLACE X-Forwarded-For (ver DEPLOYMENT.md). Con true y un proxy que lo anexa, el
+      # anti-fuerza-bruta se esquiva mandando el header a mano. Con `tailscale serve` delante, false.
       LEDGER_TRUST_PROXY: ${LEDGER_TRUST_PROXY:-false}
     ports:
-      # Solo loopback: Nginx es la única puerta desde fuera.
+      # Solo loopback: la única puerta desde fuera es el frente TLS del host (hoy `tailscale serve`).
       - "127.0.0.1:3000:3000"
 
 volumes:
