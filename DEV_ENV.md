@@ -1,67 +1,80 @@
-# Ambiente de pruebas en Docker (modo servidor)
+# Local development environment
 
-Un comando levanta todo el stack multiusuario (Postgres + app en modo servidor + migraciones), sin
-setup manual. Es el ambiente para **probar/jugar**, no producción (usa un secreto de desarrollo fijo).
+The app always runs in server mode: Postgres is the single source of truth and every user signs in.
+Locally you run Postgres (plus an optional DB viewer and a mail catcher) in Docker, and the Next.js
+dev server on your machine against it. This is a **development** environment, not production: it
+uses fixed development credentials.
 
-## Levantar / parar
+## First run
 
 ```bash
-# Levantar (la primera vez construye la imagen ~1-2 min; luego es rápido)
-docker compose -f docker-compose.dev.yml up -d --build
+npm install
+cp .env.example .env.local        # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run db:up                     # Postgres + pgweb in Docker (loopback only)
+npm run db:migrate                # apply the migrations in drizzle/
+npm run dev                       # http://localhost:3100 (hot reload)
+```
 
-# Ver logs
-docker compose -f docker-compose.dev.yml logs -f app
+The first account you register gets its own ledger, persisted in Postgres. Data survives restarts
+because it lives in the named volume `ledger_devdata`.
 
-# Parar (los DATOS se conservan en el volumen ledger_devdata)
-docker compose -f docker-compose.dev.yml down
+## Start / stop
 
-# Parar y BORRAR los datos (arranque limpio)
+```bash
+npm run db:up        # start Postgres and the DB viewer
+npm run mail:up      # optional: Mailpit, for the password-recovery emails
+npm run db:down      # stop everything (DATA is kept in the ledger_devdata volume)
+
+# stop and DELETE the data (clean start; run db:migrate again afterwards)
 docker compose -f docker-compose.dev.yml down -v
 ```
 
-## Acceso
+Run `npm run db:migrate` again after pulling code that adds a migration: the dev server uses the new
+code immediately, and an unapplied migration shows up as an empty or broken app.
 
-| Qué | Dónde |
+## Access
+
+| What | Where |
 |---|---|
-| **App** | http://localhost:3100 (modo servidor: login gate, API, sync) |
-| **Visor de la BD** | http://localhost:8081 (pgweb — se conecta solo, sin login) |
+| **App** (`npm run dev`) | http://localhost:3100 |
+| **DB viewer** | http://localhost:8081 (pgweb — connects automatically, no login) |
 | **Postgres** | `localhost:5432` · user/pass/db = `ledger` / `ledger` / `ledger` |
-| **URL de la BD** | `postgres://ledger:ledger@localhost:5432/ledger` |
+| **DB URL** | `postgres://ledger:ledger@localhost:5432/ledger` |
+| **Mailpit** (`npm run mail:up`) | SMTP `localhost:1025` · inbox http://localhost:8025 |
 | **Health** | http://localhost:3100/health → `{"status":"ok"}` |
 
-La primera cuenta que registres siembra su ledger y lo persiste en Postgres. Los datos sobreviven a
-`down` (y a reinicios) porque viven en el volumen nombrado `ledger_devdata`.
+Postgres, pgweb and Mailpit are bound to `127.0.0.1` only, so they are not reachable from the local
+network.
 
-## Ver la base de datos
+## Inspecting the database
 
 ```bash
-# Opción A — pgweb (ya viene en el stack, se conecta solo, sin login)
-#   → abre http://localhost:8081  (nada que instalar; sube con el compose)
+# Option A — pgweb (starts with db:up, connects automatically)
+#   → open http://localhost:8081
 
-# Opción B — Drizzle Studio (visor visual web, se corre aparte)
+# Option B — Drizzle Studio (visual web viewer, run separately)
 DATABASE_URL="postgres://ledger:ledger@localhost:5432/ledger" npx drizzle-kit studio
-#   → abre https://local.drizzle.studio
+#   → open https://local.drizzle.studio
 
-# Opción C — psql
+# Option C — psql
 docker exec -it ledger-dev-db psql -U ledger      # \dt, SELECT * FROM movement; ...
 
-# Opción D — tu GUI (TablePlus/DBeaver/pgAdmin): usa los datos de conexión de la tabla de arriba
+# Option D — your own GUI (TablePlus/DBeaver/pgAdmin) with the connection data above
 ```
 
-## Notas
+## Notes
 
-- **Puertos:** usa 3100 (app) y 5432 (Postgres). Si ya tienes algo en esos puertos (p. ej. un
-  `next dev` manual o un Postgres suelto), páralo antes o cambia los `ports:` en el compose.
-- **Google OAuth** está deshabilitado (sin credenciales); el botón aparece deshabilitado. Para
-  probarlo, pon `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` en el `environment:` del servicio `app` y
-  `NEXT_PUBLIC_GOOGLE_ENABLED: "true"`, y reconstruye (`--build`).
-- **HMR (hot reload):** este ambiente corre el build de producción (sin recarga en caliente). Para
-  desarrollar con HMR, corre `next dev` a mano contra este mismo Postgres:
-  ```bash
-  DATABASE_URL="postgres://ledger:ledger@localhost:5432/ledger" \
-  BETTER_AUTH_SECRET="dev-secret-not-for-production-do-not-use-000000" \
-  BETTER_AUTH_URL="http://localhost:3100" \
-  NEXT_PUBLIC_LEDGER_SERVER_MODE="true" NEXT_PUBLIC_GOOGLE_ENABLED="false" \
-  npx next dev -p 3100
-  ```
-- **Producción:** es `docker-compose.yml` (secretos reales por entorno, sin defaults de desarrollo).
+- **Ports:** the app uses 3100 and Postgres 5432. If something else already uses them, stop it or
+  change the `ports:` in `docker-compose.dev.yml`.
+- **API calls from scripts** must send an `Origin` header matching the app
+  (`Origin: http://localhost:3100`); without it the API answers 403, starting with the login.
+- **Google OAuth** is disabled without credentials (the button shows as disabled). To try it, set
+  `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env.local` and `NEXT_PUBLIC_GOOGLE_ENABLED=true`.
+- **Password recovery by email** needs the five `SMTP_*` variables. Point them at Mailpit
+  (`localhost:1025`) and the emails stay in its inbox without leaving your machine.
+- **The `app` service of `docker-compose.dev.yml`** runs a production build of the app in Docker
+  (http://localhost:3100, no hot reload). It does **not** apply migrations, so run
+  `npm run db:migrate` first; its port is published on all interfaces with a fixed development
+  secret, so do not leave it running on an untrusted network.
+- **Production** uses `docker-compose.yml` (real secrets from the environment, no development
+  defaults). See `DEPLOYMENT.md`.
