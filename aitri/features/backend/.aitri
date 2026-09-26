@@ -17,32 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-25T23:34:00.797Z",
+  "updatedAt": "2026-09-26T16:40:46.084Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-04T22:32:06.404Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-06T19:12:06.421Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-06T19:12:06.650Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
     {
       "at": "2026-09-07T19:17:11.652Z",
       "event": "verify-run",
@@ -179,6 +156,31 @@
       "phase": "verify",
       "passed": 85,
       "failed": 0
+    },
+    {
+      "at": "2026-09-26T16:25:37.176Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 84,
+      "failed": 1,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T16:40:33.355Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T16:40:46.075Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -254,16 +256,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "76e4216f09874b9187e1ae01b0f19cb2a6aa46fc522f07537f6570613cd51fce",
-  "verifyRanAt": "2026-09-25T23:33:49.897Z",
+  "verifyResultsHash": "943d81d9c7a6622bf23cf17e1427f9245942dd836b797349cc0d7f5908db963b",
+  "verifyRanAt": "2026-09-26T16:40:33.334Z",
   "lastVerifyRun": {
     "passed": 85,
     "failed": 0,
     "skipped": 1,
     "manual": 0,
-    "at": "2026-09-25T23:33:49.897Z"
+    "at": "2026-09-26T16:40:33.334Z"
   },
-  "verifyRanRef": "2e368ad731c98f6566a7aff5bed2b91ccbc6d93b",
+  "verifyRanRef": "934adefe099a0880c0f0423ef5eee30f8baf647f",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 86,
