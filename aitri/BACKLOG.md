@@ -45,6 +45,41 @@ Entries without `Files` and `Behavior` are considered incomplete and should be e
 
 ---
 
+## Prioridad propuesta — revisión del 2026-09-25 (PENDIENTE DE CONFIRMAR con el usuario)
+
+Revisión de los 16 ítems abiertos del backlog CLI, con cada premisa verificada contra el código antes
+de ordenar. Al hacerla: cero bugs abiertos en las 27 unidades, proyecto idle. Lo único que se cambió en
+el CLI fue subir BL-041 a P1 y bajar BL-042 a P3 (y anotar BL-034, BL-045, BL-051 y BL-056); el resto es orden
+DENTRO de cada nivel,
+que el CLI no guarda —lista por prioridad y luego por id— y por eso vive aquí.
+
+**Cómo se ordenó.** Primero las DECISIONES que desbloquean trabajo: son baratas y sin ellas las features se
+construyen sobre una semántica que el usuario ya rechazó. Después las dos features P1 que el usuario pidió
+el 25-sep. Después los incrementos de ciclos. Al final lo condicional y lo aparcado por el correo.
+
+| # | Ítem | P | Qué es | Por qué aquí |
+|---|---|---|---|---|
+| 1 | BL-041 celda de bolsillo: aporte o saldo | P1 ↑ | Decisión | La nombran BL-056 y BL-057 como deuda previa. Sin decidirla, el móvil copia al teléfono una semántica declarada incorrecta y Tony da dos respuestas a «cuánto tengo». Recomendación: mostrar el saldo del cajón; lo único abierto de verdad es qué significa BAJAR la celda. |
+| 2 | BL-056 presupuesto en móvil | P1 | Feature (CR a FR-010) | Más lista que Tony: tres decisiones abiertas y ninguna externa (sin proveedor, costo, privacidad ni superficie de autenticación nueva). v1 de solo lectura. El registro desde el teléfono ya existe; ver el presupuesto es lo que falta. |
+| 3 | BL-057 Tony Ledger | P1 | Feature nueva | Cinco decisiones abiertas, tres de ellas externas (canal, proveedor y costo, privacidad con repo público) más una superficie de autenticación que pide `aitri audit security`. v1 de solo lectura sobre `/api/v1`; escribir despierta BL-051. |
+| 4 | BL-055 qué rango manda en el mes cerrable | P2 | Decisión + feature | Latente en producción (los dos anclajes coinciden). Decidir ya, que es barato; construir antes de BL-056 si el móvil incluye cerrar, o el día que se declare un inicio anterior al primer dato. Recomendación: opción B (el inicio declarado manda) — es lo que promete FR-2002 y no congela nada sin cerrarlo; la A deja meses sin backfill posible, que choca con «transcribirla desde marzo». |
+| 5 | BL-045 ciclos, incrementos | P2 | Índice de 7 features | El núcleo está sellado (5/5, 178 TCs): toca elegir el primero. Orden recomendado en su nota del 25-sep: recurrentes y cuotas + disponible tras comprometidos primero; frecuencias quincenal/semanal al final, porque el usuario cobra una vez al mes. |
+| 6 | BL-039 techo del plan | P2 | Decisión | La menos lista: no tiene opciones analizadas y nada la bloquea (`retirar-para-gastar` la dejó fuera por decisión del usuario el 24-sep). Necesita un análisis de opciones antes de poder decidirse. |
+| 7 | BL-053 saldo inicial negativo | P3 | Corrección contable | Pequeña y acotada (`OpeningCard.tsx:194` + dominio + Balance); el usuario la aceptó anotar. Cuando haya hueco. |
+| 8 | BL-034 cifra del Balance plegado configurable | P3 | Feature chica | Se abarató: la página de Configuración ya existe (`src/app/configuracion`). Falta la preferencia persistida y su alcance. Nadie la ha vuelto a pedir. |
+| 9 | BL-051 techo y piso no vigilan ingresos ni gastos | P3 → P2 si Tony escribe | Condicional | Se activa con la decisión de escritura de BL-057. |
+| 10 | BL-017 escritura incremental del ledger | P3 | Deuda técnica | Irrelevante mientras el móvil sea de solo lectura y Tony escriba por `/movements`. Se activa si el móvil edita celdas. |
+| 11 | BL-035 rastro del propósito de un retiro | P3 | Idea diferida | Solo si la nota del retiro se demuestra insuficiente (decisión del 29-ago). |
+| 12 | BL-042 color del Balance | P3 ↓ | Decisión UX | Bajada a P3 el 25-sep por el usuario: «no lo veo tan importante». Deja de ser deuda previa de BL-056; el resumen del Balance en móvil hereda el estado actual, que solo conserva rojo para el negativo. Si algún día se decide, aplicar la misma forma a las dos superficies. |
+| 13–16 | BL-031, BL-032, BL-033, BL-050 | P3 | Aparcados por el correo | Los cuatro despiertan el mismo día (dominio propio + SMTP); «última prioridad» por decisión del usuario del 27-ago. BL-033 y BL-050 se solapan: al retomar, tratarlos como uno. |
+
+**Condiciones que cambian este orden** (para no releerlo todo):
+- Si el usuario prefiere arrancar Tony antes que el móvil: BL-041 sigue primera; el resto conserva su orden relativo.
+- Si BL-056 incluye cerrar mes desde el teléfono: BL-055 sube al puesto 2.
+- Si BL-057 escribe: BL-051 sube a P2 y entra en su discovery.
+
+---
+
 ## Diferidos conscientemente (cerrados en el backlog CLI, NO implementados)
 
 Registro de por qué se cerró cada uno — `aitri backlog done` no guarda motivo. Cerrados el 2026-07-24.
@@ -149,7 +184,8 @@ relativa.
    cuál es la salida; incluye la reapertura auditada (FR-2005). Única diferencia con la letra de BL-036,
    decidida por el usuario el 2026-09-03: las observaciones de celda siguen editables (FR-2004), porque
    son la única salida para un error en un mes que ya no se puede reabrir. BL-037 y BL-038 quedaron
-   fuera de alcance a propósito y siguen abiertas.
+   fuera de alcance a propósito y siguen abiertas. **Cerradas el 2026-09-25: las resolvió la feature
+   `retirar-para-gastar` (FR-2801–FR-2807, el techo de Ejecutado se consume en neto).**
 4. ~~**Saldo inicial + página de Configuración** (resto de BL-040)~~ — **ENTREGADA por la feature
    `meses-y-saldo-inicial` (5/5, FR-2201–FR-2207); BL-040 cerrada en el backlog el 2026-09-11**, junto
    con la grilla dinámica del punto 2.
@@ -190,6 +226,7 @@ de algo, está aquí:
 | El Balance en tres bloques: las tres reescrituras y su porqué | `features/techo-de-flujo/spec/BUILD_PLAN.md` |
 | Auditoría del dinero: los 9 defectos de la capa de explicación | `features/techo-de-flujo/spec/BUILD_PLAN.md` § pase adversarial |
 | Color del Balance (sin decidir) | BL-042 |
+| Tony Ledger: integrar sobre una COPIA del perfil Hermes, no un agente propio; el original sigue en paralelo; sin Drive, con bot de Telegram nuevo (decisiones del 2026-09-26) | BL-057 (notas del 26-sep); script de la copia en la Pi: `~/bin/crear-perfil-tony-tledger.sh` (copia en `~/PROJECTS/Drafts/`) |
 
 ## Decisiones que estaban solo en los checkpoints (rescatadas el 2026-09-02)
 
@@ -199,6 +236,10 @@ de algo, está aquí:
 > vivían solo ahí.
 
 ### 1. El pipeline está en rojo A PROPÓSITO
+
+> **OBSOLETO desde el 2026-09-25.** No queda ningún bug abierto en las 27 unidades (42 verificados se
+> archivaron en `10a9b50`), BL-037 y BL-038 se cerraron con `retirar-para-gastar`, y `aitri resume` reporta
+> deployable Ready. El texto de abajo queda como registro histórico de por qué estuvo en rojo.
 
 `aitri resume` reporta «deployable: no» y lo seguirá haciendo. Los dos bugs `high` que bloquean son
 decisiones vigentes del usuario, **no tareas pendientes**:

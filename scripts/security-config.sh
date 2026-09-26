@@ -123,6 +123,56 @@ if [ -f src/server/mail/mailer.ts ]; then
   check "NFR-1304: src/server/mail/mailer.ts perdió la marca server-only — nodemailer podría acabar en el bundle del cliente" $?
 fi
 
+# ── API: toda ruta de /api/v1 exige sesión, salvo una lista explícita (RQ-SEC-104) ──────
+# No hay middleware: la sesión se exige ruta por ruta, así que una ruta nueva sin `withApi` —o con
+# auth:"public" por descuido— nacería abierta y ningún test verde lo delataría. Ampliar la lista de
+# públicas tiene que verse en el diff, con el FR que lo justifica.
+PUBLICAS_OK="src/app/api/v1/recovery/request/route.ts" # FR-1303: pedir el enlace no puede exigir sesión
+while IFS= read -r r; do
+  case " $PUBLICAS_OK " in *" $r "*) continue ;; esac
+  if grep -qE 'auth:[[:space:]]*"required"' "$r" || grep -q 'getSessionUser' "$r"; then continue; fi
+  check "RQ-SEC-104: $r no exige sesión (usa withApi con auth:\"required\", o añádela a PUBLICAS_OK con su FR)" 1
+done < <(find src/app/api/v1 -name route.ts | sort)
+for r in $PUBLICAS_OK; do
+  [ -f "$r" ] || check "RQ-SEC-104: la ruta pública $r ya no existe — revisa la lista PUBLICAS_OK" 1
+done
+
+# ── scripts que leen datos de producción: nada a rutas fijas de /tmp (BG-047 / RQ-SEC-108) ──
+for s in scripts/verificar-prod.sh; do
+  [ -f "$s" ] || continue
+  ! grep -qE '>[[:space:]]*/tmp/' "$s"
+  check "RQ-SEC-108: $s escribe datos de producción en una ruta fija de /tmp (usa mktemp -d + umask 077 + trap rm)" $?
+  grep -q 'mktemp' "$s" && grep -qE "trap .*rm" "$s"
+  check "RQ-SEC-108: $s no borra sus copias temporales al salir (falta mktemp o el trap rm)" $?
+done
+
+# ── interruptores de prueba: nunca en producción (BG-048 / RQ-SEC-109) ───────────────────
+# LEDGER_RATE_LIMIT_DISABLED apaga el anti-fuerza-bruta. Solo actúa con la puerta de pruebas abierta,
+# y el compose de producción no reenvía ni el interruptor, ni la puerta, ni un env_file entero.
+! grep -qE 'LEDGER_RATE_LIMIT_DISABLED|LEDGER_TEST_OVERRIDES|^[[:space:]]*env_file' docker-compose.yml
+check "RQ-SEC-109: docker-compose.yml reenvía un interruptor de pruebas o un env_file (podría apagar el rate-limit del login en producción)" $?
+grep -q 'process.env.LEDGER_TEST_OVERRIDES === "1"' src/server/rateLimit.ts
+check "RQ-SEC-109: src/server/rateLimit.ts ya no ata LEDGER_RATE_LIMIT_DISABLED a la puerta LEDGER_TEST_OVERRIDES=1" $?
+grep -qE 'const RATE_LIMIT_DISABLED[[:space:]]*=[[:space:]]*rateLimitDisabled\(\)' "$AUTH"
+check "RQ-SEC-109: $AUTH no decide su rate-limit con rateLimitDisabled() (se saltaría la puerta de pruebas)" $?
+
+# ── compose de desarrollo: TODO puerto ligado a loopback (BG-049 / RQ-SEC-110) ───────────
+# Generaliza las dos comprobaciones de RQ-SEC-006 a cualquier servicio, también a los futuros.
+if [ -f "$COMPOSE" ]; then
+  ! grep -qE '^[[:space:]]*-[[:space:]]*"?[0-9]+:[0-9]+' "$COMPOSE"
+  check "RQ-SEC-110: $COMPOSE publica un puerto en 0.0.0.0 (antepón 127.0.0.1:)" $?
+fi
+
+# ── datos personales: ningún correo real versionado (RQ-SEC-107) ─────────────────────────
+# El repo es público. Solo se admiten dominios de prueba o de ejemplo; un correo de un dominio real
+# (el del propietario, el de cualquier persona) no puede llegar al árbol. Si hace falta uno nuevo de
+# ejemplo, usa @example.com.
+DOMINIOS_OK='example\.com|test\.local|admin\.com|correo\.com|interno\.local|ledger\.test|ledger\.local|ejemplo\.test|dominio\.com|users\.noreply\.github\.com'
+CORREOS=$(git grep -h -o -I -E '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}' -- ':!package-lock.json' 2>/dev/null \
+  | grep -viE "@(${DOMINIOS_OK})$" | sort -u | tr '\n' ' ')
+[ -z "$CORREOS" ]
+check "RQ-SEC-107: hay correos de dominios reales versionados (el repo es público): $CORREOS" $?
+
 if [ ${#FALLOS[@]} -gt 0 ]; then
   echo "❌ security-config: la postura de seguridad retrocedió (${#FALLOS[@]} comprobación(es))"
   for f in "${FALLOS[@]}"; do echo "   · $f"; done
@@ -131,5 +181,5 @@ if [ ${#FALLOS[@]} -gt 0 ]; then
   exit 1
 fi
 
-echo "✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+echo "✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, rutas con sesión, bindings, secretos, correos, deps)"
 exit 0

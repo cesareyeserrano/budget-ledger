@@ -77,4 +77,4 @@ export const test = base.extend<{ freshLedger: void }, { workerStorageState: str
 });
 
 export { expect };
-export type { Page } from "@playwright/test";
+export type { Page, Locator } from "@playwright/test";

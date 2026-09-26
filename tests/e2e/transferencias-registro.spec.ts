@@ -38,7 +38,7 @@ async function gotoRegister(page: Page, nodes = NODES, data = BASE) {
   await expect(page.getByTestId("mobile-shell")).toBeVisible();
 }
 
-async function persisted(page: Page): Promise<{ actuals: CellMap; movements: { from?: string; to?: string; note?: string | null; period: string; target: string; amount: number }[] }> {
+async function persisted(page: Page): Promise<{ actuals: CellMap; movements: { id: string; from?: string; to?: string; note?: string | null; period: string; target: string; amount: number }[] }> {
   return (await readLedger(page)) as never;
 }
 
