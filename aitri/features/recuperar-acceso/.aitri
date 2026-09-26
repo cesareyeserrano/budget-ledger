@@ -19,27 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-26T17:31:31.548Z",
+  "updatedAt": "2026-09-26T18:27:28.119Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-26T22:08:03.391Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 54,
-      "failed": 0,
-      "skipped": 33,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-26T22:43:25.113Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-27T16:15:01.096Z",
       "event": "verify-complete",
@@ -185,6 +167,22 @@
       "phase": "verify",
       "passed": 87,
       "failed": 0
+    },
+    {
+      "at": "2026-09-26T18:27:14.573Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T18:27:28.110Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -268,16 +266,16 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "d50530b0ec41ed725ae16dff4f769887ed036c3c4ceae4c3e52c7109dab140e6",
-  "verifyRanAt": "2026-09-26T17:31:18.159Z",
-  "verifyRanRef": "93f65632ebda082d0cd7b6a87620797dd18985ff",
+  "verifyResultsHash": "3a3c41f3c63ffe924aa09b414283b047cec9ba3ce17873c4a30e41d7e45ec17f",
+  "verifyRanAt": "2026-09-26T18:27:14.552Z",
+  "verifyRanRef": "143b37333554c829815da51d435589c079885529",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 87,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-26T17:31:18.159Z"
+    "at": "2026-09-26T18:27:14.552Z"
   },
   "verifyPassed": true,
   "releaseHistory": [
