@@ -60,7 +60,8 @@ describe("BG-013 — el despliegue documenta la decisión, no solo la variable",
     expect(doc).toContain("LEDGER_TRUST_PROXY");
     // La sección de nginx ya exigía reemplazar; lo que faltaba era decir qué se rompe si no.
     expect(doc).toMatch(/proxy_set_header X-Forwarded-For \$remote_addr/);
-    expect(doc.toLowerCase()).toContain("anti-fuerza-bruta");
+    // DEPLOYMENT.md está en inglés desde el 2026-09-26: se busca la consecuencia, no el idioma.
+    expect(doc.toLowerCase()).toMatch(/brute-force protection off/);
   });
 
   it(".env.example incluye la variable con el default seguro", () => {
