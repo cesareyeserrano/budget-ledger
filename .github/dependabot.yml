@@ -50,3 +50,8 @@ updates:
       interval: "weekly"
       day: "monday"
     labels: ["dependencies", "docker"]
+    # Solo parches y menores de la base (los que traen los CVEs del SO). El salto de versión mayor de
+    # Node se hace a mano y solo a una línea LTS (par): el 2026-09-21 propuso node:25, que no lo es.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]

@@ -17,14 +17,9 @@
   "projectName": "cierre-coherente",
   "createdAt": "2026-09-22T20:38:05.054Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-23T00:58:11.163Z",
+  "updatedAt": "2026-09-26T16:09:52.011Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-22T22:30:25.357Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-09-22T22:30:41.464Z",
       "event": "approved",
@@ -128,11 +123,19 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-26T16:09:51.975Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "5d573f961aab0fc5d54db14905e4b9178c502c0ea49aaf6df67c42f428ab8eb3",
+      "after_hash": "bddc295661696f1fb636292d11dedb58fa0742bcfa72a59dbb1ef0d2a091b3ad"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "5d573f961aab0fc5d54db14905e4b9178c502c0ea49aaf6df67c42f428ab8eb3",
+    "1": "bddc295661696f1fb636292d11dedb58fa0742bcfa72a59dbb1ef0d2a091b3ad",
     "2": "307f4ade8b5329bce87cc8e66ebf3de75ec8804d088425c063a4d999b6f832f8",
     "3": "68480995260314d65ec34527d7a0c2dc5084454548219b006fb8280c94f40634",
     "4": "c18fb98e7030cefd9b44cab33813b96a14652dbd1846280a3afd439f7550b89b",

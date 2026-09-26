@@ -1,349 +1,349 @@
 {
-  "executed_at": "2026-09-14T00:49:33.033Z",
+  "executed_at": "2026-09-26T17:31:18.153Z",
   "test_runner": "../../../unit.sh",
-  "exit_code": 0,
+  "exit_code": 1,
   "e2e_exit_code": 0,
   "e2e_runner": "playwright",
   "results": [
     {
       "tc_id": "TC-REC-001h",
       "status": "pass",
-      "notes": "✓  460 [chromium] › tests/e2e/recuperar-acceso.spec.ts:62:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-001h: el enlace aparece en modo login y abre la pantalla de solicitud (206ms)"
+      "notes": "✓  559 [chromium] › tests/e2e/recuperar-acceso.spec.ts:62:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-001h: el enlace aparece en modo login y abre la pantalla de solicitud (125ms)"
     },
     {
       "tc_id": "TC-REC-002e",
       "status": "pass",
-      "notes": "✓  461 [chromium] › tests/e2e/recuperar-acceso.spec.ts:77:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-002e: el control es alcanzable por teclado con foco visible (195ms)"
+      "notes": "✓  560 [chromium] › tests/e2e/recuperar-acceso.spec.ts:77:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-002e: el control es alcanzable por teclado con foco visible (107ms)"
     },
     {
       "tc_id": "TC-REC-003f",
       "status": "pass",
-      "notes": "✓  462 [chromium] › tests/e2e/recuperar-acceso.spec.ts:96:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-003f: el control NO existe en modo 'Crear cuenta' (211ms)"
+      "notes": "✓  561 [chromium] › tests/e2e/recuperar-acceso.spec.ts:96:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-003f: el control NO existe en modo 'Crear cuenta' (119ms)"
     },
     {
       "tc_id": "TC-REC-004e",
       "status": "pass",
-      "notes": "✓  463 [chromium] › tests/e2e/recuperar-acceso.spec.ts:106:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-004e: los data-testid de la pantalla de acceso siguen intactos (216ms)"
+      "notes": "✓  562 [chromium] › tests/e2e/recuperar-acceso.spec.ts:106:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-004e: los data-testid de la pantalla de acceso siguen intactos (131ms)"
     },
     {
       "tc_id": "TC-REC-005e",
       "status": "pass",
-      "notes": "✓  464 [chromium] › tests/e2e/recuperar-acceso.spec.ts:121:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-005e: el control se renderiza sin desborde a 375px (187ms)"
+      "notes": "✓  563 [chromium] › tests/e2e/recuperar-acceso.spec.ts:121:7 › FR-1301 — entrada al flujo desde la pantalla de acceso › TC-REC-005e: el control se renderiza sin desborde a 375px (112ms)"
     },
     {
       "tc_id": "TC-REC-006h",
       "status": "pass",
-      "notes": "✓  465 [chromium] › tests/e2e/recuperar-acceso.spec.ts:136:7 › FR-1302 — pantalla de solicitud › TC-REC-006h: una dirección válida presenta el acuse neutro (294ms)"
+      "notes": "✓  564 [chromium] › tests/e2e/recuperar-acceso.spec.ts:136:7 › FR-1302 — pantalla de solicitud › TC-REC-006h: una dirección válida presenta el acuse neutro (191ms)"
     },
     {
       "tc_id": "TC-REC-007f",
       "status": "pass",
-      "notes": "✓  466 [chromium] › tests/e2e/recuperar-acceso.spec.ts:150:7 › FR-1302 — pantalla de solicitud › TC-REC-007f: con el campo vacío no se envía nada y el campo se marca inválido (249ms)"
+      "notes": "✓  565 [chromium] › tests/e2e/recuperar-acceso.spec.ts:150:7 › FR-1302 — pantalla de solicitud › TC-REC-007f: con el campo vacío no se envía nada y el campo se marca inválido (170ms)"
     },
     {
       "tc_id": "TC-REC-008e",
       "status": "pass",
-      "notes": "✓  467 [chromium] › tests/e2e/recuperar-acceso.spec.ts:164:7 › FR-1302 — pantalla de solicitud › TC-REC-008e: una doble pulsación produce exactamente una petición (1.1s)"
+      "notes": "✓  566 [chromium] › tests/e2e/recuperar-acceso.spec.ts:164:7 › FR-1302 — pantalla de solicitud › TC-REC-008e: una doble pulsación produce exactamente una petición (957ms)"
     },
     {
       "tc_id": "TC-REC-009e",
       "status": "pass",
-      "notes": "✓  468 [chromium] › tests/e2e/recuperar-acceso.spec.ts:187:7 › FR-1302 — pantalla de solicitud › TC-REC-009e: a 375px no desborda y sus controles miden 48px (260ms)"
+      "notes": "✓  567 [chromium] › tests/e2e/recuperar-acceso.spec.ts:187:7 › FR-1302 — pantalla de solicitud › TC-REC-009e: a 375px no desborda y sus controles miden 48px (142ms)"
     },
     {
       "tc_id": "TC-REC-010e",
       "status": "pass",
-      "notes": "✓  469 [chromium] › tests/e2e/recuperar-acceso.spec.ts:196:7 › FR-1302 — pantalla de solicitud › TC-REC-010e: 'Volver a iniciar sesión' regresa sin recargar (256ms)"
+      "notes": "✓  568 [chromium] › tests/e2e/recuperar-acceso.spec.ts:196:7 › FR-1302 — pantalla de solicitud › TC-REC-010e: 'Volver a iniciar sesión' regresa sin recargar (153ms)"
     },
     {
       "tc_id": "TC-REC-011h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-011h: una dirección registrada devuelve 200 con el acuse neutro 233ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-011h: una dirección registrada devuelve 200 con el acuse neutro 158ms"
     },
     {
       "tc_id": "TC-REC-012f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-012f: la respuesta a una dirección NO registrada es idéntica a la de una registrada 103ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-012f: la respuesta a una dirección NO registrada es idéntica a la de una registrada 61ms"
     },
     {
       "tc_id": "TC-REC-013e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-013e: para una dirección desconocida el servidor SMTP no recibe ningún mensaje 1565ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-013e: para una dirección desconocida el servidor SMTP no recibe ningún mensaje 1541ms"
     },
     {
       "tc_id": "TC-REC-014f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-014f: el acuse no filtra el nombre del titular ni ningún dato de la cuenta 122ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-014f: el acuse no filtra el nombre del titular ni ningún dato de la cuenta 112ms"
     },
     {
       "tc_id": "TC-REC-015f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-015f: entrada adversaria se rechaza con 400, nunca con 500 86ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1303 — el acuse no revela si la dirección tiene cuenta > TC-REC-015f: entrada adversaria se rechaza con 400, nunca con 500 60ms"
     },
     {
       "tc_id": "TC-REC-016h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-016h: tras una solicitud válida hay exactamente un secreto que caduca a los 1800 s 91ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-016h: tras una solicitud válida hay exactamente un secreto que caduca a los 1800 s 55ms"
     },
     {
       "tc_id": "TC-REC-017f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-017f: un secreto ya consumido no sirve una segunda vez 204ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-017f: un secreto ya consumido no sirve una segunda vez 110ms"
     },
     {
       "tc_id": "TC-REC-018e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-018e: una segunda solicitud invalida el enlace de la primera (TRF-04) 168ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-018e: una segunda solicitud invalida el enlace de la primera (TRF-04) 88ms"
     },
     {
       "tc_id": "TC-REC-019e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-019e: el secreto tiene 24 caracteres alfanuméricos y no se repite entre emisiones 163ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-019e: el secreto tiene 24 caracteres alfanuméricos y no se repite entre emisiones 80ms"
     },
     {
       "tc_id": "TC-REC-020f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-020f: el secreto de una cuenta no cambia la contraseña de otra 264ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1304 — un solo secreto vigente, de un solo uso, con 30 min > TC-REC-020f: el secreto de una cuenta no cambia la contraseña de otra 130ms"
     },
     {
       "tc_id": "TC-REC-021h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-021h: Mailpit recibe exactamente un mensaje dirigido solo a la cuenta solicitante 109ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-021h: Mailpit recibe exactamente un mensaje dirigido solo a la cuenta solicitante 55ms"
     },
     {
       "tc_id": "TC-REC-022e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-022e: el cuerpo lleva URL absoluta con el token y menciona los 30 minutos 99ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-022e: el cuerpo lleva URL absoluta con el token y menciona los 30 minutos 66ms"
     },
     {
       "tc_id": "TC-REC-023f",
       "status": "pass",
-      "notes": "✓  453 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:156:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-023f: durante el flujo el navegador no emite ninguna petición externa (506ms)"
+      "notes": "✓  552 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:156:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-023f: durante el flujo el navegador no emite ninguna petición externa (370ms)"
     },
     {
       "tc_id": "TC-REC-024e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-024e: el mensaje no lleva copia ni copia oculta a ninguna otra dirección 100ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1305 — entrega por SMTP desde el servidor > TC-REC-024e: el mensaje no lleva copia ni copia oculta a ninguna otra dirección 53ms"
     },
     {
       "tc_id": "TC-REC-025h",
       "status": "pass",
-      "notes": "✓  470 [chromium] › tests/e2e/recuperar-acceso.spec.ts:213:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-025h: con token en la URL se presenta el formulario sin sesión (134ms)"
+      "notes": "✓  569 [chromium] › tests/e2e/recuperar-acceso.spec.ts:213:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-025h: con token en la URL se presenta el formulario sin sesión (74ms)"
     },
     {
       "tc_id": "TC-REC-026f",
       "status": "pass",
-      "notes": "✓  471 [chromium] › tests/e2e/recuperar-acceso.spec.ts:228:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-026f: abrir la ruta sin token no presenta el formulario (128ms)"
+      "notes": "✓  570 [chromium] › tests/e2e/recuperar-acceso.spec.ts:228:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-026f: abrir la ruta sin token no presenta el formulario (70ms)"
     },
     {
       "tc_id": "TC-REC-027f",
       "status": "pass",
-      "notes": "✓  472 [chromium] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)"
+      "notes": "✓  571 [chromium] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)"
     },
     {
       "tc_id": "TC-REC-028e",
       "status": "pass",
-      "notes": "✓  473 [chromium] › tests/e2e/recuperar-acceso.spec.ts:250:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-028e: a 375px no desborda y sus controles miden 48px (142ms)"
+      "notes": "✓  572 [chromium] › tests/e2e/recuperar-acceso.spec.ts:250:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-028e: a 375px no desborda y sus controles miden 48px (92ms)"
     },
     {
       "tc_id": "TC-REC-029h",
       "status": "pass",
-      "notes": "✓  450 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:73:7 › El recorrido completo › TC-REC-029h: solicitar, abrir el enlace, fijar contraseña y entrar con ella (938ms)"
+      "notes": "✓  549 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:73:7 › El recorrido completo › TC-REC-029h: solicitar, abrir el enlace, fijar contraseña y entrar con ella (628ms)"
     },
     {
       "tc_id": "TC-REC-030f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-030f: la contraseña anterior deja de servir tras la recuperación 185ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-030f: la contraseña anterior deja de servir tras la recuperación 199ms"
     },
     {
       "tc_id": "TC-REC-031e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-031e: una contraseña débil se rechaza SIN consumir el enlace 157ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-031e: una contraseña débil se rechaza SIN consumir el enlace 97ms"
     },
     {
       "tc_id": "TC-REC-032f",
       "status": "pass",
-      "notes": "✓  474 [chromium] › tests/e2e/recuperar-acceso.spec.ts:263:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-032f: una confirmación distinta se detecta en cliente y no llega al servidor (203ms)"
+      "notes": "✓  573 [chromium] › tests/e2e/recuperar-acceso.spec.ts:263:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-032f: una confirmación distinta se detecta en cliente y no llega al servidor (127ms)"
     },
     {
       "tc_id": "TC-REC-033e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-033e: la contraseña fijada por recuperación se guarda con argon2id OWASP 133ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1307 — fijar la contraseña nueva con las reglas del registro > TC-REC-033e: la contraseña fijada por recuperación se guarda con argon2id OWASP 74ms"
     },
     {
       "tc_id": "TC-REC-034f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-034f: un secreto caducado se rechaza y ninguna contraseña cambia 163ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-034f: un secreto caducado se rechaza y ninguna contraseña cambia 85ms"
     },
     {
       "tc_id": "TC-REC-035f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-035f: un secreto ya consumido se rechaza sin alterar la contraseña del primer uso 190ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-035f: un secreto ya consumido se rechaza sin alterar la contraseña del primer uso 95ms"
     },
     {
       "tc_id": "TC-REC-036e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-036e: un secreto invalidado por una solicitud posterior se rechaza 155ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-036e: un secreto invalidado por una solicitud posterior se rechaza 80ms"
     },
     {
       "tc_id": "TC-REC-037f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-037f: un valor inventado devuelve el mismo cuerpo que un enlace caducado 103ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-037f: un valor inventado devuelve el mismo cuerpo que un enlace caducado 56ms"
     },
     {
       "tc_id": "TC-REC-038e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-038e: el límite de los 30 minutos acepta antes y rechaza después 250ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1308 — el enlace muerto se rechaza igual sea cual sea el motivo > TC-REC-038e: el límite de los 30 minutos acepta antes y rechaza después 127ms"
     },
     {
       "tc_id": "TC-REC-039h",
       "status": "pass",
-      "notes": "✓  475 [chromium] › tests/e2e/recuperar-acceso.spec.ts:280:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-039h: el panel de enlace muerto muestra su texto y ofrece pedir uno nuevo (338ms)"
+      "notes": "✓  574 [chromium] › tests/e2e/recuperar-acceso.spec.ts:280:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-039h: el panel de enlace muerto muestra su texto y ofrece pedir uno nuevo (183ms)"
     },
     {
       "tc_id": "TC-REC-040h",
       "status": "pass",
-      "notes": "✓  452 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:126:7 › El recorrido completo › TC-REC-040h: una sesión abierta en otro contexto deja de servir tras la recuperación (980ms)"
+      "notes": "✓  551 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:126:7 › El recorrido completo › TC-REC-040h: una sesión abierta en otro contexto deja de servir tras la recuperación (694ms)"
     },
     {
       "tc_id": "TC-REC-041e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-041e: tras la recuperación no queda ninguna fila de sesión de esa cuenta 165ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-041e: tras la recuperación no queda ninguna fila de sesión de esa cuenta 82ms"
     },
     {
       "tc_id": "TC-REC-042f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-042f: las sesiones de otras cuentas no se ven afectadas 180ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-042f: las sesiones de otras cuentas no se ven afectadas 107ms"
     },
     {
       "tc_id": "TC-REC-043e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-043e: el titular puede iniciar sesión inmediatamente con la contraseña nueva 166ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > FR-1309 — cambiar la contraseña cierra las sesiones abiertas > TC-REC-043e: el titular puede iniciar sesión inmediatamente con la contraseña nueva 84ms"
     },
     {
       "tc_id": "TC-REC-044h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-044h: con el SMTP caído la solicitud devuelve 502, no el acuse 79ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-044h: con el SMTP caído la solicitud devuelve 502, no el acuse 41ms"
     },
     {
       "tc_id": "TC-REC-045e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-045e: el fallo de envío deja en el log el motivo técnico 83ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-045e: el fallo de envío deja en el log el motivo técnico 40ms"
     },
     {
       "tc_id": "TC-REC-046f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-046f: el detalle técnico del fallo no llega al usuario 5463ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-046f: el detalle técnico del fallo no llega al usuario 5414ms"
     },
     {
       "tc_id": "TC-REC-047e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-047e: restablecido el SMTP, la siguiente solicitud sale con éxito 138ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1310 — un envío fallido se ve y se registra (TRF-01) > TC-REC-047e: restablecido el SMTP, la siguiente solicitud sale con éxito 121ms"
     },
     {
       "tc_id": "TC-REC-048h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-048h: con las variables SMTP válidas el flujo queda disponible 78ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-048h: con las variables SMTP válidas el flujo queda disponible 59ms"
     },
     {
       "tc_id": "TC-REC-049e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-049e: sin variables SMTP la solicitud responde 503 y la app sigue viva 98ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-049e: sin variables SMTP la solicitud responde 503 y la app sigue viva 61ms"
     },
     {
       "tc_id": "TC-REC-050f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > FR-1311 — configuración SMTP validada, sin secretos en el código > TC-REC-050f: SMTP_PORT no numérico aborta el arranque nombrando la variable 1ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > FR-1311 — configuración SMTP validada, sin secretos en el código > TC-REC-050f: SMTP_PORT no numérico aborta el arranque nombrando la variable 2ms"
     },
     {
       "tc_id": "TC-REC-051f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > FR-1311 — configuración SMTP validada, sin secretos en el código > TC-REC-051f: ninguna variable SMTP alcanza el bundle del navegador 121ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > FR-1311 — configuración SMTP validada, sin secretos en el código > TC-REC-051f: ninguna variable SMTP alcanza el bundle del navegador 100ms"
     },
     {
       "tc_id": "TC-REC-052e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-052e: el secreto sobrevive a que el proceso pierda su estado en memoria 167ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > FR-1311 — el correo es opcional; su ausencia no rompe nada > TC-REC-052e: el secreto sobrevive a que el proceso pierda su estado en memoria 87ms"
     },
     {
       "tc_id": "TC-REC-053h",
       "status": "pass",
-      "notes": "✓  476 [chromium] › tests/e2e/recuperar-acceso.spec.ts:294:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-053h: usan los componentes compartidos y no llevan estilos de color en línea (218ms)"
+      "notes": "✓  575 [chromium] › tests/e2e/recuperar-acceso.spec.ts:294:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-053h: usan los componentes compartidos y no llevan estilos de color en línea (122ms)"
     },
     {
       "tc_id": "TC-REC-054e",
       "status": "pass",
-      "notes": "✓  477 [chromium] › tests/e2e/recuperar-acceso.spec.ts:318:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-054e: contraste de texto ≥4.5:1 en ambos temas (241ms)"
+      "notes": "✓  576 [chromium] › tests/e2e/recuperar-acceso.spec.ts:318:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-054e: contraste de texto ≥4.5:1 en ambos temas (132ms)"
     },
     {
       "tc_id": "TC-REC-055e",
       "status": "pass",
-      "notes": "✓  478 [chromium] › tests/e2e/recuperar-acceso.spec.ts:340:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-055e: los controles miden ≥48px bajo 760px y exponen foco visible (280ms)"
+      "notes": "✓  577 [chromium] › tests/e2e/recuperar-acceso.spec.ts:340:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-055e: los controles miden ≥48px bajo 760px y exponen foco visible (157ms)"
     },
     {
       "tc_id": "TC-REC-056f",
       "status": "pass",
-      "notes": "✓  479 [chromium] › tests/e2e/recuperar-acceso.spec.ts:381:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-056f: cero emoji, gradientes y glow (224ms)"
+      "notes": "✓  578 [chromium] › tests/e2e/recuperar-acceso.spec.ts:381:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-056f: cero emoji, gradientes y glow (124ms)"
     },
     {
       "tc_id": "TC-REC-057e",
       "status": "pass",
-      "notes": "✓  480 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (332ms)"
+      "notes": "✓  579 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (177ms)"
     },
     {
       "tc_id": "TC-REC-201h",
       "status": "pass",
-      "notes": "✓  481 [chromium] › tests/e2e/recuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (180ms)"
+      "notes": "✓  580 [chromium] › tests/e2e/recuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (94ms)"
     },
     {
       "tc_id": "TC-REC-202e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1301 — el secreto no es una puerta lateral a los datos > TC-REC-202e: presentar el secreto a un endpoint de datos no concede acceso 105ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1301 — el secreto no es una puerta lateral a los datos > TC-REC-202e: presentar el secreto a un endpoint de datos no concede acceso 55ms"
     },
     {
       "tc_id": "TC-REC-203f",
       "status": "pass",
-      "notes": "✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)"
+      "notes": "✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)"
     },
     {
       "tc_id": "TC-REC-204h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-204h: el hash tras la recuperación es argon2id con los parámetros OWASP 134ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-204h: el hash tras la recuperación es argon2id con los parámetros OWASP 68ms"
     },
     {
       "tc_id": "TC-REC-205e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-205e: el hash de recuperación es indistinguible en formato del de registro 166ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-205e: el hash de recuperación es indistinguible en formato del de registro 86ms"
     },
     {
       "tc_id": "TC-REC-206f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-206f: el hash de recuperación no cae al scrypt por defecto de la librería 134ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1302 — la recuperación no abre un segundo camino de hashing > TC-REC-206f: el hash de recuperación no cae al scrypt por defecto de la librería 68ms"
     },
     {
       "tc_id": "TC-REC-207h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-207h: el límite de 5 intentos por minuto en el login sigue intacto 213ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-207h: el límite de 5 intentos por minuto en el login sigue intacto 105ms"
     },
     {
       "tc_id": "TC-REC-208e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-208e: las cookies de sesión conservan HttpOnly y SameSite=lax 108ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-208e: las cookies de sesión conservan HttpOnly y SameSite=lax 56ms"
     },
     {
       "tc_id": "TC-REC-209f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-209f: el endpoint de recuperación también queda acotado a 5 por minuto 123ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1303 — cookies y rate limits existentes intactos > TC-REC-209f: el endpoint de recuperación también queda acotado a 5 por minuto 67ms"
     },
     {
       "tc_id": "TC-REC-210h",
       "status": "pass",
-      "notes": "✓  454 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:176:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-210h: el recorrido completo, tema incluido, mantiene el cliente en cero externas (773ms)"
+      "notes": "✓  553 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:176:7 › NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet › TC-REC-210h: el recorrido completo, tema incluido, mantiene el cliente en cero externas (548ms)"
     },
     {
       "tc_id": "TC-REC-211e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1304 — el cliente conserva sus cero peticiones externas > TC-REC-211e: nodemailer no es alcanzable desde ningún módulo de cliente 67ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1304 — el cliente conserva sus cero peticiones externas > TC-REC-211e: nodemailer no es alcanzable desde ningún módulo de cliente 40ms"
     },
     {
       "tc_id": "TC-REC-212f",
@@ -353,67 +353,67 @@
     {
       "tc_id": "TC-REC-213h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-213h: recuperar no altera contraseña, sesiones ni datos de otra cuenta 191ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-213h: recuperar no altera contraseña, sesiones ni datos de otra cuenta 99ms"
     },
     {
       "tc_id": "TC-REC-214e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-214e: tras recuperar, el titular ve exactamente sus propios datos 217ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-214e: tras recuperar, el titular ve exactamente sus propios datos 106ms"
     },
     {
       "tc_id": "TC-REC-215f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-215f: el secreto de una cuenta no da acceso a los datos de otra 217ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-reset.test.ts > NFR-1305 — recuperar una cuenta no toca a ninguna otra > TC-REC-215f: el secreto de una cuenta no da acceso a los datos de otra 109ms"
     },
     {
       "tc_id": "TC-REC-216h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-216h: la comprobación de postura pasa sus afirmaciones nuevas 1088ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-216h: la comprobación de postura pasa sus afirmaciones nuevas 649ms"
     },
     {
       "tc_id": "TC-REC-217e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-217e: tras un ciclo completo el log no contiene el valor del secreto 147ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-217e: tras un ciclo completo el log no contiene el valor del secreto 85ms"
     },
     {
       "tc_id": "TC-REC-218f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-218f: el endpoint no distingue una cuenta existente por su respuesta 135ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1306 — postura de seguridad del flujo > TC-REC-218f: el endpoint no distingue una cuenta existente por su respuesta 85ms"
     },
     {
       "tc_id": "TC-REC-219h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-219h: la petición se registra con el formato vigente del proyecto 89ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-219h: la petición se registra con el formato vigente del proyecto 64ms"
     },
     {
       "tc_id": "TC-REC-220e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-220e: un fallo de envío añade su motivo técnico a lo registrado 77ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-220e: un fallo de envío añade su motivo técnico a lo registrado 40ms"
     },
     {
       "tc_id": "TC-REC-221f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-221f: ninguna línea de log contiene la contraseña enviada 137ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-request.test.ts > NFR-1307 — observabilidad del endpoint nuevo > TC-REC-221f: ninguna línea de log contiene la contraseña enviada 72ms"
     },
     {
       "tc_id": "TC-REC-222h",
       "status": "pass",
-      "notes": "✓  457 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:289:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-222h: el workflow dispara en push a main y ejecuta la suite completa (2ms)"
+      "notes": "✓  556 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:289:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-222h: el workflow dispara en push a main y ejecuta la suite completa (2ms)"
     },
     {
       "tc_id": "TC-REC-223e",
       "status": "pass",
-      "notes": "✓  458 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:299:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-223e: los e2e de la feature viven en el directorio de la corrida por defecto (2ms)"
+      "notes": "✓  557 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:299:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-223e: los e2e de la feature viven en el directorio de la corrida por defecto (1ms)"
     },
     {
       "tc_id": "TC-REC-224f",
       "status": "pass",
-      "notes": "✓  459 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:314:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-224f: sin el servidor de correo de pruebas los tests de envío no correrían (3ms)"
+      "notes": "✓  558 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:314:7 › NFR-1308 — los tests nuevos entran en la corrida por defecto › TC-REC-224f: sin el servidor de correo de pruebas los tests de envío no correrían (2ms)"
     },
     {
       "tc_id": "TC-REC-225h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído 2ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído 9ms"
     },
     {
       "tc_id": "TC-REC-226e",
@@ -423,22 +423,22 @@
     {
       "tc_id": "TC-REC-227f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-227f: sin correo, los caminos de petición de la app no devuelven 5xx 1ms"
+      "notes": "✓ |backend| tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-227f: sin correo, los caminos de petición de la app no devuelven 5xx 5ms"
     },
     {
       "tc_id": "TC-REC-228h",
       "status": "pass",
-      "notes": "✓  451 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:92:7 › El recorrido completo › TC-REC-228h: el recorrido se completa sin consola, sin base de datos y sin ayuda (1.1s)"
+      "notes": "✓  550 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:92:7 › El recorrido completo › TC-REC-228h: el recorrido se completa sin consola, sin base de datos y sin ayuda (614ms)"
     },
     {
       "tc_id": "TC-REC-229e",
       "status": "pass",
-      "notes": "✓  455 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:204:7 › NFR-1310 — el flujo es recorrible sin ayuda › TC-REC-229e: los cuatro estados muestran texto en español que dice qué pasó y qué hacer (1.3s)"
+      "notes": "✓  554 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:204:7 › NFR-1310 — el flujo es recorrible sin ayuda › TC-REC-229e: los cuatro estados muestran texto en español que dice qué pasó y qué hacer (1.1s)"
     },
     {
       "tc_id": "TC-REC-230f",
       "status": "pass",
-      "notes": "✓  456 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:245:7 › NFR-1310 — el flujo es recorrible sin ayuda › TC-REC-230f: ningún mensaje de error se queda en un 'Error' genérico (422ms)"
+      "notes": "✓  555 [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:245:7 › NFR-1310 — el flujo es recorrible sin ayuda › TC-REC-230f: ningún mensaje de error se queda en un 'Error' genérico (267ms)"
     }
   ],
   "fr_coverage": [
@@ -811,8 +811,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2518,
-      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+      "duration_ms": 2173,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
       "name": "lint",
@@ -820,7 +820,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 3545,
+      "duration_ms": 2395,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -829,8 +829,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 52527,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-14T00:46:20.465Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-14T00:46:20.468Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 48359,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-26T17:28:32.614Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-26T17:28:32.616Z WARN [Better Auth]: Reset Password: User not found"
     },
     {
       "name": "design-tokens",
@@ -838,7 +838,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 358,
+      "duration_ms": 269,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -847,8 +847,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1298,
-      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+      "duration_ms": 752,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, rutas con sesión, bindings, secretos, correos, deps)"
     },
     {
       "name": "secret-scan",
@@ -856,7 +856,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 231,
+      "duration_ms": 132,
       "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
     },
     {
@@ -865,7 +865,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1285,
+      "duration_ms": 1180,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -874,14 +874,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 188290,
-      "output": "recuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (171ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.1m)\n\n(node:7198) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 161681,
+      "output": ":424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (95ms)\n  ✓  571 [chromium] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (2.7m)"
     }
   ],
   "timings": {
-    "runner_ms": 49886,
-    "e2e_ms": 186719,
-    "gates_ms": 250053,
-    "total_ms": 486730
+    "runner_ms": 45144,
+    "e2e_ms": 158358,
+    "gates_ms": 216943,
+    "total_ms": 420509
   }
 }

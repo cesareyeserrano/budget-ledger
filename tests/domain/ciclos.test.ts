@@ -766,6 +766,28 @@ describe("FR-2410 — volver a mes", () => {
     expect(r.state.actuals[rest]).toEqual({ "2026-08": 300_000, "2026-09": 0 });
     for (const c of Object.values(r.state.actuals)) for (const v of Object.values(c ?? {})) expect(v).toBeGreaterThanOrEqual(0);
   });
+  it("BG-046: una celda de Ejecutado que cuadra con sus movimientos sigue cuadrando al volver, aunque su memoria sea de antes del diario", () => {
+    // Memoria grabada al activar ANTES de diario-de-celda: la celda de 2026-09 juntaba 600 de agosto y
+    // 400 de septiembre tecleados, sin movimientos. Hoy esa celda cuadra (1.000 = un movimiento de 1.000,
+    // p. ej. el ajuste de la migración 0011), así que su residuo es 0 y no hay nada tecleado que repartir.
+    resetSeq();
+    const g = mv("expense", "c-comida", 1_000, "2026-09-05", "2026-09");
+    const s: LedgerState = {
+      ...estadoSyn({ movements: [g], actuals: { "c-comida": { "2026-09": 1_000 } } }),
+      origins: [
+        { subject: "actual", ref: "c-comida", period: "2026-09", originPeriod: "2026-08", amount: 600 },
+        { subject: "actual", ref: "c-comida", period: "2026-09", originPeriod: "2026-09", amount: 400 },
+      ],
+    };
+    const r = ok(relocate(s, CAL21, MONTH_CALENDAR, "2026-10-01", { restoreStartMonth: "2026-08" }));
+    const sumas: Record<string, number> = {};
+    for (const m of r.state.movements) for (const { leafId, delta } of movementDeltas(m)) sumas[`${leafId}|${m.period}`] = (sumas[`${leafId}|${m.period}`] ?? 0) + delta;
+    for (const [hoja, celdasHoja] of Object.entries(r.state.actuals)) {
+      for (const [p, v] of Object.entries(celdasHoja ?? {})) expect(v, `${hoja} · ${p}`).toBe(sumas[`${hoja}|${p}`] ?? 0);
+    }
+    expect(r.state.actuals["c-comida"]!["2026-09"]).toBe(1_000);
+    expect(r.state.actuals["c-comida"]!["2026-08"] ?? 0).toBe(0);
+  });
   it("TC-CIC-183e: un ledger sin mes de inicio declarado vuelve sin mes de inicio", () => {
     // @aitri-tc TC-CIC-183e
     resetSeq();

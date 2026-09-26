@@ -14,7 +14,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.e2e.json",
     "test": "vitest run",
     "coverage": "AITRI_COVERAGE=1 vitest run --coverage",
     "test:run": "vitest run",

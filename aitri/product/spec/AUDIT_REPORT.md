@@ -646,3 +646,154 @@ done
 ```
 
 **Veredicto:** 4 hallazgos (P0: 0 · P1: 0 · P2: 4) + 1 previo aún abierto (RQ-SEC-102). **Riesgo general: BAJO.** La postura endurecida de las tres pasadas anteriores se sostiene entera y verificada en ejecución, no solo en el papel: aislamiento por `ownerId` en las 12 rutas, 401 real sin sesión, headers servidos, cero fuga de trazabilidad interna en los builds de producción, contenedor sin privilegios, repo con escaneo de secretos y CI en verde. Ninguno de los cuatro hallazgos es explotable hoy desde fuera de la LAN, y ninguno alcanza los datos del propietario. Los dos que importan miran al futuro, no al presente: RQ-SEC-104 deja la puerta abierta a que una ruta nueva nazca sin sesión, y RQ-SEC-103 tiene severidad dependiente de una exposición que hoy es LAN y mañana puede no serlo — ese es el hallazgo que conviene cerrar antes de cualquier apertura a internet, no después.
+
+
+---
+
+### Security — delta pass (2026-09-26)
+
+_Sixth adversarial pass, run from the `aitri audit security` briefing. The auditor had read-only access to the repository and could not run `aitri` commands, so this section was written to a scratch file and appended to `AUDIT_REPORT.md` by the operator session after review. Code delta since the 2026-09-23 pass (`d9a15fc`): no change under `src/server/**`, `src/app/api/**`, `next.config.mjs`, `Dockerfile` or either compose file. The only security-relevant additions are `scripts/verificar-prod.sh` (new, `9694380`, 2026-09-23) and doc edits to `DEPLOYMENT.md`. The rest of the delta is domain and UI work (`src/domain/{rollup,reserve,cycles}.ts`, `BudgetGrid.tsx`, `Register.tsx`). This pass re-verifies every open item with fresh evidence. It also covers two things earlier passes did not look at: what the **public GitHub repository** gives away (as opposed to the served bundle), and the new production script._
+
+**Surfaces audited:** static (code/repo/deps): **covered**. Checked: all 12 `/api/v1` route handlers plus the `/api/auth/[...all]` catch-all; `withApi` (`src/server/http.ts`), `auth.ts`, `env.ts`, `clock.ts` (test-override gating), `sync.ts`, `recovery/request`, `movements/[id]`; `next.config.mjs`, `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `docker-compose.dev.yml`, `smoke.sh`, `scripts/{security-config,secret-scan,verificar-prod,reset-password}`; both workflows and `dependabot.yml`; `npm audit` (full and `--omit=dev`); build output of the three production dist dirs (built 2026-09-25) checked for source maps and internal traces; a sweep of tracked files for private IPs, e-mail addresses and network names. Host-side settings were read through `gh` with GET requests only: repo security_and_analysis, protection on `main`, `staging` and `develop`, workflow runs including the scheduled ones, open Dependabot, code-scanning and secret-scanning alerts, and the vulnerability-alerts endpoint. Both declared security gates were run by hand. · runtime: **NOT AUDITED**. Nothing listens on `localhost:3100` (every probe returned `000`, and `lsof` shows no Next process), and by rule this pass starts no servers. Production on Ultron is outside this session's reach by design. The only runtime evidence is the socket bindings of the running dev containers (`docker ps`). · **Not covered:** (a) the sweep of the public repo for the owner's real amounts and notes. It needs the values from the dev DB, and the permission classifier denied the `psql` read (PII handling), so the operator should run it (method in memory note `tledger-repo-publico-datos-reales`); (b) Ultron host checks: real proxy chain, `.env`, leftover `/tmp` files; (c) TLS in transit.
+
+---
+
+**[RQ-SEC-107]** `P2`: The public repository publishes the project's internal security map: unfixed findings with their exploitation paths, the production topology, and the identity of the single production account that holds the real financial data
+- Severity: **Low** (tailnet/LAN-only exposure today). Anyone can read `github.com/cesareyeserrano/budget-ledger` without authenticating, and it gives them three things. The first is this `AUDIT_REPORT.md` (121,685 bytes on `main`), which spells out how to exploit the still-open items: how to lock the owner out of login through the shared rate-limit bucket (RQ-SEC-103), that sign-up is open (RQ-SEC-105), and that admins bypass branch protection (RQ-SEC-102). The second is the deployment topology (Raspberry Pi 5, Docker, Tailscale, `LEDGER_TRUST_PROXY` left at `false`). The third is **which e-mail address is the one production account with the real money**. Scenario: someone who gets onto the tailnet or LAN (a guest device, or a shared tailnet node) skips all reconnaissance. They go straight to the documented lockout, or they phish that exact address with a convincing "reset your Ledger password" mail, because the repo also shows the real reset flow and wording. Nobody reaches the data without network access, so the severity is Low. It stays that way only while the app stays off the internet. This is the "Aitri-process exposure" class from the briefing. Earlier passes checked only the **served bundle** for it (clean, see below), never the public repository.
+- Evidence: `gh api repos/cesareyeserrano/budget-ledger` → `"visibility":"public"`; `git ls-files aitri | wc -l` → **365** pipeline artifacts tracked (`.dockerignore` keeps them out of the image, not out of GitHub). `gh api 'repos/.../contents/aitri/product/spec/AUDIT_REPORT.md?ref=main'` → size 121685 (the full Security section is public). `aitri/features/cierre-coherente/spec/01_REQUIREMENTS.json:203` → `"users": "Confirmado: usuario único de producción, <owner e-mail> …"` (also on `main`, 17,784 bytes). Topology: `aitri/features/cierre-coherente/DEPLOYMENT.md:4`, `aitri/features/diario-de-celda/spec/02_SYSTEM_DESIGN.md:402` ("en Ultron (Raspberry Pi 5) y publicados por Tailscale"). `SECURITY.md:26` also carries the address, deliberately, as the vulnerability-reporting contact. That use is legitimate. Naming it as the production login is what adds the exposure.
+- Acceptance criteria: (a) a recorded operator decision (ADR or `no_go_zone` entry) that the pipeline artifacts, including the Security section, are published on purpose, **or** the repo goes private, **or** the security findings move to a location that is not public; (b) `git grep -nI "<owner e-mail>" -- aitri` returns nothing. The address can stay in `SECURITY.md` as a contact, but no tracked artifact identifies it as the production account; (c) new artifacts refer to "the production owner account", never to the address.
+- Suggested implementation: the cheapest fix that closes most of the exposure is to reword the one FR line in `cierre-coherente/spec/01_REQUIREMENTS.json` (this re-opens that feature's Phase 1, so batch it with the next re-derivation) and to adopt the "owner account" wording from now on. For the report itself, decide deliberately. Keeping findings public is a defensible choice for a portfolio repo, but it should be a decision rather than a default. If the report stays public, hold the unfixed items to a remediation deadline. Git history keeps the address either way. It is already public in `SECURITY.md`, so no history rewrite is warranted.
+
+**[RQ-SEC-108]** `P2`: `scripts/verificar-prod.sh` copies the full production `amount_cell` table to fixed, world-readable `/tmp` paths on the production host and never deletes them
+- Severity: **Low**. When the script is run with a backup argument (the documented usage `scripts/verificar-prod.sh ~/respaldo-….sql`), it writes every production amount twice: once from the backup and once live, as `node_id|period|kind|amount`. The files have predictable names under `/tmp`, are created with the default umask (typically `0644`, readable by every local account), and nothing removes them. Any other account or non-containerised service on Ultron, which is a shared personal server, can read the owner's full financial table without touching Postgres or its credentials, and the files outlive the session. On a single-operator Pi few principals can do that, so the severity is Low. The script header also claims "Es de solo lectura" ("it is read-only"), which leads the operator to believe it leaves nothing behind. The predictable names would also allow a pre-placed symlink to redirect the write. Linux's `fs.protected_symlinks=1` (the default on Raspberry Pi OS) blocks that, so the attack is not claimed.
+- Evidence: `scripts/verificar-prod.sh:98` → `python3 - "$RESPALDO" > /tmp/verificar-prod-antes.txt`; `:105` → `PSQL -F'|' -c "SELECT node_id, period, kind, amount FROM amount_cell …" | sort > /tmp/verificar-prod-ahora.txt`; no `mktemp`, `umask` or `trap … rm` anywhere in the file (`grep -n "umask\|mktemp\|trap"` → none); `:23` → "Es de solo lectura: no escribe en la base ni toca contenedores". **UNVERIFIED on the host:** Ultron is out of reach, so whether the files exist there now, and with which mode, is not observed. The code path is certain whenever a backup argument is passed.
+- Acceptance criteria: `grep -nE '>[[:space:]]*/tmp/' scripts/verificar-prod.sh` returns nothing. The temp files come from `mktemp` inside a `mktemp -d` directory with mode 0700, and a `trap 'rm -rf "$TMP"' EXIT` removes them on every exit path. After a run with a backup argument, `ls /tmp/verificar-prod-*` on Ultron finds nothing. The header comment states that the script creates temporary copies of the amounts and deletes them on exit.
+- Suggested implementation:
+  ```bash
+  umask 077
+  TMP=$(mktemp -d) || exit 2
+  trap 'rm -rf "$TMP"' EXIT
+  # … > "$TMP/antes.txt" ; … > "$TMP/ahora.txt"
+  ```
+  Also, one time on Ultron: `rm -f /tmp/verificar-prod-antes.txt /tmp/verificar-prod-ahora.txt`.
+
+**[RQ-SEC-109]** `P2`: `LEDGER_RATE_LIMIT_DISABLED=true` turns off every brute-force and abuse limit in any build, production included; nothing but its absence from the compose file keeps it out of production
+- Severity: **Low** (it takes a configuration mistake, not an outside attacker; the effect is severe). The variable is read in two places with no environment gate. `src/server/auth.ts:51` reads it once at module load and feeds `rateLimit.enabled: !RATE_LIMIT_DISABLED` (`:133`), which disables the Better Auth limits on `/sign-in/email` (5/60 s), `/sign-up/email` (10/60 s), `/request-password-reset` and the global 100/60 s limit. `src/server/rateLimit.ts:22-23` reads it on every call and disables the IP and e-mail limits of the `/api/v1/recovery/request` facade. The comment at `auth.ts:48-50` says the variable is meant only for the e2e harness and that production always keeps the limit ("En producción queda SIEMPRE activo"). No code enforces that. Scenario: someone copies an e2e env block into Ultron's `.env`, or adds `env_file: .env` to `docker-compose.yml` (a common simplification) while the variable is set. From then on, anyone who can reach the login gets unlimited password guesses against the single production account whose address RQ-SEC-107 shows is public, and no log line or gate reports the change.
+- Evidence: the claims above were verified by reading the files. Gating by `NODE_ENV` would not work here: the e2e harness runs a **production** build (`tests/e2e/helpers/globalSetup.ts:197` `NODE_ENV: "production"`) and sets the variable (`:151`; `tests/e2e-backend/helpers/globalSetup.ts:57`). `clock.ts:18-24` hit the same constraint and solved it with a dedicated `LEDGER_TEST_OVERRIDES` gate. The only thing keeping the variable out of production today is structural. `docker-compose.yml:33-50` lists the app's `environment` explicitly and has **no `env_file`**, and neither `LEDGER_RATE_LIMIT_DISABLED` nor `LEDGER_TEST_OVERRIDES` appears there. So a container started from the committed compose file **cannot** see the variable (not exploitable today). **No guard exists:** `scripts/check-env.mjs` does not mention the variable (its only `NODE_ENV` branch, `:28`, concerns Google OAuth), and `scripts/security-config.sh` does not check for it.
+- Acceptance criteria: (a) `scripts/security-config.sh` fails if `docker-compose.yml` mentions `LEDGER_RATE_LIMIT_DISABLED` or `LEDGER_TEST_OVERRIDES`, or declares an `env_file`; (b) at boot, when the variable is `true`, the server logs an unmissable warning (`[auth] RATE LIMIT DISABLED — test-only setting`), and `check-env.mjs` prints the same warning. A regression then shows up in `docker compose logs app` even if it slips past the gate.
+- Suggested implementation: add the compose check below to `security-config.sh`, and put a single `console.warn` in `buildAuth()` when `RATE_LIMIT_DISABLED` is true. Optionally tie the variable to the existing test gate (`disabled = LEDGER_RATE_LIMIT_DISABLED === "true" && LEDGER_TEST_OVERRIDES === "1"`). Both harnesses already set up a test environment, so they would only need the second variable if they don't set it yet; check `globalSetup` before changing this.
+
+**[RQ-SEC-110]** `P2`: The dev compose `app` service publishes the app on every interface (`"3100:3000"`), is the one dev port the gate does not check, and runs with a fixed secret that is public in the repo
+- Severity: **Low** (dev environment; same class as RQ-SEC-006 and RQ-SEC-011). RQ-SEC-006 moved the dev DB, pgweb and Mailpit to loopback, and RQ-SEC-011 did the same for `npm run dev`. The containerised dev app is the one entry point still on `0.0.0.0`. It is not started by `db:up` or `mail:up`, but a plain `docker compose -f docker-compose.dev.yml up -d` (no service list) starts it, and it then stays up across reboots (`restart: unless-stopped`). Scenario: while it runs, anyone on the same Wi-Fi reaches a production-mode build (`NODE_ENV: production`) backed by the dev database. That database holds the admin test ledger, which, per the operator's own record, was loaded from the owner's real figures before production existed. There the visitor can hit the login (rate-limited) and **open sign-up** (RQ-SEC-105). Correction to earlier passes: RQ-SEC-006 and RQ-SEC-011 stated that the public dev `BETTER_AUTH_SECRET` lets an attacker "forge a valid session". This pass found that claim **overstated and unverified**. Better Auth's session cookie is an HMAC-signed *database* token, and neither `cookieCache` nor JWT is enabled (`grep -rn "cookieCache\|jwt(" src/server` returns nothing), so a known secret alone does not produce a session. The secret still weakens anything else it signs, and it needs no second role. The reachable login plus open sign-up is exposure enough for Low.
+- Evidence: `docker-compose.dev.yml:45` `BETTER_AUTH_SECRET: dev-secret-not-for-production-do-not-use-000000`; `:50` `- "3100:3000"` with no address, while the other three services use `127.0.0.1:` (`:21`, `:71`, `:81-82`). `package.json:9,11`: `db:up` and `mail:up` name their services explicitly, which is why the app is usually not running. `docker ps` at audit time showed no `ledger-dev-app`. `scripts/security-config.sh` checks only the 5432 and 8081 mappings (`'"5432:5432"'`, `'"8081:8081"'`), so this line can stay open without the gate noticing. RQ-SEC-006 had recorded leaving this port open as deliberate ("para probar desde el móvil", i.e. to test from a phone). That decision predates RQ-SEC-011, which put the same trade-off behind an explicit opt-in script (`dev:lan`) rather than the default.
+- Acceptance criteria: `docker-compose.dev.yml` maps `"127.0.0.1:3100:3000"`; after `docker compose -f docker-compose.dev.yml up -d app`, `curl http://<LAN-IP>:3100/health` does not connect while `http://127.0.0.1:3100/health` returns 200; `security-config.sh` fails if any `ports:` entry in `docker-compose.dev.yml` lacks a `127.0.0.1:` prefix. Testing from a phone stays possible through an explicit override file (e.g. `docker-compose.lan.yml`), matching `dev:lan`.
+- Suggested implementation: prefix the mapping with `127.0.0.1:` and generalise the compose check in the gate (below) so that any new dev service is covered too.
+
+---
+
+**Status of earlier findings (re-verified 2026-09-26):**
+
+| ID | Status | Fresh evidence |
+|---|---|---|
+| RQ-SEC-001 (CSP `unsafe-inline`/`unsafe-eval`) | **Still open** (by decision) | `next.config.mjs:33` unchanged: `script-src 'self' 'unsafe-inline' 'unsafe-eval'`. The 09-23 observation still applies: dropping `'unsafe-eval'` in production is the cheap half, and `smoke` would show whether it breaks boot. |
+| RQ-SEC-002 (`X-Powered-By`) | Resolved, holds (static) | `next.config.mjs:5` `poweredByHeader: false`; `security-config` gate passes. Not re-probed at runtime. |
+| RQ-SEC-003 (XFF trust) | Resolved, superseded by RQ-SEC-103 | `auth.ts:129` conditional on `e.trustProxy`; `env.ts:107` strict `=== "true"`. |
+| RQ-SEC-004 (sign-up rate limit) | Resolved, holds | `auth.ts:138` `"/sign-up/email": { window: 60, max: 10 }`. |
+| RQ-SEC-005 (dependency vulns) | Resolved, holds | `npm audit` → `found 0 vulnerabilities`, both full and `--omit=dev`; 0 open Dependabot alerts. |
+| RQ-SEC-006 (dev DB and pgweb on 0.0.0.0) | Resolved, holds (runtime-observed) | `docker ps` → `ledger-dev-db 127.0.0.1:5432`, `ledger-dev-pgweb 127.0.0.1:8081`, `ledger-dev-mail 127.0.0.1:1025/8025`. The dev `app` service it left open on purpose is now reported separately as **RQ-SEC-110**. |
+| RQ-SEC-007 (stale NFR-004) | **Resolved** | NFR-004 now describes the server architecture and points to the feature NFRs and the open RQ-SEC items. |
+| RQ-SEC-008 (Origin check only when header present) | Open by decision (reclassified as an observation 09-23) | `src/server/http.ts:99` `if (origin && !e.allowedOrigins.includes(origin))` unchanged; `SameSite=lax` still at `auth.ts:122`. |
+| RQ-SEC-009 (SSE unbounded per user) | **Still open** | `src/server/sync.ts:29` `subscribe()` has no per-user cap (no limit constant in the file). |
+| RQ-SEC-010 (smoke gate on a stale build) | **Resolved** | `smoke.sh:39` rebuilds when `src`, `next.config.mjs` or `package.json` is newer than `BUILD_ID`; the 3 dist dirs are dated 2026-09-25. |
+| RQ-SEC-011 (dev server on 0.0.0.0) | Resolved, holds | `package.json` `"dev": "next dev -H 127.0.0.1 -p 3100"`; the gate check passes; BL-023 closed. |
+| RQ-SEC-101 (red security job on `main`) | Resolved, holds | Last 10 `main` runs are all `success` (latest 2026-09-25 17:11 UTC, `45aaf30`); scheduled CI on 09-14 and 09-21 `success`. |
+| RQ-SEC-102 (`enforce_admins: false`) | **Still open**, 24 days since first reported | `gh api …/branches/main/protection` → `enforce_admins: false` (required checks `build-and-test`, `security`; force-push and deletion off). |
+| RQ-SEC-103 (single rate-limit bucket behind the proxy; doc misdescribes it) | **Still open**, with an added caveat (below) | `DEPLOYMENT.md:284-285` still says "como mucho pierdes granularidad" ("at worst you lose granularity"); `docker-compose.yml:50` default `false`. |
+| RQ-SEC-104 (no mechanical guard for new `/api/v1` routes) | **Still open** | The proposed check was never added: `grep -c RQ-SEC-104 scripts/security-config.sh` → `0`. A dry run of the proposed loop over the 12 current routes gives **rc=0**: all 11 private routes use `auth: "required"` or `getSessionUser`, and `recovery/request` is public by design. So nothing is open today, and the gate can land without a red run. |
+| RQ-SEC-105 (open sign-up) | **Still open** | `auth.ts:64-65` `emailAndPassword: { enabled: true, …}`; no `disableSignUp` or allowlist anywhere in `src/`. |
+| RQ-SEC-106 (`staging` requires no checks) | **Still open** | `gh api …/branches/staging/protection` → `checks: []`, `required_pull_request_reviews: null`. |
+
+**Routing gap:** none of RQ-SEC-102…106 appears in `aitri/product/spec/BACKLOG.json`, `BUGS.json`, `aitri/BACKLOG.md` or any feature backlog (`grep -rlE "RQ-SEC-10[2-6]" aitri` matches only `AUDIT_REPORT.md`). The 09-02 and 09-23 findings were never passed through `aitri audit plan`. The pipeline has no record of them outside this report, so an audit is the only thing that would bring them back up.
+
+**RQ-SEC-103, added caveat: check the real proxy before flipping `LEDGER_TRUST_PROXY=true`.** The 09-23 remediation says to set `true` "because the documented Nginx replaces X-Forwarded-For" (`DEPLOYMENT.md:60`). The repo contradicts itself about what sits in front of production. The root `DEPLOYMENT.md:3,9,51` says **Nginx**, but three later features record **Tailscale** as the publishing layer (`cierre-coherente/DEPLOYMENT.md:4`, `fecha-de-comentario/DEPLOYMENT.md:4`, `diario-de-celda/spec/02_SYSTEM_DESIGN.md:402`). If Tailscale Serve proxies straight to `127.0.0.1:3000` without Nginx, then how it handles an inbound `X-Forwarded-For` (replace or append) decides whether `true` is safe, and nothing in the repo documents that. Better Auth keys the rate limit on the header's first entry, so an appending proxy would let a client rotate its own header and **disable** the login limit, the exact failure BG-013 fixed. **UNVERIFIED** (no host access). Extra acceptance criterion for RQ-SEC-103: before setting `true`, the operator sends one request with a forged `X-Forwarded-For: 203.0.113.9` through the real front door and confirms in the app log or rate-limit bucket that the key recorded is the real client IP, not `203.0.113.9`. The root `DEPLOYMENT.md` should then name the actual proxy chain.
+
+---
+
+**Observations (not findings: no attacker story at this threat model):**
+- `BETTER_AUTH_SECRET` is only validated as `min(1)` (`env.ts:20`). A weak production secret would be accepted without complaint. Consider `min(32)` when `NODE_ENV=production`.
+- Base images are pinned by tag, not digest (`Dockerfile:11,18,30` `node:22-alpine`; `docker-compose.yml:11` `postgres:16-alpine`). Dependabot's `docker` ecosystem covers the Dockerfile. Pinning by digest would make builds reproducible.
+- `scripts/reset-password.mjs:42` accepts the new password as an optional CLI argument, which lands in shell history and `ps`. The default, a generated random password, is the safe path. The whole `scripts/` directory ships in the runtime image (`Dockerfile:48`) but gives no privilege beyond the `DATABASE_URL` the container already holds.
+- Secret scanning `non_provider_patterns` and `validity_checks` are still disabled (unchanged since 09-02). `gitleaks` is not installed locally, so `secret-scan` ran its pattern fallback, as it does in CI.
+- Test hooks (`x-ledger-today`, `LEDGER_TODAY`, `LEDGER_TEST_FAIL_AFTER`) only activate when `LEDGER_TEST_OVERRIDES === "1"` (`clock.ts:24`), and the production compose never passes that variable. The rate-limit kill switch has no such gate; see RQ-SEC-109.
+
+**Checked clean (evidence of coverage):**
+- `./scripts/security-config.sh` → exit 0; `./scripts/secret-scan.sh` → exit 0 (pattern fallback). Repo working tree unchanged before and after.
+- `npm audit` / `npm audit --omit=dev` → 0 vulnerabilities; Dependabot alerts: 0 open; code-scanning: 0 open, 0 dismissed; secret-scanning alerts: 0 open; vulnerability alerts enabled (`204`); secret scanning and push protection enabled; Dependabot security updates enabled.
+- Build output: `.next-smoke`, `.next-e2e`, `.next-e2e-gate` (all built 2026-09-25): 0 `.map` files and 0 files matching `@aitri-trace|FR-nnn|TC-…` under `static/`. `public/` is empty.
+- All 12 `/api/v1` handlers are gated (listed above). `movements/[id]` returns an indistinguishable 404 for "missing" and "not yours" (NFR-2501). `recovery/request` checks format, then rate limit (IP and e-mail), then SMTP, and only then looks at the account, so it cannot be used to enumerate accounts.
+- CI: `permissions: contents: read`, actions pinned by SHA, `npm ci` without fallback, CodeQL `security-extended` on all three branches plus a weekly schedule.
+- Tracked-file sweep: no private IPs, no tailnet hostnames (`*.ts.net`), and no `.sql` dumps other than the `drizzle/` migrations.
+
+---
+
+**Proposed quality_gate.** No new gate declaration is needed: extend `scripts/security-config.sh`, which already runs as a required gate on every `verify-run`. Four checks cover the findings whose regression is silent and can be detected mechanically: RQ-SEC-104 (still unlanded from the 09-23 pass), RQ-SEC-108, RQ-SEC-109 and RQ-SEC-110. RQ-SEC-107, RQ-SEC-102/106 and RQ-SEC-103/105 close through an operator decision or a one-time host setting, and a presence check for them would only look like protection.
+
+```bash
+# ── RQ-SEC-104: every /api/v1 route requires a session, except an explicit allowlist ──
+PUBLICAS_OK="src/app/api/v1/recovery/request/route.ts"   # FR-1303: public by design
+while IFS= read -r r; do
+  case " $PUBLICAS_OK " in *" $r "*) continue ;; esac
+  if grep -qE 'auth:[[:space:]]*"required"' "$r" || grep -q 'getSessionUser' "$r"; then continue; fi
+  check "RQ-SEC-104: $r does not require a session (use withApi auth:\"required\", or add it to PUBLICAS_OK with its FR)" 1
+done < <(find src/app/api/v1 -name route.ts | sort)
+for r in $PUBLICAS_OK; do
+  [ -f "$r" ] || check "RQ-SEC-104: allowlisted public route $r no longer exists — review the allowlist" 1
+done
+
+# ── RQ-SEC-108: scripts that read production data never write to fixed /tmp paths ──
+for s in scripts/verificar-prod.sh; do
+  [ -f "$s" ] || continue
+  ! grep -qE '>[[:space:]]*/tmp/' "$s"
+  check "RQ-SEC-108: $s writes production data to a fixed /tmp path (use mktemp -d + umask 077 + trap rm)" $?
+  grep -q 'mktemp' "$s" && grep -qE "trap .*rm" "$s"
+  check "RQ-SEC-108: $s has no mktemp/trap cleanup for its temporary copies" $?
+done
+
+# ── RQ-SEC-109: test-only kill switches never reach the production compose ──
+! grep -qE 'LEDGER_RATE_LIMIT_DISABLED|LEDGER_TEST_OVERRIDES|^[[:space:]]*env_file' docker-compose.yml
+check "RQ-SEC-109: docker-compose.yml forwards a test-only switch or an env_file (could disable the login rate limit in production)" $?
+
+# ── RQ-SEC-110: every dev compose port is bound to loopback (generalises the RQ-SEC-006 checks) ──
+if [ -f docker-compose.dev.yml ]; then
+  ! grep -qE '^[[:space:]]*-[[:space:]]*"[0-9]+:[0-9]+"' docker-compose.dev.yml
+  check "RQ-SEC-110: docker-compose.dev.yml publishes a port on 0.0.0.0 (prefix it with 127.0.0.1:)" $?
+fi
+```
+Dry runs today: the RQ-SEC-104 block passes (rc=0) and the RQ-SEC-109 block passes (the committed compose file is clean). The RQ-SEC-108 block fails until the script is fixed, and the RQ-SEC-110 block fails on `docker-compose.dev.yml:50`. Both failures are the intended red.
+
+**Suggested routing** (not executed; this pass is read-only and ran no `aitri` commands):
+```
+aitri audit plan                     # route RQ-SEC-102…108 into the pipeline
+aitri backlog add …                  # RQ-SEC-104/109/110 (gate lines + one-line fixes), RQ-SEC-108 (script), RQ-SEC-107 (decision + FR wording), RQ-SEC-009
+# host settings (owner, one-time):
+gh api -X POST repos/cesareyeserrano/budget-ledger/branches/main/protection/enforce_admins      # RQ-SEC-102
+# RQ-SEC-106: add build-and-test + security as required checks on staging (repo settings UI or protection PUT)
+```
+
+**Verdict:** 4 new findings (**P0: 0 · P1: 0 · P2: 4**: RQ-SEC-107, 108, 109, 110). Still open: RQ-SEC-001, 009, 102, 103 (with the proxy caveat), 104, 105, 106, all P2; RQ-SEC-008 remains open by decision as an observation. RQ-SEC-007 and RQ-SEC-010 are confirmed resolved. **Overall risk: LOW, and unchanged.** The server code has not changed since the last pass, the hardened posture holds wherever it could be checked statically, dependencies and alerts are clean, and CI on `main` is green. What stands out is the process around the findings, not the product. The 09-02 and 09-23 findings were never routed, so five of them (and RQ-SEC-104's two-minute gate) have sat untouched. And the repo publishes the report that describes them, together with the name of the account they would be used against. The one item to settle before the app is ever opened beyond the tailnet is RQ-SEC-103, now including the proxy check. **Runtime was not audited in this pass.**
+
+#### Remediation status — same day (2026-09-26)
+
+Routed and fixed in the operator session right after this pass. Each fix was registered as a bug and closed through `aitri reconcile`:
+
+- **RQ-SEC-108 — RESOLVED** (BG-047, commit `77b8613`). `scripts/verificar-prod.sh` now writes its two copies of `amount_cell` into a `mktemp -d` directory under `umask 077` and removes it with `trap … EXIT`. Its header states this. `security-config` fails on any `> /tmp/` write in that script, or if the `mktemp`/`trap rm` pair is missing. One-time host cleanup of the old files is an operator task.
+- **RQ-SEC-109 — RESOLVED** (BG-048, `77b8613`). `rateLimitDisabled()` (`src/server/rateLimit.ts`) requires both `LEDGER_RATE_LIMIT_DISABLED=true` and the existing test gate `LEDGER_TEST_OVERRIDES=1`, and `auth.ts` uses it. The server logs a warning at start-up when the switch is active, or when it is set but ignored. The `e2e-backend` harness opens the gate. A new integration test checks that the switch alone does not disable anything. `security-config` fails if the production compose forwards the switch, the gate or an `env_file`, and if either module stops using the gated function.
+- **RQ-SEC-110 — RESOLVED** (BG-049, `77b8613`). The dev compose `app` maps `127.0.0.1:3100:3000`, and `security-config` now fails on any dev compose port without a `127.0.0.1:` prefix, for current and future services.
+- **RQ-SEC-104 — RESOLVED** (`77b8613`). The route-session check proposed on 09-23 has landed in `security-config`. `recovery/request` (FR-1303) is the only allowlisted public route.
+- **RQ-SEC-107 — PARTIALLY RESOLVED.** Operator decision: the repository stays public (open source), with no real personal data in it.
+  - The owner's address was removed from every tracked file (`c61ed18`): the `cierre-coherente` FR, the BG-040 evidence and the `SECURITY.md` contact, which is now GitHub private vulnerability reporting only.
+  - New commits use the GitHub no-reply address.
+  - `security-config` fails if any tracked file contains an e-mail address outside an allowlist of test domains.
+  - A full-history sweep found no real amounts. `gitleaks` over the 382 published commits found no secrets.
+  - **Still present:** the address as author metadata of past commits, and in three historical file versions. Removing it needs a history rewrite and is left to the operator. This section is published after the fixes above, so it no longer describes unfixed, exploitable items.
+- **Still open, unchanged:** RQ-SEC-001, 009, 102, 103 (with the Tailscale caveat: keep `LEDGER_TRUST_PROXY=false`), 105 and 106. RQ-SEC-102 and 106 are host settings for the owner.

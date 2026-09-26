@@ -20,9 +20,15 @@
 #   ssh ultron 'cd ~/apps/budget-ledger && scripts/verificar-prod.sh'
 #   ssh ultron 'cd ~/apps/budget-ledger && scripts/verificar-prod.sh ~/respaldo-2026-09-23-1430.sql'
 #
-# Es de solo lectura: no escribe en la base ni toca contenedores.
+# No escribe en la base ni toca contenedores. Con un respaldo como argumento hace dos copias
+# temporales de las cifras de `amount_cell` (la del respaldo y la de ahora) para compararlas: viven en
+# un directorio privado (umask 077, mktemp -d) y se borran al salir, pase lo que pase (BG-047 /
+# RQ-SEC-108). Antes iban a rutas fijas de /tmp legibles por cualquier cuenta del host y se quedaban.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+umask 077
+TMP=$(mktemp -d) || { echo "no se pudo crear el directorio temporal" >&2; exit 2; }
+trap 'rm -rf "$TMP"' EXIT
 
 RESPALDO="${1:-}"
 FALLOS=0
@@ -95,21 +101,21 @@ if [ -z "$RESPALDO" ]; then
 elif [ ! -f "$RESPALDO" ]; then
   fallo "el respaldo '$RESPALDO' no existe"
 else
-  python3 - "$RESPALDO" > /tmp/verificar-prod-antes.txt <<'PY'
+  python3 - "$RESPALDO" > "$TMP/antes.txt" <<'PY'
 import sys
 copia = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 bloque = copia.split("COPY public.amount_cell", 1)[1].split("\\.", 1)[0]
 filas = [l.split("\t") for l in bloque.splitlines()[1:] if l.strip()]
 print("\n".join(sorted(f"{f[1]}|{f[2]}|{f[3]}|{f[4]}" for f in filas)))
 PY
-  PSQL -F'|' -c "SELECT node_id, period, kind, amount FROM amount_cell ORDER BY 1,2,3" | sort > /tmp/verificar-prod-ahora.txt
-  ANTES=$(grep -c '' /tmp/verificar-prod-antes.txt)
-  AHORA=$(grep -c '' /tmp/verificar-prod-ahora.txt)
-  if diff -q /tmp/verificar-prod-antes.txt /tmp/verificar-prod-ahora.txt >/dev/null; then
+  PSQL -F'|' -c "SELECT node_id, period, kind, amount FROM amount_cell ORDER BY 1,2,3" | sort > "$TMP/ahora.txt"
+  ANTES=$(grep -c '' "$TMP/antes.txt")
+  AHORA=$(grep -c '' "$TMP/ahora.txt")
+  if diff -q "$TMP/antes.txt" "$TMP/ahora.txt" >/dev/null; then
     ok "las $AHORA celdas son idénticas a las del respaldo"
   else
     fallo "las cifras cambiaron respecto al respaldo ($ANTES celdas antes, $AHORA ahora):"
-    diff /tmp/verificar-prod-antes.txt /tmp/verificar-prod-ahora.txt | head -10
+    diff "$TMP/antes.txt" "$TMP/ahora.txt" | head -10
   fi
 fi
 
