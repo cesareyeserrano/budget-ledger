@@ -19,41 +19,9 @@
   "projectName": "recuperar-acceso",
   "createdAt": "2026-08-03T17:34:08.586Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-26T18:27:28.119Z",
+  "updatedAt": "2026-09-26T20:52:54.347Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-27T16:15:01.096Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0
-    },
-    {
-      "at": "2026-08-27T19:52:49.742Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-08-27T19:52:51.992Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0
-    },
-    {
-      "at": "2026-08-28T16:44:22.815Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 87,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-08-28T16:44:22.922Z",
       "event": "verify-complete",
@@ -183,6 +151,40 @@
       "phase": "verify",
       "passed": 87,
       "failed": 0
+    },
+    {
+      "at": "2026-09-26T20:27:41.371Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T20:34:39.774Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 1,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T20:52:41.320Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T20:52:54.338Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 87,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -266,16 +268,16 @@
       "FR-1312"
     ]
   },
-  "verifyResultsHash": "3a3c41f3c63ffe924aa09b414283b047cec9ba3ce17873c4a30e41d7e45ec17f",
-  "verifyRanAt": "2026-09-26T18:27:14.552Z",
-  "verifyRanRef": "143b37333554c829815da51d435589c079885529",
+  "verifyResultsHash": "827a665f13dce0809a9d5a598f3a2c250364753e94da9dcff9d35de5ffa6ad78",
+  "verifyRanAt": "2026-09-26T20:52:41.300Z",
+  "verifyRanRef": "3806297167f3ac6b13d37d21a54d724f65644761",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 87,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-26T18:27:14.552Z"
+    "at": "2026-09-26T20:52:41.300Z"
   },
   "verifyPassed": true,
   "releaseHistory": [
