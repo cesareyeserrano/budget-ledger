@@ -456,11 +456,23 @@
       "status": "open",
       "createdAt": "2026-09-02T00:00:00.000Z",
       "decisions": "VERIFICADO que la divergencia YA EXISTE hoy, no la introduce ninguna propuesta: tras reservar 1.000 y sacar 300, la celda dice 1.000 y el cajon tiene 700; y reservando 600 en enero y 400 en febrero, la celda de febrero dice 400 cuando hay 1.000. La objecion del usuario es contra el diseno vigente. OPCIONES: (a) la grilla muestra el SALDO del cajon al cierre de cada mes —la foto— y los flujos del mes siguen visibles en el Balance («Reservas del mes» / «Retiros de reservas») y en la lista de operaciones; (b) dejarlo como esta. LA PREGUNTA DIFICIL de la opcion (a): que significa BAJAR el numero de la celda — «no meti tanto» (corregir) o «saque plata» (retiro real). Propuesta: bajar la celda corrige lo aportado, y sacar plata se hace por la fila de retiros, que ademas pone fecha. Esa separacion disolveria la ambiguedad de la que nacen BL-037 y BL-038. NOTA HISTORICA: el modelo v3 guardaba SALDOS y la migracion a v4 los convirtio en APORTES; el motivo registrado fue que con semantica de saldo una celda ausente resolvia 0 e inventaba retiros fantasma. Eso afecta al ALMACENAMIENTO, no a la presentacion: se puede seguir guardando aportes y MOSTRAR el saldo derivado, que es lo que ya hace resolvedSeries. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
-      "updatedAt": "2026-09-26T00:03:11.076Z",
+      "updatedAt": "2026-09-27T19:56:33.301Z",
       "log": [
         {
           "at": "2026-09-26T00:03:11.076Z",
           "text": "Subida a P1 en la revision del backlog del 2026-09-25: los dos P1 nuevos la nombran como deuda previa. BL-056 (movil) copiaria al telefono una semantica que el usuario ya declaro incorrecta, y BL-057 (Tony) tiene que responder 'cuanto tengo en el bolsillo X' con una sola respuesta. Es una decision, no una feature: tomarla desbloquea las dos. Recomendacion: opcion (a) mostrar el saldo del cajon, con la separacion propuesta (bajar la celda corrige lo aportado; sacar plata va por la fila de retiros). Lo unico por decidir de verdad es la pregunta dificil sobre BAJAR la celda."
+        },
+        {
+          "at": "2026-09-27T19:43:25.341Z",
+          "text": "2026-09-27 DECISION DEL USUARIO: la celda de un bolsillo debe RESTAR lo que se saca (palabras suyas: 'si que reste'). Llego a la decision replicando el caso en una cuenta de practica de dev: metio 1.000.000 en un bolsillo, saco 500.000, y la celda seguia en 1.000.000 mientras el formulario de Reserva mostraba 500.000. Se descarta la opcion (b) dejarlo como esta. HALLAZGO del dia: con UN solo bolsillo la fila 'Saldo reservado' del Balance ya coincide con el saldo del bolsillo, por eso el usuario no veia el problema en su cuenta; el hueco es por bolsillo, con dos o mas. POR CONFIRMAR antes de requisitos: (1) si la celda muestra el SALDO ACUMULADO del bolsillo al cierre de cada mes o el NETO del mes (aportes - retiros), que puede ser negativo; (2) que significa editar la celda. Contradice FR-1003 aprobado (transferencias): va como feature."
+        },
+        {
+          "at": "2026-09-27T19:48:27.613Z",
+          "text": "2026-09-27 CONFIRMADO POR EL USUARIO (punto 1 de la nota anterior): la celda muestra lo que tiene AHORRADO en ese bolsillo cada mes, es decir el SALDO ACUMULADO al cierre del mes (palabras suyas: 'deberia ser lo que tengo ahorrado cada mes en ese rubro'). Se descarta el neto del mes. Sigue POR CONFIRMAR el punto 2: que significa escribir un numero encima de la celda."
+        },
+        {
+          "at": "2026-09-27T19:56:33.301Z",
+          "text": "2026-09-27 CONFIRMADO POR EL USUARIO (punto 2): opcion A. Escribir un numero encima de la celda significa 'ahora tengo esto': la app anota la DIFERENCIA como plata que entro (numero mayor) o como retiro (numero menor), con fecha. Ejemplo que se le mostro con sus datos: la celda dira 1.000.000; si escribe 800.000, se anota un retiro de 200.000. Se descartan: B (corregir lo aportado sin anotar retiro; falla en meses sin aportes) y C (celda de solo lectura). Con esto BL-041 queda DECIDIDO en sus dos puntos; pasa a feature porque cambia FR-1003 (transferencias), aprobado."
         }
       ]
     },
@@ -738,6 +750,44 @@
       "createdAt": "2026-09-26T16:59:56.052Z",
       "decisions": "Abiertas: (1) como llega GitHub a Ultron: runner self-hosted en Ultron (el mas simple; el runner debe aceptar SOLO main y nunca PRs de forks, el repo es publico), accion oficial de Tailscale con clave efimera y ACL minima, o un pull desde Ultron (watchtower/cron sobre la rama); (2) donde se construye la imagen: en Ultron o en CI y publicada en GHCR; (3) aprobacion manual (environment de GitHub con revisor) o totalmente automatico; (4) rollback automatico si falla la verificacion.",
       "acceptance": "Un merge a main despliega sin intervencion y aplica las cinco reglas de DEPLOYMENT.md: pg_dump antes de tocar nada, nunca borrar volumenes, migraciones con la imagen nueva, levantar y correr verificar-prod.sh con el respaldo; si verificar-prod falla, el despliegue se marca rojo y vuelve a la imagen anterior sin tocar la base; ningun secreto de produccion en el repo ni en logs; los respaldos rotan y quedan cifrados; un PR (incluido uno de un fork) nunca ejecuta nada en Ultron."
+    },
+    {
+      "id": "BL-059",
+      "title": "El carril de presupuesto no arrastra su propio saldo: cada mes abre en el cierre REAL del anterior (ADR-03 del Balance)",
+      "priority": "P1",
+      "problem": "En el Balance, la columna Pres. de cada mes abre con el cierre EJECUTADO del mes anterior, no con el cierre PRESUPUESTADO. Ejemplo con cifras inventadas: el plan de octubre cierra con 500 disponibles y lo ejecutado con 400; noviembre Pres. abre en 400. El cierre presupuestado de un mes no alimenta al siguiente. El usuario lo vio en su pantalla el 2026-09-27 y lo declaro mal diseno: 'el presupuesto deberia comportarse igual que el ejecutado, solo que en su carril de presupuesto; hoy dia tiene una mezcla rara' y 'esa regla vieja es mal diseno, hay que corregirlo'.",
+      "status": "closed",
+      "createdAt": "2026-09-27T20:08:24.935Z",
+      "decisions": "DECIDIDO por el usuario el 2026-09-27: el presupuesto arrastra su PROPIO saldo de mes a mes, igual que el ejecutado, cada uno en su carril. Revierte ADR-03 (revisado el 2026-07-27), que re-anclaba el plan a la realidad cada mes a proposito. DONDE VIVE la regla vieja: computeBalanceSeries (src/domain/balance.ts) abre los dos planos en prevActual; techoScanRaw (src/domain/reserve.ts) calcula el margen del plan con el arrastre real; chainCheck no aplica deficit al plan 'porque no tiene arrastre propio'. LA MEZCLA no es solo esa: plannedRetiroLimit YA acumula en su propio carril (aportes planeados menos retiros planeados), asi que hoy conviven reglas de carril propio con reglas re-ancladas; y el retiro planeado es UNA fila por mes sin bolsillo (@retiros), mientras en Ejecutado cada retiro sabe de que bolsillo salio. LO QUE SE CEDE al corregirlo: si un mes sale peor que el plan, la columna Pres. de los meses siguientes ya no lo refleja; la desviacion se lee comparando las dos columnas. RELACION con BL-041 y la feature saldo-de-bolsillo: la celda Pres. de un bolsillo (lo que el plan tendria ahorrado) solo cuadra con 'Saldo reservado' Pres. si este carril se corrige. POR DECIDIR: si va dentro de saldo-de-bolsillo o como feature propia antes de ella.",
+      "acceptance": "Para todo mes que no sea el primero, 'Saldo del mes anterior' en Pres. es igual a 'Saldo disponible' en Pres. del mes anterior, y lo mismo con el saldo reservado; la columna Ejec. del Balance da exactamente las mismas cifras que antes para los mismos datos; un ledger existente muestra el carril corregido sin migracion ni correccion a mano",
+      "log": [
+        {
+          "at": "2026-09-27T20:09:50.100Z",
+          "text": "2026-09-27 DECIDIDO por el usuario: DOS entregas. Primero la feature carril-de-presupuesto (este item); despues saldo-de-bolsillo (BL-041), que cambia las celdas de bolsillo en Pres. y Ejec. a la vez. Motivo: cada cambio tiene su riesgo propio (este mueve las cifras de toda la columna Pres.; el otro cambia lo que se guarda al escribir en una celda) y separados es mas facil saber cual fallo. El retiro planeado POR BOLSILLO va en saldo-de-bolsillo, no aqui."
+        },
+        {
+          "at": "2026-09-27T20:11:01.366Z",
+          "text": "2026-09-27 HALLAZGO que obliga a RE-CONFIRMAR la decision antes de escribir requisitos. La regla que se quiere revertir la puso EL PROPIO USUARIO el 2026-07-27, tras probar con sus datos la que ahora pide: ADR-03 de la feature balance (aitri/features/balance/spec/02_SYSTEM_DESIGN.md) eligio primero 'cada plano arrastra su propio cierre' (2026-07-24) y el usuario la invirtio tres dias despues. Su motivo entonces: un mes mal ejecutado dejaba el plan de los meses siguientes arrancando con plata que ya no existe, y el error se arrastraba hasta diciembre (julio planeo guardar 300 y guardo 500: cerro en 200 segun el plan y en 0 de verdad; agosto abria Pres. en 200). Sus palabras: 'el plan de septiembre o futuro no importa, se planea cada mes... y se va actualizando con lo real ejecutado del mes anterior'. La fija FR-906 de balance (MUST) y TC-BAL-915e. Volver al carril puro trae de vuelta ese caso. TERCERA OPCION a ofrecerle: los meses ya terminados abren en el cierre REAL; los meses futuros encadenan el plan (hoy un mes futuro ignora el plan del mes anterior, porque solo la cadena ejecutada acumula). ESTADO: la nota 'DECIDIDO' de este item queda EN SUSPENSO hasta que el usuario elija sabiendo esto. La feature carril-de-presupuesto esta creada y vacia; no se escribe su brief hasta entonces."
+        },
+        {
+          "at": "2026-09-27T20:15:07.362Z",
+          "text": "2026-09-27 DECIDIDO por el usuario, CONOCIENDO la historia de julio (se le mostro el caso de los 200 inexistentes y las tres opciones A/B/C): opcion B, CARRIL PROPIO PURO. Motivo en sus palabras: 'que pasa si quiero hacer el presupuesto de todo un ano o dos; eso como esta no me permite hacerlo'. Se acepta a sabiendas que un mes peor que el plan no se refleja en la columna Pres. de los meses siguientes; la desviacion se lee comparando Pres. con Ejec. Revierte ADR-03 y FR-906 de balance. Se reactiva la nota 'DECIDIDO' anterior."
+        },
+        {
+          "at": "2026-09-27T20:39:28.896Z",
+          "text": "2026-09-27 PRINCIPIO confirmado por el usuario: 'el presupuesto y el ejecutado deberian tener el mismo comportamiento, para poder hacer una simulacion real y una comparacion real'. Cada plano calcula igual sobre sus propios datos; en Pres. las reglas avisan y en Ejec. bloquean. Ambos arrancan en el saldo inicial declarado."
+        },
+        {
+          "at": "2026-09-27T20:42:12.949Z",
+          "text": "2026-09-27 CONFIRMADO: en Pres. las reglas BLOQUEAN igual que en Ejec. (hoy solo avisan, FR-1008). Pregunta: 'en el presupuesto, si intentas guardar mas plata de la que tienes, tampoco debe dejarte?' Respuesta: 'no, no debe, comportamientos iguales'."
+        },
+        {
+          "at": "2026-09-27T22:35:24.621Z",
+          "text": "2026-09-27 ENTREGADO por la feature carril-de-presupuesto (5/5, verify 61/61 con cinco gates). Commits 5eacb9c (regla), b9c0230 (anclas) y 708d34c (e2e). El presupuesto arrastra su propio saldo, arranca del saldo inicial como lo real y sus reglas de reservas bloquean igual; el servidor las aplica. Sigue BL-041 (feature saldo-de-bolsillo), la segunda entrega."
+        }
+      ],
+      "updatedAt": "2026-09-27T22:35:24.621Z",
+      "closedAt": "2026-09-27T22:35:24.674Z"
     }
   ]
 }

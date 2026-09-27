@@ -1,0 +1,74 @@
+{
+  "files_created": [
+    "tests/domain/carril-de-presupuesto.test.ts",
+    "tests/integration/backend/carril-de-presupuesto.test.ts",
+    "tests/e2e/carril-de-presupuesto.spec.ts",
+    "tests/fixtures/carril-base.json",
+    "tests/fixtures/carril-desvio.json"
+  ],
+  "files_modified": [
+    "src/domain/balance.ts",
+    "src/domain/reserve.ts",
+    "src/domain/guard.ts",
+    "src/components/ReserveCells.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/BalanceModule.tsx",
+    "tests/domain/balance.test.ts",
+    "tests/domain/contrapartidas-reserva.test.ts",
+    "tests/domain/multi-anio.test.ts",
+    "tests/domain/reserve-balance.test.ts",
+    "tests/domain/reserve-grid.test.ts",
+    "tests/domain/resumen-plegado.test.ts",
+    "tests/domain/retirar-para-gastar.test.ts",
+    "tests/domain/techo-de-flujo.test.ts",
+    "tests/domain/cierre-de-mes.test.ts",
+    "tests/domain/reglas-en-el-servidor.test.ts",
+    "tests/integration/servidor-fuente-unica.test.ts",
+    "tests/unit/ciclos-gates.test.ts",
+    "tests/e2e/helpers/seed.ts",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/e2e/ciclos.spec.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/domain/carril-de-presupuesto.test.ts",
+    "tests/integration/backend/carril-de-presupuesto.test.ts",
+    "tests/e2e/carril-de-presupuesto.spec.ts"
+  ],
+  "quality_gates": [
+    { "name": "typecheck", "command": "npm run typecheck", "required": true },
+    { "name": "lint", "command": "npm run lint", "required": true },
+    { "name": "coverage", "command": "../../../coverage.sh", "required": true, "timeout_ms": 900000 },
+    { "name": "smoke", "command": "../../../smoke.sh", "required": true, "timeout_ms": 420000 },
+    { "name": "e2e", "command": "../../../e2e.sh", "required": true, "timeout_ms": 900000 }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "NFR-2903",
+      "substitution": "TC-CDP-123f normaliza el saldo inicial corrupto con normalizeOpeningBalance del dominio (vía openingCarry) en vez de pasar por openingFromRow de ledgerRepo, como dice su 'when'",
+      "reason": "openingFromRow no se exporta y es un envoltorio de normalizeOpeningBalance; exportarlo solo para la prueba ampliaría la superficie del repositorio. La regla que se prueba —un saldo negativo se trata como no declarado— vive en la función del dominio que las dos rutas comparten.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2906",
+      "substitution": "TC-CDP-063e ejecuta primero el PUT de 1.501 (422) y después el de 1.500 (200), al revés de como lo enumera su 'then'",
+      "reason": "El servidor juzga cada PUT contra el estado persistido: si 1.500 se guardara primero, el cupo restante sería 0 y el rechazo de 1.501 anunciaría límite 0, no 500. El orden inverso afirma los dos hechos del TC —límite exacto aceptado, un peso más rechazado con límite 500— sobre el mismo estado base.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2905",
+      "substitution": "TC-CDP-045e mide la celda vecina y la fila de debajo con el editor YA abierto, no antes de abrirlo",
+      "reason": "Abrir el editor desplaza la grilla hasta la celda (scroll horizontal) y el campo mide 2 px más que la cifra, igual que en Ejecutado desde antes de la feature. Lo que el TC promete —que la FRANJA de rechazo no desplaza nada— se aísla midiendo entre el editor abierto y el rechazo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-2903",
+      "substitution": "La observación automática del plan (monthCarryUsage en Pres.) se calcula con el carril del plan pero no se pinta en la celda Pres.; la celda Pres. sigue sin punto de observaciones, como antes",
+      "reason": "El UX spec aprobado no pide mostrarla en la celda Pres. (solo el Máx., el rechazo y la marca del mes). El dominio la deja lista y probada (TC-CDP-021h) por si se decide mostrarla.",
+      "effort_to_fix": "low"
+    }
+  ]
+}
