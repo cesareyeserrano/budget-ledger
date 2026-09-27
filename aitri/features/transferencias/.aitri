@@ -19,25 +19,9 @@
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-15T21:41:19.918Z",
+  "updatedAt": "2026-09-26T20:44:07.378Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-30T15:38:19.360Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-30T15:38:25.306Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0
-    },
     {
       "at": "2026-07-30T15:38:34.226Z",
       "event": "started",
@@ -143,6 +127,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-26T20:42:34.321Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-26T20:44:07.367Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -251,16 +251,16 @@
       "at": "2026-09-15T21:41:19.574Z"
     }
   ],
-  "verifyRanRef": "e4542a6918bda59491b0fa59931d62aad091e41a",
+  "verifyRanRef": "3806297167f3ac6b13d37d21a54d724f65644761",
   "verifyRanDirty": false,
-  "verifyResultsHash": "111fd88c190c47cced5be89ac15b1ec2e19d15d11edfd8cbad39c6881306e1b7",
-  "verifyRanAt": "2026-09-15T20:10:09.366Z",
+  "verifyResultsHash": "cc227d7072cea9b7386d80b26bd3e72f1dc59abe3bcab9c6d045f6523371698d",
+  "verifyRanAt": "2026-09-26T20:42:34.298Z",
   "lastVerifyRun": {
     "passed": 67,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-15T20:10:09.366Z"
+    "at": "2026-09-26T20:42:34.298Z"
   },
   "verifySummary": {
     "total": 67,
