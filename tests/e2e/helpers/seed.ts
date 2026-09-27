@@ -170,6 +170,16 @@ export async function seedLedger(page: Page, input: SeedInput): Promise<void> {
         ...Object.fromEntries([...periodos].map((p) => [p, HOLGURA])),
       },
     },
+    // Feature carril-de-presupuesto (FR-2904): el PLAN también bloquea, así que un escenario con un
+    // plan que ya se pasa tampoco se escribe de un tirón. El ingreso planeado se infla igual —una
+    // celda de presupuesto no necesita movimiento— y el paso 2 lo baja, que tampoco toca reservas.
+    budgets: {
+      ...state.budgets,
+      [hojaIngreso.id]: {
+        ...((state.budgets as AmountMap)[hojaIngreso.id] ?? {}),
+        ...Object.fromEntries([...periodos].map((p) => [p, HOLGURA])),
+      },
+    },
     // Los movimientos del escenario real se conservan: el paso holgado solo AÑADE el respaldo del
     // ingreso inflado, que el paso 2 retira junto con la cifra.
     movements: [...respaldo, ...state.movements],

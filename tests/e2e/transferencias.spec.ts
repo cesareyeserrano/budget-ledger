@@ -170,19 +170,21 @@ test.describe("FR-1003 — editar la celda con validación inline", () => {
   });
 });
 
+// REESCRITO por carril-de-presupuesto (FR-2905, 2026-09-27): el plan ya no se marca celda a celda con
+// «!» ámbar. Un mes del plan que se pasa lleva el MISMO triángulo del encabezado que un mes real, con un
+// texto que empieza por «Plan:». Canal no cromático: icono + texto, igual que antes.
 test.describe("FR-1008 — la marca del plan de aportes", () => {
-  test("TC-TRF4-008e: la marca del plan es «!» + ámbar: canal propio, distinto de ›/›› y ‹‹", async ({ page }) => {
+  test("TC-TRF4-008e: un plan que se pasa se marca en el mes, con icono y texto propios", async ({ page }) => {
     // @aitri-tc TC-TRF4-008e
     await gotoGrid(page, { budgets: { "c-viaje": { "2026-03": 1_200_000 } }, actuals: { "c-salario": { "2026-01": 1_000_000 } }, movements: [] });
 
     const cell = reserveCell(page, "Viaje", 2, "budget");
-    await expect(cell).toHaveAttribute("data-plan-warn", "true");
-    await expect(cell).toHaveCSS("color", "rgb(158, 71, 8)"); // --state-warning claro
+    await expect(cell).not.toHaveAttribute("data-plan-warn", "true");
     const text = (await cell.textContent()) ?? "";
-    expect(text).toContain("!");
-    expect(text).toContain("1.200.000"); // el valor SE GUARDÓ
-    expect(text).not.toContain("›");
-    expect(text).not.toContain("‹");
+    expect(text).not.toContain("!");
+    expect(text).toContain("1.200.000"); // el plan legado SIGUE guardado: la regla no borra datos
+    const marca = page.locator('[data-testid="techo-mark"][data-month="2026-03"]');
+    await expect(marca).toHaveAttribute("aria-label", /Plan: reservas \$1\.200\.000 por encima del margen del mes/);
   });
 });
 
@@ -377,10 +379,9 @@ test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
       movements: [retiro("c-viaje", "2026-06", 100_000)],
     });
 
-    // Plan inviable: glifo «!» + atributo inspeccionable.
-    const warn = reserveCell(page, "Viaje", 2, "budget");
-    await expect(warn).toContainText("!");
-    await expect(warn).toHaveAttribute("data-plan-warn", "true");
+    // Plan inviable: triángulo + texto en el encabezado del mes (FR-2905, carril-de-presupuesto).
+    const warn = page.locator('[data-testid="techo-mark"][data-month="2026-03"]');
+    await expect(warn).toHaveAttribute("aria-label", /Plan: reservas/);
     // Sobre-retiro (sin plan): glifo ›› + atributo.
     const jun = page.getByTestId("withdraw-cell").nth(5);
     await expect(jun).toContainText("››");
