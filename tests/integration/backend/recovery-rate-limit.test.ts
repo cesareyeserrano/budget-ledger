@@ -109,6 +109,19 @@ describe("BG-015 — el limitador y la resolución de IP, por separado", () => {
     expect(clientIp(new Request(ORIGIN), true)).toBeUndefined();
   });
 
+  it("BG-048: el interruptor SOLO, sin la puerta de pruebas, no apaga nada — así llega a producción", () => {
+    const puerta = process.env.LEDGER_TEST_OVERRIDES;
+    delete process.env.LEDGER_TEST_OVERRIDES;
+    process.env.LEDGER_RATE_LIMIT_DISABLED = "true";
+    try {
+      expect(allow("k5", 1, 60)).toBe(true);
+      expect(allow("k5", 1, 60)).toBe(false);
+    } finally {
+      delete process.env.LEDGER_RATE_LIMIT_DISABLED;
+      if (puerta !== undefined) process.env.LEDGER_TEST_OVERRIDES = puerta;
+    }
+  });
+
   it("BG-015h: el limitador se puede apagar SÓLO por la variable del arnés e2e", () => {
     process.env.LEDGER_RATE_LIMIT_DISABLED = "true";
     for (let i = 0; i < 50; i += 1) expect(allow("k3", 1, 60)).toBe(true);

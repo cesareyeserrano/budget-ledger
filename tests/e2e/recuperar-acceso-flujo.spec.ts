@@ -159,7 +159,7 @@ test.describe("NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet", ()
     await registrar(page, email);
     await clearMailbox();
 
-    const propio = new URL(page.context()._options?.baseURL ?? "http://localhost:3220").origin;
+    const propio = new URL(test.info().project.use.baseURL ?? "http://localhost:3220").origin;
     const externas: string[] = [];
     page.on("request", (r) => {
       const o = new URL(r.url()).origin;
@@ -179,7 +179,7 @@ test.describe("NFR-1304 / FR-1305 — el cliente sigue sin salir a Internet", ()
     await registrar(page, email);
     await clearMailbox();
 
-    const propio = new URL(page.context()._options?.baseURL ?? "http://localhost:3220").origin;
+    const propio = new URL(test.info().project.use.baseURL ?? "http://localhost:3220").origin;
     const externas: string[] = [];
     page.on("request", (r) => {
       const o = new URL(r.url()).origin;

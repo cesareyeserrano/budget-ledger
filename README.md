@@ -1,58 +1,107 @@
 # Ledger (T-Ledger)
 
-App web de **finanzas personales contra presupuesto**, single-user, v1 en `localStorage`. Una sola app responsive: en pantalla pequeña muestra **solo el módulo de registro**; en escritorio, la app completa (grilla de 12 meses + dashboard). Tema oscuro único, tipografía mono (sistema de diseño *César Augusto*).
+A web app for **personal finances against a budget**. You plan each category month by month, record
+what you actually spend and earn, set money aside in savings pockets, and see how every month closes.
+It is multi-user with sign-in, and **Postgres is the single source of truth**. One responsive app: on
+a small screen it shows **only the register** (record a movement); on a desktop, the full app (the
+budget grid, the Balance and the dashboard). The user interface is in Spanish.
 
-Construida siguiendo el pipeline SDLC de Aitri (requisitos → UX → arquitectura → tests → implementación). Los artefactos viven en `aitri/product/spec/`.
+Main capabilities: a hierarchical budget grid (group › category › subcategory) with planned vs.
+actual per month; a cell detail that lists the movements behind each actual value; reserves
+(savings pockets) with contributions and withdrawals; month closing and reopening; multi-year
+ranges; and optional **pay cycles** (e.g. the 21st to the 20th) instead of calendar months.
 
-## Cómo correrlo
+Built following the Aitri SDLC pipeline (requirements → UX →
+architecture → tests → implementation → verification). The artifacts live in `aitri/product/spec/`
+and, per feature, in `aitri/features/<name>/`.
+
+## Running it
+
+Local development needs Node.js 22 and Docker. Full details are in [DEV_ENV.md](DEV_ENV.md).
 
 ```bash
 npm install
-npm run dev        # desarrollo → http://localhost:3000
-npm run build && npm run start   # producción
-npm run test       # unit + integration (Vitest)
-npm run test:e2e   # e2e (Playwright, requiere navegador)
-./smoke.sh         # arranca la app y verifica que / responde 200
+cp .env.example .env.local   # set BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run db:up                # Postgres + DB viewer in Docker
+npm run db:migrate           # apply the migrations
+npm run dev                  # http://localhost:3100
 ```
 
-Docker: `docker build -t ledger . && docker run -p 3000:3000 ledger` (destino: Nginx → contenedor en un Raspberry Pi 5).
+Tests:
+
+```bash
+npm run test                 # unit + integration (Vitest)
+npm run test:e2e             # end-to-end (Playwright, against an ephemeral Postgres)
+npm run typecheck && npm run lint
+./smoke.sh                   # boots the app and checks that its main routes respond
+```
+
+Production runs as a Docker container behind Nginx, with Postgres in the same Compose project. See
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
-## Decisiones técnicas (el *por qué*, no solo el *cómo*)
+## Technical decisions (the *why*, not just the *how*)
 
-### 1. Núcleo de dominio en TypeScript puro (`src/domain/`)
-Toda la lógica de negocio —roll-ups, signo/varianza, borrado, reparent, semilla— es **funciones puras sin React ni DOM**. Reciben estado y devuelven estado nuevo. Motivo: es la parte de mayor valor y riesgo (integridad de datos), y aislarla la hace **verificable de forma determinista** (34 tests unit/integration en verde) sin montar la UI. La UI es una proyección del dominio, no su dueña.
+### 1. Pure TypeScript domain core (`src/domain/`)
+All business logic — roll-ups, reserves, month closing, cycles, movement adjustments, tree
+operations — is **pure functions with no React, DOM or database**. They take a state and return a
+new state. Reason: this is the part with the highest value and risk (data integrity), and isolating
+it makes it **deterministically testable** without mounting the UI or a database. The UI and the
+server are projections of the domain, not its owners.
 
-### 2. Roll-ups **derivados**, nunca almacenados
-El total de un nodo padre (categoría/grupo/tipo) **se calcula** a partir de sus hojas (`rollupBudget` = suma de hojas; `rollupActual` = suma del subárbol). No se persiste. Motivo: el invariante "padre == suma de hojas" es **imposible de desincronizar** por construcción — elimina una clase entera de bugs. Coste (recomputar en cada lectura) es trivial al tamaño acotado (1 año, single-user) y se memoiza en la UI.
+### 2. Roll-ups are **derived**, never stored
+The total of a parent node (category, group, type) is **computed** from its leaves (planned = sum
+of the leaves; actual = sum of the subtree). It is never persisted. Reason: the invariant
+"parent == sum of its children" **cannot drift** by construction, which removes a whole class of
+bugs. The grid computes all roll-ups in a single pass per change and caches the result.
 
-### 3. Persistencia tras una **interfaz de repositorio** (`LedgerRepository`)
-v1 usa `LocalStorageRepository`. La UI y el store nunca tocan `localStorage` directamente. Motivo: el **andamiaje para Fase 2** (multiusuario, Supabase, APIs) es sustituir una implementación de la interfaz, sin reescribir la UI. Las entidades ya cargan `ownerId` (default `"local"`).
+### 3. The server is the source of truth
+The client talks to `/api/v1` through a repository interface (`src/data/`); the store never talks
+to storage directly. The server validates every write with the same domain rules the client uses
+(`src/server/`), so a stale or modified client cannot corrupt a ledger. Every row carries an
+`ownerId`, and every route filters by the signed-in user.
 
-### 4. Recuperación segura ante corrupción
-Todo lo leído de `localStorage` pasa por **Zod** (`safeParse`). Un payload inválido o manipulado no se confía: `load` devuelve `null` y la app arranca con la **semilla** — nunca una pantalla en blanco ni una excepción no capturada.
+### 4. Validation at every trust boundary
+Everything that crosses a boundary — API request bodies and environment variables — goes through
+**Zod** schemas. Invalid input is rejected with an explicit error, never trusted.
 
-### 5. Estado con Zustand + selectores memoizados
-Motivo: editar una celda de la grilla debe reflejar los ancestros **sin re-renderizar las 12×N celdas** (guardrail de rendimiento ≤150ms). Zustand permite render granular; `Context` propagaría a todos los consumidores.
+### 5. State with Zustand and derived selectors
+Editing a grid cell must update its ancestors without re-rendering the whole grid (performance
+budget: ≤150 ms per edit). Zustand allows granular subscriptions; React Context would propagate to
+every consumer.
 
-### 6. Semilla **determinista** (sin `Math.random`)
-Los montos semilla se derivan de un `hash(id)` estable y factores por mes fijos (Ene–May ejecutado, Jun en curso, Jul–Dic proyectado). Motivo: primer arranque operable sin configurar y **reproducible** (clave para una demo y para tests).
+### 6. A structure-only seed
+A new account starts with a default category tree and **no amounts**: the first-run card asks for
+the opening balance and the user fills in their own numbers (user decision, 2026-09-07: no sample
+amounts, only the structure).
 
-### 7. Divergencias deliberadas del prototipo
-El prototipo `Ledger (offline).html` es la fuente de verdad **visual** (tokens exactos, layout). Las **reglas de negocio** las fijan las fases previas y se apartan del prototipo a propósito en v1: sin distribución proporcional (se editan hojas), borrado → categoría **"Sin asignar" por tipo**, móvil solo Registrar, sin teclado numérico ad-hoc, y drag-and-drop de reparent. Ver `aitri/product/spec/01_UX_SPEC.md` §Divergencias.
+### 7. Deliberate divergences from the original prototype
+The prototype is the **visual** source of truth (design tokens, layout). The **business rules** are
+set by the approved requirements and depart from the prototype on purpose: no proportional
+distribution (you edit leaves), deleting moves amounts to an "Unassigned" category per type, the
+phone shows only the register, and nodes are reparented by drag and drop. See
+`aitri/product/spec/01_UX_SPEC.md`.
 
 ---
 
 ## Stack
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · Zustand · Zod · @dnd-kit · Recharts · lucide-react. Tests: Vitest (unit/integration) + Playwright (e2e).
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · Zustand · Zod · Better Auth ·
+PostgreSQL 16 with Drizzle ORM · @dnd-kit · Recharts · lucide-react.
+Tests: Vitest (unit and integration, Testcontainers for Postgres) and Playwright (end-to-end).
 
-## Estructura
+## Structure
 ```
-src/domain/      núcleo puro (tipos, tree, rollup, sign, seed, mutations, validation, dashboard)
-src/data/        LedgerRepository (localStorage v1)
-src/state/       store Zustand
-src/app/         layout, globals.css (tokens), page (ResponsiveShell)
-src/components/   MobileShell, DesktopShell, BudgetGrid, Dashboard, MovementForm, RecentList
-tests/           domain/ (unit) · integration/ (persistencia) · e2e/ (Playwright)
+src/domain/      pure core (types, tree, rollup, reserve, closure, cycles, adjust, mutations, validation)
+src/data/        client-side repository and live sync against /api/v1
+src/state/       Zustand store
+src/server/      auth, sessions, rate limiting, env, API schemas, Postgres access (data/, db/), mail
+src/app/         pages, layout, design tokens (globals.css), /api/v1 routes, /health
+src/components/  grid, Balance, dashboard, register, cell detail, settings
+drizzle/         SQL migrations (applied with scripts/migrate.mjs)
+tests/           domain/ · unit/ · integration/ (Vitest) · e2e/ · e2e-backend/ (Playwright)
+scripts/         quality gates, migrations, password reset, production verification
 ```
+
+## License
+MIT — see [LICENSE](LICENSE).

@@ -35,7 +35,8 @@ describe("NFR-511 — cifrado en reposo (credenciales + contrato de volumen)", (
     // El mecanismo de cifrado en reposo de los datos financieros (volumen) es un contrato de despliegue
     // documentado (ADR-08). Debe estar declarado, no ser una promesa vacía.
     const deployment = readFileSync(path.join(ROOT, "DEPLOYMENT.md"), "utf8");
-    expect(deployment).toMatch(/cifra.*volumen|volumen.*cifr/i);
+    // DEPLOYMENT.md está en inglés desde el 2026-09-26: se busca la decisión, no el idioma.
+    expect(deployment).toMatch(/encrypt.*volume|volume.*encrypt/i);
     expect(deployment).toMatch(/argon2id/i);
     expect(deployment).toMatch(/TLS|HTTPS/);
   });

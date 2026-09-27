@@ -47,7 +47,10 @@ services:
       # Google deshabilitado (sin credenciales); el botón se muestra deshabilitado.
       NEXT_PUBLIC_GOOGLE_ENABLED: "false"
     ports:
-      - "3100:3000"
+      # BG-049 / RQ-SEC-110: solo loopback, como los demás servicios. Publicado en 0.0.0.0 dejaba un
+      # build de producción con el secreto de desarrollo versionado al alcance de toda la wifi. Para
+      # probar desde el móvil existe `npm run dev:lan`, que es una elección explícita.
+      - "127.0.0.1:3100:3000"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 15s

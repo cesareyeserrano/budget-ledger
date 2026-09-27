@@ -13,7 +13,7 @@
  *
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres, @playwright/test
  */
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { startTestPostgres } from "../../helpers/testPostgres";
 import { GenericContainer, Wait } from "testcontainers";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -108,7 +108,7 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 
   const migrationClient = postgres(databaseUrl, { max: 1 });
@@ -122,6 +122,7 @@ export default async function globalSetup(): Promise<void> {
     .withExposedPorts(1025, 8025)
     .withEnvironment({ MP_SMTP_AUTH_ACCEPT_ANY: "1", MP_SMTP_AUTH_ALLOW_INSECURE: "1" })
     .withWaitStrategy(Wait.forListeningPorts())
+    .withStartupTimeout(120_000) // BG-032: una máquina ocupada tarda más de los 10 s por defecto
     .start();
   const mailpitApi = `http://${mailpit.getHost()}:${mailpit.getMappedPort(8025)}`;
 

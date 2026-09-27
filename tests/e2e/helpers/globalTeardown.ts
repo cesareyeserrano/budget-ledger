@@ -5,7 +5,7 @@
  * Dependencies: fs
  */
 import { readFileSync, existsSync, unlinkSync } from "node:fs";
-import { STATE_FILE, STORAGE_STATE } from "./globalSetup";
+import { STATE_FILE, E2E_WORKERS, storageStatePath } from "./globalSetup";
 
 /**
  * Mata el GRUPO de procesos de la app y espera a que el puerto quede libre de verdad (BG-016).
@@ -55,9 +55,14 @@ export default async function globalTeardown(): Promise<void> {
       }
     }
   }
-  try {
-    if (existsSync(STORAGE_STATE)) unlinkSync(STORAGE_STATE);
-  } catch {
-    // noop
+  // La cookie de sesión de cada worker. Antes se importaba un STORAGE_STATE único que ya no existía:
+  // valía undefined, el try se tragaba el TypeError y los ficheros de cookie se quedaban en tmpdir.
+  for (let w = 0; w < E2E_WORKERS; w++) {
+    try {
+      const f = storageStatePath(w);
+      if (existsSync(f)) unlinkSync(f);
+    } catch {
+      // noop
+    }
   }
 }

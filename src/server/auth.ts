@@ -17,6 +17,7 @@ import { account, session, user, verification } from "./db/schema";
 import { env } from "./env";
 import { revokePrevious } from "./resetTokens";
 import { sendResetLink } from "./mail/mailer";
+import { rateLimitDisabled } from "./rateLimit";
 
 // Algorithm.Argon2id = 2 (el enum de @node-rs/argon2 es const enum: incompatible con isolatedModules).
 const ARGON2ID = 2;
@@ -47,13 +48,22 @@ export const RESET_CALLBACK_PATH = "/recuperar";
 
 // El rate limit se puede desactivar SOLO en el harness e2e (todo el tráfico viene de 127.0.0.1, y el
 // limitador por IP haría flaky los tests en serie). En producción queda SIEMPRE activo (NFR-512); el
-// funcionamiento del rate limit se verifica en la suite de integración (TC-BE-081f).
-const RATE_LIMIT_DISABLED = process.env.LEDGER_RATE_LIMIT_DISABLED === "true";
+// funcionamiento del rate limit se verifica en la suite de integración (TC-BE-081f). Desde BG-048 el
+// interruptor exige además la puerta de pruebas (ver `rateLimitDisabled` en server/rateLimit.ts).
+const RATE_LIMIT_DISABLED = rateLimitDisabled();
 
 // Inicialización PEREZOSA: env() se llama en el primer uso, NO al importar — así `next build` (que
 // importa las rutas de auth para recolectar page data) no exige las envs en build (NFR-510).
 function buildAuth() {
   const e = env();
+  // BG-048: si los límites están apagados tiene que verse en `docker compose logs`, no descubrirse
+  // después de un ataque. Y si alguien puso el interruptor sin la puerta de pruebas, que sepa que
+  // no hizo nada.
+  if (RATE_LIMIT_DISABLED) {
+    console.warn("[auth] RATE LIMIT DISABLED — test-only setting (LEDGER_RATE_LIMIT_DISABLED + LEDGER_TEST_OVERRIDES). Never in production.");
+  } else if (process.env.LEDGER_RATE_LIMIT_DISABLED === "true") {
+    console.warn("[auth] LEDGER_RATE_LIMIT_DISABLED ignored: it only works together with LEDGER_TEST_OVERRIDES=1 (test harnesses). Rate limits stay on.");
+  }
   return betterAuth({
   baseURL: e.BETTER_AUTH_URL,
   secret: e.BETTER_AUTH_SECRET,

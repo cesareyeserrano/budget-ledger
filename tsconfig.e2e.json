@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["tests/e2e/**/*.ts", "tests/e2e-backend/**/*.ts", "playwright.config.ts", "playwright.backend.config.ts", "next-env.d.ts"],
+  "exclude": ["node_modules"]
+}

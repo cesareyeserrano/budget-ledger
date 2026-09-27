@@ -800,7 +800,13 @@ export function relocate(
       const value = state.actuals[leaf]?.[p] ?? 0;
       const parts = returning && existed ? memoryOf("actual", leaf, p) : [];
       if (parts.length > 0) {
-        const restored = restoreParts(r, parts.map((o) => ({ month: o.originPeriod, amount: o.amount })), (m) => -(destDeltas[leaf]?.[m] ?? 0));
+        // BG-046: con residuo 0 la celda es exactamente la suma de sus movimientos, y cada movimiento ya
+        // vuelve a su mes por su fecha o por su propia memoria. No queda nada tecleado que repartir: las
+        // partes vuelven en 0. Sin esto, una memoria grabada antes de diario-de-celda (partes con lo
+        // tecleado entonces) se «devolvía» igual y descuadraba los meses: +600 a uno, −600 al otro.
+        const restored = r === 0
+          ? parts.map((o) => ({ month: o.originPeriod, amount: 0 }))
+          : restoreParts(r, parts.map((o) => ({ month: o.originPeriod, amount: o.amount })), (m) => -(destDeltas[leaf]?.[m] ?? 0));
         if (!restored) return negative(leaf, p);
         if (value !== 0 && restored.some((x) => x.month !== p)) cellsMoved++;
         if (restored.filter((x) => x.amount !== 0).length > 1) splitCells++;

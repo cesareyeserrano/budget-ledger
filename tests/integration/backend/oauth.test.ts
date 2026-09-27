@@ -89,7 +89,7 @@ afterAll(async () => {
 describe("FR-502 — Google OAuth happy path (IdP mockeado)", () => {
   it("TC-BE-006h: un flujo OAuth de Google exitoso crea la cuenta y emite sesión", async () => {
     // @aitri-tc TC-BE-006h
-    const cookie = await googleSignIn("google-sub-777", "gana@gmail.com", "G Ana");
+    const cookie = await googleSignIn("google-sub-777", "gana@example.com", "G Ana");
     // Sesión válida resuelta.
     const who = await getSessionUser(new Headers({ cookie }));
     expect(who).not.toBeNull();
@@ -102,11 +102,11 @@ describe("FR-502 — Google OAuth happy path (IdP mockeado)", () => {
 
   it("TC-BE-007e: reingreso con la misma cuenta de Google conserva el mismo ownerId", async () => {
     // @aitri-tc TC-BE-007e
-    const c1 = await googleSignIn("google-sub-888", "gbeto@gmail.com", "G Beto");
+    const c1 = await googleSignIn("google-sub-888", "gbeto@example.com", "G Beto");
     const id1 = (await getSessionUser(new Headers({ cookie: c1 })))!.userId;
 
     // Segundo ingreso con el MISMO sub de Google.
-    const c2 = await googleSignIn("google-sub-888", "gbeto@gmail.com", "G Beto");
+    const c2 = await googleSignIn("google-sub-888", "gbeto@example.com", "G Beto");
     const id2 = (await getSessionUser(new Headers({ cookie: c2 })))!.userId;
 
     expect(id2).toBe(id1); // mismo ownerId, sin duplicar usuario

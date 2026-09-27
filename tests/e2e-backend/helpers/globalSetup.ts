@@ -8,7 +8,7 @@
  *   al salir del proceso.
  * Dependencies: @testcontainers/postgresql, drizzle-orm, postgres, child_process
  */
-import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { startTestPostgres } from "../../helpers/testPostgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -36,7 +36,7 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 
   const migrationClient = postgres(databaseUrl, { max: 1 });
@@ -55,6 +55,8 @@ export default async function globalSetup(): Promise<void> {
     // Todo el tráfico e2e viene de 127.0.0.1: el rate limit por IP haría flaky los tests en serie.
     // Se desactiva SOLO aquí; en producción queda activo (NFR-512), verificado en TC-BE-081f.
     LEDGER_RATE_LIMIT_DISABLED: "true",
+    // BG-048: el interruptor de arriba solo actúa con la puerta de pruebas abierta.
+    LEDGER_TEST_OVERRIDES: "1",
   };
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 
