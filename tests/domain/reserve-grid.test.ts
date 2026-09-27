@@ -3,7 +3,7 @@
  * FR-1015 (retiros planeados con techo lógico).
  */
 import { describe, it, expect } from "vitest";
-import { applyReserveCellEdit, plannedRetiroLimit, planTechoMonths, RETIROS_PLAN_ID, reserveRetiros, setPlannedRetiro, validateReserveWrite } from "@/domain/reserve";
+import { applyReserveCellEdit, plannedRetiroLimit, RETIROS_PLAN_ID, reserveRetiros, setPlannedRetiro, validateReserveWrite } from "@/domain/reserve";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import { P } from "../helpers/periods";
 
@@ -19,25 +19,25 @@ function makeState(leaves: LeafSpec[]): LedgerState {
   return { ownerId: "local", nodes, budgets, actuals, movements: [] };
 }
 
-describe("FR-1008 · el plan de aportes AVISA sin bloquear", () => {
-  it("TC-TRF4-008h: el aporte planeado que viola el techo AVISA y GUARDA", () => {
+// REESCRITO por carril-de-presupuesto (FR-2904, 2026-09-27): el plan de aportes ya no avisa sin
+// bloquear — bloquea como lo real («comportamientos iguales»). FR-1008 queda sustituido en ese punto.
+describe("FR-1008 · el plan de aportes (desde FR-2904 bloquea como lo real)", () => {
+  it("TC-TRF4-008h: el aporte planeado que viola el techo se RECHAZA y no guarda", () => {
     // @aitri-tc TC-TRF4-008h
     const s = makeState([{ id: "c-viaje", type: "transfer" }]);
 
     const verdict = validateReserveWrite(s, { leafId: "c-viaje", period: "2026-03", plane: "budget", newAmount: 100_000 }, P);
-    expect(verdict.ok).toBe(true);
-    if (!verdict.ok) return;
-    expect(verdict.warnings.some((w) => w.period === "2026-03" && w.rule === "techo")).toBe(true);
+    expect(verdict).toMatchObject({ ok: false, rule: "techo", period: "2026-03", limit: 0 });
 
     const applied = applyReserveCellEdit(s, { leafId: "c-viaje", period: "2026-03", plane: "budget", newAmount: 100_000 }, P);
-    if (!("state" in applied)) throw new Error("el plan jamás bloquea aportes");
-    expect(applied.state.budgets["c-viaje"]["2026-03"]).toBe(100_000);
-    expect(planTechoMonths(applied.state, P)["2026-03"]).toBeDefined(); // la marca «!» de la celda
+    expect("rejected" in applied).toBe(true);
+    expect(s.budgets["c-viaje"]?.["2026-03"]).toBeUndefined();
   });
 
   it("TC-TRF4-008f: los planos no se contaminan", () => {
     // @aitri-tc TC-TRF4-008f
-    const s = makeState([{ id: "c-ingreso", type: "income", actual: { "2026-07": 300_000 } }, { id: "c-viaje", type: "transfer", actual: { "2026-07": 200_000 }, budget: { "2026-01": 50_000 } }]);
+    // El plan de agosto lleva ingreso propio: desde FR-2904 un aporte planeado sin margen se rechaza.
+    const s = makeState([{ id: "c-ingreso", type: "income", actual: { "2026-07": 300_000 }, budget: { "2026-08": 200_000 } }, { id: "c-viaje", type: "transfer", actual: { "2026-07": 200_000 }, budget: { "2026-01": 50_000 } }]);
     const plan = applyReserveCellEdit(s, { leafId: "c-viaje", period: "2026-08", plane: "budget", newAmount: 80_000 }, P);
     if (!("state" in plan)) throw new Error("plan rechazado");
     expect(plan.state.actuals["c-viaje"]).toEqual({ "2026-07": 200_000 });

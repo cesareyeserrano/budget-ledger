@@ -27,14 +27,19 @@ function op(s: LedgerState, o: Parameters<typeof applyReserveOp>[1]): LedgerStat
   if (!("state" in r)) throw new Error(`operación rechazada: ${JSON.stringify(r)}`);
   return r.state;
 }
-/** total(m) = total real previo + flujo(m) en ambos planos + Σ derivados == reservedBalance. */
+/**
+ * total(m) = total previo DEL MISMO PLANO + flujo(m) + Σ derivados == reservedBalance. Desde FR-2901
+ * (carril-de-presupuesto) cada plano arrastra su propio cierre; antes los dos partían del real.
+ */
 function assertConservation(s: LedgerState) {
   const series = computeBalanceSeries(s, P);
   let prevTotalActual = 0;
+  let prevTotalBudget = 0;
   for (const mk of MONTH_KEYS) {
     const { budget, actual } = series[mk];
     expect(actual.total, `actual/${mk}`).toBe(prevTotalActual + actual.flow);
-    expect(budget.total, `budget/${mk}`).toBe(prevTotalActual + budget.flow);
+    expect(budget.total, `budget/${mk}`).toBe(prevTotalBudget + budget.flow);
+    prevTotalBudget = budget.total;
     const derivedSum = reserveLeafIds(s).reduce((acc, id) => acc + resolvedBalance(s, id, mk, "actual", P), 0);
     expect(actual.reservedBalance, `Σderivados/${mk}`).toBe(derivedSum);
     prevTotalActual = actual.total;

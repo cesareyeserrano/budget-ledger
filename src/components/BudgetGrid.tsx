@@ -11,7 +11,7 @@ import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { planTechoMonths, monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
+import { monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
 // FR-2511: los descuadres son la OTRA lista de problemas del mes; se juntan aquí al pintar.
 import { mismatchIssues } from "@/domain/mismatch";
 import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
@@ -198,13 +198,10 @@ export function BudgetGrid() {
   const segmentoFlujo = useMemo(() => rows.filter((r) => r.type !== "transfer"), [rows]);
   const segmentoReservas = useMemo(() => rows.filter((r) => r.type === "transfer"), [rows]);
   const highlightMonth = period.mode === "month" ? period.month : null;
-  // FR-1008: meses del plan que superan su techo — estado del PLAN (no de una edición); las celdas
-  // Pres. de hojas que aportan en esos meses llevan «!» + ámbar.
   // DOS listas, a propósito (ver el store): `scope` es el alcance del CÁLCULO —no lo toca el
   // filtro, o el arrastre de enero saldría de cero— y `periods` son las columnas que se PINTAN.
   const scope = useActivePeriods();
   const periods = useVisiblePeriods();
-  const planWarnMonths = useMemo(() => planTechoMonths(data, scope), [data, scope]);
   // FR-2009: qué columnas están cerradas. Set memoizado por (periodos × frontera) para no
   // recalcular la pertenencia en cada render de cada cabecera.
   const closure = useClosure();
@@ -405,7 +402,6 @@ export function BudgetGrid() {
         setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
         onDelete={() => deleteNode(row.node!.id)}
         onAddChild={() => onAddChild(row.node!)}
-        planWarnMonths={planWarnMonths}
       />
     );
   }
@@ -682,7 +678,6 @@ function NodeRow(props: {
   setIcon: (icon: string) => void;
   onDelete: () => void;
   onAddChild: () => void;
-  planWarnMonths: Partial<Record<PeriodKey, number>>;
   /** Última fila de su tarjeta: el rótulo redondea la esquina inferior izquierda. */
   roundBottom?: boolean;
 }) {
@@ -780,12 +775,12 @@ function NodeRow(props: {
                 {editingB ? (
                   <ReserveCellEditor leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m, "budget", 0)} />
+                  <ReserveLeafCell leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "budget", 0)} />
                 )}
                 {editingA ? (
                   <ReserveCellEditor leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} planWarnMonths={props.planWarnMonths} onStart={() => props.startEdit(m, "actual", 0)} />
+                  <ReserveLeafCell leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "actual", 0)} />
                 )}
               </div>
             );

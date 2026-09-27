@@ -75,9 +75,11 @@ function transferLeavesOf(a: LedgerState, b: LedgerState): string[] {
  *    ve operaciones: ve un snapshot contra otro, y dos escrituras distintas producen el mismo diff.
  *    Fiarse de que la petición diga qué tocó sería fiarse de quien se está validando (ADR-17).
  *
- * 2. **Solo el plano EJECUTADO.** En Presupuestado `chainCheck` devuelve siempre `blocking: null`
- *    por diseño —el plan avisa y no bloquea (ADR-08)—, así que hacer cumplir el plan aquí dejaría
- *    al servidor MÁS ESTRICTO que la app, que es justo lo que NFR-2102 prohíbe. El plan es un plan.
+ * 2. **Los DOS planos** (FR-2906, carril-de-presupuesto). Hasta 2026-09-27 aquí se juzgaba solo
+ *    Ejecutado, porque en Presupuestado `chainCheck` nunca bloqueaba (el plan avisaba, ADR-08) y hacer
+ *    cumplir el plan dejaba al servidor más estricto que la app (NFR-2102). Desde FR-2904 el plan
+ *    bloquea en la app, así que el servidor tiene que bloquear igual: la simetría de NFR-2102 se
+ *    mantiene, ahora en el otro sentido.
  *
  * La comparación es RELATIVA: solo reporta lo que empeora respecto de `prev`. Un estado que YA
  * violaba el techo no se rechaza en bloque, o su dueño no podría ni corregirlo (FR-2104, ADR-18).
@@ -90,6 +92,7 @@ function transferLeavesOf(a: LedgerState, b: LedgerState): string[] {
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-2101, US-ID: US-2101, AC-ID: AC-2101, TC-ID: TC-RES-010f, TC-RES-011f, TC-RES-012h, TC-RES-013f
+ * @aitri-trace FR-ID: FR-2906, US-ID: US-2906, AC-ID: AC-2919, TC-ID: TC-CDP-061f, TC-CDP-062f, TC-CDP-063e, TC-CDP-064e
  */
 export function worsenedBy(
   prev: LedgerState,
@@ -109,6 +112,16 @@ export function worsenedBy(
   // Además es lo que permite que `chainCheck` no cambie NI UNA LÍNEA de su cuerpo: exponer la lista
   // completa habría exigido tocar sus returns, y TC-CDM-222f vigila —con razón— que el cálculo del
   // techo no se toque.
-  const { blocking } = chainCheck(prev, next, "actual", transferLeavesOf(prev, next), periods);
-  return blocking ? [blocking] : [];
+  //
+  // FR-2906 (carril-de-presupuesto): el plan se juzga con la MISMA función y en la misma pasada. Antes
+  // solo se juzgaba Ejecutado porque el plan no bloqueaba; ahora bloquea (FR-2904), y una regla que
+  // solo cumple el navegador la salta cualquier snapshot fabricado. Se devuelve el obstáculo del
+  // periodo más temprano entre los dos planos; a igual periodo, el de Ejecutado.
+  const leaves = transferLeavesOf(prev, next);
+  const candidatos = (["actual", "budget"] as const)
+    .map((plane) => chainCheck(prev, next, plane, leaves, periods).blocking)
+    .filter((b): b is ReserveWarning => b !== null);
+  if (candidatos.length === 0) return [];
+  const primero = candidatos.reduce((a, b) => (periods.indexOf(b.period) < periods.indexOf(a.period) ? b : a));
+  return [primero];
 }

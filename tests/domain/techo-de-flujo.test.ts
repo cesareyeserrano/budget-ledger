@@ -32,7 +32,6 @@ import {
   reserveLeafIds,
   resolvedBalance,
   setPlannedRetiro,
-  planTechoMonths,
   plannedRetiroLimit,
 } from "@/domain/reserve";
 import { computeBalanceSeries, type Plane } from "@/domain/balance";
@@ -176,24 +175,29 @@ describe("FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801)", ()
   });
 
   // @aitri-tc TC-TDF-093e
-  it("TC-TDF-093e: el plano Presupuestado NO cambia — el retiro planeado sigue descontando", () => {
-    // ADR-08: la regla bruta aplica solo al Ejecutado. En el plan no existe la operación que la
-    // motivó (retirar y volver a reservar), así que su aviso conserva el comportamiento exacto.
+  it("TC-TDF-093e: el plano Presupuestado consume en NETO — el retiro planeado devuelve cupo", () => {
+    // ADR-08: en el plan el consumo del mes es el NETO (aportes planeados − retiro planeado).
+    // REESCRITA por carril-de-presupuesto (FR-2904, 2026-09-27): el plan ahora BLOQUEA como lo real,
+    // así que el escenario ya no puede escribir primero un aporte que se pasa y confiar en que solo
+    // avise. Se prueba lo mismo por el camino que la regla nueva permite: el retiro planeado libera
+    // cupo y el aporte puede subir hasta el margen contando ese neto.
     let s = base();
     s = setLeafAmount(s, "c-ingreso", "2026-01", "budget", 100, P);
-    const conAporte = applyReserveCellEdit(s, { leafId: "A", period: "2026-01", plane: "budget", newAmount: 200 }, P);
-    if ("rejected" in conAporte) throw new Error("el plan no debe bloquear");
-    s = conAporte.state;
-    const conRetiro = setPlannedRetiro(s, "2026-01", 150, P);
+    let r = applyReserveCellEdit(s, { leafId: "A", period: "2026-01", plane: "budget", newAmount: 100 }, P);
+    if ("rejected" in r) throw new Error(`aporte dentro del margen rechazado: ${JSON.stringify(r.rejected)}`);
+    s = r.state;
+    const conRetiro = setPlannedRetiro(s, "2026-01", 50, P);
     if ("rejected" in conRetiro) throw new Error(`retiro planeado rechazado: ${JSON.stringify(conRetiro.rejected)}`);
-    // BG-022: `setPlannedRetiro` distingue ahora una entrada INVÁLIDA de un no-op mudo. Aquí no
-    // debería darse —el mes está en el rango y 150 es un entero— así que si aparece, es un fallo
-    // del escenario y hay que verlo, no tragarlo.
+    // BG-022: `setPlannedRetiro` distingue una entrada INVÁLIDA de un no-op mudo.
     if ("invalid" in conRetiro) throw new Error("entrada inválida: el escenario está mal montado");
-    // Con el NETO (200 − 150 = 50 ≤ 100 de margen) el plan NO avisa. Si la regla bruta se aplicara
-    // también aquí, el consumo sería 200 > 100 y aparecería un aviso que nadie pidió.
-    expect(planTechoMonths(conRetiro.state, P)["2026-01"]).toBeUndefined();
-    expect(plannedRetiroLimit(conRetiro.state, "2026-01", P)).toBeGreaterThan(0);
+    // Con el NETO (150 − 50 = 100 ≤ 100 de margen) subir el aporte a 150 cabe; con consumo bruto no.
+    r = applyReserveCellEdit(conRetiro.state, { leafId: "A", period: "2026-01", plane: "budget", newAmount: 150 }, P);
+    if ("rejected" in r) throw new Error(`el neto del plan no devolvió cupo: ${JSON.stringify(r.rejected)}`);
+    expect(monthIssues(r.state, P).filter((i) => i.kind === "techo_plan")).toEqual([]);
+    // Un peso más sí se pasa: 151 − 50 = 101 > 100.
+    const pasa = applyReserveCellEdit(r.state, { leafId: "A", period: "2026-01", plane: "budget", newAmount: 151 }, P);
+    expect("rejected" in pasa).toBe(true);
+    expect(plannedRetiroLimit(r.state, "2026-01", P)).toBeGreaterThan(0);
   });
 });
 
@@ -509,16 +513,18 @@ describe("NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas", () 
   /**
    * total(m) = total(m−1) + flujo(m), y el Saldo reservado = Σ de los saldos derivados.
    *
-   * Los DOS planos parten del cierre REAL previo (ADR-03 del proyecto: el plan no acumula su propia
-   * cadena), así que el arrastre de referencia es siempre el del plano Ejecutado.
+   * Cada plano parte de SU propio cierre previo (FR-2901, carril-de-presupuesto). Hasta 2026-09-27
+   * los dos partían del real (ADR-03 de balance) y el arrastre de referencia era siempre el Ejecutado.
    */
   function assertConservation(s: LedgerState) {
     const series = computeBalanceSeries(s, P);
     let prevTotalActual = 0;
+    let prevTotalBudget = 0;
     for (const mk of MONTH_KEYS) {
       const { budget, actual } = series[mk];
       expect(actual.total, `actual/${mk}`).toBe(prevTotalActual + actual.flow);
-      expect(budget.total, `budget/${mk}`).toBe(prevTotalActual + budget.flow);
+      expect(budget.total, `budget/${mk}`).toBe(prevTotalBudget + budget.flow);
+      prevTotalBudget = budget.total;
       expect(actual.available + actual.reservedBalance, `suma/${mk}`).toBe(actual.total);
       const derivados = reserveLeafIds(s).reduce((acc, id) => acc + resolvedBalance(s, id, mk, "actual", P), 0);
       expect(actual.reservedBalance, `Σderivados/${mk}`).toBe(derivados);

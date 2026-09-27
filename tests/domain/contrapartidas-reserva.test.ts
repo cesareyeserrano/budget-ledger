@@ -522,11 +522,15 @@ describe("NFR-1601/1602 · conservación y Σ de derivados", () => {
     // @aitri-tc TC-CPR-064h
     const s = secuencia(150, 5);
     const serie = computeBalanceSeries(s, P);
+    // Cada plano reconcilia contra SU propio cierre previo (FR-2901, carril-de-presupuesto; antes los
+    // dos contra el real, ADR-03 de balance).
     let prev = 0;
+    let prevPlan = 0;
     for (const m of MONTH_KEYS) {
       expect(serie[m].actual.total, `actual/${m}`).toBe(prev + serie[m].actual.flow);
-      expect(serie[m].budget.total, `budget/${m}`).toBe(prev + serie[m].budget.flow);
+      expect(serie[m].budget.total, `budget/${m}`).toBe(prevPlan + serie[m].budget.flow);
       prev = serie[m].actual.total;
+      prevPlan = serie[m].budget.total;
     }
   });
 

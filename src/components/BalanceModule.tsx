@@ -588,6 +588,10 @@ function TechoBanner() {
                 reservas <span className="tabular">{money(b.excess)}</span> por encima del margen del
                 mes — los meses siguientes quedan sin margen.
               </>
+            ) : b.kind === "techo_plan" ? (
+              // FR-2905 (carril-de-presupuesto): el plan se marca como lo real, con el MISMO texto que
+              // el triángulo del encabezado del mes (una sola fuente, `monthIssueText`).
+              <span data-testid="techo-plan-line">{monthIssueText(b, money)}.</span>
             ) : b.kind === "retiro_planeado" ? (
               <>
                 retiro planeado <span className="tabular">{money(b.excess)}</span> por encima de lo

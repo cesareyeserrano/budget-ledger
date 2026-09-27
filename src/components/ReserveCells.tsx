@@ -42,15 +42,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { CellDetail } from "./CellDetail";
 
 
-/** Marca de forma del aviso de plan: canal no cromático PROPIO — ≠ ›/›› y ≠ ‹‹ (WCAG 1.4.1). */
-const PLAN_WARN_GLYPH = "!";
-
 // ── Celda transfer (aporte del mes) ────────────────────────────────────────────────────────────
 
 /**
- * Celda de una hoja transfer: pinta el APORTE de ese mes (flujo, como Ingresos/Gastos). En Pres.,
- * la marca «!» + ámbar avisa que la suma de aportes planeados del mes supera su margen — avisa,
- * jamás bloquea. El punto de observaciones aflora las notas del mes.
+ * Celda de una hoja transfer: pinta el APORTE de ese mes (flujo, como Ingresos/Gastos). El punto de
+ * observaciones aflora las notas del mes.
+ *
+ * FR-2905 (carril-de-presupuesto): la celda Pres. ya no lleva el aviso ámbar «!». El plan bloquea
+ * como lo real (FR-2904) y un mes del plan que ya se pasaba se marca en el encabezado del mes, igual
+ * que en Ejecutado — un solo sistema de aviso para los dos planos.
+ *
+ * @aitri-trace FR-ID: FR-2905, US-ID: US-2905, AC-ID: AC-2918, TC-ID: TC-CDP-042f
  */
 export function ReserveLeafCell(props: {
   leafId: string;
@@ -58,14 +60,12 @@ export function ReserveLeafCell(props: {
   plane: Plane;
   sep?: boolean;
   highlight?: boolean;
-  planWarnMonths: Partial<Record<PeriodKey, number>>;
   onStart: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
   const value = map[props.leafId]?.[props.month] ?? 0;
-  const planWarn = props.plane === "budget" && props.planWarnMonths[props.month] !== undefined && value > 0;
 
   // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
   const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month, periods) : [];
@@ -73,20 +73,16 @@ export function ReserveLeafCell(props: {
   const carry =
     props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual", periods) : null;
 
-  const color = planWarn
-    ? "var(--state-warning)"
-    : props.plane === "budget"
-      ? "var(--fg-secondary)"
-      : value
-        ? "var(--accent-light)"
-        : "var(--fg-secondary)";
-  const title = planWarn
-    ? `Este plan supera tu margen de ${periodLabel(props.month).toLowerCase()}`
-    : carry
-      ? carryUsageText(carry, money)
-      : observations.length > 0
-        ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
-        : undefined;
+  const color = props.plane === "budget"
+    ? "var(--fg-secondary)"
+    : value
+      ? "var(--accent-light)"
+      : "var(--fg-secondary)";
+  const title = carry
+    ? carryUsageText(carry, money)
+    : observations.length > 0
+      ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
+      : undefined;
 
   return (
     <div
@@ -98,7 +94,6 @@ export function ReserveLeafCell(props: {
       data-cell={props.leafId}
       data-month={props.month}
       data-plane={props.plane}
-      {...(planWarn ? { "data-plan-warn": "true" } : {})}
       title={title}
       className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
       style={{ color, background: props.highlight ? "color-mix(in srgb, var(--accent) 6%, var(--bg))" : "var(--bg)" }}
@@ -111,11 +106,6 @@ export function ReserveLeafCell(props: {
           style={{ background: "var(--alert-soft)", borderColor: "var(--bg)" }}
         />
       )}
-      {planWarn ? (
-        <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">
-          {PLAN_WARN_GLYPH}
-        </span>
-      ) : null}
       {cellNum(value)}
     </div>
   );
@@ -126,7 +116,10 @@ export function ReserveLeafCell(props: {
 /**
  * Editor de una celda transfer: corrige el APORTE del mes. En BLOQUEO (techo del mes, o piso: el
  * cambio dejaría en rojo retiros ya operados) el editor NO se cierra — franja inline con el
- * mensaje y el valor seleccionado («corrige o Escape»). En Pres. escribe siempre (el plan avisa).
+ * mensaje y el valor seleccionado («corrige o Escape»). Igual en los dos planos desde FR-2905: el
+ * plan muestra su «Máx.» y rechaza como lo real (antes escribía siempre y solo avisaba).
+ *
+ * @aitri-trace FR-ID: FR-2905, US-ID: US-2905, AC-ID: AC-2916, TC-ID: TC-CDP-040h, TC-CDP-041h, TC-CDP-043h, TC-CDP-044e, TC-CDP-050e
  */
 export function ReserveCellEditor(props: {
   leafId: string;
@@ -150,14 +143,15 @@ export function ReserveCellEditor(props: {
   // la celda contiene un TOTAL. Una celda que vale 1.000 en un mes con el cupo agotado admite
   // perfectamente que se la baje a 800; mostrarle «Máx. 0» y pintarla en rojo sería mentirle sobre
   // una escritura válida (TC-TDF-072f).
-  const headroom = plane === "actual" ? cellHeadroom(data, leafId, month, plane, periods) : null;
+  // FR-2905: en los dos planos, cada uno con su carril (FR-2903).
+  const headroom = cellHeadroom(data, leafId, month, plane, periods);
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
   // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
-  const excede = headroom !== null && Math.max(0, Math.round(Number(val) || 0)) > headroom;
+  const excede = Math.max(0, Math.round(Number(val) || 0)) > headroom;
 
   /** Bloqueo: el editor queda abierto con el valor rechazado seleccionado («corrige o Escape»). */
   function fail(msg: string) {
@@ -181,7 +175,7 @@ export function ReserveCellEditor(props: {
           editedMonth: month,
           attempted: value - current,
           // El mismo TOTAL que el indicador «Máx.» muestra: un solo número para el mismo límite.
-          ...(headroom !== null ? { maxTotal: headroom } : {}),
+          maxTotal: headroom,
         })
       );
       return;
@@ -220,21 +214,19 @@ export function ReserveCellEditor(props: {
           las celdas vecinas (AC-1833). Forma elegida por el usuario sobre una comparación
           renderizada a escala real. */}
       <div className="absolute left-0 top-full z-20 flex flex-col items-start gap-1 min-w-[230px]">
-        {headroom !== null && (
-          <span
-            data-testid="reserve-max"
-            title={`El máximo que admite esta celda en ${periodLabel(month).toLowerCase()}`}
-            className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
-            style={{
-              color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
-              borderColor: excede ? "var(--alert-strong)" : "var(--border)",
-              background: "var(--bg-elevated)",
-              boxShadow: "var(--shadow-md)",
-            }}
-          >
-            Máx. {money(headroom)}
-          </span>
-        )}
+        <span
+          data-testid="reserve-max"
+          title={`El máximo que admite esta celda en ${periodLabel(month).toLowerCase()}`}
+          className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
+          style={{
+            color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
+            borderColor: excede ? "var(--alert-strong)" : "var(--border)",
+            background: "var(--bg-elevated)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          Máx. {money(headroom)}
+        </span>
         {block && (
           <div
             data-testid="reserve-block"
