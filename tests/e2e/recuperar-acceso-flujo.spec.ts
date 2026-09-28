@@ -68,6 +68,12 @@ async function entrar(page: Page, email: string, password: string): Promise<void
   await expect(page.getByTestId("auth-form")).toHaveCount(0, { timeout: 20_000 });
 }
 
+// BL-031 — las pruebas de este archivo corren EN ORDEN, en un solo worker. Seis de ellas vacían el buzón
+// de Mailpit al empezar (`clearMailbox`, que es global) y con `fullyParallel` y dos workers una podía
+// borrar el correo que la otra estaba esperando: esa otra agotaba sus 15 s y fallaba. No era la carga:
+// en cada corrida completa caía exactamente una (TC-REC-023f, TC-REC-040h o TC-REC-029h).
+test.describe.configure({ mode: "default" });
+
 // ═════════════════════════════════════════════════════════════════════════════
 test.describe("El recorrido completo", () => {
   test("TC-REC-029h: solicitar, abrir el enlace, fijar contraseña y entrar con ella", async ({ page }) => {
