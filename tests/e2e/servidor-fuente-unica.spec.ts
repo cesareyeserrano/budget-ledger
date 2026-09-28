@@ -214,8 +214,7 @@ test("TC-SFU-104h: tras un recorrido completo no queda ninguna clave ledger.* en
   await page.getByTestId("save-button").click();
   await expect(page.getByTestId("confirm-overlay")).toContainText("$9.000");
 
-  // Reserva: escribir el SALDO de enero de la alcancía 'Ahorros' (saldo-de-bolsillo, FR-3002: la celda
-  // habla en saldo y la diferencia se anota como una operación con nota).
+  // Reserva: corregir el aporte de enero de la alcancía 'Ahorros' (semilla: 322.000 → 40.000).
   await editLeafCell(page, "Ahorros", cellIdx("2026-01", "actual"), "40000");
   await expect(nodeRow(page, "Ahorros").getByTestId("cell-leaf").nth(cellIdx("2026-01", "actual"))).toHaveText("40.000");
 
@@ -225,8 +224,7 @@ test("TC-SFU-104h: tras un recorrido completo no queda ninguna clave ledger.* en
   // El recorrido tiene que haber ESCRITO de verdad: si no, «0 claves» sería un pase gratis.
   const state = await readLedger(page);
   expect(state?.budgets["c-vivienda"]?.["2026-01"]).toBe(120000);
-  expect((state?.movements ?? []).some((m) => m.note === "Ajuste desde la celda")).toBe(true);
-  await expect(nodeRow(page, "Ahorros").getByTestId("cell-leaf").nth(cellIdx("2026-01", "actual"))).toHaveText("40.000");
+  expect(state?.actuals["c-ahorros"]?.["2026-01"]).toBe(40000);
   expect((state?.movements ?? []).some((m) => m.amount === 9000)).toBe(true);
 
   expect(await ledgerKeys(page)).toEqual([]);

@@ -3,7 +3,7 @@
  *
  * Módulo:       tests/integration/backend/saldo-de-bolsillo.test.ts
  * Propósito:    La conversión única de los retiros planeados sin bolsillo (FR-3006, NFR-3007), el guardia
- *               sobre las filas por bolsillo (FR-3008), el cierre (NFR-3004) y los ciclos (NFR-3005).
+ *               sobre las filas por bolsillo y sus notas (FR-3008) y el cierre (NFR-3004).
  * Dependencias: rutas reales GET/PUT /api/v1/ledger y POST /api/v1/closure; SQL directo para sembrar
  *               ledgers con el formato anterior (data_version 5 y la fila global `@retiros`).
  *
@@ -19,8 +19,7 @@ import { loadLedger } from "@/server/data/ledgerRepo";
 import { plannedRetiroKey } from "@/domain/reserve";
 import { GET as ledgerGET, PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
 import { POST as closurePOST } from "@/app/api/v1/closure/route";
-import { PUT as cyclesPUT } from "@/app/api/v1/ledger/cycles/route";
-import type { AmountMap, LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
+import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 
 const PASSWORD = "Contra$eña123";
 const ORIGIN = "http://localhost:3100";
@@ -28,6 +27,7 @@ const SEP = "2026-09" as PeriodKey;
 const OCT = "2026-10" as PeriodKey;
 const NOV = "2026-11" as PeriodKey;
 const HOY = "2026-10-05";
+const NOTA_DIA = "2026-10-05";
 
 let ipCounter = 0;
 const nextIp = () => `10.30.${Math.floor((++ipCounter) / 250)}.${ipCounter % 250}`;
@@ -193,6 +193,24 @@ describe("FR-3008 · el servidor juzga los retiros planeados por bolsillo", () =
     expect(res.status).toBe(200);
     expect((await persistido(userId)).budgets[plannedRetiroKey("A")]).toEqual({ [OCT]: 300 });
   });
+
+  /** @aitri-trace FR-ID: FR-3008, US-ID: US-3008, AC-ID: AC-3028, TC-ID: TC-SDB-073e */
+  it("TC-SDB-073e: la nota del retiro planeado viaja y vuelve por el servidor", async () => {
+    // @aitri-tc TC-SDB-073e
+    const { cookie, userId } = await newUser("sdb-073@example.com");
+    const base = plan(userId, { ing: { [OCT]: 1000 }, A: { [OCT]: 500 } });
+    expect((await putLedger(cookie, 0, base)).status).toBe(200);
+    const fila = plannedRetiroKey("A");
+    const conNota: LedgerState = {
+      ...plan(userId, { ...base.budgets, [fila]: { [OCT]: 100 } }),
+      cellNotes: { [fila]: { [OCT]: [{ id: "n-sdb-073", createdAt: 1, text: "pasajes", date: NOTA_DIA }] } },
+    };
+    expect((await putLedger(cookie, await revisionDe(userId), conNota)).status).toBe(200);
+    const r = (await testDb().execute(sql`SELECT node_id, text FROM cell_note WHERE owner_id = ${userId}`)) as unknown as { node_id: string; text: string }[];
+    expect(r).toEqual([{ node_id: fila, text: "pasajes" }]);
+    const body = await (await getLedger(cookie)).json();
+    expect(body.state.cellNotes[fila][OCT][0].text).toBe("pasajes");
+  });
 });
 
 // ══ NFR-3004 · cierre ═══════════════════════════════════════════════════════════════════════════
@@ -220,24 +238,5 @@ describe("NFR-3004 · el cierre manda", () => {
     const res = await putLedger(cookie, await revisionDe(userId), { ...s, budgets: { ...s.budgets, [plannedRetiroKey("A")]: { [SEP]: 200 } } });
     expect(res.status).toBe(422);
     expect((await res.json()).error.code).toBe("closed_period_violation");
-  });
-});
-
-// ══ NFR-3005 · ciclos ═══════════════════════════════════════════════════════════════════════════
-
-describe("NFR-3005 · en ciclos la fecha manda", () => {
-  /** @aitri-trace FR-ID: FR-3002, US-ID: US-3002, AC-ID: AC-3005, TC-ID: TC-SDB-143f */
-  it("TC-SDB-143f: el servidor rechaza una fecha fuera de su ciclo", async () => {
-    // @aitri-tc TC-SDB-143f
-    const { cookie, userId } = await newUser("sdb-143@example.com");
-    const base = plan(userId, {});
-    expect((await putLedger(cookie, 0, base)).status).toBe(200);
-    const act = await cyclesPUT(req("/api/v1/ledger/cycles", { method: "PUT", cookie, body: { baseRevision: await revisionDe(userId), target: { mode: "cycle", anchorDay: 21, eomPolicy: "last_day" } } }));
-    expect(act.status).toBe(200);
-    const s = await persistido(userId);
-    const aporte: Movement = { id: "m-sdb-143", ownerId: userId, type: "transfer", catId: "A", subId: null, target: "A", amount: 100, period: OCT, createdAt: 1, date: "2026-10-25T10:00", from: "@disponible", to: "A" } as Movement;
-    const res = await putLedger(cookie, await revisionDe(userId), { ...s, actuals: { ...s.actuals, A: { [OCT]: 100 } }, movements: [...s.movements, aporte] });
-    expect(res.status).toBe(422);
-    expect((await res.json()).error.code).toBe("period_mismatch");
   });
 });

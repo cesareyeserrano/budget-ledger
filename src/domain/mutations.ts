@@ -266,6 +266,7 @@ function rewriteForDelete(state: LedgerState, id: string): LedgerState {
     delete next.budgets[nid];
     delete next.actuals[nid];
     delete next.budgets[plannedRetiroKey(nid)];
+    if (next.cellNotes) delete next.cellNotes[plannedRetiroKey(nid)];
   }
   return next;
 }
@@ -499,6 +500,17 @@ function repointMovements(next: LedgerState, cedingId: string, receivingId: stri
     for (const [p, v] of Object.entries(planeado)) suma[p as PeriodKey] = (suma[p as PeriodKey] ?? 0) + (v ?? 0);
     next.budgets[filaReceptora] = suma;
     delete next.budgets[filaCedente];
+  }
+  // Y sus notas «¿Para qué?» (FR-3002): se suman a las del receptor, mes a mes, sin perder ninguna.
+  const notasCedente = next.cellNotes?.[filaCedente];
+  if (notasCedente && next.cellNotes) {
+    const filaReceptora = plannedRetiroKey(receivingId);
+    const juntas = { ...(next.cellNotes[filaReceptora] ?? {}) };
+    for (const [p, notas] of Object.entries(notasCedente)) {
+      juntas[p as PeriodKey] = [...(juntas[p as PeriodKey] ?? []), ...(notas ?? [])];
+    }
+    next.cellNotes[filaReceptora] = juntas;
+    delete next.cellNotes[filaCedente];
   }
   const receiver = findNode(next.nodes, receivingId);
   const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;

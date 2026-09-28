@@ -15,14 +15,15 @@
 
 import { Component, Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Scale, ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
-import { useLedgerStore, useActivePeriods, useVisiblePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useVisiblePeriods, useClosure } from "@/state/store";
+import { isClosed } from "@/domain/closure";
 import { periodMonthLabel, periodLabel, isYearStart, periodYear } from "@/domain/periods";
 import { computeBalanceSeries, type MonthBalance, type Plane } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
 import { reserveAportes, reserveRetiros, monthIssues, monthIssueText, type MonthIssue } from "@/domain/reserve";
 // FR-2511: la otra lista de problemas del mes, y los nombres de sus celdas resumidos con «y N más».
 import { mismatchIssues, mismatchNamesText } from "@/domain/mismatch";
-import { PlannedWithdrawCell, WithdrawCell } from "./ReserveCells";
+import { WithdrawCell } from "./ReserveCells";
 import { cellNum, money } from "./format";
 import { exceptionColor } from "./exceptionColor";
 import { ROWS, BLOCKS, RETIROS_ROW, indentFor, type RowSpec } from "./balanceRows";
@@ -630,6 +631,7 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: PeriodKey | nul
   const spec = RETIROS_ROW;
   const narrow = useNarrowIndent();
   const periods = useVisiblePeriods();
+  const closure = useClosure();
   return (
     // `retiros-row` y NO `balance-row`: desde FR-1810 esta fila NO pertenece al Balance — vive en
     // el segmento de Reservas y su cifra no entra en ninguna de sus cuentas. Conservar el testid
@@ -659,8 +661,9 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: PeriodKey | nul
       {periods.map((m) => (
         <div key={m} className="flex" data-month={m} data-active={highlightMonth === m || undefined}
              style={highlightMonth === m ? { background: "color-mix(in srgb, var(--accent) 8%, transparent)" } : undefined}>
-          <PlannedWithdrawCell month={m} sep />
-          <WithdrawCell month={m} />
+          {/* saldo-de-bolsillo (FR-3001): el mismo formulario en los dos planos. */}
+          <WithdrawCell plane="budget" month={m} sep closed={isClosed(closure, m)} />
+          <WithdrawCell plane="actual" month={m} />
         </div>
       ))}
     </div>

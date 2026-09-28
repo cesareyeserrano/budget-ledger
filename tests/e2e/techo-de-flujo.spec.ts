@@ -274,18 +274,17 @@ test.describe("FR-1808 · el «Máx.» dice lo que el dominio acepta", () => {
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 
-    // Enero tiene el cupo que dejó su retiro, y su celda dice el SALDO (500: 1.000 aportados menos 500
-    // sacados; saldo-de-bolsillo, FR-3001). Bajarlo es perfectamente válido: el «Máx.» es un TOTAL.
+    // Enero tiene el cupo agotado (reservó todo su flujo), pero su celda vale 1.000 y bajarla es
+    // perfectamente válido: el «Máx.» es un TOTAL, no un incremento.
     await desplegarReservas(page);
     const celda = celdaGrilla(page, "Alcancía", ENE, 1);
-    await expect(celda).toHaveText("500");
     await celda.click();
     const input = page.locator("input").first();
-    await input.fill("300");
+    await input.fill("800");
     await expect(page.getByTestId("reserve-block")).toHaveCount(0); // sin mensaje de rechazo
 
     await input.press("Enter");
-    await expect(celdaGrilla(page, "Alcancía", ENE, 1)).toHaveText("300");
+    await expect(celdaGrilla(page, "Alcancía", ENE, 1)).toHaveText("800");
   });
 });
 
