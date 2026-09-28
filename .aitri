@@ -20,37 +20,12 @@
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
-  "aitriVersion": "2.2.0-rc.22",
+  "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-28T20:12:16.024Z",
+  "updatedAt": "2026-09-28T20:50:36.049Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-26T21:23:42.585Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-26T21:23:54.348Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-27T22:43:25.741Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-09-27T22:43:36.630Z",
       "event": "verify-complete",
@@ -186,6 +161,30 @@
       "phase": "verify",
       "passed": 59,
       "failed": 0
+    },
+    {
+      "at": "2026-09-28T20:44:30.627Z",
+      "event": "rehash",
+      "phase": "4",
+      "artifact": "04_BUILD_REPORT.json",
+      "before_hash": "921b8140570a2e3d4d52598612ddd4619ba6a2f5516aad40c682c97b19688c00",
+      "after_hash": "e1be746a972181ea42eeef042b07d862dc22b148dfd36277c289f8b65ba51bf5"
+    },
+    {
+      "at": "2026-09-28T20:50:22.746Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-28T20:50:28.896Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -193,7 +192,7 @@
     "1": "ae15f9d05d7f18281e0d94acb3753a3412d6092dc8d1bab42366134935f2ccd4",
     "2": "16f5e103cdea53dcf2bc99bed89ab39063382815af3cd7a1860feb4156e3c4dc",
     "3": "04228856108ca6af87ff3a8a88b3747c2acae36e4c0b1be10dd34e22442d80df",
-    "4": "921b8140570a2e3d4d52598612ddd4619ba6a2f5516aad40c682c97b19688c00",
+    "4": "e1be746a972181ea42eeef042b07d862dc22b148dfd36277c289f8b65ba51bf5",
     "5": "9193f5f81b5414b2638deec17de43af340928457dcfdbf58ce7f9332b0084a10",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
@@ -353,16 +352,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "b9c01a5b71f1177b8e48af436b4b9208b14be7c4",
+  "verifyRanRef": "abace453959656a2449733f266dc3df432253828",
   "verifyRanDirty": false,
-  "verifyResultsHash": "28f1797a4794cbfc7348e71f4c09b974b9ce8ba76f54ce120864f2a063bbb76d",
-  "verifyRanAt": "2026-09-28T20:12:05.486Z",
+  "verifyResultsHash": "9e472cd113f06e31a3f16d878e4c10f5629c8d92f9e3ca3ae39e5031d963e7c6",
+  "verifyRanAt": "2026-09-28T20:50:22.715Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-28T20:12:05.486Z"
+    "at": "2026-09-28T20:50:22.715Z"
   },
   "verifySummary": {
     "total": 59,

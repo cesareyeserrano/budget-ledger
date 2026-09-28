@@ -821,6 +821,14 @@
       "problem": "Las pruebas con presupuesto de tiempo (tests/helpers/perf.ts, CRONOMETRO_FIABLE en cierre-de-mes y reglas-en-el-servidor) miden el arnes y por eso el gate coverage tiene que correr en modo comando con AITRI_COVERAGE=1, que las apaga. Asi la suite se ejecuta dos veces (~49 s extra). Regla de Aitri rc.19 (templates/phases/tests.md). Al reescribirlas para asertar trabajo hecho, coverage puede pasar a {name:coverage, threshold:80} y la segunda corrida desaparece.",
       "status": "open",
       "createdAt": "2026-09-28T17:59:25.321Z"
+    },
+    {
+      "id": "BL-061",
+      "title": "13 TC ids compartidos entre vitest y Playwright: la prueba unitaria enmascara la e2e",
+      "priority": "P2",
+      "problem": "Aitri acredita por TC id y el runner principal gana, asi que si el test de Playwright con uno de estos ids falla, sigue acreditado como pass por el de vitest (visto en verify-run rc.22: 1207+595 detectados, 1789 unicos). Ids y ficheros (unit | e2e): TC-001h movement.test | critical.spec; TC-015f, TC-015h move-dashboard-seed.test | reparent.spec; TC-606f promote-to-group.test | promote-to-group.spec; TC-CDM-062f cierre-de-mes.test | cierre-de-mes.spec; TC-DDC-012e, TC-DDC-013f diario-de-celda-detalle.test | diario-de-celda.spec; TC-SFU-102e integration/servidor-fuente-unica.test | servidor-fuente-unica.spec; TC-TDF-050h, 051f, 070h, 072f, 100h techo-de-flujo.test | techo-de-flujo.spec. Arreglo: dar a cada duplicado un id propio en el 03_TEST_CASES.json de su pipeline y en el test (o convertirlo en otro TC si prueba otra cosa). Toca los planes de prueba aprobados de 7 pipelines: re-aprobar o rehash segun el caso. El chequeo de colisiones de rc.16 no lo ve porque es entre pipelines, no entre runners.",
+      "status": "open",
+      "createdAt": "2026-09-28T20:35:34.071Z"
     }
   ]
 }
