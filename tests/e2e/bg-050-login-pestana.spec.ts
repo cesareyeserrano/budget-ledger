@@ -1,4 +1,5 @@
-import { test, expect, type Browser, type Page } from "./helpers/fixtures";
+import { test, expect, type Page } from "./helpers/fixtures";
+import type { Browser } from "@playwright/test";
 import { E2E_BASE } from "./helpers/globalSetup";
 
 // BG-050 — la pantalla de acceso borraba lo escrito al salir de la pestaña y volver. better-auth vuelve a
