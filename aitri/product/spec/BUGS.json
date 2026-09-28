@@ -7178,7 +7178,7 @@
       "actual_result": "El formulario se desmonta y se monta vacio. Medido con Playwright: correo '' tras volver, el nodo del input es otro, y el DOM pasa por 'formulario ausente'. Igual en registro (pierde nombre, correo y contrasena y vuelve a modo login) y en la solicitud de recuperacion (pierde el correo). CAUSA: better-auth re-consulta la sesion al volver la pestana visible (refetchOnWindowFocus, por defecto true; GET /api/auth/get-session) y, sin sesion, pone isPending=true durante la consulta (client/query.mjs onRequest: isPending = data === null). src/components/auth/LoginGate.tsx:64 devuelve AuthPending mientras isPending, asi que AuthForm/RequestResetForm se desmontan y su estado local se pierde. El comentario de LoginGate.tsx:65 ('useSession solo consulta al montar') ya no es cierto. Afecta FR-1102 (servidor-fuente-unica) y FR-1302 (recuperar-acceso).",
       "environment": "dev local :3100, 2026-09-27, better-auth 1.7.5; reportado por el usuario al copiar correo y contrasena desde otra ventana",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": 4,
@@ -7186,8 +7186,10 @@
       "evidence": null,
       "reported_by": "usuario",
       "created_at": "2026-09-27T19:30:48.670Z",
-      "updated_at": "2026-09-27T19:30:48.670Z",
-      "resolution": null
+      "updated_at": "2026-09-28T17:49:18.524Z",
+      "resolution": "LoginGate muestra la espera solo hasta la primera respuesta de sesion; volver a la pestana ya no desmonta el formulario. Pruebas BG-050-a/b/c en tests/e2e/bg-050-login-pestana.spec.ts (fallan sin el arreglo). Commits 20e0dcf y 1c24f3f.",
+      "fix_commit_sha": "1c24f3f41b7ef1d83026480f5e30dc194e4f1afc",
+      "fix_at": "2026-09-28T17:49:18.463Z"
     }
   ]
 }

@@ -37,6 +37,16 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
 
   const userId = session?.user?.id ?? null;
 
+  // BG-050 — la espera se muestra SOLO hasta la primera respuesta de sesión. better-auth vuelve a
+  // consultarla cada vez que la pestaña vuelve a estar visible (refetchOnWindowFocus) y, sin sesión,
+  // marca `isPending` durante esa consulta. Si la espera se pintara también entonces, el formulario
+  // se desmontaría y se volvería a montar vacío: el usuario que salía a copiar su contraseña perdía
+  // el correo que ya había escrito.
+  const [resuelta, setResuelta] = useState(false);
+  useEffect(() => {
+    if (!isPending) setResuelta(true);
+  }, [isPending]);
+
   useEffect(() => {
     // Llegada desde /recuperar con un enlace muerto: abre directamente la solicitud.
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("recuperar")) {
@@ -61,9 +71,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     // sea el mismo — que es el caso normal, porque el usuario reentra a su propia cuenta.
   }, [userId, sessionExpired, hydrate, resync]);
 
-  if (isPending) return <AuthPending />;
-  // La sesión caducada tiene prioridad sobre el `session` cacheado: useSession solo consulta al
-  // montar, así que sigue devolviendo la sesión muerta y sin esto el shell se quedaría en pantalla.
+  if (isPending && !resuelta) return <AuthPending />;
+  // La sesión caducada tiene prioridad sobre el `session` cacheado: `useSession` no se entera de que
+  // la API respondió 401 (solo vuelve a consultar al montar o al volver a la pestaña), así que puede
+  // seguir devolviendo la sesión muerta y sin esto el shell se quedaría en pantalla.
   if (!session || sessionExpired) {
     return showReset ? (
       <RequestResetForm onBack={() => setShowReset(false)} />

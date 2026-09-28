@@ -813,6 +813,14 @@
       ],
       "updatedAt": "2026-09-27T22:35:24.621Z",
       "closedAt": "2026-09-27T22:35:24.674Z"
+    },
+    {
+      "id": "BL-060",
+      "title": "Pruebas de tiempo: asertar trabajo hecho en vez de milisegundos, y pasar el gate coverage a modo umbral",
+      "priority": "P3",
+      "problem": "Las pruebas con presupuesto de tiempo (tests/helpers/perf.ts, CRONOMETRO_FIABLE en cierre-de-mes y reglas-en-el-servidor) miden el arnes y por eso el gate coverage tiene que correr en modo comando con AITRI_COVERAGE=1, que las apaga. Asi la suite se ejecuta dos veces (~49 s extra). Regla de Aitri rc.19 (templates/phases/tests.md). Al reescribirlas para asertar trabajo hecho, coverage puede pasar a {name:coverage, threshold:80} y la segunda corrida desaparece.",
+      "status": "open",
+      "createdAt": "2026-09-28T17:59:25.321Z"
     }
   ]
 }
