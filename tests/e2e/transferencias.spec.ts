@@ -170,19 +170,21 @@ test.describe("FR-1003 — editar la celda con validación inline", () => {
   });
 });
 
+// REESCRITO por carril-de-presupuesto (FR-2905, 2026-09-27): el plan ya no se marca celda a celda con
+// «!» ámbar. Un mes del plan que se pasa lleva el MISMO triángulo del encabezado que un mes real, con un
+// texto que empieza por «Plan:». Canal no cromático: icono + texto, igual que antes.
 test.describe("FR-1008 — la marca del plan de aportes", () => {
-  test("TC-TRF4-008e: la marca del plan es «!» + ámbar: canal propio, distinto de ›/›› y ‹‹", async ({ page }) => {
+  test("TC-TRF4-008e: un plan que se pasa se marca en el mes, con icono y texto propios", async ({ page }) => {
     // @aitri-tc TC-TRF4-008e
     await gotoGrid(page, { budgets: { "c-viaje": { "2026-03": 1_200_000 } }, actuals: { "c-salario": { "2026-01": 1_000_000 } }, movements: [] });
 
     const cell = reserveCell(page, "Viaje", 2, "budget");
-    await expect(cell).toHaveAttribute("data-plan-warn", "true");
-    await expect(cell).toHaveCSS("color", "rgb(158, 71, 8)"); // --state-warning claro
+    await expect(cell).not.toHaveAttribute("data-plan-warn", "true");
     const text = (await cell.textContent()) ?? "";
-    expect(text).toContain("!");
-    expect(text).toContain("1.200.000"); // el valor SE GUARDÓ
-    expect(text).not.toContain("›");
-    expect(text).not.toContain("‹");
+    expect(text).not.toContain("!");
+    expect(text).toContain("1.200.000"); // el plan legado SIGUE guardado: la regla no borra datos
+    const marca = page.locator('[data-testid="techo-mark"][data-month="2026-03"]');
+    await expect(marca).toHaveAttribute("aria-label", /Plan: reservas \$1\.200\.000 por encima del margen del mes/);
   });
 });
 
@@ -259,8 +261,9 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
 
   test("TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo)", async ({ page }) => {
     // @aitri-tc TC-TRF4-014f
+    // saldo-de-bolsillo (FR-3002): el retiro planeado tiene alcancía y el plan tiene que cubrirlo.
     await gotoGrid(page, {
-      budgets: { "@retiros": { "2026-03": 100_000, "2026-05": 150_000 } },
+      budgets: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 500_000 }, "@retiros:c-viaje": { "2026-03": 100_000, "2026-05": 150_000 } },
       actuals: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 500_000 } },
       movements: [retiro("c-viaje", "2026-03", 150_000), retiro("c-viaje", "2026-05", 160_000), retiro("c-viaje", "2026-06", 30_000)],
     });
@@ -281,30 +284,33 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
 });
 
 test.describe("FR-1015 — retiros planeados", () => {
-  test("TC-TRF4-015e: franja al exceder el plan y marca auto-sanadora al quedar descubierto", async ({ page }) => {
+  // REESCRITO por saldo-de-bolsillo (FR-3001, FR-3002, 2026-09-27): el retiro planeado tiene alcancía y la
+  // fila «Retiros del mes · Pres.» abre el mismo formulario que la de Ejec. (ya no hay campo en línea). Lo
+  // que antes quedaba «descubierto» con una marca, ahora se RECHAZA con la franja: el plan bloquea como lo
+  // real (FR-2904), así que bajar el aporte que respalda un retiro planeado no se deja.
+  test("TC-TRF4-015e: la fila abre el formulario de planear; bajar el aporte que respalda un retiro planeado se bloquea", async ({ page }) => {
     // @aitri-tc TC-TRF4-015e
     await gotoGrid(page, {
-      budgets: { "c-viaje": { "2026-01": 200_000 }, "@retiros": { "2026-06": 150_000 } },
+      budgets: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 200_000 }, "@retiros:c-viaje": { "2026-06": 150_000 } },
       actuals: { "c-salario": { "2026-01": 1_000_000 } },
       movements: [],
     });
 
-    // Exceder el plan: la franja con el límite exacto; el editor no se cierra.
-    await page.getByTestId("planned-withdraw-cell").nth(1).click(); // feb
-    const input = page.getByLabel("Retiro planeado");
-    await input.fill("250000");
-    await page.keyboard.press("Enter");
-    await expect(page.getByTestId("planned-withdraw-block")).toContainText("Solo hay $200.000 reservados en tu plan hasta febrero");
+    const junPlanned = page.getByTestId("planned-withdraw-cell").nth(5);
+    await expect(junPlanned).toHaveText("150.000");
+    await junPlanned.click();
+    await expect(page.getByLabel("Retiro planeado", { exact: true })).toHaveCount(0); // ya no hay campo en línea
+    await expect(page.getByTestId("withdraw-title")).toHaveText("Planear sacar en junio 2026 → Disponible");
     await page.keyboard.press("Escape");
+    await expect(page.getByTestId("withdraw-title")).toHaveCount(0);
 
-    // Auto-sanador: el retiro planeado de jun (150k) quedó descubierto al bajar el plan de aportes.
+    // Bajar el aporte planeado de enero a 100.000 dejaría a Viaje en −50.000 en junio: la franja lo dice.
     await reserveCell(page, "Viaje", 0, "budget").click();
     await page.getByLabel("Editar valor").fill("100000");
     await page.keyboard.press("Enter");
-    const junPlanned = page.getByTestId("planned-withdraw-cell").nth(5);
-    await expect(junPlanned).toHaveAttribute("data-plan-warn", "true");
-    await expect(junPlanned).toContainText("!");
-    await expect(junPlanned).toHaveAttribute("title", /ya no cubre/);
+    await expect(page.getByTestId("reserve-block")).toContainText("Bloquea en junio 2026: «Viaje» quedaría en −$50.000");
+    await page.keyboard.press("Escape");
+    await expect(reserveCell(page, "Viaje", 0, "budget")).toHaveText("200.000");
   });
 });
 
@@ -377,10 +383,9 @@ test.describe("NFR-1006 — accesibilidad de los estados nuevos", () => {
       movements: [retiro("c-viaje", "2026-06", 100_000)],
     });
 
-    // Plan inviable: glifo «!» + atributo inspeccionable.
-    const warn = reserveCell(page, "Viaje", 2, "budget");
-    await expect(warn).toContainText("!");
-    await expect(warn).toHaveAttribute("data-plan-warn", "true");
+    // Plan inviable: triángulo + texto en el encabezado del mes (FR-2905, carril-de-presupuesto).
+    const warn = page.locator('[data-testid="techo-mark"][data-month="2026-03"]');
+    await expect(warn).toHaveAttribute("aria-label", /Plan: reservas/);
     // Sobre-retiro (sin plan): glifo ›› + atributo.
     const jun = page.getByTestId("withdraw-cell").nth(5);
     await expect(jun).toContainText("››");

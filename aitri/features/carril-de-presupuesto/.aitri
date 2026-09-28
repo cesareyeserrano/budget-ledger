@@ -1,0 +1,215 @@
+{
+  "currentPhase": 5,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "projectName": "carril-de-presupuesto",
+  "createdAt": "2026-09-27T20:09:50.153Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-09-27T22:35:07.927Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-09-27T20:44:42.278Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-09-27T20:54:18.866Z",
+      "event": "approved",
+      "phase": 1,
+      "ideaArchived": true
+    },
+    {
+      "at": "2026-09-27T21:02:30.094Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-27T21:04:19.222Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-27T21:06:19.842Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-09-27T21:09:38.246Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-27T21:11:31.226Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-27T21:11:43.478Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-27T21:12:18.206Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-27T21:13:55.762Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-27T21:16:34.473Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-27T21:42:51.689Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-27T21:44:11.807Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-27T22:16:19.401Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-27T22:16:56.746Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-27T22:28:05.200Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-27T22:28:21.872Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 61,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-27T22:28:28.445Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-27T22:29:28.461Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-27T22:35:07.916Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "f6d8bcbf34bcd0ab7ff11f53cd7da7125f1f20a595286c2dca30ee48b67e8972",
+    "2": "34a6a718262d87aa0ccb3e0ca949393289198730d6dc8c9254d4946be4dea43f",
+    "3": "2bea5f208c8defa97d6f414adc67fcb79f750c0fe6476168297e76fa42065afb",
+    "4": "900d4213b36e45e900f8c3f013330a11a36813247fe7b1294efc2143d7a8de1d",
+    "5": "7348b89aa6972c14a43a23429216349620e9005ab7f4ef1e9441679ef8efb8f3",
+    "ux": "b61b601488ff7ab157dd8ab51bb3d1bd7e645f83543f8587fd666334b960633f"
+  },
+  "frSnapshots": {
+    "2": [
+      "FR-2901",
+      "FR-2902",
+      "FR-2903",
+      "FR-2904",
+      "FR-2905",
+      "FR-2906"
+    ],
+    "3": [
+      "FR-2901",
+      "FR-2902",
+      "FR-2903",
+      "FR-2904",
+      "FR-2905",
+      "FR-2906"
+    ],
+    "4": [
+      "FR-2901",
+      "FR-2902",
+      "FR-2903",
+      "FR-2904",
+      "FR-2905",
+      "FR-2906"
+    ],
+    "5": [
+      "FR-2901",
+      "FR-2902",
+      "FR-2903",
+      "FR-2904",
+      "FR-2905",
+      "FR-2906"
+    ],
+    "ux": [
+      "FR-2901",
+      "FR-2902",
+      "FR-2903",
+      "FR-2904",
+      "FR-2905",
+      "FR-2906"
+    ]
+  },
+  "verifyResultsHash": "c66316bc37435eb067049809a455e5adfeafd6e91a7313e7506c4ce23c58931c",
+  "verifyRanAt": "2026-09-27T22:28:05.180Z",
+  "verifyRanRef": "708d34c14699885fc23746e058cb647a65926337",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-27T22:28:05.180Z"
+  },
+  "verifyPassed": true,
+  "verifySummary": {
+    "total": 61,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-27T22:35:07.916Z"
+    }
+  ]
+}

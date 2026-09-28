@@ -4,7 +4,7 @@ import type { LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType 
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote, MONTO_MAX } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
-import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, resolvedSeries, reserveLeafIds } from "./reserve";
+import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, plannedRetiroKey, resolvedSeries, reserveLeafIds } from "./reserve";
 
 // Compat: estos símbolos vivieron aquí; ahora los comparten reserve/ids sin ciclo de imports.
 export { normalizeNote, __resetSeq, seedSeq, seedSeqFrom };
@@ -196,6 +196,9 @@ function nodeHasData(state: LedgerState, nodeId: string): boolean {
   for (const id of ids) {
     const b = state.budgets[id];
     if (b && Object.values(b).some((v) => (v ?? 0) > 0)) return true;
+    // saldo-de-bolsillo: un retiro planeado del bolsillo también es un dato vigente (TC-SDB-035e).
+    const r = state.budgets[plannedRetiroKey(id)];
+    if (r && Object.values(r).some((v) => (v ?? 0) > 0)) return true;
     const a = state.actuals[id];
     if (a && Object.values(a).some((v) => (v ?? 0) > 0)) return true;
   }
@@ -262,6 +265,8 @@ function rewriteForDelete(state: LedgerState, id: string): LedgerState {
   for (const nid of ids) {
     delete next.budgets[nid];
     delete next.actuals[nid];
+    delete next.budgets[plannedRetiroKey(nid)];
+    if (next.cellNotes) delete next.cellNotes[plannedRetiroKey(nid)];
   }
   return next;
 }
@@ -485,6 +490,28 @@ function mergeMonthMapForType(
  * @aitri-trace FR-ID: FR-604, US-ID: US-604, AC-ID: AC-604a, TC-ID: TC-604h
  */
 function repointMovements(next: LedgerState, cedingId: string, receivingId: string): void {
+  // saldo-de-bolsillo (riesgo del TRD): el retiro planeado del bolsillo cedente viaja con sus celdas.
+  // Si se quedara con el id viejo sería una fila sin dueño y el plan del receptor renacería sin él.
+  const filaCedente = plannedRetiroKey(cedingId);
+  const planeado = next.budgets[filaCedente];
+  if (planeado) {
+    const filaReceptora = plannedRetiroKey(receivingId);
+    const suma = { ...(next.budgets[filaReceptora] ?? {}) };
+    for (const [p, v] of Object.entries(planeado)) suma[p as PeriodKey] = (suma[p as PeriodKey] ?? 0) + (v ?? 0);
+    next.budgets[filaReceptora] = suma;
+    delete next.budgets[filaCedente];
+  }
+  // Y sus notas «¿Para qué?» (FR-3002): se suman a las del receptor, mes a mes, sin perder ninguna.
+  const notasCedente = next.cellNotes?.[filaCedente];
+  if (notasCedente && next.cellNotes) {
+    const filaReceptora = plannedRetiroKey(receivingId);
+    const juntas = { ...(next.cellNotes[filaReceptora] ?? {}) };
+    for (const [p, notas] of Object.entries(notasCedente)) {
+      juntas[p as PeriodKey] = [...(juntas[p as PeriodKey] ?? []), ...(notas ?? [])];
+    }
+    next.cellNotes[filaReceptora] = juntas;
+    delete next.cellNotes[filaCedente];
+  }
   const receiver = findNode(next.nodes, receivingId);
   const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;
   const subId = receiver && receiver.level === "sub" ? receivingId : null;

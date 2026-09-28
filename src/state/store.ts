@@ -5,7 +5,9 @@ import type { LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
-  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, plannedRetiroLimit, seedSeqFrom,
+  addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, seedSeqFrom,
+  // saldo-de-bolsillo: el retiro PLANEADO por alcancía, anotado desde el formulario Pres.
+  planRetiro, editPlannedRetiro,
   // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
   // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
   adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
@@ -195,8 +197,15 @@ interface LedgerStore {
   removeReserveWithdrawal: (movementId: string) => { ok: true } | { ok: false; rejected: ReserveVerdict };
   /** FR-1802: corrige el monto de una operación; 0 la elimina. */
   editReserveOp: (movementId: string, amount: number) => { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
-  /** Retiro PLANEADO de un mes. Rechaza superar lo reservado planeado (con el límite para la UI). */
-  setPlannedRetiro: (month: PeriodKey, value: number) => { ok: true } | { ok: false; limit: number };
+  /**
+   * FR-3002 (saldo-de-bolsillo): planea sacar de una alcancía en un mes, con su «¿Para qué?» opcional.
+   * Suma al retiro planeado de esa alcancía; el rechazo trae el veredicto para que el formulario lo nombre.
+   */
+  planWithdrawal: (from: string, month: PeriodKey, amount: number, note?: string | null) =>
+    { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" | "invalid_note" };
+  /** FR-3003: corrige el retiro planeado de una alcancía en un mes; 0 lo elimina con sus notas. */
+  editPlannedWithdrawal: (leafId: string, month: PeriodKey, amount: number) =>
+    { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
   /** Observación manual de una celda de reserva (FR-1012). true si se guardó. */
   addCellNote: (leafId: string, month: PeriodKey, text: string) => boolean;
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
@@ -578,22 +587,29 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       return { ok: true };
     },
 
-    setPlannedRetiro: (month, value) => {
+    // Sin toast con Deshacer, a diferencia del retiro real: el plan no es un gesto irreversible y la
+    // corrección vive en la lista del mismo formulario (FR-3003), como las ediciones de celda del plan.
+    //
+    // @aitri-trace FR-ID: FR-3002, US-ID: US-3002, AC-ID: AC-3005, TC-ID: TC-SDB-019h
+    planWithdrawal: (from, month, amount, note) => {
       const prev = get().data;
-      const result = setPlannedRetiro(prev, month, value, get().activePeriods());
-      if ("rejected" in result) return { ok: false, limit: result.rejected.limit };
-      // BG-022 — entrada inválida (mes fuera del rango, valor no entero o negativo). Antes el
-      // dominio devolvía el estado sin tocar y esto respondía `ok: true`: la interfaz creía haber
-      // guardado algo que nunca se guardó. Se devuelve un rechazo con el límite REAL del mes, que
-      // es la cifra honesta que el editor de celda muestra.
-      if ("invalid" in result) {
-        return { ok: false, limit: plannedRetiroLimit(prev, month, get().activePeriods()) };
-      }
-      if (result.state !== prev) {
-        reserveUndo = null;
-        set({ data: result.state });
-        persist(result.state);
-      }
+      const result = planRetiro(prev, { leafId: from, period: month, amount, note, day: todayISO() }, get().activePeriods());
+      if ("rejected" in result) return { ok: false, rejected: result.rejected };
+      reserveUndo = null;
+      set({ data: result.state });
+      persist(result.state);
+      return { ok: true };
+    },
+
+    // @aitri-trace FR-ID: FR-3003, US-ID: US-3003, AC-ID: AC-3009, TC-ID: TC-SDB-036h, TC-SDB-037f
+    editPlannedWithdrawal: (leafId, month, amount) => {
+      const prev = get().data;
+      const result = editPlannedRetiro(prev, leafId, month, amount, get().activePeriods());
+      if ("rejected" in result) return { ok: false, rejected: result.rejected };
+      if (result.state === prev) return { ok: true }; // mismo monto: no-op
+      reserveUndo = null;
+      set({ data: result.state });
+      persist(result.state);
       return { ok: true };
     },
 

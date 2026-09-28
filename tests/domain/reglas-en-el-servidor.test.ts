@@ -182,8 +182,14 @@ describe("FR-2103 — una sola implementación de la regla", () => {
       expect(i).toBeGreaterThan(-1);
       return src.slice(i, src.indexOf("\n}\n", i));
     };
+    // ANCLA AVANZADA de bfded04 a 5eacb9c el 2026-09-27. Lo que cambió `chainCheck` no fue esta feature
+    // sino carril-de-presupuesto (FR-2904): por decisión del usuario el plan bloquea como lo real, así
+    // que el piso y el déficit dejan de ser «solo Ejecutado» y el plan deja de devolver avisos. La
+    // promesa de ESTA prueba —una sola implementación de la regla— sigue en pie: el guardia del
+    // servidor (`worsenedBy`) sigue delegando entero en `chainCheck`, ahora para los dos planos. Si
+    // vuelve a fallar: avanzar el ancla y escribir por qué, nunca borrarla.
     const actual = readFileSync("src/domain/reserve.ts", "utf8");
-    const base = execSync("git show bfded04:src/domain/reserve.ts", { encoding: "utf8" });
+    const base = execSync("git show 5eacb9c:src/domain/reserve.ts", { encoding: "utf8" });
     expect(cuerpo(actual)).toBe(cuerpo(base));
   });
 
@@ -425,8 +431,14 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // cuyo cupo está agotado de verdad. `contrapartidas-reserva.test.ts` no se tocó. El guardia de
     // esta feature tampoco: sigue delegando entero en `chainCheck`.
     //
+    // ANCLA AVANZADA a 5eacb9c el 2026-09-27. Los dos ficheros los tocó la feature carril-de-presupuesto,
+    // no esta: el plano Presupuestado pasó a arrastrar su propio cierre (FR-2901) y a bloquear (FR-2904).
+    // En los dos se cambió SOLO el assert de conservación del plan —ahora reconcilia contra el cierre
+    // previo del mismo plano— y, en techo-de-flujo, TC-TDF-093e, que escribía primero un aporte del plan
+    // por encima del techo confiando en que solo avisara. Ningún cambio de comportamiento de Ejecutado.
+    //
     const tocadas = execSync(
-      "git diff --name-only 0684671 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only 5eacb9c -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");

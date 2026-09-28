@@ -185,6 +185,10 @@ describe("FR-1103 / FR-1104 — Postgres única fuente; localStorage solo prefer
     expect(nuevoId).not.toBeNull();
     s.setLeafAmount(nuevoId!, "2026-03", "budget", 80000);
     expect(s.addMovement({ type: "expense", catId: "c-vivienda", amount: 12000, period: "2026-03" })).toBe(true);
+    // Desde carril-de-presupuesto (FR-2904) una reserva PLANEADA sin margen en el plan se rechaza, igual
+    // que en lo real: el plan de marzo necesita un ingreso que cubra el gasto planeado (80.000) y la
+    // reserva (30.000).
+    s.setLeafAmount("c-salario", "2026-03", "budget", 200000);
     const reserva = s.applyReserveEdit("c-ahorros", "2026-03", "budget", 30000);
     expect("rejected" in reserva).toBe(false);
 

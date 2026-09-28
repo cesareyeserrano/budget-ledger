@@ -66,7 +66,7 @@ describe("resumen-plegado · NFR-1502 — la aritmética del balance no cambia",
     expect(d.every((x) => x === 0)).toBe(true);
   });
 
-  it("TC-RSP-031e: ambos planos abren el mes con el cierre EJECUTADO real del mes previo", () => {
+  it("TC-RSP-031e: cada plano abre el mes con SU propio cierre del mes previo", () => {
     const s = estado({ ingBudget: 1_000_000, ingActual: 600_000, gasto: 300_000, aporte: 100_000 });
     const series = computeBalanceSeries(s, P);
 
@@ -74,8 +74,9 @@ describe("resumen-plegado · NFR-1502 — la aritmética del balance no cambia",
     expect(series["2026-01"].budget.available).toBe(600_000);
     expect(series["2026-01"].actual.available).toBe(200_000);
 
-    // ...y aun así febrero abre los DOS planos con el cierre ejecutado (ADR-03 de `balance`)
-    expect(series["2026-02"].budget.prevAvailable).toBe(200_000);
+    // ...y febrero abre cada plano con SU cierre. REESCRITA por carril-de-presupuesto (FR-2901,
+    // 2026-09-27): hasta entonces los dos abrían en el cierre ejecutado (ADR-03 de `balance`).
+    expect(series["2026-02"].budget.prevAvailable).toBe(600_000);
     expect(series["2026-02"].actual.prevAvailable).toBe(200_000);
   });
 

@@ -1,0 +1,467 @@
+{
+  "project_name": "T-Ledger — carril-de-presupuesto",
+  "project_summary": "Presupuestado y Ejecutado pasan a comportarse igual, cada uno sobre sus propios datos: cada mes la columna Pres. del Balance abre con el cierre PRESUPUESTADO del mes anterior (hoy abre con el cierre real, ADR-03 de balance) y las reglas de reservas del plan se calculan con ese carril y BLOQUEAN igual que en Ejecutado (hoy el plan solo avisa, FR-1008). Nada guardado cambia: es una regla de cálculo. North Star KPI: con un plan escrito para doce meses seguidos sin nada ejecutado, el Saldo total Pres. de cada mes es exactamente el acumulado del plan hasta ese mes. JTBD: simular el año (o dos) sobre el plan y compararlo con lo real, mes a mes, con la misma lógica en las dos columnas. Guardrail: toda cifra de la columna Ejec. del Balance y todo veredicto de las reglas en Ejecutado quedan idénticos para los mismos datos.",
+  "functional_requirements": [
+    {
+      "id": "FR-2901",
+      "title": "El Balance Pres. arrastra su propio saldo de mes a mes",
+      "description": "When se calcula la serie del Balance, the system shall abrir la columna Pres. de todo mes que no sea el primero del rango con el cierre Pres. del mes anterior: «Saldo del mes anterior» Pres. = «Saldo disponible» Pres. del mes anterior, y el saldo reservado Pres. arrastra el saldo reservado Pres. del mes anterior. La columna Ejec. sigue arrastrando lo suyo, como hoy. Sustituye FR-906 de balance (ambos planos abrían en el cierre REAL) y su ADR-03.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con octubre Pres. cerrando en 500 disponibles y octubre Ejec. en 400, noviembre abre con «Saldo del mes anterior» 500 en Pres. y 400 en Ejec.",
+        "Con un plan de 12 meses seguidos, cada uno con ingreso 1.000, gasto 600 y reserva 100 planeados, y nada ejecutado, el «Saldo disponible» Pres. del mes 12 es 3.600 y el «Saldo reservado» Pres. es 1.200.",
+        "Con una ejecución de octubre 300 peor que su plan, la columna Pres. de noviembre a diciembre no cambia respecto de la misma ejecución sin esa diferencia: lo real no entra al carril del plan.",
+        "Para todo mes m ≥ 2 del rango, «Saldo total» Pres.(m) = «Saldo total» Pres.(m−1) + «Resultado del mes» Pres.(m)."
+      ]
+    },
+    {
+      "id": "FR-2902",
+      "title": "El primer mes del rango abre los dos carriles en el mismo punto",
+      "description": "When se calcula el primer mes del rango activo, the system shall abrir Pres. y Ejec. con el mismo arrastre: el saldo inicial declarado (FR-2202 de meses-y-saldo-inicial) o 0 si no hay. Desde el segundo mes cada carril sigue su camino (FR-2901).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con un saldo inicial declarado de 2.000 en septiembre, septiembre abre con «Saldo del mes anterior» 2.000 en Pres. y en Ejec.",
+        "Sin saldo inicial declarado, el primer mes abre en 0 en los dos carriles.",
+        "Con saldo inicial 2.000, septiembre Pres. cerrando en 2.500 y Ejec. en 1.800, octubre abre en 2.500 en Pres. y en 1.800 en Ejec.: el saldo inicial no se vuelve a sumar después del primer mes."
+      ]
+    },
+    {
+      "id": "FR-2903",
+      "title": "Todo lo que el plan deriva de su arrastre lee el carril del plan",
+      "description": "When se calcula cualquier cifra del plano Pres. que depende de lo que queda de meses anteriores —el cupo para reservar (techo), el «Máx.» del editor de celda de bolsillo, la marca de mes sobre el techo, la observación automática «De los X reservados este mes, Y salieron del saldo anterior» (FR-1804) y el déficit—, the system shall usar el arrastre del propio plan (FR-2901), nunca el real. Es la misma cuenta que Ejecutado hace con sus datos, en una sola función compartida (techoScanRaw).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con octubre Pres. cerrando en 500 disponibles, Ejec. en 400, y noviembre sin ingresos ni gastos planeados, el cupo Pres. de noviembre para reservar es 500.",
+        "En el mismo caso, el «Máx.» del editor de una celda Pres. de bolsillo vacía en noviembre es 500.",
+        "Con noviembre Pres. reservando 700 y 500 de arrastre del plan, la observación de la celda dice que 500 salieron del saldo de octubre, no 400.",
+        "Con noviembre Pres. sin reservas, no hay observación automática ni marca de techo en noviembre Pres.: el carril no inventa avisos."
+      ]
+    },
+    {
+      "id": "FR-2904",
+      "title": "Las reglas de reservas bloquean en Pres. igual que en Ejec.",
+      "description": "When el usuario escribe una celda Pres. de bolsillo, the system shall aplicar al plan las mismas reglas que a Ejecutado y RECHAZAR la escritura que las empeore: no reservar en un mes más de lo que el plan deja disponible (techo), y no dejar un mes del plan con el disponible más negativo de lo que ya estaba (déficit). Se juzga solo lo que la escritura EMPEORA, con el mismo criterio que chainCheck aplica a Ejecutado: un plan guardado que ya rompía una regla no se borra ni se corrige solo, y no bloquea escrituras que no lo empeoran. El retiro planeado conserva su tope actual (plannedRetiroLimit). Sustituye el «avisa sin bloquear» de FR-1008 de transferencias.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con noviembre Pres. dejando 500 disponibles, escribir 500 en una celda Pres. de bolsillo vacía de noviembre se acepta.",
+        "En el mismo caso, escribir 501 se rechaza con regla techo y límite 500, y el estado no cambia.",
+        "Con un plan guardado que ya reservaba 800 en noviembre sobre 500 disponibles, bajar esa celda a 700 se acepta (mejora) y subirla a 900 se rechaza (empeora).",
+        "Con un plan guardado que ya excedía en noviembre, escribir en un gasto Pres. de enero no se rechaza: las reglas solo miran escrituras que tocan reservas, igual que en Ejecutado (NFR-1803).",
+        "Escribir en Pres. un aporte que dejaría el disponible Pres. de un mes posterior por debajo de lo que ya estaba se rechaza con regla deficit nombrando ese mes."
+      ]
+    },
+    {
+      "id": "FR-2905",
+      "title": "El editor de la celda Pres. de bolsillo se comporta como el de Ejec. al rechazar",
+      "description": "When una escritura en una celda Pres. de bolsillo se rechaza (FR-2904), the system shall comportarse como el editor de Ejecutado (FR-1003 de transferencias): el editor no se cierra, muestra junto a la celda la franja con el mensaje de la regla y el límite, conserva el valor tecleado y Escape restaura el anterior. Los meses del plan que YA exceden su techo se marcan igual que los de Ejecutado (FR-1806), no con el aviso ámbar «!» que hoy usa el plan.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "Tras teclear 501 donde el límite es 500 y confirmar, el editor sigue abierto, muestra la franja con el límite 500 en ≤150 ms y el valor 501 sigue en el campo.",
+        "Tras el rechazo, Escape cierra el editor y la celda muestra su valor anterior.",
+        "Un mes del plan que ya excede su techo muestra la misma marca de error del encabezado de mes que un mes de Ejecutado en la misma situación, y ninguna celda Pres. muestra el aviso ámbar «!».",
+        "Tras teclear 500 donde el límite es 500, el editor se cierra y la celda muestra 500."
+      ]
+    },
+    {
+      "id": "FR-2906",
+      "title": "El servidor aplica las reglas del plan en todas sus puertas",
+      "description": "When llega al servidor una escritura que toca reservas (PUT /api/v1/ledger), the system shall juzgar también el plano Pres. con las reglas de FR-2904 y responder 422 domain_rule_violation con el mes, la regla y el límite si el plan empeora, sin escribir nada. Es la misma función del dominio que usa el navegador (FR-2101 de reglas-en-el-servidor: una regla, todas las puertas).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Un PUT cuyo snapshot sube una celda Pres. de bolsillo por encima del cupo del plan responde 422 domain_rule_violation con rule techo, el periodo y el límite, y la revisión del ledger no cambia.",
+        "Un PUT que baja esa misma celda (mejora) responde 200.",
+        "Un PUT que solo cambia celdas Ejec. se juzga exactamente como hoy.",
+        "Un PUT sobre un plan guardado que ya excedía, que no toca reservas, responde 200."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Armar el presupuesto de uno o dos años hacia adelante y compararlo con lo real mes a mes, con la misma lógica en las dos columnas.",
+      "pain_point": "La columna Pres. toma cada mes lo que quedó de verdad, así que el plan de un mes futuro no le pasa nada al siguiente y no se puede simular el año; además en el plan las reglas solo avisan y en lo real bloquean."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-2901",
+      "requirement_id": "FR-2901",
+      "as_a": "presupuestador personal",
+      "i_want": "que cada mes del presupuesto arranque con lo que dejó el mes anterior del presupuesto",
+      "so_that": "pueda planear un año o dos hacia adelante y ver a dónde llega el plan",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2901",
+          "given": "octubre Pres. cierra con 500 disponibles y octubre Ejec. con 400",
+          "when": "abro la grilla",
+          "then": "noviembre muestra «Saldo del mes anterior» 500 en Pres. y 400 en Ejec."
+        },
+        {
+          "id": "AC-2902",
+          "given": "un plan de 12 meses con ingreso 1.000, gasto 600 y reserva 100 por mes, sin nada ejecutado",
+          "when": "miro el mes 12",
+          "then": "«Saldo disponible» Pres. es 3.600 y «Saldo reservado» Pres. es 1.200"
+        },
+        {
+          "id": "AC-2903",
+          "given": "octubre Ejec. sale 300 peor que su plan",
+          "when": "miro noviembre y diciembre",
+          "then": "sus cifras Pres. son las mismas que sin esa diferencia"
+        },
+        {
+          "id": "AC-2904",
+          "given": "cualquier ledger",
+          "when": "comparo la columna Ejec. del Balance antes y después de la feature",
+          "then": "todas las cifras son idénticas"
+        }
+      ]
+    },
+    {
+      "id": "US-2902",
+      "requirement_id": "FR-2902",
+      "as_a": "presupuestador personal",
+      "i_want": "que presupuesto y ejecutado arranquen del mismo saldo inicial",
+      "so_that": "la comparación entre los dos empiece en el mismo punto",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2905",
+          "given": "saldo inicial declarado de 2.000 en septiembre",
+          "when": "abro la grilla",
+          "then": "septiembre abre en 2.000 en Pres. y en Ejec."
+        },
+        {
+          "id": "AC-2906",
+          "given": "sin saldo inicial declarado",
+          "when": "abro la grilla",
+          "then": "el primer mes abre en 0 en las dos columnas"
+        },
+        {
+          "id": "AC-2907",
+          "given": "saldo inicial 2.000, septiembre Pres. cierra en 2.500 y Ejec. en 1.800",
+          "when": "miro octubre",
+          "then": "abre en 2.500 en Pres. y 1.800 en Ejec., sin volver a sumar el saldo inicial"
+        }
+      ]
+    },
+    {
+      "id": "US-2903",
+      "requirement_id": "FR-2903",
+      "as_a": "presupuestador personal",
+      "i_want": "que el cupo para ahorrar en el presupuesto salga de lo que el presupuesto deja",
+      "so_that": "el plan se calcule con la misma lógica que lo real",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2908",
+          "given": "octubre Pres. deja 500, Ejec. 400, y noviembre sin ingresos ni gastos planeados",
+          "when": "abro el editor de una celda Pres. de bolsillo vacía de noviembre",
+          "then": "el «Máx.» es 500"
+        },
+        {
+          "id": "AC-2909",
+          "given": "noviembre Pres. reserva 700 con 500 de arrastre del plan",
+          "when": "miro la observación de la celda",
+          "then": "dice que 500 salieron del saldo de octubre"
+        },
+        {
+          "id": "AC-2910",
+          "given": "noviembre Pres. sin reservas",
+          "when": "miro noviembre Pres.",
+          "then": "no hay observación automática ni marca de techo"
+        }
+      ]
+    },
+    {
+      "id": "US-2904",
+      "requirement_id": "FR-2904",
+      "as_a": "presupuestador personal",
+      "i_want": "que el presupuesto no me deje planear guardar más plata de la que el plan tiene",
+      "so_that": "la simulación sea real, igual que lo ejecutado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2911",
+          "given": "noviembre Pres. deja 500 disponibles",
+          "when": "escribo 500 en una celda Pres. de bolsillo vacía de noviembre",
+          "then": "se guarda"
+        },
+        {
+          "id": "AC-2912",
+          "given": "el mismo noviembre",
+          "when": "escribo 501",
+          "then": "se rechaza con límite 500 y nada cambia"
+        },
+        {
+          "id": "AC-2913",
+          "given": "un plan guardado que ya reserva 800 en noviembre sobre 500 disponibles",
+          "when": "bajo la celda a 700",
+          "then": "se guarda; y si la subo a 900, se rechaza"
+        },
+        {
+          "id": "AC-2914",
+          "given": "un plan guardado que ya excede en noviembre",
+          "when": "escribo un gasto Pres. en enero",
+          "then": "se guarda"
+        },
+        {
+          "id": "AC-2915",
+          "given": "un aporte Pres. en octubre que dejaría diciembre Pres. más negativo de lo que estaba",
+          "when": "lo escribo",
+          "then": "se rechaza con regla deficit nombrando diciembre"
+        }
+      ]
+    },
+    {
+      "id": "US-2905",
+      "requirement_id": "FR-2905",
+      "as_a": "presupuestador personal",
+      "i_want": "que el rechazo en el presupuesto se vea igual que en lo ejecutado",
+      "so_that": "entienda en el momento qué número cabe, sin perder lo que escribí",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2916",
+          "given": "límite 500 en una celda Pres. de bolsillo",
+          "when": "tecleo 501 y confirmo",
+          "then": "el editor sigue abierto con 501, y la franja muestra el límite 500 en ≤150 ms"
+        },
+        {
+          "id": "AC-2917",
+          "given": "el editor tras el rechazo",
+          "when": "pulso Escape",
+          "then": "se cierra y la celda muestra su valor anterior"
+        },
+        {
+          "id": "AC-2918",
+          "given": "un mes del plan que ya excede su techo",
+          "when": "miro la grilla",
+          "then": "su encabezado lleva la misma marca de error que un mes de Ejec. en esa situación y ninguna celda Pres. muestra el «!» ámbar"
+        }
+      ]
+    },
+    {
+      "id": "US-2906",
+      "requirement_id": "FR-2906",
+      "as_a": "presupuestador personal",
+      "i_want": "que la regla del plan se cumpla aunque la escritura llegue por otra vía",
+      "so_that": "ningún dispositivo ni script deje un plan que la app rechazaría",
+      "acceptance_criteria": [
+        {
+          "id": "AC-2919",
+          "given": "un snapshot que sube una celda Pres. de bolsillo por encima del cupo del plan",
+          "when": "se envía por PUT /api/v1/ledger",
+          "then": "responde 422 domain_rule_violation con rule techo, periodo y límite, y la revisión no cambia"
+        },
+        {
+          "id": "AC-2920",
+          "given": "un snapshot que baja esa celda",
+          "when": "se envía",
+          "then": "responde 200"
+        },
+        {
+          "id": "AC-2921",
+          "given": "un snapshot que solo cambia celdas Ejec.",
+          "when": "se envía",
+          "then": "se juzga exactamente como antes de la feature"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-2901",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La columna Ejec. del Balance no cambia: para los mismos datos, «Saldo del mes anterior», «Resultado del mes», «Reservas del mes», «Retiros de reservas», «Saldo disponible», «Saldo reservado» y «Saldo total» Ejec. son idénticos a los de antes de la feature (FR-905, FR-906 en su parte Ejec.).",
+      "acceptance_criteria": "Sobre fixtures con varios meses, reservas, retiros, saldo inicial y un mes peor que su plan, la serie Ejec. calculada es igual, cifra a cifra, a la del commit ancla."
+    },
+    {
+      "id": "NFR-2902",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas en Ejecutado aceptan y rechazan exactamente lo mismo que hoy: techo con consumo neto (FR-2801), piso por bolsillo (FR-1802), déficit (FR-1803) y sus límites anunciados.",
+      "acceptance_criteria": "Las pruebas vigentes de retirar-para-gastar y techo-de-flujo sobre Ejecutado siguen pasando sin cambios; una escritura Ejec. que hoy se acepta con límite L se sigue aceptando con L y L+1 se sigue rechazando."
+    },
+    {
+      "id": "NFR-2903",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El saldo inicial declarado (FR-2202) sigue abriendo el primer mes del rango y no se suma de nuevo en los meses siguientes.",
+      "acceptance_criteria": "Con saldo inicial S, el primer mes abre en S en las dos columnas; ningún otro mes contiene S más de una vez en su arrastre."
+    },
+    {
+      "id": "NFR-2904",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El cierre de mes no cambia: un mes cerrado sigue rechazando toda escritura, también en Pres. (FR-2003), y el impacto de reabrir (FR-2010) calcula lo mismo en Ejec.",
+      "acceptance_criteria": "Una escritura Pres. sobre un mes cerrado responde 422 closed_period_violation antes que cualquier regla del plan; el impacto de una reapertura con los mismos datos es idéntico al de antes."
+    },
+    {
+      "id": "NFR-2905",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "En modo ciclos (FR-2407) el arrastre del plan sigue el mismo orden de periodos que el real, transiciones incluidas.",
+      "acceptance_criteria": "Con ciclos día 21 activos, cada periodo Pres. abre con el cierre Pres. del periodo anterior de la misma lista que usa Ejec."
+    },
+    {
+      "id": "NFR-2906",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Nada guardado cambia: abrir un ledger existente muestra el carril corregido sin migración, y amount_cell y movement quedan byte a byte iguales.",
+      "acceptance_criteria": "Cargar y volver a guardar sin cambios un ledger creado antes de la feature no altera ninguna fila; no hay migración nueva en drizzle."
+    },
+    {
+      "id": "NFR-2907",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El retiro planeado conserva su regla: no se puede planear sacar más de lo que el plan reservó (setPlannedRetiro) y el retiro planeado huérfano sigue marcándose como problema del mes (BG-020).",
+      "acceptance_criteria": "setPlannedRetiro con valor mayor que plannedRetiroLimit se rechaza con ese límite; un aporte planeado bajado por debajo del retiro planeado sigue produciendo el problema retiro_planeado."
+    },
+    {
+      "id": "NFR-2908",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las escrituras de ingresos y gastos no quedan vigiladas por las reglas de reservas, ni en Pres. ni en Ejec. (NFR-1803, decisión del 2026-09-03).",
+      "acceptance_criteria": "Bajar un ingreso Pres. que deja un mes del plan en negativo se acepta, igual que en Ejec."
+    },
+    {
+      "id": "NFR-2909",
+      "category": "Performance",
+      "priority": "SHOULD",
+      "requirement": "El carril del plan no añade barridos: techoScan sigue memoizado por identidad y el Balance calcula los dos carriles en una sola pasada.",
+      "acceptance_criteria": "Con el contador de perf de reserve.ts, un render del encabezado de 24 meses produce el mismo número de techoScans por plano que antes; computeBalanceSeries recorre los periodos una sola vez."
+    },
+    {
+      "id": "NFR-2910",
+      "category": "Security",
+      "requirement": "No aplica: la feature no añade endpoints, entradas aceptadas, sesiones ni secretos; FR-2906 solo añade una regla de dominio al guardia ya existente de PUT /api/v1/ledger, que conserva su autenticación, su control de Origin y su aislamiento por ownerId.",
+      "acceptance_criteria": "El gate security-config sigue en verde."
+    },
+    {
+      "id": "NFR-2911",
+      "category": "Observability",
+      "requirement": "No aplica: la feature no añade procesos, rutas ni trabajos en segundo plano; el registro de peticiones existente no cambia.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-2912",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente (build-and-test en PR a develop, staging y main, y en push a main) corre las pruebas nuevas de esta feature sin cambios en el workflow.",
+      "acceptance_criteria": "El workflow de CI no se modifica y ejecuta npm test, que incluye las pruebas de la feature."
+    }
+  ],
+  "no_go_zone": [
+    "Lo que muestra la celda de un bolsillo y qué significa escribir encima: es la feature saldo-de-bolsillo (BL-041), la entrega siguiente, por decisión del usuario del 2026-09-27 de hacerlo en dos entregas.",
+    "El retiro planeado POR BOLSILLO: también va en saldo-de-bolsillo; aquí el retiro planeado sigue siendo una fila por mes con su tope actual.",
+    "Vigilar ingresos y gastos con las reglas de reservas: sigue fuera por NFR-1803 y la decisión del 2026-09-03, en los dos planos.",
+    "Herramientas para armar el año más rápido (copiar o repetir un plan): no forman parte del cambio de regla.",
+    "La vista móvil (BL-056) y la integración con Tony (BL-057).",
+    "Migrar o reescribir datos guardados: el cambio es solo de cálculo."
+  ],
+  "constraints": [
+    "El cálculo sigue en una sola función compartida por navegador y servidor (computeBalanceSeries en src/domain/balance.ts, techoScanRaw y chainCheck en src/domain/reserve.ts): no se crea un cálculo paralelo para el plan.",
+    "TC-CDM-222f (cierre-de-mes) compara el texto de techoScanRaw, reserveAportes y chainCheck contra un commit ancla para vigilar que esa feature no tocó el techo. Esta feature lo cambia a propósito: el ancla se avanza en el build, como hizo retirar-para-gastar.",
+    "Revierte ADR-03 de balance y FR-906, y el «avisa sin bloquear» de FR-1008 de transferencias; las pruebas que fijan esas reglas (entre ellas TC-BAL-915e) se reescriben, no se borran."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas: TypeScript, Vitest y Playwright ya presentes."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "assumed",
+    "baseline": "confirmed",
+    "success_metric": "assumed",
+    "no_go_zone": "assumed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario en el chat del 2026-09-27: «el presupuesto debería comportarse igual que el ejecutado, solo que en su carril de presupuesto», «esa regla vieja es mal diseño», «qué pasa si quiero hacer el presupuesto de todo un año o dos», «no, no debe, comportamientos iguales».",
+    "users": "Inferido: es el mismo usuario único de todo el proyecto; el brief lo marca como suposición.",
+    "baseline": "Medido por el agente el 2026-09-27 en la cuenta de pruebas de dev y mostrado al usuario con sus números: noviembre Pres. abría en el cierre real de octubre, no en el del plan.",
+    "success_metric": "Propuesto por el agente en el brief (criterios con números redondos); el usuario confirmó el principio pero no los criterios uno a uno.",
+    "no_go_zone": "Propuesto por el agente; el usuario decidió partir en dos entregas (celda de bolsillo aparte) pero no revisó la lista."
+  },
+  "idea_gaps": [
+    "users: se asume el usuario único de producción, como en todas las features; confirmar que no hay otro tipo de usuario.",
+    "success_metric: los criterios de éxito con números redondos los propuso el agente; confirmar en la aprobación que describen lo que el usuario quiere ver.",
+    "no_go_zone: la lista de lo que queda fuera la propuso el agente; confirmar en la aprobación, en especial que la celda de bolsillo y el retiro planeado por bolsillo van en la entrega siguiente."
+  ],
+  "coverage_map": [
+    {
+      "need": "Cada mes Pres. abre con el cierre Pres. del mes anterior",
+      "disposition": "FR-2901"
+    },
+    {
+      "need": "Poder simular uno o dos años del plan hacia adelante",
+      "disposition": "FR-2901"
+    },
+    {
+      "need": "El primer mes arranca los dos carriles en el saldo inicial",
+      "disposition": "FR-2902"
+    },
+    {
+      "need": "El cupo y el aviso del plan se calculan con el carril del plan",
+      "disposition": "FR-2903"
+    },
+    {
+      "need": "Mismo comportamiento: en Pres. las reglas bloquean como en Ejec.",
+      "disposition": "FR-2904"
+    },
+    {
+      "need": "El rechazo en Pres. se muestra como en Ejec.",
+      "disposition": "FR-2905"
+    },
+    {
+      "need": "La regla del plan se cumple también en el servidor",
+      "disposition": "FR-2906"
+    },
+    {
+      "need": "La columna Ejec. del Balance no cambia",
+      "disposition": "NFR-2901"
+    },
+    {
+      "need": "Las reglas en Ejecutado no cambian",
+      "disposition": "NFR-2902"
+    },
+    {
+      "need": "El saldo inicial sigue abriendo el primer mes",
+      "disposition": "NFR-2903"
+    },
+    {
+      "need": "El cierre de mes no cambia",
+      "disposition": "NFR-2904"
+    },
+    {
+      "need": "En ciclos el arrastre del plan sigue el orden de periodos",
+      "disposition": "NFR-2905"
+    },
+    {
+      "need": "Los ledgers existentes funcionan sin migración",
+      "disposition": "NFR-2906"
+    },
+    {
+      "need": "El tope del retiro planeado no cambia",
+      "disposition": "NFR-2907"
+    },
+    {
+      "need": "Ingresos y gastos siguen sin vigilancia de reservas",
+      "disposition": "NFR-2908"
+    },
+    {
+      "need": "Lo que muestra la celda de un bolsillo y escribir encima",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Retiro planeado por bolsillo",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Herramientas para copiar el plan entre meses",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- AGENT: if you fill this for the user, confirm the ground-truth fields\n     (Problem / Why, Target Users, Success Criteria, Out of Scope) with them —\n     do not silently infer. Mark anything you inferred as \"[ASSUMPTION] …\".\n     Phase 1 records these as a provenance contract and blocks unconfirmed,\n     untracked guesses on the highest-value inputs. -->\n\n## Feature\nLa columna Presupuestado arrastra su PROPIO saldo de mes a mes, igual que Ejecutado, cada una en su\ncarril: cada mes Pres. abre con el cierre presupuestado del mes anterior, no con el cierre real.\n\n## Problem / Why\nCONFIRMADO por el usuario el 2026-09-27, viendo el caso en su propia pantalla.\n\nHoy los dos planos abren cada mes en el cierre EJECUTADO del mes anterior (ADR-03 de la feature balance,\nrevisado el 2026-07-27; FR-906). El cierre presupuestado de un mes no alimenta al siguiente. Con eso no se\npuede planear hacia adelante: el plan de un mes futuro no le pasa nada al siguiente, así que armar el\npresupuesto de un año o dos no se sostiene. Palabras del usuario: «el presupuesto debería comportarse\nigual que el ejecutado, solo que en su carril de presupuesto; hoy día tiene una mezcla rara», «esa regla\nvieja es mal diseño, hay que corregirlo» y, como motivo, «qué pasa si quiero hacer el presupuesto de todo\nun año o dos; eso como está no me permite hacerlo».\n\nLa mezcla no es solo el arrastre. `plannedRetiroLimit` (`src/domain/reserve.ts`) YA acumula en su propio\ncarril (aportes planeados menos retiros planeados), mientras el Balance y el techo del plan se re-anclan a\nlo real. Hoy conviven las dos ideas.\n\nDECISIÓN CON HISTORIA. El 2026-07-24 la app nació con carril propio y el usuario la invirtió el\n2026-07-27: un mes mal ejecutado dejaba el plan de los siguientes arrancando con plata que ya no existía\n(julio planeó guardar 300 y guardó 500; agosto Pres. abría en 200 que no existían). El 2026-09-27 se le\nmostró ese caso y dos alternativas (dejarlo, o encadenar el plan solo en los meses futuros) y eligió el\ncarril propio puro, aceptando a sabiendas que un mes peor que el plan no se refleja en la columna Pres. de\nlos siguientes: la desviación se lee comparando Pres. con Ejec. Origen: BL-059 del backlog de la raíz.\n\n## Target Users\n[ASSUMPTION] El usuario único de producción (presupuestador personal). No abre tipos de usuario nuevos.\n\n## New Behavior\n1. CONFIRMADO. Para todo mes que no sea el primero del rango, «Saldo del mes anterior» en Pres. es el\n   «Saldo disponible» en Pres. del mes anterior, y el saldo reservado de Pres. arrastra el reservado de\n   Pres. del mes anterior. Ejecutado sigue arrastrando lo suyo, como hoy.\n2. CONFIRMADO el 2026-09-27. El primer mes del rango abre los dos planos en el mismo punto: el saldo\n   inicial declarado (FR-2202 de meses-y-saldo-inicial), o 0 si no hay. Desde el segundo mes cada plano\n   sigue su camino.\n0. PRINCIPIO, CONFIRMADO el 2026-09-27 y que manda sobre el resto: Presupuestado y Ejecutado tienen el\n   MISMO comportamiento de cálculo, cada uno sobre sus propios datos. Palabras del usuario: «el\n   presupuesto y el ejecutado deberían tener el mismo comportamiento, para poder hacer una simulación real\n   y una comparación real». CONFIRMADO también que las reglas BLOQUEAN en Pres. igual que en Ejec.:\n   preguntado si en el presupuesto la app debe dejar guardar más plata de la que el plan tiene, respondió\n   «no, no debe, comportamientos iguales». Esto REEMPLAZA el punto 3.\n3. CONFIRMADO el 2026-09-27 (versión final, ver punto 0). Las reglas de reservas del plan —no reservar más\n   de lo que el plan deja disponible, no sacar más de lo que el plan tiene en el bolsillo, no dejar un mes\n   del plan con gastos sin cubrir— se calculan con el carril del propio plan y BLOQUEAN igual que en\n   Ejecutado. Hoy el plan solo avisa (FR-1008 de transferencias): eso cambia. Primera respuesta del\n   usuario: «el presupuesto va por su carril, el ejecutado sobre su carril. Simple».\n   [ASSUMPTION] Como en Ejecutado, un plan guardado que YA rompe una regla no se borra ni se corrige solo:\n   la regla bloquea solo lo que una escritura EMPEORA (el criterio que `chainCheck` ya aplica a Ejecutado).\n4. [ASSUMPTION] Todo lo que hoy se deriva del arrastre del plan pasa a leer el carril del plan: el Balance\n   Pres. completo, los totales del encabezado con el Balance plegado y el retiro planeado.\n5. [ASSUMPTION] Nada guardado cambia: es una regla de cálculo. Un ledger existente muestra el carril\n   corregido al abrirlo, sin migración y sin corrección a mano.\n\n## Success Criteria\n[ASSUMPTION] Propuestos por el agente; POR CONFIRMAR con el usuario.\n\n- Dado un plan de octubre que cierra con 500 disponibles y un real que cierra con 400, cuando se abre la\n  grilla, entonces noviembre Pres. abre con 500 y noviembre Ejec. con 400.\n- Dado un plan escrito de enero a diciembre del año siguiente sin nada ejecutado, cuando se abre la\n  grilla, entonces cada mes Pres. abre con el cierre Pres. del anterior y el Saldo total Pres. de\n  diciembre es el acumulado de todo el plan.\n- Para los mismos datos, toda cifra de la columna Ejec. del Balance es idéntica a la de hoy.\n- Un ledger guardado antes de la feature muestra el carril corregido al abrirlo, sin migración.\n\n## Touch Points\nMODIFICA:\n- FR-906 (balance): «Arrastre del saldo entre meses: ambos planos abren en el cierre REAL previo». Es la\n  regla que esta feature revierte, con su ADR-03.\n- FR-905 (balance): las seis cifras de Pres. cambian para todo mes que no sea el primero.\n- FR-1008 (transferencias): el techo del plan de aportes.\n- `computeBalanceSeries` (`src/domain/balance.ts`), `techoScanRaw` y `chainCheck` (`src/domain/reserve.ts`).\n- Pruebas que fijan la regla vieja, entre ellas TC-BAL-915e.\n\nNO TOCA: el esquema de la base, la API, el registro «Nuevo movimiento», lo que muestra una celda.\n\n## Must Not Break (Regression Boundary)\n- Para los mismos datos, toda cifra de la columna Ejec. del Balance es idéntica a la de hoy.\n- Las reglas que BLOQUEAN en Ejecutado (techo, piso y déficit, FR-2801 de retirar-para-gastar) aceptan y\n  rechazan exactamente lo mismo que hoy.\n- El saldo inicial declarado (FR-2202) sigue abriendo el primer mes del rango.\n- El cierre de mes (FR-2001 a FR-2010 de cierre-de-mes) congela y calcula el impacto igual que hoy en Ejec.\n- En ciclos (FR-2407), el arrastre del plan sigue el mismo orden de periodos que el real.\n- Lo guardado en la base de un ledger existente no cambia al abrirlo.\n\n## Out of Scope\n[ASSUMPTION] Propuesto por el agente; POR CONFIRMAR con el usuario.\n\n- Lo que muestra la celda de un bolsillo y qué pasa al escribir encima: va en la feature saldo-de-bolsillo\n  (BL-041), la entrega siguiente.\n- El retiro planeado POR BOLSILLO: también va en saldo-de-bolsillo.\n- Copiar o repetir un plan de un mes a los siguientes (herramientas para armar el año más rápido).\n- La vista móvil (BL-056) y Tony (BL-057).\n"
+}

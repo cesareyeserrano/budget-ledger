@@ -43,7 +43,18 @@ describe("NFR-2401 — el modo mes no cambia", () => {
     expect(keys).toEqual(golden.keys);
     expect(keys).toEqual(activeRange(s, golden.currentPeriod, golden.horizon));
     const series = computeBalanceSeries(s, keys, openingCarry(s, keys));
-    expect(JSON.stringify(series)).toBe(JSON.stringify(golden.series));
+    // Ajustada por carril-de-presupuesto (FR-2901, 2026-09-27): el golden se capturó cuando Pres. abría
+    // en el cierre REAL. El plano Ejec. se sigue comparando byte a byte; en Pres. se comparan las cifras
+    // del mes (no dependen del arrastre) y el arrastre se verifica contra la regla nueva.
+    const gold = golden.series as Record<string, { budget: Record<string, number>; actual: unknown }>;
+    const soloEjec = (x: Record<string, { actual: unknown }>) => JSON.stringify(Object.fromEntries(keys.map((k) => [k, x[k].actual])));
+    expect(soloEjec(series)).toBe(soloEjec(gold));
+    keys.forEach((k, i) => {
+      for (const campo of ["income", "expense", "flow", "reserved"] as const) expect(series[k].budget[campo]).toBe(gold[k].budget[campo]);
+      const prev = i === 0 ? openingCarry(s, keys) : { available: series[keys[i - 1]].budget.available, reservedBalance: series[keys[i - 1]].budget.reservedBalance };
+      expect(series[k].budget.prevAvailable).toBe(prev.available);
+      expect(series[k].budget.prevReserved).toBe(prev.reservedBalance);
+    });
   });
 
   const ALLOWLIST = new Set(["src/lib/date.ts", "src/domain/periods.ts", "src/domain/range.ts", "src/domain/cycles.ts", "src/domain/seed.ts"]);

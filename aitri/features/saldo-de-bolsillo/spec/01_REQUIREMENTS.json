@@ -1,0 +1,448 @@
+{
+  "project_name": "T-Ledger — saldo-de-bolsillo",
+  "project_summary": "Los retiros PLANEADOS pasan a anotarse igual que los reales: la fila «Retiros del mes · Pres.» tiene el mismo formulario que la de Ejecutado —de qué alcancía sale, cuánto, y la lista de los retiros planeados del mes, corregibles—, y cada retiro planeado queda en su alcancía. Todo lo demás de la grilla sigue mostrando lo del mes, sin arrastrar: la celda de un bolsillo es lo aportado ese mes y editarla corrige el aporte; lo acumulado vive solo en el Balance. Decisión final del usuario del 2026-09-27 para BL-041: «Todo de reservas, ingresos, egresos muestra lo del mes o ciclo… En balance, lo disponible, es donde se arrastra», «el mismo formulario que tiene retiros del mes en ejecutado va en presupuestado». Los retiros planeados viejos, sin alcancía, se reparten solos. North Star KPI: planear un retiro en Pres. se hace con los mismos pasos que registrar uno real, y ningún retiro planeado queda sin alcancía. JTBD: planear de qué ahorro voy a sacar y cuánto, igual que cuando saco de verdad. Guardrail: las cifras del Balance y las celdas de bolsillo quedan idénticas para los mismos datos.",
+  "functional_requirements": [
+    {
+      "id": "FR-3001",
+      "title": "La fila «Retiros del mes · Pres.» abre el mismo formulario que la de Ejecutado",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When el usuario hace clic en la celda Pres. de la fila «Retiros del mes», the system shall abrir el mismo formulario que la celda Ejec.: título «Planear sacar en <mes>», desplegable «Sacar de» con todas las alcancías y lo que el plan tendría en cada una ese mes, monto con su «Máx.», el campo «¿Para qué? (opcional)», botones «Cancelar» y «Planear», y debajo la lista de los retiros planeados de ese mes. Mismos componentes, textos y teclas que Ejec. (FR-1807, FR-1608),",
+      "acceptance_criteria": [
+        "El clic en la celda Pres. de «Retiros del mes» de marzo abre un formulario con el desplegable «Sacar de», el campo de monto, el campo «¿Para qué? (opcional)» y el botón «Planear».",
+        "El desplegable lista cada alcancía con lo que el plan tendría en ella en ese mes (p. ej. «Ahorro · Viaje — $300»).",
+        "Con una alcancía elegida, el «Máx.» muestra lo máximo que se puede planear sacar y se pinta en rojo si el monto lo supera.",
+        "Sin alcancía elegida o con monto 0, «Planear» está deshabilitado."
+      ]
+    },
+    {
+      "id": "FR-3002",
+      "title": "Cada retiro planeado sale de una alcancía y respeta las reglas del plan",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario guarda un retiro planeado desde el formulario, the system shall sumarlo al retiro planeado de ESA alcancía en ese mes (fila `@retiros:<alcancía>` del plan) y validarlo con las reglas del plan (FR-2904): no se puede planear sacar más de lo que el plan tendría en la alcancía en ese mes ni dejarla en negativo en un mes posterior. Un rechazo muestra el motivo en el formulario y no guarda nada. Si el usuario escribió una nota en «¿Para qué?», se guarda como observación de la fila del plan de esa alcancía y ese mes (la misma tabla de observaciones de celda, sin cambio de esquema).",
+      "acceptance_criteria": [
+        "Con 300 planeados en Viaje hasta marzo, planear sacar 100 de Viaje en marzo guarda 100 en su retiro planeado de marzo.",
+        "Planear 301 en ese caso se rechaza con ««Viaje» solo tiene $300» y nada se guarda.",
+        "Con un retiro planeado de 250 en junio, planear 100 en marzo se rechaza nombrando junio.",
+        "Planear otra vez 50 en la misma alcancía y mes suma: queda 150.",
+        "Planear sacar 100 de Viaje en marzo con la nota «pasajes» guarda la nota y la lista del formulario la muestra junto al retiro."
+      ]
+    },
+    {
+      "id": "FR-3003",
+      "title": "Los retiros planeados del mes se corrigen desde la lista del formulario",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario cambia el monto de un retiro planeado en la lista del formulario, the system shall corregirlo; 0 lo elimina. Misma interacción que la lista de Ejec. (FR-1802), con las mismas reglas. La lista muestra, junto a cada retiro planeado, sus notas; si hay varias (dos retiros de la misma alcancía y mes, que se suman en una línea), se muestran juntas. Eliminar el retiro elimina también sus notas.",
+      "acceptance_criteria": [
+        "Cambiar el retiro planeado de Viaje en marzo de 100 a 60 lo deja en 60.",
+        "Poner 0 lo elimina y aparece «Operación eliminada».",
+        "Subirlo por encima de lo que el plan tiene se rechaza con el motivo y el campo vuelve al monto anterior.",
+        "Con dos retiros planeados de Viaje en marzo con notas «pasajes» y «hotel», la lista muestra una línea de Viaje por la suma con «pasajes · hotel»."
+      ]
+    },
+    {
+      "id": "FR-3004",
+      "title": "La celda Pres. de «Retiros del mes» suma los retiros planeados de las alcancías",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When se pinta la celda Pres. de «Retiros del mes», the system shall mostrar la suma de los retiros planeados de todas las alcancías en ese mes, y el Balance del plan («Retiros de reservas» Pres.) y la graduación de la celda Ejec. contra lo planeado (FR-1014) leen esa misma suma.",
+      "acceptance_criteria": [
+        "Con retiros planeados de 100 en Viaje y 50 en Carro en marzo, la celda Pres. dice 150.",
+        "Un mes sin retiros planeados dice «—».",
+        "Con 150 planeados y 160 retirados de verdad, la celda Ejec. se pinta como sobre-retiro leve (›)."
+      ]
+    },
+    {
+      "id": "FR-3006",
+      "title": "Los retiros planeados sin alcancía se reparten solos",
+      "priority": "MUST",
+      "type": "persistence",
+      "description": "When se carga un ledger que tiene retiros planeados sin alcancía (la fila global `@retiros`), the system shall asignar cada uno, sin que el usuario haga nada, a la alcancía con más plata planeada en ese mes; si esa no alcanza, lo que falte sale de la siguiente, y así hasta cubrirlo. La conversión se hace una sola vez y deja el total planeado del mes igual.",
+      "acceptance_criteria": [
+        "Con 10.000.000 planeados sin alcancía en octubre y dos alcancías con 43.728.582 y 1.000.000 planeados, el retiro queda entero en la primera.",
+        "Con 1.500 sin alcancía y alcancías con 1.000 y 800 planeados, quedan 1.000 en la primera y 500 en la segunda.",
+        "Tras la conversión, «Retiros del mes · Pres.» y el Balance del plan dan las mismas cifras que antes.",
+        "Cargar el ledger una segunda vez no vuelve a convertir nada y no cambia ninguna fila."
+      ]
+    },
+    {
+      "id": "FR-3008",
+      "title": "El servidor aplica las reglas a los retiros planeados por alcancía",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When llega al servidor un snapshot con retiros planeados por alcancía (PUT /api/v1/ledger), the system shall juzgarlos con las mismas reglas que el navegador (FR-2906) y responder 422 domain_rule_violation si el plan de alguna alcancía o de algún mes empeora.",
+      "acceptance_criteria": [
+        "Un PUT con un retiro planeado que deja una alcancía del plan en negativo responde 422 domain_rule_violation con la regla piso.",
+        "Un PUT con un retiro planeado que la alcancía cubre responde 200."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Presupuestador personal (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Planear de qué ahorro va a sacar y cuánto, con los mismos pasos que cuando saca de verdad.",
+      "pain_point": "En el presupuesto, el retiro planeado es un número suelto del mes: no dice de qué alcancía sale y se escribe distinto que un retiro real."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-3001",
+      "requirement_id": "FR-3001",
+      "as_a": "presupuestador personal",
+      "i_want": "planear un retiro con el mismo formulario que uso para sacar de verdad",
+      "so_that": "no tenga que aprender otra forma",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3001",
+          "given": "la grilla con la fila «Retiros del mes»",
+          "when": "hago clic en su celda Pres. de marzo",
+          "then": "se abre el formulario con «Sacar de», monto, «¿Para qué? (opcional)» y «Planear»"
+        },
+        {
+          "id": "AC-3002",
+          "given": "300 planeados en Viaje hasta marzo",
+          "when": "abro el desplegable «Sacar de»",
+          "then": "veo «Ahorro · Viaje — $300»"
+        },
+        {
+          "id": "AC-3003",
+          "given": "Viaje elegido con 300 planeados",
+          "when": "tecleo 301",
+          "then": "el «Máx. $300» se pinta en rojo"
+        },
+        {
+          "id": "AC-3004",
+          "given": "el formulario sin alcancía elegida",
+          "when": "miro el botón «Planear»",
+          "then": "está deshabilitado"
+        }
+      ]
+    },
+    {
+      "id": "US-3002",
+      "requirement_id": "FR-3002",
+      "as_a": "presupuestador personal",
+      "i_want": "que cada retiro planeado quede en su alcancía y no pueda planear sacar de más",
+      "so_that": "el plan sea una simulación real",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3005",
+          "given": "300 planeados en Viaje hasta marzo",
+          "when": "planeo sacar 100 de Viaje en marzo",
+          "then": "queda un retiro planeado de 100 en Viaje en marzo"
+        },
+        {
+          "id": "AC-3006",
+          "given": "el mismo plan",
+          "when": "planeo sacar 301",
+          "then": "se rechaza con ««Viaje» solo tiene $300» y nada se guarda"
+        },
+        {
+          "id": "AC-3007",
+          "given": "un retiro planeado de 250 de Viaje en junio",
+          "when": "planeo sacar 100 en marzo",
+          "then": "se rechaza nombrando junio"
+        },
+        {
+          "id": "AC-3008",
+          "given": "100 ya planeados en Viaje en marzo",
+          "when": "planeo 50 más",
+          "then": "queda 150"
+        },
+        {
+          "id": "AC-3015",
+          "given": "300 planeados en Viaje hasta marzo",
+          "when": "planeo sacar 100 con la nota «pasajes»",
+          "then": "la lista del formulario muestra el retiro con «pasajes»"
+        }
+      ]
+    },
+    {
+      "id": "US-3003",
+      "requirement_id": "FR-3003",
+      "as_a": "presupuestador personal",
+      "i_want": "corregir o borrar un retiro planeado desde la lista",
+      "so_that": "arreglar un error sin rehacer el plan",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3009",
+          "given": "un retiro planeado de 100 en marzo",
+          "when": "lo cambio a 60",
+          "then": "queda en 60"
+        },
+        {
+          "id": "AC-3010",
+          "given": "el mismo retiro",
+          "when": "lo pongo en 0",
+          "then": "se elimina y aparece «Operación eliminada»"
+        },
+        {
+          "id": "AC-3011",
+          "given": "el mismo retiro",
+          "when": "lo subo por encima de lo planeado",
+          "then": "se rechaza con el motivo y vuelve a 100"
+        },
+        {
+          "id": "AC-3016",
+          "given": "dos retiros planeados de Viaje en marzo con notas «pasajes» y «hotel»",
+          "when": "abro el formulario",
+          "then": "una línea de Viaje con la suma y «pasajes · hotel»"
+        }
+      ]
+    },
+    {
+      "id": "US-3004",
+      "requirement_id": "FR-3004",
+      "as_a": "presupuestador personal",
+      "i_want": "que la fila de retiros planeados sume lo que planeo sacar de cada alcancía",
+      "so_that": "lo compare con lo que saco de verdad",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3012",
+          "given": "retiros planeados de 100 y 50 en dos alcancías en marzo",
+          "when": "abro la grilla",
+          "then": "la celda Pres. dice 150"
+        },
+        {
+          "id": "AC-3013",
+          "given": "un mes sin retiros planeados",
+          "when": "abro la grilla",
+          "then": "la celda Pres. dice «—»"
+        },
+        {
+          "id": "AC-3014",
+          "given": "150 planeados y 160 retirados",
+          "when": "miro la celda Ejec.",
+          "then": "se pinta como sobre-retiro leve (›)"
+        }
+      ]
+    },
+    {
+      "id": "US-3006",
+      "requirement_id": "FR-3006",
+      "as_a": "presupuestador personal",
+      "i_want": "que mis retiros planeados viejos queden en una alcancía sin tener que hacerlo yo",
+      "so_that": "mi plan siga cuadrando después de la actualización",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3020",
+          "given": "10.000.000 planeados sin alcancía en octubre y alcancías con 43.728.582 y 1.000.000 planeados",
+          "when": "cargo el ledger",
+          "then": "el retiro queda entero en la primera"
+        },
+        {
+          "id": "AC-3021",
+          "given": "1.500 sin alcancía y alcancías con 1.000 y 800 planeados",
+          "when": "cargo el ledger",
+          "then": "quedan 1.000 en la primera y 500 en la segunda"
+        },
+        {
+          "id": "AC-3022",
+          "given": "un ledger con retiros planeados sin alcancía",
+          "when": "comparo el Balance del plan antes y después de convertir",
+          "then": "da las mismas cifras"
+        },
+        {
+          "id": "AC-3023",
+          "given": "un ledger ya convertido",
+          "when": "lo cargo otra vez",
+          "then": "no se convierte nada y ninguna fila cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-3008",
+      "requirement_id": "FR-3008",
+      "as_a": "presupuestador personal",
+      "i_want": "que el servidor cumpla las mismas reglas para lo que planeo sacar",
+      "so_that": "ninguna vía guarde un plan que la app rechazaría",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3027",
+          "given": "un snapshot con un retiro planeado que deja una alcancía del plan en negativo",
+          "when": "se envía por PUT",
+          "then": "responde 422 domain_rule_violation con piso"
+        },
+        {
+          "id": "AC-3028",
+          "given": "un snapshot con un retiro planeado que la alcancía cubre",
+          "when": "se envía por PUT",
+          "then": "responde 200"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-3001",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Para los mismos datos, las cifras del Balance —Ejec. y Pres.— quedan idénticas (en Pres., tras la conversión de FR-3006).",
+      "acceptance_criteria": "Sobre fixtures capturados con el código anterior, la serie del Balance coincide cifra a cifra (en Pres., tras la conversión de FR-3006)."
+    },
+    {
+      "id": "NFR-3002",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El formulario de «Retiros del mes · Ejec.» y «Nuevo movimiento» → «Reserva» se comportan igual que hoy.",
+      "acceptance_criteria": "Las pruebas vigentes del registro y de la fila de retiros de Ejecutado siguen en verde sin cambios."
+    },
+    {
+      "id": "NFR-3003",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas de techo, piso y déficit aceptan y rechazan lo mismo para la misma operación (FR-2801, FR-2904).",
+      "acceptance_criteria": "Una operación que hoy se acepta con límite L se sigue aceptando con L y L+1 se sigue rechazando."
+    },
+    {
+      "id": "NFR-3004",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Un mes cerrado no se puede modificar: ni la celda de un bolsillo ni un retiro planeado (FR-2003). La celda de un bolsillo de un mes cerrado abre solo con observaciones.",
+      "acceptance_criteria": "Planear un retiro en un mes cerrado responde 422 closed_period_violation; la celda de un bolsillo de un mes cerrado no ofrece campo de importe."
+    },
+    {
+      "id": "NFR-3005",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "La celda de un bolsillo sigue mostrando lo aportado ese mes, en los dos planos, y editarla corrige el aporte (FR-1003); las filas de grupo y «RESERVAS» siguen sumando aportes del mes. Nada de la grilla arrastra: lo acumulado vive en el Balance (decisión del usuario del 2026-09-27).",
+      "acceptance_criteria": "Con 600 en julio, 400 en agosto y un retiro de 300 en septiembre, la celda del bolsillo dice 600, 400 y «—»; escribir 500 en agosto deja el aporte de agosto en 500 sin crear operaciones."
+    },
+    {
+      "id": "NFR-3006",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las celdas de gasto e ingreso siguen creando su ajuste por la diferencia (FR-2504).",
+      "acceptance_criteria": "Las pruebas vigentes de diario-de-celda sobre gasto e ingreso siguen en verde."
+    },
+    {
+      "id": "NFR-3007",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Abrir un ledger no altera amount_cell ni las operaciones reales; lo único que se convierte, una sola vez, son los retiros planeados sin bolsillo (FR-3006).",
+      "acceptance_criteria": "Cargar un ledger sin retiros planeados globales no cambia ninguna fila; con ellos, solo cambian las filas del retiro planeado y el total del mes se conserva."
+    },
+    {
+      "id": "NFR-3008",
+      "category": "Security",
+      "requirement": "No aplica: sin endpoints, entradas aceptadas, sesiones ni secretos nuevos; FR-3008 añade reglas al guardia existente de PUT /api/v1/ledger, que conserva su autenticación, su control de Origin y su aislamiento por ownerId.",
+      "acceptance_criteria": "El gate security-config sigue en verde."
+    },
+    {
+      "id": "NFR-3009",
+      "category": "Observability",
+      "requirement": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-3010",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "acceptance_criteria": "El workflow de CI no se modifica y ejecuta test:run y test:e2e."
+    }
+  ],
+  "no_go_zone": [
+    "Mostrar en la grilla el saldo acumulado de cada alcancía, o cualquier cifra que arrastre: por decisión del usuario del 2026-09-27, lo acumulado vive solo en el Balance («de lo contrario tendríamos que hacer un balance por cada alcancía»).",
+    "Cambiar lo que muestra la celda de un bolsillo o lo que significa escribir en ella: sigue siendo el aporte del mes (FR-1003).",
+    "Planear moveres entre alcancías: el plan anota aportes y retiros; mover sigue siendo solo de lo real.",
+    "Elegir a mano a qué alcancía va un retiro planeado viejo: la conversión es automática por decisión del usuario.",
+    "La vista móvil (BL-056) y la integración con Tony (BL-057)."
+  ],
+  "constraints": [
+    "El formulario de Pres. reutiliza el componente de la fila de retiros de Ejec.; no se crea uno paralelo.",
+    "Navegador y servidor aplican las reglas desde las mismas funciones (chainCheck).",
+    "El retiro planeado por alcancía se guarda como fila del plan `@retiros:<alcancía>` (sin cambio de esquema)."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "assumed",
+    "baseline": "confirmed",
+    "success_metric": "assumed",
+    "no_go_zone": "assumed"
+  },
+  "idea_provenance_sources": {
+    "problem": "Decisión final del usuario en el chat del 2026-09-27, tras ver en su grilla el saldo arrastrado: «Todo de reservas, ingresos, egresos muestra lo del mes o ciclo, los movimientos de esos meses o ciclos. En balance, lo disponible, es donde se arrastra», «si en noviembre tampoco ahorro y saco, eso va en retiros del mes y en el formulario de retiros del mes especifica de dónde sale», «el mismo formulario que tiene retiros del mes en ejecutado va en presupuestado». Antes: el plan «igual que ejecutado (real)» y el reparto automático de los retiros viejos («ok»).",
+    "users": "Inferido: el mismo usuario único de todo el proyecto.",
+    "baseline": "Medido por el agente el 2026-09-27: la fila «Retiros del mes · Pres.» era un número suelto por mes sin alcancía (`@retiros`), editable en línea, mientras la de Ejec. abre un formulario con alcancía, monto, nota y lista de operaciones.",
+    "success_metric": "Propuesto por el agente a partir de los ejemplos que el usuario vio y aceptó; los criterios uno a uno se confirman en la aprobación.",
+    "no_go_zone": "Propuesto por el agente; confirmar en la aprobación."
+  },
+  "idea_gaps": [
+    "users: se asume el usuario único de producción; confirmar.",
+    "success_metric: los criterios con números los propuso el agente a partir del formulario de Ejec. que el usuario pidió replicar; confirmar en la aprobación.",
+    "no_go_zone: la lista la propuso el agente; confirmar en la aprobación."
+  ],
+  "coverage_map": [
+    {
+      "need": "El formulario de Retiros del mes de Ejec. también en Pres.",
+      "disposition": "FR-3001"
+    },
+    {
+      "need": "El formulario dice de qué alcancía sale el retiro planeado",
+      "disposition": "FR-3002"
+    },
+    {
+      "need": "No planear sacar más de lo que el plan tiene",
+      "disposition": "FR-3002"
+    },
+    {
+      "need": "Corregir o borrar retiros planeados",
+      "disposition": "FR-3003"
+    },
+    {
+      "need": "La fila Pres. de retiros suma lo planeado por alcancía",
+      "disposition": "FR-3004"
+    },
+    {
+      "need": "Los retiros planeados viejos se reparten solos",
+      "disposition": "FR-3006"
+    },
+    {
+      "need": "El servidor aplica las reglas a los retiros planeados",
+      "disposition": "FR-3008"
+    },
+    {
+      "need": "Reservas, ingresos y gastos muestran lo del mes, sin arrastrar",
+      "disposition": "NFR-3005"
+    },
+    {
+      "need": "Lo acumulado vive solo en el Balance",
+      "disposition": "NFR-3001"
+    },
+    {
+      "need": "El registro y la fila de retiros de Ejec. no cambian",
+      "disposition": "NFR-3002"
+    },
+    {
+      "need": "Las reglas no cambian",
+      "disposition": "NFR-3003"
+    },
+    {
+      "need": "Los meses cerrados siguen congelados",
+      "disposition": "NFR-3004"
+    },
+    {
+      "need": "Gasto e ingreso siguen con su ajuste",
+      "disposition": "NFR-3006"
+    },
+    {
+      "need": "Abrir un ledger no cambia sus datos",
+      "disposition": "NFR-3007"
+    },
+    {
+      "need": "Un saldo por alcancía en la grilla",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Nota «¿Para qué?» en los retiros planeados",
+      "disposition": "FR-3002"
+    }
+  ],
+  "original_brief": "<!-- AGENT: if you fill this for the user, confirm the ground-truth fields\n     (Problem / Why, Target Users, Success Criteria, Out of Scope) with them —\n     do not silently infer. Mark anything you inferred as \"[ASSUMPTION] …\".\n     Phase 1 records these as a provenance contract and blocks unconfirmed,\n     untracked guesses on the highest-value inputs. -->\n\n## Feature\nLa celda de un bolsillo en la grilla pasa a decir lo que hay AHORRADO en ese bolsillo al cierre de cada\nmes (su saldo), y no lo que se metió ese mes. Escribir un número encima significa «ahora tengo esto».\n\n## Problem / Why\nCONFIRMADO por el usuario el 2026-09-27, replicando el caso él mismo en su cuenta de pruebas.\n\nHoy la celda de un bolsillo guarda y muestra el APORTE del mes (FR-1003 de transferencias, decisión del\n2026-07-29). Sacar plata de un bolsillo no baja su celda: el retiro se anota aparte, en la fila «Retiros\ndel mes». El usuario lee la celda como «lo que tengo en ese bolsillo», y esa lectura le da una cifra que\nno es cierta. Sus palabras al verlo: «lo que dices es que cuando saco dinero de alguna alcancía, eso no\nse resta?» y, como decisión, «sí que reste».\n\nMedido en pantalla el 2026-09-27 sobre `795ca8a`, con datos inventados:\n\n- Un bolsillo recibe 1.000.000, se le sacan 500.000 y se le vuelven a meter 500.000 en el mismo mes. La\n  celda dice 1.500.000; en el bolsillo hay 1.000.000. El botón del bolsillo en «Nuevo movimiento» →\n  «Reserva» sí dice 1.000.000.\n- Un bolsillo recibe 600.000 en un mes y 400.000 en el siguiente, y en el tercero se le sacan 300.000. La\n  fila dice 600.000, 400.000 y vacío; en el bolsillo hay 600.000, 1.000.000 y 700.000.\n- La app rechaza sacar 1.500.000 del primer bolsillo: el dominio ya conoce el saldo real\n  (`resolvedSeries` en `src/domain/reserve.ts`). Lo que falta es mostrarlo en la celda.\n\nCon UN solo bolsillo la fila «Saldo reservado» del Balance coincide con su saldo, y por eso el hueco no\nse nota en una cuenta con un bolsillo. Con dos o más, ninguna fila de la grilla dice cuánto hay en cada\nuno.\n\nNo es un error de cálculo: todas las cifras de hoy son correctas para lo que cada fila declara. Lo que\ncambia es la regla. Origen: BL-041 del backlog de la raíz, que además es deuda previa de BL-056 (móvil) y\nBL-057 (Tony): los dos necesitan una sola respuesta a «cuánto tengo en el bolsillo X».\n\n## Target Users\n[ASSUMPTION] El usuario único de producción (presupuestador personal), igual que en las features\nanteriores. No abre tipos de usuario nuevos.\n\n## New Behavior\nLas dos primeras reglas están CONFIRMADAS por el usuario el 2026-09-27. Las demás son propuestas a\nconfirmar en la fase de requisitos.\n\n1. CONFIRMADO. En Ejecutado, la celda de un bolsillo muestra lo que hay ahorrado en ese bolsillo al\n   cierre de ese mes: todo lo que entró menos todo lo que salió, desde el principio hasta ese mes. Sus\n   palabras: «debería ser lo que tengo ahorrado cada mes en ese rubro». Se descartó mostrar el neto del\n   mes (aportes − retiros del mes), que puede quedar negativo.\n2. CONFIRMADO. Escribir un número encima de la celda significa «ahora tengo esto». La app anota la\n   DIFERENCIA con lo que había: si el número es mayor, como plata que entró al bolsillo; si es menor,\n   como un retiro. Siempre con fecha. Se descartaron «corregir lo aportado sin anotar retiro» (falla en\n   un mes donde no se metió nada) y «celda de solo lectura».\n3. [ASSUMPTION] La fecha de esa anotación sigue la regla que ya usan las celdas de gasto e ingreso\n   (`proposedDate`, FR-2503 de diario-de-celda): hoy si hoy cae en el mes o ciclo de la celda; si no, el\n   último día de ese periodo.\n4. [ASSUMPTION] Un mes sin operaciones muestra el saldo que viene del mes anterior, no una celda vacía.\n   Una celda queda vacía solo mientras el bolsillo nunca ha tenido plata.\n5. CONFIRMADO como principio el 2026-09-27, con el ALCANCE por confirmar. Palabras del usuario: «el\n   presupuesto debería comportarse igual que el ejecutado, solo que en su carril de presupuesto; hoy día\n   tiene una mezcla rara». Para la celda de un bolsillo significa: en Presupuestado dice lo que el plan\n   tendría ahorrado en ese bolsillo al cierre del mes, y escribir un número encima anota la diferencia\n   como aporte o retiro PLANEADO de ese bolsillo.\n   LA MEZCLA, medida en pantalla el mismo día: los dos planos abren cada mes en el cierre REAL del mes\n   anterior (ADR-03 del Balance, revisado el 2026-07-27; `computeBalanceSeries` en `src/domain/balance.ts`\n   y `techoScanRaw` en `src/domain/reserve.ts`). El cierre presupuestado de un mes no alimenta al\n   siguiente. Además el retiro planeado es UNA fila por mes, sin bolsillo (`@retiros`).\n   CONFIRMADO el mismo día que «su carril» alcanza a TODA la columna Pres. del Balance: el presupuesto\n   arrastra su propio saldo de mes a mes. Palabras del usuario: «esa regla vieja es mal diseño, hay que\n   corregirlo». Registrado como BL-059 en el backlog de la raíz.\n   YA ENTREGADO: el usuario eligió dos entregas y la primera, la feature carril-de-presupuesto (5/5,\n   2026-09-27, commits 5eacb9c y 708d34c), ya hace que el plan arrastre su propio saldo y que sus reglas\n   de reservas bloqueen como en Ejecutado («comportamientos iguales»). Esta feature parte de ahí.\n   LO QUE QUEDA AQUÍ del lado del plan, CONFIRMADO el 2026-09-27: el plan funciona igual que lo real\n   («sí, deberíamos dejarlo igual que ejecutado (real)», elegido tras ver con un ejemplo la alternativa de\n   un retiro planeado sin bolsillo). La celda Pres. de un bolsillo muestra lo que el plan tendría ahorrado\n   en él; bajarla anota un retiro PLANEADO de ESE bolsillo. La fila «Retiros del mes» Pres. pasa a ser la\n   suma de los retiros planeados de los bolsillos y deja de escribirse directamente. Hoy el retiro\n   planeado es una sola fila por mes, sin bolsillo (`@retiros`).\n5b. CONFIRMADO el 2026-09-27 («ok»). Los retiros planeados que YA existen sin bolsillo los reasigna la\n   actualización sola, sin que el usuario corrija nada a mano: cada uno va al bolsillo con más plata\n   planeada ese mes y, si no alcanza, lo que falte sale del siguiente. Ejemplo mostrado con su cuenta de\n   pruebas: 10.000.000 planeados para octubre irían al bolsillo que tenía 43.728.582 planeados.\n6. [ASSUMPTION] Las filas de grupo y de tipo («Ahorro», «RESERVAS») suman lo que hay en sus bolsillos, así\n   que la fila «RESERVAS» pasa a coincidir con «Saldo reservado» del Balance. POR CONFIRMAR con el usuario.\n7. [ASSUMPTION] `amount_cell` sigue guardando aportes y el journal las operaciones reales; el saldo se\n   DERIVA al pintar, así que los ledgers existentes muestran el saldo correcto sin que el usuario corrija\n   nada. Lo único que cambia de forma es el retiro planeado, que pasa a tener bolsillo (punto 5b); cómo se\n   guarda lo decide el diseño.\n8. Las reglas vigentes se aplican igual a lo escrito en la celda: no se puede reservar más de lo disponible\n   en el mes, no se puede sacar más de lo que hay en el bolsillo, y ninguna operación deja un mes con\n   gastos sin cubrir (FR-2801 de retirar-para-gastar). Un número que las rompe se rechaza diciendo cuál.\n\n## Success Criteria\n[ASSUMPTION] Propuestos por el agente; POR CONFIRMAR con el usuario.\n\n- Dado un bolsillo que recibió 1.000.000, al que se le sacaron 500.000 y se le volvieron a meter 500.000\n  en el mismo mes, cuando se abre la grilla, entonces su celda de ese mes dice 1.000.000.\n- Dado un bolsillo con 600.000 en un mes, 400.000 en el siguiente y un retiro de 300.000 en el tercero,\n  cuando se abre la grilla, entonces la fila dice 600.000, 1.000.000 y 700.000.\n- Dada una celda que dice 1.000.000, cuando el usuario escribe 800.000, entonces la celda dice 800.000,\n  aparece un retiro de 200.000 con fecha y «Saldo disponible» sube 200.000.\n- Dada una celda que dice 1.000.000, cuando el usuario escribe 1.200.000 y hay 200.000 disponibles,\n  entonces la celda dice 1.200.000 y «Saldo disponible» baja 200.000.\n- Para cualquier bolsillo y cualquier mes, la celda de la grilla y el botón de ese bolsillo en «Nuevo\n  movimiento» → «Reserva» dicen la misma cifra.\n- Un ledger guardado antes de la feature muestra los saldos correctos al abrirlo, sin migración.\n\n## Touch Points\nMODIFICA:\n- FR-1003 (transferencias): «Editar la celda corrige el aporte del mes — jamás genera retiros ni\n  journal». Es la regla que esta feature cambia.\n- FR-1001 (transferencias): el saldo derivado «no se muestra celda a celda». Pasa a mostrarse.\n- FR-1808 (techo-de-flujo): el «Máx.» del editor de la celda de bolsillo, hoy un total de aporte.\n- FR-1603 (transferencias): el roll-up del grupo «Reservas» lee la misma cifra que «− Reservas del mes».\n- FR-1804 (techo-de-flujo): la observación automática de la celda («De los X reservados este mes…»).\n- NFR-2503 (diario-de-celda): «los bolsillos tienen su propia regla» al escribir un valor en la celda.\n- `src/domain/reserve.ts` (`applyReserveCellEdit`, `cellHeadroom`, `validateReserveWrite`),\n  `src/components/ReserveCells.tsx`, `src/state/store.ts`, `src/domain/rollup.ts`.\n\nNO TOCA: el esquema de la base, la API de movimientos, el registro «Nuevo movimiento».\n\n## Must Not Break (Regression Boundary)\n- Para los mismos datos, las filas del Balance dan las mismas cifras que hoy en la columna Ejec.:\n  «Reservas del mes», «Retiros de reservas», «Saldo disponible», «Saldo reservado» y «Saldo total». La\n  columna Pres. del Balance da las mismas cifras que tras carril-de-presupuesto.\n- La fila «Retiros del mes» sigue listando los retiros y sigue permitiendo corregirlos y borrarlos\n  (FR-1802, FR-1803, FR-1609).\n- «Nuevo movimiento» → «Reserva» (meter, sacar y mover entre bolsillos) se comporta igual, y el botón de\n  cada bolsillo sigue mostrando su saldo.\n- Las reglas de techo, piso y déficit aceptan y rechazan exactamente lo mismo que hoy para la misma\n  operación (FR-2801).\n- Un mes cerrado no se puede modificar escribiendo en la celda de un bolsillo (FR-2003 de cierre-de-mes).\n- En ciclos, toda anotación nueva tiene fecha y su periodo es el de esa fecha (FR-2405).\n- Las celdas de gasto e ingreso siguen creando su ajuste por la diferencia (FR-2504).\n- Lo guardado en `amount_cell` y `movement` de un ledger existente no cambia al abrirlo.\n\n## Out of Scope\n[ASSUMPTION] Propuesto por el agente; POR CONFIRMAR con el usuario.\n\n- La vista móvil (BL-056) y la integración con Tony (BL-057). Esta feature les deja la regla decidida.\n- El color del Balance (BL-042).\n- Cambiar qué filas tiene el Balance o cómo se calculan.\n"
+}

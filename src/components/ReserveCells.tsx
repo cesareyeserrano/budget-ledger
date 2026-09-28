@@ -29,7 +29,9 @@ import {
   reserveLeafIds,
   reserveRetiros,
   resolvedBalance,
+  plannedRetiroRows,
   validateReserveWrite,
+  type PlannedRetiroRow,
   type LedgerState,
   type Plane,
 } from "@/domain";
@@ -42,15 +44,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { CellDetail } from "./CellDetail";
 
 
-/** Marca de forma del aviso de plan: canal no cromático PROPIO — ≠ ›/›› y ≠ ‹‹ (WCAG 1.4.1). */
-const PLAN_WARN_GLYPH = "!";
-
 // ── Celda transfer (aporte del mes) ────────────────────────────────────────────────────────────
 
 /**
- * Celda de una hoja transfer: pinta el APORTE de ese mes (flujo, como Ingresos/Gastos). En Pres.,
- * la marca «!» + ámbar avisa que la suma de aportes planeados del mes supera su margen — avisa,
- * jamás bloquea. El punto de observaciones aflora las notas del mes.
+ * Celda de una hoja transfer: pinta el APORTE de ese mes (flujo, como Ingresos/Gastos). El punto de
+ * observaciones aflora las notas del mes.
+ *
+ * FR-2905 (carril-de-presupuesto): la celda Pres. ya no lleva el aviso ámbar «!». El plan bloquea
+ * como lo real (FR-2904) y un mes del plan que ya se pasaba se marca en el encabezado del mes, igual
+ * que en Ejecutado — un solo sistema de aviso para los dos planos.
+ *
+ * @aitri-trace FR-ID: FR-2905, US-ID: US-2905, AC-ID: AC-2918, TC-ID: TC-CDP-042f
  */
 export function ReserveLeafCell(props: {
   leafId: string;
@@ -58,14 +62,14 @@ export function ReserveLeafCell(props: {
   plane: Plane;
   sep?: boolean;
   highlight?: boolean;
-  planWarnMonths: Partial<Record<PeriodKey, number>>;
   onStart: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
+  // saldo-de-bolsillo (NFR-3005, decisión del usuario del 2026-09-27): la celda es lo APORTADO ese mes.
+  // Nada de la grilla arrastra; lo acumulado vive en el Balance.
   const value = map[props.leafId]?.[props.month] ?? 0;
-  const planWarn = props.plane === "budget" && props.planWarnMonths[props.month] !== undefined && value > 0;
 
   // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
   const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month, periods) : [];
@@ -73,20 +77,16 @@ export function ReserveLeafCell(props: {
   const carry =
     props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual", periods) : null;
 
-  const color = planWarn
-    ? "var(--state-warning)"
-    : props.plane === "budget"
-      ? "var(--fg-secondary)"
-      : value
-        ? "var(--accent-light)"
-        : "var(--fg-secondary)";
-  const title = planWarn
-    ? `Este plan supera tu margen de ${periodLabel(props.month).toLowerCase()}`
-    : carry
-      ? carryUsageText(carry, money)
-      : observations.length > 0
-        ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
-        : undefined;
+  const color = props.plane === "budget"
+    ? "var(--fg-secondary)"
+    : value
+      ? "var(--accent-light)"
+      : "var(--fg-secondary)";
+  const title = carry
+    ? carryUsageText(carry, money)
+    : observations.length > 0
+      ? observations.slice(0, 3).map((o) => o.text).join(" · ") + (observations.length > 3 ? ` · +${observations.length - 3} más` : "")
+      : undefined;
 
   return (
     <div
@@ -98,7 +98,6 @@ export function ReserveLeafCell(props: {
       data-cell={props.leafId}
       data-month={props.month}
       data-plane={props.plane}
-      {...(planWarn ? { "data-plan-warn": "true" } : {})}
       title={title}
       className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
       style={{ color, background: props.highlight ? "color-mix(in srgb, var(--accent) 6%, var(--bg))" : "var(--bg)" }}
@@ -111,11 +110,6 @@ export function ReserveLeafCell(props: {
           style={{ background: "var(--alert-soft)", borderColor: "var(--bg)" }}
         />
       )}
-      {planWarn ? (
-        <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">
-          {PLAN_WARN_GLYPH}
-        </span>
-      ) : null}
       {cellNum(value)}
     </div>
   );
@@ -126,7 +120,10 @@ export function ReserveLeafCell(props: {
 /**
  * Editor de una celda transfer: corrige el APORTE del mes. En BLOQUEO (techo del mes, o piso: el
  * cambio dejaría en rojo retiros ya operados) el editor NO se cierra — franja inline con el
- * mensaje y el valor seleccionado («corrige o Escape»). En Pres. escribe siempre (el plan avisa).
+ * mensaje y el valor seleccionado («corrige o Escape»). Igual en los dos planos desde FR-2905: el
+ * plan muestra su «Máx.» y rechaza como lo real (antes escribía siempre y solo avisaba).
+ *
+ * @aitri-trace FR-ID: FR-2905, US-ID: US-2905, AC-ID: AC-2916, TC-ID: TC-CDP-040h, TC-CDP-041h, TC-CDP-043h, TC-CDP-044e, TC-CDP-050e
  */
 export function ReserveCellEditor(props: {
   leafId: string;
@@ -134,6 +131,8 @@ export function ReserveCellEditor(props: {
   plane: Plane;
   sep?: boolean;
   highlight?: boolean;
+  /** Mes cerrado (FR-2003): el editor abre SOLO con observaciones, sin campo de importe (NFR-3004). */
+  closed?: boolean;
   onClose: () => void;
 }) {
   const data = useLedgerStore((s) => s.data);
@@ -150,14 +149,15 @@ export function ReserveCellEditor(props: {
   // la celda contiene un TOTAL. Una celda que vale 1.000 en un mes con el cupo agotado admite
   // perfectamente que se la baje a 800; mostrarle «Máx. 0» y pintarla en rojo sería mentirle sobre
   // una escritura válida (TC-TDF-072f).
-  const headroom = plane === "actual" ? cellHeadroom(data, leafId, month, plane, periods) : null;
+  // FR-2905: en los dos planos, cada uno con su carril (FR-2903).
+  const headroom = cellHeadroom(data, leafId, month, plane, periods);
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
   // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
-  const excede = headroom !== null && Math.max(0, Math.round(Number(val) || 0)) > headroom;
+  const excede = Math.max(0, Math.round(Number(val) || 0)) > headroom;
 
   /** Bloqueo: el editor queda abierto con el valor rechazado seleccionado («corrige o Escape»). */
   function fail(msg: string) {
@@ -181,13 +181,27 @@ export function ReserveCellEditor(props: {
           editedMonth: month,
           attempted: value - current,
           // El mismo TOTAL que el indicador «Máx.» muestra: un solo número para el mismo límite.
-          ...(headroom !== null ? { maxTotal: headroom } : {}),
+          maxTotal: headroom,
         })
       );
       return;
     }
     applyReserveEdit(leafId, month, plane, value);
     props.onClose();
+  }
+
+  // NFR-3004 (saldo-de-bolsillo): en un mes cerrado no se ofrece escribir el aporte —el servidor lo
+  // rechazaría— pero las observaciones siguen abiertas (FR-2004), igual que en gasto e ingreso.
+  if (props.closed) {
+    return (
+      <div ref={rootRef} tabIndex={-1} onKeyDown={(e) => { if (e.key === "Escape") props.onClose(); }}
+        className={cn(CELL_W, "relative py-1 px-2 outline-none", props.sep && "border-l-2 border-l-border-strong")}>
+        <span data-testid="closed-value" className="tabular text-caption text-fg-secondary flex justify-end px-1.5 py-1">{cellNum(current)}</span>
+        <div className="absolute left-0 top-full z-20 min-w-[230px]">
+          {plane === "actual" && <CellDetail leafId={leafId} month={month} />}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -220,21 +234,19 @@ export function ReserveCellEditor(props: {
           las celdas vecinas (AC-1833). Forma elegida por el usuario sobre una comparación
           renderizada a escala real. */}
       <div className="absolute left-0 top-full z-20 flex flex-col items-start gap-1 min-w-[230px]">
-        {headroom !== null && (
-          <span
-            data-testid="reserve-max"
-            title={`El máximo que admite esta celda en ${periodLabel(month).toLowerCase()}`}
-            className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
-            style={{
-              color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
-              borderColor: excede ? "var(--alert-strong)" : "var(--border)",
-              background: "var(--bg-elevated)",
-              boxShadow: "var(--shadow-md)",
-            }}
-          >
-            Máx. {money(headroom)}
-          </span>
-        )}
+        <span
+          data-testid="reserve-max"
+          title={`El máximo que admite esta celda en ${periodLabel(month).toLowerCase()}`}
+          className="tabular text-caption leading-none whitespace-nowrap rounded-(--radius-sm) border px-1.5 py-1"
+          style={{
+            color: excede ? "var(--alert-strong)" : "var(--fg-muted)",
+            borderColor: excede ? "var(--alert-strong)" : "var(--border)",
+            background: "var(--bg-elevated)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          Máx. {money(headroom)}
+        </span>
         {block && (
           <div
             data-testid="reserve-block"
@@ -284,138 +296,87 @@ const RETIRO_STATE_GLYPH: Record<BudgetState, "" | "›" | "››"> = {
   over_hard: "››",
 };
 
-/**
- * Celda Pres. de la fila «Retiros del mes» (Balance): el retiro PLANEADO. Rechaza planear más de
- * lo que el propio plan habrá reservado hasta ese mes («Solo hay $X reservados en tu plan») —
- * franja inline, el editor no se cierra (observación 2, 2026-07-29).
- */
-export function PlannedWithdrawCell({ month, sep }: { month: PeriodKey; sep?: boolean }) {
-  const data = useLedgerStore((s) => s.data);
-  const periods = useActivePeriods();
-  const setPlanned = useLedgerStore((s) => s.setPlannedRetiro);
-  const value = reserveRetiros(data, month, "budget");
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState("");
-  const [block, setBlock] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function commit() {
-    const res = setPlanned(month, Math.max(0, Math.round(Number(val) || 0)));
-    if (!res.ok) {
-      setBlock(`Solo hay ${money(res.limit)} reservados en tu plan hasta ${periodLabel(month).toLowerCase()}`);
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-      return;
-    }
-    setBlock(null);
-    setEditing(false);
-  }
-
-  if (editing) {
-    return (
-      <div className={cn(CELL_W, "relative py-1 px-2 bg-sunken border-b border-border", sep && "border-l-2 border-l-border-strong")}>
-        <input
-          ref={inputRef}
-          autoFocus
-          onFocus={(e) => e.currentTarget.select()}
-          aria-label="Retiro planeado"
-          value={val}
-          onChange={(e) => {
-            setVal(e.target.value.replace(/[^0-9]/g, ""));
-            setBlock(null);
-          }}
-          onBlur={() => {
-            if (!block) commit();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-            if (e.key === "Escape") {
-              setBlock(null);
-              setEditing(false);
-            }
-          }}
-          className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
-        />
-        {block && (
-          <div
-            data-testid="planned-withdraw-block"
-            role="alert"
-            className="absolute left-0 top-full z-20 min-w-[230px] rounded-(--radius-sm) border px-2.5 py-1.5 text-[12px]"
-            style={{ borderColor: "var(--error)", color: "var(--error)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)" }}
-          >
-            {block}
-          </div>
-        )}
-      </div>
-    );
-  }
-  // Estado auto-sanador (hallazgo adversarial 7): si DESPUÉS de planear el retiro bajaron los
-  // aportes del plan, la celda se marca sola — ámbar + «!», sin bloquear (es el plan).
-  const uncovered = value > 0 && value > plannedRetiroLimit(data, month, periods);
-  return (
-    <div
-      data-testid="planned-withdraw-cell"
-      data-month={month}
-      {...(uncovered ? { "data-plan-warn": "true" } : {})}
-      title={
-        uncovered
-          ? `Tu plan de aportes ya no cubre este retiro (hay ${money(plannedRetiroLimit(data, month, periods))} reservados hasta ${periodLabel(month).toLowerCase()})`
-          : "Retiro planeado del mes (haz clic para editar)"
-      }
-      onClick={() => {
-        setVal(String(value || 0));
-        setEditing(true);
-      }}
-      className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text bg-sunken", sep && "border-l-2 border-l-border-strong")}
-      style={{ color: uncovered ? "var(--state-warning)" : "var(--fg-secondary)" }}
-    >
-      {uncovered && <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">!</span>}
-      {cellNum(value)}
-    </div>
-  );
-}
+/** Los textos del formulario por plano: el mismo formulario, dicho para sacar o para planear (FR-3001). */
+const WITHDRAW_TEXT: Record<Plane, { title: string; save: string; list: string; empty: string; trigger: string }> = {
+  actual: {
+    title: "Sacar en",
+    save: "Sacar",
+    list: "Operaciones de este mes",
+    empty: "Sin operaciones este mes",
+    trigger: "Sacar de una alcancía hacia Disponible (o corregir un retiro)",
+  },
+  budget: {
+    title: "Planear sacar en",
+    save: "Planear",
+    list: "Retiros planeados de este mes",
+    empty: "Sin retiros planeados este mes",
+    trigger: "Planear sacar de una alcancía (o corregir un retiro planeado)",
+  },
+};
 
 /**
- * Celda Ejec. de la fila «Retiros del mes» (Balance): muestra la Σ del mes graduada contra el
- * retiro planeado (›/›› + ámbar/rojo al pasarse — misma regla que los gastos) y abre el mini-form
- * al clic: origen en lista desplegable con todas las alcancías y eliminación de retiros (corrección).
+ * Celda de la fila «Retiros del mes», en los dos planos, y el formulario que abre.
+ *
+ * Ejec.: muestra la Σ del mes graduada contra lo planeado (›/›› + ámbar/rojo al pasarse, misma regla
+ * que los gastos) y abre el mini-form: origen en lista desplegable con todas las alcancías y la lista de
+ * operaciones del mes, corregibles.
+ *
+ * Pres. (saldo-de-bolsillo, FR-3001): «el mismo formulario que tiene retiros del mes en ejecutado va en
+ * presupuestado» (usuario, 2026-09-27). Mismos controles, teclas y testids; cambian los textos, el saldo
+ * que se lee (el del plan), la acción (planear, no sacar) y la lista (retiros planeados por alcancía, con
+ * sus notas). Un mes cerrado no abre el formulario del plan (NFR-3004). Conserva la marca ámbar de un
+ * retiro planeado legado sin respaldo (BG-020).
+ *
+ * @aitri-trace FR-ID: FR-3001, US-ID: US-3001, AC-ID: AC-3001, TC-ID: TC-SDB-001h, TC-SDB-002h, TC-SDB-003f, TC-SDB-004f, TC-SDB-005e
+ * @aitri-trace FR-ID: FR-3004, US-ID: US-3004, AC-ID: AC-3012, TC-ID: TC-SDB-040h, TC-SDB-041e
  */
 export function WithdrawCell({
   month,
   sep,
+  plane = "actual",
+  closed = false,
 }: {
   month: PeriodKey;
   sep?: boolean;
+  plane?: Plane;
+  /** Mes cerrado. Solo lo usa el plano Pres.: el formulario del plan no abre (NFR-3004). */
+  closed?: boolean;
 }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const withdraw = useLedgerStore((s) => s.applyReserveWithdrawal);
-  const removeWithdrawal = useLedgerStore((s) => s.removeReserveWithdrawal);
+  const planWithdrawal = useLedgerStore((s) => s.planWithdrawal);
   const [open, setOpen] = useState(false);
   const [fromId, setFromId] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const isPlan = plane === "budget";
+  const txt = WITHDRAW_TEXT[plane];
 
   const leaves = reserveLeafIds(data);
   const parsed = Math.round(Number(amount) || 0);
   // El tope NO es el saldo del mes: si un mes posterior ya retiró de esa misma plata, el saldo
   // sobreestima (auditoría 2026-09-01: mostraba Máx. $1.000 donde solo cabían $200). `maxWithdrawal`
-  // mira la serie completa — la misma cuenta que el dominio va a validar.
-  const saldo = fromId ? maxWithdrawal(data, fromId, month, periods) : null;
+  // mira la serie completa — la misma cuenta que el dominio va a validar. En el plan, la del plan.
+  const saldo = fromId ? maxWithdrawal(data, fromId, month, periods, plane) : null;
   const canSave = fromId !== "" && parsed > 0 && (saldo === null || parsed <= saldo);
 
   // Sobre-retiro: ejecutado vs planeado, misma graduación que los gastos (observación 1).
   const total = reserveRetiros(data, month, "actual");
   const planned = reserveRetiros(data, month, "budget");
   const overState = budgetState(planned, total);
+  // Estado auto-sanador del plan (hallazgo adversarial 7, BG-020): si el plan de aportes ya no cubre la
+  // suma de retiros planeados —solo posible con un ledger legado—, la celda se marca sola, sin bloquear.
+  const uncovered = isPlan && planned > 0 && planned > plannedRetiroLimit(data, month, periods);
 
   // Las operaciones del mes ya registradas — retiros Y MOVERES (FR-1609). El mover se identifica
   // por sus DOS extremos; antes ni siquiera se listaba, así que quedaba atrapado sin forma de
   // corregirlo desde la interfaz.
-  const monthOps = monthReserveOps(data, month);
+  const monthOps = isPlan ? [] : monthReserveOps(data, month);
+  // Pres.: una línea por alcancía con su retiro planeado del mes y sus notas (FR-3003).
+  const planRows = isPlan ? plannedRetiroRows(data, month) : [];
+  const hayLista = isPlan ? planRows.length > 0 : monthOps.length > 0;
 
   // Confirmación EN LÍNEA de la eliminación (FR-1802 · UX_SPEC §«Teclear 0»). Vive en el
   // contenedor y no en la fila porque la fila DESAPARECE al eliminarse: un aviso montado dentro de
@@ -444,45 +405,73 @@ export function WithdrawCell({
 
   function save() {
     if (!fromId || parsed <= 0) return;
-    const res = withdraw(fromId, month, parsed, note.trim() === "" ? null : note.trim());
+    const nota = note.trim() === "" ? null : note.trim();
+    const res = isPlan ? planWithdrawal(fromId, month, parsed, nota) : withdraw(fromId, month, parsed, nota);
     if ("rejected" in res) {
-      setError(
-        res.rejected === "invalid_target" || res.rejected.ok
-          ? "Operación inválida"
-          : blockMessage(data, res.rejected, { editedMonth: month })
-      );
+      const v = res.rejected;
+      setError(typeof v === "string" || v.ok ? "Operación inválida" : blockMessage(data, v, { editedMonth: month }));
       return;
     }
     setOpen(false);
     reset();
   }
 
+  const triggerClass = cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap bg-sunken border-t-0 border-x-0", sep && "border-l-2 border-l-border-strong");
+
+  // Pres. de un mes cerrado: la suma se ve, el formulario no abre (NFR-3004, FR-2003).
+  if (isPlan && closed) {
+    return (
+      <div data-testid="planned-withdraw-cell" data-month={month} data-closed="true" title="Mes cerrado"
+        className={cn(triggerClass, "cursor-default")} style={{ color: "var(--fg-secondary)" }}>
+        {cellNum(planned)}
+      </div>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <PopoverTrigger asChild>
-        <button
-          data-testid="withdraw-cell"
-          data-month={month}
-          {...(total > 0 && overState !== "within" ? { "data-over": overState } : {})}
-          title="Sacar de una alcancía hacia Disponible (o corregir un retiro)"
-          className={cn(CELL_W, "flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-pointer bg-sunken border-t-0 border-x-0", sep && "border-l-2 border-l-border-strong")}
-          style={{ color: total ? RETIRO_STATE_COLOR[overState] : "var(--fg-secondary)" }}
-        >
-          {/* Canal no cromático (WCAG 1.4.1): mismo glifo ›/›› de los gastos al retirar de más. */}
-          {total > 0 && RETIRO_STATE_GLYPH[overState] ? (
-            <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">{RETIRO_STATE_GLYPH[overState]}</span>
-          ) : null}
-          {cellNum(total)}
-        </button>
+        {isPlan ? (
+          <button
+            data-testid="planned-withdraw-cell"
+            data-month={month}
+            {...(uncovered ? { "data-plan-warn": "true" } : {})}
+            title={
+              uncovered
+                ? `Tu plan de aportes ya no cubre estos retiros (hay ${money(plannedRetiroLimit(data, month, periods))} reservados hasta ${periodLabel(month).toLowerCase()})`
+                : txt.trigger
+            }
+            className={cn(triggerClass, "cursor-pointer")}
+            style={{ color: uncovered ? "var(--state-warning)" : "var(--fg-secondary)" }}
+          >
+            {uncovered && <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">!</span>}
+            {cellNum(planned)}
+          </button>
+        ) : (
+          <button
+            data-testid="withdraw-cell"
+            data-month={month}
+            {...(total > 0 && overState !== "within" ? { "data-over": overState } : {})}
+            title={txt.trigger}
+            className={cn(triggerClass, "cursor-pointer")}
+            style={{ color: total ? RETIRO_STATE_COLOR[overState] : "var(--fg-secondary)" }}
+          >
+            {/* Canal no cromático (WCAG 1.4.1): mismo glifo ›/›› de los gastos al retirar de más. */}
+            {total > 0 && RETIRO_STATE_GLYPH[overState] ? (
+              <span aria-hidden="true" className="flex-none mr-1 text-caption leading-none">{RETIRO_STATE_GLYPH[overState]}</span>
+            ) : null}
+            {cellNum(total)}
+          </button>
+        )}
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-3 flex flex-col gap-2 text-[12px]" align="end">
-        <span className="font-medium" style={{ color: "var(--fg)" }}>
-          {`Sacar en ${periodLabel(month).toLowerCase()} → Disponible`}
+      <PopoverContent data-testid="withdraw-popover" className="w-96 p-3 flex flex-col gap-2 text-[12px]" align="end">
+        <span data-testid="withdraw-title" className="font-medium" style={{ color: "var(--fg)" }}>
+          {`${txt.title} ${periodLabel(month).toLowerCase()} → Disponible`}
         </span>
 
-        {/* Origen: el desplegable con todas las alcancías y su saldo. La puerta con origen ya
-            resuelto se retiró con el botón de la fila (FR-1807): la fila «Retiros del mes» vive
-            ahora en el segmento de Reservas, junto a los bolsillos, que es lo que resolvía BL-019. */}
+        {/* Origen: el desplegable con todas las alcancías y su saldo —el del plan en Pres.—. La puerta
+            con origen ya resuelto se retiró con el botón de la fila (FR-1807): la fila «Retiros del mes»
+            vive ahora en el segmento de Reservas, junto a los bolsillos, que es lo que resolvía BL-019. */}
         <select
           aria-label="Sacar de"
           data-testid="withdraw-source"
@@ -495,7 +484,7 @@ export function WithdrawCell({
           </option>
           {leaves.map((id) => (
             <option key={id} value={id}>
-              {leafPathLabel(data, id)} — {money(resolvedBalance(data, id, month, "actual", periods))}
+              {leafPathLabel(data, id)} — {money(resolvedBalance(data, id, month, plane, periods))}
             </option>
           ))}
         </select>
@@ -511,13 +500,14 @@ export function WithdrawCell({
             className="tabular w-full bg-elevated border border-border rounded-(--radius-sm) text-fg text-right px-1.5 py-1 outline-none focus:border-accent"
           />
           {fromId !== "" && saldo !== null && (
-            <span className="flex-none tabular" style={{ color: parsed > saldo ? "var(--error)" : "var(--fg-muted)" }}>
+            <span data-testid="withdraw-max" className="flex-none tabular" style={{ color: parsed > saldo ? "var(--error)" : "var(--fg-muted)" }}>
               Máx. {money(saldo)}
             </span>
           )}
         </div>
         {/* FR-1608 — el «¿para qué?». El dominio ya aceptaba la nota y la UI la descartaba: sin ella,
-            ahorrar para algo y pagarlo son dos actos que la app no relaciona. Opcional siempre. */}
+            ahorrar para algo y pagarlo son dos actos que la app no relaciona. Opcional siempre. En el
+            plan se guarda como observación del retiro planeado (FR-3002). */}
         <input
           aria-label="¿Para qué? (opcional)"
           data-testid="withdraw-note"
@@ -542,7 +532,7 @@ export function WithdrawCell({
             className="cursor-pointer border-0 bg-transparent p-0 font-semibold disabled:cursor-default disabled:opacity-50"
             style={{ color: "var(--fg)" }}
           >
-            Sacar
+            {txt.save}
           </button>
         </div>
 
@@ -563,18 +553,18 @@ export function WithdrawCell({
           </span>
         ) : null}
 
-        {monthOps.length > 0 ? (
+        {hayLista ? (
           <div className="flex flex-col gap-1 border-t border-border pt-2" data-testid="withdraw-history">
-            <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>Operaciones de este mes</span>
+            <span className="font-medium" style={{ color: "var(--fg-secondary)" }}>{txt.list}</span>
             <ul className="flex flex-col gap-0.5">
-              {monthOps.map((mv) => (
-                <OpRow key={mv.id} mv={mv} onEliminada={avisarEliminada} />
-              ))}
+              {isPlan
+                ? planRows.map((row) => <PlanRow key={row.leafId} row={row} month={month} onEliminada={avisarEliminada} />)
+                : monthOps.map((mv) => <OpRow key={mv.id} mv={mv} onEliminada={avisarEliminada} />)}
             </ul>
           </div>
         ) : (
           <div className="border-t border-border pt-2" data-testid="withdraw-history-empty" style={{ color: "var(--fg-muted)" }}>
-            Sin operaciones este mes
+            {txt.empty}
           </div>
         )}
       </PopoverContent>
@@ -582,8 +572,69 @@ export function WithdrawCell({
   );
 }
 
+/**
+ * Una línea de la lista del formulario Pres.: el retiro planeado de una alcancía en el mes, con sus
+ * notas y el MONTO EDITABLE (FR-3003). Misma interacción que `OpRow`: Enter o salir del campo confirma,
+ * Escape revierte y 0 elimina (con sus notas). Un rechazo devuelve el campo a su valor y dice por qué.
+ *
+ * @aitri-trace FR-ID: FR-3003, US-ID: US-3003, AC-ID: AC-3009, TC-ID: TC-SDB-036h, TC-SDB-037f, TC-SDB-038e, TC-SDB-039e
+ */
+function PlanRow({ row, month, onEliminada }: { row: PlannedRetiroRow; month: PeriodKey; onEliminada: () => void }) {
+  const data = useLedgerStore((s) => s.data);
+  const edit = useLedgerStore((s) => s.editPlannedWithdrawal);
+  const [val, setVal] = useState(String(row.amount));
+  const [error, setError] = useState<string | null>(null);
+  // Escape revierte y sale del campo; el blur que eso dispara no debe confirmar lo tecleado (el estado
+  // `val` todavía no se ha actualizado cuando corre).
+  const cancelado = useRef(false);
 
+  // El monto vigente manda: si otra superficie lo cambió, el campo lo sigue.
+  useEffect(() => { setVal(String(row.amount)); setError(null); }, [row.amount]);
 
+  function commit() {
+    if (cancelado.current) { cancelado.current = false; return; }
+    const n = Math.max(0, Math.round(Number(val) || 0));
+    if (n === row.amount) return;
+    const res = edit(row.leafId, month, n);
+    if (res.ok) {
+      setError(null);
+      if (n === 0) onEliminada();
+      return;
+    }
+    setVal(String(row.amount)); // el rechazo no muta: el campo vuelve a lo que había
+    const v = res.rejected;
+    setError(typeof v === "string" || v.ok ? "Ese monto no es válido." : blockMessage(data, v, { editedMonth: month }));
+  }
+
+  return (
+    <li className="flex flex-col gap-0.5" data-testid={`op-plan-${row.leafId}`}>
+      <div className="flex items-center gap-2">
+        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
+          {leafPathLabel(data, row.leafId)}
+          {row.notes.length > 0 ? <span style={{ color: "var(--fg-muted)" }}> · {row.notes.join(" · ")}</span> : null}
+        </span>
+        <input
+          aria-label={`Monto del retiro planeado de ${leafPathLabel(data, row.leafId)}`}
+          data-testid={`op-plan-amount-${row.leafId}`}
+          value={val}
+          inputMode="numeric"
+          onChange={(e) => { setVal(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.currentTarget.blur(); }
+            if (e.key === "Escape") { cancelado.current = true; setVal(String(row.amount)); setError(null); e.currentTarget.blur(); }
+          }}
+          className="flex-none w-24 tabular text-right bg-card border border-border rounded-(--radius-xs) text-fg px-1.5 py-0.5 outline-none focus:border-accent"
+        />
+      </div>
+      {error ? (
+        <span role="alert" data-testid={`op-error-plan-${row.leafId}`} className="pl-1" style={{ color: "var(--alert-strong)" }}>
+          {error}
+        </span>
+      ) : null}
+    </li>
+  );
+}
 
 /**
  * Una operación del mes en la lista de corrección, con su MONTO EDITABLE (FR-1802).

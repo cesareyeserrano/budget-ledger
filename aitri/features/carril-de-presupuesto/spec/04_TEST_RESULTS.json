@@ -1,0 +1,619 @@
+{
+  "executed_at": "2026-09-27T22:28:05.179Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-CDP-001h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2901 — carril propio del Balance Pres. > TC-CDP-001h: noviembre Pres. abre con el cierre Pres. de octubre 2ms"
+    },
+    {
+      "tc_id": "TC-CDP-002h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2901 — carril propio del Balance Pres. > TC-CDP-002h: doce meses de plan sin ejecución acumulan en su carril 1ms"
+    },
+    {
+      "tc_id": "TC-CDP-003e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2901 — carril propio del Balance Pres. > TC-CDP-003e: escala de producción — 36 periodos y 40 hojas conservan el total del plan 7ms"
+    },
+    {
+      "tc_id": "TC-CDP-004f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2901 — carril propio del Balance Pres. > TC-CDP-004f: lo real no entra al carril del plan 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-005e",
+      "status": "pass",
+      "notes": "✓   68 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:106:7 › FR-2901 · el Balance muestra el arrastre por carril › TC-CDP-005e: el Balance de la grilla muestra el arrastre por carril (202ms)"
+    },
+    {
+      "tc_id": "TC-CDP-010h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2902 — el primer mes abre los dos carriles en el mismo punto > TC-CDP-010h: el saldo inicial abre los dos carriles 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-011e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2902 — el primer mes abre los dos carriles en el mismo punto > TC-CDP-011e: sin saldo inicial los dos carriles abren en 0 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-012f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2902 — el primer mes abre los dos carriles en el mismo punto > TC-CDP-012f: el saldo inicial no se vuelve a sumar 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-013e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2902 — el primer mes abre los dos carriles en el mismo punto > TC-CDP-013e: el barrido del plan arranca en el saldo inicial 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-020h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2903 — el plan deriva de su propio carril > TC-CDP-020h: el Máx. Pres. de noviembre sale del carril del plan 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-021h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2903 — el plan deriva de su propio carril > TC-CDP-021h: la observación del plan nombra el saldo del plan 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-022f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2903 — el plan deriva de su propio carril > TC-CDP-022f: sin reservas del plan no hay observación ni marca; con exceso, sí 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-023e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2903 — el plan deriva de su propio carril > TC-CDP-023e: el Máx. Pres. mira la cadena — un mes posterior del plan lo acota 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-024e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2903 — el plan deriva de su propio carril > TC-CDP-024e: propiedad a escala — el Máx. Pres. es exacto 762ms"
+    },
+    {
+      "tc_id": "TC-CDP-030h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-030h: una reserva del plan que cabe se guarda 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-031f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-031f: una reserva del plan que no cabe se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-032e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-032e: bajar un plan legado que ya se pasaba se acepta 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-033f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-033f: subir un plan legado que ya se pasaba se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-034e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-034e: un plan legado no bloquea gastos de otro mes 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-035f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-035f: el déficit del plan bloquea nombrando el mes 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-036e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > FR-2904 — las reglas de reservas bloquean en Pres. > TC-CDP-036e: escribir el mismo valor no es escritura 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-040h",
+      "status": "pass",
+      "notes": "✓   69 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:115:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-040h: rechazo en Pres. — el editor sigue abierto con la franja (290ms)"
+    },
+    {
+      "tc_id": "TC-CDP-041h",
+      "status": "pass",
+      "notes": "✓   70 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:139:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-041h: Escape tras el rechazo restaura (299ms)"
+    },
+    {
+      "tc_id": "TC-CDP-042f",
+      "status": "pass",
+      "notes": "✓   77 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:236:7 › FR-2905 · un mes del plan que se pasa se marca en el mes › TC-CDP-042f: un mes del plan excedido se marca en el encabezado, no en la celda (246ms)"
+    },
+    {
+      "tc_id": "TC-CDP-043h",
+      "status": "pass",
+      "notes": "✓   71 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:150:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-043h: una reserva del plan que cabe se guarda desde la grilla (376ms)"
+    },
+    {
+      "tc_id": "TC-CDP-044e",
+      "status": "pass",
+      "notes": "✓   72 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:163:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-044e: el Máx. se pone rojo mientras se teclea de más (290ms)"
+    },
+    {
+      "tc_id": "TC-CDP-045e",
+      "status": "pass",
+      "notes": "✓   73 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:174:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-045e: a 768 px la franja no desplaza las celdas vecinas (301ms)"
+    },
+    {
+      "tc_id": "TC-CDP-046e",
+      "status": "pass",
+      "notes": "✓   74 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:188:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-046e: a 375 px la grilla no existe (181ms)"
+    },
+    {
+      "tc_id": "TC-CDP-047e",
+      "status": "pass",
+      "notes": "✓   75 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:198:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-047e: la franja de rechazo cumple contraste AA en los dos temas (412ms)"
+    },
+    {
+      "tc_id": "TC-CDP-048e",
+      "status": "pass",
+      "notes": "✓   78 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:247:7 › FR-2905 · un mes del plan que se pasa se marca en el mes › TC-CDP-048e: la franja del Balance lista el problema del plan (237ms)"
+    },
+    {
+      "tc_id": "TC-CDP-049e",
+      "status": "pass",
+      "notes": "✓   79 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:255:7 › FR-2905 · un mes del plan que se pasa se marca en el mes › TC-CDP-049e: durante la hidratación no se pinta el triángulo del plan (1.0s)"
+    },
+    {
+      "tc_id": "TC-CDP-050e",
+      "status": "pass",
+      "notes": "✓   76 [chromium] › tests/e2e/carril-de-presupuesto.spec.ts:222:7 › FR-2905 · el editor Pres. rechaza como el de Ejec. › TC-CDP-050e: sin cupo en el plan el Máx. dice $0 (289ms)"
+    },
+    {
+      "tc_id": "TC-CDP-060h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > FR-2906 · el servidor juzga el plano Presupuestado > TC-CDP-060h: PUT que baja una reserva del plan se acepta 141ms"
+    },
+    {
+      "tc_id": "TC-CDP-061f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > FR-2906 · el servidor juzga el plano Presupuestado > TC-CDP-061f: PUT que sube el plan por encima del cupo se rechaza 54ms"
+    },
+    {
+      "tc_id": "TC-CDP-062f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > FR-2906 · el servidor juzga el plano Presupuestado > TC-CDP-062f: PUT que deja el plan en déficit se rechaza 50ms"
+    },
+    {
+      "tc_id": "TC-CDP-063e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > FR-2906 · el servidor juzga el plano Presupuestado > TC-CDP-063e: PUT de solo Ejec. se juzga como antes 55ms"
+    },
+    {
+      "tc_id": "TC-CDP-064e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > FR-2906 · el servidor juzga el plano Presupuestado > TC-CDP-064e: PUT que no toca reservas pasa sobre un plan legado 57ms"
+    },
+    {
+      "tc_id": "TC-CDP-101h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2901 — la columna Ejec. del Balance no cambia > TC-CDP-101h: la serie Ejec. es idéntica a la capturada antes del cambio 1ms"
+    },
+    {
+      "tc_id": "TC-CDP-102e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2901 — la columna Ejec. del Balance no cambia > TC-CDP-102e: un mes peor que el plan no altera Ejec. respecto de la captura 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-103f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2901 — la columna Ejec. del Balance no cambia > TC-CDP-103f: tocar solo el plan no mueve ninguna cifra Ejec. 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-111h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2902 — las reglas de Ejecutado aceptan y rechazan lo mismo > TC-CDP-111h: Ejec. acepta exactamente su límite 5ms"
+    },
+    {
+      "tc_id": "TC-CDP-112f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2902 — las reglas de Ejecutado aceptan y rechazan lo mismo > TC-CDP-112f: Ejec. rechaza su límite + 1 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-113e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2902 — las reglas de Ejecutado aceptan y rechazan lo mismo > TC-CDP-113e: el piso de Ejec. no cambia 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-121h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2903 — el saldo inicial abre el primer mes, una sola vez > TC-CDP-121h: el techo Ejec. del primer mes arranca en el saldo inicial 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-122e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2903 — el saldo inicial abre el primer mes, una sola vez > TC-CDP-122e: el saldo inicial aparece una sola vez en 24 meses 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-123f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2903 — el saldo inicial abre el primer mes, una sola vez > TC-CDP-123f: un saldo inicial corrupto se trata como no declarado 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-131h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > NFR-2904 · el cierre manda antes que la regla del plan > TC-CDP-131h: el plan de un mes abierto se edita con meses anteriores cerrados 53ms"
+    },
+    {
+      "tc_id": "TC-CDP-132f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > NFR-2904 · el cierre manda antes que la regla del plan > TC-CDP-132f: una escritura del plan en un mes cerrado choca primero con el cierre 51ms"
+    },
+    {
+      "tc_id": "TC-CDP-133e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2904 — el cierre de mes no cambia > TC-CDP-133e: el impacto de reabrir no cambia en Ejec. 1ms"
+    },
+    {
+      "tc_id": "TC-CDP-141h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2905 — en ciclos el plan encadena por la lista de periodos > TC-CDP-141h: en ciclos el plan encadena por la lista de periodos 3ms"
+    },
+    {
+      "tc_id": "TC-CDP-142e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2905 — en ciclos el plan encadena por la lista de periodos > TC-CDP-142e: la transición de ciclo arrastra como cualquier periodo 1ms"
+    },
+    {
+      "tc_id": "TC-CDP-143f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2905 — en ciclos el plan encadena por la lista de periodos > TC-CDP-143f: en ciclos el plan no toma el cierre real 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-151h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > NFR-2906 · sin migración y sin escrituras parciales > TC-CDP-151h: cargar y guardar sin cambios no altera ninguna fila 53ms"
+    },
+    {
+      "tc_id": "TC-CDP-152e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > NFR-2906 · sin migración y sin escrituras parciales > TC-CDP-152e: leer no escribe 48ms"
+    },
+    {
+      "tc_id": "TC-CDP-153f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/carril-de-presupuesto.test.ts > NFR-2906 · sin migración y sin escrituras parciales > TC-CDP-153f: un rechazo del plan no deja escrituras parciales 48ms"
+    },
+    {
+      "tc_id": "TC-CDP-161h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2907 — el retiro planeado conserva su regla > TC-CDP-161h: planear un retiro dentro de lo reservado se acepta 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-162f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2907 — el retiro planeado conserva su regla > TC-CDP-162f: planear un retiro de más se rechaza con su límite 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-163e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2907 — el retiro planeado conserva su regla > TC-CDP-163e: el retiro planeado huérfano se sigue marcando 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-171h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2908 — ingresos y gastos siguen sin vigilancia de reservas > TC-CDP-171h: bajar un ingreso del plan que deja el mes negativo se acepta 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-172e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2908 — ingresos y gastos siguen sin vigilancia de reservas > TC-CDP-172e: lo mismo en Ejec. 0ms"
+    },
+    {
+      "tc_id": "TC-CDP-173f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/carril-de-presupuesto.test.ts > NFR-2908 — ingresos y gastos siguen sin vigilancia de reservas > TC-CDP-173f: en ese mes negativo, subir la reserva del plan sí se rechaza 0ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-2901",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2902",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2903",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2904",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2905",
+      "tests_passing": 11,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-2906",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-2901",
+      "fr_id": "FR-2901",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2902",
+      "fr_id": "FR-2901",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2903",
+      "fr_id": "FR-2901",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2904",
+      "fr_id": "FR-2901",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2905",
+      "fr_id": "FR-2902",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2906",
+      "fr_id": "FR-2902",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2907",
+      "fr_id": "FR-2902",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2908",
+      "fr_id": "FR-2903",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2909",
+      "fr_id": "FR-2903",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2910",
+      "fr_id": "FR-2903",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2911",
+      "fr_id": "FR-2904",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2912",
+      "fr_id": "FR-2904",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2913",
+      "fr_id": "FR-2904",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2914",
+      "fr_id": "FR-2904",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2915",
+      "fr_id": "FR-2904",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2916",
+      "fr_id": "FR-2905",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2917",
+      "fr_id": "FR-2905",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2918",
+      "fr_id": "FR-2905",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2919",
+      "fr_id": "FR-2906",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2920",
+      "fr_id": "FR-2906",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-2921",
+      "fr_id": "FR-2906",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 61,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 3006,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2450,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 49016,
+      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-27T22:24:57.152Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-27T22:24:57.154Z WARN [Better Auth]: Reset Password: User not found"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 16858,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 169633,
+      "output": "orreo a ${to} en ${timeoutMs}ms`);\n         |         ^\n      61 | }\n      62 |\n        at waitForResetLink (/Users/cesareyeserrano/PROJECTS/T-Ledger/tests/e2e/helpers/mailbox.ts:60:9)\n        at /Users/cesareyeserrano/PROJECTS/T-Ledger/tests/e2e/recuperar-acceso-flujo.spec.ts:80:20\n\n    Error Context: test-results/recuperar-acceso-flujo-El--4089c-ontraseña-y-entrar-con-ella-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/recuperar-acceso-flujo.spec.ts:73:7 › El recorrido completo › TC-REC-029h: solicitar, abrir el enlace, fijar contraseña y entrar con ella \n  592 passed (2.8m)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 44914,
+    "e2e_ms": 163498,
+    "gates_ms": 240964,
+    "total_ms": 449433
+  }
+}

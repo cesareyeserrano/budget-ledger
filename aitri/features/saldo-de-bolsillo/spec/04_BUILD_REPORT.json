@@ -1,0 +1,84 @@
+{
+  "files_created": [
+    "tests/domain/saldo-de-bolsillo.test.ts",
+    "tests/integration/backend/saldo-de-bolsillo.test.ts",
+    "tests/integration/backend/saldo-de-bolsillo-fallo.test.ts",
+    "tests/e2e/saldo-de-bolsillo.spec.ts",
+    "tests/fixtures/sdb-base.json",
+    "tests/fixtures/sdb-legado.json"
+  ],
+  "files_modified": [
+    "src/domain/reserve.ts",
+    "src/domain/mutations.ts",
+    "src/domain/guard.ts",
+    "src/server/data/ledgerRepo.ts",
+    "src/state/store.ts",
+    "src/components/ReserveCells.tsx",
+    "src/components/BudgetGrid.tsx",
+    "src/components/BalanceModule.tsx",
+    "tests/e2e/transferencias.spec.ts",
+    "tests/integration/backend/reserve-server.test.ts",
+    "tests/integration/backend/servidor-fuente-unica.test.ts",
+    "tests/integration/backend/techo-de-flujo.test.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "tests/domain/saldo-de-bolsillo.test.ts",
+    "tests/integration/backend/saldo-de-bolsillo.test.ts",
+    "tests/integration/backend/saldo-de-bolsillo-fallo.test.ts",
+    "tests/e2e/saldo-de-bolsillo.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-3006",
+      "substitution": "TC-SDB-163f simula el fallo sustituyendo convertPlannedRetiros por una función que lanza (vi.mock), no con una fila inválida inyectada en la base",
+      "reason": "Los CHECK de amount_cell impiden guardar una fila que haga fallar la conversión; el mock produce el mismo efecto observable (la transacción se revierte, el ledger se sirve sin convertir y la base queda en su versión).",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3002",
+      "substitution": "setPlannedRetiro (la fila global @retiros) se conserva en el dominio, sin llamadores de producción; el TRD decía retirarla del dominio y del store (del store sí salió)",
+      "reason": "Seis suites aprobadas de otras features (BG-020, BG-022, techo-de-flujo, carril-de-presupuesto, reserve-grid, reserve-balance) la usan para armar un ledger con la fila global legada, que es justo lo que convertPlannedRetiros reparte; reescribirlas no cambia nada para el usuario. Queda documentada como LEGADO en reserve.ts.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3001",
+      "substitution": "TC-SDB-003f fija además el rojo claro literal rgb(173, 57, 50) y emula el tema claro",
+      "reason": "El token --error se compara también contra su valor resuelto en el navegador; el literal documenta la cifra del UX spec y cambiaría solo si cambia el token.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

@@ -1,0 +1,688 @@
+{
+  "executed_at": "2026-09-28T15:41:32.600Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-SDB-001h",
+      "status": "pass",
+      "notes": "✓  435 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:105:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-001h: la celda Pres. abre el formulario de planear (260ms)"
+    },
+    {
+      "tc_id": "TC-SDB-002h",
+      "status": "pass",
+      "notes": "✓  436 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:116:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-002h: el desplegable lista cada alcancía con lo que el plan tendría ese mes (256ms)"
+    },
+    {
+      "tc_id": "TC-SDB-003f",
+      "status": "pass",
+      "notes": "✓  437 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:124:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-003f: teclear por encima del Máx. lo pinta en rojo y deshabilita «Planear» (293ms)"
+    },
+    {
+      "tc_id": "TC-SDB-004f",
+      "status": "pass",
+      "notes": "✓  438 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:141:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-004f: sin alcancía o sin monto, «Planear» está deshabilitado (285ms)"
+    },
+    {
+      "tc_id": "TC-SDB-005e",
+      "status": "pass",
+      "notes": "✓  439 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:155:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-005e: sin alcancías, el desplegable lo dice (256ms)"
+    },
+    {
+      "tc_id": "TC-SDB-006e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3001 — el «Máx.» del formulario Pres. > TC-SDB-006e: el Máx. del plan mira los meses posteriores 2ms"
+    },
+    {
+      "tc_id": "TC-SDB-007e",
+      "status": "pass",
+      "notes": "✓  440 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:166:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-007e: Escape y «Cancelar» cierran sin guardar (369ms)"
+    },
+    {
+      "tc_id": "TC-SDB-008e",
+      "status": "pass",
+      "notes": "✓  441 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:182:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-008e: el formulario cabe a 768 y a 1440 px (512ms)"
+    },
+    {
+      "tc_id": "TC-SDB-009e",
+      "status": "pass",
+      "notes": "✓  442 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:196:7 › FR-3001 · la fila «Retiros del mes · Pres.» abre el formulario de Ejec. › TC-SDB-009e: el «Máx.» en reposo cumple contraste AA (477ms)"
+    },
+    {
+      "tc_id": "TC-SDB-010h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-010h: planear 100 de Viaje en marzo lo guarda en su alcancía 2ms"
+    },
+    {
+      "tc_id": "TC-SDB-011f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-011f: planear 301 se rechaza con «Viaje» solo tiene $300 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-012e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-012e: planear exactamente 300 se acepta y deja 0 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-013f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-013f: un retiro planeado posterior hace rechazar el de marzo nombrando junio 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-014h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-014h: planear dos veces en la misma alcancía y mes suma 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-015h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-015h: la nota «pasajes» se guarda con el retiro 3ms"
+    },
+    {
+      "tc_id": "TC-SDB-016f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-016f: una nota de 281 caracteres se rechaza sin guardar nada 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-017f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-017f: entradas imposibles se rechazan como invalid_target 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-018e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-018e: escala — 500 retiros planeados nunca dejan una alcancía del plan en negativo 84ms"
+    },
+    {
+      "tc_id": "TC-SDB-019h",
+      "status": "pass",
+      "notes": "✓  443 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:216:7 › FR-3002 · planear guarda el retiro en su alcancía › TC-SDB-019h: planear desde la grilla guarda el retiro y su nota (474ms)"
+    },
+    {
+      "tc_id": "TC-SDB-020e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-020e: fusionar una alcancía mueve su retiro planeado y sus notas 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-021f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3002 — cada retiro planeado sale de una alcancía y respeta las reglas > TC-SDB-021f: borrar una alcancía con retiro planeado se bloquea 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-030h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-030h: cambiar el retiro planeado de 100 a 60 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-031h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-031h: poner 0 elimina el retiro y sus notas 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-032f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-032f: subirlo por encima de lo planeado se rechaza con el tope real 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-033e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-033e: subirlo justo al tope se acepta 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-034h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-034h: dos retiros con nota se ven en una línea con las notas unidas 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-035f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3003 — los retiros planeados se corrigen desde la lista > TC-SDB-035f: montos imposibles al corregir se rechazan 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-036h",
+      "status": "pass",
+      "notes": "✓  444 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:242:7 › FR-3003 · la lista del formulario corrige los retiros planeados › TC-SDB-036h: corregir y eliminar desde la lista de la grilla (307ms)"
+    },
+    {
+      "tc_id": "TC-SDB-037f",
+      "status": "pass",
+      "notes": "✓  445 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:258:7 › FR-3003 · la lista del formulario corrige los retiros planeados › TC-SDB-037f: subir por encima en la lista muestra el motivo y devuelve el campo (278ms)"
+    },
+    {
+      "tc_id": "TC-SDB-038e",
+      "status": "pass",
+      "notes": "✓  446 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:270:7 › FR-3003 · la lista del formulario corrige los retiros planeados › TC-SDB-038e: la lista une las notas con « · » (265ms)"
+    },
+    {
+      "tc_id": "TC-SDB-039e",
+      "status": "pass",
+      "notes": "✓  447 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:283:7 › FR-3003 · la lista del formulario corrige los retiros planeados › TC-SDB-039e: Escape en la lista revierte sin guardar (316ms)"
+    },
+    {
+      "tc_id": "TC-SDB-040h",
+      "status": "pass",
+      "notes": "✓  448 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:301:7 › FR-3004 · la celda Pres. de «Retiros del mes» suma › TC-SDB-040h: la celda Pres. suma los retiros de las alcancías (208ms)"
+    },
+    {
+      "tc_id": "TC-SDB-041e",
+      "status": "pass",
+      "notes": "✓  449 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:308:7 › FR-3004 · la celda Pres. de «Retiros del mes» suma › TC-SDB-041e: un mes sin retiros planeados dice «—» (214ms)"
+    },
+    {
+      "tc_id": "TC-SDB-042h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3004 — la celda Pres. de «Retiros del mes» suma > TC-SDB-042h: reserveRetiros del plan suma todas las filas 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-043f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3004 — la celda Pres. de «Retiros del mes» suma > TC-SDB-043f: ni otro mes ni un retiro real cuentan en la suma del plan 2ms"
+    },
+    {
+      "tc_id": "TC-SDB-044e",
+      "status": "pass",
+      "notes": "✓  450 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:314:7 › FR-3004 · la celda Pres. de «Retiros del mes» suma › TC-SDB-044e: 150 planeados y 160 retirados gradúa la celda Ejec. como leve (227ms)"
+    },
+    {
+      "tc_id": "TC-SDB-045e",
+      "status": "pass",
+      "notes": "✓  451 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:328:7 › FR-3004 · la celda Pres. de «Retiros del mes» suma › TC-SDB-045e: a 375 px la grilla no existe (169ms)"
+    },
+    {
+      "tc_id": "TC-SDB-050h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3006 — los retiros planeados sin alcancía se reparten solos > TC-SDB-050h: el retiro viejo va entero a la alcancía con más plan 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-051h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3006 — los retiros planeados sin alcancía se reparten solos > TC-SDB-051h: si no alcanza, reparte 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-052e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3006 — los retiros planeados sin alcancía se reparten solos > TC-SDB-052e: la conversión no mueve el Balance del plan 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-053f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3006 · los retiros planeados sin bolsillo se reparten al cargar > TC-SDB-053f: cargar dos veces no vuelve a convertir 62ms"
+    },
+    {
+      "tc_id": "TC-SDB-054h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3006 · los retiros planeados sin bolsillo se reparten al cargar > TC-SDB-054h: la conversión se persiste 128ms"
+    },
+    {
+      "tc_id": "TC-SDB-055e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3006 · los retiros planeados sin bolsillo se reparten al cargar > TC-SDB-055e: un cliente viejo que reenvía la fila global se convierte al guardar 51ms"
+    },
+    {
+      "tc_id": "TC-SDB-056f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3006 — los retiros planeados sin alcancía se reparten solos > TC-SDB-056f: sin alcancías, el retiro viejo se conserva 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-070f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3008 · el servidor juzga los retiros planeados por bolsillo > TC-SDB-070f: PUT con un retiro planeado que deja el bolsillo en negativo 46ms"
+    },
+    {
+      "tc_id": "TC-SDB-071h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3008 · el servidor juzga los retiros planeados por bolsillo > TC-SDB-071h: PUT con un retiro planeado cubierto 45ms"
+    },
+    {
+      "tc_id": "TC-SDB-072e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > FR-3008 — el guardia ve las filas por alcancía > TC-SDB-072e: el guardia ve un cambio solo en la fila de la alcancía 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-073e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > FR-3008 · el servidor juzga los retiros planeados por bolsillo > TC-SDB-073e: la nota del retiro planeado viaja y vuelve por el servidor 46ms"
+    },
+    {
+      "tc_id": "TC-SDB-101h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3001 — el Balance no cambia > TC-SDB-101h: el Balance es idéntico al capturado antes del cambio 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-102e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3001 — el Balance no cambia > TC-SDB-102e: con retiros planeados viejos, el Balance del plan no cambia tras convertir 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-103f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3001 — el Balance no cambia > TC-SDB-103f: planear y eliminar deja el Balance como estaba 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-111h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3002 — el registro de reservas no cambia > TC-SDB-111h: meter desde el registro sigue igual 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-112e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3002 — el registro de reservas no cambia > TC-SDB-112e: mover entre alcancías sigue igual 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-113f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3002 — el registro de reservas no cambia > TC-SDB-113f: sacar de más desde el registro se rechaza igual 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-114e",
+      "status": "pass",
+      "notes": "✓  452 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:342:7 › NFR-3002 · el formulario Ejec. no cambia › TC-SDB-114e: el formulario Ejec. conserva sus textos y su lista (295ms)"
+    },
+    {
+      "tc_id": "TC-SDB-121h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3003 — las reglas no cambian > TC-SDB-121h: el techo acepta su límite exacto 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-122f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3003 — las reglas no cambian > TC-SDB-122f: un peso más se rechaza 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-123e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3003 — las reglas no cambian > TC-SDB-123e: el déficit sigue bloqueando 1ms"
+    },
+    {
+      "tc_id": "TC-SDB-131h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > NFR-3004 · el cierre manda > TC-SDB-131h: escribir en un mes abierto con anteriores cerrados 54ms"
+    },
+    {
+      "tc_id": "TC-SDB-132f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > NFR-3004 · el cierre manda > TC-SDB-132f: un retiro planeado en un mes cerrado choca con el cierre 50ms"
+    },
+    {
+      "tc_id": "TC-SDB-133e",
+      "status": "pass",
+      "notes": "✓  453 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:373:7 › NFR-3004 · un mes cerrado no se escribe › TC-SDB-133e: la celda de un bolsillo de un mes cerrado no tiene campo de importe (363ms)"
+    },
+    {
+      "tc_id": "TC-SDB-134f",
+      "status": "pass",
+      "notes": "✓  454 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:381:7 › NFR-3004 · un mes cerrado no se escribe › TC-SDB-134f: la celda Pres. de «Retiros del mes» de un mes cerrado no abre (326ms)"
+    },
+    {
+      "tc_id": "TC-SDB-141h",
+      "status": "pass",
+      "notes": "✓  455 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:407:7 › NFR-3005 · nada de la grilla arrastra › TC-SDB-141h: la celda del bolsillo dice 600, 400 y «—» (223ms)"
+    },
+    {
+      "tc_id": "TC-SDB-142e",
+      "status": "pass",
+      "notes": "✓  456 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:415:7 › NFR-3005 · nada de la grilla arrastra › TC-SDB-142e: escribir 500 en agosto corrige el aporte sin crear operaciones (359ms)"
+    },
+    {
+      "tc_id": "TC-SDB-143f",
+      "status": "pass",
+      "notes": "✓  457 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:430:7 › NFR-3005 · nada de la grilla arrastra › TC-SDB-143f: la fila del grupo no arrastra (204ms)"
+    },
+    {
+      "tc_id": "TC-SDB-144h",
+      "status": "pass",
+      "notes": "✓  458 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:437:7 › NFR-3005 · nada de la grilla arrastra › TC-SDB-144h: la celda Pres. del bolsillo no resta su retiro planeado (217ms)"
+    },
+    {
+      "tc_id": "TC-SDB-145e",
+      "status": "pass",
+      "notes": "✓  459 [chromium] › tests/e2e/saldo-de-bolsillo.spec.ts:444:7 › NFR-3005 · nada de la grilla arrastra › TC-SDB-145e: la fila «RESERVAS» suma aportes del mes (223ms)"
+    },
+    {
+      "tc_id": "TC-SDB-151h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3006 — gasto e ingreso siguen con su ajuste > TC-SDB-151h: la celda de gasto sigue creando su ajuste 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-152e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3006 — gasto e ingreso siguen con su ajuste > TC-SDB-152e: lo mismo en ingreso 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-153f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/saldo-de-bolsillo.test.ts > NFR-3006 — gasto e ingreso siguen con su ajuste > TC-SDB-153f: un bolsillo nunca recibe un ajuste 0ms"
+    },
+    {
+      "tc_id": "TC-SDB-161h",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > NFR-3007 · abrir un ledger solo convierte lo que debe > TC-SDB-161h: un ledger sin retiros globales no cambia al cargar 47ms"
+    },
+    {
+      "tc_id": "TC-SDB-162e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo.test.ts > NFR-3007 · abrir un ledger solo convierte lo que debe > TC-SDB-162e: con retiros globales solo cambian esas filas 45ms"
+    },
+    {
+      "tc_id": "TC-SDB-163f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales 119ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-3001",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3002",
+      "tests_passing": 12,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3003",
+      "tests_passing": 10,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3004",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3006",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3008",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-3001",
+      "fr_id": "FR-3001",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3002",
+      "fr_id": "FR-3001",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3003",
+      "fr_id": "FR-3001",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3004",
+      "fr_id": "FR-3001",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3005",
+      "fr_id": "FR-3002",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3006",
+      "fr_id": "FR-3002",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3007",
+      "fr_id": "FR-3002",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3008",
+      "fr_id": "FR-3002",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3015",
+      "fr_id": "FR-3002",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3009",
+      "fr_id": "FR-3003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3010",
+      "fr_id": "FR-3003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3011",
+      "fr_id": "FR-3003",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3016",
+      "fr_id": "FR-3003",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3012",
+      "fr_id": "FR-3004",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3013",
+      "fr_id": "FR-3004",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3014",
+      "fr_id": "FR-3004",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3020",
+      "fr_id": "FR-3006",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3021",
+      "fr_id": "FR-3006",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3022",
+      "fr_id": "FR-3006",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3023",
+      "fr_id": "FR-3006",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3027",
+      "fr_id": "FR-3008",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3028",
+      "fr_id": "FR-3008",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 73,
+    "passed": 73,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2843,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2532,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 49120,
+      "output": "th]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 16538,
+      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 164423,
+      "output": ":424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (97ms)\n  ✓  608 [chromium] › tests/e2e/recuperar-acceso.spec.ts:236:7 › FR-1306 / FR-1307 / FR-1308 — pantalla de contraseña nueva › TC-REC-027f: la pantalla no emite ninguna petición al contrato de datos (2.1s)\n  ✓  618 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  618 passed (2.7m)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 46844,
+    "e2e_ms": 166537,
+    "gates_ms": 235457,
+    "total_ms": 448890
+  }
+}

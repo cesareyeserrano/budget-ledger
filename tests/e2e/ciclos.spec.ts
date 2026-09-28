@@ -252,7 +252,7 @@ test.describe("FR-2401 — el modo en Configuración", () => {
     const disponible = series["2026-09"]!.actual.available;
     await expect(page.locator('[data-testid="balance-row"][data-row="available"]')).toContainText(conPuntos(disponible));
     await expect(page.getByTestId("closure-control")).toContainText("Cerrar Agosto 2026");
-    await page.getByLabel("Mes").click();
+    await page.getByLabel("Mes", { exact: true }).click();
     const opciones = await page.getByRole("option").allTextContents();
     expect(opciones.length).toBeGreaterThan(0);
     for (const o of opciones) expect(o).not.toContain(" · ");
@@ -804,7 +804,7 @@ test.describe("FR-2407 — nombre y rango en las superficies", () => {
     await seedReal(page);
     await applyCycles(page, { mode: "cycle", anchorDay: 21 });
     await abrirGrilla(page);
-    await page.getByLabel("Mes").click();
+    await page.getByLabel("Mes", { exact: true }).click();
     const texts = await page.getByRole("option").allTextContents();
     expect(texts).toContain("Octubre 2026 · 21 sep – 20 oct");
     expect(texts).toContain(`Septiembre 2026 · ${SEP26}`);
@@ -834,6 +834,13 @@ test.describe("FR-2407 — nombre y rango en las superficies", () => {
     // `aitri verify-run` acredita el TC. Recuperar la guarda visual también en Linux exige una
     // referencia propia generada con la imagen Docker de Playwright — registrado como BL-046.
     if (process.platform === "darwin") {
+      // Desde carril-de-presupuesto (FR-2905) la cabecera de Septiembre lleva el triángulo del PLAN: en
+      // este estado el plan reserva 70.124.800 sobre un margen de 42.579.500. Antes ese exceso se pintaba
+      // como «!» en las celdas y la cabecera quedaba limpia, que es como se capturó la referencia. Lo que
+      // este TC vigila es la cabecera de ciclos, no esa señal: se afirma que el triángulo está y se quita
+      // del render (display:none, sin dejar hueco) solo para comparar los píxeles.
+      await expect(page.locator('[data-testid="techo-mark"][data-month="2026-09"]')).toHaveAttribute("aria-label", /Plan: reservas/);
+      await page.addStyleTag({ content: '[data-testid="techo-mark"]{display:none !important}' });
       const referencia = readFileSync(path.join(path.dirname(test.info().file), "__screenshots__", "ciclos-header-month.png"));
       const actual = await page.locator('[data-month-head="2026-09"]').screenshot();
       expect(actual.equals(referencia), "la cabecera de Septiembre en modo mes difiere de la previa a la feature").toBe(true);
@@ -929,7 +936,7 @@ test.describe("FR-2407 — nombre y rango en las superficies", () => {
     await seedReal(page);
     await applyCycles(page, { mode: "cycle", anchorDay: 21 });
     await abrirGrilla(page);
-    await page.getByLabel("Mes").click();
+    await page.getByLabel("Mes", { exact: true }).click();
     const texts = await page.getByRole("option").allTextContents();
     expect(texts).toContain("Enero 2027 · 21 dic – 20 ene");
     expect(texts.findIndex((t) => t.startsWith("Enero 2027"))).toBeGreaterThan(texts.findIndex((t) => t.startsWith("Diciembre 2026")));
@@ -1090,7 +1097,7 @@ test.describe("NFR-2410 / NFR-2412 — historial, previsualización obligatoria,
     expect(await closeViaApi(page)).toBe(200);
     await abrirGrilla(page);
     await expect(page.locator('[data-month-head="2026-09"]').getByTestId("cycle-range")).toHaveText(SEP26);
-    await page.getByLabel("Mes").click();
+    await page.getByLabel("Mes", { exact: true }).click();
     expect((await page.getByRole("option").allTextContents()).some((t) => t.endsWith(SEP26))).toBe(true);
     await page.keyboard.press("Escape");
     await abrirRegistro(page);
