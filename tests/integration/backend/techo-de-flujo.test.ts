@@ -28,8 +28,13 @@ import { P } from "../../helpers/periods";
 const PASSWORD = "Contra$eña123";
 const ORIGIN = "http://localhost:3100";
 
-/** El marcador de versión de datos VIGENTE — el que `ledgerRepo` estampa al escribir. */
-const DATA_VERSION_VIGENTE = 5;
+/**
+ * El marcador de versión de datos VIGENTE — el que `ledgerRepo` estampa al escribir. Era 5; desde
+ * saldo-de-bolsillo (FR-3006) es 7: la carga reparte los retiros planeados sin bolsillo y sella esa
+ * marca (6 no, porque la migración 0002 ya la había usado). Lo que estas pruebas vigilan —que ESTA
+ * feature no añadió migración ni perdió datos— no cambia: solo la constante.
+ */
+const DATA_VERSION_VIGENTE = 7;
 
 let ipCounter = 0;
 function nextIp(): string {
@@ -259,9 +264,12 @@ describe("FR-1807 · las dos pruebas rojas por el marcador quedan verdes sin rel
     }
 
     // Y la constante que este caso da por vigente es la que el SERVIDOR estampa, no una copiada a
-    // mano: si `ledgerRepo` sube a 6, este caso falla y obliga a revisar las dos pruebas.
+    // mano: si `ledgerRepo` sube la marca, este caso falla y obliga a revisar las dos pruebas.
+    // Pasó el 2026-09-27 (saldo-de-bolsillo, FR-3006): el final de la cadena dejó de ser
+    // DATA_VERSION_COUNTERPARTY (5) y es DATA_VERSION_PLAN_BY_POCKET (7). Se revisaron las dos pruebas y
+    // la constante de este fichero; se vigila la constante nueva.
     const repo = readFileSync(path.join(raiz, "src/server/data/ledgerRepo.ts"), "utf8");
-    const constante = repo.match(/const DATA_VERSION_COUNTERPARTY = (\d+);/);
+    const constante = repo.match(/const DATA_VERSION_PLAN_BY_POCKET = (\d+);/);
     expect(constante, "no se localizó la constante de versión en ledgerRepo").toBeTruthy();
     expect(Number(constante![1])).toBe(DATA_VERSION_VIGENTE);
   });
@@ -271,7 +279,7 @@ describe("FR-1807 · las dos pruebas rojas por el marcador quedan verdes sin rel
 
 describe("NFR-1805 · ninguna migración nueva y ningún dato perdido", () => {
   // @aitri-tc TC-TDF-242e
-  it("TC-TDF-242e: data_version sigue en 5 — la feature es de cálculo, no de datos", async () => {
+  it("TC-TDF-242e: data_version sigue en el vigente — la feature es de cálculo, no de datos", async () => {
     const { cookie, userId } = await newUser("ver-242e@example.com");
     const state = makeState(userId);
     state.actuals["c-salario"] = { "2026-01": 5000 };

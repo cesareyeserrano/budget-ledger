@@ -94,8 +94,9 @@ describe("FR-1010 — migración lazy en el servidor", () => {
     // El marcador estampado es el VIGENTE de la cadena, no el de la conversión concreta que se
     // probó aquí: `contrapartidas-reserva` añadió el paso v4→v5 y el servidor sella el final de la
     // cadena en la misma transacción. La aserción de que la migración corrió una sola vez se conserva intacta arriba; lo único
-    // que cambia es la constante.
-    expect(row.data_version).toBe(5);
+    // que cambia es la constante. Desde saldo-de-bolsillo (FR-3006) el final de la cadena es 7: la
+    // carga reparte además los retiros planeados sin bolsillo y sella esa marca.
+    expect(row.data_version).toBe(7);
 
     // Un usuario v3 SIN cargar: el POST /movements migra ANTES de operar (hallazgo adversarial).
     const b = await newUser("mig-post@example.com");
@@ -107,10 +108,10 @@ describe("FR-1010 — migración lazy en el servidor", () => {
     // del doble pasaría — migrado primero, se RECHAZA (422).
     expect(post.status).toBe(422);
     const [rowB] = (await testDb().execute(sql`SELECT data_version FROM "ledger" WHERE owner_id = ${b.userId}`)) as unknown as { data_version: number }[];
-    // Igual que arriba: el marcador es el final de la cadena vigente (5). La aserción que importa
-    // —que el POST se rechazó porque el estado se migró ANTES de operar— es el 422 de la línea
-    // anterior, y sigue intacta.
-    expect(rowB.data_version).toBe(5);
+    // Igual que arriba: el marcador es el final de la cadena vigente (7 desde saldo-de-bolsillo). La
+    // aserción que importa —que el POST se rechazó porque el estado se migró ANTES de operar— es el 422
+    // de la línea anterior, y sigue intacta.
+    expect(rowB.data_version).toBe(7);
     const after = await loadLedger(b.userId);
     expect(after!.state.actuals["c-viaje"]).toEqual({ "2026-01": 100_000 }); // aportes recuperados (feb era arrastre)
   });

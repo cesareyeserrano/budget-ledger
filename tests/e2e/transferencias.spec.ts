@@ -87,37 +87,40 @@ const retiro = (from: string, period: string, amount: number, note?: string): Mo
   amount, period, createdAt: 1, from, to: "@disponible", ...(note ? { note } : {}),
 });
 
-test.describe("FR-1002 — la celda dice el aporte del mes", () => {
-  test("TC-TRF4-002h: la celda dice el aporte de ESE mes y el total del bloque es la suma del mes", async ({ page }) => {
+// REESCRITO por saldo-de-bolsillo (FR-3001, FR-3007, 2026-09-27): la celda de un bolsillo dice lo AHORRADO
+// al cierre del mes, no lo aportado ese mes (FR-1002 sustituido), y las filas de grupo y RESERVAS suman
+// saldos. Mismos ids y mismos datos; cambian las cifras esperadas.
+test.describe("FR-1002 — la celda dice lo ahorrado (saldo-de-bolsillo)", () => {
+  test("TC-TRF4-002h: la celda dice lo ahorrado y el total del bloque es la suma de saldos", async ({ page }) => {
     // @aitri-tc TC-TRF4-002h
     await gotoGrid(page);
 
     await expect(reserveCell(page, "Viaje", 0, "actual")).toHaveText("100.000");
-    for (const idx of [1, 2, 11]) await expect(reserveCell(page, "Viaje", idx, "actual")).toHaveText("—");
+    for (const idx of [1, 2, 11]) await expect(reserveCell(page, "Viaje", idx, "actual")).toHaveText("100.000");
     // la subcategoría vive bajo Fondo: expandirla primero
     await rowByName(page, "Fondo").first().getByLabel("Expandir").click();
     await expect(reserveCell(page, "Emergencia", 1, "actual")).toHaveText("200.000");
 
-    // La fila total RESERVAS: ene = 100.000 y feb = 200.000 (jamás 300.000 acumulado).
+    // La fila total RESERVAS: ene = 100.000 y feb = 300.000 (lo ahorrado en los dos bolsillos).
     const typeRow = page.getByTestId("type-total-row").filter({ hasText: "RESERVAS" });
     const cells = typeRow.locator("div.flex > div").filter({ hasText: /./ });
     await expect(typeRow).toContainText("RESERVAS");
     const eneActual = typeRow.locator(":scope > div").nth(1).locator("> div").nth(1);
     const febActual = typeRow.locator(":scope > div").nth(2).locator("> div").nth(1);
     await expect(eneActual).toHaveText("100.000");
-    await expect(febActual).toHaveText("200.000");
+    await expect(febActual).toHaveText("300.000");
     void cells;
   });
 
-  test("TC-TRF4-002e: la fila padre agrega celdas del mes, como los otros tipos", async ({ page }) => {
+  test("TC-TRF4-002e: la fila padre suma lo ahorrado en sus bolsillos", async ({ page }) => {
     // @aitri-tc TC-TRF4-002e
     await gotoGrid(page);
-    // c-fondo (padre de Emergencia): feb = 200.000 y el resto em-dash.
+    // c-fondo (padre de Emergencia): nada en enero, 200.000 desde febrero y hasta diciembre (se arrastra).
     const fondoRow = rowByName(page, "Fondo").first();
     const cells = fondoRow.getByTestId("cell-parent");
     await expect(cells.nth(1 * 2 + 1)).toHaveText("200.000"); // feb Ejec.
     await expect(cells.nth(0 * 2 + 1)).toHaveText("—"); // ene Ejec.
-    await expect(cells.nth(11 * 2 + 1)).toHaveText("—"); // dic Ejec. (sin acumulado)
+    await expect(cells.nth(11 * 2 + 1)).toHaveText("200.000"); // dic Ejec. (lo ahorrado sigue ahí)
   });
 
   test("TC-TRF4-002f: ninguna celda del bloque muestra un acumulado ni un negativo", async ({ page }) => {
@@ -261,8 +264,9 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
 
   test("TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo)", async ({ page }) => {
     // @aitri-tc TC-TRF4-014f
+    // saldo-de-bolsillo (FR-3004): el retiro planeado tiene bolsillo y el plan tiene que cubrirlo.
     await gotoGrid(page, {
-      budgets: { "@retiros": { "2026-03": 100_000, "2026-05": 150_000 } },
+      budgets: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 500_000 }, "@retiros:c-viaje": { "2026-03": 100_000, "2026-05": 150_000 } },
       actuals: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 500_000 } },
       movements: [retiro("c-viaje", "2026-03", 150_000), retiro("c-viaje", "2026-05", 160_000), retiro("c-viaje", "2026-06", 30_000)],
     });
@@ -283,30 +287,29 @@ test.describe("FR-1014 — operar y corregir retiros en «Retiros del mes»", ()
 });
 
 test.describe("FR-1015 — retiros planeados", () => {
-  test("TC-TRF4-015e: franja al exceder el plan y marca auto-sanadora al quedar descubierto", async ({ page }) => {
+  // REESCRITO por saldo-de-bolsillo (FR-3004, FR-3005, 2026-09-27): el retiro planeado se anota desde la
+  // celda Pres. del bolsillo y la fila «Retiros del mes · Pres.» es una suma de solo lectura. Lo que antes
+  // quedaba «descubierto» con una marca, ahora se RECHAZA con la franja: el plan bloquea como lo real.
+  test("TC-TRF4-015e: franja al dejar un retiro planeado sin respaldo; la fila solo suma", async ({ page }) => {
     // @aitri-tc TC-TRF4-015e
     await gotoGrid(page, {
-      budgets: { "c-viaje": { "2026-01": 200_000 }, "@retiros": { "2026-06": 150_000 } },
+      budgets: { "c-salario": { "2026-01": 1_000_000 }, "c-viaje": { "2026-01": 200_000 }, "@retiros:c-viaje": { "2026-06": 150_000 } },
       actuals: { "c-salario": { "2026-01": 1_000_000 } },
       movements: [],
     });
 
-    // Exceder el plan: la franja con el límite exacto; el editor no se cierra.
-    await page.getByTestId("planned-withdraw-cell").nth(1).click(); // feb
-    const input = page.getByLabel("Retiro planeado");
-    await input.fill("250000");
-    await page.keyboard.press("Enter");
-    await expect(page.getByTestId("planned-withdraw-block")).toContainText("Solo hay $200.000 reservados en tu plan hasta febrero");
-    await page.keyboard.press("Escape");
+    const junPlanned = page.getByTestId("planned-withdraw-cell").nth(5);
+    await expect(junPlanned).toHaveText("150.000");
+    await junPlanned.click();
+    await expect(page.getByLabel("Retiro planeado")).toHaveCount(0); // ya no se edita aquí
 
-    // Auto-sanador: el retiro planeado de jun (150k) quedó descubierto al bajar el plan de aportes.
+    // Planear sacar 100.000 más en enero dejaría a Viaje en −50.000 en junio: la franja lo dice.
     await reserveCell(page, "Viaje", 0, "budget").click();
     await page.getByLabel("Editar valor").fill("100000");
     await page.keyboard.press("Enter");
-    const junPlanned = page.getByTestId("planned-withdraw-cell").nth(5);
-    await expect(junPlanned).toHaveAttribute("data-plan-warn", "true");
-    await expect(junPlanned).toContainText("!");
-    await expect(junPlanned).toHaveAttribute("title", /ya no cubre/);
+    await expect(page.getByTestId("reserve-block")).toContainText("Bloquea en junio 2026: «Viaje» quedaría en −$50.000");
+    await page.keyboard.press("Escape");
+    await expect(reserveCell(page, "Viaje", 0, "budget")).toHaveText("200.000");
   });
 });
 

@@ -1,0 +1,348 @@
+{
+  "capturedOn": "434a89b",
+  "periods": [
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09",
+    "2026-10"
+  ],
+  "state": {
+    "ownerId": "l",
+    "nodes": [
+      {
+        "id": "g-i",
+        "ownerId": "l",
+        "type": "income",
+        "level": "group",
+        "parentId": null,
+        "name": "g-i",
+        "icon": null,
+        "order": 0
+      },
+      {
+        "id": "ing",
+        "ownerId": "l",
+        "type": "income",
+        "level": "category",
+        "parentId": "g-i",
+        "name": "ing",
+        "icon": null,
+        "order": 1
+      },
+      {
+        "id": "g-e",
+        "ownerId": "l",
+        "type": "expense",
+        "level": "group",
+        "parentId": null,
+        "name": "g-e",
+        "icon": null,
+        "order": 2
+      },
+      {
+        "id": "gas",
+        "ownerId": "l",
+        "type": "expense",
+        "level": "category",
+        "parentId": "g-e",
+        "name": "gas",
+        "icon": null,
+        "order": 3
+      },
+      {
+        "id": "g-t",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "group",
+        "parentId": null,
+        "name": "g-t",
+        "icon": null,
+        "order": 4
+      },
+      {
+        "id": "A",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "A",
+        "icon": null,
+        "order": 5
+      },
+      {
+        "id": "B",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "B",
+        "icon": null,
+        "order": 6
+      },
+      {
+        "id": "C",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "C",
+        "icon": null,
+        "order": 7
+      }
+    ],
+    "startMonth": "2026-05",
+    "openingBalance": 2000,
+    "budgets": {
+      "ing": {
+        "2026-05": 3000,
+        "2026-06": 3000,
+        "2026-07": 3000,
+        "2026-08": 3000,
+        "2026-09": 3000,
+        "2026-10": 3000
+      },
+      "gas": {
+        "2026-05": 2000,
+        "2026-06": 2200,
+        "2026-07": 1800,
+        "2026-08": 2500,
+        "2026-09": 2000,
+        "2026-10": 2100
+      },
+      "A": {
+        "2026-05": 400,
+        "2026-06": 300,
+        "2026-07": 300
+      },
+      "B": {
+        "2026-06": 500,
+        "2026-08": 400
+      },
+      "C": {
+        "2026-09": 250
+      }
+    },
+    "actuals": {
+      "ing": {
+        "2026-05": 3000,
+        "2026-06": 3100,
+        "2026-07": 2900,
+        "2026-08": 3000,
+        "2026-09": 3200,
+        "2026-10": 3000
+      },
+      "gas": {
+        "2026-05": 2100,
+        "2026-06": 2000,
+        "2026-07": 2300,
+        "2026-08": 2400,
+        "2026-09": 1900,
+        "2026-10": 2600
+      },
+      "A": {
+        "2026-05": 300,
+        "2026-06": 250,
+        "2026-07": 300
+      },
+      "B": {
+        "2026-06": 200,
+        "2026-08": 350
+      },
+      "C": {
+        "2026-09": 100
+      }
+    },
+    "movements": [
+      {
+        "id": "m1",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "A",
+        "subId": null,
+        "target": "A",
+        "amount": 200,
+        "period": "2026-07",
+        "createdAt": 1,
+        "date": "2026-07-15T10:00",
+        "from": "A",
+        "to": "@disponible"
+      },
+      {
+        "id": "m2",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "C",
+        "subId": null,
+        "target": "C",
+        "amount": 100,
+        "period": "2026-08",
+        "createdAt": 2,
+        "date": "2026-08-15T10:00",
+        "from": "B",
+        "to": "C"
+      },
+      {
+        "id": "m3",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "A",
+        "subId": null,
+        "target": "A",
+        "amount": 150,
+        "period": "2026-10",
+        "createdAt": 3,
+        "date": "2026-10-15T10:00",
+        "from": "A",
+        "to": "@disponible"
+      }
+    ]
+  },
+  "series": {
+    "2026-05": {
+      "budget": {
+        "prevAvailable": 2000,
+        "prevReserved": 0,
+        "income": 3000,
+        "expense": 2000,
+        "flow": 1000,
+        "reserved": 400,
+        "available": 2600,
+        "reservedBalance": 400,
+        "total": 3000
+      },
+      "actual": {
+        "prevAvailable": 2000,
+        "prevReserved": 0,
+        "income": 3000,
+        "expense": 2100,
+        "flow": 900,
+        "reserved": 300,
+        "available": 2600,
+        "reservedBalance": 300,
+        "total": 2900
+      }
+    },
+    "2026-06": {
+      "budget": {
+        "prevAvailable": 2600,
+        "prevReserved": 400,
+        "income": 3000,
+        "expense": 2200,
+        "flow": 800,
+        "reserved": 800,
+        "available": 2600,
+        "reservedBalance": 1200,
+        "total": 3800
+      },
+      "actual": {
+        "prevAvailable": 2600,
+        "prevReserved": 300,
+        "income": 3100,
+        "expense": 2000,
+        "flow": 1100,
+        "reserved": 450,
+        "available": 3250,
+        "reservedBalance": 750,
+        "total": 4000
+      }
+    },
+    "2026-07": {
+      "budget": {
+        "prevAvailable": 2600,
+        "prevReserved": 1200,
+        "income": 3000,
+        "expense": 1800,
+        "flow": 1200,
+        "reserved": 300,
+        "available": 3500,
+        "reservedBalance": 1500,
+        "total": 5000
+      },
+      "actual": {
+        "prevAvailable": 3250,
+        "prevReserved": 750,
+        "income": 2900,
+        "expense": 2300,
+        "flow": 600,
+        "reserved": 100,
+        "available": 3750,
+        "reservedBalance": 850,
+        "total": 4600
+      }
+    },
+    "2026-08": {
+      "budget": {
+        "prevAvailable": 3500,
+        "prevReserved": 1500,
+        "income": 3000,
+        "expense": 2500,
+        "flow": 500,
+        "reserved": 400,
+        "available": 3600,
+        "reservedBalance": 1900,
+        "total": 5500
+      },
+      "actual": {
+        "prevAvailable": 3750,
+        "prevReserved": 850,
+        "income": 3000,
+        "expense": 2400,
+        "flow": 600,
+        "reserved": 350,
+        "available": 4000,
+        "reservedBalance": 1200,
+        "total": 5200
+      }
+    },
+    "2026-09": {
+      "budget": {
+        "prevAvailable": 3600,
+        "prevReserved": 1900,
+        "income": 3000,
+        "expense": 2000,
+        "flow": 1000,
+        "reserved": 250,
+        "available": 4350,
+        "reservedBalance": 2150,
+        "total": 6500
+      },
+      "actual": {
+        "prevAvailable": 4000,
+        "prevReserved": 1200,
+        "income": 3200,
+        "expense": 1900,
+        "flow": 1300,
+        "reserved": 100,
+        "available": 5200,
+        "reservedBalance": 1300,
+        "total": 6500
+      }
+    },
+    "2026-10": {
+      "budget": {
+        "prevAvailable": 4350,
+        "prevReserved": 2150,
+        "income": 3000,
+        "expense": 2100,
+        "flow": 900,
+        "reserved": 0,
+        "available": 5250,
+        "reservedBalance": 2150,
+        "total": 7400
+      },
+      "actual": {
+        "prevAvailable": 5200,
+        "prevReserved": 1300,
+        "income": 3000,
+        "expense": 2600,
+        "flow": 400,
+        "reserved": -150,
+        "available": 5750,
+        "reservedBalance": 1150,
+        "total": 6900
+      }
+    }
+  }
+}

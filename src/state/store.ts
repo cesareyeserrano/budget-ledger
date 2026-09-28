@@ -6,6 +6,7 @@ import type { ReserveVerdict } from "@/domain/reserve";
 import {
   addMovement, buildSeed, createNode, deleteNode, moveNode, renameNode, setLeafAmount, setNodeIcon,
   addCellNote, applyReserveCellEdit, applyReserveOp, AVAILABLE_ID, removeReserveOp, editReserveOp, setPlannedRetiro, plannedRetiroLimit, seedSeqFrom,
+  reserveCellTarget, type ReserveTargetResult,
   // Feature diario-de-celda: el ajuste que nace de teclear un total y la fecha que propone la celda.
   // `CELL_NOTE_MAX` es el mismo tope de 280 del comentario de celda: un solo número para las dos vías.
   adjustCell, findNode, isDateInPeriod, proposedDate, CELL_NOTE_MAX,
@@ -182,6 +183,11 @@ interface LedgerStore {
    * pinte la franja de bloqueo sin re-derivar nada.
    */
   applyReserveEdit: (leafId: string, month: PeriodKey, plane: Plane, newAmount: number) => ReserveEditResult;
+  /**
+   * FR-3002/FR-3004 (saldo-de-bolsillo): «ahora tengo esto» en la celda de un bolsillo. Anota la
+   * diferencia con el saldo como aporte o retiro del bolsillo (real con fecha propuesta; planeado en Pres.).
+   */
+  applyReserveTarget: (leafId: string, month: PeriodKey, plane: Plane, target: number) => ReserveTargetResult;
   /**
    * Retiro explícito desde la grilla (fila Retiros): saca de una alcancía hacia Disponible
    * (destino fijo en v1), journaliza y arma el toast con Deshacer.
@@ -519,6 +525,19 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const result = applyReserveCellEdit(get().data, { leafId, period: month, plane, newAmount }, get().activePeriods());
       if ("rejected" in result || result.noop) return result;
       reserveUndo = null; // editar celdas descarta la ventana de undo del último retiro
+      set({ data: result.state });
+      persist(result.state);
+      return result;
+    },
+
+    applyReserveTarget: (leafId, month, plane, target) => {
+      const prev = get().data;
+      // La misma fecha que propone la celda de gasto e ingreso (FR-2503): hoy si cae en el periodo; si
+      // no, su último día a mediodía. El dominio no lee el reloj: se la da el store.
+      const date = plane === "actual" ? proposedDate(calendarFor(prev), month, new Date()) : undefined;
+      const result = reserveCellTarget(prev, { leafId, period: month, plane, target, ...(date ? { date } : {}) }, get().activePeriods());
+      if ("rejected" in result || result.state === prev) return result;
+      reserveUndo = null; // escribir en la celda descarta la ventana de undo del último retiro
       set({ data: result.state });
       persist(result.state);
       return result;

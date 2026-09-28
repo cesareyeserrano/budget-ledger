@@ -11,7 +11,7 @@ import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
-import { monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
+import { monthIssues, monthCarryUsage, monthIssueText, resolvedTypeTotal, subtreeReserveBalance, type MonthIssue } from "@/domain/reserve";
 // FR-2511: los descuadres son la OTRA lista de problemas del mes; se juntan aquí al pintar.
 import { mismatchIssues } from "@/domain/mismatch";
 import { ReserveCellEditor, ReserveLeafCell } from "./ReserveCells";
@@ -590,6 +590,7 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
   // Esta fila solo PINTA: una celda por columna visible. Usaba `activePeriods` y pintaba 32
   // celdas bajo un encabezado de 12 con el filtro en Año — celdas sin mes encima.
   const periods = useVisiblePeriods();
+  const scope = useActivePeriods();
   const data = useLedgerStore((s) => s.data);
   const rollups = useRollups(data, periods);
   // refinamiento-ui FR-1202: el bloque se distingue por GLIFO y PESO, no por color. El usuario
@@ -621,7 +622,12 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
       {periods.map((m) => {
         // Modelo v4: los TRES tipos totalizan por celdas del mes (planes y ejecuciones — decisión
         // del usuario 2026-07-29). El acumulado de reservas vive en el Balance (Saldo reservado).
-        const t = rollups.type(type, m);
+        // FR-3007 (saldo-de-bolsillo): la fila «RESERVAS» suma lo AHORRADO en los bolsillos, así que
+        // coincide con «Saldo reservado» del Balance. Los saldos se derivan sobre `scope` (el rango
+        // entero), no sobre las columnas visibles: el arrastre empieza en el primer periodo.
+        const t = type === "transfer"
+          ? { budget: resolvedTypeTotal(data, m, "budget", scope), actual: resolvedTypeTotal(data, m, "actual", scope) }
+          : rollups.type(type, m);
         return (
           <div key={m} className="flex">
             {/* La fila de total conserva el color de identidad del tipo y NUNCA lleva glifo (FR-402). */}
@@ -773,19 +779,22 @@ function NodeRow(props: {
             return (
               <div key={m} className="flex">
                 {editingB ? (
-                  <ReserveCellEditor leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
+                  <ReserveCellEditor leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} closed={props.closedPeriods.has(m)} onClose={props.cancelEdit} />
                 ) : (
                   <ReserveLeafCell leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "budget", 0)} />
                 )}
                 {editingA ? (
-                  <ReserveCellEditor leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onClose={props.cancelEdit} />
+                  <ReserveCellEditor leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} closed={props.closedPeriods.has(m)} onClose={props.cancelEdit} />
                 ) : (
                   <ReserveLeafCell leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "actual", 0)} />
                 )}
               </div>
             );
           }
-          const { budget: bud, actual: act } = rollups.cell(node.id, m);
+          // FR-3007: un grupo de bolsillos suma lo ahorrado en sus bolsillos, no lo aportado ese mes.
+          const { budget: bud, actual: act } = node.type === "transfer"
+            ? { budget: subtreeReserveBalance(data, node.id, m, "budget", scope), actual: subtreeReserveBalance(data, node.id, m, "actual", scope) }
+            : rollups.cell(node.id, m);
           return (
             <div key={m} className="flex">
               <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />

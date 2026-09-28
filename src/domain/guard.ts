@@ -13,7 +13,7 @@
 // diff en lo mínimo: dos palabras `export` y un campo aditivo.
 
 import type { LedgerState, PeriodKey } from "./types";
-import { chainCheck, type ReserveWarning } from "./reserve";
+import { chainCheck, isPlannedRetiroKey, type ReserveWarning } from "./reserve";
 import { isLeaf } from "./tree";
 
 /**
@@ -43,6 +43,16 @@ function touchesReserves(prev: LedgerState, next: LedgerState): boolean {
         // Ausente y 0 son el MISMO valor contable: borrar una celda en cero no es tocar nada.
         if ((a[p as PeriodKey] ?? 0) !== (b[p as PeriodKey] ?? 0)) return true;
       }
+    }
+  }
+  // saldo-de-bolsillo (FR-3008): las filas de retiros planeados —la global y las de cada bolsillo— son
+  // reservas del plan aunque no sean nodos; un snapshot que solo cambia una de ellas también se juzga.
+  const filasPlan = new Set([...Object.keys(prev.budgets), ...Object.keys(next.budgets)].filter(isPlannedRetiroKey));
+  for (const id of filasPlan) {
+    const a = prev.budgets[id] ?? {};
+    const b = next.budgets[id] ?? {};
+    for (const p of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if ((a[p as PeriodKey] ?? 0) !== (b[p as PeriodKey] ?? 0)) return true;
     }
   }
   const firma = (st: LedgerState) =>

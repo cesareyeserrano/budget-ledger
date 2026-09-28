@@ -10,7 +10,7 @@
  * Dependencies: drizzle-orm, ../db/client, @/domain
  */
 import "server-only";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, like } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
@@ -28,7 +28,7 @@ import {
 import { currentPeriodFor } from "@/lib/date";
 import { oldestPeriodWithData, newestPeriodWithData } from "@/domain/range";
 import { worsenedBy } from "@/domain/guard";
-import type { ReserveWarning } from "@/domain/reserve";
+import { convertPlannedRetiros, isPlannedRetiroKey, type ReserveWarning } from "@/domain/reserve";
 import {
   closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
@@ -43,6 +43,14 @@ const DATA_VERSION_FLOWS = 4;
 // que las celdas de un ledger v4 llevan dentro llegadas que ahora vienen del journal. v5 las quita.
 const DATA_VERSION_COUNTERPARTY = 5;
 const DATA_VERSION_BALANCES = 3;
+// Feature saldo-de-bolsillo (FR-3006): el retiro planeado pasa a tener bolsillo. v7 = la fila global
+// `@retiros` ya se repartió en filas `@retiros:<bolsillo>` (o no había nada que repartir).
+//
+// Es 7 y NO 6, contra lo que dice el TRD de la feature: la migración 0002_multi_anio ya estampó 6 en
+// los ledgers que existían entonces (marca del formato de periodos), y desde contrapartidas-reserva
+// cada guardado reescribe 5. Con 6, un ledger que no se guardó desde 0002 se saltaría el reparto y su
+// fila global quedaría sin convertir para siempre. Con 7 no hay ledger que ya la tenga.
+const DATA_VERSION_PLAN_BY_POCKET = 7;
 
 /** Límite de filas por INSERT para no exceder el tope de parámetros de Postgres. */
 const INSERT_CHUNK = 500;
@@ -197,7 +205,11 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
 
   // En modo servidor el DUEÑO de las migraciones de formato es el servidor — lazy, aquí.
   if (head.dataVersion < DATA_VERSION_COUNTERPARTY) {
-    return migrateLedgerToV4(ownerId);
+    await migrateLedgerToV4(ownerId);
+  }
+  // FR-3006: una sola vez por ledger, después de la v5 y antes de leer.
+  if (head.dataVersion < DATA_VERSION_PLAN_BY_POCKET) {
+    await convertPlannedRetirosFor(ownerId);
   }
 
   const [nodeRows, cellRows, movementRows, cellNoteRows] = await Promise.all([
@@ -218,6 +230,70 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
     revision: head.revision,
     state: { ...state, closure: closureFromRow(head, calendarOf(state)), ...openingFromRow(head) },
   };
+}
+
+/**
+ * FR-3006 (saldo-de-bolsillo). Reparte UNA vez los retiros planeados sin bolsillo de un ledger y lo marca
+ * en `data_version = 7`, dentro de una transacción con la fila ancla bloqueada.
+ *
+ * Si la conversión cambió algo, se reescriben SOLO las filas de retiros planeados y se sube `revision`:
+ * un navegador con el snapshot anterior recibe 409 y re-sincroniza en vez de pisar la conversión. Si no
+ * había nada que repartir, solo se sube la marca.
+ *
+ * Un fallo NO impide cargar: se registra, la transacción se revierte entera (la base queda como estaba, en
+ * su versión anterior) y el ledger se sirve sin convertir; la próxima carga lo reintenta (TC-SDB-163f).
+ *
+ * @param ownerId Usuario de la sesión.
+ * @returns true si convirtió algo.
+ * @throws Nunca: los errores se registran y se absorben.
+ *
+ * @aitri-trace FR-ID: FR-3006, US-ID: US-3006, AC-ID: AC-3023, TC-ID: TC-SDB-053f, TC-SDB-054h, TC-SDB-161h, TC-SDB-162e, TC-SDB-163f
+ */
+async function convertPlannedRetirosFor(ownerId: string): Promise<boolean> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+      if (!head || head.dataVersion >= DATA_VERSION_PLAN_BY_POCKET) return false;
+      const { converted } = await persistPlannedRetirosInTx(tx, ownerId, await loadStateInTx(tx, ownerId));
+      if (converted) {
+        await tx.update(ledger).set({ revision: head.revision + 1, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
+        console.log(`[ledger] retiros planeados repartidos por bolsillo (FR-3006) para ${ownerId}`);
+      }
+      return converted;
+    });
+  } catch (err) {
+    console.error(`[ledger] no se pudo repartir los retiros planeados (FR-3006): ${String(err)}`);
+    return false;
+  }
+}
+
+/**
+ * El paso v7 de la cadena de datos, DENTRO de una transacción con la fila ancla bloqueada: reparte los
+ * retiros planeados sin bolsillo, reescribe SOLO sus filas y sella `data_version = 7`. No toca
+ * `revision`: lo decide el llamador (la carga la sube; el paso que corre dentro de otra escritura, no).
+ *
+ * @aitri-trace FR-ID: FR-3006, US-ID: US-3006, AC-ID: AC-3020, TC-ID: TC-SDB-054h, TC-SDB-162e
+ */
+async function persistPlannedRetirosInTx(
+  tx: DbTx, ownerId: string, state: LedgerState
+): Promise<{ state: LedgerState; converted: boolean }> {
+  const { state: next, converted } = convertPlannedRetiros(state, serverScope(state));
+  if (converted) {
+    await tx.delete(amountCell).where(and(eq(amountCell.ownerId, ownerId), like(amountCell.nodeId, "@retiros%")));
+    const filas = Object.entries(next.budgets)
+      .filter(([id]) => isPlannedRetiroKey(id))
+      .flatMap(([nodeId, porMes]) =>
+        Object.entries(porMes ?? {})
+          .filter(([, amount]) => (amount ?? 0) > 0)
+          .map(([period, amount]) => ({ ownerId, nodeId, period, kind: "budget", amount: amount as number }))
+      );
+    for (let i = 0; i < filas.length; i += INSERT_CHUNK) {
+      const slice = filas.slice(i, i + INSERT_CHUNK);
+      if (slice.length > 0) await tx.insert(amountCell).values(slice);
+    }
+  }
+  await tx.update(ledger).set({ dataVersion: DATA_VERSION_PLAN_BY_POCKET }).where(eq(ledger.ownerId, ownerId));
+  return { state: next, converted };
 }
 
 /**
@@ -406,7 +482,9 @@ async function ensureV4InTx(tx: DbTx, ownerId: string, dataVersion: number, stat
     .set({ dataVersion: DATA_VERSION_COUNTERPARTY, updatedAt: new Date() })
     .where(eq(ledger.ownerId, ownerId));
 
-  return v5State;
+  // El final de la cadena es v7 (FR-3006): un ledger que se migra aquí sale también con sus retiros
+  // planeados repartidos, igual que por la carga.
+  return (await persistPlannedRetirosInTx(tx, ownerId, v5State)).state;
 }
 
 /** Inserta las filas derivadas de un LedgerState dentro de una transacción (owner ya fijado). */
@@ -566,6 +644,9 @@ export async function saveLedger(
     // `applyCyclesFor`. Un cliente con código anterior no puede borrarla ni alterarla desde aquí.
     if (prev?.cycles) state = { ...state, cycles: prev.cycles };
     else if ("cycles" in state) { const { cycles: _ignored, ...rest } = state; void _ignored; state = rest as LedgerState; }
+    // FR-3006: un cliente con código anterior puede reenviar la fila global `@retiros`; se reparte
+    // aquí, antes de juzgar, con la misma regla que la conversión de la carga (TC-SDB-055e).
+    state = convertPlannedRetiros(state, serverScope(state)).state;
     const cal = calendarOf(state);
     const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
     const mismatch = periodMismatches(state, cal);
@@ -614,10 +695,10 @@ export async function saveLedger(
       // bajandose la frontera en el mismo snapshot con el que lo edita.
       await tx
         .update(ledger)
-        .set({ revision, updatedAt: new Date(), dataVersion: DATA_VERSION_COUNTERPARTY })
+        .set({ revision, updatedAt: new Date(), dataVersion: DATA_VERSION_PLAN_BY_POCKET })
         .where(eq(ledger.ownerId, ownerId));
     } else {
-      await tx.insert(ledger).values({ ownerId, revision, updatedAt: new Date(), dataVersion: DATA_VERSION_COUNTERPARTY });
+      await tx.insert(ledger).values({ ownerId, revision, updatedAt: new Date(), dataVersion: DATA_VERSION_PLAN_BY_POCKET });
     }
     return { ok: true, revision };
   });
