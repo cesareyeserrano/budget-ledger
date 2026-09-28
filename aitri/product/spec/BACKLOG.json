@@ -310,11 +310,12 @@
       "title": "TC-REC-040h es flaky: 15s de espera a Mailpit no bastan bajo carga de suite completa",
       "priority": "P3",
       "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27.] El 2026-08-26, re-verificando recuperar-acceso, TC-REC-040h fallo en la primera pasada y paso en el reintento — Playwright lo clasifica como 'flaky'. Error: 'no llego ningun correo en 15000ms', en tests/e2e/helpers/mailbox.ts:60. NO es un defecto del producto: el test comprueba FR-1309 (revocacion de sesiones tras recuperar contrasena) y pasa en aislamiento en 1.3 segundos. Bajo la carga de la suite completa Mailpit tarda mas de los 15 s que espera el helper. Consecuencia: aitri verify-run lo registra como 'fail' aunque Playwright lo de por bueno tras el reintento, y verify-complete bloquea, obligando a re-correr la verificacion entera. RELEVANCIA REDUCIDA desde el 2026-08-27: el usuario abandono la recuperacion por correo en favor del reset por terminal, asi que este test cubre un flujo que queda DORMIDO. Recobra importancia el dia que se active el correo (cuando haya dominio propio).",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-08-27T19:42:30.243Z",
       "files": "tests/e2e/helpers/mailbox.ts",
       "behavior": "Arreglo propuesto, de una linea: subir el timeout de waitForResetLink de 15000 a 45000 ms. Es espera MAXIMA, no fija — el bucle sondea cada 200 ms y sale en cuanto llega el correo, asi que subirlo NO ralentiza las corridas sanas. Alternativa si reaparece: un Mailpit por worker, como ya hacen los tests de backend con Postgres.",
-      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas."
+      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas.",
+      "closedAt": "2026-09-28T21:42:56.132Z"
     },
     {
       "id": "BL-032",
