@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planear retiros — vista previa</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px; font-family: system-ui, -apple-system, sans-serif; background: #e9e9ec; color: #1c1c1f; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.lead { margin: 0 0 16px; font-size: 13px; color: #55555d; max-width: 760px; }
+  .banner { display: inline-block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 8px; padding: 4px 8px; margin-bottom: 16px; color: #9e4708; }
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .light { --bg:#f7f7f8; --bg-card:#ffffff; --bg-elevated:#ffffff; --error:#ad3932; --fg:#1c1c1f; --fg-secondary:#55555d; --fg-muted:#6b6b73; --border:#e3e3e7; }
+  .dark  { --bg:#131316; --bg-card:#1b1b1f; --bg-elevated:#26262b; --error:#ec6a66; --fg:#f4f4f5; --fg-secondary:#b4b4bb; --fg-muted:#9b9ba3; --border:#33333a; }
+  .panel { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .panel h2 { font-size: 13px; margin: 0 0 10px; color: var(--fg-secondary); font-weight: 600; }
+  .pop { background: var(--bg-card); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 384px; }
+  .f { width: 100%; background: var(--bg-elevated); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px; font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .num { font-family: ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; }
+  .max { color: var(--fg-muted); white-space: nowrap; }
+  .btns { display: flex; justify-content: flex-end; gap: 12px; }
+  .list { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .muted { color: var(--fg-muted); }
+  .sec { color: var(--fg-secondary); font-weight: 500; }
+  .amt { width: 96px; }
+  .gaps { margin-top: 16px; font-size: 12px; color: #55555d; max-width: 760px; }
+  footer { margin-top: 12px; font-size: 11px; color: #6b6b73; }
+</style>
+</head>
+<body>
+  <h1>Planear un retiro — el mismo formulario que el real</h1>
+  <p class="lead">Clic en la celda de «Retiros del mes» del presupuesto: eliges de qué alcancía sale, cuánto y para qué. Abajo, los retiros planeados del mes, corregibles. Colores y tamaños, los del formulario real.</p>
+  <div class="banner">Ilustrativo, no vinculante: el contrato es el spec</div>
+  <div class="panels">
+    <section class="panel light"><h2>Tema claro</h2>
+      <div class="pop">
+        <strong>Planear sacar en marzo 2026 → Disponible</strong>
+        <select class="f"><option>Ahorro · Viaje — $300.000</option></select>
+        <div class="row"><input class="f num" value="100000"><span class="max num">Máx. $300.000</span></div>
+        <input class="f" value="pasajes">
+        <div class="btns"><span class="muted">Cancelar</span><strong>Planear</strong></div>
+        <div class="list"><span class="sec">Retiros planeados de este mes</span>
+          <div class="row"><span style="flex:1">Ahorro · Carro <span class="muted">· revisión</span></span><input class="f num amt" value="50000"></div>
+        </div>
+      </div>
+    </section>
+    <section class="panel dark"><h2>Tema oscuro</h2>
+      <div class="pop">
+        <strong>Planear sacar en marzo 2026 → Disponible</strong>
+        <select class="f"><option>Ahorro · Viaje — $300.000</option></select>
+        <div class="row"><input class="f num" value="100000"><span class="max num">Máx. $300.000</span></div>
+        <input class="f" value="pasajes">
+        <div class="btns"><span class="muted">Cancelar</span><strong>Planear</strong></div>
+        <div class="list"><span class="sec">Retiros planeados de este mes</span>
+          <div class="row"><span style="flex:1">Ahorro · Carro <span class="muted">· revisión</span></span><input class="f num amt" value="50000"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <p class="gaps">La celda de la grilla, fuera de esta vista, sigue igual que hoy: muestra la suma de lo planeado en el mes. Las fuentes son las del sistema porque la vista no descarga nada.</p>
+  <footer>Generado desde 01_UX_SPEC.md — no vinculante; el contrato es el spec.</footer>
+</body>
+</html>

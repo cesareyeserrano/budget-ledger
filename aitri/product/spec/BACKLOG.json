@@ -453,10 +453,10 @@
       "title": "Decision de modelo: la celda de un bolsillo, aporte del mes o saldo que tengo",
       "priority": "P1",
       "problem": "La celda de un bolsillo muestra lo APORTADO ese mes, no lo que hay en el cajon, y el usuario lo declaro incorrecto: «la realidad es lo que tengo; si dice 1.500 cuando tengo 1.000, esta mal»",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-02T00:00:00.000Z",
       "decisions": "VERIFICADO que la divergencia YA EXISTE hoy, no la introduce ninguna propuesta: tras reservar 1.000 y sacar 300, la celda dice 1.000 y el cajon tiene 700; y reservando 600 en enero y 400 en febrero, la celda de febrero dice 400 cuando hay 1.000. La objecion del usuario es contra el diseno vigente. OPCIONES: (a) la grilla muestra el SALDO del cajon al cierre de cada mes —la foto— y los flujos del mes siguen visibles en el Balance («Reservas del mes» / «Retiros de reservas») y en la lista de operaciones; (b) dejarlo como esta. LA PREGUNTA DIFICIL de la opcion (a): que significa BAJAR el numero de la celda — «no meti tanto» (corregir) o «saque plata» (retiro real). Propuesta: bajar la celda corrige lo aportado, y sacar plata se hace por la fila de retiros, que ademas pone fecha. Esa separacion disolveria la ambiguedad de la que nacen BL-037 y BL-038. NOTA HISTORICA: el modelo v3 guardaba SALDOS y la migracion a v4 los convirtio en APORTES; el motivo registrado fue que con semantica de saldo una celda ausente resolvia 0 e inventaba retiros fantasma. Eso afecta al ALMACENAMIENTO, no a la presentacion: se puede seguir guardando aportes y MOSTRAR el saldo derivado, que es lo que ya hace resolvedSeries. EVIDENCIA EJECUTADA en aitri/features/cierre-de-mes/feature_context/analisis-del-modelo.md.",
-      "updatedAt": "2026-09-27T19:56:33.301Z",
+      "updatedAt": "2026-09-28T00:51:23.241Z",
       "log": [
         {
           "at": "2026-09-26T00:03:11.076Z",
@@ -473,8 +473,33 @@
         {
           "at": "2026-09-27T19:56:33.301Z",
           "text": "2026-09-27 CONFIRMADO POR EL USUARIO (punto 2): opcion A. Escribir un numero encima de la celda significa 'ahora tengo esto': la app anota la DIFERENCIA como plata que entro (numero mayor) o como retiro (numero menor), con fecha. Ejemplo que se le mostro con sus datos: la celda dira 1.000.000; si escribe 800.000, se anota un retiro de 200.000. Se descartan: B (corregir lo aportado sin anotar retiro; falla en meses sin aportes) y C (celda de solo lectura). Con esto BL-041 queda DECIDIDO en sus dos puntos; pasa a feature porque cambia FR-1003 (transferencias), aprobado."
+        },
+        {
+          "at": "2026-09-27T23:07:21.695Z",
+          "text": "2026-09-27 DECISION DEL USUARIO sobre el plan: los retiros PLANEADOS siguen siendo un solo numero por mes, SIN bolsillo. Sus palabras: 'creo que no se puede saber de donde va a sacar para retirar'. Se descarta el retiro planeado por bolsillo. Consecuencia a confirmar: la celda Pres. de un bolsillo suma lo que se planea meter en el, sin restar los retiros planeados (no se sabe de cual salen); esos solo se restan en el total del Balance (Saldo reservado Pres.)."
+        },
+        {
+          "at": "2026-09-27T23:08:52.755Z",
+          "text": "2026-09-27 CORRECCION de la nota #5, decidida por el usuario tras ver las dos opciones con un ejemplo: 'si, deberiamos dejarlo igual que ejecutado (real)'. Los retiros PLANEADOS se anotan POR BOLSILLO, igual que los reales: bajar la celda Pres. de un bolsillo anota un retiro planeado de ESE bolsillo; la fila 'Retiros del mes' Pres. pasa a ser la suma de los retiros planeados de los bolsillos y deja de escribirse directamente. La nota #5 (retiro planeado sin bolsillo) queda DESCARTADA. POR DECIDIR: a que bolsillo va cada retiro planeado que ya existe sin bolsillo (@retiros)."
+        },
+        {
+          "at": "2026-09-27T23:18:25.416Z",
+          "text": "2026-09-27 CONFIRMADO por el usuario ('ok'): los retiros planeados que ya existen sin bolsillo (@retiros) los reasigna la actualizacion SOLA, sin que el usuario corrija nada: cada uno va al bolsillo con mas plata planeada ese mes y, si no alcanza, lo que falte sale del siguiente. Ejemplo mostrado con su cuenta de pruebas: los 10.000.000 de octubre irian a 'Ahorros' (43.728.582 planeados)."
+        },
+        {
+          "at": "2026-09-28T00:38:34.578Z",
+          "text": "2026-09-27 (tarde) CAMBIO DE DECISION del usuario al verlo en su grilla: la fila de un bolsillo NO debe arrastrar. Al ver 'Ahorros' con 43.728.582 en todos los meses dijo: 'los datos de la parte de reserva se arrastran en el tiempo y eso no esta bien, lo unico que arrastra es lo que sale en LO DISPONIBLE' y 'es como decir que ya ahorre en diciembre 43 millones, y eso no es cierto'. Se pasa a la OPCION 2: cada mes la celda muestra lo que se metio menos lo que se saco ESE mes (puede ser negativo en un mes de solo retiro); lo acumulado se ve solo en 'Saldo reservado' del Balance. Sustituye la nota #3 (saldo acumulado). Se mantiene: el plan igual que lo real con retiros planeados por bolsillo (nota #6) y el reparto automatico de los viejos (nota #7). La feature saldo-de-bolsillo se reabre en fase 1."
+        },
+        {
+          "at": "2026-09-28T00:43:33.775Z",
+          "text": "2026-09-27 (noche) DECISION FINAL del usuario, que sustituye las notas #3, #4 y #8: 'Todo de reservas, ingresos, egresos muestra lo del mes o ciclo, los movimientos de esos meses. En balance, lo disponible, es donde se arrastra.' Si en septiembre ahorra y en octubre no, la celda de octubre queda vacia; si saca, eso va en 'Retiros del mes' y su formulario dice de que alcancia sale; 'de lo contrario tendriamos que hacer un balance por cada alcancia'. O sea: la celda de un bolsillo SIGUE siendo lo aportado ese mes (opcion b, como estaba) y editarla corrige el aporte. Y: 'el mismo formulario que tiene retiros del mes en ejecutado va en presupuestado' — el retiro planeado se anota en la fila 'Retiros del mes - Pres.' con el mismo formulario que la de Ejec., que dice de que alcancia sale. Se mantienen: retiro planeado por bolsillo (nota #6) y reparto automatico de los viejos (nota #7). BL-041 queda resuelto asi; la feature saldo-de-bolsillo se reduce a esto."
+        },
+        {
+          "at": "2026-09-28T00:51:23.241Z",
+          "text": "2026-09-27 (noche) El usuario pide que el formulario de retiros planeados lleve tambien el campo '¿Para que?' ('si'). Se guarda como observacion de la celda del plan '@retiros:<alcancia>' (cell_note, sin cambio de esquema); dos retiros de la misma alcancia y mes se muestran sumados con sus notas juntas."
         }
-      ]
+      ],
+      "closedAt": "2026-09-28T15:49:19.105Z"
     },
     {
       "id": "BL-042",

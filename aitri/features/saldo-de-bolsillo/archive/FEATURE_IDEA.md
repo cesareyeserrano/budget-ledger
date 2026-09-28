@@ -68,13 +68,25 @@ confirmar en la fase de requisitos.
    CONFIRMADO el mismo día que «su carril» alcanza a TODA la columna Pres. del Balance: el presupuesto
    arrastra su propio saldo de mes a mes. Palabras del usuario: «esa regla vieja es mal diseño, hay que
    corregirlo». Registrado como BL-059 en el backlog de la raíz.
-   POR CONFIRMAR: si la corrección del carril va dentro de esta feature o como feature propia antes de
-   ella. La celda Pres. de un bolsillo solo cuadra con «Saldo reservado» Pres. si el carril se corrige.
+   YA ENTREGADO: el usuario eligió dos entregas y la primera, la feature carril-de-presupuesto (5/5,
+   2026-09-27, commits 5eacb9c y 708d34c), ya hace que el plan arrastre su propio saldo y que sus reglas
+   de reservas bloqueen como en Ejecutado («comportamientos iguales»). Esta feature parte de ahí.
+   LO QUE QUEDA AQUÍ del lado del plan, CONFIRMADO el 2026-09-27: el plan funciona igual que lo real
+   («sí, deberíamos dejarlo igual que ejecutado (real)», elegido tras ver con un ejemplo la alternativa de
+   un retiro planeado sin bolsillo). La celda Pres. de un bolsillo muestra lo que el plan tendría ahorrado
+   en él; bajarla anota un retiro PLANEADO de ESE bolsillo. La fila «Retiros del mes» Pres. pasa a ser la
+   suma de los retiros planeados de los bolsillos y deja de escribirse directamente. Hoy el retiro
+   planeado es una sola fila por mes, sin bolsillo (`@retiros`).
+5b. CONFIRMADO el 2026-09-27 («ok»). Los retiros planeados que YA existen sin bolsillo los reasigna la
+   actualización sola, sin que el usuario corrija nada a mano: cada uno va al bolsillo con más plata
+   planeada ese mes y, si no alcanza, lo que falte sale del siguiente. Ejemplo mostrado con su cuenta de
+   pruebas: 10.000.000 planeados para octubre irían al bolsillo que tenía 43.728.582 planeados.
 6. [ASSUMPTION] Las filas de grupo y de tipo («Ahorro», «RESERVAS») suman lo que hay en sus bolsillos, así
    que la fila «RESERVAS» pasa a coincidir con «Saldo reservado» del Balance. POR CONFIRMAR con el usuario.
-7. [ASSUMPTION] El almacenamiento no cambia: `amount_cell` sigue guardando aportes y el journal las
-   operaciones. El saldo se DERIVA al pintar. Los ledgers existentes muestran el saldo correcto sin
-   migración y sin que el usuario corrija nada a mano.
+7. [ASSUMPTION] `amount_cell` sigue guardando aportes y el journal las operaciones reales; el saldo se
+   DERIVA al pintar, así que los ledgers existentes muestran el saldo correcto sin que el usuario corrija
+   nada. Lo único que cambia de forma es el retiro planeado, que pasa a tener bolsillo (punto 5b); cómo se
+   guarda lo decide el diseño.
 8. Las reglas vigentes se aplican igual a lo escrito en la celda: no se puede reservar más de lo disponible
    en el mes, no se puede sacar más de lo que hay en el bolsillo, y ninguna operación deja un mes con
    gastos sin cubrir (FR-2801 de retirar-para-gastar). Un número que las rompe se rechaza diciendo cuál.
@@ -111,7 +123,7 @@ NO TOCA: el esquema de la base, la API de movimientos, el registro «Nuevo movim
 ## Must Not Break (Regression Boundary)
 - Para los mismos datos, las filas del Balance dan las mismas cifras que hoy en la columna Ejec.:
   «Reservas del mes», «Retiros de reservas», «Saldo disponible», «Saldo reservado» y «Saldo total». La
-  columna Pres. del Balance queda PENDIENTE del alcance del punto 5 de «New Behavior».
+  columna Pres. del Balance da las mismas cifras que tras carril-de-presupuesto.
 - La fila «Retiros del mes» sigue listando los retiros y sigue permitiendo corregirlos y borrarlos
   (FR-1802, FR-1803, FR-1609).
 - «Nuevo movimiento» → «Reserva» (meter, sacar y mover entre bolsillos) se comporta igual, y el botón de
@@ -129,4 +141,3 @@ NO TOCA: el esquema de la base, la API de movimientos, el registro «Nuevo movim
 - La vista móvil (BL-056) y la integración con Tony (BL-057). Esta feature les deja la regla decidida.
 - El color del Balance (BL-042).
 - Cambiar qué filas tiene el Balance o cómo se calculan.
-- Planear retiros por bolsillo en Presupuestado: la fila «Retiros del mes · Pres.» sigue siendo una sola.

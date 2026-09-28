@@ -1,0 +1,137 @@
+{
+  "project": "saldo-de-bolsillo",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale) y SIN MIGRACIONES SQL. Hay una conversión de datos única por ledger (data_version 7) al cargar; respaldo pg_dump obligatorio antes de desplegar. Rollback: imagen anterior + restaurar el respaldo. Escrito en aitri/features/saldo-de-bolsillo/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/saldo-de-bolsillo/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-3001",
+      "title": "La fila «Retiros del mes · Pres.» abre el mismo formulario que la de Ejecutado",
+      "level": "partial",
+      "evidence": "9 TCs en verde (verify-run 2026-09-28): formulario con «Planear» y título «Planear sacar en marzo 2026 → Disponible» (001h); opciones «Ahorro · Viaje — $300» y «Ahorro · Carro — $150» (002h); «Máx. $300» en --error con 301 y «Planear» deshabilitado (003f); Máx. del plan = 50 con un retiro de 250 en junio (006e); 384 px dentro del viewport a 768 y 1440 (008e); contraste AA del «Máx.» en claro y oscuro (009e). Parcial por la deuda declarada: 003f fija además el literal del rojo claro."
+    },
+    {
+      "id": "FR-3002",
+      "title": "Cada retiro planeado sale de una alcancía y respeta las reglas del plan",
+      "level": "partial",
+      "evidence": "12 TCs en verde: 100 de Viaje queda en '@retiros:A' y el plan baja a 200 (010h); 301 rechazado con «Viaje» solo tiene $300 sin mutar nada (011f); 300 exacto aceptado (012e); rechazo nombrando junio (013f); 100+50 = 150 (014h); nota «pasajes» guardada con fecha (015h, 019h por la grilla y tras recargar); 500 retiros aleatorios sin ninguna serie del plan negativa (018e); fusión mueve fila y notas (020e); borrar bloqueado (021f). Parcial por la deuda declarada: setPlannedRetiro se conserva en el dominio como legado."
+    },
+    {
+      "id": "FR-3003",
+      "title": "Los retiros planeados del mes se corrigen desde la lista del formulario",
+      "level": "complete",
+      "evidence": "10 TCs en verde: 100→60 (030h, 036h por la grilla); 0 elimina retiro y notas con «Operación eliminada» y «Sin retiros planeados este mes» (031h, 036h); 301 rechazado con tope 300 y el campo vuelve a 100 (032f, 037f); 300 exacto aceptado (033e); una línea de Viaje por 150 con «pasajes · hotel» (034h, 038e); Escape revierte sin guardar (039e)."
+    },
+    {
+      "id": "FR-3004",
+      "title": "La celda Pres. de «Retiros del mes» suma los retiros planeados de las alcancías",
+      "level": "complete",
+      "evidence": "6 TCs en verde: 100+50 → «150» (040h); mes sin retiros «—» (041e); suma de filas por alcancía y la global legada = 157 (042h); ni otro mes ni lo real cuentan (043f); 150 planeados y 160 reales → la celda Ejec. lleva «›» y data-over over_soft (044e); a 375 px la grilla no existe (045e)."
+    },
+    {
+      "id": "FR-3006",
+      "title": "Los retiros planeados sin alcancía se reparten solos",
+      "level": "partial",
+      "evidence": "7 TCs en verde: 10.000.000 entero a la alcancía con 43.728.582 (050h, y persistido en amount_cell, 054h); 1.500 → 1.000 y 500 (051h); Balance del plan idéntico tras convertir (052e); segunda carga no cambia filas ni revisión, data_version 7 (053f); cliente viejo convertido al guardar (055e); sin alcancías se conserva (056f). Parcial por la deuda declarada: el fallo de TC-SDB-163f se simula con vi.mock."
+    },
+    {
+      "id": "FR-3008",
+      "title": "El servidor aplica las reglas a los retiros planeados por alcancía",
+      "level": "complete",
+      "evidence": "4 TCs en verde contra Postgres: PUT que deja la alcancía en negativo → 422 domain_rule_violation con piso (070f); PUT cubierto → 200 (071h); el guardia ve un cambio solo en '@retiros:A' (072e); la nota viaja a cell_note y vuelve en el GET (073e)."
+    },
+    {
+      "id": "NFR-3001",
+      "title": "El Balance queda idéntico para los mismos datos",
+      "level": "complete",
+      "evidence": "101h (serie capturada en 434a89b idéntica), 102e (legado convertido igual a la captura), 103f (planear y eliminar devuelve el Balance original) en verde."
+    },
+    {
+      "id": "NFR-3002",
+      "title": "El formulario Ejec. y el registro no cambian",
+      "level": "complete",
+      "evidence": "111h, 112e, 113f y 114e en verde: el formulario Ejec. conserva «Sacar en…», «Sacar» y «Operaciones de este mes» y corrige un retiro de 200 a 150."
+    },
+    {
+      "id": "NFR-3003",
+      "title": "Techo, piso y déficit aceptan y rechazan lo mismo",
+      "level": "complete",
+      "evidence": "121h (límite exacto 1.000 aceptado), 122f (1.001 rechazado por techo), 123e (déficit en diciembre) en verde."
+    },
+    {
+      "id": "NFR-3004",
+      "title": "Un mes cerrado no se modifica",
+      "level": "complete",
+      "evidence": "131h (mes abierto con anteriores cerrados → 200), 132f (retiro planeado en mes cerrado → 422 closed_period_violation), 133e (bolsillo de mes cerrado sin campo de importe), 134f (la celda Pres. de «Retiros del mes» de un mes cerrado dice «Mes cerrado» y no abre) en verde."
+    },
+    {
+      "id": "NFR-3005",
+      "title": "La celda de un bolsillo sigue siendo el aporte del mes; nada de la grilla arrastra",
+      "level": "complete",
+      "evidence": "141h (600.000, 400.000 y «—»), 142e (escribir 500.000 en agosto corrige el aporte sin crear movimientos), 143f (la fila del grupo dice 600.000 en agosto y «—» en septiembre), 144h (la celda Pres. no resta su retiro planeado), 145e («RESERVAS» suma aportes del mes) en verde."
+    },
+    {
+      "id": "NFR-3006",
+      "title": "Las celdas de gasto e ingreso siguen creando su ajuste",
+      "level": "complete",
+      "evidence": "151h (ajuste de 50 kind 'adjustment'), 152e (−100 en ingreso), 153f (un bolsillo nunca recibe ajuste y editarlo no crea movimientos) en verde."
+    },
+    {
+      "id": "NFR-3007",
+      "title": "Abrir un ledger solo convierte los retiros planeados sin alcancía",
+      "level": "complete",
+      "evidence": "161h (sin fila global nada cambia salvo data_version 7), 162e (solo cambian las filas @retiros y el total se conserva), 163f (conversión fallida sin escrituras parciales, data_version 5) en verde."
+    },
+    {
+      "id": "NFR-3008",
+      "title": "Seguridad: sin superficie nueva",
+      "level": "complete",
+      "evidence": "Sin endpoints, sesiones ni secretos nuevos; las filas y notas entran por el PUT existente con Zod y el guardia. Gate security-config en verde (verify-run y scripts/security-config.sh)."
+    },
+    {
+      "id": "NFR-3009",
+      "title": "Observabilidad: sin rutas nuevas",
+      "level": "complete",
+      "evidence": "Sin ficheros nuevos en src/app/api; la conversión registra su fallo en el log del servidor."
+    },
+    {
+      "id": "NFR-3010",
+      "title": "CI sin cambios en el workflow",
+      "level": "complete",
+      "evidence": "El workflow de CI no se modificó en esta feature; ejecuta test:run y test:e2e, que incluyen las pruebas nuevas."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-3006",
+      "substitution": "TC-SDB-163f simula el fallo sustituyendo convertPlannedRetiros por una función que lanza (vi.mock), no con una fila inválida inyectada en la base",
+      "reason": "Los CHECK de amount_cell impiden guardar una fila que haga fallar la conversión; el mock produce el mismo efecto observable (la transacción se revierte, el ledger se sirve sin convertir y la base queda en su versión).",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3002",
+      "substitution": "setPlannedRetiro (la fila global @retiros) se conserva en el dominio, sin llamadores de producción; el TRD decía retirarla del dominio y del store (del store sí salió)",
+      "reason": "Seis suites aprobadas de otras features (BG-020, BG-022, techo-de-flujo, carril-de-presupuesto, reserve-grid, reserve-balance) la usan para armar un ledger con la fila global legada, que es justo lo que convertPlannedRetiros reparte; reescribirlas no cambia nada para el usuario. Queda documentada como LEGADO en reserve.ts.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3001",
+      "substitution": "TC-SDB-003f fija además el rojo claro literal rgb(173, 57, 50) y emula el tema claro",
+      "reason": "El token --error se compara también contra su valor resuelto en el navegador; el literal documenta la cifra del UX spec y cambiaría solo si cambia el token.",
+      "effort_to_fix": "low"
+    }
+  ]
+}
