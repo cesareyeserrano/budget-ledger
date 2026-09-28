@@ -507,41 +507,41 @@ interface BasePlan {
 }
 const PLAN = JSON.parse(readFileSync("tests/fixtures/retirar-para-gastar-plan-base.json", "utf8")) as BasePlan;
 
-describe("NFR-2805 · el plano Presupuestado no cambia", () => {
-  it("TC-RPG-141h: el plano Presupuestado da exactamente lo mismo que antes", () => {
+// REESCRITO por carril-de-presupuesto (FR-2901/FR-2904, 2026-09-27). NFR-2805 prometía que esta feature
+// no tocaba el plano Presupuestado, y la cumplió: la captura de 99c7513 lo prueba hasta 795ca8a. La feature
+// siguiente cambió el plan A PROPÓSITO —su propio carril y reglas que bloquean—, así que la comparación
+// cifra a cifra dejó de ser la promesa correcta. Lo que sigue en pie de NFR-2805 es lo de ESTA feature: el
+// plan consume en NETO (ADR-08), su «Máx.» es exacto y la marca del retiro planeado no cambia.
+describe("NFR-2805 · el plano Presupuestado conserva lo que retirar-para-gastar no tocó", () => {
+  it("TC-RPG-141h: en el plan la marca del retiro planeado no cambia y el «Máx.» es exacto", () => {
     // @aitri-tc TC-RPG-141h
-    // El barrido del plan (margen, consumo, exceso) no se exporta; se observa por las cuatro funciones
-    // públicas que derivan de él. Línea base capturada sobre 99c7513 con el código anterior.
     for (const [k, s] of Object.entries(PLAN.ledgers)) {
       const Pp = PLAN.periodos;
-      const ahora = Pp.map((p) => ({
-        cellHeadroomA: cellHeadroom(s, "A", p, "budget", Pp),
-        carry: monthCarryUsage(s, p, "budget", Pp),
-        verdict: validateReserveWrite(s, { leafId: "A", period: p, plane: "budget", newAmount: 5000 }, Pp),
-        retiroPlaneado: monthIssues(s, Pp).filter((x) => x.period === p && x.kind === "retiro_planeado"),
-      }));
-      expect(deep(ahora), k).toEqual(PLAN.plan[k]);
+      Pp.forEach((p, i) => {
+        const marca = monthIssues(s, Pp).filter((x) => x.period === p && x.kind === "retiro_planeado");
+        expect(deep(marca), `${k}/${p}`).toEqual(PLAN.plan[k][i].retiroPlaneado);
+        const m = cellHeadroom(s, "A", p, "budget", Pp);
+        expect(validateReserveWrite(s, { leafId: "A", period: p, plane: "budget", newAmount: m }, Pp).ok, `${k}/${p} m`).toBe(true);
+        expect(validateReserveWrite(s, { leafId: "A", period: p, plane: "budget", newAmount: m + 1 }, Pp).ok, `${k}/${p} m+1`).toBe(false);
+      });
     }
   });
 
-  it("TC-RPG-142f: una escritura de plan por encima del techo sigue avisando sin bloquear", () => {
+  it("TC-RPG-142f: una escritura de plan por encima del techo se rechaza (antes solo avisaba)", () => {
     // @aitri-tc TC-RPG-142f
     const s = ledger();
     const plan = { ...s, budgets: { ing: { [JUN]: 1000 } } } as LedgerState;
     const v = validateReserveWrite(plan, { leafId: "A", period: JUN, plane: "budget", newAmount: 1500 }, P);
-    expect(v.ok).toBe(true);
-    if (v.ok) expect(v.warnings).toEqual(expect.arrayContaining([expect.objectContaining({ rule: "techo", period: JUN })]));
+    expect(v).toMatchObject({ ok: false, rule: "techo", period: JUN, limit: 1000 });
   });
 
   it("TC-RPG-143e: en el plan un retiro planeado no cambia de semántica", () => {
     // @aitri-tc TC-RPG-143e
-    // L3 del fixture planea un retiro de 300 en abril sobre un aporte planeado de 600: el plan ya
-    // consumía en NETO (ADR-08), así que su observación y su «Máx.» siguen idénticos a la captura.
+    // L3 del fixture planea un retiro de 300 en abril sobre un aporte planeado de 600: el plan consume
+    // en NETO (ADR-08), así que lo reservado de abril en el plan es 300.
     const s = PLAN.ledgers.L3;
-    const i = PLAN.periodos.indexOf(ABR);
     expect(s.budgets[RETIROS_PLAN_ID][ABR]).toBe(300);
-    expect(cellHeadroom(s, "A", ABR, "budget", PLAN.periodos)).toBe(PLAN.plan.L3[i].cellHeadroomA);
-    expect(deep(monthCarryUsage(s, ABR, "budget", PLAN.periodos))).toEqual(PLAN.plan.L3[i].carry);
+    expect(reserveDelta(s, ABR, "budget")).toBe(300);
   });
 });
 
@@ -638,12 +638,15 @@ describe("NFR-2809 · el cambio de regla no añade barridos", () => {
     cellHeadroom(s, "A", JUN, "actual", P);
   };
 
+  // Desde carril-de-presupuesto (FR-2905) `monthIssues` también barre el plan para marcar sus meses,
+  // así que consultar un estado cuesta DOS barridos: uno por plano. La promesa sigue siendo la misma —
+  // un barrido por estado Y PLANO—; lo que cambió es que ahora se consultan los dos planos.
   it("TC-RPG-181h: un solo barrido por estado y plano", () => {
     // @aitri-tc TC-RPG-181h
     const s = plataFresca();
     __resetReservePerfCounters();
     consultar(s);
-    expect(__reservePerfCounters().techoScans).toBe(1);
+    expect(__reservePerfCounters().techoScans).toBe(2);
   });
 
   it("TC-RPG-182f: un estado nuevo sí provoca un barrido nuevo", () => {
@@ -655,7 +658,7 @@ describe("NFR-2809 · el cambio de regla no añade barridos", () => {
     __resetReservePerfCounters();
     consultar(s);
     reserveHeadroom(t, JUN, P);
-    expect(__reservePerfCounters().techoScans).toBe(2);
+    expect(__reservePerfCounters().techoScans).toBe(3);
   });
 
   it("TC-RPG-183e: consultar el mismo estado otra vez no barre de nuevo", () => {
@@ -664,6 +667,6 @@ describe("NFR-2809 · el cambio de regla no añade barridos", () => {
     __resetReservePerfCounters();
     consultar(s);
     consultar(s);
-    expect(__reservePerfCounters().techoScans).toBe(1);
+    expect(__reservePerfCounters().techoScans).toBe(2);
   });
 });

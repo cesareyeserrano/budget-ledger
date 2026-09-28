@@ -145,8 +145,9 @@ describe("FR-1105 — el retiro del saneador local no cambia el camino de servid
     // El marcador estampado es el VIGENTE de la cadena, no el de la conversión concreta que se
     // probó aquí: `contrapartidas-reserva` añadió el paso v4→v5 y el servidor sella el final de la
     // cadena en la misma transacción. La aserción de que la conversión v3→v4 corrió sobre las celdas se conserva intacta arriba; lo único
-    // que cambia es la constante.
-    expect(row.data_version).toBe(5);
+    // que cambia es la constante. Desde saldo-de-bolsillo (FR-3006) el final de la cadena es 7: la
+    // carga reparte además los retiros planeados sin bolsillo y sella esa marca.
+    expect(row.data_version).toBe(7);
   });
 });
 

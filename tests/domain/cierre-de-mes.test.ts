@@ -638,13 +638,21 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // cobertura A LA VEZ— no es cierta en el Aitri actual, que los corre en serie. La competencia
     // por CPU existe igual; solo viene de otro sitio.)
     //
-    // Los tres ficheros siguen vigilados a partir del ancla nueva.
+    // ANCLA AVANZADA a 5eacb9c el 2026-09-27, y otra vez por una razón que NO es la que esta prueba
+    // vigila. Lo que tocó `multi-anio.test.ts` fue la feature carril-de-presupuesto, que por decisión
+    // del usuario cambió de dónde abre cada mes el plano Presupuestado (FR-2901: su propio cierre, no
+    // el real; revierte ADR-03 de balance). TC-MAN-210h y TC-MAN-211e fijaban la regla vieja a
+    // propósito: 210h sigue comparando Ejecutado entero contra la línea base y, en Presupuestado, las
+    // cifras del mes; 211e afirma ahora el arrastre por plano. Ningún cambio de cierre-de-mes.
+    //
+    // Los tres ficheros siguen vigilados a partir del ancla nueva. Si vuelve a fallar: avanzar el ancla
+    // y escribir aquí por qué, nunca borrar la prueba.
     const ficheros = [
       "tests/e2e/multi-anio.spec.ts",
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat daeecc1 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat 5eacb9c -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
@@ -776,8 +784,13 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     // a sabiendas. `reserveAportes` y `chainCheck` siguen sin cambios: su texto es el mismo en los
     // dos commits. Si esta prueba vuelve a fallar, la salida legítima es la misma — avanzar el ancla
     // y escribir aquí por qué —, nunca borrarla.
+    //
+    // ANCLA AVANZADA de d22b1b0 a 5eacb9c el 2026-09-27, por la feature carril-de-presupuesto y no por
+    // cierre-de-mes. Por decisión del usuario el plano Presupuestado calcula y bloquea como Ejecutado:
+    // `techoScanRaw` barre cada plano con SU propio arrastre (FR-2903; en Ejecutado da idéntico) y
+    // `chainCheck` aplica techo, piso y déficit a los dos planos (FR-2904). `reserveAportes` no cambió.
     const actual = readFileSync("src/domain/reserve.ts", "utf8");
-    const base = execSync("git show d22b1b0:src/domain/reserve.ts", { encoding: "utf8" });
+    const base = execSync("git show 5eacb9c:src/domain/reserve.ts", { encoding: "utf8" });
 
     /** Extrae el cuerpo de una función por su nombre, hasta el cierre en la columna 0. */
     const cuerpo = (src: string, nombre: string): string => {

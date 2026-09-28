@@ -417,22 +417,30 @@ describe("FR-1910 · la siembra no fabrica pasado", () => {
 describe("NFR-1902 · el arrastre dentro de un año no cambia", () => {
   it("TC-MAN-210h: un año completo da los mismos números que antes de migrar", () => {
     const serie = computeBalanceSeries(estadoRef(), P);
+    // REESCRITA por carril-de-presupuesto (FR-2901, 2026-09-27). Ejecutado se compara ENTERO contra la
+    // línea base. En Presupuestado solo cambia de dónde abre cada mes (su propio cierre y no el real),
+    // así que se comparan las cifras del mes —que no dependen del arrastre— y el arrastre se verifica
+    // contra la regla nueva.
     P.forEach((p, i) => {
       const ref = BASE.balance[viejo(i)];
-      for (const plano of ["budget", "actual"] as const) {
-        for (const campo of ["prevAvailable", "prevReserved", "income", "expense", "flow", "reserved", "available", "reservedBalance", "total"] as const) {
-          expect(`${p}.${plano}.${campo}=${serie[p][plano][campo]}`)
-            .toBe(`${p}.${plano}.${campo}=${ref[plano][campo]}`);
-        }
+      for (const campo of ["prevAvailable", "prevReserved", "income", "expense", "flow", "reserved", "available", "reservedBalance", "total"] as const) {
+        expect(`${p}.actual.${campo}=${serie[p].actual[campo]}`).toBe(`${p}.actual.${campo}=${ref.actual[campo]}`);
       }
+      for (const campo of ["income", "expense", "flow", "reserved"] as const) {
+        expect(`${p}.budget.${campo}=${serie[p].budget[campo]}`).toBe(`${p}.budget.${campo}=${ref.budget[campo]}`);
+      }
+      const prevPlan = i === 0 ? { available: 0, reservedBalance: 0 } : serie[P[i - 1]].budget;
+      expect(serie[p].budget.available).toBe(prevPlan.available + serie[p].budget.flow - serie[p].budget.reserved);
+      expect(serie[p].budget.reservedBalance).toBe(prevPlan.reservedBalance + serie[p].budget.reserved);
     });
   });
 
-  it("TC-MAN-211e: el plano Presupuestado sigue sin arrastrar su propio cierre", () => {
+  it("TC-MAN-211e: cada plano arrastra su propio cierre dentro del año", () => {
     const serie = computeBalanceSeries(estadoRef(), P);
     for (let i = 1; i < P.length; i++) {
-      // ambos planos abren en el cierre REAL del mes previo (ADR-03 de balance)
-      expect(serie[P[i]].budget.prevAvailable).toBe(serie[P[i - 1]].actual.available);
+      // REESCRITA por carril-de-presupuesto (FR-2901): cada plano abre en SU cierre del mes previo.
+      // Hasta 2026-09-27 los dos abrían en el cierre REAL (ADR-03 de balance).
+      expect(serie[P[i]].budget.prevAvailable).toBe(serie[P[i - 1]].budget.available);
       expect(serie[P[i]].actual.prevAvailable).toBe(serie[P[i - 1]].actual.available);
     }
   });

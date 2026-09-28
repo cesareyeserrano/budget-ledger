@@ -1,0 +1,68 @@
+{
+  "project": "carril-de-presupuesto",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [1, 2, 3, 4, 5],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale) y SIN MIGRACIONES. Cambian dos reglas de cálculo que navegador y servidor aplican desde las mismas funciones. Rollback: volver la imagen, sin pérdida de datos. Escrito en aitri/features/carril-de-presupuesto/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/carril-de-presupuesto/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-2901",
+      "title": "El Balance Pres. arrastra su propio saldo de mes a mes",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-09-27). Noviembre Pres. abre en 500 y Ejec. en 400 (TC-CDP-001h; antes 400 y 400); doce meses de plan acumulan 3.600 disponibles y 1.200 reservados (002h; antes 300 y 100); 36 periodos × 40 hojas conservan total(m) = total(m−1) + flujo(m) en los dos planos (003e); un mes real 300 peor no mueve el plan (004f); y la grilla lo muestra (005e)."
+    },
+    {
+      "id": "FR-2902",
+      "title": "El primer mes del rango abre los dos carriles en el mismo punto",
+      "level": "complete",
+      "evidence": "4 TCs en verde: saldo inicial 2.000 abre los dos planos (TC-CDP-010h), sin saldo abren en 0 (011e), el saldo inicial no se vuelve a sumar en octubre (012f: 2.500 y 1.800) y el Máx. del plan arranca en el saldo inicial (013e)."
+    },
+    {
+      "id": "FR-2903",
+      "title": "Todo lo que el plan deriva de su arrastre lee el carril del plan",
+      "level": "partial",
+      "evidence": "5 TCs en verde: Máx. Pres. 500 y no 400 (TC-CDP-020h), observación con 500 del saldo de octubre (021h), sin reservas no hay marca y con exceso sí (022f), la cadena acota el Máx. a 200 (023e) y la propiedad de 2.000 escrituras da límite exacto en todas (024e). Parcial por la deuda declarada: la observación del plan se calcula pero no se pinta en la celda Pres., que el UX spec no pedía."
+    },
+    {
+      "id": "FR-2904",
+      "title": "Las reglas de reservas bloquean en Pres. igual que en Ejec.",
+      "level": "complete",
+      "evidence": "7 TCs en verde: 500 cabe (TC-CDP-030h), 501 se rechaza con techo y límite 500 sin mutar (031f), un plan legado se puede bajar (032e) y no subir (033f), no bloquea gastos de otro mes (034e), el déficit nombra diciembre (035f) y el mismo valor es no-op (036e)."
+    },
+    {
+      "id": "FR-2905",
+      "title": "El editor de la celda Pres. de bolsillo se comporta como el de Ejec. al rechazar",
+      "level": "partial",
+      "evidence": "11 TCs e2e en verde: franja «Esta celda admite hasta $500 este mes» en ≤150 ms con el valor conservado (TC-CDP-040h), Escape restaura (041h), el mes del plan excedido lleva el triángulo y ninguna celda el «!» (042f), guardar lo que cabe (043h), Máx. rojo al teclear de más (044e), contraste AA en los dos temas (047e), franja del Balance (048e), sin marca durante la hidratación (049e), Máx. $0 (050e), 768 y 375 px (045e, 046e). Parcial por la deuda declarada de TC-CDP-045e, que mide con el editor ya abierto."
+    },
+    {
+      "id": "FR-2906",
+      "title": "El servidor aplica las reglas del plan en todas sus puertas",
+      "level": "partial",
+      "evidence": "5 TCs de integración contra Postgres 16 en verde: bajar el plan legado responde 200 (TC-CDP-060h), subirlo por encima del cupo 422 domain_rule_violation techo 500 sin tocar la revisión (061f), déficit 422 con diciembre (062f), Ejec. se juzga como antes (063e) y un PUT que no toca reservas pasa (064e). Parcial por la deuda declarada de TC-CDP-063e (orden de los dos PUT)."
+    },
+    { "id": "NFR-2901", "title": "La columna Ejec. del Balance no cambia", "level": "complete", "evidence": "TC-CDP-101h/102e comparan la serie Ejec. cifra a cifra con capturas tomadas sobre 795ca8a con el código anterior; 103f prueba que tocar solo el plan no mueve Ejec." },
+    { "id": "NFR-2902", "title": "Las reglas en Ejecutado no cambian", "level": "complete", "evidence": "TC-CDP-111h/112f/113e: Ejec. acepta 1.500, rechaza 1.501 con límite 500 y el piso rechaza sacar 301 de 300; además las suites de retirar-para-gastar y techo-de-flujo siguen en verde en Ejecutado." },
+    { "id": "NFR-2903", "title": "El saldo inicial abre el primer mes, una sola vez", "level": "partial", "evidence": "TC-CDP-121h/122e/123f en verde. Parcial por la deuda declarada: 123f normaliza con normalizeOpeningBalance del dominio, no con openingFromRow." },
+    { "id": "NFR-2904", "title": "El cierre de mes no cambia", "level": "complete", "evidence": "TC-CDP-131h/132f contra Postgres (el cierre manda antes que la regla del plan: 422 closed_period_violation) y 133e: el impacto de reabrir es idéntico a la captura de 795ca8a." },
+    { "id": "NFR-2905", "title": "En ciclos el arrastre del plan sigue la lista de periodos", "level": "complete", "evidence": "TC-CDP-141h/142e/143f: el plan encadena por la lista de ciclos, la transición '2026-10t' arrastra y el plan no toma el cierre real." },
+    { "id": "NFR-2906", "title": "Nada guardado cambia, sin migración", "level": "complete", "evidence": "TC-CDP-151h/152e/153f contra Postgres: guardar sin cambios deja las filas idénticas, leer no sube la revisión y un rechazo no deja escrituras parciales. drizzle/ sin ficheros nuevos." },
+    { "id": "NFR-2907", "title": "El retiro planeado conserva su regla", "level": "complete", "evidence": "TC-CDP-161h/162f/163e: tope 600 aceptado, 601 rechazado con límite 600, y el retiro planeado huérfano sigue marcado con excess 400." },
+    { "id": "NFR-2908", "title": "Ingresos y gastos siguen sin vigilancia de reservas", "level": "complete", "evidence": "TC-CDP-171h/172e/173f: bajar un ingreso que deja el mes negativo se acepta en los dos planos, y en ese mes subir la reserva del plan sí se rechaza." },
+    { "id": "NFR-2909", "title": "El carril del plan no añade barridos", "level": "complete", "evidence": "TC-RPG-181h/182f/183e reescritos: un barrido por estado y plano (dos al consultar los dos planos), y consultar otra vez no barre de nuevo." },
+    { "id": "NFR-2910", "title": "Seguridad", "level": "complete", "evidence": "No aplica (sin endpoints, entradas ni secretos nuevos); gate security-config en verde." },
+    { "id": "NFR-2911", "title": "Observabilidad", "level": "complete", "evidence": "No aplica: sin rutas ni procesos nuevos." },
+    { "id": "NFR-2912", "title": "CI/CD", "level": "complete", "evidence": ".github/workflows/ci.yml sin cambios: corre en push a main y en PR a main/staging/develop, instala con npm ci, corre typecheck, lint, npm run test:run (incluye los TCs de dominio de la feature), npm run test:e2e (incluye el spec e2e) y la suite backend de Playwright; la integración de Vitest backend corre dentro de test:run." }
+  ],
+  "technical_debt_inherited": [
+    { "fr_id": "NFR-2903", "substitution": "TC-CDP-123f normaliza el saldo inicial corrupto con normalizeOpeningBalance del dominio (vía openingCarry) en vez de pasar por openingFromRow de ledgerRepo, como dice su 'when'", "reason": "openingFromRow no se exporta y es un envoltorio de normalizeOpeningBalance; exportarlo solo para la prueba ampliaría la superficie del repositorio.", "effort_to_fix": "low" },
+    { "fr_id": "FR-2906", "substitution": "TC-CDP-063e ejecuta primero el PUT de 1.501 (422) y después el de 1.500 (200), al revés de como lo enumera su 'then'", "reason": "El servidor juzga cada PUT contra el estado persistido: en el orden inverso el rechazo anunciaría límite 0, no 500.", "effort_to_fix": "low" },
+    { "fr_id": "FR-2905", "substitution": "TC-CDP-045e mide la celda vecina y la fila de debajo con el editor YA abierto, no antes de abrirlo", "reason": "Abrir el editor desplaza la grilla y el campo mide 2 px más que la cifra (igual que en Ejecutado); lo que el TC promete —que la franja no desplaza nada— se aísla así.", "effort_to_fix": "low" },
+    { "fr_id": "FR-2903", "substitution": "La observación automática del plan se calcula con el carril del plan pero no se pinta en la celda Pres.", "reason": "El UX spec aprobado no la pide; el dominio la deja lista y probada (TC-CDP-021h).", "effort_to_fix": "low" }
+  ]
+}

@@ -117,21 +117,15 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
     // mes 1: no hay previo — el total ES el flujo
     for (const p of PLANES) expect(series["2026-01"][p].total).toBe(series["2026-01"][p].flow);
 
-    // el resto del año: AMBOS planos reconcilian contra el cierre EJECUTADO del mes anterior, que
-    // es el punto del que los dos arrancan. La transferencia se cancela entre disponible y reservado.
+    // el resto del año: CADA plano reconcilia contra SU propio cierre del mes anterior. REESCRITA por
+    // carril-de-presupuesto (FR-2901, 2026-09-27): hasta entonces los dos reconciliaban contra el cierre
+    // EJECUTADO (ADR-03). La transferencia se cancela entre disponible y reservado en los dos planos.
     for (let i = 1; i < MONTH_KEYS.length; i++) {
-      const prevActual = series[MONTH_KEYS[i - 1]].actual;
+      const prev = series[MONTH_KEYS[i - 1]];
       const cur = series[MONTH_KEYS[i]];
       for (const p of PLANES) {
-        expect(cur[p].total, `${MONTH_KEYS[i]}/${p}`).toBe(prevActual.total + cur[p].flow);
+        expect(cur[p].total, `${MONTH_KEYS[i]}/${p}`).toBe(prev[p].total + cur[p].flow);
       }
-    }
-
-    // la cadena EJECUTADA es la única que acumula sobre sí misma, mes a mes
-    for (let i = 1; i < MONTH_KEYS.length; i++) {
-      const prev = series[MONTH_KEYS[i - 1]].actual;
-      const cur = series[MONTH_KEYS[i]].actual;
-      expect(cur.total, `ejecutado ${MONTH_KEYS[i]}`).toBe(prev.total + cur.flow);
     }
 
     // marzo ejecutado sobre-gasta (400.000 − 610.000): la invariante también se cumple en negativo
@@ -199,7 +193,7 @@ describe("FR-905 · seis cifras derivadas por columna", () => {
 // ══ FR-906 · arrastre por plano ════════════════════════════════════════════════════════════════
 
 describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
-  it("TC-BAL-906h: ambos planos abren en el cierre REAL del mes anterior", () => {
+  it("TC-BAL-906h: cada plano abre en SU propio cierre del mes anterior", () => {
     // @aitri-tc TC-BAL-906h
     // enero: PRESUPUESTADO cierra disponible 80.000 / reservado 20.000
     //        EJECUTADO    cierra disponible 50.000 / reservado 20.000
@@ -216,15 +210,16 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
     expect(series["2026-01"].actual.available).toBe(50_000);
     expect(series["2026-01"].actual.reservedBalance).toBe(20_000);
 
-    // febrero abre AMBOS planos con el cierre EJECUTADO de enero: el plan de un mes se hace sobre
-    // la plata que de verdad quedó, no sobre la que se había planeado tener
-    expect(series["2026-02"].budget.prevAvailable).toBe(50_000);
+    // REESCRITA por carril-de-presupuesto (FR-2901, 2026-09-27). Febrero abre cada plano con SU
+    // cierre de enero: el plan sigue la trayectoria del plan y lo real la de lo real. Hasta entonces
+    // los dos abrían en el cierre EJECUTADO (ADR-03 de balance, 2026-07-27).
+    expect(series["2026-02"].budget.prevAvailable).toBe(80_000);
     expect(series["2026-02"].budget.prevReserved).toBe(20_000);
     expect(series["2026-02"].actual.prevAvailable).toBe(50_000);
     expect(series["2026-02"].actual.prevReserved).toBe(20_000);
 
-    // el cierre PRESUPUESTADO de enero (80.000) no reaparece en ningún arrastre
-    expect(series["2026-02"].budget.prevAvailable).not.toBe(80_000);
+    // lo real no se cuela en el carril del plan
+    expect(series["2026-02"].budget.prevAvailable).not.toBe(50_000);
   });
 
   it("TC-BAL-906e: el mes 1 abre en 0 en ambos componentes y ambos planos", () => {
@@ -244,7 +239,7 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
     expect(ene.actual.total).toBe(ene.actual.flow);
   });
 
-  it("TC-BAL-906f: el presupuestado arranca del cierre REAL, no de su propio cierre planeado", () => {
+  it("TC-BAL-906f: el presupuestado arranca de su propio cierre planeado, no del real", () => {
     // @aitri-tc TC-BAL-906f
     // enero cierra presupuestado total 80.000 y ejecutado total 50.000 — distintos a propósito
     const s = makeState([{ id: "c-salario", type: "income", budget: { "2026-01": 80_000 }, actual: { "2026-01": 50_000 } }]);
@@ -253,16 +248,18 @@ describe("FR-906 · arrastre del saldo entre meses, por plano", () => {
     expect(series["2026-01"].budget.total).toBe(80_000);
     expect(series["2026-01"].actual.total).toBe(50_000);
 
+    // REESCRITA por carril-de-presupuesto (FR-2901, 2026-09-27). El plan arrastra su propio cierre
+    // (80.000): así se puede simular el año entero. El caso que motivó la regla vieja —febrero
+    // planificado con 30.000 que no existen— se acepta a sabiendas: la desviación se lee comparando
+    // las dos columnas. Una implementación que siguiera re-anclando al real daría 50.000.
     const carriedBudget = series["2026-02"].budget.prevAvailable + series["2026-02"].budget.prevReserved;
-    expect(carriedBudget).toBe(50_000); // el cierre EJECUTADO de enero: la plata que de verdad quedó
-    // una implementación que arrastrara el plan sobre sí mismo daría 80.000 y planificaría febrero
-    // con 30.000 que nunca existieron
-    expect(carriedBudget).not.toBe(80_000);
+    expect(carriedBudget).toBe(80_000);
+    expect(carriedBudget).not.toBe(50_000);
 
-    // el ejecutado arranca del mismo punto: ambas columnas comparten el arrastre real
+    // el ejecutado arranca de lo que de verdad quedó
     const carriedActual = series["2026-02"].actual.prevAvailable + series["2026-02"].actual.prevReserved;
     expect(carriedActual).toBe(50_000);
-    expect(carriedActual).toBe(carriedBudget);
+    expect(carriedBudget - carriedActual).toBe(30_000);
   });
 
   it("TC-BAL-926e: un cierre negativo se arrastra: el mes siguiente abre en rojo", () => {

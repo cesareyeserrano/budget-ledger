@@ -1,0 +1,289 @@
+{
+  "capturedOn": "795ca8a",
+  "periods": [
+    "2026-05",
+    "2026-06",
+    "2026-07",
+    "2026-08",
+    "2026-09",
+    "2026-10"
+  ],
+  "state": {
+    "ownerId": "l",
+    "nodes": [
+      {
+        "id": "g-i",
+        "ownerId": "l",
+        "type": "income",
+        "level": "group",
+        "parentId": null,
+        "name": "g-i",
+        "icon": null,
+        "order": 0
+      },
+      {
+        "id": "ing",
+        "ownerId": "l",
+        "type": "income",
+        "level": "category",
+        "parentId": "g-i",
+        "name": "ing",
+        "icon": null,
+        "order": 1
+      },
+      {
+        "id": "g-e",
+        "ownerId": "l",
+        "type": "expense",
+        "level": "group",
+        "parentId": null,
+        "name": "g-e",
+        "icon": null,
+        "order": 2
+      },
+      {
+        "id": "gas",
+        "ownerId": "l",
+        "type": "expense",
+        "level": "category",
+        "parentId": "g-e",
+        "name": "gas",
+        "icon": null,
+        "order": 3
+      },
+      {
+        "id": "g-t",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "group",
+        "parentId": null,
+        "name": "g-t",
+        "icon": null,
+        "order": 4
+      },
+      {
+        "id": "A",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "A",
+        "icon": null,
+        "order": 5
+      },
+      {
+        "id": "B",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "B",
+        "icon": null,
+        "order": 6
+      },
+      {
+        "id": "C",
+        "ownerId": "l",
+        "type": "transfer",
+        "level": "category",
+        "parentId": "g-t",
+        "name": "C",
+        "icon": null,
+        "order": 7
+      }
+    ],
+    "startMonth": "2026-05",
+    "openingBalance": 1000,
+    "budgets": {
+      "ing": {
+        "2026-05": 3000,
+        "2026-06": 3000,
+        "2026-07": 3000,
+        "2026-08": 3000,
+        "2026-09": 3000,
+        "2026-10": 3000
+      },
+      "gas": {
+        "2026-05": 2000,
+        "2026-06": 2200,
+        "2026-07": 1800,
+        "2026-08": 2500,
+        "2026-09": 2000,
+        "2026-10": 2100
+      },
+      "A": {
+        "2026-05": 300,
+        "2026-06": 300,
+        "2026-07": 300
+      },
+      "B": {
+        "2026-06": 200,
+        "2026-08": 400
+      },
+      "C": {
+        "2026-09": 150
+      },
+      "@retiros": {
+        "2026-08": 100
+      }
+    },
+    "actuals": {
+      "ing": {
+        "2026-05": 3000,
+        "2026-06": 3100,
+        "2026-07": 2900,
+        "2026-08": 3000,
+        "2026-09": 3200,
+        "2026-10": 3000
+      },
+      "gas": {
+        "2026-05": 2100,
+        "2026-06": 2000,
+        "2026-07": 2300,
+        "2026-08": 2400,
+        "2026-09": 1900,
+        "2026-10": 2900
+      },
+      "A": {
+        "2026-05": 300,
+        "2026-06": 250,
+        "2026-07": 300
+      },
+      "B": {
+        "2026-06": 200,
+        "2026-08": 350
+      },
+      "C": {
+        "2026-09": 100
+      }
+    },
+    "movements": [
+      {
+        "id": "m1",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "A",
+        "subId": null,
+        "target": "A",
+        "amount": 200,
+        "period": "2026-07",
+        "createdAt": 1,
+        "date": "2026-07-15T10:00",
+        "from": "A",
+        "to": "@disponible"
+      },
+      {
+        "id": "m2",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "C",
+        "subId": null,
+        "target": "C",
+        "amount": 100,
+        "period": "2026-08",
+        "createdAt": 2,
+        "date": "2026-08-10T10:00",
+        "from": "B",
+        "to": "C"
+      },
+      {
+        "id": "m3",
+        "ownerId": "l",
+        "type": "transfer",
+        "catId": "A",
+        "subId": null,
+        "target": "A",
+        "amount": 150,
+        "period": "2026-10",
+        "createdAt": 3,
+        "date": "2026-10-05T10:00",
+        "from": "A",
+        "to": "@disponible"
+      }
+    ],
+    "closure": {
+      "closedThrough": "2026-08",
+      "reopened": "2026-09",
+      "reopenBaseline": {
+        "available": 1500,
+        "reservedBalance": 900
+      }
+    }
+  },
+  "actual": {
+    "2026-05": {
+      "prevAvailable": 1000,
+      "prevReserved": 0,
+      "income": 3000,
+      "expense": 2100,
+      "flow": 900,
+      "reserved": 300,
+      "available": 1600,
+      "reservedBalance": 300,
+      "total": 1900
+    },
+    "2026-06": {
+      "prevAvailable": 1600,
+      "prevReserved": 300,
+      "income": 3100,
+      "expense": 2000,
+      "flow": 1100,
+      "reserved": 450,
+      "available": 2250,
+      "reservedBalance": 750,
+      "total": 3000
+    },
+    "2026-07": {
+      "prevAvailable": 2250,
+      "prevReserved": 750,
+      "income": 2900,
+      "expense": 2300,
+      "flow": 600,
+      "reserved": 100,
+      "available": 2750,
+      "reservedBalance": 850,
+      "total": 3600
+    },
+    "2026-08": {
+      "prevAvailable": 2750,
+      "prevReserved": 850,
+      "income": 3000,
+      "expense": 2400,
+      "flow": 600,
+      "reserved": 350,
+      "available": 3000,
+      "reservedBalance": 1200,
+      "total": 4200
+    },
+    "2026-09": {
+      "prevAvailable": 3000,
+      "prevReserved": 1200,
+      "income": 3200,
+      "expense": 1900,
+      "flow": 1300,
+      "reserved": 100,
+      "available": 4200,
+      "reservedBalance": 1300,
+      "total": 5500
+    },
+    "2026-10": {
+      "prevAvailable": 4200,
+      "prevReserved": 1300,
+      "income": 3000,
+      "expense": 2900,
+      "flow": 100,
+      "reserved": -150,
+      "available": 4450,
+      "reservedBalance": 1150,
+      "total": 5600
+    }
+  },
+  "impact": [
+    {
+      "period": "2026-10",
+      "availableBefore": 1750,
+      "availableAfter": 4450,
+      "brokenByThisEdit": false
+    }
+  ]
+}

@@ -8,7 +8,8 @@
 //               fila «Retiros» operan De→A vía applyReserveOp (journal con from/to). Las reglas:
 //               TECHO global por mes (no reservar más que el margen: neto ≤ disponible previo +
 //               flujo) y PISO por alcancía (el saldo derivado nunca negativo, en cadena de 12
-//               meses). Una regla, todas las puertas. Capa PURA: sin React/DOM/IO.
+//               meses). Una regla, todas las puertas, y los dos planos por igual, cada uno
+//               sobre su propio carril (carril-de-presupuesto). Capa PURA: sin React/DOM/IO.
 // Dependencias: ./types, ./months, ./tree, ./rollup, ./validation, ./ids.
 
 import type { AmountMap, CellNote, LedgerState, PeriodKey, Movement } from "./types";
@@ -51,7 +52,7 @@ export interface ReserveWarning {
   limit: number;
 }
 
-/** Veredicto de una escritura de reserva. En Pres. SIEMPRE ok (avisa, no bloquea). */
+/** Veredicto de una escritura de reserva. Igual en los dos planos desde FR-2904: bloquea lo que empeora. */
 export type ReserveVerdict =
   | { ok: true; warnings: ReserveWarning[] }
   | { ok: false; rule: "techo" | "piso" | "deficit"; period: PeriodKey; leafId?: string; limit: number };
@@ -222,11 +223,14 @@ export function resolvedSeries(
     seriesComputes += 1;
     const cells = map[leafId];
     const flows = plane === "actual" ? journalIndex(state.movements, periods).get(leafId) : undefined;
+    // FR-3003 (saldo-de-bolsillo): en el plan, el retiro planeado es DEL BOLSILLO y lo resta.
+    const planeados = plane === "budget" ? map[plannedRetiroKey(leafId)] : undefined;
     const out: number[] = [];
     let running = 0;
     for (let i = 0; i < periods.length; i++) {
       running += cells?.[periods[i]] ?? 0;
       if (flows) running += flows.in[i] - flows.out[i];
+      if (planeados) running -= planeados[periods[i]] ?? 0;
       out.push(running);
     }
     series = out;
@@ -282,6 +286,24 @@ export function reserveAportes(state: LedgerState, month: PeriodKey, plane: Plan
 export const RETIROS_PLAN_ID = "@retiros";
 
 /**
+ * Prefijo de las filas del retiro planeado POR BOLSILLO (feature saldo-de-bolsillo, FR-3004): la fila
+ * `@retiros:<bolsillo>` de `budgets`. Como la fila global, no es un nodo —los roll-ups no la cuentan— y se
+ * persiste en `amount_cell` igual. La fila global `@retiros` deja de escribirse: la convierte
+ * `convertPlannedRetiros` (FR-3006) y solo sobrevive si no hay ningún bolsillo al que asignarla.
+ */
+export const PLANNED_RETIRO_PREFIX = "@retiros:";
+
+/** El único punto que arma el id de la fila de retiros planeados de un bolsillo. */
+export function plannedRetiroKey(leafId: string): string {
+  return PLANNED_RETIRO_PREFIX + leafId;
+}
+
+/** ¿El id es una fila de retiros planeados (la global o la de un bolsillo)? */
+export function isPlannedRetiroKey(id: string): boolean {
+  return id === RETIROS_PLAN_ID || id.startsWith(PLANNED_RETIRO_PREFIX);
+}
+
+/**
  * Retiros del mes. Ejecutado: Σ de las operaciones del journal que BAJAN de una alcancía a
  * Disponible ese mes (from = hoja real Y to = Disponible). Presupuestado: el retiro PLANEADO del
  * mes (fila Retiros · Pres.). La fila «+ Retiros del mes» del Balance.
@@ -295,7 +317,15 @@ export const RETIROS_PLAN_ID = "@retiros";
  * @aitri-trace FR-ID: FR-1009, US-ID: US-1009, AC-ID: AC-1009b, TC-ID: TC-TRF-109e, TC-TRF4-151f
  */
 export function reserveRetiros(state: LedgerState, month: PeriodKey, plane: Plane): number {
-  if (plane === "budget") return state.budgets[RETIROS_PLAN_ID]?.[month] ?? 0;
+  if (plane === "budget") {
+    // FR-3005: la suma de los retiros planeados de los bolsillos, más la fila global si quedó alguna
+    // sin bolsillo al que asignarla (FR-3006, ledger sin bolsillos).
+    let sum = 0;
+    for (const [id, porMes] of Object.entries(state.budgets)) {
+      if (isPlannedRetiroKey(id)) sum += porMes?.[month] ?? 0;
+    }
+    return sum;
+  }
   return state.movements.reduce(
     (sum, m) =>
       m.type === "transfer" && m.period === month && m.from && !isAvailable(m.from) && isAvailable(m.to)
@@ -327,8 +357,12 @@ export function plannedRetiroLimit(
 }
 
 /**
+ * LEGADO (saldo-de-bolsillo): la app ya no escribe la fila global — el retiro planeado tiene alcancía y se
+ * anota con `planRetiro`. Se conserva porque las suites de BG-020, BG-022 y otras features la usan para
+ * armar un ledger con la fila global, que es lo que `convertPlannedRetiros` reparte.
+ *
  * Escribe el retiro PLANEADO de un mes (fila Retiros del mes · Pres.). A diferencia del resto del
- * plan (que avisa sin bloquear), aquí SÍ se rechaza superar lo reservado planeado: planear un
+ * plan (que antes de FR-2904 solo avisaba), aquí SIEMPRE se rechazó superar lo reservado planeado: planear un
  * retiro imposible no es información, es un error de tecleo.
  *
  * @returns `{state}`, `{rejected: {limit}}` con lo retirable del plan de ese mes, o `{invalid}` si
@@ -609,7 +643,7 @@ export function reserveHeadroom(
   const scan = techoScan(state, "actual", periods);
   const i = periods.indexOf(month);
   if (i < 0) return 0;
-  return chainedAporteSlack(scan, i, "actual", periods);
+  return chainedAporteSlack(scan, i, periods);
 }
 
 /**
@@ -625,16 +659,17 @@ export function reserveHeadroom(
  *   · déficit de cada mes k ≥ i: Δ ≤ arrastre(k)                 (si ya es negativo, 0: nada puede
  *     empeorarlo — sobregasto legado, NFR-1803)
  * El mínimo de todo eso es exacto: se acepta tal cual y se rechaza con un peso más, y así lo fija
- * la prueba de propiedad contra el validador real.
+ * la prueba de propiedad contra el validador real (TC-CDP-024e la extiende al plano Pres.).
  *
- * En el plano Presupuestado no hay término de déficit ni techo encadenado: el arrastre del barrido
- * es el REAL (ADR-03) y una escritura del plan no lo mueve, así que solo acota su propio mes.
+ * Vale igual en los dos planos (FR-2903): desde carril-de-presupuesto el plan tiene su propio arrastre,
+ * así que una escritura del plan sí mueve los meses siguientes del plan y la cadena los tiene que mirar.
+ *
+ * @aitri-trace FR-ID: FR-2903, US-ID: US-2903, AC-ID: AC-2908, TC-ID: TC-CDP-023e, TC-CDP-024e
  */
 function chainedAporteSlack(
-  scan: TechoScan, i: number, plane: Plane, periods: PeriodScope
+  scan: TechoScan, i: number, periods: PeriodScope
 ): number {
   let cupo = Math.max(0, scan.margin[i] - scan.consumo[i]);
-  if (plane !== "actual") return cupo;
   for (let k = i + 1; k < periods.length; k++) {
     if (scan.margin[k] > 0) cupo = Math.min(cupo, Math.max(0, scan.margin[k] - scan.consumo[k]));
   }
@@ -677,7 +712,7 @@ export function cellHeadroom(
   const actual = map[leafId]?.[month] ?? 0;
   // El total admisible es lo que la celda YA vale (bajarla siempre se puede) más el incremento que
   // la cadena completa acepta — no solo el del propio mes (auditoría 2026-09-01).
-  return actual + chainedAporteSlack(scan, i, plane, periods);
+  return actual + chainedAporteSlack(scan, i, periods);
 }
 
 /**
@@ -693,17 +728,21 @@ export function cellHeadroom(
  * @param state Estado del ledger (no se muta).
  * @param leafId Alcancía de origen.
  * @param month Mes de la operación.
+ * @param plane Plano: lo real (por defecto) o el plan.
  * @returns El máximo extraíble, nunca negativo. Hoja o mes desconocidos devuelven 0.
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1806, TC-ID: TC-TDF-011h
+ * @aitri-trace FR-ID: FR-3001, US-ID: US-3001, AC-ID: AC-3003, TC-ID: TC-SDB-006e
  */
 export function maxWithdrawal(
-  state: LedgerState, leafId: string, month: PeriodKey, periods: PeriodScope
+  state: LedgerState, leafId: string, month: PeriodKey, periods: PeriodScope, plane: Plane = "actual"
 ): number {
   const i = periods.indexOf(month);
   if (i < 0) return 0;
-  const series = resolvedSeries(state, leafId, "actual", periods);
+  // saldo-de-bolsillo (FR-3001): en el plan la serie ya resta los retiros planeados de la alcancía, así
+  // que el mismo mínimo es lo máximo que se puede PLANEAR sacar.
+  const series = resolvedSeries(state, leafId, plane, periods);
   let tope = Infinity;
   for (let k = i; k < periods.length; k++) tope = Math.min(tope, series[k]);
   return Math.max(0, Number.isFinite(tope) ? tope : 0);
@@ -805,6 +844,8 @@ export function monthCarryUsage(
  */
 export type MonthIssue =
   | { kind: "techo"; period: PeriodKey; margin: number; excess: number }
+  /** FR-2905: el mes cuyo PLAN reserva más de lo que el plan deja disponible. Misma forma que `techo`. */
+  | { kind: "techo_plan"; period: PeriodKey; margin: number; excess: number }
   | { kind: "retiro_planeado"; period: PeriodKey; margin: number; excess: number }
   /** FR-2511: celdas cuyo valor no coincide con la suma de sus movimientos. No trae cifras: lo que
    *  el usuario necesita saber es CUÁLES son, para ir a cuadrarlas. */
@@ -843,13 +884,16 @@ export function monthIssueText(issue: MonthIssue, money: (n: number) => string):
       ? "1 celda no cuadra con sus movimientos"
       : `${issue.cells.length} celdas no cuadran con sus movimientos`;
   }
-  return issue.kind === "techo"
-    ? `reservas ${money(issue.excess)} por encima del margen del mes`
-    : `retiro planeado ${money(issue.excess)} por encima de lo que el plan reserva`;
+  if (issue.kind === "techo") return `reservas ${money(issue.excess)} por encima del margen del mes`;
+  if (issue.kind === "techo_plan") return `Plan: reservas ${money(issue.excess)} por encima del margen del mes`;
+  return `retiro planeado ${money(issue.excess)} por encima de lo que el plan reserva`;
 }
 
 export function monthIssues(state: LedgerState, periods: PeriodScope): readonly MonthIssue[] {
   const scan = techoScan(state, "actual", periods);
+  // FR-2905: el plan se marca igual que lo real, con su propio barrido. Sustituye el aviso ámbar «!»
+  // por celda que pintaba `planTechoMonths` (retirado): un mes, un triángulo, en los dos planos.
+  const plan = techoScan(state, "budget", periods);
   // Los DESCUADRES (FR-2511) no se componen aquí: los produce `mismatchIssues` en su propio módulo y
   // las superficies juntan las dos listas. Vivían aquí en la primera versión, pero eso obligaba a
   // `reserve` a importar el cuadre y rompía tres guardias aprobados de otras features — entre ellos
@@ -860,13 +904,16 @@ export function monthIssues(state: LedgerState, periods: PeriodScope): readonly 
     if (scan.excess[i] > 0) {
       out.push({ kind: "techo", period: periods[i], margin: scan.margin[i], excess: scan.excess[i] });
     }
+    if (plan.excess[i] > 0) {
+      out.push({ kind: "techo_plan", period: periods[i], margin: plan.margin[i], excess: plan.excess[i] });
+    }
     // BG-020 — el retiro PLANEADO huérfano. Es el MISMO defecto que motivó esta función, aplicado a
     // otra cantidad: `setPlannedRetiro` comprueba el límite al escribir y nada lo re-valida después,
     // así que bajar un aporte planeado —corregir un error de tecleo, algo que debe seguir
     // permitiéndose— dejaba el retiro por encima de lo que el plan reserva y el reservado
     // presupuestado en NEGATIVO, sin un aviso. Medido el 2026-09-08: aporte de 500.000 bajado a
     // 100.000 con un retiro de 500.000 escrito antes → reservado presupuestado −400.000.
-    const planeado = state.budgets[RETIROS_PLAN_ID]?.[periods[i]] ?? 0;
+    const planeado = reserveRetiros(state, periods[i], "budget");
     if (planeado > 0) {
       const limite = plannedRetiroLimit(state, periods[i], periods);
       if (planeado > limite) {
@@ -904,7 +951,12 @@ export function monthIssues(state: LedgerState, periods: PeriodScope): readonly 
  * se acepta ahora a sabiendas: la celda dice lo aportado y el cajón lo que hay (BL-041, aparte).
  * Lo que sigue bloqueado es el encierro: `deficit` impide dejar un mes en negativo.
  *
- * En Presupuestado el consumo ya era el NETO (ADR-08) y no cambia (NFR-2805).
+ * CADA PLANO BARRE SU PROPIO CARRIL (FR-2903, feature carril-de-presupuesto, 2026-09-27). El barrido
+ * de Presupuestado usa los datos del plan de punta a punta: su flujo, su neto y SU arrastre. Antes el
+ * plan medía su margen contra el arrastre REAL (ADR-03 de balance), así que un plan de noviembre se
+ * juzgaba con lo que quedó de verdad en octubre y no con lo que el plan de octubre dejaba. Las dos
+ * cadenas arrancan en el mismo saldo inicial (FR-2902). En Ejecutado el resultado es idéntico al de
+ * antes: el cambio solo sustituye, en el plano Pres., el arrastre real por el del plan.
  *
  * `deficit` es la regla que ve dejar un mes con gastos sin cubrir. Con consumo neto coincide con el
  * exceso cuando el mes arranca en positivo; se conserva porque es la única que ve un mes que YA
@@ -912,6 +964,7 @@ export function monthIssues(state: LedgerState, periods: PeriodScope): readonly 
  * de `margen`, que es justo lo que oculta un disponible negativo.
  *
  * @aitri-trace FR-ID: FR-2801, US-ID: US-2801, AC-ID: AC-2801, TC-ID: TC-RPG-001h, TC-RPG-002f, TC-RPG-006e
+ * @aitri-trace FR-ID: FR-2903, US-ID: US-2903, AC-ID: AC-2908, TC-ID: TC-CDP-020h, TC-CDP-021h, TC-CDP-023e, TC-CDP-013e
  */
 function techoScanRaw(
   state: LedgerState,
@@ -934,32 +987,21 @@ function techoScanRaw(
   // `openingCarry` es la MISMA fuente que usa `computeBalanceSeries` (FR-2202), no un calculo
   // paralelo: si divergieran, el numero que la app MUESTRA y el que el guardia HACE CUMPLIR
   // volverian a discrepar — que es exactamente el defecto que se esta cerrando.
-  let availActual = openingCarry(state, periods).available;
+  let avail = openingCarry(state, periods).available;
   for (let i = 0; i < periods.length; i++) {
     const m = periods[i];
     const income = typeTotals(state, "income", [m]);
     const expense = typeTotals(state, "expense", [m]);
-    const flowActual = income.actual - expense.actual;
-    const deltaActual = reserveDelta(state, m, "actual");
-    if (plane === "actual") {
-      const mar = Math.max(0, availActual + flowActual);
-      const gasta = deltaActual; // NETO: sacar de un bolsillo devuelve cupo (retirar-para-gastar)
-      margin.push(mar);
-      consumo.push(gasta);
-      excess.push(Math.max(0, gasta - mar));
-    } else {
-      const flowBudget = income.budget - expense.budget;
-      const deltaBudget = reserveDelta(state, m, "budget"); // NETO en el plan (ADR-08)
-      const mar = Math.max(0, availActual + flowBudget);
-      margin.push(mar);
-      consumo.push(deltaBudget);
-      excess.push(Math.max(0, deltaBudget - mar));
-    }
-    // Solo la cadena ejecutada acumula (ADR-03): ambos planos abren en el cierre real previo.
-    // El arrastre usa el NETO en los dos planos: la plata retirada sí volvió a la cuenta.
-    availActual = availActual + flowActual - deltaActual;
-    arrastre.push(availActual);
-    deficit.push(Math.max(0, -availActual));
+    const flow = income[plane] - expense[plane];
+    // NETO en los dos planos: sacar de un bolsillo devuelve cupo (retirar-para-gastar; ADR-08 en el plan).
+    const neto = reserveDelta(state, m, plane);
+    const mar = Math.max(0, avail + flow);
+    margin.push(mar);
+    consumo.push(neto);
+    excess.push(Math.max(0, neto - mar));
+    avail = avail + flow - neto;
+    arrastre.push(avail);
+    deficit.push(Math.max(0, -avail));
   }
   return { excess, margin, consumo, arrastre, deficit };
 }
@@ -988,22 +1030,28 @@ export interface ChainResult {
  * sobregasto real (gastos > ingresos) deja el arrastre negativo de forma legítima y no debe
  * bloquear nada (NFR-1803).
  *
+ * LAS TRES REGLAS VALEN Y BLOQUEAN EN LOS DOS PLANOS (FR-2904, feature carril-de-presupuesto,
+ * 2026-09-27): «no, no debe [dejarte guardar de más], comportamientos iguales». Antes el plan solo
+ * avisaba (FR-1008): devolvía `warnings` y nunca `blocking`. `warnings` queda siempre vacío y se
+ * conserva por compatibilidad de la firma. En Pres. el piso por bolsillo mira el acumulado de aportes
+ * planeados, que no baja de 0 mientras el retiro planeado sea una fila global (`@retiros`, con su
+ * propio tope en `setPlannedRetiro`); se aplica igual para que la regla sea literalmente la misma.
+ *
  * @aitri-trace FR-ID: FR-1803, US-ID: US-1803, AC-ID: AC-1809, TC-ID: TC-TDF-020f, TC-TDF-021h
+ * @aitri-trace FR-ID: FR-2904, US-ID: US-2904, AC-ID: AC-2912, TC-ID: TC-CDP-031f, TC-CDP-032e, TC-CDP-033f, TC-CDP-035f
  */
 export function chainCheck(
   base: LedgerState, cand: LedgerState, plane: Plane, affectedLeaves: string[], periods: PeriodScope
 ): ChainResult {
   const violations: ReserveWarning[] = [];
 
-  // Piso por alcancía afectada, en cadena (solo Ejecutado: el plan no tiene retiros que romper).
-  if (plane === "actual") {
-    for (const leafId of affectedLeaves) {
-      const series = resolvedSeries(cand, leafId, "actual", periods);
-      for (let i = 0; i < periods.length; i++) {
-        if (series[i] < 0) {
-          violations.push({ rule: "piso", period: periods[i], leafId, limit: series[i] });
-          break; // el primer mes ofensor de esta hoja
-        }
+  // Piso por alcancía afectada, en cadena.
+  for (const leafId of affectedLeaves) {
+    const series = resolvedSeries(cand, leafId, plane, periods);
+    for (let i = 0; i < periods.length; i++) {
+      if (series[i] < 0) {
+        violations.push({ rule: "piso", period: periods[i], leafId, limit: series[i] });
+        break; // el primer mes ofensor de esta hoja
       }
     }
   }
@@ -1026,18 +1074,16 @@ export function chainCheck(
   }
 
   // Déficit: ninguna operación puede dejar el disponible de un mes peor de lo que ya estaba.
-  // Es la regla que ve lo que el techo no ve (ADR-06). Solo Ejecutado: el plan no tiene arrastre
-  // propio (ambos planos abren en el cierre real, ADR-03).
-  if (plane === "actual") {
-    for (let i = 0; i < periods.length; i++) {
-      if (candScan.deficit[i] > baseScan.deficit[i]) {
-        violations.push({
-          rule: "deficit",
-          period: periods[i],
-          // Lo que el mes puede soportar sin empeorar: lo que hoy queda antes de caer en negativo.
-          limit: Math.max(0, baseScan.arrastre[i]),
-        });
-      }
+  // Es la regla que ve lo que el techo no ve (ADR-06). Desde FR-2903 el plan tiene arrastre propio,
+  // así que vale en los dos planos.
+  for (let i = 0; i < periods.length; i++) {
+    if (candScan.deficit[i] > baseScan.deficit[i]) {
+      violations.push({
+        rule: "deficit",
+        period: periods[i],
+        // Lo que el mes puede soportar sin empeorar: lo que hoy queda antes de caer en negativo.
+        limit: Math.max(0, baseScan.arrastre[i]),
+      });
     }
   }
 
@@ -1053,15 +1099,6 @@ export function chainCheck(
     for (const v of deltas) v.limit = minimo;
   }
 
-  if (plane === "budget") {
-    // Pres. AVISA sin bloquear; además marca TODO mes del plan que excede su techo.
-    for (let i = 0; i < periods.length; i++) {
-      if (candScan.excess[i] > 0 && !violations.some((v) => v.rule === "techo" && v.period === periods[i])) {
-        violations.push({ rule: "techo", period: periods[i], limit: candScan.margin[i] });
-      }
-    }
-    return { blocking: null, warnings: violations };
-  }
   return { blocking: violations[0] ?? null, warnings: [] };
 }
 
@@ -1069,7 +1106,7 @@ export function chainCheck(
 /**
  * Valida la edición de una celda transfer (el APORTE del mes) SIN aplicarla: techo global en
  * cadena y piso derivado de la alcancía (bajar un aporte no puede dejar en rojo retiros ya
- * operados). En Ejecutado un bloqueo devuelve ok:false; en Pres. SIEMPRE ok con warnings.
+ * operados). Un bloqueo devuelve ok:false en los dos planos (FR-2904); `warnings` queda vacío.
  * La grilla y el registro consultan las mismas reglas — una regla, todas las puertas.
  *
  * @throws Nunca. Valor inválido (negativo/no numérico) devuelve ok:false tipado.
@@ -1210,10 +1247,12 @@ export function applyReserveOp(
 
 /**
  * Edición de celda transfer desde la grilla: corrige el APORTE de ese mes (jamás genera retiros
- * ni journal — el journal es de operaciones explícitas). Valor igual = no-op. En Pres. escribe
- * siempre (el plan avisa); en Ejecutado bloquea si rompe techo o deja en rojo retiros operados.
+ * ni journal — el journal es de operaciones explícitas). Valor igual = no-op. En los dos planos
+ * bloquea si la escritura empeora techo, piso o déficit (FR-2904: antes el plan escribía siempre).
  *
  * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-2904, US-ID: US-2904, AC-ID: AC-2911, TC-ID: TC-CDP-030h, TC-CDP-031f, TC-CDP-036e
  */
 export function applyReserveCellEdit(
   state: LedgerState, edit: ReserveEdit, periods: PeriodScope
@@ -1242,6 +1281,227 @@ export function applyReserveCellEdit(
   target[edit.leafId] = { ...(target[edit.leafId] ?? {}) };
   target[edit.leafId][edit.period] = value;
   return { state: next, warnings: verdict.warnings, noop: false };
+}
+
+// ── Retiro planeado por alcancía (feature saldo-de-bolsillo) ──────────────────────────────────────
+
+/** Un retiro planeado que se anota desde el formulario Pres. de «Retiros del mes» (FR-3002). */
+export interface PlannedRetiro {
+  leafId: string;
+  period: PeriodKey;
+  /** Monto a SUMAR al retiro planeado de la alcancía en ese mes, entero ≥ 1. */
+  amount: number;
+  /** El «¿Para qué?», opcional. Vacío o solo espacios = sin nota. */
+  note?: string | null;
+  /** Día local «AAAA-MM-DD» en que se escribe la nota (FR-2601); el dominio no lee el reloj. */
+  day?: string;
+}
+
+export type PlannedRetiroResult =
+  | { state: LedgerState }
+  | { rejected: ReserveVerdict | "invalid_target" | "invalid_note" };
+
+/** Una línea de la lista del formulario Pres.: la alcancía, su retiro planeado del mes y sus notas. */
+export interface PlannedRetiroRow {
+  leafId: string;
+  amount: number;
+  notes: readonly string[];
+}
+
+/**
+ * Traduce un bloqueo de la cadena del PLAN a veredicto. Mismo criterio que `verdictOf` en lo real: si el
+ * piso cae en el mes de la propia escritura, el `limit` es lo que la alcancía TIENE en el plan ese mes
+ * (más lo que la escritura ya sacaba, al corregir), para que el mensaje diga «solo tiene $300» y no la
+ * cifra negativa que quedaría. En otro mes se deja el residual crudo, que es lo que ese mensaje afirma.
+ */
+function planVerdictOf(
+  base: LedgerState, leafId: string, period: PeriodKey, blocking: ReserveWarning, libera: number, periods: PeriodScope
+): ReserveVerdict {
+  if (blocking.rule === "piso" && blocking.leafId === leafId && blocking.period === period) {
+    const saldo = resolvedBalance(base, leafId, period, "budget", periods);
+    return { ok: false, rule: "piso", period, leafId, limit: Math.max(0, saldo + libera) };
+  }
+  return { ok: false, rule: blocking.rule, period: blocking.period, leafId: blocking.leafId, limit: blocking.limit };
+}
+
+/**
+ * Planea sacar `amount` de una alcancía en un mes (FR-3002): lo SUMA a su retiro planeado de ese mes
+ * (fila `@retiros:<alcancía>`) y guarda la nota «¿Para qué?» como observación de esa fila.
+ *
+ * Valida con `chainCheck` en el plano del plan, la misma función que juzga en el servidor (FR-3008). Un
+ * retiro solo puede romper el piso de su alcancía —sacar baja el neto reservado del mes, así que techo y
+ * déficit solo mejoran—: se rechaza si el plan de esa alcancía quedaría en negativo en ese mes o en uno
+ * posterior.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param r Alcancía, mes, monto (entero ≥ 1), nota y día de la nota.
+ * @param periods Rango activo.
+ * @returns `{state}`, o `{rejected}` con el veredicto de la cadena, `"invalid_target"` (alcancía, mes o
+ *   monto imposibles) o `"invalid_note"` (nota de más de 280 caracteres o día inexistente).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3002, US-ID: US-3002, AC-ID: AC-3005, TC-ID: TC-SDB-010h, TC-SDB-011f, TC-SDB-012e, TC-SDB-013f, TC-SDB-014h, TC-SDB-015h, TC-SDB-016f, TC-SDB-017f, TC-SDB-018e
+ */
+export function planRetiro(state: LedgerState, r: PlannedRetiro, periods: PeriodScope): PlannedRetiroResult {
+  if (!isReserveLeaf(state, r.leafId)) return { rejected: "invalid_target" };
+  if (!isPeriodKey(r.period) || periods.indexOf(r.period) < 0) return { rejected: "invalid_target" };
+  if (!Number.isInteger(r.amount) || r.amount < 1) return { rejected: "invalid_target" };
+  const text = (r.note ?? "").trim();
+  if (text.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
+  if (text.length > 0 && r.day !== undefined && !isCalendarDay(r.day)) return { rejected: "invalid_note" };
+
+  const fila = plannedRetiroKey(r.leafId);
+  const cand = cloneState(state);
+  cand.budgets[fila] = { ...(cand.budgets[fila] ?? {}) };
+  cand.budgets[fila][r.period] = (cand.budgets[fila][r.period] ?? 0) + r.amount;
+  const chain = chainCheck(state, cand, "budget", [r.leafId], periods);
+  if (chain.blocking) return { rejected: planVerdictOf(state, r.leafId, r.period, chain.blocking, 0, periods) };
+
+  if (text.length > 0) {
+    const note: CellNote = { id: uid(), createdAt: nextSeq(), text, ...(r.day !== undefined ? { date: r.day } : {}) };
+    const byKey = { ...(cand.cellNotes ?? {}) };
+    const byMonth = { ...(byKey[fila] ?? {}) };
+    byMonth[r.period] = [...(byMonth[r.period] ?? []), note];
+    byKey[fila] = byMonth;
+    cand.cellNotes = byKey;
+  }
+  return { state: cand };
+}
+
+/**
+ * Corrige el retiro planeado de una alcancía en un mes desde la lista del formulario (FR-3003): fija el
+ * monto; 0 lo elimina junto con sus notas. Mismas reglas que al planearlo.
+ *
+ * Al subirlo, el tope del piso en el propio mes es lo que la alcancía tiene en el plan MÁS lo que este
+ * retiro ya sacaba (igual que al editar un retiro real, AC-1810).
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param leafId Alcancía.
+ * @param period Mes.
+ * @param amount Monto nuevo, entero ≥ 0.
+ * @param periods Rango activo.
+ * @returns `{state}` (el MISMO objeto si el monto no cambia), o `{rejected}`.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3003, US-ID: US-3003, AC-ID: AC-3009, TC-ID: TC-SDB-030h, TC-SDB-031h, TC-SDB-032f, TC-SDB-033e, TC-SDB-035f
+ */
+export function editPlannedRetiro(
+  state: LedgerState, leafId: string, period: PeriodKey, amount: number, periods: PeriodScope
+): { state: LedgerState } | { rejected: ReserveVerdict | "invalid_target" } {
+  if (!isReserveLeaf(state, leafId)) return { rejected: "invalid_target" };
+  if (!isPeriodKey(period) || periods.indexOf(period) < 0) return { rejected: "invalid_target" };
+  if (!Number.isInteger(amount) || amount < 0) return { rejected: "invalid_target" };
+
+  const fila = plannedRetiroKey(leafId);
+  const actual = state.budgets[fila]?.[period] ?? 0;
+  if (amount === actual) return { state };
+
+  const cand = cloneState(state);
+  const porMes = { ...(cand.budgets[fila] ?? {}) };
+  if (amount === 0) delete porMes[period];
+  else porMes[period] = amount;
+  if (Object.keys(porMes).length === 0) delete cand.budgets[fila];
+  else cand.budgets[fila] = porMes;
+
+  const chain = chainCheck(state, cand, "budget", [leafId], periods);
+  if (chain.blocking) return { rejected: planVerdictOf(state, leafId, period, chain.blocking, actual, periods) };
+
+  if (amount === 0 && cand.cellNotes?.[fila]?.[period]) {
+    const byKey = { ...cand.cellNotes };
+    const byMonth = { ...byKey[fila] };
+    delete byMonth[period];
+    if (Object.keys(byMonth).length === 0) delete byKey[fila];
+    else byKey[fila] = byMonth;
+    cand.cellNotes = byKey;
+  }
+  return { state: cand };
+}
+
+/**
+ * Las líneas de la lista del formulario Pres. de un mes (FR-3003): una por alcancía con retiro planeado,
+ * en el orden de la grilla, con sus notas en orden de creación.
+ *
+ * @param state Estado del ledger.
+ * @param month Mes.
+ * @returns Las líneas; vacío si el mes no tiene retiros planeados.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3003, US-ID: US-3003, AC-ID: AC-3016, TC-ID: TC-SDB-034h, TC-SDB-038e
+ */
+export function plannedRetiroRows(state: LedgerState, month: PeriodKey): readonly PlannedRetiroRow[] {
+  const rows: PlannedRetiroRow[] = [];
+  for (const leafId of reserveLeafIds(state)) {
+    const fila = plannedRetiroKey(leafId);
+    const amount = state.budgets[fila]?.[month] ?? 0;
+    if (amount <= 0) continue;
+    const notes = [...(state.cellNotes?.[fila]?.[month] ?? [])]
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map((n) => n.text);
+    rows.push({ leafId, amount, notes });
+  }
+  return rows;
+}
+
+/**
+ * Reparte los retiros planeados SIN bolsillo (la fila global `@retiros`) entre los bolsillos (FR-3006).
+ *
+ * Regla decidida por el usuario el 2026-09-27: cada retiro va al bolsillo con más saldo planeado ese mes
+ * y, si no alcanza, lo que falte sale del siguiente, y así hasta cubrirlo. Si ni sumando todos alcanza,
+ * el resto va al de más saldo: el total del mes se conserva siempre (el Balance del plan no se mueve).
+ * Los meses se recorren en orden, con lo ya convertido aplicado, para que un retiro de octubre vea el
+ * saldo que dejó el de septiembre. Empates: por el orden del nodo.
+ *
+ * Un ledger SIN bolsillos conserva la fila global —no hay dónde ponerla— y `reserveRetiros` la sigue
+ * sumando. Una fila `@retiros:<x>` cuyo bolsillo ya no existe se descarta: sería plata sin dueño.
+ *
+ * @param state Estado del ledger (no se muta).
+ * @param periods Rango activo, en orden.
+ * @returns `{state, converted}`; con `converted: false` el estado es el MISMO objeto (idempotente).
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3006, US-ID: US-3006, AC-ID: AC-3020, TC-ID: TC-SDB-050h, TC-SDB-051h, TC-SDB-052e, TC-SDB-056f
+ */
+export function convertPlannedRetiros(
+  state: LedgerState, periods: PeriodScope
+): { state: LedgerState; converted: boolean } {
+  const bolsillos = state.nodes
+    .filter((n) => n.type === "transfer" && isLeaf(n, state.nodes))
+    .sort((a, b) => a.order - b.order)
+    .map((n) => n.id);
+  const vivos = new Set(bolsillos);
+  const huerfanas = Object.keys(state.budgets).filter(
+    (id) => id.startsWith(PLANNED_RETIRO_PREFIX) && !vivos.has(id.slice(PLANNED_RETIRO_PREFIX.length))
+  );
+  const global = state.budgets[RETIROS_PLAN_ID];
+  const hayGlobal = !!global && Object.values(global).some((v) => (v ?? 0) > 0);
+  if (huerfanas.length === 0 && (!hayGlobal || bolsillos.length === 0)) return { state, converted: false };
+
+  let next = cloneState(state);
+  for (const id of huerfanas) delete next.budgets[id];
+  if (!hayGlobal || bolsillos.length === 0) return { state: next, converted: true };
+
+  const pendiente = { ...global };
+  delete next.budgets[RETIROS_PLAN_ID];
+  // Periodos del retiro global que caen fuera del rango: se recorren igual, al final, para no perderlos.
+  const orden = [...periods, ...Object.keys(pendiente).filter((p) => !periods.includes(p)).sort()];
+  for (const mes of orden) {
+    let resto = pendiente[mes] ?? 0;
+    if (resto <= 0) continue;
+    const saldos = bolsillos
+      .map((id) => ({ id, saldo: periods.includes(mes) ? resolvedBalance(next, id, mes, "budget", periods) : 0 }))
+      .sort((a, b) => b.saldo - a.saldo);
+    const asignar = (id: string, monto: number) => {
+      const fila = plannedRetiroKey(id);
+      next = { ...next, budgets: { ...next.budgets, [fila]: { ...(next.budgets[fila] ?? {}), [mes]: (next.budgets[fila]?.[mes] ?? 0) + monto } } };
+    };
+    for (const { id, saldo } of saldos) {
+      if (resto <= 0) break;
+      const toma = Math.min(resto, Math.max(0, saldo));
+      if (toma > 0) { asignar(id, toma); resto -= toma; }
+    }
+    if (resto > 0) asignar(saldos[0].id, resto);
+  }
+  return { state: next, converted: true };
 }
 
 /** Rótulo de un extremo De→A para mensajes y journal ("Disponible" o el nombre del nodo). */
@@ -1329,22 +1589,4 @@ export function addCellNote(
   byLeaf[leafId] = byMonth;
   next.cellNotes = byLeaf;
   return { state: next };
-}
-
-// ── Avisos del plan ────────────────────────────────────────────────────────────────────────────
-
-/**
- * Meses del plano Pres. cuya suma de aportes planeados supera su techo: mes → margen del plan.
- * Estado del PLAN (no de una edición): la grilla marca con «!» + ámbar las celdas Pres. de hojas
- * que aportan en esos meses. Avisar, jamás bloquear.
- */
-export function planTechoMonths(
-  state: LedgerState, periods: PeriodScope
-): Partial<Record<PeriodKey, number>> {
-  const scan = techoScan(state, "budget", periods);
-  const out: Partial<Record<PeriodKey, number>> = {};
-  for (let i = 0; i < periods.length; i++) {
-    if (scan.excess[i] > 0) out[periods[i]] = scan.margin[i];
-  }
-  return out;
 }

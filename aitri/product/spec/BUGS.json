@@ -7163,6 +7163,31 @@
       "fix_at": "2026-09-26T16:49:11.009Z",
       "close_commit_sha": "934adefe099a0880c0f0423ef5eee30f8baf647f",
       "close_at": "2026-09-26T16:49:11.125Z"
+    },
+    {
+      "id": "BG-050",
+      "title": "La pantalla de acceso borra lo escrito al salir de la pestana y volver: correo, contrasena y nombre se pierden, y el registro vuelve a modo login (LoginGate desmonta el formulario en cada re-consulta de sesion)",
+      "description": "",
+      "steps_to_reproduce": [
+        "Abrir la app sin sesion (pantalla Iniciar sesion)",
+        "Escribir o pegar el correo",
+        "Cambiar a otra pestana o ventana (por ejemplo, para copiar la contrasena) y tardar mas de 5 segundos",
+        "Volver a la pestana de la app"
+      ],
+      "expected_result": "Lo escrito sigue en los campos y la vista no cambia: volver a la pestana no debe desmontar el formulario",
+      "actual_result": "El formulario se desmonta y se monta vacio. Medido con Playwright: correo '' tras volver, el nodo del input es otro, y el DOM pasa por 'formulario ausente'. Igual en registro (pierde nombre, correo y contrasena y vuelve a modo login) y en la solicitud de recuperacion (pierde el correo). CAUSA: better-auth re-consulta la sesion al volver la pestana visible (refetchOnWindowFocus, por defecto true; GET /api/auth/get-session) y, sin sesion, pone isPending=true durante la consulta (client/query.mjs onRequest: isPending = data === null). src/components/auth/LoginGate.tsx:64 devuelve AuthPending mientras isPending, asi que AuthForm/RequestResetForm se desmontan y su estado local se pierde. El comentario de LoginGate.tsx:65 ('useSession solo consulta al montar') ya no es cierto. Afecta FR-1102 (servidor-fuente-unica) y FR-1302 (recuperar-acceso).",
+      "environment": "dev local :3100, 2026-09-27, better-auth 1.7.5; reportado por el usuario al copiar correo y contrasena desde otra ventana",
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": 4,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": "usuario",
+      "created_at": "2026-09-27T19:30:48.670Z",
+      "updated_at": "2026-09-27T19:30:48.670Z",
+      "resolution": null
     }
   ]
 }
