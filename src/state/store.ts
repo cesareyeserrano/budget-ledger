@@ -818,7 +818,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // BG-066: el filtro arranca en el periodo EN CURSO según el calendario cargado. Al crearse el
       // store se inicializa con el mes calendario (aún no hay datos), y con ciclos activos ese mes
       // nombra el ciclo que ya terminó: un ciclo se llama por el mes en que termina.
-      set({ data, hydrated: true, period: { mode: "month", month: nowFor(data) } });
+      // Solo en la PRIMERA hidratación: navegar entre páginas (volver de Configuración) re-hidrata, y
+      // reiniciar ahí el filtro borraba el que el usuario había elegido (TC-MSI-033e). Un calendario
+      // que cambie después lo recoge `doResync`.
+      set({ data, hydrated: true, ...(yaHidratado ? {} : { period: { mode: "month" as const, month: nowFor(data) } }) });
       // El horizonte vive en la cuenta (FR-1907/ADR-06). Se lee DESPUÉS de pintar: es una
       // preferencia, no un dato del ledger, así que no debe retrasar la primera pintura — y si la
       // lectura falla, la app se queda con el defecto de 24 en vez de romperse.

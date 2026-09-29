@@ -82,5 +82,15 @@ describe("BG-066 · el filtro arranca en el periodo en curso del calendario carg
     await store.getState().resync();
     expect(store.getState().period).toEqual({ mode: "month", month: "2026-10" });
   });
+
+  it("volver a hidratar (navegar entre páginas) no reinicia el filtro que el usuario eligió", async () => {
+    const conCiclos = { ...buildSeed("local", "2026-08" as PeriodKey), cycles: CICLOS_21 } as LedgerState;
+    stub(() => conCiclos);
+    const store = await storeAl28DeSeptiembre();
+    await store.getState().hydrate();
+    store.getState().setPeriod({ mode: "year", year: 2026 });
+    await store.getState().hydrate(); // volver de Configuración
+    expect(store.getState().period).toEqual({ mode: "year", year: 2026 });
+  });
 });
 
