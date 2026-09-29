@@ -537,7 +537,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const prev = get().data;
       // FR-1802 — el retiro nace CON fecha: la lista de operaciones la muestra y la edición la
       // conserva. Antes los retiros de la grilla nacían sin ella (solo el Registrar móvil la pasaba).
-      const date = new Date().toISOString().slice(0, 16);
+      // BG-051: la fecha es la que la celda propone —hoy en hora LOCAL si cae en la columna, si no
+      // su último día a mediodía—, igual que el ajuste de `setLeafAmount`. Con `toISOString()` salía
+      // el momento presente en UTC, fuera del periodo de la columna, y el servidor rechazaba el
+      // snapshot entero con `period_mismatch`.
+      const date = proposedDate(calendarFor(prev), month, new Date());
       const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, period: month, amount, date, ...(note !== undefined ? { note } : {}) }, get().activePeriods());
       if ("rejected" in result) return result;
       // Retiro: red mínima para un gesto rápido — toast 6s con Deshacer (un nivel).
