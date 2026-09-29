@@ -789,8 +789,15 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
     // cierre-de-mes. Por decisión del usuario el plano Presupuestado calcula y bloquea como Ejecutado:
     // `techoScanRaw` barre cada plano con SU propio arrastre (FR-2903; en Ejecutado da idéntico) y
     // `chainCheck` aplica techo, piso y déficit a los dos planos (FR-2904). `reserveAportes` no cambió.
+    //
+    // ANCLA AVANZADA de 5eacb9c a 7947a9e el 2026-09-29, por BG-054 y no por cierre-de-mes. Es la
+    // misma clase de cambio que BG-031: no toca la aritmética del techo, solo DÓNDE toma el arrastre.
+    // Si el rango empieza antes del mes de inicio (FR-1906 deja registrar un dato anterior), el
+    // Balance ya abre ese mes en el saldo declarado (`declaredOpeningAt`, decisión del usuario), y el
+    // techo tiene que abrirlo igual o volvería a discrepar de lo que la app muestra. `reserveAportes`
+    // y `chainCheck` no cambiaron.
     const actual = readFileSync("src/domain/reserve.ts", "utf8");
-    const base = execSync("git show 5eacb9c:src/domain/reserve.ts", { encoding: "utf8" });
+    const base = execSync("git show 7947a9e:src/domain/reserve.ts", { encoding: "utf8" });
 
     /** Extrae el cuerpo de una función por su nombre, hasta el cierre en la columna 0. */
     const cuerpo = (src: string, nombre: string): string => {
