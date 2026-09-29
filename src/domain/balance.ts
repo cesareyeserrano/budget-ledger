@@ -13,6 +13,7 @@
 import type { Carry, LedgerState, PeriodKey } from "./types";
 import { typeTotals } from "./rollup";
 import { reserveDelta, type Plane } from "./reserve";
+import { declaredOpeningAt } from "./opening";
 
 /** Los dos planos de la grilla: el plan que el usuario tecleó y lo que ocurrió de verdad.
  *  (El origen del tipo vive en reserve.ts — feature transferencias — para evitar ciclos.) */
@@ -176,7 +177,14 @@ export function computeBalanceSeries(
   //
   // `opening` lo introdujo FR-2010: calcular el «antes» del impacto es correr ESTA MISMA serie
   // abriendo en la línea de base en vez de en el carry actual — no una fórmula paralela.
-  for (const month of periods) {
+  for (const [i, month] of periods.entries()) {
+    // BG-054: si la serie empezó ANTES del mes de inicio (hay datos anteriores), ese mes abre en el
+    // saldo declarado, que sustituye al disponible arrastrado. En `periods[0]` ya lo trae `opening`.
+    const apertura = i > 0 ? declaredOpeningAt(state, month) : null;
+    if (apertura !== null) {
+      prevBudget = { ...prevBudget, available: apertura };
+      prevActual = { ...prevActual, available: apertura };
+    }
     const income = typeTotals(state, "income", [month]);
     const expense = typeTotals(state, "expense", [month]);
 
