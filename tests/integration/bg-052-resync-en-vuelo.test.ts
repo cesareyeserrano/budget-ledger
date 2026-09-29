@@ -22,19 +22,34 @@ interface Api {
   stored: LedgerState | null;
   getLatencyMs: number;
   putLatencyMs: number;
+  /** Status con que responder el PRÓXIMO GET o PUT del ledger (0 = normal). */
+  failNextGet: number;
+  failNextPut: number;
+  /** Lo que el servidor escribe al aplicar un cambio de modo (simula la reubicación). */
+  onCycles?: (s: LedgerState) => void;
   puts: Array<{ baseRevision: number; status: number }>;
 }
 
 function stubServer(): Api {
-  const api: Api = { revision: 0, stored: null, getLatencyMs: 0, putLatencyMs: 0, puts: [] };
+  const api: Api = { revision: 0, stored: null, getLatencyMs: 0, putLatencyMs: 0, failNextGet: 0, failNextPut: 0, puts: [] };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: unknown, req?: RequestInit) => {
       const u = String(url);
       if (u.includes("/preferences/horizon")) return new Response("{}", { status: 404 });
+      if (u.includes("/ledger/cycles") && (req?.method ?? "GET") === "PUT") {
+        api.revision += 1;
+        api.onCycles?.(api.stored!);
+        return new Response(JSON.stringify({ revision: api.revision }), { status: 200 });
+      }
       if ((req?.method ?? "GET") === "PUT") {
         const body = JSON.parse(String(req!.body)) as { baseRevision: number; state: LedgerState };
         if (api.putLatencyMs) await delay(api.putLatencyMs);
+        if (api.failNextPut) {
+          const st = api.failNextPut; api.failNextPut = 0;
+          api.puts.push({ baseRevision: body.baseRevision, status: st });
+          return new Response("{}", { status: st });
+        }
         if (body.baseRevision !== api.revision) {
           api.puts.push({ baseRevision: body.baseRevision, status: 409 });
           return new Response(JSON.stringify({ error: { code: "revision_conflict" }, revision: api.revision }), { status: 409 });
@@ -46,7 +61,9 @@ function stubServer(): Api {
       }
       // El snapshot se toma cuando LLEGA la petición; la latencia es la respuesta volviendo.
       const snapshot = api.stored === null ? null : JSON.stringify({ revision: api.revision, state: api.stored });
+      const falla = api.failNextGet; api.failNextGet = 0;
       if (api.getLatencyMs) await delay(api.getLatencyMs);
+      if (falla) return new Response("{}", { status: falla });
       if (snapshot === null) return new Response(null, { status: 204 });
       return new Response(snapshot, { status: 200 });
     })
@@ -148,4 +165,65 @@ describe("BG-052 · una recarga en vuelo no pisa la edición local", () => {
     expect(store.getState().toast).toMatch(/Otro dispositivo/);
     expect(store.getState().data.budgets["c-salario"]?.[cur]).toBe(7_000);
   });
+
+  // ── Revisión adversarial (2026-09-29) ─────────────────────────────────────────────────────────
+
+  it("conflicto con edición durante la recarga de convergencia: el servidor gana, avisando, y no se pisa lo ajeno", async () => {
+    const { api, store, cur } = await setup();
+    const ajeno: LedgerState = JSON.parse(JSON.stringify(api.stored));
+    ajeno.budgets["c-salario"] = { [cur]: 7_000 };
+    api.stored = ajeno;
+    api.revision += 1;
+
+    const desde = api.puts.length;
+    api.getLatencyMs = 60; // la recarga de convergencia tarda
+    store.getState().setLeafAmount("c-vivienda", cur, "budget", 150); // → 409
+    await delay(30);
+    store.getState().setLeafAmount("c-transporte", cur, "budget", 200); // mientras viaja la recarga
+    await delay(120);
+    api.getLatencyMs = 0;
+    await delay(40);
+
+    expect(api.stored!.budgets["c-salario"]?.[cur]).toBe(7_000);
+    // Después del arranque solo hubo el 409: ningún guardado con datos viejos llegó a aceptarse.
+    expect(api.puts.slice(desde).map((p) => p.status)).toEqual([409]);
+    expect(store.getState().data.budgets["c-salario"]?.[cur]).toBe(7_000);
+    expect(store.getState().toast).toMatch(/Otro dispositivo/);
+  });
+
+  it("tras un conflicto cuya recarga falló, un fallo de red posterior se avisa como fallo de red", async () => {
+    const { api, store, cur } = await setup();
+    const ajeno: LedgerState = JSON.parse(JSON.stringify(api.stored));
+    ajeno.budgets["c-salario"] = { [cur]: 7_000 };
+    api.stored = ajeno;
+    api.revision += 1;
+
+    api.failNextGet = 503; // la recarga del conflicto no llega
+    store.getState().setLeafAmount("c-vivienda", cur, "budget", 150); // → 409
+    await delay(40);
+    await delay(2_100); // se va el aviso del conflicto
+
+    api.failNextPut = 500;
+    store.getState().setLeafAmount("c-transporte", cur, "budget", 300);
+    await delay(40);
+    expect(store.getState().storageError).toBe("network");
+    expect(store.getState().toast).toBe(null);
+    expect(store.getState().data.budgets["c-transporte"]?.[cur]).toBe(300); // la edición sigue en pantalla
+  });
+
+  it("una edición hecha tras cambiar de modo, antes de recargar, no pisa lo que el servidor reescribió", async () => {
+    const { api, store, cur } = await setup();
+    api.onCycles = (s) => { s.budgets["c-salario"] = { [cur]: 7_000 }; }; // la reubicación del servidor
+    api.getLatencyMs = 60;
+    const aplicar = store.getState().applyPeriodMode({ mode: "cycle", anchorDay: 21 } as never);
+    await delay(20);
+    store.getState().setLeafAmount("c-vivienda", cur, "budget", 150); // antes de que vuelva la recarga
+    await aplicar;
+    api.getLatencyMs = 0;
+    await delay(60);
+
+    expect(api.stored!.budgets["c-salario"]?.[cur]).toBe(7_000);
+    expect(store.getState().data.budgets["c-salario"]?.[cur]).toBe(7_000);
+  });
 });
+

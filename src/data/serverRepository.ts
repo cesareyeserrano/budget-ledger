@@ -159,6 +159,10 @@ export class ServerRepository implements LedgerRepository {
    * @returns true si aplicó; false si hubo conflicto (409) o fallo de red (el estado local no se corrompe)
    */
   async save(_ownerId: string, state: LedgerState): Promise<boolean> {
+    // Cada guardado decide su propio desenlace: una marca de conflicto que quedara de un 409 anterior
+    // haría que un fallo de red posterior se tratara como conflicto —descartando la edición local y
+    // avisando de «otro dispositivo»— en vez de como fallo de red (BG-052, revisión adversarial).
+    this.conflicted = false;
     try {
       const res = await fetch(this.url("/api/v1/ledger"), {
         method: "PUT",
@@ -301,7 +305,10 @@ export class ServerRepository implements LedgerRepository {
       const body = (await res.json().catch(() => ({}))) as { revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
       if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; this.conflicted = true; return { ok: false, code: "revision_conflict" }; }
       if (res.status !== OK) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
-      if (typeof body.revision === "number") this.revision = body.revision;
+      // NO se adopta la revisión aquí (BG-052): el servidor reescribió el ledger y este cliente aún
+      // no tiene esos datos. Adoptarla antes de recargarlos dejaba que una edición hecha mientras
+      // tanto saliera con la revisión nueva sobre datos viejos y pisara la reubicación. La adopta la
+      // recarga que sigue (`applyPeriodMode` → `doResync`), junto con los datos.
       return { ok: true };
     } catch {
       return { ok: false, code: "network" };

@@ -258,8 +258,18 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let pendingSave: LedgerState | null = null;
   let saveInFlight = false;
 
-  /** Recarga desde la fuente de verdad preservando la ventana de undo (BG-011). */
-  const doResync = async () => {
+  /**
+   * Recarga desde la fuente de verdad preservando la ventana de undo (BG-011).
+   *
+   * Dos modos (BG-052). `converge` es el de toda llamada que responde a un rechazo o un conflicto:
+   * el servidor gana, lo cargado se adopta SIEMPRE y lo pendiente se suelta, porque nació de un
+   * estado perdedor (se descarta avisando, lo dice el llamador). Sin esto, una edición hecha
+   * mientras viajaba el GET hacía descartar la recarga y el guardado siguiente salía con la revisión
+   * nueva —el 409 ya la había adoptado— sobre datos viejos: pisaba al otro dispositivo en silencio.
+   * `si-no-cambio` es el del sync en vivo: si lo local cambió mientras viajaba el GET, lo cargado es
+   * anterior a lo que hay en pantalla y se descarta entero, datos y revisión.
+   */
+  const doResync = async (modo: "converge" | "si-no-cambio" = "converge") => {
     if (!repo) return;
     try {
       const before = get().data;
@@ -273,12 +283,13 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (repo.malformed) set({ storageError: "malformed" });
         return;
       }
-      // BG-052: si el estado local cambió mientras el GET viajaba, lo cargado es ANTERIOR a lo que
-      // hay en pantalla. Se descarta entero, datos y revisión: pintarlo borraba la edición recién
-      // hecha y adoptar su revisión dejaba que la siguiente escritura la borrara también del
-      // servidor. Si lo que traía era una escritura de otro dispositivo, el guardado pendiente sale
+      // BG-052: en el sync en vivo, si el estado local cambió mientras el GET viajaba, lo cargado
+      // es ANTERIOR a lo que hay en pantalla. Se descarta entero, datos y revisión: pintarlo borraba
+      // la edición recién hecha y adoptar su revisión dejaba que la siguiente escritura la borrara
+      // también del servidor. Si traía una escritura de otro dispositivo, el guardado pendiente sale
       // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
-      if (get().data !== before || pendingSave) return;
+      if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return;
+      if (modo === "converge") pendingSave = null;
       repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
       // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
@@ -717,7 +728,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // nuestro propio eco no aportaba nada, y si era una escritura ajena el PUT en vuelo va a
       // recibir 409 y el drenador converge y avisa.
       if (saveInFlight || pendingSave) return;
-      await doResync();
+      await doResync("si-no-cambio");
     },
 
     /**
