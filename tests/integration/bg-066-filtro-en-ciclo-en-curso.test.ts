@@ -8,8 +8,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { buildSeed } from "@/domain";
-import type { CycleConfig } from "@/domain/cycles";
-import type { LedgerState, PeriodKey } from "@/domain/types";
+import type { CycleConfig, LedgerState, PeriodKey } from "@/domain/types";
 
 const CICLOS_21: CycleConfig = {
   mode: "cycle",
