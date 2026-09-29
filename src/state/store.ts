@@ -409,9 +409,30 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     }
   };
 
+  // La vuelta del drenador en curso, para quien necesite esperar a que la cola se vacíe (BG-067).
+  let drainPromise: Promise<void> | null = null;
+  const kickDrain = () => {
+    // Sin repositorio no hay nada que drenar: `drainSaves` volvería sin consumir `pendingSave`, y el
+    // reinicio de abajo giraría sin fin.
+    if (drainPromise || !repo) return;
+    drainPromise = drainSaves().finally(() => {
+      drainPromise = null;
+      // Un snapshot que llegó mientras la vuelta terminaba no puede quedar varado.
+      if (pendingSave && !saveInFlight) kickDrain();
+    });
+  };
   const persist = (data: LedgerState) => {
     pendingSave = data;
-    void drainSaves();
+    kickDrain();
+  };
+  /**
+   * Espera a que no quede ningún guardado en vuelo ni pendiente (BG-067). Las escrituras que no son
+   * el snapshot —declarar la apertura, cambiar de modo— salen con la revisión conocida; si salieran
+   * mientras el snapshot viaja, una de las dos recibía un 409 de la otra: la declaración se reintentaba
+   * a ciegas, o el guardado de la celda recién tecleada se descartaba con un falso «otro dispositivo».
+   */
+  const waitSaves = async () => {
+    while (drainPromise) await drainPromise;
   };
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
   let lastSig: string | null = null;
@@ -517,13 +538,23 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
      */
     previewPeriodMode: async (target) => {
       if (!repo) return { ok: false, code: "network" };
-      return repo.previewCycles(target);
+      await waitSaves();
+      const res = await repo.previewCycles(target);
+      // BG-067: el 409 ya dejó la revisión del servidor en el repositorio; sin sus datos, el guardado
+      // siguiente pisaría lo del otro dispositivo. Se converge, como tras cualquier conflicto.
+      if (!res.ok && res.code === "revision_conflict") await doResync();
+      return res;
     },
     applyPeriodMode: async (target) => {
       if (!repo) return { ok: false, code: "network" };
+      await waitSaves();
       const res = await repo.applyCycles(target);
       if (!res.ok) {
         if (res.code === "network") set({ storageError: "network" });
+        if (res.code === "revision_conflict") {
+          await doResync(); // BG-067: ver previewPeriodMode
+          get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        }
         return res;
       }
       // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
@@ -534,11 +565,16 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     },
     setStart: async (startMonth, openingBalance) => {
       if (!repo) return { ok: false, reason: "no_repo" };
+      await waitSaves(); // BG-067: la declaración no compite con el guardado del snapshot
       const res = await repo.saveStart(startMonth, openingBalance);
       if (!res.ok) {
         // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
         // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
         if (res.reason === "network") set({ storageError: "network" });
+        // BG-067: tras esperar la cola, un 409 solo puede venir de otro dispositivo. El repositorio ya
+        // adoptó su revisión; sin sus datos, la siguiente edición lo pisaría en silencio. Se converge.
+        // El llamador que reintenta (la tarjeta de arranque) lo hace ya sobre el estado del servidor.
+        if (res.reason === "revision_conflict") await doResync();
         return res;
       }
       set((st) => ({
