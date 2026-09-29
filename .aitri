@@ -23,23 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-29T21:51:24.727Z",
+  "updatedAt": "2026-09-29T22:12:19.726Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-28T18:07:58.032Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-28T18:08:03.584Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
     {
       "at": "2026-09-28T20:12:05.512Z",
       "event": "verify-run",
@@ -187,6 +173,22 @@
       "method": "git",
       "baseRefFrom": "e0b61dc3f41c208df221cfbf41793c976f16a412",
       "baseRefTo": "7ffefde4414c448bbfa00caba9053ae4bc8b229a"
+    },
+    {
+      "at": "2026-09-29T22:12:00.677Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-29T22:12:19.716Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -354,16 +356,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "080b36e16e5f16a756dc801801ab46f512c7c584",
+  "verifyRanRef": "580b9d6f614485008e56fab5495a2718c5931ffc",
   "verifyRanDirty": false,
-  "verifyResultsHash": "2188b1204ec24aa155ed6f85ed57621e7f7b3879567af8030b9e5693b265f0fa",
-  "verifyRanAt": "2026-09-29T19:43:34.555Z",
+  "verifyResultsHash": "42919809bec1e704219a2dd3684889337aa37f9ec8aafc549e524fed46362a7f",
+  "verifyRanAt": "2026-09-29T22:12:00.656Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-29T19:43:34.555Z"
+    "at": "2026-09-29T22:12:00.656Z"
   },
   "verifySummary": {
     "total": 59,
