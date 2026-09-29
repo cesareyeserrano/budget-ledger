@@ -178,9 +178,12 @@ export function computeBalanceSeries(
   // `opening` lo introdujo FR-2010: calcular el «antes» del impacto es correr ESTA MISMA serie
   // abriendo en la línea de base en vez de en el carry actual — no una fórmula paralela.
   for (const [i, month] of periods.entries()) {
-    // BG-054: si la serie empezó ANTES del mes de inicio (hay datos anteriores), ese mes abre en el
-    // saldo declarado, que sustituye al disponible arrastrado. En `periods[0]` ya lo trae `opening`.
-    const apertura = i > 0 ? declaredOpeningAt(state, month) : null;
+    // BG-054: el mes de inicio abre en el saldo declarado, que sustituye al disponible arrastrado.
+    // También en `periods[0]`: el Balance ya lo pasa en `opening` (y esto no cambia nada), pero el
+    // cierre arranca series con su propia apertura —`closingCarry`, la línea de base al reabrir— y,
+    // si la primera de esas series es justo el mes de inicio, sin esto el impacto de reabrir el mes
+    // anterior se calculaba sin el saldo declarado (revisión adversarial, 2026-09-29).
+    const apertura = declaredOpeningAt(state, month);
     if (apertura !== null) {
       prevBudget = { ...prevBudget, available: apertura };
       prevActual = { ...prevActual, available: apertura };

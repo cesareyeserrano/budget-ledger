@@ -12,17 +12,20 @@
 import { describe, it, expect } from "vitest";
 import { computeBalanceSeries } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
-import { AVAILABLE_ID as D, applyReserveOp, reserveHeadroom } from "@/domain/reserve";
+import { AVAILABLE_ID as D, applyReserveOp, carryUsageText, monthCarryUsage, reserveHeadroom } from "@/domain/reserve";
+import { closeMonth, downstreamImpact, reopenMonth } from "@/domain/closure";
 import { periodRange } from "@/domain/periods";
 import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 
 const ENE = "2026-01" as PeriodKey;
+const MAY = "2026-05" as PeriodKey;
 const JUN = "2026-06" as PeriodKey;
 const JUL = "2026-07" as PeriodKey;
 const SEP = "2026-09" as PeriodKey;
 const nodo = (id: string, type: LedgerNode["type"], level: LedgerNode["level"], parentId: string | null, order: number): LedgerNode =>
   ({ id, ownerId: "l", type, level, parentId, name: id, icon: null, order });
 const NODES: LedgerNode[] = [
+  nodo("g-i", "income", "group", null, 4), nodo("ing", "income", "category", "g-i", 5),
   nodo("g-e", "expense", "group", null, 0), nodo("gas", "expense", "category", "g-e", 1),
   nodo("g-t", "transfer", "group", null, 2), nodo("A", "transfer", "category", "g-t", 3),
 ];
@@ -72,4 +75,43 @@ describe("BG-054 · el mes de inicio abre en el saldo declarado aunque haya dato
     expect(serie[JUN].actual.prevAvailable).toBe(-10_000);
     expect(serie[SEP].actual.available).toBe(-10_000);
   });
+
+  // ── Revisión adversarial (2026-09-29) ─────────────────────────────────────────────────────────
+
+  it("el impacto de reabrir el mes anterior al inicio respeta el saldo declarado, igual que el Balance", () => {
+    // Ingreso de 500.000 en mayo (historia) y 200.000 en junio; se cierra mayo, se reabre y se le
+    // añade un gasto de 300.000. Junio abre en el saldo declarado, así que nada después cambia.
+    const base = {
+      ...ledger(false),
+      actuals: { ing: { [MAY]: 500_000, [JUN]: 200_000 } },
+    } as LedgerState;
+    const rango = periodRange("2026-05", "2026-12");
+    const cerrado = closeMonth(base, SEP, rango);
+    expect(cerrado.ok, JSON.stringify(cerrado)).toBe(true);
+    const conCierre = { ...base, closure: (cerrado as { closure: LedgerState["closure"] }).closure } as LedgerState;
+    const reabierto = reopenMonth(conCierre, rango);
+    expect(reabierto.ok, JSON.stringify(reabierto)).toBe(true);
+    const editado = {
+      ...conCierre,
+      closure: (reabierto as { closure: LedgerState["closure"] }).closure,
+      actuals: { ...conCierre.actuals, gas: { [MAY]: 300_000 } },
+    } as LedgerState;
+
+    const serie = computeBalanceSeries(editado, rango, openingCarry(editado, rango));
+    expect(serie[JUN].actual.available).toBe(1_200_000);
+    expect(downstreamImpact(editado, rango)).toEqual([]); // el Balance no cambió: no hay impacto que anunciar
+  });
+
+  it("la nota de lo reservado en el mes de inicio dice «del saldo inicial», no el mes de historia", () => {
+    const conHistoria = { ...ledger(false), actuals: { gas: { [MAY]: 10_000 } } } as LedgerState;
+    const rango = periodRange("2026-05", "2026-12");
+    const r = applyReserveOp(conHistoria, { from: D, to: "A", period: JUN, amount: 500_000, date: "2026-06-10T10:00" }, rango);
+    expect("state" in r, JSON.stringify(r)).toBe(true);
+    const uso = monthCarryUsage((r as { state: LedgerState }).state, JUN, "actual", rango);
+    expect(uso).not.toBeNull();
+    expect(uso!.mesAnterior).toBeNull();
+    expect(uso!.delSaldoAnterior).toBe(500_000);
+    expect(carryUsageText(uso!, (n) => String(n))).toMatch(/del saldo inicial/);
+  });
 });
+

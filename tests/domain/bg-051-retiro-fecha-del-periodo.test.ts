@@ -57,6 +57,9 @@ describe("BG-051 · la fecha del retiro pertenece a la columna", () => {
     expect(isValidMovementPeriod(MONTH_CALENDAR, mv)).toBe(true);
   });
 
+  // Este caso solo reproduce el defecto en una zona con desfase negativo (Bogotá, UTC-5); en UTC,
+  // como corre el CI, pasa también con el código viejo. El caso anterior, el de la columna pasada,
+  // lo detecta en cualquier zona (revisión adversarial, 2026-09-29).
   it("un retiro en la columna en curso a las 19:30 del último día conserva el día local", async () => {
     const s = await storeAt(new Date(2026, 8, 30, 19, 30)); // 30-sep 19:30, hora local
     const r = s.getState().applyReserveWithdrawal("c-viaje", SEP, 100_000);

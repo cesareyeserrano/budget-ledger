@@ -831,7 +831,9 @@ export function monthCarryUsage(
   const delFlujo = Math.max(0, Math.min(reservado, flujo));
   const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
-  return { reservado, delSaldoAnterior, mesAnterior: i === 0 ? null : periods[i - 1] };
+  // BG-054: en el mes de inicio lo que se usó es el saldo inicial, aunque haya meses de historia antes.
+  const delInicio = i === 0 || declaredOpeningAt(state, month) !== null;
+  return { reservado, delSaldoAnterior, mesAnterior: delInicio ? null : periods[i - 1] };
 }
 
 /**
