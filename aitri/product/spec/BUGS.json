@@ -7244,7 +7244,7 @@
       "actual_result": "createNode y las tres ramas de moveNode (mutations.ts:141-143, 611-613, 630-631, 660-661) condicionan el traslado de FR-604 a que exista el mapa de celdas del padre. rowsToState (ledgerRepo.ts:154-159) solo crea el mapa si hay filas de celda, asi que un bolsillo con saldo solo por journal se queda sin repointMovements. Disparar por 'el padre no tenia hijos' y repuntar siempre los movimientos.",
       "environment": "develop @ f2fb90a",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7252,8 +7252,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-5",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.748Z",
-      "updated_at": "2026-09-29T14:39:02.748Z",
-      "resolution": null
+      "updated_at": "2026-09-29T15:45:30.843Z",
+      "resolution": "createNode y las tres ramas de moveNode (mutations.ts) trasladan celdas y movimientos al primer hijo cuando el padre no tenia hijos, sin exigir un mapa de celdas. Ocurria tambien sin recargar: un traslado entre bolsillos nunca crea el mapa. Regresion en tests/domain/bg-053-bolsillo-fondeado-por-traslados.test.ts.",
+      "fix_commit_sha": "686e005e04982b631d38412c6a04617f7ad3139c",
+      "fix_at": "2026-09-29T15:45:30.734Z",
+      "log": [
+        {
+          "at": "2026-09-29T15:45:30.843Z",
+          "text": "Al arreglarlo se vio que no depende de recargar: un traslado entre bolsillos no escribe celda, asi que el mapa falta tambien en la misma sesion."
+        }
+      ]
     },
     {
       "id": "BG-054",
