@@ -560,7 +560,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
       // transacción y devolver el snapshot entero sería duplicar el camino de `resync`.
       await doResync();
-      set({ storageError: null });
+      // BG-066: el calendario cambió; el filtro pasa al periodo en curso del calendario nuevo.
+      set({ storageError: null, period: { mode: "month", month: nowFor(get().data) } });
       return { ok: true };
     },
     setStart: async (startMonth, openingBalance) => {
@@ -765,7 +766,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // Usuario nuevo (204 → null): el CLIENTE siembra con buildSeed y persiste (FR-513).
       const data = loaded ?? buildSeed(OWNER, seedPeriod());
       if (!loaded) await repo.save(OWNER, data);
-      set({ data, hydrated: true });
+      // BG-066: el filtro arranca en el periodo EN CURSO según el calendario cargado. Al crearse el
+      // store se inicializa con el mes calendario (aún no hay datos), y con ciclos activos ese mes
+      // nombra el ciclo que ya terminó: un ciclo se llama por el mes en que termina.
+      set({ data, hydrated: true, period: { mode: "month", month: nowFor(data) } });
       // El horizonte vive en la cuenta (FR-1907/ADR-06). Se lee DESPUÉS de pintar: es una
       // preferencia, no un dato del ledger, así que no debe retrasar la primera pintura — y si la
       // lectura falla, la app se queda con el defecto de 24 en vez de romperse.
