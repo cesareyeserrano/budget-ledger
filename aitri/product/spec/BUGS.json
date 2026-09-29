@@ -7258,7 +7258,7 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-5",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.748Z",
-      "updated_at": "2026-09-29T15:45:30.843Z",
+      "updated_at": "2026-09-29T17:45:44.237Z",
       "resolution": "createNode y las tres ramas de moveNode (mutations.ts) trasladan celdas y movimientos al primer hijo cuando el padre no tenia hijos, sin exigir un mapa de celdas. Ocurria tambien sin recargar: un traslado entre bolsillos nunca crea el mapa. Regresion en tests/domain/bg-053-bolsillo-fondeado-por-traslados.test.ts.",
       "fix_commit_sha": "686e005e04982b631d38412c6a04617f7ad3139c",
       "fix_at": "2026-09-29T15:45:30.734Z",
@@ -7266,6 +7266,10 @@
         {
           "at": "2026-09-29T15:45:30.843Z",
           "text": "Al arreglarlo se vio que no depende de recargar: un traslado entre bolsillos no escribe celda, asi que el mapa falta tambien en la misma sesion."
+        },
+        {
+          "at": "2026-09-29T17:45:44.237Z",
+          "text": "Datos viejos: la carga los repara (repairOrphanedPocketJournal + loadLedger). Los movimientos que el defecto dejo en un bolsillo padre pasan a su primera hoja; en produccion Ahorros tiene un solo hijo, segun el usuario."
         }
       ]
     },
@@ -7794,8 +7798,14 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-21",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.851Z",
-      "updated_at": "2026-09-29T14:39:04.851Z",
-      "resolution": null
+      "updated_at": "2026-09-29T17:45:44.289Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-29T17:45:44.289Z",
+          "text": "Item (c) resuelto en el commit de reparacion de BG-053: loadLedger relee la revision tras las migraciones perezosas."
+        }
+      ]
     },
     {
       "id": "BG-080",
