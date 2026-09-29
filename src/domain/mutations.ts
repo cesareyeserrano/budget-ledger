@@ -138,9 +138,12 @@ export function createNode(state: LedgerState, input: NewNode): LedgerState {
   // FR-604 (y FR-002): al agregar el PRIMER hijo a una hoja con montos propios (categoría-hoja → 1ª sub,
   // o grupo-hoja → 1ª categoría), trasladar sus montos al nuevo hijo — el padre pasa a calculado, el total no cae.
   if (input.parentId) {
+    // BG-053: la condición es solo «no tenía hijos». Antes exigía además un mapa de celdas, y un
+    // bolsillo fondeado SOLO por traslados no lo tiene (el traslado va al journal, no a la celda):
+    // la regla no corría, sus movimientos quedaban apuntando a un nodo que ya no es hoja y su saldo
+    // seguía en el Balance sin pertenecer a ningún bolsillo. Trasladar un mapa ausente no cambia nada.
     const parentHadNoChildren = !state.nodes.some((n) => n.parentId === input.parentId);
-    const parentHadAmounts = state.budgets[input.parentId] || state.actuals[input.parentId];
-    if (parentHadNoChildren && parentHadAmounts) {
+    if (parentHadNoChildren) {
       next.budgets[id] = { ...(state.budgets[input.parentId] ?? {}) };
       next.actuals[id] = { ...(state.actuals[input.parentId] ?? {}) };
       delete next.budgets[input.parentId];
@@ -608,9 +611,9 @@ export function moveNode(
     // movido) → deja de ser hoja. Sus montos se trasladan a una HOJA del subárbol entrante; si no, el
     // roll-up de Presupuestado (que agrega solo hojas) los perdería en silencio, rompiendo padre==Σhojas.
     // El target es el nodo movido si quedó hoja, o su primera hoja descendiente (nunca el nodo interno).
+    // BG-053: basta con que el destino fuera hoja; ver createNode.
     const destWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-    const destHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
-    if (destWasChildlessLeaf && destHadAmounts) {
+    if (destWasChildlessLeaf) {
       const movedNode = findNode(next.nodes, id)!;
       const target = isLeaf(movedNode, next.nodes) ? id : leafDescendants(next.nodes, id)[0] ?? id;
       next.budgets[target] = mergeMonthMapForType(node.type, state.budgets[dest.id], next.budgets[target]);
@@ -627,8 +630,8 @@ export function moveNode(
     if (destNode.level !== "category") return { rejected: "invalid_target" };
     // FR-604 — se leen ANTES de mutar: la categoría destino puede ser una HOJA con montos propios
     // que está a punto de ganar su primer hijo (BG-009).
+    // BG-053: basta con que la categoría fuera hoja; ver createNode.
     const catWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-    const catHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
     const next = clone(state);
     const moved = findNode(next.nodes, id)!;
     const formerChildren = childrenOf(state.nodes, id);
@@ -644,7 +647,7 @@ export function moveNode(
     // totales (grupo, tipo, KPIs, Balance) quedando huérfanos en el mapa. Se trasladan al nodo
     // movido, que aquí siempre queda hoja (pasa a 'sub' y sus antiguos hijos se aplanaron al
     // destino). Es la MISMA regla que ya aplican createNode y las otras dos ramas de moveNode.
-    if (catWasChildlessLeaf && catHadAmounts) {
+    if (catWasChildlessLeaf) {
       next.budgets[id] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[id]);
       next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
       delete next.budgets[dest.id];
@@ -657,8 +660,8 @@ export function moveNode(
 
   // dest.kind === 'group' → el nodo pasa a ser categoría del grupo.
   if (destNode.level !== "group") return { rejected: "invalid_target" };
+  // BG-053: basta con que el grupo fuera hoja; ver createNode.
   const groupWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-  const groupHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
   const next = clone(state);
   const moved = findNode(next.nodes, id)!;
   moved.level = "category";
@@ -668,7 +671,7 @@ export function moveNode(
   // rama, y mandarle los montos los dejaba en un nodo no editable, fuera del roll-up de Presupuestado y de
   // todo Detalle. Van a su primera hoja, como hace createNode con el primer hijo. Si el movido ya es hoja,
   // `leafDescendants` lo devuelve a él mismo y el comportamiento es el de siempre.
-  if (groupWasChildlessLeaf && groupHadAmounts) {
+  if (groupWasChildlessLeaf) {
     const receiver = leafDescendants(next.nodes, id)[0] ?? id;
     next.budgets[receiver] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[receiver]);
     next.actuals[receiver] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[receiver]);
