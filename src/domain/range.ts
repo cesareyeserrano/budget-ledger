@@ -126,9 +126,9 @@ export function activeBounds(
   //
   // Por qué suelo y no recorte: recortar cumpliría al pie de la letra «no se muestran meses
   // anteriores», pero un dato previo quedaría invisible E INCORREGIBLE — el mismo argumento con el
-  // que ADR-14 hizo anclar la frontera del cierre. Ese estado es además inalcanzable desde la
-  // interfaz, porque FR-2206 bloquea el movimiento que lo crearía; así que la opción elegida solo
-  // se comporta distinto en un estado que no debería existir, y ahí falla del lado seguro.
+  // que ADR-14 hizo anclar la frontera del cierre. Ese estado SÍ es alcanzable: FR-1906 deja
+  // registrar en un periodo anterior. Por eso la apertura no depende de dónde empiece el rango: el
+  // mes de inicio abre siempre en el saldo declarado (`declaredOpeningAt`, BG-054).
   //
   // Sin mes declarado, `declared` es null y la expresión se reduce TÉRMINO A TÉRMINO a la anterior.
   const declared = normalizeStartMonth(state.startMonth);

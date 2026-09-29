@@ -658,11 +658,16 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
   const esMover = !isAvailable(mv.to);
   const [val, setVal] = useState(String(mv.amount));
   const [error, setError] = useState<string | null>(null);
+  // BG-056: Escape revierte y sale del campo; el blur que eso dispara no debe confirmar lo tecleado (el
+  // estado `val` todavía no se ha actualizado cuando corre). Es la misma guarda que ya tenía `PlanRow`:
+  // sin ella, Escape guardaba la cifra que se quería descartar, y 0 + Escape borraba el retiro.
+  const cancelado = useRef(false);
 
   // El monto vigente manda: si otra superficie lo cambió, el campo lo sigue.
   useEffect(() => { setVal(String(mv.amount)); setError(null); }, [mv.amount]);
 
   function commit() {
+    if (cancelado.current) { cancelado.current = false; return; }
     const n = Math.max(0, Math.round(Number(val) || 0));
     if (n === mv.amount) return;
     const res = editOp(mv.id, n);
@@ -703,7 +708,7 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.currentTarget.blur(); }
-            if (e.key === "Escape") { setVal(String(mv.amount)); setError(null); e.currentTarget.blur(); }
+            if (e.key === "Escape") { cancelado.current = true; setVal(String(mv.amount)); setError(null); e.currentTarget.blur(); }
           }}
           className="flex-none w-24 tabular text-right bg-card border border-border rounded-(--radius-xs) text-fg px-1.5 py-0.5 outline-none focus:border-accent"
         />

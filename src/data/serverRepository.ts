@@ -71,6 +71,13 @@ export class ServerRepository implements LedgerRepository {
    * dejar al usuario reintentando algo que el servidor jamás aceptará.
    */
   public cellMismatch: { nodeId: string; period: string }[] | null = null;
+  /**
+   * BG-055: otro rechazo DEFINITIVO de la última escritura —`period_mismatch` (una fecha fuera de su
+   * periodo) o `domain_rule_violation` (una reserva por encima de lo permitido)—, o `null`. Igual que
+   * los dos de arriba: el mismo snapshot nunca se va a aceptar, así que el caller converge y lo dice.
+   * `invalid_payload` NO entra aquí: su manejo vigente lo fija TC-FDC-029f.
+   */
+  public definitiveRejection: "period_mismatch" | "domain_rule_violation" | null = null;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -94,15 +101,36 @@ export class ServerRepository implements LedgerRepository {
    * @throws Error si el servidor responde un estado inesperado (p. ej. 401/5xx) — el caller lo maneja
    */
   async load(): Promise<LedgerState | null> {
+    const snap = await this.fetchSnapshot();
+    if (snap.state === null) {
+      // 204: usuario nuevo, la revisión vuelve a 0. Cuerpo ilegible: la revisión NO se toca (ver
+      // `fetchSnapshot`).
+      if (!this.malformed) this.revision = 0;
+      return null;
+    }
+    this.adopt(snap.revision);
+    return snap.state;
+  }
+
+  /**
+   * GET del snapshot SIN adoptar su revisión (BG-052). Separa leer de aceptar: una recarga cuyo
+   * resultado llega después de un cambio local está trayendo un estado ANTERIOR a lo que hay en
+   * pantalla, y adoptar su revisión haría que el siguiente PUT saliera con una base que no le
+   * corresponde. El llamador decide si adopta (`adopt`) o descarta.
+   *
+   * @returns `{ revision, state }`; `state` es null por 204 (usuario nuevo) o por un cuerpo que no
+   *   cumple el contrato — en ese caso `malformed` queda en true.
+   * @throws Error si el servidor responde un estado inesperado (p. ej. 401/5xx) — el caller lo maneja
+   */
+  async fetchSnapshot(): Promise<{ revision: number; state: LedgerState | null }> {
     const res = await fetch(this.url("/api/v1/ledger"), {
       method: "GET",
       credentials: "include",
       headers: { accept: "application/json" },
     });
     if (res.status === NO_CONTENT) {
-      this.revision = 0;
       this.malformed = false;
-      return null;
+      return { revision: 0, state: null };
     }
     if (res.status === UNAUTHORIZED) {
       this.unauthorized = true;
@@ -120,13 +148,17 @@ export class ServerRepository implements LedgerRepository {
       // buena conocida, y pisarla con 0 haría que el próximo PUT saliera con una base falsa y se
       // llevara un 409 evitable.
       this.malformed = true;
-      return null;
+      return { revision: this.revision, state: null };
     }
-    this.revision = parsed.data.revision;
+    return { revision: parsed.data.revision, state: parsed.data.state };
+  }
+
+  /** Acepta como vigente la revisión de un snapshot leído con `fetchSnapshot` (BG-052). */
+  adopt(revision: number): void {
+    this.revision = revision;
     this.conflicted = false;
     this.unauthorized = false;
     this.malformed = false;
-    return parsed.data.state;
   }
 
   /**
@@ -134,6 +166,11 @@ export class ServerRepository implements LedgerRepository {
    * @returns true si aplicó; false si hubo conflicto (409) o fallo de red (el estado local no se corrompe)
    */
   async save(_ownerId: string, state: LedgerState): Promise<boolean> {
+    // Cada guardado decide su propio desenlace: una marca de conflicto que quedara de un 409 anterior
+    // haría que un fallo de red posterior se tratara como conflicto —descartando la edición local y
+    // avisando de «otro dispositivo»— en vez de como fallo de red (BG-052, revisión adversarial).
+    this.conflicted = false;
+    this.definitiveRejection = null;
     try {
       const res = await fetch(this.url("/api/v1/ledger"), {
         method: "PUT",
@@ -163,6 +200,9 @@ export class ServerRepository implements LedgerRepository {
         // caller converja y avise en vez de dejarlo en «no pudimos guardar» y reintentar sin fin.
         if (body.error?.code === "cell_movement_mismatch") {
           this.cellMismatch = (body.error.detail as { nodeId: string; period: string }[]) ?? [];
+        }
+        if (body.error?.code === "period_mismatch" || body.error?.code === "domain_rule_violation") {
+          this.definitiveRejection = body.error.code;
         }
         return false;
       }
@@ -276,7 +316,10 @@ export class ServerRepository implements LedgerRepository {
       const body = (await res.json().catch(() => ({}))) as { revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
       if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; this.conflicted = true; return { ok: false, code: "revision_conflict" }; }
       if (res.status !== OK) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
-      if (typeof body.revision === "number") this.revision = body.revision;
+      // NO se adopta la revisión aquí (BG-052): el servidor reescribió el ledger y este cliente aún
+      // no tiene esos datos. Adoptarla antes de recargarlos dejaba que una edición hecha mientras
+      // tanto saliera con la revisión nueva sobre datos viejos y pisara la reubicación. La adopta la
+      // recarga que sigue (`applyPeriodMode` → `doResync`), junto con los datos.
       return { ok: true };
     } catch {
       return { ok: false, code: "network" };

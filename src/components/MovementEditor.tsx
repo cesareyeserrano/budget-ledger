@@ -116,6 +116,14 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
       data-testid="movement-editor"
       className="flex flex-col gap-1.5 rounded-(--radius-xs) border border-border-strong p-1.5"
       onKeyDown={(e) => {
+        // BG-068: la lista de categorías y el calendario viven en PORTALES y React propaga sus eventos
+        // hasta aquí. El Enter que elegía una opción confirmaba el editor con la categoría de antes, y
+        // un Escape dentro del calendario cancelaba toda la edición. Lo que no nace dentro del editor
+        // se detiene sin actuar: ya lo atendió su propio control.
+        const origen = e.target as HTMLElement;
+        if (!e.currentTarget.contains(origen)) { e.stopPropagation(); return; }
+        // Un Enter sobre un botón o un selector hace lo suyo (abrir, guardar, cancelar), no además confirmar.
+        if (e.key === "Enter" && origen.closest("button, [role='combobox']")) { e.stopPropagation(); return; }
         if (e.key === "Enter") { e.stopPropagation(); confirmar(); }
         // Escape cancela SOLO la edición de la fila (dos niveles, TC-DDC-099e).
         if (e.key === "Escape") { e.stopPropagation(); onDone(); }

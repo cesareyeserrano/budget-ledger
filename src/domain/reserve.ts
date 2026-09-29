@@ -18,7 +18,7 @@ import { typeTotals } from "./rollup";
 import { isPeriodKey, periodLabel } from "./periods";
 import { isCalendarDay, normalizeNote, parseAmount } from "./validation";
 import { nextSeq, uid } from "./ids";
-import { openingCarry } from "./opening";
+import { declaredOpeningAt, openingCarry } from "./opening";
 
 /** Los dos planos de la grilla. (balance.ts lo re-exporta; el origen vive aquí para evitar ciclos.) */
 export type Plane = "budget" | "actual";
@@ -825,13 +825,15 @@ export function monthCarryUsage(
   if (reservado <= 0) return null;
   const disponiblePrevio = i === 0
     ? Math.max(0, openingCarry(state, periods).available) // el saldo inicial declarado, o 0
-    : Math.max(0, scan.arrastre[i - 1]);
+    : Math.max(0, declaredOpeningAt(state, month) ?? scan.arrastre[i - 1]); // BG-054
   // Lo que salió del saldo anterior jamás puede exceder lo reservado: primero se atribuye al flujo
   // del mes lo que quepa (un flujo NEGATIVO no financia nada: se acota a 0, no infla el término).
   const delFlujo = Math.max(0, Math.min(reservado, flujo));
   const delSaldoAnterior = Math.min(reservado - delFlujo, disponiblePrevio);
   if (delSaldoAnterior <= 0) return null;
-  return { reservado, delSaldoAnterior, mesAnterior: i === 0 ? null : periods[i - 1] };
+  // BG-054: en el mes de inicio lo que se usó es el saldo inicial, aunque haya meses de historia antes.
+  const delInicio = i === 0 || declaredOpeningAt(state, month) !== null;
+  return { reservado, delSaldoAnterior, mesAnterior: delInicio ? null : periods[i - 1] };
 }
 
 /**
@@ -990,6 +992,12 @@ function techoScanRaw(
   let avail = openingCarry(state, periods).available;
   for (let i = 0; i < periods.length; i++) {
     const m = periods[i];
+    // BG-054: el mes de inicio abre en el saldo declarado aunque el rango empiece antes; la MISMA
+    // regla que `computeBalanceSeries`, para que el techo y el Balance no discrepen.
+    if (i > 0) {
+      const apertura = declaredOpeningAt(state, m);
+      if (apertura !== null) avail = apertura;
+    }
     const income = typeTotals(state, "income", [m]);
     const expense = typeTotals(state, "expense", [m]);
     const flow = income[plane] - expense[plane];

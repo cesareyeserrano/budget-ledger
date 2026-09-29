@@ -23,67 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-28T21:44:26.561Z",
+  "updatedAt": "2026-09-29T19:43:53.922Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-28T15:58:28.264Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-28T16:01:17.743Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 12,
-      "method": "git",
-      "baseRefFrom": "d738813af6541b8b62fd5f0dab2d654f7d2dc0cc",
-      "baseRefTo": "06bdd1cf33dd2853c4049aef93e6ef21d16192d7"
-    },
-    {
-      "at": "2026-09-28T17:31:02.761Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-09-28T17:39:19.561Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-28T17:49:06.555Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-28T17:49:17.901Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-28T17:52:10.293Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "baseRefFrom": "06bdd1cf33dd2853c4049aef93e6ef21d16192d7",
-      "baseRefTo": "1c24f3f41b7ef1d83026480f5e30dc194e4f1afc"
-    },
     {
       "at": "2026-09-28T17:59:57.768Z",
       "event": "rehash",
@@ -187,6 +129,64 @@
       "method": "git",
       "baseRefFrom": "1c24f3f41b7ef1d83026480f5e30dc194e4f1afc",
       "baseRefTo": "d200d6a676cb6a37cdc9ea5f46c99dc8ba5f55da"
+    },
+    {
+      "at": "2026-09-29T16:03:54.131Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 13,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-09-29T17:51:54.303Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-29T17:52:13.808Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-29T18:07:12.186Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 15,
+      "method": "git",
+      "baseRefFrom": "d200d6a676cb6a37cdc9ea5f46c99dc8ba5f55da",
+      "baseRefTo": "e0b61dc3f41c208df221cfbf41793c976f16a412"
+    },
+    {
+      "at": "2026-09-29T19:31:59.135Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-29T19:43:34.571Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-29T19:43:53.914Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -284,7 +284,7 @@
   },
   "upgradeFindings": [],
   "coverageAuditLastAt": "2026-09-09T14:27:21.520Z",
-  "auditLastAt": "2026-07-28T19:32:55.678Z",
+  "auditLastAt": "2026-09-28T22:00:54.207Z",
   "coverageAuditReqHash": "ae15f9d05d7f18281e0d94acb3753a3412d6092dc8d1bab42366134935f2ccd4",
   "securityAuditLastAt": "2026-09-26T15:16:47.269Z",
   "releaseHistory": [
@@ -354,16 +354,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "d200d6a676cb6a37cdc9ea5f46c99dc8ba5f55da",
+  "verifyRanRef": "080b36e16e5f16a756dc801801ab46f512c7c584",
   "verifyRanDirty": false,
-  "verifyResultsHash": "55a917f79e9b3eae2a8e1a36f0fe220604e71ddd783167831bd3cd0b735102c8",
-  "verifyRanAt": "2026-09-28T21:42:50.232Z",
+  "verifyResultsHash": "2188b1204ec24aa155ed6f85ed57621e7f7b3879567af8030b9e5693b265f0fa",
+  "verifyRanAt": "2026-09-29T19:43:34.555Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-28T21:42:50.232Z"
+    "at": "2026-09-29T19:43:34.555Z"
   },
   "verifySummary": {
     "total": 59,

@@ -62,10 +62,10 @@ export function normalizeOpeningBalance(v: unknown): number | null {
  * Devuelve el carry declarado **si y solo si** la serie arranca EXACTAMENTE en el mes de inicio.
  * En cualquier otro caso devuelve `ZERO_CARRY`, que es el comportamiento de hoy.
  *
- * Esa guarda es deliberada (riesgo R2 del TRD). `computeBalanceSeries` solo sabe abrir en
- * `periods[0]`, así que si el rango empezara en un mes anterior al declarado —posible únicamente
- * con un dato previo que FR-2206 impide crear desde la interfaz— aplicar ahí la apertura la
- * pondría en el mes equivocado. Ante la duda se degrada a «como hoy», nunca a una cifra inventada.
+ * Esa guarda es deliberada (riesgo R2 del TRD): aplicar la apertura en `periods[0]` cuando el rango
+ * empieza ANTES del mes declarado la pondría en el mes equivocado. Ese rango sí es alcanzable —
+ * FR-1906 deja registrar en un periodo anterior y el rango se estira—, y en ese caso la apertura
+ * entra en el mes de inicio, dentro de la serie, por `declaredOpeningAt` (BG-054).
  *
  * El `reservedBalance` es siempre 0: el saldo inicial es UN número y las alcancías arrancan vacías
  * (decisión del usuario, 2026-09-01). Quien ya tuviera dinero apartado lo declara dentro del total
@@ -85,6 +85,29 @@ export function openingCarry(state: LedgerState, periods: readonly PeriodKey[]):
   const amount = normalizeOpeningBalance(state.openingBalance);
   if (amount === null) return ZERO_CARRY;
   return { available: amount, reservedBalance: 0 };
+}
+
+/**
+ * BG-054 — el disponible con que ABRE `month` si ese mes es el inicio declarado, o `null`.
+ *
+ * Cubre el caso que `openingCarry` deja fuera: un rango que empieza ANTES del inicio porque hay un
+ * dato anterior (FR-1906 lo permite). Antes la apertura simplemente no entraba y el saldo inicial
+ * desaparecía de todas las cifras. Decisión del usuario (2026-09-29): el mes de inicio abre SIEMPRE
+ * en el saldo declarado; lo anterior se muestra como historia y no cambia nada desde el inicio. Por
+ * eso SUSTITUYE el disponible que venía arrastrado, no se le suma: el saldo declarado ya es lo que
+ * había al empezar. El reservado arrastrado se conserva.
+ *
+ * Es la misma derivación para el Balance y para el techo; si divergieran, lo que la app muestra y
+ * lo que el guardia hace cumplir volverían a discrepar (BG-031).
+ *
+ * @param state El estado del ledger.
+ * @param month Un periodo de la serie que NO es su primero (el primero lo resuelve `openingCarry`).
+ * @returns El saldo declarado si `month` es el mes de inicio y hay saldo declarado; si no, `null`.
+ * @throws Nunca.
+ */
+export function declaredOpeningAt(state: LedgerState, month: PeriodKey): number | null {
+  if (normalizeStartMonth(state.startMonth) !== month) return null;
+  return normalizeOpeningBalance(state.openingBalance);
 }
 
 /**

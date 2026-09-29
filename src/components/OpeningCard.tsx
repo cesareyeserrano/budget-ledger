@@ -85,16 +85,17 @@ export function OpeningCard() {
     if (declarando.current) return;
     declarando.current = true;
 
-    // REINTENTA ANTE CONFLICTO DE REVISIÓN, y no es defensivo por si acaso: es la carrera real de
-    // este camino. Teclear una celda dispara el guardado del snapshot, que va diferido y
-    // serializado; esta declaración sale inmediatamente después con la revisión ANTERIOR y el
-    // servidor responde 409. `ServerRepository` actualiza su revisión con la que trae ese 409, así
-    // que el siguiente intento ya va con la buena. Medido el 2026-09-07: sin reintento, el saldo
-    // quedaba sin declarar y la tarjeta habría vuelto si el usuario borrara esos datos.
+    // REINTENTA ANTE CONFLICTO DE REVISIÓN. Desde BG-067 la declaración espera a la cola de guardado,
+    // así que ya no choca con el snapshot de la celda recién tecleada; un 409 viene de otro dispositivo
+    // y el store recarga su estado antes de devolverlo. Por eso, antes de reintentar se mira lo
+    // recargado: si ese otro dispositivo YA declaró la apertura, reintentar la pisaría con «este mes,
+    // saldo 0» (revisión adversarial, 2026-09-29).
     void (async () => {
       for (let intento = 0; intento < 3; intento++) {
-        const res = await setStart(hoy, 0);
+        const res = await setStart(hoy, 0, { soloSiNoDeclarada: true });
         if (res.ok || res.reason !== "revision_conflict") break;
+        const vigente = useLedgerStore.getState().data;
+        if (vigente.startMonth || vigente.openingBalance != null) break;
       }
       declarando.current = false;
     })();
@@ -126,7 +127,7 @@ export function OpeningCard() {
     if (!res.ok) {
       setError(
         res.reason === "revision_conflict"
-          ? "Otro dispositivo cambió tus datos. Recarga para ver la versión actual."
+          ? "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
           : "No se pudo guardar. Inténtalo de nuevo."
       );
     }

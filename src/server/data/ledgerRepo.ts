@@ -14,7 +14,7 @@ import { and, asc, desc, eq, like } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
-import { addMovement, migrateStateV3toV4, migrateStateV4toV5, type NewMovement } from "@/domain";
+import { addMovement, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
 // Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
 // el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
 import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
@@ -199,18 +199,25 @@ function rowsToState(
  * @param ownerId id del usuario autenticado (de la sesión, nunca del payload)
  * @returns { revision, state } o null si el usuario nunca persistió (→ el caller responde 204)
  */
-export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
-  const [head] = await db.select().from(ledger).where(eq(ledger.ownerId, ownerId));
+export async function loadLedger(ownerId: string, reparado = false): Promise<LoadResult | null> {
+  let [head] = await db.select().from(ledger).where(eq(ledger.ownerId, ownerId));
   if (!head) return null;
 
   // En modo servidor el DUEÑO de las migraciones de formato es el servidor — lazy, aquí.
+  let migro = false;
   if (head.dataVersion < DATA_VERSION_COUNTERPARTY) {
     await migrateLedgerToV4(ownerId);
+    migro = true;
   }
   // FR-3006: una sola vez por ledger, después de la v5 y antes de leer.
   if (head.dataVersion < DATA_VERSION_PLAN_BY_POCKET) {
     await convertPlannedRetirosFor(ownerId);
+    migro = true;
   }
+  // Las migraciones de arriba pueden subir `revision`; devolver la que se leyó ANTES dejaba al cliente
+  // con una base vieja y su primer guardado recibía un 409 evitable (BG-079 (c)).
+  if (migro) [head] = await db.select().from(ledger).where(eq(ledger.ownerId, ownerId));
+  if (!head) return null;
 
   const [nodeRows, cellRows, movementRows, cellNoteRows] = await Promise.all([
     db.select().from(node).where(eq(node.ownerId, ownerId)),
@@ -225,11 +232,51 @@ export async function loadLedger(ownerId: string): Promise<LoadResult | null> {
 
   const cycles = await loadCyclesIn(db, ownerId);
   const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  // BG-053: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no paga nada.
+  // Solo si hay rastro del defecto se abre la transacción que repara, y se vuelve a cargar una vez.
+  if (!reparado && repairOrphanedPocketJournal(base).repaired.length > 0 && (await repairOrphanedJournalFor(ownerId))) {
+    return loadLedger(ownerId, true);
+  }
   const state = cycles.versions.length > 0 ? { ...base, cycles } : base;
   return {
     revision: head.revision,
     state: { ...state, closure: closureFromRow(head, calendarOf(state)), ...openingFromRow(head) },
   };
+}
+
+/**
+ * BG-053 — repara, al cargar, los movimientos que el defecto dejó apuntando a un bolsillo que ya no es
+ * hoja (ver `repairOrphanedPocketJournal`). Dentro de una transacción con la fila ancla bloqueada:
+ * vuelve a leer el estado, repara, reescribe el snapshot y sube `revision`, de modo que un navegador
+ * con el snapshot anterior recibe 409 y re-sincroniza en vez de pisar la reparación.
+ *
+ * No pasa por los guardias de escritura a propósito: es una reparación de datos, no una edición del
+ * usuario. Los totales del Balance —también los de un mes cerrado— no cambian; cambia a qué bolsillo
+ * pertenece el saldo.
+ *
+ * @returns true si reparó algo.
+ * @throws Nunca: un fallo se registra y el ledger se sirve sin reparar; la próxima carga lo reintenta.
+ */
+async function repairOrphanedJournalFor(ownerId: string): Promise<boolean> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+      if (!head) return false;
+      const { state: next, repaired } = repairOrphanedPocketJournal(await loadStateInTx(tx, ownerId));
+      if (repaired.length === 0) return false;
+      await tx.delete(node).where(eq(node.ownerId, ownerId));
+      await tx.delete(amountCell).where(eq(amountCell.ownerId, ownerId));
+      await tx.delete(movement).where(eq(movement.ownerId, ownerId));
+      await tx.delete(cellNote).where(eq(cellNote.ownerId, ownerId));
+      await insertSnapshot(tx, ownerId, next);
+      await tx.update(ledger).set({ revision: head.revision + 1, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
+      console.log(`[ledger] movimientos de bolsillos que ya no son hoja reparados (BG-053) para ${ownerId}: ${repaired.length}`);
+      return true;
+    });
+  } catch (err) {
+    console.error(`[ledger] no se pudo reparar los movimientos de bolsillos (BG-053): ${String(err)}`);
+    return false;
+  }
 }
 
 /**

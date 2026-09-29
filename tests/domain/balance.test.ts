@@ -636,7 +636,9 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
     // @aitri-tc TC-BAL-958h
     const imports = [...BALANCE_SRC.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
     // Feature transferencias: + ./reserve (dominio puro — reserveNet deriva de saldos resueltos).
-    expect(imports.sort()).toEqual(["./reserve", "./reserve", "./rollup", "./types"]);
+    // BG-054: + ./opening (dominio puro — declaredOpeningAt: el mes de inicio abre en el saldo
+    // declarado aunque la serie empiece antes). No añade IO: opening.ts no lee ni reloj ni red.
+    expect(imports.sort()).toEqual(["./opening", "./reserve", "./reserve", "./rollup", "./types"]);
 
     for (const forbidden of ["fetch(", "XMLHttpRequest", "localStorage", "sessionStorage", "node:fs", "require(", "process.env", "eval("]) {
       expect(BALANCE_SRC.includes(forbidden), `balance.ts no debe usar ${forbidden}`).toBe(false);

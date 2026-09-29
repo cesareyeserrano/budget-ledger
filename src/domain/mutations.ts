@@ -138,9 +138,12 @@ export function createNode(state: LedgerState, input: NewNode): LedgerState {
   // FR-604 (y FR-002): al agregar el PRIMER hijo a una hoja con montos propios (categoría-hoja → 1ª sub,
   // o grupo-hoja → 1ª categoría), trasladar sus montos al nuevo hijo — el padre pasa a calculado, el total no cae.
   if (input.parentId) {
+    // BG-053: la condición es solo «no tenía hijos». Antes exigía además un mapa de celdas, y un
+    // bolsillo fondeado SOLO por traslados no lo tiene (el traslado va al journal, no a la celda):
+    // la regla no corría, sus movimientos quedaban apuntando a un nodo que ya no es hoja y su saldo
+    // seguía en el Balance sin pertenecer a ningún bolsillo. Trasladar un mapa ausente no cambia nada.
     const parentHadNoChildren = !state.nodes.some((n) => n.parentId === input.parentId);
-    const parentHadAmounts = state.budgets[input.parentId] || state.actuals[input.parentId];
-    if (parentHadNoChildren && parentHadAmounts) {
+    if (parentHadNoChildren) {
       next.budgets[id] = { ...(state.budgets[input.parentId] ?? {}) };
       next.actuals[id] = { ...(state.actuals[input.parentId] ?? {}) };
       delete next.budgets[input.parentId];
@@ -489,6 +492,45 @@ function mergeMonthMapForType(
  *
  * @aitri-trace FR-ID: FR-604, US-ID: US-604, AC-ID: AC-604a, TC-ID: TC-604h
  */
+/**
+ * BG-053 — repara los datos que el defecto ya dejó escritos.
+ *
+ * Antes de BG-053, un bolsillo fondeado SOLO por traslados que ganaba su primer hijo conservaba sus
+ * movimientos: seguían apuntando a un nodo que ya no era hoja, y su saldo quedaba contado en el
+ * Balance sin pertenecer a ningún bolsillo. El arreglo evita casos nuevos; esto corrige los viejos,
+ * con el mismo traslado que hoy haría la regla: los movimientos (y la fila de retiros planeados con sus
+ * notas) pasan a la PRIMERA hoja del bolsillo, en el orden de la grilla.
+ *
+ * Solo toca bolsillos con hijos y SIN celdas propias: ese es exactamente el rastro del defecto. Un nodo
+ * con celdas llegó ahí por otro camino y no es asunto de esta reparación. Sin nada que reparar devuelve
+ * el MISMO estado, así que puede correr en cada carga (no necesita marca de versión).
+ *
+ * Los totales del Balance no cambian —el reservado ya los contaba—; cambia a qué bolsillo pertenecen.
+ *
+ * @returns El estado reparado y los ids de los nodos cedentes; `state` es el mismo objeto si no cambió.
+ * @throws Nunca.
+ */
+export function repairOrphanedPocketJournal(state: LedgerState): { state: LedgerState; repaired: string[] } {
+  const vacio = (m: Partial<Record<PeriodKey, number>> | undefined) => !m || Object.keys(m).length === 0;
+  const cedentes = state.nodes.filter((n) =>
+    n.type === "transfer" &&
+    childrenOf(state.nodes, n.id).length > 0 &&
+    vacio(state.budgets[n.id]) && vacio(state.actuals[n.id]) &&
+    (state.movements.some((m) => m.from === n.id || m.to === n.id || m.target === n.id) ||
+      state.budgets[plannedRetiroKey(n.id)] !== undefined)
+  );
+  if (cedentes.length === 0) return { state, repaired: [] };
+  const next = clone(state);
+  const repaired: string[] = [];
+  for (const n of cedentes) {
+    const receptor = leafDescendants(next.nodes, n.id)[0];
+    if (!receptor || receptor === n.id) continue;
+    repointMovements(next, n.id, receptor);
+    repaired.push(n.id);
+  }
+  return repaired.length > 0 ? { state: next, repaired } : { state, repaired: [] };
+}
+
 function repointMovements(next: LedgerState, cedingId: string, receivingId: string): void {
   // saldo-de-bolsillo (riesgo del TRD): el retiro planeado del bolsillo cedente viaja con sus celdas.
   // Si se quedara con el id viejo sería una fila sin dueño y el plan del receptor renacería sin él.
@@ -608,9 +650,9 @@ export function moveNode(
     // movido) → deja de ser hoja. Sus montos se trasladan a una HOJA del subárbol entrante; si no, el
     // roll-up de Presupuestado (que agrega solo hojas) los perdería en silencio, rompiendo padre==Σhojas.
     // El target es el nodo movido si quedó hoja, o su primera hoja descendiente (nunca el nodo interno).
+    // BG-053: basta con que el destino fuera hoja; ver createNode.
     const destWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-    const destHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
-    if (destWasChildlessLeaf && destHadAmounts) {
+    if (destWasChildlessLeaf) {
       const movedNode = findNode(next.nodes, id)!;
       const target = isLeaf(movedNode, next.nodes) ? id : leafDescendants(next.nodes, id)[0] ?? id;
       next.budgets[target] = mergeMonthMapForType(node.type, state.budgets[dest.id], next.budgets[target]);
@@ -627,8 +669,8 @@ export function moveNode(
     if (destNode.level !== "category") return { rejected: "invalid_target" };
     // FR-604 — se leen ANTES de mutar: la categoría destino puede ser una HOJA con montos propios
     // que está a punto de ganar su primer hijo (BG-009).
+    // BG-053: basta con que la categoría fuera hoja; ver createNode.
     const catWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-    const catHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
     const next = clone(state);
     const moved = findNode(next.nodes, id)!;
     const formerChildren = childrenOf(state.nodes, id);
@@ -644,7 +686,7 @@ export function moveNode(
     // totales (grupo, tipo, KPIs, Balance) quedando huérfanos en el mapa. Se trasladan al nodo
     // movido, que aquí siempre queda hoja (pasa a 'sub' y sus antiguos hijos se aplanaron al
     // destino). Es la MISMA regla que ya aplican createNode y las otras dos ramas de moveNode.
-    if (catWasChildlessLeaf && catHadAmounts) {
+    if (catWasChildlessLeaf) {
       next.budgets[id] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[id]);
       next.actuals[id] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[id]);
       delete next.budgets[dest.id];
@@ -657,8 +699,8 @@ export function moveNode(
 
   // dest.kind === 'group' → el nodo pasa a ser categoría del grupo.
   if (destNode.level !== "group") return { rejected: "invalid_target" };
+  // BG-053: basta con que el grupo fuera hoja; ver createNode.
   const groupWasChildlessLeaf = !state.nodes.some((n) => n.parentId === dest.id);
-  const groupHadAmounts = state.budgets[dest.id] || state.actuals[dest.id];
   const next = clone(state);
   const moved = findNode(next.nodes, id)!;
   moved.level = "category";
@@ -668,7 +710,7 @@ export function moveNode(
   // rama, y mandarle los montos los dejaba en un nodo no editable, fuera del roll-up de Presupuestado y de
   // todo Detalle. Van a su primera hoja, como hace createNode con el primer hijo. Si el movido ya es hoja,
   // `leafDescendants` lo devuelve a él mismo y el comportamiento es el de siempre.
-  if (groupWasChildlessLeaf && groupHadAmounts) {
+  if (groupWasChildlessLeaf) {
     const receiver = leafDescendants(next.nodes, id)[0] ?? id;
     next.budgets[receiver] = mergeMonthMapForType(node.type, state.budgets[dest.id], state.budgets[receiver]);
     next.actuals[receiver] = mergeMonthMapForType(node.type, state.actuals[dest.id], state.actuals[receiver]);
