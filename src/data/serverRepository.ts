@@ -71,6 +71,13 @@ export class ServerRepository implements LedgerRepository {
    * dejar al usuario reintentando algo que el servidor jamás aceptará.
    */
   public cellMismatch: { nodeId: string; period: string }[] | null = null;
+  /**
+   * BG-055: otro rechazo DEFINITIVO de la última escritura —`period_mismatch` (una fecha fuera de su
+   * periodo) o `domain_rule_violation` (una reserva por encima de lo permitido)—, o `null`. Igual que
+   * los dos de arriba: el mismo snapshot nunca se va a aceptar, así que el caller converge y lo dice.
+   * `invalid_payload` NO entra aquí: su manejo vigente lo fija TC-FDC-029f.
+   */
+  public definitiveRejection: "period_mismatch" | "domain_rule_violation" | null = null;
 
   constructor(private readonly baseUrl: string = "") {}
 
@@ -163,6 +170,7 @@ export class ServerRepository implements LedgerRepository {
     // haría que un fallo de red posterior se tratara como conflicto —descartando la edición local y
     // avisando de «otro dispositivo»— en vez de como fallo de red (BG-052, revisión adversarial).
     this.conflicted = false;
+    this.definitiveRejection = null;
     try {
       const res = await fetch(this.url("/api/v1/ledger"), {
         method: "PUT",
@@ -192,6 +200,9 @@ export class ServerRepository implements LedgerRepository {
         // caller converja y avise en vez de dejarlo en «no pudimos guardar» y reintentar sin fin.
         if (body.error?.code === "cell_movement_mismatch") {
           this.cellMismatch = (body.error.detail as { nodeId: string; period: string }[]) ?? [];
+        }
+        if (body.error?.code === "period_mismatch" || body.error?.code === "domain_rule_violation") {
+          this.definitiveRejection = body.error.code;
         }
         return false;
       }

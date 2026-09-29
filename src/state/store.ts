@@ -339,7 +339,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
          * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
          */
         const ok = await repo.save(OWNER, data);
-        if (ok !== false) continue;
+        if (ok !== false) {
+          // BG-055: un guardado que llegó apaga el aviso de red de uno anterior; el snapshot que acaba
+          // de entrar lleva también lo que aquel no pudo guardar.
+          if (get().storageError === "network") set({ storageError: null });
+          continue;
+        }
         if (repo.unauthorized) {
           onSessionExpired();
           return;
@@ -372,6 +377,20 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
             celdas.length === 1
               ? "Esa celda no cuadra con sus movimientos: el cambio no se guardó."
               : "Esas celdas no cuadran con sus movimientos: el cambio no se guardó."
+          );
+          return;
+        }
+        if (repo.definitiveRejection) {
+          // BG-055: rechazo definitivo, como los dos de arriba. Antes caía en «no se pudo guardar»:
+          // el estado rechazado se quedaba en memoria y cada guardado posterior fallaba igual.
+          const motivo = repo.definitiveRejection;
+          repo.definitiveRejection = null;
+          pendingSave = null;
+          await doResync();
+          get().showToast(
+            motivo === "period_mismatch"
+              ? "Una fecha no corresponde a su periodo: el cambio no se guardó."
+              : "El cambio dejaba una reserva por encima de lo permitido: no se guardó."
           );
           return;
         }
