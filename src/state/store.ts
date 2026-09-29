@@ -466,6 +466,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     closeMonth: async () => {
       if (!repo) return;
       const res = await repo.closure("close");
+      if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
       if (res.ok) {
         set({ data: { ...get().data, closure: res.closure } });
         get().showToast("Mes cerrado.");
@@ -504,6 +505,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     reopenMonth: async () => {
       if (!repo) return;
       const res = await repo.closure("reopen");
+      if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
       if (res.ok) {
         set({ data: { ...get().data, closure: res.closure } });
         get().showToast("Mes reabierto: ya puedes corregirlo.");
@@ -540,6 +542,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (!repo) return { ok: false, code: "network" };
       await waitSaves();
       const res = await repo.previewCycles(target);
+      // BG-073: una sesión muerta vuelve al login, como en el guardado; no se queda en «inténtalo de nuevo».
+      if (!res.ok && res.code === "unauthorized") onSessionExpired();
       // BG-067: el 409 ya dejó la revisión del servidor en el repositorio; sin sus datos, el guardado
       // siguiente pisaría lo del otro dispositivo. Se converge, como tras cualquier conflicto.
       if (!res.ok && res.code === "revision_conflict") await doResync();
@@ -550,6 +554,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       await waitSaves();
       const res = await repo.applyCycles(target);
       if (!res.ok) {
+        if (res.code === "unauthorized") { onSessionExpired(); return res; } // BG-073
         if (res.code === "network") set({ storageError: "network" });
         if (res.code === "revision_conflict") {
           await doResync(); // BG-067: ver previewPeriodMode
@@ -569,6 +574,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       await waitSaves(); // BG-067: la declaración no compite con el guardado del snapshot
       const res = await repo.saveStart(startMonth, openingBalance);
       if (!res.ok) {
+        if (res.reason === "unauthorized") { onSessionExpired(); return res; } // BG-073
         // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
         // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
         if (res.reason === "network") set({ storageError: "network" });
