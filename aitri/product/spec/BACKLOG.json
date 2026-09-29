@@ -310,11 +310,12 @@
       "title": "TC-REC-040h es flaky: 15s de espera a Mailpit no bastan bajo carga de suite completa",
       "priority": "P3",
       "problem": "[ULTIMA PRIORIDAD por decision del usuario, 2026-08-27.] El 2026-08-26, re-verificando recuperar-acceso, TC-REC-040h fallo en la primera pasada y paso en el reintento — Playwright lo clasifica como 'flaky'. Error: 'no llego ningun correo en 15000ms', en tests/e2e/helpers/mailbox.ts:60. NO es un defecto del producto: el test comprueba FR-1309 (revocacion de sesiones tras recuperar contrasena) y pasa en aislamiento en 1.3 segundos. Bajo la carga de la suite completa Mailpit tarda mas de los 15 s que espera el helper. Consecuencia: aitri verify-run lo registra como 'fail' aunque Playwright lo de por bueno tras el reintento, y verify-complete bloquea, obligando a re-correr la verificacion entera. RELEVANCIA REDUCIDA desde el 2026-08-27: el usuario abandono la recuperacion por correo en favor del reset por terminal, asi que este test cubre un flujo que queda DORMIDO. Recobra importancia el dia que se active el correo (cuando haya dominio propio).",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-08-27T19:42:30.243Z",
       "files": "tests/e2e/helpers/mailbox.ts",
       "behavior": "Arreglo propuesto, de una linea: subir el timeout de waitForResetLink de 15000 a 45000 ms. Es espera MAXIMA, no fija — el bucle sondea cada 200 ms y sale en cuanto llega el correo, asi que subirlo NO ralentiza las corridas sanas. Alternativa si reaparece: un Mailpit por worker, como ya hacen los tests de backend con Postgres.",
-      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas."
+      "acceptance": "TC-REC-040h pasa en la primera pasada de una corrida de suite completa, diez veces seguidas.",
+      "closedAt": "2026-09-28T21:42:56.132Z"
     },
     {
       "id": "BL-032",
@@ -821,6 +822,14 @@
       "problem": "Las pruebas con presupuesto de tiempo (tests/helpers/perf.ts, CRONOMETRO_FIABLE en cierre-de-mes y reglas-en-el-servidor) miden el arnes y por eso el gate coverage tiene que correr en modo comando con AITRI_COVERAGE=1, que las apaga. Asi la suite se ejecuta dos veces (~49 s extra). Regla de Aitri rc.19 (templates/phases/tests.md). Al reescribirlas para asertar trabajo hecho, coverage puede pasar a {name:coverage, threshold:80} y la segunda corrida desaparece.",
       "status": "open",
       "createdAt": "2026-09-28T17:59:25.321Z"
+    },
+    {
+      "id": "BL-061",
+      "title": "13 TC ids compartidos entre vitest y Playwright: la prueba unitaria enmascara la e2e",
+      "priority": "P2",
+      "problem": "Aitri acredita por TC id y el runner principal gana, asi que si el test de Playwright con uno de estos ids falla, sigue acreditado como pass por el de vitest (visto en verify-run rc.22: 1207+595 detectados, 1789 unicos). Ids y ficheros (unit | e2e): TC-001h movement.test | critical.spec; TC-015f, TC-015h move-dashboard-seed.test | reparent.spec; TC-606f promote-to-group.test | promote-to-group.spec; TC-CDM-062f cierre-de-mes.test | cierre-de-mes.spec; TC-DDC-012e, TC-DDC-013f diario-de-celda-detalle.test | diario-de-celda.spec; TC-SFU-102e integration/servidor-fuente-unica.test | servidor-fuente-unica.spec; TC-TDF-050h, 051f, 070h, 072f, 100h techo-de-flujo.test | techo-de-flujo.spec. Arreglo: dar a cada duplicado un id propio en el 03_TEST_CASES.json de su pipeline y en el test (o convertirlo en otro TC si prueba otra cosa). Toca los planes de prueba aprobados de 7 pipelines: re-aprobar o rehash segun el caso. El chequeo de colisiones de rc.16 no lo ve porque es entre pipelines, no entre runners.",
+      "status": "open",
+      "createdAt": "2026-09-28T20:35:34.071Z"
     }
   ]
 }

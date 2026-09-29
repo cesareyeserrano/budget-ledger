@@ -257,12 +257,6 @@
       "timeout_ms": 120000
     },
     {
-      "name": "e2e",
-      "command": "npm run test:e2e",
-      "required": true,
-      "timeout_ms": 600000
-    },
-    {
       "name": "security-audit",
       "command": "npm audit --audit-level=high",
       "required": true,
