@@ -7222,7 +7222,7 @@
       "actual_result": "doResync (store.ts:262-284) hace set({data: loaded}) sin comprobar si el estado local cambio o si hay un guardado pendiente desde que salio el GET; la guarda de resync (store.ts:697) solo mira al arrancar. Cada guardado propio dispara un resync porque LoginGate.tsx:62 ignora la revision del evento. Descartar la carga si get().data !== before o si hay pendingSave/saveInFlight al volver, e ignorar eventos cuya revision no supere la conocida.",
       "environment": "develop @ f2fb90a",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7230,8 +7230,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-4",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.669Z",
-      "updated_at": "2026-09-29T14:39:02.669Z",
-      "resolution": null
+      "updated_at": "2026-09-29T15:43:57.917Z",
+      "resolution": "doResync y la re-hidratacion leen con ServerRepository.fetchSnapshot() y solo adoptan (datos y revision) si el estado local no cambio mientras viajaba el GET. Regresion en tests/integration/bg-052-resync-en-vuelo.test.ts.",
+      "fix_commit_sha": "f2005efc8c56c2011cf39ea283029b99d987d20c",
+      "fix_at": "2026-09-29T15:43:57.917Z"
     },
     {
       "id": "BG-053",
