@@ -830,6 +830,166 @@
       "problem": "Aitri acredita por TC id y el runner principal gana, asi que si el test de Playwright con uno de estos ids falla, sigue acreditado como pass por el de vitest (visto en verify-run rc.22: 1207+595 detectados, 1789 unicos). Ids y ficheros (unit | e2e): TC-001h movement.test | critical.spec; TC-015f, TC-015h move-dashboard-seed.test | reparent.spec; TC-606f promote-to-group.test | promote-to-group.spec; TC-CDM-062f cierre-de-mes.test | cierre-de-mes.spec; TC-DDC-012e, TC-DDC-013f diario-de-celda-detalle.test | diario-de-celda.spec; TC-SFU-102e integration/servidor-fuente-unica.test | servidor-fuente-unica.spec; TC-TDF-050h, 051f, 070h, 072f, 100h techo-de-flujo.test | techo-de-flujo.spec. Arreglo: dar a cada duplicado un id propio en el 03_TEST_CASES.json de su pipeline y en el test (o convertirlo en otro TC si prueba otra cosa). Toca los planes de prueba aprobados de 7 pipelines: re-aprobar o rehash segun el caso. El chequeo de colisiones de rc.16 no lo ve porque es entre pipelines, no entre runners.",
       "status": "open",
       "createdAt": "2026-09-28T20:35:34.071Z"
+    },
+    {
+      "id": "BL-062",
+      "title": "Las pruebas montadas sobre la semilla comparan cero contra cero desde que la semilla no trae montos",
+      "priority": "P1",
+      "problem": "TC-009h, TC-009e, TC-105e (regresion de BG-009), TC-654h, TC-212e, TC-BAL-952f, TC-BAL-908f, TC-BAL-910f, TC-BE-063e y TC-UXC-355f usan buildSeed, que desde 9250b2b devuelve mapas vacios. Pasarlas a buildSeedConMontos o a un estado con montos explicitos y exigir que los totales de partida sean mayores que cero. (AUDIT_REPORT, Technical Review 2026-09-28, BL-M)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:19.645Z"
+    },
+    {
+      "id": "BL-063",
+      "title": "47 TC acreditados en verde por una prueba que no comprueba lo que su caso declara",
+      "priority": "P1",
+      "problem": "Seis clases: el arrastre sin prueba real (TC-211e, TC-015h, TC-015f, TC-RUI-102f, TC-015e); el guardia de POST /movements sin alcanzar (TC-RES-011f, 016f, 220f, 014e); la prueba comprueba otra cosa (TC-MAN-072e, TC-CDM-035f, TC-201g, TC-853f, TC-006h, TC-208f, TC-BE-072e); copia de la regla dentro de la prueba (TC-SIN-020h/021e/022f, TC-BJE-007f, TC-TDF-104e, TC-TDF-241h, TC-SUT-250h); funcion que el producto no llama (TC-SUT-222f, 210h, 211e, 212f, TC-TRF4-153f); no puede fallar (TC-BE-023f, TC-102f, TC-MAN-001h, TC-MAN-261f, TC-BE-064f). Reescribir cada una contra el expected_result de su TC, empezando por las del arrastre y las del guardia. Valorar un gate de mutacion sobre src/domain y src/state, que es el unico mecanismo que detecta esta clase. (AUDIT_REPORT, Technical Review 2026-09-28, BL-N)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:19.720Z"
+    },
+    {
+      "id": "BL-064",
+      "title": "El patron 'state in res ? res.state : s' convierte un rechazo en una prueba verde",
+      "priority": "P2",
+      "problem": "promote-to-group.test.ts:14-17 y move-dashboard-seed.test.ts:37,85 caen al estado original si la operacion se rechaza; techo-de-flujo.test.ts:262,328,354,486 guardan la asercion clave en un if. Sustituir por un helper que falle si hay rechazo (como ok() en saldo-de-bolsillo.test.ts) y sacar las aserciones del if. (AUDIT_REPORT, Technical Review 2026-09-28, BL-O)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:19.796Z"
+    },
+    {
+      "id": "BL-065",
+      "title": "Medir cobertura de src/state y src/app/api",
+      "priority": "P2",
+      "problem": "vitest.config.ts:25 deja fuera el store y las rutas de la API. Incluirlos con un umbral propio, empezando por store.ts (persist, drainSaves, doResync, hydrate). (AUDIT_REPORT, Technical Review 2026-09-28, BL-P)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:19.876Z"
+    },
+    {
+      "id": "BL-066",
+      "title": "Correr en CI security-config, design-tokens, no-legacy-mode, smoke y cobertura",
+      "priority": "P2",
+      "problem": "ci.yml:57-74 no ejecuta cinco gates que solo corren en local bajo Aitri. Anadirlos al job build-and-test; security-config y design-tokens son estaticos y tardan segundos. (AUDIT_REPORT, Technical Review 2026-09-28, BL-Q)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:19.965Z"
+    },
+    {
+      "id": "BL-067",
+      "title": "El smoke no arranca lo que produccion ejecuta (standalone) ni toca la base",
+      "priority": "P2",
+      "problem": "smoke.sh:46 usa next start; Dockerfile:63 usa node server.js. Anadir una variante que arranque .next/standalone contra Postgres y haga una peticion autenticada, y corregir los tres documentos que afirman que migraciones y check-env corren al arrancar el contenedor. (AUDIT_REPORT, Technical Review 2026-09-28, BL-R)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.047Z"
+    },
+    {
+      "id": "BL-068",
+      "title": "secret-scan nunca corre gitleaks y su respaldo no detecta una DATABASE_URL",
+      "priority": "P2",
+      "problem": "scripts/secret-scan.sh cae siempre al respaldo de patrones; el patron de DATABASE_URL no puede casar con una cadena de conexion y solo se barren seis rutas. Instalar gitleaks en CI con una configuracion que excluya node_modules y .next-*, y corregir el patron. (AUDIT_REPORT, Technical Review 2026-09-28, BL-S)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.122Z"
+    },
+    {
+      "id": "BL-069",
+      "title": "Re-verificar los veredictos manuales de julio (TC-101, TC-106, TC-BSC-455) y dar veredicto a TC-BE-077h",
+      "priority": "P2",
+      "problem": "Seis TC manuales de la raiz datan del 2-jul y 3-ago; TC-106h es un smoke de contenedor anterior a tres cambios del Dockerfile. TC-BSC-455h/e/f pasan con evidencia circular. TC-BE-077h sigue en skip aunque produccion ya tiene TLS: marcarlo manual y verificarlo con una captura. (AUDIT_REPORT, Technical Review 2026-09-28, BL-T)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.199Z"
+    },
+    {
+      "id": "BL-070",
+      "title": "Fijar la version de Node (engines + .nvmrc) a la de produccion",
+      "priority": "P2",
+      "problem": "Los gates locales corren en Node 24 y produccion y CI en Node 22; nada lo fija. Declarar engines y .nvmrc en 22. (AUDIT_REPORT, Technical Review 2026-09-28, BL-U)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.273Z"
+    },
+    {
+      "id": "BL-071",
+      "title": "Acotar tamanos en los esquemas de la API (arrays, longitudes, cuerpo)",
+      "priority": "P2",
+      "problem": "schemas.ts no limita el numero de nodos, movimientos ni notas, ni la longitud de name/icon/id/target/note; withApi lee el cuerpo sin tope. Fijar maximos razonables y responder 413/422. (AUDIT_REPORT, Technical Review 2026-09-28, BL-W)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.350Z"
+    },
+    {
+      "id": "BL-072",
+      "title": "schema.ts ya no describe la base: CHECK de 0002-0010 ausentes y snapshots detenidos en 0001",
+      "priority": "P2",
+      "problem": "Poner schema.ts al dia con las migraciones o anadir un gate que falle si drizzle-kit generate produce un diff. (AUDIT_REPORT, Technical Review 2026-09-28, BL-X)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.424Z"
+    },
+    {
+      "id": "BL-073",
+      "title": "Unos sesenta TC se acreditan buscando texto en un archivo en vez de ejecutar algo",
+      "priority": "P2",
+      "problem": "Empezar por los que acreditan comportamiento en ejecucion: TC-RES-222e (hacer la peticion sin sesion), TC-MAN-281f y TC-MAN-014f (ejecutar la migracion), TC-BE-072e. Ampliar los detectores de skip a skipIf/runIf/fixme. (AUDIT_REPORT, Technical Review 2026-09-28, BL-Z)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.498Z"
+    },
+    {
+      "id": "BL-074",
+      "title": "La suite e2e-backend no comprueba si el puerto 3230 ya esta ocupado",
+      "priority": "P2",
+      "problem": "Portar de tests/e2e/helpers/globalSetup.ts:166-173 la guarda portIsBusy a tests/e2e-backend/helpers/globalSetup.ts. (AUDIT_REPORT, Technical Review 2026-09-28, BL-AA)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.572Z"
+    },
+    {
+      "id": "BL-075",
+      "title": "RQ-SEC-009: el stream SSE no limita las conexiones por usuario",
+      "priority": "P2",
+      "problem": "src/server/sync.ts:29 subscribe() no tiene tope por usuario: una sesion puede abrir conexiones SSE sin limite y mantenerlas abiertas. Fijar un maximo por usuario (p. ej. 10) y cerrar la mas vieja al superarlo. Auditoria de seguridad 2026-09-26, AUDIT_REPORT seccion Security.",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.648Z"
+    },
+    {
+      "id": "BL-076",
+      "title": "RQ-SEC-103: comprobar la cadena real del proxy antes de confiar en X-Forwarded-For",
+      "priority": "P2",
+      "problem": "Con LEDGER_TRUST_PROXY=false todo el trafico detras del proxy comparte un solo bucket de rate limit (bloqueo del dueno por un tercero); DEPLOYMENT.md lo describe como perdida de granularidad. Antes de pasarlo a true: enviar una peticion con X-Forwarded-For falso por la puerta real (Tailscale) y confirmar que la clave registrada es la IP real; documentar la cadena real en DEPLOYMENT.md. Auditoria 2026-09-23/26.",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.726Z"
+    },
+    {
+      "id": "BL-077",
+      "title": "RQ-SEC-105: el registro de cuentas esta abierto a cualquiera",
+      "priority": "P2",
+      "problem": "src/server/auth.ts:64-65 habilita emailAndPassword sin disableSignUp ni lista de permitidos. Cualquiera que alcance la app puede crear cuenta. Decidir: cerrar el registro (disableSignUp) o limitarlo a una lista; si se mantiene abierto, registrarlo como decision. Auditoria 2026-09-02/26.",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.800Z"
+    },
+    {
+      "id": "BL-078",
+      "title": "RQ-SEC-102/106: enforce_admins apagado en main y staging sin checks requeridos (ajuste del dueno en GitHub)",
+      "priority": "P2",
+      "problem": "gh api .../branches/main/protection: enforce_admins false (un admin salta la proteccion). .../branches/staging/protection: checks vacios, sin revision requerida. Ajuste unico del dueno: activar enforce_admins en main y exigir build-and-test y security en staging. Auditoria 2026-09-26.",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.875Z"
+    },
+    {
+      "id": "BL-079",
+      "title": "Limpieza tras la auditoria del 2026-09-28",
+      "priority": "P3",
+      "problem": "files_created con cuatro rutas inexistentes; descripcion de package.json y titulo 'Presupuesto 2026' obsoletos; exports sin uso; sufijos en ids de TC; verificar-prod.sh oculta un fetch fallido. Detalle en AUDIT_REPORT, BL-V. (AUDIT_REPORT, Technical Review 2026-09-28, BL-V)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:20.949Z"
+    },
+    {
+      "id": "BL-080",
+      "title": "Limpieza de servidor tras la auditoria del 2026-09-28",
+      "priority": "P3",
+      "problem": "Lectura de loadLedger fuera de transaccion, primer guardado sin guardias, pool sin timeouts, /health sin tocar la base, LEDGER_TZ sin reenviar en compose, el guardia de cierre no compara nodes. Detalle en AUDIT_REPORT, BL-Y. (AUDIT_REPORT, Technical Review 2026-09-28, BL-Y)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:21.026Z"
+    },
+    {
+      "id": "BL-081",
+      "title": "Codigo muerto en el cliente y un detector de huerfanos que cuenta las pruebas como uso",
+      "priority": "P3",
+      "problem": "Retirar los imports y exports sin uso listados en AUDIT_REPORT BL-AB, y hacer que TC-RUI-007h solo cuente importadores bajo src/. (AUDIT_REPORT, Technical Review 2026-09-28, BL-AB)",
+      "status": "open",
+      "createdAt": "2026-09-29T14:39:21.103Z"
     }
   ]
 }
