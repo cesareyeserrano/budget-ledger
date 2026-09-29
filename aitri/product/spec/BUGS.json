@@ -7200,7 +7200,7 @@
       "actual_result": "store.ts:540 sella el retiro con new Date().toISOString() (ahora, en UTC) y no con una fecha dentro del periodo de la columna. periodMismatches (ledgerRepo.ts:606) rechaza el snapshot entero con 422 period_mismatch. Usar proposedDate(calendarFor(prev), month, new Date()), como ya hace setLeafAmount en store.ts:848.",
       "environment": "develop @ f2fb90a",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7208,8 +7208,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-3",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:38:54.347Z",
-      "updated_at": "2026-09-29T14:38:54.347Z",
-      "resolution": null
+      "updated_at": "2026-09-29T15:32:37.160Z",
+      "resolution": "store.ts applyReserveWithdrawal usa proposedDate(calendarFor(prev), month, new Date()) en vez de toISOString(): la fecha cae siempre dentro del periodo de la columna, en hora local. Regresion en tests/domain/bg-051-retiro-fecha-del-periodo.test.ts.",
+      "fix_commit_sha": "d4f0ec66468b58eec963b3e1c270d4356a9ea334",
+      "fix_at": "2026-09-29T15:32:37.160Z"
     },
     {
       "id": "BG-052",
