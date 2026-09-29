@@ -263,7 +263,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     if (!repo) return;
     try {
       const before = get().data;
-      const loaded = await repo.load();
+      const snap = await repo.fetchSnapshot();
+      const loaded = snap.state;
       if (!loaded) {
         // BG-012: en un resync, `null` nunca es "usuario nuevo" —ya hidratamos antes—, así que un
         // cuerpo ilegible es lo único que lo explica. Se conserva el estado en pantalla, que es el
@@ -272,6 +273,13 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (repo.malformed) set({ storageError: "malformed" });
         return;
       }
+      // BG-052: si el estado local cambió mientras el GET viajaba, lo cargado es ANTERIOR a lo que
+      // hay en pantalla. Se descarta entero, datos y revisión: pintarlo borraba la edición recién
+      // hecha y adoptar su revisión dejaba que la siguiente escritura la borrara también del
+      // servidor. Si lo que traía era una escritura de otro dispositivo, el guardado pendiente sale
+      // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
+      if (get().data !== before || pendingSave) return;
+      repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
       // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
       seedSeqFrom(loaded);
@@ -654,10 +662,15 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         }
       }
       let loaded: LedgerState | null = null;
+      let revision = 0;
+      const antes = get().data;
+      const yaHidratado = get().hydrated;
       try {
-        // ServerRepository.load() no recibe ownerId: el dueño lo resuelve el servidor desde la
-        // sesión. Antes se pasaba OWNER porque la variable estaba tipada como la interfaz.
-        loaded = await repo.load();
+        // El dueño lo resuelve el servidor desde la sesión. Se lee SIN adoptar la revisión (BG-052):
+        // se adopta más abajo, solo si lo cargado va a quedar en pantalla.
+        const snap = await repo.fetchSnapshot();
+        loaded = snap.state;
+        revision = snap.revision;
       } catch {
         // Servidor inalcanzable / no autenticado: no se cae a datos locales (no existen). Un 401
         // es concluyente —la sesión no sirve— y devuelve al login; el resto marca hidratado para
@@ -674,6 +687,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         set({ hydrated: true, storageError: "malformed" });
         return;
       }
+      // BG-052: una RE-hidratación con escrituras locales en curso traería un estado anterior a lo
+      // que hay en pantalla; se descarta igual que en `doResync`. La primera hidratación no entra
+      // aquí: antes de ella no hay nada que el usuario haya podido editar.
+      if (yaHidratado && (get().data !== antes || saveInFlight || pendingSave)) return;
+      repo.adopt(loaded ? revision : 0);
       // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
       // esta sesión reutilizaba `createdAt` bajos y se colaba delante de las anteriores en el orden
       // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.

@@ -94,15 +94,36 @@ export class ServerRepository implements LedgerRepository {
    * @throws Error si el servidor responde un estado inesperado (p. ej. 401/5xx) — el caller lo maneja
    */
   async load(): Promise<LedgerState | null> {
+    const snap = await this.fetchSnapshot();
+    if (snap.state === null) {
+      // 204: usuario nuevo, la revisión vuelve a 0. Cuerpo ilegible: la revisión NO se toca (ver
+      // `fetchSnapshot`).
+      if (!this.malformed) this.revision = 0;
+      return null;
+    }
+    this.adopt(snap.revision);
+    return snap.state;
+  }
+
+  /**
+   * GET del snapshot SIN adoptar su revisión (BG-052). Separa leer de aceptar: una recarga cuyo
+   * resultado llega después de un cambio local está trayendo un estado ANTERIOR a lo que hay en
+   * pantalla, y adoptar su revisión haría que el siguiente PUT saliera con una base que no le
+   * corresponde. El llamador decide si adopta (`adopt`) o descarta.
+   *
+   * @returns `{ revision, state }`; `state` es null por 204 (usuario nuevo) o por un cuerpo que no
+   *   cumple el contrato — en ese caso `malformed` queda en true.
+   * @throws Error si el servidor responde un estado inesperado (p. ej. 401/5xx) — el caller lo maneja
+   */
+  async fetchSnapshot(): Promise<{ revision: number; state: LedgerState | null }> {
     const res = await fetch(this.url("/api/v1/ledger"), {
       method: "GET",
       credentials: "include",
       headers: { accept: "application/json" },
     });
     if (res.status === NO_CONTENT) {
-      this.revision = 0;
       this.malformed = false;
-      return null;
+      return { revision: 0, state: null };
     }
     if (res.status === UNAUTHORIZED) {
       this.unauthorized = true;
@@ -120,13 +141,17 @@ export class ServerRepository implements LedgerRepository {
       // buena conocida, y pisarla con 0 haría que el próximo PUT saliera con una base falsa y se
       // llevara un 409 evitable.
       this.malformed = true;
-      return null;
+      return { revision: this.revision, state: null };
     }
-    this.revision = parsed.data.revision;
+    return { revision: parsed.data.revision, state: parsed.data.state };
+  }
+
+  /** Acepta como vigente la revisión de un snapshot leído con `fetchSnapshot` (BG-052). */
+  adopt(revision: number): void {
+    this.revision = revision;
     this.conflicted = false;
     this.unauthorized = false;
     this.malformed = false;
-    return parsed.data.state;
   }
 
   /**
