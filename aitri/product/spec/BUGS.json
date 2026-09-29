@@ -7230,10 +7230,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-4",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.669Z",
-      "updated_at": "2026-09-29T15:43:57.917Z",
+      "updated_at": "2026-09-29T17:08:34.602Z",
       "resolution": "doResync y la re-hidratacion leen con ServerRepository.fetchSnapshot() y solo adoptan (datos y revision) si el estado local no cambio mientras viajaba el GET. Regresion en tests/integration/bg-052-resync-en-vuelo.test.ts.",
       "fix_commit_sha": "f2005efc8c56c2011cf39ea283029b99d987d20c",
-      "fix_at": "2026-09-29T15:43:57.917Z"
+      "fix_at": "2026-09-29T15:43:57.917Z",
+      "log": [
+        {
+          "at": "2026-09-29T17:08:34.602Z",
+          "text": "Revision adversarial 2026-09-29: se corrigio una regresion (marca de conflicto) y dos perdidas previas del camino de conflicto y de applyCycles; doResync separa converge y si-no-cambio. Commit posterior a f2005ef."
+        }
+      ]
     },
     {
       "id": "BG-053",
@@ -7280,10 +7286,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-22",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.830Z",
-      "updated_at": "2026-09-29T16:03:37.588Z",
+      "updated_at": "2026-09-29T17:10:51.390Z",
       "resolution": "Decision del usuario: el mes de inicio abre siempre en el saldo declarado; lo anterior es historia. opening.ts declaredOpeningAt, aplicado en computeBalanceSeries, techoScanRaw y monthCarryUsage (7947a9e); ancla de TC-CDM-222f avanzada. Regresion en tests/domain/bg-054-apertura-con-datos-anteriores.test.ts.",
       "fix_commit_sha": "0cea2aa984148ccfdca430c67fe8dfbd017ff118",
-      "fix_at": "2026-09-29T16:03:37.588Z"
+      "fix_at": "2026-09-29T16:03:37.588Z",
+      "log": [
+        {
+          "at": "2026-09-29T17:10:51.390Z",
+          "text": "Revision adversarial 2026-09-29: el saldo declarado tambien se aplica en el primer periodo de la serie (impacto de reabrir) y la nota de lo reservado nombra el saldo inicial. BG-051 y BG-053 aprobados sin cambios."
+        }
+      ]
     },
     {
       "id": "BG-055",
