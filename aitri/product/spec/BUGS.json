@@ -7272,7 +7272,7 @@
       "actual_result": "Register.tsx:73 solo limita el rango con ciclos activos y el calendario (DateCalendar.tsx:34-35) ofrece 2000-2100. Un movimiento anterior al inicio declarado hace que activeBounds arranque antes y openingCarry (opening.ts:84) devuelva cero. Limitar la fecha al rango activo tambien en modo mes y aplicar la misma regla en addMovement y en el servidor.",
       "environment": "develop @ f2fb90a",
       "severity": "high",
-      "status": "open",
+      "status": "fixed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7280,8 +7280,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-22",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:02.830Z",
-      "updated_at": "2026-09-29T14:39:02.830Z",
-      "resolution": null
+      "updated_at": "2026-09-29T16:03:37.588Z",
+      "resolution": "Decision del usuario: el mes de inicio abre siempre en el saldo declarado; lo anterior es historia. opening.ts declaredOpeningAt, aplicado en computeBalanceSeries, techoScanRaw y monthCarryUsage (7947a9e); ancla de TC-CDM-222f avanzada. Regresion en tests/domain/bg-054-apertura-con-datos-anteriores.test.ts.",
+      "fix_commit_sha": "0cea2aa984148ccfdca430c67fe8dfbd017ff118",
+      "fix_at": "2026-09-29T16:03:37.588Z"
     },
     {
       "id": "BG-055",
