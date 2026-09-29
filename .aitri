@@ -23,26 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-29T19:43:53.922Z",
+  "updatedAt": "2026-09-29T21:51:24.727Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-28T17:59:57.768Z",
-      "event": "rehash",
-      "phase": "4",
-      "artifact": "04_BUILD_REPORT.json",
-      "before_hash": "66c55f22a88232c7eb819f3e105e3eb065036f2e76db7b3d58019059765a41be",
-      "after_hash": "921b8140570a2e3d4d52598612ddd4619ba6a2f5516aad40c682c97b19688c00"
-    },
-    {
-      "at": "2026-09-28T18:07:48.513Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-09-28T18:07:58.032Z",
       "event": "verify-complete",
@@ -187,6 +170,23 @@
       "phase": "verify",
       "passed": 59,
       "failed": 0
+    },
+    {
+      "at": "2026-09-29T21:51:04.605Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 12,
+      "method": "git",
+      "verifyPassedKept": true
+    },
+    {
+      "at": "2026-09-29T21:51:24.700Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 12,
+      "method": "git",
+      "baseRefFrom": "e0b61dc3f41c208df221cfbf41793c976f16a412",
+      "baseRefTo": "7ffefde4414c448bbfa00caba9053ae4bc8b229a"
     }
   ],
   "cascadedPhases": [],
