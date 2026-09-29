@@ -70,4 +70,17 @@ describe("BG-066 · el filtro arranca en el periodo en curso del calendario carg
     expect(r.ok).toBe(true);
     expect(store.getState().period).toEqual({ mode: "month", month: "2026-10" });
   });
+
+  it("si otro dispositivo pasa a ciclos, la recarga del sync en vivo mueve el filtro al ciclo en curso", async () => {
+    let actual: LedgerState = buildSeed("local", "2026-08" as PeriodKey);
+    stub(() => actual);
+    const store = await storeAl28DeSeptiembre();
+    await store.getState().hydrate();
+    expect(store.getState().period).toEqual({ mode: "month", month: "2026-09" });
+
+    actual = { ...actual, cycles: CICLOS_21 } as LedgerState; // el otro dispositivo activó ciclos
+    await store.getState().resync();
+    expect(store.getState().period).toEqual({ mode: "month", month: "2026-10" });
+  });
 });
+

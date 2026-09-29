@@ -142,7 +142,7 @@ interface LedgerStore {
   previewPeriodMode: (target: CycleTarget) => Promise<PeriodModePreview>;
   /** Feature ciclos (FR-2404/FR-2410): aplica el cambio; tras el 200 resincroniza desde el servidor. */
   applyPeriodMode: (target: CycleTarget) => Promise<PeriodModeResult>;
-  setStart: (startMonth: PeriodKey, openingBalance: number | null)
+  setStart: (startMonth: PeriodKey, openingBalance: number | null, opts?: { soloSiNoDeclarada?: boolean })
     => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[] }>;
   /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
   closeMonth: () => Promise<void>;
@@ -269,8 +269,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
    * `si-no-cambio` es el del sync en vivo: si lo local cambió mientras viajaba el GET, lo cargado es
    * anterior a lo que hay en pantalla y se descarta entero, datos y revisión.
    */
-  const doResync = async (modo: "converge" | "si-no-cambio" = "converge") => {
-    if (!repo) return;
+  const doResync = async (modo: "converge" | "si-no-cambio" = "converge"): Promise<boolean> => {
+    if (!repo) return false;
     try {
       const before = get().data;
       const snap = await repo.fetchSnapshot();
@@ -281,14 +281,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // último bueno conocido, y se avisa: en silencio el usuario seguiría editando sobre datos
         // que el servidor ya no confirma.
         if (repo.malformed) set({ storageError: "malformed" });
-        return;
+        return false;
       }
       // BG-052: en el sync en vivo, si el estado local cambió mientras el GET viajaba, lo cargado
       // es ANTERIOR a lo que hay en pantalla. Se descarta entero, datos y revisión: pintarlo borraba
       // la edición recién hecha y adoptar su revisión dejaba que la siguiente escritura la borrara
       // también del servidor. Si traía una escritura de otro dispositivo, el guardado pendiente sale
       // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
-      if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return;
+      if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return false;
       if (modo === "converge") pendingSave = null;
       repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
@@ -300,12 +300,17 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (reserveUndo && before === reserveUndo.afterData) {
         reserveUndo = { ...reserveUndo, afterData: loaded };
       }
-      set({ data: loaded });
+      // BG-066: si el calendario cambió (otro dispositivo pasó a ciclos o volvió a meses), el filtro
+      // pasa al periodo en curso del calendario nuevo; el anterior podría no existir en él.
+      const cambioCalendario = JSON.stringify(before.cycles ?? null) !== JSON.stringify(loaded.cycles ?? null);
+      set({ data: loaded, ...(cambioCalendario ? { period: { mode: "month" as const, month: nowFor(loaded) } } : {}) });
+      return true;
     } catch {
       // Un 401 aquí es la otra vía por la que se descubre una sesión muerta: el sync en vivo
       // dispara resync y el GET rebota. El resto de fallos se ignoran — una recarga o el próximo
       // evento re-sincronizan (FR-510).
       if (repo.unauthorized) onSessionExpired();
+      return false;
     }
   };
 
@@ -434,6 +439,31 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   const waitSaves = async () => {
     while (drainPromise) await drainPromise;
   };
+  /**
+   * BG-067 (revisión adversarial): las escrituras que no son el snapshot —apertura, modo, cierre— se
+   * hacen con la cola RETENIDA, de principio a fin, incluida la recarga que las sigue. Esperar la cola
+   * solo antes no bastaba: un guardado que salía DURANTE la escritura chocaba con ella (el falso «otro
+   * dispositivo» seguía), y uno que salía durante la recarga de un conflicto llevaba la revisión nueva
+   * sobre datos viejos y borraba en el servidor lo del otro dispositivo. Lo que se teclee mientras
+   * tanto espera y sale después, con la revisión buena; si hubo conflicto, la recarga lo descarta
+   * avisando. Las escrituras exclusivas se encadenan entre sí.
+   */
+  let exclusiveChain: Promise<unknown> = Promise.resolve();
+  const exclusive = <T>(fn: () => Promise<T>): Promise<T> => {
+    const run = exclusiveChain.then(async () => {
+      await waitSaves();
+      saveInFlight = true; // `drainSaves` no arranca mientras esté puesto
+      try {
+        return await fn();
+      } finally {
+        saveInFlight = false;
+        if (pendingSave) kickDrain();
+      }
+    });
+    exclusiveChain = run.catch(() => undefined);
+    return run;
+  };
+  const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
   let lastSig: string | null = null;
   let lastAt = 0;
@@ -463,7 +493,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
      *
      * @aitri-trace FR-ID: FR-2002, US-ID: US-2002, AC-ID: AC-2005, TC-ID: TC-CDM-093h
      */
-    closeMonth: async () => {
+    closeMonth: async () => exclusive(async () => {
       if (!repo) return;
       const res = await repo.closure("close");
       if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
@@ -493,7 +523,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           ? "No hay ningún mes por cerrar."
           : "No se pudo cerrar el mes."
       );
-    },
+    }),
 
     /**
      * Reabre el último mes cerrado (FR-2005). Los dos rechazos posibles se explican distinto
@@ -502,7 +532,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
      *
      * @aitri-trace FR-ID: FR-2005, US-ID: US-2005, AC-ID: AC-2015, TC-ID: TC-CDM-093h
      */
-    reopenMonth: async () => {
+    reopenMonth: async () => exclusive(async () => {
       if (!repo) return;
       const res = await repo.closure("reopen");
       if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
@@ -521,7 +551,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           ? "Ya tienes un mes reabierto: ciérralo antes de reabrir otro."
           : "No hay ningún mes cerrado que reabrir."
       );
-    },
+    }),
 
     setHorizon: (h) => {
       const next = normalizeHorizon(h);
@@ -538,9 +568,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     /**
      * @aitri-trace FR-ID: FR-2202, US-ID: US-2202, AC-ID: AC-2204, TC-ID: TC-MSI-021h, TC-MSI-024f
      */
-    previewPeriodMode: async (target) => {
-      if (!repo) return { ok: false, code: "network" };
-      await waitSaves();
+    previewPeriodMode: async (target) => exclusive(async () => {
+      if (!repo) return { ok: false as const, code: "network" };
       const res = await repo.previewCycles(target);
       // BG-073: una sesión muerta vuelve al login, como en el guardado; no se queda en «inténtalo de nuevo».
       if (!res.ok && res.code === "unauthorized") onSessionExpired();
@@ -548,48 +577,60 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // siguiente pisaría lo del otro dispositivo. Se converge, como tras cualquier conflicto.
       if (!res.ok && res.code === "revision_conflict") await doResync();
       return res;
-    },
-    applyPeriodMode: async (target) => {
-      if (!repo) return { ok: false, code: "network" };
-      await waitSaves();
+    }),
+    applyPeriodMode: async (target) => exclusive(async () => {
+      if (!repo) return { ok: false as const, code: "network" };
       const res = await repo.applyCycles(target);
       if (!res.ok) {
         if (res.code === "unauthorized") { onSessionExpired(); return res; } // BG-073
         if (res.code === "network") set({ storageError: "network" });
         if (res.code === "revision_conflict") {
           await doResync(); // BG-067: ver previewPeriodMode
-          get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+          get().showToast(CONFLICTO);
         }
         return res;
       }
       // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
       // transacción y devolver el snapshot entero sería duplicar el camino de `resync`.
-      await doResync();
+      // Si la recarga no llega, se avisa: la pantalla seguiría en el modo anterior sin decirlo.
+      if (!(await doResync())) {
+        set({ storageError: "network" });
+        return { ok: true as const };
+      }
       // BG-066: el calendario cambió; el filtro pasa al periodo en curso del calendario nuevo.
       set({ storageError: null, period: { mode: "month", month: nowFor(get().data) } });
-      return { ok: true };
-    },
-    setStart: async (startMonth, openingBalance) => {
-      if (!repo) return { ok: false, reason: "no_repo" };
-      await waitSaves(); // BG-067: la declaración no compite con el guardado del snapshot
+      return { ok: true as const };
+    }),
+    setStart: async (startMonth, openingBalance, opts) => exclusive(async () => {
+      if (!repo) return { ok: false as const, reason: "no_repo" };
+      // La declaración AUTOMÁTICA de la tarjeta de arranque solo vale si nadie declaró antes. Se mira
+      // aquí, con la cola ya vaciada: un guardado que recibió 409 puede haber traído mientras tanto la
+      // apertura que otro dispositivo acaba de declarar, y «este mes, saldo 0» la pisaría.
+      if (opts?.soloSiNoDeclarada) {
+        const d = get().data;
+        if (d.startMonth || d.openingBalance != null) return { ok: false as const, reason: "ya_declarada" };
+      }
       const res = await repo.saveStart(startMonth, openingBalance);
       if (!res.ok) {
         if (res.reason === "unauthorized") { onSessionExpired(); return res; } // BG-073
         // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
         // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
         if (res.reason === "network") set({ storageError: "network" });
-        // BG-067: tras esperar la cola, un 409 solo puede venir de otro dispositivo. El repositorio ya
-        // adoptó su revisión; sin sus datos, la siguiente edición lo pisaría en silencio. Se converge.
-        // El llamador que reintenta (la tarjeta de arranque) lo hace ya sobre el estado del servidor.
-        if (res.reason === "revision_conflict") await doResync();
+        // BG-067: con la cola retenida, un 409 solo puede venir de otro dispositivo. El repositorio ya
+        // adoptó su revisión; sin sus datos, la siguiente edición lo pisaría en silencio. Se converge
+        // y se avisa. Quien reintenta (la tarjeta de arranque) debe mirar antes si ya hay apertura.
+        if (res.reason === "revision_conflict") {
+          await doResync();
+          get().showToast(CONFLICTO);
+        }
         return res;
       }
       set((st) => ({
         data: { ...st.data, startMonth: res.startMonth as PeriodKey, openingBalance: res.openingBalance },
         storageError: null,
       }));
-      return { ok: true };
-    },
+      return { ok: true as const };
+    }),
     toast: null,
     toastUndo: false,
     storageError: null,
@@ -599,6 +640,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       set({ sessionExpired: false, storageError: null });
     },
     showToast: (msg) => {
+      // Tras una sesión muerta no se avisa nada: la pantalla es la de acceso (revisión de BG-073).
+      if (get().sessionExpired) return;
       set({ toast: msg, toastUndo: false });
       setTimeout(() => {
         if (get().toast === msg) set({ toast: null, toastUndo: false });
