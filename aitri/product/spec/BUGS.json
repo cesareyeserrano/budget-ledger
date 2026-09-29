@@ -7542,10 +7542,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-23",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.796Z",
-      "updated_at": "2026-09-29T19:15:36.390Z",
+      "updated_at": "2026-09-29T19:26:18.817Z",
       "resolution": "hydrate y applyPeriodMode fijan el filtro en nowFor(data), el periodo en curso del calendario cargado.",
       "fix_commit_sha": "5e643239748dc49b9051ea84fd7322bfe58b097c",
-      "fix_at": "2026-09-29T19:15:36.390Z"
+      "fix_at": "2026-09-29T19:15:36.390Z",
+      "log": [
+        {
+          "at": "2026-09-29T19:26:18.817Z",
+          "text": "Revision adversarial: tambien se re-deriva el filtro cuando la recarga del sync en vivo trae otro calendario."
+        }
+      ]
     },
     {
       "id": "BG-067",
@@ -7564,10 +7570,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-24",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.884Z",
-      "updated_at": "2026-09-29T19:07:57.415Z",
+      "updated_at": "2026-09-29T19:26:18.768Z",
       "resolution": "setStart, applyPeriodMode y previewPeriodMode esperan la cola de guardado (waitSaves) y convergen con doResync ante revision_conflict. Tambien cierra la carrera inversa con la tarjeta de arranque.",
       "fix_commit_sha": "a98f0d63d70ef8efa8cae918a6d92f6f4d57ecfa",
-      "fix_at": "2026-09-29T19:07:57.415Z"
+      "fix_at": "2026-09-29T19:07:57.415Z",
+      "log": [
+        {
+          "at": "2026-09-29T19:26:18.768Z",
+          "text": "Revision adversarial 2026-09-29: el primer arreglo esperaba la cola solo antes de la escritura; ahora exclusive() la retiene durante la escritura y su recarga, y la tarjeta de arranque no pisa una apertura ajena."
+        }
+      ]
     },
     {
       "id": "BG-068",
