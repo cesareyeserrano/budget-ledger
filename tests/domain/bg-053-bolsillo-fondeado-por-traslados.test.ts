@@ -11,7 +11,7 @@
 import { describe, it, expect } from "vitest";
 import { AVAILABLE_ID as D, applyReserveOp, resolvedBalance } from "@/domain/reserve";
 import { computeBalanceSeries } from "@/domain/balance";
-import { createNode, moveNode } from "@/domain/mutations";
+import { createNode, moveNode, repairOrphanedPocketJournal } from "@/domain/mutations";
 import { periodRange } from "@/domain/periods";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 
@@ -81,3 +81,44 @@ describe("BG-053 · el saldo de un bolsillo fondeado por traslados sigue a su pr
     });
   }
 });
+
+describe("BG-053 · reparación de los datos que el defecto ya dejó escritos", () => {
+  /** El rastro del defecto: B ganó un hijo cuando la regla no corría, y el traslado A→B sigue apuntando a B. */
+  function danado(): LedgerState {
+    const s = recargado(base());
+    return { ...s, nodes: [...s.nodes, nodo("b1", "transfer", "sub", "B", 9)] };
+  }
+
+  it("los movimientos del padre pasan a su única hoja y el saldo vuelve a tener dueño", () => {
+    const s = danado();
+    expect(saldo(s, "b1")).toBe(0);
+    const { state: next, repaired } = repairOrphanedPocketJournal(s);
+    expect(repaired).toEqual(["B"]);
+    expect(saldo(next, "b1")).toBe(200_000);
+    expect(next.movements.some((m) => m.from === "B" || m.to === "B" || m.target === "B")).toBe(false);
+    expect(reservado(next)).toBe(reservado(s)); // los totales no cambian
+    expect(sumaHojas(next, ["A", "b1", "C", "G"])).toBe(reservado(next));
+  });
+
+  it("es idempotente: sobre datos sanos devuelve el mismo estado", () => {
+    const { state: reparado } = repairOrphanedPocketJournal(danado());
+    const otra = repairOrphanedPocketJournal(reparado);
+    expect(otra.repaired).toEqual([]);
+    expect(otra.state).toBe(reparado);
+    const sano = recargado(base());
+    expect(repairOrphanedPocketJournal(sano).state).toBe(sano);
+  });
+
+  it("no toca un bolsillo con celdas propias ni nodos que no son bolsillos", () => {
+    const s = danado();
+    const conCeldas = { ...s, actuals: { ...s.actuals, B: { [ENE]: 50_000 } } } as LedgerState;
+    expect(repairOrphanedPocketJournal(conCeldas).repaired).toEqual([]);
+    // Un ingreso con hijos y un movimiento que le apunta: no es el rastro del defecto.
+    const ingreso = {
+      ...recargado(base()),
+      nodes: [...NODES, nodo("ing-sub", "income", "sub", "ing", 10)],
+    } as LedgerState;
+    expect(repairOrphanedPocketJournal(ingreso).repaired).toEqual([]);
+  });
+});
+

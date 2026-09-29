@@ -492,6 +492,45 @@ function mergeMonthMapForType(
  *
  * @aitri-trace FR-ID: FR-604, US-ID: US-604, AC-ID: AC-604a, TC-ID: TC-604h
  */
+/**
+ * BG-053 — repara los datos que el defecto ya dejó escritos.
+ *
+ * Antes de BG-053, un bolsillo fondeado SOLO por traslados que ganaba su primer hijo conservaba sus
+ * movimientos: seguían apuntando a un nodo que ya no era hoja, y su saldo quedaba contado en el
+ * Balance sin pertenecer a ningún bolsillo. El arreglo evita casos nuevos; esto corrige los viejos,
+ * con el mismo traslado que hoy haría la regla: los movimientos (y la fila de retiros planeados con sus
+ * notas) pasan a la PRIMERA hoja del bolsillo, en el orden de la grilla.
+ *
+ * Solo toca bolsillos con hijos y SIN celdas propias: ese es exactamente el rastro del defecto. Un nodo
+ * con celdas llegó ahí por otro camino y no es asunto de esta reparación. Sin nada que reparar devuelve
+ * el MISMO estado, así que puede correr en cada carga (no necesita marca de versión).
+ *
+ * Los totales del Balance no cambian —el reservado ya los contaba—; cambia a qué bolsillo pertenecen.
+ *
+ * @returns El estado reparado y los ids de los nodos cedentes; `state` es el mismo objeto si no cambió.
+ * @throws Nunca.
+ */
+export function repairOrphanedPocketJournal(state: LedgerState): { state: LedgerState; repaired: string[] } {
+  const vacio = (m: Partial<Record<PeriodKey, number>> | undefined) => !m || Object.keys(m).length === 0;
+  const cedentes = state.nodes.filter((n) =>
+    n.type === "transfer" &&
+    childrenOf(state.nodes, n.id).length > 0 &&
+    vacio(state.budgets[n.id]) && vacio(state.actuals[n.id]) &&
+    (state.movements.some((m) => m.from === n.id || m.to === n.id || m.target === n.id) ||
+      state.budgets[plannedRetiroKey(n.id)] !== undefined)
+  );
+  if (cedentes.length === 0) return { state, repaired: [] };
+  const next = clone(state);
+  const repaired: string[] = [];
+  for (const n of cedentes) {
+    const receptor = leafDescendants(next.nodes, n.id)[0];
+    if (!receptor || receptor === n.id) continue;
+    repointMovements(next, n.id, receptor);
+    repaired.push(n.id);
+  }
+  return repaired.length > 0 ? { state: next, repaired } : { state, repaired: [] };
+}
+
 function repointMovements(next: LedgerState, cedingId: string, receivingId: string): void {
   // saldo-de-bolsillo (riesgo del TRD): el retiro planeado del bolsillo cedente viaja con sus celdas.
   // Si se quedara con el id viejo sería una fila sin dueño y el plan del receptor renacería sin él.
