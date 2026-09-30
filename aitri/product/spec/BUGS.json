@@ -7675,7 +7675,7 @@
       "actual_result": "saveStartFor (ledgerRepo.ts:1175-1178) solo evalua el cierre contra el inicio vigente; con start_month NULL la regla no corre. Juzgar el inicio efectivo (declarado o dato mas antiguo) y el propuesto contra el cierre, comprobar que la clave es del calendario y correr el guardia de reservas.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7683,8 +7683,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-20",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.709Z",
-      "updated_at": "2026-09-29T14:39:03.709Z",
-      "resolution": null
+      "updated_at": "2026-09-30T23:29:33.587Z",
+      "resolution": "4c8c515 + 37d72b7: la regla de FR-2205 vive en el dominio (openingGuard.closedStartBlocker) y la usan servidor y Configuracion: bloquea si el inicio efectivo (declarado o, sin declaracion, el primer mes con datos) o el propuesto estan cerrados, y el 422 month_closed nombra el mes. Configuracion avisa si el mes elegido esta cerrado. Sin comprobacion de calendario (con primeros pagos validos ningun mes queda sin ciclo) ni guardia de reservas (bajar la apertura equivale a bajar un ingreso, NFR-1803). Pruebas: dominio bg-065-inicio-efectivo (8), backend bg-065-apertura-y-meses-cerrados (4), e2e bg-065-configuracion-inicio-cerrado (2). Verificado raiz 59/59 y backend 85/86. Relacionado: BG-085.",
+      "fix_commit_sha": "37d72b7fe83a10b89006df05a3e03a29f9df7701",
+      "fix_at": "2026-09-30T23:29:33.529Z"
     },
     {
       "id": "BG-066",
