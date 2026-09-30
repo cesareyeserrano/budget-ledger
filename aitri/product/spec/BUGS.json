@@ -7636,7 +7636,7 @@
       "actual_result": "addMovement (mutations.ts:72-97) solo valida monto y catId no vacio; insertMovement no anade nada. Reutilizar la validacion de destino de editMovement (adjust.ts:297-302) y responder 422 invalid_target.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7644,10 +7644,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-19",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.629Z",
-      "updated_at": "2026-09-30T01:39:59.840Z",
-      "resolution": "ccc4639: insertMovement rechaza un destino que no es hoja vigente de su tipo o con catId/subId incoherentes y la ruta responde 422 invalid_target. Prueba backend bg-064-destino-invalido.",
+      "updated_at": "2026-09-30T21:30:19.290Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
-      "fix_at": "2026-09-30T00:51:14.650Z"
+      "fix_at": "2026-09-30T00:51:14.650Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.290Z",
+      "files_changed": [
+        "package-lock.json",
+        "package.json",
+        "src/components/CellDetail.tsx",
+        "src/components/ReserveCells.tsx",
+        "src/domain/detail.ts",
+        "src/domain/reserve.ts",
+        "tests/domain/bg-084-nota-del-retiro.test.ts",
+        "tests/domain/diario-de-celda-detalle.test.ts",
+        "tests/domain/fecha-de-comentario.test.ts",
+        "tests/e2e/diario-de-celda.spec.ts",
+        "tests/e2e/transferencias.spec.ts"
+      ]
     },
     {
       "id": "BG-065",
@@ -7799,7 +7814,7 @@
       "actual_result": "Las acciones de fila (BudgetGrid.tsx:753, 617) solo se pintan con hover y las celdas (903) no son alcanzables por teclado. Mostrar las acciones tambien con focus-within, dar a la celda rol, tabIndex y Enter, y anadir aria-expanded a los botones de expandir.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7807,10 +7822,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-26",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.054Z",
-      "updated_at": "2026-09-30T01:39:59.891Z",
-      "resolution": "ccc4639: acciones de fila tambien con foco de teclado; celdas editables alcanzables con Tab y abiertas con Enter/Espacio, con nombre accesible; aria-expanded; el foco vuelve a la celda o al rotulo tras cerrar con teclado; celda de bolsillo cerrada toma el foco. e2e bg-069-grilla-con-teclado (6).",
+      "updated_at": "2026-09-30T21:30:19.367Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
-      "fix_at": "2026-09-30T00:51:14.366Z"
+      "fix_at": "2026-09-30T00:51:14.366Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.367Z",
+      "files_changed": [
+        "package-lock.json",
+        "package.json",
+        "src/components/CellDetail.tsx",
+        "src/components/ReserveCells.tsx",
+        "src/domain/detail.ts",
+        "src/domain/reserve.ts",
+        "tests/domain/bg-084-nota-del-retiro.test.ts",
+        "tests/domain/diario-de-celda-detalle.test.ts",
+        "tests/domain/fecha-de-comentario.test.ts",
+        "tests/e2e/diario-de-celda.spec.ts",
+        "tests/e2e/transferencias.spec.ts"
+      ]
     },
     {
       "id": "BG-070",
@@ -7821,7 +7851,7 @@
       "actual_result": "Register.tsx:140,144-158 no revalida la seleccion contra el arbol vigente. Invalidar la seleccion cuando el nodo desaparece o deja de ser hoja, y rechazar en addMovement un destino inexistente.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7829,10 +7859,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-27",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.135Z",
-      "updated_at": "2026-09-30T01:39:59.944Z",
-      "resolution": "ccc4639: movementTargetOk (hoja vigente de su tipo, catId/subId coherentes) en addMovement y en el registro, que suelta la seleccion. Pruebas bg-070-destino-vigente y bg-070-registro-suelta-categoria.",
+      "updated_at": "2026-09-30T21:30:19.443Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
-      "fix_at": "2026-09-30T00:51:14.425Z"
+      "fix_at": "2026-09-30T00:51:14.425Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.443Z",
+      "files_changed": [
+        "package-lock.json",
+        "package.json",
+        "src/components/CellDetail.tsx",
+        "src/components/ReserveCells.tsx",
+        "src/domain/detail.ts",
+        "src/domain/reserve.ts",
+        "tests/domain/bg-084-nota-del-retiro.test.ts",
+        "tests/domain/diario-de-celda-detalle.test.ts",
+        "tests/domain/fecha-de-comentario.test.ts",
+        "tests/e2e/diario-de-celda.spec.ts",
+        "tests/e2e/transferencias.spec.ts"
+      ]
     },
     {
       "id": "BG-071",
@@ -7843,7 +7888,7 @@
       "actual_result": "Register.tsx:71 reinicia countInOpening con un efecto sobre proposal, que no cambia tras guardar; resetForNext (101-109) no lo toca. Reiniciarlo en resetForNext.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7851,10 +7896,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-28",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.214Z",
-      "updated_at": "2026-09-30T01:40:00.001Z",
-      "resolution": "ccc4639: resetForNext reinicia countInOpening. e2e bg-071-propuesta-no-se-hereda.",
+      "updated_at": "2026-09-30T21:30:19.515Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
-      "fix_at": "2026-09-30T00:51:14.483Z"
+      "fix_at": "2026-09-30T00:51:14.483Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.515Z",
+      "files_changed": [
+        "package-lock.json",
+        "package.json",
+        "src/components/CellDetail.tsx",
+        "src/components/ReserveCells.tsx",
+        "src/domain/detail.ts",
+        "src/domain/reserve.ts",
+        "tests/domain/bg-084-nota-del-retiro.test.ts",
+        "tests/domain/diario-de-celda-detalle.test.ts",
+        "tests/domain/fecha-de-comentario.test.ts",
+        "tests/e2e/diario-de-celda.spec.ts",
+        "tests/e2e/transferencias.spec.ts"
+      ]
     },
     {
       "id": "BG-072",
@@ -7865,7 +7925,7 @@
       "actual_result": "OpeningCard.tsx:62-66 cuenta claves y createNode (mutations.ts:136-137) crea mapas vacios. Contar valores distintos de cero, como oldestPeriodWithData.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7873,10 +7933,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-29",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.295Z",
-      "updated_at": "2026-09-30T01:40:00.064Z",
-      "resolution": "ccc4639: la tarjeta cuenta datos (hasLedgerData = oldestPeriodWithData != null), no claves; crear una categoria ya no declara la apertura. Prueba bg-072-categoria-no-responde-tarjeta.",
+      "updated_at": "2026-09-30T21:30:19.621Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
-      "fix_at": "2026-09-30T00:51:14.562Z"
+      "fix_at": "2026-09-30T00:51:14.562Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.621Z",
+      "files_changed": [
+        "package-lock.json",
+        "package.json",
+        "src/components/CellDetail.tsx",
+        "src/components/ReserveCells.tsx",
+        "src/domain/detail.ts",
+        "src/domain/reserve.ts",
+        "tests/domain/bg-084-nota-del-retiro.test.ts",
+        "tests/domain/diario-de-celda-detalle.test.ts",
+        "tests/domain/fecha-de-comentario.test.ts",
+        "tests/e2e/diario-de-celda.spec.ts",
+        "tests/e2e/transferencias.spec.ts"
+      ]
     },
     {
       "id": "BG-073",
@@ -8137,7 +8212,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8145,8 +8220,8 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T01:49:26.029Z",
-      "updated_at": "2026-09-30T17:52:32.465Z",
-      "resolution": "e8b3a91: el Detalle de un bolsillo lista sus aportes como movimientos con su nota y una fila calculada 'Escrito en la celda'; el punto cuenta solo comentarios; la nota del retiro va entera en Retiros del mes. Re-derivado en transferencias (FR-1012) y diario-de-celda (NFR-2503). Verificado 80eb363.",
+      "updated_at": "2026-09-30T21:30:19.759Z",
+      "resolution": "Desplegado en produccion el 2026-09-30 (b6d11b9, PR #67); verificar-prod 6/6.",
       "log": [
         {
           "at": "2026-09-30T01:49:32.043Z",
@@ -8154,7 +8229,12 @@
         }
       ],
       "fix_commit_sha": "80eb363a5fd29f862f4af9f488abe657008b5513",
-      "fix_at": "2026-09-30T17:52:32.401Z"
+      "fix_at": "2026-09-30T17:52:32.401Z",
+      "close_commit_sha": "087e5f3bce83453af1cedee13025143cd15f05fa",
+      "close_at": "2026-09-30T21:30:19.759Z",
+      "files_changed": [
+        "package-lock.json"
+      ]
     }
   ]
 }
