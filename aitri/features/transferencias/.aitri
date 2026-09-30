@@ -19,24 +19,9 @@
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-30T17:52:32.302Z",
+  "updatedAt": "2026-09-30T19:17:05.894Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-30T02:04:33.684Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-30T02:04:47.786Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-30T02:05:39.035Z",
-      "event": "approved",
-      "phase": "ux"
-    },
     {
       "at": "2026-09-30T02:05:47.642Z",
       "event": "started",
@@ -133,15 +118,39 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-30T19:17:04.527Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "27492d46cb50c94c31b3197110ed64755de364b012fbaad6111390aa30f369eb",
+      "after_hash": "e8a720f34bb9dbc42a00fc27ad10cbab312de286f93f42a6ebf7c5e2f4d4296b"
+    },
+    {
+      "at": "2026-09-30T19:17:05.319Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "d6b9bd9a8594f72cb8b804a03ddf193a2b0880a26b7333c9ea375fb40d4b49c9",
+      "after_hash": "1c77c7423cb99461e38ac08e570968ffa90f08e79d9c5c0eed38e3929da8d75b"
+    },
+    {
+      "at": "2026-09-30T19:17:05.877Z",
+      "event": "rehash",
+      "phase": "5",
+      "artifact": "05_TRACEABILITY.json",
+      "before_hash": "18bd3aee4ac83a73d956642f09e0c69d4de35717662de855ebb1dfcbbd35d503",
+      "after_hash": "b50f9f43db113427017319a2dec78f41cd212328677c9d056bd5de07da5e247a"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "27492d46cb50c94c31b3197110ed64755de364b012fbaad6111390aa30f369eb",
+    "1": "e8a720f34bb9dbc42a00fc27ad10cbab312de286f93f42a6ebf7c5e2f4d4296b",
     "2": "70d1ebbdc40bb3bad8d00d5451e2edc7cf8220ea9ccf9a27587c0ce1c144ed6e",
-    "3": "d6b9bd9a8594f72cb8b804a03ddf193a2b0880a26b7333c9ea375fb40d4b49c9",
+    "3": "1c77c7423cb99461e38ac08e570968ffa90f08e79d9c5c0eed38e3929da8d75b",
     "4": "09a963c5e41c221504275056f60983a47f17496002b2b88b088d268f8f8c35ca",
-    "5": "18bd3aee4ac83a73d956642f09e0c69d4de35717662de855ebb1dfcbbd35d503",
+    "5": "b50f9f43db113427017319a2dec78f41cd212328677c9d056bd5de07da5e247a",
     "ux": "f58aad2f0d339df92811f8d8d18ceb5e33432985eae1f1a7aa26de6691edb19a"
   },
   "coverageAuditLastAt": "2026-07-30T14:29:48.007Z",
