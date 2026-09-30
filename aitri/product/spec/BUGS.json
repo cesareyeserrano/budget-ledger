@@ -8137,7 +8137,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8145,14 +8145,16 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T01:49:26.029Z",
-      "updated_at": "2026-09-30T01:49:32.043Z",
-      "resolution": null,
+      "updated_at": "2026-09-30T17:52:32.465Z",
+      "resolution": "e8b3a91: el Detalle de un bolsillo lista sus aportes como movimientos con su nota y una fila calculada 'Escrito en la celda'; el punto cuenta solo comentarios; la nota del retiro va entera en Retiros del mes. Re-derivado en transferencias (FR-1012) y diario-de-celda (NFR-2503). Verificado 80eb363.",
       "log": [
         {
           "at": "2026-09-30T01:49:32.043Z",
           "text": "Reportado por el usuario el 30-sep en prod: retiro de 400.000 de Ahorros a Disponible con nota 'Para regalos' (ciclo octubre) sale en la celda Ejec. de octubre de Ahorros (1.300.000 de aporte) pintado como comentario. cellObservations (reserve.ts) toma toda operacion con from o to = bolsillo; solo el aporte desde Disponible forma la cifra de la celda. Decision del usuario (30-sep): es un bug; la nota es del retiro, no de la celda. Se corrige el criterio 'La nota de una operacion De->A sigue apareciendo en la celda del bolsillo' de NFR-2503 (diario-de-celda) para las operaciones que no forman la cifra: retiros y traslados conservan su nota en la lista de Retiros del mes."
         }
-      ]
+      ],
+      "fix_commit_sha": "80eb363a5fd29f862f4af9f488abe657008b5513",
+      "fix_at": "2026-09-30T17:52:32.401Z"
     }
   ]
 }

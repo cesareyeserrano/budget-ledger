@@ -1,42 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-30T17:51:21.009Z",
+  "updatedAt": "2026-09-30T17:52:32.302Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-26T20:44:07.367Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-30T01:58:30.939Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-30T02:04:21.930Z",
-      "event": "approved",
-      "phase": 1
-    },
     {
       "at": "2026-09-30T02:04:33.684Z",
       "event": "started",
@@ -131,16 +116,32 @@
       "phase": "verify",
       "passed": 67,
       "failed": 0
+    },
+    {
+      "at": "2026-09-30T17:51:28.116Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-30T17:51:46.794Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-09-30T17:52:32.289Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
-  "cascadedPhases": [
-    "5"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "27492d46cb50c94c31b3197110ed64755de364b012fbaad6111390aa30f369eb",
     "2": "70d1ebbdc40bb3bad8d00d5451e2edc7cf8220ea9ccf9a27587c0ce1c144ed6e",
     "3": "d6b9bd9a8594f72cb8b804a03ddf193a2b0880a26b7333c9ea375fb40d4b49c9",
     "4": "09a963c5e41c221504275056f60983a47f17496002b2b88b088d268f8f8c35ca",
+    "5": "18bd3aee4ac83a73d956642f09e0c69d4de35717662de855ebb1dfcbbd35d503",
     "ux": "f58aad2f0d339df92811f8d8d18ceb5e33432985eae1f1a7aa26de6691edb19a"
   },
   "coverageAuditLastAt": "2026-07-30T14:29:48.007Z",
@@ -238,6 +239,11 @@
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-09-15T21:41:19.574Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-30T17:52:32.288Z"
     }
   ],
   "verifyRanRef": "c44e15b474be3c7463776bece916973ef67fd852",
@@ -276,6 +282,22 @@
       "FR-1015": "808dd4b055739d57"
     },
     "4": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    },
+    "5": {
       "FR-1001": "e1783da9a7b78a42",
       "FR-1002": "dcd73346d90ed0e3",
       "FR-1003": "819131d7ec3b1ebb",

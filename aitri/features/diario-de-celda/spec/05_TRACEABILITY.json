@@ -99,7 +99,7 @@
       "id": "NFR-2503",
       "title": "Las celdas de bolsillos (tipo transfer) conservan su comportamiento: teclear en ellas sigue usa…",
       "level": "complete",
-      "evidence": "5 TCs en verde. Las celdas de bolsillo conservan su comportamiento: mantienen sus data-testid historicos (cell-notes, cell-note, carry-note, cell-notes-empty) pese a que el panel se repartio en dos componentes, y no cuentan como descuadre. Lo prueban ademas las suites de transferencias y techo-de-flujo en verde."
+      "evidence": "Verify del 2026-09-30 sobre c44e15b (181/181). Las celdas de bolsillo conservan su regla de edición (sin «Ajuste manual») y sus data-testid históricos, y no cuentan como descuadre. BG-084 (decisión del usuario del 2026-09-30, re-derivado 1 → UX → 2 → 3 → 4): el Detalle de un bolsillo lista sus aportes como filas de movimiento y la nota de un retiro no aparece en su celda — TC-DDC-341h (aporte + retiro), 153e y 159e reescritos. Lo prueban además las suites de transferencias y techo-de-flujo en verde."
     },
     {
       "id": "NFR-2504",
