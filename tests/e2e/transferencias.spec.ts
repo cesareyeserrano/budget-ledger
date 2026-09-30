@@ -81,6 +81,12 @@ async function expectMovementCount(page: Page, n: number): Promise<void> {
   ).toBe(n);
 }
 
+/** Un aporte ya operado (Disponible → alcancía): el que forma la cifra de la celda del mes. */
+const aporte = (to: string, period: string, amount: number, note?: string): Mov => ({
+  id: `ap-${to}-${period}`, ownerId: "local", type: "transfer", catId: to, subId: null, target: to,
+  amount, period, createdAt: 2, from: "@disponible", to, ...(note ? { note } : {}),
+});
+
 /** Un retiro ya operado, para las fixtures que lo necesitan. */
 const retiro = (from: string, period: string, amount: number, note?: string): Mov => ({
   id: `mv-${from}-${period}`, ownerId: "local", type: "transfer", catId: from, subId: null, target: from,
@@ -189,20 +195,54 @@ test.describe("FR-1008 — la marca del plan de aportes", () => {
 });
 
 test.describe("FR-1012 — observaciones por celda", () => {
-  test("TC-TRF4-012h: la nota de una operación De→A se lee desde la celda y se puede añadir manual", async ({ page }) => {
+  test("TC-TRF4-012h: la nota de un aporte se lee en el Detalle de la celda, la de un retiro no, y se puede añadir un comentario", async ({ page }) => {
     // @aitri-tc TC-TRF4-012h
-    await gotoGrid(page, { ...BASE, movements: [retiro("c-viaje", "2026-09", 50_000, "pasaje")] });
+    // BG-084 (decisión del usuario del 2026-09-30): la celda de la alcancía es su APORTE del mes, así
+    // que su Detalle lista el aporte con su nota. La nota de un retiro es de ese retiro y se lee en
+    // «Retiros del mes»; antes salía aquí, pintada como un comentario sobre el aporte.
+    const conAporte = { ...BASE.actuals, "c-viaje": { ...BASE.actuals["c-viaje"], "2026-09": 30_000 } };
+    await gotoGrid(page, { ...BASE, actuals: conAporte, movements: [aporte("c-viaje", "2026-09", 30_000, "pasaje"), retiro("c-viaje", "2026-09", 40_000, "Para regalos")] });
 
     const cell = reserveCell(page, "Viaje", 8, "actual");
-    await expect(cell.getByTestId("note-dot")).toBeVisible();
-    await expect(cell).toHaveAttribute("title", /pasaje/);
+    await expect(cell.getByTestId("note-dot")).toHaveCount(0); // sin comentarios escritos, sin punto
+    expect((await cell.getAttribute("title")) ?? "").not.toContain("Para regalos");
     await cell.click();
     const notes = page.getByTestId("cell-notes");
-    await expect(notes.getByTestId("cell-note")).toHaveText("pasaje");
+    const filaAporte = notes.locator('[data-testid="detail-row"][data-kind="movement"]');
+    await expect(filaAporte).toHaveCount(1);
+    await expect(filaAporte.getByTestId("detail-note")).toHaveText("pasaje");
+    await expect(notes).not.toContainText("Para regalos");
+
     await page.getByLabel("Añadir comentario").fill("meta del viaje");
     await page.getByTestId("cell-note-add").click();
-    await expect(notes.getByTestId("cell-note")).toHaveCount(2);
-    await expect(notes.getByTestId("cell-note").nth(1)).toHaveText("meta del viaje");
+    await expect(notes.getByTestId("cell-note")).toHaveText("meta del viaje");
+    // El comentario sí enciende el punto de la celda.
+    await page.reload();
+    await expect(reserveCell(page, "Viaje", 8, "actual").getByTestId("note-dot")).toBeVisible();
+  });
+
+  test("BG-084: la nota de un retiro se lee ENTERA en «Retiros del mes», y el Detalle del bolsillo suma su celda", async ({ page }) => {
+    // Revisión adversarial de BG-084: al salir la nota del retiro de la celda del bolsillo, «Retiros
+    // del mes» quedó como el único sitio donde leerla, y ahí se cortaba con «…». Y como teclear en la
+    // celda de un bolsillo no deja movimiento, el Detalle tiene que decir lo escrito en ella para sumar.
+    const larga = "Para regalos: tres juguetes, una bufanda y el envío del paquete a otra ciudad, ya apartados";
+    const actuals = { ...BASE.actuals, "c-viaje": { ...BASE.actuals["c-viaje"], "2026-09": 90_000 } };
+    await gotoGrid(page, { ...BASE, actuals, movements: [aporte("c-viaje", "2026-09", 30_000, "pasaje"), retiro("c-viaje", "2026-09", 40_000, larga)] });
+
+    await page.getByTestId("withdraw-cell").nth(8).click(); // sep
+    const nota = page.getByTestId("withdraw-history").getByTestId("op-note-mv-c-viaje-2026-09");
+    await expect(nota).toHaveText(larga);
+    // Entera a la vista: ni cortada con «…» ni desbordada.
+    expect(await nota.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await page.keyboard.press("Escape");
+
+    await reserveCell(page, "Viaje", 8, "actual").click();
+    const notes = page.getByTestId("cell-notes");
+    await expect(notes.locator('[data-kind="movement"]').getByTestId("detail-amount")).toHaveText("30.000");
+    const tecleado = notes.locator('[data-kind="tecleado"]');
+    await expect(tecleado.getByTestId("detail-note")).toHaveText("Escrito en la celda");
+    await expect(tecleado.getByTestId("detail-amount")).toHaveText("60.000"); // 30.000 + 60.000 = la celda
+    await expect(notes).not.toContainText("Para regalos");
   });
 
   test("TC-TRF4-012e: celda sin movimientos ni comentarios: sin indicador y con placeholder en el editor", async ({ page }) => {

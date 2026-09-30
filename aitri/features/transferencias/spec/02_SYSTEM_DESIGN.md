@@ -123,8 +123,11 @@ function migrateStateV3toV4(state): LedgerState;                        // FR-10
   las marcas «!» de celdas.
 - **FR-1009:** `BalanceModule`: filas reserved(=aportes) / retiros / monthAvailable
   (flow − reserved) / available / reservedBalance / total; `reserveNet = reserveDelta`.
-- **FR-1012:** derivadas del journal (from/to del mes) + `cellNotes` manuales; punto indicador,
-  tooltip y sección del editor.
+- **FR-1012:** el Detalle de la celda lista los APORTES del mes (movimientos `transfer` con
+  `from` = Disponible y `to` = la alcancía, los que forman su cifra) como filas de movimiento, más
+  los `cellNotes` manuales; el punto indicador y el tooltip, solo los comentarios manuales. La nota
+  de un retiro o traslado NO entra en la celda de la alcancía: se lee en el historial de «Retiros
+  del mes» (BG-084, decisión del usuario del 2026-09-30). `cellObservations` deriva solo aportes.
 
 ## Security Design
 

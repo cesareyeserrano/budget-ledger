@@ -531,11 +531,11 @@
       "id": "NFR-2503",
       "category": "Regression",
       "priority": "MUST",
-      "requirement": "Las celdas de bolsillos (tipo transfer) conservan su comportamiento: teclear en ellas sigue usando la regla de reservas, sus observaciones derivadas del journal y el comentario automático del saldo anterior se muestran como hoy, y sus TCs existentes pasan sin cambios.",
+      "requirement": "Las celdas de bolsillos (tipo transfer) conservan su comportamiento: teclear en ellas sigue usando la regla de reservas y el comentario automático del saldo anterior se muestra como hoy. Sus notas se leen como las de cualquier celda (BG-084, decisión del usuario del 2026-09-30): el Detalle lista los aportes que forman su cifra, cada uno con su nota, y la nota de un retiro o traslado va con esa operación, en «Retiros del mes».",
       "acceptance_criteria": [
         "Teclear un valor en una celda de bolsillo no crea un movimiento de «Ajuste manual» y aplica la misma regla de reservas que antes de la feature",
-        "La nota de una operación De→A sigue apareciendo en la celda del bolsillo",
-        "Las suites de las features transferencias y techo-de-flujo pasan; los únicos TCs que cambian son TC-TRF4-012e y TC-TRF4-012h de transferencias, y solo en el texto que renombra FR-2509 (change request aprobado por el usuario el 2026-09-14). En techo-de-flujo cambia solo la etiqueta del campo en el código de su e2e"
+        "La nota de un aporte (Disponible → bolsillo) aparece en el Detalle de la celda del bolsillo como línea de movimiento; la de un retiro no aparece en esa celda",
+        "Las suites de las features transferencias y techo-de-flujo pasan; los únicos TCs que cambian son TC-TRF4-012e y TC-TRF4-012h de transferencias, en el texto que renombra FR-2509 (change request aprobado por el usuario el 2026-09-14) y, en TC-TRF4-012h, en lo que BG-084 cambia de su escenario. En techo-de-flujo cambia solo la etiqueta del campo en el código de su e2e"
       ]
     },
     {

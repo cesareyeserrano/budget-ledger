@@ -76,8 +76,13 @@ export function ReserveLeafCell(props: {
   // Nada de la grilla arrastra; lo acumulado vive en el Balance.
   const value = map[props.leafId]?.[props.month] ?? 0;
 
-  // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
-  const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month, periods) : [];
+  // Los COMENTARIOS escritos en la celda afloran en la celda Ejec., como en cualquier otra (BG-084):
+  // la nota de un movimiento va con su movimiento, y se lee al abrir el Detalle — el de un aporte en
+  // esta celda, el de un retiro en «Retiros del mes». Antes el punto también se encendía con la nota
+  // de un retiro, y su título la mostraba junto al aporte del mes como si lo describiera.
+  const observations = props.plane === "actual"
+    ? cellObservations(data, props.leafId, props.month, periods).filter((o) => o.source === "manual")
+    : [];
   // FR-1804 — y la automática, si esta celda aportó en un mes que se completó del saldo anterior.
   const carry =
     props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual", periods) : null;
@@ -270,8 +275,9 @@ export function ReserveCellEditor(props: {
           </div>
         )}
         {/* FR-2501/FR-2508: el panel de la celda de bolsillo es el MISMO Detalle que el de gasto e
-            ingreso — el aviso automático y las notas De→A se leen como filas de comentario. La
-            regla de edición del valor del bolsillo no cambia (NFR-2503). */}
+            ingreso — el aviso automático, los aportes del mes como movimientos y lo escrito en la
+            celda como su diferencia (BG-084). La regla de edición del valor del bolsillo no cambia
+            (NFR-2503). */}
         {!block && plane === "actual" && <CellDetail leafId={leafId} month={month} />}
       </div>
     </div>
@@ -709,7 +715,6 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
         </span>
         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
           {leafPathLabel(data, mv.from!)} → {esMover ? leafPathLabel(data, mv.to!) : "Disponible"}
-          {mv.note ? <span style={{ color: "var(--fg-muted)" }}> · {mv.note}</span> : null}
         </span>
         <input
           aria-label={`Monto de ${esMover ? "el movimiento" : "el retiro"} de ${leafPathLabel(data, mv.from!)}`}
@@ -725,6 +730,14 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
           className="flex-none w-24 tabular text-right bg-card border border-border rounded-(--radius-xs) text-fg px-1.5 py-0.5 outline-none focus:border-accent"
         />
       </div>
+      {/* BG-084: la nota va ENTERA en su propia línea. Desde que la celda del bolsillo dejó de mostrar
+          la nota de un retiro, esta lista es el único sitio donde se lee, y en la línea del rótulo
+          se cortaba con «…» sin forma de leerla completa. */}
+      {mv.note ? (
+        <span data-testid={`op-note-${mv.id}`} className="pl-[46px] break-words" style={{ color: "var(--fg-muted)" }}>
+          {mv.note}
+        </span>
+      ) : null}
       {error ? (
         <span role="alert" data-testid={`op-error-${mv.id}`} className="pl-1" style={{ color: "var(--alert-strong)" }}>
           {error}

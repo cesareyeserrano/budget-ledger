@@ -461,7 +461,8 @@ test.describe("FR-2508 — comentarios en el Detalle, con el mismo estilo", () =
     const auto = panel.locator('[data-testid="detail-row"][data-kind="auto"]');
     await expect(auto).toHaveCount(1);
     await expect(auto.getByLabel("Automático", { exact: true })).toHaveCount(1);
-    const nota = panel.locator('[data-testid="detail-row"][data-kind="comment"]').first();
+    // BG-084: el aporte «pasaje» es una fila de MOVIMIENTO (antes, una nota suelta con aspecto de comentario).
+    const nota = panel.locator('[data-testid="detail-row"][data-kind="movement"]').first();
     await expect(nota).toContainText("pasaje");
     // Misma anatomía Y mismo fondo (FR-2508): la distingue su ícono, nunca un color de alerta (FR-1201).
     const [a, n] = await Promise.all([
@@ -807,19 +808,26 @@ test.describe("FR-2504 — teclear un total crea un ajuste por la diferencia", (
 });
 
 test.describe("NFR-2503 — los bolsillos no cambian", () => {
-  test("TC-DDC-341h: la nota De→A sigue en la celda del bolsillo y en su Detalle", async ({ page }) => {
+  test("TC-DDC-341h: la nota de un aporte aparece en el Detalle del bolsillo como movimiento; la de un retiro no", async ({ page }) => {
     // @aitri-tc TC-DDC-341h
-    await abrir(page, BOLSILLO);
+    // BG-084 (decisión del usuario del 2026-09-30): las notas se leen como en cualquier celda. El
+    // aporte forma la cifra del bolsillo y va en su Detalle; el retiro es otra operación y su nota
+    // vive en «Retiros del mes». Antes las dos salían aquí como si fueran comentarios de la celda.
+    const RETIRO = {
+      id: "m-ret", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje",
+      amount: 40_000, period: SEP, createdAt: 8, date: "2026-09-10T18:00", note: "Para regalos",
+      from: "c-viaje", to: "@disponible",
+    };
+    await abrir(page, { ...(BOLSILLO as object), movements: [DEA, RETIRO] } as unknown as Seed);
 
     const celdaBolsillo = celda(page, "c-viaje", SEP);
-    await expect(celdaBolsillo.getByTestId("note-dot")).toBeVisible();
-    // El `title` de la celda prioriza el aviso automático del arrastre sobre las notas (regla
-    // vigente, `ReserveCells.tsx`), y este escenario lo tiene. La nota De→A se lee donde el usuario
-    // la busca: dentro del Detalle, que es lo que esta prueba verifica abajo.
-    await expect(celdaBolsillo).toHaveAttribute("title", /salieron del saldo/);
+    expect((await celdaBolsillo.getAttribute("title")) ?? "").not.toContain("Para regalos");
 
     const panel = await abrirCelda(page, "c-viaje", SEP);
-    await expect(panel.getByTestId("cell-note").filter({ hasText: "pasaje" })).toHaveCount(1);
+    const aporte = panel.locator('[data-testid="detail-row"][data-kind="movement"]');
+    await expect(aporte).toHaveCount(1);
+    await expect(aporte.getByTestId("detail-note")).toHaveText("pasaje");
+    await expect(panel).not.toContainText("Para regalos");
   });
 
   test("TC-DDC-343e: el Detalle de un bolsillo no ofrece añadir movimientos", async ({ page }) => {

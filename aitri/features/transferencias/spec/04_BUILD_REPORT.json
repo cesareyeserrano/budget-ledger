@@ -46,7 +46,10 @@
     "tests/e2e/budget-state-color.spec.ts",
     "tests/e2e/feature-stack.spec.ts",
     "tests/e2e-backend/auth-flow.spec.ts",
-    "tests/e2e-backend/storage-split.spec.ts"
+    "tests/e2e-backend/storage-split.spec.ts",
+    "src/domain/detail.ts",
+    "src/components/CellDetail.tsx",
+    "tests/domain/bg-084-nota-del-retiro.test.ts"
   ],
   "technical_debt": [
     {
@@ -67,7 +70,8 @@
     "superseded_prefix": "TC-TRF-",
     "current_prefix": "TC-TRF4-",
     "change_requests": [
-      "2026-09-15 — FR-2509 de diario-de-celda (aprobado el 2026-09-14): TC-TRF4-012h y TC-TRF4-012e cambian solo en el texto visible. src/components/ReserveCells.tsx: «Observaciones» → «Detalle», «Añadir observación» → «Añadir comentario» (aria-label y placeholder), «Sin observaciones este mes» → «Sin movimientos ni comentarios»; mismos data-testid. Tests: tests/e2e/transferencias.spec.ts (012h y 012e) y la etiqueta de tests/e2e/techo-de-flujo.spec.ts (TC-TDF-080h), sin cambio de comportamiento."
+      "2026-09-15 — FR-2509 de diario-de-celda (aprobado el 2026-09-14): TC-TRF4-012h y TC-TRF4-012e cambian solo en el texto visible. src/components/ReserveCells.tsx: «Observaciones» → «Detalle», «Añadir observación» → «Añadir comentario» (aria-label y placeholder), «Sin observaciones este mes» → «Sin movimientos ni comentarios»; mismos data-testid. Tests: tests/e2e/transferencias.spec.ts (012h y 012e) y la etiqueta de tests/e2e/techo-de-flujo.spec.ts (TC-TDF-080h), sin cambio de comportamiento.",
+      "2026-09-30 — BG-084, decisión del usuario (es un bug): la nota de un retiro salía en la celda de la alcancía pintada como comentario del aporte. FR-1012 re-derivado (fases 1 → UX → 2 → 3 → 4): la celda lista sus APORTES (Disponible → alcancía) como filas de movimiento con su nota; el punto y el tooltip, solo comentarios manuales; la nota de un retiro o traslado se lee en «Retiros del mes». src/domain/reserve.ts (cellObservations deriva solo aportes), src/domain/detail.ts (el Detalle de un bolsillo lista sus aportes; desaparece la entrada reserveNote), src/components/CellDetail.tsx (las filas de aporte sin lápiz ni papelera) y src/components/ReserveCells.tsx (el punto cuenta solo comentarios). Tests: TC-TRF4-012h reescrito (aporte + retiro), tests/domain/bg-084-nota-del-retiro.test.ts. Tras la revisión adversarial del mismo día: (1) el Detalle de un bolsillo añade una fila calculada «Escrito en la celda» con la diferencia entre la cifra de la celda y la suma de sus aportes —teclear en la celda de un bolsillo no deja movimiento (NFR-2503), así que sin ella las filas no sumaban la celda; se calcula, no se guarda—; (2) la nota de un retiro o traslado va entera en su propia línea en «Retiros del mes» (antes se cortaba con «…» en la línea del rótulo, y ahora es el único sitio donde se lee). Pruebas: BG-084d/e/f en tests/domain/bg-084-nota-del-retiro.test.ts y el e2e «BG-084» de tests/e2e/transferencias.spec.ts."
     ]
   },
   "test_runner": "../../../unit.sh",

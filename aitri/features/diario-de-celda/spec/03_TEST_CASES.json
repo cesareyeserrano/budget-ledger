@@ -1300,9 +1300,9 @@
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "bolsillo Viaje con saldo anterior que genera el comentario automático en «Septiembre» y 1 nota De→A «pasaje»",
+      "given": "bolsillo Viaje con saldo anterior que genera el comentario automático en «Septiembre» y 1 aporte con nota «pasaje»",
       "when": "se abre la celda de Ejecutado del bolsillo",
-      "then": "la fila automática tiene ícono aria-label «Automático» en color neutro (no --alert-soft); su font-size, padding y FONDO coinciden con la fila «pasaje»; título del panel «Detalle»",
+      "then": "la fila automática tiene ícono aria-label «Automático» en color neutro (no --alert-soft); su font-size, padding y FONDO coinciden con la fila del aporte «pasaje»; título del panel «Detalle»",
       "expected_result": "misma anatomía y mismo fondo que las demás filas; ningún color de alerta en la fila automática (FR-2508, FR-1201)"
     },
     {
@@ -1390,9 +1390,9 @@
       "scenario": "edge_case",
       "priority": "medium",
       "preconditions": [],
-      "given": "bolsillo sin aplicar; hoja de gasto con 2 movimientos (09-19, 09-05) y 2 comentarios (createdAt 2, 1); y un bolsillo con comentario automático y 1 nota De→A",
+      "given": "bolsillo sin aplicar; hoja de gasto con 2 movimientos (09-19, 09-05) y 2 comentarios (createdAt 2, 1); y un bolsillo con comentario automático, 1 aporte con nota y 1 retiro con nota",
       "when": "cellDetail de la hoja de gasto y del bolsillo",
-      "then": "gasto: [movement 09-05, movement 09-19, comment createdAt 1, comment createdAt 2]; bolsillo: [auto, reserveNote]",
+      "then": "gasto: [movement 09-05, movement 09-19, comment createdAt 1, comment createdAt 2]; bolsillo: [auto, movement] — el retiro no aparece (BG-084)",
       "expected_result": "secuencias de kind exactas"
     },
     {
@@ -2007,15 +2007,15 @@
       "requirement_id": "NFR-2503",
       "user_story_id": "US-2508",
       "ac_id": "AC-2508a",
-      "title": "La nota De→A sigue en la celda del bolsillo y aparece en su Detalle",
+      "title": "La nota de un aporte aparece en el Detalle del bolsillo como movimiento; la de un retiro no",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "bolsillo Viaje con un retiro de 50000 nota «pasaje» en «Septiembre»",
+      "given": "bolsillo Viaje con un aporte de 300000 nota «pasaje» y un retiro de 40000 nota «Para regalos» en «Septiembre»",
       "when": "se inspecciona la celda de Ejecutado del bolsillo y se abre",
-      "then": "[data-testid=note-dot] visible; title de la celda contiene «pasaje»; [data-testid=cell-notes] contiene una fila [data-testid=cell-note] con texto «pasaje»",
-      "expected_result": "punto visible y «pasaje» en la celda y en el Detalle"
+      "then": "el Detalle tiene una fila [data-kind=movement] con nota «pasaje»; ninguna fila contiene «Para regalos»; el title de la celda no contiene «Para regalos» (BG-084)",
+      "expected_result": "la nota del aporte en el Detalle, la del retiro fuera de la celda del bolsillo"
     },
     {
       "id": "TC-DDC-342f",

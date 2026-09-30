@@ -44,7 +44,7 @@ function detalle(movements: Movement[], notas: CellNote[]): DetailEntry[] {
 /** El id de cada entrada, para comparar el orden de un vistazo. */
 function ids(entries: DetailEntry[]): string[] {
   return entries.map((e) =>
-    e.kind === "comment" ? e.note.id : e.kind === "reserveNote" ? e.text : e.kind === "auto" ? "auto" : e.movement.id);
+    e.kind === "comment" ? e.note.id : e.kind === "auto" ? "auto" : e.kind === "tecleado" ? "tecleado" : e.movement.id);
 }
 
 function estado(over: Partial<LedgerState> = {}): LedgerState {
@@ -240,16 +240,23 @@ describe("FR-2603 · los comentarios con día se ordenan entre los movimientos",
   it("TC-FDC-046h: bolsillo — tras la nota automática y las operaciones, comentarios por fecha y luego los sin día", () => {
     // @aitri-tc TC-FDC-046h
     const bolsillo = estado({
-      actuals: { "c-salario": { [M.ene]: 2_000_000 }, "c-viaje": { [M.feb]: 1_000_000 } },
+      actuals: { "c-salario": { [M.ene]: 2_000_000 }, "c-viaje": { [M.feb]: 300_000 } }, // celda = su aporte (BG-084)
       movements: [{
         id: "m-dea", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje",
         amount: 300_000, period: M.feb as Movement["period"], createdAt: 7, note: "pasaje",
         from: "@disponible", to: "c-viaje",
+      }, {
+        id: "m-ret", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje",
+        amount: 100_000, period: M.feb as Movement["period"], createdAt: 8, note: "Para regalos",
+        from: "c-viaje", to: "@disponible",
       }],
       cellNotes: { "c-viaje": { [M.feb]: [comentario("vX", 1), comentario("c20", 2, "2026-02-20"), comentario("c10", 3, "2026-02-10")] } },
     });
 
-    expect(ids(cellDetail(bolsillo, "c-viaje", M.feb, P))).toEqual(["auto", "pasaje", "c10", "c20", "vX"]);
+    // BG-084: el aporte es un MOVIMIENTO de la celda (antes, una nota suelta «pasaje»); sin fecha, cae
+    // el día 1 del periodo, antes de los comentarios del 10 y del 20. El retiro no forma la cifra y
+    // no aparece: su nota vive en «Retiros del mes».
+    expect(ids(cellDetail(bolsillo, "c-viaje", M.feb, P))).toEqual(["auto", "m-dea", "c10", "c20", "vX"]);
   });
 });
 

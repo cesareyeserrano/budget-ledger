@@ -226,7 +226,7 @@ campos de añadir quedan siempre visibles.
 ### Pantalla: Presupuesto — editor de celda de bolsillo (transfer)
 | Componente | Estados | Comportamiento | Heurísticas |
 |---|---|---|---|
-| Panel Detalle de bolsillo | igual que el de gasto e ingreso, salvo: disabled total para «Añadir movimiento», lápiz y papelera (no aplican a bolsillos en esta feature) | Título «Detalle». Las notas De→A del mes y el comentario automático se muestran como filas de comentario con el estilo común (FR-2508). La regla de edición del valor del bolsillo NO cambia (NFR-2503). Un bolsillo nunca cuenta como descuadre | H4 |
+| Panel Detalle de bolsillo | igual que el de gasto e ingreso, salvo: disabled total para «Añadir movimiento», lápiz y papelera (no aplican a bolsillos en esta feature) | Título «Detalle». Los aportes del mes (Disponible → bolsillo) se muestran como filas de movimiento con fecha, monto y nota, y el comentario automático como su fila, todo con el estilo común (FR-2508); la nota de un retiro o traslado no aparece aquí, va con su operación en «Retiros del mes» (BG-084, decisión del usuario del 2026-09-30). La regla de edición del valor del bolsillo NO cambia (NFR-2503). Un bolsillo nunca cuenta como descuadre | H4 |
 
 ### Textos renombrados en toda la app (FR-2509)
 | Antes | Después |
