@@ -19,38 +19,9 @@
   "projectName": "diario-de-celda",
   "createdAt": "2026-09-14T16:27:23.430Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-30T02:29:35.418Z",
+  "updatedAt": "2026-09-30T17:51:20.940Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-21T23:04:07.783Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 181,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-21T23:05:03.831Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-09-21T23:06:20.977Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-09-22T01:56:19.734Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "0.0.1-beta",
-      "version_source": "manifest"
-    },
-    {
-      "at": "2026-09-30T01:58:51.332Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-09-30T02:04:26.351Z",
       "event": "approved",
@@ -125,6 +96,49 @@
       "at": "2026-09-30T02:29:35.409Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-09-30T03:19:50.468Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 112,
+      "failed": 0,
+      "skipped": 69,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T05:27:47.499Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T14:12:44.582Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:24:34.425Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:51:20.931Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0
     }
   ],
   "cascadedPhases": [
@@ -205,9 +219,9 @@
       "FR-2512"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "bfd67e52218f7bca3720428f3c604ab70e83f88a",
-  "verifyRanDirty": true,
+  "verifyPassed": true,
+  "verifyRanRef": "c44e15b474be3c7463776bece916973ef67fd852",
+  "verifyRanDirty": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
@@ -280,5 +294,24 @@
       "FR-2511": "15dfc56c201fa1b5",
       "FR-2512": "660eebadedddf65d"
     }
+  },
+  "verifyResultsHash": "811944775a1f7fddec86098c775aa24ba5100a0544b32b77db4050c746545931",
+  "verifyRanAt": "2026-09-30T17:24:34.404Z",
+  "lastVerifyRun": {
+    "passed": 181,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-09-30T17:24:34.404Z"
+  },
+  "verifySummary": {
+    "total": 181,
+    "passed": 181,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
   }
 }

@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-30T02:38:18.322Z",
+  "executed_at": "2026-09-30T17:33:26.715Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,7 +8,7 @@
     {
       "tc_id": "TC-TRF4-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1001 · saldo derivado por alcancía > TC-TRF4-001h: el saldo derivado acumula aportes y descuenta retiros, con arrastre implícito 5ms"
+      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1001 · saldo derivado por alcancía > TC-TRF4-001h: el saldo derivado acumula aportes y descuenta retiros, con arrastre implícito 3ms"
     },
     {
       "tc_id": "TC-TRF4-001e",
@@ -18,17 +18,17 @@
     {
       "tc_id": "TC-TRF4-001f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1001 · saldo derivado por alcancía > TC-TRF4-001f: ninguna secuencia de operaciones aceptadas produce saldo derivado negativo 19ms"
+      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1001 · saldo derivado por alcancía > TC-TRF4-001f: ninguna secuencia de operaciones aceptadas produce saldo derivado negativo 14ms"
     },
     {
       "tc_id": "TC-TRF4-002h",
       "status": "pass",
-      "notes": "✓  527 [chromium] › tests/e2e/transferencias.spec.ts:97:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002h: la celda dice el aporte de ESE mes y el total del bloque es la suma del mes (315ms)"
+      "notes": "✓  527 [chromium] › tests/e2e/transferencias.spec.ts:97:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002h: la celda dice el aporte de ESE mes y el total del bloque es la suma del mes (300ms)"
     },
     {
       "tc_id": "TC-TRF4-002f",
       "status": "pass",
-      "notes": "✓  529 [chromium] › tests/e2e/transferencias.spec.ts:129:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002f: ninguna celda del bloque muestra un acumulado ni un negativo (356ms)"
+      "notes": "✓  529 [chromium] › tests/e2e/transferencias.spec.ts:129:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002f: ninguna celda del bloque muestra un acumulado ni un negativo (374ms)"
     },
     {
       "tc_id": "TC-TRF4-003h",
@@ -38,7 +38,7 @@
     {
       "tc_id": "TC-TRF4-003f",
       "status": "pass",
-      "notes": "✓  530 [chromium] › tests/e2e/transferencias.spec.ts:151:7 › FR-1003 — editar la celda con validación inline › TC-TRF4-003f: el bloqueo del techo no cierra el editor: franja, valor seleccionado, Escape restaura (405ms)"
+      "notes": "✓  530 [chromium] › tests/e2e/transferencias.spec.ts:151:7 › FR-1003 — editar la celda con validación inline › TC-TRF4-003f: el bloqueo del techo no cierra el editor: franja, valor seleccionado, Escape restaura (425ms)"
     },
     {
       "tc_id": "TC-TRF4-003e",
@@ -58,7 +58,7 @@
     {
       "tc_id": "TC-TRF4-104e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1004 · operación De→A y su integridad estructural > TC-TRF4-104e: borrar el destino de un mover A→B conserva el retiro de A 0ms"
+      "notes": "✓ |app| tests/domain/reserve.test.ts > FR-1004 · operación De→A y su integridad estructural > TC-TRF4-104e: borrar el destino de un mover A→B conserva el retiro de A 1ms"
     },
     {
       "tc_id": "TC-TRF4-004f",
@@ -68,17 +68,17 @@
     {
       "tc_id": "TC-TRF4-005h",
       "status": "pass",
-      "notes": "✓  521 [chromium] › tests/e2e/transferencias-registro.spec.ts:46:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005h: el registro Reserva muestra saldos en De y el máximo/margen antes de operar (646ms)"
+      "notes": "✓  521 [chromium] › tests/e2e/transferencias-registro.spec.ts:46:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005h: el registro Reserva muestra saldos en De y el máximo/margen antes de operar (607ms)"
     },
     {
       "tc_id": "TC-TRF4-005f",
       "status": "pass",
-      "notes": "✓  523 [chromium] › tests/e2e/transferencias-registro.spec.ts:85:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005f: De=A es imposible por construcción (647ms)"
+      "notes": "✓  523 [chromium] › tests/e2e/transferencias-registro.spec.ts:85:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005f: De=A es imposible por construcción (663ms)"
     },
     {
       "tc_id": "TC-TRF4-005e",
       "status": "pass",
-      "notes": "✓  522 [chromium] › tests/e2e/transferencias-registro.spec.ts:70:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005e: estado vacío sin alcancías, y el toggle dice 'Reserva' (540ms)"
+      "notes": "✓  522 [chromium] › tests/e2e/transferencias-registro.spec.ts:70:7 › FR-1005 — el registro opera Reservas con De→A › TC-TRF4-005e: estado vacío sin alcancías, y el toggle dice 'Reserva' (549ms)"
     },
     {
       "tc_id": "TC-TRF4-105h",
@@ -113,22 +113,22 @@
     {
       "tc_id": "TC-TRF4-008h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-grid.test.ts > FR-1008 · el plan de aportes (desde FR-2904 bloquea como lo real) > TC-TRF4-008h: el aporte planeado que viola el techo se RECHAZA y no guarda 2ms"
+      "notes": "✓ |app| tests/domain/reserve-grid.test.ts > FR-1008 · el plan de aportes (desde FR-2904 bloquea como lo real) > TC-TRF4-008h: el aporte planeado que viola el techo se RECHAZA y no guarda 3ms"
     },
     {
       "tc_id": "TC-TRF4-008e",
       "status": "pass",
-      "notes": "✓  531 [chromium] › tests/e2e/transferencias.spec.ts:183:7 › FR-1008 — la marca del plan de aportes › TC-TRF4-008e: un plan que se pasa se marca en el mes, con icono y texto propios (250ms)"
+      "notes": "✓  531 [chromium] › tests/e2e/transferencias.spec.ts:183:7 › FR-1008 — la marca del plan de aportes › TC-TRF4-008e: un plan que se pasa se marca en el mes, con icono y texto propios (244ms)"
     },
     {
       "tc_id": "TC-TRF4-008f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-grid.test.ts > FR-1008 · el plan de aportes (desde FR-2904 bloquea como lo real) > TC-TRF4-008f: los planos no se contaminan 0ms"
+      "notes": "✓ |app| tests/domain/reserve-grid.test.ts > FR-1008 · el plan de aportes (desde FR-2904 bloquea como lo real) > TC-TRF4-008f: los planos no se contaminan 1ms"
     },
     {
       "tc_id": "TC-TRF4-009h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > FR-1009 · el Balance con filas de un solo signo > TC-TRF4-009h: el escenario del usuario, número a número 3ms"
+      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > FR-1009 · el Balance con filas de un solo signo > TC-TRF4-009h: el escenario del usuario, número a número 5ms"
     },
     {
       "tc_id": "TC-TRF4-009e",
@@ -138,57 +138,57 @@
     {
       "tc_id": "TC-TRF4-009f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > FR-1009 · el Balance con filas de un solo signo > TC-TRF4-009f: total(m) = total(m−1) + flujo(m) para cualquier estado alcanzable 8ms"
+      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > FR-1009 · el Balance con filas de un solo signo > TC-TRF4-009f: total(m) = total(m−1) + flujo(m) para cualquier estado alcanzable 7ms"
     },
     {
       "tc_id": "TC-TRF4-010h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-migration.test.ts > FR-1010 · conversión al modelo v4 > TC-TRF4-010h: v3→v4 deshace saldos, sintetiza retiros (Ejec. y plan) y es idempotente 4ms"
+      "notes": "✓ |app| tests/integration/reserve-migration.test.ts > FR-1010 · conversión al modelo v4 > TC-TRF4-010h: v3→v4 deshace saldos, sintetiza retiros (Ejec. y plan) y es idempotente 2ms"
     },
     {
       "tc_id": "TC-TRF4-010e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reserve-server.test.ts > FR-1010 — migración lazy en el servidor > TC-TRF4-010e: dos cargas concurrentes migran una sola vez y un POST también garantiza v4 155ms"
+      "notes": "✓ |backend| tests/integration/backend/reserve-server.test.ts > FR-1010 — migración lazy en el servidor > TC-TRF4-010e: dos cargas concurrentes migran una sola vez y un POST también garantiza v4 159ms"
     },
     {
       "tc_id": "TC-TRF4-010f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reserve-server.test.ts > FR-1010 — migración lazy en el servidor > TC-TRF4-010f: from/to y cellNotes atraviesan las cinco capas 56ms"
+      "notes": "✓ |backend| tests/integration/backend/reserve-server.test.ts > FR-1010 — migración lazy en el servidor > TC-TRF4-010f: from/to y cellNotes atraviesan las cinco capas 53ms"
     },
     {
       "tc_id": "TC-TRF4-011h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-restructure.test.ts > FR-1011 · reestructurar conserva los saldos derivados > TC-TRF4-011h: reparent + promote + demote conservan Σ derivado en los 12 meses 6ms"
+      "notes": "✓ |app| tests/domain/reserve-restructure.test.ts > FR-1011 · reestructurar conserva los saldos derivados > TC-TRF4-011h: reparent + promote + demote conservan Σ derivado en los 12 meses 5ms"
     },
     {
       "tc_id": "TC-TRF4-012h",
       "status": "pass",
-      "notes": "✓  532 [chromium] › tests/e2e/transferencias.spec.ts:198:7 › FR-1012 — observaciones por celda › TC-TRF4-012h: la nota de un aporte se lee en el Detalle de la celda, la de un retiro no, y se puede añadir un comentario (429ms)"
+      "notes": "✓  532 [chromium] › tests/e2e/transferencias.spec.ts:198:7 › FR-1012 — observaciones por celda › TC-TRF4-012h: la nota de un aporte se lee en el Detalle de la celda, la de un retiro no, y se puede añadir un comentario (426ms)"
     },
     {
       "tc_id": "TC-TRF4-012e",
       "status": "pass",
-      "notes": "✓  534 [chromium] › tests/e2e/transferencias.spec.ts:248:7 › FR-1012 — observaciones por celda › TC-TRF4-012e: celda sin movimientos ni comentarios: sin indicador y con placeholder en el editor (301ms)"
+      "notes": "✓  534 [chromium] › tests/e2e/transferencias.spec.ts:248:7 › FR-1012 — observaciones por celda › TC-TRF4-012e: celda sin movimientos ni comentarios: sin indicador y con placeholder en el editor (303ms)"
     },
     {
       "tc_id": "TC-TRF4-012f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-notes.test.ts > FR-1012 · observaciones por celda > TC-TRF4-012f: una observación de más de 280 caracteres se rechaza sin truncar 5ms"
+      "notes": "✓ |app| tests/domain/reserve-notes.test.ts > FR-1012 · observaciones por celda > TC-TRF4-012f: una observación de más de 280 caracteres se rechaza sin truncar 3ms"
     },
     {
       "tc_id": "TC-TRF4-014h",
       "status": "pass",
-      "notes": "✓  535 [chromium] › tests/e2e/transferencias.spec.ts:259:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014h: el mini-form saca con desplegable jerárquico, Máx. y toast con Deshacer (384ms)"
+      "notes": "✓  535 [chromium] › tests/e2e/transferencias.spec.ts:259:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014h: el mini-form saca con desplegable jerárquico, Máx. y toast con Deshacer (522ms)"
     },
     {
       "tc_id": "TC-TRF4-014e",
       "status": "pass",
-      "notes": "✓  536 [chromium] › tests/e2e/transferencias.spec.ts:283:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014e: eliminar un retiro del historial restaura el saldo derivado (309ms)"
+      "notes": "✓  536 [chromium] › tests/e2e/transferencias.spec.ts:283:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014e: eliminar un retiro del historial restaura el saldo derivado (340ms)"
     },
     {
       "tc_id": "TC-TRF4-014f",
       "status": "pass",
-      "notes": "✓  537 [chromium] › tests/e2e/transferencias.spec.ts:302:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo) (227ms)"
+      "notes": "✓  537 [chromium] › tests/e2e/transferencias.spec.ts:302:7 › FR-1014 — operar y corregir retiros en «Retiros del mes» › TC-TRF4-014f: el sobre-retiro se gradúa como los gastos (›/›› + ámbar/rojo) (240ms)"
     },
     {
       "tc_id": "TC-TRF4-114f",
@@ -203,12 +203,12 @@
     {
       "tc_id": "TC-TRF4-015e",
       "status": "pass",
-      "notes": "✓  538 [chromium] › tests/e2e/transferencias.spec.ts:331:7 › FR-1015 — retiros planeados › TC-TRF4-015e: la fila abre el formulario de planear; bajar el aporte que respalda un retiro planeado se bloquea (358ms)"
+      "notes": "✓  538 [chromium] › tests/e2e/transferencias.spec.ts:331:7 › FR-1015 — retiros planeados › TC-TRF4-015e: la fila abre el formulario de planear; bajar el aporte que respalda un retiro planeado se bloquea (365ms)"
     },
     {
       "tc_id": "TC-TRF4-151h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > NFR-1001 · conservación bajo el modelo v4 > TC-TRF4-151h: conservación bajo secuencias mixtas, retiros y eliminaciones incluidos 47ms"
+      "notes": "✓ |app| tests/domain/reserve-balance.test.ts > NFR-1001 · conservación bajo el modelo v4 > TC-TRF4-151h: conservación bajo secuencias mixtas, retiros y eliminaciones incluidos 26ms"
     },
     {
       "tc_id": "TC-TRF4-152h",
@@ -238,32 +238,32 @@
     {
       "tc_id": "TC-TRF4-155h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155h: edición + validación en cadena + balance ≤150ms con 30 alcancías 11ms"
+      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155h: edición + validación en cadena + balance ≤150ms con 30 alcancías 10ms"
     },
     {
       "tc_id": "TC-TRF4-155e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155e: la memoización por identidad evita recomputar sin cambios 2ms"
+      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155e: la memoización por identidad evita recomputar sin cambios 1ms"
     },
     {
       "tc_id": "TC-TRF4-156h",
       "status": "pass",
-      "notes": "✓  539 [chromium] › tests/e2e/transferencias.spec.ts:392:9 › NFR-1006 — accesibilidad de los estados nuevos › TC-TRF4-156h: las tintas nuevas pasan AA en ambos temas (light) (318ms)"
+      "notes": "✓  539 [chromium] › tests/e2e/transferencias.spec.ts:392:9 › NFR-1006 — accesibilidad de los estados nuevos › TC-TRF4-156h: las tintas nuevas pasan AA en ambos temas (light) (323ms)"
     },
     {
       "tc_id": "TC-TRF4-156e",
       "status": "pass",
-      "notes": "✓  526 [chromium] › tests/e2e/transferencias-registro.spec.ts:152:7 › NFR-1006 — táctiles del registro › TC-TRF4-156e: táctiles ≥48px en los controles nuevos del registro (621ms)"
+      "notes": "✓  526 [chromium] › tests/e2e/transferencias-registro.spec.ts:152:7 › NFR-1006 — táctiles del registro › TC-TRF4-156e: táctiles ≥48px en los controles nuevos del registro (634ms)"
     },
     {
       "tc_id": "TC-TRF4-156f",
       "status": "pass",
-      "notes": "✓  541 [chromium] › tests/e2e/transferencias.spec.ts:418:7 › NFR-1006 — accesibilidad de los estados nuevos › TC-TRF4-156f: ningún estado nuevo depende SOLO del color (319ms)"
+      "notes": "✓  541 [chromium] › tests/e2e/transferencias.spec.ts:418:7 › NFR-1006 — accesibilidad de los estados nuevos › TC-TRF4-156f: ningún estado nuevo depende SOLO del color (332ms)"
     },
     {
       "tc_id": "TC-TRF4-157h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157h: cada TC del spec aparece exactamente una vez en la suite 12ms"
+      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157h: cada TC del spec aparece exactamente una vez en la suite 14ms"
     },
     {
       "tc_id": "TC-TRF4-153e",
@@ -273,27 +273,27 @@
     {
       "tc_id": "TC-TRF4-153f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-migration.test.ts > NFR-1003 · la migración es no destructiva > TC-TRF4-153f: el esquema rechaza montos negativos y no enteros 2ms"
+      "notes": "✓ |app| tests/integration/reserve-migration.test.ts > NFR-1003 · la migración es no destructiva > TC-TRF4-153f: el esquema rechaza montos negativos y no enteros 1ms"
     },
     {
       "tc_id": "TC-TRF4-155f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155f: la edición de gastos/ingresos no pasa por las reglas de reservas 1ms"
+      "notes": "✓ |app| tests/domain/reserve-perf.test.ts > NFR-1005 · performance de la capa de reservas > TC-TRF4-155f: la edición de gastos/ingresos no pasa por las reglas de reservas 0ms"
     },
     {
       "tc_id": "TC-TRF4-157e",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157e: los formatos viejos solo se siembran en el spec de migración 9ms"
+      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157e: los formatos viejos solo se siembran en el spec de migración 14ms"
     },
     {
       "tc_id": "TC-TRF4-157f",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157f: no hay marcadores TC-TRF4 fuera del spec ni tests sin marcador válido 11ms"
+      "notes": "✓ |app| tests/integration/reserve-closure.test.ts > NFR-1007 · cierre de la suite re-derivada > TC-TRF4-157f: no hay marcadores TC-TRF4 fuera del spec ni tests sin marcador válido 9ms"
     },
     {
       "tc_id": "TC-TRF4-002e",
       "status": "pass",
-      "notes": "✓  528 [chromium] › tests/e2e/transferencias.spec.ts:118:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002e: la fila padre agrega celdas del mes, como los otros tipos (232ms)"
+      "notes": "✓  528 [chromium] › tests/e2e/transferencias.spec.ts:118:7 › FR-1002 — la celda dice el aporte del mes › TC-TRF4-002e: la fila padre agrega celdas del mes, como los otros tipos (223ms)"
     },
     {
       "tc_id": "TC-TRF4-106f",
@@ -313,7 +313,7 @@
     {
       "tc_id": "TC-TRF4-011f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reserve-restructure.test.ts > FR-1011 · reestructurar conserva los saldos derivados > TC-TRF4-011f: el invariante detecta la fusión corrupta (celdas sin journal re-apuntado) 0ms"
+      "notes": "✓ |app| tests/domain/reserve-restructure.test.ts > FR-1011 · reestructurar conserva los saldos derivados > TC-TRF4-011f: el invariante detecta la fusión corrupta (celdas sin journal re-apuntado) 1ms"
     },
     {
       "tc_id": "TC-TRF4-015f",
@@ -619,7 +619,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2272,
+      "duration_ms": 2191,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
@@ -628,7 +628,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2548,
+      "duration_ms": 2505,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -637,8 +637,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 52504,
-      "output": "User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-30T02:34:58.308Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión"
+      "duration_ms": 55459,
+      "output": "User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-30T17:30:20.927Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión"
     },
     {
       "name": "smoke",
@@ -646,7 +646,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 16758,
+      "duration_ms": 1189,
       "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
@@ -655,14 +655,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 181163,
-      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (107ms)\n  ✓  627 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (224ms)\n  ✓  629 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  629 passed (3.0m)"
+      "duration_ms": 182475,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (126ms)\n  ✓  627 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (222ms)\n  ✓  629 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  629 passed (3.0m)"
     }
   ],
   "timings": {
-    "runner_ms": 48309,
-    "e2e_ms": 180061,
-    "gates_ms": 255263,
-    "total_ms": 483693
+    "runner_ms": 48208,
+    "e2e_ms": 179984,
+    "gates_ms": 243834,
+    "total_ms": 472080
   }
 }
