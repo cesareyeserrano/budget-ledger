@@ -33,6 +33,7 @@ import {
   closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
 import { normalizeOpeningBalance, normalizeStartMonth, orphanedByStart } from "@/domain/opening";
+import { closedStartBlocker } from "@/domain/openingGuard";
 import type { Closure, CycleConfig, CycleVersion, OriginPart
 } from "@/domain/types";
 
@@ -1179,7 +1180,7 @@ export async function closeMonthFor(
 export type StartResult =
   | { ok: true; revision: number; startMonth: PeriodKey; openingBalance: number | null }
   | { ok: false; conflict: true; revision: number }
-  | { ok: false; rejected: "month_closed" }
+  | { ok: false; rejected: "month_closed"; period: PeriodKey }
   | { ok: false; rejected: "would_orphan"; periods: PeriodKey[] };
 
 /**
@@ -1192,8 +1193,9 @@ export type StartResult =
  * invariantes porque «la regla vive SOLO en el navegador». Aqui no se repite.
  *
  * Las dos reglas, ambas dentro de la transaccion y con la fila bloqueada:
- *   1. FR-2205 — el mes de inicio VIGENTE tiene que estar abierto. Cambiar la apertura recalcula
- *      toda la serie hacia adelante, incluidos meses que el usuario dio por buenos al cerrarlos.
+ *   1. FR-2205 — el mes de inicio VIGENTE (el declarado o, sin declaración, el primero con datos) y
+ *      el PROPUESTO tienen que estar abiertos (BG-065). Cambiar la apertura recalcula toda la serie
+ *      hacia adelante, incluidos meses que el usuario dio por buenos al cerrarlos.
  *   2. FR-2206 — mover el inicio hacia adelante no puede dejar meses con datos fuera del historial.
  *      Se impide, no se avisa: es el mismo principio de «cero perdida silenciosa» del borrado de
  *      categorias.
@@ -1218,14 +1220,16 @@ export async function saveStartFor(
     const current = head?.revision ?? 0;
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
-    const state = await loadStateInTx(tx, ownerId);
+    // `loadStateInTx` no adjunta la apertura: se toma de la fila ancla, que es la vigente.
+    const state = { ...(await loadStateInTx(tx, ownerId)), ...openingFromRow(head) };
     const closure = closureFromRow(head, calendarOf(state));
 
-    // Regla 1 (FR-2205). Se evalua sobre el mes VIGENTE, no sobre el propuesto: lo que el cierre
-    // protege es la serie ya congelada, y esa cuelga de donde la apertura esta HOY.
-    const vigente = normalizeStartMonth(head.startMonth);
-    if (vigente !== null && isClosed(closure, vigente)) {
-      return { ok: false, rejected: "month_closed" };
+    // Regla 1 (FR-2205). Lo que el cierre protege es la serie ya congelada. BG-065: antes solo se
+    // miraba el mes DECLARADO, y sin declaración la regla no corría — con meses cerrados, declarar
+    // por primera vez movía sus saldos. Ahora se juzgan el inicio efectivo y el propuesto.
+    const bloqueante = closedStartBlocker(state, closure, startMonth);
+    if (bloqueante !== null) {
+      return { ok: false, rejected: "month_closed", period: bloqueante };
     }
 
     // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada, y `orphanedByStart` lo refleja sin

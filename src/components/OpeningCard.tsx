@@ -139,7 +139,9 @@ export function OpeningCard() {
       setError(
         res.reason === "revision_conflict"
           ? "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
-          : "No se pudo guardar. Inténtalo de nuevo."
+          : res.reason === "month_closed"
+            ? `${periodMonthLabel(res.period ?? mes)} está cerrado: reábrelo desde la grilla o elige otro mes de inicio.`
+            : "No se pudo guardar. Inténtalo de nuevo."
       );
     }
     // Si salió bien, el estado cambia y este componente deja de renderizarse solo.
