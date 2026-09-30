@@ -7516,7 +7516,7 @@
       "actual_result": "scripts/smoke-backend.sh:41-44 solo compila si falta BUILD_ID. Portar de smoke.sh la comprobacion find -newer, la guarda de puerto ocupado y exigir 200 en /health.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7524,8 +7524,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-9",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.152Z",
-      "updated_at": "2026-09-29T14:39:03.152Z",
-      "resolution": null
+      "updated_at": "2026-09-30T22:20:28.006Z",
+      "resolution": "faab8d1: smoke-backend.sh recompila si src, next.config.mjs o package.json son mas recientes que el build; aborta si el puerto de la app o de la BD esta ocupado (antes del trap); detecta servidor muerto y Postgres no listo; exige 200 en /health y /, 401 en las seis rutas GET de datos. Regresion tests/integration/bg-058-smoke-backend-build-vigente.test.ts. Verificado en la raiz (59/59) y en backend.",
+      "fix_commit_sha": "faab8d1d2ed989631368c8c5874f371c5cd23a42",
+      "fix_at": "2026-09-30T22:20:27.947Z"
     },
     {
       "id": "BG-059",
