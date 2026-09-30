@@ -479,15 +479,15 @@
       "requirement_id": "FR-1012",
       "user_story_id": "US-1012",
       "ac_id": "AC-1012",
-      "title": "La nota de una operación De→A se lee desde la celda y se puede añadir manual",
+      "title": "La nota de un aporte se lee en el Detalle de la celda, la de un retiro no, y se puede añadir un comentario",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "un retiro con nota 'pasaje' en sep",
+      "given": "un aporte con nota 'pasaje' y un retiro con nota 'Para regalos' en sep",
       "when": "se inspecciona la celda Ejec. de sep de la alcancía y se abre su editor",
-      "then": "punto indicador visible, tooltip contiene 'pasaje', la sección Detalle la lista y un comentario escrito en 'Añadir comentario' aparece de inmediato",
-      "expected_result": "lectura e ingreso desde la celda"
+      "then": "sin punto indicador (no hay comentarios); el Detalle lista el aporte con nota 'pasaje' y no contiene 'Para regalos'; un comentario escrito en 'Añadir comentario' aparece de inmediato y enciende el punto (BG-084)",
+      "expected_result": "la celda muestra la nota del aporte y no la del retiro; los comentarios se leen y se añaden desde la celda"
     },
     {
       "id": "TC-TRF4-012e",

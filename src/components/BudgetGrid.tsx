@@ -5,7 +5,7 @@ import { ChevronRight, ChevronDown, Pencil, Trash2, Plus, Check, X, ArrowLeft, A
 import { useLedgerStore, useActivePeriods, useVisiblePeriods, useClosure, useClosureStatus, useCalendar } from "@/state/store";
 import type { LedgerNode, LedgerState, PeriodKey, NodeLevel, NodeType } from "@/domain/types";
 import { periodMonthLabel, isYearStart, periodYear, monthOf } from "@/domain/periods";
-import { cycleMonthLabel, withRange } from "./cycleText";
+import { cycleLabel, cycleMonthLabel, withRange } from "./cycleText";
 import { isClosed } from "@/domain/closure";
 import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
@@ -24,6 +24,7 @@ import { BalanceModule, RetirosRow } from "./BalanceModule";
 import { OpeningCard } from "./OpeningCard";
 import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
+import { FOCUS_RING, cellAriaLabel, cellButtonProps, devolverFocoSiSePerdio, entradaFueTeclado, instalarRastreoDeEntrada, useKeyboardFocusWithin } from "./gridKeyboard";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
 
 /**
@@ -171,6 +172,26 @@ export function BudgetGrid() {
   const [catW, setCatW] = useState<number>(() => readCatWidth()); // FR-104: ancho persistido de la columna categoría
   const [dragId, setDragId] = useState<string | null>(null); // FR-015: nodo en arrastre (para el DragOverlay)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  // BG-069: al cerrar un editor con Enter o Escape, el campo desaparecía con el foco dentro y el foco
+  // caía al <body>: el siguiente Tab volvía a empezar por el principio de la página. Se devuelve a la
+  // celda que se editaba — solo si el editor se ABRIÓ y se CERRÓ con el teclado. Quien abre con un
+  // clic, teclea la cifra y pulsa Enter es un usuario de mouse: devolverle el foco pintaría el anillo
+  // en la celda y dejaría las acciones de la fila a la vista (revisión adversarial, 2026-09-30).
+  useEffect(() => { instalarRastreoDeEntrada(); }, []);
+  const editandoAntes = useRef(editing);
+  const abiertoConTeclado = useRef(false);
+  useEffect(() => {
+    const antes = editandoAntes.current;
+    editandoAntes.current = editing;
+    if (editing) {
+      if (editing.id !== antes?.id || editing.mk !== antes?.mk || editing.field !== antes?.field) abiertoConTeclado.current = entradaFueTeclado();
+      return;
+    }
+    if (!antes || !abiertoConTeclado.current) return;
+    const sel = `[data-cell="${CSS.escape(antes.id)}"][data-month="${CSS.escape(antes.mk)}"][data-plane="${antes.field}"]`;
+    devolverFocoSiSePerdio(() => scrollRef.current?.querySelector<HTMLElement>(sel));
+  }, [editing]);
 
   // FR-104: arrastre de la manija (Pointer Events propios, aislados del dnd de nodos).
   function startResize(e: React.PointerEvent) {
@@ -597,25 +618,26 @@ function TypeTotalRow({ type, label, Icon, highlightMonth, activeType, isExpande
   // queda con cero color de identidad y el canal cromático se libera para el estado.
   const color = "var(--fg)";
   const [hover, setHover] = useState(false);
+  const teclado = useKeyboardFocusWithin(); // BG-069: el «+» también aparece al llegar con Tab
   // FR-601: la fila de tipo es destino de promoción a grupo. Solo el tipo COMPATIBLE con el nodo
   // arrastrado muestra la afordancia (prevención de error / cross-type, H5).
   const droppable = useDroppable({ id: `root:${type}` });
   const showDrop = droppable.isOver && activeType === type;
   return (
-    <div className={cn("flex", bandTop && "border-t border-t-border-strong")} data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className={cn("flex", bandTop && "border-t border-t-border-strong")} data-testid="type-total-row" data-type={type} ref={droppable.setNodeRef} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={teclado.onFocus} onBlur={teclado.onBlur}>
       {/* FR-404/ADR-04: la fila de total por tipo NO es editable, así que migra de la capa elevada a
           la hundida. Efecto buscado: su rojo de identidad de tipo deja de confundirse con el rojo de
           sobre-consumo de una celda de datos. */}
       <div data-testid="row-label" className={cn(STICKY_BASE, LABEL_W, "bg-sunken border-b border-border pl-3.5 pr-2.5 gap-2 font-semibold", roundTop && "rounded-tl-(--radius-md)", roundBottom && "rounded-bl-(--radius-md)")} style={{ color, boxShadow: showDrop ? "inset 0 0 0 2px var(--accent)" : undefined }}>
-        <button aria-label="Colapsar tipo" onClick={onToggle} className="inline-flex w-3.5 flex-none cursor-pointer" style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
+        <button aria-label="Colapsar tipo" aria-expanded={isExpanded} onClick={onToggle} className={cn("inline-flex w-3.5 flex-none cursor-pointer rounded-sm", FOCUS_RING)} style={{ color }}>{isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
         <Icon size={15} color={color} />
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
         <span className="flex-1 min-w-0" />
         {/* Afordancia de destino de promoción (solo durante un arrastre compatible) */}
         {showDrop && <span data-testid="promote-hint" className="flex-none caption" style={{ color: "var(--accent-light)" }}>Soltar para crear grupo</span>}
         {/* "+" para agregar un GRUPO de este tipo (el adder de grupo vive en el hover del tipo) */}
-        {hover && !showDrop && (
-          <button aria-label="Agregar grupo" onClick={onAddGroup} className="inline-flex p-[3px] rounded-md flex-none cursor-pointer bg-transparent border-0" style={{ color }}><Plus size={14} /></button>
+        {(hover || teclado.focused) && !showDrop && (
+          <button aria-label="Agregar grupo" onClick={onAddGroup} className={cn("inline-flex p-[3px] rounded-md flex-none cursor-pointer bg-transparent border-0", FOCUS_RING)} style={{ color }}><Plus size={14} /></button>
         )}
       </div>
       {periods.map((m) => {
@@ -690,8 +712,25 @@ function NodeRow(props: {
   const notesOf = useNotesOf(data);
   const rollups = useRollups(data, periods);
   const [hover, setHover] = useState(false);
+  const teclado = useKeyboardFocusWithin(); // BG-069: las acciones también aparecen al llegar con Tab
   const [nameVal, setNameVal] = useState(node.name);
   const [confirmDel, setConfirmDel] = useState(false);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const labelRef = useRef<HTMLDivElement | null>(null);
+
+  // BG-069: confirmar o cancelar un renombrado o un borrado desmonta el control que tenía el foco, y el
+  // foco cae al <body>. A quien iba con teclado se le devuelve al rótulo de su fila; y en todo caso se
+  // recalcula `teclado.focused`, que sin un `blur` visible se quedaría pintando las acciones.
+  const enCurso = naming || confirmDel;
+  const enCursoAntes = useRef(enCurso);
+  useEffect(() => {
+    const antes = enCursoAntes.current;
+    enCursoAntes.current = enCurso;
+    if (!antes || enCurso) return;
+    devolverFocoSiSePerdio(() => labelRef.current);
+    teclado.sincronizar(rowRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona al fin de la acción
+  }, [enCurso]);
 
   useEffect(() => { if (naming) setNameVal(node.name); }, [naming, node.name]);
 
@@ -707,10 +746,10 @@ function NodeRow(props: {
   const rowSurface = row.leaf ? "var(--bg)" : "var(--bg-sunken)";
 
   return (
-    <div className="flex flex-col" data-testid="node-row" data-level={node.level} data-leaf={String(row.leaf)} style={{ opacity: draggable.isDragging ? 0.4 : 1 }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} ref={dropId ? droppable.setNodeRef : undefined}>
+    <div className="flex flex-col" data-testid="node-row" data-level={node.level} data-leaf={String(row.leaf)} style={{ opacity: draggable.isDragging ? 0.4 : 1 }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={teclado.onFocus} onBlur={teclado.onBlur} ref={(el) => { rowRef.current = el; if (dropId) droppable.setNodeRef(el); }}>
       <div className="flex">
         <div
-          ref={draggable.setNodeRef}
+          ref={(el) => { labelRef.current = el; draggable.setNodeRef(el); }}
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
           data-testid="row-label"
@@ -723,7 +762,7 @@ function NodeRow(props: {
             boxShadow: droppable.isOver && dropId ? "inset 0 0 0 1.5px var(--accent)" : undefined,
           }}
         >
-          <button aria-label="Expandir" onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted", row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
+          <button aria-label="Expandir" aria-expanded={row.expandable ? props.isExpanded : undefined} onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted rounded-sm", FOCUS_RING, row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
           {(node.level === "category" || node.level === "group") && !node.system ? (
             // FR-309/310: selector de iconos rico en un Popover shadcn (≥40 Lucide, buscable)
             <IconPicker
@@ -746,19 +785,20 @@ function NodeRow(props: {
           )}
           {confirmDel && !node.system && (
             <span className="flex gap-1 flex-none">
-              <button aria-label="Confirmar borrado" onClick={() => { props.onDelete(); setConfirmDel(false); }} className="inline-flex p-[3px] rounded-md text-error cursor-pointer bg-transparent border-0"><Check size={14} /></button>
-              <button aria-label="Cancelar borrado" onClick={() => setConfirmDel(false)} className="inline-flex p-[3px] rounded-md text-fg-muted cursor-pointer bg-transparent border-0"><X size={14} /></button>
+              {/* BG-069: «Borrar» desaparece al pulsarse; sin foco aquí, quien llegó con teclado lo perdía. */}
+              <button autoFocus aria-label="Confirmar borrado" onClick={() => { props.onDelete(); setConfirmDel(false); }} className={cn("inline-flex p-[3px] rounded-md text-error cursor-pointer bg-transparent border-0", FOCUS_RING)}><Check size={14} /></button>
+              <button aria-label="Cancelar borrado" onClick={() => setConfirmDel(false)} className={cn("inline-flex p-[3px] rounded-md text-fg-muted cursor-pointer bg-transparent border-0", FOCUS_RING)}><X size={14} /></button>
             </span>
           )}
-          {hover && !node.system && !naming && !confirmDel && (
+          {(hover || teclado.focused) && !node.system && !naming && !confirmDel && (
             <span className="flex gap-px flex-none">
               {(node.level === "group" || node.level === "category") && (
-                <button aria-label={node.level === "group" ? "Agregar categoría" : "Agregar subcategoría"} onClick={props.onAddChild} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Plus size={13} /></button>
+                <button aria-label={node.level === "group" ? "Agregar categoría" : "Agregar subcategoría"} onClick={props.onAddChild} className={cn("inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0", FOCUS_RING)}><Plus size={13} /></button>
               )}
-              <button aria-label="Renombrar" onClick={props.startNaming} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Pencil size={13} /></button>
+              <button aria-label="Renombrar" onClick={props.startNaming} className={cn("inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0", FOCUS_RING)}><Pencil size={13} /></button>
               {/* #4: solo mostrar borrar si el nodo es realmente borrable (grupo vacío; categoría/sub sin datos) */}
               {canDeleteNode(data, node.id, scope) && (
-                <button aria-label="Borrar" onClick={() => setConfirmDel(true)} className="inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0"><Trash2 size={13} /></button>
+                <button aria-label="Borrar" onClick={() => setConfirmDel(true)} className={cn("inline-flex p-[3px] rounded-md text-fg-muted hover:text-fg cursor-pointer bg-transparent border-0", FOCUS_RING)}><Trash2 size={13} /></button>
               )}
             </span>
           )}
@@ -775,12 +815,12 @@ function NodeRow(props: {
                 {editingB ? (
                   <ReserveCellEditor leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} closed={props.closedPeriods.has(m)} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m} plane="budget" sep highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "budget", 0)} />
+                  <ReserveLeafCell leafId={node.id} nodeName={node.name} month={m} plane="budget" sep highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "budget", 0)} />
                 )}
                 {editingA ? (
                   <ReserveCellEditor leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} closed={props.closedPeriods.has(m)} onClose={props.cancelEdit} />
                 ) : (
-                  <ReserveLeafCell leafId={node.id} month={m} plane="actual" highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "actual", 0)} />
+                  <ReserveLeafCell leafId={node.id} nodeName={node.name} month={m} plane="actual" highlight={props.highlightMonth === m} onStart={() => props.startEdit(m, "actual", 0)} />
                 )}
               </div>
             );
@@ -788,8 +828,8 @@ function NodeRow(props: {
           const { budget: bud, actual: act } = rollups.cell(node.id, m);
           return (
             <div key={m} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} nodeName={node.name} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} nodeName={node.name} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
         })}
@@ -798,7 +838,7 @@ function NodeRow(props: {
   );
 }
 
-function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; tecleado?: boolean; resync?: (v: string) => void; commit: (confirmado?: boolean) => void; cancel: () => void }) {
+function EditableCell(props: { editing: boolean; value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; leaf: boolean; highlight?: boolean; glyph?: string; editVal: string; nodeId?: string; nodeName?: string; month?: PeriodKey; plane?: "budget" | "actual"; notes?: number; closed?: boolean; onStart: () => void; setEditVal: (v: string) => void; tecleado?: boolean; resync?: (v: string) => void; commit: (confirmado?: boolean) => void; cancel: () => void }) {
   // BG-001: si la celda cambia mientras está abierta —un movimiento añadido, editado o borrado desde el
   // Detalle— y el usuario no ha tecleado nada, el campo pasa a mostrar la cifra nueva. Si ya tecleó, se
   // respeta lo que tecleó: es una decisión explícita (FR-2504).
@@ -871,7 +911,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
   }
   // FR-404: la fila NO editable (!leaf) lleva la superficie hundida — el MISMO predicado que gobierna
   // la edición, así la afordancia no puede desalinearse del comportamiento (ADR-05).
-  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} notes={props.notes} nodeId={props.nodeId} month={props.month} plane={props.plane} closed={props.closed} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
+  return <Cell value={props.value} sep={props.sep} muted={props.muted} color={props.color} weight={props.weight} highlight={props.highlight} sunken={!props.leaf} glyph={props.glyph} notes={props.notes} nodeId={props.nodeId} nodeName={props.nodeName} month={props.month} plane={props.plane} closed={props.closed} onClick={props.leaf ? props.onStart : undefined} clickable={props.leaf} />;
 }
 
 /**
@@ -890,7 +930,12 @@ function cellSurface(sunken: boolean | undefined, highlight: boolean | undefined
   return highlight ? `color-mix(in srgb, var(--accent) 6%, ${base})` : base;
 }
 
-function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, notes, carryNote, onClick, clickable, nodeId, month, plane, closed }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; notes?: number; carryNote?: string; onClick?: () => void; clickable?: boolean; nodeId?: string; month?: PeriodKey; plane?: "budget" | "actual"; closed?: boolean }) {
+function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph, notes, carryNote, onClick, clickable, nodeId, nodeName, month, plane, closed }: { value: number; sep?: boolean; muted?: boolean; color?: string; weight?: number; bold?: boolean; highlight?: boolean; sunken?: boolean; glyph?: string; notes?: number; carryNote?: string; onClick?: () => void; clickable?: boolean; nodeId?: string; nodeName?: string; month?: PeriodKey; plane?: "budget" | "actual"; closed?: boolean }) {
+  // BG-069: la celda que abre un editor se alcanza con Tab y se abre con Enter, como con el clic.
+  const cal = useCalendar();
+  const teclado = onClick && clickable && nodeName && month && plane
+    ? cellButtonProps(cellAriaLabel(nodeName, plane, cycleLabel(cal, month), cellNum(value)), onClick)
+    : {};
   // FR-2009/AC-2013: la celda de un mes cerrado se distingue como no editable SIN que el usuario
   // tenga que probar — `data-closed` y un cursor que deja de decir «aquí se escribe».
   //
@@ -901,6 +946,7 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
   return (
     <div
       onClick={onClick}
+      {...teclado}
       data-testid={clickable ? "cell-leaf" : "cell-parent"}
       {...(nodeId ? { "data-cell": nodeId } : {})}
       {...(month ? { "data-month": month } : {})}
@@ -908,7 +954,7 @@ function Cell({ value, sep, muted, color, weight, bold, highlight, sunken, glyph
       {...(closed ? { "data-closed": "true" } : {})}
       title={carryNote}
       {...(carryNote ? { "data-carry-note": carryNote } : {})}
-      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable && !closed ? "cursor-text" : "cursor-default")}
+      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap", sep && "border-l-2 border-l-border-strong", clickable && !closed ? "cursor-text" : "cursor-default", clickable && FOCUS_RING, clickable && "focus-visible:ring-inset")}
       style={{
         // refinamiento-ui FR-1202: un valor 0 se pinta como "—" y significa «aquí no hay nada».
         // Antes heredaba el color del tipo, así que la pantalla llegaba a tener ~30 guiones rojos,

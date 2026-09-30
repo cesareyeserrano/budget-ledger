@@ -171,13 +171,14 @@
     {
       "id": "FR-1012",
       "title": "Campo de observaciones por celda",
-      "description": "Las celdas Ejec. del bloque RESERVAS afloran observaciones: las notas de operaciones De→A del mes llegan solas (derivadas del journal) y se pueden añadir manuales (≤280, rechazo sin truncar). Punto indicador solo si hay observaciones; lectura por tooltip y sección del editor con placeholder cuando no hay.",
+      "description": "Las celdas Ejec. del bloque RESERVAS se leen como cualquier otra celda: su Detalle lista los APORTES del mes (Disponible → alcancía), que son lo que forma su cifra, cada uno con su fecha, su monto y su nota, y admite comentarios manuales (≤280, rechazo sin truncar). La nota de un retiro o de un traslado es de ESA operación: se lee en la lista de «Retiros del mes», nunca en la celda de la alcancía (BG-084, decisión del usuario del 2026-09-30 — un retiro de 400.000 «Para regalos» salía junto a un aporte de 1.300.000 como si lo describiera). Punto indicador solo si hay comentarios escritos en la celda; placeholder cuando no hay nada.",
       "priority": "MUST",
       "type": "UX",
       "acceptance_criteria": [
-        "Una operación De→A con nota deja su observación legible desde la celda del mes (happy)",
-        "Celda sin observaciones: sin indicador y placeholder 'Sin observaciones este mes' (edge)",
-        "Una observación manual de más de 280 caracteres se rechaza sin truncar (negativo)"
+        "Un aporte con nota se lee en el Detalle de la celda de su mes, como una línea de movimiento con fecha, monto y nota (happy)",
+        "Celda sin aportes ni comentarios: sin indicador y placeholder 'Sin movimientos ni comentarios' (edge)",
+        "La nota de un retiro no aparece en la celda de la alcancía ni enciende su indicador: se lee en «Retiros del mes» (negativo)",
+        "Un comentario manual de más de 280 caracteres se rechaza sin truncar (negativo)"
       ]
     },
     {

@@ -71,10 +71,14 @@ su rediseño es BL-019 (feature futura). Este spec fija la v1 funcional, no la d
 
 ### Flujo 5 — Leer y añadir observaciones (escritorio, celdas Ejec. de RESERVAS)
 - **Entry A:** hover sobre el punto indicador (4px, esquina sup. derecha; ausente sin
-  observaciones) → tooltip con las observaciones del mes (máx 3 + «+N más»).
-- **Entry B:** editor de celda abierto → sección «Observaciones»: las notas de operaciones De→A
-  llegan solas; campo «Añadir observación» con contador ≤280 (a `--error` al exceder, rechazo sin
-  truncar). Placeholder «Sin observaciones este mes».
+  comentarios escritos en la celda) → tooltip con los comentarios del mes (máx 3 + «+N más»).
+- **Entry B:** editor de celda abierto → sección «Detalle»: los APORTES del mes (Disponible →
+  alcancía) como líneas de movimiento con fecha, monto y nota, igual que en una celda de gasto o
+  ingreso; campo «Añadir comentario» con contador ≤280 (a `--error` al exceder, rechazo sin
+  truncar). Placeholder «Sin movimientos ni comentarios».
+- **La nota de un retiro o traslado NO aparece en la celda de la alcancía** (BG-084, decisión del
+  usuario del 2026-09-30): es de esa operación y se lee en la lista de «Retiros del mes». Un retiro
+  no forma la cifra de la celda, así que su nota junto al aporte lo describiría mal.
 
 ---
 

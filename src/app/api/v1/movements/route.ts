@@ -39,6 +39,8 @@ const postHandler = withApi<MovementInput>(
   async ({ userId, body }) => {
     const result = await insertMovement(userId, body);
     if (!result) return apiError("invalid_movement", "Movimiento inválido", HTTP.UNPROCESSABLE);
+    // BG-064: el mismo código que ya usa la edición de un movimiento (PATCH /movements/[id]).
+    if ("invalidTarget" in result) return apiError("invalid_target", "Categoría destino inválida", HTTP.UNPROCESSABLE);
     // Feature cierre-de-mes (FR-2003): el mes destino está cerrado. Segunda vía de escritura, y
     // por eso se comprueba aquí además de en saveLedger — insertMovement no pasa por él.
     if ("closedViolation" in result) {

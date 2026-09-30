@@ -7,6 +7,7 @@ import { typeColor, typeTextColor } from "@/lib/tokens";
 import { validateAmountInput, parsePesos } from "@/lib/money";
 import { dateLabel, periodKeyFromDate } from "@/lib/date";
 import { normalizeNote } from "@/domain/mutations";
+import { isLeaf } from "@/domain/tree";
 import { fontSizeForDisplay } from "@/components/register/AmountDisplay";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -137,7 +138,7 @@ describe("FR-212 — anti doble-tap", () => {
   it("TC-SUT-238f: dos guardados idénticos dentro de 600ms crean un solo movimiento", async () => {
     const { useLedgerStore } = await import("@/state/store");
     const st = useLedgerStore.getState();
-    const cat = st.data.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
+    const cat = st.data.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system && isLeaf(n, st.data.nodes))!;
     const before = useLedgerStore.getState().data.movements.length;
     const input = { type: "expense" as const, catId: cat.id, subId: null, amount: 5000, period: "2026-06" as const, date: "2026-06-10T10:00", note: null };
     const first = useLedgerStore.getState().addMovement(input);

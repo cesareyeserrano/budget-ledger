@@ -48,6 +48,24 @@ export interface NewMovement {
   to?: string;
 }
 
+/**
+ * ¿Puede un gasto o un ingreso caer en este destino? Una hoja VIGENTE de su tipo, y `catId`/`subId`
+ * contando la misma historia: con sub, `catId` es su padre; sin sub, el destino no es una sub.
+ *
+ * BG-070 / BG-064: el registro puede tener abierta una categoría que otro dispositivo borró (o a la
+ * que le dio su primera subcategoría), y el servidor recibe lo que le manden. Sin esto el monto
+ * quedaba en una celda de un nodo que no existe o que ya es calculado — invisible en la app y vivo
+ * en la BD — o con un `catId` de otro tipo o inexistente al lado de una sub válida (revisión
+ * adversarial, 2026-09-30). La comparten el dominio, el formulario de registro y POST /movements.
+ */
+export function movementTargetOk(
+  nodes: LedgerNode[], m: { type: NodeType; catId: string; subId?: string | null }
+): boolean {
+  const node = findNode(nodes, m.subId ?? m.catId);
+  if (!node || node.system || node.type !== m.type || !isLeaf(node, nodes)) return false;
+  return m.subId ? node.level === "sub" && node.parentId === m.catId : node.level !== "sub";
+}
+
 /** El botón Guardar está habilitado solo con monto válido (>=1) y categoría seleccionada. */
 export function canSave(input: { amount: number | string; catId: string | null }): boolean {
   return parseAmount(input.amount) !== null && !!input.catId;
@@ -61,7 +79,8 @@ export function canSave(input: { amount: number | string; catId: string | null }
  * Feature transferencias (modelo v4): para type "transfer" DELEGA en applyReserveOp — guardar
  * suma el aporte a la celda del mes Y journaliza con from/to; sacar solo journaliza; ambos
  * validan techo/piso. Un rechazo del dominio devuelve el estado intacto (mismo contrato que un
- * monto inválido). expense/income conservan su camino byte a byte (NFR-1002).
+ * monto inválido). expense/income conservan su camino byte a byte (NFR-1002); lo único que se les
+ * exige es que el destino sea una hoja vigente de su tipo (BG-070).
  *
  * @aitri-trace FR-ID: FR-212, US-ID: US-212, AC-ID: AC-215, TC-ID: TC-SUT-241h
  * @aitri-trace FR-ID: FR-1004, US-ID: US-1004, AC-ID: AC-1004b, TC-ID: TC-TRF-104e, TC-TRF-152h
@@ -83,6 +102,7 @@ export function addMovement(
     }, periods);
     return "state" in result ? result.state : state;
   }
+  if (!movementTargetOk(state.nodes, input)) return state; // BG-070 / BG-064
   const next = clone(state);
   const mv: Movement = {
     id: uid(), ownerId: state.ownerId, type: input.type,

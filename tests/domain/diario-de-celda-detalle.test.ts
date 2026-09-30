@@ -161,20 +161,26 @@ describe("FR-2508 · comentarios en el Detalle", () => {
     expect(gastoEntries.map((e) => (e.kind === "movement" ? e.movement.id : e.kind === "comment" ? e.note.id : null)))
       .toEqual(["m-a", "m-b", "n-1", "n-2"]);
 
-    // Un bolsillo no tiene movimientos propios en el Detalle: su operación De→A se lee como nota, y
-    // el aviso automático del arrastre va SIEMPRE primero.
+    // Un bolsillo se lee como cualquier celda: sus movimientos son los APORTES que forman su cifra,
+    // y el aviso automático del arrastre va SIEMPRE primero. BG-084 (decisión del usuario del
+    // 2026-09-30): antes su operación De→A se leía como una nota suelta pintada como comentario, y un
+    // RETIRO también entraba, como si describiera el aporte. El retiro va con su nota a «Retiros del mes».
     const bolsillo = estado({
-      actuals: { "c-salario": { [M.ene]: 2_000_000 }, "c-viaje": { [M.feb]: 1_000_000 } },
+      actuals: { "c-salario": { [M.ene]: 2_000_000 }, "c-viaje": { [M.feb]: 300_000 } }, // celda = su aporte (BG-084)
       movements: [{
         id: "m-dea", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje",
         amount: 300_000, period: M.feb as Movement["period"], createdAt: 7, note: "pasaje",
         from: "@disponible", to: "c-viaje",
+      }, {
+        id: "m-ret", ownerId: "local", type: "transfer", catId: "c-viaje", subId: null, target: "c-viaje",
+        amount: 100_000, period: M.feb as Movement["period"], createdAt: 8, note: "Para regalos",
+        from: "c-viaje", to: "@disponible",
       }],
     });
 
     const bolsilloEntries = cellDetail(bolsillo, "c-viaje", M.feb, P);
-    expect(bolsilloEntries.map((e) => e.kind)).toEqual(["auto", "reserveNote"]);
-    expect(bolsilloEntries[1]).toMatchObject({ kind: "reserveNote", text: "pasaje" });
+    expect(bolsilloEntries.map((e) => e.kind)).toEqual(["auto", "movement"]);
+    expect(bolsilloEntries[1]).toMatchObject({ kind: "movement", movement: { id: "m-dea", note: "pasaje" } });
   });
 });
 

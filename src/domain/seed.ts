@@ -138,9 +138,9 @@ export function buildSeed(ownerId = "local", startPeriod: PeriodKey): LedgerStat
       }
     }
   }
-  // FR-2301: la semilla NO trae montos. Los mapas salen SIN CLAVES, no con claves a valor 0:
-  // `OpeningCard` decide su visibilidad con `Object.keys(budgets).length > 0` (FR-2302), así que
-  // unas claves en cero dejarían la tarjeta de arranque oculta sin que nada se pusiera rojo.
+  // FR-2301: la semilla NO trae montos. Los mapas salen SIN CLAVES, no con claves a valor 0. Desde
+  // BG-072 `OpeningCard` ya no cuenta claves sino valores distintos de cero (`hasLedgerData`), así
+  // que unas claves en cero no ocultarían la tarjeta; los mapas vacíos siguen siendo la forma limpia.
   const budgets: AmountMap = {};
   const actuals: AmountMap = {};
   return { ownerId, nodes, budgets, actuals, movements: [] };

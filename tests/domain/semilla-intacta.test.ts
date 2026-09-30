@@ -3,9 +3,9 @@
  *
  * Lo que se vigila aquí es una promesa de FORMA, no de valor: `buildSeed` debe devolver los mapas
  * de montos SIN UNA SOLA CLAVE. Devolverlos poblados de ceros satisfaría la lectura ingenua del
- * requisito —no se ve dinero— y rompería FR-2302 en silencio, porque `OpeningCard` decide si
- * aparece contando claves, no mirando valores. Ese es el riesgo número uno de la feature (RISK-2302
- * en 02_SYSTEM_DESIGN.md) y por eso TC-SIN-003f replica literalmente esa expresión.
+ * requisito —no se ve dinero— y rompía FR-2302 en silencio mientras `OpeningCard` decidía si
+ * aparecer contando claves. Ese fue el riesgo número uno de la feature (RISK-2302 en
+ * 02_SYSTEM_DESIGN.md); desde BG-072 cuenta valores y TC-SIN-003f llama a esa misma función.
  */
 import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { buildSeed, genBudget } from "@/domain/seed";
 import { isLeaf } from "@/domain/tree";
 import { addMonths } from "@/domain/periods";
-import { shouldShowOpeningCard } from "@/components/OpeningCard";
+import { hasLedgerData, shouldShowOpeningCard } from "@/components/OpeningCard";
 import { buildSeedConMontos } from "../helpers/seedConMontos";
 import { P0 } from "../helpers/periods";
 
@@ -48,14 +48,14 @@ describe("FR-2301 · la semilla del primer arranque no trae montos", () => {
   it("TC-SIN-003f: la trampa del mapa con ceros — hasData sobre la semilla real es false", () => {
     // @aitri-tc TC-SIN-003f
     const s = buildSeed("u-test", P0);
-    // La MISMA expresión que OpeningCard.tsx usa para decidir si se muestra. Si alguien rellenara
-    // los mapas con claves a valor 0, esto seguiría siendo true y la tarjeta no aparecería jamás.
-    const hasData =
-      Object.keys(s.budgets ?? {}).length > 0 ||
-      Object.keys(s.actuals ?? {}).length > 0 ||
-      (s.movements?.length ?? 0) > 0;
+    // La MISMA función que OpeningCard.tsx usa para decidir si se muestra. Hasta BG-072 era una
+    // expresión que contaba claves y esta prueba la replicaba; ahora cuenta valores, así que unos
+    // mapas rellenos de ceros tampoco la esconden — la trampa se comprueba también en ese estado.
+    const hasData = hasLedgerData(s);
     expect(hasData).toBe(false);
     expect(shouldShowOpeningCard(hasData, null, null)).toBe(true);
+    const conCeros = { ...s, budgets: { "c-vivienda": { [P0]: 0 } }, actuals: { "c-vivienda": { [P0]: 0 } } };
+    expect(hasLedgerData(conCeros)).toBe(false);
   });
 });
 

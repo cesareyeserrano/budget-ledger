@@ -437,8 +437,15 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // previo del mismo plano— y, en techo-de-flujo, TC-TDF-093e, que escribía primero un aporte del plan
     // por encima del techo confiando en que solo avisara. Ningún cambio de comportamiento de Ejecutado.
     //
+    // ANCLA AVANZADA a ccc4639 el 2026-09-30. Lo tocó BG-070, no esta feature: el dominio pasó a
+    // rechazar un gasto o un ingreso cuyo destino no es una hoja de SU tipo. El generador aleatorio de
+    // TC-CPR-064h/066f/067h sorteaba el tipo y la hoja por separado, así que la mitad de sus flujos eran
+    // «un gasto sobre la hoja de ingreso»: desde el guardia se rechazaban y no ejercitaban nada. Ahora
+    // la hoja sigue al tipo, con el mismo consumo de números aleatorios. Ninguna aserción cambió, y el
+    // guardia de esta feature tampoco. `techo-de-flujo.test.ts` no se tocó.
+    //
     const tocadas = execSync(
-      "git diff --name-only 5eacb9c -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only ccc4639 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");

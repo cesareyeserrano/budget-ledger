@@ -4,7 +4,7 @@
  * Module: components/OpeningCard
  * Purpose: La TARJETA DE ARRANQUE (FR-2203). Mientras el usuario no tenga datos ni haya declarado
  *   saldo, la grilla lleva encima una tarjeta que explica el saldo inicial y lo pide.
- * Dependencies: @/state/store, @/domain/periods, ./ui/input, ./ui/button, ./ui/select
+ * Dependencies: @/state/store, @/domain/periods, @/domain/range, ./ui/input, ./ui/button, ./ui/select
  *
  * NO ES UN MURO, y esa es la decisión que gobierna todo el componente. Se maquetaron cuatro formas
  * de preguntar y el usuario DESCARTÓ el formulario de bienvenida a pantalla completa por ser «un
@@ -25,6 +25,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { money } from "./format";
+import { oldestPeriodWithData } from "@/domain/range";
+import type { LedgerState } from "@/domain/types";
 
 /** Cuántos años hacia atrás ofrece el selector de la tarjeta. */
 const ANIOS_ATRAS = 2;
@@ -47,6 +49,18 @@ export function shouldShowOpeningCard(
   return !startMonth && openingBalance == null;
 }
 
+/**
+ * ¿Tiene el usuario DATOS? Las mismas cuatro fuentes que `oldestPeriodWithData`: un monto distinto
+ * de cero, un movimiento o una observación de celda.
+ *
+ * BG-072: antes se contaban CLAVES, y `createNode` crea los mapas vacíos de cada nodo nuevo. Crear
+ * una categoría antes de responder la tarjeta la daba por respondida y declaraba «este mes, saldo 0»
+ * sin que el usuario hubiera tecleado nada. Una categoría es estructura, no un dato.
+ */
+export function hasLedgerData(state: LedgerState): boolean {
+  return oldestPeriodWithData(state) !== null;
+}
+
 export function OpeningCard() {
   const data = useLedgerStore((s) => s.data);
   const setStart = useLedgerStore((s) => s.setStart);
@@ -59,10 +73,7 @@ export function OpeningCard() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasData =
-    Object.keys(data.budgets ?? {}).length > 0 ||
-    Object.keys(data.actuals ?? {}).length > 0 ||
-    (data.movements?.length ?? 0) > 0;
+  const hasData = hasLedgerData(data);
   const visible = shouldShowOpeningCard(hasData, data.startMonth, data.openingBalance);
 
   // ESTADO 4 de FR-2203, y el que gobierna todo el diseño: el usuario empieza a teclear sin

@@ -7636,7 +7636,7 @@
       "actual_result": "addMovement (mutations.ts:72-97) solo valida monto y catId no vacio; insertMovement no anade nada. Reutilizar la validacion de destino de editMovement (adjust.ts:297-302) y responder 422 invalid_target.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7644,8 +7644,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-19",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.629Z",
-      "updated_at": "2026-09-29T14:39:03.629Z",
-      "resolution": null
+      "updated_at": "2026-09-30T01:39:59.840Z",
+      "resolution": "ccc4639: insertMovement rechaza un destino que no es hoja vigente de su tipo o con catId/subId incoherentes y la ruta responde 422 invalid_target. Prueba backend bg-064-destino-invalido.",
+      "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
+      "fix_at": "2026-09-30T00:51:14.650Z"
     },
     {
       "id": "BG-065",
@@ -7797,7 +7799,7 @@
       "actual_result": "Las acciones de fila (BudgetGrid.tsx:753, 617) solo se pintan con hover y las celdas (903) no son alcanzables por teclado. Mostrar las acciones tambien con focus-within, dar a la celda rol, tabIndex y Enter, y anadir aria-expanded a los botones de expandir.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7805,8 +7807,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-26",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.054Z",
-      "updated_at": "2026-09-29T14:39:04.054Z",
-      "resolution": null
+      "updated_at": "2026-09-30T01:39:59.891Z",
+      "resolution": "ccc4639: acciones de fila tambien con foco de teclado; celdas editables alcanzables con Tab y abiertas con Enter/Espacio, con nombre accesible; aria-expanded; el foco vuelve a la celda o al rotulo tras cerrar con teclado; celda de bolsillo cerrada toma el foco. e2e bg-069-grilla-con-teclado (6).",
+      "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
+      "fix_at": "2026-09-30T00:51:14.366Z"
     },
     {
       "id": "BG-070",
@@ -7817,7 +7821,7 @@
       "actual_result": "Register.tsx:140,144-158 no revalida la seleccion contra el arbol vigente. Invalidar la seleccion cuando el nodo desaparece o deja de ser hoja, y rechazar en addMovement un destino inexistente.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7825,8 +7829,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-27",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.135Z",
-      "updated_at": "2026-09-29T14:39:04.135Z",
-      "resolution": null
+      "updated_at": "2026-09-30T01:39:59.944Z",
+      "resolution": "ccc4639: movementTargetOk (hoja vigente de su tipo, catId/subId coherentes) en addMovement y en el registro, que suelta la seleccion. Pruebas bg-070-destino-vigente y bg-070-registro-suelta-categoria.",
+      "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
+      "fix_at": "2026-09-30T00:51:14.425Z"
     },
     {
       "id": "BG-071",
@@ -7837,7 +7843,7 @@
       "actual_result": "Register.tsx:71 reinicia countInOpening con un efecto sobre proposal, que no cambia tras guardar; resetForNext (101-109) no lo toca. Reiniciarlo en resetForNext.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7845,8 +7851,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-28",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.214Z",
-      "updated_at": "2026-09-29T14:39:04.214Z",
-      "resolution": null
+      "updated_at": "2026-09-30T01:40:00.001Z",
+      "resolution": "ccc4639: resetForNext reinicia countInOpening. e2e bg-071-propuesta-no-se-hereda.",
+      "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
+      "fix_at": "2026-09-30T00:51:14.483Z"
     },
     {
       "id": "BG-072",
@@ -7857,7 +7865,7 @@
       "actual_result": "OpeningCard.tsx:62-66 cuenta claves y createNode (mutations.ts:136-137) crea mapas vacios. Contar valores distintos de cero, como oldestPeriodWithData.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7865,8 +7873,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-29",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.295Z",
-      "updated_at": "2026-09-29T14:39:04.295Z",
-      "resolution": null
+      "updated_at": "2026-09-30T01:40:00.064Z",
+      "resolution": "ccc4639: la tarjeta cuenta datos (hasLedgerData = oldestPeriodWithData != null), no claves; crear una categoria ya no declara la apertura. Prueba bg-072-categoria-no-responde-tarjeta.",
+      "fix_commit_sha": "708873a6f14595bd4f2e07d9ed36fd1db514f8ce",
+      "fix_at": "2026-09-30T00:51:14.562Z"
     },
     {
       "id": "BG-073",
@@ -8065,6 +8075,86 @@
       "created_at": "2026-09-29T14:39:05.012Z",
       "updated_at": "2026-09-29T14:39:05.012Z",
       "resolution": null
+    },
+    {
+      "id": "BG-082",
+      "title": "Tabular desde el Detalle de una celda abierta a otra celda y pulsar Enter descarta lo tecleado en la primera sin aviso",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-30T01:40:22.336Z",
+      "updated_at": "2026-09-30T01:40:29.029Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-30T01:40:29.029Z",
+          "text": "Hallazgo 6 de la revision adversarial de BG-069 (30-sep). Editor A abierto, Tab entra al Detalle (no comitea), Tab sale del Detalle a la celda siguiente con A aun abierto; Enter llama a startEdit y reemplaza editing/editVal. Con mouse ya pasaba (clic en otra celda con foco en el Detalle). Arreglo sugerido: que startEdit comitee la edicion en curso, o un onBlur en el contenedor abierto."
+        }
+      ]
+    },
+    {
+      "id": "BG-083",
+      "title": "Tras Confirmar borrado con teclado el foco cae al body y el siguiente Tab empieza desde el principio de la pagina",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-30T01:40:22.379Z",
+      "updated_at": "2026-09-30T01:40:29.081Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-30T01:40:29.081Z",
+          "text": "Hallazgo 4 de la revision adversarial de BG-069 (30-sep). Cancelar y renombrar ya devuelven el foco al rotulo (devolverFocoSiSePerdio); al confirmar un borrado la fila desaparece y no hay a donde volver. Arreglo sugerido: llevar el foco al rotulo de la fila vecina."
+        }
+      ]
+    },
+    {
+      "id": "BG-084",
+      "title": "La nota de un retiro (o traslado) aparece en la celda del bolsillo como si fuera un comentario de su aporte",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-30T01:49:26.029Z",
+      "updated_at": "2026-09-30T17:52:32.465Z",
+      "resolution": "e8b3a91: el Detalle de un bolsillo lista sus aportes como movimientos con su nota y una fila calculada 'Escrito en la celda'; el punto cuenta solo comentarios; la nota del retiro va entera en Retiros del mes. Re-derivado en transferencias (FR-1012) y diario-de-celda (NFR-2503). Verificado 80eb363.",
+      "log": [
+        {
+          "at": "2026-09-30T01:49:32.043Z",
+          "text": "Reportado por el usuario el 30-sep en prod: retiro de 400.000 de Ahorros a Disponible con nota 'Para regalos' (ciclo octubre) sale en la celda Ejec. de octubre de Ahorros (1.300.000 de aporte) pintado como comentario. cellObservations (reserve.ts) toma toda operacion con from o to = bolsillo; solo el aporte desde Disponible forma la cifra de la celda. Decision del usuario (30-sep): es un bug; la nota es del retiro, no de la celda. Se corrige el criterio 'La nota de una operacion De->A sigue apareciendo en la celda del bolsillo' de NFR-2503 (diario-de-celda) para las operaciones que no forman la cifra: retiros y traslados conservan su nota en la lista de Retiros del mes."
+        }
+      ],
+      "fix_commit_sha": "80eb363a5fd29f862f4af9f488abe657008b5513",
+      "fix_at": "2026-09-30T17:52:32.401Z"
     }
   ]
 }

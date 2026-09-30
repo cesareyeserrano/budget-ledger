@@ -80,13 +80,13 @@ function DetailRow({
     );
   }
 
-  if (entry.kind === "comment" || entry.kind === "reserveNote") {
-    const text = entry.kind === "comment" ? entry.note.text : entry.text;
+  if (entry.kind === "comment") {
+    const text = entry.note.text;
     // fecha-de-comentario (FR-2602): la misma columna de 44 px que la fila de movimiento, con el día
-    // en que se escribió. Sin día —un comentario anterior a la feature, o una nota de operación de
-    // bolsillo— la columna sigue ahí, VACÍA, para que el texto quede alineado con las notas. Nunca
-    // se deriva un día del `createdAt`, que es un contador y no una fecha.
-    const day = entry.kind === "comment" && entry.note.date ? dayLabel(entry.note.date) : "";
+    // en que se escribió. Sin día —un comentario anterior a la feature— la columna sigue ahí, VACÍA,
+    // para que el texto quede alineado con las notas. Nunca se deriva un día del `createdAt`, que es
+    // un contador y no una fecha.
+    const day = entry.note.date ? dayLabel(entry.note.date) : "";
     return (
       <div data-testid="detail-row" data-kind="comment" className={base} style={{ background: ROW_TINT }}>
         <MessageSquare size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-label="Comentario" style={{ color: "var(--fg-muted)" }} />
@@ -94,6 +94,23 @@ function DetailRow({
           {day}
         </span>
         <span data-testid="cell-note" className="flex-1 min-w-0 break-words" style={{ color: "var(--fg)" }}>{text}</span>
+      </div>
+    );
+  }
+
+  if (entry.kind === "tecleado") {
+    // BG-084: la diferencia que se escribió en la celda de un bolsillo. Misma anatomía que un ajuste
+    // de gasto o ingreso —ícono, texto, monto— para que el Detalle sume a la vista la cifra de la
+    // celda. Sin fecha: no es un movimiento, es lo que la celda dice de más o de menos.
+    const { sign, abs, addsToCell } = displayAmount(entry.amount);
+    return (
+      <div data-testid="detail-row" data-kind="tecleado" className={base} style={{ background: ROW_TINT }}>
+        <SlidersHorizontal size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-label="Escrito en la celda" style={{ color: "var(--fg-muted)" }} />
+        <span data-testid="detail-date" className="tabular flex-none w-[44px]" />
+        <span data-testid="detail-note" className="flex-1 min-w-0 break-words" style={{ color: "var(--fg)" }}>Escrito en la celda</span>
+        <span data-testid="detail-amount" className="tabular flex-none" style={{ color: addsToCell ? "var(--fg)" : "var(--fg-secondary)" }}>
+          {sign}{money(abs).replace("$", "")}
+        </span>
       </div>
     );
   }
@@ -366,7 +383,10 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
                 type={node.type}
                 period={month}
                 resaltado={esMovimiento && e.movement.id === recien}
-                {...(esMovimiento && !cerrado
+                // BG-084: los aportes de un bolsillo se LEEN como los movimientos de cualquier celda,
+                // pero no se editan desde aquí: el editor de movimientos es de gasto e ingreso, y un
+                // aporte pasa por las reglas de reservas (se corrige desde la celda o su operación).
+                {...(esMovimiento && !cerrado && node.type !== "transfer"
                   ? {
                       acciones: {
                         onEdit: () => setEditando(e.movement.id),

@@ -8,7 +8,7 @@
 
 import type { CellNote, LedgerState, Movement, NodeType, PeriodKey } from "./types";
 import { monthOf, periodLabel } from "./periods";
-import { carryUsageText, cellObservations, monthCarryUsage } from "./reserve";
+import { carryUsageText, isAvailable, monthCarryUsage } from "./reserve";
 import { findNode, isLeaf } from "./tree";
 
 type PeriodScope = readonly PeriodKey[];
@@ -19,8 +19,11 @@ type PeriodScope = readonly PeriodKey[];
  */
 export type DetailEntry =
   | { kind: "auto"; text: string }
-  | { kind: "reserveNote"; text: string; createdAt: number }
   | { kind: "movement" | "adjustment"; movement: Movement }
+  /** BG-084: en un bolsillo, lo escrito directamente en la celda — la diferencia entre su cifra y
+   *  la suma de sus aportes. Teclear en la celda de un bolsillo no deja movimiento (NFR-2503), así
+   *  que sin esta fila el Detalle no sumaría la cifra que la celda muestra. */
+  | { kind: "tecleado"; amount: number }
   | { kind: "comment"; note: CellNote };
 
 /**
@@ -126,11 +129,14 @@ function splitComments(notes: readonly CellNote[]): { dated: CellNote[]; undated
  * fecha-de-comentario (FR-2603, ADR-03): es una fusión ESTABLE de dos listas ya ordenadas. Un
  * comentario entra justo antes del primer movimiento de un día POSTERIOR al suyo, así que a igual
  * día va después de los movimientos. El orden relativo de los movimientos no cambia nunca
- * (NFR-2604). En un bolsillo, cuyas líneas no tienen fecha, los comentarios fechados van tras ellas.
+ * (NFR-2604). En un bolsillo vale lo mismo: sus aportes son movimientos con fecha.
  *
- * Una hoja `transfer` no tiene movimientos propios en el Detalle: sus operaciones De→A se leen como
- * notas (`reserveNote`), exactamente como hasta ahora (NFR-2503). Los movimientos `transfer` nunca
- * forman parte de una celda de gasto o ingreso.
+ * Una hoja `transfer` se lee igual que las demás (BG-084, decisión del usuario del 2026-09-30): sus
+ * movimientos son los APORTES que forman su cifra —Disponible → esta hoja—, cada uno con su fecha,
+ * su monto y su nota. Antes sus operaciones De→A se leían como notas sueltas pintadas igual que un
+ * comentario, retiros incluidos: un retiro de 400.000 «Para regalos» salía junto a un aporte de
+ * 1.300.000 como si lo describiera. Un retiro no forma la cifra de la celda; su nota va con él, en
+ * «Retiros del mes». Los movimientos `transfer` nunca forman parte de una celda de gasto o ingreso.
  *
  * @param state Estado del ledger.
  * @param leafId Hoja cuya celda se abre.
@@ -162,22 +168,28 @@ export function cellDetail(
         text: carryUsageText(carry, cop),
       });
     }
-    for (const o of cellObservations(state, leafId, period, periods)) {
-      if (o.source === "manual") continue; // los manuales entran abajo, como comentarios
-      entries.push({ kind: "reserveNote", text: o.text, createdAt: o.createdAt });
-    }
-  } else {
-    const propios = state.movements
-      .filter((m) => m.type !== "transfer" && m.target === leafId && m.period === period)
-      .sort((a, b) => {
-        const byDate = sortDate(a, period).localeCompare(sortDate(b, period));
-        return byDate !== 0 ? byDate : a.createdAt - b.createdAt;
-      });
-    for (const m of propios) {
-      const day = sortDate(m, period).slice(0, DAY_LENGTH);
-      while (next < dated.length && dated[next].date! < day) entries.push({ kind: "comment", note: dated[next++] });
-      entries.push({ kind: m.kind === "adjustment" ? "adjustment" : "movement", movement: m });
-    }
+  }
+  const propios = state.movements
+    .filter((m) => m.period === period && (node.type === "transfer"
+      ? m.type === "transfer" && m.to === leafId && isAvailable(m.from)
+      : m.type !== "transfer" && m.target === leafId))
+    .sort((a, b) => {
+      const byDate = sortDate(a, period).localeCompare(sortDate(b, period));
+      return byDate !== 0 ? byDate : a.createdAt - b.createdAt;
+    });
+  for (const m of propios) {
+    const day = sortDate(m, period).slice(0, DAY_LENGTH);
+    while (next < dated.length && dated[next].date! < day) entries.push({ kind: "comment", note: dated[next++] });
+    entries.push({ kind: m.kind === "adjustment" ? "adjustment" : "movement", movement: m });
+  }
+  if (node.type === "transfer") {
+    // BG-084: las filas suman la cifra de la celda, como en gasto e ingreso. Lo que no explican los
+    // aportes se escribió en la celda (subirla o bajarla desde la grilla no deja movimiento): con un
+    // aporte de 10 y la celda corregida a 0 la fila dice −10, y con 5 tecleados más un aporte de 1,
+    // dice 5. Se calcula, no se guarda: no hay dato nuevo.
+    const aportes = propios.reduce((sum, m) => sum + m.amount, 0);
+    const tecleado = (state.actuals[leafId]?.[period] ?? 0) - aportes;
+    if (tecleado !== 0) entries.push({ kind: "tecleado", amount: tecleado });
   }
 
   while (next < dated.length) entries.push({ kind: "comment", note: dated[next++] });

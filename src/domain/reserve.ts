@@ -1532,8 +1532,14 @@ export interface CellObservation {
 }
 
 /**
- * Las observaciones de una celda transfer en un mes: las notas de las operaciones De→A que tocan
- * la hoja en ese mes + las manuales, por antigüedad.
+ * Las observaciones de una celda transfer en un mes: las notas de los APORTES que forman su cifra
+ * (Disponible → esta hoja) + las manuales, por antigüedad.
+ *
+ * BG-084 (decisión del usuario, 2026-09-30): antes entraba la nota de TODA operación que tocara la
+ * hoja, retiros y traslados incluidos. Pero la celda es el aporte del mes (FR-1003) y solo el aporte
+ * desde Disponible la escribe: un retiro de 400.000 con nota «Para regalos» salía junto a un aporte de
+ * 1.300.000, pintado como un comentario sobre esa cifra. La nota es de la operación, no de la celda;
+ * retiros y traslados la conservan donde viven, en la lista de «Retiros del mes».
  *
  * @throws Nunca. Movimientos sin from/to o sin nota simplemente no aportan.
  */
@@ -1541,7 +1547,7 @@ export function cellObservations(
   state: LedgerState, leafId: string, month: PeriodKey, periods: PeriodScope
 ): CellObservation[] {
   const derived: CellObservation[] = state.movements
-    .filter((m) => m.type === "transfer" && m.period === month && m.note && (m.from === leafId || m.to === leafId))
+    .filter((m) => m.type === "transfer" && m.period === month && m.note && m.to === leafId && isAvailable(m.from))
     .map((m) => ({ createdAt: m.createdAt, text: m.note!, source: "movement" as const }));
   const manual: CellObservation[] = (state.cellNotes?.[leafId]?.[month] ?? []).map((n) => ({
     createdAt: n.createdAt,

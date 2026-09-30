@@ -12,7 +12,8 @@
 // Dependencias: @/state/store, @/domain (reserve), ./reserveText, ./format, ./gridLayout, ./ui/popover.
 
 import { useEffect, useRef, useState } from "react";
-import { useLedgerStore, useActivePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useCalendar } from "@/state/store";
+import { cycleLabel } from "./cycleText";
 import type { PeriodKey, Movement } from "@/domain/types";
 import { periodMonthLabel, periodLabel } from "@/domain/periods";
 import {
@@ -39,6 +40,7 @@ import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { blockMessage } from "./reserveText";
 import { cellNum, money } from "./format";
 import { CELL_W } from "./gridLayout";
+import { FOCUS_RING, cellAriaLabel, cellButtonProps } from "./gridKeyboard";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { CellDetail } from "./CellDetail";
@@ -58,6 +60,8 @@ import { CellDetail } from "./CellDetail";
  */
 export function ReserveLeafCell(props: {
   leafId: string;
+  /** Nombre del bolsillo, para el nombre accesible de la celda (BG-069). */
+  nodeName: string;
   month: PeriodKey;
   plane: Plane;
   sep?: boolean;
@@ -66,13 +70,19 @@ export function ReserveLeafCell(props: {
 }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
+  const cal = useCalendar();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
   // saldo-de-bolsillo (NFR-3005, decisión del usuario del 2026-09-27): la celda es lo APORTADO ese mes.
   // Nada de la grilla arrastra; lo acumulado vive en el Balance.
   const value = map[props.leafId]?.[props.month] ?? 0;
 
-  // Las observaciones del mes (notas de operaciones De→A + manuales) afloran en la celda Ejec.
-  const observations = props.plane === "actual" ? cellObservations(data, props.leafId, props.month, periods) : [];
+  // Los COMENTARIOS escritos en la celda afloran en la celda Ejec., como en cualquier otra (BG-084):
+  // la nota de un movimiento va con su movimiento, y se lee al abrir el Detalle — el de un aporte en
+  // esta celda, el de un retiro en «Retiros del mes». Antes el punto también se encendía con la nota
+  // de un retiro, y su título la mostraba junto al aporte del mes como si lo describiera.
+  const observations = props.plane === "actual"
+    ? cellObservations(data, props.leafId, props.month, periods).filter((o) => o.source === "manual")
+    : [];
   // FR-1804 — y la automática, si esta celda aportó en un mes que se completó del saldo anterior.
   const carry =
     props.plane === "actual" && value > 0 ? monthCarryUsage(data, props.month, "actual", periods) : null;
@@ -91,6 +101,8 @@ export function ReserveLeafCell(props: {
   return (
     <div
       onClick={props.onStart}
+      // BG-069: alcanzable con Tab y abierta con Enter, igual que la celda de gasto e ingreso.
+      {...cellButtonProps(cellAriaLabel(props.nodeName, props.plane, cycleLabel(cal, props.month), cellNum(value)), props.onStart)}
       data-testid="cell-leaf"
       // Los mismos atributos que emite `Cell` para gasto e ingreso (BudgetGrid): sin ellos una celda
       // de bolsillo solo se podía localizar contando columnas, y el Detalle —que ahora vive también
@@ -99,7 +111,7 @@ export function ReserveLeafCell(props: {
       data-month={props.month}
       data-plane={props.plane}
       title={title}
-      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
+      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", FOCUS_RING, "focus-visible:ring-inset", props.sep && "border-l-2 border-l-border-strong")}
       style={{ color, background: props.highlight ? "color-mix(in srgb, var(--accent) 6%, var(--bg))" : "var(--bg)" }}
     >
       {(observations.length > 0 || carry) && (
@@ -154,6 +166,10 @@ export function ReserveCellEditor(props: {
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  // BG-069: en un mes cerrado no hay campo que tome el foco. Abierta con el teclado, la celda se
+  // desmontaba con el foco dentro y el Escape nunca llegaba a este contenedor: el panel quedaba
+  // abierto sin salida. Mismo arreglo que ya tenía la celda de gasto e ingreso (EditableCell).
+  useEffect(() => { if (props.closed) rootRef.current?.focus(); }, [props.closed]);
 
   // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
   // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
@@ -195,6 +211,7 @@ export function ReserveCellEditor(props: {
   if (props.closed) {
     return (
       <div ref={rootRef} tabIndex={-1} onKeyDown={(e) => { if (e.key === "Escape") props.onClose(); }}
+        onBlur={(e) => { if (!rootRef.current?.contains(e.relatedTarget as Node)) props.onClose(); }}
         className={cn(CELL_W, "relative py-1 px-2 outline-none", props.sep && "border-l-2 border-l-border-strong")}>
         <span data-testid="closed-value" className="tabular text-caption text-fg-secondary flex justify-end px-1.5 py-1">{cellNum(current)}</span>
         <div className="absolute left-0 top-full z-20 min-w-[230px]">
@@ -258,8 +275,9 @@ export function ReserveCellEditor(props: {
           </div>
         )}
         {/* FR-2501/FR-2508: el panel de la celda de bolsillo es el MISMO Detalle que el de gasto e
-            ingreso — el aviso automático y las notas De→A se leen como filas de comentario. La
-            regla de edición del valor del bolsillo no cambia (NFR-2503). */}
+            ingreso — el aviso automático, los aportes del mes como movimientos y lo escrito en la
+            celda como su diferencia (BG-084). La regla de edición del valor del bolsillo no cambia
+            (NFR-2503). */}
         {!block && plane === "actual" && <CellDetail leafId={leafId} month={month} />}
       </div>
     </div>
@@ -697,7 +715,6 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
         </span>
         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
           {leafPathLabel(data, mv.from!)} → {esMover ? leafPathLabel(data, mv.to!) : "Disponible"}
-          {mv.note ? <span style={{ color: "var(--fg-muted)" }}> · {mv.note}</span> : null}
         </span>
         <input
           aria-label={`Monto de ${esMover ? "el movimiento" : "el retiro"} de ${leafPathLabel(data, mv.from!)}`}
@@ -713,6 +730,14 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
           className="flex-none w-24 tabular text-right bg-card border border-border rounded-(--radius-xs) text-fg px-1.5 py-0.5 outline-none focus:border-accent"
         />
       </div>
+      {/* BG-084: la nota va ENTERA en su propia línea. Desde que la celda del bolsillo dejó de mostrar
+          la nota de un retiro, esta lista es el único sitio donde se lee, y en la línea del rótulo
+          se cortaba con «…» sin forma de leerla completa. */}
+      {mv.note ? (
+        <span data-testid={`op-note-${mv.id}`} className="pl-[46px] break-words" style={{ color: "var(--fg-muted)" }}>
+          {mv.note}
+        </span>
+      ) : null}
       {error ? (
         <span role="alert" data-testid={`op-error-${mv.id}`} className="pl-1" style={{ color: "var(--alert-strong)" }}>
           {error}

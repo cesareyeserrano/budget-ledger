@@ -19,140 +19,139 @@
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-26T20:44:07.378Z",
+  "updatedAt": "2026-09-30T19:17:05.894Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-07-30T15:38:34.226Z",
+      "at": "2026-09-30T02:05:47.642Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-30T02:06:01.085Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-30T02:06:15.405Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-30T02:07:35.887Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-09-30T02:07:36.001Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-30T02:10:46.871Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-30T02:13:07.059Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-09-30T02:13:07.172Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:13:56.111Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:29:17.841Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:29:35.340Z",
+      "event": "approved",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:38:18.347Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:33:26.740Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:51:21.000Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-30T17:51:28.116Z",
       "event": "started",
       "phase": 5
     },
     {
-      "at": "2026-07-30T15:38:39.199Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-30T15:38:44.987Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-30T15:39:32.531Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-07-30T15:41:51.798Z",
+      "at": "2026-09-30T17:51:46.794Z",
       "event": "completed",
       "phase": 5
     },
     {
-      "at": "2026-07-30T15:41:58.028Z",
+      "at": "2026-09-30T17:52:32.289Z",
       "event": "approved",
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
     },
     {
-      "at": "2026-09-13T21:43:14.135Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
+      "at": "2026-09-30T19:17:04.527Z",
+      "event": "rehash",
+      "phase": "1",
+      "artifact": "01_REQUIREMENTS.json",
+      "before_hash": "27492d46cb50c94c31b3197110ed64755de364b012fbaad6111390aa30f369eb",
+      "after_hash": "e8a720f34bb9dbc42a00fc27ad10cbab312de286f93f42a6ebf7c5e2f4d4296b"
     },
     {
-      "at": "2026-09-13T21:43:14.363Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0
+      "at": "2026-09-30T19:17:05.319Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "d6b9bd9a8594f72cb8b804a03ddf193a2b0880a26b7333c9ea375fb40d4b49c9",
+      "after_hash": "1c77c7423cb99461e38ac08e570968ffa90f08e79d9c5c0eed38e3929da8d75b"
     },
     {
-      "at": "2026-09-15T19:12:56.306Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-15T19:13:32.915Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-15T19:13:43.161Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-15T19:16:55.406Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-15T19:59:34.327Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-15T20:10:09.455Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-15T20:10:26.928Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-15T20:10:39.109Z",
-      "event": "started",
-      "phase": 5
-    },
-    {
-      "at": "2026-09-15T20:11:38.845Z",
-      "event": "completed",
-      "phase": 5
-    },
-    {
-      "at": "2026-09-15T21:41:19.580Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "0.0.1-beta",
-      "version_source": "manifest"
-    },
-    {
-      "at": "2026-09-26T20:42:34.321Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-26T20:44:07.367Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 67,
-      "failed": 0
+      "at": "2026-09-30T19:17:05.877Z",
+      "event": "rehash",
+      "phase": "5",
+      "artifact": "05_TRACEABILITY.json",
+      "before_hash": "18bd3aee4ac83a73d956642f09e0c69d4de35717662de855ebb1dfcbbd35d503",
+      "after_hash": "b50f9f43db113427017319a2dec78f41cd212328677c9d056bd5de07da5e247a"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "ee959b4211db6216f89e3c47b20dd223900ae3be6a847df340aaf3130ee0199b",
-    "2": "503f6f5e087ce6bef75cb56e045b60f0d01dad29dc900d4de15de3890e483670",
-    "3": "a5973b20def37f9e940ecc17765b5127b7c088b2fd564ef79abae7c6905273f7",
-    "4": "05a29618500597fdf78a73590ee88fe61d93dbe4c2a773223d0c447f2ba2c201",
-    "5": "f47640233596c8d842f70c3270aab333d2236bf341d23d6229fc3fbbff45d09e",
-    "ux": "931984c95bc79d29bc47697cccf528269617533fcd10152e71afa6f7d6132863"
+    "1": "e8a720f34bb9dbc42a00fc27ad10cbab312de286f93f42a6ebf7c5e2f4d4296b",
+    "2": "70d1ebbdc40bb3bad8d00d5451e2edc7cf8220ea9ccf9a27587c0ce1c144ed6e",
+    "3": "1c77c7423cb99461e38ac08e570968ffa90f08e79d9c5c0eed38e3929da8d75b",
+    "4": "09a963c5e41c221504275056f60983a47f17496002b2b88b088d268f8f8c35ca",
+    "5": "b50f9f43db113427017319a2dec78f41cd212328677c9d056bd5de07da5e247a",
+    "ux": "f58aad2f0d339df92811f8d8d18ceb5e33432985eae1f1a7aa26de6691edb19a"
   },
   "coverageAuditLastAt": "2026-07-30T14:29:48.007Z",
   "coverageAuditReqHash": "ee959b4211db6216f89e3c47b20dd223900ae3be6a847df340aaf3130ee0199b",
@@ -249,18 +248,105 @@
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-09-15T21:41:19.574Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-30T17:52:32.288Z"
     }
   ],
-  "verifyRanRef": "3806297167f3ac6b13d37d21a54d724f65644761",
+  "verifyRanRef": "c44e15b474be3c7463776bece916973ef67fd852",
   "verifyRanDirty": false,
-  "verifyResultsHash": "cc227d7072cea9b7386d80b26bd3e72f1dc59abe3bcab9c6d045f6523371698d",
-  "verifyRanAt": "2026-09-26T20:42:34.298Z",
+  "frContentSnapshots": {
+    "2": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    },
+    "3": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    },
+    "4": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    },
+    "5": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    },
+    "ux": {
+      "FR-1001": "e1783da9a7b78a42",
+      "FR-1002": "dcd73346d90ed0e3",
+      "FR-1003": "819131d7ec3b1ebb",
+      "FR-1004": "24c75150e09b5ab2",
+      "FR-1005": "8fbe5cacaf2754fe",
+      "FR-1006": "f2fe520b1d0430c0",
+      "FR-1007": "471e2a906dcedd0e",
+      "FR-1008": "44c9745f563e9d47",
+      "FR-1009": "93222851997b18a4",
+      "FR-1010": "fa3b56ea12ad7d2c",
+      "FR-1011": "e167c2728d078f25",
+      "FR-1012": "f3ff6107623e2b9c",
+      "FR-1014": "4d206d77560f5a60",
+      "FR-1015": "808dd4b055739d57"
+    }
+  },
+  "verifyResultsHash": "43d672ec0a83ad0e1b2b1da58b1848774322e1f0fc03e6fcda6cf27ef499a53a",
+  "verifyRanAt": "2026-09-30T17:33:26.718Z",
   "lastVerifyRun": {
     "passed": 67,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-26T20:42:34.298Z"
+    "at": "2026-09-30T17:33:26.718Z"
   },
   "verifySummary": {
     "total": 67,

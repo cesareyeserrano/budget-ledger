@@ -41,7 +41,7 @@ señala (FR-2511) y bloquea el cierre de su mes (FR-2512); cuadrar es acción de
 │  └─ EditableCell (celda de Ejecutado de hoja)                                                  │
 │       ├─ input «Editar valor» ──commit──► store.setLeafAmount (ajuste, FR-2504)                │
 │       └─ CellDetail (NUEVO; sustituye a CellNotesSection en el editor)                         │
-│            ├─ DetailRow × N (movimiento | ajuste | comentario | automático | nota De→A)         │
+│            ├─ DetailRow × N (movimiento | ajuste | comentario | automático)                     │
 │            │    ├─ MovementEditor (NUEVO) ──► store.editMovement                               │
 │            │    └─ borrado inline         ──► store.deleteMovement                             │
 │            ├─ AddMovementLine (NUEVO)     ──► store.addMovementInCell                          │
@@ -226,7 +226,6 @@ ingreso apunta a una hoja.
 ```ts
 type DetailEntry =
   | { kind: "auto"; text: string }                                  // comentario automático de bolsillo (FR-1804)
-  | { kind: "reserveNote"; text: string; createdAt: number }        // nota De→A de un bolsillo (cellObservations vigente)
   | { kind: "movement" | "adjustment"; movement: Movement }
   | { kind: "comment"; note: CellNote };
 cellDetail(state, leafId, period, periods): DetailEntry[]           // orden: auto → movimientos (date, createdAt) → comentarios
@@ -271,8 +270,10 @@ closeMonth(): rechazo `unbalanced_cells` → aviso con los nombres y resync
 
 FR-2501: El Detalle de una celda lista los movimientos que la forman
 Method: selector puro `cellDetail` que filtra `state.movements` por `target = leafId`, `period` y `type ≠ transfer`, ordena por
-`date` y luego por `createdAt`, y añade los comentarios; en hojas `transfer` reutiliza `cellObservations` como entradas
-`reserveNote`. `CellDetail` lo calcula con `useMemo` solo para la celda abierta.
+`date` y luego por `createdAt`, y añade los comentarios; en hojas `transfer` los movimientos son los APORTES del periodo
+(`type = transfer`, `from` = Disponible, `to = leafId`), como filas de movimiento sin lápiz ni papelera — la nota de un retiro o
+traslado va con esa operación en «Retiros del mes» (BG-084, decisión del usuario del 2026-09-30). `CellDetail` lo calcula
+con `useMemo` solo para la celda abierta.
 I/O: `(state, leafId, period, periods)` → `DetailEntry[]`; fila: `18 sep · nota|«Sin nota» · displayAmount`.
 Failure: hoja inexistente o sin datos → `[]` y estado vacío «Sin movimientos ni comentarios»; un movimiento sin `date` (previo a
 `stack-upgrade-theme`) se ordena por `createdAt` y muestra el primer día del periodo.
@@ -468,7 +469,8 @@ Context: el editor monta `CellNotesSection`, cuyos `data-testid` usan `transfere
 Option A: ampliar `CellNotesSection` — un componente con lista, formularios y comentarios mezclados.
 Option B: `CellDetail` nuevo que compone filas y formularios y reutiliza `CellNotesSection` para el comentario.
 Decision: B.
-Consequences: los `data-testid` vigentes se conservan; los bolsillos siguen viendo sus notas De→A como filas (`reserveNote`).
+Consequences: los `data-testid` vigentes se conservan. Desde BG-084 (2026-09-30) los bolsillos ven sus APORTES como filas de
+movimiento, igual que gasto e ingreso; la fila `reserveNote` desaparece.
 
 ADR-07: Varios problemas por mes en el encabezado
 Context: `breachByMonth` guarda un solo `MonthIssue` por mes (`BudgetGrid.tsx:262`); el descuadre puede convivir con «techo».

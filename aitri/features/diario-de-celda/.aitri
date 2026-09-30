@@ -21,86 +21,65 @@
   "projectName": "diario-de-celda",
   "createdAt": "2026-09-14T16:27:23.430Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-22T01:56:19.756Z",
+  "updatedAt": "2026-09-30T19:17:07.147Z",
   "driftPhases": [],
   "events": [
     {
-      "at": "2026-09-21T17:30:54.495Z",
-      "event": "started",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-21T17:30:54.691Z",
-      "event": "completed",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-21T17:30:54.812Z",
-      "event": "approved",
-      "phase": 3
-    },
-    {
-      "at": "2026-09-21T17:40:11.057Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-21T17:40:11.223Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-21T18:17:38.180Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-21T18:17:38.292Z",
-      "event": "approved",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-21T18:17:38.419Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-21T18:17:38.523Z",
+      "at": "2026-09-30T02:06:15.462Z",
       "event": "completed",
       "phase": 2
     },
     {
-      "at": "2026-09-21T18:17:38.671Z",
+      "at": "2026-09-30T02:07:35.945Z",
       "event": "approved",
       "phase": 2
     },
     {
-      "at": "2026-09-21T18:17:38.794Z",
+      "at": "2026-09-30T02:07:36.058Z",
       "event": "started",
       "phase": 3
     },
     {
-      "at": "2026-09-21T18:17:38.956Z",
+      "at": "2026-09-30T02:10:46.940Z",
       "event": "completed",
       "phase": 3
     },
     {
-      "at": "2026-09-21T18:17:39.066Z",
+      "at": "2026-09-30T02:13:07.116Z",
       "event": "approved",
       "phase": 3
     },
     {
-      "at": "2026-09-21T18:31:59.965Z",
+      "at": "2026-09-30T02:13:07.228Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:13:56.169Z",
       "event": "completed",
       "phase": 4
     },
     {
-      "at": "2026-09-21T18:32:00.134Z",
+      "at": "2026-09-30T02:29:17.898Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-09-30T02:29:35.409Z",
       "event": "approved",
       "phase": 4
     },
     {
-      "at": "2026-09-21T23:03:56.262Z",
+      "at": "2026-09-30T03:19:50.468Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 112,
+      "failed": 0,
+      "skipped": 69,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T05:27:47.499Z",
       "event": "verify-run",
       "phase": "verify",
       "passed": 181,
@@ -109,39 +88,81 @@
       "manual": 0
     },
     {
-      "at": "2026-09-21T23:04:07.783Z",
+      "at": "2026-09-30T14:12:44.582Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:24:34.425Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T17:51:20.931Z",
       "event": "verify-complete",
       "phase": "verify",
       "passed": 181,
       "failed": 0
     },
     {
-      "at": "2026-09-21T23:05:03.831Z",
+      "at": "2026-09-30T17:51:46.749Z",
       "event": "started",
       "phase": 5
     },
     {
-      "at": "2026-09-21T23:06:20.977Z",
+      "at": "2026-09-30T17:51:46.860Z",
       "event": "completed",
       "phase": 5
     },
     {
-      "at": "2026-09-22T01:56:19.734Z",
+      "at": "2026-09-30T17:52:32.348Z",
       "event": "approved",
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-09-30T19:17:06.321Z",
+      "event": "rehash",
+      "phase": "3",
+      "artifact": "03_TEST_CASES.json",
+      "before_hash": "d7f5214ef17e2df3d1b9a6e832b7a244ba8af9cf983302680dfaf67be22f762e",
+      "after_hash": "5b1cd2a3479cfefdd34b8ee5d13f19208c8932893cf0bcd154151beac5c85a39"
+    },
+    {
+      "at": "2026-09-30T19:17:06.719Z",
+      "event": "rehash",
+      "phase": "4",
+      "artifact": "04_BUILD_REPORT.json",
+      "before_hash": "8a6a29ee51f49c90a3aabb2a1ff52d8f3a6c80a4a3246b63b630f18b2374d30b",
+      "after_hash": "6fdfbd08725deae2469bd4ae28341f243269c803a959a0ecfdd9465e18048e1e"
+    },
+    {
+      "at": "2026-09-30T19:17:07.117Z",
+      "event": "rehash",
+      "phase": "5",
+      "artifact": "05_TRACEABILITY.json",
+      "before_hash": "420a2e57d09c84022a69e8618040ccba9bac473a7ce69b46c49b9d62baad74f1",
+      "after_hash": "c6a5a9a9bb618a9b02dbbe8109f9ace6108301aec0cec39c2938470c55d4c73d"
     }
   ],
   "cascadedPhases": [],
   "artifactHashes": {
-    "1": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09",
-    "2": "8435741323d6811c2b705c08ce762bab75df727f0da5758c380f0020543ef98a",
-    "3": "f4c59104113dc377959bd50e43a23f92d14afb0e61b5ff911898af801b8b8be7",
-    "4": "e50e48048fbd1bc3175b4edb626bd9ad5c6d94fbf354d3304f84df93160710dd",
-    "5": "9af980a602d2070ff3ee196d636313dfb76b75327292f1d79bd71decf7e1c85b",
+    "1": "f63c54c058f4fe32b2e501f5f4f98f8f0a4806869866ba328b13b15757a11ec3",
+    "2": "fd626aa2d8b6ea9665bb33b05c0c8c3c0aac8277a368734a20fbe9b10eb62367",
+    "3": "5b1cd2a3479cfefdd34b8ee5d13f19208c8932893cf0bcd154151beac5c85a39",
+    "4": "6fdfbd08725deae2469bd4ae28341f243269c803a959a0ecfdd9465e18048e1e",
+    "5": "c6a5a9a9bb618a9b02dbbe8109f9ace6108301aec0cec39c2938470c55d4c73d",
     "discovery": "6c1a4ddec921d014a8b62fe4a3f4149284c1e24275a065c735f9d1f8931e4341",
-    "ux": "47f85b0b969b4fa55840d926ad355d4a3036c10a1cd3ce7aee20884909a50593"
+    "ux": "cdfa18f96b7d07702e84bc09ca1befee19e016c035c55774465bf9520ce38676"
   },
   "frSnapshots": {
     "2": [
@@ -211,8 +232,8 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "bfd67e52218f7bca3720428f3c604ab70e83f88a",
-  "verifyRanDirty": true,
+  "verifyRanRef": "c44e15b474be3c7463776bece916973ef67fd852",
+  "verifyRanDirty": false,
   "releaseHistory": [
     {
       "version": "0.0.1-beta",
@@ -228,18 +249,90 @@
       "version": "0.0.1-beta",
       "version_source": "manifest",
       "at": "2026-09-22T01:56:19.728Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-09-30T17:52:32.347Z"
     }
   ],
   "coverageAuditLastAt": "2026-09-18T21:10:54.418Z",
   "coverageAuditReqHash": "9f9674b9e4e9fa89842527f61a2c21ea398ac4173bd18d52a71c290b7af20b09",
-  "verifyResultsHash": "bf892e7edff46d244739bc1dec12208b18a6e8f20a6d5ddd4bcdf56e429f8513",
-  "verifyRanAt": "2026-09-21T23:03:56.227Z",
+  "frContentSnapshots": {
+    "2": {
+      "FR-2501": "ec91d13a149610c7",
+      "FR-2502": "0f813c60ded1bc2e",
+      "FR-2503": "7b334f4148e9dd27",
+      "FR-2504": "b4573d853de7a958",
+      "FR-2505": "644c2379eeb61222",
+      "FR-2506": "481c557ac12a99a7",
+      "FR-2507": "4df6cc2f89edee46",
+      "FR-2508": "6f6af67c1c08adfb",
+      "FR-2509": "0342f1f2746256a8",
+      "FR-2511": "15dfc56c201fa1b5",
+      "FR-2512": "660eebadedddf65d"
+    },
+    "3": {
+      "FR-2501": "ec91d13a149610c7",
+      "FR-2502": "0f813c60ded1bc2e",
+      "FR-2503": "7b334f4148e9dd27",
+      "FR-2504": "b4573d853de7a958",
+      "FR-2505": "644c2379eeb61222",
+      "FR-2506": "481c557ac12a99a7",
+      "FR-2507": "4df6cc2f89edee46",
+      "FR-2508": "6f6af67c1c08adfb",
+      "FR-2509": "0342f1f2746256a8",
+      "FR-2511": "15dfc56c201fa1b5",
+      "FR-2512": "660eebadedddf65d"
+    },
+    "4": {
+      "FR-2501": "ec91d13a149610c7",
+      "FR-2502": "0f813c60ded1bc2e",
+      "FR-2503": "7b334f4148e9dd27",
+      "FR-2504": "b4573d853de7a958",
+      "FR-2505": "644c2379eeb61222",
+      "FR-2506": "481c557ac12a99a7",
+      "FR-2507": "4df6cc2f89edee46",
+      "FR-2508": "6f6af67c1c08adfb",
+      "FR-2509": "0342f1f2746256a8",
+      "FR-2511": "15dfc56c201fa1b5",
+      "FR-2512": "660eebadedddf65d"
+    },
+    "5": {
+      "FR-2501": "ec91d13a149610c7",
+      "FR-2502": "0f813c60ded1bc2e",
+      "FR-2503": "7b334f4148e9dd27",
+      "FR-2504": "b4573d853de7a958",
+      "FR-2505": "644c2379eeb61222",
+      "FR-2506": "481c557ac12a99a7",
+      "FR-2507": "4df6cc2f89edee46",
+      "FR-2508": "6f6af67c1c08adfb",
+      "FR-2509": "0342f1f2746256a8",
+      "FR-2511": "15dfc56c201fa1b5",
+      "FR-2512": "660eebadedddf65d"
+    },
+    "ux": {
+      "FR-2501": "ec91d13a149610c7",
+      "FR-2502": "0f813c60ded1bc2e",
+      "FR-2503": "7b334f4148e9dd27",
+      "FR-2504": "b4573d853de7a958",
+      "FR-2505": "644c2379eeb61222",
+      "FR-2506": "481c557ac12a99a7",
+      "FR-2507": "4df6cc2f89edee46",
+      "FR-2508": "6f6af67c1c08adfb",
+      "FR-2509": "0342f1f2746256a8",
+      "FR-2511": "15dfc56c201fa1b5",
+      "FR-2512": "660eebadedddf65d"
+    }
+  },
+  "verifyResultsHash": "811944775a1f7fddec86098c775aa24ba5100a0544b32b77db4050c746545931",
+  "verifyRanAt": "2026-09-30T17:24:34.404Z",
   "lastVerifyRun": {
     "passed": 181,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-21T23:03:56.227Z"
+    "at": "2026-09-30T17:24:34.404Z"
   },
   "verifySummary": {
     "total": 181,
