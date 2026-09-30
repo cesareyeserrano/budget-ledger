@@ -6,6 +6,7 @@
 //               bloquea el campo antes de dejar teclear. Una sola derivación para las dos, o la
 //               pantalla dejaría editar lo que el servidor rechaza.
 // Dependencias: ./types, ./periods, ./closure, ./opening, ./range.
+// Desde BG-085 también decide qué datos deja fuera un cambio de inicio (FR-2206).
 //
 // POR QUÉ UN MÓDULO APARTE: la regla necesita a la vez `isClosed` (closure), `normalizeStartMonth`
 // (opening) y `oldestPeriodWithData` (range), y `range` ya importa a los otros dos. Ponerla en
@@ -14,9 +15,9 @@
 // PURO Y SIN RELOJ (ADR-02).
 
 import type { Closure, LedgerState, PeriodKey } from "./types";
-import { isPeriodKey } from "./periods";
+import { comparePeriods, isPeriodKey } from "./periods";
 import { isClosed } from "./closure";
-import { normalizeStartMonth } from "./opening";
+import { normalizeStartMonth, orphanedByStart } from "./opening";
 import { oldestPeriodWithData } from "./range";
 
 /**
@@ -66,4 +67,28 @@ export function closedStartBlocker(
   if (vigente !== null && isClosed(closure, vigente)) return vigente;
   if (isPeriodKey(candidate) && isClosed(closure, candidate)) return candidate;
   return null;
+}
+
+/**
+ * BG-085 — los meses con datos que llevar el inicio a `candidate` SACARÍA del historial (FR-2206).
+ *
+ * `orphanedByStart` cuenta todo dato anterior a `candidate`. Eso incluye los que ya estaban antes
+ * del inicio vigente: FR-1906 deja registrar ahí y BG-054 los muestra como historia. Con uno solo,
+ * el saldo inicial dejaba de poder editarse aunque el mes no se moviera, porque volver a guardar el
+ * mismo inicio «huerfanaba» un dato que ya estaba fuera. FR-2206 habla de lo que el MOVIMIENTO deja
+ * fuera, así que aquí solo cuentan los datos desde el inicio vigente.
+ *
+ * Sin mes declarado el inicio efectivo es el primer mes con datos, así que el filtro no quita nada
+ * y el resultado es el de siempre.
+ *
+ * @param state     El estado del ledger, con `startMonth` si lo hay.
+ * @param candidate El mes de inicio propuesto.
+ * @returns Los periodos con datos entre el inicio vigente (incluido) y `candidate` (excluido), en
+ *   orden ascendente. Vacío ⇒ el cambio no deja nada fuera.
+ * @throws Nunca.
+ */
+export function newlyOrphanedByStart(state: LedgerState, candidate: PeriodKey): PeriodKey[] {
+  const vigente = effectiveStartMonth(state);
+  const antes = orphanedByStart(state, candidate);
+  return vigente === null ? antes : antes.filter((p) => comparePeriods(p, vigente) >= 0);
 }

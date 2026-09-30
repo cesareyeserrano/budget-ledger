@@ -32,8 +32,8 @@ import { convertPlannedRetiros, isPlannedRetiroKey, type ReserveWarning } from "
 import {
   closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
-import { normalizeOpeningBalance, normalizeStartMonth, orphanedByStart } from "@/domain/opening";
-import { closedStartBlocker } from "@/domain/openingGuard";
+import { normalizeOpeningBalance, normalizeStartMonth } from "@/domain/opening";
+import { closedStartBlocker, newlyOrphanedByStart } from "@/domain/openingGuard";
 import type { Closure, CycleConfig, CycleVersion, OriginPart
 } from "@/domain/types";
 
@@ -1232,9 +1232,10 @@ export async function saveStartFor(
       return { ok: false, rejected: "month_closed", period: bloqueante };
     }
 
-    // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada, y `orphanedByStart` lo refleja sin
-    // caso especial: no habra ningun periodo anterior al candidato.
-    const huerfanos = orphanedByStart(state, startMonth);
+    // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada: no habra ningun periodo anterior al
+    // candidato. BG-085: solo cuentan los datos que el cambio saca del historial; los que ya estaban
+    // antes del inicio (FR-1906, historia desde BG-054) no, o el saldo inicial no se podria editar.
+    const huerfanos = newlyOrphanedByStart(state, startMonth);
     if (huerfanos.length > 0) {
       return { ok: false, rejected: "would_orphan", periods: huerfanos };
     }
