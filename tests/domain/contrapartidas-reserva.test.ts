@@ -35,6 +35,17 @@ import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/
 import { P } from "../helpers/periods";
 import { SALTAR_SI_INSTRUMENTADO, mejorTiempo } from "../helpers/perf";
 
+/**
+ * Gasto o ingreso al azar, sobre la hoja de SU tipo. Antes el tipo y la hoja se sorteaban por
+ * separado y salían gastos sobre la hoja de ingreso; desde BG-070 el dominio los rechaza y esas
+ * operaciones no ejercitaban nada. El segundo sorteo se consume igual: la secuencia no cambia.
+ */
+function movDeFlujo(rnd: () => number): { type: "expense" | "income"; catId: string } {
+  const gasto = rnd() < 0.5;
+  rnd();
+  return gasto ? { type: "expense", catId: "c-gasto" } : { type: "income", catId: "c-ingreso" };
+}
+
 interface LeafSpec { id: string; type: NodeType; budget?: Partial<Record<PeriodKey, number>>; actual?: Partial<Record<PeriodKey, number>> }
 
 function makeState(leaves: LeafSpec[]): LedgerState {
@@ -513,7 +524,7 @@ describe("NFR-1601/1602 · conservación y Σ de derivados", () => {
       else if (kind < 0.72) { const a = applyReserveOp(s, { from: "B", to: "A", period: month, amount }, P); if ("state" in a) s = a.state; }
       else if (kind < 0.82) { const a = applyReserveCellEdit(s, { leafId: "B", period: month, plane: "actual", newAmount: amount }, P); if ("state" in a) s = a.state; }
       else if (kind < 0.9 && retiros.length) { s = removeIfAllowed(s, retiros.pop()!); }
-      else { s = addMovement(s, { type: r() < 0.5 ? "expense" : "income", catId: r() < 0.5 ? "c-gasto" : "c-ingreso", amount: 20_000, period: month }, P); }
+      else { s = addMovement(s, { ...movDeFlujo(r), amount: 20_000, period: month }, P); }
     }
     return s;
   }

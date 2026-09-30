@@ -7,6 +7,7 @@ import { AVAILABLE_ID, applyReserveOp, isAvailable, labelOfEnd, maxWithdrawal, r
 import { parsePesos } from "@/lib/money";
 import { nowForInput, periodKeyFromDate } from "@/lib/date";
 import { proposeOpeningCycle } from "@/domain/cycles";
+import { movementTargetOk } from "@/domain/mutations";
 import { periodMonthLabel, monthOf } from "@/domain/periods";
 import { Info } from "lucide-react";
 import { cycleLabel } from "../cycleText";
@@ -86,6 +87,14 @@ export function Register() {
   }, [isReserve, ends.from, data, month, periods]);
   const overLimit = reserveLimit !== null && amount > reserveLimit.value;
 
+  // BG-070: la categoría elegida puede desaparecer con el formulario abierto (otro dispositivo la
+  // borra, le da su primera subcategoría, o mueve la sub a otra categoría). Se suelta la selección
+  // en vez de guardar sobre un destino que ya no lo es — la misma regla que aplica el dominio.
+  useEffect(() => {
+    if (!sel) return;
+    if (!movementTargetOk(nodes, { type, catId: sel.catId, subId: sel.subId })) setSel(null);
+  }, [nodes, sel, type]);
+
   const saveEnabled = !outOfRange && (isReserve
     ? amount > 0 && !!ends.from && !!ends.to && !overLimit
     : amount > 0);
@@ -106,6 +115,9 @@ export function Register() {
     setDate(nowForInput());
     setShowErrors(false);
     setRuleError(null);
+    // BG-071: la propuesta no cambia tras guardar (misma fecha, mismo tipo), así que el efecto que
+    // reinicia la opción no se dispara; el siguiente ingreso nacería contado en el ciclo que abre.
+    setCountInOpening(false);
   }
 
   function saveReserve() {

@@ -12,7 +12,8 @@
 // Dependencias: @/state/store, @/domain (reserve), ./reserveText, ./format, ./gridLayout, ./ui/popover.
 
 import { useEffect, useRef, useState } from "react";
-import { useLedgerStore, useActivePeriods } from "@/state/store";
+import { useLedgerStore, useActivePeriods, useCalendar } from "@/state/store";
+import { cycleLabel } from "./cycleText";
 import type { PeriodKey, Movement } from "@/domain/types";
 import { periodMonthLabel, periodLabel } from "@/domain/periods";
 import {
@@ -39,6 +40,7 @@ import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { blockMessage } from "./reserveText";
 import { cellNum, money } from "./format";
 import { CELL_W } from "./gridLayout";
+import { FOCUS_RING, cellAriaLabel, cellButtonProps } from "./gridKeyboard";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { CellDetail } from "./CellDetail";
@@ -58,6 +60,8 @@ import { CellDetail } from "./CellDetail";
  */
 export function ReserveLeafCell(props: {
   leafId: string;
+  /** Nombre del bolsillo, para el nombre accesible de la celda (BG-069). */
+  nodeName: string;
   month: PeriodKey;
   plane: Plane;
   sep?: boolean;
@@ -66,6 +70,7 @@ export function ReserveLeafCell(props: {
 }) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
+  const cal = useCalendar();
   const map = props.plane === "budget" ? data.budgets : data.actuals;
   // saldo-de-bolsillo (NFR-3005, decisión del usuario del 2026-09-27): la celda es lo APORTADO ese mes.
   // Nada de la grilla arrastra; lo acumulado vive en el Balance.
@@ -91,6 +96,8 @@ export function ReserveLeafCell(props: {
   return (
     <div
       onClick={props.onStart}
+      // BG-069: alcanzable con Tab y abierta con Enter, igual que la celda de gasto e ingreso.
+      {...cellButtonProps(cellAriaLabel(props.nodeName, props.plane, cycleLabel(cal, props.month), cellNum(value)), props.onStart)}
       data-testid="cell-leaf"
       // Los mismos atributos que emite `Cell` para gasto e ingreso (BudgetGrid): sin ellos una celda
       // de bolsillo solo se podía localizar contando columnas, y el Detalle —que ahora vive también
@@ -99,7 +106,7 @@ export function ReserveLeafCell(props: {
       data-month={props.month}
       data-plane={props.plane}
       title={title}
-      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", props.sep && "border-l-2 border-l-border-strong")}
+      className={cn(CELL_W, "relative flex items-center justify-end min-h-[34px] px-3 tabular border-b border-border whitespace-nowrap cursor-text", FOCUS_RING, "focus-visible:ring-inset", props.sep && "border-l-2 border-l-border-strong")}
       style={{ color, background: props.highlight ? "color-mix(in srgb, var(--accent) 6%, var(--bg))" : "var(--bg)" }}
     >
       {(observations.length > 0 || carry) && (
@@ -154,6 +161,10 @@ export function ReserveCellEditor(props: {
   const [block, setBlock] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  // BG-069: en un mes cerrado no hay campo que tome el foco. Abierta con el teclado, la celda se
+  // desmontaba con el foco dentro y el Escape nunca llegaba a este contenedor: el panel quedaba
+  // abierto sin salida. Mismo arreglo que ya tenía la celda de gasto e ingreso (EditableCell).
+  useEffect(() => { if (props.closed) rootRef.current?.focus(); }, [props.closed]);
 
   // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
   // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
@@ -195,6 +206,7 @@ export function ReserveCellEditor(props: {
   if (props.closed) {
     return (
       <div ref={rootRef} tabIndex={-1} onKeyDown={(e) => { if (e.key === "Escape") props.onClose(); }}
+        onBlur={(e) => { if (!rootRef.current?.contains(e.relatedTarget as Node)) props.onClose(); }}
         className={cn(CELL_W, "relative py-1 px-2 outline-none", props.sep && "border-l-2 border-l-border-strong")}>
         <span data-testid="closed-value" className="tabular text-caption text-fg-secondary flex justify-end px-1.5 py-1">{cellNum(current)}</span>
         <div className="absolute left-0 top-full z-20 min-w-[230px]">

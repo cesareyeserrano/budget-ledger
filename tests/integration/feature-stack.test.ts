@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildSeed } from "@/domain/seed";
+import { isLeaf } from "@/domain/tree";
 import { addMovement } from "@/domain/mutations";
 import { InMemoryRepository } from "../helpers/inMemoryRepository";
 import { STORAGE_KEYS, type Movement, type LedgerNode } from "@/domain/types";
@@ -74,7 +75,7 @@ describe("FR-211/FR-212 — guardado", () => {
     const note = "c".repeat(50);
     const next = addMovement(buildSeed("local", P0), (() => {
       const seed = buildSeed("local", P0);
-      const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
+      const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system && isLeaf(n, seed.nodes))!;
       return { type: "expense" as const, catId: cat.id, subId: null, amount: 1000, period: "2026-06" as const, date: "2026-06-01T08:00", note };
     })(), P);
     expect(next.movements[0].note).toBe(note);
@@ -83,7 +84,7 @@ describe("FR-211/FR-212 — guardado", () => {
 
   it("TC-SUT-236h: guardar 50000 aumenta el Ejecutado del destino en 50000 y encabeza recientes", () => {
     const seed = buildSeed("local", P0);
-    const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system)!;
+    const cat = seed.nodes.find((n) => n.type === "expense" && n.level === "category" && !n.system && isLeaf(n, seed.nodes))!;
     const before = seed.actuals[cat.id]?.["2026-06"] ?? 0;
     const next = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: null }, P);
     expect((next.actuals[cat.id]?.["2026-06"] ?? 0) - before).toBe(50000);
@@ -112,7 +113,7 @@ describe("NFR-202 — persistencia", () => {
   it("TC-SUT-247h: registrar y recargar conserva los datos (incl. date/note)", async () => {
     const repo = new InMemoryRepository();
     const seed = buildSeed("local", P0);
-    const cat = seed.nodes.find((n: LedgerNode) => n.type === "expense" && n.level === "category" && !n.system)!;
+    const cat = seed.nodes.find((n: LedgerNode) => n.type === "expense" && n.level === "category" && !n.system && isLeaf(n, seed.nodes))!;
     const withMv = addMovement(seed, { type: "expense", catId: cat.id, subId: null, amount: 50000, period: "2026-06", date: "2026-06-05T09:00", note: "almuerzo" }, P);
     await repo.save("local", withMv);
     // "recarga": se relee del repositorio, sin compartir el objeto en memoria

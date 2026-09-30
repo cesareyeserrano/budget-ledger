@@ -42,6 +42,16 @@ function hojaDeGasto(s: LedgerState): string {
   return h.id;
 }
 
+/**
+ * La pareja catId/subId de una hoja, como la arma la grilla (addMovementInCell): una sub va con su
+ * categoría padre. Hasta BG-070 estas pruebas mandaban la sub como catId sin subId, y el dominio lo
+ * aceptaba; ahora lo rechaza como destino inválido, así que la pareja tiene que ser la real.
+ */
+function destinoDe(s: LedgerState, hoja: string): { catId: string; subId: string | null } {
+  const n = s.nodes.find((x) => x.id === hoja)!;
+  return n.level === "sub" ? { catId: n.parentId!, subId: hoja } : { catId: hoja, subId: null };
+}
+
 /** Siembra un ledger y devuelve su estado y revisión. */
 async function sembrar(owner = A): Promise<{ state: LedgerState; revision: number }> {
   const seed = buildSeed(owner, INICIO);
@@ -192,9 +202,9 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     }
     const l = (await loadLedger(A))!;
     const mv = await insertMovement(A, {
-      type: "expense", catId: hoja, subId: null, amount: 123_456, period: AHORA,
+      type: "expense", ...destinoDe(l.state, hoja), amount: 123_456, period: AHORA,
     } as Parameters<typeof insertMovement>[1]);
-    expect(mv).not.toBeNull();
+    expect(mv !== null && "movement" in mv).toBe(true);
     expect(l.revision).toBeGreaterThan(0);
 
     expect(await foto()).toBe(antes);
@@ -244,7 +254,7 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     };
     const antes = await enInicio();
     const res = await insertMovement(A, {
-      type: "expense", catId: hoja, subId: null, amount: 50_000, period: INICIO,
+      type: "expense", ...destinoDe(state, hoja), amount: 50_000, period: INICIO,
     } as Parameters<typeof insertMovement>[1]);
     expect(res).toEqual({ closedViolation: true });
     expect(await enInicio()).toBe(antes);
@@ -256,9 +266,9 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     const l0 = (await loadLedger(A))!;
     const hoja = hojaDeGasto(l0.state);
     const ins = await insertMovement(A, {
-      type: "expense", catId: hoja, subId: null, amount: 80_000, period: INICIO,
+      type: "expense", ...destinoDe(l0.state, hoja), amount: 80_000, period: INICIO,
     } as Parameters<typeof insertMovement>[1]);
-    expect(ins).not.toBeNull();
+    expect(ins !== null && "movement" in ins).toBe(true);
     await cerrar(1);
 
     const enInicio = async () => {
@@ -295,9 +305,10 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     await sembrar();
     const l0 = (await loadLedger(A))!;
     const hoja = hojaDeGasto(l0.state);
-    await insertMovement(A, {
-      type: "expense", catId: hoja, subId: null, amount: 60_000, period: AHORA,
+    const ins = await insertMovement(A, {
+      type: "expense", ...destinoDe(l0.state, hoja), amount: 60_000, period: AHORA,
     } as Parameters<typeof insertMovement>[1]);
+    expect(ins !== null && "movement" in ins).toBe(true);
     await cerrar(1);
     const l = (await loadLedger(A))!;
     /** Los movimientos que VIVEN en el mes cerrado, por id: lo que no debe cambiar. */

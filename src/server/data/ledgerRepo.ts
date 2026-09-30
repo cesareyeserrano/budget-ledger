@@ -14,7 +14,7 @@ import { and, asc, desc, eq, like } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
-import { addMovement, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
+import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
 // Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
 // el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
 import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
@@ -868,6 +868,7 @@ export async function insertMovement(
   | { closedViolation: true }
   | { domainViolation: true; violations: ReserveWarning[] }
   | { periodMismatch: true; expected: PeriodKey | null }
+  | { invalidTarget: true }
   | null
 > {
   return db.transaction(async (tx) => {
@@ -885,6 +886,9 @@ export async function insertMovement(
     // y aceptaría retiros del doble (hallazgo adversarial 4).
     const base = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
     const prev: LedgerState = cycles.versions.length > 0 ? { ...base, cycles } : base;
+    // BG-064: un gasto o ingreso sobre una categoría que no existe, no es hoja o no es de su tipo se
+    // rechaza con su propio motivo — el cliente tiene que poder distinguirlo de un monto inválido.
+    if (input.type !== "transfer" && !movementTargetOk(prev.nodes, input)) return { invalidTarget: true as const };
     const cal = calendarOf(prev, input.period);
     // Feature ciclos (FR-2405, FR-2406, NFR-2408): el periodo tiene que ser el de la fecha (o el
     // ciclo que un ingreso abre dentro de la ventana). En ciclos la fecha es obligatoria.

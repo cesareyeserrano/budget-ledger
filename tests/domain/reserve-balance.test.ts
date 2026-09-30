@@ -11,6 +11,17 @@ import { P as MONTH_KEYS } from "../helpers/periods";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeType } from "@/domain/types";
 import { P } from "../helpers/periods";
 
+/**
+ * Gasto o ingreso al azar, sobre la hoja de SU tipo. Antes el tipo y la hoja se sorteaban por
+ * separado y salían gastos sobre la hoja de ingreso; desde BG-070 el dominio los rechaza y esas
+ * operaciones no ejercitaban nada. El segundo sorteo se consume igual: la secuencia no cambia.
+ */
+function movDeFlujo(rnd: () => number): { type: "expense" | "income"; catId: string } {
+  const gasto = rnd() < 0.5;
+  rnd();
+  return gasto ? { type: "expense", catId: "c-gasto" } : { type: "income", catId: "c-ingreso" };
+}
+
 interface LeafSpec { id: string; type: NodeType; budget?: Partial<Record<PeriodKey, number>>; actual?: Partial<Record<PeriodKey, number>> }
 function makeState(leaves: LeafSpec[]): LedgerState {
   const nodes: LedgerNode[] = []; const budgets: AmountMap = {}; const actuals: AmountMap = {}; const seen = new Set<NodeType>();
@@ -102,7 +113,7 @@ describe("FR-1009 · el Balance con filas de un solo signo", () => {
           ? applyReserveOp(s, { from: a, to: AVAILABLE_ID, period: month, amount }, P)
           : applyReserveOp(s, { from: a, to: b, period: month, amount }, P);
       if ("state" in attempt) s = attempt.state;
-      if (i % 10 === 0) s = addMovement(s, { type: rand() < 0.5 ? "expense" : "income", catId: rand() < 0.5 ? "c-gasto" : "c-ingreso", amount: 50_000, period: month }, P);
+      if (i % 10 === 0) s = addMovement(s, { ...movDeFlujo(rand), amount: 50_000, period: month }, P);
     }
     assertConservation(s);
   });
@@ -143,7 +154,7 @@ describe("NFR-1001 · conservación bajo el modelo v4", () => {
         s = removeIfAllowed(s, retiros.pop()!);
         accepted++;
       } else {
-        s = addMovement(s, { type: rand() < 0.5 ? "expense" : "income", catId: rand() < 0.5 ? "c-gasto" : "c-ingreso", amount: 40_000, period: month }, P);
+        s = addMovement(s, { ...movDeFlujo(rand), amount: 40_000, period: month }, P);
         accepted++;
       }
       assertConservation(s);
