@@ -8075,6 +8075,58 @@
       "created_at": "2026-09-29T14:39:05.012Z",
       "updated_at": "2026-09-29T14:39:05.012Z",
       "resolution": null
+    },
+    {
+      "id": "BG-082",
+      "title": "Tabular desde el Detalle de una celda abierta a otra celda y pulsar Enter descarta lo tecleado en la primera sin aviso",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-30T01:40:22.336Z",
+      "updated_at": "2026-09-30T01:40:29.029Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-30T01:40:29.029Z",
+          "text": "Hallazgo 6 de la revision adversarial de BG-069 (30-sep). Editor A abierto, Tab entra al Detalle (no comitea), Tab sale del Detalle a la celda siguiente con A aun abierto; Enter llama a startEdit y reemplaza editing/editVal. Con mouse ya pasaba (clic en otra celda con foco en el Detalle). Arreglo sugerido: que startEdit comitee la edicion en curso, o un onBlur en el contenedor abierto."
+        }
+      ]
+    },
+    {
+      "id": "BG-083",
+      "title": "Tras Confirmar borrado con teclado el foco cae al body y el siguiente Tab empieza desde el principio de la pagina",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "low",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-09-30T01:40:22.379Z",
+      "updated_at": "2026-09-30T01:40:29.081Z",
+      "resolution": null,
+      "log": [
+        {
+          "at": "2026-09-30T01:40:29.081Z",
+          "text": "Hallazgo 4 de la revision adversarial de BG-069 (30-sep). Cancelar y renombrar ya devuelven el foco al rotulo (devolverFocoSiSePerdio); al confirmar un borrado la fila desaparece y no hay a donde volver. Arreglo sugerido: llevar el foco al rotulo de la fila vecina."
+        }
+      ]
     }
   ]
 }
