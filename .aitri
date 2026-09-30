@@ -23,25 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-09-29T22:12:19.726Z",
+  "updatedAt": "2026-09-30T01:31:38.869Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-28T20:12:05.512Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-09-28T20:12:16.015Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
     {
       "at": "2026-09-28T20:44:30.627Z",
       "event": "rehash",
@@ -185,6 +169,22 @@
     },
     {
       "at": "2026-09-29T22:12:19.716Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-09-30T01:31:21.579Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-09-30T01:31:38.860Z",
       "event": "verify-complete",
       "phase": "verify",
       "passed": 59,
@@ -356,16 +356,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "580b9d6f614485008e56fab5495a2718c5931ffc",
+  "verifyRanRef": "8ba4eb27a02fc005214df554d397b86f56a9231c",
   "verifyRanDirty": false,
-  "verifyResultsHash": "42919809bec1e704219a2dd3684889337aa37f9ec8aafc549e524fed46362a7f",
-  "verifyRanAt": "2026-09-29T22:12:00.656Z",
+  "verifyResultsHash": "44464591c6af5cb397cde4aa998cfd146ea069475581d27b9870fa0bb725af49",
+  "verifyRanAt": "2026-09-30T01:31:21.561Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-29T22:12:00.656Z"
+    "at": "2026-09-30T01:31:21.561Z"
   },
   "verifySummary": {
     "total": 59,
