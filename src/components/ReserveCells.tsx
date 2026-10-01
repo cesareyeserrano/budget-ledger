@@ -222,7 +222,11 @@ export function ReserveCellEditor(props: {
   }
 
   return (
-    <div ref={rootRef} className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
+    <div ref={rootRef}
+      // BG-074: el Escape se atiende en el CONTENEDOR. Desde el campo de comentario la tecla sube a
+      // propósito (CellNoteInput) y antes no la atendía nadie: el editor quedaba abierto sin salida.
+      onKeyDown={(e) => { if (e.key === "Escape") props.onClose(); }}
+      className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
       <input
         ref={inputRef}
         autoFocus
@@ -240,7 +244,7 @@ export function ReserveCellEditor(props: {
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit();
-          if (e.key === "Escape") props.onClose(); // restaura el valor previo: nada se persistió
+          // Escape lo atiende el contenedor (BG-074): sube desde aquí y restaura el valor previo.
         }}
         className="tabular w-full min-w-0 bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
       />
