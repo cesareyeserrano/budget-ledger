@@ -153,6 +153,13 @@ export default async function globalSetup(): Promise<void> {
     // Feature ciclos: deja que un spec fije «hoy» en el servidor con la cabecera x-ledger-today
     // (`page.setExtraHTTPHeaders`). Solo en el servidor de pruebas; producción nunca la define.
     LEDGER_TEST_OVERRIDES: "1",
+    // BG-087: el servidor decide «hoy» en LEDGER_TZ (America/Bogota por defecto), pero el navegador y
+    // los specs usan el reloj de la máquina. En el CI eso es UTC: de 19:00 a 24:00 del último día de
+    // cada mes en Bogotá, el servidor seguía en el mes viejo y el navegador ya en el nuevo, y las
+    // pruebas que dependen de «el mes en curso» fallaban (TC-CDM-094e el 30-sep). Los tres relojes
+    // en la MISMA zona —la de la máquina— hacen que el resultado no dependa de la hora. Un spec que
+    // necesite otra zona la fija él (`test.use({ timezoneId })` + `fixToday`).
+    LEDGER_TZ: process.env.LEDGER_TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     SMTP_HOST: mailpit.getHost(),
     SMTP_PORT: String(mailpit.getMappedPort(1025)),
     SMTP_USER: "ledger-e2e",

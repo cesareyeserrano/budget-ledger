@@ -8287,6 +8287,26 @@
       "resolution": "fcb10a1: TC-RES-011f/016f/220f usan AVAILABLE_ID y catId; 011f monta el deficit que su caso pide y falla con el guardia del PUT apagado. Verificado raiz 59/59 y backend 85/86.",
       "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
       "fix_at": "2026-10-01T00:48:59.747Z"
+    },
+    {
+      "id": "BG-087",
+      "title": "Los e2e fallan entre las 19:00 y las 24:00 del ultimo dia de cada mes (hora de Bogota): el servidor de pruebas y el navegador usan zonas distintas",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-10-01T02:22:38.666Z",
+      "updated_at": "2026-10-01T02:22:38.666Z",
+      "resolution": null
     }
   ]
 }
