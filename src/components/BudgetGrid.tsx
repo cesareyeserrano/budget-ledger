@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { FOCUS_RING, cellAriaLabel, cellButtonProps, devolverFocoSiSePerdio, entradaFueTeclado, instalarRastreoDeEntrada, useKeyboardFocusWithin } from "./gridKeyboard";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
 import { amountChars, amountInputError, parsePesos } from "@/lib/money";
+import { focusStaysInEditor } from "./focusInside";
 
 /**
  * Orden de los bloques: sigue el CAMINO DE LA PLATA — entra, sale, se aparta — y refleja el orden
@@ -871,10 +872,17 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
         // tecla Escape no alcanzaba este contenedor y el panel se quedaba abierto sin salida. El
         // contenedor se hace enfocable y se cierra al perder el foco, igual que hacía el input.
         {...(props.closed ? { tabIndex: -1 } : {})}
-        onBlur={props.closed ? (e) => {
-          if (rootRef.current?.contains(e.relatedTarget as Node)) return;
-          props.cancel();
-        } : undefined}
+        // BG-082: salir del EDITOR —no solo del campo del valor— cierra la celda, y con el importe
+        // abierto la guarda (la misma regla que el clic fuera). Antes solo lo hacía el blur del input:
+        // con el foco en el Detalle, un Tab a otra celda y Enter abrían la otra y lo tecleado en esta
+        // se perdía sin aviso. Se atiende aquí, en el contenedor, porque el blur de cualquier hijo
+        // sube hasta él; el input ya no lo atiende por su cuenta, o la celda se guardaría dos veces.
+        onBlur={(e) => {
+          // El calendario y los selectores del Detalle viven en un portal: ir a ellos no es salir.
+          if (focusStaysInEditor(rootRef.current, e.relatedTarget)) return;
+          if (props.closed) props.cancel();
+          else props.commit();
+        }}
         className={cn(CELL_W, "relative py-1 px-2 outline-none", props.sep && "border-l-2 border-l-border-strong")}
         style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}
       >
@@ -896,12 +904,6 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
           value={props.editVal}
           aria-invalid={!!amountInputError(props.editVal) || undefined}
           onChange={(e) => props.setEditVal(amountChars(e.target.value))}
-          onBlur={(e) => {
-            // El foco que se queda DENTRO del editor (las observaciones) no comitea la celda —
-            // mismo patrón que ya usa el editor de bolsillos.
-            if (rootRef.current?.contains(e.relatedTarget as Node)) return;
-            props.commit();
-          }}
           onKeyDown={(e) => { if (e.key === "Enter") props.commit(true); if (e.key === "Escape") props.cancel(); }}
           className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />

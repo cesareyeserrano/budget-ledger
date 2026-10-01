@@ -40,6 +40,7 @@ import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { blockMessage } from "./reserveText";
 import { cellNum, money } from "./format";
 import { amountChars, amountInputError, parsePesos } from "@/lib/money";
+import { focusStaysInEditor } from "./focusInside";
 import { CELL_W } from "./gridLayout";
 import { FOCUS_RING, cellAriaLabel, cellButtonProps } from "./gridKeyboard";
 import { cn } from "@/lib/utils";
@@ -231,6 +232,12 @@ export function ReserveCellEditor(props: {
       // BG-074: el Escape se atiende en el CONTENEDOR. Desde el campo de comentario la tecla sube a
       // propósito (CellNoteInput) y antes no la atendía nadie: el editor quedaba abierto sin salida.
       onKeyDown={(e) => { if (e.key === "Escape") props.onClose(); }}
+      // BG-082: salir del EDITOR por cualquier camino (también desde el Detalle) comitea, igual que
+      // EditableCell. El blur de los hijos sube hasta aquí; el input ya no comitea por su cuenta.
+      onBlur={(e) => {
+        if (focusStaysInEditor(rootRef.current, e.relatedTarget)) return;
+        commit();
+      }}
       className={cn(CELL_W, "relative py-1 px-2", props.sep && "border-l-2 border-l-border-strong")} style={{ background: props.highlight ? "color-mix(in srgb, var(--accent) 8%, transparent)" : undefined }}>
       <input
         ref={inputRef}
@@ -242,11 +249,6 @@ export function ReserveCellEditor(props: {
           const next = amountChars(e.target.value);
           setVal(next);
           setBlock(amountInputError(next));
-        }}
-        onBlur={(e) => {
-          // El foco que se queda DENTRO del editor (observaciones) no comitea la celda.
-          if (rootRef.current?.contains(e.relatedTarget as Node)) return;
-          commit();
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit();
