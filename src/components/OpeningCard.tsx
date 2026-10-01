@@ -25,6 +25,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { money } from "./format";
+import { amountInputError } from "@/lib/money";
 import { oldestPeriodWithData } from "@/domain/range";
 import type { LedgerState } from "@/domain/types";
 
@@ -127,8 +128,11 @@ export function OpeningCard() {
   const etiquetaMonto = esMesEnCurso ? "¿Cuánto tienes hoy?" : `¿Cuánto tenías al empezar ${nombreMes}?`;
 
   const valor = Number(monto.replace(/[^\d-]/g, ""));
-  const montoValido = monto.trim() === "" ? false : Number.isFinite(valor) && valor >= 0;
   const negativo = monto.trim() !== "" && Number.isFinite(valor) && valor < 0;
+  // BG-076 (FR-207): «1500,50» se leía como 150.050 y se guardaba sin aviso. Un monto que no es un
+  // entero en pesos se rechaza con su mensaje; el negativo conserva el suyo, que dice qué hacer.
+  const noEntero = negativo ? null : amountInputError(monto);
+  const montoValido = monto.trim() === "" || noEntero ? false : Number.isFinite(valor) && valor >= 0;
 
   async function declarar(cantidad: number | null) {
     setGuardando(true);
@@ -198,17 +202,18 @@ export function OpeningCard() {
         inputMode="decimal"
         value={monto}
         disabled={guardando}
-        aria-invalid={negativo || undefined}
+        aria-invalid={negativo || !!noEntero || undefined}
         onChange={(e) => setMonto(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && montoValido) void declarar(valor); }}
-        className={negativo ? "border-(--alert-strong)" : undefined}
+        className={negativo || noEntero ? "border-(--alert-strong)" : undefined}
       />
+      {noEntero && <p data-testid="amount-error" className="caption mt-1.5 text-(--alert-strong)">{noEntero}</p>}
       {negativo && (
         <p data-testid="opening-error" className="caption mt-1.5 text-(--alert-strong)">
           El saldo inicial no puede ser negativo. Si empiezas debiendo, regístralo como un gasto del mes.
         </p>
       )}
-      {!esMesEnCurso && !negativo && (
+      {!esMesEnCurso && !negativo && !noEntero && (
         <p className="caption mt-1.5 text-fg-secondary">
           No incluyas los ingresos de {nombreMes} en adelante: esos los vas a registrar mes a mes.
         </p>

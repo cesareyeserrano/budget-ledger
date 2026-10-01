@@ -7568,7 +7568,7 @@
       "actual_result": "hydrate (store.ts:657-664) marca hydrated sin senalar el error y LoginGate no tiene rama de error de conexion. Senalar storageError y no pintar el shell sin datos cargados; limpiar el store al cerrar sesion (LogoutButton.tsx:20), como ya hace onSessionExpired.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7576,10 +7576,12 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-10",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.232Z",
-      "updated_at": "2026-10-01T17:01:02.582Z",
-      "resolution": "281d7e2: la primera carga fallida pone loadFailed y LoginGate muestra LoadError con Reintentar; una recarga posterior conserva lo que hay en pantalla. Salir llama a clearForLogout (comparte forget con la sesion caducada). Pruebas: integracion bg-059 (5) y e2e bg-059-carga-fallida. Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T20:19:05.435Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (28be7f9, PR #71); verificar-prod 6/6.",
       "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "fix_at": "2026-10-01T17:01:02.260Z"
+      "fix_at": "2026-10-01T17:01:02.260Z",
+      "close_commit_sha": "005c769123e5d365f0e3925361619a595df65bec",
+      "close_at": "2026-10-01T20:19:05.435Z"
     },
     {
       "id": "BG-060",
@@ -7590,7 +7592,7 @@
       "actual_result": "insertMovement (ledgerRepo.ts:863-886) usa addMovement y por tanto nextSeq() de un contador de proceso que nadie siembra en el servidor. Llamar seedSeqFrom(prev) antes de addMovement, dentro de la transaccion.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7598,10 +7600,12 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-11",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.310Z",
-      "updated_at": "2026-10-01T17:01:02.639Z",
-      "resolution": "f5ce8b4: loadStateInTx e insertMovement siembran el suelo de createdAt con lo guardado (seedSeqFrom) antes de que el dominio cree movimientos. Prueba backend bg-060. Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T20:19:05.514Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (28be7f9, PR #71); verificar-prod 6/6.",
       "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "fix_at": "2026-10-01T17:01:02.324Z"
+      "fix_at": "2026-10-01T17:01:02.324Z",
+      "close_commit_sha": "005c769123e5d365f0e3925361619a595df65bec",
+      "close_at": "2026-10-01T20:19:05.514Z"
     },
     {
       "id": "BG-061",
@@ -7612,7 +7616,7 @@
       "actual_result": "schemas.ts:21,56,106 aceptan cualquier cadena como fecha y periodFromDate solo lee 7 caracteres; relocate (cycles.ts:753) lanza InvalidCycleConfig y withApi (http.ts:125-128) lo convierte en 500. Validar la fecha como dia real en el borde, extender boundsFor al dato mas nuevo y devolver 422 nombrando el movimiento.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7620,10 +7624,12 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-12",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.390Z",
-      "updated_at": "2026-10-01T17:01:02.695Z",
-      "resolution": "fead01e: MOVEMENT_DATE (dia real, hora opcional) en POST/PATCH/PUT; boundsFor extiende el calendario al dato mas nuevo; relocate bloquea con relocation_invariant/unplaceable_date nombrando el movimiento y PeriodModeSection lo explica. Las 44 fechas de produccion son validas. Pruebas: dominio bg-061 (2), backend bg-061 (4). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T20:19:05.586Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (28be7f9, PR #71); verificar-prod 6/6.",
       "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "fix_at": "2026-10-01T17:01:02.392Z"
+      "fix_at": "2026-10-01T17:01:02.392Z",
+      "close_commit_sha": "005c769123e5d365f0e3925361619a595df65bec",
+      "close_at": "2026-10-01T20:19:05.586Z"
     },
     {
       "id": "BG-062",
@@ -7634,7 +7640,7 @@
       "actual_result": "cycles.ts:774-791 reubica las filas @retiros:<id> por su propia clave y el piso de 989-1001 solo mira Ejecutado. Reubicar la fila de retiros planeados junto con su bolsillo y comprobar el piso tambien en el plan.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7642,10 +7648,12 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-13",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.469Z",
-      "updated_at": "2026-10-01T17:01:02.751Z",
-      "resolution": "c94290d: la fila @retiros:<id> se reubica con las pistas de su bolsillo y checkRelocationInvariants exige piso tambien en el plan (salvo si ya venia negativo). Prueba dominio bg-062 (3). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T20:19:05.659Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (28be7f9, PR #71); verificar-prod 6/6.",
       "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "fix_at": "2026-10-01T17:01:02.455Z"
+      "fix_at": "2026-10-01T17:01:02.455Z",
+      "close_commit_sha": "005c769123e5d365f0e3925361619a595df65bec",
+      "close_at": "2026-10-01T20:19:05.659Z"
     },
     {
       "id": "BG-063",
@@ -8058,7 +8066,7 @@
       "actual_result": "ReserveCells.tsx:195-205 y 208 no tienen el foco inicial, el onKeyDown de contenedor ni el onBlur que EditableCell (BudgetGrid.tsx:811-832) ya tiene.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8066,10 +8074,12 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-31",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.455Z",
-      "updated_at": "2026-10-01T17:01:02.809Z",
-      "resolution": "344b911: el contenedor del editor de bolsillo atiende Escape (desde el comentario subia y nadie lo atendia). La parte del mes cerrado ya estaba resuelta desde ccc4639. e2e bg-074 (2). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T20:19:05.764Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (28be7f9, PR #71); verificar-prod 6/6.",
       "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "fix_at": "2026-10-01T17:01:02.519Z"
+      "fix_at": "2026-10-01T17:01:02.519Z",
+      "close_commit_sha": "005c769123e5d365f0e3925361619a595df65bec",
+      "close_at": "2026-10-01T20:19:05.764Z"
     },
     {
       "id": "BG-075",
@@ -8100,7 +8110,7 @@
       "actual_result": "Ocho campos quitan todo lo que no sea digito; validateAmountInput (lib/money.ts:50) solo la llaman las pruebas. Conectarla en los campos o rechazar la entrada con parte decimal. Ojo: money.ts:29-31 rechaza cualquier punto, asi que tal como esta rechazaria 1.500.000.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8108,8 +8118,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-15",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.614Z",
-      "updated_at": "2026-09-29T14:39:04.614Z",
-      "resolution": null
+      "updated_at": "2026-10-01T21:19:15.211Z",
+      "resolution": "8e6c567 + 611284b: amountChars/amountInputError en money.ts (entero, o miles con punto bien agrupados; coma, «12.5» o signo -> mensaje de FR-207) y validateAmountInput la usa. Conectada en los nueve campos de monto; un monto invalido no se guarda y el aviso queda a la vista (la celda de la grilla se queda abierta). El editor de movimiento descarta el «-» de uno manual (TC-DDC-101f). Pruebas: unitarias bg-076 (5) y e2e bg-076 (3). Verificado raiz 59/59 y backend 85/86. Idea relacionada: BL-082.",
+      "fix_commit_sha": "250069e09bd26708c9074b0b8b3eea1fa3077722",
+      "fix_at": "2026-10-01T21:19:15.084Z"
     },
     {
       "id": "BG-077",
@@ -8226,7 +8238,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8234,14 +8246,16 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T01:40:22.336Z",
-      "updated_at": "2026-09-30T01:40:29.029Z",
-      "resolution": null,
+      "updated_at": "2026-10-01T21:19:15.266Z",
+      "resolution": "250069e: EditableCell y ReserveCellEditor guardan cuando el foco sale del EDITOR por cualquier camino (el blur sube al contenedor; el input ya no comitea por su cuenta); sin teclear solo cierra. focusStaysInEditor cuenta los flotantes de Radix (calendario, selectores) como dentro. e2e bg-082 (2). Verificado raiz 59/59 y backend 85/86.",
       "log": [
         {
           "at": "2026-09-30T01:40:29.029Z",
           "text": "Hallazgo 6 de la revision adversarial de BG-069 (30-sep). Editor A abierto, Tab entra al Detalle (no comitea), Tab sale del Detalle a la celda siguiente con A aun abierto; Enter llama a startEdit y reemplaza editing/editVal. Con mouse ya pasaba (clic en otra celda con foco en el Detalle). Arreglo sugerido: que startEdit comitee la edicion en curso, o un onBlur en el contenedor abierto."
         }
-      ]
+      ],
+      "fix_commit_sha": "250069e09bd26708c9074b0b8b3eea1fa3077722",
+      "fix_at": "2026-10-01T21:19:15.147Z"
     },
     {
       "id": "BG-083",

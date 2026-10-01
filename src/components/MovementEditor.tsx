@@ -20,6 +20,7 @@ import { useActivePeriods, useCalendar, useLedgerStore } from "@/state/store";
 import { money, textoBorradoNegativo } from "./format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { amountChars, amountInputError, parsePesos } from "@/lib/money";
 
 const DateCalendar = dynamic(() => import("./register/DateCalendar"), { ssr: false });
 
@@ -63,13 +64,17 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
     [data.nodes, movement.type]
   );
 
-  const amount = Number(monto);
+  // BG-076 (FR-207): un monto que no es entero en pesos («1500,50») se rechaza con su mensaje; antes la
+  // coma se borraba y se guardaban 150.050. El «−» inicial de un ajuste sigue siendo válido.
+  const signo = esAjuste && monto.startsWith("-") ? -1 : 1;
+  const errorMonto = amountInputError(esAjuste ? monto.replace(/^-/, "") : monto);
+  const amount = signo * parsePesos(monto);
   const notaLarga = nota.length > CELL_NOTE_MAX;
   // CERO = ELIMINAR (FR-2505), no un monto inválido. Es el idioma que la app ya tiene para los
   // retiros de bolsillo (FR-1802 de `techo-de-flujo`, fijado con palabras del usuario), y tenerlo
   // solo en la mitad de la app obligaba a aprender dos reglas para la misma intención.
   const eliminar = monto !== "" && amount === 0;
-  const montoOk = monto !== "" && Number.isInteger(amount) && (eliminar || (esAjuste ? amount !== 0 : amount >= 1));
+  const montoOk = monto !== "" && !errorMonto && Number.isInteger(amount) && (eliminar || (esAjuste ? amount !== 0 : amount >= 1));
 
   const patch: MovementPatch = {
     amount,
@@ -138,9 +143,14 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
             aria-label="Monto"
             inputMode="numeric"
             value={monto}
+            aria-invalid={!!errorMonto || undefined}
             // El «−» inicial SOLO se admite editando un ajuste: es el único movimiento que puede ser
-            // negativo (FR-2504, TC-DDC-101f). En uno manual el signo se descarta al teclearlo.
-            onChange={(e) => setMonto(e.target.value.replace(esAjuste ? /(?!^-)[^0-9]/g : /[^0-9]/g, ""))}
+            // negativo (FR-2504, TC-DDC-101f). En uno manual el signo se descarta al teclearlo, y en un
+            // ajuste también uno que no vaya al inicio. Coma y punto se conservan para juzgarlos (BG-076).
+            onChange={(e) => {
+              const v = amountChars(e.target.value);
+              setMonto(esAjuste ? v.replace(/(?!^)-/g, "") : v.replace(/-/g, ""));
+            }}
             className={`tabular w-[104px] flex-none ${campo}`}
           />
         </label>
@@ -224,6 +234,13 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
           {eliminar
             ? textoBorradoNegativo(negativa.value)
             : `No se puede: ${nombreDe(data.nodes, negativa.nodeId)} quedaría en ${money(negativa.value)}, y ninguna celda puede quedar por debajo de 0.`}
+        </span>
+      )}
+
+      {errorMonto && (
+        <span data-testid="amount-error" role="alert" className="flex items-start gap-1 text-caption" style={{ color: "var(--error)" }}>
+          <TriangleAlert size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
+          {errorMonto}
         </span>
       )}
 
