@@ -55,10 +55,12 @@ function touchesReserves(prev: LedgerState, next: LedgerState): boolean {
       if ((a[p as PeriodKey] ?? 0) !== (b[p as PeriodKey] ?? 0)) return true;
     }
   }
+  // BG-057: con origen y destino. Sin ellos, reescribir el `from` de un traslado (que no cambia
+  // `target`) no contaba como tocar reservas, y el guardia ni siquiera se ejecutaba.
   const firma = (st: LedgerState) =>
     st.movements
       .filter((m) => m.type === "transfer")
-      .map((m) => `${m.id}:${m.period}:${m.amount}:${m.target}:${m.catId ?? ""}`)
+      .map((m) => `${m.id}:${m.period}:${m.amount}:${m.target}:${m.catId ?? ""}:${m.from ?? ""}:${m.to ?? ""}`)
       .sort()
       .join("|");
   return firma(prev) !== firma(next);
