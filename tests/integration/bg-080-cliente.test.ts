@@ -229,3 +229,60 @@ describe("BG-080 (g) · el título del Dashboard dice el año que pinta", () => 
     expect(titulo()).toBe(`Ejecución mensual · ${p[0]!.slice(0, 4)}–${p[p.length - 1]!.slice(0, 4)}`);
   });
 });
+
+describe("BG-080 (a) · la celda de retiros ejecutados de un mes cerrado es de solo lectura", () => {
+  /** Un retiro de 100.000 con nota, hecho con el mes abierto; después la celda se monta como cerrada o abierta. */
+  async function celda(closed: boolean) {
+    const { store, cur } = await conAhorros();
+    const r = store.getState().applyReserveWithdrawal("c-ahorros", cur, 100_000, "Para regalos");
+    if ("rejected" in r) throw new Error("preparación: retiro rechazado");
+    await delay(30);
+    const { WithdrawCell } = await import("@/components/ReserveCells");
+    render(React.createElement(WithdrawCell, { month: cur, plane: "actual", closed }));
+    fireEvent.click(screen.getByTestId("withdraw-cell"));
+    await screen.findByTestId("withdraw-popover");
+    return { store, cur, id: r.movement.id };
+  }
+
+  it("BG-080a: se abre para leer los retiros y sus notas, sin formulario ni campos", async () => {
+    const { id } = await celda(true);
+    expect(screen.getByTestId("withdraw-cell").getAttribute("data-closed")).toBe("true");
+    expect(screen.getByTestId("closed-notice").textContent).toContain("está cerrado");
+    // Nada con qué sacar ni corregir.
+    expect(screen.queryByTestId("withdraw-source")).toBeNull();
+    expect(screen.queryByTestId("withdraw-amount")).toBeNull();
+    expect(screen.queryByTestId("withdraw-save")).toBeNull();
+    expect(screen.getByTestId("withdraw-popover").querySelectorAll("input, select")).toHaveLength(0);
+    // Pero sí lo que pasó: el monto como texto y su «¿para qué?».
+    expect(screen.getByTestId(`op-amount-${id}`).tagName).toBe("SPAN");
+    expect(screen.getByTestId(`op-amount-${id}`).textContent).toContain("100.000");
+    expect(screen.getByTestId(`op-note-${id}`).textContent).toBe("Para regalos");
+  });
+
+  it("BG-080a: con el mes abierto la celda sigue ofreciendo sacar y corregir (control)", async () => {
+    const { id } = await celda(false);
+    expect(screen.getByTestId("withdraw-cell").getAttribute("data-closed")).toBeNull();
+    expect(screen.queryByTestId("closed-notice")).toBeNull();
+    expect(screen.getByTestId("withdraw-source")).toBeTruthy();
+    expect(screen.getByTestId("withdraw-save")).toBeTruthy();
+    expect(screen.getByTestId(`op-amount-${id}`).tagName).toBe("INPUT");
+  });
+
+  it("BG-080a: el store tampoco acepta sacar ni corregir un retiro en un mes cerrado", async () => {
+    const { store, cur } = await conAhorros();
+    const r = store.getState().applyReserveWithdrawal("c-ahorros", cur, 100_000);
+    if ("rejected" in r) throw new Error("preparación: retiro rechazado");
+    await delay(30);
+    const d = store.getState().data;
+    store.setState({ data: { ...d, closure: { closedThrough: cur, reopened: null } } });
+    const antes = store.getState().data;
+
+    expect(store.getState().applyReserveWithdrawal("c-ahorros", cur, 50_000)).toEqual({ rejected: "invalid_target" });
+    expect(store.getState().editReserveOp(r.movement.id, 40_000)).toEqual({ ok: false, rejected: "invalid_target" });
+    expect(store.getState().editReserveOp(r.movement.id, 0)).toEqual({ ok: false, rejected: "invalid_target" });
+    expect(store.getState().data).toBe(antes);
+    // Ningún aviso nuevo: sigue el del retiro de la preparación, hecho con el mes abierto.
+    expect(retiros(store.getState().data)).toHaveLength(1);
+    expect(retiros(store.getState().data)[0]!.amount).toBe(100_000);
+  });
+});

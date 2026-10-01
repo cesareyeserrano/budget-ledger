@@ -694,6 +694,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     applyReserveWithdrawal: (from, month, amount, note) => {
       const prev = get().data;
+      // BG-080 (a): un mes cerrado no admite retiros. La celda ya no ofrece el formulario; esto es la
+      // misma regla en la puerta, para que ninguna otra superficie pinte un retiro que el servidor
+      // va a rechazar (FR-2003).
+      if (isClosed(prev.closure, month)) return { rejected: "invalid_target" as const };
       // FR-1802 — el retiro nace CON fecha: la lista de operaciones la muestra y la edición la
       // conserva. Antes los retiros de la grilla nacían sin ella (solo el Registrar móvil la pasaba).
       // BG-051: la fecha es la que la celda propone —hoy en hora LOCAL si cae en la columna, si no
@@ -745,6 +749,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
 
     editReserveOp: (movementId, amount) => {
       const prev = get().data;
+      const editada = prev.movements.find((m) => m.id === movementId);
+      if (editada && isClosed(prev.closure, editada.period)) return { ok: false, rejected: "invalid_target" as const }; // BG-080 (a)
       const result = editReserveOp(prev, movementId, amount, get().activePeriods());
       if ("rejected" in result) return { ok: false, rejected: result.rejected };
       if (result.state === prev) return { ok: true }; // mismo monto: no-op
