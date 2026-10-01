@@ -123,6 +123,26 @@ describe("BG-081 (e) · «Tu historia» tras un rechazo", () => {
     expect(saldo.value).toBe("500");
   });
 
+  it("BG-081e: borrar el saldo no lo guarda como 0 — hay que escribir el cero", async () => {
+    const { store } = await configuracion("2026-08", 500);
+    const guardar = vi.fn(async () => ({ ok: true as const }));
+    store.setState({ setStart: guardar as never });
+    const saldo = screen.getByTestId("config-opening") as HTMLInputElement;
+    const boton = screen.getByTestId("config-save") as HTMLButtonElement;
+
+    fireEvent.change(saldo, { target: { value: "" } });
+    expect(boton.disabled).toBe(true);
+    expect(saldo.getAttribute("aria-invalid")).toBe("true");
+    fireEvent.change(saldo, { target: { value: "   " } });
+    expect(boton.disabled).toBe(true);
+
+    fireEvent.change(saldo, { target: { value: "0" } });
+    expect(boton.disabled).toBe(false);
+    await act(async () => { fireEvent.click(boton); await delay(10); });
+    expect(guardar).toHaveBeenCalledTimes(1);
+    expect(guardar.mock.calls[0]).toEqual(["2026-08", 0]);
+  });
+
   it("BG-081e: un inicio de hace muchos años aparece en el selector de año, y se puede volver a él", async () => {
     const { anio } = await configuracion("2019-05", 500);
     const opciones = () => Array.from(anio.options).map((o) => o.value);

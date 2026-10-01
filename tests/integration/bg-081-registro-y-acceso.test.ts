@@ -114,6 +114,30 @@ describe("BG-081 (d) · el error de acceso no sobrevive al cambio de formulario"
     expect(screen.getByTestId("auth-email").getAttribute("aria-invalid")).toBe("false");
   });
 
+  it("BG-081d: una contraseña corta al registrarse dice su motivo; otro fallo conserva el mensaje de siempre", async () => {
+    await formulario({ error: { status: 400, code: "PASSWORD_TOO_SHORT" } });
+    fireEvent.click(screen.getByTestId("auth-toggle"));
+    fireEvent.change(screen.getByTestId("auth-password"), { target: { value: "corta" } });
+    await enviar();
+    expect(screen.getByTestId("auth-error").textContent).toBe("La contraseña es demasiado corta. Usa al menos 8 caracteres.");
+    // El aviso es de la contraseña: el correo no se marca como inválido.
+    expect(screen.getByTestId("auth-email").getAttribute("aria-invalid")).toBe("false");
+    expect(screen.getByTestId("auth-password").getAttribute("aria-invalid")).toBe("true");
+    cleanup();
+
+    await formulario({ error: { status: 422, code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" } });
+    fireEvent.click(screen.getByTestId("auth-toggle"));
+    await enviar();
+    expect(screen.getByTestId("auth-error").textContent).toBe("No se pudo crear la cuenta");
+    cleanup();
+
+    // En «Iniciar sesión» una contraseña corta sigue siendo, sin más, credenciales inválidas.
+    await formulario({ error: { status: 400, code: "PASSWORD_TOO_SHORT" } });
+    fireEvent.change(screen.getByTestId("auth-password"), { target: { value: "corta" } });
+    await enviar();
+    expect(screen.getByTestId("auth-error").textContent).toBe("Credenciales inválidas");
+  });
+
   it("BG-081d: de «Crear cuenta» a «Iniciar sesión», también", async () => {
     await formulario({ error: { status: 422 } });
     fireEvent.click(screen.getByTestId("auth-toggle"));

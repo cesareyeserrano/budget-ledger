@@ -20,6 +20,7 @@ import { signIn, signUp } from "@/lib/authClient";
 import { useLedgerStore } from "@/state/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { MSG_WEAK } from "./ResetPasswordForm";
 
 const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
 
@@ -41,7 +42,11 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
           ? await signUp.email({ email, password, name: name || email.split("@")[0] })
           : await signIn.email({ email, password });
       if (res.error) {
-        setError(mode === "register" ? "No se pudo crear la cuenta" : "Credenciales inválidas");
+        // BG-081 (d): una contraseña corta dice su motivo, con el mismo texto que la recuperación
+        // (FR-1307). La longitud se comprueba antes de mirar el correo, así que el aviso no revela si
+        // ya tiene cuenta. El resto de los fallos del registro conserva su mensaje literal.
+        const corta = mode === "register" && (res.error.code === "PASSWORD_TOO_SHORT" || (res.error.status === 400 && password.length < 8));
+        setError(corta ? MSG_WEAK : mode === "register" ? "No se pudo crear la cuenta" : "Credenciales inválidas");
       } else {
         // Si se llegó aquí por una sesión caducada, hay que cerrar ese episodio explícitamente: el
         // gate reentra a la MISMA cuenta, así que el userId no cambia y nada más lo despertaría.
@@ -98,7 +103,7 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
-            aria-invalid={error !== null}
+            aria-invalid={error !== null && error !== MSG_WEAK}
             required
             disabled={busy}
           />

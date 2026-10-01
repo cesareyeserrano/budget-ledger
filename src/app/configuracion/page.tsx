@@ -103,7 +103,11 @@ function ConfiguracionScreen() {
   const negativo = Number.isFinite(valor) && valor < 0;
   // BG-076 (FR-207): «1500,50» se leía como 150.050. El negativo conserva su propio aviso.
   const noEntero = negativo ? null : amountInputError(saldo);
-  const saldoValido = Number.isFinite(valor) && valor >= 0 && !noEntero;
+  // BG-081 (e): un campo vacío no es un cero. Antes se guardaba como 0 —borrar el campo borraba el
+  // saldo declarado—; FR-2202 pide rechazar lo que no es numérico sin alterar el vigente, y la tarjeta
+  // de arranque ya trata el vacío como inválido. Quien quiere cero, escribe 0.
+  const vacio = saldo.trim() === "";
+  const saldoValido = !vacio && Number.isFinite(valor) && valor >= 0 && !noEntero;
   const cambiado = mes !== startVigente || (saldoValido && valor !== saldoVigente);
   // BG-081 (e): «hay algo que deshacer» no es lo mismo que «hay algo que guardar». Con un saldo
   // inválido, o con el aviso de un rechazo en pantalla, no hay nada guardable y aun así Descartar
