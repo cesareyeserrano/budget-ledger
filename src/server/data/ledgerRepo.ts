@@ -34,6 +34,7 @@ import {
 } from "@/domain/closure";
 import { normalizeOpeningBalance, normalizeStartMonth } from "@/domain/opening";
 import { closedStartBlocker, newlyOrphanedByStart } from "@/domain/openingGuard";
+import { seedSeqFrom } from "@/domain/ids";
 import type { Closure, CycleConfig, CycleVersion, OriginPart
 } from "@/domain/types";
 
@@ -626,6 +627,10 @@ export async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerSt
   ]);
   const [cycles, origins] = await Promise.all([loadCyclesIn(tx, ownerId), loadOriginsIn(tx, ownerId)]);
   const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
+  // BG-060: el contador de `createdAt` es del PROCESO y arranca en 0 en cada reinicio del servidor.
+  // Lo que el dominio cree a partir de este estado (ajustes, notas, la conversión v4) tiene que nacer
+  // DESPUÉS de lo guardado, o se ordena delante de movimientos anteriores. Solo eleva el suelo.
+  seedSeqFrom(base);
   const withCycles = cycles.versions.length > 0 ? { ...base, cycles } : base;
   return origins.length > 0 ? { ...withCycles, origins } : withCycles;
 }
@@ -897,7 +902,11 @@ export async function insertMovement(
     ]);
     // Modelo v4 garantizado ANTES de operar: un ledger v3 sin migrar leería saldos como aportes
     // y aceptaría retiros del doble (hallazgo adversarial 4).
-    const base = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
+    const leido = rowsToState(ownerId, nodeRows, cellRows, movementRows);
+    // BG-060: esta vía lee la base por su cuenta (no pasa por `loadStateInTx`), así que siembra aquí
+    // el suelo de `createdAt` ANTES de que `ensureV4InTx` o `addMovement` creen movimientos.
+    seedSeqFrom(leido);
+    const base = await ensureV4InTx(tx, ownerId, head.dataVersion, leido);
     // BG-063: con la apertura guardada; sin ella, un aporte pagado con el saldo inicial no cabía.
     const conApertura: LedgerState = { ...base, ...openingFromRow(head) };
     const prev: LedgerState = cycles.versions.length > 0 ? { ...conApertura, cycles } : conApertura;
