@@ -662,9 +662,18 @@ export async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerSt
  * Feature ciclos (FR-2405, RV-01/RV-02). Los ids de movimiento cuyo periodo no casa con su fecha,
  * más un marcador por cada clave de celda/nota fuera del calendario. Vacío = coherente.
  *
+ * BG-078 (a): un movimiento SIN fecha en modo ciclos solo se rechaza si es nuevo. Los que ya estaban
+ * guardados así —un movimiento viejo que sobrevivió a la activación, como dice FR-2404— se aceptan
+ * mientras sigan sin fecha y en el mismo periodo. Antes la regla era absoluta, y un solo movimiento
+ * de esos hacía que TODO guardado respondiera 422, también el que lo habría arreglado. Crear uno sin
+ * fecha, quitarle la fecha a uno o cambiar de periodo a uno sin fecha se sigue rechazando.
+ *
+ * @param prev El estado GUARDADO, leído por el servidor; sin él la regla es la absoluta de siempre.
+ *
  * @aitri-trace FR-ID: FR-2405, US-ID: US-2405, AC-ID: AC-2417, TC-ID: TC-CIC-050f, TC-CIC-101f
  */
-export function periodMismatches(state: LedgerState, calBase: Calendar): string[] {
+export function periodMismatches(state: LedgerState, calBase: Calendar, prev?: LedgerState | null): string[] {
+  const sinFechaGuardados = new Map((prev?.movements ?? []).filter((m) => !m.date).map((m) => [m.id, m.period]));
   const ids: string[] = [];
   const used = new Set<PeriodKey>();
   for (const m of [state.budgets, state.actuals]) for (const cells of Object.values(m)) for (const p of Object.keys(cells ?? {})) used.add(p);
@@ -684,7 +693,10 @@ export function periodMismatches(state: LedgerState, calBase: Calendar): string[
     for (const k of validas) if (!allowed.has(k)) ids.push(`period:${k}`);
   }
   for (const mv of state.movements) {
-    if (cal.mode === "cycle" && !mv.date) { ids.push(mv.id); continue; }
+    if (cal.mode === "cycle" && !mv.date) {
+      if (sinFechaGuardados.get(mv.id) !== mv.period) ids.push(mv.id);
+      continue;
+    }
     if (mv.date && !isValidMovementPeriod(cal, mv)) ids.push(mv.id);
   }
   return ids;
@@ -743,7 +755,7 @@ export async function saveLedger(
     state = convertPlannedRetiros(state, serverScope(state)).state;
     const cal = calendarOf(state);
     const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
-    const mismatch = periodMismatches(state, cal);
+    const mismatch = periodMismatches(state, cal, prev);
     if (mismatch.length > 0) return { ok: false, periodMismatch: true, ids: mismatch };
 
     // ORDEN (ADR-19): el cierre PRIMERO y su rechazo corta. «Ese mes está cerrado» es una respuesta

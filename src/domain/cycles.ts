@@ -285,8 +285,16 @@ export function buildCalendar(
     if (end < start) continue; // RV-08: nunca un ciclo de duración cero o negativa
     const transition = b.versionIdx !== a.versionIdx && b.date !== a.nominalNext;
     let key = periodOf(Number(end.slice(0, 4)), Number(end.slice(5, 7)));
-    const prevKey = entries[entries.length - 1]?.key;
-    if (prevKey !== undefined && monthOf(prevKey) === key) key = transitionKey(key);
+    const prev = entries[entries.length - 1];
+    if (prev !== undefined && monthOf(prev.key) === key) {
+      // BG-078 (b): un mes solo tiene DOS claves —la suya y la de transición—. Dos cambios de día de
+      // pago cuyas transiciones terminan en el mismo mes pedían una tercera, y antes se repetía la de
+      // transición: dos columnas con la misma clave, y una fecha que resolvía a una clave cuyo rango
+      // no la contenía. Los dos tramos son una sola transición (decisión del usuario, 2026-10-01): el
+      // segundo se suma al primero.
+      if (isCycleKey(prev.key)) { prev.end = end; prev.transition = true; continue; }
+      key = transitionKey(key);
+    }
     entries.push({ key, start, end, transition });
   }
   return makeCalendar(config, entries);
@@ -1115,7 +1123,17 @@ export function planVersionChange(
     seq, mode: "cycle", anchorDay: target.anchorDay, eomPolicy: target.eomPolicy, effectiveFrom: target.firstPayDate,
     firstPay: target.firstPayDate, restoreStartMonth: vigente.restoreStartMonth, createdAt,
   };
-  return { cfg: { mode: "cycle", versions: [...current.versions, version] }, version, change: "version", lastPay };
+  const nueva: CycleConfig = { mode: "cycle", versions: [...current.versions, version] };
+  // BG-078 (b): con el calendario nuevo, el último ciclo cerrado tiene que seguir terminando donde
+  // terminaba. Un segundo cambio en el mismo mes funde su transición con la anterior; si esa ya está
+  // cerrada, la estiraría y le metería días —y sus movimientos— a un ciclo cerrado.
+  if (ctx.closedEnd !== null) {
+    const cal = buildCalendar(nueva, ctx.bounds);
+    let fin: string | null = null;
+    try { fin = cal.rangeOf(cal.periodForDate(ctx.closedEnd))?.end ?? null; } catch { fin = null; }
+    if (fin !== null && fin !== ctx.closedEnd) return { blocked: "first_pay_invalid", detail: { lastPay: lastPaid ?? lastPay } };
+  }
+  return { cfg: nueva, version, change: "version", lastPay };
 }
 
 /** La versión de activación vigente (la última «cycle» con `firstPay` null), para la vuelta a mes. */
