@@ -8297,7 +8297,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8305,8 +8305,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-10-01T02:22:38.666Z",
-      "updated_at": "2026-10-01T02:22:38.666Z",
-      "resolution": null
+      "updated_at": "2026-10-01T02:28:47.292Z",
+      "resolution": "549ecc7: globalSetup arranca el servidor de pruebas con LEDGER_TZ = la zona de la maquina, asi servidor, navegador y specs comparten reloj (UTC en el CI, Bogota en local). Comprobado con la suite e2e completa en TZ=UTC dentro de la ventana (02:19 UTC del 1-oct): 632/632. Verificado raiz 59/59.",
+      "fix_commit_sha": "549ecc78e62492a8b8bcc5101a7613cdc953045e",
+      "fix_at": "2026-10-01T02:28:47.233Z"
     }
   ]
 }
