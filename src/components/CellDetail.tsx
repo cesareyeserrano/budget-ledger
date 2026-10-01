@@ -296,9 +296,15 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
     );
     if (!nuevo || nuevo.kind !== "adjustment") return;
     setRecien(nuevo.movement.id);
+  }, [entries]);
+  // BG-080 (c): el temporizador vive en su propio efecto. Dentro del de arriba no llegaba a vencer:
+  // `entries` es una lista nueva en cada render, así que el propio `setRecien` volvía a correr el
+  // efecto, su limpieza cancelaba el temporizador y el borde se quedaba encendido para siempre.
+  useEffect(() => {
+    if (recien === null) return;
     const t = setTimeout(() => setRecien(null), RESALTADO_MS);
     return () => clearTimeout(t);
-  }, [entries]);
+  }, [recien]);
 
   useLayoutEffect(() => {
     const w = Math.min(PANEL_MAX_W, window.innerWidth - VIEWPORT_MARGIN);

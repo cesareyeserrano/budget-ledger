@@ -487,10 +487,27 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let lastSig: string | null = null;
   let lastAt = 0;
 
-  // Undo de UN nivel para retiros de reserva (ADR-07): snapshot del estado previo + el estado que
-  // produjo la operación. Si `data` ya no es ESE objeto (cualquier mutación posterior), el undo se
-  // descarta solo — la igualdad de referencia es la ventana de validez.
-  let reserveUndo: { prevData: LedgerState; afterData: LedgerState } | null = null;
+  // Undo de UN nivel para retiros de reserva (ADR-07): el retiro que se hizo + el estado que produjo
+  // la operación. Si `data` ya no es ESE objeto (cualquier mutación posterior), el undo se descarta
+  // solo — la igualdad de referencia es la ventana de validez.
+  //
+  // BG-080 (b): se guarda el MOVIMIENTO, no una foto del estado anterior. Deshacer restauraba esa
+  // foto entera, y si otro dispositivo había escrito dentro de los seis segundos —el sync en vivo
+  // recarga y la ventana se re-apunta a lo cargado (BG-011)— el deshacer borraba esa escritura, aquí
+  // y en el servidor. Ahora deshacer quita solo el retiro, sobre el estado que haya.
+  let reserveUndo: { movementId: string; afterData: LedgerState } | null = null;
+
+  // BG-080 (e): un aviso se identifica por su turno, no por su texto. Con el texto, dos retiros
+  // iguales a cinco segundos hacían que el temporizador del primero quitara el aviso del segundo, y
+  // con él su «Deshacer».
+  let toastSeq = 0;
+  const pushToast = (msg: string, undo: boolean, ms: number) => {
+    const turno = ++toastSeq;
+    set({ toast: msg, toastUndo: undo });
+    setTimeout(() => {
+      if (toastSeq === turno) set({ toast: null, toastUndo: false });
+    }, ms);
+  };
 
   return {
     data: buildSeed(OWNER, seedPeriod()),
@@ -663,10 +680,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     showToast: (msg) => {
       // Tras una sesión muerta no se avisa nada: la pantalla es la de acceso (revisión de BG-073).
       if (get().sessionExpired) return;
-      set({ toast: msg, toastUndo: false });
-      setTimeout(() => {
-        if (get().toast === msg) set({ toast: null, toastUndo: false });
-      }, 2000);
+      pushToast(msg, false, 2000);
     },
 
     applyReserveEdit: (leafId, month, plane, newAmount) => {
@@ -690,14 +704,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const result = applyReserveOp(prev, { from, to: AVAILABLE_ID, period: month, amount, date, ...(note !== undefined ? { note } : {}) }, get().activePeriods());
       if ("rejected" in result) return result;
       // Retiro: red mínima para un gesto rápido — toast 6s con Deshacer (un nivel).
-      reserveUndo = { prevData: prev, afterData: result.state };
+      reserveUndo = { movementId: result.movement.id, afterData: result.state };
       set({ data: result.state });
       persist(result.state);
-      const msg = retiroToast(prev, result.movement.target, result.movement.amount);
-      set({ toast: msg, toastUndo: true });
-      setTimeout(() => {
-        if (get().toast === msg) set({ toast: null, toastUndo: false });
-      }, 6000);
+      pushToast(retiroToast(prev, result.movement.target, result.movement.amount), true, 6000);
       return result;
     },
 
@@ -708,10 +718,18 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         reserveUndo = null;
         return;
       }
-      const { prevData } = reserveUndo;
+      const { movementId } = reserveUndo;
       reserveUndo = null;
-      set({ data: prevData, toast: null, toastUndo: false });
-      persist(prevData);
+      const actual = get().data;
+      const result = removeReserveOp(actual, movementId, get().activePeriods());
+      if ("rejected" in result) {
+        // Solo pasa si otro dispositivo ya dispuso de ese dinero: quitar el retiro rompería una regla.
+        get().showToast("No se pudo deshacer el retiro: tu presupuesto cambió desde otro dispositivo.");
+        return;
+      }
+      toastSeq += 1; // el temporizador del aviso que se cierra ya no tiene nada que quitar
+      set({ ...(result.state !== actual ? { data: result.state } : {}), toast: null, toastUndo: false });
+      if (result.state !== actual) persist(result.state);
     },
 
     removeReserveWithdrawal: (movementId) => {

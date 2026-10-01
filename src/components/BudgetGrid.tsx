@@ -10,7 +10,7 @@ import { isClosed } from "@/domain/closure";
 import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
-import { canDeleteNode } from "@/domain/mutations";
+import { canDeleteNode, moveNode as moveNodeDomain } from "@/domain/mutations";
 import { monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
 // FR-2511: los descuadres son la OTRA lista de problemas del mes; se juntan aquí al pintar.
 import { mismatchIssues } from "@/domain/mismatch";
@@ -763,6 +763,13 @@ function NodeRow(props: {
   const dropId = node.level === "group" ? `group:${node.id}` : node.level === "category" ? `category:${node.id}` : null;
   const droppable = useDroppable({ id: dropId ?? `noop:${node.id}` });
   const canDrag = !node.system;
+  // BG-080 (f): la fila solo se ilumina como destino si el dominio aceptaría soltar ahí lo que se
+  // arrastra (FR-015: «el destino válido»). Antes se iluminaba cualquier grupo o categoría —otro tipo,
+  // la propia fila, un descendiente, un desborde de niveles— y al soltar no pasaba nada. Se pregunta al
+  // propio `moveNode`, sin escribir: una segunda lista de reglas acabaría discrepando de la primera.
+  const arrastrado = droppable.isOver && dropId && droppable.active ? String(droppable.active.id) : null;
+  const dropOk = arrastrado !== null
+    && !("rejected" in moveNodeDomain(data, arrastrado, { kind: node.level as "group" | "category", id: node.id }));
   const bWeight = node.level === "group" ? 500 : 400;
   // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es
   // lienzo, un grupo es estructura), no sobre el lienzo en ambos casos.
@@ -782,8 +789,8 @@ function NodeRow(props: {
             paddingLeft: 14 + row.depth * 16,
             // FR-404: la columna fija comparte la superficie de la fila — la estructura se distingue
             // del dato editable en TODA la fila, no solo en las celdas de mes.
-            background: droppable.isOver && dropId ? `color-mix(in srgb, var(--accent) 18%, ${rowSurface})` : rowSurface,
-            boxShadow: droppable.isOver && dropId ? "inset 0 0 0 1.5px var(--accent)" : undefined,
+            background: dropOk ? `color-mix(in srgb, var(--accent) 18%, ${rowSurface})` : rowSurface,
+            boxShadow: dropOk ? "inset 0 0 0 1.5px var(--accent)" : undefined,
           }}
         >
           <button aria-label="Expandir" aria-expanded={row.expandable ? props.isExpanded : undefined} onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted rounded-sm", FOCUS_RING, row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
@@ -938,7 +945,9 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
         {props.nodeId && props.month && (
           <CellDetail leafId={props.nodeId} month={props.month}
-            onGuardar={props.closed ? undefined : () => props.commit()} onCancelar={props.cancel} />
+            // BG-080 (d): «Guardar» confirma, igual que Enter (TC-DDC-016h). Con `commit()` a secas, en una
+            // celda descuadrada Enter la cuadraba y el botón solo cerraba.
+            onGuardar={props.closed ? undefined : () => props.commit(true)} onCancelar={props.cancel} />
         )}
       </div>
     );

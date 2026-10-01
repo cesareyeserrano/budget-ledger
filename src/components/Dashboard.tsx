@@ -4,7 +4,7 @@ import { BarChart, Bar as RBar, XAxis, ResponsiveContainer, Tooltip, Legend } fr
 import { useLedgerStore, useActivePeriods, useVisiblePeriods, useCalendar } from "@/state/store";
 import { dashboardMetrics } from "@/domain";
 import { typeTotals } from "@/domain/rollup";
-import { periodMonthLabelShort } from "@/domain/periods";
+import { periodMonthLabelShort, periodYear } from "@/domain/periods";
 import { money } from "./format";
 import { Kpi } from "./ui/Kpi";
 import { Card } from "./ui/Card";
@@ -28,6 +28,13 @@ export function Dashboard() {
     [data, visibles]
   );
 
+  // BG-080 (g): el año del título sale de lo que la gráfica pinta. Estaba fijo en «2026», así que con
+  // el filtro en 2027 —o con un rango que cruza de año— el título contradecía a las barras.
+  const anios = [...new Set(visibles.map(periodYear))];
+  const aniosDelTitulo = anios.length === 0
+    ? String(period.mode === "year" ? period.year : periodYear(period.month))
+    : anios.length === 1 ? String(anios[0]) : `${anios[0]}–${anios[anios.length - 1]}`;
+
   const savingsColor = vm.savingsRate >= 20 ? "var(--success)" : vm.savingsRate >= 0 ? "var(--warning)" : "var(--error)";
   const adhColor = vm.adherence > 100 ? "var(--error)" : vm.adherence > 85 ? "var(--warning)" : "var(--accent-light)";
   const maxTop = vm.topCategories[0]?.amount ?? 1;
@@ -42,7 +49,7 @@ export function Dashboard() {
       </div>
 
       <div className="flex flex-col gap-3">
-      <Card title={`Ejecución ${cal.mode === "cycle" ? "por ciclo" : "mensual"} · 2026`}>
+      <Card title={`Ejecución ${cal.mode === "cycle" ? "por ciclo" : "mensual"} · ${aniosDelTitulo}`}>
         <div className="w-full h-[220px]" data-testid="monthly-trend">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trend} barGap={2} barCategoryGap="20%">
