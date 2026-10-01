@@ -4,7 +4,7 @@ import type { LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType 
 import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote, MONTO_MAX } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
-import { AVAILABLE_ID, applyReserveCellEdit, applyReserveOp, plannedRetiroKey, resolvedSeries, reserveLeafIds } from "./reserve";
+import { AVAILABLE_ID, PLANNED_RETIRO_PREFIX, applyReserveCellEdit, applyReserveOp, plannedRetiroKey, resolvedSeries, reserveLeafIds } from "./reserve";
 
 // Compat: estos símbolos vivieron aquí; ahora los comparten reserve/ids sin ciclo de imports.
 export { normalizeNote, __resetSeq, seedSeq, seedSeqFrom };
@@ -289,7 +289,13 @@ function rewriteForDelete(state: LedgerState, id: string): LedgerState {
     delete next.budgets[nid];
     delete next.actuals[nid];
     delete next.budgets[plannedRetiroKey(nid)];
-    if (next.cellNotes) delete next.cellNotes[plannedRetiroKey(nid)];
+    if (next.cellNotes) {
+      // BG-077: los comentarios de sus celdas se van con el nodo. Antes solo se borraban los de la
+      // fila de retiros planeados, y los de las celdas corrientes quedaban sin dueño: invisibles,
+      // y aun así contados como dato del periodo más antiguo.
+      delete next.cellNotes[nid];
+      delete next.cellNotes[plannedRetiroKey(nid)];
+    }
   }
   return next;
 }
@@ -551,6 +557,53 @@ export function repairOrphanedPocketJournal(state: LedgerState): { state: Ledger
   return repaired.length > 0 ? { state: next, repaired } : { state, repaired: [] };
 }
 
+/** Pasa las notas de una fila a otra, mes a mes: se suman a las que la receptora ya tenía. */
+function moveCellNotes(next: LedgerState, fromKey: string, toKey: string): void {
+  const cedidas = next.cellNotes?.[fromKey];
+  if (!cedidas || !next.cellNotes) return;
+  const juntas = { ...(next.cellNotes[toKey] ?? {}) };
+  for (const [p, notas] of Object.entries(cedidas)) {
+    juntas[p as PeriodKey] = [...(juntas[p as PeriodKey] ?? []), ...(notas ?? [])];
+  }
+  next.cellNotes[toKey] = juntas;
+  delete next.cellNotes[fromKey];
+}
+
+/**
+ * BG-077 — repara las notas de celda que el defecto ya dejó sin dueño.
+ *
+ * Antes de BG-077 borrar un nodo dejaba sus comentarios en el mapa, y el nodo que ganaba su primer
+ * hijo se quedaba con los suyos. Ninguna pantalla los muestra, pero cuentan como dato del periodo
+ * más antiguo y pueden impedir mover el mes de inicio. Aquí se aplica hacia atrás la misma regla que
+ * hoy: las notas de un nodo que ya no existe se descartan, y las de un nodo que dejó de ser hoja
+ * pasan a su PRIMERA hoja, en el orden de la grilla. Vale igual para la fila de retiros planeados de
+ * un bolsillo. La fila global `@retiros` no es de ningún nodo y no se toca.
+ *
+ * Sin nada que reparar devuelve el MISMO estado, así que puede correr en cada carga.
+ *
+ * @returns El estado reparado y las claves de `cellNotes` tocadas; `state` es el mismo objeto si no cambió.
+ * @throws Nunca.
+ */
+export function repairOrphanedCellNotes(state: LedgerState): { state: LedgerState; repaired: string[] } {
+  const destinos: Array<{ key: string; to: string | null }> = [];
+  for (const key of Object.keys(state.cellNotes ?? {})) {
+    const plan = key.startsWith(PLANNED_RETIRO_PREFIX);
+    if (key.startsWith("@") && !plan) continue;
+    const nodeId = plan ? key.slice(PLANNED_RETIRO_PREFIX.length) : key;
+    const node = findNode(state.nodes, nodeId);
+    if (node && isLeaf(node, state.nodes)) continue;
+    const receptor = node ? leafDescendants(state.nodes, nodeId)[0] : undefined;
+    destinos.push({ key, to: receptor ? (plan ? plannedRetiroKey(receptor) : receptor) : null });
+  }
+  if (destinos.length === 0) return { state, repaired: [] };
+  const next = clone(state);
+  for (const { key, to } of destinos) {
+    if (to) moveCellNotes(next, key, to);
+    else delete next.cellNotes![key];
+  }
+  return { state: next, repaired: destinos.map((d) => d.key) };
+}
+
 function repointMovements(next: LedgerState, cedingId: string, receivingId: string): void {
   // saldo-de-bolsillo (riesgo del TRD): el retiro planeado del bolsillo cedente viaja con sus celdas.
   // Si se quedara con el id viejo sería una fila sin dueño y el plan del receptor renacería sin él.
@@ -564,16 +617,10 @@ function repointMovements(next: LedgerState, cedingId: string, receivingId: stri
     delete next.budgets[filaCedente];
   }
   // Y sus notas «¿Para qué?» (FR-3002): se suman a las del receptor, mes a mes, sin perder ninguna.
-  const notasCedente = next.cellNotes?.[filaCedente];
-  if (notasCedente && next.cellNotes) {
-    const filaReceptora = plannedRetiroKey(receivingId);
-    const juntas = { ...(next.cellNotes[filaReceptora] ?? {}) };
-    for (const [p, notas] of Object.entries(notasCedente)) {
-      juntas[p as PeriodKey] = [...(juntas[p as PeriodKey] ?? []), ...(notas ?? [])];
-    }
-    next.cellNotes[filaReceptora] = juntas;
-    delete next.cellNotes[filaCedente];
-  }
+  moveCellNotes(next, filaCedente, plannedRetiroKey(receivingId));
+  // BG-077: los comentarios de las celdas corrientes también siguen a sus celdas. Se quedaban en el
+  // nodo cedente, que ya no es hoja y no tiene celda donde leerlos.
+  moveCellNotes(next, cedingId, receivingId);
   const receiver = findNode(next.nodes, receivingId);
   const catId = receiver && receiver.level === "sub" ? receiver.parentId! : receivingId;
   const subId = receiver && receiver.level === "sub" ? receivingId : null;

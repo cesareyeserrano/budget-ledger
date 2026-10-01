@@ -14,7 +14,7 @@ import { and, asc, desc, eq, like } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
-import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
+import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedCellNotes, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
 // Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
 // el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
 import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
@@ -234,9 +234,9 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
 
   const cycles = await loadCyclesIn(db, ownerId);
   const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
-  // BG-053: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no paga nada.
-  // Solo si hay rastro del defecto se abre la transacción que repara, y se vuelve a cargar una vez.
-  if (!reparado && repairOrphanedPocketJournal(base).repaired.length > 0 && (await repairOrphanedJournalFor(ownerId))) {
+  // BG-053 y BG-077: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no paga
+  // nada. Solo si hay rastro de un defecto se abre la transacción que repara, y se vuelve a cargar una vez.
+  if (!reparado && repairLoaded(base).repaired > 0 && (await repairOnLoadFor(ownerId))) {
     return loadLedger(ownerId, true);
   }
   const state = cycles.versions.length > 0 ? { ...base, cycles } : base;
@@ -247,36 +247,48 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
 }
 
 /**
- * BG-053 — repara, al cargar, los movimientos que el defecto dejó apuntando a un bolsillo que ya no es
- * hoja (ver `repairOrphanedPocketJournal`). Dentro de una transacción con la fila ancla bloqueada:
- * vuelve a leer el estado, repara, reescribe el snapshot y sube `revision`, de modo que un navegador
- * con el snapshot anterior recibe 409 y re-sincroniza en vez de pisar la reparación.
+ * Las reparaciones de datos que corren al cargar, en orden: los movimientos de un bolsillo que ya no es
+ * hoja (BG-053) y las notas de celda sin dueño (BG-077). Pura: sin nada que reparar devuelve el mismo
+ * estado y `repaired: 0`.
+ */
+function repairLoaded(state: LedgerState): { state: LedgerState; repaired: number } {
+  const journal = repairOrphanedPocketJournal(state);
+  const notes = repairOrphanedCellNotes(journal.state);
+  return { state: notes.state, repaired: journal.repaired.length + notes.repaired.length };
+}
+
+/**
+ * BG-053 y BG-077 — repara, al cargar, los movimientos que quedaron apuntando a un bolsillo que ya no es
+ * hoja (ver `repairOrphanedPocketJournal`) y las notas de celda que quedaron sin dueño (ver
+ * `repairOrphanedCellNotes`). Dentro de una transacción con la fila ancla bloqueada: vuelve a leer el
+ * estado, repara, reescribe el snapshot y sube `revision`, de modo que un navegador con el snapshot
+ * anterior recibe 409 y re-sincroniza en vez de pisar la reparación.
  *
  * No pasa por los guardias de escritura a propósito: es una reparación de datos, no una edición del
  * usuario. Los totales del Balance —también los de un mes cerrado— no cambian; cambia a qué bolsillo
- * pertenece el saldo.
+ * pertenece el saldo, y ninguna cifra de celda se toca.
  *
  * @returns true si reparó algo.
  * @throws Nunca: un fallo se registra y el ledger se sirve sin reparar; la próxima carga lo reintenta.
  */
-async function repairOrphanedJournalFor(ownerId: string): Promise<boolean> {
+async function repairOnLoadFor(ownerId: string): Promise<boolean> {
   try {
     return await db.transaction(async (tx) => {
       const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
       if (!head) return false;
-      const { state: next, repaired } = repairOrphanedPocketJournal(await loadStateInTx(tx, ownerId));
-      if (repaired.length === 0) return false;
+      const { state: next, repaired } = repairLoaded(await loadStateInTx(tx, ownerId));
+      if (repaired === 0) return false;
       await tx.delete(node).where(eq(node.ownerId, ownerId));
       await tx.delete(amountCell).where(eq(amountCell.ownerId, ownerId));
       await tx.delete(movement).where(eq(movement.ownerId, ownerId));
       await tx.delete(cellNote).where(eq(cellNote.ownerId, ownerId));
       await insertSnapshot(tx, ownerId, next);
       await tx.update(ledger).set({ revision: head.revision + 1, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
-      console.log(`[ledger] movimientos de bolsillos que ya no son hoja reparados (BG-053) para ${ownerId}: ${repaired.length}`);
+      console.log(`[ledger] datos sin dueño reparados al cargar (BG-053, BG-077) para ${ownerId}: ${repaired}`);
       return true;
     });
   } catch (err) {
-    console.error(`[ledger] no se pudo reparar los movimientos de bolsillos (BG-053): ${String(err)}`);
+    console.error(`[ledger] no se pudo reparar los datos sin dueño al cargar (BG-053, BG-077): ${String(err)}`);
     return false;
   }
 }
