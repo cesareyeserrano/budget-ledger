@@ -26,8 +26,15 @@ import type { PeriodKey } from "@/domain/types";
  * CUÁNTOS meses con datos quedarían fuera — un «no se puede» sin el daño concreto no es un mensaje
  * de error, es un muro.
  */
-function rejected(reason: "month_closed" | "would_orphan", periods?: readonly PeriodKey[]): Response {
-  const detail = reason === "would_orphan" ? { periods: periods ?? [] } : {};
+function rejected(
+  reason: "month_closed" | "would_orphan",
+  periods?: readonly PeriodKey[],
+  period?: PeriodKey
+): Response {
+  // BG-065: `month_closed` nombra el mes que bloquea, que ya no es siempre el declarado — puede ser
+  // el primero con datos (sin declaración) o el propuesto.
+  const detail =
+    reason === "would_orphan" ? { periods: periods ?? [] } : reason === "month_closed" && period ? { period } : {};
   return json({ error: { code: reason, detail } }, HTTP.UNPROCESSABLE);
 }
 
@@ -39,7 +46,7 @@ const putHandler = withApi<StartPutBody>(
       return json({ error: { code: "revision_conflict" }, revision: res.revision }, HTTP.CONFLICT);
     }
     if (!res.ok) {
-      return rejected(res.rejected, "periods" in res ? res.periods : undefined);
+      return rejected(res.rejected, "periods" in res ? res.periods : undefined, "period" in res ? res.period : undefined);
     }
     syncHub.publish(userId, { revision: res.revision }); // los demás dispositivos, al día (FR-511)
     return json({ revision: res.revision, startMonth: res.startMonth, openingBalance: res.openingBalance });

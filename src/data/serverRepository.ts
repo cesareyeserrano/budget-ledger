@@ -331,7 +331,7 @@ export class ServerRepository implements LedgerRepository {
     openingBalance: number | null
   ): Promise<
     | { ok: true; startMonth: string; openingBalance: number | null }
-    | { ok: false; reason: string; periods?: string[] }
+    | { ok: false; reason: string; periods?: string[]; period?: string }
   > {
     try {
       const res = await fetch(this.url("/api/v1/ledger/start"), {
@@ -348,7 +348,7 @@ export class ServerRepository implements LedgerRepository {
         revision?: number;
         startMonth?: string;
         openingBalance?: number | null;
-        error?: { code?: string; detail?: { periods?: string[] } };
+        error?: { code?: string; detail?: { periods?: string[]; period?: string } };
       };
       if (res.status === CONFLICT) {
         if (typeof body.revision === "number") this.revision = body.revision;
@@ -360,6 +360,7 @@ export class ServerRepository implements LedgerRepository {
           ok: false,
           reason: body.error?.code ?? "rejected",
           periods: body.error?.detail?.periods,
+          period: body.error?.detail?.period,
         };
       }
       if (typeof body.revision === "number") this.revision = body.revision;

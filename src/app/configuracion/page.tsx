@@ -37,6 +37,7 @@ import { Toaster } from "@/components/Toaster";
 import { periodMonthLabel, periodOf, periodMonth, periodYear } from "@/domain/periods";
 import { isClosed, closureOf } from "@/domain/closure";
 import { normalizeStartMonth } from "@/domain/opening";
+import { effectiveStartMonth } from "@/domain/openingGuard";
 
 import {
   readCatWidth, writeCatWidth, CAT_WIDTH_MIN, CAT_WIDTH_MAX, CAT_WIDTH_DEFAULT,
@@ -88,7 +89,14 @@ function ConfiguracionScreen() {
 
   // FR-2205: con el mes de inicio CERRADO no se edita. Se PREVIENE —el campo llega bloqueado y
   // explica la vía— en vez de dejar teclear para rechazar después.
-  const cerrado = isClosed(closureOf(data), startVigente);
+  // BG-065: el mes que cuenta es el EFECTIVO —sin declaración, el primero con datos—, la misma
+  // derivación que usa el servidor. Con `startVigente` (que sin declaración es «hoy») la pantalla
+  // dejaba editar una apertura que movía los saldos de meses ya cerrados.
+  const inicioEfectivo = effectiveStartMonth(data);
+  const cerrado = inicioEfectivo !== null && isClosed(closureOf(data), inicioEfectivo);
+  const mesBloqueado = inicioEfectivo ?? startVigente;
+  // Y el mes PROPUESTO tampoco puede estar cerrado: empezar ahí movería sus saldos.
+  const propuestoCerrado = !cerrado && isClosed(closureOf(data), mes);
 
   const valor = Number(saldo.replace(/[^\d-]/g, ""));
   const saldoValido = Number.isFinite(valor) && valor >= 0;
@@ -100,7 +108,8 @@ function ConfiguracionScreen() {
     setGuardando(false);
     if (res.ok) { setOk(true); setTimeout(() => setOk(false), 2000); return; }
     if (res.reason === "month_closed") {
-      setAviso(`${periodMonthLabel(startVigente).toLocaleLowerCase("es")} de ${periodYear(startVigente)} está cerrado. Para cambiar el saldo inicial, reabre ese mes.`);
+      const p = res.period ?? mesBloqueado;
+      setAviso(`${periodMonthLabel(p).toLocaleLowerCase("es")} de ${periodYear(p)} está cerrado. Para cambiar el saldo inicial, reabre ese mes.`);
     } else if (res.reason === "would_orphan") {
       const n = res.periods?.length ?? 0;
       setAviso(`No puedes empezar en ${periodMonthLabel(mes).toLocaleLowerCase("es")}: dejarías fuera ${n} ${n === 1 ? "mes" : "meses"} con datos. Bórralos primero si de verdad quieres empezar más tarde.`);
@@ -203,9 +212,17 @@ function ConfiguracionScreen() {
           {cerrado && (
             <div data-testid="config-blocked" className="mb-4 rounded-(--radius-sm) border border-(--alert-strong) p-3 caption text-fg">
               <b className="text-(--alert-strong)">
-                {periodMonthLabel(startVigente).toLocaleLowerCase("es")} de {periodYear(startVigente)} está cerrado.
+                {periodMonthLabel(mesBloqueado).toLocaleLowerCase("es")} de {periodYear(mesBloqueado)} está cerrado.
               </b>{" "}
               Para cambiar el saldo inicial, reabre ese mes desde la grilla.
+            </div>
+          )}
+          {propuestoCerrado && (
+            <div data-testid="config-start-closed" className="mb-4 rounded-(--radius-sm) border border-(--alert-strong) p-3 caption text-fg">
+              <b className="text-(--alert-strong)">
+                {periodMonthLabel(mes).toLocaleLowerCase("es")} de {periodYear(mes)} está cerrado.
+              </b>{" "}
+              Tu historia no puede empezar en un mes cerrado: cambiaría sus saldos. Elige otro mes o reábrelo desde la grilla.
             </div>
           )}
           {aviso && !cerrado && (
@@ -261,7 +278,7 @@ function ConfiguracionScreen() {
           )}
 
           <div className="mt-4 flex items-center gap-2">
-            <Button data-testid="config-save" disabled={cerrado || guardando || !cambiado || !saldoValido} onClick={() => void guardar()}>
+            <Button data-testid="config-save" disabled={cerrado || propuestoCerrado || guardando || !cambiado || !saldoValido} onClick={() => void guardar()}>
               {guardando ? "Guardando…" : "Guardar cambios"}
             </Button>
             <Button variant="ghost" disabled={cerrado || guardando || !cambiado} onClick={() => { setMes(startVigente); setSaldo(String(saldoVigente)); setAviso(null); }}>

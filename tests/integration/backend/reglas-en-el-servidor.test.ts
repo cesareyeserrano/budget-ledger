@@ -11,6 +11,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { buildSeed, setLeafAmount } from "@/domain";
 import { isLeaf } from "@/domain/tree";
+import { AVAILABLE_ID } from "@/domain/reserve";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
 import { ajustarCelda, celdaCuadrada } from "../../helpers/cuadre";
@@ -90,18 +91,37 @@ describe("FR-2101 — el guardia en el servidor", () => {
 
   it("TC-RES-011f: eliminar un retiro que sostiene el mes se rechaza por déficit o techo", async () => {
     // @aitri-tc TC-RES-011f
-    const { revision, res } = await alTecho();
+    // BG-086: hasta el 2026-09-30 esta prueba no probaba nada. El retiro salía con el id
+    // «__available__» (no existe: es `AVAILABLE_ID`) y sin `catId`, el servidor lo descartaba y la
+    // prueba hacía `return` sin afirmar. Y aunque se hubiera registrado, el escenario no tenía
+    // déficit: borrar el retiro devolvía el bolsillo al techo exacto, que es válido.
+    // Ahora monta lo que el caso pide: un gasto que SOLO se paga gracias al retiro.
+    const { revision, res } = await alTecho(); // ingreso 1.000.000, todo apartado: disponible 0
     const mv = await insertMovement(A, {
-      type: "transfer", from: res, to: "__available__", period: INICIO, amount: "300000",
+      type: "transfer", catId: res, from: res, to: AVAILABLE_ID, period: INICIO, amount: "300000",
     } as never);
-    // Si el retiro no se pudo registrar, el escenario no aplica y la prueba no afirma nada falso.
-    if (!mv || !("movement" in mv)) return;
+    if (!mv || !("movement" in mv)) throw new Error(`el retiro del escenario no se registró: ${JSON.stringify(mv)}`);
 
+    // Un gasto de 300.000 pagado con el retiro: el disponible vuelve a 0 y depende del retiro.
+    const conRetiro = (await loadLedger(A))!;
+    const conGasto = celdaCuadrada(conRetiro.state, hoja(conRetiro.state, "expense"), INICIO, 300_000);
+    const g = await saveLedger(A, conGasto, conRetiro.revision);
+    expect(g.ok, `el gasto del escenario debe poder escribirse: ${JSON.stringify(g)}`).toBe(true);
+
+    // Borrar el retiro dejaría el mes en −300.000. El guardia devuelve UNA violación (la que bloquea
+    // primero, ver `worsenedBy`); aquí la reporta el techo, que el título del caso admite.
     const l = (await loadLedger(A))!;
     const sinRetiro: LedgerState = { ...l.state, movements: l.state.movements.filter((m) => m.id !== mv.movement.id) };
     const r = await saveLedger(A, sinRetiro, l.revision);
     expect(r.ok).toBe(false);
-    expect("domainViolation" in r).toBe(true);
+    const violaciones = "domainViolation" in r ? r.violations : [];
+    expect(violaciones).toHaveLength(1);
+    expect(["deficit", "techo"]).toContain(violaciones[0]!.rule);
+    expect(violaciones[0]!.period).toBe(INICIO);
+    // El retiro sigue en la base y la revisión no se movió.
+    const despues = (await loadLedger(A))!;
+    expect(despues.state.movements.some((m) => m.id === mv.movement.id)).toBe(true);
+    expect(despues.revision).toBe(l.revision);
     expect(revision).toBeGreaterThan(0);
   });
 
@@ -150,7 +170,7 @@ describe("FR-2101 — el guardia en el servidor", () => {
     const movimientosAntes = ([...(await testDb().execute(
       sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
     const r = await insertMovement(A, {
-      type: "transfer", from: "__available__", to: res, period: INICIO, amount: "900000",
+      type: "transfer", catId: res, from: AVAILABLE_ID, to: res, period: INICIO, amount: "900000",
     } as never);
     // Rechazado por el dominio (null) o por el guardia: en ninguno de los dos casos se escribe.
     expect(r === null || (r !== null && "domainViolation" in r)).toBe(true);
@@ -264,7 +284,7 @@ describe("NFR-2103/2104/2105 — seguridad, convivencia y coste", () => {
     };
     expect((await saveLedger(A, fabricado, revision)).ok).toBe(false);
     const mv = await insertMovement(A, {
-      type: "transfer", from: "__available__", to: res, period: INICIO, amount: "2000000",
+      type: "transfer", catId: res, from: AVAILABLE_ID, to: res, period: INICIO, amount: "2000000",
     } as never);
     expect(mv === null || (mv !== null && "domainViolation" in mv)).toBe(true);
   });

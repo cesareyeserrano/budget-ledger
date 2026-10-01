@@ -143,7 +143,7 @@ interface LedgerStore {
   /** Feature ciclos (FR-2404/FR-2410): aplica el cambio; tras el 200 resincroniza desde el servidor. */
   applyPeriodMode: (target: CycleTarget) => Promise<PeriodModeResult>;
   setStart: (startMonth: PeriodKey, openingBalance: number | null, opts?: { soloSiNoDeclarada?: boolean })
-    => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[] }>;
+    => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[]; period?: string }>;
   /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
   closeMonth: () => Promise<void>;
   /** Reabre el último mes cerrado (FR-2005). */

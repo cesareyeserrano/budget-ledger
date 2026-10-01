@@ -381,11 +381,14 @@ function diffMovements(
       mark(om.period);
       mark(nm.period);
     }
-    // `??` en los tres campos opcionales: ausente y `null` son el MISMO dato («sin nota», «sin
+    // `??` en los campos opcionales: ausente y `null` son el MISMO dato («sin nota», «sin
     // fecha», «manual»), y tratarlos como distintos marcaría una violación al releer un movimiento
     // viejo sin haberlo tocado nadie.
+    // BG-057: `from` y `to` también. En un traslado `target` es el destino, así que reescribir el
+    // ORIGEN cambiaba dos saldos de un mes cerrado sin que esta comparación lo viera.
     if (om.amount !== nm.amount || om.target !== nm.target || om.catId !== nm.catId ||
         om.subId !== nm.subId || om.type !== nm.type ||
+        (om.from ?? null) !== (nm.from ?? null) || (om.to ?? null) !== (nm.to ?? null) ||
         (om.note ?? null) !== (nm.note ?? null) ||
         (om.date ?? null) !== (nm.date ?? null) ||
         (om.kind ?? "manual") !== (nm.kind ?? "manual")) {

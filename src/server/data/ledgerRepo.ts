@@ -32,7 +32,8 @@ import { convertPlannedRetiros, isPlannedRetiroKey, type ReserveWarning } from "
 import {
   closedPeriodsViolated, closeMonth, isClosed, normalizeClosure, reopenMonth, NO_CLOSURE, checkClosureNeighbors,
 } from "@/domain/closure";
-import { normalizeOpeningBalance, normalizeStartMonth, orphanedByStart } from "@/domain/opening";
+import { normalizeOpeningBalance, normalizeStartMonth } from "@/domain/opening";
+import { closedStartBlocker, newlyOrphanedByStart } from "@/domain/openingGuard";
 import type { Closure, CycleConfig, CycleVersion, OriginPart
 } from "@/domain/types";
 
@@ -635,7 +636,7 @@ export async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerSt
  *
  * @aitri-trace FR-ID: FR-2405, US-ID: US-2405, AC-ID: AC-2417, TC-ID: TC-CIC-050f, TC-CIC-101f
  */
-export function periodMismatches(state: LedgerState, cal: Calendar): string[] {
+export function periodMismatches(state: LedgerState, calBase: Calendar): string[] {
   const ids: string[] = [];
   const used = new Set<PeriodKey>();
   for (const m of [state.budgets, state.actuals]) for (const cells of Object.values(m)) for (const p of Object.keys(cells ?? {})) used.add(p);
@@ -644,6 +645,12 @@ export function periodMismatches(state: LedgerState, cal: Calendar): string[] {
   // Solo claves BIEN FORMADAS: una malformada («2026-13») no es asunto del calendario — la
   // rechazan Zod en el borde y el CHECK de la base, como siempre (TC-MAN-242e sigue igual).
   const validas = [...used].filter((k) => isPeriodKey(k)).sort(comparePeriods);
+  // BG-063: la tabla de ciclos tiene que cubrir TODAS las claves que se juzgan. `calendarOf` acota
+  // por los datos (que ignoran las celdas en cero) y por el mes de inicio; con el inicio lejos, una
+  // celda en cero fuera de esa ventana caía fuera de la tabla y salía como «periodo inexistente».
+  const cal = calBase.mode === "cycle" && validas.length > 0
+    ? calendarOf(state, validas[0], validas[validas.length - 1])
+    : calBase;
   if (validas.length > 0) {
     const allowed = new Set(cal.keys(monthOf(validas[0]!), monthOf(validas[validas.length - 1]!)));
     for (const k of validas) if (!allowed.has(k)) ids.push(`period:${k}`);
@@ -686,7 +693,11 @@ export async function saveLedger(
     //
     // El estado previo se carga UNA sola vez y lo comparten los dos guardias (NFR-2105): antes se
     // cargaba solo cuando había meses cerrados; ahora hace falta siempre.
-    const prev = head ? await loadStateInTx(tx, ownerId) : null;
+    // BG-063: los dos estados se juzgan con la apertura GUARDADA. `loadStateInTx` no la adjunta, y la
+    // del cuerpo no vale: este PUT no la escribe (la mueve solo `saveStartFor`), así que dejar que la
+    // petición la afirme era dejarle inventar cupo para el techo.
+    const prev = head ? { ...(await loadStateInTx(tx, ownerId)), ...openingFromRow(head) } : null;
+    state = { ...state, ...(head ? openingFromRow(head) : { startMonth: null, openingBalance: null }) };
     // Feature ciclos (ADR-03): la configuración NO viaja en el snapshot — solo la cambia
     // `applyCyclesFor`. Un cliente con código anterior no puede borrarla ni alterarla desde aquí.
     if (prev?.cycles) state = { ...state, cycles: prev.cycles };
@@ -710,7 +721,9 @@ export async function saveLedger(
     if (prev) {
       // El rango juzgado es la UNIÓN de los dos alcances: un mes que la escritura estrena tiene que
       // entrar en el juicio, o crear un mes sería la puerta de escape (TC-RES-015e).
-      const scope = unionScope(state, serverScope(prev), serverScope(state));
+      // BG-063: el rango arranca en el mes de inicio declarado si es anterior a los datos, o la
+      // apertura no entraría en el techo. Es el MISMO rango que el cierre (`closureScope`).
+      const scope = unionScope(state, closureScope(prev), closureScope(state));
 
       // ── CUADRE RELATIVO (NFR-2502, feature diario-de-celda) ──────────────────────────────────
       // Va ANTES de las reglas de reservas y DESPUÉS del cierre, en el orden que fija el TRD. Es
@@ -885,7 +898,9 @@ export async function insertMovement(
     // Modelo v4 garantizado ANTES de operar: un ledger v3 sin migrar leería saldos como aportes
     // y aceptaría retiros del doble (hallazgo adversarial 4).
     const base = await ensureV4InTx(tx, ownerId, head.dataVersion, rowsToState(ownerId, nodeRows, cellRows, movementRows));
-    const prev: LedgerState = cycles.versions.length > 0 ? { ...base, cycles } : base;
+    // BG-063: con la apertura guardada; sin ella, un aporte pagado con el saldo inicial no cabía.
+    const conApertura: LedgerState = { ...base, ...openingFromRow(head) };
+    const prev: LedgerState = cycles.versions.length > 0 ? { ...conApertura, cycles } : conApertura;
     // BG-064: un gasto o ingreso sobre una categoría que no existe, no es hoja o no es de su tipo se
     // rechaza con su propio motivo — el cliente tiene que poder distinguirlo de un monto inválido.
     if (input.type !== "transfer" && !movementTargetOk(prev.nodes, input)) return { invalidTarget: true as const };
@@ -906,13 +921,13 @@ export async function insertMovement(
     // «registrar un movimiento nuevo con periodo de un mes cerrado» (TC-CDM-033f).
     const closure = closureFromRow(head, cal);
     if (closure.closedThrough !== null) {
-      const next0 = addMovement(prev, input, serverScope(prev, input.period));
+      const next0 = addMovement(prev, input, closureScope(prev, input.period));
       if (next0 !== prev && closedPeriodsViolated({ ...prev, closure }, next0).length > 0) {
         return { closedViolation: true as const };
       }
     }
 
-    const next = addMovement(prev, input, serverScope(prev, input.period));
+    const next = addMovement(prev, input, closureScope(prev, input.period));
     if (next === prev) return null; // rechazado por el dominio (monto/extremos inválidos o techo/piso)
 
     // EL GUARDIA DE DOMINIO en la segunda vía (FR-2101). Un movimiento de tipo `transfer` ya venía
@@ -920,7 +935,7 @@ export async function insertMovement(
     // mismo estado al rechazar—, pero uno de INGRESO o GASTO no pasaba por ninguna comprobación:
     // ese era el agujero. Se juzga el estado resultante, no la operación, así que cubre las dos
     // clases con una sola llamada (TC-RES-016f).
-    const scope = unionScope(prev, serverScope(prev, input.period), serverScope(next, input.period));
+    const scope = unionScope(prev, closureScope(prev, input.period), closureScope(next, input.period));
     const violations = worsenedBy(prev, next, scope);
     if (violations.length > 0) return { domainViolation: true as const, violations };
 
@@ -994,7 +1009,8 @@ async function writeMovement(
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
     if (!head) return { ok: false, notFound: true };
-    const prev = await loadStateInTx(tx, ownerId);
+    // BG-063: con la apertura guardada, igual que el PUT y el POST.
+    const prev = { ...(await loadStateInTx(tx, ownerId)), ...openingFromRow(head) };
     const cal = calendarOf(prev);
 
     // Dueño: el movimiento se busca DENTRO del estado del owner, así que uno ajeno simplemente no
@@ -1015,7 +1031,7 @@ async function writeMovement(
       return { ok: false, closedViolation: true, periods: [actual.period] };
     }
 
-    const scope = serverScope(prev, actual.period);
+    const scope = closureScope(prev, actual.period);
     const res = mutar(prev, cal, scope);
     if ("rejected" in res) {
       if (res.rejected === "not_found") return { ok: false, notFound: true };
@@ -1035,7 +1051,7 @@ async function writeMovement(
     const violated = closedPeriodsViolated({ ...prev, closure }, next);
     if (violated.length > 0) return { ok: false, closedViolation: true, periods: violated };
 
-    const juicio = unionScope(prev, scope, serverScope(next, actual.period));
+    const juicio = unionScope(prev, scope, closureScope(next, actual.period));
     const descuadres = worsenedCellMismatches(prev, next, juicio);
     if (descuadres.length > 0) return { ok: false, cellMismatch: true, cells: descuadres };
 
@@ -1179,7 +1195,7 @@ export async function closeMonthFor(
 export type StartResult =
   | { ok: true; revision: number; startMonth: PeriodKey; openingBalance: number | null }
   | { ok: false; conflict: true; revision: number }
-  | { ok: false; rejected: "month_closed" }
+  | { ok: false; rejected: "month_closed"; period: PeriodKey }
   | { ok: false; rejected: "would_orphan"; periods: PeriodKey[] };
 
 /**
@@ -1192,8 +1208,9 @@ export type StartResult =
  * invariantes porque «la regla vive SOLO en el navegador». Aqui no se repite.
  *
  * Las dos reglas, ambas dentro de la transaccion y con la fila bloqueada:
- *   1. FR-2205 — el mes de inicio VIGENTE tiene que estar abierto. Cambiar la apertura recalcula
- *      toda la serie hacia adelante, incluidos meses que el usuario dio por buenos al cerrarlos.
+ *   1. FR-2205 — el mes de inicio VIGENTE (el declarado o, sin declaración, el primero con datos) y
+ *      el PROPUESTO tienen que estar abiertos (BG-065). Cambiar la apertura recalcula toda la serie
+ *      hacia adelante, incluidos meses que el usuario dio por buenos al cerrarlos.
  *   2. FR-2206 — mover el inicio hacia adelante no puede dejar meses con datos fuera del historial.
  *      Se impide, no se avisa: es el mismo principio de «cero perdida silenciosa» del borrado de
  *      categorias.
@@ -1218,19 +1235,22 @@ export async function saveStartFor(
     const current = head?.revision ?? 0;
     if (!head || current !== baseRevision) return { ok: false, conflict: true, revision: current };
 
-    const state = await loadStateInTx(tx, ownerId);
+    // `loadStateInTx` no adjunta la apertura: se toma de la fila ancla, que es la vigente.
+    const state = { ...(await loadStateInTx(tx, ownerId)), ...openingFromRow(head) };
     const closure = closureFromRow(head, calendarOf(state));
 
-    // Regla 1 (FR-2205). Se evalua sobre el mes VIGENTE, no sobre el propuesto: lo que el cierre
-    // protege es la serie ya congelada, y esa cuelga de donde la apertura esta HOY.
-    const vigente = normalizeStartMonth(head.startMonth);
-    if (vigente !== null && isClosed(closure, vigente)) {
-      return { ok: false, rejected: "month_closed" };
+    // Regla 1 (FR-2205). Lo que el cierre protege es la serie ya congelada. BG-065: antes solo se
+    // miraba el mes DECLARADO, y sin declaración la regla no corría — con meses cerrados, declarar
+    // por primera vez movía sus saldos. Ahora se juzgan el inicio efectivo y el propuesto.
+    const bloqueante = closedStartBlocker(state, closure, startMonth);
+    if (bloqueante !== null) {
+      return { ok: false, rejected: "month_closed", period: bloqueante };
     }
 
-    // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada, y `orphanedByStart` lo refleja sin
-    // caso especial: no habra ningun periodo anterior al candidato.
-    const huerfanos = orphanedByStart(state, startMonth);
+    // Regla 2 (FR-2206). Mover hacia atras nunca huerfana nada: no habra ningun periodo anterior al
+    // candidato. BG-085: solo cuentan los datos que el cambio saca del historial; los que ya estaban
+    // antes del inicio (FR-1906, historia desde BG-054) no, o el saldo inicial no se podria editar.
+    const huerfanos = newlyOrphanedByStart(state, startMonth);
     if (huerfanos.length > 0) {
       return { ok: false, rejected: "would_orphan", periods: huerfanos };
     }
