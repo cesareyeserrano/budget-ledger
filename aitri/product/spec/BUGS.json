@@ -8249,7 +8249,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8257,8 +8257,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T23:05:10.551Z",
-      "updated_at": "2026-09-30T23:05:10.551Z",
-      "resolution": null
+      "updated_at": "2026-09-30T23:58:44.516Z",
+      "resolution": "93ff98c: newlyOrphanedByStart (openingGuard) cuenta solo los datos que el cambio saca del historial, desde el inicio efectivo hasta el propuesto; sin mes declarado el resultado es el de siempre. Con historia anterior al inicio el saldo inicial vuelve a poder editarse; mover el inicio adelante sobre meses con datos sigue bloqueado y el rechazo ya no nombra la historia. Decision del usuario 2026-09-30. Pruebas: dominio bg-085-huerfanos-solo-los-nuevos (4), backend bg-085-saldo-inicial-con-historia (2), e2e bg-085-saldo-inicial-con-historia (1). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "93ff98c097f8acab08b95ecba302bc0b34621164",
+      "fix_at": "2026-09-30T23:58:44.455Z"
     }
   ]
 }
