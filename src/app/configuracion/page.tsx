@@ -105,6 +105,10 @@ function ConfiguracionScreen() {
   const noEntero = negativo ? null : amountInputError(saldo);
   const saldoValido = Number.isFinite(valor) && valor >= 0 && !noEntero;
   const cambiado = mes !== startVigente || (saldoValido && valor !== saldoVigente);
+  // BG-081 (e): «hay algo que deshacer» no es lo mismo que «hay algo que guardar». Con un saldo
+  // inválido, o con el aviso de un rechazo en pantalla, no hay nada guardable y aun así Descartar
+  // tiene que seguir vivo: es la única salida.
+  const sucio = mes !== startVigente || saldo !== String(saldoVigente) || aviso !== null;
 
   async function guardar() {
     setGuardando(true); setAviso(null); setOk(false);
@@ -123,7 +127,10 @@ function ConfiguracionScreen() {
     }
   }
 
-  const anios = [periodYear(hoy) - 2, periodYear(hoy) - 1, periodYear(hoy)];
+  // BG-081 (e): el año vigente y el elegido siempre están en la lista. Con solo los tres últimos, un
+  // inicio más antiguo dejaba el selector de año en blanco y no se podía volver a elegir.
+  const anioHoy = periodYear(hoy);
+  const anios = [...new Set([anioHoy - 2, anioHoy - 1, anioHoy, periodYear(startVigente), periodYear(mes)])].sort((x, y) => x - y);
 
   // Mismo criterio que `ShellSwitch`: no se pinta hasta que el store trae los datos del servidor.
   // Pintar antes mostraría un saldo y un mes de inicio que no son los del usuario.
@@ -237,7 +244,7 @@ function ConfiguracionScreen() {
 
           <label className="label mb-1.5 block text-fg" id="config-mes-label">Mes de inicio</label>
           <div className="mb-1.5 flex gap-2" data-testid="config-startmonth">
-            <Select value={String(periodMonth(mes))} disabled={cerrado} onValueChange={(v) => setMes(periodOf(periodYear(mes), Number(v)))}>
+            <Select value={String(periodMonth(mes))} disabled={cerrado} onValueChange={(v) => { setMes(periodOf(periodYear(mes), Number(v))); setAviso(null); }}>
               <SelectTrigger aria-labelledby="config-mes-label" data-testid="config-month-select" className="label">
                 <SelectValue>{periodMonthLabel(mes)}</SelectValue>
               </SelectTrigger>
@@ -247,9 +254,9 @@ function ConfiguracionScreen() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={String(periodYear(mes))} disabled={cerrado} onValueChange={(v) => setMes(periodOf(Number(v), periodMonth(mes)))}>
+            <Select value={String(periodYear(mes))} disabled={cerrado} onValueChange={(v) => { setMes(periodOf(Number(v), periodMonth(mes))); setAviso(null); }}>
               <SelectTrigger aria-label="Año de inicio" data-testid="config-year-select" className="label">
-                <SelectValue />
+                <SelectValue>{periodYear(mes)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {anios.map((a) => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
@@ -268,7 +275,7 @@ function ConfiguracionScreen() {
             value={saldo}
             disabled={cerrado || guardando}
             aria-invalid={!saldoValido || undefined}
-            onChange={(e) => setSaldo(e.target.value)}
+            onChange={(e) => { setSaldo(e.target.value); setAviso(null); }}
           />
           <p className="caption mt-1.5 text-fg-secondary">
             {mes === hoy
@@ -286,7 +293,7 @@ function ConfiguracionScreen() {
             <Button data-testid="config-save" disabled={cerrado || propuestoCerrado || guardando || !cambiado || !saldoValido} onClick={() => void guardar()}>
               {guardando ? "Guardando…" : "Guardar cambios"}
             </Button>
-            <Button variant="ghost" disabled={cerrado || guardando || !cambiado} onClick={() => { setMes(startVigente); setSaldo(String(saldoVigente)); setAviso(null); }}>
+            <Button variant="ghost" data-testid="config-start-discard" disabled={cerrado || guardando || !sucio} onClick={() => { setMes(startVigente); setSaldo(String(saldoVigente)); setAviso(null); }}>
               Descartar
             </Button>
             {ok && <span data-testid="config-saved" className="caption text-fg-secondary">Guardado</span>}

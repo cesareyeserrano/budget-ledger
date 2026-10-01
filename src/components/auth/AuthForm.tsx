@@ -173,7 +173,8 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
         <button
           type="button"
           data-testid="auth-toggle"
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
+          // BG-081 (d): el error era del otro formulario; al cambiar de modo ya no dice nada cierto.
+          onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}
           className="caption cursor-pointer border-none bg-transparent p-1 text-fg-muted hover:text-fg"
         >
           {mode === "login" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}

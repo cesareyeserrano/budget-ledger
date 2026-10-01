@@ -137,14 +137,25 @@ export function Register() {
     const targetLeaf = isAvailable(to) ? from : to;
     const ok = add({ type: "transfer", catId: targetLeaf, amount, period: month, date, note, from, to });
     if (!ok) return; // doble-tap: sin overlay
-    setConfirm({ amount, type, summary: `${money(amount)} · ${labelOfEnd(data, from)} → ${labelOfEnd(data, to)}` });
+    showConfirm({ amount, type, summary: `${money(amount)} · ${labelOfEnd(data, from)} → ${labelOfEnd(data, to)}` });
+  }
+
+  /** Muestra la confirmación y programa el reinicio del formulario; un solo temporizador vivo. */
+  function showConfirm(c: NonNullable<typeof confirm>) {
+    if (timer.current) clearTimeout(timer.current);
+    setConfirm(c);
     timer.current = setTimeout(() => {
+      timer.current = null;
       setConfirm(null);
       resetForNext();
     }, CONFIRM_MS);
   }
 
   function onSave() {
+    // BG-081 (c): con la confirmación en pantalla el formulario todavía muestra lo que se acaba de
+    // guardar. La ventana anti doble-tap del store dura 600 ms y la confirmación 2 s: un segundo Enter
+    // sobre el botón, que conserva el foco, creaba un duplicado (FR-212: deshabilitado mientras persiste).
+    if (confirm) return;
     if (isReserve) {
       saveReserve();
       return;
@@ -163,11 +174,7 @@ export function Register() {
       note,
     });
     if (!ok) return; // doble-tap o inválido: sin overlay
-    setConfirm({ amount, type });
-    timer.current = setTimeout(() => {
-      setConfirm(null);
-      resetForNext();
-    }, CONFIRM_MS);
+    showConfirm({ amount, type });
   }
 
   return (
@@ -232,7 +239,7 @@ export function Register() {
       )}
       <NoteField value={note} onChange={setNote} />
 
-      <SaveButton type={type} disabled={!saveEnabled} onClick={onSave} />
+      <SaveButton type={type} disabled={!saveEnabled || confirm !== null} onClick={onSave} />
     </div>
   );
 }

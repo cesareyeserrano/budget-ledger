@@ -115,6 +115,12 @@ export function PeriodModeSection() {
   const dayRef = useRef<HTMLInputElement>(null);
 
   // Al cambiar lo vigente (tras aplicar o resincronizar) el formulario vuelve a reflejarlo.
+  //
+  // BG-081 (b): depende del CONTENIDO de la versión vigente, no de su identidad. Cada recarga del
+  // servidor (un evento del sync, un 409) trae un objeto `cycles` nuevo aunque diga lo mismo, y con la
+  // identidad como dependencia el formulario se reiniciaba mientras el usuario tecleaba en él. `seq`
+  // sube con cada versión, así que un cambio real —propio o de otro dispositivo— sí lo reinicia.
+  const vigenteKey = vigente ? `${vigente.seq}|${vigente.anchorDay}|${vigente.eomPolicy}` : "month";
   useEffect(() => {
     setMode(modoVigente);
     setDia(vigente ? String(vigente.anchorDay) : "");
@@ -122,7 +128,10 @@ export function PeriodModeSection() {
     setPrimerPago("");
     setPreview(null);
     setPreviewTarget(null);
-  }, [modoVigente, vigente]);
+    // Un «Reintentar» que quedara de antes aplicaría una previsualización que ya no existe.
+    setError((e) => (e?.retry ? null : e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `vigente` entra por su contenido
+  }, [vigenteKey]);
 
   const diaNum = Number(dia);
   const diaValido = dia !== "" && /^\d{1,2}$/.test(dia) && Number.isInteger(diaNum) && diaNum >= ANCHOR_DAY_MIN && diaNum <= ANCHOR_DAY_MAX;
@@ -182,6 +191,16 @@ export function PeriodModeSection() {
     setPolitica(vigente?.eomPolicy ?? "last_day");
     setPrimerPago(""); setPreview(null); setPreviewTarget(null); setError(null);
   }
+  /**
+   * Tocar cualquier campo del ciclo deja sin valor lo previsualizado: se retiran la previsualización, su
+   * objetivo y el error con «Reintentar». El aviso de cierre (sin reintento) se queda: no depende de los
+   * campos. BG-081 (a): la política de fin de mes solo quitaba la previsualización, así que «Reintentar»
+   * seguía a la vista y aplicaba la política ANTERIOR sin pasar por una previsualización (NFR-2412).
+   */
+  function invalidarPreview() {
+    setPreview(null); setPreviewTarget(null);
+    if (error?.retry !== null) setError(null);
+  }
   function elegirModo(m: PeriodMode) {
     setMode(m); setPreview(null); setPreviewTarget(null); setError(null);
     if (m === "cycle" && !vigente) { setDia(""); setTimeout(() => dayRef.current?.focus(), 0); }
@@ -230,14 +249,14 @@ export function PeriodModeSection() {
             <label className="label mb-1.5 block text-fg" htmlFor="config-anchor-day">Día en que cobras</label>
             <Input id="config-anchor-day" data-testid="config-anchor-day" ref={dayRef} inputMode="numeric" placeholder="21" value={dia}
               disabled={controlesOff} aria-invalid={diaTocado && !diaValido ? true : undefined} className="w-[96px] tabular"
-              onChange={(e) => { setDia(e.target.value.trim()); setPreview(null); setPreviewTarget(null); if (error?.retry !== null) setError(null); }} />
+              onChange={(e) => { setDia(e.target.value.trim()); invalidarPreview(); }} />
             {diaTocado && !diaValido
               ? <p data-testid="config-anchor-error" className="caption mt-1.5 text-(--alert-strong)">{MSG.dayInvalid}</p>
               : <p className="caption mt-1.5 text-fg-secondary">{MSG.dayHelp}</p>}
             {diaValido && diaNum >= EOM_FROM_DAY && (
               <div className="mt-4 flex flex-col" data-testid="config-eom">
                 <label className="label mb-1.5 block text-fg" id="config-eom-label">Cuando el mes no tiene ese día</label>
-                <Select value={politica} disabled={controlesOff} onValueChange={(v) => { setPolitica(v as EndOfMonthPolicy); setPreview(null); }}>
+                <Select value={politica} disabled={controlesOff} onValueChange={(v) => { setPolitica(v as EndOfMonthPolicy); invalidarPreview(); }}>
                   <SelectTrigger aria-labelledby="config-eom-label" data-testid="config-eom-select" className="label w-[240px]">
                     <SelectValue>{POLICIES.find((p) => p.value === politica)?.label}</SelectValue>
                   </SelectTrigger>
@@ -251,7 +270,7 @@ export function PeriodModeSection() {
                 <label className="label mb-1.5 block text-fg" htmlFor="config-first-pay">Fecha de tu primer pago con el día nuevo</label>
                 <Input id="config-first-pay" data-testid="config-first-pay" type="date" value={primerPago} disabled={controlesOff}
                   aria-invalid={error?.text.startsWith("El primer pago nuevo") ? true : undefined} className="w-[200px] tabular"
-                  onChange={(e) => { setPrimerPago(e.target.value); setPreview(null); setPreviewTarget(null); if (error?.retry !== null) setError(null); }} />
+                  onChange={(e) => { setPrimerPago(e.target.value); invalidarPreview(); }} />
                 <p className="caption mt-1.5 text-fg-secondary">{MSG.firstPayHelp}</p>
               </div>
             )}
