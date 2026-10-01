@@ -17,7 +17,7 @@ import {
   editMovement, deleteMovement, type MovementPatch, type NegativeCell,
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
-import { retiroToast } from "@/components/reserveText";
+import { blockMessage, retiroToast } from "@/components/reserveText";
 import { ServerRepository } from "@/data/serverRepository";
 import { STORAGE_KEYS } from "@/domain/types";
 import { currentPeriodFor, todayISO } from "@/lib/date";
@@ -240,7 +240,7 @@ interface LedgerStore {
   setPeriod: (p: PeriodFilter) => void;
   hydrate: () => Promise<void>;
   /** Re-carga el estado desde la fuente de verdad (usado por el sync en vivo, FR-511). */
-  resync: () => Promise<void>;
+  resync: (porReconexion?: boolean) => Promise<void>;
 }
 
 const OWNER = "local";
@@ -270,6 +270,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   // intermedios no importan: el modelo es snapshot-replace, ADR-06).
   let pendingSave: LedgerState | null = null;
   let saveInFlight = false;
+  // BG-081 (h), revisión adversarial: un guardado que falló por red deja en pantalla un estado que el
+  // servidor NO tiene, y ya no está en la cola (`pendingSave` se vació al enviarlo). Mientras esta
+  // marca esté puesta, recargar del servidor borraría esa edición; lo que toca es reintentar el
+  // guardado. Antes no hacía falta: sin puesta al día al reconectar, el siguiente guardado se la
+  // llevaba. Con ella, la reconexión —que llega justo después del corte— la borraba en silencio.
+  let sinGuardar = false;
+  // Una puesta al día pedida por la reconexión que no pudo correr porque había un guardado en vuelo.
+  let puestaAlDiaPendiente = false;
 
   /**
    * Recarga desde la fuente de verdad preservando la ventana de undo (BG-011).
@@ -302,7 +310,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // también del servidor. Si traía una escritura de otro dispositivo, el guardado pendiente sale
       // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
       if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return false;
-      if (modo === "converge") pendingSave = null;
+      if (modo === "converge") { pendingSave = null; sinGuardar = false; }
       repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
       // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
@@ -335,6 +343,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   /** Descarta lo que hay en memoria: el estado de quien ya no está. Lo comparten caducar y salir. */
   const forget = () => {
     pendingSave = null;
+    sinGuardar = false;
+    puestaAlDiaPendiente = false;
     reserveUndo = null;
     set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, loadFailed: false, storageError: null, toast: null, toastUndo: false });
   };
@@ -366,6 +376,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (ok !== false) {
           // BG-055: un guardado que llegó apaga el aviso de red de uno anterior; el snapshot que acaba
           // de entrar lleva también lo que aquel no pudo guardar.
+          sinGuardar = false;
           if (get().storageError === "network") set({ storageError: null });
           continue;
         }
@@ -425,6 +436,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           await doResync();
           get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
         } else {
+          sinGuardar = true;
           set({ storageError: "network" });
         }
       }
@@ -442,7 +454,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     drainPromise = drainSaves().finally(() => {
       drainPromise = null;
       // Un snapshot que llegó mientras la vuelta terminaba no puede quedar varado.
-      if (pendingSave && !saveInFlight) kickDrain();
+      if (pendingSave && !saveInFlight) { kickDrain(); return; }
+      // La puesta al día que la reconexión pidió con un guardado en vuelo corre ahora, ya sin él.
+      if (puestaAlDiaPendiente && !saveInFlight && !sinGuardar) {
+        puestaAlDiaPendiente = false;
+        void doResync("si-no-cambio");
+      }
     });
   };
   const persist = (data: LedgerState) => {
@@ -695,8 +712,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     applyReserveWithdrawal: (from, month, amount, note) => {
       const prev = get().data;
       // BG-080 (a): un mes cerrado no admite retiros. La celda ya no ofrece el formulario; esto es la
-      // misma regla en la puerta, para que ninguna otra superficie pinte un retiro que el servidor
-      // va a rechazar (FR-2003).
+      // misma regla en la puerta de las acciones de la grilla (FR-2003). El registro móvil entra por
+      // `addMovement`, que no tiene esta guarda: ahí sigue mandando el rechazo del servidor (BL-083).
       if (isClosed(prev.closure, month)) return { rejected: "invalid_target" as const };
       // FR-1802 — el retiro nace CON fecha: la lista de operaciones la muestra y la edición la
       // conserva. Antes los retiros de la grilla nacían sin ella (solo el Registrar móvil la pasaba).
@@ -725,10 +742,22 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const { movementId } = reserveUndo;
       reserveUndo = null;
       const actual = get().data;
+      const retiro = actual.movements.find((m) => m.id === movementId);
+      // El mes se cerró entre el retiro y el deshacer (otro dispositivo): ya no se toca (FR-2003).
+      if (retiro && isClosed(actual.closure, retiro.period)) {
+        get().showToast("Ese mes ya está cerrado: el retiro no se puede deshacer.");
+        return;
+      }
       const result = removeReserveOp(actual, movementId, get().activePeriods());
       if ("rejected" in result) {
-        // Solo pasa si otro dispositivo ya dispuso de ese dinero: quitar el retiro rompería una regla.
-        get().showToast("No se pudo deshacer el retiro: tu presupuesto cambió desde otro dispositivo.");
+        // Quitar el retiro rompería una regla: es lo que pasa cuando el retiro cubría un gasto —sin
+        // él, el mes queda con gastos sin respaldo—. Se dice el motivo real, con el texto de la regla.
+        const v = result.rejected;
+        get().showToast(
+          retiro && typeof v !== "string" && !v.ok
+            ? `No se puede deshacer el retiro. ${blockMessage(actual, v, { editedMonth: retiro.period })}`
+            : "No se puede deshacer el retiro."
+        );
         return;
       }
       toastSeq += 1; // el temporizador del aviso que se cierra ya no tiene nada que quitar
@@ -855,7 +884,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // BG-052: una RE-hidratación con escrituras locales en curso traería un estado anterior a lo
       // que hay en pantalla; se descarta igual que en `doResync`. La primera hidratación no entra
       // aquí: antes de ella no hay nada que el usuario haya podido editar.
-      if (yaHidratado && (get().data !== antes || saveInFlight || pendingSave)) return;
+      // Y con una edición que no llegó a guardarse: lo cargado no la tiene (ver `sinGuardar`).
+      if (yaHidratado && (get().data !== antes || saveInFlight || pendingSave || sinGuardar)) {
+        if (sinGuardar && !saveInFlight && !pendingSave) persist(get().data);
+        return;
+      }
       repo.adopt(loaded ? revision : 0);
       // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
       // esta sesión reutilizaba `createdAt` bajos y se colaba delante de las anteriores en el orden
@@ -881,13 +914,23 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     },
 
     /** Re-carga desde la fuente de verdad (sync en vivo / resolución de conflicto). */
-    resync: async () => {
+    resync: async (porReconexion = false) => {
       // BL-010: con un save en vuelo (o pendiente), lo que cargaríamos es ANTERIOR a lo que este
       // cliente ya tiene en pantalla — el resync machacaba el estado local (p. ej. borraba el nodo
       // recién creado en demote-node). El evento SSE que se salta aquí es inofensivo: si era
       // nuestro propio eco no aportaba nada, y si era una escritura ajena el PUT en vuelo va a
       // recibir 409 y el drenador converge y avisa.
-      if (saveInFlight || pendingSave) return;
+      //
+      // La puesta al día de una RECONEXIÓN no es un eco: lo publicado durante el corte no vuelve a
+      // llegar, así que si se salta aquí se debe, y corre cuando la cola quede libre.
+      if (saveInFlight || pendingSave) {
+        if (porReconexion) puestaAlDiaPendiente = true;
+        return;
+      }
+      // Hay una edición en pantalla que el servidor no tiene: recargar la borraría. Se reintenta el
+      // guardado; si llega, apaga el aviso, y si otro dispositivo escribió antes, el 409 converge
+      // avisando, como cualquier conflicto.
+      if (sinGuardar) { persist(get().data); return; }
       await doResync("si-no-cambio");
     },
 
@@ -1041,11 +1084,17 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         const fecha = proposedDate(calendarFor(prev), month, new Date());
         const r = adjustCell(prev, leafId, month, value, fecha, get().activePeriods());
         if ("rejected" in r) return;
+        // Confirmar la cifra que la celda ya tiene, cuadrada: no hay nada que escribir. Sin esto, cada
+        // «Guardar» o Enter sobre una celda sin tocar mandaba un snapshot idéntico —una revisión más
+        // para chocar con otro dispositivo— y mataba la ventana de «Deshacer» dejando su botón a la vista.
+        if (r.created === null && (prev.actuals[leafId]?.[month] ?? 0) === (r.state.actuals[leafId]?.[month] ?? 0)) return;
         set({ data: r.state });
         persist(r.state);
         return;
       }
       const data = setLeafAmount(prev, leafId, month, kind, value, get().activePeriods());
+      const mapa = kind === "budget" ? "budgets" : "actuals";
+      if (data === prev || (prev[mapa][leafId]?.[month] ?? 0) === (data[mapa][leafId]?.[month] ?? 0)) return; // misma cifra: nada que guardar
       set({ data });
       persist(data);
     },

@@ -138,6 +138,26 @@ describe("BG-081 (d) · el error de acceso no sobrevive al cambio de formulario"
     expect(screen.getByTestId("auth-error").textContent).toBe("Credenciales inválidas");
   });
 
+  it("BG-081d: si se cambia de formulario con el envío en vuelo, su error ya no aparece en el otro", async () => {
+    let responder: (v: { error: unknown }) => void = () => {};
+    vi.resetModules();
+    vi.doMock("@/lib/authClient", () => ({
+      signIn: { email: vi.fn(() => new Promise((r) => { responder = r; })), social: vi.fn() },
+      signUp: { email: vi.fn() },
+    }));
+    const { AuthForm } = await import("@/components/auth/AuthForm");
+    render(React.createElement(AuthForm));
+    fireEvent.change(screen.getByTestId("auth-email"), { target: { value: "alguien@example.com" } });
+    fireEvent.change(screen.getByTestId("auth-password"), { target: { value: "una-clave" } });
+    await act(async () => { fireEvent.submit(screen.getByTestId("auth-form")); await Promise.resolve(); });
+
+    fireEvent.click(screen.getByTestId("auth-toggle")); // el usuario se pasa a «Crear cuenta» sin esperar
+    await act(async () => { responder({ error: { status: 401 } }); await Promise.resolve(); await Promise.resolve(); });
+    expect(screen.getByRole("heading").textContent).toBe("Crear cuenta");
+    expect(screen.queryByTestId("auth-error")).toBeNull();
+    expect((screen.getByTestId("auth-submit") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("BG-081d: de «Crear cuenta» a «Iniciar sesión», también", async () => {
     await formulario({ error: { status: 422 } });
     fireEvent.click(screen.getByTestId("auth-toggle"));

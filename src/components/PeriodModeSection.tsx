@@ -128,10 +128,20 @@ export function PeriodModeSection() {
     setPrimerPago("");
     setPreview(null);
     setPreviewTarget(null);
-    // Un «Reintentar» que quedara de antes aplicaría una previsualización que ya no existe.
-    setError((e) => (e?.retry ? null : e));
+    // Y el aviso que hubiera: era de un formulario que ya no está. Si el cierre bloquea, el efecto de
+    // más abajo lo vuelve a poner.
+    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `vigente` entra por su contenido
   }, [vigenteKey]);
+
+  // Una previsualización se calculó sobre unos datos. Si los datos cambian por debajo (otro dispositivo
+  // escribió y el sync recargó), ya no describe lo que se aplicaría: se retira, y con ella un
+  // «Reintentar» que la aplicaría. Lo tecleado en los campos se queda.
+  useEffect(() => {
+    setPreview(null);
+    setPreviewTarget(null);
+    setError((e) => (e?.retry ? null : e));
+  }, [data]);
 
   const diaNum = Number(dia);
   const diaValido = dia !== "" && /^\d{1,2}$/.test(dia) && Number.isInteger(diaNum) && diaNum >= ANCHOR_DAY_MIN && diaNum <= ANCHOR_DAY_MAX;

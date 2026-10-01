@@ -62,7 +62,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
     // Esta es la ÚNICA entrada de hidratación de la app (ADR-06).
     void hydrate();
     // El tercer argumento es la puesta al día tras una reconexión del stream (BG-081 (h)).
-    const client = new SyncClient(() => void resync(), "", () => void resync());
+    const client = new SyncClient(() => void resync(), "", () => void resync(true));
     client.start();
     syncRef.current = client;
     return () => {

@@ -286,3 +286,56 @@ describe("BG-080 (a) · la celda de retiros ejecutados de un mes cerrado es de s
     expect(retiros(store.getState().data)[0]!.amount).toBe(100_000);
   });
 });
+
+describe("BG-080 · revisión adversarial", () => {
+  it("deshacer un retiro que cubría un gasto dice el motivo real, no «otro dispositivo»", async () => {
+    const { store, cur } = await conAhorros();
+    // 700.000 gastados contra 500.000 disponibles: el retiro de 300.000 es lo que cubre el descubierto.
+    store.getState().setLeafAmount("c-vivienda", cur, "actual", 700_000);
+    const r = store.getState().applyReserveWithdrawal("c-ahorros", cur, 300_000);
+    if ("rejected" in r) throw new Error("preparación: retiro rechazado");
+    store.getState().undoLastReserveOp();
+    expect(retiros(store.getState().data)).toHaveLength(1); // quitarlo dejaría el mes sin respaldo
+    expect(store.getState().toast).toMatch(/^No se puede deshacer el retiro\./);
+    expect(store.getState().toast).not.toContain("otro dispositivo");
+    expect(store.getState().toastUndo).toBe(false);
+  });
+
+  it("si el mes se cerró entre el retiro y el deshacer, el retiro se queda y se dice por qué", async () => {
+    const { store, cur } = await conAhorros();
+    const r = store.getState().applyReserveWithdrawal("c-ahorros", cur, 100_000);
+    if ("rejected" in r) throw new Error("preparación: retiro rechazado");
+    await delay(30);
+    // Otro dispositivo cierra el mes; el sync recarga y la ventana de deshacer se re-apunta.
+    api.stored = { ...api.stored!, closure: { closedThrough: cur, reopened: null } };
+    api.revision += 1;
+    await store.getState().resync();
+    const puts = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === "PUT").length;
+
+    store.getState().undoLastReserveOp();
+    await delay(30);
+    expect(retiros(store.getState().data)).toHaveLength(1);
+    expect(store.getState().toast).toBe("Ese mes ya está cerrado: el retiro no se puede deshacer.");
+    const putsDespues = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === "PUT").length;
+    expect(putsDespues).toBe(puts);
+  });
+
+  it("confirmar una celda sin haberla tocado no manda nada al servidor ni cierra la ventana de deshacer", async () => {
+    const { store, cur } = await conAhorros();
+    store.getState().setLeafAmount("c-vivienda", cur, "budget", 200_000);
+    store.getState().applyReserveWithdrawal("c-ahorros", cur, 100_000);
+    await delay(30);
+    const revision = api.revision;
+    const antes = store.getState().data;
+
+    store.getState().setLeafAmount("c-salario", cur, "actual", 1_000_000); // la cifra que ya tiene, cuadrada
+    store.getState().setLeafAmount("c-vivienda", cur, "budget", 200_000);   // ídem, en el plan
+    await delay(30);
+    expect(store.getState().data).toBe(antes);
+    expect(api.revision).toBe(revision);
+
+    store.getState().undoLastReserveOp(); // la ventana sigue viva: el botón que se ve, funciona
+    expect(retiros(store.getState().data)).toHaveLength(0);
+  });
+});
+

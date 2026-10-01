@@ -44,6 +44,22 @@ test.describe("BG-080 (f) · el destino de arrastre", () => {
     expect(await filas()).toEqual(antes);
   });
 
+  test("BG-080f: el grupo al que ya pertenece tampoco se ilumina, y soltar ahí no guarda nada", async ({ page }) => {
+    const filas = () => page.getByTestId("row-label").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
+    const antes = await filas();
+    let guardados = 0;
+    page.on("request", (r) => { if (r.method() === "PUT" && r.url().endsWith("/api/v1/ledger")) guardados += 1; });
+    const vivienda = rotulo(page, /^Vivienda/);
+    const esenciales = rotulo(page, /^Esenciales/); // su propio grupo
+    await arrastrarSobre(page, vivienda, esenciales);
+    await page.waitForTimeout(150);
+    expect(await iluminada(esenciales)).toBe(false);
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    expect(await filas()).toEqual(antes);
+    expect(guardados).toBe(0);
+  });
+
   test("BG-080f: la propia fila tampoco se ilumina", async ({ page }) => {
     const comida = rotulo(page, /^Comida/);
     const a = await comida.boundingBox();

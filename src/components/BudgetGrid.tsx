@@ -368,6 +368,9 @@ export function BudgetGrid() {
     const over = ev.over;
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
+    // Soltar un nodo sobre el padre que ya tiene no mueve nada: el dominio devolvería el mismo árbol y
+    // se guardaría un snapshot idéntico (una revisión más, sin cambio).
+    if ((kind === "category" || kind === "group") && data.nodes.find((n) => n.id === String(ev.active.id))?.parentId === id) return;
     if (kind === "category" || kind === "group") {
       // FR-703: degradar un grupo que desbordaría el techo de 3 niveles se bloquea con aviso.
       const res = moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
@@ -768,7 +771,9 @@ function NodeRow(props: {
   // la propia fila, un descendiente, un desborde de niveles— y al soltar no pasaba nada. Se pregunta al
   // propio `moveNode`, sin escribir: una segunda lista de reglas acabaría discrepando de la primera.
   const arrastrado = droppable.isOver && dropId && droppable.active ? String(droppable.active.id) : null;
+  // El propio padre tampoco: el dominio acepta «moverlo» ahí y devuelve el mismo árbol.
   const dropOk = arrastrado !== null
+    && data.nodes.find((n) => n.id === arrastrado)?.parentId !== node.id
     && !("rejected" in moveNodeDomain(data, arrastrado, { kind: node.level as "group" | "category", id: node.id }));
   const bWeight = node.level === "group" ? 500 : 400;
   // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es

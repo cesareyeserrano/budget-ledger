@@ -118,3 +118,45 @@ describe("BG-081 (b) · una recarga sin cambios no reinicia el formulario", () =
     expect(screen.queryByTestId("config-first-pay")).toBeNull();
   });
 });
+
+describe("BG-081 · revisión adversarial del formulario de periodo", () => {
+  const PREVIEW = {
+    ok: true as const,
+    cycles: [{ key: "2026-09" as PeriodKey, label: "Septiembre 2026", start: "2026-08-25", end: "2026-09-24", transition: false, current: true }],
+    relocation: { cellsMoved: 3, movementsKeyChanged: 5, mergedCells: 0, identical: true, note: "" },
+  };
+
+  it("si los datos cambian por debajo, la previsualización se retira y lo tecleado se queda", async () => {
+    servidor = { ...buildSeed("local", "2026-08" as PeriodKey), cycles: ciclos(version(1, 21)) } as LedgerState;
+    const store = await montar();
+    store.setState({ previewPeriodMode: async () => PREVIEW } as never);
+    fireEvent.change(screen.getByTestId("config-anchor-day"), { target: { value: "25" } });
+    fireEvent.change(screen.getByTestId("config-first-pay"), { target: { value: "2026-10-25" } });
+    await act(async () => { fireEvent.click(screen.getByTestId("config-preview")); await delay(10); });
+    expect(screen.getByTestId("config-confirm")).toBeTruthy();
+
+    // Otro dispositivo escribe una celda: misma versión de ciclos, otros datos.
+    servidor = { ...servidor, budgets: { "c-vivienda": { "2026-10": 900_000 } } } as LedgerState;
+    await act(async () => { await store.getState().resync(); await delay(10); });
+    expect(screen.queryByTestId("cycle-preview")).toBeNull();
+    expect(screen.queryByTestId("config-confirm")).toBeNull();
+    expect((screen.getByTestId("config-anchor-day") as HTMLInputElement).value).toBe("25");
+    expect((screen.getByTestId("config-first-pay") as HTMLInputElement).value).toBe("2026-10-25");
+  });
+
+  it("cuando otro dispositivo cambia el día de pago, el aviso del intento anterior no se queda colgado", async () => {
+    servidor = { ...buildSeed("local", "2026-08" as PeriodKey), cycles: ciclos(version(1, 21)) } as LedgerState;
+    const store = await montar();
+    store.setState({ previewPeriodMode: async () => ({ ok: false as const, code: "first_pay_invalid", detail: { lastPay: "2026-09-21" } }) } as never);
+    fireEvent.change(screen.getByTestId("config-anchor-day"), { target: { value: "25" } });
+    fireEvent.change(screen.getByTestId("config-first-pay"), { target: { value: "2026-09-25" } });
+    await act(async () => { fireEvent.click(screen.getByTestId("config-preview")); await delay(10); });
+    expect(screen.getByTestId("config-error").textContent).toContain("El primer pago nuevo");
+
+    servidor = { ...servidor, cycles: ciclos(version(1, 21), version(2, 28)) } as LedgerState;
+    await act(async () => { await store.getState().resync(); await delay(10); });
+    expect((screen.getByTestId("config-anchor-day") as HTMLInputElement).value).toBe("28");
+    expect(screen.queryByTestId("config-error")).toBeNull();
+  });
+});
+

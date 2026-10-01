@@ -15,7 +15,7 @@
  * @aitri-trace FR-ID: FR-1108, US-ID: US-1108, AC-ID: AC-1108a, TC-ID: TC-SFU-108f
  */
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { signIn, signUp } from "@/lib/authClient";
 import { useLedgerStore } from "@/state/store";
 import { Input } from "@/components/ui/input";
@@ -31,11 +31,16 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // El formulario que hay en pantalla AHORA: la respuesta de un envío puede llegar después de que el
+  // usuario cambió de «Iniciar sesión» a «Crear cuenta», y su error ya no es de este formulario.
+  const modoEnPantalla = useRef(mode);
+  modoEnPantalla.current = mode;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null); // no se arrastra el error del intento anterior (H1)
     setBusy(true);
+    const sigueAqui = () => modoEnPantalla.current === mode;
     try {
       const res =
         mode === "register"
@@ -46,7 +51,7 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
         // (FR-1307). La longitud se comprueba antes de mirar el correo, así que el aviso no revela si
         // ya tiene cuenta. El resto de los fallos del registro conserva su mensaje literal.
         const corta = mode === "register" && (res.error.code === "PASSWORD_TOO_SHORT" || (res.error.status === 400 && password.length < 8));
-        setError(corta ? MSG_WEAK : mode === "register" ? "No se pudo crear la cuenta" : "Credenciales inválidas");
+        if (sigueAqui()) setError(corta ? MSG_WEAK : mode === "register" ? "No se pudo crear la cuenta" : "Credenciales inválidas");
       } else {
         // Si se llegó aquí por una sesión caducada, hay que cerrar ese episodio explícitamente: el
         // gate reentra a la MISMA cuenta, así que el userId no cambia y nada más lo despertaría.
@@ -54,7 +59,7 @@ export function AuthForm({ onForgotPassword }: { onForgotPassword?: () => void }
       }
       // En éxito, useSession() del gate detecta la sesión y monta la app.
     } catch {
-      setError("Error de red");
+      if (sigueAqui()) setError("Error de red");
     } finally {
       setBusy(false);
     }
