@@ -11,6 +11,14 @@ import { PERIOD_KEY, NOTE_DAY, MOVEMENT_DATE, amountSchema, cellAmountSchema, MO
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
+/**
+ * BG-079 (d): un snapshot con un id repetido pasaba la validación y chocaba con la clave primaria de la
+ * base, que respondía 500. Es un cuerpo inválido y se rechaza aquí, en el borde, como cualquier otro.
+ */
+function idsUnicos(xs: { id: string }[]): boolean {
+  return new Set(xs.map((x) => x.id)).size === xs.length;
+}
+
 /** Input de un movimiento nuevo (POST /api/v1/movements). amount entero >= 1 (regla del dominio). */
 export const movementInputSchema = z.object({
   type: nodeType,
@@ -140,7 +148,7 @@ const apiCellNotes = z.record(
   z.string(),
   z.record(PERIOD_KEY, z.array(z.object({
     id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280), date: NOTE_DAY.optional(),
-  })))
+  })).refine(idsUnicos, "Hay notas con el mismo id en una celda"))
 );
 
 /** Estado completo del ledger para el snapshot PUT. */
@@ -160,10 +168,10 @@ export const cycleConfigSchema = z.object({
 });
 export const ledgerStateSchema = z.object({
   ownerId: z.string(),
-  nodes: z.array(apiNodeSchema),
+  nodes: z.array(apiNodeSchema).refine(idsUnicos, "Hay nodos con el mismo id"),
   budgets: apiAmountMap,
   actuals: apiAmountMap,
-  movements: z.array(apiMovementSchema),
+  movements: z.array(apiMovementSchema).refine(idsUnicos, "Hay movimientos con el mismo id"),
   // FR-1010/FR-1012: opcional — un cliente pre-feature no lo envía; sin este campo el PUT haría
   // strip silencioso de las observaciones.
   cellNotes: apiCellNotes.optional(),

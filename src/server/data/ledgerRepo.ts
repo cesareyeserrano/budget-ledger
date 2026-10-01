@@ -10,14 +10,14 @@
  * Dependencies: drizzle-orm, ../db/client, @/domain
  */
 import "server-only";
-import { and, asc, desc, eq, like } from "drizzle-orm";
+import { and, asc, desc, eq, like, sql } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
 import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedCellNotes, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
 // Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
 // el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
-import { deleteMovement, editMovement, type MovementPatch, type NegativeCell } from "@/domain/adjust";
+import { deleteMovement, editMovement, repairOpeningAdjustmentDates, OPENING_ADJUSTMENT_PREFIX, type MovementPatch, type NegativeCell } from "@/domain/adjust";
 // Feature diario-de-celda (NFR-2502): el cuadre RELATIVO — una escritura no puede descuadrar una
 // celda que antes cuadraba, y un descuadre previo no bloquea operaciones sobre otras celdas.
 import { closeBlockers, worsenedCellMismatches } from "@/domain/mismatch";
@@ -234,12 +234,13 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
 
   const cycles = await loadCyclesIn(db, ownerId);
   const base = rowsToState(ownerId, nodeRows, cellRows, movementRows, cellNoteRows);
-  // BG-053 y BG-077: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no paga
-  // nada. Solo si hay rastro de un defecto se abre la transacción que repara, y se vuelve a cargar una vez.
-  if (!reparado && repairLoaded(base).repaired > 0 && (await repairOnLoadFor(ownerId))) {
+  const state = cycles.versions.length > 0 ? { ...base, cycles } : base;
+  // BG-053, BG-077 y BG-079: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no
+  // paga nada. Solo si hay rastro de un defecto se abre la transacción que repara, y se vuelve a cargar
+  // una vez. Se juzga CON los ciclos: sin ellos el calendario sería el de meses y BG-079 no se vería.
+  if (!reparado && repairLoaded(state).repaired > 0 && (await repairOnLoadFor(ownerId))) {
     return loadLedger(ownerId, true);
   }
-  const state = cycles.versions.length > 0 ? { ...base, cycles } : base;
   return {
     revision: head.revision,
     state: { ...state, closure: closureFromRow(head, calendarOf(state)), ...openingFromRow(head) },
@@ -248,19 +249,25 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
 
 /**
  * Las reparaciones de datos que corren al cargar, en orden: los movimientos de un bolsillo que ya no es
- * hoja (BG-053) y las notas de celda sin dueño (BG-077). Pura: sin nada que reparar devuelve el mismo
- * estado y `repaired: 0`.
+ * hoja (BG-053), las notas de celda sin dueño (BG-077) y la fecha de los ajustes de apertura en claves
+ * de transición (BG-079). Pura: sin nada que reparar devuelve el mismo estado y `repaired: 0`.
  */
 function repairLoaded(state: LedgerState): { state: LedgerState; repaired: number } {
   const journal = repairOrphanedPocketJournal(state);
   const notes = repairOrphanedCellNotes(journal.state);
-  return { state: notes.state, repaired: journal.repaired.length + notes.repaired.length };
+  // El calendario tiene que cubrir las claves de esos ajustes, o `rangeOf` no las conoce (BG-063).
+  const claves = notes.state.movements.filter((m) => m.id.startsWith(OPENING_ADJUSTMENT_PREFIX)).map((m) => m.period);
+  const dates = claves.length > 0
+    ? repairOpeningAdjustmentDates(notes.state, calendarOf(notes.state, ...claves))
+    : { state: notes.state, repaired: [] as string[] };
+  return { state: dates.state, repaired: journal.repaired.length + notes.repaired.length + dates.repaired.length };
 }
 
 /**
- * BG-053 y BG-077 — repara, al cargar, los movimientos que quedaron apuntando a un bolsillo que ya no es
- * hoja (ver `repairOrphanedPocketJournal`) y las notas de celda que quedaron sin dueño (ver
- * `repairOrphanedCellNotes`). Dentro de una transacción con la fila ancla bloqueada: vuelve a leer el
+ * BG-053, BG-077 y BG-079 — repara, al cargar, los movimientos que quedaron apuntando a un bolsillo que
+ * ya no es hoja (ver `repairOrphanedPocketJournal`), las notas de celda que quedaron sin dueño (ver
+ * `repairOrphanedCellNotes`) y la fecha de los ajustes de apertura que la migración 0011 dejó fuera de
+ * su ciclo de transición (ver `repairOpeningAdjustmentDates`). Dentro de una transacción con la fila ancla bloqueada: vuelve a leer el
  * estado, repara, reescribe el snapshot y sube `revision`, de modo que un navegador con el snapshot
  * anterior recibe 409 y re-sincroniza en vez de pisar la reparación.
  *
@@ -284,11 +291,11 @@ async function repairOnLoadFor(ownerId: string): Promise<boolean> {
       await tx.delete(cellNote).where(eq(cellNote.ownerId, ownerId));
       await insertSnapshot(tx, ownerId, next);
       await tx.update(ledger).set({ revision: head.revision + 1, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
-      console.log(`[ledger] datos sin dueño reparados al cargar (BG-053, BG-077) para ${ownerId}: ${repaired}`);
+      console.log(`[ledger] datos reparados al cargar (BG-053, BG-077, BG-079) para ${ownerId}: ${repaired}`);
       return true;
     });
   } catch (err) {
-    console.error(`[ledger] no se pudo reparar los datos sin dueño al cargar (BG-053, BG-077): ${String(err)}`);
+    console.error(`[ledger] no se pudo reparar los datos al cargar (BG-053, BG-077, BG-079): ${String(err)}`);
     return false;
   }
 }
@@ -686,7 +693,15 @@ export async function saveLedger(
 ): Promise<SaveResult> {
   return db.transaction(async (tx) => {
     // Bloquea la fila ancla para serializar escrituras concurrentes del MISMO usuario.
-    const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    let [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    if (!head) {
+      // BG-079 (d): en el PRIMER guardado no hay fila que bloquear. Dos dispositivos a la vez veían
+      // ambos revisión 0, el segundo chocaba con la clave primaria y la respuesta era un 500. Un
+      // candado consultivo por usuario, que dura lo que la transacción, los pone en fila: el segundo
+      // vuelve a mirar, encuentra la fila del primero y recibe el 409 de siempre.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}, 0))`);
+      [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
+    }
     const current = head?.revision ?? 0;
     if (current !== baseRevision) {
       return { ok: false, conflict: true, revision: current };
@@ -899,11 +914,14 @@ export async function insertMovement(
   | { domainViolation: true; violations: ReserveWarning[] }
   | { periodMismatch: true; expected: PeriodKey | null }
   | { invalidTarget: true }
+  | { noLedger: true }
   | null
 > {
   return db.transaction(async (tx) => {
     const [head] = await tx.select().from(ledger).where(eq(ledger.ownerId, ownerId)).for("update");
-    if (!head) throw new Error("El usuario no tiene un ledger inicializado");
+    // BG-079 (d): un usuario que todavía no guardó su ledger no tiene dónde registrar. No es un fallo
+    // del servidor —antes se lanzaba y salía como 500—, y el servidor tampoco siembra (FR-513).
+    if (!head) return { noLedger: true as const };
     const cycles = await loadCyclesIn(tx, ownerId);
 
     // Cargar el estado del owner y correr la mutación pura del dominio (misma lógica que el cliente).

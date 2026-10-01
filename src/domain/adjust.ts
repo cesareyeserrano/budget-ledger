@@ -163,6 +163,43 @@ export function adjustCell(
   return { state: next, created };
 }
 
+/** Prefijo del id de los ajustes que crearon las migraciones de reconciliación (0011). */
+export const OPENING_ADJUSTMENT_PREFIX = "adj-apertura-";
+
+/**
+ * BG-079 (a) — corrige la fecha de los ajustes de apertura que la migración 0011 dejó fuera de su ciclo.
+ *
+ * La migración fechó cada ajuste el día 1 del mes de su clave: lo único que el dato garantizaba. En una
+ * clave de mes eso cae dentro del periodo; en una de TRANSICIÓN («2026-10t») no, porque ese ciclo
+ * empieza siempre el día 2 o después y el día 1 pertenece al ciclo anterior. Un movimiento así hace que
+ * el servidor rechace todo guardado con `period_mismatch`. El calendario de ciclos no existe en SQL, así
+ * que la corrección va aquí: el ajuste pasa al PRIMER día de su ciclo, a mediodía — el mismo criterio de
+ * la migración, con el calendario delante.
+ *
+ * Solo toca la fecha, y solo de los ajustes que creó la migración: monto, periodo, nota, celdas y
+ * comentarios quedan iguales. Sin nada que reparar devuelve el MISMO estado (puede correr en cada carga).
+ *
+ * @param state Estado del ledger.
+ * @param cal Calendario del dueño; su tabla tiene que cubrir las claves de esos ajustes.
+ * @returns El estado reparado y los ids corregidos; `state` es el mismo objeto si no cambió.
+ * @throws Nunca.
+ */
+export function repairOpeningAdjustmentDates(
+  state: LedgerState, cal: Calendar
+): { state: LedgerState; repaired: string[] } {
+  if (cal.mode !== "cycle") return { state, repaired: [] };
+  const repaired: string[] = [];
+  const movements = state.movements.map((m) => {
+    if (m.kind !== "adjustment" || !m.id.startsWith(OPENING_ADJUSTMENT_PREFIX)) return m;
+    if (m.date && isValidMovementPeriod(cal, m)) return m;
+    const r = cal.rangeOf(m.period);
+    if (!r) return m; // una clave que el calendario no conoce es otro defecto, no este
+    repaired.push(m.id);
+    return { ...m, date: `${r.start}${MEDIODIA}` };
+  });
+  return repaired.length > 0 ? { state: { ...state, movements }, repaired } : { state, repaired };
+}
+
 // ── FR-2505 / FR-2506: editar y borrar un movimiento ─────────────────────────────────────────────
 
 /** Una celda que quedaría por debajo de 0, con el valor al que llegaría. */
