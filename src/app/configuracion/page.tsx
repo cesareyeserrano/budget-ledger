@@ -38,6 +38,7 @@ import { periodMonthLabel, periodOf, periodMonth, periodYear } from "@/domain/pe
 import { isClosed, closureOf } from "@/domain/closure";
 import { normalizeStartMonth } from "@/domain/opening";
 import { effectiveStartMonth } from "@/domain/openingGuard";
+import { amountInputError } from "@/lib/money";
 
 import {
   readCatWidth, writeCatWidth, CAT_WIDTH_MIN, CAT_WIDTH_MAX, CAT_WIDTH_DEFAULT,
@@ -99,7 +100,10 @@ function ConfiguracionScreen() {
   const propuestoCerrado = !cerrado && isClosed(closureOf(data), mes);
 
   const valor = Number(saldo.replace(/[^\d-]/g, ""));
-  const saldoValido = Number.isFinite(valor) && valor >= 0;
+  const negativo = Number.isFinite(valor) && valor < 0;
+  // BG-076 (FR-207): «1500,50» se leía como 150.050. El negativo conserva su propio aviso.
+  const noEntero = negativo ? null : amountInputError(saldo);
+  const saldoValido = Number.isFinite(valor) && valor >= 0 && !noEntero;
   const cambiado = mes !== startVigente || (saldoValido && valor !== saldoVigente);
 
   async function guardar() {
@@ -271,7 +275,8 @@ function ConfiguracionScreen() {
               ? "Lo que ya tenías el día que empezaste. No cuenta como ingreso del mes."
               : `Lo que tenías al empezar ${periodMonthLabel(mes).toLocaleLowerCase("es")}. No incluyas los ingresos de ${periodMonthLabel(mes).toLocaleLowerCase("es")} en adelante: esos se registran mes a mes.`}
           </p>
-          {!saldoValido && (
+          {noEntero && <p data-testid="amount-error" className="caption mt-1.5 text-(--alert-strong)">{noEntero}</p>}
+          {negativo && (
             <p className="caption mt-1.5 text-(--alert-strong)">
               El saldo inicial no puede ser negativo. Si empiezas debiendo, regístralo como un gasto del mes.
             </p>

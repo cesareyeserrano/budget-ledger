@@ -2,7 +2,8 @@
 
 import type { NodeType } from "@/domain/types";
 import { signOf } from "@/domain/sign";
-import { formatCOP } from "@/lib/money";
+import { useState } from "react";
+import { formatCOP, MONTO_ENTERO_MSG } from "@/lib/money";
 import { typeColorVar } from "@/components/format";
 
 /** Máximo de dígitos del monto (dentro del rango seguro de enteros JS). */
@@ -34,6 +35,7 @@ interface Props {
  * @aitri-trace FR-ID: FR-207, US-ID: US-207, AC-ID: AC-207, TC-ID: TC-SUT-220h
  */
 export function AmountDisplay({ amount, type, onDigits, error = false }: Props) {
+  const [noEntero, setNoEntero] = useState(false);
   const color = typeColorVar(type);
   const display = amount > 0 ? formatCOP(amount) : "";
   const fontSize = fontSizeForDisplay(display || "$0");
@@ -55,13 +57,22 @@ export function AmountDisplay({ amount, type, onDigits, error = false }: Props) 
           aria-label="Monto en pesos"
           data-testid="amount-input"
           value={display}
-          onChange={(e) => onDigits(e.target.value.replace(/[^\d]/g, "").slice(0, MAX_AMOUNT_DIGITS))}
+          onChange={(e) => {
+            // BG-076 (FR-207): una coma o un signo no se funden en los dígitos («1500,50» → 150.050).
+            // El campo muestra la cifra con sus puntos de miles, así que el punto no se puede juzgar aquí.
+            if (/[,-]/.test(e.target.value)) { setNoEntero(true); return; }
+            setNoEntero(false);
+            onDigits(e.target.value.replace(/[^\d]/g, "").slice(0, MAX_AMOUNT_DIGITS));
+          }}
           placeholder="$0"
           className="tabular min-w-0 flex-1 bg-transparent text-center font-medium outline-none placeholder:opacity-40"
           style={{ fontSize, lineHeight: 1, color, caretColor: color }}
         />
       </div>
-      {error && (
+      {noEntero && (
+        <p data-testid="amount-error" className="text-sm" style={{ color: "var(--error)" }} role="alert">{MONTO_ENTERO_MSG}</p>
+      )}
+      {error && !noEntero && (
         <p className="text-sm" style={{ color: "var(--error)" }} role="alert">
           Escribe un monto mayor que 0.
         </p>

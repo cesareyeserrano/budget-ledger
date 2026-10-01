@@ -15,6 +15,7 @@ import { CELL_NOTE_MAX, formatDay, isDateInPeriod, proposedDate } from "@/domain
 import type { PeriodKey } from "@/domain/types";
 import { useCalendar, useLedgerStore } from "@/state/store";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { amountChars, amountInputError, parsePesos } from "@/lib/money";
 
 // El calendario se carga aparte, como en el registro (FR-210): no pesa en el arranque de la grilla.
 const DateCalendar = dynamic(() => import("./register/DateCalendar"), { ssr: false });
@@ -44,9 +45,12 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
   const [fecha, setFecha] = useState(propuesta);
   const [abierto, setAbierto] = useState(false);
 
-  const amount = Number(monto);
+  // BG-076 (FR-207): un monto que no es entero en pesos («1500,50») se rechaza con su mensaje; antes
+  // se borraba la coma y se registraban 150.050. «1.500.000» se lee con sus miles.
+  const errorMonto = amountInputError(monto);
+  const amount = parsePesos(monto);
   const notaLarga = nota.length > CELL_NOTE_MAX;
-  const puedeAñadir = monto !== "" && Number.isInteger(amount) && amount >= 1 && !notaLarga;
+  const puedeAñadir = monto !== "" && !errorMonto && Number.isInteger(amount) && amount >= 1 && !notaLarga;
   // «Hoy» solo si la propuesta es hoy; si no, el día corto — el usuario ve SIEMPRE qué fecha va.
   const etiquetaFecha = fecha.slice(0, 10) === isoMinute(new Date()).slice(0, 10) ? "Hoy" : formatDay(fecha);
 
@@ -75,7 +79,8 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
           inputMode="numeric"
           value={monto}
           placeholder="Monto"
-          onChange={(e) => setMonto(e.target.value.replace(/[^0-9]/g, ""))}
+          aria-invalid={!!errorMonto || undefined}
+          onChange={(e) => setMonto(amountChars(e.target.value))}
           onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); confirmar(); } }}
           className="tabular w-[96px] flex-none bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent"
         />
@@ -138,6 +143,7 @@ export function AddMovementLine({ leafId, month }: { leafId: string; month: Peri
           <Plus size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </div>
+      {errorMonto && <span data-testid="amount-error" role="alert" className="text-caption" style={{ color: "var(--error)" }}>{errorMonto}</span>}
       {nota.length > 0 && (
         <span data-testid="add-note-counter" className="tabular self-end text-caption" style={{ color: notaLarga ? "var(--error)" : "var(--fg-muted)" }}>
           {nota.length}/{CELL_NOTE_MAX}

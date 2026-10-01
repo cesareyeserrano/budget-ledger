@@ -26,6 +26,7 @@ import { LABEL_W, CELL_W, STICKY_BASE } from "./gridLayout";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING, cellAriaLabel, cellButtonProps, devolverFocoSiSePerdio, entradaFueTeclado, instalarRastreoDeEntrada, useKeyboardFocusWithin } from "./gridKeyboard";
 import { readCatWidth, writeCatWidth, clampCatWidth } from "@/lib/gridWidth";
+import { amountChars, amountInputError, parsePesos } from "@/lib/money";
 
 /**
  * Orden de los bloques: sigue el CAMINO DE LA PLATA — entra, sale, se aparta — y refleja el orden
@@ -312,9 +313,13 @@ export function BudgetGrid() {
     // tecleando el valor»), y comparar valores se tragaba ese caso (TC-DDC-193e, TC-DDC-213e). Enter ya
     // no puede re-teclear una cifra vieja: mientras no se teclea, el campo sigue a la celda (EditableCell).
     if (!confirmado && !editing.tecleado) { setEditing(null); return; }
+    // BG-076 (FR-207): un monto que no es entero en pesos no se escribe. La celda se queda abierta con
+    // su aviso para que el usuario lo corrija o salga con Escape — descartarlo en silencio sería otro
+    // BG-082. Antes «1500,50» perdía la coma y se escribían 150.050.
+    if (amountInputError(editVal)) return;
     // Las hojas transfer no pasan por aquí: su editor (ReserveCellEditor) comitea vía el camino de
     // reserva del dominio (FR-1003) — este commit es el de flujo (expense/income).
-    setLeafAmount(editing.id, editing.mk, editing.field, Math.max(0, Math.round(Number(editVal) || 0)));
+    setLeafAmount(editing.id, editing.mk, editing.field, Math.max(0, Math.round(parsePesos(editVal))));
     setEditing(null);
   }
   function onAdd(a: Adder) {
@@ -889,7 +894,8 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
           autoFocus
           aria-label="Editar valor"
           value={props.editVal}
-          onChange={(e) => props.setEditVal(e.target.value.replace(/[^0-9]/g, ""))}
+          aria-invalid={!!amountInputError(props.editVal) || undefined}
+          onChange={(e) => props.setEditVal(amountChars(e.target.value))}
           onBlur={(e) => {
             // El foco que se queda DENTRO del editor (las observaciones) no comitea la celda —
             // mismo patrón que ya usa el editor de bolsillos.
@@ -899,6 +905,14 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
           onKeyDown={(e) => { if (e.key === "Enter") props.commit(true); if (e.key === "Escape") props.cancel(); }}
           className="tabular w-full bg-elevated border border-accent rounded-(--radius-sm) text-fg text-caption text-right px-1.5 py-1 outline-none"
         />
+        )}
+        {/* BG-076: el aviso va ENCIMA de la celda; debajo se abre el Detalle. */}
+        {!props.closed && amountInputError(props.editVal) && (
+          <div data-testid="amount-error" role="alert"
+            className="absolute right-0 bottom-full z-30 mb-1 whitespace-nowrap rounded-(--radius-sm) border px-2 py-1 text-[12px]"
+            style={{ borderColor: "var(--error)", color: "var(--error)", background: "var(--bg-card)", boxShadow: "var(--shadow-md)" }}>
+            {amountInputError(props.editVal)}
+          </div>
         )}
         {/* FR-2501: el editor de cualquier celda monta el Detalle — qué movimientos la forman y qué
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}

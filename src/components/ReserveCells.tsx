@@ -39,6 +39,7 @@ import {
 import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { blockMessage } from "./reserveText";
 import { cellNum, money } from "./format";
+import { amountChars, amountInputError, parsePesos } from "@/lib/money";
 import { CELL_W } from "./gridLayout";
 import { FOCUS_RING, cellAriaLabel, cellButtonProps } from "./gridKeyboard";
 import { cn } from "@/lib/utils";
@@ -173,7 +174,7 @@ export function ReserveCellEditor(props: {
 
   // ¿Se pasa? Se evalúa MIENTRAS teclea, no al confirmar: la señal llega antes del rechazo. Compara
   // el TOTAL tecleado contra el total admitido — no el incremento, que es lo que hacía antes.
-  const excede = Math.max(0, Math.round(Number(val) || 0)) > headroom;
+  const excede = Math.max(0, Math.round(parsePesos(val))) > headroom;
 
   /** Bloqueo: el editor queda abierto con el valor rechazado seleccionado («corrige o Escape»). */
   function fail(msg: string) {
@@ -185,7 +186,11 @@ export function ReserveCellEditor(props: {
   }
 
   function commit() {
-    const value = Math.max(0, Math.round(Number(val) || 0));
+    // BG-076 (FR-207): un monto que no es entero en pesos no se escribe; el editor se queda abierto
+    // con el aviso. Antes «1500,50» perdía la coma y se escribían 150.050.
+    const noEntero = amountInputError(val);
+    if (noEntero) { fail(noEntero); return; }
+    const value = Math.max(0, Math.round(parsePesos(val)));
     if (value === current) {
       props.onClose(); // sin cambio: no-op
       return;
@@ -234,8 +239,9 @@ export function ReserveCellEditor(props: {
         aria-label="Editar valor"
         value={val}
         onChange={(e) => {
-          setVal(e.target.value.replace(/[^0-9]/g, ""));
-          setBlock(null);
+          const next = amountChars(e.target.value);
+          setVal(next);
+          setBlock(amountInputError(next));
         }}
         onBlur={(e) => {
           // El foco que se queda DENTRO del editor (observaciones) no comitea la celda.
@@ -377,12 +383,13 @@ export function WithdrawCell({
   const txt = WITHDRAW_TEXT[plane];
 
   const leaves = reserveLeafIds(data);
-  const parsed = Math.round(Number(amount) || 0);
+  const parsed = Math.round(parsePesos(amount));
+  const noEntero = amountInputError(amount); // BG-076 (FR-207)
   // El tope NO es el saldo del mes: si un mes posterior ya retiró de esa misma plata, el saldo
   // sobreestima (auditoría 2026-09-01: mostraba Máx. $1.000 donde solo cabían $200). `maxWithdrawal`
   // mira la serie completa — la misma cuenta que el dominio va a validar. En el plan, la del plan.
   const saldo = fromId ? maxWithdrawal(data, fromId, month, periods, plane) : null;
-  const canSave = fromId !== "" && parsed > 0 && (saldo === null || parsed <= saldo);
+  const canSave = fromId !== "" && !noEntero && parsed > 0 && (saldo === null || parsed <= saldo);
 
   // Sobre-retiro: ejecutado vs planeado, misma graduación que los gastos (observación 1).
   const total = reserveRetiros(data, month, "actual");
@@ -517,7 +524,7 @@ export function WithdrawCell({
             data-testid="withdraw-amount"
             value={amount}
             placeholder="$0"
-            onChange={(e) => { setAmount(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
+            onChange={(e) => { const next = amountChars(e.target.value); setAmount(next); setError(amountInputError(next)); }}
             onKeyDown={(e) => { if (e.key === "Enter" && canSave) save(); }}
             className="tabular w-full bg-elevated border border-border rounded-(--radius-sm) text-fg text-right px-1.5 py-1 outline-none focus:border-accent"
           />
@@ -615,7 +622,10 @@ function PlanRow({ row, month, onEliminada }: { row: PlannedRetiroRow; month: Pe
 
   function commit() {
     if (cancelado.current) { cancelado.current = false; return; }
-    const n = Math.max(0, Math.round(Number(val) || 0));
+    // BG-076 (FR-207): no se escribe un monto que no es entero en pesos; el aviso queda a la vista.
+    const noEntero = amountInputError(val);
+    if (noEntero) { setError(noEntero); return; }
+    const n = Math.max(0, Math.round(parsePesos(val)));
     if (n === row.amount) return;
     const res = edit(row.leafId, month, n);
     if (res.ok) {
@@ -640,7 +650,7 @@ function PlanRow({ row, month, onEliminada }: { row: PlannedRetiroRow; month: Pe
           data-testid={`op-plan-amount-${row.leafId}`}
           value={val}
           inputMode="numeric"
-          onChange={(e) => { setVal(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
+          onChange={(e) => { const next = amountChars(e.target.value); setVal(next); setError(amountInputError(next)); }}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.currentTarget.blur(); }
@@ -690,7 +700,10 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
 
   function commit() {
     if (cancelado.current) { cancelado.current = false; return; }
-    const n = Math.max(0, Math.round(Number(val) || 0));
+    // BG-076 (FR-207): no se escribe un monto que no es entero en pesos; el aviso queda a la vista.
+    const noEntero = amountInputError(val);
+    if (noEntero) { setError(noEntero); return; }
+    const n = Math.max(0, Math.round(parsePesos(val)));
     if (n === mv.amount) return;
     const res = editOp(mv.id, n);
     if (res.ok) {
@@ -725,7 +738,7 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
           data-testid={`op-amount-${mv.id}`}
           value={val}
           inputMode="numeric"
-          onChange={(e) => { setVal(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
+          onChange={(e) => { const next = amountChars(e.target.value); setVal(next); setError(amountInputError(next)); }}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === "Enter") { e.currentTarget.blur(); }
