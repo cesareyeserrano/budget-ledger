@@ -15,6 +15,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { buildSeed } from "@/domain";
 import { isLeaf } from "@/domain/tree";
 import { loadLedger, saveLedger, saveStartFor, insertMovement } from "@/server/data/ledgerRepo";
+import { applyCyclesFor } from "@/server/data/cyclesRepo";
 import { AVAILABLE_ID } from "@/domain/reserve";
 import { truncateAll, closeTestDb, createTestUser } from "./helpers/db";
 import type { LedgerState, PeriodKey } from "@/domain/types";
@@ -98,5 +99,21 @@ describe("BG-063 — PUT /ledger juzga con la apertura guardada, no con la del c
     expect(inventada, JSON.stringify(inventada)).toMatchObject({ ok: false, domainViolation: true });
     // Y la apertura del cuerpo no se guardó.
     expect((await loadLedger(A))!.state.openingBalance ?? null).toBeNull();
+  });
+});
+
+describe("BG-063 — con el inicio guardado, el calendario de ciclos cubre todo lo que se juzga", () => {
+  it("en ciclos con el inicio en enero, guardar una celda en cero en septiembre no es «periodo inexistente»", async () => {
+    // Al juzgar con el inicio GUARDADO (y no con el del cuerpo), la tabla de ciclos se acotaba a la
+    // ventana del inicio y de los datos, que ignoran las celdas en cero: septiembre quedaba fuera.
+    await sembrar("2026-01");
+    const c = await applyCyclesFor(A, (await loadLedger(A))!.revision, { mode: "cycle", anchorDay: 21, eomPolicy: "last_day" }, "2026-09-10");
+    expect(c.ok, JSON.stringify(c)).toBe(true);
+    const { state, revision } = (await loadLedger(A))!;
+    // Los ciclos se nombran por el mes en que terminan: el inicio queda en «2026-02», lejos de septiembre.
+    expect(state.startMonth! < AGO).toBe(true);
+    const gasto = state.nodes.find((n) => n.type === "expense" && isLeaf(n, state.nodes))!.id;
+    const r = await saveLedger(A, { ...state, actuals: { [gasto]: { [SEP]: 0 } }, movements: [] }, revision);
+    expect(r, JSON.stringify(r)).toMatchObject({ ok: true });
   });
 });

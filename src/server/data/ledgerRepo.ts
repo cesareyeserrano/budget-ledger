@@ -636,7 +636,7 @@ export async function loadStateInTx(tx: DbTx, ownerId: string): Promise<LedgerSt
  *
  * @aitri-trace FR-ID: FR-2405, US-ID: US-2405, AC-ID: AC-2417, TC-ID: TC-CIC-050f, TC-CIC-101f
  */
-export function periodMismatches(state: LedgerState, cal: Calendar): string[] {
+export function periodMismatches(state: LedgerState, calBase: Calendar): string[] {
   const ids: string[] = [];
   const used = new Set<PeriodKey>();
   for (const m of [state.budgets, state.actuals]) for (const cells of Object.values(m)) for (const p of Object.keys(cells ?? {})) used.add(p);
@@ -645,6 +645,12 @@ export function periodMismatches(state: LedgerState, cal: Calendar): string[] {
   // Solo claves BIEN FORMADAS: una malformada («2026-13») no es asunto del calendario — la
   // rechazan Zod en el borde y el CHECK de la base, como siempre (TC-MAN-242e sigue igual).
   const validas = [...used].filter((k) => isPeriodKey(k)).sort(comparePeriods);
+  // BG-063: la tabla de ciclos tiene que cubrir TODAS las claves que se juzgan. `calendarOf` acota
+  // por los datos (que ignoran las celdas en cero) y por el mes de inicio; con el inicio lejos, una
+  // celda en cero fuera de esa ventana caía fuera de la tabla y salía como «periodo inexistente».
+  const cal = calBase.mode === "cycle" && validas.length > 0
+    ? calendarOf(state, validas[0], validas[validas.length - 1])
+    : calBase;
   if (validas.length > 0) {
     const allowed = new Set(cal.keys(monthOf(validas[0]!), monthOf(validas[validas.length - 1]!)));
     for (const k of validas) if (!allowed.has(k)) ids.push(`period:${k}`);
