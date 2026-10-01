@@ -14,7 +14,7 @@ import { and, asc, desc, eq, like, sql } from "drizzle-orm";
 import { db, type DbTx } from "../db/client";
 import { ledger, node, amountCell, movement, cellNote, closureEvent, cycleConfigVersion, relocationOrigin } from "../db/schema";
 import type { AmountMap, CellNotesMap, LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "@/domain";
-import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairOrphanedCellNotes, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
+import { addMovement, movementTargetOk, migrateStateV3toV4, migrateStateV4toV5, repairMovementCats, repairOrphanedCellNotes, repairOrphanedPocketJournal, type NewMovement } from "@/domain";
 // Feature diario-de-celda (FR-2505, FR-2506): editar y borrar reutilizan la MISMA mutación pura que
 // el cliente, igual que `addMovement` — es lo que hace imposible que las dos vías diverjan.
 import { deleteMovement, editMovement, repairOpeningAdjustmentDates, OPENING_ADJUSTMENT_PREFIX, type MovementPatch, type NegativeCell } from "@/domain/adjust";
@@ -249,8 +249,8 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
 
 /**
  * Las reparaciones de datos que corren al cargar, en orden: los movimientos de un bolsillo que ya no es
- * hoja (BG-053), las notas de celda sin dueño (BG-077) y la fecha de los ajustes de apertura en claves
- * de transición (BG-079). Pura: sin nada que reparar devuelve el mismo estado y `repaired: 0`.
+ * hoja (BG-053), las notas de celda sin dueño (BG-077), la fecha de los ajustes de apertura en claves de
+ * transición (BG-079) y el par categoría/subcategoría de los movimientos (BG-078). Pura: sin nada que reparar devuelve el mismo estado y `repaired: 0`.
  */
 function repairLoaded(state: LedgerState): { state: LedgerState; repaired: number } {
   const journal = repairOrphanedPocketJournal(state);
@@ -260,7 +260,11 @@ function repairLoaded(state: LedgerState): { state: LedgerState; repaired: numbe
   const dates = claves.length > 0
     ? repairOpeningAdjustmentDates(notes.state, calendarOf(notes.state, ...claves))
     : { state: notes.state, repaired: [] as string[] };
-  return { state: dates.state, repaired: journal.repaired.length + notes.repaired.length + dates.repaired.length };
+  const cats = repairMovementCats(dates.state);
+  return {
+    state: cats.state,
+    repaired: journal.repaired.length + notes.repaired.length + dates.repaired.length + cats.repaired.length,
+  };
 }
 
 /**
@@ -291,11 +295,11 @@ async function repairOnLoadFor(ownerId: string): Promise<boolean> {
       await tx.delete(cellNote).where(eq(cellNote.ownerId, ownerId));
       await insertSnapshot(tx, ownerId, next);
       await tx.update(ledger).set({ revision: head.revision + 1, updatedAt: new Date() }).where(eq(ledger.ownerId, ownerId));
-      console.log(`[ledger] datos reparados al cargar (BG-053, BG-077, BG-079) para ${ownerId}: ${repaired}`);
+      console.log(`[ledger] datos reparados al cargar (BG-053, BG-077, BG-078, BG-079) para ${ownerId}: ${repaired}`);
       return true;
     });
   } catch (err) {
-    console.error(`[ledger] no se pudo reparar los datos al cargar (BG-053, BG-077, BG-079): ${String(err)}`);
+    console.error(`[ledger] no se pudo reparar los datos al cargar (BG-053, BG-077, BG-078, BG-079): ${String(err)}`);
     return false;
   }
 }

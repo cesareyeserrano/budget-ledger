@@ -1,7 +1,7 @@
 // @aitri-trace domain:mutations — FR-001/002/006/015: registrar, CRUD, borrado (bloquea si hay datos), reparent.
 // Todas las funciones son PURAS: reciben estado y devuelven estado nuevo (o un resultado tipado).
 import type { LedgerNode, LedgerState, PeriodKey, Movement, NodeLevel, NodeType } from "./types";
-import { childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
+import { catSubOf, childrenOf, findNode, isAncestor, isLeaf, leafDescendants, subtreeDepth, subtreeIds } from "./tree";
 import { parseAmount, nodeNameSchema, normalizeNote, MONTO_MAX } from "./validation";
 import { uid, nextSeq, __resetSeq, seedSeq, seedSeqFrom } from "./ids";
 import { AVAILABLE_ID, PLANNED_RETIRO_PREFIX, applyReserveCellEdit, applyReserveOp, plannedRetiroKey, resolvedSeries, reserveLeafIds } from "./reserve";
@@ -663,6 +663,45 @@ export function moveNode(
   id: string,
   dest: MoveDest,
   overflow: OverflowPolicy = blockPolicy // ◄── SEAM (NFR-701): default block; una política futura se enchufa aquí
+): MoveResult {
+  const res = relocateNode(state, id, dest, overflow);
+  // BG-078 (c): mover un nodo cambia de quién es hijo, y con eso el `catId` de los movimientos que
+  // apuntan a él o a sus subcategorías. Antes se quedaban con el padre viejo (FR-015: «los movimientos
+  // viajan con el nodo»). Se re-derivan del árbol ya movido.
+  return "state" in res ? { state: repairMovementCats(res.state).state } : res;
+}
+
+/**
+ * BG-078 (c) — pone de acuerdo el par `catId`/`subId` de cada movimiento con el nodo al que apunta.
+ *
+ * `target` es el dato y nunca se toca aquí: por eso ninguna cifra, celda ni saldo cambia. Lo que se
+ * corrige es la etiqueta que quedó vieja —por mover una categoría, o por una edición que se fió del
+ * par recibido—. Un movimiento cuyo destino ya no existe se deja como está: es otro defecto.
+ *
+ * Sin nada que corregir devuelve el MISMO estado, así que puede correr en cada carga.
+ *
+ * @returns El estado corregido y los ids de los movimientos tocados; `state` es el mismo objeto si no cambió.
+ * @throws Nunca.
+ */
+export function repairMovementCats(state: LedgerState): { state: LedgerState; repaired: string[] } {
+  const porId = new Map(state.nodes.map((n) => [n.id, n]));
+  const repaired: string[] = [];
+  const movements = state.movements.map((m) => {
+    const node = porId.get(m.target);
+    if (!node) return m;
+    const par = catSubOf(node);
+    if (m.catId === par.catId && (m.subId ?? null) === par.subId) return m;
+    repaired.push(m.id);
+    return { ...m, catId: par.catId, subId: par.subId };
+  });
+  return repaired.length > 0 ? { state: { ...state, movements }, repaired } : { state, repaired };
+}
+
+function relocateNode(
+  state: LedgerState,
+  id: string,
+  dest: MoveDest,
+  overflow: OverflowPolicy
 ): MoveResult {
   const node = findNode(state.nodes, id);
   if (!node || node.system) return { rejected: "invalid_target" };

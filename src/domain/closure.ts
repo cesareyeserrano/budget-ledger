@@ -386,8 +386,11 @@ function diffMovements(
     // viejo sin haberlo tocado nadie.
     // BG-057: `from` y `to` también. En un traslado `target` es el destino, así que reescribir el
     // ORIGEN cambiaba dos saldos de un mes cerrado sin que esta comparación lo viera.
-    if (om.amount !== nm.amount || om.target !== nm.target || om.catId !== nm.catId ||
-        om.subId !== nm.subId || om.type !== nm.type ||
+    // BG-078 (c): `catId`/`subId` NO se comparan. Son la etiqueta del nodo al que apunta `target`, y
+    // mover una categoría las cambia en todos sus movimientos sin tocar una cifra: compararlas haría
+    // que reorganizar el árbol se rechazara por cada mes cerrado en el que esa categoría tenga algo.
+    // Lo que congela el cierre —monto, destino, tipo, origen, fecha, nota— sigue comparándose.
+    if (om.amount !== nm.amount || om.target !== nm.target || om.type !== nm.type ||
         (om.from ?? null) !== (nm.from ?? null) || (om.to ?? null) !== (nm.to ?? null) ||
         (om.note ?? null) !== (nm.note ?? null) ||
         (om.date ?? null) !== (nm.date ?? null) ||

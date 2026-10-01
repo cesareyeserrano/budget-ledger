@@ -14,6 +14,7 @@ import { getSessionUser } from "@/server/session";
 import { loadLedger, saveLedger } from "@/server/data/ledgerRepo";
 import { syncHub } from "@/server/sync";
 import { buildSeed, isLeaf, MONTO_MAX } from "@/domain";
+import { catSubOf } from "@/domain/tree";
 import { PATCH as movPATCH, DELETE as movDELETE } from "@/app/api/v1/movements/[id]/route";
 import { POST as movsPOST } from "@/app/api/v1/movements/route";
 import type { LedgerState, Movement, PeriodKey } from "@/domain/types";
@@ -62,7 +63,9 @@ async function sembrar(userId: string, nota = "Almuerzo"): Promise<{ hoja: strin
   const seed = buildSeed(userId, SEP);
   const hoja = hojaDeGasto(seed);
   const mv: Movement = {
-    id: `a1-${userId}`, ownerId: userId, type: "expense", catId: hoja, subId: null, target: hoja,
+    // El par sale del nodo: la primera hoja de gasto es una subcategoría, y sembrarla como `catId`
+    // con `subId` vacío es un par incoherente que la carga corrige subiendo la revisión (BG-078).
+    id: `a1-${userId}`, ownerId: userId, type: "expense", ...catSubOf(seed.nodes.find((n) => n.id === hoja)!), target: hoja,
     amount: 50_000, period: SEP, createdAt: 1, date: `${SEP}-05T12:00`, note: nota,
   };
   const r = await saveLedger(userId, { ...seed, actuals: { [hoja]: { [SEP]: 50_000 } }, movements: [mv] }, 0);

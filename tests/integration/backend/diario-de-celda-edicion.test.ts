@@ -15,7 +15,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { buildSeed } from "@/domain";
-import { isLeaf } from "@/domain/tree";
+import { catSubOf, isLeaf } from "@/domain/tree";
 
 import {
   closeMonthFor, loadLedger, removeMovement, saveLedger, updateMovement,
@@ -48,9 +48,19 @@ function gasto(
   extra: Partial<Movement> = {}
 ): Movement {
   return {
-    id, ownerId: owner, type: "expense", catId: target, subId: null, target, amount, period,
+    id, ownerId: owner, type: "expense", ...parDe(target), target, amount, period,
     createdAt, date: `${period}-05T12:00`, ...extra,
   };
+}
+
+/**
+ * El `catId`/`subId` que corresponde a una hoja de la semilla. La primera hoja de gasto es una
+ * subcategoría, y un movimiento sembrado con `catId` = la sub y `subId` vacío es un par incoherente:
+ * desde BG-078 la carga lo corrige y sube la revisión, que estas pruebas cuentan.
+ */
+function parDe(target: string): { catId: string; subId: string | null } {
+  const nodo = buildSeed("semilla", "2026-08").nodes.find((n) => n.id === target);
+  return nodo ? catSubOf(nodo) : { catId: target, subId: null };
 }
 
 /**

@@ -85,3 +85,12 @@ export function isAncestor(nodes: LedgerNode[], ancestorId: string, nodeId: stri
   }
   return false;
 }
+
+/**
+ * El par `catId`/`subId` que le corresponde a un movimiento cuyo destino es este nodo: en una
+ * subcategoría, la categoría es su padre y la sub es ella; en cualquier otra hoja, la categoría es ella
+ * misma y no hay sub. `target` es el dato; el par es su etiqueta, y tiene que contar la misma historia.
+ */
+export function catSubOf(node: LedgerNode): { catId: string; subId: string | null } {
+  return node.level === "sub" && node.parentId ? { catId: node.parentId, subId: node.id } : { catId: node.id, subId: null };
+}

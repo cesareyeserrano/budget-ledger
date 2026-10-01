@@ -10,7 +10,7 @@
 import { isValidMovementPeriod, proposeOpeningCycle, type Calendar } from "./cycles";
 import { monthOf } from "./periods";
 import type { LedgerState, Movement, PeriodKey } from "./types";
-import { findNode, isLeaf } from "./tree";
+import { catSubOf, findNode, isLeaf } from "./tree";
 import { movementSum } from "./detail";
 import { uid, nextSeq } from "./ids";
 import { MONTO_MAX, normalizeNote } from "./validation";
@@ -335,14 +335,26 @@ export function editMovement(
   if (patch.amount !== undefined && !montoValido(patch.amount, mv.kind)) return { rejected: "invalid_amount" };
 
   // Destino: `catId` sin `subId` limpia la subcategoría (se va a esa hoja).
-  const catId = patch.catId ?? mv.catId;
-  const subId = patch.subId !== undefined ? patch.subId : patch.catId !== undefined ? null : mv.subId;
+  let catId = patch.catId ?? mv.catId;
+  let subId = patch.subId !== undefined ? patch.subId : patch.catId !== undefined ? null : mv.subId;
   const target = subId ?? catId;
+  const destino = findNode(state.nodes, target);
   if (target !== mv.target) {
-    const destino = findNode(state.nodes, target);
     // Del MISMO tipo y hoja: un gasto no se convierte en ingreso cambiándole la categoría, y una
     // categoría con hijos no guarda cifras propias (su valor es la suma de los suyos).
     if (!destino || !isLeaf(destino, state.nodes) || destino.type !== mv.type) return { rejected: "invalid_target" };
+  }
+  // BG-078 (c): si el parche nombra el destino, el par se ESCRIBE a partir del nodo, no se copia del
+  // parche. Antes se fiaba de lo recibido: el propio editor manda `{ catId: <hoja> }`, y con una
+  // subcategoría quedaba `catId` = la sub y `subId` vacío; y una sub de otra categoría se aceptaba al
+  // lado del `catId` viejo. Los totales no lo notaban —mandan sobre `target`— pero las etiquetas mentían.
+  if (destino && (patch.catId !== undefined || patch.subId !== undefined)) {
+    const par = catSubOf(destino);
+    // Las dos mitades dadas y contradictorias: no se adivina cuál quiso decir el cliente.
+    if (patch.catId !== undefined && patch.subId != null && (par.subId !== patch.subId || par.catId !== patch.catId)) {
+      return { rejected: "invalid_target" };
+    }
+    ({ catId, subId } = par);
   }
 
   const date = patch.date ?? mv.date;
