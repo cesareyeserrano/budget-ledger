@@ -195,6 +195,23 @@ export function BudgetGrid() {
     devolverFocoSiSePerdio(() => scrollRef.current?.querySelector<HTMLElement>(sel));
   }, [editing]);
 
+  // BG-083: confirmar un borrado desmonta la fila entera, así que no queda rótulo propio al que volver
+  // y el foco caía al <body>: el siguiente Tab empezaba desde el principio de la página. A quien iba
+  // con teclado se le lleva al rótulo de la fila vecina: la hermana siguiente y, si no hay, la de
+  // arriba. Las filas del sistema no se enfocan (su rótulo no es un control).
+  function borrarNodo(id: string) {
+    const i = rows.findIndex((r) => r.node?.id === id);
+    const enfocable = (r: Row | undefined): r is Row => !!r?.node && !r.node.system;
+    const sig = rows[i + 1];
+    const ant = rows[i - 1];
+    const vecina =
+      (enfocable(sig) && sig.depth === rows[i]?.depth ? sig : enfocable(ant) ? ant : undefined) ??
+      [...rows.slice(i + 1), ...rows.slice(0, Math.max(i, 0)).reverse()].find(enfocable);
+    if (deleteNode(id) !== "ok" || !vecina?.node) return;
+    const sel = `[data-row-label="${CSS.escape(vecina.node.id)}"]`;
+    devolverFocoSiSePerdio(() => scrollRef.current?.querySelector<HTMLElement>(sel));
+  }
+
   // FR-104: arrastre de la manija (Pointer Events propios, aislados del dnd de nodos).
   function startResize(e: React.PointerEvent) {
     e.preventDefault();
@@ -427,7 +444,7 @@ export function BudgetGrid() {
         startNaming={() => setNamingId(row.node!.id)}
         commitName={(name) => { renameNode(row.node!.id, name); setNamingId(null); }}
         setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
-        onDelete={() => deleteNode(row.node!.id)}
+        onDelete={() => borrarNodo(row.node!.id)}
         onAddChild={() => onAddChild(row.node!)}
       />
     );
@@ -759,6 +776,7 @@ function NodeRow(props: {
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
           data-testid="row-label"
+          data-row-label={node.id}
           className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default", props.roundBottom && "rounded-bl-(--radius-md)")}
           style={{
             paddingLeft: 14 + row.depth * 16,
