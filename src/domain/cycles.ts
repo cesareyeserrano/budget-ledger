@@ -464,7 +464,7 @@ export function reassignMovementPeriod(state: LedgerState, movementId: string, p
 
 // ── Reubicación (FR-2404, FR-2408, FR-2410) ─────────────────────────────────────────────────────
 
-export type RelocationRule = "keys_in_calendar" | "period_matches_date" | "sums" | "leaf_sums" | "reserve_floor" | "negative_cell";
+export type RelocationRule = "keys_in_calendar" | "period_matches_date" | "sums" | "leaf_sums" | "reserve_floor" | "negative_cell" | "unplaceable_date";
 export interface RelocationBlocked {
   blocked: "closed_period" | "relocation_invariant";
   detail: { rule?: RelocationRule; ids?: string[]; leafId?: string; period?: PeriodKey };
@@ -502,6 +502,19 @@ function oldestDatedMovement(state: LedgerState): string | null {
   for (const m of state.movements) if (m.date && (oldest === null || dayOf(m.date) < oldest)) oldest = dayOf(m.date);
   return oldest;
 }
+/** BG-061: el periodo más NUEVO con datos, contando también el mes de la FECHA de cada movimiento. */
+function newestKey(state: LedgerState): PeriodKey | null {
+  let newest: PeriodKey | null = null;
+  const consider = (p: string) => { if (isPeriodKey(p) && (newest === null || comparePeriods(p, newest) > 0)) newest = p; };
+  for (const map of [state.budgets, state.actuals]) for (const cells of Object.values(map ?? {})) for (const [p, v] of Object.entries(cells ?? {})) if ((v ?? 0) !== 0) consider(p);
+  for (const m of state.movements) {
+    consider(m.period);
+    if (m.date) consider(m.date.slice(0, 7));
+  }
+  for (const byP of Object.values(state.cellNotes ?? {})) for (const [p, n] of Object.entries(byP ?? {})) if ((n?.length ?? 0) > 0) consider(p);
+  return newest;
+}
+
 function oldestKey(state: LedgerState): PeriodKey | null {
   let oldest: PeriodKey | null = null;
   const consider = (p: string) => { if (isPeriodKey(p) && (oldest === null || comparePeriods(p, oldest) < 0)) oldest = p; };
@@ -715,6 +728,18 @@ export function relocate(
   const closure = closureOf(state);
   if (to.mode === "month" && closure.closedThrough !== null) {
     return { blocked: "closed_period", detail: { period: closure.closedThrough } };
+  }
+  // BG-061: un movimiento cuya fecha el calendario no sabe ubicar (un día que no existe, o fuera de
+  // la tabla) hacía que `periodForDate` LANZARA, y la ruta respondía 500 sin decir cuál. Se busca
+  // ANTES de reubicar nada y se bloquea nombrándolo, con el mismo código que el resto de reglas.
+  for (const mv of state.movements) {
+    if (!mv.date) continue;
+    try {
+      to.periodForDate(mv.date);
+      if (from.mode === "cycle") from.periodForDate(mv.date);
+    } catch {
+      return { blocked: "relocation_invariant", detail: { rule: "unplaceable_date", ids: [mv.id], leafId: leafOfMovement(mv), period: mv.period } };
+    }
   }
   const activating = from.mode === "month" && to.mode === "cycle";
   const returning = from.mode === "cycle" && to.mode === "month";
@@ -1097,7 +1122,11 @@ export function boundsFor(state: LedgerState, todayISO: string, horizonYears = 2
   const oldest = oldestKey(state);
   let from = today;
   for (const c of [declared, oldest]) if (c && comparePeriods(monthOf(c), from) < 0) from = monthOf(c);
-  const to = periodOf(periodYear(today) + horizonYears, 12);
+  let to = periodOf(periodYear(today) + horizonYears, 12);
+  // BG-061: el horizonte no recorta lo que ya existe. Un movimiento fechado más allá (2030) quedaba
+  // fuera de la tabla y la reubicación no podía ubicarlo.
+  const newest = newestKey(state);
+  if (newest && comparePeriods(monthOf(newest), to) > 0) to = monthOf(newest);
   return { from: addMonths(from, -1), to };
 }
 export { isCycleKey };

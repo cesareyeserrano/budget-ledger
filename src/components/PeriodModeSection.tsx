@@ -69,6 +69,8 @@ function blockedMessage(code: string, detail: Record<string, unknown> | undefine
       const leaf = typeof d.leafId === "string" ? nameOf(d.leafId) : "";
       const period = typeof d.period === "string" ? periodLabel(monthOf(d.period)) : "";
       if (rule === "reserve_floor") return `La alcancía «${leaf}» quedaría en negativo en ${period}: un retiro se adelantaría al aporte que lo financiaba. Corrige ese movimiento antes de cambiar el periodo.`;
+      // BG-061: antes llegaba como 500 «Error interno» sin decir qué movimiento era.
+      if (rule === "unplaceable_date") return `Un movimiento de «${leaf}» en ${period} tiene una fecha que no existe o no se puede ubicar en el calendario. Corrige esa fecha antes de cambiar el periodo.`;
       if (rule === "negative_cell") return `La celda de «${leaf}» en ${period} quedaría en negativo: tecleaste menos de lo que suman sus movimientos. Corrígela antes de cambiar el periodo.`;
       return `No se pudo reubicar el presupuesto sin perder consistencia (${rule}). Tus datos no cambiaron.`;
     }
