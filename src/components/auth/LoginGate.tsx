@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { AuthPending } from "./AuthPending";
+import { LoadError } from "./LoadError";
 import { RequestResetForm } from "./RequestResetForm";
 import { useLedgerStore } from "@/state/store";
 import { SyncClient } from "@/data/syncClient";
@@ -33,6 +34,7 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
   const hydrate = useLedgerStore((s) => s.hydrate);
   const resync = useLedgerStore((s) => s.resync);
   const sessionExpired = useLedgerStore((s) => s.sessionExpired);
+  const loadFailed = useLedgerStore((s) => s.loadFailed);
   const syncRef = useRef<SyncClient | null>(null);
 
   const userId = session?.user?.id ?? null;
@@ -82,6 +84,10 @@ export function LoginGate({ children }: { children: React.ReactNode }) {
       <AuthForm onForgotPassword={() => setShowReset(true)} />
     );
   }
+
+  // BG-059: la primera carga no llegó. Se dice y se ofrece reintentar, en vez de dejar que el shell
+  // pinte la semilla vacía como si fueran los datos del usuario.
+  if (loadFailed) return <LoadError onRetry={() => void hydrate()} />;
 
   return <>{children}</>;
 }
