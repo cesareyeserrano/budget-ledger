@@ -23,7 +23,7 @@ import {
   addMonths, comparePeriods, isCycleKey, isPeriodKey, monthOf, periodFromDate, periodOf, periodRange,
   periodYear, periodMonth, MONTH_LABELS_SHORT, transitionKey, monthPrev,
 } from "./periods";
-import { isAvailable, resolvedBalance } from "./reserve";
+import { isAvailable, resolvedBalance, PLANNED_RETIRO_PREFIX } from "./reserve";
 import { closureOf } from "./closure";
 import { normalizeStartMonth } from "./opening";
 
@@ -808,7 +808,11 @@ export function relocate(
         for (const x of restored) { addCell(budgets, leaf, x.month, x.amount); keepZero.add(zeroKey("b", leaf, x.month)); }
         continue;
       }
-      const k = activating ? placeDateless(ctx!, leaf, p) : returning ? returnDateless(ctx!, leaf, p) : map(p);
+      // BG-062: la fila de retiros planeados de un bolsillo no tiene movimientos propios; se ubicaba
+      // por su propia clave y podía caer en otro ciclo que el aporte planeado que la financia, con el
+      // plan del bolsillo en negativo. Se ubica con las mismas pistas que su bolsillo.
+      const pista = leaf.startsWith(PLANNED_RETIRO_PREFIX) ? leaf.slice(PLANNED_RETIRO_PREFIX.length) : leaf;
+      const k = activating ? placeDateless(ctx!, pista, p) : returning ? returnDateless(ctx!, pista, p) : map(p);
       if (k !== p && v !== 0) cellsMoved++;
       addCell(budgets, leaf, k, v);
       if (v === 0) keepZero.add(zeroKey("b", leaf, k));
@@ -959,7 +963,7 @@ export function relocate(
   };
   void todayISO;
   summary.identical = summary.cellsSumBefore === summary.cellsSumAfter && summary.movementsSumBefore === summary.movementsSumAfter;
-  const inv = checkRelocationInvariants(state, next, to);
+  const inv = checkRelocationInvariants(state, next, to, from);
   if (!inv.ok) return { blocked: "relocation_invariant", detail: inv.detail };
   return { state: next, summary };
 }
@@ -973,7 +977,7 @@ export function relocate(
  * @aitri-trace FR-ID: FR-2404, US-ID: US-2404, AC-ID: AC-2412, TC-ID: TC-CIC-033e, TC-CIC-120f, TC-CIC-170f
  */
 export function checkRelocationInvariants(
-  before: LedgerState, after: LedgerState, cal: Calendar
+  before: LedgerState, after: LedgerState, cal: Calendar, calBefore?: Calendar
 ): { ok: true } | { ok: false; detail: RelocationBlocked["detail"] } {
   // (i)
   if (sumMap(before.budgets) !== sumMap(after.budgets) || sumMap(before.actuals) !== sumMap(after.actuals)) {
@@ -1018,9 +1022,26 @@ export function checkRelocationInvariants(
   if (reserveLeaves.size > 0 && keysUsed.size > 0) {
     const sorted = [...keysUsed].sort(comparePeriods);
     const periods = cal.keys(monthOf(sorted[0]!), monthOf(sorted[sorted.length - 1]!));
+    // BG-062: el PLAN también tiene piso (FR-2904 lo hace cumplir en la app). Solo se exige si el plan
+    // de ese bolsillo no venía ya en negativo antes del cambio: un plan viejo inconsistente no puede
+    // dejar al usuario sin poder cambiar de periodo, que es justo lo que este bloqueo protege.
+    const planNegativoAntes = (leaf: string): boolean => {
+      if (!calBefore) return false;
+      const keysB = new Set<PeriodKey>();
+      for (const m of [before.budgets, before.actuals]) for (const cells of Object.values(m)) for (const k of Object.keys(cells ?? {})) if (isPeriodKey(k)) keysB.add(k);
+      for (const mv of before.movements) keysB.add(mv.period);
+      if (keysB.size === 0) return false;
+      const sb = [...keysB].sort(comparePeriods);
+      const periodsB = calBefore.keys(monthOf(sb[0]!), monthOf(sb[sb.length - 1]!));
+      return periodsB.some((p) => resolvedBalance(before, leaf, p, "budget", periodsB) < 0);
+    };
     for (const leaf of reserveLeaves) {
       for (const p of periods) {
         if (resolvedBalance(after, leaf, p, "actual", periods) < 0) return { ok: false, detail: { rule: "reserve_floor", leafId: leaf, period: p } };
+      }
+      if (planNegativoAntes(leaf)) continue;
+      for (const p of periods) {
+        if (resolvedBalance(after, leaf, p, "budget", periods) < 0) return { ok: false, detail: { rule: "reserve_floor", leafId: leaf, period: p } };
       }
     }
   }
