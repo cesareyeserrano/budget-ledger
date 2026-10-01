@@ -116,7 +116,7 @@ export type AdjustResult =
  * @param state Estado del ledger.
  * @param leafId Hoja de la celda.
  * @param period Periodo de la celda.
- * @param value Total tecleado (entero ≥ 0; se acota).
+ * @param value Total tecleado (entero entre 0 y `MONTO_MAX`; se acota por los dos lados).
  * @param date Fecha del ajuste — normalmente `proposedDate(...)`.
  * @param periods Rango activo.
  * @returns El estado nuevo y el ajuste creado, o el motivo del rechazo.
@@ -132,9 +132,16 @@ export function adjustCell(
   if (node.type === "transfer") return { rejected: "transfer" }; // los bolsillos tienen su regla (NFR-2503)
   if (!Number.isFinite(value) || !periods.includes(period)) return { rejected: "invalid_value" };
 
-  const objetivo = Math.max(0, Math.round(value));
+  // BG-075: se acota por ARRIBA también, con el mismo tope que `setLeafAmount` (BG-021). Sin él,
+  // una cifra de 17 dígitos o más creaba un ajuste fuera del rango exacto de JavaScript y el
+  // servidor rechazaba el guardado entero. Se recorta en vez de rechazar por el mismo motivo que
+  // allá: es la ruta de la grilla y el usuario ya tecleó.
+  const objetivo = Math.min(MONTO_MAX, Math.max(0, Math.round(value)));
   const suma = movementSum(state, leafId, period);
   const diff = objetivo - suma;
+  // El ajuste es un movimiento y tiene el tope de todo movimiento. Solo se pasa si la celda traía
+  // una suma negativa —un dato torcido de antes— y se teclea casi el tope.
+  if (Math.abs(diff) > MONTO_MAX) return { rejected: "invalid_value" };
 
   const next = clone(state);
   next.actuals[leafId] = { ...(next.actuals[leafId] ?? {}) };
