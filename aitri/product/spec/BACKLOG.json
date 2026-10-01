@@ -990,6 +990,14 @@
       "problem": "Retirar los imports y exports sin uso listados en AUDIT_REPORT BL-AB, y hacer que TC-RUI-007h solo cuente importadores bajo src/. (AUDIT_REPORT, Technical Review 2026-09-28, BL-AB)",
       "status": "open",
       "createdAt": "2026-09-29T14:39:21.103Z"
+    },
+    {
+      "id": "BL-082",
+      "title": "Preferencia de como tratar los decimales al escribir un monto",
+      "priority": "P3",
+      "problem": "Idea del usuario (2026-10-01), prioridad baja. Hoy un monto con decimales se rechaza con el mensaje de FR-207 (BG-076). Se podria ofrecer una preferencia en Configuracion: rechazar (como hoy), redondear (1500,50 -> 1.501) o cortar (1500,50 -> 1.500), guardando siempre enteros. Guardar centavos de verdad seria una feature completa (almacenamiento, calculos, formato, reglas del servidor) y no se recomienda para COP.",
+      "status": "open",
+      "createdAt": "2026-10-01T21:07:43.524Z"
     }
   ]
 }
