@@ -7496,7 +7496,7 @@
       "actual_result": "diffMovements (closure.ts:387-391) y firma (guard.ts:58-64) no comparan from/to: reescribir el origen de un traslado en un mes cerrado deja un bolsillo en negativo sin que closedPeriodsViolated ni worsenedBy lo marquen. Anadir los dos campos a ambas comparaciones.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7504,8 +7504,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-8",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.074Z",
-      "updated_at": "2026-09-29T14:39:03.074Z",
-      "resolution": null
+      "updated_at": "2026-10-01T00:48:59.874Z",
+      "resolution": "81717c7: diffMovements (closure.ts) y la firma de touchesReserves (guard.ts) comparan from y to. Prueba dominio bg-057-guardias-ven-origen-y-destino (5). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
+      "fix_at": "2026-10-01T00:48:59.682Z"
     },
     {
       "id": "BG-058",
@@ -7618,7 +7620,7 @@
       "actual_result": "loadStateInTx (ledgerRepo.ts:572-583) no adjunta startMonth/openingBalance y saveLedger no sustituye los del cuerpo por los guardados antes de worsenedBy (676). Adjuntar openingFromRow(head) a todo estado que los guardias juzguen (PUT y POST) y pisar los del cuerpo, como ya se hace con cycles en la linea 645.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7626,8 +7628,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-18",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.549Z",
-      "updated_at": "2026-09-29T14:39:03.549Z",
-      "resolution": null
+      "updated_at": "2026-10-01T00:48:59.813Z",
+      "resolution": "0968b74 + c060481: PUT /ledger, POST /movements y PATCH/DELETE de movimientos juzgan con openingFromRow(head) (el PUT pisa la apertura del cuerpo) y sobre closureScope, que arranca en el mes de inicio declarado. periodMismatches amplia la tabla de ciclos a las claves que juzga (sin eso, en ciclos, una celda en cero lejos del inicio daba 422). Prueba backend bg-063-guardia-con-saldo-inicial (6). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
+      "fix_at": "2026-10-01T00:48:59.616Z"
     },
     {
       "id": "BG-064",
@@ -8271,7 +8275,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8279,8 +8283,10 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-10-01T00:20:37.364Z",
-      "updated_at": "2026-10-01T00:20:37.364Z",
-      "resolution": null
+      "updated_at": "2026-10-01T00:48:59.931Z",
+      "resolution": "fcb10a1: TC-RES-011f/016f/220f usan AVAILABLE_ID y catId; 011f monta el deficit que su caso pide y falla con el guardia del PUT apagado. Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
+      "fix_at": "2026-10-01T00:48:59.747Z"
     }
   ]
 }
