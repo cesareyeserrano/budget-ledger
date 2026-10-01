@@ -143,10 +143,14 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
             aria-label="Monto"
             inputMode="numeric"
             value={monto}
-            // El «−» inicial SOLO se admite editando un ajuste: es el único movimiento que puede ser
-            // negativo (FR-2504, TC-DDC-101f). En uno manual el signo se descarta al teclearlo.
             aria-invalid={!!errorMonto || undefined}
-            onChange={(e) => setMonto(amountChars(e.target.value))}
+            // El «−» inicial SOLO se admite editando un ajuste: es el único movimiento que puede ser
+            // negativo (FR-2504, TC-DDC-101f). En uno manual el signo se descarta al teclearlo, y en un
+            // ajuste también uno que no vaya al inicio. Coma y punto se conservan para juzgarlos (BG-076).
+            onChange={(e) => {
+              const v = amountChars(e.target.value);
+              setMonto(esAjuste ? v.replace(/(?!^)-/g, "") : v.replace(/-/g, ""));
+            }}
             className={`tabular w-[104px] flex-none ${campo}`}
           />
         </label>
