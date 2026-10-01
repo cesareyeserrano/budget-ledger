@@ -187,6 +187,28 @@ export function isCalendarDay(s: unknown): s is string {
  */
 export const NOTE_DAY = z.string().max(NOTE_DAY_LENGTH).refine(isCalendarDay, "Día inexistente: se espera AAAA-MM-DD");
 
+/** Un día real, con hora opcional: «AAAA-MM-DD», «…THH:MM», «…THH:MM:SS(.mmm)» y zona opcional. */
+const MOVEMENT_DATE_RE = /^(\d{4}-\d{2}-\d{2})(?:T([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,3})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?)?$/;
+
+/**
+ * BG-061 — True si `s` es la fecha de un movimiento: un día que EXISTE y, si trae hora, una hora
+ * válida. El periodo de un movimiento se deriva de los siete primeros caracteres, así que sin esto
+ * «2026-09-31», «2026-09-99» o «2026-09-05 almuerzo» pasaban por septiembre y se guardaban tal cual;
+ * después el calendario de ciclos no sabía ubicarlos y el cambio de periodo respondía 500.
+ *
+ * @param s Valor sin validar.
+ * @returns `true` solo para una fecha bien formada de un día existente.
+ * @throws Nunca.
+ */
+export function isMovementDate(s: unknown): s is string {
+  if (typeof s !== "string" || s.length > 40) return false;
+  const m = MOVEMENT_DATE_RE.exec(s);
+  return m !== null && isCalendarDay(m[1]);
+}
+
+/** BG-061: la fecha de un movimiento en el BORDE del servidor (POST, PATCH y el PUT del snapshot). */
+export const MOVEMENT_DATE = z.string().refine(isMovementDate, "Fecha inexistente o mal formada");
+
 /** Observaciones por celda (FR-1012): nodeId → mes → lista de notas manuales. */
 export const cellNotesSchema = z.record(
   z.string(),

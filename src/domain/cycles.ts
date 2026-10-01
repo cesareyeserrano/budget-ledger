@@ -23,7 +23,7 @@ import {
   addMonths, comparePeriods, isCycleKey, isPeriodKey, monthOf, periodFromDate, periodOf, periodRange,
   periodYear, periodMonth, MONTH_LABELS_SHORT, transitionKey, monthPrev,
 } from "./periods";
-import { isAvailable, resolvedBalance } from "./reserve";
+import { isAvailable, resolvedBalance, PLANNED_RETIRO_PREFIX } from "./reserve";
 import { closureOf } from "./closure";
 import { normalizeStartMonth } from "./opening";
 
@@ -464,7 +464,7 @@ export function reassignMovementPeriod(state: LedgerState, movementId: string, p
 
 // ── Reubicación (FR-2404, FR-2408, FR-2410) ─────────────────────────────────────────────────────
 
-export type RelocationRule = "keys_in_calendar" | "period_matches_date" | "sums" | "leaf_sums" | "reserve_floor" | "negative_cell";
+export type RelocationRule = "keys_in_calendar" | "period_matches_date" | "sums" | "leaf_sums" | "reserve_floor" | "negative_cell" | "unplaceable_date";
 export interface RelocationBlocked {
   blocked: "closed_period" | "relocation_invariant";
   detail: { rule?: RelocationRule; ids?: string[]; leafId?: string; period?: PeriodKey };
@@ -502,6 +502,19 @@ function oldestDatedMovement(state: LedgerState): string | null {
   for (const m of state.movements) if (m.date && (oldest === null || dayOf(m.date) < oldest)) oldest = dayOf(m.date);
   return oldest;
 }
+/** BG-061: el periodo más NUEVO con datos, contando también el mes de la FECHA de cada movimiento. */
+function newestKey(state: LedgerState): PeriodKey | null {
+  let newest: PeriodKey | null = null;
+  const consider = (p: string) => { if (isPeriodKey(p) && (newest === null || comparePeriods(p, newest) > 0)) newest = p; };
+  for (const map of [state.budgets, state.actuals]) for (const cells of Object.values(map ?? {})) for (const [p, v] of Object.entries(cells ?? {})) if ((v ?? 0) !== 0) consider(p);
+  for (const m of state.movements) {
+    consider(m.period);
+    if (m.date) consider(m.date.slice(0, 7));
+  }
+  for (const byP of Object.values(state.cellNotes ?? {})) for (const [p, n] of Object.entries(byP ?? {})) if ((n?.length ?? 0) > 0) consider(p);
+  return newest;
+}
+
 function oldestKey(state: LedgerState): PeriodKey | null {
   let oldest: PeriodKey | null = null;
   const consider = (p: string) => { if (isPeriodKey(p) && (oldest === null || comparePeriods(p, oldest) < 0)) oldest = p; };
@@ -716,6 +729,18 @@ export function relocate(
   if (to.mode === "month" && closure.closedThrough !== null) {
     return { blocked: "closed_period", detail: { period: closure.closedThrough } };
   }
+  // BG-061: un movimiento cuya fecha el calendario no sabe ubicar (un día que no existe, o fuera de
+  // la tabla) hacía que `periodForDate` LANZARA, y la ruta respondía 500 sin decir cuál. Se busca
+  // ANTES de reubicar nada y se bloquea nombrándolo, con el mismo código que el resto de reglas.
+  for (const mv of state.movements) {
+    if (!mv.date) continue;
+    try {
+      to.periodForDate(mv.date);
+      if (from.mode === "cycle") from.periodForDate(mv.date);
+    } catch {
+      return { blocked: "relocation_invariant", detail: { rule: "unplaceable_date", ids: [mv.id], leafId: leafOfMovement(mv), period: mv.period } };
+    }
+  }
   const activating = from.mode === "month" && to.mode === "cycle";
   const returning = from.mode === "cycle" && to.mode === "month";
   const map = (k: PeriodKey) => mapDaylessKey(from, to, k);
@@ -783,7 +808,11 @@ export function relocate(
         for (const x of restored) { addCell(budgets, leaf, x.month, x.amount); keepZero.add(zeroKey("b", leaf, x.month)); }
         continue;
       }
-      const k = activating ? placeDateless(ctx!, leaf, p) : returning ? returnDateless(ctx!, leaf, p) : map(p);
+      // BG-062: la fila de retiros planeados de un bolsillo no tiene movimientos propios; se ubicaba
+      // por su propia clave y podía caer en otro ciclo que el aporte planeado que la financia, con el
+      // plan del bolsillo en negativo. Se ubica con las mismas pistas que su bolsillo.
+      const pista = leaf.startsWith(PLANNED_RETIRO_PREFIX) ? leaf.slice(PLANNED_RETIRO_PREFIX.length) : leaf;
+      const k = activating ? placeDateless(ctx!, pista, p) : returning ? returnDateless(ctx!, pista, p) : map(p);
       if (k !== p && v !== 0) cellsMoved++;
       addCell(budgets, leaf, k, v);
       if (v === 0) keepZero.add(zeroKey("b", leaf, k));
@@ -934,7 +963,7 @@ export function relocate(
   };
   void todayISO;
   summary.identical = summary.cellsSumBefore === summary.cellsSumAfter && summary.movementsSumBefore === summary.movementsSumAfter;
-  const inv = checkRelocationInvariants(state, next, to);
+  const inv = checkRelocationInvariants(state, next, to, from);
   if (!inv.ok) return { blocked: "relocation_invariant", detail: inv.detail };
   return { state: next, summary };
 }
@@ -948,7 +977,7 @@ export function relocate(
  * @aitri-trace FR-ID: FR-2404, US-ID: US-2404, AC-ID: AC-2412, TC-ID: TC-CIC-033e, TC-CIC-120f, TC-CIC-170f
  */
 export function checkRelocationInvariants(
-  before: LedgerState, after: LedgerState, cal: Calendar
+  before: LedgerState, after: LedgerState, cal: Calendar, calBefore?: Calendar
 ): { ok: true } | { ok: false; detail: RelocationBlocked["detail"] } {
   // (i)
   if (sumMap(before.budgets) !== sumMap(after.budgets) || sumMap(before.actuals) !== sumMap(after.actuals)) {
@@ -993,9 +1022,26 @@ export function checkRelocationInvariants(
   if (reserveLeaves.size > 0 && keysUsed.size > 0) {
     const sorted = [...keysUsed].sort(comparePeriods);
     const periods = cal.keys(monthOf(sorted[0]!), monthOf(sorted[sorted.length - 1]!));
+    // BG-062: el PLAN también tiene piso (FR-2904 lo hace cumplir en la app). Solo se exige si el plan
+    // de ese bolsillo no venía ya en negativo antes del cambio: un plan viejo inconsistente no puede
+    // dejar al usuario sin poder cambiar de periodo, que es justo lo que este bloqueo protege.
+    const planNegativoAntes = (leaf: string): boolean => {
+      if (!calBefore) return false;
+      const keysB = new Set<PeriodKey>();
+      for (const m of [before.budgets, before.actuals]) for (const cells of Object.values(m)) for (const k of Object.keys(cells ?? {})) if (isPeriodKey(k)) keysB.add(k);
+      for (const mv of before.movements) keysB.add(mv.period);
+      if (keysB.size === 0) return false;
+      const sb = [...keysB].sort(comparePeriods);
+      const periodsB = calBefore.keys(monthOf(sb[0]!), monthOf(sb[sb.length - 1]!));
+      return periodsB.some((p) => resolvedBalance(before, leaf, p, "budget", periodsB) < 0);
+    };
     for (const leaf of reserveLeaves) {
       for (const p of periods) {
         if (resolvedBalance(after, leaf, p, "actual", periods) < 0) return { ok: false, detail: { rule: "reserve_floor", leafId: leaf, period: p } };
+      }
+      if (planNegativoAntes(leaf)) continue;
+      for (const p of periods) {
+        if (resolvedBalance(after, leaf, p, "budget", periods) < 0) return { ok: false, detail: { rule: "reserve_floor", leafId: leaf, period: p } };
       }
     }
   }
@@ -1097,7 +1143,11 @@ export function boundsFor(state: LedgerState, todayISO: string, horizonYears = 2
   const oldest = oldestKey(state);
   let from = today;
   for (const c of [declared, oldest]) if (c && comparePeriods(monthOf(c), from) < 0) from = monthOf(c);
-  const to = periodOf(periodYear(today) + horizonYears, 12);
+  let to = periodOf(periodYear(today) + horizonYears, 12);
+  // BG-061: el horizonte no recorta lo que ya existe. Un movimiento fechado más allá (2030) quedaba
+  // fuera de la tabla y la reubicación no podía ubicarlo.
+  const newest = newestKey(state);
+  if (newest && comparePeriods(monthOf(newest), to) > 0) to = monthOf(newest);
   return { from: addMonths(from, -1), to };
 }
 export { isCycleKey };

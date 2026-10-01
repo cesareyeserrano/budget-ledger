@@ -7,7 +7,7 @@
  * Dependencies: zod, @/domain (PERIOD_KEY, amountSchema)
  */
 import { z } from "zod";
-import { PERIOD_KEY, NOTE_DAY, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
+import { PERIOD_KEY, NOTE_DAY, MOVEMENT_DATE, amountSchema, cellAmountSchema, MONTO_MAX } from "@/domain";
 
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
@@ -18,7 +18,7 @@ export const movementInputSchema = z.object({
   subId: z.string().nullable().optional(),
   amount: amountSchema,
   period: PERIOD_KEY,
-  date: z.string().optional(),
+  date: MOVEMENT_DATE.optional(),
   note: z.string().nullable().optional(),
   // Feature transferencias (FR-1004/FR-1010): extremos De→A de una operación de reserva (hoja
   // transfer o el sentinel "@disponible"). Acotados como `target`; ignorados para expense/income.
@@ -53,7 +53,7 @@ export const movementPatchSchema = z
     // Detalle pintaría una fila con texto invisible (FR-2505).
     note: z.string().max(280).nullable().optional()
       .transform((n) => (n == null ? n : n.trim() === "" ? null : n.trim())),
-    date: z.string().min(1).optional(),
+    date: MOVEMENT_DATE.optional(),
     /** FR-2406: un ingreso fechado en la ventana de pago puede contarse en el ciclo que ABRE. */
     countInOpeningCycle: z.boolean().optional(),
     catId: z.string().min(1).max(64).optional(),
@@ -103,7 +103,7 @@ export const apiMovementSchema = z
       .int("El monto debe ser un entero"),
     period: PERIOD_KEY,
     createdAt: z.number(),
-    date: z.string().optional(),
+    date: MOVEMENT_DATE.optional(),
     note: z.string().nullable().optional(),
     // FR-1010: sin estos campos el PUT snapshot haría strip silencioso de los extremos De→A.
     from: z.string().optional(),

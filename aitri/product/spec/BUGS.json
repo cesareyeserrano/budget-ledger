@@ -7496,7 +7496,7 @@
       "actual_result": "diffMovements (closure.ts:387-391) y firma (guard.ts:58-64) no comparan from/to: reescribir el origen de un traslado en un mes cerrado deja un bolsillo en negativo sin que closedPeriodsViolated ni worsenedBy lo marquen. Anadir los dos campos a ambas comparaciones.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7504,10 +7504,15 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-8",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.074Z",
-      "updated_at": "2026-10-01T00:48:59.874Z",
-      "resolution": "81717c7: diffMovements (closure.ts) y la firma de touchesReserves (guard.ts) comparan from y to. Prueba dominio bg-057-guardias-ven-origen-y-destino (5). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T16:02:17.331Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
-      "fix_at": "2026-10-01T00:48:59.682Z"
+      "fix_at": "2026-10-01T00:48:59.682Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.331Z",
+      "files_changed": [
+        "tests/e2e/helpers/globalSetup.ts"
+      ]
     },
     {
       "id": "BG-058",
@@ -7518,7 +7523,7 @@
       "actual_result": "scripts/smoke-backend.sh:41-44 solo compila si falta BUILD_ID. Portar de smoke.sh la comprobacion find -newer, la guarda de puerto ocupado y exigir 200 en /health.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7526,10 +7531,33 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-9",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.152Z",
-      "updated_at": "2026-09-30T22:20:28.006Z",
-      "resolution": "faab8d1: smoke-backend.sh recompila si src, next.config.mjs o package.json son mas recientes que el build; aborta si el puerto de la app o de la BD esta ocupado (antes del trap); detecta servidor muerto y Postgres no listo; exige 200 en /health y /, 401 en las seis rutas GET de datos. Regresion tests/integration/bg-058-smoke-backend-build-vigente.test.ts. Verificado en la raiz (59/59) y en backend.",
+      "updated_at": "2026-10-01T16:02:23.604Z",
+      "resolution": "En main desde el PR #69; desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6. Es un script del gate de pruebas: no cambia la app.",
       "fix_commit_sha": "faab8d1d2ed989631368c8c5874f371c5cd23a42",
-      "fix_at": "2026-09-30T22:20:27.947Z"
+      "fix_at": "2026-09-30T22:20:27.947Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:23.604Z",
+      "files_changed": [
+        "src/app/api/v1/ledger/start/route.ts",
+        "src/app/configuracion/page.tsx",
+        "src/components/OpeningCard.tsx",
+        "src/data/serverRepository.ts",
+        "src/domain/closure.ts",
+        "src/domain/guard.ts",
+        "src/domain/openingGuard.ts",
+        "src/server/data/ledgerRepo.ts",
+        "src/state/store.ts",
+        "tests/domain/bg-057-guardias-ven-origen-y-destino.test.ts",
+        "tests/domain/bg-065-inicio-efectivo.test.ts",
+        "tests/domain/bg-085-huerfanos-solo-los-nuevos.test.ts",
+        "tests/e2e/bg-065-configuracion-inicio-cerrado.spec.ts",
+        "tests/e2e/bg-085-saldo-inicial-con-historia.spec.ts",
+        "tests/e2e/helpers/globalSetup.ts",
+        "tests/integration/backend/bg-063-guardia-con-saldo-inicial.test.ts",
+        "tests/integration/backend/bg-065-apertura-y-meses-cerrados.test.ts",
+        "tests/integration/backend/bg-085-saldo-inicial-con-historia.test.ts",
+        "tests/integration/backend/reglas-en-el-servidor.test.ts"
+      ]
     },
     {
       "id": "BG-059",
@@ -7540,7 +7568,7 @@
       "actual_result": "hydrate (store.ts:657-664) marca hydrated sin senalar el error y LoginGate no tiene rama de error de conexion. Senalar storageError y no pintar el shell sin datos cargados; limpiar el store al cerrar sesion (LogoutButton.tsx:20), como ya hace onSessionExpired.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7548,8 +7576,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-10",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.232Z",
-      "updated_at": "2026-09-29T14:39:03.232Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.582Z",
+      "resolution": "281d7e2: la primera carga fallida pone loadFailed y LoginGate muestra LoadError con Reintentar; una recarga posterior conserva lo que hay en pantalla. Salir llama a clearForLogout (comparte forget con la sesion caducada). Pruebas: integracion bg-059 (5) y e2e bg-059-carga-fallida. Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.260Z"
     },
     {
       "id": "BG-060",
@@ -7560,7 +7590,7 @@
       "actual_result": "insertMovement (ledgerRepo.ts:863-886) usa addMovement y por tanto nextSeq() de un contador de proceso que nadie siembra en el servidor. Llamar seedSeqFrom(prev) antes de addMovement, dentro de la transaccion.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7568,8 +7598,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-11",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.310Z",
-      "updated_at": "2026-09-29T14:39:03.310Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.639Z",
+      "resolution": "f5ce8b4: loadStateInTx e insertMovement siembran el suelo de createdAt con lo guardado (seedSeqFrom) antes de que el dominio cree movimientos. Prueba backend bg-060. Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.324Z"
     },
     {
       "id": "BG-061",
@@ -7580,7 +7612,7 @@
       "actual_result": "schemas.ts:21,56,106 aceptan cualquier cadena como fecha y periodFromDate solo lee 7 caracteres; relocate (cycles.ts:753) lanza InvalidCycleConfig y withApi (http.ts:125-128) lo convierte en 500. Validar la fecha como dia real en el borde, extender boundsFor al dato mas nuevo y devolver 422 nombrando el movimiento.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7588,8 +7620,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-12",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.390Z",
-      "updated_at": "2026-09-29T14:39:03.390Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.695Z",
+      "resolution": "fead01e: MOVEMENT_DATE (dia real, hora opcional) en POST/PATCH/PUT; boundsFor extiende el calendario al dato mas nuevo; relocate bloquea con relocation_invariant/unplaceable_date nombrando el movimiento y PeriodModeSection lo explica. Las 44 fechas de produccion son validas. Pruebas: dominio bg-061 (2), backend bg-061 (4). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.392Z"
     },
     {
       "id": "BG-062",
@@ -7600,7 +7634,7 @@
       "actual_result": "cycles.ts:774-791 reubica las filas @retiros:<id> por su propia clave y el piso de 989-1001 solo mira Ejecutado. Reubicar la fila de retiros planeados junto con su bolsillo y comprobar el piso tambien en el plan.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7608,8 +7642,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-13",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.469Z",
-      "updated_at": "2026-09-29T14:39:03.469Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.751Z",
+      "resolution": "c94290d: la fila @retiros:<id> se reubica con las pistas de su bolsillo y checkRelocationInvariants exige piso tambien en el plan (salvo si ya venia negativo). Prueba dominio bg-062 (3). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.455Z"
     },
     {
       "id": "BG-063",
@@ -7620,7 +7656,7 @@
       "actual_result": "loadStateInTx (ledgerRepo.ts:572-583) no adjunta startMonth/openingBalance y saveLedger no sustituye los del cuerpo por los guardados antes de worsenedBy (676). Adjuntar openingFromRow(head) a todo estado que los guardias juzguen (PUT y POST) y pisar los del cuerpo, como ya se hace con cycles en la linea 645.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7628,10 +7664,15 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-18",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.549Z",
-      "updated_at": "2026-10-01T00:48:59.813Z",
-      "resolution": "0968b74 + c060481: PUT /ledger, POST /movements y PATCH/DELETE de movimientos juzgan con openingFromRow(head) (el PUT pisa la apertura del cuerpo) y sobre closureScope, que arranca en el mes de inicio declarado. periodMismatches amplia la tabla de ciclos a las claves que juzga (sin eso, en ciclos, una celda en cero lejos del inicio daba 422). Prueba backend bg-063-guardia-con-saldo-inicial (6). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T16:02:17.403Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
-      "fix_at": "2026-10-01T00:48:59.616Z"
+      "fix_at": "2026-10-01T00:48:59.616Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.403Z",
+      "files_changed": [
+        "tests/e2e/helpers/globalSetup.ts"
+      ]
     },
     {
       "id": "BG-064",
@@ -7679,7 +7720,7 @@
       "actual_result": "saveStartFor (ledgerRepo.ts:1175-1178) solo evalua el cierre contra el inicio vigente; con start_month NULL la regla no corre. Juzgar el inicio efectivo (declarado o dato mas antiguo) y el propuesto contra el cierre, comprobar que la clave es del calendario y correr el guardia de reservas.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7687,10 +7728,25 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-20",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.709Z",
-      "updated_at": "2026-09-30T23:29:33.587Z",
-      "resolution": "4c8c515 + 37d72b7: la regla de FR-2205 vive en el dominio (openingGuard.closedStartBlocker) y la usan servidor y Configuracion: bloquea si el inicio efectivo (declarado o, sin declaracion, el primer mes con datos) o el propuesto estan cerrados, y el 422 month_closed nombra el mes. Configuracion avisa si el mes elegido esta cerrado. Sin comprobacion de calendario (con primeros pagos validos ningun mes queda sin ciclo) ni guardia de reservas (bajar la apertura equivale a bajar un ingreso, NFR-1803). Pruebas: dominio bg-065-inicio-efectivo (8), backend bg-065-apertura-y-meses-cerrados (4), e2e bg-065-configuracion-inicio-cerrado (2). Verificado raiz 59/59 y backend 85/86. Relacionado: BG-085.",
+      "updated_at": "2026-10-01T16:02:17.473Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "37d72b7fe83a10b89006df05a3e03a29f9df7701",
-      "fix_at": "2026-09-30T23:29:33.529Z"
+      "fix_at": "2026-09-30T23:29:33.529Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.473Z",
+      "files_changed": [
+        "src/domain/closure.ts",
+        "src/domain/guard.ts",
+        "src/domain/openingGuard.ts",
+        "src/server/data/ledgerRepo.ts",
+        "tests/domain/bg-057-guardias-ven-origen-y-destino.test.ts",
+        "tests/domain/bg-085-huerfanos-solo-los-nuevos.test.ts",
+        "tests/e2e/bg-085-saldo-inicial-con-historia.spec.ts",
+        "tests/e2e/helpers/globalSetup.ts",
+        "tests/integration/backend/bg-063-guardia-con-saldo-inicial.test.ts",
+        "tests/integration/backend/bg-085-saldo-inicial-con-historia.test.ts",
+        "tests/integration/backend/reglas-en-el-servidor.test.ts"
+      ]
     },
     {
       "id": "BG-066",
@@ -8002,7 +8058,7 @@
       "actual_result": "ReserveCells.tsx:195-205 y 208 no tienen el foco inicial, el onKeyDown de contenedor ni el onBlur que EditableCell (BudgetGrid.tsx:811-832) ya tiene.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8010,8 +8066,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-31",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.455Z",
-      "updated_at": "2026-09-29T14:39:04.455Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.809Z",
+      "resolution": "344b911: el contenedor del editor de bolsillo atiende Escape (desde el comentario subia y nadie lo atendia). La parte del mes cerrado ya estaba resuelta desde ccc4639. e2e bg-074 (2). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.519Z"
     },
     {
       "id": "BG-075",
@@ -8253,7 +8311,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8261,10 +8319,21 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T23:05:10.551Z",
-      "updated_at": "2026-09-30T23:58:44.516Z",
-      "resolution": "93ff98c: newlyOrphanedByStart (openingGuard) cuenta solo los datos que el cambio saca del historial, desde el inicio efectivo hasta el propuesto; sin mes declarado el resultado es el de siempre. Con historia anterior al inicio el saldo inicial vuelve a poder editarse; mover el inicio adelante sobre meses con datos sigue bloqueado y el rechazo ya no nombra la historia. Decision del usuario 2026-09-30. Pruebas: dominio bg-085-huerfanos-solo-los-nuevos (4), backend bg-085-saldo-inicial-con-historia (2), e2e bg-085-saldo-inicial-con-historia (1). Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T16:02:17.548Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "93ff98c097f8acab08b95ecba302bc0b34621164",
-      "fix_at": "2026-09-30T23:58:44.455Z"
+      "fix_at": "2026-09-30T23:58:44.455Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.548Z",
+      "files_changed": [
+        "src/domain/closure.ts",
+        "src/domain/guard.ts",
+        "src/server/data/ledgerRepo.ts",
+        "tests/domain/bg-057-guardias-ven-origen-y-destino.test.ts",
+        "tests/e2e/helpers/globalSetup.ts",
+        "tests/integration/backend/bg-063-guardia-con-saldo-inicial.test.ts",
+        "tests/integration/backend/reglas-en-el-servidor.test.ts"
+      ]
     },
     {
       "id": "BG-086",
@@ -8275,7 +8344,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8283,10 +8352,15 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-10-01T00:20:37.364Z",
-      "updated_at": "2026-10-01T00:48:59.931Z",
-      "resolution": "fcb10a1: TC-RES-011f/016f/220f usan AVAILABLE_ID y catId; 011f monta el deficit que su caso pide y falla con el guardia del PUT apagado. Verificado raiz 59/59 y backend 85/86.",
+      "updated_at": "2026-10-01T16:02:17.666Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "c060481f3e1711bc7510561cacfa38ddc537868a",
-      "fix_at": "2026-10-01T00:48:59.747Z"
+      "fix_at": "2026-10-01T00:48:59.747Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.666Z",
+      "files_changed": [
+        "tests/e2e/helpers/globalSetup.ts"
+      ]
     },
     {
       "id": "BG-087",
@@ -8297,7 +8371,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "medium",
-      "status": "verified",
+      "status": "closed",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8305,10 +8379,12 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-10-01T02:22:38.666Z",
-      "updated_at": "2026-10-01T02:28:47.292Z",
-      "resolution": "549ecc7: globalSetup arranca el servidor de pruebas con LEDGER_TZ = la zona de la maquina, asi servidor, navegador y specs comparten reloj (UTC en el CI, Bogota en local). Comprobado con la suite e2e completa en TZ=UTC dentro de la ventana (02:19 UTC del 1-oct): 632/632. Verificado raiz 59/59.",
+      "updated_at": "2026-10-01T16:02:17.770Z",
+      "resolution": "Desplegado en produccion el 2026-10-01 (db0cc1f, PR #70); verificar-prod 6/6.",
       "fix_commit_sha": "549ecc78e62492a8b8bcc5101a7613cdc953045e",
-      "fix_at": "2026-10-01T02:28:47.233Z"
+      "fix_at": "2026-10-01T02:28:47.233Z",
+      "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
+      "close_at": "2026-10-01T16:02:17.770Z"
     }
   ]
 }

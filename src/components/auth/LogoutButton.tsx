@@ -11,13 +11,15 @@
 "use client";
 import { signOut } from "@/lib/authClient";
 import { Button } from "@/components/ui/button";
+import { useLedgerStore } from "@/state/store";
 
 export function LogoutButton() {
+  const clearForLogout = useLedgerStore((s) => s.clearForLogout);
   // En el flujo del header de cada shell, junto al ThemeToggle — NO fijo sobre la esquina: la
   // versión `fixed top-2 right-2 z-50` quedaba encima del toggle de tema en escritorio y le
   // interceptaba los clics (regresión detectada por TC-SUT-213h y compañía).
   return (
-    <Button type="button" variant="ghost" size="sm" data-testid="logout" onClick={() => void signOut()}>
+    <Button type="button" variant="ghost" size="sm" data-testid="logout" onClick={() => void signOut().finally(clearForLogout)}>
       Salir
     </Button>
   );

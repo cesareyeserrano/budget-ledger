@@ -177,6 +177,19 @@ interface LedgerStore {
   sessionExpired: boolean;
   /** Cierra el episodio de sesión caída tras un login válido; el gate vuelve a hidratar. */
   clearSessionExpired: () => void;
+  /**
+   * BG-059: la PRIMERA carga no llegó (red caída / 5xx). Sin datos del servidor no hay nada que
+   * pintar: el gate muestra el error con «Reintentar» en vez de la semilla vacía, que parecía un
+   * libro sin cifras. Una recarga POSTERIOR que falla no lo activa: lo que hay en pantalla es del
+   * usuario y sigue siendo válido.
+   */
+  loadFailed: boolean;
+  /**
+   * BG-059: al cerrar sesión se descarta lo que hay en memoria, igual que cuando la sesión caduca.
+   * Sin esto, si otra cuenta entraba en la misma pestaña y su carga fallaba, se pintaban las cifras
+   * de la anterior.
+   */
+  clearForLogout: () => void;
   showToast: (msg: string) => void;
   /**
    * Edita una celda transfer de la grilla (modelo v4: el APORTE del mes): valida en el dominio y
@@ -319,10 +332,16 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
    * basta con enrutar al login — mientras el estado siga en el store, cualquier render posterior
    * volvería a pintar las finanzas de una sesión que ya no existe (FR-1102, criterio edge).
    */
-  const onSessionExpired = () => {
+  /** Descarta lo que hay en memoria: el estado de quien ya no está. Lo comparten caducar y salir. */
+  const forget = () => {
     pendingSave = null;
     reserveUndo = null;
-    set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, sessionExpired: true, toast: null, toastUndo: false });
+    set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, loadFailed: false, storageError: null, toast: null, toastUndo: false });
+  };
+
+  const onSessionExpired = () => {
+    forget();
+    set({ sessionExpired: true });
   };
 
   const drainSaves = async () => {
@@ -635,6 +654,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     toastUndo: false,
     storageError: null,
     sessionExpired: false,
+    loadFailed: false,
+    clearForLogout: () => forget(),
     clearSessionExpired: () => {
       if (repo) repo.unauthorized = false;
       set({ sessionExpired: false, storageError: null });
@@ -761,7 +782,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // Entrar de nuevo cierra el episodio anterior: sin esto, el gate seguiría en el login tras
       // un re-login válido.
       repo.unauthorized = false;
-      set({ sessionExpired: false });
+      // BG-059: un reintento vuelve a «cargando» mientras espera; si falla otra vez, vuelve el error.
+      set({ sessionExpired: false, loadFailed: false });
       // Split de almacenamiento (FR-509, completado por FR-1104): localStorage NUNCA guarda datos
       // financieros. La limpieza es INCONDICIONAL (ADR-05): un navegador con restos del modo
       // retirado queda limpio al primer arranque, que es lo único que garantiza "cero claves
@@ -792,6 +814,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // es concluyente —la sesión no sirve— y devuelve al login; el resto marca hidratado para
         // no bloquear el render, que es lo que el gate necesita para pintar el error de conexión.
         if (repo.unauthorized) onSessionExpired();
+        // BG-059: en la PRIMERA carga no hay datos que mostrar; el gate pinta el error con
+        // «Reintentar». Antes se marcaba hidratado y el shell pintaba la semilla vacía sin avisar.
+        else if (!yaHidratado) set({ loadFailed: true });
         else set({ hydrated: true });
         return;
       }
@@ -821,7 +846,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // Solo en la PRIMERA hidratación: navegar entre páginas (volver de Configuración) re-hidrata, y
       // reiniciar ahí el filtro borraba el que el usuario había elegido (TC-MSI-033e). Un calendario
       // que cambie después lo recoge `doResync`.
-      set({ data, hydrated: true, ...(yaHidratado ? {} : { period: { mode: "month" as const, month: nowFor(data) } }) });
+      set({ data, hydrated: true, loadFailed: false, ...(yaHidratado ? {} : { period: { mode: "month" as const, month: nowFor(data) } }) });
       // El horizonte vive en la cuenta (FR-1907/ADR-06). Se lee DESPUÉS de pintar: es una
       // preferencia, no un dato del ledger, así que no debe retrasar la primera pintura — y si la
       // lectura falla, la app se queda con el defecto de 24 en vez de romperse.
