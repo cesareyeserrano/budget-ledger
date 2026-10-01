@@ -7568,7 +7568,7 @@
       "actual_result": "hydrate (store.ts:657-664) marca hydrated sin senalar el error y LoginGate no tiene rama de error de conexion. Senalar storageError y no pintar el shell sin datos cargados; limpiar el store al cerrar sesion (LogoutButton.tsx:20), como ya hace onSessionExpired.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7576,8 +7576,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-10",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.232Z",
-      "updated_at": "2026-09-29T14:39:03.232Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.582Z",
+      "resolution": "281d7e2: la primera carga fallida pone loadFailed y LoginGate muestra LoadError con Reintentar; una recarga posterior conserva lo que hay en pantalla. Salir llama a clearForLogout (comparte forget con la sesion caducada). Pruebas: integracion bg-059 (5) y e2e bg-059-carga-fallida. Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.260Z"
     },
     {
       "id": "BG-060",
@@ -7588,7 +7590,7 @@
       "actual_result": "insertMovement (ledgerRepo.ts:863-886) usa addMovement y por tanto nextSeq() de un contador de proceso que nadie siembra en el servidor. Llamar seedSeqFrom(prev) antes de addMovement, dentro de la transaccion.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7596,8 +7598,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-11",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.310Z",
-      "updated_at": "2026-09-29T14:39:03.310Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.639Z",
+      "resolution": "f5ce8b4: loadStateInTx e insertMovement siembran el suelo de createdAt con lo guardado (seedSeqFrom) antes de que el dominio cree movimientos. Prueba backend bg-060. Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.324Z"
     },
     {
       "id": "BG-061",
@@ -7608,7 +7612,7 @@
       "actual_result": "schemas.ts:21,56,106 aceptan cualquier cadena como fecha y periodFromDate solo lee 7 caracteres; relocate (cycles.ts:753) lanza InvalidCycleConfig y withApi (http.ts:125-128) lo convierte en 500. Validar la fecha como dia real en el borde, extender boundsFor al dato mas nuevo y devolver 422 nombrando el movimiento.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7616,8 +7620,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-12",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.390Z",
-      "updated_at": "2026-09-29T14:39:03.390Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.695Z",
+      "resolution": "fead01e: MOVEMENT_DATE (dia real, hora opcional) en POST/PATCH/PUT; boundsFor extiende el calendario al dato mas nuevo; relocate bloquea con relocation_invariant/unplaceable_date nombrando el movimiento y PeriodModeSection lo explica. Las 44 fechas de produccion son validas. Pruebas: dominio bg-061 (2), backend bg-061 (4). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.392Z"
     },
     {
       "id": "BG-062",
@@ -7628,7 +7634,7 @@
       "actual_result": "cycles.ts:774-791 reubica las filas @retiros:<id> por su propia clave y el piso de 989-1001 solo mira Ejecutado. Reubicar la fila de retiros planeados junto con su bolsillo y comprobar el piso tambien en el plan.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -7636,8 +7642,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-13",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:03.469Z",
-      "updated_at": "2026-09-29T14:39:03.469Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.751Z",
+      "resolution": "c94290d: la fila @retiros:<id> se reubica con las pistas de su bolsillo y checkRelocationInvariants exige piso tambien en el plan (salvo si ya venia negativo). Prueba dominio bg-062 (3). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.455Z"
     },
     {
       "id": "BG-063",
@@ -8050,7 +8058,7 @@
       "actual_result": "ReserveCells.tsx:195-205 y 208 no tienen el foco inicial, el onKeyDown de contenedor ni el onBlur que EditableCell (BudgetGrid.tsx:811-832) ya tiene.",
       "environment": "develop @ f2fb90a",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8058,8 +8066,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-31",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.455Z",
-      "updated_at": "2026-09-29T14:39:04.455Z",
-      "resolution": null
+      "updated_at": "2026-10-01T17:01:02.809Z",
+      "resolution": "344b911: el contenedor del editor de bolsillo atiende Escape (desde el comentario subia y nadie lo atendia). La parte del mes cerrado ya estaba resuelta desde ccc4639. e2e bg-074 (2). Verificado raiz 59/59 y backend 85/86.",
+      "fix_commit_sha": "344b911c44090767039dd5bb9127dee6133f2c30",
+      "fix_at": "2026-10-01T17:01:02.519Z"
     },
     {
       "id": "BG-075",
