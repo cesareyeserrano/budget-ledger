@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// @aitri-trace FR-512 / NFR-505 — aplica las migraciones Drizzle al arrancar (idempotente). Usa
-// drizzle-orm (dep de runtime), sin drizzle-kit. DATABASE_URL desde el entorno.
+// @aitri-trace FR-512 / NFR-505 — aplica las migraciones Drizzle (idempotente: el journal recuerda
+// las ya aplicadas). Es un paso MANUAL de cada despliegue, no del arranque: la imagen no lo corre
+// sola (DEPLOYMENT.md, «Deploying a new version»). Usa drizzle-orm (dep de runtime), sin
+// drizzle-kit. DATABASE_URL desde el entorno.
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";

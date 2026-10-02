@@ -170,7 +170,10 @@ describe("NFR-509 — la suite y las verificaciones estáticas permanecen verdes
     expect(vitestCfg).toMatch(/tests\/domain\/\*\*/);
   });
 
-  it("TC-BE-072e: typecheck y lint terminan con exit 0", () => {
+  // BL-073 — el título decía «terminan con exit 0» y la prueba no ejecutaba ninguno de los dos.
+  // Ahora dice lo que comprueba. Que salgan con 0 lo acreditan los propios gates, que son
+  // bloqueantes: un typecheck o un lint en rojo tumba `verify-run` y, desde BL-066, también el CI.
+  it("TC-BE-072e: typecheck y lint son gates bloqueantes que ejecutan tsc y eslint de verdad", () => {
     // @aitri-tc TC-BE-072e
     //
     // BL-027 — este TC EJECUTABA `npm run typecheck` y `npm run lint` como subprocesos. Medido:
@@ -190,13 +193,25 @@ describe("NFR-509 — la suite y las verificaciones estáticas permanecen verdes
     //
     // NOTA: TC-BE-055f SÍ conserva su subproceso a propósito. Cuesta 566 ms y es lo único que
     // demuestra que un test en rojo tumba el runner; eso no lo cubre ningún gate.
-    const build = JSON.parse(readFileSync(path.join(ROOT, "aitri/product/spec/04_BUILD_REPORT.json"), "utf8"));
-    const gates: { name: string; command: string; required?: boolean }[] = build.quality_gates;
-
+    // En el build report de la RAÍZ y en el de la feature backend, que es la dueña de este caso:
+    // antes solo se miraba el de la raíz.
+    const pkg0 = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as { scripts: Record<string, string> };
+    for (const informe of ["aitri/product/spec/04_BUILD_REPORT.json", "aitri/features/backend/spec/04_BUILD_REPORT.json"]) {
+      const build = JSON.parse(readFileSync(path.join(ROOT, informe), "utf8"));
+      const gates: { name: string; command: string; required?: boolean }[] = build.quality_gates;
+      for (const name of ["typecheck", "lint"]) {
+        const gate = gates.find((g) => g.name === name);
+        expect(gate, `el gate ${name} no está declarado en ${informe}`).toBeDefined();
+        expect(gate!.required, `el gate ${name} no es bloqueante en ${informe}`).toBe(true);
+        // El gate invoca el script de package.json, no un sustituto que siempre salga bien.
+        expect(gate!.command, `${informe}: el gate ${name} no corre su script`).toBe(`npm run ${name}`);
+      }
+    }
+    // Y el script corre la herramienta, sin tragarse su código de salida.
+    expect(pkg0.scripts.typecheck).toMatch(/^tsc --noEmit\b/);
+    expect(pkg0.scripts.lint).toMatch(/^eslint \./);
     for (const name of ["typecheck", "lint"]) {
-      const gate = gates.find((g) => g.name === name);
-      expect(gate, `el gate ${name} no está declarado en 04_BUILD_REPORT.json`).toBeDefined();
-      expect(gate!.required, `el gate ${name} no es bloqueante`).toBe(true);
+      expect(pkg0.scripts[name], `el script ${name} no puede tragarse un fallo`).not.toMatch(/\|\|\s*(true|exit 0)|;\s*true\b/);
     }
 
     // y los scripts que esos gates invocan existen de verdad — el gate no apunta a un comando fantasma

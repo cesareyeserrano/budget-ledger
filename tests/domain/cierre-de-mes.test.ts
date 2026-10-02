@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { pruebasApagadas } from "../helpers/pruebasApagadas";
 import {
   isClosed, nextClosable, nextReopenable, closeMonth, downstreamImpact, reopenMonth,
   closedPeriodsViolated, unclosedEndedPeriods, normalizeClosure, NO_CLOSURE,
@@ -752,14 +753,21 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
   it("TC-CDM-201f: no crece el número de pruebas desactivadas", () => {
     // @aitri-tc TC-CDM-201f
     const contar = (ref?: string) => {
+      // BL-073: las dos formas con x delante llevan frontera de palabra. Sin ella el patrón casaba
+      // cada llamada a `runExit` de la suite: las cuatro «pruebas desactivadas» de la línea base eran
+      // llamadas a esa función, y añadir una más ponía este suelo en rojo sin haber apagado nada.
+      const patron = `\\.skip\\(|\\.todo\\(|\\.fixme\\(|(^|[^[:alnum:]_])x(it|describe)\\(`;
       const cmd = ref
-        ? `git grep -cE "\\.skip\\(|\\.todo\\(|\\.fixme\\(|xit\\(|xdescribe\\(" ${ref} -- tests/ | grep -v coverage-skips || true`
-        : `git grep -cE "\\.skip\\(|\\.todo\\(|\\.fixme\\(|xit\\(|xdescribe\\(" -- tests/ | grep -v coverage-skips || true`;
+        ? `git grep -cE "${patron}" ${ref} -- tests/ | grep -v coverage-skips || true`
+        : `git grep -cE "${patron}" -- tests/ | grep -v coverage-skips || true`;
       return execSync(cmd, { encoding: "utf8" }).trim().split("\n").filter(Boolean)
         .reduce((n, l) => n + Number(l.split(":").pop() ?? 0), 0);
     };
     // bfded04 es la línea base de esta feature (el TRD aprobado, antes de escribir código).
     expect(contar()).toBeLessThanOrEqual(contar("bfded04"));
+    // Y lo que el conteo contra la línea base no ve: un salto condicional con una condición
+    // cualquiera. El detector compartido solo admite las dos guardas declaradas (BL-073).
+    expect(pruebasApagadas()).toEqual([]);
   });
 
   it("TC-CDM-222f: la maquinaria del techo no se toca — el CÁLCULO sin cambios", () => {

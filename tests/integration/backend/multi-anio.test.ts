@@ -5,6 +5,7 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { sql } from "drizzle-orm";
 // NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
 // intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
@@ -16,6 +17,7 @@ import { getHorizon, setHorizon } from "@/server/data/preferencesRepo";
 import { PERIOD_KEY } from "@/domain/validation";
 import { horizonPutSchema } from "@/server/schemas";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
+import { baseNueva, catalogo, sqlDe, tagsDelJournal } from "./helpers/catalogo";
 import { P, P0 } from "../../helpers/periods";
 import { isLeaf } from "@/domain/tree";
 import type { LedgerState } from "@/domain/types";
@@ -235,12 +237,32 @@ describe("NFR-1909 · la migración está versionada y documentada", () => {
     expect(journal.entries.some((e) => e.tag === "0002_multi_anio")).toBe(true);
   });
 
-  it("TC-MAN-281f: el script aborta si las tablas no están vacías, y lo dice", () => {
-    const sqlSrc = readFileSync("drizzle/0002_multi_anio.sql", "utf8");
-    expect(sqlSrc).toContain("RAISE EXCEPTION");
-    expect(sqlSrc).toMatch(/count\(\*\)\s+INTO\s+n_cells\s+FROM\s+amount_cell/i);
-    expect(sqlSrc).toContain("anio ancla"); // el motivo, no solo el efecto
-  });
+  it("TC-MAN-281f: correr la migración dos veces deja la base igual que una vez", async () => {
+    // BL-073 — antes buscaba tres cadenas en el SQL y no corría nada, ni hablaba de idempotencia.
+    // Ahora se EJECUTA lo que ejecuta un despliegue: `node scripts/migrate.mjs`, dos veces, sobre una
+    // base nueva. La segunda pasada no puede fallar ni cambiar el esquema. Reejecutar el fichero
+    // 0002 crudo no es lo que el caso declara —su RENAME no admite repetirse—: la idempotencia la da
+    // el journal de drizzle, y es eso lo que se prueba.
+    const base = await baseNueva("man281");
+    try {
+      const migrar = () =>
+        spawnSync("node", ["scripts/migrate.mjs"], { env: { ...process.env, DATABASE_URL: base.url }, encoding: "utf8" });
+
+      const primera = migrar();
+      expect(primera.status, primera.stderr).toBe(0);
+      const trasUna = await catalogo(base.db);
+      expect(trasUna.columnas).toContain("amount_cell.period text NOT NULL"); // migró de verdad
+
+      const segunda = migrar();
+      expect(segunda.status, segunda.stderr).toBe(0);
+      expect(await catalogo(base.db)).toEqual(trasUna);
+      // Y no volvió a aplicar nada: una fila por migración en el registro de drizzle, no dos.
+      const aplicadas = await base.db<{ n: number }[]>`SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`;
+      expect(aplicadas[0]!.n).toBe(tagsDelJournal().length);
+    } finally {
+      await base.cerrar();
+    }
+  }, 60_000);
 
   it("TC-MAN-282e: la marca de versión sube y el esquema resultante es el que el código espera", async () => {
     const db = testDb();
@@ -263,17 +285,34 @@ describe("NFR-1909 · la migración está versionada y documentada", () => {
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("bordes que solo se ven contra la base y la API", () => {
   it("TC-MAN-014f: la migración aborta con mensaje claro si las tablas no están vacías", async () => {
-    const sqlSrc = readFileSync("drizzle/0002_multi_anio.sql", "utf8");
-    // La guarda es un bloque DO que cuenta las tres tablas y lanza. Se comprueba que EXISTE y que
-    // nombra las tres, porque re-ejecutar el script sobre esta base ya migrada no la dispararía.
-    expect(sqlSrc).toContain("RAISE EXCEPTION");
-    for (const t of ["amount_cell", "movement", "cell_note"]) {
-      expect(sqlSrc).toMatch(new RegExp(`INTO\\s+n_\\w+\\s+FROM\\s+${t}`, "i"));
+    // BL-073 — antes se leía el SQL «porque re-ejecutar el script sobre esta base ya migrada no
+    // dispararía la guarda». Una base NUEVA por prueba lo resuelve: se migra hasta la 0001, se
+    // deja una celda del modelo de doce meses y se aplica la 0002 de verdad.
+    const base = await baseNueva("man014");
+    try {
+      for (const tag of ["0000_backend_init", "0001_transferencias"]) await base.db.unsafe(sqlDe(tag));
+      await base.db`INSERT INTO "user" (id, name, email, email_verified) VALUES ('u-viejo', 'viejo', 'viejo@example.com', true)`;
+      await base.db`INSERT INTO amount_cell (owner_id, node_id, month, kind, amount) VALUES ('u-viejo', 'c-vivienda', 'mar', 'budget', 1000)`;
+      const antes = await catalogo(base.db);
+
+      const error = await base.db.unsafe(sqlDe("0002_multi_anio")).then(() => null, (e: Error) => e);
+      // Aborta, y el mensaje nombra la tabla, su conteo y el MOTIVO, no solo el efecto.
+      expect(error, "la 0002 se aplicó sobre tablas con datos").not.toBeNull();
+      expect(error!.message).toMatch(/amount_cell=1/);
+      expect(error!.message).toMatch(/movement=0/);
+      expect(error!.message).toMatch(/cell_note=0/);
+      expect(error!.message).toContain("anio ancla");
+
+      // La base queda INTACTA: el esquema es el de antes (la columna sigue llamándose `month`) y la
+      // fila sigue ahí. Si la guarda se evaluara después del primer ALTER, quedaría a medias.
+      expect(await catalogo(base.db)).toEqual(antes);
+      expect(antes.columnas).toContain("amount_cell.month text NOT NULL");
+      const filas = await base.db<{ month: string; amount: string }[]>`SELECT month, amount FROM amount_cell`;
+      expect(filas).toHaveLength(1);
+      expect(filas[0]!.month).toBe("mar");
+    } finally {
+      await base.cerrar();
     }
-    // y el mensaje explica el MOTIVO, no solo el efecto
-    expect(sqlSrc).toContain("anio ancla");
-    // la guarda se evalúa ANTES del primer ALTER: si no, el fallo dejaría el esquema a medias
-    expect(sqlSrc.indexOf("RAISE EXCEPTION")).toBeLessThan(sqlSrc.indexOf("ALTER TABLE"));
   });
 
   it("TC-MAN-064f: el esquema del horizonte rechaza lo inválido y la columna lo respalda", async () => {

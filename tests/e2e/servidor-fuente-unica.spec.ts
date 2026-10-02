@@ -83,6 +83,37 @@ const hexToRgb = (hex: string) => {
   return `rgb(${r}, ${g}, ${b})`;
 };
 
+// ── NFR-1108 · la app arranca sin el flag retirado ─────────────────────────────
+// BL-073 — estos dos casos declaran que la app ARRANCA y que la raíz responde 200 con el formulario
+// de acceso. Sus pruebas (tests/unit/servidor-fuente-unica.test.ts) leían los globalSetup y las
+// configuraciones de despliegue buscando que nadie fijara el flag, y no arrancaban nada. Aquí la
+// app ya está arrancada —la levantó el globalSetup de esta suite, sin el flag— y se le pregunta.
+
+test("TC-SFU-208h: la app de la suite arrancó sin el flag retirado y la raíz responde 200", async ({ playwright }) => {
+  // @aitri-tc TC-SFU-208h
+  expect(process.env.NEXT_PUBLIC_LEDGER_SERVER_MODE, "la suite no puede definir el flag retirado").toBeUndefined();
+  const sinSesion = await playwright.request.newContext({ baseURL: E2E_BASE });
+  try {
+    expect((await sinSesion.get("/health")).status()).toBe(200);
+    expect((await sinSesion.get("/")).status()).toBe(200);
+  } finally {
+    await sinSesion.dispose();
+  }
+});
+
+test("TC-SFU-208e: sin sesión, la raíz trae el formulario de acceso y no una pantalla de error", async ({ browser }) => {
+  // @aitri-tc TC-SFU-208e
+  const ctx = await anonContext(browser);
+  const page = await ctx.newPage();
+  try {
+    const respuesta = await page.goto(`${E2E_BASE}/`);
+    expect(respuesta?.status()).toBe(200);
+    await expect(page.getByTestId("auth-form")).toBeVisible();
+  } finally {
+    await ctx.close();
+  }
+});
+
 // ── FR-1102 · sesión obligatoria ───────────────────────────────────────────────
 
 test("TC-SFU-102h: sin sesión, cualquier ruta muestra el formulario y nunca el shell", async ({ browser }) => {

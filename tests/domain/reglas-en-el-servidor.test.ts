@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { globSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { pruebasApagadas } from "../helpers/pruebasApagadas";
 import { worsenedBy } from "@/domain/guard";
 import { AVAILABLE_ID, applyReserveOp, validateReserveWrite } from "@/domain/reserve";
 import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
@@ -301,21 +302,11 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
 
   it("TC-RES-201f: no crece el número de pruebas desactivadas", () => {
     // @aitri-tc TC-RES-201f
-    // Misma semántica que el suelo que ya tenía el proyecto (TC-MAN-202f): frontera de palabra
-    // —`skipIf` condicional no es una prueba apagada— y las líneas de comentario no cuentan. El
-    // patrón se COMPONE en vez de escribirse literal: escrito entero, esta línea se acusaba a sí
-    // misma y ponía en rojo el suelo del vecino, que es exactamente lo que pasaba hasta hoy.
-    const marca = new RegExp(`\\b(describe|it|test)\\.(${["skip", "only", "todo"].join("|")})\\b`);
-    const apagadas: string[] = [];
-    for (const f of globSync("tests/**/*.{test,spec}.ts?(x)")) {
-      readFileSync(f, "utf8").split("\n").forEach((linea, i) => {
-        const t = linea.trim();
-        if (t.startsWith("//") || t.startsWith("*") || t.startsWith("/*")) return;
-        if (marca.test(linea)) apagadas.push(`${f}:${i + 1}`);
-      });
-    }
-    // El suelo: ninguna. Si sube, alguien apagó una prueba para pasar.
-    expect(apagadas, "pruebas desactivadas").toEqual([]);
+    // Misma semántica que el suelo que ya tenía el proyecto (TC-MAN-202f), y desde BL-073 el mismo
+    // detector (tests/helpers/pruebasApagadas.ts): un salto condicional ya NO pasa por alto, salvo
+    // las dos guardas admitidas —la de cronómetro y la de anidamiento—; las líneas de comentario no
+    // cuentan. El suelo: ninguna. Si sube, alguien apagó una prueba para pasar.
+    expect(pruebasApagadas(), "pruebas desactivadas").toEqual([]);
   });
 
   it("TC-RES-200h: el guardia bloquea SOLO la reserva que empeora — tabla de verdad completa", () => {

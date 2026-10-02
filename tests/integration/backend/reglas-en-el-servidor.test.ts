@@ -13,6 +13,7 @@ import { buildSeed, setLeafAmount } from "@/domain";
 import { isLeaf } from "@/domain/tree";
 import { AVAILABLE_ID, reserveHeadroom } from "@/domain/reserve";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
+import { PUT as ledgerPUT } from "@/app/api/v1/ledger/route";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
 import { ajustarCelda, celdaCuadrada } from "../../helpers/cuadre";
 import type { LedgerState, PeriodKey } from "@/domain/types";
@@ -423,12 +424,32 @@ describe("Casos que necesitan su propia prueba para acreditarse", () => {
 
   it("TC-RES-222e: sin sesión no se llega a evaluar el guardia", async () => {
     // @aitri-tc TC-RES-222e
-    // El gate de autenticación es la puerta ANTERIOR: se comprueba que el repositorio nunca se
-    // invoca sin owner, mirando que la ruta declare auth requerida.
-    const ruta = await import("node:fs").then((fs) =>
-      fs.readFileSync("src/app/api/v1/ledger/route.ts", "utf8"));
-    expect(ruta).toContain('auth: "required"');
-    expect(ruta.indexOf('auth: "required"')).toBeLessThan(ruta.indexOf("domainViolation"));
+    // BL-073 — antes se leía el fichero de la ruta y se buscaba el primer `auth: "required"`, que
+    // es el del GET: poner el PUT en público habría seguido en verde. Ahora se HACE la petición.
+    //
+    // El cuerpo es el de TC-RES-024f, uno que el guardia rechaza. Sin sesión la respuesta tiene que
+    // ser 401 —la puerta anterior—, no el 422 del guardia, y la base no puede haber cambiado.
+    const { state, revision, res } = await alTecho();
+    const fabricado: LedgerState = {
+      ...state, actuals: { ...state.actuals, [res]: { ...state.actuals[res], [INICIO]: 4_000_000 } },
+    };
+    const origen = "http://localhost:3100";
+    const respuesta = await ledgerPUT(new Request(`${origen}/api/v1/ledger`, {
+      method: "PUT",
+      headers: { origin: origen, "content-type": "application/json" },
+      body: JSON.stringify({ baseRevision: revision, state: fabricado }),
+    }));
+    expect(respuesta.status).toBe(401);
+    expect(((await respuesta.json()) as { error: { code: string } }).error.code).toBe("unauthorized");
+
+    const despues = (await loadLedger(A))!;
+    expect(despues.revision, "una petición sin sesión no puede subir la revisión").toBe(revision);
+    expect(despues.state.actuals[res]?.[INICIO]).toBe(state.actuals[res]?.[INICIO]);
+
+    // Control: el MISMO cuerpo, ya con dueño, sí llega al guardia y este lo rechaza. Sin esto, un
+    // cuerpo inofensivo haría pasar la prueba aunque el guardia se evaluara antes que la sesión.
+    const conDueno = await saveLedger(A, fabricado, revision);
+    expect(!conDueno.ok && "domainViolation" in conDueno).toBe(true);
   });
 
   it("TC-RES-231e: con las dos violaciones a la vez gana el mensaje del CIERRE", async () => {

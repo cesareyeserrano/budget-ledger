@@ -14,86 +14,31 @@
  *               formas de escribir la misma restricción cuentan como iguales.
  * Dependencias: drizzle-kit/api, el Postgres efímero del globalSetup, drizzle/*.sql.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import postgres from "postgres";
 import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
 import * as schema from "@/server/db/schema";
-
-const MIGRACIONES = path.resolve(process.cwd(), "drizzle");
-type Sql = ReturnType<typeof postgres>;
-
-interface Catalogo {
-  columnas: string[];
-  restricciones: string[];
-  indices: string[];
-}
-
-/** Lo que Postgres dice que hay en `public`, en una forma que se puede comparar línea a línea. */
-async function catalogo(db: Sql): Promise<Catalogo> {
-  const columnas = await db<{ linea: string }[]>`
-    SELECT table_name || '.' || column_name || ' ' || udt_name
-           || CASE WHEN is_nullable = 'NO' THEN ' NOT NULL' ELSE '' END
-           || coalesce(' DEFAULT ' || column_default, '') AS linea
-    FROM information_schema.columns WHERE table_schema = 'public' ORDER BY 1`;
-  // El nombre de una clave foránea NO se compara: las migraciones a mano las declaran en línea
-  // (`REFERENCES "user"("id")`), Postgres las llama `<tabla>_<col>_fkey`, y drizzle-kit les pondría
-  // otro nombre. Nada las busca por nombre; lo que importa es a qué apuntan y que borren en cascada.
-  // El de un CHECK sí: las migraciones lo usan en sus `DROP CONSTRAINT`.
-  const restricciones = await db<{ linea: string }[]>`
-    SELECT rel.relname || ' ' || CASE WHEN con.contype = 'f' THEN '(fk)' ELSE con.conname END
-           || ' ' || pg_get_constraintdef(con.oid) AS linea
-    FROM pg_constraint con
-    JOIN pg_class rel ON rel.oid = con.conrelid
-    JOIN pg_namespace ns ON ns.oid = rel.relnamespace
-    WHERE ns.nspname = 'public' ORDER BY 1`;
-  const indices = await db<{ linea: string }[]>`
-    SELECT indexdef AS linea FROM pg_indexes WHERE schemaname = 'public' ORDER BY 1`;
-  return {
-    columnas: columnas.map((f) => f.linea),
-    restricciones: restricciones.map((f) => f.linea),
-    indices: indices.map((f) => f.linea),
-  };
-}
+import { MIGRACIONES, baseNueva, catalogo, sqlDe, tagsDelJournal, type Catalogo } from "./helpers/catalogo";
 
 describe("BL-072 · schema.ts y las migraciones construyen la misma base", () => {
-  const sufijo = `${process.pid}_${Date.now()}`;
-  const nombres = { migraciones: `bl072_mig_${sufijo}`, esquema: `bl072_ts_${sufijo}` };
-  let admin: Sql;
   let deMigraciones: Catalogo;
   let deEsquema: Catalogo;
 
-  async function base(nombre: string, sentencias: string[]): Promise<Catalogo> {
-    await admin.unsafe(`CREATE DATABASE "${nombre}"`);
-    const url = new URL(process.env.DATABASE_URL!);
-    url.pathname = `/${nombre}`;
-    const db = postgres(url.toString(), { max: 1, onnotice: () => {} });
+  async function construida(prefijo: string, sentencias: string[]): Promise<Catalogo> {
+    const base = await baseNueva(prefijo);
     try {
-      for (const s of sentencias) await db.unsafe(s);
-      return await catalogo(db);
+      for (const s of sentencias) await base.db.unsafe(s);
+      return await catalogo(base.db);
     } finally {
-      await db.end({ timeout: 5 });
+      await base.cerrar();
     }
   }
 
   beforeAll(async () => {
-    admin = postgres(process.env.DATABASE_URL!, { max: 1 });
-    const journal = JSON.parse(readFileSync(path.join(MIGRACIONES, "meta/_journal.json"), "utf8")) as { entries: { tag: string }[] };
-    deMigraciones = await base(
-      nombres.migraciones,
-      journal.entries.map((e) => readFileSync(path.join(MIGRACIONES, `${e.tag}.sql`), "utf8"))
-    );
+    deMigraciones = await construida("bl072_mig", tagsDelJournal().map(sqlDe));
     // De una base vacía al esquema entero: lo que `drizzle-kit generate` escribiría en un repo nuevo.
-    deEsquema = await base(
-      nombres.esquema,
-      await generateMigration(generateDrizzleJson({}), generateDrizzleJson(schema))
-    );
-  });
-
-  afterAll(async () => {
-    for (const n of Object.values(nombres)) await admin.unsafe(`DROP DATABASE IF EXISTS "${n}"`);
-    await admin.end({ timeout: 5 });
+    deEsquema = await construida("bl072_ts", await generateMigration(generateDrizzleJson({}), generateDrizzleJson(schema)));
   });
 
   it("BL-072: las dos bases tienen tablas (si alguna saliera vacía, lo de abajo pasaría en falso)", () => {
