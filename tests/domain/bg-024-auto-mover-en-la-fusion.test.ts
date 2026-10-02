@@ -20,6 +20,7 @@ import { applyReserveOp, resolvedSeries, reserveLeafIds } from "@/domain/reserve
 import { computeBalanceSeries } from "@/domain/balance";
 import type { LedgerState } from "@/domain/types";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 
 /** Dos bolsillos, un mover de A a B, y B fusionado dentro de A. */
 function trasLaFusion(): { antes: LedgerState; despues: LedgerState; B: string } {
@@ -72,11 +73,11 @@ describe("BG-024 · auto-moveres tras fusionar bolsillos", () => {
     s = setLeafAmount(s, "c-ahorros", P0, "actual", 500_000, P);
     const mov = applyReserveOp(s, { from: "c-ahorros", to: B!, period: P0, amount: 300_000 }, P);
     expect("state" in mov).toBe(true);
-    s = "state" in mov ? mov.state : s;
+    s = aceptada(mov);
 
     // se fusiona C (que no participa en el mover) dentro de c-ahorros
     const fus = moveNode(s, C!, { kind: "category", id: "c-ahorros" });
-    const s2 = "state" in fus ? fus.state : s;
+    const s2 = aceptada(fus);
     // el mover c-ahorros -> B sigue vivo y con sus dos extremos distintos
     const vivos = s2.movements.filter((m) => m.type === "transfer" && m.from && m.to && m.from !== m.to);
     expect(vivos.length).toBeGreaterThan(0);

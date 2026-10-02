@@ -187,8 +187,8 @@ describe("FR-2508 · comentarios en el Detalle", () => {
 // ══ FR-2501 corregido (2026-09-18) — el signo es el del APORTE, no el del tipo ══════════════════
 
 describe("FR-2501 · ningún signo contradice el efecto sobre la celda", () => {
-  it("TC-DDC-013f: cero contradicciones entre el signo pintado y lo que el movimiento hace", () => {
-    // @aitri-tc TC-DDC-013f
+  it("apoyo DDC-013f: cero contradicciones entre el signo pintado y lo que el movimiento hace", () => {
+    // Apoyo a TC-DDC-013f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     // La guarda de la regla RETIRADA. Antes, dentro de un gasto, todo lo que SUBÍA la celda se
     // pintaba «−» y lo que la BAJABA se pintaba «+»: el signo era siempre el contrario del efecto.
     // Este caso lo prohíbe de frente, y en las dos direcciones, para que no vuelva por descuido.
@@ -204,8 +204,8 @@ describe("FR-2501 · ningún signo contradice el efecto sobre la celda", () => {
     }
   });
 
-  it("TC-DDC-012e: el caso real del usuario — cuatro montos que suman a la vista el total", () => {
-    // @aitri-tc TC-DDC-012e
+  it("apoyo DDC-012e: el caso real del usuario — cuatro montos que suman a la vista el total", () => {
+    // Apoyo a TC-DDC-012e: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     // Agua, octubre: el escenario EXACTO en el que el usuario detectó el fallo. Antes se leía
     // «−150.000 −40.000 −50.000 −10.000» bajo una celda que decía 250.000 en positivo.
     const pintados = [150_000, 40_000, 50_000, 10_000].map((a) => {
@@ -218,8 +218,8 @@ describe("FR-2501 · ningún signo contradice el efecto sobre la celda", () => {
     expect(comoSeLeen).toBe(250_000);
   });
 
-  it("TC-DDC-012e (bis): con un ajuste que resta, las cifras leídas siguen sumando la celda", () => {
-    // @aitri-tc TC-DDC-012e
+  it("apoyo DDC-012e (bis): con un ajuste que resta, las cifras leídas siguen sumando la celda", () => {
+    // Apoyo a TC-DDC-012e: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     // La otra mitad: si algo resta, su «−» hace que la suma a la vista SIGA dando el total. Es la
     // razón por la que el signo no se quita del todo.
     const leidos = [100_000, -10_000].map((a) => {

@@ -19,6 +19,7 @@ import { setLeafAmount, createNode, deleteNode, canDeleteNode, deleteBlockReason
 import { applyReserveOp, resolvedBalance, reserveLeafIds, AVAILABLE_ID } from "@/domain/reserve";
 import { computeBalanceSeries } from "@/domain/balance";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 
 /** Dos alcancías: la segunda con saldo recibido por un mover y CERO celdas propias. */
 function conBolsilloFinanciadoPorMover() {
@@ -62,7 +63,7 @@ describe("BG-019 · borrar una alcancía con saldo", () => {
     const { s, B } = conBolsilloFinanciadoPorMover();
     const vuelta = applyReserveOp(s, { from: B, to: AVAILABLE_ID, period: P0, amount: 500_000 }, P);
     expect("state" in vuelta).toBe(true);
-    const s2 = "state" in vuelta ? vuelta.state : s;
+    const s2 = aceptada(vuelta);
     expect(resolvedBalance(s2, B, P0, "actual", P)).toBe(0);
     expect(deleteBlockReason(s2, B, P)).toBeNull();
     expect("state" in deleteNode(s2, B, P)).toBe(true);
@@ -74,7 +75,7 @@ describe("BG-019 · borrar una alcancía con saldo", () => {
     const { s, B } = conBolsilloFinanciadoPorMover();
     const mesSiguiente = P[P.indexOf(P0) + 1]!;
     const vuelta = applyReserveOp(s, { from: B, to: AVAILABLE_ID, period: mesSiguiente, amount: 500_000 }, P);
-    const s2 = "state" in vuelta ? vuelta.state : s;
+    const s2 = aceptada(vuelta);
     expect(resolvedBalance(s2, B, P0, "actual", P)).toBe(500_000);          // en enero tuvo
     expect(resolvedBalance(s2, B, P[P.length - 1]!, "actual", P)).toBe(0);  // hoy no guarda
     expect(deleteBlockReason(s2, B, P)).toBeNull();

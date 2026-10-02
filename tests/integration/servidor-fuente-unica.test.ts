@@ -248,8 +248,8 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     return { matar: () => { viva = false; } };
   }
 
-  it("TC-SFU-102e-store: un 401 al guardar descarta los datos en memoria y marca la sesión caída", async () => {
-    // @aitri-tc TC-SFU-102e
+  it("apoyo SFU-102e-store: un 401 al guardar descarta los datos en memoria y marca la sesión caída", async () => {
+    // Apoyo a TC-SFU-102e: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     // Contraparte en proceso del e2e: lo que el navegador observa (volver al login) depende de que
     // el store distinga el 401 de un fallo de red. Antes ambos acababan en el banner "no pudimos
     // guardar" y la app seguía mostrando las finanzas de una sesión ya muerta.
@@ -277,8 +277,8 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     expect(store.getState().storageError).toBeNull();
   });
 
-  it("TC-SFU-102e-resync: un 401 en el sync en vivo también devuelve al login", async () => {
-    // @aitri-tc TC-SFU-102e
+  it("apoyo SFU-102e-resync: un 401 en el sync en vivo también devuelve al login", async () => {
+    // Apoyo a TC-SFU-102e: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     const servidor = buildSeed("local", P0);
     servidor.budgets[MERCADO]!["2026-01"] = 313_131;
     const sesion = stubSesionQueMuere(servidor);
@@ -297,8 +297,8 @@ describe("FR-1102 — una sesión que muere devuelve al login sin dejar datos en
     expect(store.getState().data.budgets[MERCADO]?.["2026-01"]).toBeUndefined();
   });
 
-  it("TC-SFU-102e-relogin: entrar de nuevo cierra el episodio y vuelve a hidratar", async () => {
-    // @aitri-tc TC-SFU-102e
+  it("apoyo SFU-102e-relogin: entrar de nuevo cierra el episodio y vuelve a hidratar", async () => {
+    // Apoyo a TC-SFU-102e: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     const servidor = buildSeed("local", P0);
     servidor.budgets[MERCADO]!["2026-01"] = 555_000;
     const sesion = stubSesionQueMuere(servidor);

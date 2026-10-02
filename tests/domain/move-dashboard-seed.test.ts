@@ -6,6 +6,7 @@ import { P as MONTH_KEYS, REF_YEAR } from "../helpers/periods";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 import { P, P0 } from "../helpers/periods";
 import { buildSeedConMontos } from "../helpers/seedConMontos";
+import { aceptada } from "../helpers/resultado";
 import { rollupBudget, rollupActual } from "@/domain/rollup";
 import type { LedgerState, NodeType, PeriodKey } from "@/domain/types";
 
@@ -31,12 +32,12 @@ function seedWithCafe() {
 }
 
 describe("FR-015 reparent por drag-and-drop", () => {
-  // @aitri-tc TC-015h
-  it("TC-015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría", () => {
+  // Apoyo a TC-015h: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo 015h: mover categoría/sub sobre otra categoría la vuelve su subcategoría", () => {
     const s = seedWithCafe();
     const res = moveNode(s, "c-cafe", { kind: "category", id: "c-vivienda" });
     expect("state" in res).toBe(true);
-    const state = "state" in res ? res.state : s;
+    const state = aceptada(res);
     const cafe = findNode(state.nodes, "c-cafe")!;
     expect(cafe.level).toBe("sub");
     expect(cafe.parentId).toBe("c-vivienda");
@@ -58,7 +59,7 @@ describe("FR-015 reparent por drag-and-drop", () => {
 
     const res = moveNode(s, sub, { kind: "group", id: "g-esenciales" });
     expect("state" in res).toBe(true);
-    const state = "state" in res ? res.state : s;
+    const state = aceptada(res);
     const cafe = findNode(state.nodes, sub)!;
     expect(cafe.level).toBe("category");
     expect(cafe.parentId).toBe("g-esenciales");
@@ -74,8 +75,8 @@ describe("FR-015 reparent por drag-and-drop", () => {
     expect(movs.every((m) => m.catId === sub && (m.subId ?? null) === null)).toBe(true);
   });
 
-  // @aitri-tc TC-015f
-  it("TC-015f: soltar en otro tipo se rechaza (feature demote-node: un grupo ya SÍ se puede mover, pero nunca cruza de tipo)", () => {
+  // Apoyo a TC-015f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo 015f: soltar en otro tipo se rechaza (feature demote-node: un grupo ya SÍ se puede mover, pero nunca cruza de tipo)", () => {
     const s = seedWithCafe();
     // cross-type: Café (expense) sobre Salario (income)
     expect(moveNode(s, "c-cafe", { kind: "category", id: "c-salario" })).toEqual({ rejected: "cross_type" });
@@ -133,7 +134,7 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
   it("TC-105h: tras borrar categoría con movimientos, cero huérfanos", () => {
     const s = seedWithCafe();
     const res = deleteNode(s, "c-cafe", P);
-    const state = "state" in res ? res.state : s;
+    const state = aceptada(res);
     expect(noOrphans(state.nodes, state.movements)).toBe(true);
   });
 
@@ -151,7 +152,7 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
     expect(antes.expense.actual).toBeGreaterThan(0);
     const res = moveNode(s, "c-cafe", { kind: "category", id: "c-vivienda" });
     expect("state" in res).toBe(true);
-    const state = "state" in res ? res.state : s;
+    const state = aceptada(res);
     expect(noOrphans(state.nodes, state.movements)).toBe(true);
     // rollup del nuevo padre incluye la hoja movida
     expect(subtreeIds(state.nodes, "c-vivienda")).toContain("c-cafe");

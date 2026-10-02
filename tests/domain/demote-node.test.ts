@@ -14,13 +14,10 @@ import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import type { LedgerState, LedgerNode } from "@/domain/types";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 
 const byName = (s: LedgerState, name: string): LedgerNode =>
   s.nodes.find((n) => n.name === name)!;
-const stateOf = (
-  res: { state: LedgerState } | { rejected: string } | { blocked: string },
-  fallback: LedgerState
-): LedgerState => ("state" in res ? res.state : fallback);
 
 // Grupo de gasto SIN hijos con un budget propio (grupo-hoja) — el caso de degradación más simple.
 function seedGroupLeaf(name = "g-suelto", ene = 1000): { s: LedgerState; id: string } {
@@ -73,7 +70,7 @@ describe("FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado)
   // @aitri-tc TC-702h
   it("TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados", () => {
     const { s, id } = seedGroupLeaf("g-suelto", 1000);
-    const st = stateOf(moveNode(s, id, { kind: "group", id: "g-esenciales" }), s);
+    const st = aceptada(moveNode(s, id, { kind: "group", id: "g-esenciales" }));
     const moved = findNode(st.nodes, id)!;
     expect(moved.level).toBe("category");
     expect(moved.parentId).toBe("g-esenciales");
@@ -83,7 +80,7 @@ describe("FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado)
   // @aitri-tc TC-702e
   it("TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos", () => {
     const { s, gId, caId, cbId } = seedGroupWithLeafCats();
-    const st = stateOf(moveNode(s, gId, { kind: "group", id: "g-esenciales" }), s);
+    const st = aceptada(moveNode(s, gId, { kind: "group", id: "g-esenciales" }));
     expect(findNode(st.nodes, gId)!.level).toBe("category");
     expect(findNode(st.nodes, gId)!.parentId).toBe("g-esenciales");
     expect(findNode(st.nodes, caId)!.level).toBe("sub");
@@ -172,7 +169,7 @@ describe("NFR-702 — regresión: promote-to-group intacto", () => {
     const comida = byName(s, "Comida");
     s = createNode(s, { level: "sub", parentId: comida.id, type: "expense", name: "c-cafe" });
     const cafe = byName(s, "c-cafe");
-    const st = stateOf(moveNode(s, cafe.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, cafe.id, { kind: "root", type: "expense" }));
     expect(findNode(st.nodes, cafe.id)!.level).toBe("group");
     expect(findNode(st.nodes, cafe.id)!.parentId).toBe(null);
   });
@@ -196,7 +193,7 @@ describe("NFR-702 — regresión: promote-to-group intacto", () => {
     expect(s.budgets[cine.id]["2026-01"]).toBe(800000); // traslado al primer hijo
     // BG-001: un nodo con presupuesto no es borrable; se vacía primero, LUEGO se borra.
     s = setLeafAmount(s, cine.id, "2026-01", "budget", 0, P);
-    const st = stateOf(deleteNode(s, cine.id, P), s);
+    const st = aceptada(deleteNode(s, cine.id, P));
     expect(rollupBudget(st, ocio.id, "2026-01")).toBe(0); // reverso a 0
   });
 });
@@ -210,7 +207,7 @@ describe("NFR-703 — regresión: reparent existente + integridad (padre==Σhoja
     s = createNode(s, { level: "sub", parentId: comida.id, type: "expense", name: "c-cafe" });
     const cafe = byName(s, "c-cafe");
     const antes = yearTotals(s);
-    const st = stateOf(moveNode(s, cafe.id, { kind: "category", id: "c-vivienda" }), s);
+    const st = aceptada(moveNode(s, cafe.id, { kind: "category", id: "c-vivienda" }));
     expect(findNode(st.nodes, cafe.id)!.parentId).toBe("c-vivienda");
     expect(findNode(st.nodes, cafe.id)!.level).toBe("sub");
     // El destino c-vivienda es categoría-HOJA con montos en la semilla: al recibir a cafe deja de
@@ -225,7 +222,7 @@ describe("NFR-703 — regresión: reparent existente + integridad (padre==Σhoja
     // dar montos a las dos categorías-hoja
     let s2 = setLeafAmount(s, caId, "2026-01", "budget", 300, P);
     s2 = setLeafAmount(s2, cbId, "2026-01", "budget", 200, P);
-    const st = stateOf(moveNode(s2, gId, { kind: "group", id: "g-esenciales" }), s2);
+    const st = aceptada(moveNode(s2, gId, { kind: "group", id: "g-esenciales" }));
     // 0 huérfanos
     expect(st.movements.every((m) => findNode(st.nodes, m.target))).toBe(true);
     // padre == Σ hojas: g-src (ahora categoría) = c-a + c-b (ahora subs)
@@ -244,7 +241,7 @@ describe("NFR-703 — regresión: reparent existente + integridad (padre==Σhoja
     s = setLeafAmount(s, gId, "2026-01", "budget", 1000, P);
     const totalBefore = typeTotals(s, "expense", ["2026-01"]).budget;
 
-    const st = stateOf(moveNode(s, gId, { kind: "category", id: "c-vivienda" }), s);
+    const st = aceptada(moveNode(s, gId, { kind: "category", id: "c-vivienda" }));
 
     expect(findNode(st.nodes, gId)!.level).toBe("sub");
     // el presupuesto del destino NO se estranca: el roll-up de c-vivienda = su monto previo + el del entrante.
@@ -266,7 +263,7 @@ describe("NFR-703 — regresión: reparent existente + integridad (padre==Σhoja
     const n2 = byName(s, "N2");
     s = addMovement(s, { type: "expense", catId: origen.id, subId: n1.id, amount: "150", period: "2026-01" }, P);
 
-    const st = stateOf(moveNode(s, origen.id, { kind: "category", id: "c-vivienda" }), s);
+    const st = aceptada(moveNode(s, origen.id, { kind: "category", id: "c-vivienda" }));
 
     // 'Origen' baja a subcategoría de c-vivienda…
     expect(findNode(st.nodes, origen.id)!.level).toBe("sub");
@@ -312,7 +309,7 @@ describe("NFR-704 — regresión: gate de borrado + registro de movimientos", ()
     const cat = byName(s, "Cat");
     s = addMovement(s, { type: "expense", catId: cat.id, subId: null, amount: "1000", period: "2026-01" }, P);
     s = setLeafAmount(s, cat.id, "2026-01", "actual", 0, P); // vaciar
-    const st = stateOf(deleteNode(s, cat.id, P), s);
+    const st = aceptada(deleteNode(s, cat.id, P));
     expect(findNode(st.nodes, cat.id)).toBeUndefined();
     expect(st.movements.some((m) => m.target === cat.id)).toBe(false);
   });

@@ -332,8 +332,8 @@ describe("FR-2006 — aviso sin cierre automático", () => {
     expect(s.closure).toBeUndefined();
   });
 
-  it("TC-CDM-062f: un usuario cuyo historial empieza en el mes en curso no tiene pendientes", () => {
-    // @aitri-tc TC-CDM-062f
+  it("apoyo CDM-062f: un usuario cuyo historial empieza en el mes en curso no tiene pendientes", () => {
+    // Apoyo a TC-CDM-062f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
     const nuevo: LedgerState = {
       ownerId: "u", nodes: NODES, movements: [],
       budgets: { "c-sueldo": { "2026-09": 1_000_000 } },

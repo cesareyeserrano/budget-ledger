@@ -105,7 +105,7 @@ describe("FR-511 — SSE Hub enruta por userId", () => {
     }
   });
 
-  it("TC-BE-038e-hub: publish a cero conexiones (dispositivo cerrado) es no-op, sin error", () => {
+  it("apoyo BE-038e-hub: publish a cero conexiones (dispositivo cerrado) es no-op, sin error", () => {
     // rama AC-511c: publicar sin conexiones no lanza
     expect(() => syncHub.publish("sin-conexiones", { revision: 1 })).not.toThrow();
   });

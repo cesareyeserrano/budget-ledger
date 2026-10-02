@@ -29,7 +29,7 @@ describe("FR-001 registrar movimiento", () => {
   });
 
   // happy a nivel dominio del registro (target = subId ?? catId)
-  it("TC-001h: registrar en categoría-hoja suma exactamente el monto al Ejecutado", () => {
+  it("apoyo 001h: registrar en categoría-hoja suma exactamente el monto al Ejecutado", () => {
     let s = buildSeed("local", P0);
     // 'Vivienda' (c-vivienda) es categoría-hoja
     s = createNode(s, { level: "sub", parentId: "c-comida", type: "expense", name: "tmp" }); // no afecta vivienda
