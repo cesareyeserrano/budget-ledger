@@ -1022,6 +1022,14 @@
       "problem": "Hallado en la revision adversarial de BG-080 (2026-10-01), anterior a ese arreglo. El store.addMovement no mira el cierre y nada bajo components/register lo lee: con una fecha de un mes cerrado, el registro pinta el gasto, el ingreso o el retiro y muestra su confirmacion, y despues el servidor lo rechaza y la pantalla revierte con el aviso de mes cerrado. La grilla ya lo previene (celdas de un mes cerrado en solo lectura, y desde BG-080 tambien la de retiros). Arreglo: la misma guarda en addMovement y un aviso en el registro que nombre la salida (reabrir el mes o registrar en el siguiente).",
       "status": "open",
       "createdAt": "2026-10-02T00:26:51.389Z"
+    },
+    {
+      "id": "BL-086",
+      "title": "Cabos sueltos del sync tras BG-088",
+      "priority": "P3",
+      "problem": "De la segunda revision adversarial de BG-088 (2026-10-01); ninguno pisa datos del otro dispositivo, todos anteriores a ese arreglo o cosmeticos: (1) si la respuesta de un guardado se pierde por la red despues de que el servidor lo aplico, y no hay otro dispositivo, la siguiente edicion recibe 409 y se descarta con el aviso «otro dispositivo guardo cambios». (2) Si cambiar de modo de periodo se acepta pero la recarga que le sigue falla, el aviso dice que no se guardo aunque si se guardo, no queda nada debido, y la siguiente edicion se descarta culpando a otro dispositivo. (3) Si una lectura del sync ya al dia se adopta mientras viaja un cierre con la base vieja y la recarga de ese conflicto falla, queda el aviso de conflicto en un cliente que ya esta al dia; se apaga solo con el siguiente guardado. (4) La rama de 409 de previewPeriodMode es codigo muerto: el cliente no manda revision y el servidor nunca responde conflicto ahi.",
+      "status": "open",
+      "createdAt": "2026-10-02T02:24:04.965Z"
     }
   ]
 }

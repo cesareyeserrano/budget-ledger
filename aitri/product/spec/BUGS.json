@@ -8441,7 +8441,7 @@
       "actual_result": "",
       "environment": "develop @ 717125b",
       "severity": "medium",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8449,8 +8449,32 @@
       "evidence": "Reproducido el 2026-10-01 al revisar BG-078 (d): PUT /ledger/start base=2 -> 409 (rev 3), GET /ledger -> 500, PUT /ledger base=3 -> 200; en el servidor quedo la cifra local y se perdio la del otro dispositivo.",
       "reported_by": null,
       "created_at": "2026-10-01T23:11:24.935Z",
-      "updated_at": "2026-10-01T23:11:24.935Z",
-      "resolution": null
+      "updated_at": "2026-10-02T02:50:59.814Z",
+      "resolution": "Un 409 ya no adopta la revision del servidor: se adopta con sus datos, en la recarga. El store converge por un solo camino que mira si la recarga llego, deja la recarga debida si no, la reintenta con la cola retenida y solo la da por saldada con una carga posterior al conflicto; el aviso fijo del conflicto tiene su propio texto. Dos revisiones adversariales, hallazgos corregidos. Commits 0e6c7dc, 51c9eb4, a753407.",
+      "fix_commit_sha": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
+      "fix_at": "2026-10-02T02:50:59.759Z"
+    },
+    {
+      "id": "BG-089",
+      "title": "Los comentarios de una celda de Ejecutado aparecen tambien en la de Presupuestado",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": "develop @ 51c9eb4",
+      "severity": "medium",
+      "status": "verified",
+      "fr": "FR-1809",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-10-02T02:05:25.783Z",
+      "updated_at": "2026-10-02T02:50:59.918Z",
+      "resolution": "Cada comentario lleva de cual de las dos celdas es (plane: budget; ausente = Ejecutado, que es como quedan los anteriores). Migracion 0012 aditiva. El Detalle de Presupuestado muestra solo sus comentarios y la marca se enciende en su celda. El servidor conserva el plano si una pestana con codigo anterior reenvia el comentario sin el. Decisiones del usuario del 2026-10-01: tratarlo como bug, los existentes quedan en Ejecutado, el panel de Presupuestado solo con comentarios. FR-1809 de techo-de-flujo dice «por nodo y mes» y queda desactualizado en ese punto. Commits 66ee839, 53b6fef.",
+      "fix_commit_sha": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
+      "fix_at": "2026-10-02T02:50:59.864Z"
     }
   ]
 }

@@ -17,25 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-02T00:26:25.813Z",
+  "updatedAt": "2026-10-02T02:50:59.514Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-30T01:39:39.988Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-30T17:45:10.671Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
     {
       "at": "2026-09-30T17:51:21.074Z",
       "event": "verify-complete",
@@ -179,6 +163,22 @@
       "phase": "verify",
       "passed": 85,
       "failed": 0
+    },
+    {
+      "at": "2026-10-02T02:50:30.281Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T02:50:59.505Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -254,16 +254,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "7c8d0fdee2b335106dfa03ed16e97de4f1bd95f29c06d06b6a754eb9ff894724",
-  "verifyRanAt": "2026-10-02T00:26:10.934Z",
+  "verifyResultsHash": "b7a2183519c1283b5a57320fe9fe50c8a047b21d7c90c18b65b6fa4b864b9459",
+  "verifyRanAt": "2026-10-02T02:50:30.257Z",
   "lastVerifyRun": {
     "passed": 85,
     "failed": 0,
     "skipped": 1,
     "manual": 0,
-    "at": "2026-10-02T00:26:10.934Z"
+    "at": "2026-10-02T02:50:30.257Z"
   },
-  "verifyRanRef": "46a897b0d169313aa97282c96d23a43a2f73a905",
+  "verifyRanRef": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 86,
