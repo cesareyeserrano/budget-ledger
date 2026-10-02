@@ -828,8 +828,16 @@
       "title": "13 TC ids compartidos entre vitest y Playwright: la prueba unitaria enmascara la e2e",
       "priority": "P2",
       "problem": "Aitri acredita por TC id y el runner principal gana, asi que si el test de Playwright con uno de estos ids falla, sigue acreditado como pass por el de vitest (visto en verify-run rc.22: 1207+595 detectados, 1789 unicos). Ids y ficheros (unit | e2e): TC-001h movement.test | critical.spec; TC-015f, TC-015h move-dashboard-seed.test | reparent.spec; TC-606f promote-to-group.test | promote-to-group.spec; TC-CDM-062f cierre-de-mes.test | cierre-de-mes.spec; TC-DDC-012e, TC-DDC-013f diario-de-celda-detalle.test | diario-de-celda.spec; TC-SFU-102e integration/servidor-fuente-unica.test | servidor-fuente-unica.spec; TC-TDF-050h, 051f, 070h, 072f, 100h techo-de-flujo.test | techo-de-flujo.spec. Arreglo: dar a cada duplicado un id propio en el 03_TEST_CASES.json de su pipeline y en el test (o convertirlo en otro TC si prueba otra cosa). Toca los planes de prueba aprobados de 7 pipelines: re-aprobar o rehash segun el caso. El chequeo de colisiones de rc.16 no lo ve porque es entre pipelines, no entre runners.",
-      "status": "open",
-      "createdAt": "2026-09-28T20:35:34.071Z"
+      "status": "closed",
+      "createdAt": "2026-09-28T20:35:34.071Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:02.619Z",
+          "text": "2-oct-2026, 61f2c97: la prueba que el plan no declara pierde el id del titulo ('apoyo ...'); 15 colisiones a 0. Guarda tests/unit/bl-061-un-runner-por-caso.test.ts. Sin tocar planes (decision del usuario)."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:02.619Z",
+      "closedAt": "2026-10-02T23:19:02.740Z"
     },
     {
       "id": "BL-062",
@@ -876,88 +884,176 @@
       "title": "El patron 'state in res ? res.state : s' convierte un rechazo en una prueba verde",
       "priority": "P2",
       "problem": "promote-to-group.test.ts:14-17 y move-dashboard-seed.test.ts:37,85 caen al estado original si la operacion se rechaza; techo-de-flujo.test.ts:262,328,354,486 guardan la asercion clave en un if. Sustituir por un helper que falle si hay rechazo (como ok() en saldo-de-bolsillo.test.ts) y sacar las aserciones del if. (AUDIT_REPORT, Technical Review 2026-09-28, BL-O)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:19.796Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:19.796Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:02.876Z",
+          "text": "2-oct-2026, 61f2c97: tests/helpers/resultado.ts con aceptada() y bloqueo(); sustituye el modismo en siete ficheros y saca del if las aserciones de veredicto de techo-de-flujo."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:02.876Z",
+      "closedAt": "2026-10-02T23:19:02.988Z"
     },
     {
       "id": "BL-065",
       "title": "Medir cobertura de src/state y src/app/api",
       "priority": "P2",
       "problem": "vitest.config.ts:25 deja fuera el store y las rutas de la API. Incluirlos con un umbral propio, empezando por store.ts (persist, drainSaves, doResync, hydrate). (AUDIT_REPORT, Technical Review 2026-09-28, BL-P)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:19.876Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:19.876Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:03.090Z",
+          "text": "2-oct-2026, 829d09d y 3e2c163: src/state y src/app/api entran en la cobertura con suelos propios (store 85/82/84/77, rutas 87/88/90/78); 15 pruebas nuevas para las acciones del store y las tres rutas sin prueba; budgetState.ts con 100% de ramas."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:03.090Z",
+      "closedAt": "2026-10-02T23:19:03.187Z"
     },
     {
       "id": "BL-066",
       "title": "Correr en CI security-config, design-tokens, no-legacy-mode, smoke y cobertura",
       "priority": "P2",
       "problem": "ci.yml:57-74 no ejecuta cinco gates que solo corren en local bajo Aitri. Anadirlos al job build-and-test; security-config y design-tokens son estaticos y tardan segundos. (AUDIT_REPORT, Technical Review 2026-09-28, BL-Q)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:19.965Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:19.965Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:03.298Z",
+          "text": "2-oct-2026, 45625f6: el CI corre security-config, design-tokens, no-legacy-mode, cobertura, smoke y smoke backend. Verificado en local; la primera corrida del CI lo confirmara."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:03.298Z",
+      "closedAt": "2026-10-02T23:19:03.394Z"
     },
     {
       "id": "BL-067",
       "title": "El smoke no arranca lo que produccion ejecuta (standalone) ni toca la base",
       "priority": "P2",
       "problem": "smoke.sh:46 usa next start; Dockerfile:63 usa node server.js. Anadir una variante que arranque .next/standalone contra Postgres y haga una peticion autenticada, y corregir los tres documentos que afirman que migraciones y check-env corren al arrancar el contenedor. (AUDIT_REPORT, Technical Review 2026-09-28, BL-R)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.047Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.047Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:03.491Z",
+          "text": "2-oct-2026, 45ca143: los dos smokes arrancan standalone/server.js; smoke-backend hace check-env, migra y una peticion con sesion (sonda: sin migrar cae). Tres documentos corregidos."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:03.491Z",
+      "closedAt": "2026-10-02T23:19:03.588Z"
     },
     {
       "id": "BL-068",
       "title": "secret-scan nunca corre gitleaks y su respaldo no detecta una DATABASE_URL",
       "priority": "P2",
       "problem": "scripts/secret-scan.sh cae siempre al respaldo de patrones; el patron de DATABASE_URL no puede casar con una cadena de conexion y solo se barren seis rutas. Instalar gitleaks en CI con una configuracion que excluya node_modules y .next-*, y corregir el patron. (AUDIT_REPORT, Technical Review 2026-09-28, BL-S)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.122Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.122Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:03.684Z",
+          "text": "2-oct-2026, 9562778: patrones siempre + gitleaks (8.30.1 fijado por suma, obligatorio en CI); barre todo lo versionado; 14 de 14 secretos sinteticos detectados."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:03.684Z",
+      "closedAt": "2026-10-02T23:19:03.783Z"
     },
     {
       "id": "BL-069",
       "title": "Re-verificar los veredictos manuales de julio (TC-101, TC-106, TC-BSC-455) y dar veredicto a TC-BE-077h",
       "priority": "P2",
       "problem": "Seis TC manuales de la raiz datan del 2-jul y 3-ago; TC-106h es un smoke de contenedor anterior a tres cambios del Dockerfile. TC-BSC-455h/e/f pasan con evidencia circular. TC-BE-077h sigue en skip aunque produccion ya tiene TLS: marcarlo manual y verificarlo con una captura. (AUDIT_REPORT, Technical Review 2026-09-28, BL-T)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.199Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.199Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:03.881Z",
+          "text": "2-oct-2026, bac60ed: TC-101h/e/f re-medidos (en bateria y bajo consumo), TC-106h con la imagen construida de cero, TC-106e con un arranque roto, TC-106f con el fallo real de CI del 1-oct, TC-BE-077h con TLS de produccion, TC-BSC-455 con la corrida de la raiz de hoy y suelo de 100% de ramas."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:03.881Z",
+      "closedAt": "2026-10-02T23:19:03.978Z"
     },
     {
       "id": "BL-070",
       "title": "Fijar la version de Node (engines + .nvmrc) a la de produccion",
       "priority": "P2",
       "problem": "Los gates locales corren en Node 24 y produccion y CI en Node 22; nada lo fija. Declarar engines y .nvmrc en 22. (AUDIT_REPORT, Technical Review 2026-09-28, BL-U)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.273Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.273Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:04.080Z",
+          "text": "2-oct-2026, cc69d70: .nvmrc y engines en 22; el CI lee .nvmrc. Raiz 59/59 y backend 86/86 verificados en Node 22. Falta que la terminal del usuario use Node 22 por defecto."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:04.080Z",
+      "closedAt": "2026-10-02T23:19:04.185Z"
     },
     {
       "id": "BL-071",
       "title": "Acotar tamanos en los esquemas de la API (arrays, longitudes, cuerpo)",
       "priority": "P2",
       "problem": "schemas.ts no limita el numero de nodos, movimientos ni notas, ni la longitud de name/icon/id/target/note; withApi lee el cuerpo sin tope. Fijar maximos razonables y responder 413/422. (AUDIT_REPORT, Technical Review 2026-09-28, BL-W)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.350Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.350Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:04.303Z",
+          "text": "2-oct-2026: resuelto como bug de seguridad BG-090 (decision del usuario), c3f1166."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:04.303Z",
+      "closedAt": "2026-10-02T23:19:04.409Z"
     },
     {
       "id": "BL-072",
       "title": "schema.ts ya no describe la base: CHECK de 0002-0010 ausentes y snapshots detenidos en 0001",
       "priority": "P2",
       "problem": "Poner schema.ts al dia con las migraciones o anadir un gate que falle si drizzle-kit generate produce un diff. (AUDIT_REPORT, Technical Review 2026-09-28, BL-X)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.424Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.424Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:04.508Z",
+          "text": "2-oct-2026, c91ef70: schema.ts con las 17 restricciones que le faltaban y el indice; snapshot 0012 al dia (drizzle-kit generate: nothing to migrate); prueba que compara los catalogos de las dos bases."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:04.508Z",
+      "closedAt": "2026-10-02T23:19:04.604Z"
     },
     {
       "id": "BL-073",
       "title": "Unos sesenta TC se acreditan buscando texto en un archivo en vez de ejecutar algo",
       "priority": "P2",
       "problem": "Empezar por los que acreditan comportamiento en ejecucion: TC-RES-222e (hacer la peticion sin sesion), TC-MAN-281f y TC-MAN-014f (ejecutar la migracion), TC-BE-072e. Ampliar los detectores de skip a skipIf/runIf/fixme. (AUDIT_REPORT, Technical Review 2026-09-28, BL-Z)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.498Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.498Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:04.704Z",
+          "text": "2-oct-2026, a847605: once casos ejecutan en vez de leer y los cuatro suelos de skip comparten un detector que ve skipIf/runIf/fixme. Lo que queda, con nombre: BL-088."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:04.704Z",
+      "closedAt": "2026-10-02T23:19:04.802Z"
     },
     {
       "id": "BL-074",
       "title": "La suite e2e-backend no comprueba si el puerto 3230 ya esta ocupado",
       "priority": "P2",
       "problem": "Portar de tests/e2e/helpers/globalSetup.ts:166-173 la guarda portIsBusy a tests/e2e-backend/helpers/globalSetup.ts. (AUDIT_REPORT, Technical Review 2026-09-28, BL-AA)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:20.572Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:20.572Z",
+      "log": [
+        {
+          "at": "2026-10-02T23:19:04.902Z",
+          "text": "2-oct-2026, 637e023: guarda portIsBusy en tests/e2e-backend/helpers/globalSetup.ts."
+        }
+      ],
+      "updatedAt": "2026-10-02T23:19:04.902Z",
+      "closedAt": "2026-10-02T23:19:05.003Z"
     },
     {
       "id": "BL-075",
@@ -1082,6 +1178,14 @@
       "createdAt": "2026-10-02T16:32:04.190Z",
       "behavior": "Que un exit 1 sin caso rojo se pueda diagnosticar despues: por ejemplo, que el runner deje ademas un informe en fichero (reporter junit de vitest a una ruta fija, ignorada por git) que se pueda leer cuando Aitri diga 'no failing TCs were parsed'.",
       "decisions": "Sospechosas sin confirmar: las pruebas con presupuesto de tiempo en la corrida normal (BL-060) y las de latencia de backend (TC-BE-062h mide una lectura contra 500 ms). Relacionado con BL-060."
+    },
+    {
+      "id": "BL-088",
+      "title": "Resto de BL-073: 21 casos que aun se acreditan leyendo un archivo",
+      "priority": "P3",
+      "problem": "BL-073 convirtio once casos y unifico los cuatro detectores de skip. Quedan, segun el barrido del 2-oct-2026 (88 pruebas leen un archivo; 51 son propiedad estatica legitima): CLASE A, declaran ejecucion y solo leen texto (16): TC-BE-071h, TC-BE-084h, TC-BE-074h, TC-BE-025e, TC-BE-080h, TC-BE-078e, TC-CDM-252f, TC-RES-241e, TC-SUT-202e, TC-SUT-243f, TC-SUT-254e, TC-SUT-263e, TC-SUT-264f, TC-SUT-216h. CLASE C, miran lo que no es (5): TC-RES-232f (solo ve el orden de guardias en saveLedger, no en insertMovement), TC-REC-224f (el plan dice workflow y la prueba mira los globalSetup), TC-RUI-007f (comprueba otra propiedad que la declarada), TC-RUI-007h (cuenta las pruebas como uso; es BL-081), TC-TRF4-153h (mira schema.ts; desde BL-072 schema.ts esta verificado contra la base). Ademas: 18 casos de clase B casan con un comentario (parsear en vez de regex, como parseWorkflow) y varios planes de stack-upgrade-theme traen hex obsoletos (TC-SUT-204h, 205e, 210h-212f, 251e). Varios de la clase A necesitan decision: TC-BE-078e (cifrado en reposo) es propiedad del despliegue y pide pasar a manual; TC-BE-071h y TC-BE-084h los acredita en realidad el exit code del runner o un gate.",
+      "status": "open",
+      "createdAt": "2026-10-02T22:45:55.367Z"
     }
   ]
 }

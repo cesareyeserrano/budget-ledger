@@ -8805,6 +8805,28 @@
       "fix_at": "2026-10-02T02:50:59.864Z",
       "close_commit_sha": "1a97c8d9d07ae81a21ec83ec6fff3e5da3eea97e",
       "close_at": "2026-10-02T13:23:23.749Z"
+    },
+    {
+      "id": "BG-090",
+      "title": "La API acepta cuerpos y snapshots de cualquier tamano (BL-071, BL-W de la auditoria)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": null,
+      "severity": "medium",
+      "status": "verified",
+      "fr": "FR-507",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-10-02T22:27:11.010Z",
+      "updated_at": "2026-10-02T23:19:02.521Z",
+      "resolution": "c3f1166: withApi lee el cuerpo contando bytes (413 por encima de 256 KiB, 16 MiB el snapshot) y el PUT rechaza con 422 lo que pasa de los topes de TOPES en schemas.ts; los topes viven en el PUT, no en la lectura. Pruebas bg-090 en rojo antes y en verde despues.",
+      "fix_commit_sha": "f5253b7a18d8378ffea467de55170d8362a3f50a",
+      "fix_at": "2026-10-02T23:19:02.398Z"
     }
   ]
 }

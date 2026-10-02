@@ -23,33 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-02T21:53:13.327Z",
+  "updatedAt": "2026-10-02T23:08:08.472Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T02:41:45.578Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T02:42:02.061Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T02:50:59.597Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 25,
-      "method": "git",
-      "verifyPassedKept": true
-    },
     {
       "at": "2026-10-02T03:02:00.980Z",
       "event": "reconcile-resolved",
@@ -191,6 +167,30 @@
       "method": "git",
       "baseRefFrom": "fe75e25d7efb75b6f5dbf6b7f31af0de584a147f",
       "baseRefTo": "8c44f9f0eba14efd9c562b772a15e5ec0c780f04"
+    },
+    {
+      "at": "2026-10-02T22:57:23.268Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 50,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-02T23:07:30.577Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T23:07:56.766Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -358,16 +358,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "bdddac2e20740326d8342b622c0d761daaff518a",
+  "verifyRanRef": "f5253b7a18d8378ffea467de55170d8362a3f50a",
   "verifyRanDirty": false,
-  "verifyResultsHash": "f14d26501f77855185f49b67d4eddf806fefaeab7b0891e4f70c6e3016722287",
-  "verifyRanAt": "2026-10-02T21:40:56.305Z",
+  "verifyResultsHash": "52c461227a583a4362abc537bf6333d7965d8482a4227b19d0c9a72b61394125",
+  "verifyRanAt": "2026-10-02T23:07:30.541Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-02T21:40:56.305Z"
+    "at": "2026-10-02T23:07:30.541Z"
   },
   "verifySummary": {
     "total": 59,
