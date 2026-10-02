@@ -196,6 +196,44 @@ test.describe("FR-1404 — el em-dash no gasta color", () => {
     for (const c of oscuros) expect([FG_MUTED_DARK, FG_SECONDARY_DARK]).toContain(c);
   });
 
+  // @aitri-tc TC-BJE-007f
+  // BL-063: este caso lo acreditaba una prueba de dominio que afirmaba sobre una regla de color
+  // ESCRITA EN LA PRUEBA, distinta de la de `BalanceCell`. Aquí se mira la celda que pinta el producto.
+  test("TC-BJE-007f: una celda en CERO y una sin dato se atenúan igual, y ninguna toma el color de su fila", async ({ page }) => {
+    // Ingreso = gasto y nada apartado, en tres meses: los resultados de esos meses valen CERO con dato.
+    // Los nueve meses siguientes no se siembran: sus celdas de insumo no tienen dato.
+    const TRES = MONTH_KEYS.slice(0, 3);
+    await goto(page, RESTANTE_CERO, "light", TRES);
+
+    const filas = await page.getByTestId("balance-row").evaluateAll((fs) =>
+      fs.map((f) => ({
+        fila: f.getAttribute("data-row") ?? "",
+        celdas: [...f.querySelectorAll('[data-testid="balance-cell"]')].map((c) => ({
+          txt: (c.textContent ?? "").trim(),
+          color: getComputedStyle(c as HTMLElement).color,
+        })),
+      })));
+    // Los tres primeros meses nunca son el mes activo (que eleva el guion por contraste, FR-1805),
+    // así que ahí el atenuado es exactamente --fg-muted.
+    const conDato = filas.flatMap((f) => f.celdas.slice(0, TRES.length * 2).map((c) => ({ ...c, fila: f.fila })));
+    const sinDato = filas.flatMap((f) => f.celdas.slice(TRES.length * 2).map((c) => ({ ...c, fila: f.fila })));
+
+    const ceros = conDato.filter((c) => c.txt === "0" || c.txt === "—");
+    const vacias = sinDato.filter((c) => c.txt === "—");
+    expect(ceros.length).toBeGreaterThan(0);
+    expect(ceros.some((c) => c.txt === "0")).toBe(true); // un resultado en cero dice «0» (FR-1810)…
+    expect(vacias.length).toBeGreaterThan(0);
+
+    // …pero el COLOR es el de la ausencia en los dos casos: ni el neutro pleno de un resultado, ni
+    // verde, ni alerta.
+    for (const c of ceros) expect(c.color, `cero en ${c.fila}`).toBe(FG_MUTED_LIGHT);
+    for (const c of vacias) expect([FG_MUTED_LIGHT, FG_SECONDARY_LIGHT], `sin dato en ${c.fila}`).toContain(c.color);
+    // Control: en esas mismas filas, una celda CON dato sí lleva otro color.
+    const conValor = conDato.filter((c) => c.txt !== "0" && c.txt !== "—");
+    expect(conValor.length).toBeGreaterThan(0);
+    for (const c of conValor) expect(c.color, `valor en ${c.fila}`).not.toBe(FG_MUTED_LIGHT);
+  });
+
   // @aitri-tc TC-BJE-007e
   // DESVIACIÓN DECLARADA respecto del caso aprobado en fase 3. El TC decía «un mes entero sin datos
   // presenta TODAS sus celdas en em-dash». La premisa es FALSA en este producto: por el ARRASTRE,

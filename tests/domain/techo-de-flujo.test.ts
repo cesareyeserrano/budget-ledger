@@ -806,26 +806,16 @@ describe("FR-1810 · el Balance en tres bloques", () => {
     expect(filas(s, "2026-02").disponible).toBe(0);
   });
 
-  // @aitri-tc TC-TDF-104e
-  it("TC-TDF-104e: «Resultado del mes» vale lo mismo en sus dos apariciones", () => {
-    let s = base({ "2026-01": 1000, "2026-02": 800, "2026-03": 1200 });
-    s = llevar(s, "A", "2026-01", 400);
-    s = setLeafAmount(s, "c-gasto", "2026-02", "actual", 300, P);
-
-    // La pareja está DECLARADA, no es una coincidencia del render.
+  // BL-063: aquí vivía TC-TDF-104e comparando `m.flow` con `m.flow` veinticuatro veces. El caso se
+  // prueba ahora leyendo las dos filas que pinta el producto, en tests/e2e/techo-de-flujo.spec.ts.
+  // Lo que sí es del dominio de esta prueba se queda: la pareja está DECLARADA, no es una
+  // coincidencia del render, y las dos filas existen en la tabla.
+  it("la segunda aparición de «Resultado del mes» está declarada en MIRROR y en ROWS", () => {
     expect(MIRROR).toEqual([{ of: "monthResult", shownAgainAs: "monthResultCarry" }]);
-
-    // Y las dos claves leen la misma cifra en los doce meses y los dos planos.
-    for (const plane of ["budget", "actual"] as const) {
-      for (const mk of MONTH_KEYS) {
-        const m = computeBalanceSeries(s, P)[mk][plane];
-        for (const { of: a, shownAgainAs: b } of MIRROR) {
-          const va = a === "monthResult" ? m.flow : m[a as "available"];
-          const vb = b === "monthResultCarry" ? m.flow : m[b as "available"];
-          expect(va, `${mk}/${plane} · ${a} vs ${b}`).toBe(vb);
-        }
-      }
-    }
+    const filas = ROWS.filter((r) => r.key === "monthResult" || r.key === "monthResultCarry");
+    expect(filas.map((r) => r.key)).toEqual(["monthResult", "monthResultCarry"]);
+    expect(new Set(filas.map((r) => r.label))).toEqual(new Set(["Resultado del mes"]));
+    expect(filas.map((r) => r.block)).toEqual(["mes", "disponible"]);
   });
 
   // @aitri-tc TC-TDF-105f

@@ -228,6 +228,46 @@ test.describe("FR-1810 · el Balance se lee de arriba abajo", () => {
     expect(textos.some((t) => t.includes("500") && (t.includes("−") || t.includes("-")))).toBe(false);
   });
 
+  // @aitri-tc TC-TDF-104e
+  // BL-063: este caso lo acreditaba una prueba de dominio que comparaba `m.flow` con `m.flow`
+  // veinticuatro veces. Aquí se leen las DOS filas que pinta el producto.
+  test("TC-TDF-104e: «Resultado del mes» vale lo mismo en sus dos apariciones", async ({ page }) => {
+    await page.setViewportSize(DESK);
+    await abrir(page, {
+      nodes: NODES,
+      budgets: {
+        "c-salario": { "2026-01": 1200, "2026-02": 900, "2026-03": 1500 },
+        "c-mercado": { "2026-01": 400, "2026-02": 500, "2026-03": 100 },
+        "c-alcancia": { "2026-01": 100, "2026-03": 300 },
+      },
+      actuals: {
+        "c-salario": { "2026-01": 1000, "2026-02": 800, "2026-03": 1200 },
+        "c-mercado": { "2026-01": 300, "2026-02": 900, "2026-03": 200 },
+        // Se aparta dinero en enero y marzo: así «resultado del mes» y «lo que quedó disponible» son
+        // cifras DISTINTAS, y una segunda fila que mostrara la otra no pasaría por igual.
+        "c-alcancia": { "2026-01": 200, "2026-03": 300 },
+      },
+    } as unknown as Parameters<typeof seedLedger>[1]);
+
+    const fila = (row: string) =>
+      page.locator(`[data-testid="balance-row"][data-row="${row}"]`).getByTestId("balance-cell").allInnerTexts();
+    const arriba = (await fila("monthResult")).map((t) => t.trim());
+    const abajo = (await fila("monthResultCarry")).map((t) => t.trim());
+
+    // Doce meses por dos planos, como mínimo, en las dos filas.
+    expect(arriba.length).toBeGreaterThanOrEqual(24);
+    expect(abajo).toHaveLength(arriba.length);
+    // Las cifras no son todas la misma ni todas vacías: enero, febrero y marzo difieren entre sí.
+    //   Presupuestado: 1.200−400 = 800 · 900−500 = 400 · 1.500−100 = 1.400
+    //   Ejecutado:     1.000−300 = 700 · 800−900 = −100 · 1.200−200 = 1.000
+    expect(arriba.slice(0, 6)).toEqual(["800", "700", "400", "−100", "1.400", "1.000"]);
+    // …y la segunda aparición dice lo mismo, celda por celda. Donde arriba es un resultado en cero
+    // («0») abajo es un sumando sin nada («—»): misma cifra, distinto rótulo de vacío (FR-1810).
+    const cifra = (t: string) => (t === "—" ? "0" : t);
+    expect(abajo.map(cifra)).toEqual(arriba.map(cifra));
+    expect(abajo.slice(0, 6)).toEqual(["800", "700", "400", "−100", "1.400", "1.000"]);
+  });
+
   test("TC-TDF-104f-e2e: el negativo REAL sí se pinta con alarma, en la fila donde vive", async ({ page }) => {
     await page.setViewportSize(DESK);
     // Gasto mayor que el ingreso y sin ahorro que lo cubra: deuda de verdad.
