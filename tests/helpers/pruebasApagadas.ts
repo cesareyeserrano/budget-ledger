@@ -4,8 +4,8 @@
  *
  * Cada suelo traía su propia expresión regular y ninguna veía un salto CONDICIONAL: con la forma
  * `skipIf` y un `true` dentro se apagaba una prueba sin que nadie lo notara, igual que con `runIf` y
- * un `false`, o con `fixme` (BL-073). Uno de ellos, además, contaba cada llamada a `runExit(` como
- * si fuera un `xit(`, por no llevar frontera de palabra.
+ * un `false`, o con `fixme` (BL-073). Uno de ellos, además, contaba cada llamada a `runExit` como
+ * si fuera la forma con x delante de `it`, por no llevar frontera de palabra.
  *
  * Un salto condicional SÍ es legítimo en dos casos, y solo esos se admiten:
  *   · la guarda de cronómetro (`SALTAR_SI_INSTRUMENTADO`, tests/helpers/perf.ts): bajo cobertura el
