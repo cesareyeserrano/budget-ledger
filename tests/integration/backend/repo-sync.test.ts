@@ -72,7 +72,10 @@ describe("FR-508 — ServerRepository (impl de servidor de LedgerRepository)", (
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ revision: 7 }), { status: 409 })));
     expect(await repo.save("A", buildSeed("local", P0))).toBe(false);
     expect(repo.conflicted).toBe(true);
-    expect(repo.currentRevision).toBe(7);
+    // BG-088: la revisión del 409 NO se adopta. Es la de unos datos que este cliente aún no tiene;
+    // adoptarla sola dejaba que el guardado siguiente pisara lo del otro dispositivo si la recarga
+    // fallaba. Se adopta con sus datos, en la recarga.
+    expect(repo.currentRevision).toBe(0);
   });
 });
 

@@ -225,8 +225,13 @@ function bloqueoDeBorrado(state: LedgerState, m: Movement): number | null {
  *
  * @aitri-trace FR-ID: FR-2501, US-ID: US-2501, AC-ID: AC-2501a, TC-ID: TC-DDC-001h, TC-DDC-003e, TC-DDC-006e
  */
-export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
+export function CellDetail({ leafId, month, plane = "actual", onGuardar, onCancelar }: {
   leafId: string; month: PeriodKey;
+  /**
+   * De cuál de las dos celdas del mes es el panel (BG-089). La de Presupuestado muestra solo SUS
+   * comentarios: los movimientos forman el Ejecutado, y allí se leen y se añaden.
+   */
+  plane?: "budget" | "actual";
   /** Confirma el valor tecleado en la celda — lo mismo que Enter. Sin él (mes cerrado, bolsillo) no hay «Guardar». */
   onGuardar?: () => void;
   /** Descarta lo tecleado y cierra — lo mismo que Escape. */
@@ -239,7 +244,8 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
   const [width, setWidth] = useState(PANEL_MAX_W);
 
   const node = findNode(data.nodes, leafId);
-  const entries = cellDetail(data, leafId, month, periods);
+  const esPlan = plane === "budget";
+  const entries = cellDetail(data, leafId, month, periods, plane);
   const borrar = useLedgerStore((s) => s.deleteMovement);
   /**
    * Devuelve el foco AL PANEL cuando se desmonta algo de dentro (el bloque de edición, el check de
@@ -257,7 +263,7 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
   const cerrado = isClosed(data.closure, month);
   const [editando, setEditando] = useState<string | null>(null);
   /** Hay línea «Añadir movimiento» (gasto o ingreso de un mes abierto): el comentario va a un clic. */
-  const conLineaDeMovimiento = !!node && node.type !== "transfer" && !cerrado;
+  const conLineaDeMovimiento = !!node && node.type !== "transfer" && !cerrado && !esPlan;
   const [comentarioAbierto, setComentarioAbierto] = useState(false);
 
   /**
@@ -357,13 +363,15 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
       {cerrado && (
         <span data-testid="closed-notice" className="flex items-start gap-1.5 text-caption" style={{ color: "var(--fg-secondary)" }}>
           <Lock size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
-          {periodLabel(month)} está cerrado. Para cambiar sus movimientos, reábrelo desde el cierre de mes.
+          {esPlan
+            ? `${periodLabel(month)} está cerrado. Su presupuesto no se edita; los comentarios sí.`
+            : `${periodLabel(month)} está cerrado. Para cambiar sus movimientos, reábrelo desde el cierre de mes.`}
         </span>
       )}
 
       {entries.length === 0 ? (
         <span data-testid="cell-notes-empty" className="text-caption" style={{ color: "var(--fg-muted)" }}>
-          Sin movimientos ni comentarios
+          {esPlan ? "Sin comentarios" : "Sin movimientos ni comentarios"}
         </span>
       ) : (
         <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: LIST_MAX_H }}>
@@ -410,7 +418,7 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
 
       {/* FR-2502: la línea de añadir es de gasto e ingreso. Un bolsillo no registra movimientos
           desde aquí — sus operaciones De→A tienen su propia vía (NFR-2503, TC-DDC-343e). */}
-      {node.type !== "transfer" && !cerrado && <AddMovementLine leafId={leafId} month={month} />}
+      {node.type !== "transfer" && !cerrado && !esPlan && <AddMovementLine leafId={leafId} month={month} />}
 
       {/* Divulgación progresiva (decisión del usuario, 2026-09-21): donde ya está la línea del
           movimiento con su «Nota», una segunda caja de texto a la vista confundía. El comentario
@@ -428,7 +436,7 @@ export function CellDetail({ leafId, month, onGuardar, onCancelar }: {
           + Añadir comentario
         </button>
       ) : (
-        <CellNoteInput leafId={leafId} month={month} autoFocus={conLineaDeMovimiento} />
+        <CellNoteInput leafId={leafId} month={month} plane={plane} autoFocus={conLineaDeMovimiento} />
       )}
     </div>
   );

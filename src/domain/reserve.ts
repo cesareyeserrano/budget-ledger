@@ -1549,7 +1549,8 @@ export function cellObservations(
   const derived: CellObservation[] = state.movements
     .filter((m) => m.type === "transfer" && m.period === month && m.note && m.to === leafId && isAvailable(m.from))
     .map((m) => ({ createdAt: m.createdAt, text: m.note!, source: "movement" as const }));
-  const manual: CellObservation[] = (state.cellNotes?.[leafId]?.[month] ?? []).map((n) => ({
+  // BG-089: la celda Ejec. solo muestra los comentarios de Ejecutado.
+  const manual: CellObservation[] = (state.cellNotes?.[leafId]?.[month] ?? []).filter((n) => !n.plane).map((n) => ({
     createdAt: n.createdAt,
     text: n.text,
     source: "manual" as const,
@@ -1577,6 +1578,7 @@ export const CELL_NOTE_MAX = 280;
  * `invalid_note`, igual que un texto inválido.
  *
  * @param day Día local «AAAA-MM-DD»; si falta, la nota queda sin día.
+ * @param plane De cuál de las dos celdas del mes es el comentario (BG-089). Por defecto, Ejecutado.
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-1809, US-ID: US-1809, AC-ID: AC-1835, TC-ID: TC-TDF-080h, TC-TDF-083e
@@ -1588,7 +1590,8 @@ export function addCellNote(
   month: PeriodKey,
   text: string,
   periods: PeriodScope,
-  day?: string
+  day?: string,
+  plane: Plane = "actual"
 ): { state: LedgerState } | { rejected: "invalid_note" | "invalid_target" } {
   const node = findNode(state.nodes, leafId);
   if (!node || !isLeaf(node, state.nodes) || !isPeriodKey(month) || !periods.includes(month)) return { rejected: "invalid_target" };
@@ -1596,7 +1599,11 @@ export function addCellNote(
   if (trimmed.length === 0 || trimmed.length > CELL_NOTE_MAX) return { rejected: "invalid_note" };
   if (day !== undefined && !isCalendarDay(day)) return { rejected: "invalid_note" };
   const next = cloneState(state);
-  const note: CellNote = { id: uid(), createdAt: nextSeq(), text: trimmed, ...(day !== undefined ? { date: day } : {}) };
+  // BG-089: el comentario es de UNA de las dos celdas del mes. Solo se marca el de Presupuestado.
+  const note: CellNote = {
+    id: uid(), createdAt: nextSeq(), text: trimmed,
+    ...(day !== undefined ? { date: day } : {}), ...(plane === "budget" ? { plane: "budget" as const } : {}),
+  };
   const byLeaf = { ...(next.cellNotes ?? {}) };
   const byMonth = { ...(byLeaf[leafId] ?? {}) };
   byMonth[month] = [...(byMonth[month] ?? []), note];

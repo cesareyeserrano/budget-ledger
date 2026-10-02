@@ -106,6 +106,8 @@ export function OpeningCard() {
       for (let intento = 0; intento < 3; intento++) {
         const res = await setStart(hoy, 0, { soloSiNoDeclarada: true });
         if (res.ok || res.reason !== "revision_conflict") break;
+        // Si la versión del otro dispositivo no se pudo cargar, reintentar ahora daría lo mismo.
+        if (res.recargado === false) break;
         const vigente = useLedgerStore.getState().data;
         if (vigente.startMonth || vigente.openingBalance != null) break;
       }
@@ -142,7 +144,9 @@ export function OpeningCard() {
     if (!res.ok) {
       setError(
         res.reason === "revision_conflict"
-          ? "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
+          ? res.recargado === false
+            ? "Otro dispositivo cambió tus datos y todavía no pudimos cargar su versión. Inténtalo de nuevo en un momento."
+            : "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
           : res.reason === "month_closed"
             ? `${periodMonthLabel(res.period ?? mes)} está cerrado: reábrelo desde la grilla o elige otro mes de inicio.`
             : "No se pudo guardar. Inténtalo de nuevo."

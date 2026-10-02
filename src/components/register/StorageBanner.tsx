@@ -18,11 +18,15 @@ import { useLedgerStore } from "@/state/store";
  *
  * @aitri-trace FR-ID: FR-1103, US-ID: US-1103, AC-ID: AC-1103c, TC-ID: TC-SFU-103e
  */
-const MENSAJE: Record<"network" | "malformed", string> = {
+const MENSAJE: Record<"network" | "malformed" | "conflict", string> = {
   network:
     "No pudimos guardar el último cambio en el servidor. Tus datos en pantalla siguen intactos; vuelve a intentarlo cuando se restablezca la conexión.",
   malformed:
     "El servidor respondió algo que no pudimos leer, así que no cargamos nada encima de tus datos. No edites hasta que vuelva a responder bien: recarga en un momento.",
+  // BG-088: otro dispositivo guardó y su versión no llegó a cargarse. No es el caso de `network`: lo
+  // que hay en pantalla ya perdió, y decir «tus datos siguen intactos, reintenta» sería mentir.
+  conflict:
+    "Otro dispositivo guardó cambios y todavía no pudimos cargar su versión. Lo que edites ahora no se va a guardar; se cargará sola en cuanto vuelva la conexión.",
 };
 
 /**

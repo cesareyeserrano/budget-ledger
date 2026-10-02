@@ -143,7 +143,7 @@ interface LedgerStore {
   /** Feature ciclos (FR-2404/FR-2410): aplica el cambio; tras el 200 resincroniza desde el servidor. */
   applyPeriodMode: (target: CycleTarget) => Promise<PeriodModeResult>;
   setStart: (startMonth: PeriodKey, openingBalance: number | null, opts?: { soloSiNoDeclarada?: boolean })
-    => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[]; period?: string }>;
+    => Promise<{ ok: true } | { ok: false; reason: string; periods?: string[]; period?: string; recargado?: boolean }>;
   /** Cierra el mes cerrable. El servidor decide CUÁL: aquí no se propone (FR-2002). */
   closeMonth: () => Promise<void>;
   /** Reabre el último mes cerrado (FR-2005). */
@@ -169,7 +169,7 @@ interface LedgerStore {
    *  antes señalaba la cuota de localStorage, disparador que murió con el modo retirado (FR-1103).
    *  "malformed": el servidor respondió pero con un cuerpo que no cumple el contrato (BG-012) —
    *  no se sembró nada encima y lo que hay en pantalla no es de fiar. */
-  storageError: "network" | "malformed" | null;
+  storageError: "network" | "malformed" | "conflict" | null;
   /**
    * La sesión murió estando la app abierta (expiró o la revocaron desde otro dispositivo). El gate
    * vuelve al login y los datos en memoria se descartan: FR-1102 exige no dejarlos en pantalla.
@@ -220,7 +220,7 @@ interface LedgerStore {
   editPlannedWithdrawal: (leafId: string, month: PeriodKey, amount: number) =>
     { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
   /** Observación manual de una celda de reserva (FR-1012). true si se guardó. */
-  addCellNote: (leafId: string, month: PeriodKey, text: string) => boolean;
+  addCellNote: (leafId: string, month: PeriodKey, text: string, plane?: "budget" | "actual") => boolean;
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
    *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
   addMovement: (input: NewMovement) => boolean;
@@ -278,6 +278,41 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let sinGuardar = false;
   // Una puesta al día pedida por la reconexión que no pudo correr porque había un guardado en vuelo.
   let puestaAlDiaPendiente = false;
+  // BG-088: hubo un conflicto con otro dispositivo y la recarga de su versión NO llegó. En pantalla
+  // sigue el estado perdedor; hasta que la recarga llegue, nada de lo que se edite se va a guardar.
+  let convergenciaPendiente = false;
+  // La revisión que este cliente tenía cuando se detectó ese conflicto. La deuda solo se salda con una
+  // carga POSTERIOR a ella: una lectura que ya viajaba con la foto de antes no trae lo del otro dispositivo.
+  let revisionEnConflicto = 0;
+  const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
+  const CONFLICTO_SIN_RECARGA = "Otro dispositivo guardó cambios, pero no se pudo recargar su versión.";
+  // Cuántas cargas del servidor se han adoptado, y cuántas sesiones se han olvidado. Una respuesta que
+  // llega tarde se compara contra estos contadores: si entre tanto se adoptó otra carga, o la sesión
+  // cambió, lo que traiga ya no decide nada (BG-088, revisión adversarial).
+  let cargaGen = 0;
+  let sesionEpoca = 0;
+  /**
+   * Toda carga del servidor que queda adoptada pasa por aquí, venga de donde venga (un conflicto, el
+   * sync en vivo, volver de otra página). Si había una recarga de conflicto debida, esta la salda: se
+   * apaga su aviso fijo y se dice que la versión del servidor quedó cargada, porque lo editado
+   * mientras tanto se acaba de descartar.
+   */
+  const alCargar = (revision: number) => {
+    cargaGen += 1;
+    // Lo cargado es lo que hay en el servidor y no queda nada local sin guardar (quien llama lo
+    // garantiza): cualquier aviso fijo que hubiera —red, cuerpo ilegible— ya no describe nada.
+    const habiaAviso = get().storageError;
+    if (!convergenciaPendiente) {
+      if (habiaAviso === "network" || habiaAviso === "malformed") set({ storageError: null });
+      return;
+    }
+    if (revision <= revisionEnConflicto) return; // una foto de antes del conflicto: sigue debida
+    convergenciaPendiente = false;
+    if (habiaAviso) set({ storageError: null });
+    get().showToast(CONFLICTO);
+  };
+  /** Cómo terminó una carga: adoptada, sin ledger en el servidor (204), ilegible, fallida o descartada. */
+  type Carga = "ok" | "vacio" | "ilegible" | "fallo" | "descartada";
 
   /**
    * Recarga desde la fuente de verdad preservando la ventana de undo (BG-011).
@@ -290,26 +325,34 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
    * `si-no-cambio` es el del sync en vivo: si lo local cambió mientras viajaba el GET, lo cargado es
    * anterior a lo que hay en pantalla y se descarta entero, datos y revisión.
    */
-  const doResync = async (modo: "converge" | "si-no-cambio" = "converge"): Promise<boolean> => {
-    if (!repo) return false;
+  const cargar = async (modo: "converge" | "si-no-cambio" = "converge"): Promise<Carga> => {
+    if (!repo) return "fallo";
+    const epoca = sesionEpoca;
     try {
       const before = get().data;
       const snap = await repo.fetchSnapshot();
+      // La sesión se olvidó mientras el GET viajaba (salir, caducar): esta respuesta ya no es de nadie.
+      if (epoca !== sesionEpoca) return "descartada";
       const loaded = snap.state;
       if (!loaded) {
-        // BG-012: en un resync, `null` nunca es "usuario nuevo" —ya hidratamos antes—, así que un
-        // cuerpo ilegible es lo único que lo explica. Se conserva el estado en pantalla, que es el
-        // último bueno conocido, y se avisa: en silencio el usuario seguiría editando sobre datos
-        // que el servidor ya no confirma.
-        if (repo.malformed) set({ storageError: "malformed" });
-        return false;
+        // BG-012: en un resync, `null` casi nunca es "usuario nuevo" —ya hidratamos antes—: lo normal
+        // es un cuerpo ilegible. Se conserva el estado en pantalla, que es el último bueno conocido, y
+        // se avisa: en silencio el usuario seguiría editando sobre datos que el servidor ya no confirma.
+        if (repo.malformed) { set({ storageError: "malformed" }); return "ilegible"; }
+        return "vacio"; // 204: el servidor no tiene ledger (la siembra de un usuario nuevo no llegó)
       }
+      // Nunca hacia atrás en el sync en vivo: un snapshot más viejo que lo que este cliente ya tiene es
+      // una respuesta que llegó tarde. Adoptarlo borraría de la pantalla lo guardado después, y el
+      // siguiente guardado lo borraría del servidor. En `converge` no aplica: corre con la cola
+      // retenida, así que no hay respuesta tardía posible, y tras un 409 lo que diga el servidor manda
+      // —también si su revisión retrocedió porque se restauró un respaldo—.
+      if (modo === "si-no-cambio" && snap.revision < repo.currentRevision) return "descartada";
       // BG-052: en el sync en vivo, si el estado local cambió mientras el GET viajaba, lo cargado
       // es ANTERIOR a lo que hay en pantalla. Se descarta entero, datos y revisión: pintarlo borraba
       // la edición recién hecha y adoptar su revisión dejaba que la siguiente escritura la borrara
       // también del servidor. Si traía una escritura de otro dispositivo, el guardado pendiente sale
       // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
-      if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return false;
+      if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return "descartada";
       if (modo === "converge") { pendingSave = null; sinGuardar = false; }
       repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
@@ -325,15 +368,18 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // pasa al periodo en curso del calendario nuevo; el anterior podría no existir en él.
       const cambioCalendario = JSON.stringify(before.cycles ?? null) !== JSON.stringify(loaded.cycles ?? null);
       set({ data: loaded, ...(cambioCalendario ? { period: { mode: "month" as const, month: nowFor(loaded) } } : {}) });
-      return true;
+      alCargar(snap.revision);
+      return "ok";
     } catch {
       // Un 401 aquí es la otra vía por la que se descubre una sesión muerta: el sync en vivo
       // dispara resync y el GET rebota. El resto de fallos se ignoran — una recarga o el próximo
       // evento re-sincronizan (FR-510).
-      if (repo.unauthorized) onSessionExpired();
-      return false;
+      if (epoca === sesionEpoca && repo.unauthorized) onSessionExpired();
+      return "fallo";
     }
   };
+  const doResync = async (modo: "converge" | "si-no-cambio" = "converge"): Promise<boolean> =>
+    (await cargar(modo)) === "ok";
 
   /**
    * La sesión dejó de ser válida: se descarta lo pendiente y se BORRAN los datos en memoria. No
@@ -345,8 +391,60 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     pendingSave = null;
     sinGuardar = false;
     puestaAlDiaPendiente = false;
+    convergenciaPendiente = false;
+    sesionEpoca += 1;
+    cargaGen += 1;
     reserveUndo = null;
     set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, loadFailed: false, storageError: null, toast: null, toastUndo: false });
+  };
+
+  /**
+   * BG-088 — converger al servidor tras un conflicto, y decir la VERDAD de cómo fue.
+   *
+   * Antes cada 409 hacía `doResync()` y avisaba «se recargó la versión del servidor» sin mirar si la
+   * recarga había llegado. Si fallaba (red, 5xx), en pantalla seguía el estado perdedor con un aviso
+   * que decía lo contrario, y —con la revisión ya adoptada por el repositorio— la siguiente edición
+   * se guardaba encima de lo del otro dispositivo. Ahora la revisión solo se adopta con sus datos, el
+   * aviso distingue los dos casos, y la recarga que no llegó queda debida: la reintentan el sync, la
+   * reconexión y cualquier guardado (que recibe otro 409 y vuelve aquí).
+   *
+   * Se llama SIEMPRE con la cola de guardado retenida —dentro del drenador o de `exclusive`—: una
+   * recarga que adopta siempre no puede cruzarse con un guardado en vuelo, o al llegar tarde borraría
+   * lo que ese guardado acaba de dejar en el servidor.
+   *
+   * @param avisar false para quien ya muestra su propio mensaje (la previsualización de ciclos).
+   * @returns true si la versión del servidor quedó cargada.
+   */
+  const convergerTrasConflicto = async (avisar = true): Promise<boolean | "vacio"> => {
+    const base = repo?.currentRevision ?? 0;
+    const epoca = sesionEpoca;
+    const yaDebia = convergenciaPendiente;
+    if (!yaDebia) revisionEnConflicto = base;
+    const r = await cargar("converge");
+    // La sesión se olvidó mientras tanto: ni aviso ni marca, o saldrían en la pantalla de acceso.
+    if (epoca !== sesionEpoca || get().sessionExpired) return false;
+    // Convergido: por esta carga, o por otra POSTERIOR al conflicto que se adoptó mientras esta viajaba.
+    if (r === "ok" || (repo?.currentRevision ?? 0) > base) {
+      convergenciaPendiente = false;
+      if (get().storageError === "conflict") set({ storageError: null });
+      if (avisar) get().showToast(CONFLICTO);
+      return true;
+    }
+    if (r === "vacio") {
+      // El servidor no tiene ledger: el 409 no venía de otro dispositivo, sino de que la siembra de un
+      // usuario nuevo no llegó a guardarse. No hay nada que recargar ni a quién culpar: se siembra.
+      repo?.adopt(0);
+      persist(get().data);
+      return "vacio";
+    }
+    convergenciaPendiente = true;
+    // El aviso fijo dice lo que pasa de verdad; el del toast dura dos segundos. Si lo que llegó era
+    // ilegible, se queda el aviso de eso, que pide otra cosa («no edites»).
+    if (r !== "ilegible") set({ storageError: "conflict" });
+    // Un reintento que vuelve a fallar no repite el aviso: el fijo ya lo dice, y la reconexión reintenta
+    // cada pocos segundos mientras el servidor no responde.
+    if (avisar && !yaDebia) get().showToast(CONFLICTO_SIN_RECARGA);
+    return false;
   };
 
   const onSessionExpired = () => {
@@ -376,8 +474,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (ok !== false) {
           // BG-055: un guardado que llegó apaga el aviso de red de uno anterior; el snapshot que acaba
           // de entrar lleva también lo que aquel no pudo guardar.
+          // Y si quedaba debida la recarga de un conflicto, ya no: el servidor aceptó la base de este
+          // cliente, así que lo que tiene es su versión más lo que acaba de escribir.
           sinGuardar = false;
-          if (get().storageError === "network") set({ storageError: null });
+          convergenciaPendiente = false;
+          if (get().storageError === "network" || get().storageError === "conflict") set({ storageError: null });
           continue;
         }
         if (repo.unauthorized) {
@@ -433,11 +534,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
           pendingSave = null;
-          await doResync();
-          get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+          await convergerTrasConflicto();
         } else {
           sinGuardar = true;
-          set({ storageError: "network" });
+          // Con la recarga de un conflicto todavía debida, el aviso que vale es el suyo: lo que hay en
+          // pantalla no «sigue intacto», va a descartarse cuando esa recarga llegue.
+          set({ storageError: convergenciaPendiente ? "conflict" : "network" });
         }
       }
     } finally {
@@ -456,9 +558,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // Un snapshot que llegó mientras la vuelta terminaba no puede quedar varado.
       if (pendingSave && !saveInFlight) { kickDrain(); return; }
       // La puesta al día que la reconexión pidió con un guardado en vuelo corre ahora, ya sin él.
-      if (puestaAlDiaPendiente && !saveInFlight && !sinGuardar) {
+      if (puestaAlDiaPendiente && !saveInFlight) {
         puestaAlDiaPendiente = false;
-        void doResync("si-no-cambio");
+        void get().resync(true); // por la misma puerta que la reconexión: mira lo debido antes de recargar
       }
     });
   };
@@ -494,12 +596,13 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       } finally {
         saveInFlight = false;
         if (pendingSave) kickDrain();
+        // Una puesta al día de reconexión que llegó con la cola retenida no se pierde: corre ahora.
+        else if (puestaAlDiaPendiente) { puestaAlDiaPendiente = false; void get().resync(true); }
       }
     });
     exclusiveChain = run.catch(() => undefined);
     return run;
   };
-  const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
   let lastSig: string | null = null;
   let lastAt = 0;
@@ -556,8 +659,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         return;
       }
       if (res.reason === "revision_conflict") {
-        await doResync();
-        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        await convergerTrasConflicto();
         return;
       }
       // FR-2512: el cierre se rechazó porque hay celdas descuadradas que ESTA pestaña no conocía —
@@ -595,8 +697,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         return;
       }
       if (res.reason === "revision_conflict") {
-        await doResync();
-        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        await convergerTrasConflicto();
         return;
       }
       get().showToast(
@@ -626,9 +727,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const res = await repo.previewCycles(target);
       // BG-073: una sesión muerta vuelve al login, como en el guardado; no se queda en «inténtalo de nuevo».
       if (!res.ok && res.code === "unauthorized") onSessionExpired();
-      // BG-067: el 409 ya dejó la revisión del servidor en el repositorio; sin sus datos, el guardado
-      // siguiente pisaría lo del otro dispositivo. Se converge, como tras cualquier conflicto.
-      if (!res.ok && res.code === "revision_conflict") await doResync();
+      // BG-067: tras un 409 se converge, como tras cualquier conflicto. El aviso lo pone el formulario.
+      if (!res.ok && res.code === "revision_conflict") await convergerTrasConflicto(false);
       return res;
     }),
     applyPeriodMode: async (target) => exclusive(async () => {
@@ -637,10 +737,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (!res.ok) {
         if (res.code === "unauthorized") { onSessionExpired(); return res; } // BG-073
         if (res.code === "network") set({ storageError: "network" });
-        if (res.code === "revision_conflict") {
-          await doResync(); // BG-067: ver previewPeriodMode
-          get().showToast(CONFLICTO);
-        }
+        if (res.code === "revision_conflict") await convergerTrasConflicto(); // BG-067: ver previewPeriodMode
         return res;
       }
       // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
@@ -669,12 +766,14 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
         // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
         if (res.reason === "network") set({ storageError: "network" });
-        // BG-067: con la cola retenida, un 409 solo puede venir de otro dispositivo. El repositorio ya
-        // adoptó su revisión; sin sus datos, la siguiente edición lo pisaría en silencio. Se converge
-        // y se avisa. Quien reintenta (la tarjeta de arranque) debe mirar antes si ya hay apertura.
+        // BG-067: con la cola retenida, un 409 solo puede venir de otro dispositivo. Se converge y se
+        // avisa. Quien reintenta (la tarjeta de arranque) debe mirar antes si ya hay apertura.
         if (res.reason === "revision_conflict") {
-          await doResync();
-          get().showToast(CONFLICTO);
+          const r = await convergerTrasConflicto();
+          // Sin ledger en el servidor no hubo ningún otro dispositivo: es la siembra que no había
+          // llegado, y ya va en camino. Quien llama lo trata como un fallo corriente y reintenta.
+          if (r === "vacio") return { ok: false as const, reason: "ledger_sin_crear" };
+          return { ...res, recargado: r };
         }
         return res;
       }
@@ -819,8 +918,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     // servidor corre en UTC y de noche daría el día siguiente (ADR-02 del TRD).
     //
     // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-002e
-    addCellNote: (leafId, month, text) => {
-      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO());
+    addCellNote: (leafId, month, text, plane = "actual") => {
+      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO(), plane);
       if ("rejected" in result) return false;
       set({ data: result.state });
       persist(result.state);
@@ -889,7 +988,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (sinGuardar && !saveInFlight && !pendingSave) persist(get().data);
         return;
       }
+      // Y nunca hacia atrás: la respuesta de una re-hidratación que viajó mientras un guardado llegaba
+      // trae un estado anterior al que este cliente ya tiene confirmado (BG-088, revisión adversarial).
+      if (yaHidratado && loaded && revision < repo.currentRevision) return;
       repo.adopt(loaded ? revision : 0);
+      alCargar(loaded ? revision : 0);
       // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
       // esta sesión reutilizaba `createdAt` bajos y se colaba delante de las anteriores en el orden
       // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.
@@ -925,6 +1028,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // llegar, así que si se salta aquí se debe, y corre cuando la cola quede libre.
       if (saveInFlight || pendingSave) {
         if (porReconexion) puestaAlDiaPendiente = true;
+        return;
+      }
+      // BG-088: quedó debida la recarga de un conflicto. Es la que toca ahora, y avisa al llegar. Con
+      // la cola retenida: adopta siempre, así que no puede cruzarse con un guardado ni con otra igual.
+      if (convergenciaPendiente) {
+        await exclusive(async () => { if (convergenciaPendiente) await convergerTrasConflicto(); });
         return;
       }
       // Hay una edición en pantalla que el servidor no tiene: recargar la borraría. Se reintenta el

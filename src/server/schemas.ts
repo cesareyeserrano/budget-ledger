@@ -148,6 +148,9 @@ const apiCellNotes = z.record(
   z.string(),
   z.record(PERIOD_KEY, z.array(z.object({
     id: z.string(), createdAt: z.number(), text: z.string().min(1).max(280), date: NOTE_DAY.optional(),
+    // BG-089: declararlo NO es opcional aunque el campo lo sea — zod descarta lo que no declara, y este
+    // esquema valida también lo que el cliente CARGA: sin esta línea el plano se perdería en silencio.
+    plane: z.literal("budget").optional(),
   })).refine(idsUnicos, "Hay notas con el mismo id en una celda"))
 );
 

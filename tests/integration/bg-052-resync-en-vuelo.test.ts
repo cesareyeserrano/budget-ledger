@@ -206,7 +206,11 @@ describe("BG-052 · una recarga en vuelo no pisa la edición local", () => {
     api.failNextPut = 500;
     store.getState().setLeafAmount("c-transporte", cur, "budget", 300);
     await delay(40);
-    expect(store.getState().storageError).toBe("network");
+    // BG-088: el fallo de red NO se trata como otro conflicto (ni aviso de «otro dispositivo» ni
+    // edición descartada), que es lo que esta prueba vigila. Lo que cambió es el aviso fijo: con la
+    // recarga del conflicto todavía debida, el que vale es el suyo —lo de pantalla se va a descartar
+    // cuando esa recarga llegue—, no el de «tus datos siguen intactos, reintenta».
+    expect(store.getState().storageError).toBe("conflict");
     expect(store.getState().toast).toBe(null);
     expect(store.getState().data.budgets["c-transporte"]?.[cur]).toBe(300); // la edición sigue en pantalla
   });

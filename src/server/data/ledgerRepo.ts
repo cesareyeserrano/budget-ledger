@@ -187,6 +187,8 @@ function rowsToState(
     // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601c, TC-ID: TC-FDC-004h, TC-FDC-006f
     ((cellNotes[r.nodeId] ??= {})[r.period as PeriodKey] ??= []).push({
       id: r.id, createdAt: r.createdAt, text: r.text, ...(r.date !== null ? { date: r.date } : {}),
+      // BG-089: NULL → clave ausente (Ejecutado); solo 'budget' viaja.
+      ...(r.plane === "budget" ? { plane: "budget" as const } : {}),
     });
   }
   for (const byMonth of Object.values(cellNotes)) {
@@ -627,7 +629,7 @@ export async function insertSnapshot(tx: DbTx, ownerId: string, state: LedgerSta
   for (const [nodeId, byMonth] of Object.entries(state.cellNotes ?? {})) {
     for (const [month, notes] of Object.entries(byMonth)) {
       for (const n of notes ?? []) {
-        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text, date: n.date ?? null });
+        noteValues.push({ ownerId, nodeId, period: month, id: n.id, createdAt: n.createdAt, text: n.text, date: n.date ?? null, plane: n.plane ?? null });
       }
     }
   }
@@ -706,6 +708,28 @@ export function periodMismatches(state: LedgerState, calBase: Calendar, prev?: L
   return ids;
 }
 
+/** Devuelve `next` con el plano de Presupuestado repuesto en los comentarios que lo tienen en `prev`. */
+function conservarPlanoDeComentarios(prev: LedgerState, next: LedgerState): LedgerState {
+  const dePresupuesto = new Set<string>();
+  for (const byP of Object.values(prev.cellNotes ?? {})) {
+    for (const notes of Object.values(byP ?? {})) for (const n of notes ?? []) if (n.plane === "budget") dePresupuesto.add(n.id);
+  }
+  if (dePresupuesto.size === 0 || !next.cellNotes) return next;
+  let cambio = false;
+  const cellNotes: CellNotesMap = {};
+  for (const [nodeId, byP] of Object.entries(next.cellNotes)) {
+    cellNotes[nodeId] = {};
+    for (const [period, notes] of Object.entries(byP ?? {})) {
+      cellNotes[nodeId]![period as PeriodKey] = (notes ?? []).map((n) => {
+        if (n.plane || !dePresupuesto.has(n.id)) return n;
+        cambio = true;
+        return { ...n, plane: "budget" as const };
+      });
+    }
+  }
+  return cambio ? { ...next, cellNotes } : next;
+}
+
 export async function saveLedger(
   ownerId: string,
   state: LedgerState,
@@ -757,6 +781,12 @@ export async function saveLedger(
     // FR-3006: un cliente con código anterior puede reenviar la fila global `@retiros`; se reparte
     // aquí, antes de juzgar, con la misma regla que la conversión de la carga (TC-SDB-055e).
     state = convertPlannedRetiros(state, serverScope(state)).state;
+    // BG-089: un cliente con código anterior (una pestaña abierta desde antes del despliegue) no conoce
+    // el plano de un comentario: lo pierde al cargar y reenvía el snapshot sin él, con lo que todos los
+    // comentarios de Presupuestado pasarían a Ejecutado para siempre. Ninguna operación cambia un
+    // comentario de celda, así que el que llega sin plano y está GUARDADO como de Presupuestado lo sigue
+    // siendo. Los ids sobreviven a mover un nodo y a cambiar de periodo.
+    if (prev) state = conservarPlanoDeComentarios(prev, state);
     const cal = calendarOf(state);
     const closure = head ? closureFromRow(head, cal) : NO_CLOSURE;
     const mismatch = periodMismatches(state, cal, prev);
