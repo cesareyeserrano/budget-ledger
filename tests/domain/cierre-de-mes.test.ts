@@ -659,6 +659,13 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // su función no toca (comparaba 0 con 0). Las dos pasan a ejercitar el dominio. Se endurecen dos
     // pruebas de multi-anio; no se relaja ninguna, y ningún cambio de cierre-de-mes.
     //
+    // ANCLA AVANZADA a a847605 el mismo 2026-10-02, por BL-073 (deuda de la auditoría), no por
+    // cierre-de-mes. En `tests/integration/backend/multi-anio.test.ts`, TC-MAN-281f y TC-MAN-014f
+    // buscaban cadenas en el SQL de la migración 0002 y no ejecutaban nada; ahora corren la migración
+    // de verdad sobre una base nueva (dos pasadas de scripts/migrate.mjs, y la 0002 sobre tablas con
+    // datos). Se endurecen dos pruebas; las demás del fichero no cambian, y los otros dos ficheros
+    // vigilados no se tocaron.
+    //
     // Los tres ficheros siguen vigilados a partir del ancla nueva. Si vuelve a fallar: avanzar el ancla
     // y escribir aquí por qué, nunca borrar la prueba.
     const ficheros = [
@@ -666,7 +673,7 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat 73d3035 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat a847605 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
