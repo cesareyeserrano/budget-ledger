@@ -106,6 +106,8 @@ export function OpeningCard() {
       for (let intento = 0; intento < 3; intento++) {
         const res = await setStart(hoy, 0, { soloSiNoDeclarada: true });
         if (res.ok || res.reason !== "revision_conflict") break;
+        // Si la versión del otro dispositivo no se pudo cargar, reintentar ahora daría lo mismo.
+        if (res.recargado === false) break;
         const vigente = useLedgerStore.getState().data;
         if (vigente.startMonth || vigente.openingBalance != null) break;
       }
