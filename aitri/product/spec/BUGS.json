@@ -8090,7 +8090,7 @@
       "actual_result": "adjustCell (adjust.ts:134) acota por abajo y no por arriba; setLeafAmount (mutations.ts:404) si usa MONTO_MAX. Aplicar el mismo tope.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8098,8 +8098,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-14",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.534Z",
-      "updated_at": "2026-09-29T14:39:04.534Z",
-      "resolution": null
+      "updated_at": "2026-10-02T00:26:38.743Z",
+      "resolution": "adjustCell recorta en MONTO_MAX como setLeafAmount y rechaza la diferencia que no cabe en un movimiento. Commit 1d2f701; pruebas tests/domain/bg-075-tope-en-ejecutado.",
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:38.686Z"
     },
     {
       "id": "BG-076",
@@ -8134,7 +8136,7 @@
       "actual_result": "rewriteForDelete y repointMovements (mutations.ts:265-270, 505-514) solo tratan las notas de retiros planeados. Borrar las notas del nodo borrado y trasladar las del padre al primer hijo.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8142,8 +8144,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-16",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.690Z",
-      "updated_at": "2026-09-29T14:39:04.690Z",
-      "resolution": null
+      "updated_at": "2026-10-02T00:26:38.847Z",
+      "resolution": "Borrar un nodo se lleva sus notas y, cuando las celdas de una hoja pasan a otra, las notas van con ellas (repointMovements). Las huerfanas ya guardadas se reparan al cargar, sin tocar cifras. Commit 94f42f5; pruebas bg-077-notas-sin-dueno y backend/bg-077-reparacion. En produccion no habia ninguna el 1-oct.",
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:38.792Z"
     },
     {
       "id": "BG-078",
@@ -8154,7 +8158,7 @@
       "actual_result": "Ver AUDIT_REPORT 2026-09-28, BUG-17 (a)-(d), con archivo y linea de cada uno.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8162,8 +8166,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-17",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.771Z",
-      "updated_at": "2026-09-29T14:39:04.771Z",
-      "resolution": null
+      "updated_at": "2026-10-02T00:26:38.951Z",
+      "resolution": "(a) el servidor acepta los movimientos sin fecha que ya estaban guardados y sigue rechazando los nuevos (decision del usuario); (b) dos transiciones que terminan en el mismo mes se funden en una, y un cambio que estiraria un ciclo cerrado se rechaza (decision del usuario); (c) el catId/subId sale del nodo destino al editar y al mover, el cierre y el guardia de reservas ya no lo comparan, y los pares viejos se corrigen al cargar; (d) ya estaba resuelto por BG-052. Commits 0eef153, 717125b, 46a897b.",
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:38.896Z"
     },
     {
       "id": "BG-079",
@@ -8174,7 +8180,7 @@
       "actual_result": "Ver AUDIT_REPORT 2026-09-28, BUG-21 (a)-(d), con archivo y linea de cada uno.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8182,14 +8188,16 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-21",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.851Z",
-      "updated_at": "2026-09-29T17:45:44.289Z",
-      "resolution": null,
+      "updated_at": "2026-10-02T00:26:39.056Z",
+      "resolution": "(a) la carga corrige la fecha del ajuste de apertura de una clave de transicion; (b) sin datos afectados en produccion ni en dev el 1-oct: no se hizo migracion por decision del usuario, queda anotado en BL-084; (c) resuelto con BG-053; (d) primer guardado concurrente 409, POST /movements sin ledger 404, ids repetidos 422. Commits c3e8a60, 46a897b.",
       "log": [
         {
           "at": "2026-09-29T17:45:44.289Z",
           "text": "Item (c) resuelto en el commit de reparacion de BG-053: loadLedger relee la revision tras las migraciones perezosas."
         }
-      ]
+      ],
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:39.001Z"
     },
     {
       "id": "BG-080",
@@ -8200,7 +8208,7 @@
       "actual_result": "Ver AUDIT_REPORT 2026-09-28, BUG-32 (a)-(f), con archivo y linea de cada uno.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8208,8 +8216,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-32",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:04.934Z",
-      "updated_at": "2026-09-29T14:39:04.934Z",
-      "resolution": null
+      "updated_at": "2026-10-02T00:26:39.160Z",
+      "resolution": "(a) la celda de retiros ejecutados de un mes cerrado abre en solo lectura; (b) deshacer quita solo el retiro y dice el motivo real si no puede; (c) el resaltado se apaga; (d) Guardar equivale a Enter y confirmar sin cambios no guarda; (e) avisos por turno, no por texto; (f) solo se ilumina el destino valido; (g) el titulo del Dashboard dice los anos que pinta. Commits 34057d5, ff371e4, 669070b.",
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:39.105Z"
     },
     {
       "id": "BG-081",
@@ -8220,7 +8230,7 @@
       "actual_result": "Ver AUDIT_REPORT 2026-09-28, BUG-33 (a)-(h), con archivo y linea de cada uno.",
       "environment": "develop @ f2fb90a",
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8228,8 +8238,10 @@
       "evidence": "aitri/product/spec/AUDIT_REPORT.md, Technical Review (code) 2026-09-28, BUG-33",
       "reported_by": "aitri audit 2026-09-28",
       "created_at": "2026-09-29T14:39:05.012Z",
-      "updated_at": "2026-09-29T14:39:05.012Z",
-      "resolution": null
+      "updated_at": "2026-10-02T00:26:39.265Z",
+      "resolution": "(a)-(h) arreglados: politica de fin de mes, reinicio del formulario de periodo, registro con la confirmacion en pantalla, error de acceso y mensaje de contrasena corta (decision del usuario), Tu historia (Descartar, ano, saldo vacio invalido), aviso de cierre con el calendario vigente, historial que se refresca y reconexion del sync sin perder ediciones sin guardar. Commits 09faaa2, c5e4d9f, 669070b.",
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:39.210Z"
     },
     {
       "id": "BG-082",
@@ -8270,7 +8282,7 @@
       "actual_result": "",
       "environment": null,
       "severity": "low",
-      "status": "open",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8278,14 +8290,16 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-09-30T01:40:22.379Z",
-      "updated_at": "2026-09-30T01:40:29.081Z",
-      "resolution": null,
+      "updated_at": "2026-10-02T00:26:39.371Z",
+      "resolution": "Al confirmar un borrado con teclado el foco pasa al rotulo de la fila vecina (hermana siguiente o la de arriba). Commit e601d31; e2e bg-083-foco-tras-borrar.",
       "log": [
         {
           "at": "2026-09-30T01:40:29.081Z",
           "text": "Hallazgo 4 de la revision adversarial de BG-069 (30-sep). Cancelar y renombrar ya devuelven el foco al rotulo (devolverFocoSiSePerdio); al confirmar un borrado la fila desaparece y no hay a donde volver. Arreglo sugerido: llevar el foco al rotulo de la fila vecina."
         }
-      ]
+      ],
+      "fix_commit_sha": "46a897b0d169313aa97282c96d23a43a2f73a905",
+      "fix_at": "2026-10-02T00:26:39.315Z"
     },
     {
       "id": "BG-084",
@@ -8403,6 +8417,26 @@
       "fix_at": "2026-10-01T02:28:47.233Z",
       "close_commit_sha": "c5d92bbd78e72fc5d86bc5b3986b7db03ca7d0d9",
       "close_at": "2026-10-01T16:02:17.770Z"
+    },
+    {
+      "id": "BG-088",
+      "title": "Tras un 409, si la recarga falla, la siguiente edicion pisa lo que guardo el otro dispositivo",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "",
+      "actual_result": "",
+      "environment": "develop @ 717125b",
+      "severity": "medium",
+      "status": "open",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": "Reproducido el 2026-10-01 al revisar BG-078 (d): PUT /ledger/start base=2 -> 409 (rev 3), GET /ledger -> 500, PUT /ledger base=3 -> 200; en el servidor quedo la cifra local y se perdio la del otro dispositivo.",
+      "reported_by": null,
+      "created_at": "2026-10-01T23:11:24.935Z",
+      "updated_at": "2026-10-01T23:11:24.935Z",
+      "resolution": null
     }
   ]
 }
