@@ -444,8 +444,14 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // la hoja sigue al tipo, con el mismo consumo de números aleatorios. Ninguna aserción cambió, y el
     // guardia de esta feature tampoco. `techo-de-flujo.test.ts` no se tocó.
     //
+    // ANCLA AVANZADA a c54d22d el 2026-10-02. Lo que tocó `techo-de-flujo.test.ts` fue BL-063, la deuda de
+    // la auditoría del 28-sep, no esta feature: TC-TDF-104e comparaba `m.flow` con `m.flow` veinticuatro
+    // veces y pasó a un e2e que lee las dos filas que pinta el producto. En el fichero vigilado quedó la
+    // comprobación de que la pareja está declarada en MIRROR y en ROWS, sin el id. Ninguna otra prueba
+    // del fichero cambió, y el guardia de esta feature tampoco. `contrapartidas-reserva.test.ts` no se tocó.
+    //
     const tocadas = execSync(
-      "git diff --name-only ccc4639 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only c54d22d -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");
