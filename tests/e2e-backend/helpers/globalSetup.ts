@@ -14,6 +14,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { spawn, execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import os from "node:os";
 
@@ -22,21 +23,24 @@ export const E2E_BASE = `http://localhost:${E2E_PORT}`;
 export const STATE_FILE = path.join(os.tmpdir(), "ledger-e2e-backend-state.json");
 
 /**
- * ¿Hay alguien escuchando ya en el puerto de la suite? (BL-074)
+ * ¿Escucha alguien ya en el puerto? Basta con que acepte una conexión TCP, hable lo que hable.
  *
- * La misma guarda que la suite principal tiene desde BG-016 (tests/e2e/helpers/globalSetup.ts). Sin
- * ella, con un servidor ajeno en el puerto —un huérfano de una corrida interrumpida, o el gate
- * `e2e.sh`, que usa este mismo 3230— el `next start` de abajo moría con EADDRINUSE y `waitForHealth`
- * recibía el 200 del proceso AJENO: la suite entera medía una app que no era la suya, contra una
- * base que no era la suya.
+ * La primera versión preguntaba por `/health` y solo daba el puerto por ocupado si respondía 2xx:
+ * un proceso que no habla HTTP, o uno cuyo `/health` responde otra cosa, pasaba la guarda, y la
+ * suite levantaba Postgres, compilaba, moría con EADDRINUSE y esperaba minutos a un `/health` que
+ * nunca iba a ser el suyo (BL-074, revisión del PR #76). Es lo que ya hace `smoke.sh` con `lsof`.
+ * Se prueba IPv4 e IPv6 porque `next start` escucha en las dos y el intruso puede estar en una.
  */
-async function portIsBusy(url: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
+async function portIsBusy(port: number): Promise<boolean> {
+  const acepta = (host: string) =>
+    new Promise<boolean>((resolve) => {
+      const s = net.connect({ port, host });
+      const fin = (ocupado: boolean) => { s.destroy(); resolve(ocupado); };
+      s.setTimeout(2000, () => fin(false));
+      s.once("connect", () => fin(true));
+      s.once("error", () => fin(false));
+    });
+  return (await acepta("127.0.0.1")) || (await acepta("::1"));
 }
 
 async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
@@ -55,9 +59,9 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   // Antes de levantar nada: ni contenedor ni build tienen sentido si el puerto ya sirve.
-  if (await portIsBusy(E2E_BASE)) {
+  if (await portIsBusy(E2E_PORT)) {
     throw new Error(
-      `El puerto ${E2E_PORT} ya está ocupado por otro proceso que responde /health.\n` +
+      `El puerto ${E2E_PORT} ya está ocupado por otro proceso.\n` +
         `Casi seguro es un servidor huérfano de una corrida anterior, o el gate e2e.sh en marcha.\n` +
         `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
         `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
