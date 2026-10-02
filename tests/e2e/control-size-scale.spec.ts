@@ -129,20 +129,35 @@ test.describe("escritorio (1440)", () => {
 
   // @aitri-tc TC-853f
   test("TC-853f: el código de estado (rojo) de la grilla sigue vigente", async ({ page }) => {
+    // BL-063: afirmaba que dos variables de color no estaban vacías. Lo que el caso declara es que
+    // el Ejecutado de un gasto pasado del 120 % se pinta con --state-over.
+    const rojo = await page.evaluate(() => {
+      const e = document.createElement("span");
+      e.style.color = "var(--state-over)";
+      document.body.appendChild(e);
+      const c = getComputedStyle(e).color;
+      e.remove();
+      return c;
+    });
+    const mes = await page.evaluate(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    });
+    const celda = page.locator(`[data-cell="c-vivienda"][data-month="${mes}"][data-plane="actual"]`);
+    // Antes del movimiento la celda NO está en rojo: el color que se comprueba abajo lo trae el estado.
+    await expect(celda).toHaveCount(1);
+    await expect(celda).not.toHaveCSS("color", rojo);
+
     await page.getByRole("button", { name: /Nuevo movimiento/ }).click();
     await page.getByTestId("category-row").getByText("Vivienda", { exact: true }).first().click();
     await page.getByTestId("amount-input").fill("99999999");
     await page.getByTestId("save-button").first().click();
-    await page.waitForTimeout(600);
-    // el Ejecutado de Vivienda (≥120% del presupuesto) usa --state-over
-    const stateOver = (await tokens(page)).accent; // solo para forzar carga
-    expect(stateOver.length).toBeGreaterThan(0);
-    const cell = page.getByTestId("node-row").filter({ hasText: "Vivienda" }).first();
-    const color = await cell.evaluate((el) => {
-      const over = getComputedStyle(document.documentElement).getPropertyValue("--state-over").trim();
-      return { over, html: el.outerHTML.includes("state-over") || getComputedStyle(el).color };
-    });
-    expect(color.over.length).toBeGreaterThan(0); // el token de estado sigue definido
+
+    // el Ejecutado de Vivienda (≥120 % del presupuesto) usa --state-over, con su glifo de gravedad
+    await expect(celda).toHaveCSS("color", rojo);
+    await expect(celda.getByTestId("cell-glyph")).toHaveText("››");
+    // …y solo esa: el Presupuestado de al lado sigue en su tinta de siempre
+    await expect(page.locator(`[data-cell="c-vivienda"][data-month="${mes}"][data-plane="budget"]`)).not.toHaveCSS("color", rojo);
   });
 
   // @aitri-tc TC-852e

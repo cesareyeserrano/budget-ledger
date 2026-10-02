@@ -13,42 +13,52 @@ import { buildSeedConMontos } from "../helpers/seedConMontos";
 import type { LedgerState } from "@/domain/types";
 import { P0 } from "../helpers/periods";
 
-beforeEach(() => localStorage.clear());
-afterEach(() => vi.restoreAllMocks());
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** API simulada con revisión creciente, para poder afirmar que NO se escribió. */
+beforeEach(() => localStorage.clear());
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.resetModules(); });
+
+/** Servidor simulado con revisión creciente, para poder afirmar que NO se escribió. */
 function stubApi(initial: LedgerState | null, revisionInicial = 0) {
-  let stored = initial;
+  let stored = initial === null ? null : JSON.stringify(initial);
   let revision = revisionInicial;
   let puts = 0;
-  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
-    if (init?.method === "PUT") {
+  vi.stubGlobal("fetch", vi.fn(async (url: unknown, init?: RequestInit) => {
+    const u = String(url);
+    if (!u.endsWith("/api/v1/ledger")) return new Response("{}", { status: 404 }); // preferencias, sync…
+    if ((init?.method ?? "GET") === "PUT") {
       puts += 1;
-      stored = JSON.parse(String(init.body)).state;
+      stored = JSON.stringify((JSON.parse(String(init!.body)) as { state: LedgerState }).state);
       revision += 1;
       return new Response(JSON.stringify({ revision }), { status: 200 });
     }
     if (stored === null) return new Response(null, { status: 204 });
-    return new Response(JSON.stringify({ revision, state: stored }), { status: 200 });
-  });
-  vi.stubGlobal("fetch", fetchMock);
-  return { escrituras: () => puts, revision: () => revision };
+    return new Response(JSON.stringify({ revision, state: JSON.parse(stored) }), { status: 200 });
+  }));
+  return { escrituras: () => puts, revision: () => revision, guardado: () => stored };
 }
 
-/** Lo que hace el borde de la app: si el servidor no trae libro, siembra y persiste (FR-513). */
-async function primerArranque(repo: ServerRepository): Promise<LedgerState> {
-  const cargado = await repo.load();
-  if (cargado !== null) return cargado;
-  const semilla = buildSeed("local", P0);
-  await repo.save("local", semilla);
-  return semilla;
+/**
+ * Abrir la app: el `hydrate()` REAL del store, que es quien decide si siembra (FR-513).
+ *
+ * BL-063: aquí había una función `primerArranque` que reescribía esa decisión dentro de la prueba
+ * («si load() devuelve null, sembrar y guardar») y las pruebas medían ESA copia; el store no se
+ * llamaba nunca. Si el producto empezara a re-sembrar una cuenta con libro, seguían en verde.
+ */
+async function abrirLaApp() {
+  vi.resetModules();
+  const store = (await import("@/state/store")).useLedgerStore;
+  await store.getState().hydrate();
+  await delay(50); // un guardado que no debía ocurrir tendría tiempo de salir
+  expect(store.getState().hydrated).toBe(true);
+  return store.getState().data;
 }
 
 describe("FR-2301 · lo que se persiste en el primer arranque", () => {
   it("TC-SIN-004h: el snapshot persistido llega vacío y vuelve vacío desde una lectura nueva", async () => {
     // @aitri-tc TC-SIN-004h
     const api = stubApi(null);
-    await primerArranque(new ServerRepository());
+    await abrirLaApp();
 
     // Una lectura NUEVA, no la que ya teníamos en memoria.
     const releido = await new ServerRepository().load();
@@ -66,15 +76,18 @@ describe("NFR-2301 · las cuentas existentes no se tocan", () => {
     // @aitri-tc TC-SIN-020h
     const previo = buildSeedConMontos("local", P0);
     previo.budgets["s-comida-mercado"]!["2026-01"] = 120_000;
-    previo.actuals["s-comida-mercado"]!["2026-01"] = 98_000;
-    const antes = JSON.stringify(previo);
     const api = stubApi(previo, 7);
+    const antes = api.guardado();
 
-    const estado = await primerArranque(new ServerRepository());
+    const estado = await abrirLaApp();
 
-    expect(JSON.stringify(estado)).toBe(antes);
+    // En pantalla, lo del servidor…
+    expect(estado.budgets).toEqual(previo.budgets);
+    expect(estado.actuals).toEqual(previo.actuals);
+    expect(estado.movements).toHaveLength(previo.movements.length);
     expect(estado.budgets["s-comida-mercado"]!["2026-01"]).toBe(120_000);
-    expect(estado.actuals["s-comida-mercado"]!["2026-01"]).toBe(98_000);
+    // …y en el servidor, ni un byte distinto ni una escritura.
+    expect(api.guardado()).toBe(antes);
     expect(api.escrituras()).toBe(0);
     expect(api.revision()).toBe(7);
   });
@@ -82,13 +95,19 @@ describe("NFR-2301 · las cuentas existentes no se tocan", () => {
   it("TC-SIN-021e: una cuenta que borró todos sus montos tampoco se re-siembra", async () => {
     // @aitri-tc TC-SIN-021e
     // La condición es el 204, NO la ausencia de montos: un usuario que vació su libro a mano
-    // tiene tanto derecho a que no se lo rellenen como uno que lo tiene lleno.
-    const vaciado: LedgerState = { ...buildSeed("local", P0), nodes: buildSeed("local", P0).nodes };
+    // tiene tanto derecho a que no se lo rellenen como uno que lo tiene lleno. Para distinguir «lo
+    // que guardó» de «una semilla nueva», su libro tiene SOLO dos nodos, no los doce de la semilla.
+    const semilla = buildSeed("local", P0);
+    const vaciado: LedgerState = { ...semilla, nodes: semilla.nodes.filter((n) => n.id === "g-esenciales" || n.id === "c-vivienda") };
+    expect(vaciado.nodes).toHaveLength(2);
     const api = stubApi(vaciado, 12);
+    const antes = api.guardado();
 
-    const estado = await primerArranque(new ServerRepository());
+    const estado = await abrirLaApp();
 
+    expect(estado.nodes.map((n) => n.id).sort()).toEqual(["c-vivienda", "g-esenciales"]);
     expect(Object.keys(estado.budgets)).toHaveLength(0);
+    expect(api.guardado()).toBe(antes);
     expect(api.escrituras()).toBe(0);
     expect(api.revision()).toBe(12);
   });
@@ -96,11 +115,17 @@ describe("NFR-2301 · las cuentas existentes no se tocan", () => {
   it("TC-SIN-022f: sin libro persistido SÍ se siembra — la condición sigue colgando del 204", async () => {
     // @aitri-tc TC-SIN-022f
     const api = stubApi(null, 0);
-    const estado = await primerArranque(new ServerRepository());
+    const estado = await abrirLaApp();
 
     expect(estado.nodes).toHaveLength(12);
     expect(Object.keys(estado.budgets)).toHaveLength(0);
+    expect(Object.keys(estado.actuals)).toHaveLength(0);
     expect(api.escrituras()).toBe(1);
     expect(api.revision()).toBe(1);
+    // lo que quedó guardado es esa semilla sin montos
+    const guardado = JSON.parse(api.guardado()!) as LedgerState;
+    expect(guardado.nodes).toHaveLength(12);
+    expect(Object.keys(guardado.budgets)).toHaveLength(0);
+    expect(guardado.movements).toHaveLength(0);
   });
 });

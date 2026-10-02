@@ -9,6 +9,7 @@ import { writeCatWidth, readCatWidth } from "@/lib/gridWidth";
 import type { LedgerNode, LedgerState, NodeType } from "@/domain/types";
 import { P, P0 } from "../helpers/periods";
 import { CRONOMETRO_FIABLE, mejorTiempo } from "../helpers/perf";
+import { buildSeedConMontos } from "../helpers/seedConMontos";
 
 // Feature grid-ux — NFR-103 (Regression): el roll-up jerárquico sigue en ≤150ms al editar
 // una hoja, y el resize de columna NO desencadena recómputo de roll-ups.
@@ -113,8 +114,14 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
   });
 
   it("TC-212e: redimensionar la columna (writeCatWidth) NO recomputa ni altera los roll-ups", () => {
-    const state = buildSeed("local", P0);
+    // BL-062: la semilla del producto no trae montos (FR-2301) y la firma era una ristra de ceros.
+    const state = buildSeedConMontos("local", P0);
     const before = recomputeGrid(state);
+    for (const t of TYPES) {
+      expect(typeTotals(state, t, P).budget, t).toBeGreaterThan(0);
+      expect(typeTotals(state, t, P).actual, t).toBeGreaterThan(0);
+    }
+    const datosAntes = JSON.stringify(state);
 
     // Simular varios pasos de resize dentro del rango [180,480].
     for (const w of [200, 260, 320, 400, 480, 180]) {
@@ -127,7 +134,6 @@ describe("NFR-103 · roll-up jerárquico bajo umbral y desacoplado del resize", 
     const after = recomputeGrid(state);
     expect(after).toBe(before);
     // El resize no tocó las estructuras de datos del ledger.
-    expect(state.budgets).toBeTruthy();
-    expect(state.actuals).toBeTruthy();
+    expect(JSON.stringify(state)).toBe(datosAntes);
   });
 });

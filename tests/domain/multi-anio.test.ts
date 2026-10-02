@@ -1,7 +1,7 @@
 // Feature multi-anio — FR-1901/1903/1904/1906/1908/1909/1910 y sus NFR de regresión.
 // Todo es aritmética pura sobre LedgerState, así que se ataca sin DOM con valores concretos.
 // Prefijo TC-MAN-* .
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   isPeriodKey, comparePeriods, addMonths, periodRange, periodFromDate, periodOf,
@@ -9,7 +9,7 @@ import {
 } from "@/domain/periods";
 import { activeRange, oldestPeriodWithData, newestPeriodWithData, normalizeHorizon, DEFAULT_HORIZON } from "@/domain/range";
 import { computeBalanceSeries, balanceAt } from "@/domain/balance";
-import { typeTotals } from "@/domain/rollup";
+import { typeTotals, rollupBudget } from "@/domain/rollup";
 import {
   reserveHeadroom, availableMargin, plannedRetiroLimit, reserveAportes, reserveRetiros,
   reserveDelta, monthCarryUsage, monthIssues, maxWithdrawal, cellHeadroom, resolvedSeries,
@@ -21,6 +21,9 @@ import {
 // así que ya no hay eje que anclar en ella: el anclaje lo sigue haciendo `genBudget`, y estas
 // pruebas lo ejercitan componiendo la semilla poblada. Sus aserciones no se tocaron.
 import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
+import { periodKeyFromDate } from "@/lib/date";
+import { addMovement, setLeafAmount } from "@/domain/mutations";
+import { AVAILABLE_ID, reserveLeafIds } from "@/domain/reserve";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
 import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorDe, mejorTiempo, razonMediana } from "../helpers/perf";
@@ -69,12 +72,24 @@ const viejo = (i: number) => BASE.meses[i];
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 describe("FR-1901 · el periodo es año y mes", () => {
   it("TC-MAN-001h: dos marzos de años distintos conviven sin pisarse", () => {
-    const cells: Record<PeriodKey, number> = {};
-    cells["2026-03"] = 1000;
-    cells["2027-03"] = 500;
-    expect(cells["2026-03"]).toBe(1000);
-    expect(cells["2027-03"]).toBe(500);
-    expect(Object.keys(cells)).toHaveLength(2);
+    // BL-063: escribía dos claves en un objeto local y las leía de vuelta; no pasaba por el producto.
+    // Ahora las escribe el dominio, sobre el mismo nodo, y se leen del estado y de sus roll-ups.
+    const nodo = "c-vivienda";
+    const vacio: LedgerState = { ...buildSeed("local", P0), budgets: {}, actuals: {}, movements: [] };
+    let s = setLeafAmount(vacio, nodo, "2026-03", "budget", 1000, P2);
+    s = setLeafAmount(s, nodo, "2027-03", "budget", 500, P2);
+    expect(s.budgets[nodo]?.["2026-03"]).toBe(1000);
+    expect(s.budgets[nodo]?.["2027-03"]).toBe(500);
+    expect(Object.keys(s.budgets[nodo] ?? {}).sort()).toEqual(["2026-03", "2027-03"]);
+    // …y cada marzo suma en SU año: ni se pisan ni se suman entre sí.
+    expect(rollupBudget(s, "g-esenciales", "2026-03")).toBe(1000);
+    expect(rollupBudget(s, "g-esenciales", "2027-03")).toBe(500);
+    expect(typeTotals(s, "expense", P).budget).toBe(1000);
+    expect(typeTotals(s, "expense", P2).budget).toBe(1500);
+    // reescribir uno no toca al otro
+    const otra = setLeafAmount(s, nodo, "2027-03", "budget", 700, P2);
+    expect(otra.budgets[nodo]?.["2026-03"]).toBe(1000);
+    expect(otra.budgets[nodo]?.["2027-03"]).toBe(700);
   });
 
   it("TC-MAN-002e: ordenar como texto da el orden cronológico cruzando el año", () => {
@@ -312,6 +327,34 @@ describe("FR-1908 · el periodo del registro", () => {
     expect(periodFromDate("basura")).toBeNull();
     expect(periodFromDate("2027-13-01")).toBeNull();
   });
+
+  it("TC-MAN-072e: sin fecha de captura, el movimiento va al periodo en curso", () => {
+    // @aitri-tc TC-MAN-072e
+    // BL-063: este id lo llevaba una prueba e2e que comprobaba que la grilla hacía scroll. Lo que
+    // el caso declara es esto: sin fecha (o con una que no se entiende) el registro usa el mes del
+    // reloj, y el movimiento se guarda en ese periodo.
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 8, 15, 10, 30)); // 15 de septiembre de 2026
+      expect(periodKeyFromDate("")).toBe("2026-09");
+      expect(periodKeyFromDate("no-es-una-fecha")).toBe("2026-09");
+      // con fecha manda la fecha, no el reloj
+      expect(periodKeyFromDate("2027-03-14T10:30")).toBe("2027-03");
+
+      const periodo = periodKeyFromDate("");
+      const seed = buildSeed("local", "2026-09");
+      const next = addMovement(seed, { type: "expense", catId: "c-vivienda", subId: null, amount: 50_000, period: periodo }, [periodo]);
+      expect(next).not.toBe(seed);
+      expect(next.movements[0]).toMatchObject({ period: "2026-09", amount: 50_000, target: "c-vivienda" });
+      expect(next.movements[0]!.date).toBeUndefined();
+
+      // y sigue al reloj: el 2 de enero ya es el periodo del año siguiente
+      vi.setSystemTime(new Date(2027, 0, 2));
+      expect(periodKeyFromDate("")).toBe("2027-01");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -537,16 +580,37 @@ describe("NFR-1907 · el coste no se degrada", () => {
   });
 
   it("TC-MAN-261f: el número de recómputos de serie por operación no sube", () => {
+    // BL-063: medía `seriesComputes` tras llamar a `reserveHeadroom`, que no toca ese contador (toca
+    // `techoScans`): comparaba 0 con 0. Ahora cada medida usa el contador que su operación mueve, y
+    // exige que se haya movido.
     const s = estadoRef();
-    __resetReservePerfCounters();
-    for (const p of P) reserveHeadroom(s, p, P);
-    const doce = __reservePerfCounters().seriesComputes;
     const cinco = periodRange(`${REF_YEAR}-01`, `${REF_YEAR + 4}-12`);
-    __resetReservePerfCounters();
-    for (const p of cinco) reserveHeadroom(s, p, cinco);
-    const sesenta = __reservePerfCounters().seriesComputes;
-    // el barrido se memoiza por (estado, rango): ampliar el rango no multiplica las pasadas
-    expect(sesenta).toBeLessThanOrEqual(doce + 1);
+    /** Contadores tras una operación sobre un CLON: la memoización va por identidad y arranca vacía. */
+    const medida = (operacion: (estado: LedgerState) => void) => {
+      const fresco = structuredClone(s);
+      __resetReservePerfCounters();
+      operacion(fresco);
+      return __reservePerfCounters();
+    };
+    const bolsillo = reserveLeafIds(s)[0]!;
+
+    // La operación de bolsillo: una serie y un barrido de techo, con doce meses o con sesenta.
+    const aportar = (r: readonly PeriodKey[]) => (estado: LedgerState) => {
+      const res = applyReserveOp(estado, { from: AVAILABLE_ID, to: bolsillo, period: P[2]!, amount: 1 }, r);
+      expect("state" in res, `el aporte de la medida debe aplicarse: ${JSON.stringify(res)}`).toBe(true);
+    };
+    const doce = medida(aportar(P));
+    const sesenta = medida(aportar(cinco));
+    expect(doce.seriesComputes).toBeGreaterThan(0);
+    expect(doce.techoScans).toBeGreaterThan(0);
+    expect(sesenta.seriesComputes).toBeLessThanOrEqual(doce.seriesComputes);
+    expect(sesenta.techoScans).toBeLessThanOrEqual(doce.techoScans);
+
+    // El barrido del techo se memoiza por (estado, rango): consultarlo mes a mes es UNA pasada, y
+    // ampliar el rango de 12 a 60 meses no la multiplica.
+    const barrer = (r: readonly PeriodKey[]) => (estado: LedgerState) => { for (const p of r) reserveHeadroom(estado, p, r); };
+    expect(medida(barrer(P)).techoScans).toBe(1);
+    expect(medida(barrer(cinco)).techoScans).toBe(1);
   });
 
   // Su ÚNICO contenido es un guardarraíl de tiempo, así que bajo instrumentación se salta

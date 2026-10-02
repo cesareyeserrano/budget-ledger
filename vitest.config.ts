@@ -35,6 +35,11 @@ export default defineConfig({
           environment: "node",
           include: ["tests/domain/**/*.test.ts", "tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
           exclude: ["tests/integration/backend/**"],
+          // El límite por prueba solo corta una prueba COLGADA; no comprueba nada. Con los 5 s por
+          // defecto, las pruebas de propiedad a escala (TC-RPG-006e: 2.000 operaciones) usaban la mitad
+          // del margen bajo cobertura y se caían en cuanto el Mac iba en batería con bajo consumo,
+          // tumbando el gate `coverage` con la suite en verde (25-sep y 2-oct-2026).
+          testTimeout: 30_000,
           // Los tests de tests/integration/ corren en jsdom: cada fichero lo declara en su cabecera
           // con `// @vitest-environment jsdom`. Vitest 4 retiró environmentMatchGlobs (BL-048), y un
           // proyecto aparte para jsdom rompería TC-CIC-135h, que fija los proyectos en app y backend.

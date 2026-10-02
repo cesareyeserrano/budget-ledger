@@ -301,6 +301,22 @@ test("TC-RUI-102f: regresión — el arrastrar-y-soltar sigue operativo", async 
   const vivDespues = despues.state.nodes.find((n: { name: string }) => n.name === "Vivienda");
   expect(vivDespues.type).toBe("expense");
   expect(vivDespues.parentId).toBe(padreAntes);
+
+  // BL-063: la otra mitad del caso, que faltaba. Un destino VÁLIDO sí reubica: 'Transporte' cae
+  // sobre 'Vivienda' (las dos, categorías de gasto) y pasa a ser su subcategoría. Con solo el
+  // rechazo de arriba, un arrastre que no hiciera nada pasaba la prueba.
+  const transporteAntes = despues.state.nodes.find((n: { name: string }) => n.name === "Transporte");
+  expect(transporteAntes.parentId).toBe(padreAntes);
+  expect(transporteAntes.level).toBe("category");
+  await drag(page, nodeRow(page, "Transporte").getByTestId("row-label"), nodeRow(page, "Vivienda").getByTestId("row-label"));
+  await expect
+    .poll(async () => {
+      const l = await page.request.get("/api/v1/ledger").then((r) => r.json());
+      const t = l.state.nodes.find((n: { name: string }) => n.name === "Transporte");
+      return `${t.level}:${t.parentId}`;
+    }, { timeout: 15000 })
+    .toBe(`sub:${vivDespues.id}`);
+  await expect(nodeRow(page, "Vivienda")).toHaveAttribute("data-leaf", "false");
 });
 
 // ── NFR-1203 · regresión: el registro conserva su color por tipo ───────────────

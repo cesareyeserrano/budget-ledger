@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { buildSeed, addMovement, rollupActual, typeTotals } from "@/domain";
 import { P, P0, REF_YEAR } from "../helpers/periods";
+import { buildSeedConMontos } from "../helpers/seedConMontos";
 
 // Feature ux-consistency — TCs de lógica (node): mes en curso (FR-312), regresión de dominio (NFR-305)
 // y bootstrap del estado (NFR-306). Los TCs visuales/UX viven en tests/e2e/ux-consistency.spec.ts.
@@ -37,13 +38,22 @@ describe("FR-312 — arrancar en el mes en curso", () => {
 
 describe("NFR-305 — regresión de dominio (suite verde)", () => {
   it("TC-UXC-355f: guardar un movimiento suma a Ejecutado y a los roll-ups del periodo", () => {
-    const seed = buildSeed("local", P0);
-    const next = addMovement(seed, { type: "expense", catId: "c-vivienda", subId: null, amount: 50000, period: "2026-07" }, P);
+    // BL-062: sobre la semilla vacía (FR-2301) «suma a Ejecutado» era 0 + 50.000, que un movimiento
+    // que PISARA la celda también cumplía. En marzo la categoría ya trae ejecutado.
+    const seed = buildSeedConMontos("local", P0);
+    const antes = rollupActual(seed, "c-vivienda", "2026-03");
+    const tipoAntes = typeTotals(seed, "expense", ["2026-03"]).actual;
+    expect(antes).toBeGreaterThan(0);
+    expect(tipoAntes).toBeGreaterThan(antes);
+    const next = addMovement(seed, { type: "expense", catId: "c-vivienda", subId: null, amount: 50000, period: "2026-03" }, P);
     // addMovement devuelve un estado NUEVO (no la misma referencia) cuando el input es válido
     expect(next).not.toBe(seed);
-    expect(rollupActual(next, "c-vivienda", "2026-07")).toBe(50000);
-    // el roll-up por tipo del mes incluye el ejecutado nuevo
-    expect(typeTotals(next, "expense", ["2026-07"]).actual).toBeGreaterThanOrEqual(50000);
+    expect(rollupActual(next, "c-vivienda", "2026-03")).toBe(antes + 50000);
+    // el roll-up del grupo y el del tipo suben exactamente lo mismo
+    expect(rollupActual(next, "g-esenciales", "2026-03")).toBe(rollupActual(seed, "g-esenciales", "2026-03") + 50000);
+    expect(typeTotals(next, "expense", ["2026-03"]).actual).toBe(tipoAntes + 50000);
+    // y solo en ese mes: el vecino no se entera
+    expect(rollupActual(next, "c-vivienda", "2026-02")).toBe(rollupActual(seed, "c-vivienda", "2026-02"));
   });
 });
 

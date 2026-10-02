@@ -61,24 +61,14 @@ describe("FR-1403 — neutro por defecto; el color sólo en la excepción", () =
 });
 
 describe("FR-1404 — una celda sin dato nunca lleva el color de su fila", () => {
-  // @aitri-tc TC-BJE-007f
-  it("TC-BJE-007f: una celda con valor CERO y una sin dato se tratan igual, y ninguna toma color de fila", () => {
-    // La semántica vigente del producto: `cellNum` resuelve `!n → "—"`. Esta feature NO la cambia
-    // —cero sigue siendo ausencia— sólo deja de colorearla.
+  // BL-063: esta prueba llevaba el id TC-BJE-007f y afirmaba sobre una regla de color escrita aquí
+  // mismo, que ya no era la de `BalanceCell`. El caso se prueba ahora contra la celda real, en
+  // tests/e2e/balance-jerarquia.spec.ts. Aquí queda lo que sí es código del producto.
+  it("cellNum trata el cero como ausencia: cero y sin dato dan el mismo guion", () => {
     expect(cellNum(0)).toBe("—");
     expect(cellNum(undefined)).toBe("—");
-
-    // Y la regla que aplica BalanceCell: contenido primero, color después.
-    const colorDeCelda = (v: number | undefined) =>
-      !v ? "var(--fg-muted)" : exceptionColor(v ?? 0, { alarms: true });
-
-    expect(colorDeCelda(0)).toBe("var(--fg-muted)");
-    expect(colorDeCelda(undefined)).toBe("var(--fg-muted)");
-    // Lo que NO puede ocurrir: que alguna de las dos salga con el color de la fila.
-    expect(colorDeCelda(0)).not.toBe(NEUTRO);
-    expect(colorDeCelda(undefined)).not.toBe(NEUTRO);
-    // Una celda CON dato sí conserva el suyo (FR-1403 sigue rigiendo).
-    expect(colorDeCelda(300000)).toBe(NEUTRO);
-    expect(colorDeCelda(-600000)).toBe(ALERTA);
+    expect(cellNum(300000)).not.toBe("—");
+    // y el color de excepción nunca devuelve el atenuado: ese lo decide la celda, no esta función
+    expect(exceptionColor(0, { alarms: true })).toBe(NEUTRO);
   });
 });

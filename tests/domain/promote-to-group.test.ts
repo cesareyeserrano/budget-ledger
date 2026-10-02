@@ -8,6 +8,7 @@ import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import type { LedgerState, LedgerNode } from "@/domain/types";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 import { P, P0 } from "../helpers/periods";
+import { buildSeedConMontos } from "../helpers/seedConMontos";
 
 const byName = (s: LedgerState, name: string): LedgerNode =>
   s.nodes.find((n) => n.name === name)!;
@@ -314,19 +315,31 @@ describe("NFR-603 — regresión: gate de borrado (FR-003 + BG-006)", () => {
 describe("NFR-604 — regresión: reparent existente, cross-type, grupos con hijos calculados", () => {
   // @aitri-tc TC-654h
   it("TC-654h: moveNode(sub, categoría) reubica sin cruzar de tipo", () => {
-    let s = buildSeed("local", P0);
+    // BL-062: la semilla del producto ya no trae montos (FR-2301); esta regresión necesita que
+    // c-vivienda los tenga, así que parte de la semilla poblada y lo comprueba antes de mover.
+    let s = buildSeedConMontos("local", P0);
     s = createNode(s, { level: "category", parentId: "g-esenciales", type: "expense", name: "Cat" });
     const cat = byName(s, "Cat");
     s = createNode(s, { level: "sub", parentId: cat.id, type: "expense", name: "Sub" });
     const sub = byName(s, "Sub");
     const antes = yearTotals(s);
-    const st = stateOf(moveNode(s, sub.id, { kind: "category", id: "c-vivienda" }), s);
+    expect(isLeaf(findNode(s.nodes, "c-vivienda")!, s.nodes)).toBe(true);
+    const viviendaAntes = P.map((m) => rollupBudget(s, "c-vivienda", m));
+    expect(viviendaAntes.every((v) => v > 0)).toBe(true);
+    expect(antes.expense.budget).toBeGreaterThan(0);
+    expect(antes.expense.actual).toBeGreaterThan(0);
+    const res = moveNode(s, sub.id, { kind: "category", id: "c-vivienda" });
+    expect("state" in res).toBe(true);
+    const st = stateOf(res, s);
     expect(findNode(st.nodes, sub.id)!.parentId).toBe("c-vivienda");
     expect(findNode(st.nodes, sub.id)!.level).toBe("sub");
     // c-vivienda es categoría-HOJA con montos: al ganar su primer hijo NO puede perder el suyo
     // de los agregados (NFR-604/NFR-005; regresión de BG-009).
     expect(yearTotals(st)).toEqual(antes);
     expect(orphanBudgetNodes(st)).toEqual([]);
+    // El presupuesto de c-vivienda viaja a su primer hijo: la categoría sigue sumando lo mismo.
+    expect(P.map((m) => rollupBudget(st, "c-vivienda", m))).toEqual(viviendaAntes);
+    expect(P.map((m) => rollupBudget(st, sub.id, m))).toEqual(viviendaAntes);
   });
 
   // @aitri-tc TC-654e

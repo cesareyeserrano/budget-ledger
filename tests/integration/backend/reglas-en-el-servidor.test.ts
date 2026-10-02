@@ -11,11 +11,12 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { buildSeed, setLeafAmount } from "@/domain";
 import { isLeaf } from "@/domain/tree";
-import { AVAILABLE_ID } from "@/domain/reserve";
+import { AVAILABLE_ID, reserveHeadroom } from "@/domain/reserve";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser, testDb } from "./helpers/db";
 import { ajustarCelda, celdaCuadrada } from "../../helpers/cuadre";
 import type { LedgerState, PeriodKey } from "@/domain/types";
+import type { NewMovement } from "@/domain/mutations";
 
 const A = "user-res";
 const INICIO: PeriodKey = "2026-06";
@@ -61,6 +62,28 @@ async function alTecho(ingreso = 1_000_000): Promise<{ state: LedgerState; revis
   return { state: l.state, revision: l.revision, res };
 }
 
+// BL-063: las dos formas de una operación de bolsillo por la vía de movimientos, CON su tipo. Iban
+// con `as never`, que es lo que dejó pasar durante semanas una petición sin `catId` y con un id de
+// «disponible» que no existe: el dominio la descartaba antes de mirar ninguna regla.
+const aporte = (res: string, amount: string): NewMovement =>
+  ({ type: "transfer", catId: res, from: AVAILABLE_ID, to: res, period: INICIO, amount });
+const retiro = (res: string, amount: string): NewMovement =>
+  ({ type: "transfer", catId: res, from: res, to: AVAILABLE_ID, period: INICIO, amount });
+
+/**
+ * ¿Lo rechazó una REGLA? El techo y el piso los aplica el dominio dentro de `insertMovement` (devuelve
+ * null) y, detrás, el guardia (devuelve su violación). Cualquier otro resultado —un movimiento, un
+ * destino inválido, un periodo que no corresponde— NO es un rechazo por regla.
+ */
+const rechazadoPorRegla = (r: Awaited<ReturnType<typeof insertMovement>>): boolean =>
+  r === null || "domainViolation" in r;
+
+/** Lo que todavía cabe apartar en el mes de INICIO, según el estado que guarda el servidor. */
+const margen = async (): Promise<number> => reserveHeadroom((await loadLedger(A))!.state, INICIO, [INICIO]);
+
+const contarMovimientos = async (): Promise<number> => ([...(await testDb().execute(
+  sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
+
 beforeEach(async () => {
   await truncateAll();
   await createTestUser(A, "reglas@example.com");
@@ -97,9 +120,7 @@ describe("FR-2101 — el guardia en el servidor", () => {
     // déficit: borrar el retiro devolvía el bolsillo al techo exacto, que es válido.
     // Ahora monta lo que el caso pide: un gasto que SOLO se paga gracias al retiro.
     const { revision, res } = await alTecho(); // ingreso 1.000.000, todo apartado: disponible 0
-    const mv = await insertMovement(A, {
-      type: "transfer", catId: res, from: res, to: AVAILABLE_ID, period: INICIO, amount: "300000",
-    } as never);
+    const mv = await insertMovement(A, retiro(res, "300000"));
     if (!mv || !("movement" in mv)) throw new Error(`el retiro del escenario no se registró: ${JSON.stringify(mv)}`);
 
     // Un gasto de 300.000 pagado con el retiro: el disponible vuelve a 0 y depende del retiro.
@@ -149,38 +170,81 @@ describe("FR-2101 — el guardia en el servidor", () => {
 
   it("TC-RES-014e: el guardia corre dentro del lock — dos escrituras no se aplican las dos", async () => {
     // @aitri-tc TC-RES-014e
-    const { state, revision, res } = await alTecho(1_300_000);
-    const subir = (v: number): LedgerState => ({
-      ...state, actuals: { ...state.actuals, [res]: { ...state.actuals[res], [INICIO]: v } },
-    });
+    // BL-063: antes mandaba dos escrituras que eran inválidas CADA UNA por separado y aceptaba cero
+    // ganadoras, así que pasaba aunque no hubiera lock. Ahora cada una cabe sola y las dos juntas no:
+    // si el guardia corriera fuera del lock, las dos leerían el mismo margen y entrarían las dos.
+    const { res } = await alTecho(1_300_000); // todo apartado: margen 0
+    const abre = await insertMovement(A, retiro(res, "300000")); // margen 300.000
+    if (!abre || !("movement" in abre)) throw new Error(`el retiro del escenario no se registró: ${JSON.stringify(abre)}`);
+    expect(await margen()).toBe(300_000);
+    const antes = await contarMovimientos();
+
+    // Vía de movimientos: no lleva revisión, así que lo ÚNICO que las separa es el lock.
     const [a, b] = await Promise.all([
-      saveLedger(A, subir(1_500_000), revision),
-      saveLedger(A, subir(1_600_000), revision),
+      insertMovement(A, aporte(res, "200000")),
+      insertMovement(A, aporte(res, "200000")),
     ]);
-    // Con la MISMA baseRevision, a lo sumo una entra: la otra choca con el lock o con el guardia.
-    expect([a.ok, b.ok].filter(Boolean).length).toBeLessThanOrEqual(1);
+    const entraron = [a, b].filter((r) => r !== null && "movement" in r);
+    expect(entraron).toHaveLength(1);
+    expect([a, b].filter(rechazadoPorRegla)).toHaveLength(1); // la otra la rechaza el techo
+    expect(await contarMovimientos()).toBe(antes + 1);
+    expect(await margen()).toBe(100_000); // 300.000 − un solo aporte de 200.000
+    const l = (await loadLedger(A))!;
+    const celda = l.state.actuals[res]![INICIO]!;
+
+    // Vía de snapshot: dos escrituras válidas con la MISMA revisión base. Entra exactamente una; la
+    // otra choca con la revisión que la primera dejó dentro del lock.
+    const bajar = (v: number): LedgerState => ({
+      ...l.state, actuals: { ...l.state.actuals, [res]: { ...l.state.actuals[res], [INICIO]: v } },
+    });
+    const [c, d] = await Promise.all([
+      saveLedger(A, bajar(celda - 50_000), l.revision),
+      saveLedger(A, bajar(celda - 100_000), l.revision),
+    ]);
+    expect([c, d].filter((r) => r.ok)).toHaveLength(1);
+    const perdedora = [c, d].find((r) => !r.ok)!;
+    expect("conflict" in perdedora && perdedora.conflict).toBe(true);
+    const final = (await loadLedger(A))!;
+    expect(final.revision).toBe(l.revision + 1);
+    expect([celda - 50_000, celda - 100_000]).toContain(final.state.actuals[res]?.[INICIO]);
   });
 
   it("TC-RES-016f: insertMovement aplica el mismo guardia", async () => {
     // @aitri-tc TC-RES-016f
-    const { state } = await alTecho();
-    const res = hoja(state, "transfer");
-    // El escenario ya trae el movimiento que respalda el ingreso (NFR-2502): la foto se toma ANTES
-    // del intento, para poder afirmar que el rechazo no añadió ninguna fila.
-    const movimientosAntes = ([...(await testDb().execute(
-      sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
-    const r = await insertMovement(A, {
-      type: "transfer", catId: res, from: AVAILABLE_ID, to: res, period: INICIO, amount: "900000",
-    } as never);
-    // Rechazado por el dominio (null) o por el guardia: en ninguno de los dos casos se escribe.
-    expect(r === null || (r !== null && "domainViolation" in r)).toBe(true);
-    // Lo que esta prueba afirma es que EL RECHAZO no escribió nada. Antes bastaba con `count = 0`
-    // porque el escenario no tenía movimientos; desde NFR-2502 el ingreso de `alTecho()` va con su
-    // respaldo, así que la forma fiel de decir lo mismo es «ni una fila NUEVA» (contar 1 aquí sería
-    // cambiar el resultado esperado, que es justo lo que no se hace).
-    const contar = async () => ([...(await testDb().execute(
-      sql`SELECT count(*)::int AS n FROM movement WHERE owner_id = ${A}`))][0] as { n: number }).n;
-    expect(await contar()).toBe(movimientosAntes);
+    // BL-063: aceptaba «null o violación» sin más, y una petición mal formada también da null. Ahora
+    // la MISMA forma de petición se registra cuando cabe, y solo se rechaza al pasarse del techo.
+    const { revision, res } = await alTecho(); // ingreso 1.000.000, todo apartado: margen 0
+    const abre = await insertMovement(A, retiro(res, "300000")); // margen 300.000
+    if (!abre || !("movement" in abre)) throw new Error(`el retiro del escenario no se registró: ${JSON.stringify(abre)}`);
+    expect(await margen()).toBe(300_000);
+
+    // Justo lo que cabe: entra y vuelve a dejar el bolsillo en el techo.
+    const cabe = await insertMovement(A, aporte(res, "300000"));
+    expect(cabe !== null && "movement" in cabe, `aportar lo que cabe debe registrarse: ${JSON.stringify(cabe)}`).toBe(true);
+    const enElTecho = (await loadLedger(A))!;
+    expect(reserveHeadroom(enElTecho.state, INICIO, [INICIO])).toBe(0);
+    expect(enElTecho.revision).toBe(revision + 2);
+    const celda = enElTecho.state.actuals[res]![INICIO]!;
+
+    // Un peso más: la vía de movimientos lo rechaza y no escribe nada.
+    const movimientosAntes = await contarMovimientos();
+    const r = await insertMovement(A, aporte(res, "1"));
+    expect(rechazadoPorRegla(r), `un peso sobre el techo no puede entrar: ${JSON.stringify(r)}`).toBe(true);
+    expect(await contarMovimientos()).toBe(movimientosAntes);
+    const despues = (await loadLedger(A))!;
+    expect(despues.state.actuals[res]?.[INICIO]).toBe(celda);
+    expect(despues.revision).toBe(enElTecho.revision);
+
+    // «El MISMO guardia»: la vía de snapshot rechaza ese mismo peso, y lo explica con el techo.
+    const fabricado: LedgerState = {
+      ...despues.state,
+      actuals: { ...despues.state.actuals, [res]: { ...despues.state.actuals[res], [INICIO]: celda + 1 } },
+    };
+    const porSnapshot = await saveLedger(A, fabricado, despues.revision);
+    expect(porSnapshot.ok).toBe(false);
+    if (porSnapshot.ok || !("domainViolation" in porSnapshot)) throw new Error("se esperaba una violación de dominio");
+    expect(porSnapshot.violations[0]!.rule).toBe("techo");
+    expect(porSnapshot.violations[0]!.period).toBe(INICIO);
   });
 });
 
@@ -283,10 +347,15 @@ describe("NFR-2103/2104/2105 — seguridad, convivencia y coste", () => {
       ...state, actuals: { ...state.actuals, [res]: { ...state.actuals[res], [INICIO]: 3_000_000 } },
     };
     expect((await saveLedger(A, fabricado, revision)).ok).toBe(false);
-    const mv = await insertMovement(A, {
-      type: "transfer", catId: res, from: AVAILABLE_ID, to: res, period: INICIO, amount: "2000000",
-    } as never);
-    expect(mv === null || (mv !== null && "domainViolation" in mv)).toBe(true);
+    // BL-063: la vía de movimientos se prueba con una petición que el dominio SÍ entiende. Con el
+    // mismo escenario y la misma forma, un retiro se registra; el aporte que pasa del techo, no.
+    const antes = await contarMovimientos();
+    const mv = await insertMovement(A, aporte(res, "2000000"));
+    expect(rechazadoPorRegla(mv), `dos millones sobre el techo no pueden entrar: ${JSON.stringify(mv)}`).toBe(true);
+    expect(await contarMovimientos()).toBe(antes);
+    const control = await insertMovement(A, retiro(res, "2000"));
+    expect(control !== null && "movement" in control, `la misma forma, cuando cabe, se registra: ${JSON.stringify(control)}`).toBe(true);
+    expect(await contarMovimientos()).toBe(antes + 1);
   });
 
   it("TC-RES-230h: cierre-de-mes no se degrada con el guardia activo", async () => {

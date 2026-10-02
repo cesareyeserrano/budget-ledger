@@ -1,18 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { buildSeed, createNode, moveNode, dashboardMetrics, deleteNode } from "@/domain";
-import { findNode, childrenOf, subtreeIds } from "@/domain/tree";
+import { createNode, moveNode, dashboardMetrics, deleteNode } from "@/domain";
+import { findNode, childrenOf, subtreeIds, isLeaf } from "@/domain/tree";
 import { setLeafAmount } from "@/domain/mutations";
 import { P as MONTH_KEYS, REF_YEAR } from "../helpers/periods";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 import { P, P0 } from "../helpers/periods";
+import { buildSeedConMontos } from "../helpers/seedConMontos";
+import { rollupBudget, rollupActual } from "@/domain/rollup";
+import type { LedgerState, NodeType, PeriodKey } from "@/domain/types";
+
+// BL-062: estas pruebas se escribieron sobre una semilla CON montos. Desde FR-2301 `buildSeed` sale
+// vacía, y compararon cero contra cero durante semanas sin ponerse en rojo. Parten de la semilla
+// poblada y cada una exige que su cifra de partida sea mayor que cero.
+
+/** Σ del Ejecutado de las hojas de un tipo en un mes, leyendo las celdas — sin pasar por el roll-up. */
+function sumaHojas(s: LedgerState, type: NodeType, month: PeriodKey): number {
+  return s.nodes
+    .filter((n) => n.type === type && isLeaf(n, s.nodes))
+    .reduce((acc, n) => acc + (s.actuals[n.id]?.[month] ?? 0), 0);
+}
 
 function seedWithCafe() {
-  const s0 = buildSeed("local", P0);
+  const s0 = buildSeedConMontos("local", P0);
   // 'Café' como categoría bajo el grupo Esenciales (tipo Gasto), con un movimiento
   const movements = [{ id: "m1", ownerId: "local", type: "expense" as const, catId: "c-cafe", subId: null, target: "c-cafe", amount: 4000, period: "2026-01" as const, createdAt: 1 }];
   let s = createNode(s0, { level: "category", parentId: "g-esenciales", type: "expense", name: "Cafetería" });
   const cafe = s.nodes.find((n) => n.name === "Cafetería" && n.level === "category")!;
-  s = { ...s, nodes: s.nodes.map((n) => (n.id === cafe.id ? { ...n, id: "c-cafe" } : n)), movements };
+  s = { ...s, nodes: s.nodes.map((n) => (n.id === cafe.id ? { ...n, id: "c-cafe" } : n)), movements: [...s.movements, ...movements] };
   return s;
 }
 
@@ -32,12 +46,32 @@ describe("FR-015 reparent por drag-and-drop", () => {
 
   // @aitri-tc TC-015e
   it("TC-015e: soltar en la zona de un grupo la promueve a categoría nueva", () => {
+    // BL-063: antes movía «c-cafe», que YA era categoría de g-esenciales, a g-esenciales: no movía
+    // nada. La subcategoría de verdad es la «Café» de la semilla, hija de Comida.
     const s = seedWithCafe();
-    const res = moveNode(s, "c-cafe", { kind: "group", id: "g-esenciales" });
+    const sub = "s-comida-cafe";
+    expect(findNode(s.nodes, sub)).toMatchObject({ level: "sub", parentId: "c-comida" });
+    const suyo = MONTH_KEYS.map((m) => rollupBudget(s, sub, m));
+    const comidaAntes = MONTH_KEYS.map((m) => rollupBudget(s, "c-comida", m));
+    expect(suyo.every((v) => v > 0)).toBe(true);
+    const antes = yearTotals(s);
+
+    const res = moveNode(s, sub, { kind: "group", id: "g-esenciales" });
+    expect("state" in res).toBe(true);
     const state = "state" in res ? res.state : s;
-    const cafe = findNode(state.nodes, "c-cafe")!;
+    const cafe = findNode(state.nodes, sub)!;
     expect(cafe.level).toBe("category");
     expect(cafe.parentId).toBe("g-esenciales");
+    // Sale de Comida con lo suyo: Comida suma eso de menos, la categoría nueva lo conserva y el
+    // grupo y el tipo, que la siguen conteniendo, no cambian.
+    expect(childrenOf(state.nodes, "c-comida").map((n) => n.id)).not.toContain(sub);
+    expect(MONTH_KEYS.map((m) => rollupBudget(state, sub, m))).toEqual(suyo);
+    expect(MONTH_KEYS.map((m) => rollupBudget(state, "c-comida", m))).toEqual(comidaAntes.map((v, i) => v - suyo[i]));
+    expect(yearTotals(state)).toEqual(antes);
+    // sus movimientos la siguen y pasan a nombrarla como categoría
+    const movs = state.movements.filter((m) => m.target === sub);
+    expect(movs.length).toBeGreaterThan(0);
+    expect(movs.every((m) => m.catId === sub && (m.subId ?? null) === null)).toBe(true);
   });
 
   // @aitri-tc TC-015f
@@ -54,21 +88,38 @@ describe("FR-015 reparent por drag-and-drop", () => {
 describe("FR-009 dashboard", () => {
   // @aitri-tc TC-009h
   it("TC-009h: balance del mes = ingresos − gastos ejecutados", () => {
-    const s = buildSeed("local", P0);
+    const s = buildSeedConMontos("local", P0);
     const vm = dashboardMetrics(s, { mode: "month", month: "2026-06" }, P);
-    expect(vm.balance).toBe(vm.income - vm.expense);
+    // Ingresos y gastos se comparan contra la suma de las celdas, no contra el propio `vm`.
+    const ingresos = sumaHojas(s, "income", "2026-06");
+    const gastos = sumaHojas(s, "expense", "2026-06");
+    expect(ingresos).toBeGreaterThan(0);
+    expect(gastos).toBeGreaterThan(0);
+    expect(vm.income).toBe(ingresos);
+    expect(vm.expense).toBe(gastos);
+    expect(vm.balance).toBe(ingresos - gastos);
+    // Los aportes a bolsillos NO entran en el balance del mes: es ingreso menos gasto, nada más.
+    expect(sumaHojas(s, "transfer", "2026-06")).toBeGreaterThan(0);
+    expect(vm.balance).toBe(2_157_000); // 3.488.000 − 1.331.000 con la semilla determinista
   });
 
   // @aitri-tc TC-009e
   it("TC-009e: filtro Año suma los 12 meses", () => {
-    const s = buildSeed("local", P0);
+    const s = buildSeedConMontos("local", P0);
     const year = dashboardMetrics(s, { mode: "year", year: REF_YEAR }, P);
     // suma manual de gastos ejecutados del año
     let expected = 0;
     for (const n of s.nodes.filter((x) => x.type === "expense")) {
       for (const m of MONTH_KEYS) expected += s.actuals[n.id]?.[m] ?? 0;
     }
+    expect(expected).toBeGreaterThan(0);
     expect(year.expense).toBe(expected);
+    // El año es la suma de sus doce meses vistos uno por uno, y más que cualquiera de ellos solo.
+    const porMes = MONTH_KEYS.map((m) => dashboardMetrics(s, { mode: "month", month: m }, P));
+    expect(year.expense).toBe(porMes.reduce((acc, vm) => acc + vm.expense, 0));
+    expect(year.income).toBe(porMes.reduce((acc, vm) => acc + vm.income, 0));
+    expect(year.income).toBeGreaterThan(Math.max(...porMes.map((vm) => vm.income)));
+    expect(year.expense).toBeGreaterThan(Math.max(...porMes.map((vm) => vm.expense)));
   });
 });
 
@@ -92,7 +143,14 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
     const antes = yearTotals(s);
     // c-vivienda es una categoría-HOJA con montos en la semilla: al recibir a c-cafe deja de ser
     // hoja, que es el caso donde BG-009 perdía su presupuesto de todos los agregados.
+    // BL-062: «con montos» se COMPRUEBA. Sin ellos esta prueba no entra en la rama que arregló BG-009.
+    expect(isLeaf(findNode(s.nodes, "c-vivienda")!, s.nodes)).toBe(true);
+    const viviendaAntes = MONTH_KEYS.map((m) => [rollupBudget(s, "c-vivienda", m), rollupActual(s, "c-vivienda", m)]);
+    expect(viviendaAntes.every(([budget]) => budget > 0)).toBe(true);
+    expect(antes.expense.budget).toBeGreaterThan(0);
+    expect(antes.expense.actual).toBeGreaterThan(0);
     const res = moveNode(s, "c-cafe", { kind: "category", id: "c-vivienda" });
+    expect("state" in res).toBe(true);
     const state = "state" in res ? res.state : s;
     expect(noOrphans(state.nodes, state.movements)).toBe(true);
     // rollup del nuevo padre incluye la hoja movida
@@ -101,6 +159,13 @@ describe("NFR-005 regresión — invariantes de integridad", () => {
     // puede cambiar cuánto suma el año, ni dejar presupuesto colgado de un nodo que ya no es hoja.
     expect(yearTotals(state)).toEqual(antes);
     expect(orphanBudgetNodes(state)).toEqual([]);
+    // rollup(padre) === Σ hojas: c-vivienda, ya con un hijo, sigue sumando mes a mes lo mismo que
+    // tenía como hoja, y su grupo también.
+    expect(MONTH_KEYS.map((m) => [rollupBudget(state, "c-vivienda", m), rollupActual(state, "c-vivienda", m)])).toEqual(viviendaAntes);
+    for (const m of MONTH_KEYS) {
+      expect(rollupBudget(state, "g-esenciales", m), m).toBe(rollupBudget(s, "g-esenciales", m));
+      expect(rollupActual(state, "g-esenciales", m), m).toBe(rollupActual(s, "g-esenciales", m));
+    }
   });
 
   // @aitri-tc TC-105f

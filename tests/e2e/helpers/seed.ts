@@ -229,3 +229,23 @@ export async function readLedger(page: Page): Promise<{
   const body = (await res.json()) as { state: { budgets: AmountMap; actuals: AmountMap; movements: Movement[]; cellNotes?: LedgerState["cellNotes"] } };
   return body.state;
 }
+
+/**
+ * Nodos y movimientos que guarda el servidor: la fuente de verdad de una reubicación (BL-063).
+ *
+ * Las pruebas de arrastre afirmaban que la fila seguía visible, que era cierto antes de arrastrar.
+ * Quién es el padre de un nodo solo lo dice el árbol guardado.
+ */
+export async function readTree(page: Page): Promise<{ nodes: LedgerNode[]; movements: Movement[] }> {
+  const res = await page.request.get("/api/v1/ledger");
+  if (res.status() !== 200) throw new Error(`readTree: no se pudo leer el ledger (HTTP ${res.status()})`);
+  const body = (await res.json()) as { state: { nodes: LedgerNode[]; movements: Movement[] } };
+  return { nodes: body.state.nodes, movements: body.state.movements };
+}
+
+/** El nodo con ese nombre, o un error que dice cuál falta. */
+export function nodeNamed(nodes: LedgerNode[], name: string): LedgerNode {
+  const n = nodes.find((x) => x.name === name);
+  if (!n) throw new Error(`no hay un nodo llamado «${name}»`);
+  return n;
+}

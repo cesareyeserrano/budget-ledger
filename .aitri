@@ -23,141 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-02T03:02:01.006Z",
+  "updatedAt": "2026-10-02T21:53:13.327Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-01T02:28:37.210Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T02:28:46.719Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T02:28:47.394Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 1,
-      "method": "git",
-      "verifyPassedKept": true
-    },
-    {
-      "at": "2026-10-01T03:07:57.160Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 1,
-      "method": "git",
-      "baseRefFrom": "c060481f3e1711bc7510561cacfa38ddc537868a",
-      "baseRefTo": "549ecc78e62492a8b8bcc5101a7613cdc953045e"
-    },
-    {
-      "at": "2026-10-01T16:53:49.428Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T16:54:02.369Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T17:01:02.915Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 17,
-      "method": "git",
-      "verifyPassedKept": true
-    },
-    {
-      "at": "2026-10-01T18:28:32.321Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 17,
-      "method": "git",
-      "baseRefFrom": "549ecc78e62492a8b8bcc5101a7613cdc953045e",
-      "baseRefTo": "344b911c44090767039dd5bb9127dee6133f2c30"
-    },
-    {
-      "at": "2026-10-01T21:11:18.709Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T21:11:33.179Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T21:19:15.368Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 12,
-      "method": "git",
-      "verifyPassedKept": true
-    },
-    {
-      "at": "2026-10-01T21:39:13.633Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 12,
-      "method": "git",
-      "baseRefFrom": "344b911c44090767039dd5bb9127dee6133f2c30",
-      "baseRefTo": "250069e09bd26708c9074b0b8b3eea1fa3077722"
-    },
-    {
-      "at": "2026-10-02T00:12:45.831Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 45,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-10-02T00:18:43.488Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T00:18:58.751Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T00:57:42.718Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 45,
-      "method": "git",
-      "baseRefFrom": "250069e09bd26708c9074b0b8b3eea1fa3077722",
-      "baseRefTo": "46a897b0d169313aa97282c96d23a43a2f73a905"
-    },
     {
       "at": "2026-10-02T02:41:45.578Z",
       "event": "verify-run",
@@ -190,6 +58,139 @@
       "method": "git",
       "baseRefFrom": "46a897b0d169313aa97282c96d23a43a2f73a905",
       "baseRefTo": "53b6fef1ce7c504bf80a92511534d378d5b081ee"
+    },
+    {
+      "at": "2026-10-02T14:13:26.310Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 6,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-02T14:59:43.703Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T15:14:46.075Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T15:14:59.838Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-02T16:11:18.182Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T16:21:38.270Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T16:21:53.813Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-02T16:51:47.923Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 18,
+      "method": "git",
+      "baseRefFrom": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
+      "baseRefTo": "86041a5481e21303959b984b900ab30c92c8535f"
+    },
+    {
+      "at": "2026-10-02T17:12:13.701Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T17:12:13.816Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-02T20:39:12.746Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 14,
+      "method": "git",
+      "verifyPassedKept": true
+    },
+    {
+      "at": "2026-10-02T21:23:45.487Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 14,
+      "method": "git",
+      "baseRefFrom": "86041a5481e21303959b984b900ab30c92c8535f",
+      "baseRefTo": "fe75e25d7efb75b6f5dbf6b7f31af0de584a147f"
+    },
+    {
+      "at": "2026-10-02T21:34:39.710Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 5,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-02T21:40:56.324Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T21:40:56.451Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-02T21:53:13.298Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 5,
+      "method": "git",
+      "baseRefFrom": "fe75e25d7efb75b6f5dbf6b7f31af0de584a147f",
+      "baseRefTo": "8c44f9f0eba14efd9c562b772a15e5ec0c780f04"
     }
   ],
   "cascadedPhases": [],
@@ -357,16 +358,16 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
+  "verifyRanRef": "bdddac2e20740326d8342b622c0d761daaff518a",
   "verifyRanDirty": false,
-  "verifyResultsHash": "04a618577d4d406131c4f8a47ff42d203b00622580b0a99771db91855c37abac",
-  "verifyRanAt": "2026-10-02T02:41:45.559Z",
+  "verifyResultsHash": "f14d26501f77855185f49b67d4eddf806fefaeab7b0891e4f70c6e3016722287",
+  "verifyRanAt": "2026-10-02T21:40:56.305Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-02T02:41:45.559Z"
+    "at": "2026-10-02T21:40:56.305Z"
   },
   "verifySummary": {
     "total": 59,

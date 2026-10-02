@@ -2,10 +2,10 @@
  * BG-076 / FR-207 — un monto que no es un entero en pesos se rechaza; no se funde en los dígitos.
  *
  * Los campos borraban todo lo que no fuera dígito: «1500,50» se convertía en 150.050, cien veces la
- * cifra, sin aviso. Y `validateAmountInput`, la regla de FR-207, no la llamaba nadie.
+ * cifra, sin aviso.
  */
 import { describe, it, expect } from "vitest";
-import { amountChars, amountInputError, parsePesos, validateAmountInput, MONTO_ENTERO_MSG } from "@/lib/money";
+import { amountChars, amountInputError, parsePesos, MONTO_ENTERO_MSG } from "@/lib/money";
 
 describe("amountInputError", () => {
   it("acepta enteros y miles con punto bien agrupados", () => {
@@ -28,10 +28,5 @@ describe("el campo conserva lo que hay que juzgar", () => {
   });
 });
 
-describe("validateAmountInput (FR-207) acepta los miles", () => {
-  it("«1.500.000» es válido; «12,5» y «12.5» siguen rechazados", () => {
-    expect(validateAmountInput("1.500.000")).toEqual({ ok: true, amount: 1_500_000 });
-    expect(validateAmountInput("12,5")).toEqual({ ok: false, message: MONTO_ENTERO_MSG });
-    expect(validateAmountInput("12.5")).toEqual({ ok: false, message: MONTO_ENTERO_MSG });
-  });
-});
+// BL-063: aquí se probaba `validateAmountInput`, que seguía sin llamar nadie y se retiró. Lo que
+// usa el producto —`amountInputError` y `parsePesos`— está cubierto arriba.

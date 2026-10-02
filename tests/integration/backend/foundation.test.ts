@@ -74,18 +74,33 @@ describe("FR-506 — esquema y persistencia por usuario", () => {
 
   it("TC-BE-023f: una escritura de dominio sin ownerId es rechazada por constraint", async () => {
     // @aitri-tc TC-BE-023f
+    // BL-063: el INSERT llevaba un error de sintaxis (`period: month`) y un literal entre comillas
+    // dobles, así que Postgres lo rechazaba antes de mirar ninguna restricción y la prueba aceptaba
+    // cualquier error. Ahora la sentencia es válida —lo demuestra el control— y el rechazo tiene que
+    // ser el NOT NULL de owner_id.
     const db = testDb();
-    const before = (await db.execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
+    const contar = async () =>
+      ((await db.execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[])[0].n;
+    const insertar = (owner: string | null, id: string) => db.execute(
+      sql`INSERT INTO "movement" (owner_id, id, type, cat_id, target, amount, period, created_at)
+          VALUES (${owner}, ${id}, 'expense', 'c-comida', 'c-comida', 100, '2026-06', 1)`);
+    const before = await contar();
 
-    await expect(
-      db.execute(
-        sql`INSERT INTO "movement" (owner_id, id, type, cat_id, target, amount, period: month, created_at)
-            VALUES (NULL, 'mov-x', 'expense', 'c-comida', 'c-comida', 100, "2026-06", 1)`
-      )
-    ).rejects.toThrow();
+    // Control: con dueño, la MISMA sentencia inserta una fila.
+    await insertar(A, "mov-con-dueno");
+    expect(await contar()).toBe(before + 1);
 
-    const after = (await db.execute(sql`SELECT count(*)::int AS n FROM "movement"`)) as unknown as { n: number }[];
-    expect(after[0].n).toBe(before[0].n); // nada se persistió
+    // Sin dueño: la rechaza la restricción NOT NULL de owner_id (SQLSTATE 23502), no la sintaxis.
+    let error: unknown;
+    try { await insertar(null, "mov-sin-dueno"); } catch (e) { error = e; }
+    expect(error, "el INSERT sin owner_id tenía que fallar").toBeDefined();
+    const causa = ((error as { cause?: unknown }).cause ?? error) as { code?: string; column_name?: string; message?: string };
+    expect(causa.code, `error recibido: ${causa.message}`).toBe("23502");
+    expect(causa.column_name).toBe("owner_id");
+
+    expect(await contar()).toBe(before + 1); // la fila sin dueño no se persistió
+    const sinDueno = (await db.execute(sql`SELECT count(*)::int AS n FROM "movement" WHERE owner_id IS NULL OR id = 'mov-sin-dueno'`)) as unknown as { n: number }[];
+    expect(sinDueno[0].n).toBe(0);
   });
 });
 

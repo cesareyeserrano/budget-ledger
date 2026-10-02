@@ -16,11 +16,11 @@
  *   · reserve-server.test.ts → el CABLEADO en el servidor (migración lazy, marca dataVersion,
  *     una sola vez, también antes de un POST).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { migrateStateV3toV4 } from "@/domain/migrate";
-import { persistedBudgetSchema } from "@/domain/validation";
+import { ServerRepository } from "@/data/serverRepository";
 import { AVAILABLE_ID, RETIROS_PLAN_ID, resolvedBalance, reserveRetiros } from "@/domain/reserve";
 import { STORAGE_KEYS, type LedgerNode, type LedgerState, type Movement } from "@/domain/types";
 import { P } from "../helpers/periods";
@@ -137,59 +137,88 @@ describe("NFR-1003 · la migración es no destructiva", () => {
     expect(reserveRetiros(state, "2026-02", "actual")).toBe(0);
   });
 
-  it("TC-TRF4-153f: el esquema rechaza montos negativos y no enteros", async () => {
+  it("TC-TRF4-153f: un libro corrupto (negativos, no enteros) se rechaza sin lanzar y sin sembrar encima", async () => {
     // @aitri-tc TC-TRF4-153f
-    // Antes esto se probaba a través de LocalStorageRepository.load(), que validaba con Zod y
-    // devolvía null (→ semilla). Ese repositorio se retiró, así que se verifica el ESQUEMA en sí,
-    // que es lo que contenía la regla.
-    //
-    // ⚠ Cobertura honesta: el camino de servidor NO aplica hoy este esquema al leer
-    // (serverRepository.ts:48 castea sin validar). Registrado como BL-021 — este test prueba que
-    // la regla es correcta, NO que la implementación viva la aplique.
-    const blobs = [
-      { version: 4, budgets: {}, actuals: { "c-viaje": { "2026-01": -999 } }, movements: [] },
-      { version: 4, budgets: {}, actuals: { "c-viaje": { "2026-01": 100.5 } }, movements: [] },
-      { version: 4, budgets: { [RETIROS_PLAN_ID]: { "2026-01": -5 } }, actuals: {}, movements: [] },
+    // El caso nació sobre LocalStorageRepository, que se retiró: el libro ya no vive en el navegador.
+    // BL-063: desde entonces esta prueba afirmaba sobre `persistedBudgetSchema`, un esquema que el
+    // producto no aplicaba en ningún sitio (se retiró). La recuperación segura de hoy es la de la
+    // ÚNICA vía de carga: `ServerRepository.load()` valida lo que llega y, si no cumple, ni lanza
+    // ni deja que la app siembre encima (BG-012).
+    const base = { ownerId: "local", nodes: NODES, budgets: {}, actuals: {}, movements: [] };
+    const corruptos: Array<[string, object]> = [
+      ["ejecutado negativo", { ...base, actuals: { "c-viaje": { "2026-01": -999 } } }],
+      ["ejecutado no entero", { ...base, actuals: { "c-viaje": { "2026-01": 100.5 } } }],
+      ["retiro planeado negativo", { ...base, budgets: { [RETIROS_PLAN_ID]: { "2026-01": -5 } } }],
     ];
-    for (const blob of blobs) {
-      expect(persistedBudgetSchema.safeParse(blob).success, JSON.stringify(blob)).toBe(false);
+    const servir = (state: object) => {
+      let puts = 0;
+      vi.stubGlobal("fetch", vi.fn(async (url: unknown, init?: RequestInit) => {
+        if (!String(url).endsWith("/api/v1/ledger")) return new Response("{}", { status: 404 });
+        if ((init?.method ?? "GET") === "PUT") { puts += 1; return new Response(JSON.stringify({ revision: 8 }), { status: 200 }); }
+        return new Response(JSON.stringify({ revision: 7, state }), { status: 200 });
+      }));
+      return { escrituras: () => puts };
+    };
+
+    for (const [nombre, state] of corruptos) {
+      const api = servir(state);
+      const repo = new ServerRepository();
+      await expect(repo.load(), nombre).resolves.toBeNull();
+      expect(repo.malformed, nombre).toBe(true);
+
+      // …y la app, al abrir, avisa y NO escribe la semilla encima de lo que no supo leer.
+      vi.resetModules();
+      const store = (await import("@/state/store")).useLedgerStore;
+      await store.getState().hydrate();
+      await new Promise((r) => setTimeout(r, 30));
+      expect(store.getState().storageError, nombre).toBe("malformed");
+      expect(api.escrituras(), nombre).toBe(0);
+      vi.unstubAllGlobals();
     }
-    // Y un blob conforme sí pasa: el esquema no rechaza por rechazar.
-    expect(persistedBudgetSchema.safeParse({ version: 4, budgets: {}, actuals: { "c-viaje": { "2026-01": 100 } }, movements: [] }).success).toBe(true);
+
+    // Control: el mismo libro con cifras válidas SÍ carga — el filtro no rechaza por rechazar.
+    servir({ ...base, actuals: { "c-viaje": { "2026-01": 100 } } });
+    const repo = new ServerRepository();
+    const cargado = await repo.load();
+    expect(repo.malformed).toBe(false);
+    expect(cargado!.actuals["c-viaje"]).toEqual({ "2026-01": 100 });
+    vi.unstubAllGlobals();
+    vi.resetModules();
   });
 });
 
 describe("NFR-1004 · decisión del PUT snapshot", () => {
-  it("TC-TRF4-154f: el PUT confiado está documentado y el server no re-valida reglas (ADR-04)", () => {
+  it("TC-TRF4-154f: la decisión sobre el PUT está escrita — y la que la superó, también", () => {
     // @aitri-tc TC-TRF4-154f
+    // El caso pide «decisión explícita, no omisión». La decisión de transferencias (ADR-04) fue un
+    // PUT confiado: el servidor guardaba el snapshot sin volver a aplicar las reglas de reservas.
     const design = readFileSync(path.join(ROOT, "aitri/features/transferencias/spec/02_SYSTEM_DESIGN.md"), "utf8");
     expect(design).toMatch(/PUT confiado/);
     expect(design).toContain("ADR-04");
+
+    // BL-063: la otra mitad comprobaba que el servidor NO revalidara, buscando la ausencia de un
+    // nombre de función (`validateReserveWrite`) que no dice nada: el servidor SÍ hace cumplir las
+    // reglas desde la feature reglas-en-el-servidor (decisión del usuario del 2026-09-03), con otra
+    // función. Esa decisión posterior también está escrita, y el código la cumple en las TRES vías
+    // de escritura. El comportamiento lo prueban TC-RES-010f, 016f y 220f contra Postgres.
+    const reglas = JSON.parse(readFileSync(path.join(ROOT, "aitri/features/reglas-en-el-servidor/spec/01_REQUIREMENTS.json"), "utf8")) as {
+      functional_requirements: { id: string; priority?: string }[];
+    };
+    expect(reglas.functional_requirements.find((f) => f.id === "FR-2101")?.priority).toBe("MUST");
     const repoSrc = readFileSync(path.join(ROOT, "src/server/data/ledgerRepo.ts"), "utf8");
-    expect(repoSrc).not.toContain("validateReserveWrite");
-    const schemasSrc = readFileSync(path.join(ROOT, "src/server/schemas.ts"), "utf8");
-    expect(schemasSrc).not.toContain("validateReserveWrite");
+    expect(repoSrc).toContain('import { worsenedBy } from "@/domain/guard";');
+    const llamadas = repoSrc.match(/const violations = worsenedBy\(/g) ?? [];
+    expect(llamadas).toHaveLength(3); // saveLedger, insertMovement y la edición de un movimiento
   });
 });
 
 // ── NFR-1805 (feature techo-de-flujo) · la marca de versión es lo que impide re-aplicar ────────
 
 describe("NFR-1805 · la cadena de migraciones no se re-aplica sobre un ledger ya marcado", () => {
-  // @aitri-tc TC-TDF-241h
-  it("TC-TDF-241h: el guard de versión es lo único que separa un ledger sano de uno destruido", () => {
-    // La conversión v3→v4 NO es idempotente por diseño (se des-acumulan los saldos), así que la
-    // propiedad que de verdad protege los datos no es la de la función: es que el servidor NO la
-    // llame cuando la marca ya está puesta. Aquí se fija esa lógica de guarda de forma pura, sin
-    // base de datos, sobre las MISMAS constantes que usa `ensureV4InTx` (ledgerRepo.ts).
-    const DATA_VERSION_BALANCES = 3;
-    const DATA_VERSION_FLOWS = 4;
-    const DATA_VERSION_COUNTERPARTY = 5;
-    const debeMigrar = (marca: number) => marca < DATA_VERSION_FLOWS;
-
-    expect(debeMigrar(DATA_VERSION_BALANCES)).toBe(true); // un v3 sí se convierte…
-    expect(debeMigrar(DATA_VERSION_FLOWS)).toBe(false); // …y un ledger ya marcado, JAMÁS…
-    expect(debeMigrar(DATA_VERSION_COUNTERPARTY)).toBe(false); // …ni uno de una versión posterior.
-
+  // BL-063: aquí vivía TC-TDF-241h declarando la guarda de versión y sus constantes dentro de la
+  // prueba. El caso se prueba ahora cargando dos ledgers de verdad, en
+  // tests/integration/backend/reserve-server.test.ts. Aquí queda por qué la guarda importa.
+  it("la conversión v3→v4 NO es idempotente: aplicarla dos veces destruye el saldo", () => {
     // Y la consecuencia sobre datos reales: aplicar la conversión a un estado YA convertido
     // destruye información. Es el daño exacto que el guard evita, y por eso se afirma aquí.
     const unaVez = migrateStateV3toV4(v3State());

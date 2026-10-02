@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { STORAGE_KEYS } from "@/domain/types";
 import { signOf } from "@/domain/sign";
-import { typeColor, typeTextColor } from "@/lib/tokens";
-import { validateAmountInput, parsePesos } from "@/lib/money";
+import { amountInputError, parsePesos, MONTO_ENTERO_MSG } from "@/lib/money";
+import { buildSeed, addMovement } from "@/domain";
 import { dateLabel, periodKeyFromDate } from "@/lib/date";
 import { normalizeNote } from "@/domain/mutations";
 import { isLeaf } from "@/domain/tree";
@@ -29,6 +29,15 @@ function contrast(fgHex: string, bgHex: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 const globalsCss = readFileSync(resolve(__dirname, "../../src/app/globals.css"), "utf8");
+/** El valor hex de un token dentro de un bloque de globals.css: `:root` es el tema claro, `.dark` el oscuro. */
+function tokenDe(bloque: ":root" | ".dark", nombre: string): string {
+  const ini = globalsCss.indexOf(`\n${bloque} {`);
+  if (ini < 0) throw new Error(`globals.css no tiene el bloque ${bloque}`);
+  const cuerpo = globalsCss.slice(ini, globalsCss.indexOf("\n}", ini));
+  const m = cuerpo.match(new RegExp(`\\n\\s*${nombre}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`));
+  if (!m) throw new Error(`no hay un ${nombre} en hex dentro de ${bloque}`);
+  return m[1]!;
+}
 const ciYml = readFileSync(resolve(__dirname, "../../.github/workflows/ci.yml"), "utf8");
 
 // ── FR-201 · aislamiento de la preferencia de tema ──────────────────────────
@@ -45,34 +54,39 @@ describe("FR-202/FR-204 — tokens de color", () => {
   it("TC-SUT-206f: no queda ningún token steel-blue del sistema César Augusto anterior", () => {
     expect(globalsCss).not.toContain("#4a7fa5");
     expect(globalsCss).not.toContain("#080c12");
-    expect(typeColor("transfer", "light")).not.toBe("#4a7fa5");
+    for (const tema of [":root", ".dark"] as const) expect(tokenDe(tema, "--type-transfer").toLowerCase()).not.toBe("#4a7fa5");
   });
+
+  // BL-063: estos tres casos y TC-SUT-251e leían los colores de `typeColor`/`typeTextColor`
+  // (src/lib/tokens.ts), unas funciones que el producto no llamaba: lo que pinta la app son los
+  // tokens `--type-*` de globals.css. Ahora se leen de ahí, y el módulo sin uso se retiró.
 
   // ux-consistency FR-301/FR-311 SUPERSEDE los hex saturados: se AFINAN a ladrillo/bosque/acero
   // (permitido por NFR-302 — mismo hue, sin marca nueva) para eliminar la vibración.
   it("TC-SUT-210h: en claro los tipos usan los tonos desaturados (ladrillo/bosque/acero)", () => {
-    expect(typeColor("expense", "light")).toBe("#C4453E");
-    expect(typeColor("income", "light")).toBe("#2F7D53");
-    expect(typeColor("transfer", "light")).toBe("#2F6DB4");
+    expect(tokenDe(":root", "--type-expense").toUpperCase()).toBe("#C4453E");
+    expect(tokenDe(":root", "--type-income").toUpperCase()).toBe("#2F7D53");
+    expect(tokenDe(":root", "--type-transfer").toUpperCase()).toBe("#2F6DB4");
   });
 
   it("TC-SUT-211e: en tema oscuro los tipos se aclaran y desaturan", () => {
-    expect(typeColor("expense", "dark")).toBe("#EC6A66");
-    expect(typeColor("income", "dark")).toBe("#5FBE82");
-    expect(typeColor("transfer", "dark")).toBe("#6BA6F1");
+    expect(tokenDe(".dark", "--type-expense").toUpperCase()).toBe("#EC6A66");
+    expect(tokenDe(".dark", "--type-income").toUpperCase()).toBe("#5FBE82");
+    expect(tokenDe(".dark", "--type-transfer").toUpperCase()).toBe("#6BA6F1");
+    // y son distintos de los del tema claro: el oscuro tiene los suyos
+    for (const t of ["expense", "income", "transfer"]) expect(tokenDe(".dark", `--type-${t}`)).not.toBe(tokenDe(":root", `--type-${t}`));
   });
 
   it("TC-SUT-212f: los 3 colores de tipo pasan AA ≥4.5:1 como texto pequeño en su tema", () => {
-    // claro: sobre superficie blanca
-    for (const t of ["expense", "income", "transfer"] as const) {
-      expect(contrast(typeTextColor(t, "light"), "#FFFFFF"), `${t} claro`).toBeGreaterThanOrEqual(4.5);
+    // En cada tema, sobre la superficie de card de ESE tema (blanca en claro, #1b1b1f en oscuro).
+    for (const tema of [":root", ".dark"] as const) {
+      const card = tokenDe(tema, "--bg-card");
+      for (const token of ["--type-expense", "--type-income-text", "--type-transfer"]) {
+        expect(contrast(tokenDe(tema, token), card), `${tema} ${token} sobre ${card}`).toBeGreaterThanOrEqual(4.5);
+      }
+      // el verde afinado ya pasa como texto: la variante para texto pequeño es el mismo verde
+      expect(tokenDe(tema, "--type-income-text")).toBe(tokenDe(tema, "--type-income"));
     }
-    // oscuro: sobre la superficie de card
-    for (const t of ["expense", "income", "transfer"] as const) {
-      expect(contrast(typeTextColor(t, "dark"), "#1B1B1F"), `${t} oscuro`).toBeGreaterThanOrEqual(4.5);
-    }
-    // el verde afinado ya pasa como texto: no necesita variante aparte
-    expect(typeTextColor("income", "light")).toBe(typeColor("income", "light"));
   });
 });
 
@@ -86,11 +100,24 @@ describe("FR-207 — monto", () => {
   });
 
   it("TC-SUT-222f: una entrada con separador decimal se rechaza con el mensaje de monto entero", () => {
-    expect(validateAmountInput("12,5")).toEqual({ ok: false, message: "El monto debe ser un valor entero en pesos." });
-    expect(validateAmountInput("12.5")).toEqual({ ok: false, message: "El monto debe ser un valor entero en pesos." });
-    expect(validateAmountInput("0")).toEqual({ ok: false, message: "Escribe un monto mayor que 0." });
-    expect(validateAmountInput("1250")).toEqual({ ok: true, amount: 1250 });
+    // BL-063: afirmaba sobre `validateAmountInput`, que el producto no llamaba (se retiró). Lo que
+    // la app usa es `amountInputError` en los campos de monto, y el dominio como última barrera.
+    expect(MONTO_ENTERO_MSG).toBe("El monto debe ser un valor entero en pesos.");
+    expect(amountInputError("12,5")).toBe(MONTO_ENTERO_MSG);
+    expect(amountInputError("12.5")).toBe(MONTO_ENTERO_MSG);
+    expect(amountInputError("1250")).toBeNull();
+    expect(amountInputError("1.250")).toBeNull(); // miles con punto: es un entero (BG-076)
     expect(parsePesos("1250")).toBe(1250);
+    // …y no se crea movimiento: el dominio rechaza el decimal y el cero, y acepta el entero.
+    const seed = buildSeed("local", "2026-01");
+    const entrada = (amount: string | number) =>
+      addMovement(seed, { type: "expense", catId: "c-vivienda", subId: null, amount, period: "2026-01" }, ["2026-01"]);
+    for (const malo of ["12,5", "12.5", 12.5, "0", 0]) {
+      expect(entrada(malo), `monto ${JSON.stringify(malo)}`).toBe(seed);
+    }
+    const bueno = entrada("1250");
+    expect(bueno).not.toBe(seed);
+    expect(bueno.movements[0]!.amount).toBe(1250);
   });
 });
 
@@ -160,21 +187,32 @@ describe("NFR-202 — persistencia", () => {
 // ── NFR-203 · contraste AA ──────────────────────────────────────────────────
 describe("NFR-203 — accesibilidad", () => {
   it("TC-SUT-250h: text-primary y text-secondary alcanzan ≥4.5:1 en ambos temas", () => {
-    // claro (paleta afinada ux-consistency)
-    expect(contrast("#1C1C1F", "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // text-primary
-    expect(contrast("#55555D", "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // text-secondary
-    // text-muted / eyebrow: debe pasar AA también sobre la superficie HUNDIDA (#F1F1F3), donde vive
-    // el eyebrow "CATEGORÍA" de la grilla — el gate que #6E6E76 no alcanzaba (4.48:1).
-    expect(contrast("#6B6B73", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
-    expect(contrast("#6B6B73", "#F1F1F3")).toBeGreaterThanOrEqual(4.5);
-    // oscuro: texto off-white (no blanco puro) sobre el lienzo #131316
-    expect(contrast("#F4F4F5", "#131316")).toBeGreaterThanOrEqual(4.5);
-    expect(contrast("#9B9BA3", "#131316")).toBeGreaterThanOrEqual(4.5);
+    // BL-063: calculaba el contraste de colores TECLEADOS en la prueba, así que cambiar la hoja de
+    // estilos no podía hacerla fallar (y el secundario oscuro que traía ya no era el del producto).
+    // Ahora los colores se leen de los tokens de globals.css, en `:root` y en `.dark`.
+    const SUPERFICIES = ["--bg", "--bg-card", "--bg-elevated", "--bg-sunken"];
+    const TEXTOS = ["--fg", "--fg-secondary", "--fg-muted"];
+    for (const tema of [":root", ".dark"] as const) {
+      for (const texto of TEXTOS) {
+        for (const superficie of SUPERFICIES) {
+          const fg = tokenDe(tema, texto), bg = tokenDe(tema, superficie);
+          expect(contrast(fg, bg), `${tema} ${texto} ${fg} sobre ${superficie} ${bg}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+    // Y los tokens son los del sistema, no cualquier par que pase: el texto principal sobre el lienzo
+    // supera con mucho el mínimo en los dos temas, y los dos temas son distintos de verdad.
+    expect(contrast(tokenDe(":root", "--fg"), tokenDe(":root", "--bg"))).toBeGreaterThan(15);
+    expect(contrast(tokenDe(".dark", "--fg"), tokenDe(".dark", "--bg"))).toBeGreaterThan(15);
+    expect(tokenDe(":root", "--bg")).not.toBe(tokenDe(".dark", "--bg"));
+    expect(tokenDe(":root", "--fg")).not.toBe(tokenDe(".dark", "--fg"));
+    // Control del propio medidor: un gris que no llega al mínimo se detecta.
+    expect(contrast("#8a8a92", tokenDe(":root", "--bg"))).toBeLessThan(4.5);
   });
 
   it("TC-SUT-251e: el verde afinado pasa AA como texto pequeño y el green-600 saturado no", () => {
     expect(contrast("#16A34A", "#FFFFFF")).toBeLessThan(4.5); // green-600 saturado NO pasa
-    expect(contrast(typeTextColor("income", "light"), "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // el afinado sí
+    expect(contrast(tokenDe(":root", "--type-income-text"), "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // el afinado sí
   });
 });
 
