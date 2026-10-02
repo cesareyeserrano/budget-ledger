@@ -7,8 +7,9 @@
  * Los totales no lo notaban porque mandan sobre `target`.
  */
 import { describe, it, expect } from "vitest";
-import { editMovement, moveNode, movementTargetOk, repairMovementCats } from "@/domain";
+import { AVAILABLE_ID, applyReserveOp, editMovement, moveNode, movementTargetOk, repairMovementCats } from "@/domain";
 import { closedPeriodsViolated } from "@/domain/closure";
+import { worsenedBy } from "@/domain/guard";
 import { MONTH_CALENDAR } from "@/domain/cycles";
 import type { LedgerNode, LedgerState, Movement, PeriodKey } from "@/domain/types";
 import { P, M } from "../helpers/periods";
@@ -184,3 +185,43 @@ describe("BG-078 (c) · la reparación corrige los pares que ya quedaron viejos"
     expect(dos.state).toBe(una);
   });
 });
+
+describe("BG-078 (c) · mover un bolsillo no cuenta como tocar reservas", () => {
+  /** Ingreso de 1.000 y 800 aportados al bolsillo A; B es otro bolsillo, vacío. */
+  function conBolsillos(): LedgerState {
+    const nodes: LedgerNode[] = [
+      n("g-ing", "group", null, 0, "income"), n("c-sueldo", "category", "g-ing", 1, "income"),
+      n("g-res", "group", null, 2, "transfer"), n("b-a", "category", "g-res", 3, "transfer"), n("b-b", "category", "g-res", 4, "transfer"),
+    ];
+    const base: LedgerState = { ownerId: "local", nodes, budgets: {}, actuals: { "c-sueldo": { [SEP]: 1_000 } }, movements: [] };
+    const r = applyReserveOp(base, { from: AVAILABLE_ID, to: "b-a", period: SEP, amount: 800, date: `${SEP}-05T12:00` }, [SEP]);
+    if (!("state" in r)) throw new Error(`el aporte se rechazó: ${JSON.stringify(r)}`);
+    return r.state;
+  }
+  const bajarIngreso = (s: LedgerState): LedgerState => ({ ...s, actuals: { ...s.actuals, "c-sueldo": { [SEP]: 500 } } });
+  const mover = (s: LedgerState): LedgerState => {
+    const r = moveNode(s, "b-a", { kind: "category", id: "b-b" });
+    if (!("state" in r)) throw new Error(`mover rechazado: ${r.rejected}`);
+    return r.state;
+  };
+
+  it("BG-078c: mover el bolsillo y bajar un ingreso en el mismo guardado se acepta, como cada cosa por separado", () => {
+    const prev = conBolsillos();
+    // El mover sí reetiqueta el aporte: es el caso que antes hacía saltar el guardia.
+    expect(par(mover(prev), prev.movements[0]!.id)).toMatchObject({ catId: "b-b", subId: "b-a" });
+    expect(worsenedBy(prev, bajarIngreso(prev), [SEP])).toEqual([]);
+    expect(worsenedBy(prev, mover(prev), [SEP])).toEqual([]);
+    expect(worsenedBy(prev, bajarIngreso(mover(prev)), [SEP])).toEqual([]);
+  });
+
+  it("BG-078c: lo que sí mueve plata se sigue juzgando — subir el aporte por encima del ingreso", () => {
+    const prev = conBolsillos();
+    const subido: LedgerState = {
+      ...prev,
+      actuals: { ...prev.actuals, "b-a": { [SEP]: 1_500 } },
+      movements: prev.movements.map((m) => ({ ...m, amount: 1_500 })),
+    };
+    expect(worsenedBy(prev, subido, [SEP]).length).toBeGreaterThan(0);
+  });
+});
+

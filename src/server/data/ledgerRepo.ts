@@ -238,7 +238,11 @@ export async function loadLedger(ownerId: string, reparado = false): Promise<Loa
   // BG-053, BG-077 y BG-079: la comprobación es pura y corre sobre lo ya leído, así que una carga sana no
   // paga nada. Solo si hay rastro de un defecto se abre la transacción que repara, y se vuelve a cargar
   // una vez. Se juzga CON los ciclos: sin ellos el calendario sería el de meses y BG-079 no se vería.
-  if (!reparado && repairLoaded(state).repaired > 0 && (await repairOnLoadFor(ownerId))) {
+  // Se vuelve a cargar SIEMPRE que lo leído traía rastro, lo haya reparado esta petición u otra: con
+  // dos cargas a la vez, la que llega segunda encuentra el trabajo hecho, y devolver lo que leyó antes
+  // era entregar el estado sin reparar con una revisión que la base ya dejó atrás.
+  if (!reparado && repairLoaded(state).repaired > 0) {
+    await repairOnLoadFor(ownerId);
     return loadLedger(ownerId, true);
   }
   return {

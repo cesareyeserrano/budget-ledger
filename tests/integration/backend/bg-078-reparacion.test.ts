@@ -77,6 +77,21 @@ describe("BG-078 (c) · la carga corrige el par categoría/subcategoría", () =>
     expect(body.state.actuals).toEqual({ luz: { "2026-09": 40000 }, agua: { "2026-09": 25000 }, taxi: { "2026-09": 12000 } });
   });
 
+  it("con varias cargas a la vez, todas devuelven el estado reparado y la revisión que quedó en la base", async () => {
+    const { cookie } = await signUp("bg078-c@example.com", "Contra$eña123", "bg078", "10.78.0.3");
+    const userId = (await getSessionUser(new Headers({ cookie })))!.userId;
+    await sembrarDanado(userId);
+
+    // Dos dispositivos abiertos que recargan a la vez tras un despliegue: solo uno repara.
+    const respuestas = await Promise.all([get(cookie), get(cookie), get(cookie), get(cookie)]);
+    const cuerpos = await Promise.all(respuestas.map((r) => r.json()));
+    expect(await revisionEnBase(userId)).toBe(2);
+    for (const body of cuerpos) {
+      expect(body.revision).toBe(2);
+      expect(body.state.movements.find((m: { id: string }) => m.id === "m-editor")).toMatchObject({ catId: "casa", subId: "luz" });
+    }
+  });
+
   it("una segunda carga no repara nada ni sube la revisión", async () => {
     const { cookie } = await signUp("bg078-b@example.com", "Contra$eña123", "bg078", "10.78.0.2");
     const userId = (await getSessionUser(new Headers({ cookie })))!.userId;

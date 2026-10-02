@@ -57,10 +57,14 @@ function touchesReserves(prev: LedgerState, next: LedgerState): boolean {
   }
   // BG-057: con origen y destino. Sin ellos, reescribir el `from` de un traslado (que no cambia
   // `target`) no contaba como tocar reservas, y el guardia ni siquiera se ejecutaba.
+  // BG-078 (c): SIN `catId`. Es la etiqueta del nodo de `target`, y mover un bolsillo de sitio la
+  // cambia en sus movimientos sin mover un peso. Con ella en la firma, ese mover contaba como tocar
+  // reservas, y si viajaba en el mismo guardado que bajar un ingreso —permitido por sí solo— el
+  // snapshot entero se rechazaba por el techo.
   const firma = (st: LedgerState) =>
     st.movements
       .filter((m) => m.type === "transfer")
-      .map((m) => `${m.id}:${m.period}:${m.amount}:${m.target}:${m.catId ?? ""}:${m.from ?? ""}:${m.to ?? ""}`)
+      .map((m) => `${m.id}:${m.period}:${m.amount}:${m.target}:${m.from ?? ""}:${m.to ?? ""}`)
       .sort()
       .join("|");
   return firma(prev) !== firma(next);
