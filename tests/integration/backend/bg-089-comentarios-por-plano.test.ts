@@ -56,6 +56,32 @@ describe("BG-089 · el plano del comentario, de ida y vuelta", () => {
     ]);
   });
 
+  it("una pestaña con el código anterior, que reenvía los comentarios sin plano, no los cambia de celda", async () => {
+    const { cookie, userId } = await usuario("bg089-c", "10.89.0.3");
+    const estado: LedgerState = {
+      ...buildSeed(userId, P0),
+      cellNotes: { "c-vivienda": { [P0]: [
+        { id: "n-ejec", createdAt: 1, text: "Del ejecutado" },
+        { id: "n-plan", createdAt: 2, text: "Del presupuesto", plane: "budget" },
+      ] } },
+    };
+    expect((await put(cookie, 0, estado)).status).toBe(200);
+
+    // Lo que haría el cliente viejo: cargar, perder `plane` (su esquema no lo conoce), editar otra cosa
+    // y guardar el snapshot entero. De paso añade un comentario nuevo, que para él no tiene plano.
+    const cargado = ((await (await get(cookie)).json()) as { state: LedgerState }).state;
+    const sinPlano = cargado.cellNotes!["c-vivienda"]![P0]!.map(({ plane: _perdido, ...resto }) => { void _perdido; return resto; });
+    const viejo: LedgerState = {
+      ...cargado,
+      budgets: { "c-transporte": { [P0]: 50_000 } },
+      cellNotes: { "c-vivienda": { [P0]: [...sinPlano, { id: "n-nuevo", createdAt: 3, text: "Escrito desde la pestaña vieja" }] } },
+    };
+    expect((await put(cookie, 1, viejo)).status).toBe(200);
+
+    const filas = [...(await testDb().execute(sql`SELECT id, plane FROM cell_note WHERE owner_id = ${userId} ORDER BY id`))] as { id: string; plane: string | null }[];
+    expect(filas).toEqual([{ id: "n-ejec", plane: null }, { id: "n-nuevo", plane: null }, { id: "n-plan", plane: "budget" }]);
+  });
+
   it("un plano que no existe se rechaza con 422 y no escribe nada", async () => {
     const { cookie, userId } = await usuario("bg089-b", "10.89.0.2");
     const semilla = buildSeed(userId, P0);
