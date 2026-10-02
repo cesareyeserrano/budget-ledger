@@ -653,6 +653,11 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // queda con sus aserciones intactas y solo pierde el id prestado. Ninguna aserción existente se
     // tocó ni se relajó, y ningún cambio de cierre-de-mes.
     //
+    // ANCLA AVANZADA a 73d3035 el mismo 2026-10-02, por la siguiente tanda de BL-063: TC-MAN-001h
+    // escribía dos claves en un objeto local y las leía de vuelta, y TC-MAN-261f medía un contador que
+    // su función no toca (comparaba 0 con 0). Las dos pasan a ejercitar el dominio. Se endurecen dos
+    // pruebas de multi-anio; no se relaja ninguna, y ningún cambio de cierre-de-mes.
+    //
     // Los tres ficheros siguen vigilados a partir del ancla nueva. Si vuelve a fallar: avanzar el ancla
     // y escribir aquí por qué, nunca borrar la prueba.
     const ficheros = [
@@ -660,7 +665,7 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat e72452f -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat 73d3035 -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
