@@ -7,7 +7,8 @@ entraron ciclos, diario de celda, saldo de bolsillo, retirar para gastar y los g
 Método: Playwright/Chromium sobre la app de PRODUCCIÓN que arranca el globalSetup de la suite e2e
 (build de producción + Postgres efímero + cuenta e2e con sesión), viewport 1440x900, datos semilla del
 año completo restaurados antes de medir (el fixture `freshLedger`). 5 corridas por medición, un solo
-worker, en corriente y sin bajo consumo; la aserción se hace contra el PEOR caso. La medición se hizo
+worker, con el portátil EN BATERÍA y con el modo de bajo consumo ACTIVO (el caso desfavorable: el
+reloj del sistema va recortado); la aserción se hace contra el PEOR caso. La medición se hizo
 con un spec temporal que no se versiona; los tiempos se toman DENTRO de la página con
 performance.now().
 
