@@ -63,21 +63,3 @@ export function amountInputError(raw: string): string | null {
   if (s === "" || /^\d+$/.test(s) || MILES_RE.test(s)) return null;
   return MONTO_ENTERO_MSG;
 }
-
-export type AmountValidation = { ok: true; amount: number } | { ok: false; message: string };
-
-/**
- * Valida la entrada de monto (FR-207). Rechaza separadores decimales (COP sin centavos) con el
- * mensaje exacto, y montos ≤0. La entrada del registro ya restringe a dígitos en el teclado, así
- * que esta es la barrera defensiva/verificable de la regla.
- *
- * @aitri-trace FR-ID: FR-207, US-ID: US-207, AC-ID: AC-207, TC-ID: TC-SUT-222f
- */
-export function validateAmountInput(input: string): AmountValidation {
-  // BG-076: «1.500.000» es un entero con sus miles, no un decimal; «12,5» y «12.5» sí se rechazan.
-  const error = amountInputError(input);
-  if (error) return { ok: false, message: error };
-  const amount = parsePesos(input);
-  if (amount <= 0) return { ok: false, message: "Escribe un monto mayor que 0." };
-  return { ok: true, amount };
-}

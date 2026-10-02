@@ -239,10 +239,3 @@ export const persistedBudgetV4Schema = z.object({
   cellNotes: cellNotesSchema.optional(),
 });
 export type PersistedBudgetV4 = z.infer<typeof persistedBudgetV4Schema>;
-
-/** Unión discriminada v2|v3|v4: la carga decide por la marca, jamás por el contenido. */
-export const persistedBudgetSchema = z.discriminatedUnion("version", [
-  persistedBudgetV2Schema,
-  persistedBudgetV3Schema,
-  persistedBudgetV4Schema,
-]);
