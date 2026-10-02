@@ -46,12 +46,32 @@ describe("FR-015 reparent por drag-and-drop", () => {
 
   // @aitri-tc TC-015e
   it("TC-015e: soltar en la zona de un grupo la promueve a categoría nueva", () => {
+    // BL-063: antes movía «c-cafe», que YA era categoría de g-esenciales, a g-esenciales: no movía
+    // nada. La subcategoría de verdad es la «Café» de la semilla, hija de Comida.
     const s = seedWithCafe();
-    const res = moveNode(s, "c-cafe", { kind: "group", id: "g-esenciales" });
+    const sub = "s-comida-cafe";
+    expect(findNode(s.nodes, sub)).toMatchObject({ level: "sub", parentId: "c-comida" });
+    const suyo = MONTH_KEYS.map((m) => rollupBudget(s, sub, m));
+    const comidaAntes = MONTH_KEYS.map((m) => rollupBudget(s, "c-comida", m));
+    expect(suyo.every((v) => v > 0)).toBe(true);
+    const antes = yearTotals(s);
+
+    const res = moveNode(s, sub, { kind: "group", id: "g-esenciales" });
+    expect("state" in res).toBe(true);
     const state = "state" in res ? res.state : s;
-    const cafe = findNode(state.nodes, "c-cafe")!;
+    const cafe = findNode(state.nodes, sub)!;
     expect(cafe.level).toBe("category");
     expect(cafe.parentId).toBe("g-esenciales");
+    // Sale de Comida con lo suyo: Comida suma eso de menos, la categoría nueva lo conserva y el
+    // grupo y el tipo, que la siguen conteniendo, no cambian.
+    expect(childrenOf(state.nodes, "c-comida").map((n) => n.id)).not.toContain(sub);
+    expect(MONTH_KEYS.map((m) => rollupBudget(state, sub, m))).toEqual(suyo);
+    expect(MONTH_KEYS.map((m) => rollupBudget(state, "c-comida", m))).toEqual(comidaAntes.map((v, i) => v - suyo[i]));
+    expect(yearTotals(state)).toEqual(antes);
+    // sus movimientos la siguen y pasan a nombrarla como categoría
+    const movs = state.movements.filter((m) => m.target === sub);
+    expect(movs.length).toBeGreaterThan(0);
+    expect(movs.every((m) => m.catId === sub && (m.subId ?? null) === null)).toBe(true);
   });
 
   // @aitri-tc TC-015f

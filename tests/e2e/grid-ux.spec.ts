@@ -1,4 +1,5 @@
 import { test, expect } from "./helpers/fixtures";
+import { readTree, nodeNamed } from "./helpers/seed";
 
 // Feature grid-ux — e2e. Cada test embebe su TC id para el mapeo de aitri verify-run.
 const DESK = { width: 1440, height: 1250 };
@@ -567,6 +568,13 @@ test("TC-211e: (regresión) reparent por arrastre sigue funcionando", async ({ p
   const totalGastos = page.locator('[data-testid="type-total-row"][data-type="expense"]');
   const antes = ((await totalGastos.getByTestId("cell-parent").first().textContent()) ?? "").trim();
 
+  // BL-063: el punto de partida se lee del servidor. «Café visible y de nivel sub» ya era cierto
+  // antes de arrastrar; lo que cambia es de quién es hija, y que 'Vivienda' deja de ser hoja.
+  const arbol = await readTree(page);
+  expect(nodeNamed(arbol.nodes, "Café").parentId).toBe(nodeNamed(arbol.nodes, "Comida").id);
+  const viviendaId = nodeNamed(arbol.nodes, "Vivienda").id;
+  await expect(nodeRow(page, "Vivienda")).toHaveAttribute("data-leaf", "true");
+
   const cafe = grid.getByText("Café", { exact: true }).first();
   const vivienda = grid.getByText("Vivienda", { exact: true }).first();
   const a = (await cafe.boundingBox())!;
@@ -577,6 +585,12 @@ test("TC-211e: (regresión) reparent por arrastre sigue funcionando", async ({ p
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 10 });
   await page.mouse.up();
 
+  // El servidor guarda a 'Café' como hija de 'Vivienda', que ya no es hoja.
+  await expect
+    .poll(async () => nodeNamed((await readTree(page)).nodes, "Café").parentId, { timeout: 15000 })
+    .toBe(viviendaId);
+  await expect(nodeRow(page, "Vivienda")).toHaveAttribute("data-leaf", "false");
+
   // 'Café' quedó bajo 'Vivienda'. Al reparentar el store re-monta la grilla y las
   // categorías se colapsan, así que se reintenta expandir hasta verlo (sin oscilar).
   await expect(async () => {
@@ -586,6 +600,8 @@ test("TC-211e: (regresión) reparent por arrastre sigue funcionando", async ({ p
     await expect(grid.getByText("Café", { exact: true }).first()).toBeVisible({ timeout: 1500 });
   }).toPass({ timeout: 15000 });
   await expect(nodeRow(page, "Café")).toHaveAttribute("data-level", "sub");
+  const filas = await hierarchy(page);
+  expect(filas[filas.indexOf("category:Vivienda") + 1]).toBe("sub:Café");
 
   // …y el roll-up del tipo se recalculó sin perder ni inventar plata.
   await expect(totalGastos.getByTestId("cell-parent").first()).toHaveText(antes);
