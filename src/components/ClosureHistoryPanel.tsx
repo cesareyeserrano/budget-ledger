@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { History, Lock, LockOpen } from "lucide-react";
 import { useCalendar, useLedgerStore } from "@/state/store";
 import { cycleLabel } from "./cycleText";
@@ -44,15 +44,25 @@ export function ClosureHistoryPanel() {
   const [truncated, setTruncated] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  // BG-081 (g): el estado de cierre que el store tiene cargado. Cambia al cerrar o reabrir desde este
+  // dispositivo y al recargar por el sync en vivo; el panel abierto vuelve a pedir el historial
+  // entonces, como dice su diseño (FR-2011), en vez de quedarse con lo que había al abrirse. Se lee
+  // como texto y no como objeto: cada edición de una celda clona `closure`, y no es un cierre.
+  const cierre = useLedgerStore((s) => `${s.data.closure?.closedThrough ?? ""}|${s.data.closure?.reopened ?? ""}`);
+  const pedido = useRef(0);
+
   const load = useCallback(async () => {
+    const turno = ++pedido.current;
     setFailed(false);
     try {
       const res = await fetch("/api/v1/closure/events");
       if (!res.ok) throw new Error(String(res.status));
       const body = (await res.json()) as { events?: ClosureEvent[]; truncated?: boolean };
+      if (turno !== pedido.current) return; // llegó tarde: ya hay una petición más nueva
       setEvents(body.events ?? []);
       setTruncated(body.truncated === true);
     } catch {
+      if (turno !== pedido.current) return;
       // Un historial que no se pudo cargar NO toca el estado de cierre ni entorpece el trabajo:
       // se dice y se ofrece reintentar.
       setFailed(true);
@@ -62,7 +72,7 @@ export function ClosureHistoryPanel() {
 
   useEffect(() => {
     if (open) void load();
-  }, [open, load]);
+  }, [open, load, cierre]);
 
   return (
     <div className="relative">

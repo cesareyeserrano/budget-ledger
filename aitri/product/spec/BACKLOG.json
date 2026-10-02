@@ -998,6 +998,30 @@
       "problem": "Idea del usuario (2026-10-01), prioridad baja. Hoy un monto con decimales se rechaza con el mensaje de FR-207 (BG-076). Se podria ofrecer una preferencia en Configuracion: rechazar (como hoy), redondear (1500,50 -> 1.501) o cortar (1500,50 -> 1.500), guardando siempre enteros. Guardar centavos de verdad seria una feature completa (almacenamiento, calculos, formato, reglas del servidor) y no se recomienda para COP.",
       "status": "open",
       "createdAt": "2026-10-01T21:07:43.524Z"
+    },
+    {
+      "id": "BL-083",
+      "title": "Cabos sueltos de cliente tras cerrar BG-075 a BG-083",
+      "priority": "P3",
+      "problem": "Hallazgos secundarios de la revision del 2026-10-01, ninguno bloquea: (1) Configuracion: con el saldo inicial nunca declarado, cambiar solo el mes envia openingBalance 0 y declara un cero sin que el usuario lo escriba. (2) Configuracion: la lista de anos ofrece tres mas el vigente; el UX (B8) pedia un selector sin acotar. (3) El e2e de TC-DDC-062h pasa en vacio: --accent y --fg son el mismo color y el borde ya vale 0, asi que no prueba el resaltado (lo prueba bg-080-cliente). (4) Arrastrar un grupo sobre la fila de su propio tipo muestra «Soltar para crear grupo» y hace un PUT con un estado identico. (5) El eje X del Dashboard repite los meses de anos distintos sin marca de ano. (6) En la pantalla de acceso, un 5xx, un 403 o un 429 salen como «No se pudo crear la cuenta» o «Credenciales invalidas»; solo un fetch caido dice «Error de red».",
+      "status": "open",
+      "createdAt": "2026-10-01T23:11:24.994Z"
+    },
+    {
+      "id": "BL-084",
+      "title": "Cabos sueltos de servidor tras cerrar BG-075 a BG-083",
+      "priority": "P3",
+      "problem": "Hallazgos secundarios de la revision del 2026-10-01, ninguno bloquea: (1) BG-079 (b): la migracion 0011 no reconcilia los pares con movimientos y sin fila de celda. El 1-oct no habia ninguno ni en produccion ni en dev, asi que no se hizo migracion (decision del usuario); si alguna vez se restaura un volcado anterior a la 0011 podria hacer falta una 0012 con el mismo criterio. (2) Otros 500 de la misma clase que BG-079 (d): un nombre de nodo con el caracter NUL, un order fuera de int4 y un createdAt fuera de bigint pasan la validacion y los rechaza la base. (3) Un PATCH de solo monto o nota a un movimiento sin fecha en modo ciclos sigue respondiendo period_mismatch; la app no lo nota porque su editor siempre manda fecha. (4) La regla del par catId/subId esta escrita cinco veces (adjust, mutations x2, reserve, migrate); desde BG-078 existe catSubOf en tree.ts para unificarlas.",
+      "status": "open",
+      "createdAt": "2026-10-01T23:11:25.048Z"
+    },
+    {
+      "id": "BL-085",
+      "title": "El registro movil deja registrar en un mes cerrado y el rechazo llega despues",
+      "priority": "P3",
+      "problem": "Hallado en la revision adversarial de BG-080 (2026-10-01), anterior a ese arreglo. El store.addMovement no mira el cierre y nada bajo components/register lo lee: con una fecha de un mes cerrado, el registro pinta el gasto, el ingreso o el retiro y muestra su confirmacion, y despues el servidor lo rechaza y la pantalla revierte con el aviso de mes cerrado. La grilla ya lo previene (celdas de un mes cerrado en solo lectura, y desde BG-080 tambien la de retiros). Arreglo: la misma guarda en addMovement y un aviso en el registro que nombre la salida (reabrir el mes o registrar en el siguiente).",
+      "status": "open",
+      "createdAt": "2026-10-02T00:26:51.389Z"
     }
   ]
 }

@@ -36,6 +36,7 @@ import {
   type LedgerState,
   type Plane,
 } from "@/domain";
+import { Lock } from "lucide-react";
 import { budgetState, type BudgetState } from "@/domain/budgetState";
 import { blockMessage } from "./reserveText";
 import { cellNum, money } from "./format";
@@ -369,7 +370,10 @@ export function WithdrawCell({
   month: PeriodKey;
   sep?: boolean;
   plane?: Plane;
-  /** Mes cerrado. Solo lo usa el plano Pres.: el formulario del plan no abre (NFR-3004). */
+  /**
+   * Mes cerrado. En Pres. el formulario del plan no abre (NFR-3004). En Ejec. abre en SOLO LECTURA
+   * (BG-080 (a)): se ven las operaciones del mes y sus notas, sin sacar ni corregir.
+   */
   closed?: boolean;
 }) {
   const data = useLedgerStore((s) => s.data);
@@ -383,6 +387,12 @@ export function WithdrawCell({
   const [error, setError] = useState<string | null>(null);
   const isPlan = plane === "budget";
   const txt = WITHDRAW_TEXT[plane];
+  // BG-080 (a): en un mes cerrado la celda dejaba sacar —la cifra cambiaba y salía el aviso con
+  // Deshacer— hasta que el servidor lo rechazaba y la pantalla revertía. Un mes cerrado no se toca
+  // (FR-2003): lo que falte se ajusta en el siguiente. Pero la lista de operaciones es el único sitio
+  // donde se lee el «¿para qué?» de un retiro (BG-084), así que se sigue pudiendo abrir para leer,
+  // como el Detalle de cualquier celda cerrada (FR-2004).
+  const soloLectura = !isPlan && closed;
 
   const leaves = reserveLeafIds(data);
   const parsed = Math.round(parsePesos(amount));
@@ -482,8 +492,9 @@ export function WithdrawCell({
           <button
             data-testid="withdraw-cell"
             data-month={month}
+            {...(soloLectura ? { "data-closed": "true" } : {})}
             {...(total > 0 && overState !== "within" ? { "data-over": overState } : {})}
-            title={txt.trigger}
+            title={soloLectura ? "Mes cerrado: ver los retiros de este mes" : txt.trigger}
             className={cn(triggerClass, "cursor-pointer")}
             style={{ color: total ? RETIRO_STATE_COLOR[overState] : "var(--fg-secondary)" }}
           >
@@ -497,9 +508,15 @@ export function WithdrawCell({
       </PopoverTrigger>
       <PopoverContent data-testid="withdraw-popover" className="w-96 p-3 flex flex-col gap-2 text-[12px]" align="end">
         <span data-testid="withdraw-title" className="font-medium" style={{ color: "var(--fg)" }}>
-          {`${txt.title} ${periodLabel(month).toLowerCase()} → Disponible`}
+          {soloLectura ? `Retiros de ${periodLabel(month).toLowerCase()}` : `${txt.title} ${periodLabel(month).toLowerCase()} → Disponible`}
         </span>
 
+        {soloLectura ? (
+          <span data-testid="closed-notice" className="flex items-start gap-1.5" style={{ color: "var(--fg-secondary)" }}>
+            <Lock size={12} strokeWidth={1.5} className="flex-none mt-[2px]" aria-hidden="true" />
+            {periodLabel(month)} está cerrado. Para sacar o corregir un retiro, reábrelo desde el cierre de mes.
+          </span>
+        ) : (<>
         {/* Origen: el desplegable con todas las alcancías y su saldo —el del plan en Pres.—. La puerta
             con origen ya resuelto se retiró con el botón de la fila (FR-1807): la fila «Retiros del mes»
             vive ahora en el segmento de Reservas, junto a los bolsillos, que es lo que resolvía BL-019. */}
@@ -566,6 +583,7 @@ export function WithdrawCell({
             {txt.save}
           </button>
         </div>
+        </>)}
 
         {/* Operaciones del mes: eliminar = corregir (el saldo se restaura por construcción). Desde
             FR-1609 la lista incluye los MOVERES, que antes no aparecían — y por eso no había forma
@@ -590,7 +608,7 @@ export function WithdrawCell({
             <ul className="flex flex-col gap-0.5">
               {isPlan
                 ? planRows.map((row) => <PlanRow key={row.leafId} row={row} month={month} onEliminada={avisarEliminada} />)
-                : monthOps.map((mv) => <OpRow key={mv.id} mv={mv} onEliminada={avisarEliminada} />)}
+                : monthOps.map((mv) => <OpRow key={mv.id} mv={mv} onEliminada={avisarEliminada} soloLectura={soloLectura} />)}
             </ul>
           </div>
         ) : (
@@ -685,7 +703,11 @@ function PlanRow({ row, month, onEliminada }: { row: PlannedRetiroRow; month: Pe
  *
  * @aitri-trace FR-ID: FR-1802, US-ID: US-1802, AC-ID: AC-1805, TC-ID: TC-TDF-091h, TC-TDF-092e
  */
-function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
+function OpRow({ mv, onEliminada, soloLectura = false }: {
+  mv: Movement; onEliminada: () => void;
+  /** Mes cerrado: el monto se pinta como texto, no como campo (BG-080 (a)). */
+  soloLectura?: boolean;
+}) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const editOp = useLedgerStore((s) => s.editReserveOp);
@@ -735,6 +757,11 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
         <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "var(--fg)" }}>
           {leafPathLabel(data, mv.from!)} → {esMover ? leafPathLabel(data, mv.to!) : "Disponible"}
         </span>
+        {soloLectura ? (
+          <span data-testid={`op-amount-${mv.id}`} className="flex-none w-24 tabular text-right px-1.5 py-0.5" style={{ color: "var(--fg-secondary)" }}>
+            {money(mv.amount)}
+          </span>
+        ) : (
         <input
           aria-label={`Monto de ${esMover ? "el movimiento" : "el retiro"} de ${leafPathLabel(data, mv.from!)}`}
           data-testid={`op-amount-${mv.id}`}
@@ -748,6 +775,7 @@ function OpRow({ mv, onEliminada }: { mv: Movement; onEliminada: () => void }) {
           }}
           className="flex-none w-24 tabular text-right bg-card border border-border rounded-(--radius-xs) text-fg px-1.5 py-0.5 outline-none focus:border-accent"
         />
+        )}
       </div>
       {/* BG-084: la nota va ENTERA en su propia línea. Desde que la celda del bolsillo dejó de mostrar
           la nota de un retiro, esta lista es el único sitio donde se lee, y en la línea del rótulo

@@ -1,8 +1,8 @@
 "use client";
 
 import { Lock } from "lucide-react";
-import { useClosureStatus } from "@/state/store";
-import { periodLabel } from "@/domain/periods";
+import { useCalendar, useClosureStatus } from "@/state/store";
+import { cycleLabel, withRange } from "./cycleText";
 
 /**
  * Aviso NO bloqueante de meses terminados sin cerrar (FR-2006).
@@ -22,23 +22,28 @@ import { periodLabel } from "@/domain/periods";
  */
 export function ClosureBanner({ className = "" }: { className?: string }) {
   const { pending, closable } = useClosureStatus();
+  // BG-081 (f): el periodo se nombra con el calendario vigente, igual que el botón de cierre. Con
+  // `periodLabel` un ciclo de transición salía con el nombre de su mes, que es el del ciclo de al
+  // lado —el que ya está cerrado—. Y en ciclos el aviso dice «ciclo», no «mes» (UX de ciclos, E3).
+  const cal = useCalendar();
   if (pending.length === 0) return null;
 
-  const cuantos =
-    pending.length === 1 ? "Tienes 1 mes terminado sin cerrar" : `Tienes ${pending.length} meses terminados sin cerrar`;
+  const [uno, varios] = cal.mode === "cycle" ? ["ciclo terminado", "ciclos terminados"] : ["mes terminado", "meses terminados"];
+  const cuantos = pending.length === 1 ? `Tienes 1 ${uno} sin cerrar` : `Tienes ${pending.length} ${varios} sin cerrar`;
 
   return (
     <div
       role="status"
       data-testid="closure-banner"
       data-pending={pending.length}
+      title={closable && cal.mode === "cycle" ? withRange(cal, closable) : undefined}
       className={`flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm ${className}`}
       style={{ color: "var(--fg-secondary)" }}
     >
       <Lock className="h-4 w-4 shrink-0" aria-hidden />
       <span>
         {cuantos}
-        {closable ? `. El siguiente que puedes cerrar es ${periodLabel(closable)}.` : "."}
+        {closable ? `. El siguiente que puedes cerrar es ${cycleLabel(cal, closable)}.` : "."}
       </span>
     </div>
   );

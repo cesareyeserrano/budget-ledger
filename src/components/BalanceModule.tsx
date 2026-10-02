@@ -663,7 +663,7 @@ export function RetirosRow({ highlightMonth }: { highlightMonth: PeriodKey | nul
              style={highlightMonth === m ? { background: "color-mix(in srgb, var(--accent) 8%, transparent)" } : undefined}>
           {/* saldo-de-bolsillo (FR-3001): el mismo formulario en los dos planos. */}
           <WithdrawCell plane="budget" month={m} sep closed={isClosed(closure, m)} />
-          <WithdrawCell plane="actual" month={m} />
+          <WithdrawCell plane="actual" month={m} closed={isClosed(closure, m)} />
         </div>
       ))}
     </div>

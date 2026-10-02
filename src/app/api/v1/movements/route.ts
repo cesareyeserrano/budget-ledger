@@ -39,6 +39,8 @@ const postHandler = withApi<MovementInput>(
   async ({ userId, body }) => {
     const result = await insertMovement(userId, body);
     if (!result) return apiError("invalid_movement", "Movimiento inválido", HTTP.UNPROCESSABLE);
+    // BG-079 (d): sin ledger no hay dónde registrar. El mismo 404 que ya dan PATCH y DELETE.
+    if ("noLedger" in result) return apiError("not_found", "No encontrado", HTTP.NOT_FOUND);
     // BG-064: el mismo código que ya usa la edición de un movimiento (PATCH /movements/[id]).
     if ("invalidTarget" in result) return apiError("invalid_target", "Categoría destino inválida", HTTP.UNPROCESSABLE);
     // Feature cierre-de-mes (FR-2003): el mes destino está cerrado. Segunda vía de escritura, y

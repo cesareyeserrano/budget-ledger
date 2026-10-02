@@ -10,7 +10,7 @@ import { isClosed } from "@/domain/closure";
 import { rollupTable } from "@/domain/rollup";
 import { budgetState, cellTone, cellGlyph, type BudgetState, type CellTone } from "@/domain/budgetState";
 import { isLeaf, childrenOf } from "@/domain/tree";
-import { canDeleteNode } from "@/domain/mutations";
+import { canDeleteNode, moveNode as moveNodeDomain } from "@/domain/mutations";
 import { monthIssues, monthCarryUsage, monthIssueText, type MonthIssue } from "@/domain/reserve";
 // FR-2511: los descuadres son la OTRA lista de problemas del mes; se juntan aquí al pintar.
 import { mismatchIssues } from "@/domain/mismatch";
@@ -195,6 +195,23 @@ export function BudgetGrid() {
     devolverFocoSiSePerdio(() => scrollRef.current?.querySelector<HTMLElement>(sel));
   }, [editing]);
 
+  // BG-083: confirmar un borrado desmonta la fila entera, así que no queda rótulo propio al que volver
+  // y el foco caía al <body>: el siguiente Tab empezaba desde el principio de la página. A quien iba
+  // con teclado se le lleva al rótulo de la fila vecina: la hermana siguiente y, si no hay, la de
+  // arriba. Las filas del sistema no se enfocan (su rótulo no es un control).
+  function borrarNodo(id: string) {
+    const i = rows.findIndex((r) => r.node?.id === id);
+    const enfocable = (r: Row | undefined): r is Row => !!r?.node && !r.node.system;
+    const sig = rows[i + 1];
+    const ant = rows[i - 1];
+    const vecina =
+      (enfocable(sig) && sig.depth === rows[i]?.depth ? sig : enfocable(ant) ? ant : undefined) ??
+      [...rows.slice(i + 1), ...rows.slice(0, Math.max(i, 0)).reverse()].find(enfocable);
+    if (deleteNode(id) !== "ok" || !vecina?.node) return;
+    const sel = `[data-row-label="${CSS.escape(vecina.node.id)}"]`;
+    devolverFocoSiSePerdio(() => scrollRef.current?.querySelector<HTMLElement>(sel));
+  }
+
   // FR-104: arrastre de la manija (Pointer Events propios, aislados del dnd de nodos).
   function startResize(e: React.PointerEvent) {
     e.preventDefault();
@@ -351,6 +368,9 @@ export function BudgetGrid() {
     const over = ev.over;
     if (!over) return;
     const [kind, id] = String(over.id).split(":");
+    // Soltar un nodo sobre el padre que ya tiene no mueve nada: el dominio devolvería el mismo árbol y
+    // se guardaría un snapshot idéntico (una revisión más, sin cambio).
+    if ((kind === "category" || kind === "group") && data.nodes.find((n) => n.id === String(ev.active.id))?.parentId === id) return;
     if (kind === "category" || kind === "group") {
       // FR-703: degradar un grupo que desbordaría el techo de 3 niveles se bloquea con aviso.
       const res = moveNode(String(ev.active.id), { kind: kind as "category" | "group", id });
@@ -427,7 +447,7 @@ export function BudgetGrid() {
         startNaming={() => setNamingId(row.node!.id)}
         commitName={(name) => { renameNode(row.node!.id, name); setNamingId(null); }}
         setIcon={(icon) => setNodeIcon(row.node!.id, icon)}
-        onDelete={() => deleteNode(row.node!.id)}
+        onDelete={() => borrarNodo(row.node!.id)}
         onAddChild={() => onAddChild(row.node!)}
       />
     );
@@ -746,6 +766,15 @@ function NodeRow(props: {
   const dropId = node.level === "group" ? `group:${node.id}` : node.level === "category" ? `category:${node.id}` : null;
   const droppable = useDroppable({ id: dropId ?? `noop:${node.id}` });
   const canDrag = !node.system;
+  // BG-080 (f): la fila solo se ilumina como destino si el dominio aceptaría soltar ahí lo que se
+  // arrastra (FR-015: «el destino válido»). Antes se iluminaba cualquier grupo o categoría —otro tipo,
+  // la propia fila, un descendiente, un desborde de niveles— y al soltar no pasaba nada. Se pregunta al
+  // propio `moveNode`, sin escribir: una segunda lista de reglas acabaría discrepando de la primera.
+  const arrastrado = droppable.isOver && dropId && droppable.active ? String(droppable.active.id) : null;
+  // El propio padre tampoco: el dominio acepta «moverlo» ahí y devuelve el mismo árbol.
+  const dropOk = arrastrado !== null
+    && data.nodes.find((n) => n.id === arrastrado)?.parentId !== node.id
+    && !("rejected" in moveNodeDomain(data, arrastrado, { kind: node.level as "group" | "category", id: node.id }));
   const bWeight = node.level === "group" ? 500 : 400;
   // FR-404: superficie de la fila. El realce de drop se mezcla SOBRE ella (una categoría hoja es
   // lienzo, un grupo es estructura), no sobre el lienzo en ambos casos.
@@ -759,13 +788,14 @@ function NodeRow(props: {
           {...(canDrag ? draggable.listeners : {})}
           {...(canDrag ? draggable.attributes : {})}
           data-testid="row-label"
+          data-row-label={node.id}
           className={cn(STICKY_BASE, LABEL_W, "border-b border-border py-1.5 pr-2.5", canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default", props.roundBottom && "rounded-bl-(--radius-md)")}
           style={{
             paddingLeft: 14 + row.depth * 16,
             // FR-404: la columna fija comparte la superficie de la fila — la estructura se distingue
             // del dato editable en TODA la fila, no solo en las celdas de mes.
-            background: droppable.isOver && dropId ? `color-mix(in srgb, var(--accent) 18%, ${rowSurface})` : rowSurface,
-            boxShadow: droppable.isOver && dropId ? "inset 0 0 0 1.5px var(--accent)" : undefined,
+            background: dropOk ? `color-mix(in srgb, var(--accent) 18%, ${rowSurface})` : rowSurface,
+            boxShadow: dropOk ? "inset 0 0 0 1.5px var(--accent)" : undefined,
           }}
         >
           <button aria-label="Expandir" aria-expanded={row.expandable ? props.isExpanded : undefined} onClick={props.onToggle} className={cn("inline-flex w-3.5 flex-none text-fg-muted rounded-sm", FOCUS_RING, row.expandable ? "visible cursor-pointer" : "invisible")}>{props.isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
@@ -920,7 +950,9 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
         {props.nodeId && props.month && (
           <CellDetail leafId={props.nodeId} month={props.month}
-            onGuardar={props.closed ? undefined : () => props.commit()} onCancelar={props.cancel} />
+            // BG-080 (d): «Guardar» confirma, igual que Enter (TC-DDC-016h). Con `commit()` a secas, en una
+            // celda descuadrada Enter la cuadraba y el botón solo cerraba.
+            onGuardar={props.closed ? undefined : () => props.commit(true)} onCancelar={props.cancel} />
         )}
       </div>
     );

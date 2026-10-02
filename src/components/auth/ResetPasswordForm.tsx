@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 type View = "form" | "done" | "dead";
 
 const MSG_MISMATCH = "Las contraseñas no coinciden.";
-const MSG_WEAK = "La contraseña es demasiado corta. Usa al menos 8 caracteres.";
+export const MSG_WEAK = "La contraseña es demasiado corta. Usa al menos 8 caracteres.";
 const MSG_NETWORK = "No pudimos guardar la contraseña. Inténtalo de nuevo en unos minutos.";
 
 export function ResetPasswordForm({
