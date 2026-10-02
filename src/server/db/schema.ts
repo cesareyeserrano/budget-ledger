@@ -8,6 +8,12 @@
  *
  * Los nombres de campo (JS keys) de las tablas de auth coinciden con el modelo de Better Auth
  * (camelCase); las columnas físicas van en snake_case.
+ *
+ * LA BASE LA CONSTRUYEN LAS MIGRACIONES de drizzle/, escritas a mano desde la 0002. Este fichero
+ * tiene que describir lo mismo, restricción por restricción: si se queda atrás, un `drizzle-kit
+ * generate` o `push` propondría QUITAR de la base lo que aquí falta. Quien añada un CHECK, una
+ * columna o un índice en una migración lo añade aquí también; tests/integration/backend/
+ * bl-072-esquema-al-dia.test.ts levanta las dos bases y falla si no coinciden (BL-072).
  */
 import { sql } from "drizzle-orm";
 import {
@@ -39,7 +45,7 @@ export const user = pgTable("user", {
    *  CUENTA, no en el navegador, así que viaja entre dispositivos; y NO va en el snapshot del
    *  ledger, de modo que cambiarlo no sube `ledger.revision`. */
   horizon: integer("horizon").notNull().default(2),
-});
+}, (t) => [check("user_horizon_ck", sql`${t.horizon} in (1, 2)`)]);
 
 /** Sesiones en BD (ADR-04): logout = DELETE de la fila; expiración por expires_at. */
 export const session = pgTable("session", {
@@ -123,7 +129,19 @@ export const ledger = pgTable("ledger", {
   // sin un mes al que aplicarse (lo inverso SI es legal: es «empiezo desde cero»).
   startMonth: text("start_month"),
   openingBalance: bigint("opening_balance", { mode: "number" }),
-});
+}, (t) => [
+  // Migraciones 0004 (cierre), 0005 (línea de base), 0006 (apertura) y 0007 (la `t` de los ciclos).
+  check("ledger_closed_through_ck", sql`${t.closedThrough} IS NULL OR ${t.closedThrough} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
+  check("ledger_reopened_period_ck", sql`${t.reopenedPeriod} IS NULL OR ${t.reopenedPeriod} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
+  check("ledger_reopened_needs_boundary_ck", sql`${t.reopenedPeriod} IS NULL OR ${t.closedThrough} IS NOT NULL`),
+  check(
+    "ledger_reopen_baseline_ck",
+    sql`(${t.reopenedPeriod} IS NULL AND ${t.reopenBaseAvailable} IS NULL AND ${t.reopenBaseReserved} IS NULL) OR (${t.reopenedPeriod} IS NOT NULL AND ${t.reopenBaseAvailable} IS NOT NULL AND ${t.reopenBaseReserved} IS NOT NULL)`
+  ),
+  check("ledger_start_month_ck", sql`${t.startMonth} IS NULL OR ${t.startMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
+  check("ledger_opening_balance_ck", sql`${t.openingBalance} IS NULL OR ${t.openingBalance} >= 0`),
+  check("ledger_opening_ck", sql`${t.openingBalance} IS NULL OR ${t.startMonth} IS NOT NULL`),
+]);
 
 /**
  * El rastro de cierres y reaperturas (FR-2005). Tabla APPEND-ONLY: solo INSERT.
@@ -143,7 +161,13 @@ export const closureEvent = pgTable(
     action: text("action").notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("closure_event_owner_at_idx").on(t.ownerId, t.at)]
+  (t) => [
+    // `nullsFirst()` es lo que Postgres entiende por un `DESC` a secas, que es lo que dice la 0004;
+    // sin él drizzle-kit escribe `DESC NULLS LAST`, que es otro índice.
+    index("closure_event_owner_at_idx").on(t.ownerId, t.at.desc().nullsFirst()),
+    check("closure_event_action_ck", sql`${t.action} in ('close','reopen')`),
+    check("closure_event_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
+  ]
 );
 
 /** Nodo de la jerarquía (Grupo→Categoría→Subcategoría). CHECKs espejan NodeType/NodeLevel. */
@@ -177,13 +201,13 @@ export const amountCell = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     nodeId: text("node_id").notNull(),
-    period: text("period").notNull(), // 'YYYY-MM' (CHECK en migración, FR-1902)
+    period: text("period").notNull(), // 'YYYY-MM' o 'YYYY-MMt' en ciclos (FR-1902, migración 0007)
     kind: text("kind").notNull(), // 'budget' | 'actual' (CHECK en migración)
     amount: bigint("amount", { mode: "number" }).notNull(), // >= 0 (CHECK en migración)
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.kind] }),
-    check("amount_cell_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+    check("amount_cell_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
     check("amount_cell_kind_ck", sql`${t.kind} in ('budget','actual')`),
     check("amount_cell_amount_ck", sql`${t.amount} >= 0`),
   ]
@@ -218,7 +242,7 @@ export const movement = pgTable(
     primaryKey({ columns: [t.ownerId, t.id] }),
     index("movement_owner_created_idx").on(t.ownerId, t.createdAt),
     check("movement_type_ck", sql`${t.type} in ('expense','income','transfer')`),
-    check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+    check("movement_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
     check("movement_kind_ck", sql`${t.kind} in ('manual','adjustment')`),
     // El monto depende del kind: solo un AJUSTE admite negativo, nunca cero, y solo en gasto o
     // ingreso — las reservas tienen su propia regla (NFR-2503). Debe decir lo mismo que la 0009.
@@ -234,7 +258,7 @@ export const movement = pgTable(
  * append-only: la ultima por `id` es la vigente; sin filas = modo mes. Cambiar es INSERTAR (RF-07/08).
  * `first_pay` es el primer pago bajo la version (RF-09a): NULL en la primera activacion (el calendario
  * cubre todo el historial) y en las filas `month`. `restore_start_month` recuerda el mes de inicio
- * previo a activar, para la vuelta a mes (FR-2410). Los CHECKs viven en la migracion 0007.
+ * previo a activar, para la vuelta a mes (FR-2410). Los CHECKs espejan los de la migracion 0007.
  */
 export const cycleConfigVersion = pgTable(
   "cycle_config_version",
@@ -251,7 +275,18 @@ export const cycleConfigVersion = pgTable(
     restoreStartMonth: text("restore_start_month"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("cycle_cfg_owner_id_idx").on(t.ownerId, t.id)]
+  (t) => [
+    index("cycle_cfg_owner_id_idx").on(t.ownerId, t.id),
+    check("cycle_cfg_mode_ck", sql`${t.mode} in ('month','cycle')`),
+    check("cycle_cfg_anchor_ck", sql`${t.anchorDay} IS NULL OR (${t.anchorDay} >= 1 AND ${t.anchorDay} <= 31)`),
+    check("cycle_cfg_eom_ck", sql`${t.eomPolicy} IS NULL OR ${t.eomPolicy} in ('last_day','shift')`),
+    // Sin `t`: es un mes CALENDARIO, el de inicio previo a activar los ciclos.
+    check("cycle_cfg_restore_ck", sql`${t.restoreStartMonth} IS NULL OR ${t.restoreStartMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+    check(
+      "cycle_cfg_shape_ck",
+      sql`(${t.mode} = 'cycle' AND ${t.anchorDay} IS NOT NULL AND ${t.eomPolicy} IS NOT NULL) OR (${t.mode} = 'month' AND ${t.anchorDay} IS NULL AND ${t.eomPolicy} IS NULL AND ${t.firstPay} IS NULL)`
+    ),
+  ]
 );
 
 /**
@@ -275,6 +310,9 @@ export const relocationOrigin = pgTable(
   (t) => [
     primaryKey({ name: "relocation_origin_pk", columns: [t.ownerId, t.subject, t.ref, t.period, t.originPeriod] }),
     check("relocation_origin_subject_ck", sql`${t.subject} in ('budget','actual','movement','note')`),
+    check("relocation_origin_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
+    // Sin `t`: el origen es siempre un mes calendario.
+    check("relocation_origin_origin_ck", sql`${t.originPeriod} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check("relocation_origin_amount_ck", sql`${t.subject} = 'actual' or ${t.amount} >= 0`),
   ]
 );
@@ -300,7 +338,7 @@ export const cellNote = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.nodeId, t.period, t.id] }),
-    check("cell_note_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+    check("cell_note_period_ck", sql`${t.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])t?$'`),
     check("cell_note_text_ck", sql`char_length(${t.text}) <= 280`),
     check("cell_note_plane_ck", sql`${t.plane} IS NULL OR ${t.plane} = 'budget'`),
     // Solo la FORMA; la validez de calendario (30-feb) la juzga zod en el borde (NFR-2606).
