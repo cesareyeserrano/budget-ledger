@@ -853,7 +853,14 @@
       "priority": "P1",
       "problem": "Seis clases: el arrastre sin prueba real (TC-211e, TC-015h, TC-015f, TC-RUI-102f, TC-015e); el guardia de POST /movements sin alcanzar (TC-RES-011f, 016f, 220f, 014e); la prueba comprueba otra cosa (TC-MAN-072e, TC-CDM-035f, TC-201g, TC-853f, TC-006h, TC-208f, TC-BE-072e); copia de la regla dentro de la prueba (TC-SIN-020h/021e/022f, TC-BJE-007f, TC-TDF-104e, TC-TDF-241h, TC-SUT-250h); funcion que el producto no llama (TC-SUT-222f, 210h, 211e, 212f, TC-TRF4-153f); no puede fallar (TC-BE-023f, TC-102f, TC-MAN-001h, TC-MAN-261f, TC-BE-064f). Reescribir cada una contra el expected_result de su TC, empezando por las del arrastre y las del guardia. Valorar un gate de mutacion sobre src/domain y src/state, que es el unico mecanismo que detecta esta clase. (AUDIT_REPORT, Technical Review 2026-09-28, BL-N)",
       "status": "open",
-      "createdAt": "2026-09-29T14:39:19.720Z"
+      "createdAt": "2026-09-29T14:39:19.720Z",
+      "log": [
+        {
+          "at": "2026-10-02T15:57:47.736Z",
+          "text": "Avance 2-oct. HECHAS dos de las seis clases, cada una comprobada en rojo con sondas ya retiradas. (1) Arrastre, 361ecb6: TC-015h, TC-015f, TC-211e, TC-RUI-102f y TC-015e leen el arbol que guarda el servidor. (2) Guardia de la via de movimientos, commit siguiente: TC-RES-016f, TC-RES-220f y TC-RES-014e con control y sin as never; TC-RES-011f ya la habia arreglado BG-086. FALTAN: la prueba comprueba otra cosa (TC-MAN-072e, TC-CDM-035f, TC-201g, TC-853f, TC-006h, TC-208f, TC-BE-072e); copia de la regla en la prueba (TC-SIN-020h/021e/022f, TC-BJE-007f, TC-TDF-104e, TC-TDF-241h, TC-SUT-250h); funcion que el producto no llama (TC-SUT-222f/210h/211e/212f, TC-TRF4-153f); no puede fallar (TC-BE-023f, TC-102f, TC-MAN-001h, TC-MAN-261f, TC-BE-064f); y TC-TRF4-154f, que contradice al producto. Sin verify todavia sobre estos commits."
+        }
+      ],
+      "updatedAt": "2026-10-02T15:57:47.736Z"
     },
     {
       "id": "BL-064",
@@ -1045,6 +1052,16 @@
       "problem": "De la segunda revision adversarial de BG-088 (2026-10-01); ninguno pisa datos del otro dispositivo, todos anteriores a ese arreglo o cosmeticos: (1) si la respuesta de un guardado se pierde por la red despues de que el servidor lo aplico, y no hay otro dispositivo, la siguiente edicion recibe 409 y se descarta con el aviso «otro dispositivo guardo cambios». (2) Si cambiar de modo de periodo se acepta pero la recarga que le sigue falla, el aviso dice que no se guardo aunque si se guardo, no queda nada debido, y la siguiente edicion se descarta culpando a otro dispositivo. (3) Si una lectura del sync ya al dia se adopta mientras viaja un cierre con la base vieja y la recarga de ese conflicto falla, queda el aviso de conflicto en un cliente que ya esta al dia; se apaga solo con el siguiente guardado. (4) La rama de 409 de previewPeriodMode es codigo muerto: el cliente no manda revision y el servidor nunca responde conflicto ahi.",
       "status": "open",
       "createdAt": "2026-10-02T02:24:04.965Z"
+    },
+    {
+      "id": "BL-087",
+      "title": "Un verify-run de la raiz salio con exit 1 del runner y cero casos en rojo, sin poder saber que prueba cayo",
+      "priority": "P2",
+      "problem": "2-oct-2026, 11:05, en corriente, sin bajo consumo, carga 1,9 al arrancar y sin suspension: npm run test:run devolvio exit 1 con 59 de 59 casos de la raiz en verde y los ocho gates en verde. Aitri solo conserva las primeras 200 lineas de las 23.292 de la salida, asi que no se pudo identificar la prueba. No se reprodujo: cuatro corridas completas del runner dieron 1636 de 1636, ocho corridas de los tres ficheros de backend tocados ese dia dieron verde, y la repeticion del verify salio limpia. El resultado degradado se descarto.",
+      "status": "open",
+      "createdAt": "2026-10-02T16:32:04.190Z",
+      "behavior": "Que un exit 1 sin caso rojo se pueda diagnosticar despues: por ejemplo, que el runner deje ademas un informe en fichero (reporter junit de vitest a una ruta fija, ignorada por git) que se pueda leer cuando Aitri diga 'no failing TCs were parsed'.",
+      "decisions": "Sospechosas sin confirmar: las pruebas con presupuesto de tiempo en la corrida normal (BL-060) y las de latencia de backend (TC-BE-062h mide una lectura contra 500 ms). Relacionado con BL-060."
     }
   ]
 }
