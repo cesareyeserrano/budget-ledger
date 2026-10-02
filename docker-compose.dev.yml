@@ -29,8 +29,9 @@ services:
     build:
       context: .
       # Ya no se inlinea ningún flag de modo: el interruptor de rollout se retiró y Postgres es la
-      # única fuente de verdad (NFR-1107). El entrypoint del Dockerfile corre las migraciones
-      # (idempotentes) antes de servir.
+      # única fuente de verdad (NFR-1107). La imagen NO aplica las migraciones al arrancar —no tiene
+      # entrypoint, su CMD es `node server.js`—: hay que correr `npm run db:migrate` antes
+      # (DEV_ENV.md). Una migración sin aplicar se ve como una app vacía o rota.
     image: t-ledger-dev:latest
     container_name: ledger-dev-app
     restart: unless-stopped

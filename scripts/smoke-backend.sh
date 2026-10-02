@@ -2,6 +2,11 @@
 # @aitri-trace NFR-504/NFR-511 — smoke gate del backend: la app ENSAMBLADA arranca en modo servidor
 # contra un Postgres real y sirve sin 5xx. Un único script (los gates corren sin shell). Se auto-ubica
 # en la raíz del repo. Requiere Docker.
+#
+# Hace lo que hace un despliegue, en su orden (BL-067): migra la base con scripts/migrate.mjs,
+# arranca el servidor AUTOCONTENIDO (`standalone/server.js`, lo que ejecuta la imagen) y termina con
+# una petición CON SESIÓN, que es la única que llega a la base. Antes arrancaba `next start` y solo
+# pedía rutas sin sesión: una conexión rota o una migración sin aplicar lo pasaban en verde.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -54,6 +59,9 @@ export NEXT_DIST_DIR="$DIST"
 export NODE_ENV=production
 export PORT
 
+# Los mismos tres pasos de un despliegue, en su orden: entorno, migraciones, servidor.
+node scripts/check-env.mjs || { echo "[smoke-be] FAIL: falta una variable requerida"; exit 1; }
+
 echo "[smoke-be] migrando…"
 node scripts/migrate.mjs || { echo "[smoke-be] migración falló"; exit 1; }
 
@@ -72,8 +80,16 @@ if [ "$needs_build" -eq 1 ]; then
   npm run build || { echo "[smoke-be] build falló"; exit 1; }
 fi
 
-echo "[smoke-be] arrancando la app en :$PORT"
-npm run start -- -p "$PORT" >/tmp/ledger_smoke_be.log 2>&1 &
+# `static` y `public` no viajan dentro de `standalone`; el Dockerfile los copia a mano y aquí igual.
+STANDALONE="$DIST/standalone"
+[ -f "$STANDALONE/server.js" ] || { echo "[smoke-be] FAIL: el build no emitió $STANDALONE/server.js"; exit 1; }
+rm -rf "$STANDALONE/$DIST/static" "$STANDALONE/public"
+cp -R "$DIST/static" "$STANDALONE/$DIST/static"
+cp -R public "$STANDALONE/public"
+
+echo "[smoke-be] arrancando la app (standalone) en :$PORT"
+# Solo en la máquina: `server.js` escucha en 0.0.0.0 si nadie le dice otra cosa.
+HOSTNAME=127.0.0.1 node "$STANDALONE/server.js" >/tmp/ledger_smoke_be.log 2>&1 &
 APP_PID=$!
 
 # Esperar /health (hasta 60s). Si el proceso murió (p. ej. EADDRINUSE), no seguir esperando.
@@ -113,10 +129,42 @@ for r in /api/v1/ledger /api/v1/movements /api/v1/movements/smoke-probe /api/v1/
   check_code "$r" 401
 done
 
+# BL-067 — UNA PETICIÓN CON SESIÓN. Todo lo de arriba se responde sin tocar la base: sin sesión,
+# better-auth resuelve null antes de consultar. Registrar una cuenta escribe en `user`, `account` y
+# `session`; leer el ledger con esa sesión consulta `ledger`. Si las migraciones no se aplicaron o la
+# conexión no funciona, cae aquí y no al desplegar.
+BASE="http://localhost:${PORT}"
+CABECERAS=$(mktemp)
+signup=$(curl -s -o /dev/null -D "$CABECERAS" -w "%{http_code}" -X POST "$BASE/api/auth/sign-up/email" \
+  -H "origin: $BASE" -H "content-type: application/json" \
+  -d '{"email":"smoke@ledger.test","password":"Smoke-not-for-production-1","name":"smoke"}' 2>/dev/null || true)
+# La cookie se pasa a mano: en producción lleva `Secure` y un tarro de curl no la reenviaría por http.
+COOKIE=$(grep -i '^set-cookie:' "$CABECERAS" | sed -E 's/^[^:]*:[[:space:]]*//; s/;.*//' | paste -sd ';' -)
+rm -f "$CABECERAS"
+if [ "$signup" = "200" ] && [ -n "$COOKIE" ]; then
+  echo "[smoke-be] OK   registro de una cuenta → $signup, con cookie de sesión"
+else
+  echo "[smoke-be] FAIL registro de una cuenta → ${signup:-000} (esperado 200 con cookie de sesión)"
+  fail=1
+fi
+check_auth() { # <ruta> <esperado> <qué prueba>
+  local got
+  got=$(curl -s -o /dev/null -w "%{http_code}" -H "cookie: $COOKIE" "$BASE$1" 2>/dev/null || true)
+  got="${got:-000}"
+  if [ "$got" = "$2" ]; then
+    echo "[smoke-be] OK   GET $1 con sesión → $got ($3)"
+  else
+    echo "[smoke-be] FAIL GET $1 con sesión → $got, esperado $2 ($3)"
+    fail=1
+  fi
+}
+check_auth "/api/v1/ledger" 204 "cuenta nueva: la base responde que aún no hay ledger"
+check_auth "/api/v1/movements" 200 "la lista de movimientos sale de la base"
+
 if [ "$fail" -ne 0 ]; then
   echo "[smoke-be] FAIL: la app arrancó pero no cumple el contrato mínimo de servicio"
   tail -20 /tmp/ledger_smoke_be.log || true
   exit 1
 fi
-echo "[smoke-be] OK — la app arranca y sirve sus rutas con el código esperado."
+echo "[smoke-be] OK — la app arranca, sirve sus rutas con el código esperado y responde con sesión."
 exit 0
