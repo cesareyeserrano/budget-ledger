@@ -1,0 +1,18 @@
+# Configuración de gitleaks para scripts/secret-scan.sh (NFR-513, BL-068).
+#
+# Reglas por defecto de gitleaks más las exclusiones de abajo. Las credenciales propias del
+# proyecto (cadenas de conexión, claves de Brevo, secretos por nombre) NO se declaran aquí: las
+# busca el propio script con sus patrones, que corren siempre, haya o no gitleaks.
+
+title = "T-Ledger"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dependencias, builds y el lockfile: ni son fuente ni guardan secretos del proyecto"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next[^/]*/''',
+  '''(^|/)package-lock\.json$''',
+]

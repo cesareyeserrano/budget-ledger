@@ -125,8 +125,19 @@ describe("NFR-513 — gates de seguridad automatizados", () => {
       writeFileSync(path.join(arbol, "src", "limpio.ts"), `export const x = 1;\n`);
       expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).toBe(0); // árbol limpio → pasa
 
-      writeFileSync(path.join(arbol, "src", "plantado.ts"), `const k = "AKIAIOSFODNN7EXAMPLE"; export default k;\n`);
+      writeFileSync(path.join(arbol, "src", "plantado.ts"), `const k = "AKIAIOSFODNN7EXAMPLE"; export default k;\n`); // gitleaks:allow — el marcador va en ESTA línea, no en el fichero plantado
       expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).not.toBe(0); // secreto → falla
+
+      // BL-068 — una cadena de conexión con la contraseña dentro. El patrón anterior exigía un valor
+      // sin `:` ni `@`, así que no podía casar con ninguna; y solo se barrían seis rutas, por lo que
+      // un secreto fuera de `src/` (aquí, en la raíz del árbol) tampoco se veía.
+      rmSync(path.join(arbol, "src", "plantado.ts"));
+      const cadena = (clave: string) => ["postgres://ledger", `${clave}@db.interno:5432/ledger`].join(":");
+      writeFileSync(path.join(arbol, "compose.yml"), `DATABASE_URL: ${cadena("Xk29vQpLm83zTr")}\n`);
+      expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).not.toBe(0); // contraseña real → falla
+      // La credencial de desarrollo que el repo documenta NO es un hallazgo.
+      writeFileSync(path.join(arbol, "compose.yml"), `DATABASE_URL: ${cadena("ledger")}\n`);
+      expect(runExit("bash", ["scripts/secret-scan.sh", arbol])).toBe(0);
     } finally {
       rmSync(arbol, { recursive: true, force: true });
     }

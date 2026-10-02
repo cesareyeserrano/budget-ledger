@@ -110,7 +110,26 @@ jobs:
             exit 1
           fi
           exit $rc
-      # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol de fuentes.
-      # El script prefiere gitleaks si está instalado; en el runner cae al fallback de patrones.
+      # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol versionado.
+      # El script corre SIEMPRE sus patrones (cadenas de conexión, claves de Brevo, secretos por
+      # nombre) y ADEMÁS gitleaks. Antes «prefería gitleaks si estaba instalado» y no lo estaba en
+      # ningún sitio: la rama no corrió nunca (BL-068). Aquí se instala y se exige.
+      #
+      # Binario fijado por versión Y por suma: una release puede reapuntarse igual que un tag de
+      # action. Para subir de versión, cambiar las dos cosas con la suma que publica el propio
+      # release (gitleaks_<versión>_checksums.txt).
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
       - name: Secret scan
+        env:
+          # Sin gitleaks el script FALLA en vez de quedarse en los patrones.
+          SECRET_SCAN_REQUIRE_GITLEAKS: "1"
         run: ./scripts/secret-scan.sh
