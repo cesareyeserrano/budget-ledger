@@ -11,6 +11,7 @@ import "server-only";
 import type { ZodType } from "zod";
 import { getSessionUser } from "./session";
 import { env } from "./env";
+import { CUERPO_MAX } from "./schemas";
 
 /** Códigos de estado HTTP con nombre (sin números mágicos). */
 export const HTTP = {
@@ -21,6 +22,8 @@ export const HTTP = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  /** El cuerpo supera el tamaño que la ruta acepta leer (BG-090). */
+  PAYLOAD_TOO_LARGE: 413,
   UNPROCESSABLE: 422,
   CONFLICT: 409,
   TOO_MANY: 429,
@@ -45,6 +48,41 @@ interface ApiOptions<T> {
   schema?: ZodType<T>;
   /** true en escrituras: exige que el Origin (si viene) esté en la allowlist (CSRF/CORS). */
   mutation?: boolean;
+  /** Bytes de cuerpo que la ruta acepta leer; por encima → 413. Por defecto, CUERPO_MAX.porDefecto. */
+  maxBodyBytes?: number;
+}
+
+/**
+ * Lee el cuerpo como JSON sin pasar de `max` bytes (BG-090). Antes era `req.json()`, que lee lo que
+ * llegue: el cuerpo entero quedaba en memoria antes de que nadie pudiera decir que era demasiado.
+ *
+ * Mira primero el tamaño DECLARADO (rechazo barato, sin leer nada) y después cuenta los bytes que
+ * llegan de verdad, porque un cuerpo troceado no declara su tamaño y una cabecera puede mentir.
+ *
+ * @returns `null` si el cuerpo supera `max`; si no, `{ raw }` — `raw` es `undefined` cuando el JSON
+ *   no se puede leer, que el esquema rechaza después con 422, igual que antes.
+ */
+async function leerJson(req: Request, max: number): Promise<{ raw: unknown } | null> {
+  if (Number(req.headers.get("content-length") ?? NaN) > max) return null;
+  if (!req.body) return { raw: undefined };
+  const lector = req.body.getReader();
+  const trozos: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await lector.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await lector.cancel();
+      return null;
+    }
+    trozos.push(value);
+  }
+  try {
+    return { raw: JSON.parse(Buffer.concat(trozos).toString("utf8")) };
+  } catch {
+    return { raw: undefined };
+  }
 }
 
 type RouteHandler<T> = (ctx: ApiContext<T>) => Response | Promise<Response>;
@@ -109,11 +147,15 @@ export function withApi<T = unknown>(opts: ApiOptions<T>, handler: RouteHandler<
         userId = user.userId;
       }
 
-      // 3) Validación del cuerpo (FR-507): payload inválido → 422 antes de tocar la BD.
+      // 3) Validación del cuerpo (FR-507): payload inválido → 422 antes de tocar la BD. Y antes
+      //    que eso, su tamaño: un cuerpo desmedido es 413 sin llegar a validarse (BG-090).
       let body = undefined as T;
       if (opts.schema) {
-        const raw = await req.json().catch(() => undefined);
-        const parsed = opts.schema.safeParse(raw);
+        const leido = await leerJson(req, opts.maxBodyBytes ?? CUERPO_MAX.porDefecto);
+        if (!leido) {
+          return finish(apiError("payload_too_large", "Cuerpo demasiado grande", HTTP.PAYLOAD_TOO_LARGE));
+        }
+        const parsed = opts.schema.safeParse(leido.raw);
         if (!parsed.success) {
           return finish(apiError("invalid_payload", "Cuerpo inválido", HTTP.UNPROCESSABLE));
         }

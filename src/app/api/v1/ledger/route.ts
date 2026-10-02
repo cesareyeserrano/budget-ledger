@@ -8,7 +8,7 @@
  */
 import { HTTP, json, withApi } from "@/server/http";
 import { loadLedger, saveLedger } from "@/server/data/ledgerRepo";
-import { ledgerPutSchema, type LedgerPutBody } from "@/server/schemas";
+import { CUERPO_MAX, ledgerPutSchema, type LedgerPutBody } from "@/server/schemas";
 import { syncHub } from "@/server/sync";
 
 const getHandler = withApi({ auth: "required" }, async ({ userId }) => {
@@ -18,7 +18,8 @@ const getHandler = withApi({ auth: "required" }, async ({ userId }) => {
 });
 
 const putHandler = withApi<LedgerPutBody>(
-  { auth: "required", schema: ledgerPutSchema, mutation: true },
+  // El snapshot es el único cuerpo grande por diseño: lleva su propio límite de tamaño (BG-090).
+  { auth: "required", schema: ledgerPutSchema, mutation: true, maxBodyBytes: CUERPO_MAX.snapshot },
   async ({ userId, body }) => {
     // El ownerId del payload se IGNORA: saveLedger fija el de la sesión.
     const res = await saveLedger(userId, body.state, body.baseRevision);
