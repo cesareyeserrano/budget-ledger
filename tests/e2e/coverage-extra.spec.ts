@@ -78,15 +78,39 @@ test("TC-012f: prefers-reduced-motion elimina animaciones y no hay emoji/gradien
 });
 
 test("TC-102f: con reduced-motion las transiciones se reducen a ~0.001ms", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  // BL-063: medía la transición de <body>, que no declara ninguna: daba 0 con o sin la regla. Ahora
+  // se miden los elementos que SÍ transicionan con movimiento normal, y después esos mismos con
+  // reduced-motion.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
-  // el navegador normaliza 0.001ms a "1e-06s"; comparar numéricamente en segundos
-  const { transition, animation } = await page.evaluate(() => {
-    const s = getComputedStyle(document.body);
-    return { transition: parseFloat(s.transitionDuration), animation: parseFloat(s.animationDuration) };
+  // Se abre el panel de movimiento para que haya en pantalla lo que el caso nombra.
+  await page.getByRole("button", { name: /Nuevo movimiento/ }).click();
+  await expect(page.getByTestId("amount-input")).toBeVisible();
+
+  /** Duración más larga, en segundos, entre los elementos que transicionan o animan. */
+  const duraciones = () => page.evaluate(() => {
+    const seg = (v: string) => Math.max(0, ...v.split(",").map((x) => parseFloat(x) * (x.trim().endsWith("ms") ? 0.001 : 1)));
+    let conTransicion = 0, maxTransicion = 0, maxAnimacion = 0;
+    for (const e of Array.from(document.querySelectorAll("*"))) {
+      const s = getComputedStyle(e);
+      const t = seg(s.transitionDuration), a = seg(s.animationDuration);
+      if (t > 0.01) conTransicion++;
+      maxTransicion = Math.max(maxTransicion, t);
+      maxAnimacion = Math.max(maxAnimacion, a);
+    }
+    return { conTransicion, maxTransicion, maxAnimacion };
   });
-  expect(transition).toBeLessThan(0.01); // ~0.000001s, muy por debajo de cualquier transición real
-  expect(animation).toBeLessThan(0.01);
+
+  // Con movimiento normal hay elementos que transicionan de verdad (décimas de segundo).
+  const normal = await duraciones();
+  expect(normal.conTransicion).toBeGreaterThan(0);
+  expect(normal.maxTransicion).toBeGreaterThan(0.05);
+
+  // Con reduced-motion, NINGUNO pasa de ~0.001 ms (el navegador lo normaliza a "1e-06s").
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reducido = await duraciones();
+  expect(reducido.conTransicion).toBe(0);
+  expect(reducido.maxTransicion).toBeLessThan(0.00001);
+  expect(reducido.maxAnimacion).toBeLessThan(0.00001);
 });
