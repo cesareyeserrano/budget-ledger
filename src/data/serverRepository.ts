@@ -38,7 +38,15 @@ const UNPROCESSABLE = 422;
 export class ServerRepository implements LedgerRepository {
   /** Revisión vigente conocida (para el lock optimista del PUT). */
   private revision = 0;
-  /** true tras un 409/refetch: el caller debería re-hidratar. */
+  /**
+   * true tras un 409: el caller debe re-hidratar.
+   *
+   * BG-088: un 409 NO adopta la revisión que trae la respuesta. Esa revisión es la de unos datos que
+   * este cliente todavía no tiene; adoptarla sola dejaba que, si la recarga fallaba, el guardado
+   * siguiente saliera con la revisión nueva sobre datos viejos y el servidor lo aceptara, pisando en
+   * silencio lo que guardó el otro dispositivo. La revisión se adopta con sus datos, en la recarga
+   * (`adopt`). Mientras no llegue, cada guardado vuelve a recibir 409 — que es lo correcto.
+   */
   public conflicted = false;
   /**
    * true tras un 401: la sesión murió (expiró o fue revocada desde otro dispositivo). Se distingue
@@ -183,9 +191,7 @@ export class ServerRepository implements LedgerRepository {
         return false;
       }
       if (res.status === CONFLICT) {
-        const body = (await res.json().catch(() => ({}))) as { revision?: number };
-        if (typeof body.revision === "number") this.revision = body.revision;
-        this.conflicted = true; // el caller re-hidrata (last-write-wins informado)
+        this.conflicted = true; // el caller re-hidrata (last-write-wins informado); ver `conflicted`
         return false;
       }
       if (res.status === UNPROCESSABLE) {
@@ -248,8 +254,7 @@ export class ServerRepository implements LedgerRepository {
         error?: { code?: string; detail?: { reason?: string } };
       };
       if (res.status === CONFLICT) {
-        if (typeof body.revision === "number") this.revision = body.revision;
-        this.conflicted = true;
+        this.conflicted = true; // sin adoptar la revisión: ver `conflicted` (BG-088)
         return { ok: false, reason: "revision_conflict" };
       }
       if (res.status !== OK) {
@@ -293,7 +298,7 @@ export class ServerRepository implements LedgerRepository {
       });
       if (res.status === UNAUTHORIZED) { this.unauthorized = true; return { ok: false, code: "unauthorized" }; }
       const body = (await res.json().catch(() => ({}))) as { cycles?: PreviewCycles; relocation?: PreviewRelocation; revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
-      if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; return { ok: false, code: "revision_conflict" }; }
+      if (res.status === CONFLICT) return { ok: false, code: "revision_conflict" }; // sin adoptar la revisión (BG-088)
       if (res.status !== OK || !body.cycles || !body.relocation) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
       return { ok: true, cycles: body.cycles, relocation: body.relocation };
     } catch {
@@ -314,7 +319,7 @@ export class ServerRepository implements LedgerRepository {
       });
       if (res.status === UNAUTHORIZED) { this.unauthorized = true; return { ok: false, code: "unauthorized" }; }
       const body = (await res.json().catch(() => ({}))) as { revision?: number; error?: { code?: string; detail?: Record<string, unknown> } };
-      if (res.status === CONFLICT) { if (typeof body.revision === "number") this.revision = body.revision; this.conflicted = true; return { ok: false, code: "revision_conflict" }; }
+      if (res.status === CONFLICT) { this.conflicted = true; return { ok: false, code: "revision_conflict" }; } // sin adoptar la revisión (BG-088)
       if (res.status !== OK) return { ok: false, code: body.error?.code ?? "network", detail: body.error?.detail };
       // NO se adopta la revisión aquí (BG-052): el servidor reescribió el ledger y este cliente aún
       // no tiene esos datos. Adoptarla antes de recargarlos dejaba que una edición hecha mientras
@@ -351,8 +356,7 @@ export class ServerRepository implements LedgerRepository {
         error?: { code?: string; detail?: { periods?: string[]; period?: string } };
       };
       if (res.status === CONFLICT) {
-        if (typeof body.revision === "number") this.revision = body.revision;
-        this.conflicted = true;
+        this.conflicted = true; // sin adoptar la revisión: ver `conflicted` (BG-088)
         return { ok: false, reason: "revision_conflict" };
       }
       if (res.status !== OK) {

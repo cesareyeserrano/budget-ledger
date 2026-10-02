@@ -278,6 +278,11 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
   let sinGuardar = false;
   // Una puesta al día pedida por la reconexión que no pudo correr porque había un guardado en vuelo.
   let puestaAlDiaPendiente = false;
+  // BG-088: hubo un conflicto con otro dispositivo y la recarga de su versión NO llegó. En pantalla
+  // sigue el estado perdedor; hasta que la recarga llegue, nada de lo que se edite se va a guardar.
+  let convergenciaPendiente = false;
+  const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
+  const CONFLICTO_SIN_RECARGA = "Otro dispositivo guardó cambios, pero no se pudo recargar su versión.";
 
   /**
    * Recarga desde la fuente de verdad preservando la ventana de undo (BG-011).
@@ -311,6 +316,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       // con la revisión que este conocía, recibe 409 y el drenador converge avisando.
       if (modo === "si-no-cambio" && (get().data !== before || pendingSave)) return false;
       if (modo === "converge") { pendingSave = null; sinGuardar = false; }
+      convergenciaPendiente = false; // lo cargado ES la versión del servidor: ya no hay nada que converger
       repo.adopt(snap.revision);
       // BG-010: adoptar datos ajenos sin subir el suelo de la secuencia haría que el próximo
       // movimiento naciera con un `createdAt` ya usado por otro dispositivo.
@@ -345,8 +351,32 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     pendingSave = null;
     sinGuardar = false;
     puestaAlDiaPendiente = false;
+    convergenciaPendiente = false;
     reserveUndo = null;
     set({ data: buildSeed(OWNER, seedPeriod()), hydrated: false, loadFailed: false, storageError: null, toast: null, toastUndo: false });
+  };
+
+  /**
+   * BG-088 — converger al servidor tras un conflicto, y decir la VERDAD de cómo fue.
+   *
+   * Antes cada 409 hacía `doResync()` y avisaba «se recargó la versión del servidor» sin mirar si la
+   * recarga había llegado. Si fallaba (red, 5xx), en pantalla seguía el estado perdedor con un aviso
+   * que decía lo contrario, y —con la revisión ya adoptada por el repositorio— la siguiente edición
+   * se guardaba encima de lo del otro dispositivo. Ahora la revisión solo se adopta con sus datos, el
+   * aviso distingue los dos casos, y la recarga que no llegó queda debida: la reintentan el sync, la
+   * reconexión y cualquier guardado (que recibe otro 409 y vuelve aquí).
+   *
+   * @param avisar false para quien ya muestra su propio mensaje (la previsualización de ciclos).
+   * @returns true si la versión del servidor quedó cargada.
+   */
+  const convergerTrasConflicto = async (avisar = true): Promise<boolean> => {
+    const ok = await doResync();
+    convergenciaPendiente = !ok && !get().sessionExpired;
+    if (ok && get().storageError === "network") set({ storageError: null });
+    // Sin recarga, el aviso fijo de «no se guardó» se queda en pantalla: el del toast dura dos segundos.
+    if (!ok && !get().sessionExpired) set({ storageError: "network" });
+    if (avisar) get().showToast(ok ? CONFLICTO : CONFLICTO_SIN_RECARGA);
+    return ok;
   };
 
   const onSessionExpired = () => {
@@ -433,8 +463,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
           // Otra sesión escribió primero: el servidor gana (last-write-wins informado). Lo local
           // que quedó por enviar ya nació de un estado perdedor — se descarta, pero AVISANDO.
           pendingSave = null;
-          await doResync();
-          get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+          await convergerTrasConflicto();
         } else {
           sinGuardar = true;
           set({ storageError: "network" });
@@ -499,7 +528,6 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     exclusiveChain = run.catch(() => undefined);
     return run;
   };
-  const CONFLICTO = "Otro dispositivo guardó cambios: se recargó la versión del servidor.";
   // Anti doble-tap: firma + timestamp del último guardado (no persistido; vive en la sesión).
   let lastSig: string | null = null;
   let lastAt = 0;
@@ -556,8 +584,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         return;
       }
       if (res.reason === "revision_conflict") {
-        await doResync();
-        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        await convergerTrasConflicto();
         return;
       }
       // FR-2512: el cierre se rechazó porque hay celdas descuadradas que ESTA pestaña no conocía —
@@ -595,8 +622,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         return;
       }
       if (res.reason === "revision_conflict") {
-        await doResync();
-        get().showToast("Otro dispositivo guardó cambios: se recargó la versión del servidor.");
+        await convergerTrasConflicto();
         return;
       }
       get().showToast(
@@ -626,9 +652,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       const res = await repo.previewCycles(target);
       // BG-073: una sesión muerta vuelve al login, como en el guardado; no se queda en «inténtalo de nuevo».
       if (!res.ok && res.code === "unauthorized") onSessionExpired();
-      // BG-067: el 409 ya dejó la revisión del servidor en el repositorio; sin sus datos, el guardado
-      // siguiente pisaría lo del otro dispositivo. Se converge, como tras cualquier conflicto.
-      if (!res.ok && res.code === "revision_conflict") await doResync();
+      // BG-067: tras un 409 se converge, como tras cualquier conflicto. El aviso lo pone el formulario.
+      if (!res.ok && res.code === "revision_conflict") await convergerTrasConflicto(false);
       return res;
     }),
     applyPeriodMode: async (target) => exclusive(async () => {
@@ -637,10 +662,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (!res.ok) {
         if (res.code === "unauthorized") { onSessionExpired(); return res; } // BG-073
         if (res.code === "network") set({ storageError: "network" });
-        if (res.code === "revision_conflict") {
-          await doResync(); // BG-067: ver previewPeriodMode
-          get().showToast(CONFLICTO);
-        }
+        if (res.code === "revision_conflict") await convergerTrasConflicto(); // BG-067: ver previewPeriodMode
         return res;
       }
       // El estado reubicado se recarga de la fuente de verdad: el servidor lo escribió en una
@@ -669,13 +691,9 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         // El estado NO se toca: un rechazo por regla o un fallo de red no puede dejar la interfaz
         // afirmando una declaración que no llegó a existir (riesgo R5 del TRD).
         if (res.reason === "network") set({ storageError: "network" });
-        // BG-067: con la cola retenida, un 409 solo puede venir de otro dispositivo. El repositorio ya
-        // adoptó su revisión; sin sus datos, la siguiente edición lo pisaría en silencio. Se converge
-        // y se avisa. Quien reintenta (la tarjeta de arranque) debe mirar antes si ya hay apertura.
-        if (res.reason === "revision_conflict") {
-          await doResync();
-          get().showToast(CONFLICTO);
-        }
+        // BG-067: con la cola retenida, un 409 solo puede venir de otro dispositivo. Se converge y se
+        // avisa. Quien reintenta (la tarjeta de arranque) debe mirar antes si ya hay apertura.
+        if (res.reason === "revision_conflict") await convergerTrasConflicto();
         return res;
       }
       set((st) => ({
@@ -890,6 +908,7 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         return;
       }
       repo.adopt(loaded ? revision : 0);
+      convergenciaPendiente = false;
       // BG-010: `nextSeq()` solo era monotónico dentro del proceso, así que la primera escritura de
       // esta sesión reutilizaba `createdAt` bajos y se colaba delante de las anteriores en el orden
       // de `GET /api/v1/movements`. El suelo se siembra ANTES de la primera mutación posible.
@@ -927,6 +946,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
         if (porReconexion) puestaAlDiaPendiente = true;
         return;
       }
+      // BG-088: quedó debida la recarga de un conflicto. Es la que toca ahora, y avisa al llegar.
+      if (convergenciaPendiente) { await convergerTrasConflicto(); return; }
       // Hay una edición en pantalla que el servidor no tiene: recargar la borraría. Se reintenta el
       // guardado; si llega, apaga el aviso, y si otro dispositivo escribió antes, el 409 converge
       // avisando, como cualquier conflicto.
