@@ -645,6 +645,14 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
     // propósito: 210h sigue comparando Ejecutado entero contra la línea base y, en Presupuestado, las
     // cifras del mes; 211e afirma ahora el arrastre por plano. Ningún cambio de cierre-de-mes.
     //
+    // ANCLA AVANZADA a e72452f el 2026-10-02, y otra vez por una razón que NO es la que esta prueba
+    // vigila. Lo que tocó los ficheros fue BL-063, la deuda de la auditoría del 28-sep: el id
+    // TC-MAN-072e lo llevaba en `multi-anio.spec.ts` una prueba que comprobaba que la grilla hacía
+    // scroll, y el caso declara otra cosa («sin fecha de captura, el movimiento va al periodo en
+    // curso»). En `multi-anio.test.ts` se AÑADE la prueba de ese caso; en el spec, la de scroll se
+    // queda con sus aserciones intactas y solo pierde el id prestado. Ninguna aserción existente se
+    // tocó ni se relajó, y ningún cambio de cierre-de-mes.
+    //
     // Los tres ficheros siguen vigilados a partir del ancla nueva. Si vuelve a fallar: avanzar el ancla
     // y escribir aquí por qué, nunca borrar la prueba.
     const ficheros = [
@@ -652,7 +660,7 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
       "tests/domain/multi-anio.test.ts",
       "tests/integration/backend/multi-anio.test.ts",
     ];
-    const diff = execSync(`git diff --stat 5eacb9c -- ${ficheros.join(" ")}`, { encoding: "utf8" });
+    const diff = execSync(`git diff --stat e72452f -- ${ficheros.join(" ")}`, { encoding: "utf8" });
     expect(diff.trim()).toBe("");
   });
 
