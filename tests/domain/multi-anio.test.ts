@@ -1,7 +1,7 @@
 // Feature multi-anio — FR-1901/1903/1904/1906/1908/1909/1910 y sus NFR de regresión.
 // Todo es aritmética pura sobre LedgerState, así que se ataca sin DOM con valores concretos.
 // Prefijo TC-MAN-* .
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   isPeriodKey, comparePeriods, addMonths, periodRange, periodFromDate, periodOf,
@@ -21,6 +21,8 @@ import {
 // así que ya no hay eje que anclar en ella: el anclaje lo sigue haciendo `genBudget`, y estas
 // pruebas lo ejercitan componiendo la semilla poblada. Sus aserciones no se tocaron.
 import { buildSeedConMontos as buildSeed } from "../helpers/seedConMontos";
+import { periodKeyFromDate } from "@/lib/date";
+import { addMovement } from "@/domain/mutations";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
 import { P, P0, P2, REF_YEAR } from "../helpers/periods";
 import { CRONOMETRO_FIABLE, SALTAR_SI_INSTRUMENTADO, mejorDe, mejorTiempo, razonMediana } from "../helpers/perf";
@@ -311,6 +313,34 @@ describe("FR-1908 · el periodo del registro", () => {
     expect(periodFromDate("2026-03-14T10:30")).toBe("2026-03");
     expect(periodFromDate("basura")).toBeNull();
     expect(periodFromDate("2027-13-01")).toBeNull();
+  });
+
+  it("TC-MAN-072e: sin fecha de captura, el movimiento va al periodo en curso", () => {
+    // @aitri-tc TC-MAN-072e
+    // BL-063: este id lo llevaba una prueba e2e que comprobaba que la grilla hacía scroll. Lo que
+    // el caso declara es esto: sin fecha (o con una que no se entiende) el registro usa el mes del
+    // reloj, y el movimiento se guarda en ese periodo.
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 8, 15, 10, 30)); // 15 de septiembre de 2026
+      expect(periodKeyFromDate("")).toBe("2026-09");
+      expect(periodKeyFromDate("no-es-una-fecha")).toBe("2026-09");
+      // con fecha manda la fecha, no el reloj
+      expect(periodKeyFromDate("2027-03-14T10:30")).toBe("2027-03");
+
+      const periodo = periodKeyFromDate("");
+      const seed = buildSeed("local", "2026-09");
+      const next = addMovement(seed, { type: "expense", catId: "c-vivienda", subId: null, amount: 50_000, period: periodo }, [periodo]);
+      expect(next).not.toBe(seed);
+      expect(next.movements[0]).toMatchObject({ period: "2026-09", amount: 50_000, target: "c-vivienda" });
+      expect(next.movements[0]!.date).toBeUndefined();
+
+      // y sigue al reloj: el 2 de enero ya es el periodo del año siguiente
+      vi.setSystemTime(new Date(2027, 0, 2));
+      expect(periodKeyFromDate("")).toBe("2027-01");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

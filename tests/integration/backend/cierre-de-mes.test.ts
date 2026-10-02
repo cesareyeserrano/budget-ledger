@@ -13,7 +13,10 @@ import { sql } from "drizzle-orm";
 // NFR-2303 (semilla-intacta): estas pruebas necesitan un ledger CON celdas para operar; su
 // intención nunca fue verificar que la semilla traiga dinero. Desde FR-2301 la siembra del
 // producto sale vacía, así que componen la semilla poblada de siempre con este helper.
-import { setLeafAmount } from "@/domain";
+import { setLeafAmount, createNode } from "@/domain";
+import { AVAILABLE_ID } from "@/domain/reserve";
+import { computeBalanceSeries } from "@/domain/balance";
+import type { NewMovement } from "@/domain/mutations";
 import { buildSeedConMontos as buildSeed } from "../../helpers/seedConMontos";
 // Desde diario-de-celda (NFR-2502) una celda de Ejecutado tiene que valer lo que suman sus
 // movimientos. `ajustarCelda` pone la cifra POR LA VÍA DEL PRODUCTO —crea el ajuste que la
@@ -287,17 +290,60 @@ describe("FR-2003 · ninguna operación altera una cifra de un mes cerrado", () 
     expect(await enInicio()).toBe(antes);
   });
 
-  it("TC-CDM-035f: aportar en un mes cerrado se rechaza y el reservado no cambia", async () => {
+  it("TC-CDM-035f: aportar, retirar o trasladar en un mes cerrado se rechaza", async () => {
     // @aitri-tc TC-CDM-035f
-    await sembrar();
-    const { state } = await cerrar(1);
-    const bolsillo = state.nodes.find((n) => n.type === "transfer" && isLeaf(n, state.nodes));
-    expect(bolsillo).toBeDefined();
-    const original = state.budgets[bolsillo!.id]?.[INICIO] ?? 0;
+    // BL-063: el caso declara TRES rechazos y la prueba hacía uno, y sobre el plan. Ahora van los
+    // tres sobre lo ejecutado, por la vía de movimientos, más el aporte por la vía de snapshot.
+    const { state: s0, revision: r0 } = await sembrar();
+    const a1 = s0.nodes.find((n) => n.type === "transfer" && isLeaf(n, s0.nodes))!;
+    // El traslado necesita un segundo bolsillo: se crea ANTES de cerrar.
+    const conDos = createNode(s0, { level: "category", parentId: a1.parentId, type: "transfer", name: "Viajes" });
+    expect((await saveLedger(A, conDos, r0)).ok).toBe(true);
+    await cerrar(1);
     const l = (await loadLedger(A))!;
-    const next = setLeafAmount(l.state, bolsillo!.id, INICIO, "budget", original + 50_000, [INICIO, AHORA]);
-    expect((await saveLedger(A, next, l.revision)).ok).toBe(false);
-    expect((await loadLedger(A))!.state.budgets[bolsillo!.id]?.[INICIO] ?? 0).toBe(original);
+    const a2 = l.state.nodes.find((n) => n.name === "Viajes")!;
+    expect(l.state.closure!.closedThrough).toBe(INICIO);
+    expect(l.state.actuals[a1.id]?.[INICIO] ?? 0).toBeGreaterThan(50_000); // hay de dónde retirar
+
+    const ABIERTO: PeriodKey = "2026-07";
+    const op = (from: string, to: string, period: PeriodKey): NewMovement =>
+      ({ type: "transfer", catId: from === AVAILABLE_ID ? to : from, from, to, period, amount: 50_000 });
+    const tres = (period: PeriodKey) => [
+      op(AVAILABLE_ID, a1.id, period), // aportar
+      op(a1.id, AVAILABLE_ID, period), // retirar
+      op(a1.id, a2.id, period),        // trasladar
+    ];
+    const foto = async () => {
+      const x = (await loadLedger(A))!;
+      const m = computeBalanceSeries(x.state, [INICIO])[INICIO].actual;
+      return JSON.stringify({
+        revision: x.revision, disponible: m.available, reservado: m.reservedBalance,
+        celdas: [x.state.actuals[a1.id]?.[INICIO] ?? 0, x.state.actuals[a2.id]?.[INICIO] ?? 0],
+        movimientos: x.state.movements.filter((mv) => mv.period === INICIO).map((mv) => mv.id).sort(),
+      });
+    };
+    const antes = await foto();
+
+    // En el mes CERRADO las tres se rechazan por el cierre —no por un monto o un destino inválido—.
+    for (const input of tres(INICIO)) {
+      const r = await insertMovement(A, input);
+      expect(r, `${input.from} → ${input.to} en el mes cerrado`).toEqual({ closedViolation: true });
+    }
+    // …y el aporte fabricado a mano por la vía de snapshot, también.
+    const fabricado: LedgerState = {
+      ...l.state,
+      actuals: { ...l.state.actuals, [a1.id]: { ...l.state.actuals[a1.id], [INICIO]: (l.state.actuals[a1.id]?.[INICIO] ?? 0) + 50_000 } },
+    };
+    expect(await saveLedger(A, fabricado, l.revision)).toMatchObject({ ok: false, closedViolation: true, periods: [INICIO] });
+    // Disponible y reservado del mes cerrado, sus celdas, sus movimientos y la revisión: intactos.
+    expect(await foto()).toBe(antes);
+
+    // Control: las MISMAS tres operaciones, en un mes abierto, se registran. Sin esto, tres
+    // peticiones mal formadas también saldrían «rechazadas».
+    for (const input of tres(ABIERTO)) {
+      const r = await insertMovement(A, input);
+      expect(r !== null && "movement" in r, `${input.from} → ${input.to} en un mes abierto: ${JSON.stringify(r)}`).toBe(true);
+    }
   });
 
   it("TC-CDM-036e: mover un movimiento HACIA un mes cerrado se rechaza", async () => {

@@ -148,8 +148,10 @@ test("TC-MAN-071h: el selector de mes muestra el año junto al mes", async ({ pa
   expect(new Set(opciones).size).toBe(opciones.length);      // dos «Marzo» no se confunden
 });
 
-test("TC-MAN-072e: elegir un mes lo deja a la vista sin scrollear a mano", async ({ page }) => {
-  // @aitri-tc TC-MAN-072e
+// BL-063: esta prueba llevaba el id TC-MAN-072e, cuyo caso es otro («sin fecha de captura, el
+// movimiento va al periodo en curso») y ahora vive en tests/domain/multi-anio.test.ts. Lo que
+// comprueba —que elegir un mes lo trae a la vista— sigue valiendo y se queda, sin id prestado.
+test("elegir un mes en el selector lo deja a la vista sin scrollear a mano", async ({ page }) => {
   await abrir(page);
   const grid = page.getByTestId("budget-grid");
   await grid.evaluate((el) => { el.scrollLeft = 0; });

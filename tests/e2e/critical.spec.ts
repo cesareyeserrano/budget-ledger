@@ -66,14 +66,46 @@ test("TC-001h: registrar un movimiento lo guarda y confirma con toast", async ({
 });
 
 test("TC-006h: la grilla renderiza con columna categoría sticky y 12 meses", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+  // BL-063: afirmaba que tres textos se veían. Lo que el caso declara es que, al hacer scroll 300 px
+  // en vertical y 400 px en horizontal, la columna de categoría y los encabezados de mes NO se van.
+  // 1440 de ancho como pide el caso; el alto se acorta para que la grilla tenga 300 px que recorrer.
+  await page.setViewportSize({ width: 1440, height: 560 });
   await page.goto("/");
   const grid = page.getByTestId("budget-grid");
   await expect(grid).toBeVisible();
+  await grid.getByText("Comida", { exact: true }).first().click(); // jerarquía expandida
   // exact:true evita colisionar con los botones "Nueva categoría"/"Nueva subcategoría" (substring case-insensitive)
-  await expect(grid.getByText("CATEGORÍA", { exact: true })).toBeVisible();
-  await expect(grid.getByText("Enero").first()).toBeVisible();
-  await expect(grid.getByText("Diciembre").first()).toBeVisible();
+  const esquina = grid.getByText("CATEGORÍA", { exact: true });
+  await expect(esquina).toBeVisible();
+
+  // La grilla arranca desplazada al mes en curso (BG-007): se parte del origen para medir el scroll.
+  await grid.evaluate((el) => { el.scrollTop = 0; el.scrollLeft = 0; });
+  expect(await grid.evaluate((el) => [el.scrollTop, el.scrollLeft])).toEqual([0, 0]);
+  const cabeza = grid.locator("[data-month-head]").nth(2);
+  const fila = grid.locator('[data-testid="node-row"]').filter({ hasText: "Vivienda" }).first();
+  const etiqueta = fila.getByTestId("row-label");
+  const celda = fila.getByTestId("cell-leaf").first();
+  const caja = async (l: typeof cabeza) => (await l.boundingBox())!;
+  const antes = { cabeza: await caja(cabeza), etiqueta: await caja(etiqueta), celda: await caja(celda), esquina: await caja(esquina) };
+
+  await grid.evaluate((el) => { el.scrollTop = 300; el.scrollLeft = 400; });
+  // el scroll ocurrió entero: si la grilla no tuviera recorrido, lo de abajo no probaría nada
+  expect(await grid.evaluate((el) => [el.scrollTop, el.scrollLeft])).toEqual([300, 400]);
+  const despues = { cabeza: await caja(cabeza), etiqueta: await caja(etiqueta), celda: await caja(celda), esquina: await caja(esquina) };
+
+  // Lo que NO es sticky se fue con el scroll…
+  expect(Math.abs(despues.celda.x - (antes.celda.x - 400))).toBeLessThan(2);
+  expect(Math.abs(despues.celda.y - (antes.celda.y - 300))).toBeLessThan(2);
+  // …la columna de categoría se movió en vertical con su fila, pero sigue pegada a la izquierda…
+  expect(Math.abs(despues.etiqueta.x - antes.etiqueta.x)).toBeLessThan(2);
+  expect(Math.abs(despues.etiqueta.y - (antes.etiqueta.y - 300))).toBeLessThan(2);
+  // …los encabezados de mes se movieron en horizontal con su columna, pero siguen pegados arriba…
+  expect(Math.abs(despues.cabeza.y - antes.cabeza.y)).toBeLessThan(2);
+  expect(Math.abs(despues.cabeza.x - (antes.cabeza.x - 400))).toBeLessThan(2);
+  // …y la esquina, que es de las dos, no se movió nada.
+  expect(Math.abs(despues.esquina.x - antes.esquina.x)).toBeLessThan(2);
+  expect(Math.abs(despues.esquina.y - antes.esquina.y)).toBeLessThan(2);
+  await expect(esquina).toBeVisible();
 });
 
 test("TC-009f: dashboard muestra estado vacío de 'Sobre presupuesto' cuando no hay excesos", async ({ page }) => {

@@ -239,8 +239,23 @@ test("TC-208f: grupos y categorías no comparten el ícono de conector de subs",
   await page.setViewportSize(DESK);
   await page.goto("/");
   const grid = page.getByTestId("budget-grid");
-  // Vivienda (categoría) usa su ícono propio (home), no el conector de sub
-  await expect(grid.getByText("Vivienda", { exact: true })).toBeVisible();
+  // BL-063: afirmaba que el texto «Vivienda» se veía. Lo que el caso declara es que el conector de
+  // subcategoría (la flecha en codo) NO aparece en grupos ni categorías — y para que eso diga algo,
+  // tiene que verse que las subs SÍ lo llevan.
+  await grid.getByText("Comida", { exact: true }).first().click(); // expandir: aparecen las subs
+  await expect(grid.locator('[data-testid="node-row"][data-level="sub"]').first()).toBeVisible();
+  const conectores = await grid.locator('[data-testid="node-row"]').evaluateAll((els) =>
+    els.map((e) => ({
+      level: e.getAttribute("data-level"),
+      n: e.querySelectorAll('[data-testid="row-label"] svg.lucide-corner-down-right').length,
+    })));
+  const de = (level: string) => conectores.filter((c) => c.level === level);
+  expect(de("sub").length).toBeGreaterThan(0);
+  expect(de("group").length).toBeGreaterThan(0);
+  expect(de("category").length).toBeGreaterThan(0);
+  expect(de("sub").every((c) => c.n === 1)).toBe(true);   // cada sub, su conector
+  expect(de("group").every((c) => c.n === 0)).toBe(true);  // 0 conectores en grupos
+  expect(de("category").every((c) => c.n === 0)).toBe(true); // 0 conectores en categorías
 });
 
 // ---------- FR-213 — tipografía Inter (reemplaza Lexend) ----------
@@ -402,10 +417,32 @@ test("TC-201g: agregar grupo a un tipo COLAPSADO lo expande y muestra el nuevo g
   await page.setViewportSize(DESK);
   await page.goto("/");
   await expect(page.getByTestId("budget-grid")).toBeVisible();
-  await page.locator(String.raw`button[aria-label="Colapsar tipo"]`).first().click(); // colapsar GASTOS
-  await hoverRow(page, row(page, /^GASTOS/));
-  await page.locator(String.raw`button[aria-label="Agregar grupo"]`).first().click();
-  await expect(page.getByLabel("Nombre")).toBeVisible(); // el grupo se muestra → el tipo se expandió
+  // BL-063: pulsaba el PRIMER «Colapsar tipo», que es el de INGRESOS (va arriba en la grilla), y
+  // después agregaba el grupo en un GASTOS que nunca estuvo colapsado.
+  const gastos = page.locator('[data-testid="type-total-row"][data-type="expense"]');
+  const colapsar = gastos.getByRole("button", { name: "Colapsar tipo" });
+  const filaDe = (name: string) => page.getByTestId("budget-grid").locator('[data-testid="node-row"]').filter({ hasText: name });
+  await expect(filaDe("Esenciales")).toHaveCount(1);
+
+  await colapsar.click();
+  await expect(colapsar).toHaveAttribute("aria-expanded", "false");
+  await expect(filaDe("Esenciales")).toHaveCount(0); // GASTOS quedó colapsado de verdad
+  await expect(filaDe("Trabajo")).toHaveCount(1);    // …y solo GASTOS: INGRESOS sigue abierto
+
+  await hoverRow(page, gastos);
+  await gastos.getByRole("button", { name: "Agregar grupo" }).click();
+  const nombre = page.getByLabel("Nombre");
+  await expect(nombre).toBeVisible();
+  await expect(colapsar).toHaveAttribute("aria-expanded", "true"); // el tipo se expandió solo
+  await expect(filaDe("Esenciales")).toHaveCount(1);
+
+  await nombre.fill("Ocio Test");
+  await nombre.press("Enter");
+  await expect(filaDe("Ocio Test")).toHaveAttribute("data-level", "group");
+  // el grupo nuevo es de GASTOS, no del primer tipo de la grilla
+  await expect
+    .poll(async () => (await readTree(page)).nodes.find((n) => n.name === "Ocio Test")?.type, { timeout: 15000 })
+    .toBe("expense");
 });
 
 // ---------- NFR-103 (Regression) — carga con Lexend ----------
