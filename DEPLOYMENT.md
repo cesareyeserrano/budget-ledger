@@ -290,7 +290,10 @@ image, verify).
 
 ## CI
 `.github/workflows/ci.yml` runs on every push to `main`, on every PR to `main`, `staging` or
-`develop`, and weekly. Job `build-and-test`: install → typecheck → lint → unit + integration tests →
-build → E2E (Playwright, the app against an ephemeral Postgres) → backend E2E. Job `security`:
-dependency audit (`npm audit`) and secret scan (`scripts/secret-scan.sh`). `codeql.yml` runs
-GitHub CodeQL. Any failure fails the pipeline.
+`develop`, and weekly. Job `build-and-test`: install → typecheck → lint → static gates
+(`security-config`, `design-tokens`, `no-legacy-mode`) → unit + integration tests → coverage
+thresholds → build → smoke (boots the standalone server, the one the image runs) → backend smoke
+(migrates an ephemeral Postgres and makes an authenticated request) → E2E (Playwright, the app
+against an ephemeral Postgres) → backend E2E. Job `security`: dependency audit (`npm audit`) and
+secret scan (`scripts/secret-scan.sh`, with gitleaks). `codeql.yml` runs GitHub CodeQL. Any failure
+fails the pipeline. Node is pinned to the production version in `.nvmrc`, which CI reads.

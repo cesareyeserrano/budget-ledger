@@ -17,7 +17,7 @@ and, per feature, in `aitri/features/<name>/`.
 
 ## Running it
 
-Local development needs Node.js 22 and Docker. Full details are in [DEV_ENV.md](DEV_ENV.md).
+Local development needs Node.js 22 (pinned in `.nvmrc`: `nvm use`) and Docker. Full details are in [DEV_ENV.md](DEV_ENV.md).
 
 ```bash
 npm install

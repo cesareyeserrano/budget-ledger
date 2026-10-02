@@ -52,10 +52,12 @@ values or placeholders.
 
 Three controls back this up:
 
-- **`.gitignore`** covers `.env`, `.env.local` and `.env.*.local`.
+- **`.gitignore`** covers `.env` and every `.env.*` variant except the `.env.example` template.
 - **`scripts/secret-scan.sh`** runs in CI on every pull request and on every push to `main`, and
-  fails the build on a hardcoded secret. It uses gitleaks when available and a pattern-based
-  fallback otherwise (the CI runner currently uses the fallback).
+  fails the build on a hardcoded secret. It makes two passes over every tracked file: the project's
+  own patterns (connection strings with a password, Brevo keys, the auth and OAuth secrets by name,
+  common provider tokens), which always run, and gitleaks with its default rules, which CI installs
+  at a pinned version and requires. Locally gitleaks is optional; the patterns still run.
 - **GitHub secret scanning and push protection** are enabled: GitHub blocks a push that contains a
   credential from a known provider.
 
