@@ -116,6 +116,50 @@ describe("FR-1010 — migración lazy en el servidor", () => {
     expect(after!.state.actuals["c-viaje"]).toEqual({ "2026-01": 100_000 }); // aportes recuperados (feb era arrastre)
   });
 
+  it("TC-TDF-241h: la cadena de migraciones no se re-aplica — la marca de versión lo impide", async () => {
+    // @aitri-tc TC-TDF-241h
+    // BL-063: este caso lo acreditaba una prueba que declaraba la guarda y sus constantes DENTRO de
+    // la prueba (`debeMigrar = marca < 4`) y medía esa copia. Aquí se cargan los ledgers de verdad.
+    const foto = async (userId: string) => JSON.stringify({
+      celdas: [...(await testDb().execute(sql`SELECT node_id, period, kind, amount FROM amount_cell WHERE owner_id = ${userId} ORDER BY node_id, period, kind`))],
+      movimientos: [...(await testDb().execute(sql`SELECT id, period, amount, from_id, to_id FROM movement WHERE owner_id = ${userId} ORDER BY id`))],
+      ancla: [...(await testDb().execute(sql`SELECT data_version, revision FROM "ledger" WHERE owner_id = ${userId}`))],
+    });
+    const SALDOS = { "2026-01": 100_000, "2026-02": 200_000, "2026-03": 150_000 };
+
+    // (1) Un ledger v3, en formato de SALDOS: la primera carga lo convierte; la segunda no toca nada.
+    const a = await newUser("mig-dos-veces@example.com");
+    await seedAsV3(a.cookie, a.userId, SALDOS);
+    const antesDeCargar = await foto(a.userId);
+    const primera = await loadLedger(a.userId);
+    const trasPrimera = await foto(a.userId);
+    expect(trasPrimera).not.toBe(antesDeCargar); // la conversión ocurrió y se persistió
+    expect(primera!.state.actuals["c-viaje"]).toEqual({ "2026-01": 100_000, "2026-02": 100_000 });
+    expect(resolvedBalance(primera!.state, "c-viaje", "2026-12", "actual", P)).toBe(150_000);
+
+    const segunda = await loadLedger(a.userId);
+    expect(await foto(a.userId)).toBe(trasPrimera); // ni una celda, ni un movimiento, ni la marca
+    expect(segunda!.state.actuals).toEqual(primera!.state.actuals);
+    expect(segunda!.state.movements.map((m) => m.id).sort()).toEqual(primera!.state.movements.map((m) => m.id).sort());
+    expect(resolvedBalance(segunda!.state, "c-viaje", "2026-12", "actual", P)).toBe(150_000);
+    expect(JSON.parse(trasPrimera).ancla[0].data_version).toBe(7);
+
+    // (2) Las MISMAS celdas en un ledger ya marcado v5: son aportes y se quedan como están, dos veces.
+    const b = await newUser("mig-ya-marcado@example.com");
+    await seedAsV3(b.cookie, b.userId, SALDOS);
+    await testDb().execute(sql`UPDATE "ledger" SET data_version = 5 WHERE owner_id = ${b.userId}`);
+    const marcado1 = await loadLedger(b.userId);
+    const trasMarcado1 = await foto(b.userId);
+    const marcado2 = await loadLedger(b.userId);
+    expect(await foto(b.userId)).toBe(trasMarcado1);
+    for (const r of [marcado1, marcado2]) {
+      expect(r!.state.actuals["c-viaje"]).toEqual(SALDOS); // sin des-acumular
+      expect(r!.state.movements.filter((m) => m.from === "c-viaje")).toHaveLength(0); // sin retiro sintetizado
+    }
+    // Lo único que separa (1) de (2) es la marca: mismas celdas, resultado distinto.
+    expect(marcado1!.state.actuals["c-viaje"]).not.toEqual(primera!.state.actuals["c-viaje"]);
+  });
+
   it("TC-TRF4-010f: from/to y cellNotes atraviesan las cinco capas", async () => {
     // @aitri-tc TC-TRF4-010f
     const { cookie, userId } = await newUser("capas-v4@example.com");

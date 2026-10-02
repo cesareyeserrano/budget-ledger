@@ -29,6 +29,15 @@ function contrast(fgHex: string, bgHex: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 const globalsCss = readFileSync(resolve(__dirname, "../../src/app/globals.css"), "utf8");
+/** El valor hex de un token dentro de un bloque de globals.css: `:root` es el tema claro, `.dark` el oscuro. */
+function tokenDe(bloque: ":root" | ".dark", nombre: string): string {
+  const ini = globalsCss.indexOf(`\n${bloque} {`);
+  if (ini < 0) throw new Error(`globals.css no tiene el bloque ${bloque}`);
+  const cuerpo = globalsCss.slice(ini, globalsCss.indexOf("\n}", ini));
+  const m = cuerpo.match(new RegExp(`\\n\\s*${nombre}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`));
+  if (!m) throw new Error(`no hay un ${nombre} en hex dentro de ${bloque}`);
+  return m[1]!;
+}
 const ciYml = readFileSync(resolve(__dirname, "../../.github/workflows/ci.yml"), "utf8");
 
 // ── FR-201 · aislamiento de la preferencia de tema ──────────────────────────
@@ -160,16 +169,27 @@ describe("NFR-202 — persistencia", () => {
 // ── NFR-203 · contraste AA ──────────────────────────────────────────────────
 describe("NFR-203 — accesibilidad", () => {
   it("TC-SUT-250h: text-primary y text-secondary alcanzan ≥4.5:1 en ambos temas", () => {
-    // claro (paleta afinada ux-consistency)
-    expect(contrast("#1C1C1F", "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // text-primary
-    expect(contrast("#55555D", "#FFFFFF")).toBeGreaterThanOrEqual(4.5); // text-secondary
-    // text-muted / eyebrow: debe pasar AA también sobre la superficie HUNDIDA (#F1F1F3), donde vive
-    // el eyebrow "CATEGORÍA" de la grilla — el gate que #6E6E76 no alcanzaba (4.48:1).
-    expect(contrast("#6B6B73", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
-    expect(contrast("#6B6B73", "#F1F1F3")).toBeGreaterThanOrEqual(4.5);
-    // oscuro: texto off-white (no blanco puro) sobre el lienzo #131316
-    expect(contrast("#F4F4F5", "#131316")).toBeGreaterThanOrEqual(4.5);
-    expect(contrast("#9B9BA3", "#131316")).toBeGreaterThanOrEqual(4.5);
+    // BL-063: calculaba el contraste de colores TECLEADOS en la prueba, así que cambiar la hoja de
+    // estilos no podía hacerla fallar (y el secundario oscuro que traía ya no era el del producto).
+    // Ahora los colores se leen de los tokens de globals.css, en `:root` y en `.dark`.
+    const SUPERFICIES = ["--bg", "--bg-card", "--bg-elevated", "--bg-sunken"];
+    const TEXTOS = ["--fg", "--fg-secondary", "--fg-muted"];
+    for (const tema of [":root", ".dark"] as const) {
+      for (const texto of TEXTOS) {
+        for (const superficie of SUPERFICIES) {
+          const fg = tokenDe(tema, texto), bg = tokenDe(tema, superficie);
+          expect(contrast(fg, bg), `${tema} ${texto} ${fg} sobre ${superficie} ${bg}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+    // Y los tokens son los del sistema, no cualquier par que pase: el texto principal sobre el lienzo
+    // supera con mucho el mínimo en los dos temas, y los dos temas son distintos de verdad.
+    expect(contrast(tokenDe(":root", "--fg"), tokenDe(":root", "--bg"))).toBeGreaterThan(15);
+    expect(contrast(tokenDe(".dark", "--fg"), tokenDe(".dark", "--bg"))).toBeGreaterThan(15);
+    expect(tokenDe(":root", "--bg")).not.toBe(tokenDe(".dark", "--bg"));
+    expect(tokenDe(":root", "--fg")).not.toBe(tokenDe(".dark", "--fg"));
+    // Control del propio medidor: un gris que no llega al mínimo se detecta.
+    expect(contrast("#8a8a92", tokenDe(":root", "--bg"))).toBeLessThan(4.5);
   });
 
   it("TC-SUT-251e: el verde afinado pasa AA como texto pequeño y el green-600 saturado no", () => {

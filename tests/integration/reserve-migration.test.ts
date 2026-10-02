@@ -175,21 +175,10 @@ describe("NFR-1004 · decisión del PUT snapshot", () => {
 // ── NFR-1805 (feature techo-de-flujo) · la marca de versión es lo que impide re-aplicar ────────
 
 describe("NFR-1805 · la cadena de migraciones no se re-aplica sobre un ledger ya marcado", () => {
-  // @aitri-tc TC-TDF-241h
-  it("TC-TDF-241h: el guard de versión es lo único que separa un ledger sano de uno destruido", () => {
-    // La conversión v3→v4 NO es idempotente por diseño (se des-acumulan los saldos), así que la
-    // propiedad que de verdad protege los datos no es la de la función: es que el servidor NO la
-    // llame cuando la marca ya está puesta. Aquí se fija esa lógica de guarda de forma pura, sin
-    // base de datos, sobre las MISMAS constantes que usa `ensureV4InTx` (ledgerRepo.ts).
-    const DATA_VERSION_BALANCES = 3;
-    const DATA_VERSION_FLOWS = 4;
-    const DATA_VERSION_COUNTERPARTY = 5;
-    const debeMigrar = (marca: number) => marca < DATA_VERSION_FLOWS;
-
-    expect(debeMigrar(DATA_VERSION_BALANCES)).toBe(true); // un v3 sí se convierte…
-    expect(debeMigrar(DATA_VERSION_FLOWS)).toBe(false); // …y un ledger ya marcado, JAMÁS…
-    expect(debeMigrar(DATA_VERSION_COUNTERPARTY)).toBe(false); // …ni uno de una versión posterior.
-
+  // BL-063: aquí vivía TC-TDF-241h declarando la guarda de versión y sus constantes dentro de la
+  // prueba. El caso se prueba ahora cargando dos ledgers de verdad, en
+  // tests/integration/backend/reserve-server.test.ts. Aquí queda por qué la guarda importa.
+  it("la conversión v3→v4 NO es idempotente: aplicarla dos veces destruye el saldo", () => {
     // Y la consecuencia sobre datos reales: aplicar la conversión a un estado YA convertido
     // destruye información. Es el daño exacto que el guard evita, y por eso se afirma aquí.
     const unaVez = migrateStateV3toV4(v3State());
