@@ -98,6 +98,10 @@ export interface CellNote {
    *  «AAAA-MM-DD». Ausente = comentario anterior a la feature, y así se queda: nadie le inventa un
    *  día. `createdAt` sigue siendo el contador de `nextSeq()`, nunca un instante. */
   date?: string;
+  /** Delta aditivo (BG-089): de cuál de las dos celdas del mes es el comentario. `"budget"` es la de
+   *  Presupuestado; AUSENTE es la de Ejecutado, y así quedan todos los anteriores. Nunca `"actual"`:
+   *  ausente y Ejecutado son el mismo dato. */
+  plane?: "budget";
 }
 
 /** Mapa nodeId → mes → observaciones manuales de esa celda (feature transferencias, FR-1012). */

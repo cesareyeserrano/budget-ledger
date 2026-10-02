@@ -142,6 +142,8 @@ function splitComments(notes: readonly CellNote[]): { dated: CellNote[]; undated
  * @param leafId Hoja cuya celda se abre.
  * @param period Periodo de la celda (mes o ciclo).
  * @param periods Rango activo, para el aviso de arrastre.
+ * @param plane De cuál de las dos celdas del mes se pide el Detalle (BG-089). En Presupuestado son solo
+ *   sus comentarios: primero los que tienen día, por día, y después los que no, por antigüedad.
  * @returns Las entradas del Detalle; `[]` si la hoja no existe o la celda está vacía.
  * @throws Nunca.
  *
@@ -149,12 +151,17 @@ function splitComments(notes: readonly CellNote[]): { dated: CellNote[]; undated
  * @aitri-trace FR-ID: FR-2603, US-ID: US-2603, AC-ID: AC-2603a, TC-ID: TC-FDC-040h, TC-FDC-041e, TC-FDC-042e, TC-FDC-043f, TC-FDC-044f, TC-FDC-046h
  */
 export function cellDetail(
-  state: LedgerState, leafId: string, period: PeriodKey, periods: PeriodScope
+  state: LedgerState, leafId: string, period: PeriodKey, periods: PeriodScope, plane: "budget" | "actual" = "actual"
 ): DetailEntry[] {
   const node = findNode(state.nodes, leafId);
   if (!node) return [];
   const entries: DetailEntry[] = [];
-  const { dated, undated } = splitComments(state.cellNotes?.[leafId]?.[period] ?? []);
+  // BG-089: cada celda tiene sus comentarios. Los de Presupuestado llevan `plane: "budget"`; los de
+  // Ejecutado no llevan nada, que es también como están todos los anteriores a esa distinción.
+  const suyos = (state.cellNotes?.[leafId]?.[period] ?? []).filter((n) => (plane === "budget" ? n.plane === "budget" : !n.plane));
+  const { dated, undated } = splitComments(suyos);
+  // La celda de Presupuestado no tiene movimientos: lo que suma al Ejecutado se lee y se añade allí.
+  if (plane === "budget") return [...dated, ...undated].map((note) => ({ kind: "comment" as const, note }));
   let next = 0; // siguiente comentario fechado aún sin colocar
 
   if (node.type === "transfer") {

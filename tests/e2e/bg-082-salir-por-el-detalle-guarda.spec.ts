@@ -35,8 +35,9 @@ test("BG-082: con el foco en el Detalle, pasar a otra celda y pulsar Enter guard
 
   await celda(page, "c-mercado").click();
   await page.getByLabel("Editar valor").fill("2000");
-  // El foco pasa al Detalle de la celda abierta.
-  await page.getByTestId("comment-reveal").focus();
+  // El foco pasa al Detalle de la celda abierta. Es una celda de Presupuestado: desde BG-089 su
+  // Detalle son solo sus comentarios, así que el control enfocable es la caja del comentario.
+  await page.getByLabel("Añadir comentario", { exact: true }).focus();
   // Y de ahí a otra celda, que se abre con Enter (BG-069).
   await celda(page, "c-luz").focus();
   await page.keyboard.press("Enter");
@@ -53,7 +54,7 @@ test("control: abrir el editor y salir por el Detalle SIN teclear no escribe nad
   const antes = ((await (await page.request.get("/api/v1/ledger")).json()) as { revision: number }).revision;
 
   await celda(page, "c-mercado").click();
-  await page.getByTestId("comment-reveal").focus();
+  await page.getByLabel("Añadir comentario", { exact: true }).focus();
   await celda(page, "c-luz").focus();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("Editar valor")).toHaveValue("500");

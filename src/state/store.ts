@@ -220,7 +220,7 @@ interface LedgerStore {
   editPlannedWithdrawal: (leafId: string, month: PeriodKey, amount: number) =>
     { ok: true } | { ok: false; rejected: ReserveVerdict | "invalid_target" };
   /** Observación manual de una celda de reserva (FR-1012). true si se guardó. */
-  addCellNote: (leafId: string, month: PeriodKey, text: string) => boolean;
+  addCellNote: (leafId: string, month: PeriodKey, text: string, plane?: "budget" | "actual") => boolean;
   /** Devuelve true si se persistió un movimiento nuevo; false si fue inválido o un doble-tap
    *  (guardado idéntico dentro de 600ms). El registro móvil muestra el overlay solo si true. */
   addMovement: (input: NewMovement) => boolean;
@@ -918,8 +918,8 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
     // servidor corre en UTC y de noche daría el día siguiente (ADR-02 del TRD).
     //
     // @aitri-trace FR-ID: FR-2601, US-ID: US-2601, AC-ID: AC-2601a, TC-ID: TC-FDC-001h, TC-FDC-002e
-    addCellNote: (leafId, month, text) => {
-      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO());
+    addCellNote: (leafId, month, text, plane = "actual") => {
+      const result = addCellNote(get().data, leafId, month, text, get().activePeriods(), todayISO(), plane);
       if ("rejected" in result) return false;
       set({ data: result.state });
       persist(result.state);

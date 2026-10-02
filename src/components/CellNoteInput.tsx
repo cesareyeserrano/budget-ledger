@@ -27,8 +27,10 @@ import { useLedgerStore } from "@/state/store";
  *
  * @aitri-trace FR-ID: FR-2508, US-ID: US-2508, AC-ID: AC-2508b, TC-ID: TC-DDC-152h, TC-DDC-155f
  */
-export function CellNoteInput({ leafId, month, autoFocus = false }: {
+export function CellNoteInput({ leafId, month, plane = "actual", autoFocus = false }: {
   leafId: string; month: PeriodKey;
+  /** De cuál de las dos celdas del mes es el comentario (BG-089). */
+  plane?: "budget" | "actual";
   /** Pone el foco al montarse: cuando el campo se despliega desde «+ Añadir comentario». */
   autoFocus?: boolean;
 }) {
@@ -51,7 +53,7 @@ export function CellNoteInput({ leafId, month, autoFocus = false }: {
           // el editor, y reteniéndolo el panel quedaba abierto sin salida por teclado.
           if (e.key === "Enter") {
             e.stopPropagation();
-            if (canAdd && addNote(leafId, month, draft)) setDraft("");
+            if (canAdd && addNote(leafId, month, draft, plane)) setDraft("");
           }
         }}
         className="w-full bg-elevated border border-border rounded-(--radius-sm) text-fg px-1.5 py-1 outline-none focus:border-accent"
@@ -64,7 +66,7 @@ export function CellNoteInput({ leafId, month, autoFocus = false }: {
         disabled={!canAdd}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
-          if (addNote(leafId, month, draft)) setDraft("");
+          if (addNote(leafId, month, draft, plane)) setDraft("");
         }}
         className="flex-none cursor-pointer border-0 bg-transparent p-0 font-semibold disabled:cursor-default disabled:opacity-50"
         style={{ color: "var(--fg)" }}

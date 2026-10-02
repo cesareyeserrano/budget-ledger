@@ -212,7 +212,7 @@ export const MOVEMENT_DATE = z.string().refine(isMovementDate, "Fecha inexistent
 /** Observaciones por celda (FR-1012): nodeId → mes → lista de notas manuales. */
 export const cellNotesSchema = z.record(
   z.string(),
-  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280), date: NOTE_DAY.optional() })))
+  z.record(PERIOD_KEY, z.array(z.object({ id: z.string(), createdAt: z.number(), text: z.string().max(280), date: NOTE_DAY.optional(), plane: z.literal("budget").optional() })))
 );
 
 /** Formato intermedio v3 (saldos con arrastre — revertido). Se acepta SOLO para migrar a v4. */

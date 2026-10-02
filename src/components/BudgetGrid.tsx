@@ -703,7 +703,9 @@ function useRollups(data: LedgerState, periods: readonly PeriodKey[]) {
 
 /** Nº de observaciones de una celda — el indicador que la marca (FR-1809). */
 function useNotesOf(data: LedgerState) {
-  return (nodeId: string, month: PeriodKey) => (data.cellNotes?.[nodeId]?.[month] ?? []).length;
+  // BG-089: cada celda cuenta los suyos — los de Presupuestado llevan `plane`, los de Ejecutado no.
+  return (nodeId: string, month: PeriodKey, plane: "budget" | "actual" = "actual") =>
+    (data.cellNotes?.[nodeId]?.[month] ?? []).filter((n) => (plane === "budget" ? n.plane === "budget" : !n.plane)).length;
 }
 
 function NodeRow(props: {
@@ -864,7 +866,7 @@ function NodeRow(props: {
           const { budget: bud, actual: act } = rollups.cell(node.id, m);
           return (
             <div key={m} className="flex">
-              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} nodeName={node.name} month={m} plane="budget" closed={props.closedPeriods.has(m)} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
+              <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "budget"} value={bud} sep muted weight={bWeight} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} nodeName={node.name} month={m} plane="budget" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m, "budget")} onStart={() => row.leaf && props.startEdit(m, "budget", bud)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
               <EditableCell editing={props.editing?.id === node.id && props.editing.mk === m && props.editing.field === "actual"} value={act} color={ejecColor(node.type, bud, act)} glyph={ejecGlyph(node.type, bud, act)} leaf={row.leaf} highlight={props.highlightMonth === m} editVal={props.editVal} nodeId={row.leaf ? node.id : undefined} nodeName={node.name} month={m} plane="actual" closed={props.closedPeriods.has(m)} notes={notesOf(node.id, m)} onStart={() => row.leaf && props.startEdit(m, "actual", act)} setEditVal={props.setEditVal} tecleado={props.editing?.tecleado} resync={props.resyncEdit} commit={props.commitEdit} cancel={props.cancelEdit} />
             </div>
           );
@@ -949,7 +951,7 @@ function EditableCell(props: { editing: boolean; value: number; sep?: boolean; m
         {/* FR-2501: el editor de cualquier celda monta el Detalle — qué movimientos la forman y qué
             comentarios la acompañan. El panel se posiciona solo para no desbordar el viewport. */}
         {props.nodeId && props.month && (
-          <CellDetail leafId={props.nodeId} month={props.month}
+          <CellDetail leafId={props.nodeId} month={props.month} plane={props.plane}
             // BG-080 (d): «Guardar» confirma, igual que Enter (TC-DDC-016h). Con `commit()` a secas, en una
             // celda descuadrada Enter la cuadraba y el botón solo cerraba.
             onGuardar={props.closed ? undefined : () => props.commit(true)} onCancelar={props.cancel} />
