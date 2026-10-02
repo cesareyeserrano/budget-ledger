@@ -858,9 +858,13 @@
         {
           "at": "2026-10-02T15:57:47.736Z",
           "text": "Avance 2-oct. HECHAS dos de las seis clases, cada una comprobada en rojo con sondas ya retiradas. (1) Arrastre, 361ecb6: TC-015h, TC-015f, TC-211e, TC-RUI-102f y TC-015e leen el arbol que guarda el servidor. (2) Guardia de la via de movimientos, commit siguiente: TC-RES-016f, TC-RES-220f y TC-RES-014e con control y sin as never; TC-RES-011f ya la habia arreglado BG-086. FALTAN: la prueba comprueba otra cosa (TC-MAN-072e, TC-CDM-035f, TC-201g, TC-853f, TC-006h, TC-208f, TC-BE-072e); copia de la regla en la prueba (TC-SIN-020h/021e/022f, TC-BJE-007f, TC-TDF-104e, TC-TDF-241h, TC-SUT-250h); funcion que el producto no llama (TC-SUT-222f/210h/211e/212f, TC-TRF4-153f); no puede fallar (TC-BE-023f, TC-102f, TC-MAN-001h, TC-MAN-261f, TC-BE-064f); y TC-TRF4-154f, que contradice al producto. Sin verify todavia sobre estos commits."
+        },
+        {
+          "at": "2026-10-02T17:06:32.617Z",
+          "text": "Avance 2-oct (tarde). HECHAS cinco de las seis clases, cada prueba comprobada en rojo con sondas ya retiradas: arrastre (361ecb6), guardia de la via de movimientos (39fcbb1), la prueba comprueba otra cosa (e72452f), no puede fallar (73d3035), copia de la regla en la prueba (TC-SIN-020h/021e/022f llaman al hydrate real; TC-BJE-007f y TC-TDF-104e pasan a e2e contra las celdas reales, 977071e; TC-TDF-241h carga ledgers reales y TC-SUT-250h lee los tokens de globals.css, c54d22d). Anclas avanzadas con su motivo: TC-CDM-202e y TC-RES-202e. SE DEJA: TC-BE-072e (BL-027 documenta por que no ejecuta typecheck ni lint). FALTA Y PIDE DECISION DEL USUARIO: (a) funcion que el producto no llama — validateAmountInput (TC-SUT-222f), typeColor y typeTextColor (TC-SUT-210h/211e/212f), persistedBudgetSchema (TC-TRF4-153f): borrar la funcion y su caso, o conectarla; (b) TC-TRF4-154f afirma que el servidor no revalida reglas y hoy si lo hace (reglas-en-el-servidor): el caso aprobado de transferencias quedo superado."
         }
       ],
-      "updatedAt": "2026-10-02T15:57:47.736Z"
+      "updatedAt": "2026-10-02T17:06:32.617Z"
     },
     {
       "id": "BL-064",
