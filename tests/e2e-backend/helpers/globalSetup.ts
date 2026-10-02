@@ -21,6 +21,24 @@ export const E2E_PORT = 3230;
 export const E2E_BASE = `http://localhost:${E2E_PORT}`;
 export const STATE_FILE = path.join(os.tmpdir(), "ledger-e2e-backend-state.json");
 
+/**
+ * ¿Hay alguien escuchando ya en el puerto de la suite? (BL-074)
+ *
+ * La misma guarda que la suite principal tiene desde BG-016 (tests/e2e/helpers/globalSetup.ts). Sin
+ * ella, con un servidor ajeno en el puerto —un huérfano de una corrida interrumpida, o el gate
+ * `e2e.sh`, que usa este mismo 3230— el `next start` de abajo moría con EADDRINUSE y `waitForHealth`
+ * recibía el 200 del proceso AJENO: la suite entera medía una app que no era la suya, contra una
+ * base que no era la suya.
+ */
+async function portIsBusy(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -36,6 +54,16 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  // Antes de levantar nada: ni contenedor ni build tienen sentido si el puerto ya sirve.
+  if (await portIsBusy(E2E_BASE)) {
+    throw new Error(
+      `El puerto ${E2E_PORT} ya está ocupado por otro proceso que responde /health.\n` +
+        `Casi seguro es un servidor huérfano de una corrida anterior, o el gate e2e.sh en marcha.\n` +
+        `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
+        `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
+    );
+  }
+
   const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 
