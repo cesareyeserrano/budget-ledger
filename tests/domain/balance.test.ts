@@ -10,6 +10,7 @@ import { P as MONTH_KEYS } from "../helpers/periods";
 import { findNode } from "@/domain/tree";
 import { STORAGE_KEYS, type AmountMap, type LedgerNode, type LedgerState, type PeriodKey, type NodeType } from "@/domain/types";
 import { P, P0 } from "../helpers/periods";
+import { buildSeedConMontos } from "../helpers/seedConMontos";
 
 // Feature balance — FR-905/906/907 y sus NFR de regresión. El corazón es aritmética pura sobre
 // LedgerState, así que se ataca SIN DOM con valores concretos, afirmando cada campo de MonthBalance.
@@ -371,10 +372,19 @@ describe("FR-907 · guardar en reservas (v1: solo aportes)", () => {
 describe("FR-908 · el recálculo es derivación de solo lectura", () => {
   it("TC-BAL-908f: computeBalanceSeries es pura: no muta el estado de entrada", () => {
     // @aitri-tc TC-BAL-908f
-    const s = buildSeed("local", P0);
+    // BL-062: con la semilla vacía (FR-2301) no había una sola celda que el cómputo pudiera mutar.
+    const s = buildSeedConMontos("local", P0);
     const snapshot = deep(s);
+    for (const t of ["income", "expense", "transfer"] as const) {
+      expect(typeTotals(s, t, MONTH_KEYS).budget, t).toBeGreaterThan(0);
+      expect(typeTotals(s, t, MONTH_KEYS).actual, t).toBeGreaterThan(0);
+    }
+    expect(s.movements.length).toBeGreaterThan(0);
 
-    computeBalanceSeries(s, P);
+    const serie = computeBalanceSeries(s, P);
+    // el cómputo leyó esas celdas de verdad: el Flujo de enero no es cero
+    expect(serie["2026-01"].actual.flow).not.toBe(0);
+    expect(serie["2026-01"].budget.flow).not.toBe(0);
 
     expect(s).toEqual(snapshot);
     expect(s.budgets).toEqual(snapshot.budgets);
@@ -474,11 +484,17 @@ describe("NFR-902 · los roll-ups existentes son el insumo, no cambian", () => {
 
   it("TC-BAL-952f: el balance no modifica los roll-ups existentes", () => {
     // @aitri-tc TC-BAL-952f
-    const s = buildSeed("local", P0);
+    // BL-062: sobre la semilla vacía (FR-2301) todos los roll-ups eran 0 y no había nada que modificar.
+    const s = buildSeedConMontos("local", P0);
     const capture = () =>
       s.nodes.map((n) => MONTH_KEYS.map((mk) => `${n.id}:${mk}:${rollupBudget(s, n.id, mk)}:${rollupActual(s, n.id, mk)}`).join("|"));
 
     const before = capture();
+    // cada nodo de la semilla agrega dinero en enero, en los dos planos
+    for (const n of s.nodes) {
+      expect(rollupBudget(s, n.id, "2026-01"), n.id).toBeGreaterThan(0);
+      expect(rollupActual(s, n.id, "2026-01"), n.id).toBeGreaterThan(0);
+    }
     computeBalanceSeries(s, P);
     const after = capture();
 
@@ -704,14 +720,16 @@ describe("NFR-908 · el balance no añade superficie de seguridad", () => {
 describe("FR-910 · reordenar los bloques no muta el estado", () => {
   it("TC-BAL-910f: ningún nodo cambia de tipo ni de padre al reordenar", () => {
     // @aitri-tc TC-BAL-910f
-    const s = buildSeed("local", P0);
+    // BL-062: semilla poblada, para que las agregaciones recorran cifras y no ceros.
+    const s = buildSeedConMontos("local", P0);
     const antes = s.nodes.map((n) => `${n.id}:${n.type}:${n.parentId ?? "raíz"}`);
 
     // el render recorre los tipos en el orden NUEVO y, por cada uno, llama a las mismas funciones
     // de agregación que pinta la grilla. Ninguna puede tocar el estado.
     const ORDEN_NUEVO: NodeType[] = ["income", "expense", "transfer"];
+    const enOrdenNuevo = new Map<NodeType, { budget: number; actual: number }>();
     for (const t of ORDEN_NUEVO) {
-      typeTotals(s, t, MONTH_KEYS);
+      enOrdenNuevo.set(t, typeTotals(s, t, MONTH_KEYS));
       for (const n of s.nodes.filter((x) => x.type === t)) {
         for (const mk of MONTH_KEYS) {
           rollupBudget(s, n.id, mk);
@@ -724,10 +742,13 @@ describe("FR-910 · reordenar los bloques no muta el estado", () => {
     expect(s.nodes.map((n) => `${n.id}:${n.type}:${n.parentId ?? "raíz"}`)).toEqual(antes);
     expect(antes.length).toBeGreaterThan(0); // el recorrido pasó por nodos de verdad
 
-    // y el orden en que se recorren no altera lo que devuelven
+    // y el orden en que se recorren no altera lo que devuelven: recorridos al revés, y después de
+    // calcular el balance, los totales son los del primer recorrido — y son dinero, no ceros.
     const alRevés = [...ORDEN_NUEVO].reverse();
     for (const t of alRevés) {
-      expect(typeTotals(s, t, MONTH_KEYS)).toEqual(typeTotals(s, t, MONTH_KEYS));
+      expect(typeTotals(s, t, MONTH_KEYS), t).toEqual(enOrdenNuevo.get(t));
+      expect(enOrdenNuevo.get(t)!.budget, t).toBeGreaterThan(0);
+      expect(enOrdenNuevo.get(t)!.actual, t).toBeGreaterThan(0);
     }
   });
 });

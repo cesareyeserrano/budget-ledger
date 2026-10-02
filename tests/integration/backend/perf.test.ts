@@ -5,10 +5,12 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { buildSeed, addMovement, rollupBudget, rollupActual } from "@/domain";
+import { setLeafAmount } from "@/domain/mutations";
 import type { PeriodKey } from "@/domain";
 import { loadLedger, saveLedger, insertMovement } from "@/server/data/ledgerRepo";
 import { truncateAll, closeTestDb, createTestUser } from "./helpers/db";
 import { P, P0 } from "../../helpers/periods";
+import { buildSeedConMontos } from "../../helpers/seedConMontos";
 
 const A = "user-perf";
 const READ_WRITE_BUDGET_MS = 500;
@@ -54,15 +56,24 @@ describe("NFR-506 — presupuesto de latencia", () => {
     expect(writeMs).toBeLessThanOrEqual(READ_WRITE_BUDGET_MS);
 
     // Roll-up del cliente sobre la jerarquía semilla: recálculo tras editar una hoja.
-    const state = buildSeed(A, P0);
+    // BL-062: la semilla del producto no trae montos (FR-2301) y esto cronometraba sumar ceros. Se
+    // mide sobre la semilla poblada y se exige que lo sumado sea dinero.
+    const state = setLeafAmount(buildSeedConMontos(A, P0), "s-comida-mercado", "2026-06", "actual", 5000, P);
+    let presupuestado = 0;
+    let ejecutado = 0;
     const t1 = performance.now();
     for (const m of MONTHS) {
       for (const n of state.nodes) {
-        rollupBudget(state, n.id, m);
-        rollupActual(state, n.id, m);
+        presupuestado += rollupBudget(state, n.id, m);
+        ejecutado += rollupActual(state, n.id, m);
       }
     }
     const rollupMs = performance.now() - t1;
+    expect(presupuestado).toBeGreaterThan(0);
+    expect(ejecutado).toBeGreaterThan(0);
+    // la edición de la hoja llegó hasta su grupo
+    expect(rollupActual(state, "s-comida-mercado", "2026-06")).toBe(5000);
+    expect(rollupActual(state, "g-esenciales", "2026-06")).toBeGreaterThan(5000);
     expect(rollupMs).toBeLessThanOrEqual(ROLLUP_BUDGET_MS);
   });
 
