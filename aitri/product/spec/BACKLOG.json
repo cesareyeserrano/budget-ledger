@@ -836,8 +836,16 @@
       "title": "Las pruebas montadas sobre la semilla comparan cero contra cero desde que la semilla no trae montos",
       "priority": "P1",
       "problem": "TC-009h, TC-009e, TC-105e (regresion de BG-009), TC-654h, TC-212e, TC-BAL-952f, TC-BAL-908f, TC-BAL-910f, TC-BE-063e y TC-UXC-355f usan buildSeed, que desde 9250b2b devuelve mapas vacios. Pasarlas a buildSeedConMontos o a un estado con montos explicitos y exigir que los totales de partida sean mayores que cero. (AUDIT_REPORT, Technical Review 2026-09-28, BL-M)",
-      "status": "open",
-      "createdAt": "2026-09-29T14:39:19.645Z"
+      "status": "closed",
+      "createdAt": "2026-09-29T14:39:19.645Z",
+      "log": [
+        {
+          "at": "2026-10-02T15:32:51.385Z",
+          "text": "Hecho en 2ac2b1c (solo pruebas, src intacto). Las diez parten de buildSeedConMontos y exigen cifra de partida mayor que cero. Comprobado en rojo con dos sondas ya retiradas: sin el traslado de BG-009 en moveNode, TC-105e y TC-654h pasaban antes y ahora caen; con computeBalanceSeries mutando celdas, TC-BAL-908f y TC-BAL-952f pasaban antes y ahora caen. Verify: raiz 59/59 con ocho gates, backend 85/86 con seis gates."
+        }
+      ],
+      "updatedAt": "2026-10-02T15:32:51.385Z",
+      "closedAt": "2026-10-02T15:32:51.438Z"
     },
     {
       "id": "BL-063",
@@ -973,7 +981,14 @@
       "priority": "P3",
       "problem": "files_created con cuatro rutas inexistentes; descripcion de package.json y titulo 'Presupuesto 2026' obsoletos; exports sin uso; sufijos en ids de TC; verificar-prod.sh oculta un fetch fallido. Detalle en AUDIT_REPORT, BL-V. (AUDIT_REPORT, Technical Review 2026-09-28, BL-V)",
       "status": "open",
-      "createdAt": "2026-09-29T14:39:20.949Z"
+      "createdAt": "2026-09-29T14:39:20.949Z",
+      "log": [
+        {
+          "at": "2026-10-02T15:32:51.489Z",
+          "text": "Sumar a la limpieza: el expected_result de TC-009h en 03_TEST_CASES.json de la raiz dice balance === 2294000, cifra de la semilla anterior a multi-anio. Con la semilla determinista actual junio da 2157000, que es lo que comprueba la prueba desde BL-062 (2ac2b1c). Corregir el artefacto cuando se reabra la fase 3 por otro motivo; no justifica reabrirla sola."
+        }
+      ],
+      "updatedAt": "2026-10-02T15:32:51.489Z"
     },
     {
       "id": "BL-080",
