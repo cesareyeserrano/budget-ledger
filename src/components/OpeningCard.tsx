@@ -142,7 +142,9 @@ export function OpeningCard() {
     if (!res.ok) {
       setError(
         res.reason === "revision_conflict"
-          ? "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
+          ? res.recargado === false
+            ? "Otro dispositivo cambió tus datos y todavía no pudimos cargar su versión. Inténtalo de nuevo en un momento."
+            : "Otro dispositivo cambió tus datos: ya se cargó la versión actual. Revísala y vuelve a guardar."
           : res.reason === "month_closed"
             ? `${periodMonthLabel(res.period ?? mes)} está cerrado: reábrelo desde la grilla o elige otro mes de inicio.`
             : "No se pudo guardar. Inténtalo de nuevo."
