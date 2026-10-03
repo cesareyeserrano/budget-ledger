@@ -88,7 +88,7 @@ describe("BG-055 · rechazos definitivos del servidor", () => {
     });
   }
 
-  it("invalid_payload conserva su manejo vigente (TC-FDC-029f): aviso de red y la edición en pantalla", async () => {
+  it("invalid_payload conserva su manejo vigente (caso FDC-029f): aviso de red y la edición en pantalla", async () => {
     const { api, store, cur } = await setup();
     api.nextPut = { status: 422, code: "invalid_payload" };
     store.getState().setLeafAmount("c-transporte", cur, "budget", 555);

@@ -12,6 +12,38 @@ import { PERIOD_KEY, NOTE_DAY, MOVEMENT_DATE, amountSchema, cellAmountSchema, MO
 const nodeType = z.enum(["expense", "income", "transfer"]);
 
 /**
+ * TOPES DE TAMAÑO DEL BORDE (BG-090). No son reglas de producto: son el techo de lo que el servidor
+ * acepta procesar en una petición, y van muy por encima de lo que la app deja crear (un nombre son
+ * 60 caracteres y una nota 280, `nodeNameSchema` y `CELL_NOTE_MAX`).
+ *
+ * Sin ellos, una sola petición con sesión podía traer un snapshot arbitrariamente grande y el
+ * servidor lo validaba e insertaba entero dentro de la transacción que retiene el candado del dueño.
+ */
+export const TOPES = {
+  /** Nodos de la jerarquía en un snapshot. */
+  nodos: 2_000,
+  /** Movimientos en un snapshot: más de un siglo a cuarenta movimientos al mes. */
+  movimientos: 50_000,
+  /** Comentarios en una misma celda. */
+  notasPorCelda: 200,
+  /** Un id (nodo, movimiento, nota, dueño) o una referencia a uno. Un uuid son 36. */
+  id: 64,
+  nombre: 200,
+  icono: 64,
+  /** La nota de un movimiento tal como LLEGA; el dominio la recorta después a 280. */
+  nota: 1_000,
+} as const;
+
+/**
+ * Tamaño máximo del cuerpo, en bytes, que `withApi` llega a leer. El snapshot tiene el suyo porque
+ * es el único cuerpo grande por diseño: 50.000 movimientos rondan los 15 MB de JSON.
+ */
+export const CUERPO_MAX = {
+  porDefecto: 256 * 1024,
+  snapshot: 16 * 1024 * 1024,
+} as const;
+
+/**
  * BG-079 (d): un snapshot con un id repetido pasaba la validación y chocaba con la clave primaria de la
  * base, que respondía 500. Es un cuerpo inválido y se rechaza aquí, en el borde, como cualquier otro.
  */
@@ -22,12 +54,14 @@ function idsUnicos(xs: { id: string }[]): boolean {
 /** Input de un movimiento nuevo (POST /api/v1/movements). amount entero >= 1 (regla del dominio). */
 export const movementInputSchema = z.object({
   type: nodeType,
-  catId: z.string().min(1),
-  subId: z.string().nullable().optional(),
+  catId: z.string().min(1).max(TOPES.id),
+  subId: z.string().max(TOPES.id).nullable().optional(),
   amount: amountSchema,
   period: PERIOD_KEY,
   date: MOVEMENT_DATE.optional(),
-  note: z.string().nullable().optional(),
+  // BG-090: acotada como LLEGA. Dentro del tope sigue pasando lo de siempre: el dominio la recorta
+  // a 280 (`normalizeNote`), así que no cambia nada para quien manda una nota larga pero razonable.
+  note: z.string().max(TOPES.nota).nullable().optional(),
   // Feature transferencias (FR-1004/FR-1010): extremos De→A de una operación de reserva (hoja
   // transfer o el sentinel "@disponible"). Acotados como `target`; ignorados para expense/income.
   from: z.string().min(1).max(64).optional(),
@@ -215,10 +249,58 @@ export const ledgerStateSchema = z.object({
   cycles: cycleConfigSchema.optional(),
 });
 
+/**
+ * Los topes de tamaño del snapshot (BG-090), aplicados SOLO al cuerpo del PUT.
+ *
+ * No van dentro de `ledgerStateSchema` a propósito: ese esquema valida también el snapshot que el
+ * navegador RECIBE (`ServerRepository.load()`). Un tope ahí convertiría un dato guardado antes de la
+ * regla en un ledger que su dueño ya no puede abrir. Aquí solo decide qué se acepta ESCRIBIR.
+ */
+function dentroDeTopes(state: z.infer<typeof ledgerStateSchema>, ctx: z.RefinementCtx): void {
+  const falla = (path: (string | number)[], message: string) =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
+  const idMalo = (v: string) => v.length < 1 || v.length > TOPES.id;
+  const refMala = (v: string | null | undefined) => v != null && v.length > TOPES.id;
+
+  if (state.ownerId.length > TOPES.id) falla(["ownerId"], "Id demasiado largo");
+
+  if (state.nodes.length > TOPES.nodos) return falla(["nodes"], `Demasiados nodos (máximo ${TOPES.nodos})`);
+  state.nodes.forEach((n, i) => {
+    if (idMalo(n.id) || refMala(n.ownerId) || refMala(n.parentId)) falla(["nodes", i, "id"], "Id vacío o demasiado largo");
+    if (n.name.length > TOPES.nombre) falla(["nodes", i, "name"], "Nombre demasiado largo");
+    if (n.icon != null && n.icon.length > TOPES.icono) falla(["nodes", i, "icon"], "Icono demasiado largo");
+  });
+
+  if (state.movements.length > TOPES.movimientos) {
+    return falla(["movements"], `Demasiados movimientos (máximo ${TOPES.movimientos})`);
+  }
+  state.movements.forEach((m, i) => {
+    if (idMalo(m.id) || [m.ownerId, m.catId, m.subId, m.target, m.from, m.to].some(refMala)) {
+      falla(["movements", i, "id"], "Id vacío o demasiado largo");
+    }
+    if (m.note != null && m.note.length > TOPES.nota) falla(["movements", i, "note"], "Nota demasiado larga");
+  });
+
+  // Las celdas van indexadas por id de nodo: no puede haber más claves que nodos caben, ni una clave
+  // más larga que un id. Los periodos de cada clave ya los acota PERIOD_KEY (años 2000 a 2100).
+  for (const mapa of ["budgets", "actuals", "cellNotes"] as const) {
+    const claves = Object.keys(state[mapa] ?? {});
+    if (claves.length > TOPES.nodos) falla([mapa], "Demasiadas celdas");
+    if (claves.some((k) => k.length > TOPES.id)) falla([mapa], "Id de celda demasiado largo");
+  }
+  for (const [nodeId, porPeriodo] of Object.entries(state.cellNotes ?? {})) {
+    for (const [periodo, notas] of Object.entries(porPeriodo)) {
+      if (!notas) continue;
+      if (notas.length > TOPES.notasPorCelda) falla(["cellNotes", nodeId, periodo], "Demasiadas notas en una celda");
+      if (notas.some((n) => idMalo(n.id))) falla(["cellNotes", nodeId, periodo], "Id vacío o demasiado largo");
+    }
+  }
+}
+
 /** Cuerpo de PUT /api/v1/ledger: estado completo + revisión base para el lock optimista. */
 export const ledgerPutSchema = z.object({
   baseRevision: z.number().int().gte(0),
-  state: ledgerStateSchema,
+  state: ledgerStateSchema.superRefine(dentroDeTopes),
 });
 export type LedgerPutBody = z.infer<typeof ledgerPutSchema>;
 

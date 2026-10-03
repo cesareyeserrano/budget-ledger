@@ -22,10 +22,23 @@ export default defineConfig({
     reporters: ["verbose"],
     coverage: {
       provider: "v8",
-      include: ["src/domain/**", "src/data/**", "src/server/**"],
+      // BL-065: el store y las rutas de la API entran en la medición. Estaban fuera, y el store es
+      // donde la auditoría del 28-sep encontró tres de sus defectos altos.
+      include: ["src/domain/**", "src/data/**", "src/server/**", "src/state/**", "src/app/api/**"],
       reporter: ["text", "text-summary"],
-      // Gate: dominio + persistencia + servidor ≥80% líneas.
-      thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
+      thresholds: {
+        // Gate global: todo lo medido ≥80%.
+        lines: 80, statements: 80, functions: 80, branches: 80,
+        // Suelos PROPIOS para lo que acaba de entrar. El global solo no basta: el dominio va al 97%
+        // y taparía un store a medias. Van unos puntos por debajo de lo medido el 2-oct-2026 (store
+        // 89/86/87/80, rutas 91/92/93/81 en líneas/sentencias/funciones/ramas): son un trinquete
+        // contra el retroceso, no una meta. Al subir la cobertura, subir el suelo.
+        "src/state/**": { lines: 85, statements: 82, functions: 84, branches: 77 },
+        "src/app/api/**": { lines: 87, statements: 88, functions: 90, branches: 78 },
+        // TC-BSC-455e declara que budgetState.ts tiene el 100% de sus ramas cubiertas (sus cinco
+        // caminos SON el requisito). Lo acreditaba un veredicto manual de julio; ahora lo exige el gate.
+        "src/domain/budgetState.ts": { branches: 100 },
+      },
     },
     projects: [
       {

@@ -21,6 +21,7 @@ import { request as playwrightRequest } from "@playwright/test";
 import postgres from "postgres";
 import { spawn, execFileSync } from "node:child_process";
 import { writeFileSync, openSync } from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import os from "node:os";
 
@@ -83,14 +84,21 @@ export const storageStatePath = (worker: number) =>
  * `next start` muere con EADDRINUSE y lo que respondía a los curl era el servidor ajeno. Aquí el
  * síntoma era distinto pero igual de caro: se esperaban 180 s por un `/health` que nunca iba a ser
  * el nuestro, y el diagnóstico quedaba enterrado bajo un timeout genérico. Fallar en voz alta.
+ *
+ * Basta con que el puerto acepte una conexión TCP, hable lo que hable. La primera versión solo lo
+ * daba por ocupado si `/health` respondía 2xx, así que un proceso que no habla HTTP pasaba la guarda
+ * (revisión del PR #76). Se prueba IPv4 e IPv6 porque el intruso puede estar en una sola.
  */
-async function portIsBusy(url: string): Promise<boolean> {
-  try {
-    const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(2000) });
-    return res.ok;
-  } catch {
-    return false;
-  }
+async function portIsBusy(port: number): Promise<boolean> {
+  const acepta = (host: string) =>
+    new Promise<boolean>((resolve) => {
+      const s = net.connect({ port, host });
+      const fin = (ocupado: boolean) => { s.destroy(); resolve(ocupado); };
+      s.setTimeout(2000, () => fin(false));
+      s.once("connect", () => fin(true));
+      s.once("error", () => fin(false));
+    });
+  return (await acepta("127.0.0.1")) || (await acepta("::1"));
 }
 
 async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
@@ -108,6 +116,18 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  // BG-016: comprobar ANTES de levantar nada —contenedores incluidos— y antes de compilar. Si el
+  // puerto ya está tomado, hay un proceso ajeno vivo (casi siempre un huérfano de una corrida
+  // anterior interrumpida) y esta suite mediría ESE proceso.
+  if (await portIsBusy(E2E_PORT)) {
+    throw new Error(
+      `El puerto ${E2E_PORT} ya está ocupado por otro proceso.\n` +
+        `Casi seguro es un servidor huérfano de una corrida e2e anterior (BG-016).\n` +
+        `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
+        `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
+    );
+  }
+
   const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 
@@ -168,17 +188,6 @@ export default async function globalSetup(): Promise<void> {
   };
   // Los specs leen el buzón por esta URL (se propaga a los workers vía process.env).
   process.env.MAILPIT_API = mailpitApi;
-  // BG-016: comprobar ANTES de compilar. Si el puerto ya sirve, hay un servidor ajeno vivo (casi
-  // siempre un huérfano de una corrida anterior interrumpida) y esta suite mediría ESE proceso.
-  if (await portIsBusy(E2E_BASE)) {
-    throw new Error(
-      `El puerto ${E2E_PORT} ya está ocupado por otro proceso que responde /health.\n` +
-        `Casi seguro es un servidor huérfano de una corrida e2e anterior (BG-016).\n` +
-        `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
-        `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
-    );
-  }
-
   execFileSync("npx", ["next", "build"], { cwd: process.cwd(), env: buildEnv, stdio: "inherit" });
 
   // BG-016 — `detached: true` NO es cosmético: crea un GRUPO DE PROCESOS propio para que el

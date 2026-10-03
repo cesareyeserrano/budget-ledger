@@ -20,6 +20,7 @@ import { setLeafAmount } from "@/domain/mutations";
 import { setPlannedRetiro, plannedRetiroLimit, monthIssues, monthIssueText } from "@/domain/reserve";
 import { computeBalanceSeries } from "@/domain/balance";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 
 /** Plan con 500.000 aportados y 500.000 de retiro planeado: válido en el momento de escribirlo. */
 function planCoherente() {
@@ -73,7 +74,7 @@ describe("BG-020 · retiro planeado sin respaldo", () => {
     // el usuario baja el retiro a lo que el plan sí reserva
     const r = setPlannedRetiro(s, P0, 100_000, P);
     expect("state" in r).toBe(true);
-    const s2 = "state" in r ? r.state : s;
+    const s2 = aceptada(r);
     expect(monthIssues(s2, P).some((i) => i.kind === "retiro_planeado")).toBe(false);
     expect(computeBalanceSeries(s2, P)[P0].budget.reservedBalance).toBe(0);
   });

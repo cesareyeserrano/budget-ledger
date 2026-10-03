@@ -11,7 +11,7 @@
  * Sin sesión, como el resto del flujo: estos specs NO usan el fixture con storageState.
  */
 import { test, expect, type Page } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { clearMailbox, waitForResetLink } from "./helpers/mailbox";
 
@@ -285,6 +285,51 @@ test.describe("NFR-1310 — el flujo es recorrible sin ayuda", () => {
       expect(m).not.toBe("Algo salió mal");
       expect(m.toLowerCase()).not.toMatch(/^error$/);
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+test.describe("NFR-1303/NFR-1304 — el correo no llega al bundle que se sirve al navegador", () => {
+  // BL-073 — estos dos casos declaran un barrido del BUNDLE servido, y su prueba (en la suite de
+  // integración) recorría `.next/static` «si hay un build presente». No lo había: en el CI las
+  // unitarias corren antes del build, y en local los builds de la suite viven en `.next-e2e` y
+  // compañía. El bucle no daba ni una vuelta y el caso salía verde sin mirar nada.
+  //
+  // Aquí el build SIEMPRE existe —lo compila el globalSetup de esta suite, con un servidor SMTP
+  // configurado— y se exige que el barrido encuentre algo que barrer.
+  const chunks = (): { fichero: string; texto: string }[] => {
+    const estaticos = path.join(ROOT, process.env.NEXT_DIST_DIR ?? ".next-e2e", "static");
+    const js = (readdirSync(estaticos, { recursive: true }) as string[]).filter((f) => f.endsWith(".js"));
+    return js.map((f) => ({ fichero: f, texto: readFileSync(path.join(estaticos, f), "utf8") }));
+  };
+  const sinRastro = (marca: string): void => {
+    const todos = chunks();
+    expect(todos.length, "el barrido no encontró ningún .js en el build").toBeGreaterThan(10);
+    const con = todos.filter((c) => c.texto.includes(marca)).map((c) => c.fichero);
+    expect(con, `«${marca}» aparece en el bundle del cliente`).toEqual([]);
+  };
+
+  test("TC-REC-051f: ninguna variable SMTP alcanza el bundle servido al navegador", async () => {
+    // @aitri-tc TC-REC-051f
+    // El nombre de cualquier variable SMTP, y la contraseña con la que se compiló este build
+    // (tests/e2e/helpers/globalSetup.ts): si el valor se inlineara, estaría aquí.
+    sinRastro("SMTP_");
+    sinRastro("ledger-e2e-password");
+  });
+
+  test("TC-REC-211e: nodemailer no aparece en el bundle servido al navegador", async () => {
+    // @aitri-tc TC-REC-211e
+    sinRastro("nodemailer");
+    sinRastro("createTransport");
+  });
+
+  // Apoyo a TC-BE-049e (lo acredita su prueba de integración, que ejecuta el escaneo del árbol):
+  // la otra mitad que ese caso declara, el bundle. Se busca el VALOR con el que se compiló este
+  // build, no el nombre de la variable: el nombre `BETTER_AUTH_SECRET` sí está en un chunk, porque
+  // la librería de autenticación trae al cliente su lector de entorno (un getter que en el
+  // navegador no encuentra nada). Un nombre no es un secreto; el valor sí.
+  test("apoyo BE-049e: el secreto de sesión con el que se compiló no aparece en el bundle del navegador", async () => {
+    sinRastro("e2e-secret-not-for-production");
   });
 });
 

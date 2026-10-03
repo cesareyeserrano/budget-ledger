@@ -46,7 +46,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          # La version sale de .nvmrc, la misma que declara `engines` en package.json y que usa la
+          # imagen de produccion (Dockerfile: node:22-alpine). Un solo sitio donde cambiarla (BL-070).
+          node-version-file: ".nvmrc"
           cache: "npm"
       # `npm ci` a secas, sin fallback. El antiguo `npm ci || npm install --legacy-peer-deps` hacía
       # que, si el lockfile estaba desincronizado, el CI resolviera dependencias por su cuenta:
@@ -58,11 +60,39 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      # BL-066 — LOS GATES QUE SOLO CORRÍAN EN LOCAL. `aitri verify-run` exige en la máquina de quien
+      # desarrolla ocho gates; el CI corría tres. Los otros cinco —postura de seguridad, tokens de
+      # diseño, modo retirado, cobertura y smoke— decidían si algo era desplegable sin que los checks
+      # requeridos de `main` los hicieran cumplir. Los tres primeros son estáticos y tardan segundos.
+      - name: Security config (cabeceras, cookies y rate limit siguen declarados)
+        run: ./scripts/security-config.sh
+      - name: Design tokens (reglas visuales y módulos huérfanos)
+        run: ./scripts/design-tokens.sh
+      - name: No legacy mode (el modo localStorage no reaparece en src/)
+        run: ./scripts/no-legacy-mode.sh
       # Unit + integration (incl. backend: testcontainers levanta Postgres vía el Docker del runner).
       - name: Unit + integration tests
         run: npm run test:run
+      # La misma suite OTRA VEZ, instrumentada: es lo que hace `verify-run` en local y no se puede
+      # fundir con el paso de arriba, porque bajo cobertura los guardarraíles de tiempo se silencian
+      # (AITRI_COVERAGE, tests/helpers/perf.ts) y aquí interesan los dos veredictos. Sale distinto
+      # de 0 si no se alcanzan los umbrales de vitest.config.ts.
+      - name: Coverage (umbrales de vitest.config.ts)
+        run: npm run coverage
       - name: Build
         run: npm run build
+      # Los dos smokes arrancan el servidor AUTOCONTENIDO, que es lo que ejecuta la imagen. Reutilizan
+      # el build del paso anterior (`.next`): ninguno recompila si no hay fuentes más nuevas.
+      - name: Smoke (la app arranca, sirve y manda sus cabeceras)
+        env:
+          NEXT_DIST_DIR: .next
+        run: ./smoke.sh
+      # Con base de datos: comprueba el entorno, migra un Postgres efímero y hace una petición con
+      # sesión. Es el único paso que ejercita migraciones + servidor de producción juntos.
+      - name: Smoke backend (migraciones + petición con sesión contra Postgres)
+        env:
+          SMOKE_BE_DIST: .next
+        run: ./scripts/smoke-backend.sh
       # La suite e2e y la de integración del backend levantan Postgres Y Mailpit por testcontainers
       # (Docker del runner). Mailpit es un servidor SMTP real: los tests del flujo de recuperación
       # afirman sobre el mensaje ENTREGADO, no sobre "se llamó a sendMail".
@@ -80,7 +110,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version-file: ".nvmrc"
           cache: "npm"
       - name: Install dependencies
         run: npm ci
@@ -108,7 +138,26 @@ jobs:
             exit 1
           fi
           exit $rc
-      # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol de fuentes.
-      # El script prefiere gitleaks si está instalado; en el runner cae al fallback de patrones.
+      # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol versionado.
+      # El script corre SIEMPRE sus patrones (cadenas de conexión, claves de Brevo, secretos por
+      # nombre) y ADEMÁS gitleaks. Antes «prefería gitleaks si estaba instalado» y no lo estaba en
+      # ningún sitio: la rama no corrió nunca (BL-068). Aquí se instala y se exige.
+      #
+      # Binario fijado por versión Y por suma: una release puede reapuntarse igual que un tag de
+      # action. Para subir de versión, cambiar las dos cosas con la suma que publica el propio
+      # release (gitleaks_<versión>_checksums.txt).
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          curl -sSfL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
       - name: Secret scan
+        env:
+          # Sin gitleaks el script FALLA en vez de quedarse en los patrones.
+          SECRET_SCAN_REQUIRE_GITLEAKS: "1"
         run: ./scripts/secret-scan.sh

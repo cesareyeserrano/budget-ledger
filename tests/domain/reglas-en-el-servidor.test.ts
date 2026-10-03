@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { globSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { pruebasApagadas } from "../helpers/pruebasApagadas";
 import { worsenedBy } from "@/domain/guard";
 import { AVAILABLE_ID, applyReserveOp, validateReserveWrite } from "@/domain/reserve";
 import type { LedgerNode, LedgerState, PeriodKey } from "@/domain/types";
@@ -301,21 +302,11 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
 
   it("TC-RES-201f: no crece el número de pruebas desactivadas", () => {
     // @aitri-tc TC-RES-201f
-    // Misma semántica que el suelo que ya tenía el proyecto (TC-MAN-202f): frontera de palabra
-    // —`skipIf` condicional no es una prueba apagada— y las líneas de comentario no cuentan. El
-    // patrón se COMPONE en vez de escribirse literal: escrito entero, esta línea se acusaba a sí
-    // misma y ponía en rojo el suelo del vecino, que es exactamente lo que pasaba hasta hoy.
-    const marca = new RegExp(`\\b(describe|it|test)\\.(${["skip", "only", "todo"].join("|")})\\b`);
-    const apagadas: string[] = [];
-    for (const f of globSync("tests/**/*.{test,spec}.ts?(x)")) {
-      readFileSync(f, "utf8").split("\n").forEach((linea, i) => {
-        const t = linea.trim();
-        if (t.startsWith("//") || t.startsWith("*") || t.startsWith("/*")) return;
-        if (marca.test(linea)) apagadas.push(`${f}:${i + 1}`);
-      });
-    }
-    // El suelo: ninguna. Si sube, alguien apagó una prueba para pasar.
-    expect(apagadas, "pruebas desactivadas").toEqual([]);
+    // Misma semántica que el suelo que ya tenía el proyecto (TC-MAN-202f), y desde BL-073 el mismo
+    // detector (tests/helpers/pruebasApagadas.ts): un salto condicional ya NO pasa por alto, salvo
+    // las dos guardas admitidas —la de cronómetro y la de anidamiento—; las líneas de comentario no
+    // cuentan. El suelo: ninguna. Si sube, alguien apagó una prueba para pasar.
+    expect(pruebasApagadas(), "pruebas desactivadas").toEqual([]);
   });
 
   it("TC-RES-200h: el guardia bloquea SOLO la reserva que empeora — tabla de verdad completa", () => {
@@ -450,8 +441,18 @@ describe("NFR-2101/2104 — la suite y la convivencia de los dos guardias", () =
     // comprobación de que la pareja está declarada en MIRROR y en ROWS, sin el id. Ninguna otra prueba
     // del fichero cambió, y el guardia de esta feature tampoco. `contrapartidas-reserva.test.ts` no se tocó.
     //
+    // ANCLA AVANZADA a 61f2c97 el mismo 2026-10-02, por BL-064 y BL-061 (deuda de la auditoría), no por
+    // esta feature. En `techo-de-flujo.test.ts`: seis aserciones sobre el veredicto de un rechazo
+    // vivían dentro de un `if (typeof r.rejected === "object")` y un rechazo por otro motivo se saltaba
+    // el bloque; ahora pasan por `bloqueo()`, que falla si no hay veredicto — se ENDURECEN, con los
+    // mismos valores esperados. Y cuatro pruebas de dominio (TDF-050h, 051f, 070h, 072f) pierden el id
+    // del título porque su caso lo declara el plan como e2e y la unitaria lo tapaba: mismas aserciones,
+    // otro nombre. Ninguna aserción se relajó. `contrapartidas-reserva.test.ts` no se tocó.
+    //
+    // BL-073: el comando ya no termina en `|| true`. Con él, un fallo de git —el ancla que no existe en
+    // un clon superficial, por ejemplo— devolvía cadena vacía y la prueba pasaba sin haber mirado nada.
     const tocadas = execSync(
-      "git diff --name-only c54d22d -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts || true",
+      "git diff --name-only 61f2c97 -- tests/domain/techo-de-flujo.test.ts tests/domain/contrapartidas-reserva.test.ts",
       { encoding: "utf8" }
     ).trim();
     expect(tocadas).toBe("");

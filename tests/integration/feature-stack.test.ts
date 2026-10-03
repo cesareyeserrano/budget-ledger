@@ -159,7 +159,9 @@ describe("NFR-207 — CI/CD", () => {
 
   it("TC-SUT-263e: el smoke arranca la app y exige 200 en '/'", () => {
     expect(smokeSh).toMatch(/localhost:\$PORT\//);
-    expect(smokeSh).toContain("npm run start");
+    // BL-067: arranca el servidor autocontenido, que es lo que ejecuta la imagen, no `next start`.
+    expect(smokeSh).toContain('node "$STANDALONE/server.js"');
+    expect(smokeSh).not.toContain("npm run start");
     // La comprobación de 200 en '/' sigue siendo el corazón del gate; cambió su forma (antes una
     // comparación literal contra "200", ahora el helper check_code que se reutiliza por ruta).
     expect(smokeSh).toMatch(/check_code\s+"\/"\s+200/);

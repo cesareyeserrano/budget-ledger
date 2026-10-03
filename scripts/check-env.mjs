@@ -2,9 +2,15 @@
 // @aitri-trace FR-ID: FR-512, US-ID: US-512, AC-ID: AC-512c, TC-ID: TC-BE-076f
 /**
  * Module: scripts/check-env
- * Purpose: Gate de arranque (contenedor / CI). JS puro, sin runtime de TS, para poder correr como
- *   primer paso del entrypoint del contenedor y en el smoke. Si falta una variable requerida, aborta
- *   con exit 1 nombrando la variable (NFR-510) — nunca arranca con un default silencioso atado a un host.
+ * Purpose: Comprobación del entorno. JS puro, sin runtime de TS, para poder correr dentro de la
+ *   imagen. Si falta una variable requerida, aborta con exit 1 nombrando la variable (NFR-510) —
+ *   nunca se arranca con un default silencioso atado a un host.
+ *
+ *   QUIÉN LO EJECUTA: el smoke del backend (scripts/smoke-backend.sh, antes de migrar) y las pruebas
+ *   (tests/integration/backend/config.test.ts). La imagen NO lo corre al arrancar: no tiene
+ *   entrypoint y su CMD es `node server.js`. Quien arranca de verdad sin una variable es detenido por
+ *   src/server/env.ts en la primera petición. Para comprobarlo a mano antes de un despliegue:
+ *   `docker compose run --rm app node scripts/check-env.mjs`.
  * Dependencies: ninguna (Node core)
  *
  * La lista REQUIRED debe coincidir con REQUIRED_ENV de src/server/env.ts (verificado por env.test.ts).

@@ -9,6 +9,7 @@ import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import { canDeleteNode } from "@/domain/mutations";
 import { setLeafAmount } from "@/domain/mutations";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 
 describe("FR-002 CRUD de categorías", () => {
   // @aitri-tc TC-002h
@@ -90,7 +91,7 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     expect(canDeleteNode(s, "c-cafe", P)).toBe(true); // vaciada → borrable
     const res = deleteNode(s, "c-cafe", P);
     expect("state" in res).toBe(true);
-    const next = ("state" in res ? res.state : s);
+    const next = aceptada(res);
     expect(findNode(next.nodes, "c-cafe")).toBeUndefined();
     expect(next.movements.some((m) => m.target === "c-cafe")).toBe(false); // sin huérfanos
     expect(next.actuals["c-cafe"]).toBeUndefined();
@@ -102,7 +103,7 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     s = createNode(s, { level: "category", parentId: "g-esenciales", type: "expense", name: "Gimnasio" });
     const gym = s.nodes.find((n) => n.name === "Gimnasio")!;
     const res = deleteNode(s, gym.id, P);
-    const state = "state" in res ? res.state : s;
+    const state = aceptada(res);
     expect(findNode(state.nodes, gym.id)).toBeUndefined();
     expect(state.budgets[gym.id]).toBeUndefined();
     
@@ -144,7 +145,7 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     // solo tras quitar el hijo (y sin datos) la categoría es borrable
     const sub = s.nodes.find((n) => n.name === "Internet")!;
     const st = deleteNode(s, sub.id, P);
-    const next = "state" in st ? st.state : s;
+    const next = aceptada(st);
     expect(canDeleteNode(next, cat.id, P)).toBe(true);
   });
 
@@ -209,7 +210,7 @@ describe("Borrado (sin 'Sin asignar' — bloquea si hay datos)", () => {
     expect(canDeleteNode(s, grp.id, P)).toBe(true);
     const res = deleteNode(s, grp.id, P);
     expect("state" in res).toBe(true);
-    const next = "state" in res ? res.state : s;
+    const next = aceptada(res);
     expect(findNode(next.nodes, grp.id)).toBeUndefined();
     expect(next.actuals[grp.id]).toBeUndefined();
     expect(next.budgets[grp.id]).toBeUndefined();

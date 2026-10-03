@@ -17,34 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-02T21:49:10.208Z",
+  "updatedAt": "2026-10-02T23:18:45.893Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-01T00:48:59.561Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T05:00:37.033Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T14:40:38.184Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
     {
       "at": "2026-10-01T14:40:48.118Z",
       "event": "verify-complete",
@@ -179,6 +154,29 @@
       "phase": "verify",
       "passed": 85,
       "failed": 0
+    },
+    {
+      "at": "2026-10-02T23:18:22.726Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-02T23:18:37.957Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 85,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-02T23:18:45.874Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -254,25 +252,25 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "8c9d76f5a8d22d72d56f6f976f1f38b8b1cfe09c9a2c971db51588b1fe286fb4",
-  "verifyRanAt": "2026-10-02T21:48:59.829Z",
+  "verifyResultsHash": "8225e81629db9a37c8a4cd19aa424e136781a1b5e1f3764b177c01f8ff5da96f",
+  "verifyRanAt": "2026-10-02T23:18:22.689Z",
   "lastVerifyRun": {
     "passed": 85,
     "failed": 0,
     "skipped": 1,
     "manual": 0,
-    "at": "2026-10-02T21:48:59.829Z"
+    "at": "2026-10-02T23:18:22.689Z"
   },
-  "verifyRanRef": "bdddac2e20740326d8342b622c0d761daaff518a",
+  "verifyRanRef": "f5253b7a18d8378ffea467de55170d8362a3f50a",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 86,
-    "passed": 85,
+    "passed": 86,
     "failed": 0,
-    "skipped": 1,
+    "skipped": 0,
     "skipped_e2e": 0,
-    "skipped_no_marker": 1,
+    "skipped_no_marker": 0,
     "manual": 0,
-    "manual_verified": 0
+    "manual_verified": 1
   }
 }

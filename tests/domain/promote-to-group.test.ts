@@ -8,14 +8,11 @@ import { findNode, childrenOf, isLeaf } from "@/domain/tree";
 import type { LedgerState, LedgerNode } from "@/domain/types";
 import { yearTotals, orphanBudgetNodes } from "../helpers/totals";
 import { P, P0 } from "../helpers/periods";
+import { aceptada } from "../helpers/resultado";
 import { buildSeedConMontos } from "../helpers/seedConMontos";
 
 const byName = (s: LedgerState, name: string): LedgerNode =>
   s.nodes.find((n) => n.name === name)!;
-const stateOf = (
-  res: { state: LedgerState } | { rejected: string } | { blocked: string },
-  fallback: LedgerState
-) => ("state" in res ? res.state : fallback);
 
 // Lista de destinos del registro (FR-606): categorías + grupos SIN hijos. Espeja el filtro de CategoryRow.
 const registerDestinations = (s: LedgerState, type: string) =>
@@ -40,7 +37,7 @@ describe("FR-601/FR-602 — promover a grupo (moveNode destino raíz)", () => {
   // @aitri-tc TC-602h
   it("TC-602h: moveNode(sub, root) → level group, parentId null, montos preservados", () => {
     const { s, cafeId } = seedWithCafeSub();
-    const st = stateOf(moveNode(s, cafeId, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, cafeId, { kind: "root", type: "expense" }));
     const g = findNode(st.nodes, cafeId)!;
     expect(g.level).toBe("group");
     expect(g.parentId).toBe(null);
@@ -51,7 +48,7 @@ describe("FR-601/FR-602 — promover a grupo (moveNode destino raíz)", () => {
   it("TC-602e: moveNode(categoría con subs, root) → subs pasan a category, movimientos sin huérfanos", () => {
     let { s, comidaId, cafeId } = seedWithCafeSub();
     s = addMovement(s, { type: "expense", catId: comidaId, subId: cafeId, amount: "500", period: "2026-01" }, P);
-    const st = stateOf(moveNode(s, comidaId, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, comidaId, { kind: "root", type: "expense" }));
     expect(findNode(st.nodes, comidaId)!.level).toBe("group");
     expect(findNode(st.nodes, cafeId)!.level).toBe("category");
     expect(st.movements.every((m) => findNode(st.nodes, m.target))).toBe(true);
@@ -116,7 +113,7 @@ describe("FR-604 — traslado de montos al primer hijo", () => {
     const subx = byName(s, "SubX");
     s = setLeafAmount(s, subx.id, "2026-01", "budget", 1000, P);
     const before = s.nodes.length;
-    const st = stateOf(moveNode(s, subx.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, subx.id, { kind: "root", type: "expense" }));
     expect(childrenOf(st.nodes, subx.id).length).toBe(0);
     expect(st.budgets[subx.id]["2026-01"]).toBe(1000);
     expect(st.nodes.length).toBe(before); // no se creó ningún nodo
@@ -143,7 +140,7 @@ describe("FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0", ()
     const temp = byName(s, "Temp");
     s = createNode(s, { level: "category", parentId: temp.id, type: "expense", name: "C1" });
     const c1 = byName(s, "C1");
-    const st = stateOf(deleteNode(s, c1.id, P), s); // C1 sin datos → borrable
+    const st = aceptada(deleteNode(s, c1.id, P)); // C1 sin datos → borrable
     expect(childrenOf(st.nodes, temp.id).length).toBe(0);
     expect(isLeaf(findNode(st.nodes, temp.id)!, st.nodes)).toBe(true);
     expect(rollupBudget(st, temp.id, "2026-01")).toBe(0);
@@ -156,7 +153,7 @@ describe("FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0", ()
     const temp = byName(s, "Temp2");
     s = createNode(s, { level: "category", parentId: temp.id, type: "expense", name: "C2" });
     const c2 = byName(s, "C2");
-    const st = stateOf(moveNode(s, c2.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, c2.id, { kind: "root", type: "expense" }));
     expect(childrenOf(st.nodes, temp.id).length).toBe(0);
     expect(isLeaf(findNode(st.nodes, temp.id)!, st.nodes)).toBe(true);
     expect(rollupBudget(st, temp.id, "2026-01")).toBe(0);
@@ -171,7 +168,7 @@ describe("FR-605 — un grupo que pierde su último hijo vuelve a hoja en 0", ()
     const child = byName(s, "Child");
     s = setLeafAmount(s, child.id, "2026-01", "budget", 800000, P);
     expect(rollupBudget(s, grp.id, "2026-01")).toBe(800000);
-    const st = stateOf(moveNode(s, child.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, child.id, { kind: "root", type: "expense" }));
     expect(rollupBudget(st, grp.id, "2026-01")).toBe(0); // el grupo original no reabsorbe
     expect(st.budgets[child.id]["2026-01"]).toBe(800000); // el hijo (ahora grupo) conserva el monto
   });
@@ -188,8 +185,8 @@ describe("FR-606 — grupo sin hijos como destino de movimientos", () => {
     expect(s.movements[0].target).toBe(g.id);
   });
 
-  // @aitri-tc TC-606f (unit del filtro; el e2e cubre el selector real)
-  it("TC-606f-unit: un grupo CON hijos no está en la lista de destinos; uno sin hijos sí", () => {
+  // Apoyo a TC-606f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo 606f-unit: un grupo CON hijos no está en la lista de destinos; uno sin hijos sí", () => {
     let s = buildSeed("local", P0);
     s = createNode(s, { level: "group", parentId: null, type: "expense", name: "Vacio" });
     const vacio = byName(s, "Vacio");
@@ -244,7 +241,7 @@ describe("NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos", 
     s = createNode(s, { level: "sub", parentId: cat.id, type: "expense", name: "Sub" });
     const sub = byName(s, "Sub");
     s = addMovement(s, { type: "expense", catId: cat.id, subId: sub.id, amount: "300", period: "2026-01" }, P);
-    const st = stateOf(moveNode(s, cat.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, cat.id, { kind: "root", type: "expense" }));
     expect(st.movements.every((m) => findNode(st.nodes, m.target))).toBe(true);
   });
 
@@ -259,7 +256,7 @@ describe("NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos", 
     expect(rollupBudget(s, g.id, "2026-01")).toBe(800000); // == Σ hojas (la categoría)
     // BG-001: un nodo con presupuesto no es borrable; se vacía primero, LUEGO se borra.
     s = setLeafAmount(s, cat.id, "2026-01", "budget", 0, P);
-    const st = stateOf(deleteNode(s, cat.id, P), s);
+    const st = aceptada(deleteNode(s, cat.id, P));
     expect(rollupBudget(st, g.id, "2026-01")).toBe(0); // == Σ hojas (grupo-hoja sin monto)
   });
 
@@ -275,7 +272,7 @@ describe("NFR-602 — regresión: invariante padre==Σhojas y cero huérfanos", 
     s = addMovement(s, { type: "expense", catId: cat.id, subId: s1.id, amount: "100", period: "2026-01" }, P);
     s = addMovement(s, { type: "expense", catId: cat.id, subId: s2.id, amount: "200", period: "2026-01" }, P);
     const before = s.movements.length;
-    const st = stateOf(moveNode(s, cat.id, { kind: "root", type: "expense" }), s);
+    const st = aceptada(moveNode(s, cat.id, { kind: "root", type: "expense" }));
     expect(st.movements.length).toBe(before); // ninguno perdido
     expect(st.movements.every((m) => findNode(st.nodes, m.target))).toBe(true); // ninguno huérfano
   });
@@ -300,7 +297,7 @@ describe("NFR-603 — regresión: gate de borrado (FR-003 + BG-006)", () => {
     s = addMovement(s, { type: "expense", catId: cat.id, subId: null, amount: "1000", period: "2026-01" }, P);
     s = setLeafAmount(s, cat.id, "2026-01", "actual", 0, P); // vaciar
     expect(canDeleteNode(s, cat.id, P)).toBe(true);
-    const st = stateOf(deleteNode(s, cat.id, P), s);
+    const st = aceptada(deleteNode(s, cat.id, P));
     expect(findNode(st.nodes, cat.id)).toBeUndefined();
     expect(st.movements.some((m) => m.target === cat.id)).toBe(false); // sin huérfanos
   });
@@ -330,7 +327,7 @@ describe("NFR-604 — regresión: reparent existente, cross-type, grupos con hij
     expect(antes.expense.actual).toBeGreaterThan(0);
     const res = moveNode(s, sub.id, { kind: "category", id: "c-vivienda" });
     expect("state" in res).toBe(true);
-    const st = stateOf(res, s);
+    const st = aceptada(res);
     expect(findNode(st.nodes, sub.id)!.parentId).toBe("c-vivienda");
     expect(findNode(st.nodes, sub.id)!.level).toBe("sub");
     // c-vivienda es categoría-HOJA con montos: al ganar su primer hijo NO puede perder el suyo

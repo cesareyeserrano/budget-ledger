@@ -8,8 +8,10 @@ __pycache__/
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+# Cualquier variante (.env.local, .env.production, .env.staging…) salvo la plantilla. Antes solo
+# estaban .env, .env.local y .env.*.local: un .env.production con valores reales se podía commitear.
+.env.*
+!.env.example
 
 # Build output
 dist/

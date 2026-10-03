@@ -14,12 +14,34 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { spawn, execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import os from "node:os";
 
 export const E2E_PORT = 3230;
 export const E2E_BASE = `http://localhost:${E2E_PORT}`;
 export const STATE_FILE = path.join(os.tmpdir(), "ledger-e2e-backend-state.json");
+
+/**
+ * ¿Escucha alguien ya en el puerto? Basta con que acepte una conexión TCP, hable lo que hable.
+ *
+ * La primera versión preguntaba por `/health` y solo daba el puerto por ocupado si respondía 2xx:
+ * un proceso que no habla HTTP, o uno cuyo `/health` responde otra cosa, pasaba la guarda, y la
+ * suite levantaba Postgres, compilaba, moría con EADDRINUSE y esperaba minutos a un `/health` que
+ * nunca iba a ser el suyo (BL-074, revisión del PR #76). Es lo que ya hace `smoke.sh` con `lsof`.
+ * Se prueba IPv4 e IPv6 porque `next start` escucha en las dos y el intruso puede estar en una.
+ */
+async function portIsBusy(port: number): Promise<boolean> {
+  const acepta = (host: string) =>
+    new Promise<boolean>((resolve) => {
+      const s = net.connect({ port, host });
+      const fin = (ocupado: boolean) => { s.destroy(); resolve(ocupado); };
+      s.setTimeout(2000, () => fin(false));
+      s.once("connect", () => fin(true));
+      s.once("error", () => fin(false));
+    });
+  return (await acepta("127.0.0.1")) || (await acepta("::1"));
+}
 
 async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -36,6 +58,16 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  // Antes de levantar nada: ni contenedor ni build tienen sentido si el puerto ya sirve.
+  if (await portIsBusy(E2E_PORT)) {
+    throw new Error(
+      `El puerto ${E2E_PORT} ya está ocupado por otro proceso.\n` +
+        `Casi seguro es un servidor huérfano de una corrida anterior, o el gate e2e.sh en marcha.\n` +
+        `Ciérralo con:  lsof -ti :${E2E_PORT} | xargs kill\n` +
+        `Se aborta a propósito: seguir mediría un servidor que no es el de esta suite.`
+    );
+  }
+
   const container = await startTestPostgres();
   const databaseUrl = container.getConnectionUri();
 

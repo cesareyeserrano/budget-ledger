@@ -187,8 +187,8 @@ describe("NFR-1107 — gate estático no-legacy-mode", () => {
 });
 
 describe("NFR-1108 — arranque y CI sin el flag retirado", () => {
-  it("TC-SFU-208h: la suite e2e arranca sin definir NEXT_PUBLIC_LEDGER_SERVER_MODE", () => {
-    // @aitri-tc TC-SFU-208h
+  // Apoyo a TC-SFU-208h: lo acredita su prueba e2e, que le pregunta a la app arrancada (BL-073).
+  it("apoyo SFU-208h: la preparación de las suites e2e no inyecta NEXT_PUBLIC_LEDGER_SERVER_MODE", () => {
     // El arranque real de la suite se prueba en cada corrida e2e; lo que este TC blinda es que su
     // preparación dejó de inyectar el flag — reintroducirlo ahí resucitaría el modo por la puerta
     // de atrás sin tocar src/, que es justo el punto ciego del gate anterior.
@@ -203,8 +203,8 @@ describe("NFR-1108 — arranque y CI sin el flag retirado", () => {
     expect(process.env.NEXT_PUBLIC_LEDGER_SERVER_MODE).toBeUndefined();
   });
 
-  it("TC-SFU-208e: la app arranca sin la variable en el entorno de ejecución", () => {
-    // @aitri-tc TC-SFU-208e
+  // Apoyo a TC-SFU-208e: lo acredita su prueba e2e, que pide la raíz sin sesión (BL-073).
+  it("apoyo SFU-208e: el validador de entorno pasa sin la variable y ningún despliegue la fija", () => {
     // El validador de entorno del proyecto es quien decide si falta algo para arrancar: se ejecuta
     // con DATABASE_URL y BETTER_AUTH_* presentes y SIN el flag, y debe dar exit 0.
     const env = {

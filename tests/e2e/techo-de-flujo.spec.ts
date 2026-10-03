@@ -208,7 +208,7 @@ test.describe("FR-1810 · el Balance se lee de arriba abajo", () => {
     ].map((t) => new RegExp(t.replace(/[+−=]/g, (c) => `\\${c}`).replace(/\s+/g, "\\s*"))));
   });
 
-  test("TC-TDF-100h-e2e: la columna del caso del usuario cierra a la vista, y el −500 NO existe", async ({ page }) => {
+  test("apoyo TDF-100h-e2e: la columna del caso del usuario cierra a la vista, y el −500 NO existe", async ({ page }) => {
     await page.setViewportSize(DESK);
     await abrir(page, CASO_USUARIO);
 

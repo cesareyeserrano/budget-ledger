@@ -48,6 +48,7 @@ import {
 } from "@/components/balanceRows";
 import type { AmountMap, LedgerNode, LedgerState, PeriodKey, NodeType } from "@/domain/types";
 import { P } from "../helpers/periods";
+import { bloqueo } from "../helpers/resultado";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────────────────────
 
@@ -126,12 +127,9 @@ describe("FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801)", ()
     const state = llevar(base({ "2026-01": 1000 }), "A", "2026-01", 1000);
     const antes = deep(state);
     const r = applyReserveCellEdit(state, { leafId: "A", period: "2026-01", plane: "actual", newAmount: 1001 }, P);
-    expect("rejected" in r).toBe(true);
-    if ("rejected" in r && typeof r.rejected === "object") {
-      // `limit` es el INCREMENTO que cabía en el mes (0: el cupo está agotado). El editor muestra el
-      // TOTAL tecleable, y TC-TDF-094f verifica que ambas cifras encajan.
-      expect(r.rejected).toMatchObject({ ok: false, rule: "techo", period: "2026-01", limit: 0 });
-    }
+    // `limit` es el INCREMENTO que cabía en el mes (0: el cupo está agotado). El editor muestra el
+    // TOTAL tecleable, y TC-TDF-094f verifica que ambas cifras encajan.
+    expect(bloqueo(r)).toMatchObject({ ok: false, rule: "techo", period: "2026-01", limit: 0 });
     expect(deep(state)).toEqual(antes); // ni celdas ni journal cambiaron
   });
 
@@ -271,10 +269,7 @@ describe("FR-1802 · el monto de un retiro se edita, y 0 lo elimina", () => {
     const r = editReserveOp(retiroB.state, mover.movement.id, 100, P);
     // Si la validación solo mirase el ORIGEN (A), esta edición se habría aceptado y B quedaría
     // en −300 en febrero.
-    expect("rejected" in r).toBe(true);
-    if ("rejected" in r && typeof r.rejected === "object") {
-      expect(r.rejected).toMatchObject({ ok: false, rule: "piso", leafId: "B" });
-    }
+    expect(bloqueo(r)).toMatchObject({ ok: false, rule: "piso", leafId: "B" });
   });
 });
 
@@ -331,12 +326,10 @@ describe("FR-1803 · editar o eliminar un retiro se valida", () => {
     const r0 = sacar(s, "A", "2026-01", 200);
 
     const r = editReserveOp(r0.state, r0.id, 800, P);
-    expect("rejected" in r).toBe(true);
-    if ("rejected" in r && typeof r.rejected === "object" && r.rejected.ok === false) {
-      expect(r.rejected.rule).toBe("piso");
-      expect(r.rejected.limit).toBeGreaterThanOrEqual(0); // jamás un limit negativo
-      expect(r.rejected.limit).toBe(300); // lo que el bolsillo TIENE antes del retiro
-    }
+    const veredicto = bloqueo(r);
+    expect(veredicto.rule).toBe("piso");
+    expect(veredicto.limit).toBeGreaterThanOrEqual(0); // jamás un limit negativo
+    expect(veredicto.limit).toBe(300); // lo que el bolsillo TIENE antes del retiro
     expect(r0.state.movements.find((m) => m.id === r0.id)!.amount).toBe(200);
   });
 
@@ -359,12 +352,9 @@ describe("FR-1803 · editar o eliminar un retiro se valida", () => {
     s2 = llevar(s2, "A", "2026-02", 500); // febrero reserva justo esos 500
 
     const r = editReserveOp(s2, r0.id, 300, P);
-    expect("rejected" in r).toBe(true);
-    if ("rejected" in r && typeof r.rejected === "object") {
-      // Nombra FEBRERO, no enero: bajar el retiro reduce el cierre de enero y deja a febrero sin
-      // respaldo. La validación mira los doce meses, no solo el editado.
-      expect(r.rejected).toMatchObject({ ok: false, period: "2026-02" });
-    }
+    // Nombra FEBRERO, no enero: bajar el retiro reduce el cierre de enero y deja a febrero sin
+    // respaldo. La validación mira los doce meses, no solo el editado.
+    expect(bloqueo(r)).toMatchObject({ ok: false, period: "2026-02" });
   });
 });
 
@@ -429,16 +419,16 @@ describe("FR-1804 · observación automática cuando el mes toma del saldo anter
 // ── FR-1806 · Los errores del mes ──────────────────────────────────────────────────────────────
 
 describe("FR-1806 · la lista de errores del mes", () => {
-  // @aitri-tc TC-TDF-050h (parte de dominio; el render se verifica en e2e)
-  it("TC-TDF-050h: un mes excedido aparece con su kind, su margen y su exceso", () => {
+  // Apoyo a TC-TDF-050h: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo TDF-050h: un mes excedido aparece con su kind, su margen y su exceso", () => {
     let s = base({ "2026-08": 1000 });
     s = llevar(s, "A", "2026-08", 1000);
     s = setLeafAmount(s, "c-ingreso", "2026-08", "actual", 400, P); // baja el ingreso: el mes queda excedido
     expect(monthIssues(s, P)).toEqual([{ kind: "techo", period: "2026-08", margin: 400, excess: 600 }]);
   });
 
-  // @aitri-tc TC-TDF-051f
-  it("TC-TDF-051f: un estado sano no produce ningún error", () => {
+  // Apoyo a TC-TDF-051f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo TDF-051f: un estado sano no produce ningún error", () => {
     let s = base({ "2026-01": 1000 });
     s = llevar(s, "A", "2026-01", 600);
     expect(monthIssues(s, P)).toEqual([]);
@@ -458,8 +448,8 @@ describe("FR-1806 · la lista de errores del mes", () => {
 // ── FR-1808 · cellHeadroom: el total tecleable ─────────────────────────────────────────────────
 
 describe("FR-1808 · el «Máx.» de la celda es el total tecleable", () => {
-  // @aitri-tc TC-TDF-072f
-  it("TC-TDF-072f: con el cupo del mes agotado, la celda sigue admitiendo su propio total", () => {
+  // Apoyo a TC-TDF-072f: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo TDF-072f: con el cupo del mes agotado, la celda sigue admitiendo su propio total", () => {
     // enero: celda A = 1.000 con todo el ingreso reservado, cupo del mes = 0 (reescrito por FR-2801:
     // casoUsuario ya tiene 500 de cupo porque su retiro lo devuelve).
     const state = llevar(base({ "2026-01": 1000 }), "A", "2026-01", 1000);
@@ -470,8 +460,8 @@ describe("FR-1808 · el «Máx.» de la celda es el total tecleable", () => {
     expect("state" in r).toBe(true);
   });
 
-  // @aitri-tc TC-TDF-070h (parte de dominio: la cifra; el layout se verifica en e2e)
-  it("TC-TDF-070h: con varias celdas, el total de una descuenta lo que consumen las otras", () => {
+  // Apoyo a TC-TDF-070h: lo acredita su prueba e2e, que es la que el plan declara (BL-061).
+  it("apoyo TDF-070h: con varias celdas, el total de una descuenta lo que consumen las otras", () => {
     let s = base({ "2026-01": 1000 });
     s = llevar(s, "A", "2026-01", 300);
     s = llevar(s, "B", "2026-01", 200);
@@ -488,11 +478,8 @@ describe("FR-1808 · el «Máx.» de la celda es el total tecleable", () => {
     s = llevar(s, "A", "2026-01", 300);
     const max = cellHeadroom(s, "A", "2026-01", "actual", P);
     const r = applyReserveCellEdit(s, { leafId: "A", period: "2026-01", plane: "actual", newAmount: max + 1 }, P);
-    expect("rejected" in r).toBe(true);
-    if ("rejected" in r && typeof r.rejected === "object" && r.rejected.ok === false) {
-      // El rechazo devuelve el INCREMENTO que cabía; sumado al valor actual da el mismo total.
-      expect(r.rejected.limit + (s.actuals["A"]?.["2026-01"] ?? 0)).toBe(max);
-    }
+    // El rechazo devuelve el INCREMENTO que cabía; sumado al valor actual da el mismo total.
+    expect(bloqueo(r).limit + (s.actuals["A"]?.["2026-01"] ?? 0)).toBe(max);
   });
 });
 
@@ -1308,9 +1295,7 @@ describe("NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos",
     const antes = deep(b);
     const noSePuede = removeReserveOp(b, mvB.movement.id, P);
     expect("rejected" in noSePuede, "eliminar debía rechazarse: dejaría a B en negativo").toBe(true);
-    if ("rejected" in noSePuede && typeof noSePuede.rejected === "object") {
-      expect(noSePuede.rejected).toMatchObject({ ok: false, rule: "piso", period: "2026-01" });
-    }
+    expect(bloqueo(noSePuede)).toMatchObject({ ok: false, rule: "piso", period: "2026-01" });
     expect(deep(b), "un rechazo no puede mutar nada").toEqual(antes);
 
     // Editable siempre: bajar el mover a 400 sí cabe — B queda en 0 y A recupera 100.

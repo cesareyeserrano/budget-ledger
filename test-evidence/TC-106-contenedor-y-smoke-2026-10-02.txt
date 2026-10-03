@@ -1,0 +1,39 @@
+Evidencia de despliegue y smoke (NFR-006) — RE-VERIFICACIÓN del 2026-10-02 (BL-069).
+
+Por qué se repite: los veredictos de TC-106h/e/f eran del 2026-07-02. Desde entonces el Dockerfile
+cambió tres veces (salida standalone, usuario sin privilegios, migraciones dentro de la imagen), la
+app pasó de localStorage a Postgres con sesión, y el smoke arranca desde hoy el servidor autocontenido
+(BL-067). Árbol verificado: 3e2c163.
+
+TC-106h — el contenedor arranca y responde 200 en /
+  Imagen construida con `docker build` desde el árbol de hoy (368 MB), contra un Postgres 16
+  efímero en una red de Docker propia. En el orden de un despliegue:
+    1) check-env dentro de la imagen, con el entorno completo: exit 0
+       check-env sin DATABASE_URL: exit 1
+    2) migraciones con la imagen: [migrate] migraciones aplicadas
+       migraciones aplicadas en la base: 13 de 13 ficheros
+    3) contenedor: estado running, healthcheck healthy, usuario nextjs, node v22.23.2
+    4) GET /            -> 200   titulo: <title>Ledger — Presupuesto 2026</title>
+       GET /health      -> 200
+       GET /no-existe   -> 404
+       GET /api/v1/ledger sin sesion -> 401
+    5) registro de una cuenta -> 200; GET /api/v1/ledger con sesion -> 204; GET /api/v1/movements con sesion -> 200
+    6) errores en el log del contenedor: 0
+  → PASS. Contenedor, base y red se borraron al terminar; la imagen de prueba también.
+
+TC-106e — el smoke detecta un fallo de arranque (5xx en /) y sale distinto de 0
+  Se copió el build del smoke y se sustituyó el módulo de la página raíz por uno que lanza al
+  cargarse; `./smoke.sh` se ejecutó contra esa copia:
+    [smoke] FAIL la app responde (/ -> 500, esperado 200)
+    exit 1
+  El resto de comprobaciones (health, estáticos, rutas sin sesión) siguieron en OK: el gate cae por
+  el 500 de la raíz y no por otra cosa. → PASS. (En julio se probó con un puerto muerto, que hoy
+  aborta antes por otra guarda.)
+
+TC-106f — el pipeline falla si una prueba de la suite falla
+  Caso real, no un ensayo: el 2026-10-01, el push a main a36ef3c (merge del PR #69) terminó en
+  FAILURE. El job build-and-test cayó en el paso «E2E (Playwright — app autenticada contra Postgres
+  efímero)» con una prueba en rojo (TC-CDM-094e, el desfase de zona horaria de BG-087); el job
+  security pasó. Ningún paso de suite lleva continue-on-error, y eso lo comprueban en cada corrida
+  TC-TDF-273f (sobre el workflow parseado) y TC-BE-055f (un test roto tumba el runner).
+  → PASS.

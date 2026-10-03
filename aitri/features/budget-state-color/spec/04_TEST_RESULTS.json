@@ -133,26 +133,26 @@
     {
       "tc_id": "TC-BSC-455h",
       "status": "pass",
-      "notes": "Gates typecheck y lint: status pass, exit_code 0 en 04_TEST_RESULTS.json (verify-run 2026-07-10T13:05:17Z). Sin funcion de test propia: el sujeto del TC ES el gate, y aitri no parsea la salida de los gates en busca de TC ids.",
+      "notes": "Re-verificado 2026-10-02 con la corrida de la RAIZ de hoy (Node 22, suite completa y ocho gates, 59/59, vitest y Playwright exit 0). Sustituye la evidencia circular del 10-jul. Detalle por caso en el fichero de evidencia.",
       "verified_manually": true,
-      "verified_at": "2026-07-10T13:06:01.915Z",
-      "evidence": "spec/04_TEST_RESULTS.json"
+      "verified_at": "2026-10-02T23:18:45.975Z",
+      "evidence": "../../../test-evidence/TC-BSC-455-suite-verde-2026-10-02.txt"
     },
     {
       "tc_id": "TC-BSC-455e",
       "status": "pass",
-      "notes": "Gate coverage: status pass, medido 93.25% >= umbral 80% (verify-run 2026-07-10T13:05:17Z). budgetState.ts alcanza 100% de ramas, verificado en la tabla de v8: '  budgetState.ts | 100 | 100 | 100 | 100'.",
+      "notes": "Re-verificado 2026-10-02 con la corrida de la RAIZ de hoy (Node 22, suite completa y ocho gates, 59/59, vitest y Playwright exit 0). Sustituye la evidencia circular del 10-jul. Detalle por caso en el fichero de evidencia.",
       "verified_manually": true,
-      "verified_at": "2026-07-10T13:06:18.468Z",
-      "evidence": "spec/04_TEST_RESULTS.json"
+      "verified_at": "2026-10-02T23:18:46.059Z",
+      "evidence": "../../../test-evidence/TC-BSC-455-suite-verde-2026-10-02.txt"
     },
     {
       "tc_id": "TC-BSC-455f",
       "status": "pass",
-      "notes": "Suite completa verde en la misma corrida: vitest exit_code 0 (83 unit+integration) y Playwright '162 passed (38.9s)', 0 failed y 0 flaky. Ninguna asercion previa fue actualizada: el riesgo #2 (aserciones que fijaban bg-elevated en la fila de tipo) NO se materializo, asi que no hay entradas superseded que declarar.",
+      "notes": "Re-verificado 2026-10-02 con la corrida de la RAIZ de hoy (Node 22, suite completa y ocho gates, 59/59, vitest y Playwright exit 0). Sustituye la evidencia circular del 10-jul. Detalle por caso en el fichero de evidencia.",
       "verified_manually": true,
-      "verified_at": "2026-07-10T13:06:18.508Z",
-      "evidence": "spec/04_TEST_RESULTS.json"
+      "verified_at": "2026-10-02T23:18:46.146Z",
+      "evidence": "../../../test-evidence/TC-BSC-455-suite-verde-2026-10-02.txt"
     }
   ],
   "fr_coverage": [

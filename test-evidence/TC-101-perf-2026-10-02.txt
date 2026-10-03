@@ -1,0 +1,34 @@
+Evidencia de rendimiento (NFR-001) — RE-MEDICIÓN contra la app actual, 2026-10-02 (BL-069).
+
+Por qué se re-mide: los veredictos vigentes de TC-101h/e/f eran del 2026-08-03. Desde entonces
+entraron ciclos, diario de celda, saldo de bolsillo, retirar para gastar y los guardias del servidor.
+Árbol medido: 3e2c163.
+
+Método: Playwright/Chromium sobre la app de PRODUCCIÓN que arranca el globalSetup de la suite e2e
+(build de producción + Postgres efímero + cuenta e2e con sesión), viewport 1440x900, datos semilla del
+año completo restaurados antes de medir (el fixture `freshLedger`). 5 corridas por medición, un solo
+worker, con el portátil EN BATERÍA y con el modo de bajo consumo ACTIVO (el caso desfavorable: el
+reloj del sistema va recortado); la aserción se hace contra el PEOR caso. La medición se hizo
+con un spec temporal que no se versiona; los tiempos se toman DENTRO de la página con
+performance.now().
+
+TC-101e — carga inicial hasta que la grilla es interactiva (primera celda editable visible)
+  muestras: 324, 155, 141, 130, 140 ms   ·   mediana 141 ms   ·   peor 324 ms
+  umbral ≤ 2000 ms → PASS (6x de holgura en el peor caso)
+  La muestra alta es la primera de la serie (proceso en frío). Sube respecto a agosto (mediana 84 ms):
+  hoy se espera a una celda EDITABLE, no solo a que la grilla exista, y la carga trae más (ciclos,
+  cierre, apertura).
+
+TC-101h — desde confirmar la edición de una hoja (Enter) hasta que el padre refleja el roll-up
+  muestras: 31, 25, 25, 24, 24 ms   ·   mediana 25 ms   ·   peor 31 ms
+  umbral ≤ 150 ms → PASS (4.8x de holgura en el peor caso)
+  Observable: un MutationObserver sobre la celda de Presupuesto de enero de la categoría «Comida»
+  mientras se edita su subcategoría «Mercado». No basta con que la hoja pinte su valor.
+
+TC-101f — editar una hoja no repinta toda la grilla
+  celdas del DOM que cambian tras confirmar la edición: 4, 3, 3, 3, 3   ·   celdas en la grilla: 1080
+  → PASS: cambian la hoja y sus ancestros, el 0,4 % de las celdas.
+  Qué mide y qué no: un MutationObserver sobre la grilla entera cuenta las celdas cuyo DOM cambia.
+  Es lo que el navegador tiene que repintar. NO cuenta un re-render de React que no cambie el DOM, así
+  que sigue sin ser un conteo de renders; es, eso sí, una medición y no la inspección de diseño de
+  julio y agosto. La primera muestra cuenta una celda más: la del editor que se abre.

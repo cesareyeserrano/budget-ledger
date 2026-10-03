@@ -16,6 +16,7 @@ import { addMonths } from "@/domain/periods";
 import { hasLedgerData, shouldShowOpeningCard } from "@/components/OpeningCard";
 import { buildSeedConMontos } from "../helpers/seedConMontos";
 import { P0 } from "../helpers/periods";
+import { pruebasApagadas } from "../helpers/pruebasApagadas";
 
 describe("FR-2301 · la semilla del primer arranque no trae montos", () => {
   it("TC-SIN-001h: buildSeed devuelve budgets y actuals sin una sola clave", () => {
@@ -155,21 +156,10 @@ describe("NFR-2303 · el gate contra la trampa silenciosa", () => {
     // @aitri-tc TC-SIN-043f
     // La tentación al migrar 24 ficheros es aflojar una aserción o marcar un `skip`. NFR-2303 lo
     // prohíbe, y esto lo hace mecánico: la línea base de esta feature es CERO marcadores de salto
-    // en todo el árbol de pruebas. `it.skipIf(...)` queda excluido a propósito — es la guarda de
-    // cronómetro que ya existía (BG-026/BG-030) y se evalúa en tiempo de ejecución, no desactiva
-    // una prueba a mano.
-    const ficheros = execSync("git ls-files 'tests/**/*.ts' 'tests/**/*.tsx'", { encoding: "utf8" })
-      .split("\n")
-      .filter(Boolean);
-    expect(ficheros.length).toBeGreaterThan(50);
-
-    const culpables: string[] = [];
-    for (const f of ficheros) {
-      const src = readFileSync(f, "utf8");
-      for (const m of src.matchAll(/\b(?:it|test|describe)\.(skip|todo)\s*\(/g)) {
-        culpables.push(`${f}: .${m[1]}(`);
-      }
-    }
-    expect(culpables).toEqual([]);
+    // en todo el árbol de pruebas. El salto condicional de la guarda de cronómetro (BG-026/BG-030)
+    // queda excluido a propósito: se evalúa en tiempo de ejecución, no desactiva una prueba a mano.
+    // Desde BL-073 esa exclusión es EXACTA —solo las dos guardas admitidas, no cualquier condición—
+    // y vive en el detector compartido (tests/helpers/pruebasApagadas.ts).
+    expect(pruebasApagadas()).toEqual([]);
   });
 });

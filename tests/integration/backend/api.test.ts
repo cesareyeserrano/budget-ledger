@@ -6,6 +6,7 @@
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import { signUp } from "./helpers/authClient";
@@ -299,15 +300,23 @@ describe("NFR-511 / NFR-512 / NFR-501 — sin sesión no lee, CORS, cabeceras, s
 
   it("TC-BE-049e: ningún secreto aparece hardcodeado en el árbol de fuentes", async () => {
     // @aitri-tc TC-BE-049e
-    const files = ["src/server/auth.ts", "src/server/env.ts", "src/server/db/client.ts"].map((p) => readFileSync(path.join(ROOT, p), "utf8")).join("\n");
+    // BL-073 — antes miraba TRES ficheros con dos expresiones regulares. El caso declara un
+    // escaneo del árbol de fuentes: se EJECUTA el gate, que desde BL-068 recorre todo lo versionado
+    // y ve también una cadena de conexión con la contraseña dentro. (La mitad del bundle la barre
+    // tests/e2e/recuperar-acceso-flujo.spec.ts, donde el build existe.)
+    const escaneo = spawnSync("bash", ["scripts/secret-scan.sh"], { cwd: ROOT, encoding: "utf8" });
+    expect(escaneo.status, escaneo.stdout).toBe(0);
+    expect(escaneo.stdout).toContain("patrones: sin secretos");
+
     // Los secretos se referencian por nombre (leídos vía env), nunca asignados como literal.
+    const files = ["src/server/auth.ts", "src/server/env.ts", "src/server/db/client.ts"].map((p) => readFileSync(path.join(ROOT, p), "utf8")).join("\n");
     expect(files).toContain("BETTER_AUTH_SECRET");
     expect(files).toContain("DATABASE_URL");
-    // No hay un valor de secreto plausible embebido (heurística: no se asigna una clave larga literal).
-    expect(files).not.toMatch(/BETTER_AUTH_SECRET\s*[:=]\s*["'][A-Za-z0-9+/]{16,}["']/);
-    expect(files).not.toMatch(/GOOGLE_CLIENT_SECRET\s*[:=]\s*["'][A-Za-z0-9_-]{16,}["']/);
-    // .env está ignorado por git.
-    const gitignore = readFileSync(path.join(ROOT, ".gitignore"), "utf8");
-    expect(gitignore).toMatch(/^\.env/m);
+
+    // Los ficheros de entorno con valores reales están ignorados por git — se le pregunta a git,
+    // no al texto de .gitignore.
+    for (const f of [".env", ".env.local", ".env.production"]) {
+      expect(spawnSync("git", ["check-ignore", "-q", f], { cwd: ROOT }).status, `${f} no está ignorado`).toBe(0);
+    }
   });
 });

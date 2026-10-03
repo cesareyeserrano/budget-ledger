@@ -2,6 +2,10 @@
 # Smoke gate (NFR-006 + NFR-004/NFR-512): arranca la app y verifica que sirve de verdad —
 # que / responde, que /health responde, que las 4 rutas de datos están gateadas sin sesión, y
 # que los 5 headers de seguridad viajan en la respuesta.
+#
+# Arranca el servidor AUTOCONTENIDO (`standalone/server.js`), que es lo que ejecuta la imagen de
+# producción, no `next start` (BL-067). Este gate no toca la base: la variante que migra un Postgres
+# y hace una petición con sesión es scripts/smoke-backend.sh.
 # Un único script (los quality_gates corren sin shell). Falla (exit!=0) si algo de eso no se cumple.
 set -euo pipefail
 
@@ -42,8 +46,34 @@ elif [ -n "$(find src next.config.mjs package.json -newer "$NEXT_DIST_DIR/BUILD_
 fi
 [ "$needs_build" -eq 1 ] && npm run build
 
-echo "[smoke] arrancando la app en :$PORT"
-npm run start >/tmp/ledger_smoke.log 2>&1 &
+# BL-067 — SE ARRANCA LO QUE PRODUCCIÓN EJECUTA. La imagen corre `node server.js` sobre la salida
+# `standalone` (Dockerfile); este gate arrancaba `next start`, que es otro servidor con otro
+# node_modules. Un fallo propio del empaquetado autocontenido —una dependencia que el trazado de
+# Next deja fuera, por ejemplo— pasaba el gate y aparecía al desplegar.
+#
+# `static` y `public` no viajan dentro de `standalone`: Next los deja fuera por diseño y el
+# Dockerfile los copia a mano. Aquí se hace la misma copia, en el mismo sitio.
+STANDALONE="$NEXT_DIST_DIR/standalone"
+if [ ! -f "$STANDALONE/server.js" ]; then
+  echo "[smoke] FAIL: el build no emitió $STANDALONE/server.js (¿se quitó output: standalone?)"
+  exit 1
+fi
+rm -rf "$STANDALONE/$NEXT_DIST_DIR/static" "$STANDALONE/public"
+cp -R "$NEXT_DIST_DIR/static" "$STANDALONE/$NEXT_DIST_DIR/static"
+cp -R public "$STANDALONE/public"
+
+# El servidor autocontenido NO lee .env.local (eso lo hacía `next start`): el entorno va explícito,
+# como en el contenedor. Son valores de usar y tirar; la base no se llega a consultar, porque sin
+# sesión better-auth resuelve null antes de tocarla.
+export DATABASE_URL="${DATABASE_URL:-postgres://ledger:ledger@127.0.0.1:5432/ledger}"
+export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-smoke-secret-not-for-production-0000000000}"
+export BETTER_AUTH_URL="${BETTER_AUTH_URL:-http://localhost:$PORT}"
+export NODE_ENV=production
+# Solo en la máquina: `server.js` escucha en 0.0.0.0 si nadie le dice otra cosa.
+export HOSTNAME=127.0.0.1
+
+echo "[smoke] arrancando la app (standalone) en :$PORT"
+node "$STANDALONE/server.js" >/tmp/ledger_smoke.log 2>&1 &
 SERVER_PID=$!
 cleanup() { kill "$SERVER_PID" 2>/dev/null || true; }
 trap cleanup EXIT
@@ -78,6 +108,16 @@ check_code() { # <ruta> <esperado> <etiqueta>
 # 1) La app arranca y sirve (NFR-006).
 check_code "/" 200 "la app responde"
 check_code "/health" 200 "healthcheck"
+
+# 1b) La página trae su JavaScript. En el servidor autocontenido `static` se copia aparte: si esa
+#     copia falta (aquí o en el Dockerfile), / sigue respondiendo 200 y la app se queda en blanco.
+chunk=$(curl -s "$BASE/" | grep -oE '/_next/static/[^"]+\.js' | head -1 || true)
+if [ -z "$chunk" ]; then
+  echo "[smoke] FAIL la página no referencia ningún script de /_next/static"
+  fail=1
+else
+  check_code "$chunk" 200 "el JavaScript de la página se sirve"
+fi
 
 # 2) Las 4 rutas de datos están gateadas sin sesión (FR-504). Verificado independiente de la BD:
 #    sin sesión, better-auth resuelve null sin consultar, así que esto NO exige Postgres arriba.

@@ -119,8 +119,9 @@ describe("FR-1311 — configuración SMTP validada, sin secretos en el código",
     expect(ok.smtpEnabled).toBe(true);
   });
 
-  it("TC-REC-051f: ninguna variable SMTP alcanza el bundle del navegador", () => {
-    // @aitri-tc TC-REC-051f
+  // Apoyo a TC-REC-051f: lo acredita su prueba e2e, que barre el bundle que de verdad se sirve
+  // (BL-073). Aquí queda la mitad estática: el grafo de imports desde los módulos de cliente.
+  it("apoyo REC-051f: ningún módulo alcanzable desde el cliente lee una variable SMTP", () => {
     // 1) Ninguna SMTP_* lleva el prefijo NEXT_PUBLIC_, que es lo único que Next inlinea al cliente.
     const envSrc = readFileSync(path.join(ROOT, "src/server/env.ts"), "utf8");
     expect(envSrc).not.toMatch(/NEXT_PUBLIC_SMTP/);
@@ -137,30 +138,15 @@ describe("FR-1311 — configuración SMTP validada, sin secretos en el código",
         /process\.env\.SMTP_/
       );
     }
-
-    // 3) Si hay un build presente, se comprueba también sobre el artefacto real servido.
-    const staticDir = path.join(ROOT, ".next/static");
-    for (const chunk of filesUnder(staticDir, [".js"])) {
-      const text = readFileSync(chunk, "utf8");
-      expect(text, `${chunk} contiene una variable SMTP`).not.toContain("SMTP_PASSWORD");
-      expect(text, `${chunk} contiene una variable SMTP`).not.toContain("SMTP_HOST");
-    }
   });
 });
 
 describe("NFR-1304 — el cliente conserva sus cero peticiones externas", () => {
-  it("TC-REC-211e: nodemailer no es alcanzable desde ningún módulo de cliente", () => {
-    // @aitri-tc TC-REC-211e
+  // Apoyo a TC-REC-211e: lo acredita su prueba e2e, sobre el bundle servido (BL-073).
+  it("apoyo REC-211e: nodemailer no es alcanzable desde ningún módulo de cliente", () => {
     const reachable = clientReachableModules();
     expect([...reachable]).not.toContain("nodemailer");
     expect([...reachable].filter((m) => m.startsWith("nodemailer/"))).toEqual([]);
-
-    // Y en el artefacto construido, si existe, tampoco aparece.
-    for (const chunk of filesUnder(path.join(ROOT, ".next/static"), [".js"])) {
-      expect(readFileSync(chunk, "utf8"), `${chunk} incluye nodemailer`).not.toContain(
-        "createTransport"
-      );
-    }
   });
 
   it("TC-REC-212f: el módulo de correo está marcado como exclusivo del servidor", () => {

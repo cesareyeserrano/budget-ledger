@@ -1,0 +1,35 @@
+Evidencia de los tres casos de «suite verde» de budget-state-color (NFR-405) — 2026-10-02 (BL-069).
+
+Por qué se rehace: TC-BSC-455h/e/f pasaban con un veredicto manual del 2026-07-10 cuya evidencia
+apuntaba al propio fichero de resultados de la feature (circular). Esta evidencia sale de la
+verificación de la RAÍZ de hoy, que corre la suite completa y los ocho gates sobre el árbol entero,
+en Node 22 (la versión de producción, BL-070), con el portátil en batería y bajo consumo.
+
+Corrida: aitri verify-run de la raíz, 2026-10-02T23:07:30.537Z. Runner exit 0, e2e exit 0.
+  Casos de la raíz: 59/59. Pruebas leídas: 1.189 de vitest y 599 de Playwright,
+  ninguna en rojo. Gates:
+    typecheck        pass  exit 0  (6 s)
+    lint             pass  exit 0  (5 s)
+    coverage         pass  exit 0  (120 s)
+    smoke            pass  exit 0  (31 s)
+    security-config  pass  exit 0  (1 s)
+    design-tokens    pass  exit 0  (0 s)
+    secret-scan      pass  exit 0  (2 s)
+    security-audit   pass  exit 0  (1 s)
+
+TC-BSC-455h — typecheck y lint terminan con exit 0
+  typecheck exit 0 y lint exit 0 en la corrida de arriba. → PASS.
+
+TC-BSC-455e — el gate de cobertura se mantiene y budgetState.ts tiene el 100 % de ramas
+  coverage exit 0 (umbral global 80 % y, desde BL-065, suelos propios para el store y las rutas).
+  budgetState.ts, medido el mismo día con la suite completa instrumentada:
+    líneas 100 % · sentencias 100 % · funciones 100 % · ramas 100 % (32/32)
+  Y ya no depende de que alguien lo mire: vitest.config.ts declara un umbral de 100 % de ramas para
+  src/domain/budgetState.ts, así que el gate de cobertura sale distinto de 0 si baja. Comprobado
+  con una corrida parcial: «Coverage for branches (0%) does not meet "src/domain/budgetState.ts"
+  threshold (100%)». → PASS.
+
+TC-BSC-455f — la suite completa sigue pasando, con 0 fallos
+  vitest y Playwright con exit 0 y ningún caso en rojo en la corrida de arriba; el proyecto app
+  completo, aparte y en Node 22: 1.180 de 1.180. Ninguna aserción sobre la superficie de las filas de
+  tipo se actualizó en este trabajo. → PASS.
