@@ -19,27 +19,9 @@
   "projectName": "stack-upgrade-theme",
   "createdAt": "2026-07-04T03:13:12.351Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-24T17:20:51.982Z",
+  "updatedAt": "2026-10-04T18:18:23.351Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-08T14:08:48.837Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 64,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-07-08T14:31:23.355Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 64,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-07-08T14:31:39.249Z",
       "event": "verify-complete",
@@ -151,6 +133,22 @@
       "phase": 5,
       "version": "1.0.0",
       "version_source": null
+    },
+    {
+      "at": "2026-10-04T17:46:43.661Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T18:18:23.332Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 64,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -240,16 +238,16 @@
       "FR-213"
     ]
   },
-  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanRef": "b96b5754d8cce6a352963369d6f4381ddf43bc85",
   "verifyRanDirty": false,
-  "verifyResultsHash": "04e974a032c0c556aa9147f02e13b869f98c0ae66a0db78b0834fe066397b8fe",
-  "verifyRanAt": "2026-09-24T17:20:35.867Z",
+  "verifyResultsHash": "9af195f213193297ce362201ec87a170a91d990e1613637f32c63f7b8ef024ae",
+  "verifyRanAt": "2026-10-04T17:46:43.623Z",
   "lastVerifyRun": {
     "passed": 64,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-24T17:20:35.867Z"
+    "at": "2026-10-04T17:46:43.623Z"
   },
   "verifySummary": {
     "total": 64,
