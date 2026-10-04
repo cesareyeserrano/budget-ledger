@@ -14,48 +14,17 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-04T19:25:54.112Z",
+  "updatedAt": "2026-10-04T20:57:22.875Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T16:21:53.813Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T16:51:47.923Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 18,
-      "method": "git",
-      "baseRefFrom": "53b6fef1ce7c504bf80a92511534d378d5b081ee",
-      "baseRefTo": "86041a5481e21303959b984b900ab30c92c8535f"
-    },
-    {
-      "at": "2026-10-02T17:12:13.701Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T17:12:13.816Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
     {
       "at": "2026-10-02T20:39:12.746Z",
       "event": "reconcile-pending",
@@ -185,20 +154,45 @@
       "event": "approved",
       "phase": 4,
       "afterDrift": true
+    },
+    {
+      "at": "2026-10-04T20:56:46.025Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T20:56:46.142Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-04T20:57:22.761Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-04T20:57:22.861Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
-  "cascadedPhases": [
-    "5"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "ae15f9d05d7f18281e0d94acb3753a3412d6092dc8d1bab42366134935f2ccd4",
     "2": "16f5e103cdea53dcf2bc99bed89ab39063382815af3cd7a1860feb4156e3c4dc",
     "3": "04228856108ca6af87ff3a8a88b3747c2acae36e4c0b1be10dd34e22442d80df",
     "4": "87c3dee8d44fadeeffaf101b7639a4eb910e13c75b4bbdf10d3076b6a808a699",
+    "5": "f60fe8b15f1f9ebe33051d0632f2018b9e9c8e5f1fd447b241ef0cd1570d194c",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -353,7 +347,7 @@
       "at": "2026-09-08T23:47:58.020Z"
     }
   ],
-  "verifyRanRef": "0fe696f73ed44a3ec2efefd90eaa9f3c0ecdfacd",
+  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -372,5 +366,24 @@
       "FR-015": "b3e92a3868c6da61",
       "FR-016": "027e93ef7fe6dbb0"
     }
+  },
+  "verifyResultsHash": "d03e79b8114dcd80922a927fde91f2a3cc10f6eec73e38e74cb2c9828e8dc7b9",
+  "verifyRanAt": "2026-10-04T20:56:45.997Z",
+  "lastVerifyRun": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-10-04T20:56:45.997Z"
+  },
+  "verifySummary": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 6
   }
 }

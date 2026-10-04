@@ -10,46 +10,15 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-04T19:25:57.185Z",
+  "updatedAt": "2026-10-04T20:57:22.949Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-01T21:19:01.998Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T21:19:15.035Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T00:26:10.956Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T00:26:25.804Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
     {
       "at": "2026-10-02T02:50:30.281Z",
       "event": "verify-run",
@@ -174,16 +143,41 @@
       "event": "approved",
       "phase": 4,
       "afterDrift": true
+    },
+    {
+      "at": "2026-10-04T20:46:56.533Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T20:46:56.645Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-04T20:57:22.802Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-04T20:57:22.932Z",
+      "event": "completed",
+      "phase": 5
     }
   ],
-  "cascadedPhases": [
-    "5"
-  ],
+  "cascadedPhases": [],
   "artifactHashes": {
     "1": "fbb2aee1d07d64f63ab6574713d9c72a10331688749059d55182e64d3f465966",
     "2": "faa7ebee08ff633d7790e3b8194568e96e22194ca4533b6394f68b30435e274e",
     "3": "3cea7c4b40345b4aa5ba31e70caa818d596eaa507bae25b322bec21e6b82a491",
-    "4": "d2e14ab7a362ca00997952b7c67d8d6b5e33d3367a37dabeb51719c1e5fe946a"
+    "4": "d2e14ab7a362ca00997952b7c67d8d6b5e33d3367a37dabeb51719c1e5fe946a",
+    "5": "703424798ed4877ca554b20a720b96afc74faec6deb7c33280a138fff90d461b"
   },
   "coverageAuditLastAt": "2026-07-12T00:15:16.577Z",
   "coverageAuditReqHash": "cb7ba606a60a76900468e9f497b32ee23b58b7d3ced0ffa19d42f2557e3e86f7",
@@ -249,8 +243,8 @@
       "FR-513"
     ]
   },
-  "verifyPassed": false,
-  "verifyRanRef": "0fe696f73ed44a3ec2efefd90eaa9f3c0ecdfacd",
+  "verifyPassed": true,
+  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -268,5 +262,24 @@
       "FR-512": "460b0bf8c4b2825f",
       "FR-513": "bab0df1ae14824f7"
     }
+  },
+  "verifyResultsHash": "446f33404ebe7e968f9faa57e406094ffb2dd61afca2618a852009e043f14b8b",
+  "verifyRanAt": "2026-10-04T20:46:56.508Z",
+  "lastVerifyRun": {
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-10-04T20:46:56.508Z"
+  },
+  "verifySummary": {
+    "total": 86,
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 1
   }
 }

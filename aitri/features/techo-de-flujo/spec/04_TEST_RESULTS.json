@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-13T20:04:49.932Z",
+  "executed_at": "2026-10-04T21:38:54.722Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,37 +8,37 @@
     {
       "tc_id": "TC-TDF-001h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-001h: tras reservar 1.000 y retirar 500, el cupo de enero es 0 4ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-001h: tras reservar 1.000 y retirar 500, el cupo de enero es 500 6ms"
     },
     {
       "tc_id": "TC-TDF-002f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-002f: con el cupo agotado, subir la celda 1 peso se rechaza sin mutar 2ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-002f: con el cupo agotado, subir la celda 1 peso se rechaza sin mutar 2ms"
     },
     {
       "tc_id": "TC-TDF-003h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-003h: febrero hereda el cierre de enero — techo 1.500 y reservar 1.500 se acepta 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-003h: febrero hereda el cierre de enero — techo 1.500 y reservar 1.500 se acepta 3ms"
     },
     {
       "tc_id": "TC-TDF-004e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-004e: el sobrante se arrastra y se puede usar parcialmente 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-004e: el sobrante se arrastra y se puede usar parcialmente 1ms"
     },
     {
       "tc_id": "TC-TDF-005e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-005e: el límite exacto se acepta y deja el cupo en 0 0ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-005e: el límite exacto se acepta y deja el cupo en 0 0ms"
     },
     {
       "tc_id": "TC-TDF-006e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-006e: el sobregasto real vive en el déficit, no en el exceso — y no bloquea 0ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-006e: el sobregasto real vive en el déficit, no en el exceso — y no bloquea 0ms"
     },
     {
       "tc_id": "TC-TDF-010h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-010h: editar de 500 a 300 devuelve 200 al bolsillo sin tocar la celda 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-010h: editar de 500 a 300 devuelve 200 al bolsillo sin tocar la celda 0ms"
     },
     {
       "tc_id": "TC-TDF-011h",
@@ -48,7 +48,7 @@
     {
       "tc_id": "TC-TDF-012e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-012e: la edición conserva id, fecha, createdAt y posición — es el mismo movimiento 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-012e: la edición conserva id, fecha, createdAt y posición — es el mismo movimiento 3ms"
     },
     {
       "tc_id": "TC-TDF-013f",
@@ -58,42 +58,42 @@
     {
       "tc_id": "TC-TDF-014e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-014e: editar un MOVER valida sus DOS extremos, no solo el origen 2ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1802 · el monto de un retiro se edita, y 0 lo elimina > TC-TDF-014e: editar un MOVER valida sus DOS extremos, no solo el origen 0ms"
     },
     {
       "tc_id": "TC-TDF-020f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-020f: eliminar el retiro de un mes por encima del techo se rechaza 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-020f: eliminar el retiro de un mes por encima del techo se rechaza 0ms"
     },
     {
       "tc_id": "TC-TDF-021h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-021h: eliminar un retiro que no rompe nada se acepta y restaura exacto 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-021h: eliminar un retiro que no rompe nada se acepta y restaura exacto 0ms"
     },
     {
       "tc_id": "TC-TDF-022f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-022f: subir un retiro por encima del saldo dice el saldo REAL, no uno negativo 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-022f: subir un retiro por encima del saldo dice el saldo REAL, no uno negativo 0ms"
     },
     {
       "tc_id": "TC-TDF-023e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-023e: id inexistente deja el estado intacto y no lanza 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-023e: id inexistente deja el estado intacto y no lanza 0ms"
     },
     {
       "tc_id": "TC-TDF-024e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-024e: bajar un retiro que un mes posterior ya gastó se rechaza nombrando ESE mes 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1803 · editar o eliminar un retiro se valida > TC-TDF-024e: bajar un retiro que un mes posterior ya gastó se rechaza nombrando ESE mes 0ms"
     },
     {
       "tc_id": "TC-TDF-030h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1804 · observación automática cuando el mes toma del saldo anterior > TC-TDF-030h: la observación trae lo reservado, lo tomado y el mes de origen 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1804 · observación automática cuando el mes toma del saldo anterior > TC-TDF-030h: la observación trae lo reservado, lo tomado y el mes de origen 4ms"
     },
     {
       "tc_id": "TC-TDF-031e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1804 · observación automática cuando el mes toma del saldo anterior > TC-TDF-031e: bajar la reserva reescribe la cifra — no acumula historial 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1804 · observación automática cuando el mes toma del saldo anterior > TC-TDF-031e: bajar la reserva reescribe la cifra — no acumula historial 0ms"
     },
     {
       "tc_id": "TC-TDF-032f",
@@ -108,47 +108,47 @@
     {
       "tc_id": "TC-TDF-034h",
       "status": "pass",
-      "notes": "✓  365 [chromium] › tests/e2e/techo-de-flujo.spec.ts:348:7 › FR-1809 y FR-1804 · observaciones › TC-TDF-034h: la nota automática vive en el BOLSILLO que reservó, nunca en una celda de gasto (561ms)"
+      "notes": "✓  604 [chromium] › tests/e2e/techo-de-flujo.spec.ts:396:7 › FR-1809 y FR-1804 · observaciones › TC-TDF-034h: la nota automática vive en el BOLSILLO que reservó, nunca en una celda de gasto (351ms)"
     },
     {
       "tc_id": "TC-TDF-040h",
       "status": "pass",
-      "notes": "✓  353 [chromium] › tests/e2e/techo-de-flujo.spec.ts:91:7 › FR-1805 · la grilla en tres bloques › TC-TDF-040h: se renderizan los tres bloques y Reservas NO comparte el de Ingresos y Gastos (368ms)"
+      "notes": "✓  591 [chromium] › tests/e2e/techo-de-flujo.spec.ts:91:7 › FR-1805 · la grilla en tres bloques › TC-TDF-040h: se renderizan los tres bloques y Reservas NO comparte el de Ingresos y Gastos (230ms)"
     },
     {
       "tc_id": "TC-TDF-041h",
       "status": "pass",
-      "notes": "✓  354 [chromium] › tests/e2e/techo-de-flujo.spec.ts:118:7 › FR-1805 · la grilla en tres bloques › TC-TDF-041h: la fila «Retiros del mes» cierra el bloque de Reservas, ARRIBA del Balance (416ms)"
+      "notes": "✓  592 [chromium] › tests/e2e/techo-de-flujo.spec.ts:118:7 › FR-1805 · la grilla en tres bloques › TC-TDF-041h: la fila «Retiros del mes» cierra el bloque de Reservas, ARRIBA del Balance (255ms)"
     },
     {
       "tc_id": "TC-TDF-042e",
       "status": "pass",
-      "notes": "✓  355 [chromium] › tests/e2e/techo-de-flujo.spec.ts:139:7 › FR-1805 · la grilla en tres bloques › TC-TDF-042e: los tres bloques comparten UN riel de columnas y UN scroll horizontal (699ms)"
+      "notes": "✓  593 [chromium] › tests/e2e/techo-de-flujo.spec.ts:139:7 › FR-1805 · la grilla en tres bloques › TC-TDF-042e: los tres bloques comparten UN riel de columnas y UN scroll horizontal (558ms)"
     },
     {
       "tc_id": "TC-TDF-043e",
       "status": "pass",
-      "notes": "✓  366 [chromium] › tests/e2e/techo-de-flujo.spec.ts:383:7 › FR-1805 · el bolsillo que crece y el mes resaltado › TC-TDF-043e: con seis bolsillos y el grupo plegado, «Retiros del mes» sigue a la vista (482ms)"
+      "notes": "✓  605 [chromium] › tests/e2e/techo-de-flujo.spec.ts:431:7 › FR-1805 · el bolsillo que crece y el mes resaltado › TC-TDF-043e: con seis bolsillos y el grupo plegado, «Retiros del mes» sigue a la vista (316ms)"
     },
     {
       "tc_id": "TC-TDF-044h",
       "status": "pass",
-      "notes": "✓  367 [chromium] › tests/e2e/techo-de-flujo.spec.ts:400:7 › FR-1805 · el bolsillo que crece y el mes resaltado › TC-TDF-044h: el resaltado del mes atraviesa los tres bloques y se mueve a la vez (748ms)"
+      "notes": "✓  606 [chromium] › tests/e2e/techo-de-flujo.spec.ts:448:7 › FR-1805 · el bolsillo que crece y el mes resaltado › TC-TDF-044h: el resaltado del mes atraviesa los tres bloques y se mueve a la vez (518ms)"
     },
     {
       "tc_id": "TC-TDF-045f",
       "status": "pass",
-      "notes": "✓  356 [chromium] › tests/e2e/techo-de-flujo.spec.ts:167:7 › FR-1805 · la grilla en tres bloques › TC-TDF-045f: a 375px la grilla NO se renderiza — la vista sigue siendo Registrar (227ms)"
+      "notes": "✓  594 [chromium] › tests/e2e/techo-de-flujo.spec.ts:167:7 › FR-1805 · la grilla en tres bloques › TC-TDF-045f: a 375px la grilla NO se renderiza — la vista sigue siendo Registrar (161ms)"
     },
     {
       "tc_id": "TC-TDF-050h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1806 · la lista de errores del mes > TC-TDF-050h: un mes excedido aparece con su kind, su margen y su exceso 0ms"
+      "notes": "✓  601 [chromium] › tests/e2e/techo-de-flujo.spec.ts:338:7 › FR-1806 · la señal del mes vive en sus dos superficies › TC-TDF-050h: la marca del encabezado y la franja del Balance aparecen JUNTAS (238ms)"
     },
     {
       "tc_id": "TC-TDF-051f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1806 · la lista de errores del mes > TC-TDF-051f: un estado sano no produce ningún error 0ms"
+      "notes": "✓  602 [chromium] › tests/e2e/techo-de-flujo.spec.ts:354:7 › FR-1806 · la señal del mes vive en sus dos superficies › TC-TDF-051f: un estado sano no renderiza NINGUNA de las dos — sin esto, 050h no probaría nada (227ms)"
     },
     {
       "tc_id": "TC-TDF-052e",
@@ -158,82 +158,82 @@
     {
       "tc_id": "TC-TDF-060h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1807 · lo retirado no vuelve por la puerta de atrás > TC-TDF-060h: el dominio y la UI no exportan ninguna de las piezas retiradas 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1807 · lo retirado no vuelve por la puerta de atrás > TC-TDF-060h: el dominio y la UI no exportan ninguna de las piezas retiradas 0ms"
     },
     {
       "tc_id": "TC-TDF-061f",
       "status": "pass",
-      "notes": "✓  373 [chromium] › tests/e2e/techo-de-flujo.spec.ts:665:7 › FR-1807 · la UI retirada no existe › TC-TDF-061f: sin botón «Sacar» en la fila del bolsillo y sin botones de borrar (380ms)"
+      "notes": "✓  612 [chromium] › tests/e2e/techo-de-flujo.spec.ts:713:7 › FR-1807 · la UI retirada no existe › TC-TDF-061f: sin botón «Sacar» en la fila del bolsillo y sin botones de borrar (241ms)"
     },
     {
       "tc_id": "TC-TDF-062e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1807 · las dos pruebas rojas por el marcador quedan verdes sin relajarse > TC-TDF-062e: solo cambió la constante esperada — las aserciones de conversión siguen intactas 81ms"
+      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1807 · las dos pruebas rojas por el marcador quedan verdes sin relajarse > TC-TDF-062e: solo cambió la constante esperada — las aserciones de conversión siguen intactas 53ms"
     },
     {
       "tc_id": "TC-TDF-070h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1808 · el «Máx.» de la celda es el total tecleable > TC-TDF-070h: con varias celdas, el total de una descuenta lo que consumen las otras 0ms"
+      "notes": "✓  599 [chromium] › tests/e2e/techo-de-flujo.spec.ts:295:7 › FR-1808 · el «Máx.» dice lo que el dominio acepta › TC-TDF-070h: el indicador se ve ANTES de teclear y no consume ancho del input (296ms)"
     },
     {
       "tc_id": "TC-TDF-071e",
       "status": "pass",
-      "notes": "✓  368 [chromium] › tests/e2e/techo-de-flujo.spec.ts:443:7 › FR-1808 · el indicador avisa antes de confirmar y no empuja a nadie › TC-TDF-071e: al pasarse, el «Máx.» enrojece ANTES de confirmar (476ms)"
+      "notes": "✓  607 [chromium] › tests/e2e/techo-de-flujo.spec.ts:491:7 › FR-1808 · el indicador avisa antes de confirmar y no empuja a nadie › TC-TDF-071e: al pasarse, el «Máx.» enrojece ANTES de confirmar (302ms)"
     },
     {
       "tc_id": "TC-TDF-072f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1808 · el «Máx.» de la celda es el total tecleable > TC-TDF-072f: con el cupo del mes agotado, la celda sigue admitiendo su propio total 1ms"
+      "notes": "✓  600 [chromium] › tests/e2e/techo-de-flujo.spec.ts:312:7 › FR-1808 · el «Máx.» dice lo que el dominio acepta › TC-TDF-072f: bajar una celda con el cupo agotado NO se pinta en rojo (319ms)"
     },
     {
       "tc_id": "TC-TDF-073e",
       "status": "pass",
-      "notes": "✓  369 [chromium] › tests/e2e/techo-de-flujo.spec.ts:463:7 › FR-1808 · el indicador avisa antes de confirmar y no empuja a nadie › TC-TDF-073e: el indicador no tapa ni desplaza las celdas vecinas (518ms)"
+      "notes": "✓  608 [chromium] › tests/e2e/techo-de-flujo.spec.ts:511:7 › FR-1808 · el indicador avisa antes de confirmar y no empuja a nadie › TC-TDF-073e: el indicador no tapa ni desplaza las celdas vecinas (295ms)"
     },
     {
       "tc_id": "TC-TDF-080h",
       "status": "pass",
-      "notes": "✓  364 [chromium] › tests/e2e/techo-de-flujo.spec.ts:324:7 › FR-1809 y FR-1804 · observaciones › TC-TDF-080h: una celda de GASTO admite observación, y su marca aparece al guardarla (555ms)"
+      "notes": "✓  603 [chromium] › tests/e2e/techo-de-flujo.spec.ts:364:7 › FR-1809 y FR-1804 · observaciones › TC-TDF-080h: una celda de GASTO admite observación, y su marca aparece al guardarla (376ms)"
     },
     {
       "tc_id": "TC-TDF-081h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1809 · una observación de una celda de ingreso se persiste como cualquier otra > TC-TDF-081h: observación en celda de INGRESO del plano Presupuestado — el almacén no distingue el tipo 91ms"
+      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1809 · una observación de una celda de ingreso se persiste como cualquier otra > TC-TDF-081h: observación en celda de INGRESO del plano Presupuestado — el almacén no distingue el tipo 65ms"
     },
     {
       "tc_id": "TC-TDF-082f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1809 · una observación pertenece a SU celda > TC-TDF-082f: vacío o de más de 280 se rechaza tipado, y la observación vigente no se toca 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1809 · una observación pertenece a SU celda > TC-TDF-082f: vacío o de más de 280 se rechaza tipado, y la observación vigente no se toca 0ms"
     },
     {
       "tc_id": "TC-TDF-083e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1809 · una observación pertenece a SU celda > TC-TDF-083e: la observación no se filtra a otro mes ni a otra fila 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1809 · una observación pertenece a SU celda > TC-TDF-083e: la observación no se filtra a otro mes ni a otra fila 0ms"
     },
     {
       "tc_id": "TC-TDF-201h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-201h: la conservación se mantiene en 120 operaciones mixtas 61ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-201h: la conservación se mantiene en 120 operaciones mixtas 41ms"
     },
     {
       "tc_id": "TC-TDF-202e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-202e: los bordes — límite exacto, edición a 0 y cadena de meses — conservan 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-202e: los bordes — límite exacto, edición a 0 y cadena de meses — conservan 0ms"
     },
     {
       "tc_id": "TC-TDF-203f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-203f: los rechazos no dejan efectos parciales ni rompen la conservación 69ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-203f: los rechazos no dejan efectos parciales ni rompen la conservación 37ms"
     },
     {
       "tc_id": "TC-TDF-211h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-211h: el cierre de un mes es la apertura del siguiente, con y sin retiros 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-211h: el cierre de un mes es la apertura del siguiente, con y sin retiros 0ms"
     },
     {
       "tc_id": "TC-TDF-212e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-212e: el arrastre sobrevive a la secuencia mixta 75ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1801/1802 · conservación y arrastre bajo secuencias mixtas > TC-TDF-212e: el arrastre sobrevive a la secuencia mixta 39ms"
     },
     {
       "tc_id": "TC-TDF-213f",
@@ -253,107 +253,107 @@
     {
       "tc_id": "TC-TDF-223f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1803 · gastos e ingresos conservan su comportamiento > TC-TDF-223f: la validación vigente de montos de gasto no cambió 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1803 · gastos e ingresos conservan su comportamiento > TC-TDF-223f: la validación vigente de montos de gasto no cambió 0ms"
     },
     {
       "tc_id": "TC-TDF-231h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-231h: «Saldo reservado» coincide al peso con la suma de los bolsillos, mes a mes 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-231h: «Saldo reservado» coincide al peso con la suma de los bolsillos, mes a mes 0ms"
     },
     {
       "tc_id": "TC-TDF-232e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-232e: el mover conserva su cálculo y NO cuenta como retiro del mes 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-232e: el mover conserva su cálculo y NO cuenta como retiro del mes 0ms"
     },
     {
       "tc_id": "TC-TDF-233f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-233f: el mover se elimina cuando no rompe, y cuando rompería queda la edición 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1804 · el saldo reservado sigue siendo la suma de los bolsillos > TC-TDF-233f: el mover se elimina cuando no rompe, y cuando rompería queda la edición 0ms"
     },
     {
       "tc_id": "TC-TDF-241h",
       "status": "pass",
-      "notes": "✓ |app| tests/integration/reserve-migration.test.ts > NFR-1805 · la cadena de migraciones no se re-aplica sobre un ledger ya marcado > TC-TDF-241h: el guard de versión es lo único que separa un ledger sano de uno destruido 1ms"
+      "notes": "✓ |backend| tests/integration/backend/reserve-server.test.ts > FR-1010 — migración lazy en el servidor > TC-TDF-241h: la cadena de migraciones no se re-aplica — la marca de versión lo impide 86ms"
     },
     {
       "tc_id": "TC-TDF-242e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > NFR-1805 · ninguna migración nueva y ningún dato perdido > TC-TDF-242e: data_version sigue en 5 — la feature es de cálculo, no de datos 107ms"
+      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > NFR-1805 · ninguna migración nueva y ningún dato perdido > TC-TDF-242e: data_version sigue en el vigente — la feature es de cálculo, no de datos 64ms"
     },
     {
       "tc_id": "TC-TDF-243f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > NFR-1805 · ninguna migración nueva y ningún dato perdido > TC-TDF-243f: un ledger v5 con datos vivos no pierde nada al cargarse tres veces 103ms"
+      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > NFR-1805 · ninguna migración nueva y ningún dato perdido > TC-TDF-243f: un ledger v5 con datos vivos no pierde nada al cargarse tres veces 58ms"
     },
     {
       "tc_id": "TC-TDF-251h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada > TC-TDF-251h: la cuenta cierra aunque la fila operable viva fuera, y sin dobles negativos 5ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada > TC-TDF-251h: la cuenta cierra aunque la fila operable viva fuera, y sin dobles negativos 1ms"
     },
     {
       "tc_id": "TC-TDF-252e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada > TC-TDF-252e: un mes de solo retiros suma en positivo, sin un solo doble negativo 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > NFR-1806 · la cascada conserva su aritmética con la fila de retiros mudada > TC-TDF-252e: un mes de solo retiros suma en positivo, sin un solo doble negativo 0ms"
     },
     {
       "tc_id": "TC-TDF-253f",
       "status": "pass",
-      "notes": "✓  372 [chromium] › tests/e2e/techo-de-flujo.spec.ts:634:7 › NFR-1806 · la mudanza de «Retiros del mes» no duplicó la fila › TC-TDF-253f: existe exactamente UNA, y vive en el segmento de Reservas (425ms)"
+      "notes": "✓  611 [chromium] › tests/e2e/techo-de-flujo.spec.ts:682:7 › NFR-1806 · la mudanza de «Retiros del mes» no duplicó la fila › TC-TDF-253f: existe exactamente UNA, y vive en el segmento de Reservas (249ms)"
     },
     {
       "tc_id": "TC-TDF-261h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-261h: el guardarraíl sigue bajo 150ms con las series nuevas (8 bolsillos, 500 movimientos) 146ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-261h: el guardarraíl sigue bajo 150ms con las series nuevas (8 bolsillos, 500 movimientos) 67ms"
     },
     {
       "tc_id": "TC-TDF-262e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-262e: 24 lecturas cuestan ≤2 barridos — publicar tres series cuesta lo mismo que una 177ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-262e: 24 lecturas cuestan ≤2 barridos — publicar tres series cuesta lo mismo que una 67ms"
     },
     {
       "tc_id": "TC-TDF-263f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-263f: una mutación invalida la memoización — el cupo nunca se sirve obsoleto 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo-perf.test.ts > NFR-1807 · derivar techo, saldos y errores de los doce meses no empeora el coste > TC-TDF-263f: una mutación invalida la memoización — el cupo nunca se sirve obsoleto 0ms"
     },
     {
       "tc_id": "TC-TDF-271h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-271h: el workflow dispara en push a main y corre las dos suites, sin excusas 1ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-271h: el workflow dispara en push a main y corre las dos suites, sin excusas 0ms"
     },
     {
       "tc_id": "TC-TDF-272e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-272e: los pasos del CI invocan las suites DECLARADAS en package.json, no un nombre inventado 16ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-272e: los pasos del CI invocan las suites DECLARADAS en package.json, no un nombre inventado 7ms"
     },
     {
       "tc_id": "TC-TDF-273f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-273f: los pasos de suite no pueden dar verde falso — un fallo tumba el workflow 6ms"
+      "notes": "✓ |app| tests/unit/backend-gates.test.ts > NFR-1808 · el pipeline ejecuta unitarias y e2e en push a la rama principal > TC-TDF-273f: los pasos de suite no pueden dar verde falso — un fallo tumba el workflow 3ms"
     },
     {
       "tc_id": "TC-TDF-090h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1802 · el monto editado viaja a Postgres y vuelve idéntico > TC-TDF-090h: editar 500→300 persiste bajo el MISMO id — no duplica ni recrea el movimiento 104ms"
+      "notes": "✓ |backend| tests/integration/backend/techo-de-flujo.test.ts > FR-1802 · el monto editado viaja a Postgres y vuelve idéntico > TC-TDF-090h: editar 500→300 persiste bajo el MISMO id — no duplica ni recrea el movimiento 143ms"
     },
     {
       "tc_id": "TC-TDF-091h",
       "status": "pass",
-      "notes": "✓  370 [chromium] › tests/e2e/techo-de-flujo.spec.ts:548:7 › FR-1803 · corregir desde la lista, con el rechazo a la vista › TC-TDF-091h: la edición válida se aplica; la que rompe se rechaza nombrando el mes (551ms)"
+      "notes": "✓  609 [chromium] › tests/e2e/techo-de-flujo.spec.ts:596:7 › FR-1803 · corregir desde la lista, con el rechazo a la vista › TC-TDF-091h: la edición válida se aplica; la que rompe se rechaza nombrando el mes (315ms)"
     },
     {
       "tc_id": "TC-TDF-092e",
       "status": "pass",
-      "notes": "✓  371 [chromium] › tests/e2e/techo-de-flujo.spec.ts:591:7 › FR-1802 · teclear 0 elimina, en línea y sin modal › TC-TDF-092e: la fila desaparece con aviso en línea, sin diálogo, y el saldo se restaura (541ms)"
+      "notes": "✓  610 [chromium] › tests/e2e/techo-de-flujo.spec.ts:639:7 › FR-1802 · teclear 0 elimina, en línea y sin modal › TC-TDF-092e: la fila desaparece con aviso en línea, sin diálogo, y el saldo se restaura (333ms)"
     },
     {
       "tc_id": "TC-TDF-093e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes y lo consumen las brutas > TC-TDF-093e: el plano Presupuestado NO cambia — el retiro planeado sigue descontando 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1801 · el techo es del mes (en Ejecutado, neto desde FR-2801) > TC-TDF-093e: el plano Presupuestado consume en NETO — el retiro planeado devuelve cupo 0ms"
     },
     {
       "tc_id": "TC-TDF-094f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1808 · el «Máx.» de la celda es el total tecleable > TC-TDF-094f: la cifra del «Máx.» y la del rechazo coinciden 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1808 · el «Máx.» de la celda es el total tecleable > TC-TDF-094f: la cifra del «Máx.» y la del rechazo coinciden 0ms"
     },
     {
       "tc_id": "TC-TDF-100h",
@@ -363,27 +363,27 @@
     {
       "tc_id": "TC-TDF-101h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-101h: «Guardado» y «Sacado» son brutos y de un solo signo, nunca un neto 2ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-101h: «Guardado» y «Sacado» son brutos y de un solo signo, nunca un neto 1ms"
     },
     {
       "tc_id": "TC-TDF-102e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-102e: las dos cuentas se sostienen en 120 pasos, 12 meses y 2 planos 416ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-102e: las dos cuentas se sostienen en 120 pasos, 12 meses y 2 planos 214ms"
     },
     {
       "tc_id": "TC-TDF-103e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-103e: «Saldo del mes anterior» encadena con el cierre previo, y enero abre en 0 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-103e: «Saldo del mes anterior» encadena con el cierre previo, y enero abre en 0 0ms"
     },
     {
       "tc_id": "TC-TDF-104e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-104e: «Resultado del mes» vale lo mismo en sus dos apariciones 1ms"
+      "notes": "✓  597 [chromium] › tests/e2e/techo-de-flujo.spec.ts:234:7 › FR-1810 · el Balance se lee de arriba abajo › TC-TDF-104e: «Resultado del mes» vale lo mismo en sus dos apariciones (226ms)"
     },
     {
       "tc_id": "TC-TDF-105f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-105f: la alarma vive SOLO donde un negativo significa deber plata 1ms"
+      "notes": "✓ |app| tests/domain/techo-de-flujo.test.ts > FR-1810 · el Balance en tres bloques > TC-TDF-105f: la alarma vive SOLO donde un negativo significa deber plata 0ms"
     },
     {
       "tc_id": "TC-TDF-106f",
@@ -398,7 +398,7 @@
     {
       "tc_id": "TC-TDF-063f",
       "status": "pass",
-      "notes": "✓  374 [chromium] › tests/e2e/techo-de-flujo.spec.ts:677:7 › FR-1807 · la UI retirada no existe › TC-TDF-063f: corregir una operación es editar su monto — no hay botón de borrar (449ms)"
+      "notes": "✓  613 [chromium] › tests/e2e/techo-de-flujo.spec.ts:725:7 › FR-1807 · la UI retirada no existe › TC-TDF-063f: corregir una operación es editar su monto — no hay botón de borrar (297ms)"
     }
   ],
   "fr_coverage": [
@@ -881,8 +881,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2556,
-      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+      "duration_ms": 2563,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
       "name": "lint",
@@ -890,7 +890,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 3566,
+      "duration_ms": 3128,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -899,7 +899,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 382,
+      "duration_ms": 234,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -908,8 +908,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1223,
-      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+      "duration_ms": 1727,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, rutas con sesión, bindings, secretos, correos, deps)"
     },
     {
       "name": "secret-scan",
@@ -917,8 +917,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 225,
-      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
+      "duration_ms": 1244,
+      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] patrones: sin secretos.\n[secret-scan] gitleaks no está instalado: solo corrieron los patrones (el CI sí lo exige)."
     },
     {
       "name": "smoke",
@@ -926,8 +926,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1388,
-      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+      "duration_ms": 1306,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -935,14 +935,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 183950,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (175ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.1m)\n\n(node:46981) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 217898,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (121ms)\n  ✓  723 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (222ms)\n  ✓  725 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  725 passed (3.6m)"
     }
   ],
   "timings": {
-    "runner_ms": 46458,
-    "e2e_ms": 185260,
-    "gates_ms": 193290,
-    "total_ms": 425074
+    "runner_ms": 65517,
+    "e2e_ms": 216718,
+    "gates_ms": 228102,
+    "total_ms": 510408
   }
 }
