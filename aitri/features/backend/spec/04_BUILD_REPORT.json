@@ -122,7 +122,7 @@
     { "name": "typecheck", "command": "npm run typecheck", "required": true },
     { "name": "lint", "command": "npm run lint", "required": true },
     { "name": "coverage", "command": "npm run coverage", "required": true, "timeout_ms": 300000 },
-    { "name": "sca", "command": "npm audit --audit-level=high", "required": true },
+    { "name": "sca", "command": "python3 ../../../scripts/sca-excepciones.py", "required": true },
     { "name": "security", "command": "../../../scripts/secret-scan.sh", "required": true },
     { "name": "smoke", "command": "../../../scripts/smoke-backend.sh", "required": true, "timeout_ms": 240000 }
   ]
