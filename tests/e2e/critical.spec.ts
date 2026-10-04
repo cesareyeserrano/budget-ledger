@@ -35,7 +35,10 @@ test("TC-012h: los tokens CSS coinciden con el sistema de diseño zinc (tema cla
   expect(tokens.font).toContain("Inter"); // FR-213: Inter reemplaza Lexend
 });
 
-test("TC-010h: 375px muestra solo Registrar; escritorio muestra la grilla", async ({ page }) => {
+// presupuesto-movil (FR-3113) cambió FR-010: a ≤760 px ya no hay SOLO registro — hay registro y una
+// vista de presupuesto propia. Lo que esta prueba sigue fijando es que la app ABRE en el registro y que la
+// grilla de escritorio no se monta en el teléfono. La vista nueva se prueba en presupuesto-movil.spec.ts.
+test("TC-010h: 375px abre en Registrar, sin la grilla de escritorio; escritorio muestra la grilla", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto("/");
   await expect(page.getByTestId("mobile-shell")).toBeVisible();

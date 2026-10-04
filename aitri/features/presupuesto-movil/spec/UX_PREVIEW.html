@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presupuesto móvil — vista previa</title>
+<style>
+  /* Tokens copiados de src/app/globals.css (fuente: Design Tokens de 01_UX_SPEC.md). */
+  .t-light{--bg:#f7f7f8;--bg-card:#ffffff;--bg-elevated:#ffffff;--bg-sunken:#f1f1f3;--primary:#1c1c1f;--accent-light:#55555d;--fg:#1c1c1f;--fg-secondary:#55555d;--fg-muted:#6b6b73;--border:#e3e3e7;--border-strong:#d3d3d9;--alert-strong:#ad3932;--alert-soft:#9e4708;--favorable:#2d7650;--type-expense:#c4453e;--type-income:#2f7d53;--type-transfer:#2f6db4;--shadow-sm:0 1px 2px rgba(24,24,27,.06);}
+  .t-dark{--bg:#131316;--bg-card:#1b1b1f;--bg-elevated:#26262b;--bg-sunken:#0f0f12;--primary:#f4f4f5;--accent-light:#9b9ba3;--fg:#f4f4f5;--fg-secondary:#b4b4bb;--fg-muted:#9b9ba3;--border:#33333a;--border-strong:#43434c;--alert-strong:#ec6a66;--alert-soft:#e0a458;--favorable:#5fbe82;--type-expense:#ec6a66;--type-income:#5fbe82;--type-transfer:#6ba6f1;--shadow-sm:0 1px 2px rgba(0,0,0,.4);}
+  :root{--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);background:#e9e9ec;color:#1c1c1f;letter-spacing:-.01em}
+  .page{max-width:1240px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  h2{font-size:1.1rem;margin:32px 0 12px}
+  .sub{color:#55555d;font-size:.9rem;margin:0 0 16px;max-width:820px;line-height:1.5}
+  .banner{background:#fff4e5;border:1px solid #e0a458;color:#5a3a06;padding:10px 14px;border-radius:8px;font-size:.85rem;margin:8px 0 16px}
+  .panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+  .panel{background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .panel h3{margin:0 0 12px;font-size:.95rem}
+  .sw{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:.78rem}
+  .chip{width:36px;height:36px;border-radius:8px;border:1px solid var(--border)}
+  .sw b{font-weight:600}.sw small{display:block;color:var(--fg-muted)}
+  .badge{font-family:var(--mono);font-size:.7rem;padding:2px 6px;border-radius:9999px;border:1px solid var(--border);white-space:nowrap}
+  .badge.ok{color:var(--favorable)}.badge.bad{color:var(--alert-strong)}
+  .ts div{margin:6px 0}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .sp{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}.sp span{display:block;background:var(--fg-muted);opacity:.5}
+  /* ---- Tira ilustrativa ---- */
+  .strip-wrap{overflow-x:auto;padding:4px 2px 12px}
+  .strip{display:flex;gap:20px;width:max-content}
+  .phone{width:375px;height:760px;border-radius:28px;border:8px solid #2a2a2e;background:var(--bg);color:var(--fg);overflow:hidden;position:relative;display:flex;flex-direction:column;font-size:13px}
+  .cap{font-size:.8rem;color:#55555d;margin:6px 4px 0;max-width:375px}
+  .hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border)}
+  .hdr .t{font-size:17px;font-weight:600}
+  .icons{display:flex;gap:4px;color:var(--fg-secondary)}.ic{width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+  svg{stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+  .body{flex:1;overflow:hidden;padding:0 20px}
+  .tabs{display:flex;border-top:1px solid var(--border);background:var(--bg-card);height:56px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:500;color:var(--fg-muted);border-top:2px solid transparent}
+  .tab.on{color:var(--fg);border-top-color:var(--fg)}
+  .pbar{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+  .pbtn{width:40px;height:40px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--fg)}
+  .pbtn.dis{color:var(--fg-muted);opacity:.45}
+  .plabel{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+  .card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:12px}
+  .eb{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)}
+  .bal{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .bal .v{display:flex;gap:16px;margin-top:4px}.bal .v div{font-family:var(--mono);font-size:15px}
+  .bal small{display:block;font-family:var(--sans);font-size:11px;color:var(--fg-muted)}
+  .cols{display:grid;grid-template-columns:1fr 96px 96px;padding:6px 0;border-bottom:1px solid var(--border);background:var(--bg-sunken);margin:0 -20px;padding-left:20px;padding-right:20px}
+  .cols span:not(:first-child){text-align:right}
+  .row{display:grid;grid-template-columns:1fr 96px 96px;align-items:center;border-bottom:1px solid var(--border);min-height:44px}
+  .row.leaf{min-height:48px}
+  .row .n{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  .row .n .nm{overflow:hidden;text-overflow:ellipsis}
+  .row .c{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .row.type{background:var(--bg-sunken);margin:0 -20px;padding:0 20px}
+  .row.type .n{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase}
+  .row.type .c{font-weight:500}
+  .muted{color:var(--fg-muted)}.soft{color:var(--alert-soft)}.strong{color:var(--alert-strong)}.fav{color:var(--favorable)}
+  .dh{display:flex;align-items:center;gap:6px;padding:10px 0 4px}
+  .dh .t{font-size:17px;font-weight:600}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 16px}
+  .big{font-family:var(--mono);font-size:22px;margin:6px 0 8px}
+  .btn{height:40px;border:1px solid var(--border-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px;background:var(--bg-card);color:var(--fg)}
+  .btn.pri{background:var(--primary);color:var(--bg);border-color:var(--primary);height:48px}
+  .btn.dng{color:var(--alert-strong);border-color:var(--alert-strong);height:48px}
+  .mv{display:grid;grid-template-columns:52px 1fr auto 40px;gap:8px;align-items:center;min-height:52px;border-bottom:1px solid var(--border)}
+  .mv .d{font-family:var(--mono);font-size:12px;color:var(--fg-muted)}
+  .mv .a{font-family:var(--mono)}
+  .pen{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--fg-secondary)}
+  .fld{margin-bottom:14px}.fld label{display:block;font-size:13px;font-weight:500;color:var(--fg-secondary);margin-bottom:6px}
+  .inp{height:48px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);display:flex;align-items:center;padding:0 12px;gap:8px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:9999px;padding:4px 12px;font-weight:600;font-size:12px;border:1px solid var(--type-expense);color:var(--type-expense)}
+  .hero{display:flex;align-items:center;justify-content:space-between;margin:14px 0 18px}
+  .hero .m{font-family:var(--mono);font-size:44px;color:var(--type-expense)}
+  .chips{display:flex;gap:8px;overflow:hidden}
+  .chp{border:1px solid var(--border);border-radius:10px;background:var(--bg-card);padding:8px 12px;font-size:12px;text-align:center;white-space:nowrap}
+  .chp.on{border-color:var(--type-expense);color:var(--type-expense)}
+  .warn{font-size:12px;color:var(--alert-soft);margin-top:6px;display:flex;gap:6px;align-items:center}
+  .seg{display:flex;border:1px solid var(--border);border-radius:8px;padding:3px;margin:10px 0 14px}
+  .seg div{flex:1;text-align:center;padding:8px 0;border-radius:6px;font-weight:500}
+  .seg .on{background:var(--bg-card);box-shadow:var(--shadow-sm);border:1px solid var(--border)}
+  .brow{display:grid;grid-template-columns:14px 1fr 70px 70px;align-items:center;min-height:40px;border-bottom:1px solid var(--border)}
+  .brow .op{color:var(--fg-muted)}.brow .c{text-align:right;font-family:var(--mono)}
+  .brow.res{font-weight:600}
+  .closed{display:flex;gap:8px;align-items:flex-start;background:var(--bg-sunken);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--fg-secondary);margin-bottom:10px}
+  .ctrl{margin:12px 0 0;display:flex;gap:8px;align-items:center;font-size:.85rem}
+  .ctrl button{font:inherit;padding:6px 12px;border-radius:8px;border:1px solid #c9c9cf;background:#fff;cursor:pointer}
+
+  .seghdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 20px;border-bottom:1px solid var(--border)}
+  .sg{display:flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:8px;padding:3px;height:40px}
+  .sg span{display:flex;align-items:center;padding:0 12px;border-radius:6px;font-weight:500;font-size:13px;color:var(--fg-muted)}
+  .sg span.on{background:var(--bg-card);color:var(--fg);border:1px solid var(--fg)}
+  .url{background:#d9d9de;color:#3a3a40;font-size:11px;text-align:center;padding:5px 0 6px;font-family:var(--sans)}
+  .t-dark .url{background:#2c2c31;color:#b4b4bb}
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px}
+  .sec .tt{font-family:var(--mono);font-size:12px;color:var(--fg-muted)}
+  .gc{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:12px;margin-bottom:8px}
+  .gc .h{display:flex;align-items:center;justify-content:space-between;font-weight:600}
+  .gc .h .l{display:flex;align-items:center;gap:8px}
+  .gc .f{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .gc .f .mono{font-size:17px;margin-top:2px}
+  .gc .kids{margin-top:10px;border-top:1px solid var(--border)}
+  .kr{display:grid;grid-template-columns:1fr 88px 88px 14px;align-items:center;min-height:48px;border-bottom:1px solid var(--border)}
+  .kr:last-child{border-bottom:0}
+  .kr .c{text-align:right;font-family:var(--mono)}
+
+  .seghdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 20px;border-bottom:1px solid var(--border)}
+  .sg{display:flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:8px;padding:3px;height:40px}
+  .sg span{display:flex;align-items:center;padding:0 12px;border-radius:6px;font-weight:500;font-size:13px;color:var(--fg-muted)}
+  .sg span.on{background:var(--bg-card);color:var(--fg);border:1px solid var(--fg)}
+  .url{background:#d9d9de;color:#3a3a40;font-size:11px;text-align:center;padding:5px 0 6px;font-family:var(--sans)}
+  .t-dark .url{background:#2c2c31;color:#b4b4bb}
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 8px}
+  .sec .tt{font-family:var(--mono);font-size:12px;color:var(--fg-muted)}
+  .gc{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:12px;margin-bottom:8px}
+  .gc .h{display:flex;align-items:center;justify-content:space-between;font-weight:600}
+  .gc .h .l{display:flex;align-items:center;gap:8px}
+  .gc .f{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .gc .f .mono{font-size:17px;margin-top:2px}
+  .gc .kids{margin-top:10px;border-top:1px solid var(--border)}
+  .kr{display:grid;grid-template-columns:1fr 88px 88px 14px;align-items:center;min-height:48px;border-bottom:1px solid var(--border)}
+  .kr:last-child{border-bottom:0}
+
+  .sec2{margin:18px 0 8px}.sec2 .tt{font-family:var(--mono);font-size:12px;color:var(--fg-muted);margin-top:2px}
+  .kr2{border-bottom:1px solid var(--border);padding:10px 0}.kr2:last-child{border-bottom:0}
+  .kr2 .top{display:flex;justify-content:space-between;align-items:center}
+  .kr2 .nums{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;font-size:13px}
+  .brow2{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:6px;padding:6px 0}
+  .brow2 .v{display:flex;flex-direction:column;align-items:flex-end}.brow2 .v .mono{font-size:14px}.brow2 .pl{font-size:11px}
+  .brow2.res{font-weight:600}
+  .kr .c{text-align:right;font-family:var(--mono)}
+
+  .capm{font-size:12px;color:var(--fg-muted)}
+  .a-sec{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 6px}
+  .bar{height:4px;border-radius:9999px;background:var(--border);overflow:hidden;margin:6px 0 4px}
+  .bar i{display:block;height:100%;background:var(--fg-muted);border-radius:9999px}.bar i.fav{background:var(--favorable)}.bar i.soft{background:var(--alert-soft)}.bar i.strong{background:var(--alert-strong)}
+  .m-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);padding:2px 14px;margin-bottom:10px}
+  .m-row{padding:12px 0 8px;border-bottom:1px solid var(--border)}.m-row:last-child{border-bottom:0}.m-row.child{padding-left:14px}
+  .m-row .l1{display:flex;align-items:center;gap:8px}.m-row .nm{flex:1;font-weight:600;font-size:14px}.m-row.child .nm{font-weight:500;font-size:13px}
+  .m-row .mono{font-size:15px;font-family:var(--mono)}.m-row.child .mono{font-size:13px}
+  .m-row .l3{font-size:12px;color:var(--fg-muted);text-align:right;margin-right:22px}
+  .chev{color:var(--fg-muted);display:flex}
+  .h-card{background:var(--primary);color:var(--bg-card);border-radius:14px;padding:10px 8px 10px 16px;box-shadow:0 4px 16px -6px rgba(0,0,0,.25)}
+  .t-dark .h-card{color:#1c1c1f}
+  .h-card .eb,.h-card .cap{color:inherit;opacity:.7}.h-card .eb{font-size:10px}.h-card .cap{font-size:12px;margin:0;max-width:none}
+  .h-top{display:flex;align-items:center;justify-content:space-between}.h-n{font-size:20px;margin-top:1px}
+  .h-act{display:flex}.eye{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:9999px;opacity:.85}
+  .eye.held{background:rgba(127,127,127,.35);opacity:1}
+  .h-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 8px 0 0;padding-top:10px;border-top:1px solid rgba(127,127,127,.4)}
+  .h-grid .eb{font-size:9.5px;letter-spacing:.06em}.h-grid .mono{font-size:12.5px;margin-top:3px}.h-grid .cap{font-size:10.5px}
+  .h-link{font-size:12px;font-weight:500;margin:10px 8px 2px 0;opacity:.85}
+  .sg span.on{border:0;box-shadow:var(--shadow-sm)}
+  footer{margin-top:32px;font-size:.8rem;color:#6b6b73}
+  @media (max-width:520px){.phone{width:340px}.cap{max-width:340px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Presupuesto en el teléfono</h1>
+  <p class="sub">Vista previa de la feature <b>presupuesto-movil</b>. Arriba están los colores y tamaños, que son los mismos que ya usa la app. Abajo, cómo se verían las pantallas del teléfono, en el estilo que aprobaste el 3-oct-2026 (mezcla de A y B). Las cifras son inventadas, de hasta 9 dígitos.</p>
+
+  <h2>Así se vería en el teléfono</h2>
+  <div class="banner">ILUSTRATIVO — no vinculante; el contrato es el spec (01_UX_SPEC.md).</div>
+  <div class="ctrl">Tema de las pantallas: <button type="button" id="tl">Claro</button><button type="button" id="td">Oscuro</button></div>
+  <div class="strip-wrap"><div class="strip t-light" id="strip"><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="pbar"><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span class="plabel">Octubre 2026 · 21 sep – 20 oct <svg width="14" height="14" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="h-card"><div class="h-top"><div><div class="eb">Saldo disponible</div><div class="mono h-n">$ ••••••</div></div><div class="h-act"><span class="eye"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></span><span class="eye"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div></div></div><div class="a-sec"><span class="eb">Ingresos</span><span class="mono capm">256.850.000 de 256.850.000</span></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Trabajo</span><span class="mono fav">256.850.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="fav" style="width:100%"></i></div><div class="l3">de 256.850.000</div></div></div><div class="a-sec"><span class="eb">Gastos</span><span class="mono capm">123.288.000 de 154.110.000</span></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Vivienda</span><span class="mono ">66.781.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div><div class="bar"><i class="" style="width:81%"></i></div><div class="l3">de 82.192.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Mercado</span><span class="mono ">30.822.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="" style="width:60%"></i></div><div class="l3">de 51.370.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Servicios</span><span class="mono soft">› 28.253.500</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="soft" style="width:100%"></i></div><div class="l3">de 25.685.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Administración</span><span class="mono strong">›› 7.705.500</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="strong" style="width:100%"></i></div><div class="l3">de 5.137.000</div></div></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Transporte</span><span class="mono ">35.959.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="" style="width:87%"></i></div><div class="l3">de 41.096.000</div></div></div></div></div><p class="cap"><b>1. El mes, como abre.</b> El resumen es una línea con el saldo escondido. Cada grupo va en una tarjeta con lo gastado, la barrita de avance y «de cuánto». Al tocar un grupo se abren sus categorías dentro de la misma tarjeta.</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="pbar"><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span class="plabel">Octubre 2026 · 21 sep – 20 oct <svg width="14" height="14" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="h-card"><div class="h-top"><div><div class="eb">Saldo disponible</div><div class="mono h-n">118.151.000</div></div><div class="h-act"><span class="eye held"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="eye"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg></span></div></div><div class="cap" style="margin-top:2px">Plan 77.055.000</div><div class="h-grid"><div><div class="eb">Resultado del mes</div><div class="mono">133.562.000</div><div class="cap">Plan 102.740.000</div></div><div><div class="eb">Saldo reservado</div><div class="mono">15.411.000</div><div class="cap">Plan 25.685.000</div></div><div><div class="eb">Saldo total</div><div class="mono">133.562.000</div><div class="cap">Plan 102.740.000</div></div></div><div class="h-link">Ver Balance completo ›</div></div><div class="a-sec"><span class="eb">Ingresos</span><span class="mono capm">256.850.000 de 256.850.000</span></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Trabajo</span><span class="mono fav">256.850.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="fav" style="width:100%"></i></div><div class="l3">de 256.850.000</div></div></div><div class="a-sec"><span class="eb">Gastos</span><span class="mono capm">123.288.000 de 154.110.000</span></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Vivienda</span><span class="mono ">66.781.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></div><div class="bar"><i class="" style="width:81%"></i></div><div class="l3">de 82.192.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Mercado</span><span class="mono ">30.822.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="" style="width:60%"></i></div><div class="l3">de 51.370.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Servicios</span><span class="mono soft">› 28.253.500</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="soft" style="width:100%"></i></div><div class="l3">de 25.685.000</div></div><div class="m-row child"><div class="l1"><span class="nm">Administración</span><span class="mono strong">›› 7.705.500</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="strong" style="width:100%"></i></div><div class="l3">de 5.137.000</div></div></div></div></div><p class="cap"><b>2. El resumen abierto, con el dedo sobre el ojo.</b> La flecha lo despliega y muestra los cuatro saldos con su plan. Los valores se ven solo mientras mantienes presionado el ojo; al soltar vuelven a «$ ••••••».</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div style="height:10px"></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Estilo de vida</span><span class="mono ">20.548.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="" style="width:67%"></i></div><div class="l3">de 30.822.000</div></div></div><div class="a-sec"><span class="eb">Reservas</span><span class="mono capm">25.685.000 de 25.685.000</span></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Viaje</span><span class="mono ">25.685.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="bar"><i class="" style="width:100%"></i></div><div class="l3">de 25.685.000</div></div></div><div class="m-card"><div class="m-row"><div class="l1"><span class="nm">Retiros del mes</span><span class="mono ">10.274.000</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="l3">Plan —</div></div></div></div></div><p class="cap"><b>3. Más abajo, las alcancías.</b> Cada alcancía muestra lo que metiste ese mes contra lo planeado. La última tarjeta es «Retiros del mes».</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="dh"><span class="pen" style="width:32px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><div><div class="t">Mercado</div><div class="muted" style="font-size:12px">Gastos · Vivienda · Octubre 2026</div></div></div><div class="two"><div class="card"><div class="eb">Presupuestado</div><div class="big">51.370.000</div><div class="btn">Cambiar</div></div><div class="card"><div class="eb">Ejecutado</div><div class="big">30.822.000</div></div></div><div class="eb" style="margin-bottom:4px">Movimientos</div><div class="mv"><span class="d">5 oct</span><span>Plaza de mercado</span><span class="a">15.411.000</span><span class="pen"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span></div><div class="mv"><span class="d">12 oct</span><span>Supermercado</span><span class="a">10.274.000</span><span class="pen"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span></div><div class="mv"><span class="d">20 oct</span><span class="muted">Sin nota</span><span class="a">5.137.000</span><span class="pen"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span></div></div></div><p class="cap"><b>4. Una categoría.</b> Lo planeado (con «Cambiar») y lo gastado, y debajo cada gasto del mes con su lápiz. El «atrás» del navegador vuelve a la lista.</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body" style="padding-top:4px"><div class="dh"><span class="pen" style="width:32px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><div><div class="t">Editar movimiento</div><div class="muted" style="font-size:12px">Mercado · Octubre 2026</div></div></div><span class="pill">− Gasto</span><div class="hero"><span class="m">−</span><span class="m">$10.274.000</span></div><div class="fld"><label>Categoría</label><div class="chips"><span class="chp">Servicios</span><span class="chp on">Mercado</span><span class="chp">Parqueaderos</span></div></div><div class="fld"><label>Fecha</label><div class="inp"><svg width="18" height="18" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>3 nov</div><div class="warn"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Pasará a Noviembre 2026</div></div><div class="fld"><label>Nota (opcional)</label><div class="inp" style="height:56px">Supermercado</div></div><div class="btn pri" style="margin-bottom:10px">Guardar cambios</div><div class="btn dng">Borrar movimiento</div></div></div><p class="cap"><b>5. Corregir un gasto.</b> El mismo formulario de Registrar, con los datos cargados. Si la fecha cae en otro mes, avisa antes de guardar. Borrar pide confirmación.</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="dh"><span class="pen" style="width:32px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><div><div class="t">Retiros del mes</div><div class="muted" style="font-size:12px">Reservas · Octubre 2026</div></div></div><div class="two"><div class="card"><div class="eb">Pres.</div><div class="big muted">—</div></div><div class="card"><div class="eb">Ejec.</div><div class="big">10.274.000</div></div></div><div class="eb" style="margin-bottom:4px">Retiros</div><div class="mv" style="grid-template-columns:1fr auto 40px 40px"><span>Viaje → Disponible<br><span class="muted" style="font-size:12px">Tiquetes</span></span><span class="a">10.274.000</span><span class="pen"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="pen"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></span></div><p class="muted" style="font-size:12px;margin-top:14px">Para sacar de una alcancía, usa Registrar → Reserva.</p></div></div><p class="cap"><b>6. Retiros del mes.</b> Se saca desde Registrar → Reserva. Aquí se ven los retiros del mes y se pueden corregir o borrar.</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="dh"><span class="pen" style="width:32px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><div><div class="t">Balance</div><div class="muted" style="font-size:12px">Octubre 2026</div></div></div><div class="muted" style="font-size:12px;margin:2px 0 8px">Lo real en grande; lo planeado debajo.</div><div class="gc" style="padding:8px 12px"><div class="eb" style="margin:2px 0">El mes</div><div class="brow2"><span class="op">+</span><span>Ingresos</span><span class="v"><span class="mono ">256.850.000</span><span class="muted pl">Plan 256.850.000</span></span></div><div class="brow2"><span class="op">−</span><span>Gastos</span><span class="v"><span class="mono ">123.288.000</span><span class="muted pl">Plan 154.110.000</span></span></div><div class="brow2 res"><span class="op">=</span><span>Resultado del mes</span><span class="v"><span class="mono ">133.562.000</span><span class="muted pl">Plan 102.740.000</span></span></div></div><div class="gc" style="padding:8px 12px"><div class="eb" style="margin:2px 0">Lo disponible</div><div class="brow2"><span class="op"></span><span>Saldo anterior</span><span class="v"><span class="mono ">0</span><span class="muted pl">Plan 0</span></span></div><div class="brow2"><span class="op">+</span><span>Resultado del mes</span><span class="v"><span class="mono ">133.562.000</span><span class="muted pl">Plan 102.740.000</span></span></div><div class="brow2"><span class="op">−</span><span>Reservas del mes</span><span class="v"><span class="mono ">25.685.000</span><span class="muted pl">Plan 25.685.000</span></span></div><div class="brow2"><span class="op">+</span><span>Retiros de reservas</span><span class="v"><span class="mono ">10.274.000</span><span class="muted pl">Plan —</span></span></div><div class="brow2 res"><span class="op">=</span><span>Saldo disponible</span><span class="v"><span class="mono ">118.151.000</span><span class="muted pl">Plan 77.055.000</span></span></div></div><div class="gc" style="padding:8px 12px"><div class="eb" style="margin:2px 0">El cierre</div><div class="brow2"><span class="op">+</span><span>Saldo reservado</span><span class="v"><span class="mono ">15.411.000</span><span class="muted pl">Plan 25.685.000</span></span></div><div class="brow2 res"><span class="op">=</span><span>Saldo total</span><span class="v"><span class="mono ">133.562.000</span><span class="muted pl">Plan 102.740.000</span></span></div></div></div></div><p class="cap"><b>7. Balance completo.</b> Los tres bloques del computador, cada uno en su tarjeta, con lo real grande y el plan debajo. Aquí los valores no se esconden.</p></div><div><div class="phone"><div class="url">ledger · tu dominio</div><div class="seghdr"><div class="sg"><span>Registrar</span><span class="on">Presupuesto</span></div><div class="icons"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span><span class="ic" style="font-size:13px;color:var(--fg)">Salir</span></div></div><div class="body"><div class="pbar"><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span class="plabel"><svg width="14" height="14" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Septiembre 2026 · 21 ago – 20 sep</span><span class="pbtn"><svg width="18" height="18" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></span></div><div class="closed"><span style="flex:none;margin-top:2px"><svg width="14" height="14" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>Septiembre 2026 está cerrado. Puedes mirarlo; para cambiarlo, reábrelo desde el cierre de mes en el computador.</div><div class="dh"><span class="pen" style="width:32px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><div><div class="t">Mercado</div><div class="muted" style="font-size:12px">Gastos · Vivienda · Septiembre 2026</div></div></div><div class="two"><div class="card"><div class="eb">Presupuestado</div><div class="big">46.233.000</div></div><div class="card"><div class="eb">Ejecutado</div><div class="big">43.664.500</div></div></div><div class="eb" style="margin-bottom:4px">Movimientos</div><div class="mv" style="grid-template-columns:52px 1fr auto"><span class="d">2 sep</span><span>Supermercado</span><span class="a">43.664.500</span></div></div></div><p class="cap"><b>8. Mes cerrado.</b> Candado y aviso. Todo se ve, pero no aparecen «Cambiar» ni los lápices.</p></div></div></div>
+
+  <h2>Colores (los de la app, sin cambios)</h2>
+  <div class="panels">
+    <div class="panel t-light" data-panel><h3>Tema claro</h3><div class="sws"></div></div>
+    <div class="panel t-dark" data-panel><h3>Tema oscuro</h3><div class="sws"></div></div>
+  </div>
+
+  <h2>Letra y espacios</h2>
+  <div class="panels">
+    <div class="panel t-light ts">
+      <div style="font-size:17px;font-weight:600">.title-sm 17/600 — Mercado</div>
+      <div style="font-size:13px;font-weight:500">.label 13/500 — nombres de fila y pestañas</div>
+      <div style="font-size:12px">.caption 12/400 — ruta, día, avisos</div>
+      <div class="eb">.eyebrow 11/600 — Saldo disponible</div>
+      <div class="mono" style="font-size:22px">.display 22 — 1.000</div>
+      <div class="mono" style="font-size:13px">DM Mono 13 tabular — 999.999.999</div>
+    </div>
+    <div class="panel t-light">
+      <div class="sp"><div><span style="width:4px;height:4px"></span><small>4</small></div><div><span style="width:8px;height:8px"></span><small>8</small></div><div><span style="width:12px;height:12px"></span><small>12</small></div><div><span style="width:16px;height:16px"></span><small>16</small></div><div><span style="width:20px;height:20px"></span><small>20</small></div><div><span style="width:24px;height:24px"></span><small>24</small></div><div><span style="width:40px;height:40px"></span><small>40 control-md</small></div><div><span style="width:48px;height:48px"></span><small>48 control-lg</small></div></div>
+      <p style="font-size:.8rem;color:var(--fg-secondary)">Radios: 8 (campos y botones), 10 (tarjetas), full (etiqueta de tipo). Columna de cifra: 96 px.</p>
+    </div>
+  </div>
+
+  <p class="sub" style="margin-top:16px"><b>Lo que esta vista previa no muestra tal cual:</b> las fuentes Inter y DM Mono no van incrustadas, porque el archivo no hace peticiones externas. Aquí se ven con la fuente del sistema, y en la app se ven con las reales. Los íconos son trazos aproximados de los de Lucide. La franja gris de arriba de cada teléfono representa la barra del navegador: es una app web, no nativa.</p>
+  <footer>Generado a partir de 01_UX_SPEC.md — no vinculante; el contrato es el spec.</footer>
+</div>
+<script>
+  const ROLES=[["--bg","background","Lienzo de la vista"],["--bg-card","surface","Tarjetas y segmento activo"],["--bg-elevated","surface-2","Lista de periodos, avisos"],["--bg-sunken","sunken","Fondo del segmentado, aviso de cerrado"],["--primary","primary","Tarjeta de resumen y botón principal"],["--accent-light","accent","Anillo de foco"],["--fg","text-primary","Nombres y cifras"],["--fg-secondary","text-secondary","Ruta y avisos"],["--fg-muted","text-muted","Eyebrows, «—», pestaña inactiva"],["--border","border","Hairline de filas y tarjetas"],["--alert-strong","alert-strong / error","›› grave, saldo negativo, borrar"],["--alert-soft","alert-soft","› leve, «Pasará a …»"],["--favorable","favorable","Saldo sano, ingreso favorable"],["--type-expense","type-expense","Etiqueta Gasto en Editar"]];
+  function lum(h){const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+  function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+  document.querySelectorAll("[data-panel]").forEach(p=>{
+    const cs=getComputedStyle(p),bg=cs.getPropertyValue("--bg").trim(),card=cs.getPropertyValue("--bg-card").trim(),sunk=cs.getPropertyValue("--bg-sunken").trim();
+    const box=p.querySelector(".sws");
+    ROLES.forEach(([v,role,why])=>{
+      const hex=cs.getPropertyValue(v).trim();
+      const isText=!["--bg","--bg-card","--bg-elevated","--bg-sunken","--border"].includes(v);
+      let badge="";
+      if(isText){const r=Math.min(ratio(hex,bg),ratio(hex,card),ratio(hex,sunk));badge=`<span class="badge ${r>=4.5?"ok":"bad"}">${r>=4.5?"AA":"<AA"} ${r.toFixed(2)}</span>`;}
+      box.insertAdjacentHTML("beforeend",`<div class="sw"><span class="chip" style="background:${hex}"></span><span><b>${role}</b> <span class="mono">${hex}</span><small>${why}</small></span>${badge}</div>`);
+    });
+  });
+  const s=document.getElementById("strip");
+  document.getElementById("tl").onclick=()=>{s.classList.remove("t-dark");s.classList.add("t-light");};
+  document.getElementById("td").onclick=()=>{s.classList.remove("t-light");s.classList.add("t-dark");};
+</script>
+</body>
+</html>

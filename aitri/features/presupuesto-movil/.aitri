@@ -1,0 +1,273 @@
+{
+  "currentPhase": 4,
+  "approvedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4
+  ],
+  "completedPhases": [
+    1,
+    "ux",
+    2,
+    3,
+    4
+  ],
+  "projectName": "presupuesto-movil",
+  "createdAt": "2026-10-03T00:53:53.858Z",
+  "artifactsDir": "spec",
+  "updatedAt": "2026-10-04T05:41:12.297Z",
+  "driftPhases": [],
+  "events": [
+    {
+      "at": "2026-10-03T15:39:47.615Z",
+      "event": "completed",
+      "phase": 1
+    },
+    {
+      "at": "2026-10-03T15:39:47.716Z",
+      "event": "approved",
+      "phase": 1
+    },
+    {
+      "at": "2026-10-03T15:42:18.207Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-10-03T15:42:18.320Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-10-03T15:57:21.860Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-10-03T16:01:36.967Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-10-03T16:09:47.996Z",
+      "event": "started",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-10-03T16:09:48.073Z",
+      "event": "completed",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-10-03T16:09:48.201Z",
+      "event": "approved",
+      "phase": "ux"
+    },
+    {
+      "at": "2026-10-03T16:09:48.303Z",
+      "event": "started",
+      "phase": 2
+    },
+    {
+      "at": "2026-10-03T16:09:48.382Z",
+      "event": "completed",
+      "phase": 2
+    },
+    {
+      "at": "2026-10-03T16:48:51.243Z",
+      "event": "approved",
+      "phase": 2
+    },
+    {
+      "at": "2026-10-03T16:48:51.357Z",
+      "event": "started",
+      "phase": 3
+    },
+    {
+      "at": "2026-10-03T16:52:57.364Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-10-03T16:53:13.334Z",
+      "event": "completed",
+      "phase": 3
+    },
+    {
+      "at": "2026-10-03T17:02:31.188Z",
+      "event": "approved",
+      "phase": 3
+    },
+    {
+      "at": "2026-10-03T17:02:31.302Z",
+      "event": "started",
+      "phase": 4
+    },
+    {
+      "at": "2026-10-04T00:24:29.845Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-10-04T00:24:39.818Z",
+      "event": "completed",
+      "phase": 4
+    },
+    {
+      "at": "2026-10-04T05:41:12.274Z",
+      "event": "approved",
+      "phase": 4
+    }
+  ],
+  "cascadedPhases": [],
+  "artifactHashes": {
+    "1": "ab426026c003d18fd13e1923b5643bc9c41b04818e7fb5667fc84a016d256024",
+    "2": "dc5b551379c5660c7207bd305f3c095e524d0bb4efa5122b4203dd985a36ded1",
+    "3": "5b18d66fd8e592cda54b22342ccd1c17f0a5ac0af91d0e4659a4da03a61902ac",
+    "4": "fc15301af189a9b59f68d052ce550642ed610a6a266e20ebd9900e29a439358b",
+    "ux": "008ff3057904dff80cf9b41f4fb7eb2718e1ab12a118fc7d257dfeee9e9675f3"
+  },
+  "verifyPassed": false,
+  "frSnapshots": {
+    "2": [
+      "FR-3101",
+      "FR-3102",
+      "FR-3103",
+      "FR-3104",
+      "FR-3105",
+      "FR-3106",
+      "FR-3107",
+      "FR-3108",
+      "FR-3109",
+      "FR-3110",
+      "FR-3111",
+      "FR-3112",
+      "FR-3113",
+      "FR-3114",
+      "FR-3115"
+    ],
+    "3": [
+      "FR-3101",
+      "FR-3102",
+      "FR-3103",
+      "FR-3104",
+      "FR-3105",
+      "FR-3106",
+      "FR-3107",
+      "FR-3108",
+      "FR-3109",
+      "FR-3110",
+      "FR-3111",
+      "FR-3112",
+      "FR-3113",
+      "FR-3114",
+      "FR-3115"
+    ],
+    "4": [
+      "FR-3101",
+      "FR-3102",
+      "FR-3103",
+      "FR-3104",
+      "FR-3105",
+      "FR-3106",
+      "FR-3107",
+      "FR-3108",
+      "FR-3109",
+      "FR-3110",
+      "FR-3111",
+      "FR-3112",
+      "FR-3113",
+      "FR-3114",
+      "FR-3115"
+    ],
+    "ux": [
+      "FR-3101",
+      "FR-3102",
+      "FR-3103",
+      "FR-3104",
+      "FR-3105",
+      "FR-3106",
+      "FR-3107",
+      "FR-3108",
+      "FR-3109",
+      "FR-3110",
+      "FR-3111",
+      "FR-3112",
+      "FR-3113",
+      "FR-3114",
+      "FR-3115"
+    ]
+  },
+  "frContentSnapshots": {
+    "2": {
+      "FR-3101": "ec8399ffe80db8e7",
+      "FR-3102": "87cf0e037a83ebd5",
+      "FR-3103": "dfdd760eae1b2ef2",
+      "FR-3104": "e9a63ed1c6422ae6",
+      "FR-3105": "9c7e8879021d4dc8",
+      "FR-3106": "ba8c93bd1313eef1",
+      "FR-3107": "2a43bda6dd763970",
+      "FR-3108": "43be4acfab31fe34",
+      "FR-3109": "75615124f03f271c",
+      "FR-3110": "0586a64e5c0b1cba",
+      "FR-3111": "3660104432928b8c",
+      "FR-3112": "1eb0b0bd0d76a939",
+      "FR-3113": "565b00b222a93f18",
+      "FR-3114": "1b6433a59d9d2f55",
+      "FR-3115": "bdbd98c07f58d533"
+    },
+    "3": {
+      "FR-3101": "ec8399ffe80db8e7",
+      "FR-3102": "87cf0e037a83ebd5",
+      "FR-3103": "dfdd760eae1b2ef2",
+      "FR-3104": "e9a63ed1c6422ae6",
+      "FR-3105": "9c7e8879021d4dc8",
+      "FR-3106": "ba8c93bd1313eef1",
+      "FR-3107": "2a43bda6dd763970",
+      "FR-3108": "43be4acfab31fe34",
+      "FR-3109": "75615124f03f271c",
+      "FR-3110": "0586a64e5c0b1cba",
+      "FR-3111": "3660104432928b8c",
+      "FR-3112": "1eb0b0bd0d76a939",
+      "FR-3113": "565b00b222a93f18",
+      "FR-3114": "1b6433a59d9d2f55",
+      "FR-3115": "bdbd98c07f58d533"
+    },
+    "4": {
+      "FR-3101": "ec8399ffe80db8e7",
+      "FR-3102": "87cf0e037a83ebd5",
+      "FR-3103": "dfdd760eae1b2ef2",
+      "FR-3104": "e9a63ed1c6422ae6",
+      "FR-3105": "9c7e8879021d4dc8",
+      "FR-3106": "ba8c93bd1313eef1",
+      "FR-3107": "2a43bda6dd763970",
+      "FR-3108": "43be4acfab31fe34",
+      "FR-3109": "75615124f03f271c",
+      "FR-3110": "0586a64e5c0b1cba",
+      "FR-3111": "3660104432928b8c",
+      "FR-3112": "1eb0b0bd0d76a939",
+      "FR-3113": "565b00b222a93f18",
+      "FR-3114": "1b6433a59d9d2f55",
+      "FR-3115": "bdbd98c07f58d533"
+    },
+    "ux": {
+      "FR-3101": "ec8399ffe80db8e7",
+      "FR-3102": "87cf0e037a83ebd5",
+      "FR-3103": "dfdd760eae1b2ef2",
+      "FR-3104": "e9a63ed1c6422ae6",
+      "FR-3105": "9c7e8879021d4dc8",
+      "FR-3106": "ba8c93bd1313eef1",
+      "FR-3107": "2a43bda6dd763970",
+      "FR-3108": "43be4acfab31fe34",
+      "FR-3109": "75615124f03f271c",
+      "FR-3110": "0586a64e5c0b1cba",
+      "FR-3111": "3660104432928b8c",
+      "FR-3112": "1eb0b0bd0d76a939",
+      "FR-3113": "565b00b222a93f18",
+      "FR-3114": "1b6433a59d9d2f55",
+      "FR-3115": "bdbd98c07f58d533"
+    }
+  }
+}

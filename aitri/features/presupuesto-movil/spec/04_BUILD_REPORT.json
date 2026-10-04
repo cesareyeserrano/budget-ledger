@@ -1,0 +1,140 @@
+{
+  "files_created": [
+    "src/components/mobile/AmountEditCard.tsx",
+    "src/components/mobile/BalanceScreen.tsx",
+    "src/components/mobile/BudgetSections.tsx",
+    "src/components/mobile/DetailHeader.tsx",
+    "src/components/mobile/LeafScreen.tsx",
+    "src/components/mobile/MobileBudget.tsx",
+    "src/components/mobile/MovementEditScreen.tsx",
+    "src/components/mobile/PeriodBar.tsx",
+    "src/components/mobile/SegmentedNav.tsx",
+    "src/components/mobile/SummaryCard.tsx",
+    "src/components/mobile/WithdrawalsScreen.tsx",
+    "src/components/mobile/amountDraft.ts",
+    "src/components/mobile/screenStack.ts",
+    "src/components/mobile/tone.ts",
+    "src/components/mobile/useHoldReveal.ts",
+    "src/components/mobile/withdrawalRows.ts",
+    "src/components/balanceView.ts",
+    "src/domain/movementEditVerdict.ts",
+    "src/domain/periodView.ts",
+    "tests/fixtures/pmv-base.ts",
+    "tests/domain/presupuesto-movil-edicion.test.ts",
+    "tests/domain/presupuesto-movil-lista.test.ts",
+    "tests/domain/presupuesto-movil-una-pasada.test.ts",
+    "tests/unit/presupuesto-movil-balance.test.ts",
+    "tests/unit/presupuesto-movil-monto.test.ts",
+    "tests/unit/presupuesto-movil-pantallas.test.ts",
+    "tests/integration/presupuesto-movil-pantallas.test.ts",
+    "tests/integration/presupuesto-movil-serie.test.ts",
+    "tests/integration/backend/presupuesto-movil.test.ts",
+    "tests/e2e/presupuesto-movil.spec.ts"
+  ],
+  "files_modified": [
+    "src/components/MobileShell.tsx",
+    "src/components/MovementEditor.tsx",
+    "src/components/BalanceModule.tsx",
+    "src/components/register/AmountDisplay.tsx",
+    "src/components/register/NoteField.tsx",
+    "src/components/register/SaveButton.tsx",
+    "src/domain/tree.ts",
+    "src/domain/index.ts",
+    "scripts/design-tokens.sh",
+    "tests/e2e/critical.spec.ts",
+    "tests/e2e/coverage-skips.spec.ts",
+    "tests/e2e/feature-stack.spec.ts",
+    "tests/e2e/fecha-de-comentario.spec.ts",
+    "tests/e2e/ux-consistency.spec.ts",
+    "tests/e2e/budget-state-color.spec.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/presupuesto-movil-edicion.test.ts",
+    "../../../tests/domain/presupuesto-movil-lista.test.ts",
+    "../../../tests/domain/presupuesto-movil-una-pasada.test.ts",
+    "../../../tests/unit/presupuesto-movil-balance.test.ts",
+    "../../../tests/unit/presupuesto-movil-monto.test.ts",
+    "../../../tests/unit/presupuesto-movil-pantallas.test.ts",
+    "../../../tests/integration/presupuesto-movil-pantallas.test.ts",
+    "../../../tests/integration/presupuesto-movil-serie.test.ts",
+    "../../../tests/integration/backend/presupuesto-movil.test.ts",
+    "../../../tests/e2e/presupuesto-movil.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-3115",
+      "substitution": "El gesto de mantener presionado el ojo se verifica con el navegador de pruebas (puntero de ratón y teclado), no en un iPhone real",
+      "reason": "Playwright no reproduce el menú del sistema ni la selección de texto que Safari de iOS abre en una pulsación larga; el código lleva las protecciones (touch-action, -webkit-touch-callout, user-select, contextmenu anulado), pero falta la comprobación manual en el dispositivo antes de desplegar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3107",
+      "substitution": "La etiqueta de tipo de «Editar movimiento» va en neutro, no en el color del tipo que pedía el UX spec (F5)",
+      "reason": "El guardia del sistema de diseño (refinamiento-ui FR-1201, scripts/design-tokens.sh) prohíbe el color por tipo fuera de las piezas del registro; el estándar del producto manda sobre el spec de la feature. El monto y la categoría, que son piezas del registro, sí conservan el color del tipo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3115",
+      "substitution": "El resumen desplegado muestra los tres saldos restantes en filas (rótulo a la izquierda, cifra y plan a la derecha), no en la rejilla de tres columnas de la maqueta",
+      "reason": "Tres columnas a 375 px solo caben con tamaños de letra fuera de la escala del producto (9,5–12,5 px), que el mismo guardia rechaza (FR-1206); en filas caben cifras de nueve dígitos con la escala.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3105",
+      "substitution": "El campo de «Cambiar» muestra el mensaje de monto entero para letras, comas y signos, y ninguno para el vacío; el UX spec (F4) pedía el texto «Escribe un monto en pesos, sin signo» para los tres casos",
+      "reason": "Se reutiliza el mensaje que la app ya usa para la misma regla (amountInputError, BG-076) en vez de introducir un segundo texto para lo mismo; el vacío deshabilita Guardar sin acusar un error que el usuario aún no cometió.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3106",
+      "substitution": "`dayLabel` no se mudó de CellDetail.tsx a format.ts como decía el diseño; el teléfono usa `formatDay` del dominio",
+      "reason": "`dayLabel` es un alias de una línea de `formatDay`, que ya vive en el dominio; usarlo directamente evita importar el componente de escritorio y deja CellDetail.tsx sin tocar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3104",
+      "substitution": "El guardia de arquitectura «el móvil no calcula» no es una prueba que lea el código fuente; la paridad se garantiza con pruebas de resultado",
+      "reason": "Las reglas de la fase 3 prohíben pruebas que lean el fuente como texto. TC-PMV-033f (312 nodos × 36 periodos contra rollupTable), TC-PMV-030h y TC-PMV-031h (teléfono contra escritorio en el navegador) hacen caer cualquier cifra distinta.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

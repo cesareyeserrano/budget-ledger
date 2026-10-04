@@ -6,21 +6,18 @@
 //               y categoría, con «Guardar» habilitado solo cuando el cambio va a entrar. Valida
 //               ensayando la MISMA función del dominio que correrá el servidor, así que lo que aquí
 //               se deshabilita es exactamente lo que allí se rechazaría.
-// Dependencias: @/domain (editMovement, isDateInPeriod), @/state/store, ./ui/select, ./ui/popover.
+// Dependencias: @/domain (movementEditVerdict), @/state/store, ./ui/select, ./ui/popover.
 
 import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarClock, TriangleAlert } from "lucide-react";
-import {
-  CELL_NOTE_MAX, deleteMovement as ensayarBorrado, editMovement as dryRun, formatDay, isClosed, isLeaf, periodLabel,
-  type MovementPatch,
-} from "@/domain";
+import { CELL_NOTE_MAX, formatDay, isLeaf, movementEditVerdict, periodLabel } from "@/domain";
 import type { Movement, PeriodKey } from "@/domain/types";
 import { useActivePeriods, useCalendar, useLedgerStore } from "@/state/store";
 import { money, textoBorradoNegativo } from "./format";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { amountChars, amountInputError, parsePesos } from "@/lib/money";
+import { amountChars } from "@/lib/money";
 
 const DateCalendar = dynamic(() => import("./register/DateCalendar"), { ssr: false });
 
@@ -64,46 +61,21 @@ export function MovementEditor({ movement, month, onDone }: { movement: Movement
     [data.nodes, movement.type]
   );
 
-  // BG-076 (FR-207): un monto que no es entero en pesos («1500,50») se rechaza con su mensaje; antes la
-  // coma se borraba y se guardaban 150.050. El «−» inicial de un ajuste sigue siendo válido.
-  const signo = esAjuste && monto.startsWith("-") ? -1 : 1;
-  const errorMonto = amountInputError(esAjuste ? monto.replace(/^-/, "") : monto);
-  const amount = signo * parsePesos(monto);
-  const notaLarga = nota.length > CELL_NOTE_MAX;
-  // CERO = ELIMINAR (FR-2505), no un monto inválido. Es el idioma que la app ya tiene para los
-  // retiros de bolsillo (FR-1802 de `techo-de-flujo`, fijado con palabras del usuario), y tenerlo
-  // solo en la mitad de la app obligaba a aprender dos reglas para la misma intención.
-  const eliminar = monto !== "" && amount === 0;
-  const montoOk = monto !== "" && !errorMonto && Number.isInteger(amount) && (eliminar || (esAjuste ? amount !== 0 : amount >= 1));
-
-  const patch: MovementPatch = {
-    amount,
-    note: nota.trim() === "" ? null : nota,
-    date: fecha,
-    ...(destino !== movement.target ? { catId: destino } : {}),
-  };
-
-  // El ENSAYO: se corre la misma mutación que correrá el servidor y se mira si la rechazaría. No es
-  // una validación paralela —que podría divergir—, es LA validación, ejecutada antes de escribir.
-  // Con el monto en 0 el ensayo es el del BORRADO —la misma función que corre la papelera— para que
-  // las dos vías den el mismo veredicto y el mismo texto. Una validación propia acabaría divergiendo.
-  const ensayo = montoOk && !notaLarga
-    ? (eliminar ? ensayarBorrado(data, movement.id) : dryRun(data, movement.id, patch, cal, periods))
-    : null;
-  const negativa = ensayo && "rejected" in ensayo && ensayo.rejected === "negative_cell" ? ensayo.cells[0] : null;
-  const otroRechazo = ensayo && "rejected" in ensayo && ensayo.rejected !== "negative_cell" ? ensayo.rejected : null;
-
-  // El periodo al que iría la fecha elegida: decide el aviso «Pasará a …» Y el bloqueo por cierre.
-  let destinoPeriodo: PeriodKey | null = null;
-  try { destinoPeriodo = cal.periodForDate(fecha); } catch { destinoPeriodo = null; }
-  const cambiaDePeriodo = destinoPeriodo !== null && destinoPeriodo !== movement.period;
-
-  // El DESTINO cerrado se comprueba AQUÍ y no en el ensayo: `editMovement` es dominio puro y no
-  // conoce la frontera de cierre, así que sin esto «Guardar» quedaría habilitado y el rechazo
-  // llegaría del servidor — el usuario vería su cambio aparecer y desaparecer (FR-2507).
-  const destinoCerrado = destinoPeriodo !== null && cambiaDePeriodo && isClosed(data.closure, destinoPeriodo);
-
-  const puedeGuardar = montoOk && !notaLarga && !destinoCerrado && ensayo !== null && !("rejected" in ensayo);
+  // El ENSAYO vive en el dominio (`movementEditVerdict`), extraído de aquí sin cambiar una regla para
+  // que la pantalla de edición del teléfono decida con la misma función (presupuesto-movil, ADR-03):
+  // monto entero (BG-076), cero = eliminar (FR-2505), la mutación real corrida en seco, y el destino
+  // cerrado (FR-2507).
+  const v = movementEditVerdict(data, movement, { amount: monto, note: nota, date: fecha, target: destino }, cal, periods);
+  const errorMonto = v.amountError;
+  const notaLarga = v.noteTooLong;
+  const eliminar = monto !== "" && v.amount === 0;
+  const patch = v.patch;
+  const negativa = v.negative;
+  const otroRechazo = v.otherReject;
+  const destinoPeriodo = v.targetPeriod;
+  const cambiaDePeriodo = v.movesTo !== null;
+  const destinoCerrado = v.targetClosed;
+  const puedeGuardar = v.canSave;
 
   function confirmar() {
     if (!puedeGuardar) return;

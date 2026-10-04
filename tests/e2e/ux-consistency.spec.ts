@@ -230,7 +230,9 @@ test("TC-UXC-306h: los eyebrows resuelven al mismo tamaño/peso/color vía .eyeb
   expect(new Set(deskEyebrows.map((s) => s.color)).size).toBe(1);
   // BL-003: al retirar la lista 'Recientes' el móvil se quedó sin eyebrows (era su encabezado).
   // La consistencia de .eyebrow se afirma en escritorio, que es donde viven; en móvil se afirma
-  // que no queda ninguno y que la cabecera del registro conserva su escala tipográfica.
+  // que la vista REGISTRAR no tiene ninguno y que su título conserva su escala tipográfica.
+  // (presupuesto-movil añadió una vista de presupuesto con eyebrows propios; no existe en el DOM hasta
+  // que se visita, y su tipografía se prueba en presupuesto-movil.spec.ts.)
   await gotoMobile(page, "light");
   expect(await eyebrowStyles(page)).toHaveLength(0);
   const mobTitle = await page.getByTestId("page-title").evaluate((el) => {

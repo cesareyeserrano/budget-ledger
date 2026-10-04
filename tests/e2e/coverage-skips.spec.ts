@@ -20,7 +20,10 @@ test("TC-006e: editar una celda-hoja Pres. y confirmar con Enter fija el nuevo v
   await expect(grid.getByTestId("cell-leaf").first()).toHaveText("123.456"); // el nuevo valor quedó fijado
 });
 
-test("TC-010f: en el límite exacto de 760px se muestra la vista compacta móvil (solo Registrar)", async ({ page }) => {
+// presupuesto-movil (FR-3113) cambió FR-010: a ≤760 px ya no hay SOLO registro — hay registro y una
+// vista de presupuesto propia. Lo que esta prueba sigue fijando es que la app ABRE en el registro y que la
+// grilla de escritorio no se monta en el teléfono. La vista nueva se prueba en presupuesto-movil.spec.ts.
+test("TC-010f: en el límite exacto de 760px se muestra la vista móvil, que abre en Registrar y sin la grilla de escritorio", async ({ page }) => {
   await page.setViewportSize({ width: 760, height: 900 });
   await page.goto("/");
   await expect(page.getByTestId("mobile-shell")).toBeVisible();  // a 760px exactos → móvil

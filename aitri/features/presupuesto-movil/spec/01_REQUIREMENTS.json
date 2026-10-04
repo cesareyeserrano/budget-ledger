@@ -1,0 +1,867 @@
+{
+  "project_name": "Ledger (T-Ledger) — presupuesto-movil",
+  "project_summary": "Primera entrega de BL-056: llevar el mes desde el teléfono. A ≤760px, además del registro, una vista de presupuesto de un periodo a la vez donde se lee la jerarquía con Presupuestado y Ejecutado, se cambia lo planeado, se ven, editan y borran los movimientos de una categoría, se operan las alcancías y se ve el Balance, con las mismas funciones y reglas que escritorio. Es el change request a FR-010; el dashboard queda en escritorio. Palabras del usuario del 2-oct-2026: «lo que necesito es poder gestionar mis finanzas desde el teléfono; la app ya lo permite desde desktop». North Star KPI: lo que se hace cada mes en escritorio (mirar, ajustar el plan, corregir gastos, alcancías, Balance) se hace en el teléfono con las mismas cifras. JTBD: llevar mi presupuesto del mes desde el bolsillo, sin esperar al computador. Guardrail: ninguna cifra difiere entre teléfono y escritorio para los mismos datos, y escritorio no cambia.",
+  "functional_requirements": [
+    {
+      "id": "FR-3101",
+      "title": "En el teléfono se pasa del registro al presupuesto y de vuelta",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When el usuario está en la app a ≤760px, the system shall ofrecer dos vistas, «Registrar» (el registro de hoy, FR-001) y «Presupuesto» (la vista nueva de esta feature), con un control de navegación arriba, siempre visible, para pasar de una a otra sin recargar la página. Es una app WEB en el navegador, no nativa: las pantallas de detalle (categoría, alcancía, retiros, Balance, editar) son entradas del historial del navegador, así que el botón o gesto «atrás» del navegador vuelve a la pantalla anterior sin salir de la app. La vista con la que abre la app sigue siendo «Registrar», como hoy. Cambiar de vista no pierde lo que había en la otra: el periodo elegido en «Presupuesto» se conserva al volver. Configuración, el cambio de tema y el cierre de sesión siguen a la mano en las dos vistas. Decisión del usuario al revisar las maquetas el 2-oct-2026: «tener en cuenta que es app web, no app nativa».",
+      "acceptance_criteria": [
+        "A 375px, al abrir la app se ve «Registrar» y un control de navegación con «Registrar» y «Presupuesto».",
+        "Tocar «Presupuesto» muestra la vista de presupuesto del periodo actual sin recargar la página (la URL del documento no cambia de origen y no hay nueva hidratación).",
+        "Desde la pantalla de una categoría, el «atrás» del navegador vuelve a la lista del periodo sin salir de la app ni recargarla; el mismo «atrás» en la lista no deja la app en un estado roto (borde).",
+        "Con octubre elegido en «Presupuesto», ir a «Registrar» y volver deja octubre elegido.",
+        "Con la vista «Presupuesto» abierta, el acceso a Configuración, el cambio de tema y el cierre de sesión siguen presentes; si faltara alguno, la prueba falla (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3102",
+      "title": "La vista de presupuesto muestra un periodo a la vez, con selector",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When el usuario abre «Presupuesto», the system shall mostrar UN periodo —mes o ciclo, según el modo del libro— empezando por el periodo actual, con un selector que permite ir al anterior, al siguiente y elegir cualquiera de los periodos activos del horizonte (los mismos que ofrece escritorio). El rótulo del periodo es el mismo que escritorio: «Octubre 2026» en modo mes, y con su rango de fechas en modo ciclo. Un periodo cerrado se marca como cerrado en el selector y en la vista.",
+      "acceptance_criteria": [
+        "En modo mes, el 2-oct-2026 la vista abre en «Octubre 2026».",
+        "En modo ciclo, el rótulo incluye el rango del ciclo, igual que el selector de escritorio (p. ej. «Octubre 2026 · 21 sep – 20 oct»).",
+        "En el primer periodo activo, «anterior» está deshabilitado; en el último, «siguiente» está deshabilitado (borde).",
+        "La lista del selector tiene exactamente los mismos periodos, en el mismo orden, que el selector de periodo de escritorio para los mismos datos.",
+        "Un periodo cerrado muestra el candado de cerrado junto a su rótulo."
+      ]
+    },
+    {
+      "id": "FR-3103",
+      "title": "El presupuesto del periodo se lee por categoría, plegable, con el color de escritorio",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "When hay un periodo elegido, the system shall listar la jerarquía de la grilla —Tipo, Grupo, Categoría, Subcategoría, en el mismo orden que escritorio— con el Presupuestado y el Ejecutado de cada nodo en ese periodo. Los padres muestran el total por roll-up (FR-004) y se pliegan y despliegan. El Ejecutado lleva el mismo color y glifo de estado que la grilla (budget-state-color: en gasto, dentro / sobre-consumo leve › / grave ››; en ingreso, favorable o ‹; en reserva, neutro). El segmento de Reservas muestra cada alcancía con lo aportado en el periodo (no el saldo acumulado, NFR-3005 de saldo-de-bolsillo) y al final la fila «Retiros del mes». Una cifra vacía se muestra como en escritorio (raya atenuada).",
+      "acceptance_criteria": [
+        "Con Mercado (gasto) en Pres. 1.000 y Ejec. 600 en octubre, su fila muestra 1.000 y 600, y el 600 con el tono «dentro».",
+        "Con Ejec. 1.100 sobre Pres. 1.000, el Ejecutado lleva el glifo ›; con 1.300 lleva ›› (mismo umbral 1,2 que escritorio).",
+        "Con tres subcategorías de Ejec. 100, 200 y 300, su categoría muestra 600, y la cifra sube igual por grupo y tipo.",
+        "Plegar un grupo oculta sus hijos y deja visible el total del grupo; desplegarlo los vuelve a mostrar.",
+        "Un periodo sin datos muestra todas las categorías con la raya atenuada, sin errores ni filas faltantes (vacío).",
+        "Con 500 aportados a la alcancía Viaje en octubre y 300 en septiembre, su fila de octubre dice 500, no 800 (negativo: no arrastra)."
+      ]
+    },
+    {
+      "id": "FR-3104",
+      "title": "El teléfono muestra las mismas cifras que escritorio",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario mira un periodo en el teléfono, the system shall calcular cada cifra —nodos, color de estado y Balance— con las MISMAS funciones de dominio y el mismo estado que escritorio, sin ningún cálculo propio del móvil. Un cambio hecho en una superficie se ve en la otra: en la misma sesión al instante, y en otro dispositivo por el sync en vivo existente (FR-511) o al recargar.",
+      "acceptance_criteria": [
+        "Sobre el mismo libro, para cada nodo del periodo, el Presupuestado y el Ejecutado del teléfono son iguales cifra a cifra a los de la grilla de escritorio (prueba de paridad sobre un fixture con gasto, ingreso, alcancías y retiros).",
+        "Sobre el mismo libro, cada fila del Balance del teléfono es igual a la de escritorio, en Pres. y en Ejec.",
+        "Un movimiento de 50.000 anotado desde «Registrar» sube en 50.000 el Ejecutado de su categoría al pasar a «Presupuesto» en el mismo periodo.",
+        "Si el código de la vista móvil calculara un total por su cuenta y difiriera en 1 peso, la prueba de paridad falla (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3105",
+      "title": "Desde el teléfono se cambia lo planeado de una categoría",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario toca el Presupuestado de una HOJA de gasto o ingreso en un periodo abierto y confirma un monto nuevo, the system shall guardarlo con la misma acción que la grilla de escritorio, y recalcular los totales de los padres y el Balance. Los padres no se editan (roll-up). Un monto inválido no cambia nada. Las hojas de alcancía se rigen por FR-3109.",
+      "acceptance_criteria": [
+        "Con Mercado en 1.000, escribir 1.200 y confirmar deja Mercado en 1.200 y sube en 200 el Presupuestado de su grupo y su tipo.",
+        "Cancelar la edición deja el valor en 1.000 (borde).",
+        "Un monto vacío, negativo o con letras no se guarda y el valor sigue en 1.000 (negativo).",
+        "El Presupuestado de un grupo o categoría con hijos no ofrece edición (negativo).",
+        "Tras recargar, Mercado sigue en 1.200: el cambio se guardó en el servidor."
+      ]
+    },
+    {
+      "id": "FR-3106",
+      "title": "Tocar una categoría muestra sus movimientos del periodo",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When el usuario toca el Ejecutado de una hoja, the system shall mostrar la lista de lo que forma esa cifra en ese periodo, con el mismo contenido y orden que el Detalle de escritorio (diario-de-celda, función de dominio cellDetail): movimientos y ajustes con su día, monto y nota, y los comentarios existentes de solo lectura. Desde la lista se llega a editar o borrar cada movimiento (FR-3107, FR-3108). Tocar un padre pliega o despliega, no abre lista.",
+      "acceptance_criteria": [
+        "Mercado con gastos de 300 el 5-oct, 200 el 12-oct y 100 el 20-oct muestra esas tres filas con su día, monto y nota, en el mismo orden que el Detalle de escritorio.",
+        "La suma de las filas es igual al Ejecutado mostrado de la hoja.",
+        "Una hoja sin movimientos en el periodo muestra un estado vacío con texto, no una lista en blanco (vacío).",
+        "Una hoja de alcancía muestra sus aportes pero sin editar ni borrar desde la lista, igual que escritorio (BG-084) (negativo).",
+        "Tocar el Ejecutado de un grupo no abre lista (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3107",
+      "title": "Desde el teléfono se edita un movimiento",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario elige editar un movimiento de la lista de FR-3106 y guarda, the system shall aplicar el cambio con la misma acción y la misma validación de dominio que escritorio (FR-2505): monto, nota, fecha y categoría (solo hojas del mismo tipo). Si la fecha nueva cae en otro periodo, avisa a qué periodo pasará antes de guardar. Poner el monto en 0 lo elimina. El formulario —reusar el de registro móvil o adaptar el de escritorio— lo decide la fase de diseño, a pedido del usuario.",
+      "acceptance_criteria": [
+        "Editar un gasto de 300 a 250 baja el Ejecutado de Mercado de 600 a 550 y el Balance del periodo refleja 50 menos de gasto.",
+        "Cambiar la fecha del 12-oct al 3-nov muestra antes de guardar que pasará a noviembre, y tras guardar sale de octubre y aparece en noviembre.",
+        "El selector de categoría solo ofrece hojas del mismo tipo: un gasto no se puede mover a una categoría de ingreso (negativo).",
+        "Con monto vacío o con letras, «Guardar» está deshabilitado (negativo).",
+        "Poner el monto en 0 y guardar elimina el movimiento."
+      ]
+    },
+    {
+      "id": "FR-3108",
+      "title": "Desde el teléfono se borra un movimiento",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario elige borrar un movimiento de la lista de FR-3106 y lo confirma, the system shall eliminarlo con la misma acción que escritorio (FR-2506) y recalcular la hoja, sus padres y el Balance. Sin confirmación no se borra nada.",
+      "acceptance_criteria": [
+        "Borrar el gasto de 200 y confirmar baja el Ejecutado de Mercado de 600 a 400.",
+        "Elegir borrar y luego cancelar deja el movimiento y el 600 intactos (negativo).",
+        "Si la regla de dominio rechaza el borrado (p. ej. dejaría un retiro sin fondos), el teléfono muestra el motivo y nada cambia (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3109",
+      "title": "Desde el teléfono se cambia lo aportado a una alcancía",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario toca la cifra de una alcancía en el periodo (Pres. o Ejec.) y confirma un monto nuevo, the system shall aplicarlo con la misma acción que el editor de escritorio (corrige el aporte del periodo, FR-1003) y las mismas reglas de techo, piso y déficit en los dos planos (FR-1801, FR-2904). Si la regla rechaza, el teléfono nombra el motivo como escritorio y la cifra no cambia.",
+      "acceptance_criteria": [
+        "Con Viaje en 500 aportados en octubre, escribir 700 deja la fila en 700 y el «Saldo disponible» del Balance baja 200.",
+        "Un aporte que supera el techo del mes se rechaza con el mismo motivo que escritorio y la fila sigue en 500 (negativo).",
+        "Lo mismo vale en Pres.: planear un aporte por encima del techo del plan se rechaza (negativo).",
+        "Escribir 0 en una alcancía con 500 deja la fila sin aporte en el periodo (borde)."
+      ]
+    },
+    {
+      "id": "FR-3110",
+      "title": "La fila «Retiros del mes» abre los retiros del periodo para corregirlos o borrarlos; sacar se hace desde Registrar",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario toca la fila «Retiros del mes», the system shall abrir la lista de los retiros reales del periodo (de qué alcancía salió, nota y monto), igual que la lista de movimientos de una categoría (FR-3106), donde cada retiro se puede corregir (monto; 0 lo elimina) o borrar con confirmación, con las mismas acciones de store y las mismas reglas que escritorio (editReserveOp, removeReserveWithdrawal). Sacar plata de una alcancía NO tiene pantalla propia en el teléfono: se hace desde «Registrar» → Reserva, de la alcancía a Disponible, que ya existe. Decisión del usuario al revisar las maquetas el 2-oct-2026: «la de retiros no se necesita porque ya está el módulo de movimientos». Los retiros planeados (Pres.) se ven en la fila, pero no se planean ni corrigen desde el teléfono.",
+      "acceptance_criteria": [
+        "Con un retiro de 200 de Viaje en octubre, tocar «Retiros del mes» muestra la fila «Viaje → Disponible · 200» con su nota.",
+        "Corregir ese retiro a 150 baja «Retiros del mes» Ejec. a 150 y el «Saldo disponible» en 50.",
+        "Corregir el retiro a 0 lo elimina y deja las cifras como antes de sacarlo.",
+        "Elegir borrar y cancelar deja el retiro intacto (negativo).",
+        "Si la regla rechaza la corrección (p. ej. dejaría un mes posterior en déficit), el teléfono muestra el mismo motivo que escritorio y nada cambia (negativo).",
+        "Un periodo sin retiros muestra un estado vacío que dice que para sacar de una alcancía se usa «Registrar» → Reserva (vacío)."
+      ]
+    },
+    {
+      "id": "FR-3111",
+      "title": "Desde el teléfono se ve el Balance del periodo",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "When hay un periodo elegido, the system shall mostrar su Balance con los tres bloques de escritorio —«El mes» (Ingresos, Gastos, Resultado del mes), «Lo disponible» (Saldo del mes anterior, Resultado del mes, Reservas del mes, Retiros de reservas, Saldo disponible) y «El cierre» (Saldo reservado, Saldo total)— con sus cifras de Pres. y de Ejec., calculadas por las mismas funciones que escritorio (computeBalanceSeries y las filas del Balance). Las piezas que hoy son privadas de BalanceModule se extraen para compartirlas sin cambiar su resultado.",
+      "acceptance_criteria": [
+        "Con ingresos 5.000 y gastos 3.000 en octubre, «Resultado del mes» Ejec. dice 2.000.",
+        "«Saldo del mes anterior» de octubre es igual al «Saldo disponible» de septiembre, en cada plano (arrastre).",
+        "Un «Saldo disponible» negativo se pinta con el mismo tono de alerta que escritorio (negativo).",
+        "El primer periodo del rango abre con el saldo inicial declarado, igual que escritorio (borde)."
+      ]
+    },
+    {
+      "id": "FR-3112",
+      "title": "Un periodo cerrado se mira pero no se cambia desde el teléfono",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el periodo elegido está cerrado, the system shall mostrar todas sus cifras y listas pero sin ninguna vía de cambio: ni el Presupuestado, ni los movimientos, ni las alcancías, ni los retiros. Explica por qué con el mismo aviso que escritorio (reabrir desde el cierre de mes, que se hace en escritorio). Si un cambio llegara igual al servidor, este lo rechaza (422 closed_period_violation) y nada cambia.",
+      "acceptance_criteria": [
+        "En septiembre cerrado, la lista de Mercado muestra sus movimientos sin acciones de editar ni borrar, y con el aviso de periodo cerrado.",
+        "En septiembre cerrado, el Presupuestado de Mercado no ofrece edición y la fila «Retiros del mes» no ofrece sacar ni planear (negativo).",
+        "Un PUT del ledger que cambia una cifra de un periodo cerrado responde 422 closed_period_violation y la cifra no cambia (negativo).",
+        "Al pasar de septiembre (cerrado) a octubre (abierto), las acciones vuelven a aparecer (borde)."
+      ]
+    },
+    {
+      "id": "FR-3113",
+      "title": "FR-010 cambia: en el teléfono hay registro y presupuesto; el dashboard sigue siendo de escritorio",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "Change request a FR-010 de la raíz. When la pantalla mide ≤760px, the system shall mostrar el registro y la vista de presupuesto de esta feature (FR-3101) en lugar de solo el registro; la grilla de 12 meses de escritorio y el dashboard siguen sin renderizarse en móvil. A >760px no cambia nada. Las pruebas existentes que afirman la ausencia de la grilla, el Balance o el Detalle a 375px se reescriben para el nuevo alcance; las que afirman la ausencia del dashboard y de la grilla de 12 meses se conservan.",
+      "acceptance_criteria": [
+        "A 375px están presentes el registro y la vista de presupuesto; el dashboard no está en el DOM.",
+        "A 375px la grilla de 12 meses de escritorio no está en el DOM: la vista móvil es otra (negativo).",
+        "A 760px exactos se aplica la vista móvil; a 761px la de escritorio (borde).",
+        "A 1440px la app de escritorio es la misma que antes de la feature."
+      ]
+    },
+    {
+      "id": "FR-3114",
+      "title": "La vista de presupuesto cabe en el teléfono y se toca con el dedo",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When la vista se muestra entre 360px y 760px de ancho, the system shall presentarla sin desborde horizontal de página, con cifras completas (sin cortar dígitos) y con objetivos táctiles de al menos 40×40px (el token --control-md del sistema de diseño), en tema claro y oscuro.",
+      "acceptance_criteria": [
+        "A 375px y a 360px, el ancho de desplazamiento del documento es igual al del viewport en la lista, la lista de movimientos, el Balance y los formularios.",
+        "Una cifra de 999.999.999 en Pres. y en Ejec. se ve completa a 375px, sin cortarse ni salirse de su fila (borde).",
+        "Cada control tocable de la vista mide al menos 40×40px; uno de 32px hace fallar la prueba (negativo).",
+        "En tema claro y oscuro, los textos de las cifras cumplen contraste ≥4,5:1 sobre su fondo."
+      ]
+    },
+    {
+      "id": "FR-3115",
+      "title": "Resumen de saldos del periodo: pequeño, plegable y con los valores protegidos",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When el usuario abre «Presupuesto», the system shall mostrar arriba de la lista una tarjeta de resumen con los cuatro saldos del Balance del periodo que el usuario pidió —Resultado del mes, Saldo disponible, Saldo reservado y Saldo total—, con lo real y lo planeado de cada uno, iguales a las filas del Balance de escritorio. La tarjeta abre PLEGADA (una línea, solo «Saldo disponible») y se despliega y pliega con su flecha; desplegada muestra los cuatro saldos y un enlace al Balance completo (FR-3111). Sus valores están PROTEGIDOS por defecto: en lugar de la cifra se ve «$ ••••••», y solo se muestran mientras el usuario mantiene presionado el ícono del ojo; al soltar se vuelven a ocultar. La protección aplica solo a los saldos de esta tarjeta: las cifras de las categorías y el Balance completo siguen a la vista. Decisiones del usuario al revisar las maquetas el 2 y 3-oct-2026: «resultado del mes, saldo disponible, saldo reservado, saldo total. Esos son los que quisiera ver en resumen» y «la tarjeta grande puede ponerse más pequeña y colapsable, con por defecto protegidos los valores con $ **** o ícono de ojo para verlos solo al tocar sostenido».",
+      "acceptance_criteria": [
+        "Al abrir «Presupuesto», la tarjeta está plegada y muestra «Saldo disponible» con «$ ••••••»; ningún dígito de los saldos está en el texto visible de la tarjeta.",
+        "Mientras se mantiene presionado el ojo, el Saldo disponible muestra su cifra real, igual a la fila «Saldo disponible» Ejec. del Balance de escritorio para ese periodo; al soltar vuelve a «$ ••••••» en ≤200ms.",
+        "Tocar la flecha despliega la tarjeta con los cuatro saldos (real y «Plan») y el enlace «Ver Balance completo»; tocarla otra vez la pliega.",
+        "Un toque corto sobre el ojo (sin mantener) no deja los valores a la vista (negativo).",
+        "Si el dedo sale del ojo, la pestaña pierde el foco o la app pasa a segundo plano mientras se mantiene presionado, los valores se ocultan (borde).",
+        "Con teclado, mantener Espacio o Enter sobre el ojo muestra los valores y soltar los oculta.",
+        "Con los valores ocultos, las cifras de las categorías y el Balance completo siguen visibles: la protección no los afecta (negativo)."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del libro en el teléfono (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Llevar el mes desde el teléfono: ver cuánto le queda, ajustar el plan, corregir lo anotado y mover sus alcancías.",
+      "pain_point": "Desde el teléfono solo puede anotar gastos; para todo lo demás necesita el computador, que la app ya permite en escritorio."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-3101",
+      "requirement_id": "FR-3101",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "pasar del registro al presupuesto con un toque",
+      "so_that": "pueda anotar y luego ver cómo queda sin salir de la app",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3101",
+          "given": "la app abierta a 375px en «Registrar»",
+          "when": "toco «Presupuesto»",
+          "then": "veo el presupuesto del periodo actual sin recargar"
+        },
+        {
+          "id": "AC-3102",
+          "given": "octubre elegido en «Presupuesto»",
+          "when": "voy a «Registrar» y vuelvo",
+          "then": "sigue elegido octubre"
+        },
+        {
+          "id": "AC-3103",
+          "given": "la vista «Presupuesto» abierta",
+          "when": "busco Configuración, tema y salir",
+          "then": "los tres siguen presentes"
+        },
+        {
+          "id": "AC-3141",
+          "given": "la pantalla de Mercado abierta",
+          "when": "uso el «atrás» del navegador",
+          "then": "vuelvo a la lista del periodo sin salir de la app"
+        }
+      ]
+    },
+    {
+      "id": "US-3102",
+      "requirement_id": "FR-3102",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "elegir qué mes o ciclo miro",
+      "so_that": "pueda revisar el actual y los demás del horizonte",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3104",
+          "given": "modo mes, hoy 2-oct-2026",
+          "when": "abro «Presupuesto»",
+          "then": "veo «Octubre 2026»"
+        },
+        {
+          "id": "AC-3105",
+          "given": "el primer periodo activo elegido",
+          "when": "miro el botón «anterior»",
+          "then": "está deshabilitado"
+        },
+        {
+          "id": "AC-3106",
+          "given": "septiembre cerrado",
+          "when": "lo elijo",
+          "then": "veo el candado junto al rótulo"
+        }
+      ]
+    },
+    {
+      "id": "US-3103",
+      "requirement_id": "FR-3103",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "ver por categoría cuánto planeé y cuánto llevo",
+      "so_that": "sepa en qué voy bien y en qué me pasé",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3107",
+          "given": "Mercado con Pres. 1.000 y Ejec. 600",
+          "when": "miro su fila",
+          "then": "veo 1.000 y 600 en tono «dentro»"
+        },
+        {
+          "id": "AC-3108",
+          "given": "Mercado con Pres. 1.000 y Ejec. 1.300",
+          "when": "miro su fila",
+          "then": "veo el glifo ››"
+        },
+        {
+          "id": "AC-3109",
+          "given": "un grupo desplegado",
+          "when": "lo pliego",
+          "then": "se ocultan sus hijos y queda su total"
+        },
+        {
+          "id": "AC-3110",
+          "given": "Viaje con 300 en septiembre y 500 en octubre",
+          "when": "miro octubre",
+          "then": "dice 500, no 800"
+        }
+      ]
+    },
+    {
+      "id": "US-3104",
+      "requirement_id": "FR-3104",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "que el teléfono diga lo mismo que el computador",
+      "so_that": "pueda confiar en cualquiera de los dos",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3111",
+          "given": "el mismo libro abierto en las dos superficies",
+          "when": "comparo cada nodo y cada fila del Balance de octubre",
+          "then": "las cifras son iguales"
+        },
+        {
+          "id": "AC-3112",
+          "given": "Mercado en 600",
+          "when": "anoto 50.000 en «Registrar» y paso a «Presupuesto»",
+          "then": "Mercado dice 50.600"
+        }
+      ]
+    },
+    {
+      "id": "US-3105",
+      "requirement_id": "FR-3105",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "cambiar lo que planeo para una categoría",
+      "so_that": "ajuste el plan cuando cambian las cosas",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3113",
+          "given": "Mercado con Pres. 1.000 en octubre abierto",
+          "when": "escribo 1.200 y confirmo",
+          "then": "Mercado dice 1.200 y su grupo sube 200"
+        },
+        {
+          "id": "AC-3114",
+          "given": "editando Mercado",
+          "when": "escribo letras",
+          "then": "no se guarda y sigue en 1.000"
+        },
+        {
+          "id": "AC-3115",
+          "given": "un grupo con categorías",
+          "when": "toco su Presupuestado",
+          "then": "no se abre edición"
+        }
+      ]
+    },
+    {
+      "id": "US-3106",
+      "requirement_id": "FR-3106",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "ver los gastos que forman una cifra",
+      "so_that": "entienda de dónde sale",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3116",
+          "given": "Mercado con 300, 200 y 100 en octubre",
+          "when": "toco su Ejecutado",
+          "then": "veo las tres filas con día, monto y nota"
+        },
+        {
+          "id": "AC-3117",
+          "given": "una hoja sin movimientos en octubre",
+          "when": "toco su Ejecutado",
+          "then": "veo un texto de lista vacía"
+        },
+        {
+          "id": "AC-3118",
+          "given": "la alcancía Viaje con aportes",
+          "when": "abro su lista",
+          "then": "no hay editar ni borrar"
+        }
+      ]
+    },
+    {
+      "id": "US-3107",
+      "requirement_id": "FR-3107",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "corregir un gasto mal anotado desde el teléfono",
+      "so_that": "no tenga que esperar al computador",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3119",
+          "given": "un gasto de 300 en Mercado (Ejec. 600)",
+          "when": "lo cambio a 250 y guardo",
+          "then": "Mercado dice 550"
+        },
+        {
+          "id": "AC-3120",
+          "given": "un gasto del 12-oct",
+          "when": "cambio la fecha al 3-nov",
+          "then": "antes de guardar veo que pasará a noviembre"
+        },
+        {
+          "id": "AC-3121",
+          "given": "editando un gasto",
+          "when": "abro la categoría",
+          "then": "solo veo categorías de gasto"
+        },
+        {
+          "id": "AC-3122",
+          "given": "editando un gasto",
+          "when": "pongo 0 y guardo",
+          "then": "el gasto desaparece"
+        }
+      ]
+    },
+    {
+      "id": "US-3108",
+      "requirement_id": "FR-3108",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "borrar un gasto que no debía estar",
+      "so_that": "la cifra quede bien",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3123",
+          "given": "Mercado con un gasto de 200 (Ejec. 600)",
+          "when": "lo borro y confirmo",
+          "then": "Mercado dice 400"
+        },
+        {
+          "id": "AC-3124",
+          "given": "el aviso de confirmación abierto",
+          "when": "cancelo",
+          "then": "el gasto sigue y Mercado dice 600"
+        }
+      ]
+    },
+    {
+      "id": "US-3109",
+      "requirement_id": "FR-3109",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "cambiar lo que meto en una alcancía",
+      "so_that": "el ahorro del mes quede como es",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3125",
+          "given": "Viaje con 500 en octubre",
+          "when": "escribo 700 y confirmo",
+          "then": "Viaje dice 700 y el Saldo disponible baja 200"
+        },
+        {
+          "id": "AC-3126",
+          "given": "un aporte que supera el techo del mes",
+          "when": "lo confirmo",
+          "then": "veo el motivo del rechazo y Viaje sigue en 500"
+        }
+      ]
+    },
+    {
+      "id": "US-3110",
+      "requirement_id": "FR-3110",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "ver y corregir los retiros del mes desde el teléfono",
+      "so_that": "un retiro mal anotado quede bien sin ir al computador",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3127",
+          "given": "un retiro de 200 de Viaje en octubre",
+          "when": "toco «Retiros del mes»",
+          "then": "veo «Viaje → Disponible · 200» con su nota"
+        },
+        {
+          "id": "AC-3128",
+          "given": "ese retiro de 200",
+          "when": "lo corrijo a 150",
+          "then": "«Retiros del mes» Ejec. dice 150 y el Saldo disponible baja 50"
+        },
+        {
+          "id": "AC-3129",
+          "given": "una corrección que dejaría un mes posterior en déficit",
+          "when": "la guardo",
+          "then": "veo el motivo del rechazo y nada cambia"
+        }
+      ]
+    },
+    {
+      "id": "US-3111",
+      "requirement_id": "FR-3111",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "ver el Balance del mes",
+      "so_that": "sepa cuánto tengo disponible",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3130",
+          "given": "ingresos 5.000 y gastos 3.000 en octubre",
+          "when": "miro el Balance",
+          "then": "«Resultado del mes» Ejec. dice 2.000"
+        },
+        {
+          "id": "AC-3131",
+          "given": "septiembre con Saldo disponible 4.000",
+          "when": "miro el Balance de octubre",
+          "then": "«Saldo del mes anterior» dice 4.000"
+        },
+        {
+          "id": "AC-3132",
+          "given": "un Saldo disponible de -100",
+          "when": "lo miro",
+          "then": "se pinta con el tono de alerta"
+        }
+      ]
+    },
+    {
+      "id": "US-3112",
+      "requirement_id": "FR-3112",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "mirar un mes cerrado sin poder romperlo",
+      "so_that": "lo cerrado quede cerrado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3133",
+          "given": "septiembre cerrado",
+          "when": "abro la lista de Mercado",
+          "then": "veo sus gastos sin editar ni borrar y el aviso de cerrado"
+        },
+        {
+          "id": "AC-3134",
+          "given": "septiembre cerrado",
+          "when": "toco el Presupuestado de Mercado",
+          "then": "no se abre edición"
+        },
+        {
+          "id": "AC-3135",
+          "given": "septiembre cerrado",
+          "when": "paso a octubre abierto",
+          "then": "vuelven las acciones"
+        }
+      ]
+    },
+    {
+      "id": "US-3113",
+      "requirement_id": "FR-3113",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "tener el presupuesto en el teléfono sin el dashboard",
+      "so_that": "el teléfono tenga lo que uso cada mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3136",
+          "given": "la app a 375px",
+          "when": "miro qué hay",
+          "then": "registro y presupuesto sí, dashboard no"
+        },
+        {
+          "id": "AC-3137",
+          "given": "la app a 760px y a 761px",
+          "when": "comparo",
+          "then": "760 es móvil y 761 es escritorio"
+        }
+      ]
+    },
+    {
+      "id": "US-3114",
+      "requirement_id": "FR-3114",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "que todo quepa en la pantalla y se toque fácil",
+      "so_that": "no tenga que hacer zoom ni deslizar de lado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3138",
+          "given": "la vista a 375px",
+          "when": "recorro lista, movimientos, Balance y formularios",
+          "then": "no hay desplazamiento horizontal"
+        },
+        {
+          "id": "AC-3139",
+          "given": "una cifra de 999.999.999",
+          "when": "la miro a 375px",
+          "then": "se ve completa"
+        },
+        {
+          "id": "AC-3140",
+          "given": "cualquier control tocable",
+          "when": "lo mido",
+          "then": "mide al menos 40×40px"
+        }
+      ]
+    },
+    {
+      "id": "US-3115",
+      "requirement_id": "FR-3115",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "que mis saldos no queden a la vista de quien mire mi pantalla",
+      "so_that": "pueda abrir la app en público y verlos solo cuando yo quiera",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3142",
+          "given": "la vista «Presupuesto» recién abierta",
+          "when": "miro la tarjeta de resumen",
+          "then": "está plegada y dice «Saldo disponible $ ••••••»"
+        },
+        {
+          "id": "AC-3143",
+          "given": "la tarjeta con los valores ocultos",
+          "when": "mantengo presionado el ojo",
+          "then": "veo las cifras, y al soltar se ocultan de nuevo"
+        },
+        {
+          "id": "AC-3144",
+          "given": "la tarjeta plegada",
+          "when": "toco la flecha",
+          "then": "veo los cuatro saldos y «Ver Balance completo»"
+        },
+        {
+          "id": "AC-3145",
+          "given": "los valores ocultos",
+          "when": "toco el ojo sin mantener",
+          "then": "siguen ocultos"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-3101",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El registro móvil sigue igual al REGISTRAR (FR-001, FR-212): mismo formulario, mismo guardado, mismo ConfirmOverlay, aunque se reuse para editar.",
+      "acceptance_criteria": "Las pruebas vigentes del registro móvil siguen en verde sin cambios; anotar 50.000 desde «Registrar» sube 50.000 el Ejecutado y muestra el ConfirmOverlay."
+    },
+    {
+      "id": "NFR-3102",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "En móvil siguen presentes el acceso a Configuración (FR-2204), el cambio de tema y el cierre de sesión.",
+      "acceptance_criteria": "A 375px, en las dos vistas, config-link, el toggle de tema y el botón de salir están en el DOM y funcionan."
+    },
+    {
+      "id": "NFR-3103",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Escritorio (>760px) no cambia: grilla, Balance, dashboard, Detalle y formularios de alcancías.",
+      "acceptance_criteria": "Las suites e2e de escritorio vigentes siguen en verde sin tocar sus aserciones."
+    },
+    {
+      "id": "NFR-3104",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El breakpoint sigue en 760px: 760 es móvil y 761 es escritorio.",
+      "acceptance_criteria": "A 760px se monta mobile-shell y a 761px desktop-shell."
+    },
+    {
+      "id": "NFR-3105",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas (cerrado, techo, piso, déficit, validación de movimientos) aceptan y rechazan lo mismo para la misma operación, venga del teléfono o del computador: el móvil llama a las mismas acciones y el servidor sigue siendo la autoridad final.",
+      "acceptance_criteria": "Una operación aceptada en escritorio con límite L se acepta en móvil con L y L+1 se rechaza en los dos; la vista móvil no contiene reglas propias."
+    },
+    {
+      "id": "NFR-3106",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Extraer las piezas privadas de BalanceModule para compartirlas no cambia ninguna cifra del Balance de escritorio.",
+      "acceptance_criteria": "Sobre fixtures capturados con el código anterior, la serie del Balance de escritorio coincide cifra a cifra después del cambio."
+    },
+    {
+      "id": "NFR-3107",
+      "category": "Performance",
+      "priority": "MUST",
+      "requirement": "Cambiar de periodo o aplicar un cambio en el teléfono actualiza las cifras de la vista de forma perceptiblemente inmediata, igual que el guardrail de escritorio.",
+      "acceptance_criteria": "Con la jerarquía semilla completa cargada, el recálculo de la vista tras cambiar de periodo o editar una hoja tarda ≤150ms (medido sin red, en el dominio + render)."
+    },
+    {
+      "id": "NFR-3108",
+      "category": "Security",
+      "requirement": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas en el servidor; el teléfono usa las mismas acciones y el mismo /api/v1 autenticado y filtrado por dueño que escritorio.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api; el gate de seguridad existente sigue en verde."
+    },
+    {
+      "id": "NFR-3109",
+      "category": "Observability",
+      "requirement": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-3110",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "acceptance_criteria": "El workflow de CI ejecuta test:run y test:e2e e incluye las specs nuevas por su patrón de archivo."
+    }
+  ],
+  "no_go_zone": [
+    "El dashboard en el teléfono: decisión del usuario del 2-oct-2026 («ok, el dashboard queda fuera»).",
+    "Crear, renombrar, borrar o mover categorías desde el teléfono: segunda entrega, otra feature (corte aceptado por el usuario el 2-oct-2026).",
+    "Una pantalla propia para sacar de una alcancía o planear retiros: sacar se hace desde «Registrar» → Reserva, que ya existe, y planear retiros (Pres.) queda en escritorio. Decisión del usuario al revisar las maquetas el 2-oct-2026: «la de retiros no se necesita porque ya está el módulo de movimientos».",
+    "Cerrar o reabrir un periodo desde el teléfono: segunda entrega; antes hay que resolver BL-055 (el botón puede nombrar un mes y cerrar otro).",
+    "Teclear el Ejecutado de una hoja encima de la celda (ajuste por diferencia, FR-2504): en el teléfono lo ejecutado se cambia anotando, corrigiendo o borrando movimientos.",
+    "Añadir comentarios de celda desde el teléfono (FR-2508): se ven los existentes, pero no se escriben.",
+    "Añadir un movimiento desde la lista de una categoría (FR-2502): para eso está «Registrar».",
+    "Ver varios periodos a la vez o la grilla de 12 meses encogida.",
+    "Cambios en Configuración (saldo inicial, ciclos, horizonte): ya funciona en el teléfono y no se toca.",
+    "Escritura incremental del ledger (BL-017): el teléfono guarda por el mismo camino que escritorio.",
+    "App nativa: sigue siendo la web responsive.",
+    "Proteger u ocultar las cifras de las categorías o del Balance completo: el ojo protege solo los saldos de la tarjeta de resumen (confirmado por el usuario el 3-oct-2026)."
+  ],
+  "constraints": [
+    "La vista móvil no calcula nada por su cuenta: usa las funciones de dominio y las acciones del store de escritorio.",
+    "Las piezas del Balance que se compartan se extraen de BalanceModule sin cambiar su resultado.",
+    "Sin endpoints ni cambios de esquema.",
+    "Es una app WEB en el navegador del teléfono, no nativa: navegación arriba, detalle como entradas del historial del navegador, sin gestos ni barras propias de app nativa (decisión del usuario del 2-oct-2026)."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "assumed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario en el chat del 2-oct-2026: «más que ver la grilla, lo que necesito es poder gestionar mis finanzas desde el teléfono. la app ya lo permite desde desktop»; antes «podría ser los gastos. si se pueden editar desde mobile también».",
+    "users": "El usuario habla de sus propias finanzas («mis finanzas»); es el usuario único de producción.",
+    "baseline": "El usuario: «la app ya lo permite desde desktop»; medido en el código el 2-oct-2026: MobileShell monta solo el registro (FR-010).",
+    "success_metric": "Propuesto por el agente a partir del corte en dos entregas que el usuario aceptó; confirmar en la aprobación.",
+    "no_go_zone": "Confirmado por el usuario en el chat del 2-oct-2026: dashboard fuera («ok, el dashboard queda fuera»), categorías y cierre para la segunda entrega («está bien en segunda entrega»), y las tres exclusiones propuestas por el agente —teclear Ejecutado en la celda, escribir comentarios, añadir desde la lista— («ok»)."
+  },
+  "idea_gaps": [
+    "success_metric: lo propuso el agente («lo de cada mes se hace en el teléfono con las mismas cifras»); confirmar en la aprobación."
+  ],
+  "coverage_map": [
+    {
+      "need": "Navegar entre registro y presupuesto en el teléfono",
+      "disposition": "FR-3101"
+    },
+    {
+      "need": "Ver un periodo a la vez, mes o ciclo, y cambiar de periodo",
+      "disposition": "FR-3102"
+    },
+    {
+      "need": "Ver la jerarquía con Presupuestado y Ejecutado por nodo, plegable",
+      "disposition": "FR-3103"
+    },
+    {
+      "need": "Color y glifo de estado como en escritorio",
+      "disposition": "FR-3103"
+    },
+    {
+      "need": "Alcancías muestran lo aportado en el periodo",
+      "disposition": "FR-3103"
+    },
+    {
+      "need": "Mismas cifras que escritorio, sin cálculos propios",
+      "disposition": "FR-3104"
+    },
+    {
+      "need": "Cambiar lo planeado de una categoría",
+      "disposition": "FR-3105"
+    },
+    {
+      "need": "Ver los movimientos de una categoría",
+      "disposition": "FR-3106"
+    },
+    {
+      "need": "Editar un movimiento (monto, nota, fecha, categoría)",
+      "disposition": "FR-3107"
+    },
+    {
+      "need": "Decidir si se reusa el registro móvil para editar",
+      "disposition": "FR-3107"
+    },
+    {
+      "need": "Borrar un movimiento",
+      "disposition": "FR-3108"
+    },
+    {
+      "need": "Cambiar lo aportado a una alcancía",
+      "disposition": "FR-3109"
+    },
+    {
+      "need": "Ver, corregir y borrar los retiros del mes (sacar se hace desde Registrar)",
+      "disposition": "FR-3110"
+    },
+    {
+      "need": "Ver el Balance del periodo",
+      "disposition": "FR-3111"
+    },
+    {
+      "need": "Periodo cerrado: se mira pero no se cambia",
+      "disposition": "FR-3112"
+    },
+    {
+      "need": "Si una regla rechaza, se dice qué falló y nada cambia",
+      "disposition": "NFR-3105"
+    },
+    {
+      "need": "Change request a FR-010; dashboard fuera",
+      "disposition": "FR-3113"
+    },
+    {
+      "need": "Sin desborde a 375px",
+      "disposition": "FR-3114"
+    },
+    {
+      "need": "No romper el registro móvil",
+      "disposition": "NFR-3101"
+    },
+    {
+      "need": "No perder Configuración, tema y salir en móvil",
+      "disposition": "NFR-3102"
+    },
+    {
+      "need": "No cambiar escritorio",
+      "disposition": "NFR-3103"
+    },
+    {
+      "need": "Breakpoint 760px",
+      "disposition": "NFR-3104"
+    },
+    {
+      "need": "Extraer piezas del Balance sin cambiar cifras",
+      "disposition": "NFR-3106"
+    },
+    {
+      "need": "Dashboard en móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Gestión de categorías en móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cerrar y reabrir mes en móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Teclear Ejecutado en la celda",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Comentarios de celda en móvil",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Pantalla propia para sacar o planear retiros",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Es app web: atrás del navegador y navegación arriba",
+      "disposition": "FR-3101"
+    },
+    {
+      "need": "Resumen con resultado del mes, saldo disponible, saldo reservado y saldo total",
+      "disposition": "FR-3115"
+    },
+    {
+      "need": "Resumen pequeño y plegable, con valores protegidos que se ven solo al mantener presionado el ojo",
+      "disposition": "FR-3115"
+    }
+  ],
+  "original_brief": "## Feature\nGestionar las finanzas del mes desde el teléfono (BL-056, primera entrega): elegir un mes o ciclo y ver el presupuesto por categoría, cambiar lo planeado, ver y corregir los movimientos de una categoría, operar las alcancías y ver el Balance del mes. Hoy todo eso se hace solo en el computador.\n\n## Problem / Why\nA ≤760px la app solo muestra el registro de movimientos (`MobileShell.tsx`). Todo lo demás exige el computador: ver cómo va el mes, cambiar el presupuesto, corregir un gasto mal anotado, mover plata de las alcancías y ver el Balance.\n\nPalabras del usuario del 2-oct-2026:\n- «lo que necesito es poder consultar de alguna forma el mes y el presupuesto, lo que tenga en la grilla»\n- «podría ser los gastos. si se pueden editar desde mobile también»\n- «más que ver la grilla, lo que necesito es poder gestionar mis finanzas desde el teléfono. la app ya lo permite desde desktop»\n\nEl mismo día el usuario aceptó partir el pedido en dos entregas. Esta feature es la PRIMERA, con lo que se usa cada mes. La segunda entrega se hará en otra feature: categorías y cierre de mes. El usuario decidió además que el dashboard queda fuera del teléfono («ok, el dashboard queda fuera»).\n\nQue el móvil no muestre la grilla es una decisión aprobada de la raíz (FR-010 y su no_go_zone: «ampliar la experiencia móvil → posterior»). Esta feature es el change request a FR-010.\n\n## Target Users\nEl dueño del libro (usuario único por cuenta). Usa la app fuera del computador para llevar el mes: mirar cuánto le queda, ajustar el plan y corregir lo anotado. Usa el mismo login y los mismos datos que en escritorio.\n\n## New Behavior\n- En móvil (≤760px), además del registro, hay una vista de PRESUPUESTO, con navegación entre las dos.\n- La vista muestra UN periodo a la vez (mes o ciclo, según el modo del libro), con un selector para moverse por los periodos del horizonte. Por defecto abre en el periodo actual.\n- Para el periodo elegido, se ve la jerarquía de la grilla (Tipo > Grupo > Categoría > Subcategoría) con Presupuestado y Ejecutado por nodo. Los padres muestran su total por roll-up y se pliegan y despliegan. El color y el glifo de estado siguen la misma regla que en escritorio. [ASSUMPTION] la forma exacta (lista plegable u otra) se decide en UX con maqueta.\n- Se puede CAMBIAR el Presupuestado de una hoja (lo planeado), con las mismas reglas que la grilla de escritorio.\n- Tocar una hoja muestra sus movimientos del periodo, lo mismo que el Detalle de la celda de Ejecutado en escritorio (diario-de-celda).\n- Desde esa lista, cada movimiento se puede EDITAR (monto, nota, fecha, categoría) y BORRAR, con las mismas reglas que en escritorio (FR-2505, FR-2506).\n- Directriz de diseño del usuario: «tener en cuenta si aprovechamos o modificamos el módulo de registrar movimientos». La fase de diseño debe evaluar y justificar si la edición REUSA el formulario de registro móvil (abierto precargado) o adapta el editor de escritorio (MovementEditor). La regla de dominio es una sola en los dos casos.\n- Alcancías: se puede cambiar lo aportado a una alcancía en el periodo (Pres. y Ejec.), sacar plata de una alcancía, planear un retiro y corregir o eliminar los retiros del mes. Todo con las mismas reglas de techo, piso y déficit que escritorio.\n- Se ve el Balance del periodo con sus tres bloques (El mes, Lo disponible, El cierre) y las mismas cifras que escritorio.\n- Un periodo CERRADO se puede mirar pero no cambiar: no se edita el plan, ni los movimientos, ni las alcancías.\n- Si una regla rechaza un cambio, el teléfono dice qué falló, igual que escritorio, y la cifra no cambia.\n- Todas las cifras salen del mismo estado y de las mismas funciones de dominio que escritorio. No hay cálculos propios del móvil.\n\n## Success Criteria\n- Given un libro con datos en un periodo, When se abre la vista de presupuesto a 375px en ese periodo, Then Presupuestado y Ejecutado de cada nodo y las filas del Balance coinciden cifra a cifra con escritorio para los mismos datos (prueba de paridad).\n- Given 375px de ancho, Then ninguna pantalla de la vista tiene desborde horizontal de página.\n- Given un cambio hecho en el teléfono (plan, movimiento o alcancía), When se abre escritorio, Then muestra la misma cifra.\n- Given un periodo cerrado, When se intenta cambiar algo desde el teléfono, Then no hay forma de hacerlo y se ve por qué.\n- [ASSUMPTION] Métrica de éxito: el usuario lleva el mes desde el teléfono sin necesitar el computador para lo de cada mes. Por confirmar.\n\n## Touch Points\n- MODIFICA FR-010 (raíz) y su no_go_zone. Las ~15 pruebas e2e que afirman que a 375px no hay grilla, Balance ni Detalle (TC-010h, TC-213f, TC-BAL-904f, TC-FDC-026e, entre otras) cambian a propósito.\n- MODIFICA `src/components/MobileShell.tsx` (navegación) y quizá el módulo de registro (`src/components/register/*`) si se reusa para editar.\n- AÑADE los componentes de la vista móvil.\n- REUTILIZA sin cambiar la lógica: roll-ups, `cellTone`/`cellGlyph`, `computeBalanceSeries` y las filas del Balance, `cellDetail`, las acciones del store (`setLeafAmount`, `editMovement`, `deleteMovement`, `applyReserveEdit`, `applyReserveWithdrawal`, `planWithdrawal`, `editReserveOp`, `editPlannedWithdrawal`, `removeReserveWithdrawal`), el calendario de periodos y `isClosed`. Las piezas del Balance que hoy son privadas de `BalanceModule.tsx` se extraen para compartirlas, sin cambiar su resultado.\n\n## Must Not Break (Regression Boundary)\n- El registro móvil (FR-001) sigue igual al REGISTRAR: mismo formulario, mismo guardado, mismo ConfirmOverlay.\n- En móvil siguen a la mano Configuración (FR-2204), el cambio de tema y el cierre de sesión.\n- Escritorio (>760px) no cambia: grilla, Balance, dashboard, Detalle y formularios de alcancías.\n- El breakpoint sigue en 760px: 760 es móvil, 761 es escritorio.\n- Las reglas aceptan y rechazan lo mismo para la misma operación, venga del teléfono o del computador.\n- Las cifras del Balance y de la grilla de escritorio no cambian al extraer piezas compartidas.\n\n## Out of Scope\n- El dashboard en móvil. Decisión del usuario del 2-oct-2026.\n- Segunda entrega, que será otra feature: crear, renombrar, borrar y mover categorías; cerrar y reabrir el mes. Cerrar desde el teléfono necesita antes BL-055.\n- Teclear el Ejecutado de una hoja encima de la celda, con su ajuste por diferencia. En el teléfono, lo ejecutado se cambia anotando o corrigiendo movimientos. [ASSUMPTION]\n- Comentarios de celda en móvil. [ASSUMPTION] no se pidieron.\n- Ver varios periodos a la vez o la grilla de 12 meses encogida.\n- Configuración (saldo inicial, ciclos, horizonte): ya funciona en el teléfono y no cambia.\n- App nativa: sigue siendo la web responsive.\n"
+}
