@@ -8837,7 +8837,7 @@
       "actual_result": "npm audit reporta 5 'high' por GHSA-vfj7-8cjw-p6xm en braces@3.0.3 (cadena eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces). No hay version corregida de braces; el unico 'fix' que ofrece npm es bajar eslint-config-next a 14.2.35 (cambio rompiente). npm audit --omit=dev da 0: produccion no esta afectada. Visto el 2026-10-04 en verify-run de presupuesto-movil: 107/107 TCs en verde, runner exit 1 y gate coverage en rojo por la prueba que ejecuta security-config.sh. No lo causo la feature: no cambio ninguna dependencia.",
       "environment": "dev local, Node 22, 2026-10-04",
       "severity": "medium",
-      "status": "fixed",
+      "status": "verified",
       "fr": null,
       "tc_reference": null,
       "phase_detected": null,
@@ -8845,7 +8845,7 @@
       "evidence": null,
       "reported_by": null,
       "created_at": "2026-10-04T05:59:06.231Z",
-      "updated_at": "2026-10-04T15:18:27.332Z",
+      "updated_at": "2026-10-04T17:16:51.638Z",
       "resolution": "Excepcion con nombre y fecha en scripts/sca-excepciones.py (vence 2026-11-03): solo pasa GHSA-vfj7-8cjw-p6xm, mientras siga fuera de produccion. Retirar la fila cuando braces publique version corregida.",
       "fix_commit_sha": "1d2b5e7fd33cc6fa61d768ed98bfc5af73ae984a",
       "fix_at": "2026-10-04T15:18:27.332Z"
