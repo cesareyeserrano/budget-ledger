@@ -762,11 +762,10 @@ const volverALista = async (page: Page) => {
   await expect(page.getByTestId("mb-budget")).toBeVisible();
 };
 
-/** Mantiene presionado el ojo del resumen (el ratón genera los eventos de puntero). */
-async function presionarOjo(page: Page): Promise<void> {
-  const caja = (await page.getByTestId("mb-summary-eye").boundingBox())!;
-  await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
-  await page.mouse.down();
+/** Toca el ojo del resumen: los saldos quedan a la vista 10 segundos. */
+async function verSaldos(page: Page): Promise<void> {
+  await page.getByTestId("mb-summary-eye").click();
+  await expect(page.getByTestId("mb-summary-eye")).toHaveAttribute("aria-pressed", "true");
 }
 const textoResumen = (page: Page) => page.getByTestId("mb-summary").innerText();
 
@@ -1195,21 +1194,30 @@ test("TC-PMV-140h: el resumen abre plegado y sin un solo dígito", async ({ page
   expect((await resumen.boundingBox())!.height).toBeLessThanOrEqual(72);
 });
 
-test("TC-PMV-141h: mantener presionado el ojo muestra el saldo, y al soltar se oculta", async ({ page }) => {
+test("TC-PMV-141h: un toque en el ojo muestra el saldo, y a los 10 segundos se oculta solo", async ({ page }) => {
   // @aitri-tc TC-PMV-141h
+  test.setTimeout(90_000);
   await abrirMovil(page);
   await irAPresupuesto(page);
   const saldo = page.getByTestId("mb-saldo-disponible");
+  const ojo = page.getByTestId("mb-summary-eye");
+  await expect(ojo).toHaveAttribute("aria-pressed", "false");
 
-  await presionarOjo(page);
-  await page.waitForTimeout(600);
+  await ojo.click();
+  const tocado = Date.now();
+  // Se ve sin mantener el dedo: el ratón ya soltó.
+  await page.waitForTimeout(1000);
   await expect(saldo).toHaveText("5.550");
-  await expect(page.getByTestId("mb-summary-eye")).toHaveAttribute("aria-pressed", "true");
+  await expect(ojo).toHaveAttribute("aria-pressed", "true");
 
-  await page.mouse.up();
-  await expect(saldo).toHaveText("$ ••••••", { timeout: 200 });
+  // A los 9 segundos sigue a la vista…
+  await page.waitForTimeout(Math.max(0, 9000 - (Date.now() - tocado)));
+  await expect(saldo).toHaveText("5.550");
+  // …y a los 11 ya se ocultó solo.
+  await page.waitForTimeout(Math.max(0, 11_000 - (Date.now() - tocado)));
+  await expect(saldo).toHaveText("$ ••••••");
+  await expect(ojo).toHaveAttribute("aria-pressed", "false");
   expect(await textoResumen(page)).not.toMatch(/[0-9]/);
-  await expect(page.getByTestId("mb-summary-hint")).toHaveText("");
 });
 
 test("TC-PMV-142h: la flecha despliega los cuatro saldos con su plan y el enlace al Balance", async ({ page }) => {
@@ -1220,7 +1228,7 @@ test("TC-PMV-142h: la flecha despliega los cuatro saldos con su plan y el enlace
   await expect(page.getByTestId("mb-summary")).toHaveAttribute("data-open", "true");
   expect(await textoResumen(page), "desplegado sigue oculto").not.toMatch(/[0-9]/);
 
-  await presionarOjo(page);
+  await verSaldos(page);
   await expect(page.getByTestId("mb-saldo-disponible")).toHaveText("5.550");
   await expect(page.getByTestId("mb-plan-disponible")).toHaveText("4.900");
   await expect(page.getByTestId("mb-saldo-resultado")).toHaveText("3.000");
@@ -1229,7 +1237,6 @@ test("TC-PMV-142h: la flecha despliega los cuatro saldos con su plan y el enlace
   await expect(page.getByTestId("mb-plan-reservado")).toHaveText("800");
   await expect(page.getByTestId("mb-saldo-total")).toHaveText("6.150");
   await expect(page.getByTestId("mb-plan-total")).toHaveText("5.700");
-  await page.mouse.up();
 
   await page.getByTestId("mb-summary-balance").click();
   await expect(page.getByTestId("mb-balance")).toBeVisible();
@@ -1241,30 +1248,35 @@ test("TC-PMV-142h: la flecha despliega los cuatro saldos con su plan y el enlace
   await expect(page.locator('[data-testid^="mb-saldo-"]')).toHaveCount(1);
 });
 
-test("TC-PMV-143f: un toque corto sobre el ojo no deja los valores a la vista y enseña la pista", async ({ page }) => {
+test("TC-PMV-143f: un segundo toque en el ojo oculta de inmediato, sin esperar los 10 segundos", async ({ page }) => {
   // @aitri-tc TC-PMV-143f
+  test.setTimeout(90_000);
   await abrirMovil(page);
   await irAPresupuesto(page);
+  const saldo = page.getByTestId("mb-saldo-disponible");
+  await verSaldos(page);
+  await expect(saldo).toHaveText("5.550");
+  await page.waitForTimeout(2000);
+  await expect(saldo).toHaveText("5.550");
 
   await page.getByTestId("mb-summary-eye").click();
-  await page.waitForTimeout(300);
 
-  await expect(page.getByTestId("mb-saldo-disponible")).toHaveText("$ ••••••");
-  expect(await textoResumen(page)).not.toMatch(/[0-9]/);
+  await expect(saldo).toHaveText("$ ••••••", { timeout: 200 });
   await expect(page.getByTestId("mb-summary-eye")).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByTestId("mb-summary-hint")).toHaveText("Mantén presionado para ver");
-  await expect(page.getByTestId("mb-summary-hint")).toHaveText("", { timeout: 2500 });
+  expect(await textoResumen(page)).not.toMatch(/[0-9]/);
+  // El temporizador del primer toque quedó cancelado: pasado su plazo no hace nada raro, y un toque
+  // nuevo cuenta sus propios 10 segundos (a los 9 del nuevo toque sigue a la vista).
+  await verSaldos(page);
+  await page.waitForTimeout(9000);
+  await expect(saldo).toHaveText("5.550");
 });
 
-test("TC-PMV-144e: los valores se ocultan si el puntero se cancela o la página pierde el foco", async ({ page }) => {
+test("TC-PMV-144e: los valores se ocultan si la página pierde el foco o pasa a segundo plano", async ({ page }) => {
   // @aitri-tc TC-PMV-144e
   await abrirMovil(page);
   await irAPresupuesto(page);
   const saldo = page.getByTestId("mb-saldo-disponible");
   const eventos: [string, () => Promise<void>][] = [
-    // El dedo se desliza fuera del ojo sin soltar: los valores no se quedan a la vista.
-    ["el dedo sale del ojo", () => page.mouse.move(40, 420, { steps: 4 })],
-    ["pointercancel", () => page.getByTestId("mb-summary-eye").dispatchEvent("pointercancel")],
     ["blur de ventana", () => page.evaluate(() => { window.dispatchEvent(new Event("blur")); })],
     ["segundo plano", () => page.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
@@ -1273,35 +1285,39 @@ test("TC-PMV-144e: los valores se ocultan si el puntero se cancela o la página 
     })],
   ];
   for (const [nombre, interrumpir] of eventos) {
-    await presionarOjo(page);
+    await verSaldos(page);
     await expect(saldo, nombre).toHaveText("5.550");
     await interrumpir();
-    await expect(saldo, nombre).toHaveText("$ ••••••");
+    await expect(saldo, nombre).toHaveText("$ ••••••", { timeout: 500 });
+    await expect(page.getByTestId("mb-summary-eye"), nombre).toHaveAttribute("aria-pressed", "false");
     expect(await textoResumen(page), nombre).not.toMatch(/[0-9]/);
-    await page.mouse.up();
-    await page.mouse.move(5, 300);
   }
+  // Un «visibilitychange» que vuelve a visible no oculta: solo esconde irse, no volver.
+  await verSaldos(page);
+  await page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); });
+  await expect(saldo).toHaveText("5.550");
 });
 
-test("TC-PMV-145e: con teclado, mantener Espacio o Enter sobre el ojo muestra y soltar oculta", async ({ page }) => {
+test("TC-PMV-145e: con teclado, Espacio o Enter sobre el ojo muestran, y pulsados de nuevo ocultan", async ({ page }) => {
   // @aitri-tc TC-PMV-145e
   await abrirMovil(page);
   await irAPresupuesto(page);
   const ojo = page.getByTestId("mb-summary-eye");
   const saldo = page.getByTestId("mb-saldo-disponible");
-  await expect(ojo).toHaveAttribute("aria-label", "Mantén presionado para ver los saldos");
+  await expect(ojo).toHaveAttribute("aria-label", "Ver los saldos durante 10 segundos");
 
   for (const tecla of ["Space", "Enter"]) {
     await ojo.focus();
-    await page.keyboard.down(tecla);
+    await page.keyboard.press(tecla);
     await expect(saldo, tecla).toHaveText("5.550");
-    await page.keyboard.up(tecla);
+    await expect(ojo, tecla).toHaveAttribute("aria-label", "Ocultar los saldos");
+    await page.keyboard.press(tecla);
     await expect(saldo, tecla).toHaveText("$ ••••••");
+    await expect(ojo, tecla).toHaveAttribute("aria-label", "Ver los saldos durante 10 segundos");
   }
   // Otra tecla no revela nada.
-  await page.keyboard.down("KeyA");
+  await page.keyboard.press("KeyA");
   await expect(saldo).toHaveText("$ ••••••");
-  await page.keyboard.up("KeyA");
 });
 
 test("TC-PMV-146f: la protección no esconde las categorías ni el Balance completo", async ({ page }) => {
@@ -1473,10 +1489,9 @@ test("TC-PMV-131e: una cifra de nueve dígitos se ve completa en todas las panta
   await irAPresupuesto(page);
   await desplegarLista(page);
   await page.getByTestId("mb-summary-toggle").click();
-  await presionarOjo(page);
+  await verSaldos(page);
   await expect(page.getByTestId("mb-saldo-resultado")).toContainText(".");
   expect(await medir("lista con el resumen a la vista")).toBeGreaterThanOrEqual(8);
-  await page.mouse.up();
   await expect(real(page, "Mercado")).toHaveText("999.999.999");
   await expect(plan(page, "Mercado")).toHaveText("de 999.999.999");
 
@@ -1564,11 +1579,10 @@ test("TC-PMV-133h: las cifras cumplen contraste 4,5:1 en tema claro y en oscuro"
     await medir("total de sección", page.getByTestId("mb-section-expense").getByTestId("mb-section-total"));
     await medir("nombre de fila", fila(page, "Mercado").getByTestId("mb-row-name"));
 
-    await presionarOjo(page);
+    await verSaldos(page);
     await expect(page.getByTestId("mb-saldo-disponible")).toHaveText("5.550");
     await medir("saldo del resumen", page.getByTestId("mb-saldo-disponible"));
     await medir("saldo secundario del resumen", page.getByTestId("mb-saldo-total"));
-    await page.mouse.up();
   }
 });
 

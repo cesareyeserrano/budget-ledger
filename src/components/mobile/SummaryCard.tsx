@@ -5,12 +5,12 @@
 // Propósito:    El resumen de saldos del periodo: pequeño, plegable y con los valores protegidos.
 //               Mientras están ocultos NO se renderiza ninguna cifra —se pinta un literal fijo—, así
 //               que los dígitos no están en el DOM: ni en una captura, ni en un lector de pantalla.
-// Dependencias: ../balanceView (BalanceSummary), ../format, ./screenStack, ./useHoldReveal, lucide-react.
+// Dependencias: ../balanceView (BalanceSummary), ./screenStack, ./useTimedReveal, lucide-react.
 
 import { ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 import type { BalanceSummary, SaldoPar } from "../balanceView";
 import { openScreen } from "./screenStack";
-import { useHoldReveal } from "./useHoldReveal";
+import { useTimedReveal } from "./useTimedReveal";
 
 /** Lo que se pinta en lugar de una cifra oculta. Ancho fijo: no delata la magnitud. */
 export const MASK = "$ ••••••";
@@ -40,8 +40,8 @@ const OTHERS: { key: "resultado" | "reservado" | "total"; label: string }[] = [
 /**
  * Tarjeta de resumen de saldos.
  *
- * Abre plegada (solo «Saldo disponible») y oculta. La flecha la despliega; mantener presionado el
- * ojo muestra los valores mientras dura la presión.
+ * Abre plegada (solo «Saldo disponible») y oculta. La flecha la despliega; un toque en el ojo
+ * muestra los valores 10 segundos y se ocultan solos, y otro toque los oculta antes.
  *
  * @param summary Los cuatro saldos del periodo, en lo real y en lo planeado.
  * @param open Si está desplegada.
@@ -52,7 +52,7 @@ const OTHERS: { key: "resultado" | "reservado" | "total"; label: string }[] = [
  * @aitri-trace FR-ID: FR-3115, US-ID: US-3115, AC-ID: AC-3144, TC-ID: TC-PMV-142h
  */
 export function SummaryCard({ summary, open, onToggle }: { summary: BalanceSummary; open: boolean; onToggle: () => void }) {
-  const { shown, hint, bind } = useHoldReveal();
+  const { shown, toggle } = useTimedReveal();
   const plan = (p: SaldoPar, id: string) => (
     <div className="text-caption whitespace-nowrap" style={{ opacity: 0.7 }}>
       Plan <Saldo id={id} value={p.budget} shown={shown} className="tabular" />
@@ -62,7 +62,7 @@ export function SummaryCard({ summary, open, onToggle }: { summary: BalanceSumma
   const eyebrow = (text: string) => <div className="eyebrow" style={{ color: "inherit", opacity: 0.7 }}>{text}</div>;
 
   return (
-    <div className="mb-1">
+    <div className="mb-2">
       <div
         data-testid="mb-summary"
         data-open={open}
@@ -79,14 +79,11 @@ export function SummaryCard({ summary, open, onToggle }: { summary: BalanceSumma
             <button
               type="button"
               data-testid="mb-summary-eye"
-              aria-label="Mantén presionado para ver los saldos"
+              aria-label={shown ? "Ocultar los saldos" : "Ver los saldos durante 10 segundos"}
               aria-pressed={shown}
               className={ICON_BUTTON}
-              style={{
-                userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: "none",
-                background: shown ? "color-mix(in srgb, var(--primary-foreground) 22%, transparent)" : "transparent",
-              }}
-              {...bind}
+              style={{ background: shown ? "color-mix(in srgb, var(--primary-foreground) 22%, transparent)" : "transparent" }}
+              onClick={toggle}
             >
               {shown ? <Eye size={18} strokeWidth={1.75} aria-hidden /> : <EyeOff size={18} strokeWidth={1.75} aria-hidden />}
             </button>
@@ -134,9 +131,6 @@ export function SummaryCard({ summary, open, onToggle }: { summary: BalanceSumma
           </div>
         )}
       </div>
-      <p data-testid="mb-summary-hint" role="status" className="caption min-h-5 pt-1 text-fg-muted">
-        {hint ? "Mantén presionado para ver" : ""}
-      </p>
     </div>
   );
 }

@@ -1,0 +1,209 @@
+{
+  "project": "presupuesto-movil",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale). Sin migraciones SQL, sin conversión de datos y sin variables de entorno nuevas: es código de cliente más dos refactors sin cambio de comportamiento. Rollback: imagen anterior, sin datos que revertir. Comprobación manual pendiente tras desplegar: el ojo del resumen en un iPhone real. Escrito en aitri/features/presupuesto-movil/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/presupuesto-movil/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "requirement_compliance": [
+    {
+      "id": "FR-3101",
+      "title": "En el teléfono se pasa del registro al presupuesto y de vuelta",
+      "level": "complete",
+      "evidence": "7 TCs en verde (verify-run 2026-10-04, TC-PMV-001h, 002e, 003f, 004h, 005e, 006f, 007e): cambio de vista sin releer el libro, atrás del navegador con el scroll de la lista, enlace directo y URL inválida que cae a una pantalla válida."
+    },
+    {
+      "id": "FR-3102",
+      "title": "La vista de presupuesto muestra un periodo a la vez, con selector",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-04, TC-PMV-010h, 011e, 012f, 013e, 014h): periodo actual con el rótulo de escritorio (mes y ciclo), extremos deshabilitados, misma lista de periodos y candado en los cerrados."
+    },
+    {
+      "id": "FR-3103",
+      "title": "El presupuesto del periodo se lee por categoría, plegable, con el color de escritorio",
+      "level": "complete",
+      "evidence": "8 TCs en verde (verify-run 2026-10-04, TC-PMV-020h, 021h, 022e, 023f, 024e, 025h, 026f, 027e): cifras, glifo y color de escritorio por fila, plegado, alcancía con lo aportado y periodo sin datos con raya."
+    },
+    {
+      "id": "FR-3104",
+      "title": "El teléfono muestra las mismas cifras que escritorio",
+      "level": "partial",
+      "evidence": "5 TCs en verde (verify-run 2026-10-04, TC-PMV-030h, 031h, 032e, 033f, 034e): paridad nodo a nodo con la grilla y fila a fila con el Balance, 312 nodos × 36 periodos contra rollupTable, y sincronía entre dispositivos. Parcial por la deuda declarada: El guardia de arquitectura «el móvil no calcula» no es una prueba que lea el código fuente; la paridad se garantiza con pruebas de resultado."
+    },
+    {
+      "id": "FR-3105",
+      "title": "Desde el teléfono se cambia lo planeado de una categoría",
+      "level": "partial",
+      "evidence": "5 TCs en verde (verify-run 2026-10-04, TC-PMV-040h, 041e, 042f, 043f, 044e): 1.000 → 1.200 con roll-up y persistencia; cancelar, Escape, letras, coma y vacío no guardan. Parcial por la deuda declarada: El campo de «Cambiar» muestra el mensaje de monto entero para letras, comas y signos, y ninguno para el vacío; el UX spec (F4) pedía el texto «Escribe un monto en pesos, sin signo» para los tres casos."
+    },
+    {
+      "id": "FR-3106",
+      "title": "Tocar una categoría muestra sus movimientos del periodo",
+      "level": "partial",
+      "evidence": "4 TCs en verde (verify-run 2026-10-04, TC-PMV-050h, 051e, 052f, 053f): tres gastos con día, nota y monto que suman lo ejecutado; vacío con guía; alcancía sin lápiz. Parcial por la deuda declarada: `dayLabel` no se mudó de CellDetail.tsx a format.ts como decía el diseño; el teléfono usa `formatDay` del dominio."
+    },
+    {
+      "id": "FR-3107",
+      "title": "Desde el teléfono se edita un movimiento",
+      "level": "partial",
+      "evidence": "9 TCs en verde (verify-run 2026-10-04, TC-PMV-060h, 061e, 062f, 063f, 064e, 065h, 066f, 067e, 068e): editar monto, mover de mes con aviso previo, solo categorías del mismo tipo, cero = borrar, ajuste negativo con su signo, y el editor de escritorio sin cambios. Parcial por la deuda declarada: La etiqueta de tipo de «Editar movimiento» va en neutro, no en el color del tipo que pedía el UX spec (F5)."
+    },
+    {
+      "id": "FR-3108",
+      "title": "Desde el teléfono se borra un movimiento",
+      "level": "complete",
+      "evidence": "4 TCs en verde (verify-run 2026-10-04, TC-PMV-070h, 071f, 072f, 073e): borrado con confirmación y persistencia; cancelar no borra; rechazo por celda negativa con su texto."
+    },
+    {
+      "id": "FR-3109",
+      "title": "Desde el teléfono se cambia lo aportado a una alcancía",
+      "level": "complete",
+      "evidence": "4 TCs en verde (verify-run 2026-10-04, TC-PMV-080h, 081f, 082f, 083e): 500 → 700 con el disponible y lo reservado; rechazo en Ejec. y en Pres. con «Esta celda admite hasta $X este mes»; cero quita el aporte."
+    },
+    {
+      "id": "FR-3110",
+      "title": "La fila «Retiros del mes» abre los retiros del periodo para corregirlos o borrarlos; sacar se hace desde Registrar",
+      "level": "complete",
+      "evidence": "7 TCs en verde (verify-run 2026-10-04, TC-PMV-090h, 091h, 092e, 093f, 094f, 095e, 096e): lista con los dos extremos, corrección, cero elimina, cancelar no borra, rechazo con el texto de escritorio y guía hacia Registrar."
+    },
+    {
+      "id": "FR-3111",
+      "title": "Desde el teléfono se ve el Balance del periodo",
+      "level": "complete",
+      "evidence": "6 TCs en verde (verify-run 2026-10-04, TC-PMV-100h, 101h, 102f, 103e, 104e, 105f): tres bloques y diez filas con real y plan, arrastre del saldo anterior, saldo inicial declarado y alerta solo en fila de alarma negativa."
+    },
+    {
+      "id": "FR-3112",
+      "title": "Un periodo cerrado se mira pero no se cambia desde el teléfono",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-04, TC-PMV-110h, 111f, 112f, 113e, 114e): periodo cerrado sin acciones en las tres pantallas, retiro del campo abierto al cerrarse, cierre desde otro dispositivo con el editor abierto y 422 del servidor."
+    },
+    {
+      "id": "FR-3113",
+      "title": "FR-010 cambia: en el teléfono hay registro y presupuesto; el dashboard sigue siendo de escritorio",
+      "level": "complete",
+      "evidence": "4 TCs en verde (verify-run 2026-10-04, TC-PMV-120h, 121e, 122f, 123e): registro y presupuesto a 375 px sin componentes de escritorio, límite 760/761 y el DOM del registro intacto antes de la primera visita."
+    },
+    {
+      "id": "FR-3114",
+      "title": "La vista de presupuesto cabe en el teléfono y se toca con el dedo",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-04, TC-PMV-130h, 131e, 132f, 133h, 134e): sin desborde a 375 y 360 px en ocho pantallas, cifras de nueve dígitos completas, controles ≥40×40 y contraste ≥4,5:1 en claro y oscuro."
+    },
+    {
+      "id": "FR-3115",
+      "title": "Resumen de saldos del periodo: pequeño, plegable y con los valores protegidos",
+      "level": "partial",
+      "evidence": "8 TCs en verde (verify-run 2026-10-04, TC-PMV-140h, 141h, 142h, 143f, 144e, 145e, 146f, 147e): abre plegado y sin dígitos en el DOM; mantener el ojo muestra 5.550 y soltar oculta; toque corto, dedo fuera, pointercancel, pérdida de foco y teclado. Parcial por la deuda declarada: El gesto de mantener presionado el ojo se verifica con el navegador de pruebas (puntero de ratón y teclado), no en un iPhone real · El resumen desplegado muestra los tres saldos restantes en filas (rótulo a la izquierda, cifra y plan a la derecha), no en la rejilla de tres columnas de la maqueta."
+    },
+    {
+      "id": "NFR-3101",
+      "title": "El registro móvil sigue igual al REGISTRAR (FR-001, FR-212): mismo formulario, mismo guardado, mismo ConfirmOv",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-150h, 151e, 152f): Registrar anota igual antes y después de visitar Presupuesto; las piezas sin las props nuevas rinden lo de siempre."
+    },
+    {
+      "id": "NFR-3102",
+      "title": "En móvil siguen presentes el acceso a Configuración (FR-2204), el cambio de tema y el cierre de sesión.",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-153h, 154e, 155f): Configuración, tema y salir funcionan desde las dos vistas y desde un detalle."
+    },
+    {
+      "id": "NFR-3103",
+      "title": "Escritorio (>760px) no cambia: grilla, Balance, dashboard, Detalle y formularios de alcancías.",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-156h, 157e, 158f): la grilla edita lo planeado, el Detalle edita un movimiento y escritorio no monta nada del teléfono."
+    },
+    {
+      "id": "NFR-3104",
+      "title": "El breakpoint sigue en 760px: 760 es móvil y 761 es escritorio.",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-159h, 160e, 161f): 760 px es el teléfono, 761 px el computador, también cruzando el límite con la app abierta."
+    },
+    {
+      "id": "NFR-3105",
+      "title": "Las reglas (cerrado, techo, piso, déficit, validación de movimientos) aceptan y rechazan lo mismo para la mism",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-162h, 163f, 164e): el máximo se acepta y un peso más se rechaza con el mismo texto en los dos lados; el servidor responde 422 sobre un periodo cerrado."
+    },
+    {
+      "id": "NFR-3106",
+      "title": "Extraer las piezas privadas de BalanceModule para compartirlas no cambia ninguna cifra del Balance de escritor",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-165h, 166e, 167f): cada fila del Balance coincide con las series capturadas en 434a89b, 795ca8a y 99c7513; el Balance de escritorio pinta lo mismo."
+    },
+    {
+      "id": "NFR-3107",
+      "title": "Cambiar de periodo o aplicar un cambio en el teléfono actualiza las cifras de la vista de forma perceptiblemen",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-04, TC-PMV-168h, 169e, 170f): una sola pasada de roll-ups por periodo, la serie del Balance una vez por estado y 150 ms a escala fuera de instrumentación."
+    },
+    {
+      "id": "NFR-3108",
+      "title": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas en el servidor; el teléfono usa las mismas acc",
+      "level": "complete",
+      "evidence": "No aplica como superficie nueva: sin endpoints, sesiones ni secretos. La URL del teléfono se valida (TC-PMV-006f, 007e) y el gate security-config pasó en el verify-run del 2026-10-04, con la excepción fechada de BG-091 para un aviso que solo alcanza a dependencias de desarrollo."
+    },
+    {
+      "id": "NFR-3109",
+      "title": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "level": "complete",
+      "evidence": "No aplica: sin ficheros nuevos en src/app/api ni procesos nuevos."
+    },
+    {
+      "id": "NFR-3110",
+      "title": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "level": "complete",
+      "evidence": "El workflow de CI ejecuta test:run y test:e2e, que recogen las pruebas nuevas por su patrón de archivo. Su job de seguridad cambió solo para aplicar la excepción fechada de BG-091 (scripts/sca-excepciones.py); sigue fallando ante cualquier otro aviso alto."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-3115",
+      "substitution": "El gesto de mantener presionado el ojo se verifica con el navegador de pruebas (puntero de ratón y teclado), no en un iPhone real",
+      "reason": "Playwright no reproduce el menú del sistema ni la selección de texto que Safari de iOS abre en una pulsación larga; el código lleva las protecciones (touch-action, -webkit-touch-callout, user-select, contextmenu anulado), pero falta la comprobación manual en el dispositivo antes de desplegar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3107",
+      "substitution": "La etiqueta de tipo de «Editar movimiento» va en neutro, no en el color del tipo que pedía el UX spec (F5)",
+      "reason": "El guardia del sistema de diseño (refinamiento-ui FR-1201, scripts/design-tokens.sh) prohíbe el color por tipo fuera de las piezas del registro; el estándar del producto manda sobre el spec de la feature. El monto y la categoría, que son piezas del registro, sí conservan el color del tipo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3115",
+      "substitution": "El resumen desplegado muestra los tres saldos restantes en filas (rótulo a la izquierda, cifra y plan a la derecha), no en la rejilla de tres columnas de la maqueta",
+      "reason": "Tres columnas a 375 px solo caben con tamaños de letra fuera de la escala del producto (9,5–12,5 px), que el mismo guardia rechaza (FR-1206); en filas caben cifras de nueve dígitos con la escala.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3105",
+      "substitution": "El campo de «Cambiar» muestra el mensaje de monto entero para letras, comas y signos, y ninguno para el vacío; el UX spec (F4) pedía el texto «Escribe un monto en pesos, sin signo» para los tres casos",
+      "reason": "Se reutiliza el mensaje que la app ya usa para la misma regla (amountInputError, BG-076) en vez de introducir un segundo texto para lo mismo; el vacío deshabilita Guardar sin acusar un error que el usuario aún no cometió.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3106",
+      "substitution": "`dayLabel` no se mudó de CellDetail.tsx a format.ts como decía el diseño; el teléfono usa `formatDay` del dominio",
+      "reason": "`dayLabel` es un alias de una línea de `formatDay`, que ya vive en el dominio; usarlo directamente evita importar el componente de escritorio y deja CellDetail.tsx sin tocar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3104",
+      "substitution": "El guardia de arquitectura «el móvil no calcula» no es una prueba que lea el código fuente; la paridad se garantiza con pruebas de resultado",
+      "reason": "Las reglas de la fase 3 prohíben pruebas que lean el fuente como texto. TC-PMV-033f (312 nodos × 36 periodos contra rollupTable), TC-PMV-030h y TC-PMV-031h (teléfono contra escritorio en el navegador) hacen caer cualquier cifra distinta.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

@@ -1,0 +1,1146 @@
+{
+  "executed_at": "2026-10-04T15:32:35.847Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-PMV-001h",
+      "status": "pass",
+      "notes": "✓  422 [chromium] › tests/e2e/presupuesto-movil.spec.ts:142:5 › TC-PMV-001h: abre en Registrar y pasa a Presupuesto sin recargar ni volver a leer el libro (523ms)"
+    },
+    {
+      "tc_id": "TC-PMV-002e",
+      "status": "pass",
+      "notes": "✓  423 [chromium] › tests/e2e/presupuesto-movil.spec.ts:160:5 › TC-PMV-002e: el periodo y los grupos abiertos se conservan al ir a Registrar y volver (578ms)"
+    },
+    {
+      "tc_id": "TC-PMV-003f",
+      "status": "pass",
+      "notes": "✓  424 [chromium] › tests/e2e/presupuesto-movil.spec.ts:181:5 › TC-PMV-003f: Configuración, tema y salir siguen a la mano en Presupuesto (376ms)"
+    },
+    {
+      "tc_id": "TC-PMV-004h",
+      "status": "pass",
+      "notes": "✓  425 [chromium] › tests/e2e/presupuesto-movil.spec.ts:192:5 › TC-PMV-004h: el atrás del navegador vuelve de una categoría a la lista, con su scroll y sin recargar (476ms)"
+    },
+    {
+      "tc_id": "TC-PMV-005e",
+      "status": "pass",
+      "notes": "✓  426 [chromium] › tests/e2e/presupuesto-movil.spec.ts:221:5 › TC-PMV-005e: en un enlace directo a un detalle, la flecha vuelve a la lista y no saca de la app (379ms)"
+    },
+    {
+      "tc_id": "TC-PMV-006f",
+      "status": "pass",
+      "notes": "✓  427 [chromium] › tests/e2e/presupuesto-movil.spec.ts:236:5 › TC-PMV-006f: una URL con parámetros inválidos cae a una pantalla válida, sin pantalla en blanco (459ms)"
+    },
+    {
+      "tc_id": "TC-PMV-007e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-pantallas.test.ts > presupuesto-movil · parseScreen > TC-PMV-007e: parseScreen convierte cualquier consulta en una pantalla válida 4ms"
+    },
+    {
+      "tc_id": "TC-PMV-010h",
+      "status": "pass",
+      "notes": "✓  428 [chromium] › tests/e2e/presupuesto-movil.spec.ts:264:5 › TC-PMV-010h: abre en el periodo actual, con el mismo rótulo que el selector de escritorio (520ms)"
+    },
+    {
+      "tc_id": "TC-PMV-011e",
+      "status": "pass",
+      "notes": "✓  429 [chromium] › tests/e2e/presupuesto-movil.spec.ts:277:5 › TC-PMV-011e: en modo ciclo el rótulo trae el rango de fechas del ciclo (558ms)"
+    },
+    {
+      "tc_id": "TC-PMV-012f",
+      "status": "pass",
+      "notes": "✓  430 [chromium] › tests/e2e/presupuesto-movil.spec.ts:293:5 › TC-PMV-012f: en el primer periodo «anterior» está deshabilitado, y en el último «siguiente» (587ms)"
+    },
+    {
+      "tc_id": "TC-PMV-013e",
+      "status": "pass",
+      "notes": "✓  431 [chromium] › tests/e2e/presupuesto-movil.spec.ts:320:5 › TC-PMV-013e: el selector lista los mismos periodos que escritorio, en el mismo orden (657ms)"
+    },
+    {
+      "tc_id": "TC-PMV-014h",
+      "status": "pass",
+      "notes": "✓  432 [chromium] › tests/e2e/presupuesto-movil.spec.ts:337:5 › TC-PMV-014h: un periodo cerrado lleva candado en el rótulo y muestra el aviso (475ms)"
+    },
+    {
+      "tc_id": "TC-PMV-020h",
+      "status": "pass",
+      "notes": "✓  433 [chromium] › tests/e2e/presupuesto-movil.spec.ts:355:5 › TC-PMV-020h: una fila de gasto dentro del plan muestra lo gastado, «de cuánto», tono neutro y su barra (438ms)"
+    },
+    {
+      "tc_id": "TC-PMV-021h",
+      "status": "pass",
+      "notes": "✓  434 [chromium] › tests/e2e/presupuesto-movil.spec.ts:372:5 › TC-PMV-021h: el sobre-consumo leve y el grave llevan el glifo y el color de escritorio (479ms)"
+    },
+    {
+      "tc_id": "TC-PMV-022e",
+      "status": "pass",
+      "notes": "✓  435 [chromium] › tests/e2e/presupuesto-movil.spec.ts:396:5 › TC-PMV-022e: tocar un grupo lo despliega y volver a tocarlo lo pliega, dejando su total (458ms)"
+    },
+    {
+      "tc_id": "TC-PMV-023f",
+      "status": "pass",
+      "notes": "✓  436 [chromium] › tests/e2e/presupuesto-movil.spec.ts:416:5 › TC-PMV-023f: la alcancía muestra lo aportado en el periodo, no el saldo acumulado (406ms)"
+    },
+    {
+      "tc_id": "TC-PMV-024e",
+      "status": "pass",
+      "notes": "✓  437 [chromium] › tests/e2e/presupuesto-movil.spec.ts:428:5 › TC-PMV-024e: un periodo sin datos muestra todas las tarjetas con raya, no una pantalla en blanco (494ms)"
+    },
+    {
+      "tc_id": "TC-PMV-025h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-lista.test.ts > presupuesto-movil · la lista de un periodo > TC-PMV-025h: periodView ordena como la grilla y trae el roll-up y el avance de cada fila 7ms"
+    },
+    {
+      "tc_id": "TC-PMV-026f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-lista.test.ts > presupuesto-movil · la lista de un periodo > TC-PMV-026f: sin presupuesto y con gasto la barra va llena y el tono es grave; sin nada, vacía 3ms"
+    },
+    {
+      "tc_id": "TC-PMV-027e",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-lista.test.ts > presupuesto-movil · la lista de un periodo > TC-PMV-027e: la sección de reservas termina con «Retiros del mes», con lo real, lo planeado y su tono 1ms"
+    },
+    {
+      "tc_id": "TC-PMV-030h",
+      "status": "pass",
+      "notes": "✓  438 [chromium] › tests/e2e/presupuesto-movil.spec.ts:453:5 › TC-PMV-030h: cada nodo muestra en el teléfono las mismas dos cifras que en la grilla, en el mismo orden (765ms)"
+    },
+    {
+      "tc_id": "TC-PMV-031h",
+      "status": "pass",
+      "notes": "✓  470 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1154:5 › TC-PMV-031h: cada fila del Balance coincide con el módulo de escritorio, en lo real y en el plan (630ms)"
+    },
+    {
+      "tc_id": "TC-PMV-032e",
+      "status": "pass",
+      "notes": "✓  439 [chromium] › tests/e2e/presupuesto-movil.spec.ts:482:5 › TC-PMV-032e: un gasto anotado en Registrar aparece en Presupuesto en el mismo periodo (3.2s)"
+    },
+    {
+      "tc_id": "TC-PMV-033f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-lista.test.ts > presupuesto-movil · la lista de un periodo > TC-PMV-033f: periodView no diverge de rollupTable ni de typeTotals en un solo peso, a escala 384ms"
+    },
+    {
+      "tc_id": "TC-PMV-034e",
+      "status": "pass",
+      "notes": "✓  440 [chromium] › tests/e2e/presupuesto-movil.spec.ts:496:5 › TC-PMV-034e: un cambio hecho en el computador llega al teléfono sin recargar (855ms)"
+    },
+    {
+      "tc_id": "TC-PMV-040h",
+      "status": "pass",
+      "notes": "✓  453 [chromium] › tests/e2e/presupuesto-movil.spec.ts:786:5 › TC-PMV-040h: cambiar lo planeado de Mercado sube el roll-up y persiste tras recargar (677ms)"
+    },
+    {
+      "tc_id": "TC-PMV-041e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · cambiar lo planeado de una categoría > TC-PMV-041e: cancelar o pulsar Escape deja el valor como estaba y no guarda nada 2002ms"
+    },
+    {
+      "tc_id": "TC-PMV-042f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · cambiar lo planeado de una categoría > TC-PMV-042f: un monto con letras, con coma o vacío no se guarda 214ms"
+    },
+    {
+      "tc_id": "TC-PMV-043f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · cambiar lo planeado de una categoría > TC-PMV-043f: un grupo con hijos no ofrece edición: tocarlo solo lo despliega 168ms"
+    },
+    {
+      "tc_id": "TC-PMV-044e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-monto.test.ts > presupuesto-movil · campo de monto > TC-PMV-044e: el vacío y lo que no es un monto deshabilitan; el cero y los límites valen 3ms"
+    },
+    {
+      "tc_id": "TC-PMV-050h",
+      "status": "pass",
+      "notes": "✓  454 [chromium] › tests/e2e/presupuesto-movil.spec.ts:811:5 › TC-PMV-050h: Mercado muestra sus tres gastos con día, nota y monto, y suman lo ejecutado (499ms)"
+    },
+    {
+      "tc_id": "TC-PMV-051e",
+      "status": "pass",
+      "notes": "✓  455 [chromium] › tests/e2e/presupuesto-movil.spec.ts:829:5 › TC-PMV-051e: una categoría sin movimientos muestra su guía y lleva a Registrar (586ms)"
+    },
+    {
+      "tc_id": "TC-PMV-052f",
+      "status": "pass",
+      "notes": "✓  456 [chromium] › tests/e2e/presupuesto-movil.spec.ts:846:5 › TC-PMV-052f: la alcancía muestra lo aportado, sin lápiz para editar ni borrar (457ms)"
+    },
+    {
+      "tc_id": "TC-PMV-053f",
+      "status": "pass",
+      "notes": "✓  457 [chromium] › tests/e2e/presupuesto-movil.spec.ts:861:5 › TC-PMV-053f: tocar la cifra ejecutada de un grupo no abre ninguna lista (411ms)"
+    },
+    {
+      "tc_id": "TC-PMV-060h",
+      "status": "pass",
+      "notes": "✓  458 [chromium] › tests/e2e/presupuesto-movil.spec.ts:876:5 › TC-PMV-060h: editar el monto de un gasto actualiza la categoría y el Balance (656ms)"
+    },
+    {
+      "tc_id": "TC-PMV-061e",
+      "status": "pass",
+      "notes": "✓  459 [chromium] › tests/e2e/presupuesto-movil.spec.ts:901:5 › TC-PMV-061e: cambiar la fecha a otro mes avisa antes de guardar y mueve el gasto después (1.5s)"
+    },
+    {
+      "tc_id": "TC-PMV-062f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · editar un movimiento > TC-PMV-062f: la categoría solo ofrece hojas del mismo tipo 176ms"
+    },
+    {
+      "tc_id": "TC-PMV-063f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · editar un movimiento > TC-PMV-063f: un monto con letras deja «Guardar cambios» deshabilitado y dice por qué 140ms"
+    },
+    {
+      "tc_id": "TC-PMV-064e",
+      "status": "pass",
+      "notes": "✓  460 [chromium] › tests/e2e/presupuesto-movil.spec.ts:925:5 › TC-PMV-064e: poner el monto en cero convierte guardar en borrar (527ms)"
+    },
+    {
+      "tc_id": "TC-PMV-065h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-edicion.test.ts > presupuesto-movil · ensayo de la edición de un movimiento > TC-PMV-065h: una edición aceptada trae el cambio a guardar, y cambiar de mes dice a cuál pasa 5ms"
+    },
+    {
+      "tc_id": "TC-PMV-066f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-edicion.test.ts > presupuesto-movil · ensayo de la edición de un movimiento > TC-PMV-066f: lo que no se puede guardar dice por qué: monto, nota, mes cerrado u otra categoría 3ms"
+    },
+    {
+      "tc_id": "TC-PMV-067e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · editar un movimiento > TC-PMV-067e: el editor de escritorio se comporta igual tras extraerle el ensayo 95ms"
+    },
+    {
+      "tc_id": "TC-PMV-068e",
+      "status": "pass",
+      "notes": "✓  461 [chromium] › tests/e2e/presupuesto-movil.spec.ts:946:5 › TC-PMV-068e: un ajuste negativo se abre con su signo y se puede editar (849ms)"
+    },
+    {
+      "tc_id": "TC-PMV-070h",
+      "status": "pass",
+      "notes": "✓  462 [chromium] › tests/e2e/presupuesto-movil.spec.ts:982:5 › TC-PMV-070h: borrar un gasto con confirmación lo quita y persiste (835ms)"
+    },
+    {
+      "tc_id": "TC-PMV-071f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · borrar un movimiento > TC-PMV-071f: cancelar la confirmación no borra nada 190ms"
+    },
+    {
+      "tc_id": "TC-PMV-072f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · borrar un movimiento > TC-PMV-072f: un borrado que dejaría la celda en negativo se rechaza con su motivo 158ms"
+    },
+    {
+      "tc_id": "TC-PMV-073e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · borrar un movimiento > TC-PMV-073e: borrar el único gasto deja la categoría vacía, con su guía 225ms"
+    },
+    {
+      "tc_id": "TC-PMV-080h",
+      "status": "pass",
+      "notes": "✓  463 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1007:5 › TC-PMV-080h: cambiar lo aportado a Viaje baja el disponible y sube lo reservado (657ms)"
+    },
+    {
+      "tc_id": "TC-PMV-081f",
+      "status": "pass",
+      "notes": "✓  464 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1025:5 › TC-PMV-081f: un aporte por encima del máximo se rechaza con el texto de escritorio (560ms)"
+    },
+    {
+      "tc_id": "TC-PMV-082f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · lo aportado a una alcancía > TC-PMV-082f: en Pres. un aporte por encima del máximo del plan se rechaza con el texto de escritorio 85ms"
+    },
+    {
+      "tc_id": "TC-PMV-083e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · lo aportado a una alcancía > TC-PMV-083e: escribir 0 quita el aporte del periodo 152ms"
+    },
+    {
+      "tc_id": "TC-PMV-090h",
+      "status": "pass",
+      "notes": "✓  465 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1054:5 › TC-PMV-090h: la pantalla de retiros lista la operación con sus dos extremos, su nota y su monto (465ms)"
+    },
+    {
+      "tc_id": "TC-PMV-091h",
+      "status": "pass",
+      "notes": "✓  466 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1070:5 › TC-PMV-091h: corregir un retiro baja la cifra y el disponible (592ms)"
+    },
+    {
+      "tc_id": "TC-PMV-092e",
+      "status": "pass",
+      "notes": "✓  467 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1089:5 › TC-PMV-092e: corregir un retiro a cero lo elimina y las cifras vuelven a como estaban (586ms)"
+    },
+    {
+      "tc_id": "TC-PMV-093f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · retiros del mes > TC-PMV-093f: cancelar el borrado deja el retiro como estaba 111ms"
+    },
+    {
+      "tc_id": "TC-PMV-094f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · retiros del mes > TC-PMV-094f: una corrección que la regla rechaza muestra el motivo de escritorio y no cambia nada 115ms"
+    },
+    {
+      "tc_id": "TC-PMV-095e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-balance.test.ts > presupuesto-movil · las operaciones de reserva del periodo > TC-PMV-095e: un movimiento entre alcancías se lista con sus dos extremos y no cuenta como retiro 1ms"
+    },
+    {
+      "tc_id": "TC-PMV-096e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · retiros del mes > TC-PMV-096e: sin operaciones, la pantalla guía hacia Registrar 133ms"
+    },
+    {
+      "tc_id": "TC-PMV-100h",
+      "status": "pass",
+      "notes": "✓  468 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1110:5 › TC-PMV-100h: el Balance muestra los tres bloques y sus diez filas con cifras reales y de plan (465ms)"
+    },
+    {
+      "tc_id": "TC-PMV-101h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · el Balance del periodo > TC-PMV-101h: el saldo del mes anterior es el disponible del periodo anterior, en cada plano 154ms"
+    },
+    {
+      "tc_id": "TC-PMV-102f",
+      "status": "pass",
+      "notes": "✓  469 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1133:5 › TC-PMV-102f: un saldo disponible negativo va en alerta; un resultado negativo, no (584ms)"
+    },
+    {
+      "tc_id": "TC-PMV-103e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · el Balance del periodo > TC-PMV-103e: el primer periodo abre con el saldo inicial declarado 124ms"
+    },
+    {
+      "tc_id": "TC-PMV-104e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-balance.test.ts > presupuesto-movil · lo que el Balance pinta > TC-PMV-104e: el resumen y las filas del Balance salen de la serie, cifra por cifra 5ms"
+    },
+    {
+      "tc_id": "TC-PMV-105f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-balance.test.ts > presupuesto-movil · lo que el Balance pinta > TC-PMV-105f: el color y el cero siguen la regla de escritorio: alerta solo en fila de alarma negativa 2ms"
+    },
+    {
+      "tc_id": "TC-PMV-110h",
+      "status": "pass",
+      "notes": "✓  479 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1344:5 › TC-PMV-110h: en un periodo cerrado se ven los movimientos, sin acciones y con el aviso (608ms)"
+    },
+    {
+      "tc_id": "TC-PMV-111f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · periodo cerrado > TC-PMV-111f: en un periodo cerrado no hay «Cambiar», ni lápices, ni acciones de retiros 332ms"
+    },
+    {
+      "tc_id": "TC-PMV-112f",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/presupuesto-movil.test.ts > presupuesto-movil · un periodo cerrado no se cambia, lo pida quien lo pida > TC-PMV-112f: corregir o borrar un movimiento de un periodo cerrado responde 422 y no cambia nada 245ms"
+    },
+    {
+      "tc_id": "TC-PMV-113e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · periodo cerrado > TC-PMV-113e: al pasar a un periodo abierto vuelven las acciones 183ms"
+    },
+    {
+      "tc_id": "TC-PMV-114e",
+      "status": "pass",
+      "notes": "✓  480 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1363:5 › TC-PMV-114e: si el periodo se cierra desde otro dispositivo con el editor abierto, el editor se cierra (667ms)"
+    },
+    {
+      "tc_id": "TC-PMV-120h",
+      "status": "pass",
+      "notes": "✓  441 [chromium] › tests/e2e/presupuesto-movil.spec.ts:524:5 › TC-PMV-120h: a 375 px hay registro y presupuesto, y no hay dashboard ni grilla de escritorio (426ms)"
+    },
+    {
+      "tc_id": "TC-PMV-121e",
+      "status": "pass",
+      "notes": "✓  442 [chromium] › tests/e2e/presupuesto-movil.spec.ts:540:5 › TC-PMV-121e: el límite sigue en 760 px: 760 es el teléfono y 761 el computador (395ms)"
+    },
+    {
+      "tc_id": "TC-PMV-122f",
+      "status": "pass",
+      "notes": "✓  443 [chromium] › tests/e2e/presupuesto-movil.spec.ts:553:5 › TC-PMV-122f: antes de visitar Presupuesto, la página del registro es la de siempre (298ms)"
+    },
+    {
+      "tc_id": "TC-PMV-123e",
+      "status": "pass",
+      "notes": "✓  444 [chromium] › tests/e2e/presupuesto-movil.spec.ts:566:5 › TC-PMV-123e: a 1440 px la app es la de escritorio, también con los parámetros del teléfono en la URL (565ms)"
+    },
+    {
+      "tc_id": "TC-PMV-130h",
+      "status": "pass",
+      "notes": "✓  481 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1428:5 › TC-PMV-130h: ninguna pantalla desborda a lo ancho, ni a 375 ni a 360 px (1.7s)"
+    },
+    {
+      "tc_id": "TC-PMV-131e",
+      "status": "pass",
+      "notes": "✓  482 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1441:5 › TC-PMV-131e: una cifra de nueve dígitos se ve completa en todas las pantallas (781ms)"
+    },
+    {
+      "tc_id": "TC-PMV-132f",
+      "status": "pass",
+      "notes": "✓  483 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1500:5 › TC-PMV-132f: todo control tocable de la vista mide al menos 40 × 40 (1.0s)"
+    },
+    {
+      "tc_id": "TC-PMV-133h",
+      "status": "pass",
+      "notes": "✓  484 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1544:5 › TC-PMV-133h: las cifras cumplen contraste 4,5:1 en tema claro y en oscuro (1.0s)"
+    },
+    {
+      "tc_id": "TC-PMV-134e",
+      "status": "pass",
+      "notes": "✓  485 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1575:5 › TC-PMV-134e: un nombre largo se trunca con puntos y no empuja las cifras (493ms)"
+    },
+    {
+      "tc_id": "TC-PMV-140h",
+      "status": "pass",
+      "notes": "✓  471 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1181:5 › TC-PMV-140h: el resumen abre plegado y sin un solo dígito (417ms)"
+    },
+    {
+      "tc_id": "TC-PMV-141h",
+      "status": "pass",
+      "notes": "✓  472 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1198:5 › TC-PMV-141h: mantener presionado el ojo muestra el saldo, y al soltar se oculta (3.3s)"
+    },
+    {
+      "tc_id": "TC-PMV-142h",
+      "status": "pass",
+      "notes": "✓  473 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1215:5 › TC-PMV-142h: la flecha despliega los cuatro saldos con su plan y el enlace al Balance (548ms)"
+    },
+    {
+      "tc_id": "TC-PMV-143f",
+      "status": "pass",
+      "notes": "✓  474 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1244:5 › TC-PMV-143f: un toque corto sobre el ojo no deja los valores a la vista y enseña la pista (2.5s)"
+    },
+    {
+      "tc_id": "TC-PMV-144e",
+      "status": "pass",
+      "notes": "✓  475 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1259:5 › TC-PMV-144e: los valores se ocultan si el puntero se cancela o la página pierde el foco (617ms)"
+    },
+    {
+      "tc_id": "TC-PMV-145e",
+      "status": "pass",
+      "notes": "✓  476 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1286:5 › TC-PMV-145e: con teclado, mantener Espacio o Enter sobre el ojo muestra y soltar oculta (403ms)"
+    },
+    {
+      "tc_id": "TC-PMV-146f",
+      "status": "pass",
+      "notes": "✓  477 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1307:5 › TC-PMV-146f: la protección no esconde las categorías ni el Balance completo (513ms)"
+    },
+    {
+      "tc_id": "TC-PMV-147e",
+      "status": "pass",
+      "notes": "✓  478 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1323:5 › TC-PMV-147e: al reabrir la app el resumen vuelve plegado y oculto (521ms)"
+    },
+    {
+      "tc_id": "TC-PMV-150h",
+      "status": "pass",
+      "notes": "✓  445 [chromium] › tests/e2e/presupuesto-movil.spec.ts:579:5 › TC-PMV-150h: Registrar sigue anotando un gasto igual que antes (3.0s)"
+    },
+    {
+      "tc_id": "TC-PMV-151e",
+      "status": "pass",
+      "notes": "✓  446 [chromium] › tests/e2e/presupuesto-movil.spec.ts:594:5 › TC-PMV-151e: tras visitar Presupuesto, Registrar sigue anotando y solo hay un formulario activo (1.0s)"
+    },
+    {
+      "tc_id": "TC-PMV-152f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-pantallas.test.ts > presupuesto-movil · las piezas del registro siguen igual > TC-PMV-152f: SaveButton, NoteField y AmountDisplay sin las props nuevas rinden lo de siempre 21ms"
+    },
+    {
+      "tc_id": "TC-PMV-153h",
+      "status": "pass",
+      "notes": "✓  447 [chromium] › tests/e2e/presupuesto-movil.spec.ts:615:5 › TC-PMV-153h: Configuración se abre desde Registrar y desde Presupuesto (532ms)"
+    },
+    {
+      "tc_id": "TC-PMV-154e",
+      "status": "pass",
+      "notes": "✓  448 [chromium] › tests/e2e/presupuesto-movil.spec.ts:630:5 › TC-PMV-154e: el tema se cambia desde Presupuesto (422ms)"
+    },
+    {
+      "tc_id": "TC-PMV-155f",
+      "status": "pass",
+      "notes": "✓  449 [chromium] › tests/e2e/presupuesto-movil.spec.ts:646:5 › TC-PMV-155f: salir desde una pantalla de detalle cierra la sesión (652ms)"
+    },
+    {
+      "tc_id": "TC-PMV-156h",
+      "status": "pass",
+      "notes": "✓  486 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1608:5 › TC-PMV-156h: en el computador, la grilla edita lo planeado de una hoja como antes (711ms)"
+    },
+    {
+      "tc_id": "TC-PMV-157e",
+      "status": "pass",
+      "notes": "✓  487 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1627:5 › TC-PMV-157e: en el computador, el Detalle edita un movimiento como antes (656ms)"
+    },
+    {
+      "tc_id": "TC-PMV-158f",
+      "status": "pass",
+      "notes": "✓  488 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1651:5 › TC-PMV-158f: el computador no monta nada del teléfono, ni en Resumen ni en Dashboard (472ms)"
+    },
+    {
+      "tc_id": "TC-PMV-159h",
+      "status": "pass",
+      "notes": "✓  450 [chromium] › tests/e2e/presupuesto-movil.spec.ts:675:5 › TC-PMV-159h: a 760 px se monta el teléfono (392ms)"
+    },
+    {
+      "tc_id": "TC-PMV-160e",
+      "status": "pass",
+      "notes": "✓  451 [chromium] › tests/e2e/presupuesto-movil.spec.ts:685:5 › TC-PMV-160e: cruzar el límite con la app abierta en modo Año pasa al teléfono con un periodo válido (557ms)"
+    },
+    {
+      "tc_id": "TC-PMV-161f",
+      "status": "pass",
+      "notes": "✓  452 [chromium] › tests/e2e/presupuesto-movil.spec.ts:700:5 › TC-PMV-161f: a 761 px no se monta el teléfono, ni con sus parámetros en la URL (384ms)"
+    },
+    {
+      "tc_id": "TC-PMV-162h",
+      "status": "pass",
+      "notes": "✓  489 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1677:5 › TC-PMV-162h: el máximo que el teléfono muestra se acepta en el computador y en el teléfono (993ms)"
+    },
+    {
+      "tc_id": "TC-PMV-163f",
+      "status": "pass",
+      "notes": "✓  490 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1707:5 › TC-PMV-163f: un peso por encima del máximo se rechaza en los dos lados con el mismo texto (713ms)"
+    },
+    {
+      "tc_id": "TC-PMV-164e",
+      "status": "pass",
+      "notes": "✓ |backend| tests/integration/backend/presupuesto-movil.test.ts > presupuesto-movil · un periodo cerrado no se cambia, lo pida quien lo pida > TC-PMV-164e: cambiar lo planeado de un periodo cerrado por PUT responde 422 y nombra el periodo 130ms"
+    },
+    {
+      "tc_id": "TC-PMV-165h",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-balance.test.ts > presupuesto-movil · lo que el Balance pinta > TC-PMV-165h: cada fila del Balance coincide con las series capturadas antes de mudar las funciones 7ms"
+    },
+    {
+      "tc_id": "TC-PMV-166e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/presupuesto-movil-balance.test.ts > presupuesto-movil · lo que el Balance pinta > TC-PMV-166e: reserveFlows da los aportes y los retiros brutos, por plano 1ms"
+    },
+    {
+      "tc_id": "TC-PMV-167f",
+      "status": "pass",
+      "notes": "✓  491 [chromium] › tests/e2e/presupuesto-movil.spec.ts:1733:5 › TC-PMV-167f: el Balance del computador sigue pintando un disponible negativo en alerta, y solo eso (460ms)"
+    },
+    {
+      "tc_id": "TC-PMV-168h",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-una-pasada.test.ts > presupuesto-movil · una sola pasada de roll-ups > TC-PMV-168h: periodView llama a rollupTable una vez, con un solo periodo, y a nada por nodo 5ms"
+    },
+    {
+      "tc_id": "TC-PMV-169e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/presupuesto-movil-serie.test.ts > presupuesto-movil · la serie del Balance se calcula una vez por estado > TC-PMV-169e: cinco cambios de periodo no la recalculan; una edición, sí 1771ms"
+    },
+    {
+      "tc_id": "TC-PMV-170f",
+      "status": "pass",
+      "notes": "✓ |app| tests/domain/presupuesto-movil-lista.test.ts > presupuesto-movil · la lista de un periodo > TC-PMV-170f: la lista y la serie del Balance de un libro grande caben en 150 ms 134ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-3101",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3102",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3103",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3104",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3105",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3106",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3107",
+      "tests_passing": 9,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3108",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3109",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3110",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3111",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3112",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3113",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3114",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3115",
+      "tests_passing": 8,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-3101",
+      "fr_id": "FR-3101",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3102",
+      "fr_id": "FR-3101",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3103",
+      "fr_id": "FR-3101",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3141",
+      "fr_id": "FR-3101",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3104",
+      "fr_id": "FR-3102",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3105",
+      "fr_id": "FR-3102",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3106",
+      "fr_id": "FR-3102",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3107",
+      "fr_id": "FR-3103",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3108",
+      "fr_id": "FR-3103",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3109",
+      "fr_id": "FR-3103",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3110",
+      "fr_id": "FR-3103",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3111",
+      "fr_id": "FR-3104",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3112",
+      "fr_id": "FR-3104",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3113",
+      "fr_id": "FR-3105",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3114",
+      "fr_id": "FR-3105",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3115",
+      "fr_id": "FR-3105",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3116",
+      "fr_id": "FR-3106",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3117",
+      "fr_id": "FR-3106",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3118",
+      "fr_id": "FR-3106",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3119",
+      "fr_id": "FR-3107",
+      "tests_passing": 6,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3120",
+      "fr_id": "FR-3107",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3121",
+      "fr_id": "FR-3107",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3122",
+      "fr_id": "FR-3107",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3123",
+      "fr_id": "FR-3108",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3124",
+      "fr_id": "FR-3108",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3125",
+      "fr_id": "FR-3109",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3126",
+      "fr_id": "FR-3109",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3127",
+      "fr_id": "FR-3110",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3128",
+      "fr_id": "FR-3110",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3129",
+      "fr_id": "FR-3110",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3130",
+      "fr_id": "FR-3111",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3131",
+      "fr_id": "FR-3111",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3132",
+      "fr_id": "FR-3111",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3133",
+      "fr_id": "FR-3112",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3134",
+      "fr_id": "FR-3112",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3135",
+      "fr_id": "FR-3112",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3136",
+      "fr_id": "FR-3113",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3137",
+      "fr_id": "FR-3113",
+      "tests_passing": 7,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3138",
+      "fr_id": "FR-3114",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3139",
+      "fr_id": "FR-3114",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3140",
+      "fr_id": "FR-3114",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3142",
+      "fr_id": "FR-3115",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3143",
+      "fr_id": "FR-3115",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3144",
+      "fr_id": "FR-3115",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3145",
+      "fr_id": "FR-3115",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 107,
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 5981,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 5586,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 308,
+      "output": "✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 122899,
+      "output": "th]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 1347,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 297332,
+      "output": "      132 |\n      133 |   test(\"BG-069-f: crear, cancelar un borrado y borrar una categoría sin mouse, sin perder el foco\", async ({ page }) => {\n        at /Users/cesareyeserrano/PROJECTS/T-Ledger/tests/e2e/bg-069-grilla-con-teclado.spec.ts:130:80\n\n    Error Context: test-results/bg-069-grilla-con-teclado--d812b-da-ni-las-acciones-pintadas-chromium/error-context.md\n\n  1 flaky\n    [chromium] › tests/e2e/bg-069-grilla-con-teclado.spec.ts:116:7 › BG-069 · la grilla sin mouse › BG-069-e: con el mouse, «clic, teclear, Enter» no deja el foco en la celda ni las acciones pintadas \n  724 passed (4.9m)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 112791,
+    "e2e_ms": 294593,
+    "gates_ms": 433484,
+    "total_ms": 840964
+  }
+}

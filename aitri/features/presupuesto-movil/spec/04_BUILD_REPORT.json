@@ -14,7 +14,7 @@
     "src/components/mobile/amountDraft.ts",
     "src/components/mobile/screenStack.ts",
     "src/components/mobile/tone.ts",
-    "src/components/mobile/useHoldReveal.ts",
+    "src/components/mobile/useTimedReveal.ts",
     "src/components/mobile/withdrawalRows.ts",
     "src/components/balanceView.ts",
     "src/domain/movementEditVerdict.ts",
@@ -100,12 +100,6 @@
     }
   ],
   "technical_debt": [
-    {
-      "fr_id": "FR-3115",
-      "substitution": "El gesto de mantener presionado el ojo se verifica con el navegador de pruebas (puntero de ratón y teclado), no en un iPhone real",
-      "reason": "Playwright no reproduce el menú del sistema ni la selección de texto que Safari de iOS abre en una pulsación larga; el código lleva las protecciones (touch-action, -webkit-touch-callout, user-select, contextmenu anulado), pero falta la comprobación manual en el dispositivo antes de desplegar.",
-      "effort_to_fix": "low"
-    },
     {
       "fr_id": "FR-3107",
       "substitution": "La etiqueta de tipo de «Editar movimiento» va en neutro, no en el color del tipo que pedía el UX spec (F5)",

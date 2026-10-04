@@ -24,8 +24,7 @@ app web, no app nativa»). Esto fija tres reglas de diseño:
   funcionan. La flecha «‹» de la página hace lo mismo.
 - Las páginas se desplazan con scroll vertical normal, dentro del contenedor de contenido que el shell móvil ya
   tiene, sin gestos ocultos (nada depende de deslizar). Lo único fijo es la barra de periodo, con
-  `position: sticky`. Al volver de un detalle, la lista recupera la posición de scroll que tenía. La única acción de
-  «mantener presionado» es la del ojo del resumen, que el usuario pidió y que tiene un control visible (FR-3115).
+  `position: sticky`. Al volver de un detalle, la lista recupera la posición de scroll que tenía.
 
 **Estilo aprobado por el usuario** (3-oct-2026). Tras rechazar la primera versión («el diseño es bastante horrible»),
 el usuario comparó tres estilos de la pantalla del mes —A limpio, B tarjetas, C extracto— con cifras de hasta 9
@@ -36,7 +35,7 @@ dígitos y eligió **la mezcla de A y B** («aprobado»):
 - Cada grupo va en una tarjeta suave (`--bg-card` con hairline), y al abrirlo sus categorías aparecen dentro de la
   misma tarjeta.
 - La tarjeta de resumen es **pequeña, plegable y con los valores protegidos**: abre plegada y muestra «$ ••••••»
-  hasta que se mantiene presionado el ojo (FR-3115).
+  hasta que se toca el ojo; entonces se ven 10 segundos y se ocultan solos (FR-3115).
 
 La barra de avance es un elemento nuevo respecto a escritorio. No añade un cálculo: pinta la razón
 ejecutado/presupuestado que ya decide el color de estado, con los mismos tonos.
@@ -214,21 +213,25 @@ flecha «‹» del encabezado vuelve a la anterior.
 - **Entry:** la tarjeta de resumen, arriba de la lista. Abre **plegada**: eyebrow «SALDO DISPONIBLE», el valor
   oculto «$ ••••••», el ícono del ojo y la flecha de desplegar.
 - **Steps:**
-  - **Mantener presionado el ojo** muestra las cifras de la tarjeta mientras dura la presión. Al soltar, vuelven a
-    «$ ••••••». El ojo cambia de «ojo tachado» a «ojo» y toma un fondo circular mientras está presionado.
-  - **Tocar la flecha** despliega la tarjeta. Aparecen «Plan» bajo el saldo disponible y una fila de tres saldos:
-    Resultado del mes, Saldo reservado y Saldo total, cada uno con lo real y su «Plan» debajo, también ocultos. Al
-    final va el enlace «Ver Balance completo ›», que abre F8. Tocar la flecha otra vez la pliega.
+  - **Tocar el ojo** muestra las cifras de la tarjeta durante **10 segundos** y luego vuelven solas a «$ ••••••».
+    Mientras se ven, el ojo cambia de «ojo tachado» a «ojo» con un fondo circular. Decisión del usuario del
+    4-oct-2026, tras probar en dev la primera versión (mantener presionado): «pulso una vez y se ve por 10 seg,
+    luego se vuelve a ocultar». Motivo: con el dedo encima no se podía hacer nada más, y en iPhone la pulsación
+    larga abre el menú del sistema.
+  - **Tocar el ojo otra vez** mientras se ven las oculta de inmediato.
+  - **Tocar la flecha** despliega la tarjeta. Aparecen «Plan» bajo el saldo disponible y una fila por cada uno de
+    los otros tres saldos (Resultado del mes, Saldo reservado, Saldo total), con lo real a la derecha y su «Plan»
+    debajo, también ocultos. Al final va el enlace «Ver Balance completo ›», que abre F8. Tocar la flecha otra vez
+    la pliega. Desplegar o plegar no cambia si los valores se ven ni reinicia el temporizador.
   - Cada vez que se abre la app, la tarjeta vuelve a estar plegada y oculta.
-- **Exit:** soltar el ojo, plegar la tarjeta o abrir el Balance completo.
+- **Exit:** esperar los 10 segundos, tocar el ojo, plegar la tarjeta o abrir el Balance completo.
 - **Error path:**
-  - Un toque corto sobre el ojo no deja nada a la vista. Bajo la tarjeta aparece durante 2 s la pista «Mantén
-    presionado para ver» (H10), para quien no conoce el gesto.
-  - Si el dedo sale del ojo, la pestaña pierde el foco o la app pasa a segundo plano, los valores se ocultan.
-  - En iPhone, mantener presionado no debe abrir el menú del sistema ni seleccionar texto: el botón lleva
-    `user-select: none`, `-webkit-touch-callout: none` y anula `contextmenu`.
-  - Con teclado: mantener Espacio o Enter sobre el ojo muestra, soltar oculta. Para lectores de pantalla el botón se
-    llama «Mantén presionado para ver los saldos» y la cifra oculta se anuncia como «oculto».
+  - Si la pestaña pierde el foco o la app pasa a segundo plano, los valores se ocultan sin esperar.
+  - Tocar el ojo varias veces seguidas no acumula tiempo: cada toque alterna entre ver (10 segundos desde ese
+    toque) y ocultar.
+  - Con teclado: Espacio o Enter sobre el ojo hacen lo mismo que un toque. El botón se llama «Ver los saldos
+    durante 10 segundos» cuando están ocultos y «Ocultar los saldos» cuando se ven; lleva `aria-pressed`. La cifra
+    oculta se anuncia como «oculto».
   - Mientras están ocultos, los dígitos no están en el DOM (se renderiza el texto «$ ••••••»), así que tampoco los
     lee un lector de pantalla ni quedan en una captura.
 
@@ -252,7 +255,7 @@ mutaciones son optimistas como en escritorio. Los errores de persistencia los av
 |---|---|---|---|
 | **Barra de periodo** (nuevo) | default · disabled (‹ en el primero, › en el último) · empty (n/a: siempre hay un periodo) · loading (n/a) · error (n/a) | Botones ‹ › de 40×40 px a los lados. Al centro, el rótulo (`withRange`, `.label` 500) con ▾ que abre el `Select` vigente (`ui/select`) con los periodos activos y un candado en los cerrados. Fija arriba al hacer scroll | H1, H3, H6 |
 | Aviso de periodo cerrado | default (oculto) · visible (cerrado) · resto n/a | Franja `--bg-sunken` con borde y ícono `Lock`, texto `.caption` `--fg-secondary`. Copy en F9 | H1, H9 |
-| **Tarjeta de resumen de saldos** (nuevo) — FR-3115 | default (plegada, oculta) · expanded (cuatro saldos, ocultos) · revealed (ojo presionado: cifras visibles) · empty (sin datos: «—» al revelar) · loading (n/a) · error (n/a) · disabled (n/a) | Card con relleno `--primary` y texto `--primary-foreground`, radio `--radius-lg` (14 px), `.elevated-md`, padding 10 px vertical y 16 px a la izquierda. **Plegada** (alto ≈ 60 px): eyebrow «SALDO DISPONIBLE» (opacidad 70 %), valor en DM Mono a 20 px, y a la derecha dos botones de 40×40 px: ojo (`EyeOff`; `Eye` con fondo circular mientras se presiona) y flecha (`ChevronDown` / `ChevronUp`). **Desplegada**: «Plan <cifra>» en `.caption` bajo el saldo; separador; rejilla de 3 columnas con «RESULTADO DEL MES», «SALDO RESERVADO» y «SALDO TOTAL» (eyebrow de 9,5 px, cifra en DM Mono 12,5 px y «Plan <cifra>» en 10,5 px, para que quepan tres cifras de 9 dígitos a 375 px); enlace «Ver Balance completo ›». Oculto, cada cifra es el texto «$ ••••••». Sobre el relleno oscuro las cifras no llevan tono de estado (irían sin contraste); un saldo negativo se distingue por su signo «−». Valores: `available`, `flow`, `reservedBalance` y `total` de `computeBalanceSeries`, iguales a las filas de escritorio | H1, H3, H5, H8, H10 |
+| **Tarjeta de resumen de saldos** (nuevo) — FR-3115 | default (plegada, oculta) · expanded (cuatro saldos, ocultos) · revealed (tras tocar el ojo: cifras visibles 10 s) · empty (sin datos: «0» o «—» al revelar) · loading (n/a) · error (n/a) · disabled (n/a) | Card con relleno `--primary` y texto `--primary-foreground`, radio `--radius-lg` (14 px), `.elevated-md`, padding 10 px vertical y 16 px a la izquierda. **Plegada** (alto ≈ 60 px): eyebrow «SALDO DISPONIBLE» (opacidad 70 %), valor en DM Mono a `.title` en peso 400, y a la derecha dos botones de 40×40 px: ojo (`EyeOff`; `Eye` con fondo circular mientras se ven) y flecha (`ChevronDown` / `ChevronUp`). **Desplegada**: «Plan <cifra>» en `.caption` bajo el saldo; separador; una fila por saldo —«RESULTADO DEL MES», «SALDO RESERVADO» y «SALDO TOTAL»— con el rótulo en `.eyebrow` a la izquierda y, a la derecha, la cifra en DM Mono `.label` y «Plan <cifra>» en `.caption` debajo (en filas y no en tres columnas: tres columnas solo caben con letra fuera de la escala del producto); enlace «Ver Balance completo ›». Oculto, cada cifra es el texto «$ ••••••». Sobre el relleno oscuro las cifras no llevan tono de estado (irían sin contraste); un saldo negativo se distingue por su signo «−». El ojo es un botón de alternar: un toque muestra 10 s (`REVEAL_MS`), otro oculta. Valores: `available`, `flow`, `reservedBalance` y `total` de `computeBalanceSeries`, iguales a las filas de escritorio | H1, H3, H5, H8 |
 | Encabezado de sección (INGRESOS / GASTOS / RESERVAS) | default · empty (totales «—») · resto n/a | Una línea: eyebrow con el nombre a la izquierda; a la derecha, «123.288.000 de 154.110.000» (ejecutado de presupuestado) en DM Mono `.caption` `--fg-muted`. En INGRESOS y RESERVAS, igual. Margen superior de 20 px | H4, H8 |
 | **Tarjeta de grupo** (nuevo) | default (plegada) · expanded · empty («—», barra vacía) · disabled (n/a) · loading (n/a) · error (n/a) | Card `--bg-card` + hairline + `.elevated-sm`, radio `--radius-lg` (14 px), padding horizontal 14 px, 10 px entre tarjetas. Contiene la fila del grupo y, desplegada, las filas de sus hijos separadas por hairline. Tocar la fila del grupo pliega o despliega (chevron ⌄ / ›, `--duration-fast`) | H1, H6, H8 |
 | **Fila de presupuesto** (grupo, categoría o subcategoría; nuevo) | default · empty («—» `--fg-muted`, barra vacía) · expanded (con hijos) · disabled (n/a) · loading (n/a) · error (n/a) | Tres partes, alto ≈ 64 px, padding 12 px arriba y 8 px abajo. (1) Línea principal: nombre a la izquierda (grupo: 14 px / 600; hijo: `.label` 13 px / 500, con sangría de 14 px por nivel), lo ejecutado a la derecha en DM Mono (grupo 15 px, hijo 13 px) con glifo y tono, y el chevron de 14 px. (2) **Barra de avance**. (3) «de <presupuestado>» en `.caption` `--fg-muted`, alineado a la derecha bajo la cifra. El nombre se trunca con «…» | H1, H6 |
@@ -313,9 +316,8 @@ mutaciones son optimistas como en escritorio. Los errores de persistencia los av
 - **H5 (prevención):** los botones se deshabilitan antes de un error, el «Máx.» se ve antes de teclear, «Pasará a …»
   avisa antes de guardar y un periodo cerrado no ofrece acciones.
 - **H6 (reconocimiento):** las acciones están siempre visibles (lápiz, papelera, «Cambiar», chevron, ojo). Nada
-  depende de deslizar. Trade-off aceptado, pedido por el usuario: los saldos del resumen se ven solo al mantener
-  presionado el ojo. El control está a la vista, un toque corto muestra la pista «Mantén presionado para ver» y el
-  Balance completo sigue a un toque, sin proteger.
+  depende de deslizar ni de mantener presionado: los saldos del resumen se ven con un toque en el ojo y se ocultan
+  solos a los 10 segundos. El Balance completo sigue a un toque, sin proteger.
 - **H7 (eficiencia):** «cuánto llevo en Vivienda» se ve sin tocar nada en la fila del grupo, con su barra, y «cuánto
   en Mercado» con un toque más: abrir la tarjeta. ‹ › cambian de periodo con un toque.
 - **H8 (minimalismo):** cada fila muestra lo ejecutado, la barra y «de cuánto». Los grupos empiezan plegados, el

@@ -197,14 +197,15 @@
       "title": "Resumen de saldos del periodo: pequeño, plegable y con los valores protegidos",
       "priority": "MUST",
       "type": "UX",
-      "description": "When el usuario abre «Presupuesto», the system shall mostrar arriba de la lista una tarjeta de resumen con los cuatro saldos del Balance del periodo que el usuario pidió —Resultado del mes, Saldo disponible, Saldo reservado y Saldo total—, con lo real y lo planeado de cada uno, iguales a las filas del Balance de escritorio. La tarjeta abre PLEGADA (una línea, solo «Saldo disponible») y se despliega y pliega con su flecha; desplegada muestra los cuatro saldos y un enlace al Balance completo (FR-3111). Sus valores están PROTEGIDOS por defecto: en lugar de la cifra se ve «$ ••••••», y solo se muestran mientras el usuario mantiene presionado el ícono del ojo; al soltar se vuelven a ocultar. La protección aplica solo a los saldos de esta tarjeta: las cifras de las categorías y el Balance completo siguen a la vista. Decisiones del usuario al revisar las maquetas el 2 y 3-oct-2026: «resultado del mes, saldo disponible, saldo reservado, saldo total. Esos son los que quisiera ver en resumen» y «la tarjeta grande puede ponerse más pequeña y colapsable, con por defecto protegidos los valores con $ **** o ícono de ojo para verlos solo al tocar sostenido».",
+      "description": "When el usuario abre «Presupuesto», the system shall mostrar arriba de la lista una tarjeta de resumen con los cuatro saldos del Balance del periodo que el usuario pidió —Resultado del mes, Saldo disponible, Saldo reservado y Saldo total—, con lo real y lo planeado de cada uno, iguales a las filas del Balance de escritorio. La tarjeta abre PLEGADA (una línea, solo «Saldo disponible») y se despliega y pliega con su flecha; desplegada muestra los cuatro saldos y un enlace al Balance completo (FR-3111). Sus valores están PROTEGIDOS por defecto: en lugar de la cifra se ve «$ ••••••». When el usuario toca el ícono del ojo, the system shall mostrar los valores durante 10 segundos y volver a ocultarlos solo; un segundo toque los oculta de inmediato, y también se ocultan si la página pierde el foco o la app pasa a segundo plano. La protección aplica solo a los saldos de esta tarjeta: las cifras de las categorías y el Balance completo siguen a la vista. Decisiones del usuario: 2 y 3-oct-2026, «resultado del mes, saldo disponible, saldo reservado, saldo total. Esos son los que quisiera ver en resumen» y «la tarjeta grande puede ponerse más pequeña y colapsable, con por defecto protegidos los valores»; 4-oct-2026, tras probarlo en dev, CAMBIA el gesto: de mantener presionado a un toque con temporizador («pulso una vez y se ve por 10 seg, luego se vuelve a ocultar»), sin hacerlo configurable.",
       "acceptance_criteria": [
         "Al abrir «Presupuesto», la tarjeta está plegada y muestra «Saldo disponible» con «$ ••••••»; ningún dígito de los saldos está en el texto visible de la tarjeta.",
-        "Mientras se mantiene presionado el ojo, el Saldo disponible muestra su cifra real, igual a la fila «Saldo disponible» Ejec. del Balance de escritorio para ese periodo; al soltar vuelve a «$ ••••••» en ≤200ms.",
+        "Un toque en el ojo muestra el Saldo disponible con su cifra real, igual a la fila «Saldo disponible» Ejec. del Balance de escritorio para ese periodo, y la deja a la vista sin mantener el dedo.",
+        "A los 10 segundos del toque, los valores vuelven solos a «$ ••••••» (se ven a los 9 s y ya no a los 11 s).",
+        "Un segundo toque en el ojo mientras se ven los oculta de inmediato, sin esperar los 10 segundos (negativo: no quedan a la vista).",
         "Tocar la flecha despliega la tarjeta con los cuatro saldos (real y «Plan») y el enlace «Ver Balance completo»; tocarla otra vez la pliega.",
-        "Un toque corto sobre el ojo (sin mantener) no deja los valores a la vista (negativo).",
-        "Si el dedo sale del ojo, la pestaña pierde el foco o la app pasa a segundo plano mientras se mantiene presionado, los valores se ocultan (borde).",
-        "Con teclado, mantener Espacio o Enter sobre el ojo muestra los valores y soltar los oculta.",
+        "Si la pestaña pierde el foco o la app pasa a segundo plano mientras se ven, los valores se ocultan (borde).",
+        "Con teclado, Espacio o Enter sobre el ojo muestra los valores, y pulsarlo de nuevo los oculta.",
         "Con los valores ocultos, las cifras de las categorías y el Balance completo siguen visibles: la protección no los afecta (negativo)."
       ]
     }
@@ -606,8 +607,8 @@
         {
           "id": "AC-3143",
           "given": "la tarjeta con los valores ocultos",
-          "when": "mantengo presionado el ojo",
-          "then": "veo las cifras, y al soltar se ocultan de nuevo"
+          "when": "toco el ojo una vez",
+          "then": "veo las cifras sin mantener el dedo, y a los 10 segundos se ocultan solas"
         },
         {
           "id": "AC-3144",
@@ -617,9 +618,9 @@
         },
         {
           "id": "AC-3145",
-          "given": "los valores ocultos",
-          "when": "toco el ojo sin mantener",
-          "then": "siguen ocultos"
+          "given": "los valores a la vista",
+          "when": "toco el ojo otra vez",
+          "then": "se ocultan de inmediato"
         }
       ]
     }
@@ -705,7 +706,8 @@
     "Cambios en Configuración (saldo inicial, ciclos, horizonte): ya funciona en el teléfono y no se toca.",
     "Escritura incremental del ledger (BL-017): el teléfono guarda por el mismo camino que escritorio.",
     "App nativa: sigue siendo la web responsive.",
-    "Proteger u ocultar las cifras de las categorías o del Balance completo: el ojo protege solo los saldos de la tarjeta de resumen (confirmado por el usuario el 3-oct-2026)."
+    "Proteger u ocultar las cifras de las categorías o del Balance completo: el ojo protege solo los saldos de la tarjeta de resumen (confirmado por el usuario el 3-oct-2026).",
+    "Hacer configurable el tiempo que se ven los saldos del resumen: queda fijo en 10 segundos (recomendación aceptada por el usuario el 4-oct-2026); si hace falta otro valor, se cambia la constante."
   ],
   "constraints": [
     "La vista móvil no calcula nada por su cuenta: usa las funciones de dominio y las acciones del store de escritorio.",
@@ -859,8 +861,12 @@
       "disposition": "FR-3115"
     },
     {
-      "need": "Resumen pequeño y plegable, con valores protegidos que se ven solo al mantener presionado el ojo",
+      "need": "Resumen pequeño y plegable, con valores protegidos que se ven 10 segundos al tocar el ojo y se ocultan solos",
       "disposition": "FR-3115"
+    },
+    {
+      "need": "Tiempo del ojo configurable",
+      "disposition": "out_of_scope"
     }
   ],
   "original_brief": "## Feature\nGestionar las finanzas del mes desde el teléfono (BL-056, primera entrega): elegir un mes o ciclo y ver el presupuesto por categoría, cambiar lo planeado, ver y corregir los movimientos de una categoría, operar las alcancías y ver el Balance del mes. Hoy todo eso se hace solo en el computador.\n\n## Problem / Why\nA ≤760px la app solo muestra el registro de movimientos (`MobileShell.tsx`). Todo lo demás exige el computador: ver cómo va el mes, cambiar el presupuesto, corregir un gasto mal anotado, mover plata de las alcancías y ver el Balance.\n\nPalabras del usuario del 2-oct-2026:\n- «lo que necesito es poder consultar de alguna forma el mes y el presupuesto, lo que tenga en la grilla»\n- «podría ser los gastos. si se pueden editar desde mobile también»\n- «más que ver la grilla, lo que necesito es poder gestionar mis finanzas desde el teléfono. la app ya lo permite desde desktop»\n\nEl mismo día el usuario aceptó partir el pedido en dos entregas. Esta feature es la PRIMERA, con lo que se usa cada mes. La segunda entrega se hará en otra feature: categorías y cierre de mes. El usuario decidió además que el dashboard queda fuera del teléfono («ok, el dashboard queda fuera»).\n\nQue el móvil no muestre la grilla es una decisión aprobada de la raíz (FR-010 y su no_go_zone: «ampliar la experiencia móvil → posterior»). Esta feature es el change request a FR-010.\n\n## Target Users\nEl dueño del libro (usuario único por cuenta). Usa la app fuera del computador para llevar el mes: mirar cuánto le queda, ajustar el plan y corregir lo anotado. Usa el mismo login y los mismos datos que en escritorio.\n\n## New Behavior\n- En móvil (≤760px), además del registro, hay una vista de PRESUPUESTO, con navegación entre las dos.\n- La vista muestra UN periodo a la vez (mes o ciclo, según el modo del libro), con un selector para moverse por los periodos del horizonte. Por defecto abre en el periodo actual.\n- Para el periodo elegido, se ve la jerarquía de la grilla (Tipo > Grupo > Categoría > Subcategoría) con Presupuestado y Ejecutado por nodo. Los padres muestran su total por roll-up y se pliegan y despliegan. El color y el glifo de estado siguen la misma regla que en escritorio. [ASSUMPTION] la forma exacta (lista plegable u otra) se decide en UX con maqueta.\n- Se puede CAMBIAR el Presupuestado de una hoja (lo planeado), con las mismas reglas que la grilla de escritorio.\n- Tocar una hoja muestra sus movimientos del periodo, lo mismo que el Detalle de la celda de Ejecutado en escritorio (diario-de-celda).\n- Desde esa lista, cada movimiento se puede EDITAR (monto, nota, fecha, categoría) y BORRAR, con las mismas reglas que en escritorio (FR-2505, FR-2506).\n- Directriz de diseño del usuario: «tener en cuenta si aprovechamos o modificamos el módulo de registrar movimientos». La fase de diseño debe evaluar y justificar si la edición REUSA el formulario de registro móvil (abierto precargado) o adapta el editor de escritorio (MovementEditor). La regla de dominio es una sola en los dos casos.\n- Alcancías: se puede cambiar lo aportado a una alcancía en el periodo (Pres. y Ejec.), sacar plata de una alcancía, planear un retiro y corregir o eliminar los retiros del mes. Todo con las mismas reglas de techo, piso y déficit que escritorio.\n- Se ve el Balance del periodo con sus tres bloques (El mes, Lo disponible, El cierre) y las mismas cifras que escritorio.\n- Un periodo CERRADO se puede mirar pero no cambiar: no se edita el plan, ni los movimientos, ni las alcancías.\n- Si una regla rechaza un cambio, el teléfono dice qué falló, igual que escritorio, y la cifra no cambia.\n- Todas las cifras salen del mismo estado y de las mismas funciones de dominio que escritorio. No hay cálculos propios del móvil.\n\n## Success Criteria\n- Given un libro con datos en un periodo, When se abre la vista de presupuesto a 375px en ese periodo, Then Presupuestado y Ejecutado de cada nodo y las filas del Balance coinciden cifra a cifra con escritorio para los mismos datos (prueba de paridad).\n- Given 375px de ancho, Then ninguna pantalla de la vista tiene desborde horizontal de página.\n- Given un cambio hecho en el teléfono (plan, movimiento o alcancía), When se abre escritorio, Then muestra la misma cifra.\n- Given un periodo cerrado, When se intenta cambiar algo desde el teléfono, Then no hay forma de hacerlo y se ve por qué.\n- [ASSUMPTION] Métrica de éxito: el usuario lleva el mes desde el teléfono sin necesitar el computador para lo de cada mes. Por confirmar.\n\n## Touch Points\n- MODIFICA FR-010 (raíz) y su no_go_zone. Las ~15 pruebas e2e que afirman que a 375px no hay grilla, Balance ni Detalle (TC-010h, TC-213f, TC-BAL-904f, TC-FDC-026e, entre otras) cambian a propósito.\n- MODIFICA `src/components/MobileShell.tsx` (navegación) y quizá el módulo de registro (`src/components/register/*`) si se reusa para editar.\n- AÑADE los componentes de la vista móvil.\n- REUTILIZA sin cambiar la lógica: roll-ups, `cellTone`/`cellGlyph`, `computeBalanceSeries` y las filas del Balance, `cellDetail`, las acciones del store (`setLeafAmount`, `editMovement`, `deleteMovement`, `applyReserveEdit`, `applyReserveWithdrawal`, `planWithdrawal`, `editReserveOp`, `editPlannedWithdrawal`, `removeReserveWithdrawal`), el calendario de periodos y `isClosed`. Las piezas del Balance que hoy son privadas de `BalanceModule.tsx` se extraen para compartirlas, sin cambiar su resultado.\n\n## Must Not Break (Regression Boundary)\n- El registro móvil (FR-001) sigue igual al REGISTRAR: mismo formulario, mismo guardado, mismo ConfirmOverlay.\n- En móvil siguen a la mano Configuración (FR-2204), el cambio de tema y el cierre de sesión.\n- Escritorio (>760px) no cambia: grilla, Balance, dashboard, Detalle y formularios de alcancías.\n- El breakpoint sigue en 760px: 760 es móvil, 761 es escritorio.\n- Las reglas aceptan y rechazan lo mismo para la misma operación, venga del teléfono o del computador.\n- Las cifras del Balance y de la grilla de escritorio no cambian al extraer piezas compartidas.\n\n## Out of Scope\n- El dashboard en móvil. Decisión del usuario del 2-oct-2026.\n- Segunda entrega, que será otra feature: crear, renombrar, borrar y mover categorías; cerrar y reabrir el mes. Cerrar desde el teléfono necesita antes BL-055.\n- Teclear el Ejecutado de una hoja encima de la celda, con su ajuste por diferencia. En el teléfono, lo ejecutado se cambia anotando o corrigiendo movimientos. [ASSUMPTION]\n- Comentarios de celda en móvil. [ASSUMPTION] no se pidieron.\n- Ver varios periodos a la vez o la grilla de 12 meses encogida.\n- Configuración (saldo inicial, ciclos, horizonte): ya funciona en el teléfono y no cambia.\n- App nativa: sigue siendo la web responsive.\n"

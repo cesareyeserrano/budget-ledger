@@ -109,3 +109,20 @@ M−1 cerrado.
   TC-UXC-306h y TC-BSC-451f para que digan lo que comprueban hoy. Ninguna aserción cambió, ninguna se saltó.
   TC-213f no necesitó cambio: su enunciado sigue siendo cierto.
 - **Pendiente manual:** probar el ojo (mantener presionado) en un iPhone real.
+
+## Generación 2 del plan — 4-oct-2026 (cambio de requisito)
+El usuario probó la feature en dev y cambió FR-3115: el ojo del resumen pasa de «mantener presionado» a **un
+toque que muestra 10 segundos y se oculta solo** (segundo toque oculta antes; no configurable). Se reabrió la fase
+1 y se re-derivaron ux, arquitectura y pruebas. Las épicas EP-01 a EP-06 conservan su contenido y su estado; solo
+se reabre lo que toca el ojo.
+
+## EP-07 — El ojo con temporizador   [status: done]
+  Delivers:    US-3115
+  FRs:         FR-3115
+  Makes pass:  TC-PMV-141h, 143f, 144e, 145e (reescritas con el mismo id), y 131e, 133h, 142h (usan el ojo)
+  Build steps: `useTimedReveal` sustituye a `useHoldReveal` → `SummaryCard` con el ojo como botón de alternar →
+               pruebas
+  Why here:    cambio de requisito tras la entrega; no depende de nada más.
+
+- **Evidencia EP-07:** ver el `verify-run` que sigue a este cambio. Desaparece la deuda «probar el ojo en un
+  iPhone real»: ya no hay pulsación larga.

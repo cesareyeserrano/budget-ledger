@@ -1,6 +1,6 @@
 {
   "test_plan": {
-    "strategy": "Tres capas sobre un libro de ejemplo fijo (pmv-base, anclado al periodo actual M y al anterior M−1 cerrado; cifras inventadas). Contenido de pmv-base — M: Trabajo>Salario Pres. 5.000 Ejec. 5.000; Vivienda>{Mercado 1.000/600 con gastos de 300, 200 y 100; Servicios 500/550; Administración 100/150}; Transporte 800/700 (grupo hoja); Estilo de vida>Cine 0/0; alcancía Ahorro>Viaje aporte 500/500; retiro de 200 de Viaje a Disponible con nota «Tiquetes». M−1 (cerrado): ingreso 4.000/4.000, Mercado 900/850 (un gasto «Supermercado»), aporte a Viaje 300/300. Saldo inicial 0. UNIT (Vitest, proyecto app): periodView, balanceView, movementEditVerdict, parseScreen, amountDraftState y withdrawalRows, con los números de los AC, límites y un estado a escala de 312 nodos × 36 periodos. INTEGRATION: jsdom (MobileBudget con el store real y el repositorio en memoria) para las reglas de cada pantalla —montos inválidos, cancelaciones, rechazos, periodo cerrado— que no necesitan navegador, y para MovementEditor y las piezas del registro; y Postgres efímero (proyecto backend) para el rechazo 422 de periodo cerrado. E2E (Playwright) a 375, 360, 760, 761 y 1440 px: navegación e historial, lista, edición, alcancías, retiros, Balance, periodo cerrado, resumen protegido, layout con cifras de 9 dígitos y paridad teléfono–escritorio. Las pruebas existentes que afirmaban «en móvil solo hay registro» se revisan una por una en la construcción según ADR-06; ninguna se salta. La pulsación larga en un iPhone real se verifica a mano al cierre (riesgo declarado en el diseño).",
+    "strategy": "Tres capas sobre un libro de ejemplo fijo (pmv-base, anclado al periodo actual M y al anterior M−1 cerrado; cifras inventadas). Contenido de pmv-base — M: Trabajo>Salario Pres. 5.000 Ejec. 5.000; Vivienda>{Mercado 1.000/600 con gastos de 300, 200 y 100; Servicios 500/550; Administración 100/150}; Transporte 800/700 (grupo hoja); Estilo de vida>Cine 0/0; alcancía Ahorro>Viaje aporte 500/500; retiro de 200 de Viaje a Disponible con nota «Tiquetes». M−1 (cerrado): ingreso 4.000/4.000, Mercado 900/850 (un gasto «Supermercado»), aporte a Viaje 300/300. Saldo inicial 0. UNIT (Vitest, proyecto app): periodView, balanceView, movementEditVerdict, parseScreen, amountDraftState y withdrawalRows, con los números de los AC, límites y un estado a escala de 312 nodos × 36 periodos. INTEGRATION: jsdom (MobileBudget con el store real y el repositorio en memoria) para las reglas de cada pantalla —montos inválidos, cancelaciones, rechazos, periodo cerrado— que no necesitan navegador, y para MovementEditor y las piezas del registro; y Postgres efímero (proyecto backend) para el rechazo 422 de periodo cerrado. E2E (Playwright) a 375, 360, 760, 761 y 1440 px: navegación e historial, lista, edición, alcancías, retiros, Balance, periodo cerrado, resumen protegido, layout con cifras de 9 dígitos y paridad teléfono–escritorio. Las pruebas existentes que afirmaban «en móvil solo hay registro» se revisan una por una en la construcción según ADR-06; ninguna se salta. El ojo del resumen es un botón de un toque con temporizador de 10 s (cambio del usuario del 4-oct-2026): TC-PMV-141h espera el tiempo real.",
     "coverage_goal": "80% global vigente; los módulos nuevos de src/domain entran en la medición",
     "test_types": [
       "unit",
@@ -1673,18 +1673,18 @@
       "requirement_id": "FR-3115",
       "user_story_id": "US-3115",
       "ac_id": "AC-3143",
-      "title": "Mantener el ojo muestra; soltar oculta",
+      "title": "Un toque en el ojo muestra el saldo; a los 10 segundos se oculta solo",
       "type": "e2e",
       "scenario": "happy_path",
       "priority": "high",
       "preconditions": [],
-      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado",
-      "when": "pointerdown sobre mb-summary-eye, esperar 600 ms, leer; pointerup, leer",
-      "then": "mientras se mantiene se ve 5.550; al soltar se oculta",
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado y oculto",
+      "when": "tocar mb-summary-eye una vez (sin mantener), leer a 1 s, a 9 s y a 11 s",
+      "then": "tras el toque se ve 5.550 sin mantener el dedo; a los 9 s sigue; a los 11 s volvió a ocultarse",
       "steps": [
-        "pointerdown sobre mb-summary-eye, esperar 600 ms, leer; pointerup, leer"
+        "tocar mb-summary-eye una vez (sin mantener), leer a 1 s, a 9 s y a 11 s"
       ],
-      "expected_result": "durante la presión mb-saldo-disponible = «5.550» (igual a la fila Saldo disponible Ejec. de escritorio); ≤200 ms después de soltar vuelve a «$ ••••••» sin dígitos",
+      "expected_result": "a 1 s y a 9 s mb-saldo-disponible = «5.550» (igual a la fila Saldo disponible Ejec. de escritorio) y aria-pressed=true; a los 11 s = «$ ••••••», aria-pressed=false y el resumen sin dígitos",
       "test_data": {
         "fixture": "pmv-base"
       }
@@ -1700,12 +1700,12 @@
       "priority": "high",
       "preconditions": [],
       "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado",
-      "when": "tocar mb-summary-toggle; mantener el ojo; soltar; tocar «Ver Balance completo»; volver; tocar la flecha",
+      "when": "tocar mb-summary-toggle; tocar el ojo; tocar «Ver Balance completo»; volver; tocar la flecha",
       "then": "desplegado muestra cuatro saldos con su plan; el enlace abre el Balance; la flecha lo pliega",
       "steps": [
-        "tocar mb-summary-toggle; mantener el ojo; soltar; tocar «Ver Balance completo»; volver; tocar la flecha"
+        "tocar mb-summary-toggle; tocar el ojo; tocar «Ver Balance completo»; volver; tocar la flecha"
       ],
-      "expected_result": "desplegado y revelado: disponible 5.550 (Plan 4.900), resultado 3.000 (Plan 2.600), reservado 600 (Plan 800), total 6.150 (Plan 5.700); el enlace abre mb-balance; al plegar quedan 1 saldo visible",
+      "expected_result": "desplegado y a la vista: disponible 5.550 (Plan 4.900), resultado 3.000 (Plan 2.600), reservado 600 (Plan 800), total 6.150 (Plan 5.700); el enlace abre mb-balance; al plegar queda 1 saldo visible",
       "test_data": {
         "fixture": "pmv-base"
       }
@@ -1715,18 +1715,18 @@
       "requirement_id": "FR-3115",
       "user_story_id": "US-3115",
       "ac_id": "AC-3145",
-      "title": "Un toque corto no deja los valores a la vista",
+      "title": "Un segundo toque en el ojo oculta de inmediato, sin esperar los 10 segundos",
       "type": "e2e",
       "scenario": "negative",
       "priority": "high",
       "preconditions": [],
-      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado",
-      "when": "click (pointerdown+pointerup en <100 ms) sobre mb-summary-eye y leer 300 ms después",
-      "then": "siguen ocultos y aparece la pista",
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen con los valores a la vista tras un toque",
+      "when": "tocar mb-summary-eye otra vez a los 2 s",
+      "then": "los valores se ocultan en el acto y no reaparecen",
       "steps": [
-        "click (pointerdown+pointerup en <100 ms) sobre mb-summary-eye y leer 300 ms después"
+        "tocar mb-summary-eye otra vez a los 2 s"
       ],
-      "expected_result": "mb-summary sin dígitos; pista «Mantén presionado para ver» visible y desaparece en ≤2,5 s",
+      "expected_result": "en ≤200 ms mb-saldo-disponible = «$ ••••••», aria-pressed=false y el resumen sin dígitos; 10 s después sigue oculto (el temporizador viejo no lo vuelve a mostrar)",
       "test_data": {
         "fixture": "pmv-base"
       }
@@ -1736,18 +1736,18 @@
       "requirement_id": "FR-3115",
       "user_story_id": "US-3115",
       "ac_id": "AC-3143",
-      "title": "Se oculta si el puntero se cancela o la página pierde el foco",
+      "title": "Se ocultan si la página pierde el foco o pasa a segundo plano",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
-      "given": "libro pmv-base a 375×812 con sesión iniciada, ojo presionado y valores visibles",
-      "when": "despachar pointercancel; repetir y despachar visibilitychange a hidden; repetir y despachar blur de ventana",
-      "then": "en los tres casos se oculta",
+      "given": "libro pmv-base a 375×812 con sesión iniciada, valores a la vista tras tocar el ojo",
+      "when": "despachar blur de ventana; repetir y despachar visibilitychange a hidden",
+      "then": "en los dos casos se ocultan sin esperar los 10 segundos",
       "steps": [
-        "despachar pointercancel; repetir y despachar visibilitychange a hidden; repetir y despachar blur de ventana"
+        "despachar blur de ventana; repetir y despachar visibilitychange a hidden"
       ],
-      "expected_result": "tras cada evento mb-summary no contiene dígitos",
+      "expected_result": "tras cada evento mb-summary no contiene dígitos y aria-pressed=false",
       "test_data": {
         "fixture": "pmv-base"
       }
@@ -1757,18 +1757,18 @@
       "requirement_id": "FR-3115",
       "user_story_id": "US-3115",
       "ac_id": "AC-3143",
-      "title": "Con teclado: mantener Espacio muestra, soltar oculta",
+      "title": "Con teclado: Espacio o Enter sobre el ojo muestran, y de nuevo ocultan",
       "type": "e2e",
       "scenario": "edge_case",
       "priority": "high",
       "preconditions": [],
       "given": "libro pmv-base a 375×812 con sesión iniciada, foco en mb-summary-eye",
-      "when": "keyboard.down(Space), leer, keyboard.up(Space), leer; igual con Enter",
-      "then": "visible mientras la tecla está abajo",
+      "when": "pulsar Espacio, leer, pulsar Espacio, leer; igual con Enter",
+      "then": "la primera pulsación muestra y la segunda oculta",
       "steps": [
-        "keyboard.down(Space), leer, keyboard.up(Space), leer; igual con Enter"
+        "pulsar Espacio, leer, pulsar Espacio, leer; igual con Enter"
       ],
-      "expected_result": "con la tecla abajo mb-saldo-disponible = «5.550»; al soltarla, «$ ••••••»; el botón tiene aria-label «Mantén presionado para ver los saldos»",
+      "expected_result": "tras la primera pulsación mb-saldo-disponible = «5.550» y el botón se llama «Ocultar los saldos»; tras la segunda, «$ ••••••» y se llama «Ver los saldos durante 10 segundos»",
       "test_data": {
         "fixture": "pmv-base"
       }

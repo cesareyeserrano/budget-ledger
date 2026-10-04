@@ -88,8 +88,8 @@ endpoints, tablas ni dependencias nuevas.
 | `screenStack` | `src/components/mobile/screenStack.ts` | Fuente única de «qué pantalla se ve», respaldada por la URL y el historial del navegador |
 | `MobileBudget` | `src/components/mobile/MobileBudget.tsx` | Enruta entre lista y pantallas de detalle según `screenStack`. Guarda qué grupos están desplegados |
 | `PeriodBar` | `src/components/mobile/PeriodBar.tsx` | ‹ ›, rótulo y selector de periodo. Lee y escribe `period` del store |
-| `SummaryCard` | `src/components/mobile/SummaryCard.tsx` | Los cuatro saldos, plegable y protegida (FR-3115). Usa `useHoldReveal` |
-| `useHoldReveal` | `src/components/mobile/useHoldReveal.ts` | Estado «revelado» mientras dura la presión del puntero o de la tecla |
+| `SummaryCard` | `src/components/mobile/SummaryCard.tsx` | Los cuatro saldos, plegable y protegida (FR-3115). Usa `useTimedReveal` |
+| `useTimedReveal` | `src/components/mobile/useTimedReveal.ts` | Estado «revelado» que se apaga solo a los 10 segundos, con otro toque o al perder el foco |
 | `BudgetSections` | `src/components/mobile/BudgetSections.tsx` | Pinta el view-model: secciones, `GroupCard`, `BudgetRow`, `ProgressBar` |
 | `LeafScreen` | `src/components/mobile/LeafScreen.tsx` | Categoría o alcancía: tarjetas Pres./Ejec. con «Cambiar» y lista de movimientos |
 | `AmountEditCard` | `src/components/mobile/AmountEditCard.tsx` | Tarjeta de cifra editable (campo, Guardar, Cancelar, error). Recibe el `onSave` del plano |
@@ -208,8 +208,9 @@ export function replaceScreen(next: Screen): void;   // history.replaceState (en
 export function goBack(): void;                      // history.back() si la entrada anterior es de la app; si no, replaceScreen al padre
 export function parseScreen(search: string): Screen; // puro; entrada no confiable ⇒ siempre un Screen válido
 
-// src/components/mobile/useHoldReveal.ts
-export function useHoldReveal(): { shown: boolean; hint: boolean; bind: HoldHandlers };
+// src/components/mobile/useTimedReveal.ts
+export const REVEAL_MS = 10_000;
+export function useTimedReveal(ms?: number): { shown: boolean; toggle: () => void; hide: () => void };
 ```
 
 **Ids de prueba nuevos (contrato con la fase 3):** `mb-nav`, `mb-budget`, `mb-period-bar`, `mb-period-prev`,
@@ -363,16 +364,17 @@ I/O: longitud de la cifra → clase de tamaño.
 Failure: nombre largo ⇒ «…»; nunca desborde horizontal (lo comprueba el e2e con `scrollWidth === clientWidth`).
 
 FR-3115: Resumen de saldos del periodo: pequeño, plegable y con los valores protegidos
-Method: `SummaryCard` recibe `balanceSummary(series, period)`. Estado local `open` (false al montar). `useHoldReveal`
-da `shown`: `pointerdown` ⇒ true y `setPointerCapture`; `pointerup`, `pointercancel`, `lostpointercapture`,
-`blur` de ventana y `visibilitychange` ⇒ false; `keydown` de Espacio/Enter (sin `repeat`) ⇒ true y `keyup` ⇒ false;
-`contextmenu` ⇒ `preventDefault`. Si la presión dura menos de 300 ms, `hint` vale true durante 2 s («Mantén
-presionado para ver»). Con `shown === false` el componente renderiza el literal «$ ••••••» y NO el número (ADR-04).
-CSS del botón: `user-select:none; -webkit-touch-callout:none; touch-action:none`.
-I/O: `BalanceSummary` + `shown` → texto de cada saldo. `aria-label` del botón: «Mantén presionado para ver los
-saldos»; el valor oculto lleva `aria-label="oculto"`.
-Failure: el dedo sale del botón o se cancela el puntero ⇒ se oculta. Sin datos ⇒ al revelar se ve «0» o «—» según
-la regla de `balanceRows`.
+Method: `SummaryCard` recibe `balanceSummary(series, period)`. El estado `open` (plegada al montar) vive en
+`MobileBudget`, para que sobreviva a entrar y salir de un detalle. `useTimedReveal` da `shown`: `toggle()` lo
+enciende y arma un `setTimeout` de `REVEAL_MS` (10 s) que lo apaga; con `shown` encendido, `toggle()` lo apaga y
+cancela el temporizador. Mientras `shown` es verdadero, un `blur` de la ventana o un `visibilitychange` a oculto lo
+apagan. El ojo es un `<button>` normal con `onClick={toggle}`: Espacio y Enter funcionan por ser un botón. Con
+`shown === false` el componente renderiza el literal «$ ••••••» y NO el número (ADR-04). El temporizador se limpia
+al desmontar.
+I/O: `BalanceSummary` + `shown` → texto de cada saldo. `aria-label` del botón: «Ver los saldos durante 10
+segundos» u «Ocultar los saldos»; `aria-pressed` refleja `shown`; el valor oculto lleva `aria-label="oculto"`.
+Failure: varios toques seguidos alternan y no acumulan tiempo. Si el componente se desmonta con el temporizador
+armado (se abre un detalle), al volver arranca oculto. Sin datos ⇒ al revelar se ve «0».
 
 **NFR → decisión de diseño**
 
@@ -471,7 +473,7 @@ sus pruebas vigentes y un test que monta cada pieza sin las props nuevas. `Movem
 `movementEditVerdict` sin cambiar su comportamiento: el veredicto no incluye «sin cambios», que escritorio no tiene.
 
 **ADR-04: Cómo se protegen los saldos del resumen**
-Context: FR-3115 pide que los valores no se vean hasta mantener presionado el ojo.
+Context: FR-3115 pide que los valores no se vean hasta que el usuario toca el ojo, y que se oculten solos.
 Option A: Ocultar con CSS (`filter: blur`, color transparente) — trivial; pero los dígitos siguen en el DOM:
 salen en capturas con el inspector, en lectores de pantalla y al seleccionar texto.
 Option B: No renderizar la cifra mientras `shown` es falso; pintar un literal fijo.
@@ -512,9 +514,10 @@ una; ninguna se borra ni se salta (la suite prohíbe `skip`):
   `ux-consistency.spec.ts:143` y `:236`, TC-DDC-172e.
 
 **Riesgos principales**
-1. **Mantener presionado en Safari de iPhone** puede abrir el menú del sistema, seleccionar texto o cancelar el
-   puntero al mover el dedo. Mitigación: CSS del botón, `setPointerCapture`, `contextmenu` anulado y prueba manual
-   en un iPhone real antes de cerrar la feature (TC manual).
+1. **El temporizador deja los saldos a la vista hasta 10 segundos.** Es el precio, aceptado por el usuario, de
+   no tener que mantener el dedo. Mitigación: segundo toque para ocultar ya, y ocultar al perder el foco o pasar a
+   segundo plano. (La versión anterior —mantener presionado— tenía el riesgo de la pulsación larga de Safari en
+   iPhone; el cambio de gesto lo elimina.)
 2. **Regresión en escritorio por los dos refactors** (`BalanceModule`, `MovementEditor`). Mitigación: mover sin
    reescribir, fixtures de la serie del Balance capturados antes, y las suites de `balance`, `techo-de-flujo` y
    `diario-de-celda` como guardia. Se prueba en rojo con un worktree del commit anterior.
@@ -557,13 +560,12 @@ Recovery: automática (`replaceScreen`); no hay estado persistido que reparar.
 
 ## Technical Risk Flags
 
-[RISK] Mantener presionado en navegadores móviles
-Conflict: FR-3115 requiere revelar solo mientras dura la presión, pero Safari iOS trata la pulsación larga como
-gesto del sistema (menú contextual, selección, lupa) y puede cancelar el puntero.
-Mitigation: `touch-action:none`, `-webkit-touch-callout:none`, `user-select:none`, captura del puntero y
-`preventDefault` en `contextmenu`; ocultar ante `pointercancel`. Verificación manual en iPhone real, porque
-Playwright (Chromium/WebKit de escritorio) no reproduce ese gesto del sistema.
-Severity: medium
+[RISK] Temporizadores en segundo plano
+Conflict: FR-3115 requiere ocultar a los 10 segundos, pero los navegadores móviles congelan o retrasan los
+temporizadores de una pestaña en segundo plano: el `setTimeout` podría no dispararse a tiempo.
+Mitigation: no se depende del temporizador en ese caso: `visibilitychange` y `blur` ocultan de inmediato al salir,
+así que al volver la tarjeta ya está oculta.
+Severity: low
 
 [RISK] Historial del navegador dentro de una página de Next
 Conflict: FR-3101 requiere «atrás» sin rehidratar, pero el App Router de Next 15 intercepta `history` para su
