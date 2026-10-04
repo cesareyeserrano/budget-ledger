@@ -19,19 +19,9 @@
   "projectName": "control-size-scale",
   "createdAt": "2026-07-18T23:20:09.168Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-24T16:43:10.001Z",
+  "updatedAt": "2026-10-04T19:34:11.340Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-18T23:31:54.869Z",
-      "event": "started",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-18T23:31:59.990Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-07-18T23:43:18.344Z",
       "event": "completed",
@@ -145,6 +135,22 @@
       "phase": 5,
       "version": "1.0.0",
       "version_source": null
+    },
+    {
+      "at": "2026-10-04T19:34:11.191Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T19:34:11.327Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 18,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -179,16 +185,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanRef": "ecc4566f410a8c588dc1b34f61ba316017a4f0a9",
   "verifyRanDirty": false,
-  "verifyResultsHash": "7aa3d5260de34ac68508814e7306038d4ce497997cea33259185261454f4240a",
-  "verifyRanAt": "2026-09-24T16:31:12.707Z",
+  "verifyResultsHash": "318f647119c646e153fb3991d6e0eceb5c40055efb38fc997f00e0c82e2e1e0b",
+  "verifyRanAt": "2026-10-04T19:34:11.168Z",
   "lastVerifyRun": {
     "passed": 18,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-24T16:31:12.707Z"
+    "at": "2026-10-04T19:34:11.168Z"
   },
   "verifySummary": {
     "total": 18,

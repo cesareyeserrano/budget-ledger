@@ -19,19 +19,9 @@
   "projectName": "demote-node",
   "createdAt": "2026-07-17T22:59:10.589Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-24T16:58:38.273Z",
+  "updatedAt": "2026-10-04T18:59:36.533Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-18T21:22:24.986Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-18T22:01:30.539Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-07-18T22:08:55.602Z",
       "event": "verify-run",
@@ -153,6 +143,22 @@
       "phase": 5,
       "version": "1.0.0",
       "version_source": null
+    },
+    {
+      "at": "2026-10-04T18:59:36.372Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T18:59:36.521Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 24,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -194,16 +200,16 @@
   "coverageAuditLastAt": "2026-07-18T21:28:47.952Z",
   "coverageAuditReqHash": "077af3183735246386bcf6e5dcfeffb829d9fdc68b1b462d6983c58cb2edc1f8",
   "verifyPassed": true,
-  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanRef": "fce0104ae64f271c06a8e3e63ef0d21ea226b145",
   "verifyRanDirty": false,
-  "verifyResultsHash": "858db09eef884c12138f9785f4a086a85d1b8c49e35f37bca9ccf14f889c60d2",
-  "verifyRanAt": "2026-09-24T16:58:19.902Z",
+  "verifyResultsHash": "afb391b351a4af4a3ae7ef7d5be6ab47dc430799ca72531c019b9db1284b8fd3",
+  "verifyRanAt": "2026-10-04T18:59:36.347Z",
   "lastVerifyRun": {
     "passed": 24,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-24T16:58:19.902Z"
+    "at": "2026-10-04T18:59:36.347Z"
   },
   "verifySummary": {
     "total": 24,

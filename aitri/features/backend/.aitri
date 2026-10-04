@@ -4,29 +4,20 @@
     1,
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     1,
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-03T00:06:27.036Z",
+  "updatedAt": "2026-10-04T19:25:57.185Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-01T17:01:02.206Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
     {
       "at": "2026-10-01T21:19:01.998Z",
       "event": "verify-run",
@@ -177,15 +168,22 @@
       "phase": "verify",
       "passed": 86,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T19:25:57.175Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
     "1": "fbb2aee1d07d64f63ab6574713d9c72a10331688749059d55182e64d3f465966",
     "2": "faa7ebee08ff633d7790e3b8194568e96e22194ca4533b6394f68b30435e274e",
     "3": "3cea7c4b40345b4aa5ba31e70caa818d596eaa507bae25b322bec21e6b82a491",
-    "4": "810324ee37bd2ddbf409ba4547b27014cf60cc7a385d597746b550832d054c23",
-    "5": "c38fa8e862e045dbe28a1ec4904863ffbd927260cc5ee7de434f9272169ca1d4"
+    "4": "d2e14ab7a362ca00997952b7c67d8d6b5e33d3367a37dabeb51719c1e5fe946a"
   },
   "coverageAuditLastAt": "2026-07-12T00:15:16.577Z",
   "coverageAuditReqHash": "cb7ba606a60a76900468e9f497b32ee23b58b7d3ced0ffa19d42f2557e3e86f7",
@@ -251,26 +249,24 @@
       "FR-513"
     ]
   },
-  "verifyPassed": true,
-  "verifyResultsHash": "7dad8c8748140c69048038c2a61f8f1da9a677482db21f6d723ecc0a225548e4",
-  "verifyRanAt": "2026-10-03T00:04:31.260Z",
-  "lastVerifyRun": {
-    "passed": 86,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-10-03T00:04:31.260Z"
-  },
+  "verifyPassed": false,
   "verifyRanRef": "0fe696f73ed44a3ec2efefd90eaa9f3c0ecdfacd",
   "verifyRanDirty": false,
-  "verifySummary": {
-    "total": 86,
-    "passed": 86,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 1
+  "frContentSnapshots": {
+    "4": {
+      "FR-501": "e54c57957d3c8338",
+      "FR-502": "51d78a21a5eaf68f",
+      "FR-503": "a565534fd603cb8a",
+      "FR-504": "9de645a55b7a0911",
+      "FR-505": "db4f2b3a85b88686",
+      "FR-506": "7d611f1b94fd93c8",
+      "FR-507": "d10129021a0591d5",
+      "FR-508": "5e5e0674258d79b6",
+      "FR-509": "8604bd03007ff0f1",
+      "FR-510": "5f49970be9908bee",
+      "FR-511": "7fe6c5b88b403856",
+      "FR-512": "460b0bf8c4b2825f",
+      "FR-513": "bab0df1ae14824f7"
+    }
   }
 }

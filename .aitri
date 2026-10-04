@@ -6,8 +6,7 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "completedPhases": [
     "discovery",
@@ -15,26 +14,16 @@
     "ux",
     2,
     3,
-    4,
-    5
+    4
   ],
   "projectName": "T-Ledger",
   "createdAt": "2026-07-01T18:46:31.850Z",
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-04T05:41:36.675Z",
+  "updatedAt": "2026-10-04T19:25:54.112Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T16:21:38.270Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-10-02T16:21:53.813Z",
       "event": "verify-complete",
@@ -190,15 +179,22 @@
       "files": 45,
       "method": "git",
       "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-04T19:25:54.100Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
     }
   ],
-  "cascadedPhases": [],
+  "cascadedPhases": [
+    "5"
+  ],
   "artifactHashes": {
     "1": "ae15f9d05d7f18281e0d94acb3753a3412d6092dc8d1bab42366134935f2ccd4",
     "2": "16f5e103cdea53dcf2bc99bed89ab39063382815af3cd7a1860feb4156e3c4dc",
     "3": "04228856108ca6af87ff3a8a88b3747c2acae36e4c0b1be10dd34e22442d80df",
-    "4": "e1be746a972181ea42eeef042b07d862dc22b148dfd36277c289f8b65ba51bf5",
-    "5": "9193f5f81b5414b2638deec17de43af340928457dcfdbf58ce7f9332b0084a10",
+    "4": "87c3dee8d44fadeeffaf101b7639a4eb910e13c75b4bbdf10d3076b6a808a699",
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
@@ -359,13 +355,22 @@
   ],
   "verifyRanRef": "0fe696f73ed44a3ec2efefd90eaa9f3c0ecdfacd",
   "verifyRanDirty": false,
-  "verifyResultsHash": "24b06118ac7399c6583b4cf423571195d8e764f46384d3a08aad08da4309af14",
-  "verifyRanAt": "2026-10-02T23:54:38.824Z",
-  "lastVerifyRun": {
-    "passed": 59,
-    "failed": 0,
-    "skipped": 0,
-    "manual": 0,
-    "at": "2026-10-02T23:54:38.824Z"
+  "frContentSnapshots": {
+    "4": {
+      "FR-001": "d484ce4ac1b1ab67",
+      "FR-002": "546ade892924dbf6",
+      "FR-003": "fc7e9f1f2f7332ee",
+      "FR-004": "b256cb923b4a6d53",
+      "FR-006": "c4b6af7eb17b418b",
+      "FR-008": "f635912319b7fa3d",
+      "FR-009": "e75c65724a60e42d",
+      "FR-010": "0802a56ff93a1168",
+      "FR-011": "5692c4cf71ebdf36",
+      "FR-012": "6c9105c2309a33d4",
+      "FR-013": "47ca358a33a39e29",
+      "FR-014": "7c062003e4f2cc90",
+      "FR-015": "b3e92a3868c6da61",
+      "FR-016": "027e93ef7fe6dbb0"
+    }
   }
 }
