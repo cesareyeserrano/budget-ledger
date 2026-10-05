@@ -8849,6 +8849,28 @@
       "resolution": "Excepcion con nombre y fecha en scripts/sca-excepciones.py (vence 2026-11-03): solo pasa GHSA-vfj7-8cjw-p6xm, mientras siga fuera de produccion. Retirar la fila cuando braces publique version corregida.",
       "fix_commit_sha": "1d2b5e7fd33cc6fa61d768ed98bfc5af73ae984a",
       "fix_at": "2026-10-04T15:18:27.332Z"
+    },
+    {
+      "id": "BG-092",
+      "title": "El juez de excepciones de dependencias pasaba si npm audit no llegaba a mirar",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "scripts/sca-excepciones.py sale con 1 cuando npm audit --json no completa el escaneo",
+      "actual_result": "Un fallo del registro llega como JSON valido con error y sin vulnerabilities; se leia como cero avisos y el gate pasaba (hallazgo P1 del revisor del PR 82)",
+      "environment": "PR develop->main, 2026-10-05",
+      "severity": "high",
+      "status": "verified",
+      "fr": null,
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-10-05T14:38:42.659Z",
+      "updated_at": "2026-10-05T15:17:21.938Z",
+      "resolution": "El script exige un informe sin error y con vulnerabilities y metadata; si no, sale con 1 y dice que el escaneo no se ejecuto. Prueba: tests/unit/sca-excepciones.test.ts.",
+      "fix_commit_sha": "3dc3e8e2687489c47663e2404b3478888abd5be1",
+      "fix_at": "2026-10-05T14:38:47.644Z"
     }
   ]
 }
