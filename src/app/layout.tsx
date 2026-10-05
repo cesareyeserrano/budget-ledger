@@ -18,6 +18,13 @@ const dmMono = DM_Mono({
   display: "swap",
 });
 
+// El documento NUNCA se sirve desde caché. Prerenderizado, Next lo mandaba con `Cache-Control:
+// s-maxage=31536000` y sin `no-cache`: un navegador podía seguir abriendo el HTML de un despliegue
+// anterior, que apunta a su JavaScript viejo (inmutable y también en caché), y correr la app de hace
+// días contra el servidor nuevo. Así volvió BG-089 en producción: el cliente viejo no conoce el plano de
+// un comentario y lo guarda como de Ejecutado. Dinámico → `no-store`; el JS con hash sigue cacheado.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Ledger — Presupuesto 2026",
   description: "Finanzas personales contra presupuesto. App web responsive: entras con tu cuenta desde cualquier dispositivo y ves siempre la misma información.",

@@ -23,75 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-05T01:32:58.908Z",
+  "updatedAt": "2026-10-05T19:51:56.214Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T21:23:45.487Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 14,
-      "method": "git",
-      "baseRefFrom": "86041a5481e21303959b984b900ab30c92c8535f",
-      "baseRefTo": "fe75e25d7efb75b6f5dbf6b7f31af0de584a147f"
-    },
-    {
-      "at": "2026-10-02T21:34:39.710Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 5,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-10-02T21:40:56.324Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T21:40:56.451Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T21:53:13.298Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 5,
-      "method": "git",
-      "baseRefFrom": "fe75e25d7efb75b6f5dbf6b7f31af0de584a147f",
-      "baseRefTo": "8c44f9f0eba14efd9c562b772a15e5ec0c780f04"
-    },
-    {
-      "at": "2026-10-02T22:57:23.268Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 50,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-10-02T23:07:30.577Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T23:07:56.766Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
     {
       "at": "2026-10-02T23:22:45.970Z",
       "event": "reconcile-resolved",
@@ -180,6 +114,72 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "team"
+    },
+    {
+      "at": "2026-10-05T13:43:48.330Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 3,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-05T14:11:47.491Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T15:17:07.896Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T15:17:16.146Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-05T15:19:09.321Z",
+      "event": "reconcile-resolved",
+      "phase": null,
+      "files": 5,
+      "method": "git",
+      "baseRefFrom": "ecc4566f410a8c588dc1b34f61ba316017a4f0a9",
+      "baseRefTo": "51637e904b7232751d2ae71575cff400b1bf3de0"
+    },
+    {
+      "at": "2026-10-05T19:42:23.830Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 2,
+      "method": "git",
+      "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-05T19:51:42.629Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T19:51:56.202Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -352,7 +352,7 @@
       "at": "2026-10-05T01:32:58.898Z"
     }
   ],
-  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
+  "verifyRanRef": "c2307e3f4eb3c7c069bac7f69fee26eb464b1e97",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -388,14 +388,14 @@
       "FR-016": "027e93ef7fe6dbb0"
     }
   },
-  "verifyResultsHash": "d03e79b8114dcd80922a927fde91f2a3cc10f6eec73e38e74cb2c9828e8dc7b9",
-  "verifyRanAt": "2026-10-04T20:56:45.997Z",
+  "verifyResultsHash": "742eb687d865596505838d3d774302637c3b829057cde80193810615022faad2",
+  "verifyRanAt": "2026-10-05T19:51:42.602Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-04T20:56:45.997Z"
+    "at": "2026-10-05T19:51:42.602Z"
   },
   "verifySummary": {
     "total": 59,

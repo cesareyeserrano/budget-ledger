@@ -19,34 +19,9 @@
   "projectName": "presupuesto-movil",
   "createdAt": "2026-10-03T00:53:53.858Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-04T17:27:19.617Z",
+  "updatedAt": "2026-10-05T15:17:21.711Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-04T16:54:11.940Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-04T16:54:12.027Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-04T16:54:12.140Z",
-      "event": "approved",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-04T16:54:44.653Z",
-      "event": "started",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-10-04T16:54:44.730Z",
-      "event": "completed",
-      "phase": "ux"
-    },
     {
       "at": "2026-10-04T16:54:44.842Z",
       "event": "approved",
@@ -129,6 +104,47 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-05T13:59:57.470Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 107,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T14:00:10.685Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 107,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-05T14:26:23.660Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 70,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T14:54:34.604Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 107,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T15:17:21.693Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 107,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -315,17 +331,24 @@
       "FR-3115": "32011b811e569cce"
     }
   },
-  "verifyRanRef": "2de4dda91bef77cea8ad34180e465c6c1b86f113",
+  "verifyRanRef": "3dc3e8e2687489c47663e2404b3478888abd5be1",
   "verifyRanDirty": false,
-  "verifyResultsHash": "2802216a4e5e401a80646d8a17df14d6521b05100742e6881376a27fbdf231c1",
-  "verifyRanAt": "2026-10-04T17:15:05.387Z",
+  "verifyResultsHash": "8994c18f8d8c5263b7082c4c49549366d19374e0f974e0ee5186ec543284233b",
+  "verifyRanAt": "2026-10-05T14:54:34.555Z",
   "lastVerifyRun": {
     "passed": 107,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-04T17:15:05.387Z"
+    "at": "2026-10-05T14:54:34.555Z"
   },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-10-04T17:27:19.596Z"
+    }
+  ],
   "verifySummary": {
     "total": 107,
     "passed": 107,
@@ -335,12 +358,5 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 0
-  },
-  "releaseHistory": [
-    {
-      "version": "0.0.1-beta",
-      "version_source": "manifest",
-      "at": "2026-10-04T17:27:19.596Z"
-    }
-  ]
+  }
 }
