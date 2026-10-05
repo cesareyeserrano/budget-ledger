@@ -23,26 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-05T22:06:27.259Z",
+  "updatedAt": "2026-10-05T23:45:13.263Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T23:45:59.336Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "verifyPassedCleared": true
-    },
-    {
-      "at": "2026-10-02T23:54:38.862Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-10-02T23:54:54.899Z",
       "event": "verify-complete",
@@ -180,6 +163,22 @@
       "method": "git",
       "baseRefFrom": "51637e904b7232751d2ae71575cff400b1bf3de0",
       "baseRefTo": "fa8ec2143fe1d5b277b9a6341c7523e8c3b86f3a"
+    },
+    {
+      "at": "2026-10-05T23:45:01.752Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T23:45:13.240Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -352,7 +351,7 @@
       "at": "2026-10-05T01:32:58.898Z"
     }
   ],
-  "verifyRanRef": "c2307e3f4eb3c7c069bac7f69fee26eb464b1e97",
+  "verifyRanRef": "09860e508382612c478b4d1b27821a8ce4692660",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -388,14 +387,14 @@
       "FR-016": "027e93ef7fe6dbb0"
     }
   },
-  "verifyResultsHash": "742eb687d865596505838d3d774302637c3b829057cde80193810615022faad2",
-  "verifyRanAt": "2026-10-05T19:51:42.602Z",
+  "verifyResultsHash": "1042ef47188a4248c668596b1202856bc7ae0be934d3d06427073b74224e96a8",
+  "verifyRanAt": "2026-10-05T23:45:01.714Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-05T19:51:42.602Z"
+    "at": "2026-10-05T23:45:01.714Z"
   },
   "verifySummary": {
     "total": 59,
