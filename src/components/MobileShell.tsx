@@ -51,7 +51,7 @@ export function MobileShell() {
   return (
     <div data-testid="mobile-shell" className="min-h-screen bg-bg flex flex-col">
       {/* A 360 px la barra entraba sin un píxel de sobra: con la métrica de letra de Linux se pasaba por 1 y
-          desbordaba la página (TC-PMV-130h, visto en el CI). Los rellenos dejan holgura y los iconos no ceden. */}
+          desbordaba la página (TC-PMV-130h, visto en el CI). Los rellenos dejan holgura (unos 10 px aquí, 3 menos en Linux) y los iconos no ceden. */}
       <div className="flex-shrink-0 pl-5 pr-2 py-2.5 border-b border-border flex items-center justify-between gap-1">
         <SegmentedNav view={screen.view} />
         <div className="flex flex-shrink-0 items-center gap-1">
