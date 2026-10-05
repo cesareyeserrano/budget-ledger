@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-13T19:40:17.280Z",
+  "executed_at": "2026-10-04T23:48:44.115Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,52 +8,52 @@
     {
       "tc_id": "TC-RES-010f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-010f: subir una reserva por encima del techo se rechaza 5ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-010f: subir una reserva por encima del techo se rechaza 2ms"
     },
     {
       "tc_id": "TC-RES-011f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-011f: eliminar un retiro que sostiene el mes se rechaza por déficit o techo 52ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-011f: eliminar un retiro que sostiene el mes se rechaza por déficit o techo 64ms"
     },
     {
       "tc_id": "TC-RES-012h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-012h: una escritura de reserva que MEJORA un estado ya violado se acepta 1ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-012h: una escritura de reserva que MEJORA un estado ya violado se acepta 0ms"
     },
     {
       "tc_id": "TC-RES-013f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-013f: el veredicto sale del estado que se le pasa como previo, no de lo que nadie afirme 1ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-013f: el veredicto sale del estado que se le pasa como previo, no de lo que nadie afirme 0ms"
     },
     {
       "tc_id": "TC-RES-014e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-014e: el guardia corre dentro del lock — dos escrituras no se aplican las dos 59ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-014e: el guardia corre dentro del lock — dos escrituras no se aplican las dos 58ms"
     },
     {
       "tc_id": "TC-RES-015e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-015e: un mes que la escritura ESTRENA también se juzga 1ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2101 — el guardia rechaza lo que empeora, y solo eso > TC-RES-015e: un mes que la escritura ESTRENA también se juzga 0ms"
     },
     {
       "tc_id": "TC-RES-016f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-016f: insertMovement aplica el mismo guardia 58ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2101 — el guardia en el servidor > TC-RES-016f: insertMovement aplica el mismo guardia 50ms"
     },
     {
       "tc_id": "TC-RES-020h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-020h: el 422 trae regla y periodo 64ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-020h: el 422 trae regla y periodo 36ms"
     },
     {
       "tc_id": "TC-RES-021e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-021e: el límite anunciado es OPERATIVO — se acepta tal cual y se rechaza con un peso más 82ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-021e: el límite anunciado es OPERATIVO — se acepta tal cual y se rechaza con un peso más 43ms"
     },
     {
       "tc_id": "TC-RES-022e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-022e: el rechazo no deja escritura parcial 65ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > FR-2102 — el rechazo se puede explicar > TC-RES-022e: el rechazo no deja escritura parcial 37ms"
     },
     {
       "tc_id": "TC-RES-023e",
@@ -63,17 +63,17 @@
     {
       "tc_id": "TC-RES-030f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-030f: el guardia no calcula nada de la regla 1ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-030f: el guardia no calcula nada de la regla 0ms"
     },
     {
       "tc_id": "TC-RES-031f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-031f: no existe otra implementación del techo fuera del dominio de reservas 67ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-031f: no existe otra implementación del techo fuera del dominio de reservas 38ms"
     },
     {
       "tc_id": "TC-RES-032e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-032e: el cuerpo de chainCheck no cambió ni una línea 45ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-032e: el cuerpo de chainCheck no cambió ni una línea 14ms"
     },
     {
       "tc_id": "TC-RES-033e",
@@ -98,7 +98,7 @@
     {
       "tc_id": "TC-RES-043e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2104 — nadie queda encerrado > TC-RES-043e: PROPIEDAD — ningún estado generado queda sin salida 6ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2104 — nadie queda encerrado > TC-RES-043e: PROPIEDAD — ningún estado generado queda sin salida 1ms"
     },
     {
       "tc_id": "TC-RES-200h",
@@ -113,42 +113,42 @@
     {
       "tc_id": "TC-RES-211f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2102 — el alcance no se pasó de la raya > TC-RES-211f: FR-1801 sigue en pie — el consumo del plano Ejecutado sigue siendo BRUTO 2ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2102 — el alcance no se pasó de la raya > TC-RES-211f: el consumo del plano Ejecutado es el que fija el dominio — NETO desde FR-2801 3ms"
     },
     {
       "tc_id": "TC-RES-220f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-220f: no hay vía de escritura sin guardia 68ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-220f: no hay vía de escritura sin guardia 40ms"
     },
     {
       "tc_id": "TC-RES-230h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-230h: cierre-de-mes no se degrada con el guardia activo 66ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-230h: cierre-de-mes no se degrada con el guardia activo 37ms"
     },
     {
       "tc_id": "TC-RES-231e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-231e: con las dos violaciones a la vez gana el mensaje del CIERRE 65ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-231e: con las dos violaciones a la vez gana el mensaje del CIERRE 38ms"
     },
     {
       "tc_id": "TC-RES-240h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-240h: el guardia no degrada la escritura 68ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-240h: el guardia no degrada la escritura 39ms"
     },
     {
       "tc_id": "TC-RES-034h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-034h: el guardia y la validación del navegador dan el MISMO veredicto 2ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > FR-2103 — una sola implementación de la regla > TC-RES-034h: el guardia y la validación del navegador dan el MISMO veredicto 1ms"
     },
     {
       "tc_id": "TC-RES-201f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2101/2104 — la suite y la convivencia de los dos guardias > TC-RES-201f: no crece el número de pruebas desactivadas 26ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2101/2104 — la suite y la convivencia de los dos guardias > TC-RES-201f: no crece el número de pruebas desactivadas 35ms"
     },
     {
       "tc_id": "TC-RES-202e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2101/2104 — la suite y la convivencia de los dos guardias > TC-RES-202e: las suites vecinas pasan SIN modificarse 42ms"
+      "notes": "✓ |app| tests/domain/reglas-en-el-servidor.test.ts > NFR-2101/2104 — la suite y la convivencia de los dos guardias > TC-RES-202e: las suites vecinas pasan SIN modificarse 18ms"
     },
     {
       "tc_id": "TC-RES-212h",
@@ -158,12 +158,12 @@
     {
       "tc_id": "TC-RES-221h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-221h: una escritura legítima atraviesa el guardia 53ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > NFR-2103/2104/2105 — seguridad, convivencia y coste > TC-RES-221h: una escritura legítima atraviesa el guardia 29ms"
     },
     {
       "tc_id": "TC-RES-222e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-222e: sin sesión no se llega a evaluar el guardia 30ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-222e: sin sesión no se llega a evaluar el guardia 43ms"
     },
     {
       "tc_id": "TC-RES-232f",
@@ -173,17 +173,17 @@
     {
       "tc_id": "TC-RES-241e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-241e: el estado se carga UNA sola vez por transacción 30ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-241e: el estado se carga UNA sola vez por transacción 19ms"
     },
     {
       "tc_id": "TC-RES-242f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-242f: el coste no crece con el número de meses 75ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-242f: el coste no crece con el número de meses 41ms"
     },
     {
       "tc_id": "TC-RES-024f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-024f: un rechazo sin periodo o sin límite numérico es un fallo 58ms"
+      "notes": "✓ |backend| tests/integration/backend/reglas-en-el-servidor.test.ts > Casos que necesitan su propia prueba para acreditarse > TC-RES-024f: un rechazo sin periodo o sin límite numérico es un fallo 34ms"
     }
   ],
   "fr_coverage": [
@@ -354,8 +354,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2432,
-      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+      "duration_ms": 2558,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
       "name": "lint",
@@ -363,7 +363,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 3490,
+      "duration_ms": 3151,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -372,7 +372,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 382,
+      "duration_ms": 227,
       "output": "> t-ledger@0.0.1-beta gate:design-tokens\n> ./scripts/design-tokens.sh\n\n✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
     },
     {
@@ -381,8 +381,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1047,
-      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, bindings, secretos, deps)"
+      "duration_ms": 1964,
+      "output": "> t-ledger@0.0.1-beta gate:security-config\n> ./scripts/security-config.sh\n\n✅ security-config: la postura endurecida se mantiene (headers, cookies, rate-limit, rutas con sesión, bindings, secretos, correos, deps)"
     },
     {
       "name": "secret-scan",
@@ -390,8 +390,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 263,
-      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] sin secretos (fallback de patrones)."
+      "duration_ms": 1247,
+      "output": "> t-ledger@0.0.1-beta gate:secret-scan\n> ./scripts/secret-scan.sh\n\n[secret-scan] patrones: sin secretos.\n[secret-scan] gitleaks no está instalado: solo corrieron los patrones (el CI sí lo exige)."
     },
     {
       "name": "smoke",
@@ -399,8 +399,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1410,
-      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+      "duration_ms": 1305,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -408,14 +408,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 184469,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (174ms)\n  ✓  482 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  482 passed (3.1m)\n\n(node:38678) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 216880,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (110ms)\n  ✓  723 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (228ms)\n  ✓  725 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  725 passed (3.6m)"
     }
   ],
   "timings": {
-    "runner_ms": 46898,
-    "e2e_ms": 184713,
-    "gates_ms": 193493,
-    "total_ms": 425172
+    "runner_ms": 65174,
+    "e2e_ms": 217813,
+    "gates_ms": 227336,
+    "total_ms": 510389
   }
 }

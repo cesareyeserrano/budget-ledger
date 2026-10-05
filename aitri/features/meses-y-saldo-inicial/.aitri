@@ -19,27 +19,9 @@
   "projectName": "meses-y-saldo-inicial",
   "createdAt": "2026-09-01T23:41:43.010Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T19:22:06.787Z",
+  "updatedAt": "2026-10-04T22:45:44.254Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-07T13:27:33.189Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 3
-    },
-    {
-      "at": "2026-09-07T15:27:48.847Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 3
-    },
     {
       "at": "2026-09-07T15:31:46.515Z",
       "event": "completed",
@@ -161,6 +143,22 @@
       "phase": "verify",
       "passed": 62,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T22:45:44.127Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T22:45:44.244Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 62,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -222,16 +220,16 @@
       "FR-2207"
     ]
   },
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "660f30133c24d84776c9ba7ab412a317b0c86945",
   "verifyRanDirty": false,
-  "verifyResultsHash": "8e682c25c109c4abd35169ae1136cc523a764bbc86892ef5b8588ca44cd49d8e",
-  "verifyRanAt": "2026-09-13T19:22:06.477Z",
+  "verifyResultsHash": "c5206a7de94c3e25a430c474653111a7137959a12558c4a7f3ad90e149b2b100",
+  "verifyRanAt": "2026-10-04T22:45:44.105Z",
   "lastVerifyRun": {
     "passed": 62,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T19:22:06.477Z"
+    "at": "2026-10-04T22:45:44.105Z"
   },
   "verifySummary": {
     "total": 62,

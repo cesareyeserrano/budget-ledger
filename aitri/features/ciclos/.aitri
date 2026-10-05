@@ -21,19 +21,9 @@
   "projectName": "ciclos",
   "createdAt": "2026-09-10T01:59:33.395Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T18:55:00.959Z",
+  "updatedAt": "2026-10-05T00:11:39.302Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-10T22:09:43.638Z",
-      "event": "approved",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-10T22:09:43.756Z",
-      "event": "completed",
-      "phase": 3
-    },
     {
       "at": "2026-09-10T22:10:03.034Z",
       "event": "approved",
@@ -152,6 +142,22 @@
       "phase": "verify",
       "passed": 178,
       "failed": 0
+    },
+    {
+      "at": "2026-10-05T00:11:39.175Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T00:11:39.291Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 178,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -229,16 +235,16 @@
       "FR-2410"
     ]
   },
-  "verifyResultsHash": "f7806343afacf0e2504938632b159237e9af624d9b95d62dbce73ee79432667a",
-  "verifyRanAt": "2026-09-13T18:55:00.643Z",
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyResultsHash": "a8a3f5d97266a6210d7bea1d8f45af96afbdc2b029cf00793080bec8655a34cc",
+  "verifyRanAt": "2026-10-05T00:11:39.152Z",
+  "verifyRanRef": "660f30133c24d84776c9ba7ab412a317b0c86945",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 178,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T18:55:00.643Z"
+    "at": "2026-10-05T00:11:39.152Z"
   },
   "verifySummary": {
     "total": 178,
