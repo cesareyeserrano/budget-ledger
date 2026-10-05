@@ -78,11 +78,16 @@ grep -q -- "--color-card:" src/app/globals.css; check "FR-1207: faltan los mapeo
 #                      budget-state-color FR-401.
 # Se ignoran las líneas de COMENTARIO: los dos ficheros corregidos documentan por escrito el token
 # que retiraron, y un barrido ingenuo leería esa documentación como una infracción.
+#   · mobile/tone.ts — presupuesto-movil (FR-3103): la lista del teléfono pinta el MISMO `cellTone` que la
+#                      grilla. Es la tabla tono→token de esa vista, y su `favorable` solo se usa cuando un
+#                      ingreso alcanza su plan: condicional, igual que el de BudgetGrid. No es un verde
+#                      de normalidad, y el Balance del teléfono NO lo usa (TC-PMV-105f lo fija).
 verde=$(grep -rn 'var(--favorable)\|var(--success)\|var(--success-strong)' src/components/ 2>/dev/null \
         | grep -v '^src/components/Dashboard\.tsx:' \
         | grep -v '^src/components/BudgetGrid\.tsx:' \
+        | grep -v '^src/components/mobile/tone\.ts:' \
         | grep -vE ':[0-9]+: *(\*|//|\{/\*)' || true)
-[ -z "$verde" ]; check "FR-1403/FR-1405: verde de normalidad fuera de sus dos excepciones: ${verde//$'\n'/ | }" $?
+[ -z "$verde" ]; check "FR-1403/FR-1405: verde de normalidad fuera de sus excepciones declaradas: ${verde//$'\n'/ | }" $?
 
 if [ ${#FALLOS[@]} -gt 0 ]; then
   echo "❌ design-tokens: el sistema visual retrocedió (${#FALLOS[@]} comprobación(es))"

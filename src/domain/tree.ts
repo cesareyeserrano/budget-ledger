@@ -94,3 +94,37 @@ export function isAncestor(nodes: LedgerNode[], ancestorId: string, nodeId: stri
 export function catSubOf(node: LedgerNode): { catId: string; subId: string | null } {
   return node.level === "sub" && node.parentId ? { catId: node.parentId, subId: node.id } : { catId: node.id, subId: null };
 }
+
+/**
+ * Orden de los tipos en toda superficie que lista la jerarquía: ingresos, gastos, reservas.
+ * Es el mismo orden que pinta la grilla de escritorio.
+ */
+export const TYPE_ORDER: readonly LedgerNode["type"][] = ["income", "expense", "transfer"];
+
+/**
+ * Los grupos de un tipo, en el orden en que se muestran (campo `order`).
+ *
+ * @param nodes Nodos del ledger.
+ * @param type Tipo cuyos grupos se piden.
+ * @returns Copia ordenada; no muta `nodes`.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3103, US-ID: US-3103, AC-ID: AC-3109, TC-ID: TC-PMV-025h
+ */
+export function orderedGroups(nodes: LedgerNode[], type: LedgerNode["type"]): LedgerNode[] {
+  return nodes.filter((n) => n.type === type && n.level === "group").sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Los hijos directos de un nodo, en el orden en que se muestran (campo `order`).
+ *
+ * @param nodes Nodos del ledger.
+ * @param parentId Id del padre.
+ * @returns Copia ordenada; vacía si no tiene hijos.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3103, US-ID: US-3103, AC-ID: AC-3109, TC-ID: TC-PMV-025h
+ */
+export function orderedChildren(nodes: LedgerNode[], parentId: string): LedgerNode[] {
+  return childrenOf(nodes, parentId).sort((a, b) => a.order - b.order);
+}

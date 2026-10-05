@@ -86,8 +86,15 @@ if command -v npm >/dev/null 2>&1; then
   if [ $SCA_RC -ne 0 ] && printf '%s' "$SCA_OUT" | grep -qiE 'audit endpoint returned an error|Invalid package tree|Bad Request|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET'; then
     # Falla igual —un escaneo que no corre no acredita nada— pero dice la verdad sobre por qué.
     check "RQ-SEC-005: el escaneo NO SE EJECUTÓ (npm audit no pudo completar; esto no es un hallazgo): $(printf '%s' "$SCA_OUT" | tr '\n' ' ' | cut -c1-200)" 1
+  elif [ $SCA_RC -ne 0 ]; then
+    # Hay avisos. Solo pasan los que tienen una excepción CON NOMBRE Y FECHA, vigente y que no llega
+    # a producción (BG-091): la tabla y su porqué viven en scripts/sca-excepciones.py. Un aviso nuevo,
+    # una excepción vencida o un aviso que alcance a producción siguen dejando el gate en rojo.
+    SCA_EXC=$(python3 scripts/sca-excepciones.py 2>&1); SCA_EXC_RC=$?
+    check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas sin excepción vigente:
+$SCA_EXC" $SCA_EXC_RC
   else
-    check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas" $SCA_RC
+    check "RQ-SEC-005: npm audit reporta vulnerabilidades altas o críticas" 0
   fi
 fi
 

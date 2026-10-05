@@ -19,3 +19,6 @@ export * from "./cycles";
 export * from "./mismatch";
 export * from "./detail";
 export * from "./adjust";
+// Feature presupuesto-movil: la lista de un periodo para el teléfono (view-model puro).
+export * from "./periodView";
+export * from "./movementEditVerdict";

@@ -19,19 +19,9 @@
   "projectName": "promote-to-group",
   "createdAt": "2026-07-17T13:14:29.266Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-24T17:09:20.331Z",
+  "updatedAt": "2026-10-04T18:45:20.282Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-07-17T17:31:05.160Z",
-      "event": "completed",
-      "phase": 4
-    },
-    {
-      "at": "2026-07-17T17:46:23.630Z",
-      "event": "approved",
-      "phase": 4
-    },
     {
       "at": "2026-07-17T17:50:12.178Z",
       "event": "verify-run",
@@ -151,6 +141,22 @@
       "phase": 5,
       "version": "1.0.0",
       "version_source": null
+    },
+    {
+      "at": "2026-10-04T18:45:20.043Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T18:45:20.263Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 36,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -207,16 +213,16 @@
   "verifyPassed": true,
   "coverageAuditLastAt": "2026-07-17T21:32:45.548Z",
   "coverageAuditReqHash": "b8c3a107b7b6bcde118ec733b1934c3b0929e7ac5e141c303bf3092a7c85dd71",
-  "verifyRanRef": "a28d7235cc861b834f0da4959111bf58a2562174",
+  "verifyRanRef": "fce0104ae64f271c06a8e3e63ef0d21ea226b145",
   "verifyRanDirty": false,
-  "verifyResultsHash": "b696b0df04d4b4f3d184d00bb7510a53925227fce7348f2d0f1625b28c8e13ca",
-  "verifyRanAt": "2026-09-24T17:09:04.255Z",
+  "verifyResultsHash": "fe295a20a7173d913d6bcc426005074c2c440b416ac574285feafa9a8153ce66",
+  "verifyRanAt": "2026-10-04T18:45:20.005Z",
   "lastVerifyRun": {
     "passed": 36,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-24T17:09:04.255Z"
+    "at": "2026-10-04T18:45:20.005Z"
   },
   "verifySummary": {
     "total": 36,

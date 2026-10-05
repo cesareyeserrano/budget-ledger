@@ -1,0 +1,2262 @@
+{
+  "test_plan": {
+    "strategy": "Tres capas sobre un libro de ejemplo fijo (pmv-base, anclado al periodo actual M y al anterior M−1 cerrado; cifras inventadas). Contenido de pmv-base — M: Trabajo>Salario Pres. 5.000 Ejec. 5.000; Vivienda>{Mercado 1.000/600 con gastos de 300, 200 y 100; Servicios 500/550; Administración 100/150}; Transporte 800/700 (grupo hoja); Estilo de vida>Cine 0/0; alcancía Ahorro>Viaje aporte 500/500; retiro de 200 de Viaje a Disponible con nota «Tiquetes». M−1 (cerrado): ingreso 4.000/4.000, Mercado 900/850 (un gasto «Supermercado»), aporte a Viaje 300/300. Saldo inicial 0. UNIT (Vitest, proyecto app): periodView, balanceView, movementEditVerdict, parseScreen, amountDraftState y withdrawalRows, con los números de los AC, límites y un estado a escala de 312 nodos × 36 periodos. INTEGRATION: jsdom (MobileBudget con el store real y el repositorio en memoria) para las reglas de cada pantalla —montos inválidos, cancelaciones, rechazos, periodo cerrado— que no necesitan navegador, y para MovementEditor y las piezas del registro; y Postgres efímero (proyecto backend) para el rechazo 422 de periodo cerrado. E2E (Playwright) a 375, 360, 760, 761 y 1440 px: navegación e historial, lista, edición, alcancías, retiros, Balance, periodo cerrado, resumen protegido, layout con cifras de 9 dígitos y paridad teléfono–escritorio. Las pruebas existentes que afirmaban «en móvil solo hay registro» se revisan una por una en la construcción según ADR-06; ninguna se salta. El ojo del resumen es un botón de un toque con temporizador de 10 s (cambio del usuario del 4-oct-2026): TC-PMV-141h espera el tiempo real.",
+    "coverage_goal": "80% global vigente; los módulos nuevos de src/domain entran en la medición",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-PMV-001h",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3101",
+      "title": "Abre en Registrar y pasa a Presupuesto sin recargar",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, recién abierta la app",
+      "when": "tocar el segmento «Presupuesto» de mb-nav",
+      "then": "mb-budget visible con mb-period-bar en el periodo actual; page-title «Nuevo movimiento» deja de ser visible",
+      "steps": [
+        "tocar el segmento «Presupuesto» de mb-nav"
+      ],
+      "expected_result": "mb-budget visible; el contador de peticiones GET /api/v1/ledger es el mismo antes y después del toque (0 nuevas); location.pathname sigue siendo «/» y search es «?v=p»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-002e",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3102",
+      "title": "El periodo y los grupos abiertos se conservan al ir y volver",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en Presupuesto con el periodo M−1 elegido y el grupo Vivienda desplegado",
+      "when": "tocar «Registrar», escribir 123 en el monto, tocar «Presupuesto», tocar «Registrar»",
+      "then": "Presupuesto sigue en M−1 con Vivienda desplegado; Registrar conserva el monto",
+      "steps": [
+        "tocar «Registrar», escribir 123 en el monto, tocar «Presupuesto», tocar «Registrar»"
+      ],
+      "expected_result": "mb-period-bar muestra el rótulo de M−1, la fila Mercado sigue visible, y amount-input conserva «123»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-003f",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3103",
+      "title": "Configuración, tema y salir no desaparecen en Presupuesto",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en la vista Presupuesto",
+      "when": "buscar config-link, el botón de tema y el botón de salir",
+      "then": "los tres están visibles y habilitados",
+      "steps": [
+        "buscar config-link, el botón de tema y el botón de salir"
+      ],
+      "expected_result": "config-link, ThemeToggle y LogoutButton visibles (count 1 cada uno); si falta cualquiera la prueba falla",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-004h",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3141",
+      "title": "El atrás del navegador vuelve de una categoría a la lista",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en Presupuesto con Vivienda desplegado y scroll de la lista en 240 px",
+      "when": "tocar la fila Mercado y luego page.goBack()",
+      "then": "se abre mb-leaf de Mercado y, tras goBack, vuelve la lista",
+      "steps": [
+        "tocar la fila Mercado y luego page.goBack()"
+      ],
+      "expected_result": "tras goBack: mb-leaf no visible, mb-budget visible, URL «?v=p», scrollTop de la lista = 240 ± 2 px, y ninguna petición GET /api/v1/ledger nueva",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-005e",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3141",
+      "title": "Enlace directo a un detalle: la flecha vuelve a la lista, no sale de la app",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada",
+      "when": "abrir directamente «/?v=p&d=leaf&id=<id de Mercado>» y tocar mb-back",
+      "then": "se ve Mercado y la flecha lleva a la lista del periodo",
+      "steps": [
+        "abrir directamente «/?v=p&d=leaf&id=<id de Mercado>» y tocar mb-back"
+      ],
+      "expected_result": "tras tocar mb-back: URL «/?v=p», mb-budget visible; la página sigue siendo la app (mobile-shell visible)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-006f",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3141",
+      "title": "Parámetros de URL inválidos caen a una pantalla válida",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada",
+      "when": "abrir «/?v=p&d=leaf&id=no-existe» y después «/?v=<script>alert(1)</script>&d=zzz»",
+      "then": "la primera muestra la lista del periodo; la segunda muestra Registrar; no hay pantalla en blanco ni diálogo",
+      "steps": [
+        "abrir «/?v=p&d=leaf&id=no-existe» y después «/?v=<script>alert(1)</script>&d=zzz»"
+      ],
+      "expected_result": "primera URL: mb-budget visible y URL reescrita a «?v=p»; segunda: page-title «Nuevo movimiento» visible; cero eventos «dialog» y cero errores de consola",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-007e",
+      "requirement_id": "FR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3141",
+      "title": "parseScreen convierte cualquier consulta en una pantalla válida",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la función parseScreen",
+      "when": "parseScreen con «», «?v=p», «?v=p&d=leaf&id=c-mercado», «?v=p&d=edit&id=c-mercado&m=mv-1», «?v=p&d=edit&id=c-mercado» (sin m), «?v=x», «?d=balance»",
+      "then": "devuelve una Screen del tipo declarado para cada una",
+      "steps": [
+        "parseScreen con «», «?v=p», «?v=p&d=leaf&id=c-mercado», «?v=p&d=edit&id=c-mercado&m=mv-1», «?v=p&d=edit&id=c-mercado» (sin m), «?v=x», «?d=balance»"
+      ],
+      "expected_result": "en orden: {view:registrar}; {view:presupuesto,detail:null}; detail leaf con id c-mercado; detail edit con leafId c-mercado y movementId mv-1; detail null (edit sin m no es válido); {view:registrar}; {view:registrar}",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-010h",
+      "requirement_id": "FR-3102",
+      "user_story_id": "US-3102",
+      "ac_id": "AC-3104",
+      "title": "Abre en el periodo actual con el rótulo de escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada en modo mes",
+      "when": "abrir Presupuesto",
+      "then": "mb-period-bar muestra el periodo actual",
+      "steps": [
+        "abrir Presupuesto"
+      ],
+      "expected_result": "el rótulo es exactamente el periodLabel del periodo actual (p. ej. «Octubre 2026»), igual al texto de la opción seleccionada en el selector de escritorio a 1440 px",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-011e",
+      "requirement_id": "FR-3102",
+      "user_story_id": "US-3102",
+      "ac_id": "AC-3104",
+      "title": "En modo ciclo el rótulo trae el rango",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base convertido a ciclos con día de corte 21, a 375 px",
+      "when": "abrir Presupuesto",
+      "then": "el rótulo incluye el rango del ciclo",
+      "steps": [
+        "abrir Presupuesto"
+      ],
+      "expected_result": "el rótulo coincide con withRange del ciclo actual, con la forma «<Mes> <año> · <d> <mes> – <d> <mes>» (contiene « · » y « – »)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-012f",
+      "requirement_id": "FR-3102",
+      "user_story_id": "US-3102",
+      "ac_id": "AC-3105",
+      "title": "En los extremos, anterior y siguiente quedan deshabilitados",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en Presupuesto",
+      "when": "elegir el primer periodo activo en mb-period-select; luego elegir el último",
+      "then": "en el primero mb-period-prev está disabled; en el último mb-period-next está disabled",
+      "steps": [
+        "elegir el primer periodo activo en mb-period-select; luego elegir el último"
+      ],
+      "expected_result": "mb-period-prev tiene el atributo disabled en el primer periodo y tocarlo no cambia el rótulo; lo mismo con mb-period-next en el último",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-013e",
+      "requirement_id": "FR-3102",
+      "user_story_id": "US-3102",
+      "ac_id": "AC-3105",
+      "title": "El selector lista los mismos periodos que escritorio, en el mismo orden",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base; se lee la lista del selector de periodo a 1440 px",
+      "when": "a 375 px abrir mb-period-select y leer sus opciones",
+      "then": "las dos listas son iguales",
+      "steps": [
+        "a 375 px abrir mb-period-select y leer sus opciones"
+      ],
+      "expected_result": "array de rótulos del móvil === array de rótulos de escritorio (misma longitud y mismo orden)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-014h",
+      "requirement_id": "FR-3102",
+      "user_story_id": "US-3102",
+      "ac_id": "AC-3106",
+      "title": "Un periodo cerrado se marca con candado",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada con M−1 cerrado",
+      "when": "tocar mb-period-prev hasta M−1",
+      "then": "el rótulo lleva candado y aparece mb-closed-notice",
+      "steps": [
+        "tocar mb-period-prev hasta M−1"
+      ],
+      "expected_result": "mb-period-bar contiene el ícono de candado (aria-label «cerrado») y mb-closed-notice es visible con el texto «está cerrado»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-020h",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3107",
+      "title": "Fila de gasto dentro del plan: cifras y tono neutro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Presupuesto en M con Vivienda desplegado",
+      "when": "leer la fila Mercado",
+      "then": "muestra lo ejecutado, «de <presupuestado>» y tono neutro",
+      "steps": [
+        "leer la fila Mercado"
+      ],
+      "expected_result": "mb-row-actual de Mercado = «600», mb-row-budget = «de 1.000», color computado = var(--fg) resuelto; mb-bar con ancho 60 % ± 1 y color --fg-muted",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-021h",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3108",
+      "title": "Sobre-consumo leve y grave: glifo y color de escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Vivienda desplegado",
+      "when": "leer las filas Servicios (500 → 550) y Administración (100 → 150)",
+      "then": "Servicios lleva › en alert-soft; Administración lleva ›› en alert-strong",
+      "steps": [
+        "leer las filas Servicios (500 → 550) y Administración (100 → 150)"
+      ],
+      "expected_result": "Servicios: texto «› 550» y color = --alert-soft resuelto; Administración: «›› 150» y color = --alert-strong resuelto; ambas barras al 100 % con ese mismo color",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-022e",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3109",
+      "title": "Plegar y desplegar un grupo",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, lista recién abierta",
+      "when": "tocar la tarjeta Vivienda dos veces",
+      "then": "primer toque: aparecen Mercado, Servicios y Administración; segundo: desaparecen y queda el total",
+      "steps": [
+        "tocar la tarjeta Vivienda dos veces"
+      ],
+      "expected_result": "tras el 1.er toque hay 3 mb-row hijas visibles bajo Vivienda; tras el 2.º, 0; la fila de Vivienda sigue mostrando «1.300» y «de 1.600»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-023f",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3110",
+      "title": "La alcancía muestra lo aportado en el periodo, no el saldo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada (Viaje: 300 aportados en M−1 y 500 en M)",
+      "when": "leer la tarjeta Viaje en M",
+      "then": "dice 500",
+      "steps": [
+        "leer la tarjeta Viaje en M"
+      ],
+      "expected_result": "mb-row-actual de Viaje = «500» (no «800» ni «600»)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-024e",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3107",
+      "title": "Periodo sin datos: filas con raya, no en blanco",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, elegir un periodo futuro sin datos",
+      "when": "leer la lista",
+      "then": "todas las tarjetas están y sus cifras son «—»",
+      "steps": [
+        "leer la lista"
+      ],
+      "expected_result": "hay las mismas mb-group que en M; cada mb-row-actual = «—» con color --fg-muted; cada mb-bar con relleno 0 %; cero errores de consola",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-025h",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3109",
+      "title": "periodView: orden, roll-up y progreso",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base",
+      "when": "periodView(state, M)",
+      "then": "secciones en orden income, expense, transfer; grupos e hijos por `order`; cifras por roll-up",
+      "steps": [
+        "periodView(state, M)"
+      ],
+      "expected_result": "sections.map(type) = [income, expense, transfer]; grupo Vivienda {budget:1600, actual:1300, progress:0.8125}; hijos [Mercado, Servicios, Administración] en ese orden; Servicios {tone:alert-soft, glyph:›, progress:1}; Transporte leaf:true",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-026f",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3108",
+      "title": "periodView: sin presupuesto y con gasto, barra llena y tono grave",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado con hoja Gym Pres 0 y Ejec 90, y hoja Cine Pres 0 y Ejec 0",
+      "when": "periodView(state, M)",
+      "then": "Gym en alerta grave con progreso 1; Cine vacío con progreso 0",
+      "steps": [
+        "periodView(state, M)"
+      ],
+      "expected_result": "Gym {tone:alert-strong, glyph:››, progress:1}; Cine {tone:muted, glyph:«», progress:0}; ningún NaN ni Infinity en el resultado",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-027e",
+      "requirement_id": "FR-3103",
+      "user_story_id": "US-3103",
+      "ac_id": "AC-3110",
+      "title": "Fila «Retiros del mes»: real, plan y tono",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base (retiro real 200 en M, planeado 0)",
+      "when": "periodView(state, M)",
+      "then": "la sección transfer termina con la fila @retiros",
+      "steps": [
+        "periodView(state, M)"
+      ],
+      "expected_result": "última fila de transfer {id:@retiros, actual:200, budget:0, leaf:true} y su tono = el de budgetState(0,200) (over_hard)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-030h",
+      "requirement_id": "FR-3104",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "Paridad de cifras por nodo entre teléfono y escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base; se capturan a 1440 px las celdas Pres. y Ejec. de la columna M de cada nodo de la grilla",
+      "when": "a 375 px desplegar todos los grupos y leer cada mb-row",
+      "then": "cada nodo tiene las mismas dos cifras",
+      "steps": [
+        "a 375 px desplegar todos los grupos y leer cada mb-row"
+      ],
+      "expected_result": "para cada nodo del fixture (11 nodos), {budget, actual} del móvil === los de la grilla; y el orden de nombres del móvil === el orden de filas de la grilla",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-031h",
+      "requirement_id": "FR-3104",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "Paridad del Balance entre teléfono y escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base; se capturan a 1440 px las celdas de la columna M del módulo Balance, Pres. y Ejec.",
+      "when": "a 375 px abrir mb-balance",
+      "then": "cada fila coincide en los dos planos",
+      "steps": [
+        "a 375 px abrir mb-balance"
+      ],
+      "expected_result": "las 10 filas × 2 planos coinciden; en concreto Saldo disponible Ejec. 5.550 y Pres. 4.900; Saldo reservado 600 y 800; Saldo total 6.150 y 5.700",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-032e",
+      "requirement_id": "FR-3104",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3112",
+      "title": "Lo anotado en Registrar aparece en Presupuesto",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Mercado en 600",
+      "when": "en Registrar anotar un gasto de 50.000 en Mercado con fecha de hoy y pasar a Presupuesto",
+      "then": "Mercado sube 50.000",
+      "steps": [
+        "en Registrar anotar un gasto de 50.000 en Mercado con fecha de hoy y pasar a Presupuesto"
+      ],
+      "expected_result": "mb-row-actual de Mercado = «50.600» y el total de GASTOS Ejec. pasa de 2.000 a 52.000",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-033f",
+      "requirement_id": "FR-3104",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "periodView no diverge de rollupTable ni en un peso",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado generado: 3 tipos, 12 grupos, 60 categorías, 240 subcategorías, 36 periodos, montos enteros aleatorios con semilla fija 42",
+      "when": "para cada periodo, periodView y rollupTable",
+      "then": "cada fila de periodView es igual a la celda de rollupTable",
+      "steps": [
+        "para cada periodo, periodView y rollupTable"
+      ],
+      "expected_result": "0 diferencias en 312 nodos × 36 periodos × 2 planos; y sections[type].budget/actual === typeTotals(state, type, [p]); una divergencia de 1 hace fallar",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-034e",
+      "requirement_id": "FR-3104",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "Un cambio hecho en otro dispositivo llega al teléfono",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "dos contextos del mismo usuario: A a 375 px en Presupuesto (M), B a 1440 px",
+      "when": "en B cambiar el Presupuestado de Mercado a 1.200",
+      "then": "A lo refleja sin recargar",
+      "steps": [
+        "en B cambiar el Presupuestado de Mercado a 1.200"
+      ],
+      "expected_result": "en A, en ≤5 s, mb-row-budget de Mercado = «de 1.200» sin page.reload()",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-040h",
+      "requirement_id": "FR-3105",
+      "user_story_id": "US-3105",
+      "ac_id": "AC-3113",
+      "title": "Cambiar lo planeado de Mercado y persistir",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de Mercado en M (Pres. 1.000)",
+      "when": "tocar «Cambiar» en mb-amount-card-budget, escribir 1200, tocar «Guardar», volver a la lista y recargar",
+      "then": "Mercado queda en 1.200 y su grupo sube 200, también tras recargar",
+      "steps": [
+        "tocar «Cambiar» en mb-amount-card-budget, escribir 1200, tocar «Guardar», volver a la lista y recargar"
+      ],
+      "expected_result": "tarjeta Presupuestado = «1.200»; en la lista Vivienda «de 1.800» y GASTOS Pres. 2.600; tras page.reload() sigue «1.200»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-041e",
+      "requirement_id": "FR-3105",
+      "user_story_id": "US-3105",
+      "ac_id": "AC-3113",
+      "title": "Cancelar deja el valor como estaba",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, Mercado con Pres. 1.000",
+      "when": "tocar «Cambiar», escribir 9999, tocar «Cancelar»; repetir y pulsar Escape",
+      "then": "el valor sigue en 1.000 las dos veces",
+      "steps": [
+        "tocar «Cambiar», escribir 9999, tocar «Cancelar»; repetir y pulsar Escape"
+      ],
+      "expected_result": "tarjeta Presupuestado = «1.000» y ninguna petición PUT /api/v1/ledger durante la prueba",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-042f",
+      "requirement_id": "FR-3105",
+      "user_story_id": "US-3105",
+      "ac_id": "AC-3114",
+      "title": "Monto inválido o vacío no se guarda",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, Mercado con Pres. 1.000 en edición",
+      "when": "escribir «abc»; luego «12,5»; luego dejar el campo vacío",
+      "then": "en los tres casos «Guardar» está disabled; con «abc» y «12,5» aparece el mensaje de monto entero",
+      "steps": [
+        "escribir «abc»; luego «12,5»; luego dejar el campo vacío"
+      ],
+      "expected_result": "botón Guardar disabled en los 3 casos; el texto de error es el de amountInputError; al cancelar, tarjeta = «1.000»; 0 llamadas a repository.save",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-043f",
+      "requirement_id": "FR-3105",
+      "user_story_id": "US-3105",
+      "ac_id": "AC-3115",
+      "title": "Un grupo con hijos no ofrece edición",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, lista en M",
+      "when": "tocar la fila del grupo Vivienda",
+      "then": "se despliega; no se abre ninguna pantalla ni campo",
+      "steps": [
+        "tocar la fila del grupo Vivienda"
+      ],
+      "expected_result": "la pantalla sigue siendo la lista; mb-leaf count 0; mb-amount-edit count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-044e",
+      "requirement_id": "FR-3105",
+      "user_story_id": "US-3105",
+      "ac_id": "AC-3114",
+      "title": "Regla del campo de monto: límites",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "la función amountDraftState(raw, {allowZero})",
+      "when": "evaluar «», «0», «1», «999999999», «1.500.000», «-5», «1e3»",
+      "then": "vacío y los inválidos deshabilitan; 0 vale",
+      "steps": [
+        "evaluar «», «0», «1», «999999999», «1.500.000», «-5», «1e3»"
+      ],
+      "expected_result": "«»→{disabled:true,error:null}; «0»→{disabled:false,value:0}; «1»→value 1; «999999999»→value 999999999; «1.500.000»→value 1500000; «-5» y «1e3»→{disabled:true,error:MONTO_ENTERO_MSG}",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-050h",
+      "requirement_id": "FR-3106",
+      "user_story_id": "US-3106",
+      "ac_id": "AC-3116",
+      "title": "Mercado muestra sus tres gastos en el orden del Detalle",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de Mercado en M",
+      "when": "leer las mb-mov-row",
+      "then": "tres filas con día, nota y monto",
+      "steps": [
+        "leer las mb-mov-row"
+      ],
+      "expected_result": "filas en orden: «5 oct · Plaza · 300», «12 oct · Supermercado · 200», «20 oct · Sin nota · 100» (los días según M); la suma 600 = tarjeta Ejecutado; cada fila tiene mb-mov-edit",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-051e",
+      "requirement_id": "FR-3106",
+      "user_story_id": "US-3106",
+      "ac_id": "AC-3117",
+      "title": "Hoja sin movimientos: estado vacío con salida",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de una hoja sin movimientos en M (Cine)",
+      "when": "leer la pantalla y tocar «Ir a Registrar»",
+      "then": "texto de vacío y, al tocar, se abre Registrar",
+      "steps": [
+        "leer la pantalla y tocar «Ir a Registrar»"
+      ],
+      "expected_result": "texto contiene «Sin movimientos»; mb-mov-row count 0; tras el toque page-title «Nuevo movimiento» visible",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-052f",
+      "requirement_id": "FR-3106",
+      "user_story_id": "US-3106",
+      "ac_id": "AC-3118",
+      "title": "La alcancía lista sus aportes sin editar ni borrar",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de la alcancía Viaje en M",
+      "when": "leer las filas",
+      "then": "aparece el aporte de 500 y ningún lápiz",
+      "steps": [
+        "leer las filas"
+      ],
+      "expected_result": "≥1 mb-mov-row con «500»; mb-mov-edit count 0 en esta pantalla",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-053f",
+      "requirement_id": "FR-3106",
+      "user_story_id": "US-3106",
+      "ac_id": "AC-3116",
+      "title": "Tocar el ejecutado de un grupo no abre lista",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, lista en M",
+      "when": "tocar sobre la cifra ejecutada de la fila Vivienda",
+      "then": "solo se despliega el grupo",
+      "steps": [
+        "tocar sobre la cifra ejecutada de la fila Vivienda"
+      ],
+      "expected_result": "mb-leaf count 0; mb-mov-row count 0; Mercado visible como hija",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-060h",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "Editar el monto de un gasto actualiza la categoría y el Balance",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Mercado en M",
+      "when": "tocar el lápiz del gasto de 300, cambiar el monto a 250, tocar «Guardar cambios», abrir el Balance",
+      "then": "Mercado baja a 550 y los gastos del Balance bajan 50",
+      "steps": [
+        "tocar el lápiz del gasto de 300, cambiar el monto a 250, tocar «Guardar cambios», abrir el Balance"
+      ],
+      "expected_result": "tarjeta Ejecutado de Mercado «550»; toast «Movimiento actualizado»; en mb-balance, Gastos Ejec. 1.950 y Saldo disponible Ejec. 5.600",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-061e",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3120",
+      "title": "Cambiar la fecha a otro periodo avisa antes y mueve después",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, editando el gasto del 12 de M",
+      "when": "cambiar la fecha a un día del periodo M+1",
+      "then": "aparece el aviso antes de guardar; tras guardar, sale de M y entra en M+1",
+      "steps": [
+        "cambiar la fecha a un día del periodo M+1"
+      ],
+      "expected_result": "aviso «Pasará a <rótulo de M+1>» visible antes de guardar; tras guardar Mercado en M = 400 y en M+1 = 200",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-062f",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3121",
+      "title": "La categoría solo ofrece hojas del mismo tipo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, editando un gasto de Mercado",
+      "when": "leer las fichas de mb-edit-category",
+      "then": "solo hay categorías de gasto",
+      "steps": [
+        "leer las fichas de mb-edit-category"
+      ],
+      "expected_result": "las fichas incluyen Servicios y Transporte; no incluyen «Salario» ni «Viaje»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-063f",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "Monto con letras: guardar deshabilitado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, editando el gasto de 300",
+      "when": "escribir «3a0» en mb-edit-amount",
+      "then": "«Guardar cambios» queda disabled con el mensaje de monto",
+      "steps": [
+        "escribir «3a0» en mb-edit-amount"
+      ],
+      "expected_result": "mb-edit-save disabled; mensaje de monto entero visible; al volver, Mercado sigue en 600",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-064e",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3122",
+      "title": "Monto 0 convierte guardar en borrar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, editando el gasto de 100",
+      "when": "poner 0 y confirmar con el botón principal",
+      "then": "el gasto desaparece",
+      "steps": [
+        "poner 0 y confirmar con el botón principal"
+      ],
+      "expected_result": "el botón principal dice «Borrar movimiento»; tras confirmarlo, Mercado = 500 y quedan 2 mb-mov-row",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-065h",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "movementEditVerdict: edición aceptada y aviso de cambio de periodo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base, movimiento de 200 del día 12 de M en Mercado",
+      "when": "veredicto con {amount:«250»} y luego con {date: día 3 de M+1}",
+      "then": "edit con ensayo aceptado; el segundo trae movesTo",
+      "steps": [
+        "veredicto con {amount:«250»} y luego con {date: día 3 de M+1}"
+      ],
+      "expected_result": "1.º: {kind:edit, patch.amount:250, movesTo:null, dry aceptado}; 2.º: movesTo === clave de M+1",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-066f",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3121",
+      "title": "movementEditVerdict: rechazos e inválidos",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base con M−1 cerrado",
+      "when": "veredicto con amount «abc»; con nota de 281 caracteres; con fecha en M−1; con target = id de una hoja de ingreso",
+      "then": "inválido o rechazado, con su motivo",
+      "steps": [
+        "veredicto con amount «abc»; con nota de 281 caracteres; con fecha en M−1; con target = id de una hoja de ingreso"
+      ],
+      "expected_result": "{invalid, amount}; {invalid, note}; {invalid, closed_target}; y para el target de otro tipo, edit con dry rechazado por invalid_target",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-067e",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3122",
+      "title": "movementEditVerdict: escritorio no cambia tras extraerlo",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MovementEditor renderizado en jsdom con el gasto de 200 (como bg-068)",
+      "when": "sin tocar nada pulsar Enter; luego escribir 0 y Enter",
+      "then": "sin cambios se guarda y cierra como hoy; con 0 se borra",
+      "steps": [
+        "sin tocar nada pulsar Enter; luego escribir 0 y Enter"
+      ],
+      "expected_result": "con el borrador intacto, Enter llama a onDone (Guardar habilitado, igual que antes de la extracción); con 0, el movimiento deja de existir en el store",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-068e",
+      "requirement_id": "FR-3107",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "Un ajuste negativo se puede editar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base más un ajuste de −40 en Servicios en M",
+      "when": "abrir Servicios, tocar el lápiz del ajuste y cambiarlo a −60",
+      "then": "el campo muestra el signo y guarda",
+      "steps": [
+        "abrir Servicios, tocar el lápiz del ajuste y cambiarlo a −60"
+      ],
+      "expected_result": "mb-edit-amount muestra «−40» al abrir; tras guardar, Servicios Ejecutado = 490",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-070h",
+      "requirement_id": "FR-3108",
+      "user_story_id": "US-3108",
+      "ac_id": "AC-3123",
+      "title": "Borrar un gasto con confirmación",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, editando el gasto de 200 de Mercado",
+      "when": "tocar «Borrar movimiento» y luego «Borrar» en mb-confirm-delete",
+      "then": "el gasto se borra",
+      "steps": [
+        "tocar «Borrar movimiento» y luego «Borrar» en mb-confirm-delete"
+      ],
+      "expected_result": "vuelve a Mercado con toast «Movimiento borrado»; Ejecutado «400»; 2 mb-mov-row; tras recargar siguen 2",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-071f",
+      "requirement_id": "FR-3108",
+      "user_story_id": "US-3108",
+      "ac_id": "AC-3124",
+      "title": "Cancelar la confirmación no borra",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, editando el gasto de 200",
+      "when": "tocar «Borrar movimiento» y luego «Cancelar»",
+      "then": "nada cambia",
+      "steps": [
+        "tocar «Borrar movimiento» y luego «Cancelar»"
+      ],
+      "expected_result": "mb-confirm-delete deja de verse; al volver, Mercado «600» y 3 mb-mov-row; 0 llamadas a repository.save",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-072f",
+      "requirement_id": "FR-3108",
+      "user_story_id": "US-3108",
+      "ac_id": "AC-3123",
+      "title": "Borrado rechazado por dejar una celda en negativo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base con Servicios = gasto de 590 y ajuste de −40 (celda 550)",
+      "when": "abrir el gasto de 590 y confirmar borrarlo",
+      "then": "se rechaza con el motivo y nada cambia",
+      "steps": [
+        "abrir el gasto de 590 y confirmar borrarlo"
+      ],
+      "expected_result": "mensaje con el texto de textoBorradoNegativo (menciona «−40»); Servicios sigue en 550 con 2 filas",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-073e",
+      "requirement_id": "FR-3108",
+      "user_story_id": "US-3108",
+      "ac_id": "AC-3123",
+      "title": "Borrar el único gasto deja la lista vacía",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base con una hoja Cine con un solo gasto de 80 en M",
+      "when": "borrarlo y confirmar",
+      "then": "la categoría queda vacía",
+      "steps": [
+        "borrarlo y confirmar"
+      ],
+      "expected_result": "Ejecutado «—»; texto «Sin movimientos»; en la lista, Cine con barra al 0 %",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-080h",
+      "requirement_id": "FR-3109",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3125",
+      "title": "Cambiar lo aportado a Viaje",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de Viaje en M (Ejec. 500)",
+      "when": "en mb-amount-card-actual tocar «Cambiar», escribir 700, «Guardar»; abrir el Balance",
+      "then": "Viaje queda en 700 y el disponible baja 200",
+      "steps": [
+        "en mb-amount-card-actual tocar «Cambiar», escribir 700, «Guardar»; abrir el Balance"
+      ],
+      "expected_result": "tarjeta Ejec. «700»; Saldo disponible Ejec. 5.350; Saldo reservado Ejec. 800",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-081f",
+      "requirement_id": "FR-3109",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3126",
+      "title": "Aporte por encima del techo: rechazo con el texto de escritorio",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Viaje en M; el cupo de la celda es H (se lee del indicador bajo el campo)",
+      "when": "escribir H+1 y guardar",
+      "then": "se rechaza y la cifra no cambia",
+      "steps": [
+        "escribir H+1 y guardar"
+      ],
+      "expected_result": "aparece «Esta celda admite hasta $<H> este mes»; tarjeta Ejec. sigue «500»; el campo conserva H+1; con H exacto sí guarda",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-082f",
+      "requirement_id": "FR-3109",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3126",
+      "title": "La misma regla bloquea en Pres.",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, Viaje en M, tarjeta Pres. (500), cupo del plan Hp",
+      "when": "escribir Hp+1 y guardar",
+      "then": "se rechaza",
+      "steps": [
+        "escribir Hp+1 y guardar"
+      ],
+      "expected_result": "mensaje «Esta celda admite hasta $<Hp> este mes»; tarjeta Pres. sigue «500»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-083e",
+      "requirement_id": "FR-3109",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3125",
+      "title": "Escribir 0 quita el aporte del periodo",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base sin el retiro de 200 (para que 0 no deje déficit)",
+      "when": "en Viaje Ejec. escribir 0 y guardar",
+      "then": "la alcancía queda sin aporte en M",
+      "steps": [
+        "en Viaje Ejec. escribir 0 y guardar"
+      ],
+      "expected_result": "tarjeta Ejec. «—»; en la lista Viaje «—»; Saldo reservado Ejec. 300",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-090h",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3127",
+      "title": "La pantalla de retiros lista la operación con sus dos extremos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada (retiro de 200 de Viaje, nota «Tiquetes»)",
+      "when": "tocar la tarjeta «Retiros del mes»",
+      "then": "se ve la operación",
+      "steps": [
+        "tocar la tarjeta «Retiros del mes»"
+      ],
+      "expected_result": "1 mb-retiro-row con «Viaje → Disponible», «Tiquetes» y «200»; tarjeta Ejec. «200», Pres. «—»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-091h",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3128",
+      "title": "Corregir un retiro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de retiros",
+      "when": "lápiz del retiro, cambiar a 150, «Guardar»",
+      "then": "baja el retiro y el disponible",
+      "steps": [
+        "lápiz del retiro, cambiar a 150, «Guardar»"
+      ],
+      "expected_result": "fila «150»; tarjeta Ejec. «150»; Saldo disponible Ejec. 5.500",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-092e",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3128",
+      "title": "Corregir a 0 elimina el retiro",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, pantalla de retiros",
+      "when": "corregir el retiro a 0",
+      "then": "desaparece y las cifras vuelven",
+      "steps": [
+        "corregir el retiro a 0"
+      ],
+      "expected_result": "0 mb-retiro-row; texto «Sin operaciones este mes»; Saldo disponible Ejec. 5.350; Saldo reservado Ejec. 800",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-093f",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3128",
+      "title": "Cancelar el borrado deja el retiro",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, pantalla de retiros",
+      "when": "papelera y luego «Cancelar»",
+      "then": "nada cambia",
+      "steps": [
+        "papelera y luego «Cancelar»"
+      ],
+      "expected_result": "1 mb-retiro-row con «200»; 0 llamadas a repository.save",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-094f",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3129",
+      "title": "Corrección rechazada por la regla",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria: Viaje tiene 600 tras el retiro de 200",
+      "when": "corregir el retiro a 900 (más de lo que tenía la alcancía)",
+      "then": "se rechaza con el motivo de escritorio",
+      "steps": [
+        "corregir el retiro a 900 (más de lo que tenía la alcancía)"
+      ],
+      "expected_result": "mensaje de blockMessage bajo la fila (no vacío, no «Error»); la fila sigue «200»; Saldo reservado Ejec. sigue 600",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-095e",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3127",
+      "title": "Un movimiento entre alcancías se ve con sus dos extremos y no suma a retiros",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base más un movimiento de 100 de Viaje a la alcancía Carro en M",
+      "when": "withdrawalRows(state, M)",
+      "then": "dos filas, y solo una cuenta como retiro",
+      "steps": [
+        "withdrawalRows(state, M)"
+      ],
+      "expected_result": "filas [{from:«Viaje», to:«Disponible», amount:200, countsAsRetiro:true}, {from:«Viaje», to:«Carro», amount:100, countsAsRetiro:false}]; reserveRetiros(state,M,actual) = 200",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-096e",
+      "requirement_id": "FR-3110",
+      "user_story_id": "US-3110",
+      "ac_id": "AC-3127",
+      "title": "Sin operaciones: guía hacia Registrar",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base sin el retiro",
+      "when": "abrir «Retiros del mes» y tocar «Ir a Registrar»",
+      "then": "texto de vacío con la guía; el botón lleva a Registrar",
+      "steps": [
+        "abrir «Retiros del mes» y tocar «Ir a Registrar»"
+      ],
+      "expected_result": "texto contiene «Registrar → Reserva»; tras el toque, page-title «Nuevo movimiento» visible",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-100h",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3130",
+      "title": "El Balance muestra los tres bloques con datos reales",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Balance de M",
+      "when": "leer mb-balance",
+      "then": "tres bloques, diez filas, real y plan",
+      "steps": [
+        "leer mb-balance"
+      ],
+      "expected_result": "bloques «EL MES», «LO DISPONIBLE», «EL CIERRE»; Ingresos 5.000 (Plan 5.000); Gastos 2.000 (Plan 2.400); Resultado del mes 3.000 (Plan 2.600); 10 mb-balance-row",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-101h",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3131",
+      "title": "El saldo anterior es el disponible del periodo anterior",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, Balance de M",
+      "when": "leer «Saldo del mes anterior»",
+      "then": "coincide con el disponible de M−1 en cada plano",
+      "steps": [
+        "leer «Saldo del mes anterior»"
+      ],
+      "expected_result": "Ejec. 2.850 y Plan 2.800, iguales a «Saldo disponible» del Balance de M−1",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-102f",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3132",
+      "title": "Saldo disponible negativo en alerta; los demás en neutro",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base más un gasto de 9.000 en M (disponible Ejec. −3.450)",
+      "when": "leer el color de «Saldo disponible» y de «Resultado del mes»",
+      "then": "disponible en alerta; resultado negativo sin alerta (no es fila de alarma)",
+      "steps": [
+        "leer el color de «Saldo disponible» y de «Resultado del mes»"
+      ],
+      "expected_result": "Saldo disponible Ejec. «−3.450» con color --alert-strong resuelto; «Resultado del mes» −6.000 con color --fg resuelto (regla balanceColor)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-103e",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3131",
+      "title": "El primer periodo abre con el saldo inicial declarado",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base con saldo inicial declarado de 1.000 en M−1",
+      "when": "abrir el Balance de M−1",
+      "then": "el saldo anterior es el inicial",
+      "steps": [
+        "abrir el Balance de M−1"
+      ],
+      "expected_result": "«Saldo del mes anterior» = 1.000 en los dos planos; Saldo disponible Ejec. de M−1 = 3.850",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-104e",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3130",
+      "title": "balanceSummary y balanceRowValue coinciden con la serie",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base y su serie computeBalanceSeries",
+      "when": "balanceSummary(series, M, flows) y balanceRowValue para cada fila de ROWS",
+      "then": "los cuatro saldos y las diez filas salen de la serie",
+      "steps": [
+        "balanceSummary(series, M, flows) y balanceRowValue para cada fila de ROWS"
+      ],
+      "expected_result": "summary = {resultado:{actual:3000,budget:2600}, disponible:{5550,4900}, reservado:{600,800}, total:{6150,5700}}; toReserves 500/500; toWithdrawals 200/0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-105f",
+      "requirement_id": "FR-3111",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3132",
+      "title": "balanceColor y zeroIsAnswer: la regla de escritorio",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "las filas ROWS de balanceRows",
+      "when": "balanceColor(fila disponible, −1), (fila resultado del mes, −1), (fila ingresos, 5); zeroIsAnswer(fila total, 0) y (fila ingresos, 0)",
+      "then": "alerta solo en fila de alarma negativa; cero explícito solo en resultados",
+      "steps": [
+        "balanceColor(fila disponible, −1), (fila resultado del mes, −1), (fila ingresos, 5); zeroIsAnswer(fila total, 0) y (fila ingresos, 0)"
+      ],
+      "expected_result": "«var(--alert-strong)»; «var(--fg)»; «var(--fg-secondary)»; true; false",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-110h",
+      "requirement_id": "FR-3112",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3133",
+      "title": "Periodo cerrado: se ven los movimientos sin acciones",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, M−1 cerrado, pantalla de Mercado en M−1",
+      "when": "leer la pantalla",
+      "then": "la lista está, sin lápices, con el aviso",
+      "steps": [
+        "leer la pantalla"
+      ],
+      "expected_result": "1 mb-mov-row «Supermercado · 850»; mb-mov-edit count 0; mb-closed-notice visible con «reábrelo desde el cierre de mes en el computador»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-111f",
+      "requirement_id": "FR-3112",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3134",
+      "title": "Periodo cerrado: no hay «Cambiar» ni acciones de retiros ni de alcancía",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, en M−1",
+      "when": "abrir Mercado, Viaje y «Retiros del mes»",
+      "then": "ninguna ofrece cambiar",
+      "steps": [
+        "abrir Mercado, Viaje y «Retiros del mes»"
+      ],
+      "expected_result": "en las tres pantallas: botón «Cambiar» count 0, mb-mov-edit count 0, papelera count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-112f",
+      "requirement_id": "FR-3112",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3134",
+      "title": "El servidor rechaza una edición de un periodo cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Postgres efímero con el libro pmv-base y M−1 cerrado; sesión del dueño",
+      "when": "PATCH /api/v1/movements/<id del gasto de 850 de M−1> { amount: 100 }",
+      "then": "el servidor lo rechaza y no cambia nada",
+      "steps": [
+        "PATCH /api/v1/movements/<id del gasto de 850 de M−1> { amount: 100 }"
+      ],
+      "expected_result": "HTTP 422 con body.error.code = «closed_period_violation»; GET /api/v1/ledger devuelve el movimiento con amount 850",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-113e",
+      "requirement_id": "FR-3112",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3135",
+      "title": "Al pasar a un periodo abierto vuelven las acciones",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget renderizado en jsdom con el store cargado con pmv-base y el repositorio en memoria, Mercado visto en M−1 (sin acciones)",
+      "when": "volver a la lista, elegir M y abrir Mercado",
+      "then": "aparecen «Cambiar» y los lápices",
+      "steps": [
+        "volver a la lista, elegir M y abrir Mercado"
+      ],
+      "expected_result": "botón «Cambiar» count 1 en Presupuestado; 3 mb-mov-edit",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-114e",
+      "requirement_id": "FR-3112",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3133",
+      "title": "Si el periodo se cierra con el editor abierto, el editor se cierra",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "dos contextos: A a 375 px editando un gasto de M; B a 1440 px",
+      "when": "en B cerrar el mes M",
+      "then": "A sale del formulario con el aviso",
+      "steps": [
+        "en B cerrar el mes M"
+      ],
+      "expected_result": "en A, en ≤5 s: mb-edit-form no visible, mb-closed-notice visible; el gasto conserva su monto original",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-120h",
+      "requirement_id": "FR-3113",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3136",
+      "title": "A 375 px hay registro y presupuesto; no hay dashboard ni grilla de escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada",
+      "when": "visitar Registrar y Presupuesto",
+      "then": "las dos vistas existen; lo de escritorio no",
+      "steps": [
+        "visitar Registrar y Presupuesto"
+      ],
+      "expected_result": "mobile-shell visible; mb-nav con 2 segmentos; tras visitar Presupuesto: budget-grid count 0, balance-module count 0, cell-leaf count 0, y ningún control «Dashboard»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-121e",
+      "requirement_id": "FR-3113",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "El límite sigue en 760/761",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base",
+      "when": "abrir a 760×900 y a 761×900",
+      "then": "760 es móvil y 761 escritorio",
+      "steps": [
+        "abrir a 760×900 y a 761×900"
+      ],
+      "expected_result": "a 760: mobile-shell visible y mb-nav visible; a 761: budget-grid visible y mb-nav count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-122f",
+      "requirement_id": "FR-3113",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3136",
+      "title": "Antes de visitar Presupuesto, el DOM del registro es el de hoy",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, recién abierta, sin tocar nada",
+      "when": "contar elementos del presupuesto en el DOM",
+      "then": "no existe ninguno",
+      "steps": [
+        "contar elementos del presupuesto en el DOM"
+      ],
+      "expected_result": "mb-budget count 0 en el DOM (no solo oculto); $$(.eyebrow) dentro de mobile-shell = 0; exactamente 1 page-title",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-123e",
+      "requirement_id": "FR-3113",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "Escritorio a 1440 px no cambia",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 1440×900",
+      "when": "abrir la app con y sin «?v=p&d=balance» en la URL",
+      "then": "se ve la app de escritorio igual en los dos casos",
+      "steps": [
+        "abrir la app con y sin «?v=p&d=balance» en la URL"
+      ],
+      "expected_result": "desktop-shell con budget-grid y balance-module visibles; mb-nav count 0 y mb-budget count 0 en ambos casos",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-130h",
+      "requirement_id": "FR-3114",
+      "user_story_id": "US-3114",
+      "ac_id": "AC-3138",
+      "title": "Sin desborde horizontal a 375 y 360 en todas las pantallas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base, a 375×812 y a 360×740",
+      "when": "recorrer lista (grupos desplegados), Mercado, editar, Viaje, retiros y Balance",
+      "then": "ninguna desborda",
+      "steps": [
+        "recorrer lista (grupos desplegados), Mercado, editar, Viaje, retiros y Balance"
+      ],
+      "expected_result": "en las 6 pantallas × 2 anchos: document.documentElement.scrollWidth === clientWidth",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-131e",
+      "requirement_id": "FR-3114",
+      "user_story_id": "US-3114",
+      "ac_id": "AC-3139",
+      "title": "Cifras de 9 dígitos completas",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-largo: Mercado Pres. 999.999.999 y Ejec. 999.999.999; ingreso 999.999.999; a 375 px",
+      "when": "leer la fila Mercado, las tarjetas de su pantalla, el resumen revelado y el Balance",
+      "then": "cada cifra se ve entera",
+      "steps": [
+        "leer la fila Mercado, las tarjetas de su pantalla, el resumen revelado y el Balance"
+      ],
+      "expected_result": "cada elemento con «999.999.999» cumple scrollWidth ≤ clientWidth, su caja está dentro de la de su tarjeta y no hay «…» en cifras; sin desborde horizontal de página",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-132f",
+      "requirement_id": "FR-3114",
+      "user_story_id": "US-3114",
+      "ac_id": "AC-3140",
+      "title": "Todo control tocable mide al menos 40×40",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, recorriendo las 6 pantallas",
+      "when": "medir cada button, [role=tab], [role=button] y enlace visibles dentro de mb-budget y mb-nav",
+      "then": "todos ≥40×40",
+      "steps": [
+        "medir cada button, [role=tab], [role=button] y enlace visibles dentro de mb-budget y mb-nav"
+      ],
+      "expected_result": "min(width, height) ≥ 40 px para cada uno; la prueba lista los que no cumplen y falla si hay alguno (un control de 32 px la hace fallar)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-133h",
+      "requirement_id": "FR-3114",
+      "user_story_id": "US-3114",
+      "ac_id": "AC-3138",
+      "title": "Contraste de las cifras en claro y oscuro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en tema claro y luego oscuro",
+      "when": "calcular el contraste de mb-row-actual (neutro, alert-soft, alert-strong, favorable), mb-row-budget y las cifras del resumen revelado contra su fondo computado",
+      "then": "todas ≥4,5:1",
+      "steps": [
+        "calcular el contraste de mb-row-actual (neutro, alert-soft, alert-strong, favorable), mb-row-budget y las cifras del resumen revelado contra su fondo computado"
+      ],
+      "expected_result": "razón de contraste ≥ 4.5 en los dos temas para cada una; el resumen: texto --primary-foreground sobre --primary ≥ 4.5",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-134e",
+      "requirement_id": "FR-3114",
+      "user_story_id": "US-3114",
+      "ac_id": "AC-3138",
+      "title": "Nombre largo se trunca sin empujar las cifras",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base con una categoría llamada «Mantenimiento preventivo del vehículo familiar grande»",
+      "when": "leer su fila a 360 px",
+      "then": "el nombre se corta con puntos y las cifras siguen completas",
+      "steps": [
+        "leer su fila a 360 px"
+      ],
+      "expected_result": "el nombre tiene text-overflow ellipsis y scrollWidth > clientWidth; la cifra ejecutada cumple scrollWidth ≤ clientWidth; sin desborde de página",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-140h",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3142",
+      "title": "El resumen abre plegado y sin dígitos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, Presupuesto recién abierto",
+      "when": "leer mb-summary",
+      "then": "una línea con el saldo oculto",
+      "steps": [
+        "leer mb-summary"
+      ],
+      "expected_result": "texto de mb-summary contiene «Saldo disponible» y «$ ••••••»; innerText no coincide con /[0-9]/; solo mb-saldo-disponible está presente; alto ≤ 72 px",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-141h",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3143",
+      "title": "Un toque en el ojo muestra el saldo; a los 10 segundos se oculta solo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado y oculto",
+      "when": "tocar mb-summary-eye una vez (sin mantener), leer a 1 s, a 9 s y a 11 s",
+      "then": "tras el toque se ve 5.550 sin mantener el dedo; a los 9 s sigue; a los 11 s volvió a ocultarse",
+      "steps": [
+        "tocar mb-summary-eye una vez (sin mantener), leer a 1 s, a 9 s y a 11 s"
+      ],
+      "expected_result": "a 1 s y a 9 s mb-saldo-disponible = «5.550» (igual a la fila Saldo disponible Ejec. de escritorio) y aria-pressed=true; a los 11 s = «$ ••••••», aria-pressed=false y el resumen sin dígitos",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-142h",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3144",
+      "title": "La flecha despliega los cuatro saldos y el enlace al Balance",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen plegado",
+      "when": "tocar mb-summary-toggle; tocar el ojo; tocar «Ver Balance completo»; volver; tocar la flecha",
+      "then": "desplegado muestra cuatro saldos con su plan; el enlace abre el Balance; la flecha lo pliega",
+      "steps": [
+        "tocar mb-summary-toggle; tocar el ojo; tocar «Ver Balance completo»; volver; tocar la flecha"
+      ],
+      "expected_result": "desplegado y a la vista: disponible 5.550 (Plan 4.900), resultado 3.000 (Plan 2.600), reservado 600 (Plan 800), total 6.150 (Plan 5.700); el enlace abre mb-balance; al plegar queda 1 saldo visible",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-143f",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3145",
+      "title": "Un segundo toque en el ojo oculta de inmediato, sin esperar los 10 segundos",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen con los valores a la vista tras un toque",
+      "when": "tocar mb-summary-eye otra vez a los 2 s",
+      "then": "los valores se ocultan en el acto y no reaparecen",
+      "steps": [
+        "tocar mb-summary-eye otra vez a los 2 s"
+      ],
+      "expected_result": "en ≤200 ms mb-saldo-disponible = «$ ••••••», aria-pressed=false y el resumen sin dígitos; 10 s después sigue oculto (el temporizador viejo no lo vuelve a mostrar)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-144e",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3143",
+      "title": "Se ocultan si la página pierde el foco o pasa a segundo plano",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, valores a la vista tras tocar el ojo",
+      "when": "despachar blur de ventana; repetir y despachar visibilitychange a hidden",
+      "then": "en los dos casos se ocultan sin esperar los 10 segundos",
+      "steps": [
+        "despachar blur de ventana; repetir y despachar visibilitychange a hidden"
+      ],
+      "expected_result": "tras cada evento mb-summary no contiene dígitos y aria-pressed=false",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-145e",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3143",
+      "title": "Con teclado: Espacio o Enter sobre el ojo muestran, y de nuevo ocultan",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, foco en mb-summary-eye",
+      "when": "pulsar Espacio, leer, pulsar Espacio, leer; igual con Enter",
+      "then": "la primera pulsación muestra y la segunda oculta",
+      "steps": [
+        "pulsar Espacio, leer, pulsar Espacio, leer; igual con Enter"
+      ],
+      "expected_result": "tras la primera pulsación mb-saldo-disponible = «5.550» y el botón se llama «Ocultar los saldos»; tras la segunda, «$ ••••••» y se llama «Ver los saldos durante 10 segundos»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-146f",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3142",
+      "title": "La protección no afecta a las categorías ni al Balance completo",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen oculto",
+      "when": "leer la fila Mercado y abrir el Balance desde el resumen desplegado",
+      "then": "las cifras de categorías y del Balance están a la vista",
+      "steps": [
+        "leer la fila Mercado y abrir el Balance desde el resumen desplegado"
+      ],
+      "expected_result": "mb-row-actual de Mercado = «600» con el resumen oculto; en mb-balance, Saldo disponible «5.550» visible sin presionar nada",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-147e",
+      "requirement_id": "FR-3115",
+      "user_story_id": "US-3115",
+      "ac_id": "AC-3142",
+      "title": "Al reabrir la app vuelve plegado y oculto",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, resumen desplegado",
+      "when": "page.reload() y abrir Presupuesto",
+      "then": "vuelve al estado inicial",
+      "steps": [
+        "page.reload() y abrir Presupuesto"
+      ],
+      "expected_result": "mb-summary plegado (1 saldo), sin dígitos",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-150h",
+      "requirement_id": "NFR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3101",
+      "title": "Registrar sigue anotando igual",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en Registrar sin haber visitado Presupuesto",
+      "when": "anotar un gasto de 50.000 en Mercado",
+      "then": "overlay de confirmación y formulario reiniciado",
+      "steps": [
+        "anotar un gasto de 50.000 en Mercado"
+      ],
+      "expected_result": "ConfirmOverlay visible con «50.000» y signo de gasto; tras ~2 s el monto queda vacío; GET del ledger tras recargar muestra Mercado Ejec. 50.600",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-151e",
+      "requirement_id": "NFR-3101",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3102",
+      "title": "Registrar sigue igual después de haber visitado Presupuesto",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, tras ir a Presupuesto y volver a Registrar",
+      "when": "anotar una Reserva de 100 de Disponible a Viaje",
+      "then": "mismo flujo y un solo formulario activo",
+      "steps": [
+        "anotar una Reserva de 100 de Disponible a Viaje"
+      ],
+      "expected_result": "ConfirmOverlay visible; exactamente 1 save-button visible y 1 amount-input visible; Viaje Ejec. pasa a 600",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-152f",
+      "requirement_id": "NFR-3101",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "Las piezas del registro sin las props nuevas rinden lo de hoy",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "SaveButton, NoteField y AmountDisplay renderizados en jsdom SIN las props nuevas",
+      "when": "leer rótulo, ids y comportamiento ante «-5»",
+      "then": "idénticos a hoy",
+      "steps": [
+        "leer rótulo, ids y comportamiento ante «-5»"
+      ],
+      "expected_result": "SaveButton: texto «Guardar» y data-testid «save-button»; NoteField: textarea con id «note» y label for «note»; AmountDisplay con amount 0 muestra vacío y marca error ante «-5»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-153h",
+      "requirement_id": "NFR-3102",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3103",
+      "title": "Configuración se abre desde las dos vistas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada",
+      "when": "desde Registrar tocar config-link y volver; desde Presupuesto tocar config-link",
+      "then": "en ambos casos abre /configuracion",
+      "steps": [
+        "desde Registrar tocar config-link y volver; desde Presupuesto tocar config-link"
+      ],
+      "expected_result": "URL termina en «/configuracion» las dos veces y la página muestra la sección de saldo inicial",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-154e",
+      "requirement_id": "NFR-3102",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3103",
+      "title": "El tema cambia desde Presupuesto",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en Presupuesto, tema claro",
+      "when": "tocar el botón de tema",
+      "then": "pasa a oscuro",
+      "steps": [
+        "tocar el botón de tema"
+      ],
+      "expected_result": "html tiene la clase «dark» y el fondo computado de body = #131316",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-155f",
+      "requirement_id": "NFR-3102",
+      "user_story_id": "US-3101",
+      "ac_id": "AC-3103",
+      "title": "Salir desde un detalle cierra la sesión",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 375×812 con sesión iniciada, en la pantalla de Mercado",
+      "when": "tocar el botón de salir",
+      "then": "vuelve al acceso",
+      "steps": [
+        "tocar el botón de salir"
+      ],
+      "expected_result": "se muestra el formulario de inicio de sesión; mb-budget count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-156h",
+      "requirement_id": "NFR-3103",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "Escritorio: la grilla edita una celda como antes",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 1440×900",
+      "when": "editar la celda Pres. de Mercado en M a 1.200 con Enter",
+      "then": "se guarda y sube el roll-up",
+      "steps": [
+        "editar la celda Pres. de Mercado en M a 1.200 con Enter"
+      ],
+      "expected_result": "celda «1.200»; Vivienda Pres. 1.800; tras recargar sigue",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-157e",
+      "requirement_id": "NFR-3103",
+      "user_story_id": "US-3107",
+      "ac_id": "AC-3119",
+      "title": "Escritorio: el Detalle edita un movimiento como antes",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 1440×900, Detalle de Mercado en M",
+      "when": "editar el gasto de 300 a 250 con Enter",
+      "then": "se guarda",
+      "steps": [
+        "editar el gasto de 300 a 250 con Enter"
+      ],
+      "expected_result": "celda Ejec. de Mercado «550»; la fila del Detalle muestra «250»",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-158f",
+      "requirement_id": "NFR-3103",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "Escritorio no monta nada del móvil",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 1440×900, recorriendo Resumen y Dashboard",
+      "when": "buscar elementos con data-testid que empiece por «mb-»",
+      "then": "no hay ninguno",
+      "steps": [
+        "buscar elementos con data-testid que empiece por «mb-»"
+      ],
+      "expected_result": "$$([data-testid^=«mb-»]).length === 0 en las dos vistas",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-159h",
+      "requirement_id": "NFR-3104",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "760 px es móvil",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 760×900",
+      "when": "abrir la app",
+      "then": "shell móvil",
+      "steps": [
+        "abrir la app"
+      ],
+      "expected_result": "mobile-shell count 1 y desktop-shell count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-160e",
+      "requirement_id": "NFR-3104",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "Cruzar el límite en caliente cambia de shell",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 761×900 en modo Año",
+      "when": "redimensionar a 760 y abrir Presupuesto",
+      "then": "pasa a móvil y muestra un periodo válido",
+      "steps": [
+        "redimensionar a 760 y abrir Presupuesto"
+      ],
+      "expected_result": "mobile-shell visible; mb-period-bar muestra el rótulo del periodo actual (no un año)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-161f",
+      "requirement_id": "NFR-3104",
+      "user_story_id": "US-3113",
+      "ac_id": "AC-3137",
+      "title": "761 px no es móvil",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base a 761×900",
+      "when": "abrir la app con «?v=p»",
+      "then": "shell de escritorio",
+      "steps": [
+        "abrir la app con «?v=p»"
+      ],
+      "expected_result": "desktop-shell count 1; mobile-shell count 0; mb-budget count 0",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-162h",
+      "requirement_id": "NFR-3105",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3126",
+      "title": "El mismo límite acepta en los dos lados",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base; cupo H de la celda Ejec. de Viaje en M",
+      "when": "a 1440 px escribir H en la celda; restaurar; a 375 px escribir H en la tarjeta",
+      "then": "los dos aceptan H",
+      "steps": [
+        "a 1440 px escribir H en la celda; restaurar; a 375 px escribir H en la tarjeta"
+      ],
+      "expected_result": "ambos guardan y Viaje queda en H",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-163f",
+      "requirement_id": "NFR-3105",
+      "user_story_id": "US-3109",
+      "ac_id": "AC-3126",
+      "title": "El mismo límite rechaza H+1 en los dos lados con el mismo texto",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base; cupo H",
+      "when": "a 1440 px escribir H+1; a 375 px escribir H+1",
+      "then": "los dos rechazan",
+      "steps": [
+        "a 1440 px escribir H+1; a 375 px escribir H+1"
+      ],
+      "expected_result": "el texto del rechazo es idéntico carácter a carácter en escritorio y móvil; Viaje sigue en 500 en ambos",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-164e",
+      "requirement_id": "NFR-3105",
+      "user_story_id": "US-3112",
+      "ac_id": "AC-3134",
+      "title": "El servidor es la autoridad aunque el cliente no oculte",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Postgres efímero con pmv-base y M−1 cerrado",
+      "when": "PUT /api/v1/ledger con el Presupuestado de Mercado de M−1 cambiado de 900 a 1.000",
+      "then": "rechazado",
+      "steps": [
+        "PUT /api/v1/ledger con el Presupuestado de Mercado de M−1 cambiado de 900 a 1.000"
+      ],
+      "expected_result": "HTTP 422 «closed_period_violation» con detail.periods = [M−1]; el GET posterior devuelve 900",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-165h",
+      "requirement_id": "NFR-3106",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3130",
+      "title": "La serie del Balance es idéntica a la capturada antes de mudar las funciones",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "fixtures retirar-para-gastar-balance-base.json, carril-base.json y sdb-base.json con sus series ya capturadas",
+      "when": "computeBalanceSeries + balanceRowValue por fila y plano",
+      "then": "coinciden cifra a cifra",
+      "steps": [
+        "computeBalanceSeries + balanceRowValue por fila y plano"
+      ],
+      "expected_result": "0 diferencias en todas las filas × periodos × 2 planos de los tres fixtures",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-166e",
+      "requirement_id": "NFR-3106",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3131",
+      "title": "reserveFlows da los brutos de antes",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado pmv-base",
+      "when": "reserveFlows(state, [M−1, M])",
+      "then": "aportes y retiros brutos por plano",
+      "steps": [
+        "reserveFlows(state, [M−1, M])"
+      ],
+      "expected_result": "M−1: actual {aportes:300, retiros:0}; M: actual {aportes:500, retiros:200}, budget {aportes:500, retiros:0}",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-167f",
+      "requirement_id": "NFR-3106",
+      "user_story_id": "US-3111",
+      "ac_id": "AC-3132",
+      "title": "El Balance de escritorio pinta lo mismo tras la mudanza",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro pmv-base más un gasto de 9.000 en M, a 1440×900",
+      "when": "leer la celda «Saldo disponible» Ejec. de M en balance-module",
+      "then": "negativa y en alerta, como antes",
+      "steps": [
+        "leer la celda «Saldo disponible» Ejec. de M en balance-module"
+      ],
+      "expected_result": "texto «−3.450» con color --alert-strong resuelto y la marca de negativo; «Resultado del mes» sin color de alerta",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-168h",
+      "requirement_id": "NFR-3107",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "La lista de un periodo hace una sola pasada de roll-ups",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado de 312 nodos × 36 periodos (semilla 42) con contador de llamadas en rollupTable",
+      "when": "periodView(state, p)",
+      "then": "una llamada, con un solo periodo",
+      "steps": [
+        "periodView(state, p)"
+      ],
+      "expected_result": "rollupTable se llama exactamente 1 vez con periods.length === 1; no se llama a rollupBudget ni rollupActual por nodo",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-169e",
+      "requirement_id": "NFR-3107",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "Cambiar de periodo no recalcula la serie del Balance",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "MobileBudget en jsdom con el store cargado con pmv-base y un espía en computeBalanceSeries",
+      "when": "cambiar de periodo 5 veces sin editar",
+      "then": "la serie se calcula una vez",
+      "steps": [
+        "cambiar de periodo 5 veces sin editar"
+      ],
+      "expected_result": "computeBalanceSeries llamada 1 vez (misma identidad de data); tras una edición, 2 veces",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    },
+    {
+      "id": "TC-PMV-170f",
+      "requirement_id": "NFR-3107",
+      "user_story_id": "US-3104",
+      "ac_id": "AC-3111",
+      "title": "Presupuesto de tiempo, solo fuera de instrumentación",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "Bajo cobertura la aserción de tiempo no corre; usar tests/helpers/perf.ts"
+      ],
+      "given": "estado de 312 nodos × 36 periodos; variable PERF_BUDGETS distinta de «off»",
+      "when": "medir periodView + balanceSummary 50 veces y tomar la mediana",
+      "then": "mediana dentro del presupuesto",
+      "steps": [
+        "medir periodView + balanceSummary 50 veces y tomar la mediana"
+      ],
+      "expected_result": "mediana ≤ 150 ms; con PERF_BUDGETS=off (cobertura) la aserción de tiempo se omite y se afirma solo el trabajo (TC-PMV-168h)",
+      "test_data": {
+        "fixture": "pmv-base"
+      }
+    }
+  ]
+}

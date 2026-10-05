@@ -17,23 +17,9 @@
   "projectName": "cierre-de-mes",
   "createdAt": "2026-09-02T21:33:48.959Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T19:11:44.507Z",
+  "updatedAt": "2026-10-04T23:38:57.778Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-03T19:40:44.287Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-03T19:45:50.007Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 92,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-09-03T19:45:57.417Z",
       "event": "verify-complete",
@@ -173,6 +159,22 @@
       "phase": "verify",
       "passed": 92,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T23:38:57.628Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T23:38:57.767Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 92,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -238,7 +240,7 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "660f30133c24d84776c9ba7ab412a317b0c86945",
   "verifyRanDirty": false,
   "releaseHistory": [
     {
@@ -259,14 +261,14 @@
   ],
   "coverageAuditLastAt": "2026-09-03T16:02:32.903Z",
   "coverageAuditReqHash": "a0e88ac2d31b5f13a3ab821ba2b27eda1af09e4fea779f8bbda626122a6e46a7",
-  "verifyResultsHash": "054d4f8da09e97b26f51407192331e3d63d2c893e932447f7ac66acd68eeef3f",
-  "verifyRanAt": "2026-09-13T19:11:44.186Z",
+  "verifyResultsHash": "452a7fb26e1dc11c643fe3c2a8242781af62620d93b3c944bd50ed39a4e4f388",
+  "verifyRanAt": "2026-10-04T23:38:57.604Z",
   "lastVerifyRun": {
     "passed": 92,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T19:11:44.186Z"
+    "at": "2026-10-04T23:38:57.604Z"
   },
   "verifySummary": {
     "total": 92,

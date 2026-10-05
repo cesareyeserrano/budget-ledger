@@ -382,7 +382,9 @@ test("TC-BSC-451f: regresión — el Registro NO usa los tokens de estado de pre
     return hits;
   }, [STATE_WARNING, STATE_OVER]);
 
-  expect(leaked, "los tokens de estado son de uso exclusivo de la grilla").toEqual([]);
+  // presupuesto-movil: la vista de presupuesto del teléfono SÍ usa estos tonos (misma regla que la grilla),
+  // pero no existe en el DOM hasta que se visita. Lo que aquí se fija es que el REGISTRO no los usa.
+  expect(leaked, "el Registro no usa los tokens de estado: son de la grilla y de la vista de presupuesto").toEqual([]);
 });
 
 // ══ NFR-402 · Ingreso y Transferencia conservan su semántica ═══════════════════════════════════

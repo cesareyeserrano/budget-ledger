@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-24T16:31:12.704Z",
+  "executed_at": "2026-10-04T19:34:11.165Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,77 +8,77 @@
     {
       "tc_id": "TC-801h",
       "status": "pass",
-      "notes": "✓  134 [chromium] › tests/e2e/control-size-scale.spec.ts:51:7 › escritorio (1440) › TC-801h: los tokens --control-sm/-md/-lg valen 32/40/48px (326ms)"
+      "notes": "✓  176 [chromium] › tests/e2e/control-size-scale.spec.ts:51:7 › escritorio (1440) › TC-801h: los tokens --control-sm/-md/-lg valen 32/40/48px (203ms)"
     },
     {
       "tc_id": "TC-801e",
       "status": "pass",
-      "notes": "✓  136 [chromium] › tests/e2e/control-size-scale.spec.ts:71:7 › escritorio (1440) › TC-801e: ningún control clave tiene una altura fuera de {32,40,48}px (368ms)"
+      "notes": "✓  178 [chromium] › tests/e2e/control-size-scale.spec.ts:71:7 › escritorio (1440) › TC-801e: ningún control clave tiene una altura fuera de {32,40,48}px (226ms)"
     },
     {
       "tc_id": "TC-801f",
       "status": "pass",
-      "notes": "✓  135 [chromium] › tests/e2e/control-size-scale.spec.ts:59:7 › escritorio (1440) › TC-801f: solo 3 tokens de altura (no hay un 4º) y el color no cambia (335ms)"
+      "notes": "✓  177 [chromium] › tests/e2e/control-size-scale.spec.ts:59:7 › escritorio (1440) › TC-801f: solo 3 tokens de altura (no hay un 4º) y el color no cambia (212ms)"
     },
     {
       "tc_id": "TC-802h",
       "status": "pass",
-      "notes": "✓  137 [chromium] › tests/e2e/control-size-scale.spec.ts:85:7 › escritorio (1440) › TC-802h: TabsTrigger=32, Button default=40 y SelectTrigger=40 (359ms)"
+      "notes": "✓  179 [chromium] › tests/e2e/control-size-scale.spec.ts:85:7 › escritorio (1440) › TC-802h: TabsTrigger=32, Button default=40 y SelectTrigger=40 (226ms)"
     },
     {
       "tc_id": "TC-802e",
       "status": "pass",
-      "notes": "✓  138 [chromium] › tests/e2e/control-size-scale.spec.ts:92:7 › escritorio (1440) › TC-802e: ThemeToggle mide 40px (md), no 44 (348ms)"
+      "notes": "✓  180 [chromium] › tests/e2e/control-size-scale.spec.ts:92:7 › escritorio (1440) › TC-802e: ThemeToggle mide 40px (md), no 44 (206ms)"
     },
     {
       "tc_id": "TC-802f",
       "status": "pass",
-      "notes": "✓  139 [chromium] › tests/e2e/control-size-scale.spec.ts:99:7 › escritorio (1440) › TC-802f: ningún control clave mide una altura retirada (30, 36 o 44px) (359ms)"
+      "notes": "✓  181 [chromium] › tests/e2e/control-size-scale.spec.ts:99:7 › escritorio (1440) › TC-802f: ningún control clave mide una altura retirada (30, 36 o 44px) (223ms)"
     },
     {
       "tc_id": "TC-851h",
       "status": "pass",
-      "notes": "✓  145 [chromium] › tests/e2e/control-size-scale.spec.ts:188:7 › registro (móvil 375) › TC-851h: los controles del registro conservan ≥48px (táctil) (262ms)"
+      "notes": "✓  187 [chromium] › tests/e2e/control-size-scale.spec.ts:203:7 › registro (móvil 375) › TC-851h: los controles del registro conservan ≥48px (táctil) (179ms)"
     },
     {
       "tc_id": "TC-851e",
       "status": "pass",
-      "notes": "✓  146 [chromium] › tests/e2e/control-size-scale.spec.ts:199:7 › registro (móvil 375) › TC-851e: el date-field del registro mide ≥48px (lg) (330ms)"
+      "notes": "✓  188 [chromium] › tests/e2e/control-size-scale.spec.ts:214:7 › registro (móvil 375) › TC-851e: el date-field del registro mide ≥48px (lg) (173ms)"
     },
     {
       "tc_id": "TC-851f",
       "status": "pass",
-      "notes": "✓  147 [chromium] › tests/e2e/control-size-scale.spec.ts:204:7 › registro (móvil 375) › TC-851f: ningún control del registro baja de 48px (270ms)"
+      "notes": "✓  189 [chromium] › tests/e2e/control-size-scale.spec.ts:219:7 › registro (móvil 375) › TC-851f: ningún control del registro baja de 48px (172ms)"
     },
     {
       "tc_id": "TC-852h",
       "status": "pass",
-      "notes": "✓  148 [chromium] › tests/e2e/control-size-scale.spec.ts:212:7 › registro (móvil 375) › TC-852h: registrar un movimiento sigue funcionando tras la escala (671ms)"
+      "notes": "✓  190 [chromium] › tests/e2e/control-size-scale.spec.ts:227:7 › registro (móvil 375) › TC-852h: registrar un movimiento sigue funcionando tras la escala (614ms)"
     },
     {
       "tc_id": "TC-852e",
       "status": "pass",
-      "notes": "✓  143 [chromium] › tests/e2e/control-size-scale.spec.ts:149:7 › escritorio (1440) › TC-852e: editar una celda-hoja de la grilla sigue persistiendo tras la escala (612ms)"
+      "notes": "✓  185 [chromium] › tests/e2e/control-size-scale.spec.ts:164:7 › escritorio (1440) › TC-852e: editar una celda-hoja de la grilla sigue persistiendo tras la escala (415ms)"
     },
     {
       "tc_id": "TC-852f",
       "status": "pass",
-      "notes": "✓  144 [chromium] › tests/e2e/control-size-scale.spec.ts:161:7 › escritorio (1440) › TC-852f: el drag-drop (degradar un grupo) sigue funcionando tras la escala (938ms)"
+      "notes": "✓  186 [chromium] › tests/e2e/control-size-scale.spec.ts:176:7 › escritorio (1440) › TC-852f: el drag-drop (degradar un grupo) sigue funcionando tras la escala (655ms)"
     },
     {
       "tc_id": "TC-853h",
       "status": "pass",
-      "notes": "✓  140 [chromium] › tests/e2e/control-size-scale.spec.ts:113:7 › escritorio (1440) › TC-853h: color y radio no cambian (spot-check de tokens) (334ms)"
+      "notes": "✓  182 [chromium] › tests/e2e/control-size-scale.spec.ts:113:7 › escritorio (1440) › TC-853h: color y radio no cambian (spot-check de tokens) (202ms)"
     },
     {
       "tc_id": "TC-853e",
       "status": "pass",
-      "notes": "✓  141 [chromium] › tests/e2e/control-size-scale.spec.ts:120:7 › escritorio (1440) › TC-853e: la tipografía de un control no cambia (font-size intacto) (347ms)"
+      "notes": "✓  183 [chromium] › tests/e2e/control-size-scale.spec.ts:120:7 › escritorio (1440) › TC-853e: la tipografía de un control no cambia (font-size intacto) (220ms)"
     },
     {
       "tc_id": "TC-853f",
       "status": "pass",
-      "notes": "✓  142 [chromium] › tests/e2e/control-size-scale.spec.ts:131:7 › escritorio (1440) › TC-853f: el código de estado (rojo) de la grilla sigue vigente (1.5s)"
+      "notes": "✓  184 [chromium] › tests/e2e/control-size-scale.spec.ts:131:7 › escritorio (1440) › TC-853f: el código de estado (rojo) de la grilla sigue vigente (745ms)"
     },
     {
       "tc_id": "TC-855h",
@@ -176,8 +176,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2538,
-      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+      "duration_ms": 2476,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
       "name": "lint",
@@ -185,7 +185,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 4032,
+      "duration_ms": 3115,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -194,8 +194,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 79192,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:27:21.523Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:27:21.527Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 70774,
+      "output": "th]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
     },
     {
       "name": "smoke",
@@ -203,8 +203,8 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1290,
-      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+      "duration_ms": 1242,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -212,14 +212,14 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 227386,
-      "output": "ecuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (179ms)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (3.8m)\n\n(node:81237) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 216730,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (108ms)\n  ✓  723 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (224ms)\n  ✓  725 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  725 passed (3.6m)"
     }
   ],
   "timings": {
-    "runner_ms": 73088,
-    "e2e_ms": 226105,
-    "gates_ms": 314438,
-    "total_ms": 613698
+    "runner_ms": 65301,
+    "e2e_ms": 217692,
+    "gates_ms": 294360,
+    "total_ms": 577415
   }
 }

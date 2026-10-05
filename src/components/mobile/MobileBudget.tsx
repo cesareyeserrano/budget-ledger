@@ -1,0 +1,152 @@
+"use client";
+// @aitri-trace components:mobile:MobileBudget — feature presupuesto-movil (FR-3101, FR-3103).
+//
+// Módulo:       src/components/mobile/MobileBudget.tsx
+// Propósito:    La vista «Presupuesto» del teléfono. Decide qué pantalla se ve —la lista del periodo
+//               o un detalle— a partir de `screenStack`, y guarda lo que debe sobrevivir a un ir y
+//               volver: qué grupos están desplegados y dónde estaba el scroll de la lista.
+// Dependencias: @/state/store, @/domain (periodView, findNode, isLeaf), ./screenStack y las pantallas.
+
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { RETIROS_PLAN_ID, closureOf, findNode, isClosed, isLeaf, periodView, type PeriodRow } from "@/domain";
+import type { PeriodKey } from "@/domain/types";
+import { useActivePeriods, useLedgerStore, useNow } from "@/state/store";
+import { computeBalanceSeries } from "@/domain/balance";
+import { openingCarry } from "@/domain/opening";
+import { balanceSummary } from "../balanceView";
+import { BalanceScreen } from "./BalanceScreen";
+import { BudgetSections } from "./BudgetSections";
+import { LeafScreen } from "./LeafScreen";
+import { MovementEditScreen } from "./MovementEditScreen";
+import { ClosedNotice, PeriodBar } from "./PeriodBar";
+import { SummaryCard } from "./SummaryCard";
+import { WithdrawalsScreen } from "./WithdrawalsScreen";
+import { BUDGET_LIST, openScreen, parentOf, replaceScreen, type Detail } from "./screenStack";
+
+/**
+ * El periodo que la vista muestra: el del filtro del store si es un mes activo; si no, el actual.
+ *
+ * El filtro puede venir en modo Año (el usuario estaba en escritorio y la ventana bajó de 761 px) o
+ * apuntar a un periodo que ya no está en el rango (cambió el horizonte).
+ *
+ * @returns Un periodo que pertenece a `periods`.
+ * @throws Nunca.
+ */
+function useShownPeriod(periods: PeriodKey[]): PeriodKey {
+  const filter = useLedgerStore((s) => s.period);
+  const now = useNow();
+  if (filter.mode === "month" && periods.includes(filter.month)) return filter.month;
+  return periods.includes(now) ? now : (periods[0] ?? now);
+}
+
+/**
+ * Vista de presupuesto del teléfono.
+ *
+ * @param active Si la vista está a la vista (el registro puede estar encima con ésta oculta).
+ * @param detail Pantalla de detalle pedida por la URL, o null para la lista.
+ * @throws Nunca. Un detalle que apunta a algo inexistente vuelve a la lista.
+ *
+ * @aitri-trace FR-ID: FR-3101, US-ID: US-3101, AC-ID: AC-3102, TC-ID: TC-PMV-002e
+ * @aitri-trace FR-ID: FR-3101, US-ID: US-3101, AC-ID: AC-3141, TC-ID: TC-PMV-004h, TC-PMV-006f
+ */
+export function MobileBudget({ active, detail }: { active: boolean; detail: Detail | null }) {
+  const data = useLedgerStore((s) => s.data);
+  const periods = useActivePeriods();
+  const period = useShownPeriod(periods);
+  const view = useMemo(() => periodView(data, period), [data, period]);
+  // La serie del Balance se calcula UNA vez por estado y la comparten el resumen y la pantalla de
+  // Balance: cambiar de periodo no la recalcula (NFR-3107).
+  const series = useMemo(() => computeBalanceSeries(data, periods, openingCarry(data, periods)), [data, periods]);
+  const summary = useMemo(() => balanceSummary(series, period), [series, period]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Abre plegado cada vez que se abre la app; mientras está abierta, se queda como el usuario lo dejó.
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  /** El scroll de cada pantalla, por su clave: cada una recupera el suyo al volver a ella. */
+  const scrolls = useRef(new Map<string, number>());
+  const shownKey = useRef("list");
+
+  // Un detalle que la URL pide pero el estado no tiene (enlace roto, nodo borrado en otro
+  // dispositivo) no deja la pantalla en blanco: vuelve a la lista.
+  const leafId = detail?.kind === "leaf" ? detail.id : detail?.kind === "edit" ? detail.leafId : null;
+  const leaf = leafId ? findNode(data.nodes, leafId) : undefined;
+  const movement = detail?.kind === "edit" ? data.movements.find((m) => m.id === detail.movementId) : undefined;
+  const brokenLeaf = leafId !== null && (!leaf || !isLeaf(leaf, data.nodes));
+  // El movimiento ya no existe (se borró aquí o en otro dispositivo): se vuelve a su hoja.
+  // …o no es editable desde aquí: una operación de reserva, o un movimiento que no es de esa hoja
+  // (solo alcanzable por un enlace escrito a mano), o su periodo está cerrado (también si se cierra
+  // desde otro dispositivo con el formulario abierto, FR-3112).
+  const brokenEdit = detail?.kind === "edit" && !brokenLeaf && (
+    !movement || movement.type === "transfer" || movement.target !== leafId || isClosed(closureOf(data), movement.period)
+  );
+  const broken = brokenLeaf || brokenEdit;
+  useEffect(() => {
+    if (brokenLeaf) replaceScreen(BUDGET_LIST);
+    else if (brokenEdit && detail) replaceScreen(parentOf({ view: "presupuesto", detail }));
+  }, [brokenLeaf, brokenEdit, detail]);
+
+  // Un enlace directo a «editar» puede apuntar a un movimiento de otro periodo: la vista se pone en
+  // el suyo, para que al volver la hoja muestre el periodo donde ese movimiento vive.
+  const setPeriod = useLedgerStore((s) => s.setPeriod);
+  const movementId = movement?.id;
+  useEffect(() => {
+    const p = movement?.period;
+    if (p && p !== period && periods.includes(p)) setPeriod({ mode: "month", month: p });
+    // Solo al ABRIR ese movimiento. Si después se le cambia la fecha a otro periodo, la vista se
+    // queda donde el usuario estaba mirando.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movementId]);
+
+  // El scroll es el del documento: al entrar a un detalle se sube; al volver, la lista recupera
+  // la posición que tenía.
+  const inDetail = detail !== null && !broken;
+  const screenKey = !inDetail || !detail
+    ? "list"
+    : detail.kind === "leaf" ? `leaf:${detail.id}` : detail.kind === "edit" ? `edit:${detail.movementId}` : detail.kind;
+  useLayoutEffect(() => {
+    if (!active) return;
+    shownKey.current = screenKey;
+    // La lista recupera su posición; una pantalla de detalle se abre siempre desde arriba.
+    window.scrollTo(0, screenKey === "list" ? (scrolls.current.get("list") ?? 0) : 0);
+  }, [active, screenKey]);
+  // Se recuerda el scroll de la lista mientras está a la vista, también al irse a Registrar.
+  useEffect(() => {
+    if (!active) return;
+    const onScroll = () => {
+      if (shownKey.current === "list") scrolls.current.set("list", window.scrollY);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [active]);
+
+  const open = (row: PeriodRow) => {
+    scrolls.current.set("list", window.scrollY);
+    openScreen({
+      view: "presupuesto",
+      detail: row.id === RETIROS_PLAN_ID ? { kind: "retiros" } : { kind: "leaf", id: row.id },
+    });
+  };
+
+  if (inDetail && leaf && detail.kind === "edit" && movement) {
+    return <MovementEditScreen key={movement.id} movement={movement} leaf={leaf} />;
+  }
+  if (inDetail && leaf && detail.kind === "leaf") {
+    return <LeafScreen node={leaf} period={period} closed={view.closed} />;
+  }
+  if (inDetail && detail.kind === "retiros") return <WithdrawalsScreen period={period} closed={view.closed} />;
+  if (inDetail && detail.kind === "balance") return <BalanceScreen series={series} period={period} />;
+
+  return (
+    <div data-testid="mb-budget">
+      <h1 data-testid="mb-title" className="title-sm pt-4 text-fg">Presupuesto</h1>
+      <PeriodBar period={period} periods={periods} />
+      {view.closed && <ClosedNotice period={period} />}
+      <SummaryCard summary={summary} open={summaryOpen} onToggle={() => setSummaryOpen((o) => !o)} />
+      <BudgetSections
+        view={view}
+        expanded={expanded}
+        onToggle={(id) => setExpanded((e) => ({ ...e, [id]: !e[id] }))}
+        onOpen={open}
+      />
+    </div>
+  );
+}

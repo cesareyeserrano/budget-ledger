@@ -19,19 +19,9 @@
   "projectName": "transferencias",
   "createdAt": "2026-07-24T21:00:14.464Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-30T19:17:05.894Z",
+  "updatedAt": "2026-10-04T19:55:57.105Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-30T02:05:47.642Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-30T02:06:01.085Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-09-30T02:06:15.405Z",
       "event": "completed",
@@ -142,6 +132,22 @@
       "artifact": "05_TRACEABILITY.json",
       "before_hash": "18bd3aee4ac83a73d956642f09e0c69d4de35717662de855ebb1dfcbbd35d503",
       "after_hash": "b50f9f43db113427017319a2dec78f41cd212328677c9d056bd5de07da5e247a"
+    },
+    {
+      "at": "2026-10-04T19:55:56.955Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T19:55:57.094Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 67,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -255,7 +261,7 @@
       "at": "2026-09-30T17:52:32.288Z"
     }
   ],
-  "verifyRanRef": "c44e15b474be3c7463776bece916973ef67fd852",
+  "verifyRanRef": "ecc4566f410a8c588dc1b34f61ba316017a4f0a9",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "2": {
@@ -339,14 +345,14 @@
       "FR-1015": "808dd4b055739d57"
     }
   },
-  "verifyResultsHash": "43d672ec0a83ad0e1b2b1da58b1848774322e1f0fc03e6fcda6cf27ef499a53a",
-  "verifyRanAt": "2026-09-30T17:33:26.718Z",
+  "verifyResultsHash": "dccac3dc5450aafcf958aaffb3629df3ad384f1abb2c9e5bb5d3ba14f30c1ece",
+  "verifyRanAt": "2026-10-04T19:55:56.932Z",
   "lastVerifyRun": {
     "passed": 67,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-30T17:33:26.718Z"
+    "at": "2026-10-04T19:55:56.932Z"
   },
   "verifySummary": {
     "total": 67,

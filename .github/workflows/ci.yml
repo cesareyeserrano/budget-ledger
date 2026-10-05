@@ -137,7 +137,11 @@ jobs:
             echo "::error title=SCA no ejecutado::npm audit no pudo completar el escaneo. Esto NO es un hallazgo de seguridad: el gate no llego a mirar. Revisa el error de arriba (endpoint de npm, red o arbol de paquetes) y vuelve a lanzarlo."
             exit 1
           fi
-          exit $rc
+          # Hay avisos. Solo pasan los que tienen una excepcion con nombre y fecha, vigente y que no
+          # llega a produccion (BG-091): la tabla vive en scripts/sca-excepciones.py. NO es un
+          # `|| true`: un aviso nuevo, o una excepcion vencida, siguen dejando el job en rojo.
+          if [ $rc -ne 0 ]; then python3 scripts/sca-excepciones.py; exit $?; fi
+          exit 0
       # Escaneo de secretos (NFR-513): ningún secreto hardcodeado en el árbol versionado.
       # El script corre SIEMPRE sus patrones (cadenas de conexión, claves de Brevo, secretos por
       # nombre) y ADEMÁS gitleaks. Antes «prefería gitleaks si estaba instalado» y no lo estaba en

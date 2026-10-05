@@ -19,20 +19,9 @@
   "projectName": "carril-de-presupuesto",
   "createdAt": "2026-09-27T20:09:50.153Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-27T22:35:07.927Z",
+  "updatedAt": "2026-10-05T01:29:34.167Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-27T20:44:42.278Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-27T20:54:18.866Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
     {
       "at": "2026-09-27T21:02:30.094Z",
       "event": "started",
@@ -130,6 +119,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-05T01:29:34.015Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T01:29:34.156Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 61,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -183,16 +188,16 @@
       "FR-2906"
     ]
   },
-  "verifyResultsHash": "c66316bc37435eb067049809a455e5adfeafd6e91a7313e7506c4ce23c58931c",
-  "verifyRanAt": "2026-09-27T22:28:05.180Z",
-  "verifyRanRef": "708d34c14699885fc23746e058cb647a65926337",
+  "verifyResultsHash": "01a1abfdef63db4902f9a6b43492862c7b5b8e0407de07dd24e206387577902a",
+  "verifyRanAt": "2026-10-05T01:29:33.992Z",
+  "verifyRanRef": "f17520be93bd23856b8e442182940fae288250b4",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 61,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-27T22:28:05.180Z"
+    "at": "2026-10-05T01:29:33.992Z"
   },
   "verifyPassed": true,
   "verifySummary": {

@@ -394,7 +394,10 @@ test("TC-SUT-256h: a 1440px la grilla conserva alineación y columna sticky", as
   await expect(page.getByTestId("budget-grid").getByText("CATEGORÍA", { exact: true })).toBeVisible();
 });
 
-test("TC-SUT-257e: a 375px se muestra solo el Registro sin desbordamiento horizontal", async ({ page }) => {
+// presupuesto-movil (FR-3113) cambió FR-010: a ≤760 px ya no hay SOLO registro — hay registro y una
+// vista de presupuesto propia. Lo que esta prueba sigue fijando es que la app ABRE en el registro y que la
+// grilla de escritorio no se monta en el teléfono. La vista nueva se prueba en presupuesto-movil.spec.ts.
+test("TC-SUT-257e: a 375px el Registro no desborda a lo ancho y la grilla de escritorio no se monta", async ({ page }) => {
   await gotoMobile(page);
   await expect(page.getByTestId("budget-grid")).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);

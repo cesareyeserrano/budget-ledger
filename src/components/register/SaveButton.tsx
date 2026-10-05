@@ -7,6 +7,10 @@ interface Props {
   type: NodeType;
   disabled: boolean;
   onClick: () => void;
+  /** Rótulo del botón. Por defecto «Guardar», el del registro. */
+  label?: string;
+  /** Id de prueba. Por defecto el del registro; la edición en el teléfono usa el suyo (presupuesto-movil). */
+  testId?: string;
 }
 
 /**
@@ -16,17 +20,17 @@ interface Props {
  *
  * @aitri-trace FR-ID: FR-311, US-ID: US-311, AC-ID: AC-311, TC-ID: TC-UXC-311f
  */
-export function SaveButton({ type, disabled, onClick }: Props) {
+export function SaveButton({ type, disabled, onClick, label = "Guardar", testId = "save-button" }: Props) {
   return (
     <button
       type="button"
-      data-testid="save-button"
+      data-testid={testId}
       disabled={disabled}
       onClick={onClick}
       className="min-h-(--control-lg) w-full rounded-(--radius-md) px-4 py-3 text-base font-semibold disabled:opacity-40"
       style={{ backgroundColor: typeFillVar(type), color: "var(--on-accent)" }}
     >
-      Guardar
+      {label}
     </button>
   );
 }

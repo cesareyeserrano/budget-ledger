@@ -21,25 +21,9 @@
   "projectName": "balance",
   "createdAt": "2026-07-24T15:27:08.017Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T18:26:36.994Z",
+  "updatedAt": "2026-10-04T19:44:34.710Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-28T16:57:01.914Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 56,
-      "failed": 0
-    },
-    {
-      "at": "2026-09-02T18:16:25.172Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 56,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-09-04T19:44:57.597Z",
       "event": "verify-run",
@@ -185,6 +169,22 @@
       "phase": "verify",
       "passed": 56,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T19:44:34.564Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T19:44:34.699Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -252,14 +252,14 @@
       "FR-911"
     ]
   },
-  "verifyResultsHash": "8da31375dc0c469a2c7c2117555a590a97e3e3147d9cac17fb69811cc6247556",
-  "verifyRanAt": "2026-09-13T18:26:36.657Z",
+  "verifyResultsHash": "8b49dac0ddb5594168b1bcf4da39409da7d3290e6993828061df56f71932fbe8",
+  "verifyRanAt": "2026-10-04T19:44:34.540Z",
   "lastVerifyRun": {
     "passed": 56,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T18:26:36.657Z"
+    "at": "2026-10-04T19:44:34.540Z"
   },
   "releaseHistory": [
     {
@@ -268,7 +268,7 @@
       "at": "2026-07-28T15:31:42.522Z"
     }
   ],
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "ecc4566f410a8c588dc1b34f61ba316017a4f0a9",
   "verifyRanDirty": false,
   "verifySummary": {
     "total": 56,

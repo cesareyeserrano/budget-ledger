@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-24T16:58:19.900Z",
+  "executed_at": "2026-10-04T18:59:36.345Z",
   "test_runner": "npm run test:run",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,32 +8,32 @@
     {
       "tc_id": "TC-701h",
       "status": "pass",
-      "notes": "✓  164 [chromium] › tests/e2e/demote-node.spec.ts:51:5 › TC-701h: arrastrar un grupo sin hijos dentro de otro grupo lo baja a categoría (852ms)"
+      "notes": "✓  206 [chromium] › tests/e2e/demote-node.spec.ts:51:5 › TC-701h: arrastrar un grupo sin hijos dentro de otro grupo lo baja a categoría (944ms)"
     },
     {
       "tc_id": "TC-701e",
       "status": "pass",
-      "notes": "✓  165 [chromium] › tests/e2e/demote-node.spec.ts:63:5 › TC-701e: arrastrar un grupo sin hijos dentro de una categoría lo baja a subcategoría (921ms)"
+      "notes": "✓  207 [chromium] › tests/e2e/demote-node.spec.ts:63:5 › TC-701e: arrastrar un grupo sin hijos dentro de una categoría lo baja a subcategoría (1.0s)"
     },
     {
       "tc_id": "TC-701f",
       "status": "pass",
-      "notes": "✓  166 [chromium] › tests/e2e/demote-node.spec.ts:80:5 › TC-701f: soltar un grupo de gasto sobre un destino de ingreso no realiza ningún cambio (882ms)"
+      "notes": "✓  208 [chromium] › tests/e2e/demote-node.spec.ts:80:5 › TC-701f: soltar un grupo de gasto sobre un destino de ingreso no realiza ningún cambio (969ms)"
     },
     {
       "tc_id": "TC-702h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados 6ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702h: moveNode(grupo sin hijos, {kind:'group'}) → level category, parentId, montos preservados 4ms"
     },
     {
       "tc_id": "TC-702e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos 9ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702e: moveNode(grupo con categorías-hoja, {kind:'group'}) → categoría + subs, sin huérfanos 2ms"
     },
     {
       "tc_id": "TC-702f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702f: moveNode(grupo, destino de tipo distinto) → rejected:'cross_type' sin mutar 2ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-702 — moveNode admite un grupo como origen (cabida + re-nivelado) > TC-702f: moveNode(grupo, destino de tipo distinto) → rejected:'cross_type' sin mutar 1ms"
     },
     {
       "tc_id": "TC-703h",
@@ -43,12 +43,12 @@
     {
       "tc_id": "TC-703e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703e: tras un intento que desborda, cero cambios de nivel/parentId y cero pérdida de montos/movimientos 2ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703e: tras un intento que desborda, cero cambios de nivel/parentId y cero pérdida de montos/movimientos 3ms"
     },
     {
       "tc_id": "TC-703f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703f: un movimiento que SÍ cabe no se bloquea (sin falso positivo) 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > FR-703 — bloqueo por desborde (would_overflow) > TC-703f: un movimiento que SÍ cabe no se bloquea (sin falso positivo) 2ms"
     },
     {
       "tc_id": "TC-751h",
@@ -73,12 +73,12 @@
     {
       "tc_id": "TC-752e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752e: un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752e: un grupo sin hijos sigue editable (isLeaf) y como destino de movimientos 4ms"
     },
     {
       "tc_id": "TC-752f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752f: el traslado al primer hijo y el reverso a 0 siguen intactos 3ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-702 — regresión: promote-to-group intacto > TC-752f: el traslado al primer hijo y el reverso a 0 siguen intactos 2ms"
     },
     {
       "tc_id": "TC-753h",
@@ -93,12 +93,12 @@
     {
       "tc_id": "TC-753f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753f: moveNode cross-type se rechaza sin mutar 2ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-703 — regresión: reparent existente + integridad (padre==Σhojas, cero huérfanos) > TC-753f: moveNode cross-type se rechaza sin mutar 0ms"
     },
     {
       "tc_id": "TC-754h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754h: canDeleteNode bloquea una categoría con ejecutado > 0 1ms"
+      "notes": "✓ |app| tests/domain/demote-node.test.ts > NFR-704 — regresión: gate de borrado + registro de movimientos > TC-754h: canDeleteNode bloquea una categoría con ejecutado > 0 0ms"
     },
     {
       "tc_id": "TC-754e",
@@ -241,8 +241,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2539,
-      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit"
+      "duration_ms": 2614,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
       "name": "lint",
@@ -250,7 +250,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 4066,
+      "duration_ms": 3212,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -259,8 +259,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 79176,
-      "output": "Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:54:27.935Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-24T16:54:27.938Z WARN [Better Auth]: Reset Password: User not found"
+      "duration_ms": 70665,
+      "output": " WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-10-04T18:55:54.495Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
     },
     {
       "name": "smoke",
@@ -268,8 +268,8 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1254,
-      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+      "duration_ms": 1231,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -277,14 +277,14 @@
       "required": false,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 228199,
-      "output": "  ✓  579 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (332ms)\n  ✓  581 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  581 passed (3.8m)\n\n(node:85288) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      "duration_ms": 218097,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (113ms)\n  ✓  723 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (234ms)\n  ✓  725 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  725 passed (3.6m)"
     }
   ],
   "timings": {
-    "runner_ms": 74177,
-    "e2e_ms": 226313,
-    "gates_ms": 315234,
-    "total_ms": 615793
+    "runner_ms": 117079,
+    "e2e_ms": 291323,
+    "gates_ms": 295841,
+    "total_ms": 704313
   }
 }

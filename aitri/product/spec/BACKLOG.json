@@ -709,7 +709,7 @@
       "title": "Presupuesto en movil: ver (y quiza operar) lo de la grilla desde el telefono, sin trasplantar la grilla completa",
       "priority": "P1",
       "problem": "Pedido del usuario el 2026-09-25, prioridad alta. Hoy a <=760px solo existe el registro de movimientos (MobileShell.tsx; page.tsx:9 MOBILE_BREAKPOINT=760): quien usa el telefono no puede ver como va su presupuesto, cuanto le queda por categoria ni el Balance. Es una decision APROBADA de la raiz, no un hueco: FR-010 dice que la grilla y el dashboard NO se renderizan en movil (su AC exige que no esten en el DOM a 375px) y el no_go_zone de la raiz lo aplazo explicitamente ('ampliar la experiencia movil -> posterior'). Por eso es FEATURE con change request a FR-010, no un ajuste de CSS: los TCs de FR-010 que afirman la ausencia de la grilla en movil van a fallar a proposito y hay que reescribirlos.",
-      "status": "open",
+      "status": "closed",
       "createdAt": "2026-09-25T22:05:03.740Z",
       "fr_id": "FR-010",
       "files": "src/app/page.tsx, src/components/MobileShell.tsx, src/components/BudgetGrid.tsx, src/components/BalanceModule.tsx, src/components/Dashboard.tsx, src/domain/rollup.ts (tabla de roll-ups de BL-009, reutilizable), aitri/product/spec/01_REQUIREMENTS.json (FR-010, no_go_zone)",
@@ -722,7 +722,8 @@
           "text": "Revision del 2026-09-25, correccion: BL-042 (color del Balance) ya NO es deuda previa de esta feature; el usuario la bajo a P3 por poco importante. El resumen del Balance en movil se disena con el estado actual del Balance de escritorio, sin decidir color. Siguen como deuda previa: BL-041 (que muestra la celda de un bolsillo) y, solo si se incluye cerrar mes, BL-055."
         }
       ],
-      "updatedAt": "2026-09-26T00:07:36.891Z"
+      "updatedAt": "2026-09-26T00:07:36.891Z",
+      "closedAt": "2026-10-04T17:27:25.849Z"
     },
     {
       "id": "BL-057",
@@ -1186,6 +1187,14 @@
       "problem": "BL-073 convirtio once casos y unifico los cuatro detectores de skip. Quedan, segun el barrido del 2-oct-2026 (88 pruebas leen un archivo; 51 son propiedad estatica legitima): CLASE A, declaran ejecucion y solo leen texto (16): TC-BE-071h, TC-BE-084h, TC-BE-074h, TC-BE-025e, TC-BE-080h, TC-BE-078e, TC-CDM-252f, TC-RES-241e, TC-SUT-202e, TC-SUT-243f, TC-SUT-254e, TC-SUT-263e, TC-SUT-264f, TC-SUT-216h. CLASE C, miran lo que no es (5): TC-RES-232f (solo ve el orden de guardias en saveLedger, no en insertMovement), TC-REC-224f (el plan dice workflow y la prueba mira los globalSetup), TC-RUI-007f (comprueba otra propiedad que la declarada), TC-RUI-007h (cuenta las pruebas como uso; es BL-081), TC-TRF4-153h (mira schema.ts; desde BL-072 schema.ts esta verificado contra la base). Ademas: 18 casos de clase B casan con un comentario (parsear en vez de regex, como parseWorkflow) y varios planes de stack-upgrade-theme traen hex obsoletos (TC-SUT-204h, 205e, 210h-212f, 251e). Varios de la clase A necesitan decision: TC-BE-078e (cifrado en reposo) es propiedad del despliegue y pide pasar a manual; TC-BE-071h y TC-BE-084h los acredita en realidad el exit code del runner o un gate.",
       "status": "open",
       "createdAt": "2026-10-02T22:45:55.367Z"
+    },
+    {
+      "id": "BL-089",
+      "title": "Movil, segunda entrega: gestionar categorias y cerrar/reabrir mes desde el telefono",
+      "priority": "P2",
+      "problem": "Corte del 2-oct-2026 aceptado por el usuario: BL-056 se parte en dos entregas. La primera es la feature presupuesto-movil (ver el periodo, cambiar Pres., movimientos, alcancias, Balance). Esta es la SEGUNDA: crear, renombrar, cambiar icono, borrar (bloqueado si hay datos) y mover categorias/subcategorias/grupos desde el telefono (en movil, 'Mover a...' en vez de arrastrar; incluye promover/bajar de nivel), y cerrar/reabrir el mes. Cerrar desde el telefono exige resolver BL-055 antes (el boton puede nombrar un mes y cerrar otro). El dashboard queda FUERA del movil por decision del usuario, no es parte de esta entrega.",
+      "status": "open",
+      "createdAt": "2026-10-03T01:14:15.895Z"
     }
   ]
 }

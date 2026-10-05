@@ -19,23 +19,9 @@
   "projectName": "techo-de-flujo",
   "createdAt": "2026-08-31T18:29:46.090Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T20:04:50.273Z",
+  "updatedAt": "2026-10-04T21:38:54.926Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-01T21:40:52.986Z",
-      "event": "approved",
-      "phase": 4
-    },
-    {
-      "at": "2026-09-01T21:48:24.128Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 58,
-      "failed": 0,
-      "skipped": 21,
-      "manual": 0
-    },
     {
       "at": "2026-09-01T21:48:32.307Z",
       "event": "verify-complete",
@@ -172,6 +158,22 @@
       "phase": "verify",
       "passed": 79,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T21:38:54.766Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T21:38:54.914Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 79,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -246,16 +248,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
-  "verifyResultsHash": "5ee06b708cd9e516cb902cd10482c855e9716da07a122b05863702b9c4dc3422",
-  "verifyRanAt": "2026-09-13T20:04:49.935Z",
+  "verifyResultsHash": "e4cb039557dc6b5f4e5ae61a3e05254ebbf1f72fea2cbf52f60be2a8d42420d3",
+  "verifyRanAt": "2026-10-04T21:38:54.725Z",
   "lastVerifyRun": {
     "passed": 79,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T20:04:49.935Z"
+    "at": "2026-10-04T21:38:54.725Z"
   },
   "verifySummary": {
     "total": 79,

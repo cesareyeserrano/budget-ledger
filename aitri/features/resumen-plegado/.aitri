@@ -19,21 +19,9 @@
   "projectName": "resumen-plegado",
   "createdAt": "2026-08-27T21:01:10.927Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-13T19:45:48.876Z",
+  "updatedAt": "2026-10-04T21:24:37.419Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-08-28T16:27:56.055Z",
-      "event": "approved",
-      "phase": 5,
-      "version": "0.0.1-beta",
-      "version_source": "manifest"
-    },
-    {
-      "at": "2026-08-28T16:29:34.026Z",
-      "event": "started",
-      "phase": 4
-    },
     {
       "at": "2026-08-28T16:29:34.066Z",
       "event": "completed",
@@ -165,6 +153,22 @@
       "phase": "verify",
       "passed": 20,
       "failed": 0
+    },
+    {
+      "at": "2026-10-04T21:24:37.286Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T21:24:37.407Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 20,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -198,7 +202,7 @@
       "FR-1502"
     ]
   },
-  "verifyRanRef": "c374aab6ccd6289ece2da52a168f5cbba9ff6d0d",
+  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
   "verifyPassed": true,
   "releaseHistory": [
@@ -213,14 +217,14 @@
       "at": "2026-08-28T16:32:20.934Z"
     }
   ],
-  "verifyResultsHash": "3d122f915066b471de2a8fd5fe4494449e240fd18a232682bf357be677d1f39b",
-  "verifyRanAt": "2026-09-13T19:45:48.557Z",
+  "verifyResultsHash": "7c79ed03d74b2ecb12a45297f4f1c47a6638325c87ba0d758de7120c2da1e666",
+  "verifyRanAt": "2026-10-04T21:24:37.257Z",
   "lastVerifyRun": {
     "passed": 20,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-13T19:45:48.557Z"
+    "at": "2026-10-04T21:24:37.257Z"
   },
   "verifySummary": {
     "total": 20,

@@ -19,19 +19,9 @@
   "projectName": "saldo-de-bolsillo",
   "createdAt": "2026-09-27T19:56:45.057Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-28T15:49:14.411Z",
+  "updatedAt": "2026-10-05T01:18:24.446Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-28T00:51:23.319Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-09-28T00:51:51.233Z",
-      "event": "approved",
-      "phase": 1
-    },
     {
       "at": "2026-09-28T00:51:51.287Z",
       "event": "started",
@@ -129,6 +119,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-05T01:18:24.288Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 73,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T01:18:24.428Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 73,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -183,16 +189,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "0cd67c1c94a4be4eb8c755d8eeafd04e27a1068d80e21d9ef9bccb0ce7fb19f0",
-  "verifyRanAt": "2026-09-28T15:41:32.603Z",
-  "verifyRanRef": "d738813af6541b8b62fd5f0dab2d654f7d2dc0cc",
-  "verifyRanDirty": true,
+  "verifyResultsHash": "22ada51017193dc46d12253f9fee55ecb466ddb9020e998c3eca39924fb6087e",
+  "verifyRanAt": "2026-10-05T01:18:24.263Z",
+  "verifyRanRef": "f17520be93bd23856b8e442182940fae288250b4",
+  "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 73,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-28T15:41:32.603Z"
+    "at": "2026-10-05T01:18:24.263Z"
   },
   "verifySummary": {
     "total": 73,

@@ -17,73 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-02T23:18:45.893Z",
+  "updatedAt": "2026-10-05T01:32:58.968Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-01T14:40:48.118Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T17:00:48.045Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T17:01:02.206Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-01T21:19:01.998Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-01T21:19:15.035Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T00:26:10.956Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-02T00:26:25.804Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-02T02:50:30.281Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
     {
       "at": "2026-10-02T02:50:59.505Z",
       "event": "verify-complete",
@@ -177,6 +113,61 @@
       "phase": "verify",
       "passed": 86,
       "failed": 0
+    },
+    {
+      "at": "2026-10-03T00:04:31.295Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-03T00:06:27.013Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-04T19:25:57.175Z",
+      "event": "approved",
+      "phase": 4,
+      "afterDrift": true
+    },
+    {
+      "at": "2026-10-04T20:46:56.533Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-04T20:46:56.645Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-04T20:57:22.802Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-04T20:57:22.932Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-05T01:32:58.957Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -184,8 +175,8 @@
     "1": "fbb2aee1d07d64f63ab6574713d9c72a10331688749059d55182e64d3f465966",
     "2": "faa7ebee08ff633d7790e3b8194568e96e22194ca4533b6394f68b30435e274e",
     "3": "3cea7c4b40345b4aa5ba31e70caa818d596eaa507bae25b322bec21e6b82a491",
-    "4": "810324ee37bd2ddbf409ba4547b27014cf60cc7a385d597746b550832d054c23",
-    "5": "c38fa8e862e045dbe28a1ec4904863ffbd927260cc5ee7de434f9272169ca1d4"
+    "4": "d2e14ab7a362ca00997952b7c67d8d6b5e33d3367a37dabeb51719c1e5fe946a",
+    "5": "703424798ed4877ca554b20a720b96afc74faec6deb7c33280a138fff90d461b"
   },
   "coverageAuditLastAt": "2026-07-12T00:15:16.577Z",
   "coverageAuditReqHash": "cb7ba606a60a76900468e9f497b32ee23b58b7d3ced0ffa19d42f2557e3e86f7",
@@ -252,17 +243,49 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "8225e81629db9a37c8a4cd19aa424e136781a1b5e1f3764b177c01f8ff5da96f",
-  "verifyRanAt": "2026-10-02T23:18:22.689Z",
-  "lastVerifyRun": {
-    "passed": 85,
-    "failed": 0,
-    "skipped": 1,
-    "manual": 0,
-    "at": "2026-10-02T23:18:22.689Z"
-  },
-  "verifyRanRef": "f5253b7a18d8378ffea467de55170d8362a3f50a",
+  "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
+  "frContentSnapshots": {
+    "4": {
+      "FR-501": "e54c57957d3c8338",
+      "FR-502": "51d78a21a5eaf68f",
+      "FR-503": "a565534fd603cb8a",
+      "FR-504": "9de645a55b7a0911",
+      "FR-505": "db4f2b3a85b88686",
+      "FR-506": "7d611f1b94fd93c8",
+      "FR-507": "d10129021a0591d5",
+      "FR-508": "5e5e0674258d79b6",
+      "FR-509": "8604bd03007ff0f1",
+      "FR-510": "5f49970be9908bee",
+      "FR-511": "7fe6c5b88b403856",
+      "FR-512": "460b0bf8c4b2825f",
+      "FR-513": "bab0df1ae14824f7"
+    },
+    "5": {
+      "FR-501": "e54c57957d3c8338",
+      "FR-502": "51d78a21a5eaf68f",
+      "FR-503": "a565534fd603cb8a",
+      "FR-504": "9de645a55b7a0911",
+      "FR-505": "db4f2b3a85b88686",
+      "FR-506": "7d611f1b94fd93c8",
+      "FR-507": "d10129021a0591d5",
+      "FR-508": "5e5e0674258d79b6",
+      "FR-509": "8604bd03007ff0f1",
+      "FR-510": "5f49970be9908bee",
+      "FR-511": "7fe6c5b88b403856",
+      "FR-512": "460b0bf8c4b2825f",
+      "FR-513": "bab0df1ae14824f7"
+    }
+  },
+  "verifyResultsHash": "446f33404ebe7e968f9faa57e406094ffb2dd61afca2618a852009e043f14b8b",
+  "verifyRanAt": "2026-10-04T20:46:56.508Z",
+  "lastVerifyRun": {
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-10-04T20:46:56.508Z"
+  },
   "verifySummary": {
     "total": 86,
     "passed": 86,
@@ -272,5 +295,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 1
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-10-05T01:32:58.956Z"
+    }
+  ]
 }

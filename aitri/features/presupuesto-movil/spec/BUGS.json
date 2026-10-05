@@ -1,0 +1,26 @@
+{
+  "bugs": [
+    {
+      "id": "BG-001",
+      "title": "La barra de arriba del telefono desborda 1 px a 360 px en Linux (CI del PR en rojo)",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "A 360 px la pagina no desborda a lo ancho en ninguna pantalla (TC-PMV-130h, TC-PMV-134e)",
+      "actual_result": "En el CI (Linux) document.scrollWidth - clientWidth = 1 en la lista: la barra Registrar|Presupuesto + 3 iconos entraba sin holgura y la metrica de letra de Linux la pasa por 1 px. En macOS da 0 y por eso el verify local no lo vio.",
+      "environment": "GitHub Actions ubuntu, PR develop->main, 2026-10-05",
+      "severity": "medium",
+      "status": "fixed",
+      "fr": "FR-3113",
+      "tc_reference": "TC-PMV-130h",
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": null,
+      "created_at": "2026-10-05T13:43:31.837Z",
+      "updated_at": "2026-10-05T13:43:39.492Z",
+      "resolution": "Rellenos de la barra recortados (pr-2, gap-1, px-2.5 en las pestanas): 6 px libres a 360 px; iconos con flex-shrink-0. TC-PMV-130h exige holgura >= 4 px.",
+      "fix_commit_sha": "5e8b5f9f4d870be9f7bd41fbf759df67d2ad993f",
+      "fix_at": "2026-10-05T13:43:39.492Z"
+    }
+  ]
+}

@@ -277,7 +277,9 @@ test.describe("FR-2602 — la fila del comentario muestra su día como la de un 
     });
   }
 
-  test("TC-FDC-026e: a 375 px no hay Detalle — la feature no cambia la vista móvil", async ({ page }) => {
+  // presupuesto-movil (FR-3106) dio al teléfono su PROPIA lista de movimientos, con ids `mb-*`. Lo que esta
+  // prueba sigue fijando es que el Detalle de ESCRITORIO —y la columna de fecha de esta feature— no se monta ahí.
+  test("TC-FDC-026e: a 375 px no se monta el Detalle de escritorio — esta feature no toca la vista móvil", async ({ page }) => {
     // @aitri-tc TC-FDC-026e
     await abrir(page, restaurantes([gasto("m18", SEP, "2026-09-18", 20_000, 1)], [nota("c18", 1, "Pedir factura", "2026-09-18")]), MOBILE);
 

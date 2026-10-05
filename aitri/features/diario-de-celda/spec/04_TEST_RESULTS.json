@@ -1,5 +1,5 @@
 {
-  "executed_at": "2026-09-30T17:24:34.401Z",
+  "executed_at": "2026-10-05T00:34:42.939Z",
   "test_runner": "../../../unit.sh",
   "exit_code": 0,
   "e2e_exit_code": 0,
@@ -8,7 +8,7 @@
     {
       "tc_id": "TC-DDC-001h",
       "status": "pass",
-      "notes": "✓  189 [chromium] › tests/e2e/diario-de-celda.spec.ts:264:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-001h: las 3 filas salen en orden cronológico con fecha, nota y monto (356ms)"
+      "notes": "✓  209 [chromium] › tests/e2e/diario-de-celda.spec.ts:264:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-001h: las 3 filas salen en orden cronológico con fecha, nota y monto (366ms)"
     },
     {
       "tc_id": "TC-DDC-002h",
@@ -18,7 +18,7 @@
     {
       "tc_id": "TC-DDC-003e",
       "status": "pass",
-      "notes": "✓  190 [chromium] › tests/e2e/diario-de-celda.spec.ts:279:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-003e: una celda sin nada muestra el texto guía y ninguna fila (350ms)"
+      "notes": "✓  210 [chromium] › tests/e2e/diario-de-celda.spec.ts:279:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-003e: una celda sin nada muestra el texto guía y ninguna fila (352ms)"
     },
     {
       "tc_id": "TC-DDC-004f",
@@ -28,17 +28,17 @@
     {
       "tc_id": "TC-DDC-005f",
       "status": "pass",
-      "notes": "✓  191 [chromium] › tests/e2e/diario-de-celda.spec.ts:290:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-005f: el Detalle de septiembre no muestra un movimiento de octubre (357ms)"
+      "notes": "✓  211 [chromium] › tests/e2e/diario-de-celda.spec.ts:290:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-005f: el Detalle de septiembre no muestra un movimiento de octubre (372ms)"
     },
     {
       "tc_id": "TC-DDC-006e",
       "status": "pass",
-      "notes": "✓  193 [chromium] › tests/e2e/diario-de-celda.spec.ts:325:9 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-006e: el panel no desborda el viewport a 768 px, tampoco en la última columna (370ms)"
+      "notes": "✓  213 [chromium] › tests/e2e/diario-de-celda.spec.ts:325:9 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-006e: el panel no desborda el viewport a 768 px, tampoco en la última columna (416ms)"
     },
     {
       "tc_id": "TC-DDC-007e",
       "status": "pass",
-      "notes": "✓  195 [chromium] › tests/e2e/diario-de-celda.spec.ts:344:9 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-007e: fecha, nota y monto de una fila pasan AA en tema light (364ms)"
+      "notes": "✓  215 [chromium] › tests/e2e/diario-de-celda.spec.ts:344:9 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-007e: fecha, nota y monto de una fila pasan AA en tema light (376ms)"
     },
     {
       "tc_id": "TC-DDC-008e",
@@ -48,7 +48,7 @@
     {
       "tc_id": "TC-DDC-009e",
       "status": "pass",
-      "notes": "✓  215 [chromium] › tests/e2e/diario-de-celda.spec.ts:769:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-009e: el color separa lo que suma de lo que resta (450ms)"
+      "notes": "✓  235 [chromium] › tests/e2e/diario-de-celda.spec.ts:769:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-009e: el color separa lo que suma de lo que resta (461ms)"
     },
     {
       "tc_id": "TC-DDC-010e",
@@ -58,27 +58,27 @@
     {
       "tc_id": "TC-DDC-021h",
       "status": "pass",
-      "notes": "✓  204 [chromium] › tests/e2e/diario-de-celda.spec.ts:505:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-021h: añadir 30.000 «Almuerzo» sube la celda a 130.000 sin abrir otro formulario (396ms)"
+      "notes": "✓  224 [chromium] › tests/e2e/diario-de-celda.spec.ts:505:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-021h: añadir 30.000 «Almuerzo» sube la celda a 130.000 sin abrir otro formulario (452ms)"
     },
     {
       "tc_id": "TC-DDC-022h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-022h: crea el movimiento del tipo de la hoja y suma a su celda 30ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-022h: crea el movimiento del tipo de la hoja y suma a su celda 28ms"
     },
     {
       "tc_id": "TC-DDC-023e",
       "status": "pass",
-      "notes": "✓  205 [chromium] › tests/e2e/diario-de-celda.spec.ts:533:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-023e: el movimiento añadido persiste tras recargar (516ms)"
+      "notes": "✓  225 [chromium] › tests/e2e/diario-de-celda.spec.ts:533:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-023e: el movimiento añadido persiste tras recargar (520ms)"
     },
     {
       "tc_id": "TC-DDC-024e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2502 — el movimiento añadido llega a Postgres > TC-DDC-024e: el PUT lo guarda con kind 'manual' y el GET lo devuelve 100ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2502 — el movimiento añadido llega a Postgres > TC-DDC-024e: el PUT lo guarda con kind 'manual' y el GET lo devuelve 126ms"
     },
     {
       "tc_id": "TC-DDC-025f",
       "status": "pass",
-      "notes": "✓  206 [chromium] › tests/e2e/diario-de-celda.spec.ts:552:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-025f: con el monto vacío o en 0 no se confirma ni se escribe (358ms)"
+      "notes": "✓  226 [chromium] › tests/e2e/diario-de-celda.spec.ts:552:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-025f: con el monto vacío o en 0 no se confirma ni se escribe (399ms)"
     },
     {
       "tc_id": "TC-DDC-026f",
@@ -88,27 +88,27 @@
     {
       "tc_id": "TC-DDC-027f",
       "status": "pass",
-      "notes": "✓  207 [chromium] › tests/e2e/diario-de-celda.spec.ts:577:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-027f: una nota de 281 caracteres deshabilita «Añadir» y no se trunca (371ms)"
+      "notes": "✓  227 [chromium] › tests/e2e/diario-de-celda.spec.ts:577:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-027f: una nota de 281 caracteres deshabilita «Añadir» y no se trunca (382ms)"
     },
     {
       "tc_id": "TC-DDC-028f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-028f: la nota en el límite — 280 entra íntegra y 281 se rechaza 2ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-028f: la nota en el límite — 280 entra íntegra y 281 se rechaza 4ms"
     },
     {
       "tc_id": "TC-DDC-029e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-029e: con 10.000 movimientos solo cambia la celda destino, y rápido 8ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-029e: con 10.000 movimientos solo cambia la celda destino, y rápido 12ms"
     },
     {
       "tc_id": "TC-DDC-030e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-030e: dos añadidos idénticos en menos de 600 ms crean uno solo 3ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2502 · añadir un movimiento desde la celda > TC-DDC-030e: dos añadidos idénticos en menos de 600 ms crean uno solo 4ms"
     },
     {
       "tc_id": "TC-DDC-031f",
       "status": "pass",
-      "notes": "✓  208 [chromium] › tests/e2e/diario-de-celda.spec.ts:601:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-031f: si el servidor rechaza, se avisa y la celda vuelve al valor del servidor (428ms)"
+      "notes": "✓  228 [chromium] › tests/e2e/diario-de-celda.spec.ts:601:7 › FR-2502 — añadir un movimiento desde el Detalle › TC-DDC-031f: si el servidor rechaza, se avisa y la celda vuelve al valor del servidor (439ms)"
     },
     {
       "tc_id": "TC-DDC-041h",
@@ -118,7 +118,7 @@
     {
       "tc_id": "TC-DDC-042h",
       "status": "pass",
-      "notes": "✓  209 [chromium] › tests/e2e/diario-de-celda.spec.ts:632:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-042h: el botón dice «Hoy» y el movimiento nace con la fecha de hoy (388ms)"
+      "notes": "✓  229 [chromium] › tests/e2e/diario-de-celda.spec.ts:632:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-042h: el botón dice «Hoy» y el movimiento nace con la fecha de hoy (398ms)"
     },
     {
       "tc_id": "TC-DDC-043e",
@@ -128,7 +128,7 @@
     {
       "tc_id": "TC-DDC-044e",
       "status": "pass",
-      "notes": "✓  210 [chromium] › tests/e2e/diario-de-celda.spec.ts:656:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-044e: con hoy fuera del ciclo, el botón propone su último día (361ms)"
+      "notes": "✓  230 [chromium] › tests/e2e/diario-de-celda.spec.ts:656:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-044e: con hoy fuera del ciclo, el botón propone su último día (392ms)"
     },
     {
       "tc_id": "TC-DDC-045e",
@@ -138,12 +138,12 @@
     {
       "tc_id": "TC-DDC-046e",
       "status": "pass",
-      "notes": "✓  211 [chromium] › tests/e2e/diario-de-celda.spec.ts:671:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-046e: elegir el 25 de agosto deja el movimiento en «Septiembre» (866ms)"
+      "notes": "✓  231 [chromium] › tests/e2e/diario-de-celda.spec.ts:671:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-046e: elegir el 25 de agosto deja el movimiento en «Septiembre» (830ms)"
     },
     {
       "tc_id": "TC-DDC-047f",
       "status": "pass",
-      "notes": "✓  212 [chromium] › tests/e2e/diario-de-celda.spec.ts:695:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-047f: el calendario no deja elegir un día de otro ciclo (755ms)"
+      "notes": "✓  232 [chromium] › tests/e2e/diario-de-celda.spec.ts:695:7 › FR-2503 — la fecha que la celda propone y acepta › TC-DDC-047f: el calendario no deja elegir un día de otro ciclo (753ms)"
     },
     {
       "tc_id": "TC-DDC-048f",
@@ -153,7 +153,7 @@
     {
       "tc_id": "TC-DDC-049f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2503 — la fecha tiene que caer en el periodo de la celda > TC-DDC-049f: el servidor rechaza un movimiento fechado fuera de su periodo 35ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2503 — la fecha tiene que caer en el periodo de la celda > TC-DDC-049f: el servidor rechaza un movimiento fechado fuera de su periodo 43ms"
     },
     {
       "tc_id": "TC-DDC-061h",
@@ -163,7 +163,7 @@
     {
       "tc_id": "TC-DDC-062h",
       "status": "pass",
-      "notes": "✓  213 [chromium] › tests/e2e/diario-de-celda.spec.ts:719:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-062h: teclear 120.000 crea el ajuste, resaltado, y la celda queda en 120.000 (437ms)"
+      "notes": "✓  233 [chromium] › tests/e2e/diario-de-celda.spec.ts:719:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-062h: teclear 120.000 crea el ajuste, resaltado, y la celda queda en 120.000 (444ms)"
     },
     {
       "tc_id": "TC-DDC-063e",
@@ -173,7 +173,7 @@
     {
       "tc_id": "TC-DDC-064e",
       "status": "pass",
-      "notes": "✓  214 [chromium] › tests/e2e/diario-de-celda.spec.ts:742:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-064e: el ajuste que BAJA la celda se ve «−10.000» y persiste (505ms)"
+      "notes": "✓  234 [chromium] › tests/e2e/diario-de-celda.spec.ts:742:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-064e: el ajuste que BAJA la celda se ve «−10.000» y persiste (529ms)"
     },
     {
       "tc_id": "TC-DDC-065e",
@@ -193,42 +193,42 @@
     {
       "tc_id": "TC-DDC-068f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2504 · teclear el Ejecutado crea un ajuste (y solo ahí) > TC-DDC-068f: teclear 0 deja la celda en 0 con un ajuste por todo, y nunca negativa 4ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2504 · teclear el Ejecutado crea un ajuste (y solo ahí) > TC-DDC-068f: teclear 0 deja la celda en 0 con un ajuste por todo, y nunca negativa 5ms"
     },
     {
       "tc_id": "TC-DDC-069f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2504 · el Presupuestado se asigna, no se ajusta > TC-DDC-069f: teclear en Presupuestado asigna el valor y no crea movimientos 2ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > FR-2504 · el Presupuestado se asigna, no se ajusta > TC-DDC-069f: teclear en Presupuestado asigna el valor y no crea movimientos 5ms"
     },
     {
       "tc_id": "TC-DDC-070f",
       "status": "pass",
-      "notes": "✓  216 [chromium] › tests/e2e/diario-de-celda.spec.ts:788:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-070f: teclear en Presupuestado no añade ningún movimiento (420ms)"
+      "notes": "✓  236 [chromium] › tests/e2e/diario-de-celda.spec.ts:788:7 › FR-2504 — teclear un total crea un ajuste por la diferencia › TC-DDC-070f: teclear en Presupuestado no añade ningún movimiento (452ms)"
     },
     {
       "tc_id": "TC-DDC-071e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-071e: kind y signo aguantan guardar → leer → guardar y el paso a ciclos 49ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-071e: kind y signo aguantan guardar → leer → guardar y el paso a ciclos 68ms"
     },
     {
       "tc_id": "TC-DDC-072f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-072f: el CHECK de la migración 0009 rechaza los montos inválidos 28ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-072f: el CHECK de la migración 0009 rechaza los montos inválidos 38ms"
     },
     {
       "tc_id": "TC-DDC-073f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-073f: el PUT rechaza un negativo sin kind y un ajuste de bolsillo 28ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda.test.ts > FR-2504 — el ajuste negativo sobrevive a la base > TC-DDC-073f: el PUT rechaza un negativo sin kind y un ajuste de bolsillo 37ms"
     },
     {
       "tc_id": "TC-DDC-074e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-agregados.test.ts > FR-2504 · los agregados cuentan el ajuste negativo con su signo > TC-DDC-074e: roll-up, Balance y reubicación de ciclos respetan el signo 8ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-agregados.test.ts > FR-2504 · los agregados cuentan el ajuste negativo con su signo > TC-DDC-074e: roll-up, Balance y reubicación de ciclos respetan el signo 4ms"
     },
     {
       "tc_id": "TC-DDC-075e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-ajuste.test.ts > FR-2504 · teclear un total crea un ajuste por la diferencia > TC-DDC-075e: con 10.000 movimientos el ajuste es exacto y rápido 11ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-ajuste.test.ts > FR-2504 · teclear un total crea un ajuste por la diferencia > TC-DDC-075e: con 10.000 movimientos el ajuste es exacto y rápido 13ms"
     },
     {
       "tc_id": "TC-DDC-081h",
@@ -238,7 +238,7 @@
     {
       "tc_id": "TC-DDC-082h",
       "status": "pass",
-      "notes": "✓  226 [chromium] › tests/e2e/diario-de-celda.spec.ts:1020:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-082h: editar el monto con el lápiz actualiza la fila y la celda (482ms)"
+      "notes": "✓  246 [chromium] › tests/e2e/diario-de-celda.spec.ts:1020:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-082h: editar el monto con el lápiz actualiza la fila y la celda (457ms)"
     },
     {
       "tc_id": "TC-DDC-083h",
@@ -248,12 +248,12 @@
     {
       "tc_id": "TC-DDC-084e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > FR-2505 · editar un movimiento > TC-DDC-084e: cambiar la categoría mueve el monto entre celdas del mismo ciclo 0ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > FR-2505 · editar un movimiento > TC-DDC-084e: cambiar la categoría mueve el monto entre celdas del mismo ciclo 1ms"
     },
     {
       "tc_id": "TC-DDC-085e",
       "status": "pass",
-      "notes": "✓  227 [chromium] › tests/e2e/diario-de-celda.spec.ts:1044:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-085e: pasar un gasto de Restaurantes a Mercado desde el select actualiza ambas celdas (580ms)"
+      "notes": "✓  247 [chromium] › tests/e2e/diario-de-celda.spec.ts:1044:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-085e: pasar un gasto de Restaurantes a Mercado desde el select actualiza ambas celdas (591ms)"
     },
     {
       "tc_id": "TC-DDC-086e",
@@ -263,12 +263,12 @@
     {
       "tc_id": "TC-DDC-087e",
       "status": "pass",
-      "notes": "✓  228 [chromium] › tests/e2e/diario-de-celda.spec.ts:1076:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-087e: el aviso «Pasará a …» aparece antes de guardar y el movimiento cambia de columna (898ms)"
+      "notes": "✓  248 [chromium] › tests/e2e/diario-de-celda.spec.ts:1076:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-087e: el aviso «Pasará a …» aparece antes de guardar y el movimiento cambia de columna (907ms)"
     },
     {
       "tc_id": "TC-DDC-088f",
       "status": "pass",
-      "notes": "✓  229 [chromium] › tests/e2e/diario-de-celda.spec.ts:1107:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-088f: el select de categoría solo ofrece hojas del mismo tipo (437ms)"
+      "notes": "✓  249 [chromium] › tests/e2e/diario-de-celda.spec.ts:1107:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-088f: el select de categoría solo ofrece hojas del mismo tipo (438ms)"
     },
     {
       "tc_id": "TC-DDC-089f",
@@ -278,12 +278,12 @@
     {
       "tc_id": "TC-DDC-090f",
       "status": "pass",
-      "notes": "✓  239 [chromium] › tests/e2e/diario-de-celda.spec.ts:1347:7 › FR-2507 / NFR-2501 — lo que el editor NO deja hacer › TC-DDC-090f: mover a una fecha de un ciclo cerrado se bloquea con el mensaje de mes cerrado (2.4s)"
+      "notes": "✓  259 [chromium] › tests/e2e/diario-de-celda.spec.ts:1347:7 › FR-2507 / NFR-2501 — lo que el editor NO deja hacer › TC-DDC-090f: mover a una fecha de un ciclo cerrado se bloquea con el mensaje de mes cerrado (2.4s)"
     },
     {
       "tc_id": "TC-DDC-091f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-091f: un PATCH sobre un movimiento de un periodo cerrado responde closed_period_violation 40ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-091f: un PATCH sobre un movimiento de un periodo cerrado responde closed_period_violation 41ms"
     },
     {
       "tc_id": "TC-DDC-092f",
@@ -293,7 +293,7 @@
     {
       "tc_id": "TC-DDC-093f",
       "status": "pass",
-      "notes": "✓  230 [chromium] › tests/e2e/diario-de-celda.spec.ts:1127:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-093f: el aviso de celda negativa aparece al cambiar el monto y deshabilita «Guardar» (420ms)"
+      "notes": "✓  250 [chromium] › tests/e2e/diario-de-celda.spec.ts:1127:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-093f: el aviso de celda negativa aparece al cambiar el monto y deshabilita «Guardar» (412ms)"
     },
     {
       "tc_id": "TC-DDC-094f",
@@ -303,17 +303,17 @@
     {
       "tc_id": "TC-DDC-095h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-095h: un PATCH válido devuelve el movimiento y recalcula la celda EN EL SERVIDOR 102ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-095h: un PATCH válido devuelve el movimiento y recalcula la celda EN EL SERVIDOR 105ms"
     },
     {
       "tc_id": "TC-DDC-096e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > NFR-2502 · solo se juzga lo que la escritura empeora > TC-DDC-096e: guardrail ≤150 ms — editar con estado de producción actualiza los ancestros 12ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > NFR-2502 · solo se juzga lo que la escritura empeora > TC-DDC-096e: guardrail ≤150 ms — editar con estado de producción actualiza los ancestros 18ms"
     },
     {
       "tc_id": "TC-DDC-097f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > FR-2505 · editar un movimiento > TC-DDC-097f: el monto editado respeta el kind — manual ≥1, ajuste ≠0 0ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > FR-2505 · editar un movimiento > TC-DDC-097f: el monto editado respeta el kind — manual ≥1, ajuste ≠0 1ms"
     },
     {
       "tc_id": "TC-DDC-098e",
@@ -323,7 +323,7 @@
     {
       "tc_id": "TC-DDC-099e",
       "status": "pass",
-      "notes": "✓  231 [chromium] › tests/e2e/diario-de-celda.spec.ts:1155:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-099e: Escape en dos niveles — primero cancela la edición, luego cierra el editor (395ms)"
+      "notes": "✓  251 [chromium] › tests/e2e/diario-de-celda.spec.ts:1155:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-099e: Escape en dos niveles — primero cancela la edición, luego cierra el editor (434ms)"
     },
     {
       "tc_id": "TC-DDC-111h",
@@ -333,12 +333,12 @@
     {
       "tc_id": "TC-DDC-112h",
       "status": "pass",
-      "notes": "✓  233 [chromium] › tests/e2e/diario-de-celda.spec.ts:1219:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-112h: borrar con la papelera y confirmar deja una fila y la celda en 15.000 (434ms)"
+      "notes": "✓  253 [chromium] › tests/e2e/diario-de-celda.spec.ts:1219:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-112h: borrar con la papelera y confirmar deja una fila y la celda en 15.000 (457ms)"
     },
     {
       "tc_id": "TC-DDC-113e",
       "status": "pass",
-      "notes": "✓  234 [chromium] › tests/e2e/diario-de-celda.spec.ts:1234:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-113e: el borrado persiste tras recargar (556ms)"
+      "notes": "✓  254 [chromium] › tests/e2e/diario-de-celda.spec.ts:1234:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-113e: el borrado persiste tras recargar (560ms)"
     },
     {
       "tc_id": "TC-DDC-114e",
@@ -348,17 +348,17 @@
     {
       "tc_id": "TC-DDC-115e",
       "status": "pass",
-      "notes": "✓  235 [chromium] › tests/e2e/diario-de-celda.spec.ts:1251:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-115e: cancelar la confirmación deja todo igual (422ms)"
+      "notes": "✓  255 [chromium] › tests/e2e/diario-de-celda.spec.ts:1251:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-115e: cancelar la confirmación deja todo igual (471ms)"
     },
     {
       "tc_id": "TC-DDC-116f",
       "status": "pass",
-      "notes": "✓  237 [chromium] › tests/e2e/diario-de-celda.spec.ts:1291:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-116f: en un ciclo cerrado no se ofrece la papelera (470ms)"
+      "notes": "✓  257 [chromium] › tests/e2e/diario-de-celda.spec.ts:1291:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-116f: en un ciclo cerrado no se ofrece la papelera (455ms)"
     },
     {
       "tc_id": "TC-DDC-117f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-117f: borrar un movimiento de un periodo cerrado se rechaza 36ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-117f: borrar un movimiento de un periodo cerrado se rechaza 33ms"
     },
     {
       "tc_id": "TC-DDC-118f",
@@ -368,7 +368,7 @@
     {
       "tc_id": "TC-DDC-119f",
       "status": "pass",
-      "notes": "✓  236 [chromium] › tests/e2e/diario-de-celda.spec.ts:1269:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-119f: la papelera muestra el aviso de celda negativa en lugar del check (371ms)"
+      "notes": "✓  256 [chromium] › tests/e2e/diario-de-celda.spec.ts:1269:9 › FR-2506 — borrar un movimiento desde el Detalle › TC-DDC-119f: la papelera muestra el aviso de celda negativa en lugar del check (387ms)"
     },
     {
       "tc_id": "TC-DDC-120f",
@@ -383,37 +383,37 @@
     {
       "tc_id": "TC-DDC-131h",
       "status": "pass",
-      "notes": "✓  241 [chromium] › tests/e2e/diario-de-celda.spec.ts:1493:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-131h: en un ciclo cerrado el Detalle oculta añadir, editar y borrar, y avisa (458ms)"
+      "notes": "✓  261 [chromium] › tests/e2e/diario-de-celda.spec.ts:1493:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-131h: en un ciclo cerrado el Detalle oculta añadir, editar y borrar, y avisa (476ms)"
     },
     {
       "tc_id": "TC-DDC-132e",
       "status": "pass",
-      "notes": "✓  242 [chromium] › tests/e2e/diario-de-celda.spec.ts:1536:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-132e: un ciclo terminado pero no cerrado admite añadir con fecha anterior (949ms)"
+      "notes": "✓  262 [chromium] › tests/e2e/diario-de-celda.spec.ts:1536:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-132e: un ciclo terminado pero no cerrado admite añadir con fecha anterior (971ms)"
     },
     {
       "tc_id": "TC-DDC-133e",
       "status": "pass",
-      "notes": "✓  243 [chromium] › tests/e2e/diario-de-celda.spec.ts:1571:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-133e: tras reabrir el último ciclo cerrado se puede editar un movimiento suyo (1.5s)"
+      "notes": "✓  263 [chromium] › tests/e2e/diario-de-celda.spec.ts:1571:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-133e: tras reabrir el último ciclo cerrado se puede editar un movimiento suyo (1.5s)"
     },
     {
       "tc_id": "TC-DDC-134e",
       "status": "pass",
-      "notes": "✓  244 [chromium] › tests/e2e/diario-de-celda.spec.ts:1597:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-134e: en un ciclo cerrado SÍ se puede añadir un comentario (466ms)"
+      "notes": "✓  264 [chromium] › tests/e2e/diario-de-celda.spec.ts:1597:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-134e: en un ciclo cerrado SÍ se puede añadir un comentario (490ms)"
     },
     {
       "tc_id": "TC-DDC-135f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-135f: un PATCH que SOLO cambia la nota de un movimiento de un mes cerrado se rechaza 131ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-135f: un PATCH que SOLO cambia la nota de un movimiento de un mes cerrado se rechaza 150ms"
     },
     {
       "tc_id": "TC-DDC-136f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-136f: los tres PUT sobre un mes cerrado —nota, fecha y ajuste nuevo— se rechazan 64ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-136f: los tres PUT sobre un mes cerrado —nota, fecha y ajuste nuevo— se rechazan 76ms"
     },
     {
       "tc_id": "TC-DDC-137f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-cierre.test.ts > FR-2507 · qué cuenta como tocar un mes cerrado > TC-DDC-137f: el guardia detecta cambios de nota, fecha y kind en periodos cerrados 2ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-cierre.test.ts > FR-2507 · qué cuenta como tocar un mes cerrado > TC-DDC-137f: el guardia detecta cambios de nota, fecha y kind en periodos cerrados 3ms"
     },
     {
       "tc_id": "TC-DDC-138e",
@@ -423,27 +423,27 @@
     {
       "tc_id": "TC-DDC-151h",
       "status": "pass",
-      "notes": "✓  197 [chromium] › tests/e2e/diario-de-celda.spec.ts:361:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-151h: comentarios y movimiento comparten estilo de fila con íconos distintos (355ms)"
+      "notes": "✓  217 [chromium] › tests/e2e/diario-de-celda.spec.ts:361:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-151h: comentarios y movimiento comparten estilo de fila con íconos distintos (384ms)"
     },
     {
       "tc_id": "TC-DDC-152h",
       "status": "pass",
-      "notes": "✓  198 [chromium] › tests/e2e/diario-de-celda.spec.ts:396:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-152h: un comentario nuevo se ve, persiste al recargar y no cambia la celda (564ms)"
+      "notes": "✓  218 [chromium] › tests/e2e/diario-de-celda.spec.ts:396:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-152h: un comentario nuevo se ve, persiste al recargar y no cambia la celda (560ms)"
     },
     {
       "tc_id": "TC-DDC-153e",
       "status": "pass",
-      "notes": "✓  201 [chromium] › tests/e2e/diario-de-celda.spec.ts:454:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-153e: el comentario automático de un bolsillo usa la anatomía común (343ms)"
+      "notes": "✓  221 [chromium] › tests/e2e/diario-de-celda.spec.ts:454:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-153e: el comentario automático de un bolsillo usa la anatomía común (370ms)"
     },
     {
       "tc_id": "TC-DDC-154e",
       "status": "pass",
-      "notes": "✓  202 [chromium] › tests/e2e/diario-de-celda.spec.ts:484:9 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-154e: comentario y comentario automático pasan AA en tema light (332ms)"
+      "notes": "✓  222 [chromium] › tests/e2e/diario-de-celda.spec.ts:484:9 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-154e: comentario y comentario automático pasan AA en tema light (378ms)"
     },
     {
       "tc_id": "TC-DDC-155f",
       "status": "pass",
-      "notes": "✓  199 [chromium] › tests/e2e/diario-de-celda.spec.ts:418:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-155f: un comentario en blanco no se añade (349ms)"
+      "notes": "✓  219 [chromium] › tests/e2e/diario-de-celda.spec.ts:418:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-155f: un comentario en blanco no se añade (373ms)"
     },
     {
       "tc_id": "TC-DDC-156f",
@@ -453,12 +453,12 @@
     {
       "tc_id": "TC-DDC-157f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-cierre.test.ts > FR-2508 · un comentario no es una cifra > TC-DDC-157f: un comentario nunca suma a la celda ni al cuadre 2ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-cierre.test.ts > FR-2508 · un comentario no es una cifra > TC-DDC-157f: un comentario nunca suma a la celda ni al cuadre 3ms"
     },
     {
       "tc_id": "TC-DDC-158e",
       "status": "pass",
-      "notes": "✓  200 [chromium] › tests/e2e/diario-de-celda.spec.ts:441:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-158e: el marcador de la celda cuenta comentarios, no movimientos (296ms)"
+      "notes": "✓  220 [chromium] › tests/e2e/diario-de-celda.spec.ts:441:7 › FR-2508 — comentarios en el Detalle, con el mismo estilo › TC-DDC-158e: el marcador de la celda cuenta comentarios, no movimientos (308ms)"
     },
     {
       "tc_id": "TC-DDC-159e",
@@ -468,22 +468,22 @@
     {
       "tc_id": "TC-DDC-171h",
       "status": "pass",
-      "notes": "✓  223 [chromium] › tests/e2e/diario-de-celda.spec.ts:946:7 › FR-2509 — un solo nombre por concepto › TC-DDC-171h: el panel se titula «Detalle» y el campo dice «Añadir comentario» (380ms)"
+      "notes": "✓  243 [chromium] › tests/e2e/diario-de-celda.spec.ts:946:7 › FR-2509 — un solo nombre por concepto › TC-DDC-171h: el panel se titula «Detalle» y el campo dice «Añadir comentario» (382ms)"
     },
     {
       "tc_id": "TC-DDC-172e",
       "status": "pass",
-      "notes": "✓  224 [chromium] › tests/e2e/diario-de-celda.spec.ts:961:7 › FR-2509 — un solo nombre por concepto › TC-DDC-172e: «Nuevo movimiento» conserva «Nota (opcional)» y su botón (328ms)"
+      "notes": "✓  244 [chromium] › tests/e2e/diario-de-celda.spec.ts:961:7 › FR-2509 — un solo nombre por concepto › TC-DDC-172e: «Nuevo movimiento» conserva «Nota (opcional)» y su botón (326ms)"
     },
     {
       "tc_id": "TC-DDC-173f",
       "status": "pass",
-      "notes": "✓  246 [chromium] › tests/e2e/diario-de-celda.spec.ts:1675:7 › FR-2509 — ningún texto visible dice «Observaciones» › TC-DDC-173f: cero apariciones de /observaci/i en las cinco superficies (510ms)"
+      "notes": "✓  266 [chromium] › tests/e2e/diario-de-celda.spec.ts:1675:7 › FR-2509 — ningún texto visible dice «Observaciones» › TC-DDC-173f: cero apariciones de /observaci/i en las cinco superficies (528ms)"
     },
     {
       "tc_id": "TC-DDC-174f",
       "status": "pass",
-      "notes": "✓  238 [chromium] › tests/e2e/diario-de-celda.spec.ts:1324:9 › FR-2509 — «Comentario» y «Nota» en el Detalle › TC-DDC-174f: la línea sin monto se llama «Comentario» y el texto de un movimiento, «Nota» (381ms)"
+      "notes": "✓  258 [chromium] › tests/e2e/diario-de-celda.spec.ts:1324:9 › FR-2509 — «Comentario» y «Nota» en el Detalle › TC-DDC-174f: la línea sin monto se llama «Comentario» y el texto de un movimiento, «Nota» (408ms)"
     },
     {
       "tc_id": "TC-DDC-191h",
@@ -493,22 +493,22 @@
     {
       "tc_id": "TC-DDC-192h",
       "status": "pass",
-      "notes": "✓  247 [chromium] › tests/e2e/diario-de-celda.spec.ts:1736:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-192h: triángulo en el encabezado y línea en el aviso del Balance (288ms)"
+      "notes": "✓  267 [chromium] › tests/e2e/diario-de-celda.spec.ts:1736:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-192h: triángulo en el encabezado y línea en el aviso del Balance (329ms)"
     },
     {
       "tc_id": "TC-DDC-193e",
       "status": "pass",
-      "notes": "✓  248 [chromium] › tests/e2e/diario-de-celda.spec.ts:1766:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-193e: al cuadrar las dos celdas desaparecen el triángulo y la línea (489ms)"
+      "notes": "✓  268 [chromium] › tests/e2e/diario-de-celda.spec.ts:1766:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-193e: al cuadrar las dos celdas desaparecen el triángulo y la línea (492ms)"
     },
     {
       "tc_id": "TC-DDC-194e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-194e: los textos de singular y de más de 3 celdas 0ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-194e: los textos de singular y de más de 3 celdas 1ms"
     },
     {
       "tc_id": "TC-DDC-195e",
       "status": "pass",
-      "notes": "✓  249 [chromium] › tests/e2e/diario-de-celda.spec.ts:1779:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-195e: descuadre y techo del mismo mes comparten un solo triángulo (278ms)"
+      "notes": "✓  269 [chromium] › tests/e2e/diario-de-celda.spec.ts:1779:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-195e: descuadre y techo del mismo mes comparten un solo triángulo (309ms)"
     },
     {
       "tc_id": "TC-DDC-196f",
@@ -523,22 +523,22 @@
     {
       "tc_id": "TC-DDC-198f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-198f: detectar descuadres no modifica el estado 0ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-198f: detectar descuadres no modifica el estado 1ms"
     },
     {
       "tc_id": "TC-DDC-199f",
       "status": "pass",
-      "notes": "✓  250 [chromium] › tests/e2e/diario-de-celda.spec.ts:1799:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-199f: abrir la grilla con descuadres no envía ninguna escritura (3.3s)"
+      "notes": "✓  270 [chromium] › tests/e2e/diario-de-celda.spec.ts:1799:7 › FR-2511 — las celdas descuadradas se señalan como un problema del mes › TC-DDC-199f: abrir la grilla con descuadres no envía ninguna escritura (3.3s)"
     },
     {
       "tc_id": "TC-DDC-200e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-200e: volumen — 10.000 movimientos y 6.000 celdas en ≤50 ms 46ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-descuadres.test.ts > FR-2511 · detectar las celdas que no cuadran > TC-DDC-200e: volumen — 10.000 movimientos y 6.000 celdas en ≤50 ms 41ms"
     },
     {
       "tc_id": "TC-DDC-211h",
       "status": "pass",
-      "notes": "✓  251 [chromium] › tests/e2e/diario-de-celda.spec.ts:1837:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-211h: «Cerrar Septiembre» deshabilitado con el motivo que nombra la celda (283ms)"
+      "notes": "✓  271 [chromium] › tests/e2e/diario-de-celda.spec.ts:1837:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-211h: «Cerrar Septiembre» deshabilitado con el motivo que nombra la celda (319ms)"
     },
     {
       "tc_id": "TC-DDC-212h",
@@ -548,27 +548,27 @@
     {
       "tc_id": "TC-DDC-213e",
       "status": "pass",
-      "notes": "✓  252 [chromium] › tests/e2e/diario-de-celda.spec.ts:1855:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-213e: tras cuadrar Taxi el botón se habilita y cierra el mes (505ms)"
+      "notes": "✓  272 [chromium] › tests/e2e/diario-de-celda.spec.ts:1855:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-213e: tras cuadrar Taxi el botón se habilita y cierra el mes (513ms)"
     },
     {
       "tc_id": "TC-DDC-214e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-214e: un descuadre en un mes POSTERIOR no impide cerrar el que toca 36ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-214e: un descuadre en un mes POSTERIOR no impide cerrar el que toca 46ms"
     },
     {
       "tc_id": "TC-DDC-215f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-215f: el cierre responde unbalanced_cells con las celdas nombradas y no cierra nada 101ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-215f: el cierre responde unbalanced_cells con las celdas nombradas y no cierra nada 117ms"
     },
     {
       "tc_id": "TC-DDC-216f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-216f: reabrir NO se bloquea por descuadres 36ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-cierre.test.ts > FR-2512 — un mes con celdas descuadradas no se cierra > TC-DDC-216f: reabrir NO se bloquea por descuadres 43ms"
     },
     {
       "tc_id": "TC-DDC-217f",
       "status": "pass",
-      "notes": "✓  253 [chromium] › tests/e2e/diario-de-celda.spec.ts:1874:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-217f: desde una pestaña con datos viejos el servidor rechaza y el control se pone al día (374ms)"
+      "notes": "✓  273 [chromium] › tests/e2e/diario-de-celda.spec.ts:1874:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-217f: desde una pestaña con datos viejos el servidor rechaza y el control se pone al día (385ms)"
     },
     {
       "tc_id": "TC-DDC-218e",
@@ -578,52 +578,52 @@
     {
       "tc_id": "TC-DDC-219e",
       "status": "pass",
-      "notes": "✓  254 [chromium] › tests/e2e/diario-de-celda.spec.ts:1899:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-219e: a 768 px el motivo se trunca y conserva el texto completo en title (277ms)"
+      "notes": "✓  274 [chromium] › tests/e2e/diario-de-celda.spec.ts:1899:7 › FR-2512 — un mes con celdas descuadradas no se puede cerrar › TC-DDC-219e: a 768 px el motivo se trunca y conserva el texto completo en title (288ms)"
     },
     {
       "tc_id": "TC-DDC-301h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-301h: el dueño edita y borra los SUYOS sin fricción 34ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-301h: el dueño edita y borra los SUYOS sin fricción 38ms"
     },
     {
       "tc_id": "TC-DDC-302f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-302f: A edita un movimiento de B — 404 y el de B queda intacto 37ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-302f: A edita un movimiento de B — 404 y el de B queda intacto 38ms"
     },
     {
       "tc_id": "TC-DDC-303f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-303f: A borra un movimiento de B — 404 y la fila de B sigue 33ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-303f: A borra un movimiento de B — 404 y la fila de B sigue 34ms"
     },
     {
       "tc_id": "TC-DDC-304f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-304f: sin sesión 401 y sin Origin permitido 403, en las dos rutas 115ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-304f: sin sesión 401 y sin Origin permitido 403, en las dos rutas 125ms"
     },
     {
       "tc_id": "TC-DDC-305f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-305f: PATCH hacia una categoría de otra cuenta o de otro tipo responde 422 invalid_target 87ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-305f: PATCH hacia una categoría de otra cuenta o de otro tipo responde 422 invalid_target 93ms"
     },
     {
       "tc_id": "TC-DDC-306f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-306f: el cuerpo del PATCH se valida antes de tocar la base 55ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-306f: el cuerpo del PATCH se valida antes de tocar la base 61ms"
     },
     {
       "tc_id": "TC-DDC-307e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-307e: una nota con SQL se guarda como texto literal 45ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-307e: una nota con SQL se guarda como texto literal 48ms"
     },
     {
       "tc_id": "TC-DDC-308f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-308f: PATCH y DELETE de un movimiento de bolsillo responden 422 unsupported_type 45ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2501 — la puerta de PATCH y DELETE > TC-DDC-308f: PATCH y DELETE de un movimiento de bolsillo responden 422 unsupported_type 47ms"
     },
     {
       "tc_id": "TC-DDC-309f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/diario-de-celda-esquemas.test.ts > NFR-2501 · movementPatchSchema > TC-DDC-309f: rechaza cuerpos malformados y normaliza la nota 2ms"
+      "notes": "✓ |app| tests/unit/diario-de-celda-esquemas.test.ts > NFR-2501 · movementPatchSchema > TC-DDC-309f: rechaza cuerpos malformados y normaliza la nota 4ms"
     },
     {
       "tc_id": "TC-DDC-310e",
@@ -633,12 +633,12 @@
     {
       "tc_id": "TC-DDC-311e",
       "status": "pass",
-      "notes": "✓  240 [chromium] › tests/e2e/diario-de-celda.spec.ts:1390:7 › FR-2507 / NFR-2501 — lo que el editor NO deja hacer › TC-DDC-311e: una nota con HTML se pinta como texto (375ms)"
+      "notes": "✓  260 [chromium] › tests/e2e/diario-de-celda.spec.ts:1390:7 › FR-2507 / NFR-2501 — lo que el editor NO deja hacer › TC-DDC-311e: una nota con HTML se pinta como texto (404ms)"
     },
     {
       "tc_id": "TC-DDC-321h",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > NFR-2502 · solo se juzga lo que la escritura empeora > TC-DDC-321h: fuzz determinista de 300 operaciones mezcladas no deja ninguna celda descuadrada 14ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-edicion.test.ts > NFR-2502 · solo se juzga lo que la escritura empeora > TC-DDC-321h: fuzz determinista de 300 operaciones mezcladas no deja ninguna celda descuadrada 35ms"
     },
     {
       "tc_id": "TC-DDC-322e",
@@ -663,12 +663,12 @@
     {
       "tc_id": "TC-DDC-326e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-326e: las dos puertas rechazan igual lo cerrado, y difieren donde está declarado 34ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-326e: las dos puertas rechazan igual lo cerrado, y difieren donde está declarado 37ms"
     },
     {
       "tc_id": "TC-DDC-341h",
       "status": "pass",
-      "notes": "✓  217 [chromium] › tests/e2e/diario-de-celda.spec.ts:811:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-341h: la nota de un aporte aparece en el Detalle del bolsillo como movimiento; la de un retiro no (350ms)"
+      "notes": "✓  237 [chromium] › tests/e2e/diario-de-celda.spec.ts:811:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-341h: la nota de un aporte aparece en el Detalle del bolsillo como movimiento; la de un retiro no (332ms)"
     },
     {
       "tc_id": "TC-DDC-342f",
@@ -678,27 +678,27 @@
     {
       "tc_id": "TC-DDC-343e",
       "status": "pass",
-      "notes": "✓  218 [chromium] › tests/e2e/diario-de-celda.spec.ts:833:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-343e: el Detalle de un bolsillo no ofrece añadir movimientos (310ms)"
+      "notes": "✓  238 [chromium] › tests/e2e/diario-de-celda.spec.ts:833:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-343e: el Detalle de un bolsillo no ofrece añadir movimientos (358ms)"
     },
     {
       "tc_id": "TC-DDC-344e",
       "status": "pass",
-      "notes": "✓  219 [chromium] › tests/e2e/diario-de-celda.spec.ts:844:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-344e: el comentario automático del saldo anterior se sigue mostrando (339ms)"
+      "notes": "✓  239 [chromium] › tests/e2e/diario-de-celda.spec.ts:844:7 › NFR-2503 — los bolsillos no cambian › TC-DDC-344e: el comentario automático del saldo anterior se sigue mostrando (344ms)"
     },
     {
       "tc_id": "TC-DDC-351h",
       "status": "pass",
-      "notes": "✓  220 [chromium] › tests/e2e/diario-de-celda.spec.ts:856:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-351h: guardar 50.000 desde el registro sube la hoja y aparece en su Detalle (3.7s)"
+      "notes": "✓  240 [chromium] › tests/e2e/diario-de-celda.spec.ts:856:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-351h: guardar 50.000 desde el registro sube la hoja y aparece en su Detalle (3.8s)"
     },
     {
       "tc_id": "TC-DDC-352e",
       "status": "pass",
-      "notes": "✓  221 [chromium] › tests/e2e/diario-de-celda.spec.ts:879:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-352e: un gasto del 25 oct guardado desde el registro cae en «Noviembre» (1.6s)"
+      "notes": "✓  241 [chromium] › tests/e2e/diario-de-celda.spec.ts:879:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-352e: un gasto del 25 oct guardado desde el registro cae en «Noviembre» (1.6s)"
     },
     {
       "tc_id": "TC-DDC-353f",
       "status": "pass",
-      "notes": "✓  222 [chromium] › tests/e2e/diario-de-celda.spec.ts:912:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-353f: con monto 0 o sin categoría, «Guardar» sigue deshabilitado (880ms)"
+      "notes": "✓  242 [chromium] › tests/e2e/diario-de-celda.spec.ts:912:7 › NFR-2504 — «Nuevo movimiento» sigue igual › TC-DDC-353f: con monto 0 o sin categoría, «Guardar» sigue deshabilitado (870ms)"
     },
     {
       "tc_id": "TC-DDC-361h",
@@ -708,12 +708,12 @@
     {
       "tc_id": "TC-DDC-362f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-362f: un PUT que edita un movimiento y a la vez rompe el piso de un bolsillo se rechaza entero 29ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-362f: un PUT que edita un movimiento y a la vez rompe el piso de un bolsillo se rechaza entero 30ms"
     },
     {
       "tc_id": "TC-DDC-363e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-363e: bajar un ingreso por PATCH no se juzga con las reglas de reservas (paridad BL-051) 28ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-363e: bajar un ingreso por PATCH no se juzga con las reglas de reservas (paridad BL-051) 29ms"
     },
     {
       "tc_id": "TC-DDC-371h",
@@ -723,62 +723,62 @@
     {
       "tc_id": "TC-DDC-372e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > NFR-2506 · el plano Presupuestado no cambia > TC-DDC-372e: teclear 0 en Presupuestado lo deja en 0 sin movimientos 4ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > NFR-2506 · el plano Presupuestado no cambia > TC-DDC-372e: teclear 0 en Presupuestado lo deja en 0 sin movimientos 6ms"
     },
     {
       "tc_id": "TC-DDC-373f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > NFR-2506 · el plano Presupuestado no cambia > TC-DDC-373f: teclear el Presupuestado no toca el Ejecutado ni el journal 2ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-store.test.ts > NFR-2506 · el plano Presupuestado no cambia > TC-DDC-373f: teclear el Presupuestado no toca el Ejecutado ni el journal 5ms"
     },
     {
       "tc_id": "TC-DDC-381h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-381h: cerrar agosto congela sus cifras ante PATCH, DELETE y PUT 58ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-381h: cerrar agosto congela sus cifras ante PATCH, DELETE y PUT 74ms"
     },
     {
       "tc_id": "TC-DDC-382e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-382e: reabrir el último mes cerrado sigue dejando rastro 49ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-382e: reabrir el último mes cerrado sigue dejando rastro 61ms"
     },
     {
       "tc_id": "TC-DDC-383f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-383f: una siembra con Ejecutado sin movimientos no se puede cerrar; la misma cuadrada sí 73ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > NFR-2507 — el cierre de mes sigue íntegro con las vías que estrena la feature > TC-DDC-383f: una siembra con Ejecutado sin movimientos no se puede cerrar; la misma cuadrada sí 100ms"
     },
     {
       "tc_id": "TC-DDC-391h",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-391h: un PATCH deja una línea con método, ruta y estado 42ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-391h: un PATCH deja una línea con método, ruta y estado 46ms"
     },
     {
       "tc_id": "TC-DDC-392e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-392e: DELETE registra tanto el 200 como el 404, y el 404 nombra su causa 46ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-392e: DELETE registra tanto el 200 como el 404, y el 404 nombra su causa 50ms"
     },
     {
       "tc_id": "TC-DDC-393f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-393f: el registro no incluye la nota ni el monto 42ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > NFR-2508 — el registro de las vías nuevas > TC-DDC-393f: el registro no incluye la nota ni el monto 44ms"
     },
     {
       "tc_id": "TC-DDC-401h",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-401h: el workflow dispara en push a main y en PR a las tres ramas, y corre vitest y Playwright 11ms"
+      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-401h: el workflow dispara en push a main y en PR a las tres ramas, y corre vitest y Playwright 8ms"
     },
     {
       "tc_id": "TC-DDC-402e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-402e: los ficheros de prueba de la feature caen bajo los globs que el CI ya ejecuta 2ms"
+      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-402e: los ficheros de prueba de la feature caen bajo los globs que el CI ya ejecuta 3ms"
     },
     {
       "tc_id": "TC-DDC-403f",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-403f: la feature no añade ningún workflow 13ms"
+      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2509 — la feature corre en el CI que ya existe, sin añadir infraestructura > TC-DDC-403f: la feature no añade ningún workflow 12ms"
     },
     {
       "tc_id": "TC-DDC-011e",
       "status": "pass",
-      "notes": "✓  192 [chromium] › tests/e2e/diario-de-celda.spec.ts:305:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-011e: una celda de ingreso lista su movimiento con signo + y color de ingreso (349ms)"
+      "notes": "✓  212 [chromium] › tests/e2e/diario-de-celda.spec.ts:305:7 › FR-2501 — el Detalle lista los movimientos que forman la celda › TC-DDC-011e: una celda de ingreso lista su movimiento con signo + y color de ingreso (361ms)"
     },
     {
       "tc_id": "TC-DDC-076e",
@@ -788,7 +788,7 @@
     {
       "tc_id": "TC-DDC-077e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-077e: kind y signo sobreviven a un PATCH del ajuste y al cierre del mes 34ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-077e: kind y signo sobreviven a un PATCH del ajuste y al cierre del mes 35ms"
     },
     {
       "tc_id": "TC-DDC-100f",
@@ -798,12 +798,12 @@
     {
       "tc_id": "TC-DDC-101f",
       "status": "pass",
-      "notes": "✓  232 [chromium] › tests/e2e/diario-de-celda.spec.ts:1183:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-101f: el «−» inicial solo se admite al editar un ajuste (431ms)"
+      "notes": "✓  252 [chromium] › tests/e2e/diario-de-celda.spec.ts:1183:9 › FR-2505 — editar un movimiento desde el Detalle › TC-DDC-101f: el «−» inicial solo se admite al editar un ajuste (441ms)"
     },
     {
       "tc_id": "TC-DDC-103e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > FR-2505 — el aviso a los demás dispositivos > TC-DDC-103e: las escrituras aceptadas publican su revisión; las rechazadas no publican nada 51ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-api.test.ts > FR-2505 — el aviso a los demás dispositivos > TC-DDC-103e: las escrituras aceptadas publican su revisión; las rechazadas no publican nada 54ms"
     },
     {
       "tc_id": "TC-DDC-122f",
@@ -818,42 +818,42 @@
     {
       "tc_id": "TC-DDC-139f",
       "status": "pass",
-      "notes": "✓  245 [chromium] › tests/e2e/diario-de-celda.spec.ts:1621:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-139f: si el mes se cierra desde otra pestaña, el panel pasa a cerrado y nada se escribe (511ms)"
+      "notes": "✓  265 [chromium] › tests/e2e/diario-de-celda.spec.ts:1621:7 › FR-2507 — un periodo cerrado congela las vías nuevas; uno abierto las admite › TC-DDC-139f: si el mes se cierra desde otra pestaña, el panel pasa a cerrado y nada se escribe (541ms)"
     },
     {
       "tc_id": "TC-DDC-175f",
       "status": "pass",
-      "notes": "✓  225 [chromium] › tests/e2e/diario-de-celda.spec.ts:977:7 › FR-2509 — un solo nombre por concepto › TC-DDC-175f: el aviso de mes cerrado habla de comentario, no de observación (445ms)"
+      "notes": "✓  245 [chromium] › tests/e2e/diario-de-celda.spec.ts:977:7 › FR-2509 — un solo nombre por concepto › TC-DDC-175f: el aviso de mes cerrado habla de comentario, no de observación (435ms)"
     },
     {
       "tc_id": "TC-DDC-312f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-312f: un monto que no respeta el kind se rechaza — nunca un 500 33ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2505 — el PATCH contra Postgres > TC-DDC-312f: un monto que no respeta el kind se rechaza — nunca un 500 34ms"
     },
     {
       "tc_id": "TC-DDC-327e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-327e: cuando un PUT rompe dos reglas, gana la primera del orden 38ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-327e: cuando un PUT rompe dos reglas, gana la primera del orden 40ms"
     },
     {
       "tc_id": "TC-DDC-328e",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-328e: el orden de los rechazos — dueño, luego tipo, luego cierre 41ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-edicion.test.ts > FR-2506 — el DELETE contra Postgres > TC-DDC-328e: el orden de los rechazos — dueño, luego tipo, luego cierre 44ms"
     },
     {
       "tc_id": "TC-DDC-345e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-change-request.test.ts > NFR-2503 · el change request se quedó donde se acordó > TC-DDC-345e: solo TC-TRF4-012e y 012h cambian en transferencias, y nada en techo-de-flujo 41ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-change-request.test.ts > NFR-2503 · el change request se quedó donde se acordó > TC-DDC-345e: solo TC-TRF4-012e y 012h cambian en transferencias, y nada en techo-de-flujo 52ms"
     },
     {
       "tc_id": "TC-DDC-364e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-paridad.test.ts > NFR-2505 · las reglas de reserva no se relajan para dejar pasar lo nuevo > TC-DDC-364e: los TCs de reglas-en-el-servidor no cambian 14ms"
+      "notes": "✓ |app| tests/domain/diario-de-celda-paridad.test.ts > NFR-2505 · las reglas de reserva no se relajan para dejar pasar lo nuevo > TC-DDC-364e: los TCs de reglas-en-el-servidor no cambian 12ms"
     },
     {
       "tc_id": "TC-DDC-384e",
       "status": "pass",
-      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2507 — tocar los fixtures de cierre-de-mes no toca sus resultados esperados > TC-DDC-384e: cierre-de-mes conserva id, then y expected_result de todos sus TCs 8ms"
+      "notes": "✓ |app| tests/unit/diario-de-celda-guardas.test.ts > NFR-2507 — tocar los fixtures de cierre-de-mes no toca sus resultados esperados > TC-DDC-384e: cierre-de-mes conserva id, then y expected_result de todos sus TCs 10ms"
     },
     {
       "tc_id": "TC-DDC-394e",
@@ -863,17 +863,17 @@
     {
       "tc_id": "TC-DDC-012e",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-detalle.test.ts > FR-2501 · ningún signo contradice el efecto sobre la celda > TC-DDC-012e: el caso real del usuario — cuatro montos que suman a la vista el total 0ms"
+      "notes": "✓  277 [chromium] › tests/e2e/diario-de-celda.spec.ts:2023:7 › FR-2501 — las cifras del Detalle suman a la vista el valor de la celda › TC-DDC-012e: el caso real de Agua/octubre, sin un solo signo (345ms)"
     },
     {
       "tc_id": "TC-DDC-013f",
       "status": "pass",
-      "notes": "✓ |app| tests/domain/diario-de-celda-detalle.test.ts > FR-2501 · ningún signo contradice el efecto sobre la celda > TC-DDC-013f: cero contradicciones entre el signo pintado y lo que el movimiento hace 0ms"
+      "notes": "✓  278 [chromium] › tests/e2e/diario-de-celda.spec.ts:2049:7 › FR-2501 — las cifras del Detalle suman a la vista el valor de la celda › TC-DDC-013f: ningún monto lleva «+», y solo lleva «−» lo que resta (388ms)"
     },
     {
       "tc_id": "TC-DDC-124h",
       "status": "pass",
-      "notes": "✓  255 [chromium] › tests/e2e/diario-de-celda.spec.ts:1943:7 › FR-2505 — cero elimina, con el rótulo que lo anuncia › TC-DDC-124h: dejar el Monto en 0 cambia el botón a «Eliminar» y borra la fila (437ms)"
+      "notes": "✓  275 [chromium] › tests/e2e/diario-de-celda.spec.ts:1943:7 › FR-2505 — cero elimina, con el rótulo que lo anuncia › TC-DDC-124h: dejar el Monto en 0 cambia el botón a «Eliminar» y borra la fila (443ms)"
     },
     {
       "tc_id": "TC-DDC-125e",
@@ -883,32 +883,32 @@
     {
       "tc_id": "TC-DDC-126f",
       "status": "pass",
-      "notes": "✓  256 [chromium] › tests/e2e/diario-de-celda.spec.ts:1982:7 › FR-2505 — cero elimina, con el rótulo que lo anuncia › TC-DDC-126f: si eliminar con 0 dejara la celda negativa, sale el MISMO aviso que la papelera (414ms)"
+      "notes": "✓  276 [chromium] › tests/e2e/diario-de-celda.spec.ts:1982:7 › FR-2505 — cero elimina, con el rótulo que lo anuncia › TC-DDC-126f: si eliminar con 0 dejara la celda negativa, sale el MISMO aviso que la papelera (434ms)"
     },
     {
       "tc_id": "TC-DDC-127f",
       "status": "pass",
-      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-127f: en un mes cerrado, editar el monto a 0 se rechaza — el cierre gana sobre el borrado 61ms"
+      "notes": "✓ |backend| tests/integration/backend/diario-de-celda-congelado.test.ts > FR-2507 — un periodo cerrado congela las vías nuevas, también las que no tocan cifras > TC-DDC-127f: en un mes cerrado, editar el monto a 0 se rechaza — el cierre gana sobre el borrado 71ms"
     },
     {
       "tc_id": "TC-DDC-014f",
       "status": "pass",
-      "notes": "✓  259 [chromium] › tests/e2e/diario-de-celda.spec.ts:2079:7 › FR-1201 — el Detalle no clasifica con color › TC-DDC-014f: ningún monto del Detalle se pinta con un color de tipo (391ms)"
+      "notes": "✓  279 [chromium] › tests/e2e/diario-de-celda.spec.ts:2079:7 › FR-1201 — el Detalle no clasifica con color › TC-DDC-014f: ningún monto del Detalle se pinta con un color de tipo (418ms)"
     },
     {
       "tc_id": "TC-DDC-015e",
       "status": "pass",
-      "notes": "✓  260 [chromium] › tests/e2e/diario-de-celda.spec.ts:2112:7 › Tarjeta del Detalle — legible y con salida visible (2026-09-21) › TC-DDC-015e: una nota larga se lee entera, partida en varias líneas (370ms)"
+      "notes": "✓  280 [chromium] › tests/e2e/diario-de-celda.spec.ts:2112:7 › Tarjeta del Detalle — legible y con salida visible (2026-09-21) › TC-DDC-015e: una nota larga se lee entera, partida en varias líneas (371ms)"
     },
     {
       "tc_id": "TC-DDC-016h",
       "status": "pass",
-      "notes": "✓  261 [chromium] › tests/e2e/diario-de-celda.spec.ts:2135:7 › Tarjeta del Detalle — legible y con salida visible (2026-09-21) › TC-DDC-016h: «Cancelar» descarta lo tecleado y «Guardar» equivale a Enter (515ms)"
+      "notes": "✓  281 [chromium] › tests/e2e/diario-de-celda.spec.ts:2135:7 › Tarjeta del Detalle — legible y con salida visible (2026-09-21) › TC-DDC-016h: «Cancelar» descarta lo tecleado y «Guardar» equivale a Enter (649ms)"
     },
     {
       "tc_id": "TC-DDC-017e",
       "status": "pass",
-      "notes": "✓  262 [chromium] › tests/e2e/diario-de-celda.spec.ts:2156:7 › FR-2508 — el comentario a un clic donde ya está la nota del movimiento › TC-DDC-017e: gasto abierto → enlace; bolsillo y mes cerrado → campo visible (628ms)"
+      "notes": "✓  282 [chromium] › tests/e2e/diario-de-celda.spec.ts:2156:7 › FR-2508 — el comentario a un clic donde ya está la nota del movimiento › TC-DDC-017e: gasto abierto → enlace; bolsillo y mes cerrado → campo visible (617ms)"
     }
   ],
   "fr_coverage": [
@@ -1363,7 +1363,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2306,
+      "duration_ms": 2569,
       "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
     },
     {
@@ -1372,7 +1372,7 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 2510,
+      "duration_ms": 3171,
       "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
     },
     {
@@ -1381,8 +1381,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 52535,
-      "output": "User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-09-30T17:21:31.533Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión"
+      "duration_ms": 71206,
+      "output": " WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recovery-rate-limit.test.ts > BG-015 — la fachada de recuperación aplica el límite que el NFR declara > BG-015d: el correo se normaliza — cambiar mayúsculas no estrena cubo\n2026-10-05T00:31:00.163Z WARN [Better Auth]: Reset Password: User not found\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
     },
     {
       "name": "smoke",
@@ -1390,8 +1390,8 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 1179,
-      "output": "e] arrancando la app en :3210\n[smoke] OK   la app responde (/ -> 200)\n[smoke] OK   healthcheck (/health -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+      "duration_ms": 1238,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-774ad097e738abf7.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
     },
     {
       "name": "e2e",
@@ -1399,14 +1399,14 @@
       "required": true,
       "status": "pass",
       "exit_code": 0,
-      "duration_ms": 179597,
-      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (122ms)\n  ✓  627 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (221ms)\n  ✓  629 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  629 passed (3.0m)"
+      "duration_ms": 218970,
+      "output": "ar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (112ms)\n  ✓  723 [chromium] › tests/e2e/recuperar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (229ms)\n  ✓  725 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  725 passed (3.6m)"
     }
   ],
   "timings": {
-    "runner_ms": 48785,
-    "e2e_ms": 181411,
-    "gates_ms": 238143,
-    "total_ms": 468400
+    "runner_ms": 65962,
+    "e2e_ms": 219040,
+    "gates_ms": 297177,
+    "total_ms": 582249
   }
 }
