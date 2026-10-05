@@ -51,6 +51,13 @@ def avisos_graves(extra):
     except json.JSONDecodeError:
         print("   · npm audit no devolvió un informe legible: el escaneo NO SE EJECUTÓ (esto no es un hallazgo)")
         sys.exit(1)
+    # Un fallo del registro (endpoint caído, 400, sin red) TAMBIÉN llega como JSON válido: un objeto
+    # `error` sin `vulnerabilities`. Leerlo como «cero avisos» dejaría pasar el gate sin haber mirado.
+    # Solo cuenta como escaneo un informe sin `error` y con sus dos bloques, `vulnerabilities` y `metadata`.
+    if not isinstance(informe, dict) or "error" in informe or not isinstance(informe.get("vulnerabilities"), dict) or "metadata" not in informe:
+        detalle = informe.get("error") if isinstance(informe, dict) else informe
+        print(f"   · npm audit no completó el escaneo: NO SE EJECUTÓ (esto no es un hallazgo): {str(detalle)[:200]}")
+        sys.exit(1)
     encontrados = {}
     for paquete in informe.get("vulnerabilities", {}).values():
         for via in paquete.get("via", []):
