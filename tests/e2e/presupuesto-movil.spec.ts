@@ -1451,6 +1451,15 @@ test("TC-PMV-130h: ninguna pantalla desborda a lo ancho, ni a 375 ni a 360 px", 
       medidas.push(pantalla);
     });
     expect(medidas).toEqual(["lista", "categoría", "editar", "confirmar borrado", "cambiar lo planeado", "alcancía", "retiros", "balance"]);
+    // La barra de arriba es lo más ajustado de la vista: entraba a 360 px sin un píxel de sobra y en el CI
+    // (Linux, otra métrica de letra) se pasaba por 1. Se exige holgura real, no solo «hoy no desborda».
+    const holgura = await page.evaluate(() => {
+      const nav = document.querySelector('[data-testid="mb-nav"]')!.getBoundingClientRect();
+      const iconos = document.querySelector('[data-testid="config-link"]')!.getBoundingClientRect();
+      const hueco = parseFloat(getComputedStyle(document.querySelector('[data-testid="mb-nav"]')!.closest(".justify-between")!).columnGap);
+      return iconos.left - nav.right - hueco; // lo que sobra además del hueco mínimo entre los dos bloques
+    });
+    expect(holgura, `holgura de la barra a ${viewport.width} px`).toBeGreaterThanOrEqual(4);
   }
 });
 

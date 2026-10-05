@@ -21,11 +21,11 @@ import { BUDGET_LIST, REGISTRAR, replaceScreen, type Screen } from "./screenStac
  */
 export function SegmentedNav({ view }: { view: Screen["view"] }) {
   return (
-    <Tabs value={view} onValueChange={(v) => replaceScreen(v === "presupuesto" ? BUDGET_LIST : REGISTRAR)}>
+    <Tabs className="min-w-0" value={view} onValueChange={(v) => replaceScreen(v === "presupuesto" ? BUDGET_LIST : REGISTRAR)}>
       <TabsList data-testid="mb-nav" aria-label="Vista">
-        <TabsTrigger value="registrar" className="h-(--control-md) text-label">Registrar</TabsTrigger>
+        <TabsTrigger value="registrar" className="h-(--control-md) px-2.5 text-label">Registrar</TabsTrigger>
         {/* Tocar «Presupuesto» estando en un detalle vuelve a la lista (el cambio de valor no dispara si ya es el activo). */}
-        <TabsTrigger value="presupuesto" className="h-(--control-md) text-label" onClick={() => { if (view === "presupuesto") replaceScreen(BUDGET_LIST); }}>Presupuesto</TabsTrigger>
+        <TabsTrigger value="presupuesto" className="h-(--control-md) px-2.5 text-label" onClick={() => { if (view === "presupuesto") replaceScreen(BUDGET_LIST); }}>Presupuesto</TabsTrigger>
       </TabsList>
     </Tabs>
   );

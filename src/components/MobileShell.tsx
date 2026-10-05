@@ -50,9 +50,11 @@ export function MobileShell() {
 
   return (
     <div data-testid="mobile-shell" className="min-h-screen bg-bg flex flex-col">
-      <div className="flex-shrink-0 pl-5 pr-3 py-2.5 border-b border-border flex items-center justify-between gap-2">
+      {/* A 360 px la barra entraba sin un píxel de sobra: con la métrica de letra de Linux se pasaba por 1 y
+          desbordaba la página (TC-PMV-130h, visto en el CI). Los rellenos dejan holgura y los iconos no ceden. */}
+      <div className="flex-shrink-0 pl-5 pr-2 py-2.5 border-b border-border flex items-center justify-between gap-1">
         <SegmentedNav view={screen.view} />
-        <div className="flex items-center gap-1">
+        <div className="flex flex-shrink-0 items-center gap-1">
           {/* FR-2204: en MÓVIL ésta es la única vía al saldo inicial. La grilla no se renderiza a
               ≤760px (FR-010) y la tarjeta de arranque vive sobre ella, así que sin esta entrada
               quien solo use el teléfono no tendría ningún camino para declararlo. Por eso no se
