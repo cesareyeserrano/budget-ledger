@@ -19,19 +19,9 @@
   "projectName": "fecha-de-comentario",
   "createdAt": "2026-09-21T20:39:30.810Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-22T16:33:07.727Z",
+  "updatedAt": "2026-10-05T00:45:53.377Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-22T14:10:48.710Z",
-      "event": "completed",
-      "phase": "ux"
-    },
-    {
-      "at": "2026-09-22T14:10:48.817Z",
-      "event": "approved",
-      "phase": "ux"
-    },
     {
       "at": "2026-09-22T14:10:56.526Z",
       "event": "started",
@@ -129,6 +119,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-05T00:45:53.229Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 51,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T00:45:53.367Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 51,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -168,16 +174,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "43562dbd721983b2a161b8e84450315a41a6ca4fa889172e23b32f99d8286ce9",
-  "verifyRanAt": "2026-09-22T16:18:26.353Z",
-  "verifyRanRef": "16c6794afbed25c2221b94c897491d7272df90ee",
-  "verifyRanDirty": true,
+  "verifyResultsHash": "5b4d23c4728ee214465d91d42ff909c9401c78419e748d3b63501ef1fcabb5f3",
+  "verifyRanAt": "2026-10-05T00:45:53.205Z",
+  "verifyRanRef": "f17520be93bd23856b8e442182940fae288250b4",
+  "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 51,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-22T16:18:26.353Z"
+    "at": "2026-10-05T00:45:53.205Z"
   },
   "verifySummary": {
     "total": 51,

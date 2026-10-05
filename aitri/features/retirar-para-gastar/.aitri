@@ -17,19 +17,9 @@
   "projectName": "retirar-para-gastar",
   "createdAt": "2026-09-24T23:58:52.294Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-09-25T15:17:12.383Z",
+  "updatedAt": "2026-10-05T01:07:42.833Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-09-25T13:42:47.287Z",
-      "event": "started",
-      "phase": 2
-    },
-    {
-      "at": "2026-09-25T13:42:56.619Z",
-      "event": "completed",
-      "phase": 2
-    },
     {
       "at": "2026-09-25T13:42:56.673Z",
       "event": "approved",
@@ -127,6 +117,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-05T01:07:42.682Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-05T01:07:42.823Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 56,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -176,16 +182,16 @@
     ]
   },
   "verifyPassed": true,
-  "verifyResultsHash": "791d9a3276ad929ac30402847d727a5c7b76170b2321572d902759c91022c2ad",
-  "verifyRanAt": "2026-09-25T14:13:17.108Z",
-  "verifyRanRef": "92d5d76426f33dde63418aad5729d9ecad1a449e",
+  "verifyResultsHash": "340ecdd34d56e51c9fc2d3f145300bd9517212a0161c2fe39a9b38459ffde9df",
+  "verifyRanAt": "2026-10-05T01:07:42.659Z",
+  "verifyRanRef": "f17520be93bd23856b8e442182940fae288250b4",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 56,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-09-25T14:13:17.108Z"
+    "at": "2026-10-05T01:07:42.659Z"
   },
   "verifySummary": {
     "total": 56,
