@@ -4,7 +4,8 @@
     1,
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
@@ -16,18 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-04T20:57:22.949Z",
+  "updatedAt": "2026-10-05T01:32:58.968Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T02:50:30.281Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 85,
-      "failed": 0,
-      "skipped": 1,
-      "manual": 0
-    },
     {
       "at": "2026-10-02T02:50:59.505Z",
       "event": "verify-complete",
@@ -169,6 +161,13 @@
       "at": "2026-10-04T20:57:22.932Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-10-05T01:32:58.957Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "1.0.0",
+      "version_source": null
     }
   ],
   "cascadedPhases": [],
@@ -261,6 +260,21 @@
       "FR-511": "7fe6c5b88b403856",
       "FR-512": "460b0bf8c4b2825f",
       "FR-513": "bab0df1ae14824f7"
+    },
+    "5": {
+      "FR-501": "e54c57957d3c8338",
+      "FR-502": "51d78a21a5eaf68f",
+      "FR-503": "a565534fd603cb8a",
+      "FR-504": "9de645a55b7a0911",
+      "FR-505": "db4f2b3a85b88686",
+      "FR-506": "7d611f1b94fd93c8",
+      "FR-507": "d10129021a0591d5",
+      "FR-508": "5e5e0674258d79b6",
+      "FR-509": "8604bd03007ff0f1",
+      "FR-510": "5f49970be9908bee",
+      "FR-511": "7fe6c5b88b403856",
+      "FR-512": "460b0bf8c4b2825f",
+      "FR-513": "bab0df1ae14824f7"
     }
   },
   "verifyResultsHash": "446f33404ebe7e968f9faa57e406094ffb2dd61afca2618a852009e043f14b8b",
@@ -281,5 +295,12 @@
     "skipped_no_marker": 0,
     "manual": 0,
     "manual_verified": 1
-  }
+  },
+  "releaseHistory": [
+    {
+      "version": "1.0.0",
+      "version_source": null,
+      "at": "2026-10-05T01:32:58.956Z"
+    }
+  ]
 }

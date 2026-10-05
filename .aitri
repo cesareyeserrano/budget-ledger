@@ -6,7 +6,8 @@
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     "discovery",
@@ -22,17 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-04T20:57:22.875Z",
+  "updatedAt": "2026-10-05T01:32:58.908Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T20:39:12.746Z",
-      "event": "reconcile-pending",
-      "phase": null,
-      "files": 14,
-      "method": "git",
-      "verifyPassedKept": true
-    },
     {
       "at": "2026-10-02T21:23:45.487Z",
       "event": "reconcile-resolved",
@@ -180,6 +173,13 @@
       "at": "2026-10-04T20:57:22.861Z",
       "event": "completed",
       "phase": 5
+    },
+    {
+      "at": "2026-10-05T01:32:58.898Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "team"
     }
   ],
   "cascadedPhases": [],
@@ -345,12 +345,33 @@
       "version": "0.0.1-beta",
       "version_source": "team",
       "at": "2026-09-08T23:47:58.020Z"
+    },
+    {
+      "version": "0.0.1-beta",
+      "version_source": "team",
+      "at": "2026-10-05T01:32:58.898Z"
     }
   ],
   "verifyRanRef": "e5dc8a57eef23f998c745ae921b2c678d796038e",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
+      "FR-001": "d484ce4ac1b1ab67",
+      "FR-002": "546ade892924dbf6",
+      "FR-003": "fc7e9f1f2f7332ee",
+      "FR-004": "b256cb923b4a6d53",
+      "FR-006": "c4b6af7eb17b418b",
+      "FR-008": "f635912319b7fa3d",
+      "FR-009": "e75c65724a60e42d",
+      "FR-010": "0802a56ff93a1168",
+      "FR-011": "5692c4cf71ebdf36",
+      "FR-012": "6c9105c2309a33d4",
+      "FR-013": "47ca358a33a39e29",
+      "FR-014": "7c062003e4f2cc90",
+      "FR-015": "b3e92a3868c6da61",
+      "FR-016": "027e93ef7fe6dbb0"
+    },
+    "5": {
       "FR-001": "d484ce4ac1b1ab67",
       "FR-002": "546ade892924dbf6",
       "FR-003": "fc7e9f1f2f7332ee",
