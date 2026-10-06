@@ -23,25 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-05T23:45:13.263Z",
+  "updatedAt": "2026-10-06T13:47:39.983Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-02T23:54:54.899Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-03T00:43:04.247Z",
-      "event": "reconcile-resolved",
-      "phase": null,
-      "files": 2,
-      "method": "git",
-      "baseRefFrom": "3af7fffb9dd85f8dffc2b6f8160f82320ccc54be",
-      "baseRefTo": "820247844ef7ee3e36be3a3996c47ed99393afe4"
-    },
     {
       "at": "2026-10-04T05:41:36.672Z",
       "event": "reconcile-pending",
@@ -175,6 +159,22 @@
     },
     {
       "at": "2026-10-05T23:45:13.240Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-06T13:47:22.648Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-06T13:47:39.971Z",
       "event": "verify-complete",
       "phase": "verify",
       "passed": 59,
@@ -351,7 +351,7 @@
       "at": "2026-10-05T01:32:58.898Z"
     }
   ],
-  "verifyRanRef": "09860e508382612c478b4d1b27821a8ce4692660",
+  "verifyRanRef": "62cc41798d41f7ed0b898ac84cb3d09cb0323dff",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -387,14 +387,14 @@
       "FR-016": "027e93ef7fe6dbb0"
     }
   },
-  "verifyResultsHash": "1042ef47188a4248c668596b1202856bc7ae0be934d3d06427073b74224e96a8",
-  "verifyRanAt": "2026-10-05T23:45:01.714Z",
+  "verifyResultsHash": "1f901e6962a415a4d0f2f8487c5df6314d4f2d4be9fc8475d054156b52171c2e",
+  "verifyRanAt": "2026-10-06T13:47:22.621Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-05T23:45:01.714Z"
+    "at": "2026-10-06T13:47:22.621Z"
   },
   "verifySummary": {
     "total": 59,
