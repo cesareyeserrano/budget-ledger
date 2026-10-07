@@ -23,21 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-07T03:11:21.637Z",
+  "updatedAt": "2026-10-07T14:38:58.458Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-04T20:56:46.142Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-04T20:57:22.761Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-10-04T20:57:22.861Z",
       "event": "completed",
@@ -180,6 +168,22 @@
       "files": 24,
       "method": "git",
       "verifyPassedCleared": true
+    },
+    {
+      "at": "2026-10-07T14:38:46.095Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-07T14:38:58.433Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 59,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -192,7 +196,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
-  "verifyPassed": false,
+  "verifyPassed": true,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -352,7 +356,7 @@
       "at": "2026-10-05T01:32:58.898Z"
     }
   ],
-  "verifyRanRef": "c193f00f4205a4d5b115c73264c93f8a23799729",
+  "verifyRanRef": "616d0a142ebd3c4ddfac5eaf1aea21ccaf7e636a",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -388,13 +392,23 @@
       "FR-016": "027e93ef7fe6dbb0"
     }
   },
-  "verifyResultsHash": "06e515e83aa63b57ff498f9826d278a819806ccc847c60c273f302a394456db6",
-  "verifyRanAt": "2026-10-06T17:58:17.557Z",
+  "verifyResultsHash": "52a553f93672f3612bf708abddc723a5139171f73bb3a57e9298fe8f697b27f5",
+  "verifyRanAt": "2026-10-07T14:38:46.058Z",
   "lastVerifyRun": {
     "passed": 59,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-06T17:58:17.557Z"
+    "at": "2026-10-07T14:38:46.058Z"
+  },
+  "verifySummary": {
+    "total": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 6
   }
 }
