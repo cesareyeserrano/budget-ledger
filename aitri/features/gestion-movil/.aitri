@@ -19,20 +19,9 @@
   "projectName": "gestion-movil",
   "createdAt": "2026-10-06T20:31:12.409Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-07T16:15:54.692Z",
+  "updatedAt": "2026-10-07T16:57:33.853Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-06T22:05:17.659Z",
-      "event": "completed",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-06T22:05:17.779Z",
-      "event": "approved",
-      "phase": 1,
-      "ideaArchived": true
-    },
     {
       "at": "2026-10-06T22:05:22.390Z",
       "event": "started",
@@ -130,6 +119,22 @@
       "phase": 5,
       "version": "0.0.1-beta",
       "version_source": "manifest"
+    },
+    {
+      "at": "2026-10-07T16:57:27.851Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-07T16:57:33.832Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 97,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -275,16 +280,16 @@
       "FR-3211": "5ad2d19bd68e35fb"
     }
   },
-  "verifyResultsHash": "0c6de99ef8c3ae824f01d1233d54ebd69136079e527c90e5b1f97dd2983120fe",
-  "verifyRanAt": "2026-10-07T14:09:36.524Z",
-  "verifyRanRef": "8cfa3b0dd13a930424e91819accd87f018c6ac5a",
+  "verifyResultsHash": "c036bc7c58626bb13385bdd3a12d7e1a55278433369496b7bb28ad962d9d9166",
+  "verifyRanAt": "2026-10-07T16:57:27.800Z",
+  "verifyRanRef": "55458cd27849a0eda252f57851bd0eb97058f4bb",
   "verifyRanDirty": false,
   "lastVerifyRun": {
     "passed": 97,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-07T14:09:36.524Z"
+    "at": "2026-10-07T16:57:27.800Z"
   },
   "verifyPassed": true,
   "verifySummary": {
