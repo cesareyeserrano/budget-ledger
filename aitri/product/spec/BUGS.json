@@ -8893,6 +8893,26 @@
       "resolution": "export const dynamic = force-dynamic en el layout raiz: el documento sale con no-store. Prueba: tests/e2e/bg-093-documento-sin-cache.spec.ts.",
       "fix_commit_sha": "c2307e3f4eb3c7c069bac7f69fee26eb464b1e97",
       "fix_at": "2026-10-05T19:42:23.609Z"
+    },
+    {
+      "id": "BG-094",
+      "title": "Sin mes de inicio declarado y con meses cerrados vacios, el boton de cierre nombra un mes y el servidor cierra otro",
+      "description": "",
+      "steps_to_reproduce": [],
+      "expected_result": "El mes que el boton nombra es el que el servidor cierra tambien cuando no hay inicio declarado: closureScope ancla en la frontera de cierre igual que activeBounds",
+      "actual_result": "Hallado por la revision adversarial de gestion-movil el 2026-10-07 con las funciones reales: sin startMonth, con un mes cerrado estando vacio, el siguiente mes vacio sin cerrar y datos a partir del posterior, el cliente nombra el mes vacio y el servidor cierra el primero con datos. Con inicio declarado coinciden. Afecta a escritorio y al telefono. Es el caso de borde que cierre-coherente (FR-2701/2703) no cubrio.",
+      "environment": "Lectura y sonda de dominio, 2026-10-07; no reproducido en produccion",
+      "severity": "medium",
+      "status": "open",
+      "fr": "FR-2703",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": "revision adversarial",
+      "created_at": "2026-10-07T16:30:04.095Z",
+      "updated_at": "2026-10-07T16:30:04.095Z",
+      "resolution": null
     }
   ]
 }
