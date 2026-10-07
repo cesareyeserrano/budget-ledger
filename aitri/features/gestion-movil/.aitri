@@ -1,35 +1,27 @@
 {
-  "currentPhase": 4,
+  "currentPhase": 5,
   "approvedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "completedPhases": [
     1,
     "ux",
     2,
     3,
-    4
+    4,
+    5
   ],
   "projectName": "gestion-movil",
   "createdAt": "2026-10-06T20:31:12.409Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-07T03:11:01.771Z",
+  "updatedAt": "2026-10-07T14:28:50.633Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-06T21:10:28.286Z",
-      "event": "started",
-      "phase": 1
-    },
-    {
-      "at": "2026-10-06T21:13:40.515Z",
-      "event": "completed",
-      "phase": 1
-    },
     {
       "at": "2026-10-06T22:05:17.659Z",
       "event": "completed",
@@ -105,6 +97,39 @@
       "at": "2026-10-07T03:11:01.751Z",
       "event": "approved",
       "phase": 4
+    },
+    {
+      "at": "2026-10-07T14:09:36.561Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-07T14:09:48.746Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 97,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-07T14:09:53.763Z",
+      "event": "started",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-07T14:10:41.483Z",
+      "event": "completed",
+      "phase": 5
+    },
+    {
+      "at": "2026-10-07T14:28:50.607Z",
+      "event": "approved",
+      "phase": 5,
+      "version": "0.0.1-beta",
+      "version_source": "manifest"
     }
   ],
   "cascadedPhases": [],
@@ -113,6 +138,7 @@
     "2": "42d91b81f299e3ed33ccbfac52f08211949a4b91a2b188a695108e378e08f0e2",
     "3": "0a3d95486445b66495cf70e23f0683bc520162a392657158ed9a40d832e8ea0a",
     "4": "0a5ae7abde1f012403134f12868d5948b93b643bb0fffed37908e57de3abb6fc",
+    "5": "bc51475b15070441ab8f1b73416f7bb11aee827180b80873f876c99a680cf2c3",
     "ux": "14f027490bd1811ea40d18b2038e9805016ab3f13cc4fe311251aec6eadb697c"
   },
   "frSnapshots": {
@@ -143,6 +169,19 @@
       "FR-3211"
     ],
     "4": [
+      "FR-3201",
+      "FR-3202",
+      "FR-3203",
+      "FR-3204",
+      "FR-3205",
+      "FR-3206",
+      "FR-3207",
+      "FR-3208",
+      "FR-3209",
+      "FR-3210",
+      "FR-3211"
+    ],
+    "5": [
       "FR-3201",
       "FR-3202",
       "FR-3203",
@@ -209,6 +248,19 @@
       "FR-3210": "423194deba1ea0dc",
       "FR-3211": "5ad2d19bd68e35fb"
     },
+    "5": {
+      "FR-3201": "89586f571753f346",
+      "FR-3202": "35196693b4dff256",
+      "FR-3203": "1054a77beb3c9dad",
+      "FR-3204": "43215200ffcf968d",
+      "FR-3205": "aec753fd1a585e30",
+      "FR-3206": "4fd427934d04cd11",
+      "FR-3207": "e4ae2b39a518261e",
+      "FR-3208": "f972ef258009da4a",
+      "FR-3209": "35ce0c22ce28a464",
+      "FR-3210": "423194deba1ea0dc",
+      "FR-3211": "5ad2d19bd68e35fb"
+    },
     "ux": {
       "FR-3201": "89586f571753f346",
       "FR-3202": "35196693b4dff256",
@@ -222,5 +274,34 @@
       "FR-3210": "423194deba1ea0dc",
       "FR-3211": "5ad2d19bd68e35fb"
     }
-  }
+  },
+  "verifyResultsHash": "0c6de99ef8c3ae824f01d1233d54ebd69136079e527c90e5b1f97dd2983120fe",
+  "verifyRanAt": "2026-10-07T14:09:36.524Z",
+  "verifyRanRef": "8cfa3b0dd13a930424e91819accd87f018c6ac5a",
+  "verifyRanDirty": false,
+  "lastVerifyRun": {
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0,
+    "manual": 0,
+    "at": "2026-10-07T14:09:36.524Z"
+  },
+  "verifyPassed": true,
+  "verifySummary": {
+    "total": 97,
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "releaseHistory": [
+    {
+      "version": "0.0.1-beta",
+      "version_source": "manifest",
+      "at": "2026-10-07T14:28:50.604Z"
+    }
+  ]
 }

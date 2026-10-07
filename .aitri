@@ -23,18 +23,9 @@
   "aitriVersion": "2.2.0-rc.23",
   "layoutRoot": "aitri",
   "artifactsDir": "aitri/product/spec",
-  "updatedAt": "2026-10-06T18:07:24.009Z",
+  "updatedAt": "2026-10-07T03:11:21.637Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-04T20:56:46.025Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 59,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-10-04T20:56:46.142Z",
       "event": "verify-complete",
@@ -181,6 +172,14 @@
       "phase": "verify",
       "passed": 59,
       "failed": 0
+    },
+    {
+      "at": "2026-10-07T03:11:21.634Z",
+      "event": "reconcile-pending",
+      "phase": null,
+      "files": 24,
+      "method": "git",
+      "verifyPassedCleared": true
     }
   ],
   "cascadedPhases": [],
@@ -193,7 +192,7 @@
     "discovery": "42db4837a338f3ef50b60fb81036066d5e1111492f40522f723d4809e8a35732",
     "ux": "5c87d69120d61b586f003e597f85c6af96aed36a19ce76ba9e4b15937269954b"
   },
-  "verifyPassed": true,
+  "verifyPassed": false,
   "frSnapshots": {
     "2": [
       "FR-001",
@@ -397,15 +396,5 @@
     "skipped": 0,
     "manual": 0,
     "at": "2026-10-06T17:58:17.557Z"
-  },
-  "verifySummary": {
-    "total": 59,
-    "passed": 59,
-    "failed": 0,
-    "skipped": 0,
-    "skipped_e2e": 0,
-    "skipped_no_marker": 0,
-    "manual": 0,
-    "manual_verified": 6
   }
 }
