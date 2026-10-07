@@ -5,8 +5,9 @@
 // Propósito:    Cerrar el mes cerrable y reabrir el último cerrado desde el teléfono. Cada bloque dice
 //               siempre en qué estado está y pide confirmación antes de actuar. No propone el mes:
 //               llama a las mismas `closeMonth` / `reopenMonth` de escritorio, y el servidor decide.
-//               Para saber si funcionó compara la frontera de cierre antes y después (ADR-03): las
-//               acciones del store no devuelven el resultado y no se tocan.
+//               Para saber si funcionó mira la frontera de cierre tras la acción (ADR-03): las acciones
+//               del store no devuelven el resultado y no se tocan. La pregunta queda atada al periodo
+//               por el que preguntó (BG-001).
 // Dependencias: @/domain (closeBlockerText, closureOf), @/state/store, ../cycleText, ../ui/button,
 //               ./buttonStyles, ./DetailHeader, lucide-react.
 
@@ -20,11 +21,19 @@ import { Button } from "../ui/button";
 import { PRIMARY_BUTTON } from "./buttonStyles";
 import { DetailHeader } from "./DetailHeader";
 
-type Phase = "idle" | "confirming" | "busy" | "failed";
+type Action = "close" | "reopen";
+/** Lo que el usuario pidió: una acción sobre UN periodo concreto, preguntada o ya en vuelo (BG-001). */
+interface Ask {
+  action: Action;
+  period: PeriodKey;
+  phase: "confirming" | "busy";
+}
 
 const CARD = "elevated-sm rounded-(--radius-md) border border-border bg-card p-4";
-const CLOSE_FAILED = "No se pudo cerrar. Revisa la conexión e inténtalo de nuevo.";
-const REOPEN_FAILED = "No se pudo reabrir. Revisa la conexión e inténtalo de nuevo.";
+// El motivo concreto lo da el aviso del store (conflicto, celdas descuadradas, red); aquí solo se dice
+// que no ocurrió, sin atribuirlo a la conexión.
+const CLOSE_FAILED = "No se pudo cerrar. Mira el aviso e inténtalo de nuevo.";
+const REOPEN_FAILED = "No se pudo reabrir. Mira el aviso e inténtalo de nuevo.";
 
 /** La frontera de cierre vigente en el store, leída fuera del render. */
 const boundary = () => closureOf(useLedgerStore.getState().data);
@@ -49,15 +58,18 @@ function Failure({ text, testId }: { text: string; testId: string }) {
  *
  * @param question Qué va a pasar.
  * @param yes Rótulo de confirmar.
+ * @param disabled Si confirmar no se deja pulsar (llegó un bloqueo con la pregunta abierta).
  * @throws Nunca.
  */
-function Confirm({ question, yes, onYes, onNo, testId }: { question: string; yes: string; onYes: () => void; onNo: () => void; testId: string }) {
+function Confirm({ question, yes, onYes, onNo, testId, disabled = false }: {
+  question: string; yes: string; onYes: () => void; onNo: () => void; testId: string; disabled?: boolean;
+}) {
   return (
     <div data-testid={testId} role="alertdialog" aria-label={yes} className="mt-3 rounded-(--radius-md) border border-border-strong bg-card p-3">
       <p className="label break-words font-normal text-fg">{question}</p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Button type="button" variant="ghost" data-testid={`${testId}-no`} className="h-(--control-lg)" onClick={onNo}>Cancelar</Button>
-        <Button type="button" data-testid={`${testId}-yes`} className={PRIMARY_BUTTON} onClick={onYes}>{yes}</Button>
+        <Button type="button" data-testid={`${testId}-yes`} className={PRIMARY_BUTTON} disabled={disabled} onClick={onYes}>{yes}</Button>
       </div>
     </div>
   );
@@ -78,11 +90,10 @@ export function ClosureScreen() {
   const { closable, reopenable, reopened, blockedBy } = useClosureStatus();
   const closeMonth = useLedgerStore((s) => s.closeMonth);
   const reopenMonth = useLedgerStore((s) => s.reopenMonth);
-  const [closing, setClosing] = useState<Phase>("idle");
-  const [reopening, setReopening] = useState<Phase>("idle");
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [failed, setFailed] = useState<{ action: Action; period: PeriodKey } | null>(null);
   // FR-2512: el motivo sale de la misma función del dominio que usa escritorio y el servidor.
   const motive = closeBlockerText(blockedBy);
-  const busy = closing === "busy" || reopening === "busy";
   // Dos toques en el mismo instante llegan antes de que React pinte «busy»: el guardia es una ref.
   const inFlight = useRef(false);
   const label = (p: PeriodKey) => cycleLabel(cal, p);
@@ -90,29 +101,42 @@ export function ClosureScreen() {
     const full = withRange(cal, p);
     return full === label(p) ? null : full;
   };
+  const targetOf = (action: Action) => (action === "close" ? closable : reopenable);
 
-  const close = async () => {
-    if (inFlight.current) return; // el segundo toque no dispara otra transición de la frontera
-    inFlight.current = true;
-    const before = boundary().closedThrough;
-    setClosing("busy");
-    try {
-      await closeMonth();
-    } finally {
-      inFlight.current = false;
-    }
-    setClosing(boundary().closedThrough === before ? "failed" : "idle");
+  // BG-001 — la pregunta y el fallo valen para UN periodo. Si lo que se puede cerrar o reabrir deja de
+  // ser ese periodo (otro dispositivo lo cerró, llegó un sync), la pregunta se cancela y el fallo se
+  // retira: una confirmación abierta nunca pasa a referirse a otro mes. Se ajusta al pintar, sin
+  // efecto de montaje (el guardia TC-CDM-064f exige que este archivo no tenga ninguno).
+  if (ask?.phase === "confirming" && targetOf(ask.action) !== ask.period) setAsk(null);
+  if (failed && targetOf(failed.action) !== failed.period) setFailed(null);
+
+  const busy = ask?.phase === "busy";
+  const confirming = (action: Action) => ask?.phase === "confirming" && ask.action === action && targetOf(action) === ask.period;
+  const failedOn = (action: Action) => failed?.action === action && targetOf(action) === failed.period;
+  /** Abre la pregunta sobre el periodo que el botón nombra; cierra cualquier otra que estuviera abierta. */
+  const open = (action: Action, period: PeriodKey) => {
+    setFailed(null);
+    setAsk({ action, period, phase: "confirming" });
   };
-  const reopen = async (target: PeriodKey) => {
-    if (inFlight.current) return;
+
+  const run = async (action: Action, period: PeriodKey) => {
+    if (inFlight.current) return; // el segundo toque no dispara otra transición de la frontera
+    // Con celdas descuadradas que llegaron con la pregunta abierta, cerrar no se pide (FR-2512).
+    if (action === "close" && motive !== "") return;
     inFlight.current = true;
-    setReopening("busy");
+    setAsk({ action, period, phase: "busy" });
     try {
-      await reopenMonth();
+      if (action === "close") await closeMonth();
+      else await reopenMonth();
     } finally {
       inFlight.current = false;
     }
-    setReopening(boundary().reopened === target ? "idle" : "failed");
+    // ADR-03, corregido por BG-001: el éxito es que ESE periodo quedó cerrado (o reabierto), no que
+    // la frontera «cambió» — un conflicto que la hace retroceder no es un cierre.
+    const now = boundary();
+    const done = action === "close" ? now.closedThrough === period : now.reopened === period;
+    setAsk(null);
+    setFailed(done ? null : { action, period });
   };
 
   return (
@@ -128,29 +152,31 @@ export function ClosureScreen() {
             <p className="caption text-fg-muted">
               {range(closable) ? `${range(closable)} · ` : ""}Es el mes abierto más antiguo
             </p>
-            {closing !== "confirming" && (
+            {!confirming("close") && (
               <Button
                 type="button"
                 data-testid="mb-closure-close-button"
                 className={`${PRIMARY_BUTTON} mt-3 w-full`}
                 disabled={busy || motive !== ""}
-                onClick={() => setClosing("confirming")}
+                onClick={() => open("close", closable)}
               >
                 <Lock size={16} strokeWidth={1.75} aria-hidden />
-                {closing === "busy" ? "Cerrando…" : `Cerrar ${label(closable)}`}
+                {busy && ask?.action === "close" ? "Cerrando…" : `Cerrar ${label(closable)}`}
               </Button>
             )}
             {motive !== "" && <Failure testId="mb-closure-blocked" text={motive} />}
-            {closing === "confirming" && (
+            {confirming("close") && (
               <Confirm
                 testId="mb-closure-confirm"
                 question={`¿Cerrar ${label(closable)}? Sus cifras quedarán fijas. Podrás reabrirlo mientras sea el último mes cerrado.`}
                 yes="Sí, cerrar"
-                onYes={() => void close()}
-                onNo={() => setClosing("idle")}
+                disabled={motive !== ""}
+                onYes={() => void run("close", closable)}
+                onNo={() => setAsk(null)}
               />
             )}
-            {closing === "failed" && <Failure testId="mb-closure-failed" text={CLOSE_FAILED} />}
+            {/* Con el motivo de bloqueo a la vista, el fallo genérico sobra: el motivo ya lo explica. */}
+            {failedOn("close") && motive === "" && <Failure testId="mb-closure-failed" text={CLOSE_FAILED} />}
           </>
         )}
       </section>
@@ -160,29 +186,29 @@ export function ClosureScreen() {
         {reopenable && (
           <>
             <p className="label mt-1.5 break-words text-fg">Último mes cerrado: {label(reopenable)}</p>
-            {reopening !== "confirming" && (
+            {!confirming("reopen") && (
               <Button
                 type="button"
                 variant="outline"
                 data-testid="mb-closure-reopen-button"
                 className="mt-3 h-(--control-lg) w-full border-border-strong bg-card"
                 disabled={busy}
-                onClick={() => setReopening("confirming")}
+                onClick={() => open("reopen", reopenable)}
               >
                 <LockOpen size={16} strokeWidth={1.75} aria-hidden />
-                {reopening === "busy" ? "Reabriendo…" : `Reabrir ${label(reopenable)}`}
+                {busy && ask?.action === "reopen" ? "Reabriendo…" : `Reabrir ${label(reopenable)}`}
               </Button>
             )}
-            {reopening === "confirming" && (
+            {confirming("reopen") && (
               <Confirm
                 testId="mb-reopen-confirm"
                 question={`¿Reabrir ${label(reopenable)}? Volverá a admitir cambios. Mientras esté reabierto no podrás reabrir otro.`}
                 yes="Sí, reabrir"
-                onYes={() => void reopen(reopenable)}
-                onNo={() => setReopening("idle")}
+                onYes={() => void run("reopen", reopenable)}
+                onNo={() => setAsk(null)}
               />
             )}
-            {reopening === "failed" && <Failure testId="mb-reopen-failed" text={REOPEN_FAILED} />}
+            {failedOn("reopen") && <Failure testId="mb-reopen-failed" text={REOPEN_FAILED} />}
           </>
         )}
         {!reopenable && reopened && (

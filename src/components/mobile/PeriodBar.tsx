@@ -100,7 +100,8 @@ export function PeriodBar({ period, periods }: { period: PeriodKey; periods: Per
  */
 export function ClosedNotice({ period }: { period: PeriodKey }) {
   const cal = useCalendar();
-  const reopenable = nextReopenable(useClosure());
+  const closure = useClosure();
+  const reopenable = nextReopenable(closure);
   return (
     <div
       data-testid="mb-closed-notice"
@@ -122,8 +123,13 @@ export function ClosedNotice({ period }: { period: PeriodKey }) {
         </span>
       ) : (
         <span className="min-w-0">
-          {cycleLabel(cal, period)} está cerrado. Solo se puede reabrir el último mes cerrado
-          {reopenable ? ` (${cycleLabel(cal, reopenable)})` : ""}.
+          {cycleLabel(cal, period)} está cerrado.{" "}
+          {reopenable
+            ? `Solo se puede reabrir el último mes cerrado (${cycleLabel(cal, reopenable)}).`
+            : closure.reopened
+              // BG-006: aquí no es que no sea el último; es que ya hay otro mes reabierto.
+              ? `${cycleLabel(cal, closure.reopened)} está reabierto: ciérralo antes de reabrir otro.`
+              : "Solo se puede reabrir el último mes cerrado."}
         </span>
       )}
     </div>

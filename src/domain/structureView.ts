@@ -6,9 +6,10 @@
 //               reglas: el orden sale de `tree` y la validez de cada destino de ensayar `moveNode`.
 // Dependencias: ./tree, ./mutations (moveNode, solo como ensayo), ./types.
 
-import { moveNode, type MoveDest } from "./mutations";
+import { closedPeriodsViolated } from "./closure";
+import { createNode, deleteNode, moveNode, type MoveDest } from "./mutations";
 import { TYPE_ORDER, findNode, orderedChildren, orderedGroups, subtreeIds } from "./tree";
-import type { LedgerNode, LedgerState, NodeLevel, NodeType } from "./types";
+import type { LedgerNode, LedgerState, NodeLevel, NodeType, PeriodKey } from "./types";
 
 /** Una fila del árbol de Organizar. `depth` es la sangría: 0 grupo, 1 categoría, 2 subcategoría. */
 export interface OrganizeRow {
@@ -81,8 +82,14 @@ export interface MoveOption {
   level: NodeLevel;
   depth: 0 | 1;
   becomes: MoveOutcome;
-  /** `ok`: se puede; `current`: ya está ahí; `overflow`: no cabe (algún descendiente caería bajo subcategoría). */
-  status: "ok" | "current" | "overflow";
+  /**
+   * `ok`: se puede; `current`: ya está ahí; `overflow`: no cabe (algún descendiente caería bajo
+   * subcategoría); `closed`: el dominio lo aceptaría, pero trasladaría cifras de un periodo cerrado y
+   * el servidor lo rechazaría (BG-002).
+   */
+  status: "ok" | "current" | "overflow" | "closed";
+  /** El destino es una hoja con montos o movimientos propios, que pasarán al elemento movido (FR-604). */
+  carries: boolean;
 }
 
 /** Los destinos de un elemento. `toRoot` es null si ya es un grupo o no existe. */
@@ -92,6 +99,20 @@ export interface MoveDestinations {
 }
 
 const NO_DESTINATIONS: MoveDestinations = { toRoot: null, options: [] };
+
+/**
+ * Si un nodo SIN hijos guarda cifras o movimientos propios: los que el primer hijo que reciba se llevará.
+ *
+ * @param state Estado del ledger.
+ * @param id Nodo destino.
+ * @returns true si es hoja y tiene alguna celda distinta de cero o algún movimiento que lo señale.
+ * @throws Nunca.
+ */
+function ownsFigures(state: LedgerState, id: string): boolean {
+  if (state.nodes.some((n) => n.parentId === id)) return false;
+  const some = (m: LedgerState["budgets"]) => Object.values(m[id] ?? {}).some((v) => (v ?? 0) !== 0);
+  return some(state.budgets) || some(state.actuals) || state.movements.some((m) => m.target === id);
+}
 
 /**
  * Los destinos de «Mover a…» para un elemento: la raíz de su tipo y los grupos y categorías del MISMO
@@ -106,6 +127,7 @@ const NO_DESTINATIONS: MoveDestinations = { toRoot: null, options: [] };
  * @throws Nunca. Un id inexistente o de un nodo del sistema devuelve la lista vacía.
  *
  * @aitri-trace FR-ID: FR-3206, US-ID: US-3206, AC-ID: AC-3220, TC-ID: TC-GMV-064f, TC-GMV-066e, TC-GMV-067e
+ * @aitri-trace FR-ID: FR-3206, US-ID: US-3206, AC-ID: AC-3221, TC-ID: BG-002
  */
 export function moveDestinations(state: LedgerState, id: string): MoveDestinations {
   const node = findNode(state.nodes, id);
@@ -118,13 +140,18 @@ export function moveDestinations(state: LedgerState, id: string): MoveDestinatio
     if ("rejected" in res) {
       if (res.rejected !== "would_overflow") return null;
       status = "overflow";
-    } else {
+    } else if (target !== null && node.parentId === target.id) {
       // El propio padre: el dominio lo acepta y devuelve el mismo árbol.
-      status = target !== null && node.parentId === target.id ? "current" : "ok";
+      status = "current";
+    } else {
+      // BG-002: el mismo guardia que corre el servidor. Si el traslado al primer hijo movería cifras de
+      // un periodo cerrado, el PUT recibiría 422: no se ofrece como válido.
+      status = closedPeriodsViolated(state, res.state).length > 0 ? "closed" : "ok";
     }
     return {
       dest, nodeId: target?.id ?? null, name: target?.name ?? "", icon: target?.icon ?? null,
       level: target?.level ?? "group", depth: target?.level === "category" ? 1 : 0, becomes, status,
+      carries: target !== null && ownsFigures(state, target.id),
     };
   };
 
@@ -141,4 +168,41 @@ export function moveDestinations(state: LedgerState, id: string): MoveDestinatio
     }
   }
   return { toRoot, options };
+}
+
+/**
+ * Si crear el primer hijo de un elemento movería cifras de un periodo cerrado (BG-002).
+ *
+ * Ensaya el alta con la acción de dominio y pasa el resultado por el mismo guardia que corre el
+ * servidor: si daría 422, el teléfono lo dice antes de crear en vez de anunciar un alta que se deshace.
+ * Se llama al abrir la pantalla de alta, nunca al pintar la lista del periodo.
+ *
+ * @param state Estado del ledger.
+ * @param parentId Elemento dentro del cual se crearía.
+ * @returns true si el alta tocaría un periodo cerrado; false si no, o si el padre no existe o no admite hijos.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3202, US-ID: US-3202, AC-ID: AC-3206, TC-ID: BG-002
+ */
+export function createTouchesClosed(state: LedgerState, parentId: string): boolean {
+  const parent = findNode(state.nodes, parentId);
+  if (!parent || parent.level === "sub") return false;
+  const trial = createNode(state, { level: parent.level === "group" ? "category" : "sub", parentId, type: parent.type, name: "·" });
+  return trial !== state && closedPeriodsViolated(state, trial).length > 0;
+}
+
+/**
+ * Si borrar un elemento que el dominio permite borrar tocaría movimientos de un periodo cerrado (BG-002).
+ *
+ * @param state Estado del ledger.
+ * @param id Elemento a borrar.
+ * @param periods Periodos activos, los mismos que usa `deleteBlockReason`.
+ * @returns true si el borrado se aceptaría en el dominio pero el servidor lo rechazaría por el cierre.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3205, US-ID: US-3205, AC-ID: AC-3215, TC-ID: BG-002
+ */
+export function deleteTouchesClosed(state: LedgerState, id: string, periods: readonly PeriodKey[]): boolean {
+  const trial = deleteNode(state, id, periods);
+  return "state" in trial && closedPeriodsViolated(state, trial.state).length > 0;
 }

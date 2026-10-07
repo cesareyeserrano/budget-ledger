@@ -721,14 +721,26 @@ describe("NFR-2001/2006 — los casos que el plan declaraba y no estaban escrito
   it("TC-CDM-252f: el guardia NO puede correr en la ruta de render — es server-only", () => {
     // @aitri-tc TC-CDM-252f
     // Más fuerte que contar invocaciones en un render: se comprueba que el guardia no está
-    // ALCANZABLE desde el cliente. `closedPeriodsViolated` solo lo importa la capa de datos del
-    // servidor, y `ledgerRepo` lleva "server-only", así que ningún componente puede llamarlo
-    // aunque quisiera. Si alguien lo metiera en el store o en un componente, esto lo delata.
+    // ALCANZABLE desde la ruta de render. Ningún componente, ni el store, ni la app lo nombran.
     const clientes = execSync(
       'grep -rl "closedPeriodsViolated" src/components src/state src/app 2>/dev/null || true',
       { encoding: "utf8" }
     ).trim();
     expect(clientes).toBe("");
+    // Desde gestion-movil BG-002 (7-oct-2026) el cliente SÍ ensaya el guardia, pero solo a través de
+    // tres funciones de lectura de `src/domain/structureView.ts` y solo en las pantallas de gestión del
+    // teléfono: al abrir «Mover a…», al abrir un alta y al tocar «Borrar». Sin eso el teléfono anunciaba
+    // como hechas operaciones que el servidor iba a rechazar. Lo que este caso protege sigue en pie: la
+    // ruta CALIENTE —la lista del periodo, la grilla y el store— no lo alcanza.
+    const viaEstructura = execSync(
+      'grep -rlE "moveDestinations|createTouchesClosed|deleteTouchesClosed" src/components src/state src/app 2>/dev/null || true',
+      { encoding: "utf8" }
+    ).trim().split("\n").filter(Boolean).sort();
+    expect(viaEstructura).toEqual([
+      "src/components/mobile/MoveScreen.tsx",
+      "src/components/mobile/NewNodeScreen.tsx",
+      "src/components/mobile/NodeScreen.tsx",
+    ]);
     expect(readFileSync("src/server/data/ledgerRepo.ts", "utf8")).toContain('import "server-only"');
   });
 });

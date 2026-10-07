@@ -165,6 +165,8 @@ describe("gestion-movil · crear grupos, categorías y subcategorías", () => {
     await tocar(screen.getByTestId("mb-node-add"));
     expect(screen.getByTestId("mb-title").textContent).toBe("Nueva categoría");
     expect(screen.getByTestId("mb-new-node").textContent).toContain("en Ocio");
+    // Ocio ya tiene categorías: no cede montos a la nueva, así que no hay aviso de traslado.
+    expect(screen.queryByTestId("mb-new-carry")).toBeNull();
 
     await escribir(screen.getByTestId("mb-new-name"), "Teatro");
     await tocar(screen.getByTestId("mb-new-create"));
@@ -507,7 +509,13 @@ describe("gestion-movil · borrar un elemento", () => {
         },
       });
     });
-    await tocar(screen.getByTestId("mb-confirm-yes"));
+    // La confirmación se retira sola en cuanto el elemento deja de poder borrarse: ya no hay botón
+    // «Borrar» que tocar, y el motivo aparece sin esperar a otro toque (BG-006).
+    expect(screen.queryByTestId("mb-confirm-yes")).toBeNull();
+    // Y si el toque llegara igual, la acción del store lo rechaza.
+    let res = "sin-llamar";
+    await act(async () => { res = useLedgerStore.getState().deleteNode(GMV.prueba); });
+    expect(res).toBe("has_data");
 
     expect(existe(useLedgerStore.getState().data, GMV.prueba)).toBe(true);
     expect(screen.queryByTestId("mb-confirm-delete")).toBeNull();
@@ -569,6 +577,12 @@ describe("gestion-movil · mover a…", () => {
     expect(await cifrasDe(s, GMV.ocio)).toEqual({ budget: 0, actual: 400 });
     expect(await cifrasDe(s, GMV.comida)).toEqual({ budget: 800, actual: 100 });
 
+    // Y al bajarla a subcategoría de Mercado, la etiqueta del movimiento se re-deriva del árbol movido.
+    await act(async () => { useLedgerStore.getState().moveNode(GMV.restaurantes, { kind: "category", id: GMV.cine }); });
+    const bajado = useLedgerStore.getState().data.movements.find((m) => m.id === GMV_MOV.restaurantes)!;
+    expect(bajado).toMatchObject({ target: GMV.restaurantes, catId: GMV.cine, subId: GMV.restaurantes });
+    await act(async () => { useLedgerStore.getState().moveNode(GMV.restaurantes, { kind: "group", id: GMV.ocio }); });
+
     // Vuelve a la pantalla del elemento, con la ruta nueva; su detalle lista el movimiento.
     await screen.findByTestId("mb-node");
     expect(screen.getByTestId("mb-node").textContent).toContain("Gastos · Ocio");
@@ -625,6 +639,20 @@ describe("gestion-movil · mover a…", () => {
     expect(escrituras()).toBe(escritas);
     expect(busqueda()).toBe(`?v=p&d=move&id=${GMV.viajes}`);
     expect(useLedgerStore.getState().toast).toBeFalsy();
+  });
+
+  it("TC-GMV-066e (pantalla): tocar el lugar donde ya está no mueve, no avisa y no guarda", async () => {
+    const { useLedgerStore } = await montar(estado(), `/?v=p&d=move&id=${GMV.restaurantes}`);
+    const antes = useLedgerStore.getState().data;
+    const escritas = escrituras();
+    const actual = destino(GMV.comida);
+    expect(actual.getAttribute("data-status")).toBe("current");
+    await tocar(actual);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(useLedgerStore.getState().data).toBe(antes);
+    expect(escrituras()).toBe(escritas);
+    expect(useLedgerStore.getState().toast).toBeFalsy();
+    expect(busqueda()).toBe(`?v=p&d=move&id=${GMV.restaurantes}`);
   });
 
   it("TC-GMV-068f: el destino dejó de ser válido al aplicarlo", async () => {
@@ -694,6 +722,9 @@ describe("gestion-movil · cerrar el mes", () => {
     expect(screen.getByTestId("mb-closure-close").getAttribute("data-closable")).toBe(PREV);
     // No hay forma de elegir otro mes.
     expect(screen.getByTestId("mb-closure").querySelectorAll("select, [role=combobox], input")).toHaveLength(0);
+    // Abrir la pantalla no pide nada al servidor: cerrar solo ocurre tras «Sí, cerrar».
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(llamadasDeCierre()).toHaveLength(0);
   });
 
   it("TC-GMV-087h: la petición no propone el mes", async () => {
@@ -770,7 +801,8 @@ describe("gestion-movil · cerrar el mes", () => {
     await tocar(screen.getByTestId("mb-closure-confirm-yes"));
 
     const fallo = await screen.findByTestId("mb-closure-failed");
-    expect(fallo.textContent).toBe("No se pudo cerrar. Revisa la conexión e inténtalo de nuevo.");
+    // BG-001: el bloque dice que no ocurrió, sin atribuirlo a la conexión; el motivo lo da el aviso del store.
+    expect(fallo.textContent).toBe("No se pudo cerrar. Mira el aviso e inténtalo de nuevo.");
     expect(fallo.getAttribute("role")).toBe("alert");
     expect(useLedgerStore.getState().data.closure).toEqual({ closedThrough: null, reopened: null });
     // Se puede volver a intentar.
@@ -783,19 +815,24 @@ describe("gestion-movil · cerrar el mes", () => {
     // @aitri-tc TC-GMV-086e
     let responder: (r: Response) => void = () => {};
     alCerrar(() => new Promise<Response>((r) => { responder = r; }));
-    await montar(estado(), "/?v=p&d=cierre");
+    // PREV cerrado: M se puede cerrar y PREV reabrir, así los dos botones existen.
+    await montar(conCierre({ closedThrough: PREV, reopened: null }), "/?v=p&d=cierre");
+    expect((screen.getByTestId("mb-closure-reopen-button") as HTMLButtonElement).disabled).toBe(false);
     await tocar(screen.getByTestId("mb-closure-close-button"));
     await tocar(screen.getByTestId("mb-closure-confirm-yes"));
 
     const esperando = screen.getByTestId("mb-closure-close-button") as HTMLButtonElement;
     expect(esperando.textContent).toBe("Cerrando…");
     expect(esperando.disabled).toBe(true);
-    // Reabrir tampoco se deja pulsar mientras hay un cierre en vuelo (no hay nada cerrado aún: no existe).
-    expect(screen.queryByTestId("mb-closure-reopen-button")).toBeNull();
+    // Reabrir no se deja pulsar mientras hay un cierre en vuelo.
+    expect((screen.getByTestId("mb-closure-reopen-button") as HTMLButtonElement).disabled).toBe(true);
+    await tocar(screen.getByTestId("mb-closure-reopen-button"));
+    expect(screen.queryByTestId("mb-reopen-confirm")).toBeNull();
 
-    await act(async () => { responder(json({ revision: 2, closure: { closedThrough: PREV, reopened: null } })); });
-    await screen.findByText(`Cerrar ${rotulo(M)}`);
+    await act(async () => { responder(json({ revision: 2, closure: { closedThrough: M, reopened: null } })); });
+    await screen.findByText(`Reabrir ${rotulo(M)}`);
     expect(screen.queryByText("Cerrando…")).toBeNull();
+    expect(llamadasDeCierre()).toHaveLength(1);
   });
 });
 
@@ -840,7 +877,7 @@ describe("gestion-movil · reabrir el último mes cerrado", () => {
     await tocar(screen.getByTestId("mb-reopen-confirm-yes"));
 
     const fallo = await screen.findByTestId("mb-reopen-failed");
-    expect(fallo.textContent).toBe("No se pudo reabrir. Revisa la conexión e inténtalo de nuevo.");
+    expect(fallo.textContent).toBe("No se pudo reabrir. Mira el aviso e inténtalo de nuevo.");
     expect(llamadasDeCierre()).toHaveLength(1);
     expect((llamadasDeCierre()[0][1] as RequestInit).method).toBe("DELETE");
     expect(useLedgerStore.getState().data.closure).toEqual({ closedThrough: M, reopened: null });
@@ -887,11 +924,12 @@ describe("gestion-movil · el aviso de periodo cerrado", () => {
     expect(screen.getAllByTestId("mb-mov-row").length).toBeGreaterThan(0);
   });
 
-  it("TC-GMV-104e: cerrado con otro mes reabierto: el texto no nombra ninguno", async () => {
+  it("TC-GMV-104e: cerrado con otro mes reabierto: el aviso dice la causa real y no ofrece reabrir", async () => {
     // @aitri-tc TC-GMV-104e
     await montar(reabierto(), "/?v=p", PREV);
     const aviso = screen.getByTestId("mb-closed-notice");
-    expect(aviso.textContent).toBe(`${rotulo(PREV)} está cerrado. Solo se puede reabrir el último mes cerrado.`);
+    // BG-006: PREV SÍ es el último cerrado; lo que impide reabrirlo es que M está reabierto.
+    expect(aviso.textContent).toBe(`${rotulo(PREV)} está cerrado. ${rotulo(M)} está reabierto: ciérralo antes de reabrir otro.`);
     expect(within(aviso).queryAllByRole("button")).toHaveLength(0);
   });
 });

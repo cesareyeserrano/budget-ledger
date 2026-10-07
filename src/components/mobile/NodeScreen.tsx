@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 import { ChevronRight, FolderInput, Pencil, Plus, Smile, Trash2, TriangleAlert } from "lucide-react";
-import { canDelete, canRename, deleteBlockReason, type DeleteBlock } from "@/domain";
+import { canDelete, canRename, deleteBlockReason, deleteTouchesClosed, nodeNameSchema, type DeleteBlock } from "@/domain";
 import type { LedgerNode } from "@/domain/types";
 import { useActivePeriods, useLedgerStore } from "@/state/store";
 import { NodeIcon } from "../NodeIcon";
@@ -25,6 +25,10 @@ import { pathOf } from "./LeafScreen";
 import { CHILD_LEVEL, LEVEL_NOUN, deleteBlockText } from "./nodeText";
 import { goBack, openScreen } from "./screenStack";
 
+/** El tope de escritorio (`nodeNameSchema`): 60 caracteres. */
+const NAME_MAX = 60;
+/** BG-002: borrar tocaría movimientos de un periodo cerrado y el servidor lo rechazaría. */
+const CLOSED_DELETE = "No se puede borrar: tiene movimientos en un mes cerrado. Reabre ese mes primero.";
 const ACTION_ROW = "flex min-h-(--control-lg) w-full items-center gap-3 border-b border-border px-3 text-left text-label font-medium last:border-b-0";
 
 /**
@@ -43,7 +47,10 @@ function IdentityCard({ node, editing, onIcon, onSave, onCancel }: {
   node: LedgerNode; editing: boolean; onIcon?: () => void; onSave: (name: string) => void; onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(node.name);
-  const clean = draft.trim();
+  // BG-003: la regla de escritorio (1 a 60 caracteres). Un nombre que el dominio rechazaría no se envía.
+  const parsed = nodeNameSchema.safeParse(draft);
+  const clean = parsed.success ? parsed.data : "";
+  const tooLong = draft.trim().length > NAME_MAX;
   const canSave = clean !== "" && clean !== node.name;
   const save = () => { if (canSave) onSave(clean); };
 
@@ -59,12 +66,19 @@ function IdentityCard({ node, editing, onIcon, onSave, onCancel }: {
           onFocus={(e) => e.currentTarget.select()}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") save();
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) save();
             if (e.key === "Escape") onCancel();
           }}
           enterKeyHint="done"
+          maxLength={NAME_MAX}
+          aria-invalid={tooLong || undefined}
           className="h-(--control-lg)"
         />
+        {tooLong && (
+          <p data-testid="mb-node-name-too-long" role="alert" className="caption mt-1.5" style={{ color: "var(--alert-strong)" }}>
+            El nombre no puede pasar de {NAME_MAX} caracteres.
+          </p>
+        )}
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button type="button" variant="ghost" data-testid="mb-node-name-cancel" className="h-(--control-lg)" onClick={onCancel}>
             Cancelar
@@ -124,25 +138,38 @@ export function NodeScreen({ node }: { node: LedgerNode }) {
   const periods = useActivePeriods();
   const [renaming, setRenaming] = useState(false);
   const [iconOpen, setIconOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [block, setBlock] = useState<DeleteBlock | null>(null);
+  // BG-006: solo se guarda que se PIDIÓ borrar; el motivo se deriva del estado en cada pintado, así no
+  // se queda pegado si otro dispositivo (o el propio usuario) cambia el elemento.
+  const [asked, setAsked] = useState(false);
+  const [refused, setRefused] = useState<DeleteBlock | null>(null);
 
   const noun = LEVEL_NOUN[node.level];
   // Mismo criterio que la grilla de escritorio: ícono propio solo en grupos y categorías editables.
   const hasIcon = node.level !== "sub" && !node.system;
-  const childLevel = node.level === "sub" ? null : CHILD_LEVEL[node.level];
+  // BG-004: como en escritorio, un elemento del sistema no admite hijos.
+  const childLevel = node.level === "sub" || node.system ? null : CHILD_LEVEL[node.level];
+
+  /** Por qué no se puede borrar AHORA, en palabras; null si se puede. */
+  const blockText = (): string | null => {
+    const reason = deleteBlockReason(data, node.id, periods) ?? refused;
+    if (reason) return deleteBlockText(reason, node.level);
+    // BG-002: el dominio lo permite, pero el guardia del servidor rechazaría el guardado.
+    return deleteTouchesClosed(data, node.id, periods) ? CLOSED_DELETE : null;
+  };
+  const blocked = asked ? blockText() : null;
+  const confirming = asked && blocked === null;
+  // BG-006: los movimientos que señalan al elemento se borran o se reescriben con él.
+  const touching = data.movements.filter((m) => m.target === node.id || m.from === node.id || m.to === node.id).length;
 
   const askDelete = () => {
-    const reason = deleteBlockReason(data, node.id, periods);
-    setBlock(reason);
-    setConfirming(reason === null);
+    setRefused(null);
+    setAsked(true);
   };
   const remove = () => {
     const res = deleteNode(node.id);
     if (res !== "ok") {
       // Quedó bloqueado entre abrir la confirmación y confirmar (cambio desde otra sesión).
-      setConfirming(false);
-      setBlock(res);
+      setRefused(res);
       return;
     }
     showToast(noun.deleted);
@@ -232,19 +259,22 @@ export function NodeScreen({ node }: { node: LedgerNode }) {
               </button>
             </div>
           )}
-          {block && !confirming && (
+          {blocked && (
             <p data-testid="mb-node-blocked" role="alert" className="caption mt-2 flex items-start gap-1.5 break-words" style={{ color: "var(--alert-strong)" }}>
               <TriangleAlert size={13} strokeWidth={1.75} className="mt-0.5 flex-none" aria-hidden />
-              <span className="min-w-0">{deleteBlockText(block, node.level)}</span>
+              <span className="min-w-0">{blocked}</span>
             </p>
           )}
           {confirming && (
             <div data-testid="mb-confirm-delete" role="alertdialog" aria-label="Confirmar borrado" className="rounded-(--radius-md) border border-border-strong bg-card p-3">
               <p className="label break-words font-normal text-fg">
-                ¿Borrar {noun.the} {noun.one} “{node.name}”? No tiene valores ni movimientos.
+                ¿Borrar {noun.the} {noun.one} “{node.name}”?{" "}
+                {touching === 0
+                  ? "No tiene valores ni movimientos."
+                  : `No tiene saldo, pero ${touching === 1 ? "su movimiento se borrará o se reescribirá" : `sus ${touching} movimientos se borrarán o se reescribirán`}.`}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button type="button" variant="ghost" data-testid="mb-confirm-no" className="h-(--control-lg)" onClick={() => setConfirming(false)}>
+                <Button type="button" variant="ghost" data-testid="mb-confirm-no" className="h-(--control-lg)" onClick={() => setAsked(false)}>
                   Cancelar
                 </Button>
                 <Button

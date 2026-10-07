@@ -96,8 +96,9 @@ test("TC-GMV-002h: tocar una hoja en la lista sigue abriendo su detalle", async 
 test("TC-GMV-008e: el «atrás» del navegador deshace pantalla por pantalla", async ({ page }) => {
   // @aitri-tc TC-GMV-008e
   await abrirPresupuesto(page);
-  // Una marca en la página: si algo recargara, desaparecería.
-  await page.evaluate(() => { (window as unknown as { __gmv: number }).__gmv = 1; });
+  // Una marca en la página: si algo recargara, desaparecería. Y la restauración de scroll la tiene
+  // que hacer la app: se le quita al navegador para que no tape un fallo de la suya.
+  await page.evaluate(() => { (window as unknown as { __gmv: number }).__gmv = 1; window.history.scrollRestoration = "manual"; });
   // Los grupos desplegados dan alto para desplazar la lista. El desplazamiento es corto a propósito:
   // «Organizar» está en la línea del título y tiene que seguir a la vista para poder tocarlo (con uno
   // largo, el propio clic de la prueba subiría la página y ya no habría posición que recuperar).
@@ -107,6 +108,8 @@ test("TC-GMV-008e: el «atrás» del navegador deshace pantalla por pantalla", a
   expect(antes).toBe(30);
 
   await irAOrganizar(page);
+  // Organizar se abre desde arriba: no hereda la posición de la lista.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await filaOrg(page, "Mercado").click();
   await expect(titulo(page)).toHaveText("Mercado");
 
@@ -357,8 +360,14 @@ test("TC-GMV-070e: cada destino dice en qué se convierte", async ({ page }) => 
   await expect(page.getByTestId("mb-move").locator('[draggable="true"], [aria-roledescription="draggable"]')).toHaveCount(0);
 
   // Tocar el lugar donde ya está no mueve nada.
+  let escrituras = 0;
+  page.on("request", (r) => { if (r.method() === "PUT" && new URL(r.url()).pathname === "/api/v1/ledger") escrituras++; });
   await destino(page, GMV.comida).click({ force: true });
+  // Se da tiempo a que un retroceso o un guardado indebidos lleguen a ocurrir.
+  await page.waitForTimeout(400);
   await expect(titulo(page)).toHaveText("Mover “Restaurantes”");
+  await expect(toast(page)).toHaveCount(0);
+  expect(escrituras).toBe(0);
   expect((await nodosGuardados(page)).find((n) => n.id === GMV.restaurantes)?.parentId).toBe(GMV.comida);
 });
 
@@ -537,9 +546,11 @@ const PANTALLAS: { nombre: string; ruta: string; raiz: string; preparar?: (page:
   { nombre: "organizar", ruta: "/?v=p&d=org", raiz: "mb-organize" },
   { nombre: "elemento con selector de ícono", ruta: `/?v=p&d=node&id=${GMV.mercado}`, raiz: "mb-node", preparar: async (page) => { await page.getByTestId("mb-node-icon").click(); await expect(page.getByTestId("mb-icon-grid")).toBeVisible(); } },
   { nombre: "elemento confirmando borrar", ruta: `/?v=p&d=node&id=${GMV.prueba}`, raiz: "mb-node", preparar: async (page) => { await page.getByTestId("mb-node-delete").click(); await expect(page.getByTestId("mb-confirm-delete")).toBeVisible(); } },
+  { nombre: "elemento renombrando", ruta: `/?v=p&d=node&id=${GMV.mercado}`, raiz: "mb-node", preparar: async (page) => { await page.getByTestId("mb-node-rename").click(); await expect(page.getByTestId("mb-node-name-input")).toBeVisible(); } },
   { nombre: "nueva categoría", ruta: `/?v=p&d=new&id=${GMV.ocio}`, raiz: "mb-new-node" },
   { nombre: "mover", ruta: `/?v=p&d=move&id=${GMV.restaurantes}`, raiz: "mb-move" },
   { nombre: "cierre", ruta: "/?v=p&d=cierre", raiz: "mb-closure" },
+  { nombre: "cierre confirmando", ruta: "/?v=p&d=cierre", raiz: "mb-closure", preparar: async (page) => { await page.getByTestId("mb-closure-close-button").click(); await expect(page.getByTestId("mb-closure-confirm")).toBeVisible(); } },
 ];
 /** Recorre las pantallas de gestión llamando a `medir` en cada una. */
 async function recorrer(page: Page, medir: (p: (typeof PANTALLAS)[number]) => Promise<void>): Promise<void> {
@@ -660,8 +671,16 @@ test("TC-GMV-113h: contraste ≥4,5:1 en claro y oscuro", async ({ page }) => {
     await page.goto(`/?v=p&d=move&id=${GMV.restaurantes}`);
     await medir("«como categoría»", page.locator(`[data-testid="mb-move-option"][data-dest="${GMV.ocio}"]`).getByTestId("mb-move-becomes"));
     await medir("destino deshabilitado", page.locator(`[data-testid="mb-move-option"][data-dest="${GMV.comida}"] span.truncate`));
+    // Los avisos en alerta suave y los textos de la pantalla de cierre también son texto que hay que leer.
+    await page.goto(`/?v=p&d=move&id=${GMV.cine}`);
+    await medir("aviso de traslado al mover", page.locator(`[data-testid="mb-move-option"][data-dest="${GMV.mercado}"]`).getByTestId("mb-move-note"));
+    await page.goto(`/?v=p&d=new&id=${GMV.mercado}`);
+    await medir("aviso de traslado al crear", page.getByTestId("mb-new-carry"));
+    await page.goto("/?v=p&d=cierre");
+    await medir("periodo cerrable", page.getByTestId("mb-closure-period"));
+    await medir("sin nada cerrado", page.getByTestId("mb-closure-nothing-closed"));
   }
-  expect(pares).toBe(14);
+  expect(pares).toBe(22);
 });
 
 test("TC-GMV-114e: la línea del título cabe con holgura a 360 px", async ({ page }) => {
