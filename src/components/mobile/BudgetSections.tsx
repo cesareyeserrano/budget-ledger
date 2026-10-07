@@ -12,6 +12,7 @@ import { RETIROS_PLAN_ID, type PeriodRow, type PeriodSection, type PeriodView } 
 import type { NodeType } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { cellNum } from "../format";
+import { ORGANIZE, openScreen } from "./screenStack";
 import { barColor, toneColor } from "./tone";
 
 const SECTION: Record<NodeType, { label: string; Icon: typeof ArrowLeft }> = {
@@ -127,7 +128,17 @@ function Section({ section, ...rest }: { section: PeriodSection } & Omit<RowProp
         </span>
       </div>
       {section.groups.length === 0 && (
-        <p className="caption text-fg-muted">Aún no hay categorías. Se crean desde el computador.</p>
+        <p data-testid="mb-section-empty" className="caption text-fg-muted">
+          Aún no hay categorías.{" "}
+          <button
+            type="button"
+            data-testid="mb-section-empty-link"
+            onClick={() => openScreen(ORGANIZE)}
+            className="-my-3 inline-flex min-h-(--control-md) items-center font-semibold text-fg-secondary underline"
+          >
+            Crear la primera ›
+          </button>
+        </p>
       )}
       {section.groups.map((g) => (
         <div

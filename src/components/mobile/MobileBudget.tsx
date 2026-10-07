@@ -1,5 +1,6 @@
 "use client";
-// @aitri-trace components:mobile:MobileBudget — feature presupuesto-movil (FR-3101, FR-3103).
+// @aitri-trace components:mobile:MobileBudget — feature presupuesto-movil (FR-3101, FR-3103);
+//               feature gestion-movil (FR-3201): despacha también las pantallas de gestión.
 //
 // Módulo:       src/components/mobile/MobileBudget.tsx
 // Propósito:    La vista «Presupuesto» del teléfono. Decide qué pantalla se ve —la lista del periodo
@@ -8,20 +9,54 @@
 // Dependencias: @/state/store, @/domain (periodView, findNode, isLeaf), ./screenStack y las pantallas.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ListTree, Lock } from "lucide-react";
 import { RETIROS_PLAN_ID, closureOf, findNode, isClosed, isLeaf, periodView, type PeriodRow } from "@/domain";
-import type { PeriodKey } from "@/domain/types";
+import type { LedgerNode, PeriodKey } from "@/domain/types";
 import { useActivePeriods, useLedgerStore, useNow } from "@/state/store";
 import { computeBalanceSeries } from "@/domain/balance";
 import { openingCarry } from "@/domain/opening";
 import { balanceSummary } from "../balanceView";
 import { BalanceScreen } from "./BalanceScreen";
 import { BudgetSections } from "./BudgetSections";
+import { ClosureScreen } from "./ClosureScreen";
 import { LeafScreen } from "./LeafScreen";
+import { MoveScreen } from "./MoveScreen";
 import { MovementEditScreen } from "./MovementEditScreen";
+import { NewNodeScreen } from "./NewNodeScreen";
+import { NodeScreen } from "./NodeScreen";
+import { OrganizeScreen } from "./OrganizeScreen";
 import { ClosedNotice, PeriodBar } from "./PeriodBar";
 import { SummaryCard } from "./SummaryCard";
 import { WithdrawalsScreen } from "./WithdrawalsScreen";
-import { BUDGET_LIST, openScreen, parentOf, replaceScreen, type Detail } from "./screenStack";
+import { Button } from "../ui/button";
+import { BUDGET_LIST, CLOSURE, ORGANIZE, openScreen, parentOf, replaceScreen, type Detail } from "./screenStack";
+
+/**
+ * El elemento de la estructura al que apunta una pantalla de gestión, o por qué el enlace está roto.
+ *
+ * Gestionar, mover y crear dentro de algo necesitan un nodo que exista; crear exige además que el
+ * padre admita hijos (una subcategoría no). Un grupo nuevo no necesita ninguno.
+ *
+ * @param detail Pantalla pedida por la URL.
+ * @param nodes Nodos del estado.
+ * @returns El nodo (o null si la pantalla no usa ninguno) y si el enlace no se puede atender.
+ * @throws Nunca.
+ *
+ * @aitri-trace FR-ID: FR-3201, US-ID: US-3201, AC-ID: AC-3201, TC-ID: TC-GMV-009f
+ * @aitri-trace FR-ID: FR-3202, US-ID: US-3202, AC-ID: AC-3207, TC-ID: TC-GMV-025f
+ */
+function managedNode(detail: Detail | null, nodes: LedgerNode[]): { node: LedgerNode | null; broken: boolean } {
+  if (!detail) return { node: null, broken: false };
+  if (detail.kind === "node" || detail.kind === "move") {
+    const node = findNode(nodes, detail.id) ?? null;
+    return { node, broken: node === null || (detail.kind === "move" && !!node.system) };
+  }
+  if (detail.kind === "new" && detail.parentId !== null) {
+    const node = findNode(nodes, detail.parentId) ?? null;
+    return { node, broken: node === null || node.level === "sub" };
+  }
+  return { node: null, broken: false };
+}
 
 /**
  * El periodo que la vista muestra: el del filtro del store si es un mes activo; si no, el actual.
@@ -78,11 +113,14 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
   const brokenEdit = detail?.kind === "edit" && !brokenLeaf && (
     !movement || movement.type === "transfer" || movement.target !== leafId || isClosed(closureOf(data), movement.period)
   );
-  const broken = brokenLeaf || brokenEdit;
+  // Gestión de estructura: un enlace a un elemento que ya no existe vuelve a Organizar.
+  const managed = managedNode(detail, data.nodes);
+  const broken = brokenLeaf || brokenEdit || managed.broken;
   useEffect(() => {
     if (brokenLeaf) replaceScreen(BUDGET_LIST);
     else if (brokenEdit && detail) replaceScreen(parentOf({ view: "presupuesto", detail }));
-  }, [brokenLeaf, brokenEdit, detail]);
+    else if (managed.broken) replaceScreen(ORGANIZE);
+  }, [brokenLeaf, brokenEdit, managed.broken, detail]);
 
   // Un enlace directo a «editar» puede apuntar a un movimiento de otro periodo: la vista se pone en
   // el suyo, para que al volver la hoja muestre el periodo donde ese movimiento vive.
@@ -101,7 +139,10 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
   const inDetail = detail !== null && !broken;
   const screenKey = !inDetail || !detail
     ? "list"
-    : detail.kind === "leaf" ? `leaf:${detail.id}` : detail.kind === "edit" ? `edit:${detail.movementId}` : detail.kind;
+    : detail.kind === "leaf" ? `leaf:${detail.id}`
+      : detail.kind === "edit" ? `edit:${detail.movementId}`
+        : detail.kind === "node" || detail.kind === "move" ? `${detail.kind}:${detail.id}`
+          : detail.kind;
   useLayoutEffect(() => {
     if (!active) return;
     shownKey.current = screenKey;
@@ -126,6 +167,12 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
     });
   };
 
+  /** Abre una pantalla de gestión recordando dónde estaba la lista. */
+  const go = (next: typeof ORGANIZE) => {
+    scrolls.current.set("list", window.scrollY);
+    openScreen(next);
+  };
+
   if (inDetail && leaf && detail.kind === "edit" && movement) {
     return <MovementEditScreen key={movement.id} movement={movement} leaf={leaf} />;
   }
@@ -134,10 +181,28 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
   }
   if (inDetail && detail.kind === "retiros") return <WithdrawalsScreen period={period} closed={view.closed} />;
   if (inDetail && detail.kind === "balance") return <BalanceScreen series={series} period={period} />;
+  if (inDetail && detail.kind === "organize") return <OrganizeScreen />;
+  if (inDetail && detail.kind === "closure") return <ClosureScreen />;
+  if (inDetail && detail.kind === "node" && managed.node) return <NodeScreen key={managed.node.id} node={managed.node} />;
+  if (inDetail && detail.kind === "move" && managed.node) return <MoveScreen key={managed.node.id} node={managed.node} />;
+  if (inDetail && detail.kind === "new") return <NewNodeScreen parent={managed.node} type={detail.type} />;
 
   return (
     <div data-testid="mb-budget">
-      <h1 data-testid="mb-title" className="title-sm pt-4 text-fg">Presupuesto</h1>
+      {/* gestion-movil FR-3201: las dos entradas a la gestión, en la línea del título. */}
+      <div data-testid="mb-title-row" className="flex items-center justify-between gap-2 pt-2">
+        <h1 data-testid="mb-title" className="title-sm min-w-0 truncate text-fg">Presupuesto</h1>
+        <div className="-mr-2 flex flex-none items-center">
+          <Button type="button" variant="ghost" data-testid="mb-open-organize" className="px-2" onClick={() => go(ORGANIZE)}>
+            <ListTree size={16} strokeWidth={1.75} aria-hidden />
+            Organizar
+          </Button>
+          <Button type="button" variant="ghost" data-testid="mb-open-closure" className="px-2" onClick={() => go(CLOSURE)}>
+            <Lock size={16} strokeWidth={1.75} aria-hidden />
+            Cierre
+          </Button>
+        </div>
+      </div>
       <PeriodBar period={period} periods={periods} />
       {view.closed && <ClosedNotice period={period} />}
       <SummaryCard summary={summary} open={summaryOpen} onToggle={() => setSummaryOpen((o) => !o)} />
