@@ -7,7 +7,7 @@ import { canDeleteNode, deleteBlockReason } from "@/domain/mutations";
 import { periodRange } from "@/domain/periods";
 import { moveDestinations, organizeTree } from "@/domain/structureView";
 import type { LedgerState } from "@/domain/types";
-import { GMV, gmvBase } from "../fixtures/gmv-base";
+import { GMV, GMV_HEREDADO, gmvBase, gmvSistema } from "../fixtures/gmv-base";
 
 const M = "2026-08";
 const PREV = "2026-07";
@@ -68,6 +68,10 @@ describe("gestion-movil · moveDestinations", () => {
 
     // Un id que no existe o un nodo del sistema no tienen destinos.
     expect(moveDestinations(s, "no-existe")).toEqual({ toRoot: null, options: [] });
+    const conSistema = ({ ownerId: "local", ...gmvSistema(M, PREV) }) as LedgerState;
+    expect(moveDestinations(conSistema, GMV_HEREDADO)).toEqual({ toRoot: null, options: [] });
+    // Y un nodo del sistema tampoco es destino de nadie.
+    expect(moveDestinations(conSistema, GMV.cine).options.map((o) => o.nodeId)).not.toContain(GMV_HEREDADO);
   });
 
   it("TC-GMV-066e: un grupo no ofrece «convertir en grupo» y la lista marca dónde está el elemento", () => {

@@ -23,6 +23,8 @@ import { goBack } from "./screenStack";
 /** El aviso de escritorio cuando bajar un elemento desbordaría los tres niveles (FR-703). */
 const OVERFLOW_TEXT = "Vacía o mueve las subcategorías primero";
 const GONE_TEXT = "Ese lugar ya no está disponible.";
+/** BG-002: el traslado de montos tocaría un periodo cerrado y el servidor lo rechazaría. */
+const CLOSED_TEXT = "Tocaría cifras de un mes cerrado. Reábrelo primero.";
 const BECOMES: Record<MoveOption["becomes"], string> = { group: "como grupo", category: "como categoría", sub: "como subcategoría" };
 const INDENT_PX = 14;
 const keyOf = (o: MoveOption) => o.nodeId ?? "@root";
@@ -59,7 +61,11 @@ export function MoveScreen({ node }: { node: LedgerNode }) {
 
   const row = (o: MoveOption, label: string, icon: React.ReactNode) => {
     const off = o.status !== "ok";
-    const note = rejected?.key === keyOf(o) ? rejected.text : o.status === "overflow" ? OVERFLOW_TEXT : null;
+    const note = rejected?.key === keyOf(o) ? rejected.text
+      : o.status === "overflow" ? OVERFLOW_TEXT
+        : o.status === "closed" ? CLOSED_TEXT
+          // BG-006: lo mismo que avisa el alta — el destino cede sus montos al elemento que recibe.
+          : o.status === "ok" && o.carries ? `Los montos de ${o.name} pasarán a ${node.name}` : null;
     return (
       <button
         key={keyOf(o)}

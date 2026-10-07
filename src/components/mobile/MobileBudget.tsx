@@ -31,6 +31,9 @@ import { WithdrawalsScreen } from "./WithdrawalsScreen";
 import { Button } from "../ui/button";
 import { BUDGET_LIST, CLOSURE, ORGANIZE, openScreen, parentOf, replaceScreen, type Detail } from "./screenStack";
 
+/** Las pantallas que recuerdan su desplazamiento al volver a ellas. */
+const REMEMBERED = new Set(["list", "organize"]);
+
 /**
  * El elemento de la estructura al que apunta una pantalla de gestión, o por qué el enlace está roto.
  *
@@ -53,7 +56,8 @@ function managedNode(detail: Detail | null, nodes: LedgerNode[]): { node: Ledger
   }
   if (detail.kind === "new" && detail.parentId !== null) {
     const node = findNode(nodes, detail.parentId) ?? null;
-    return { node, broken: node === null || node.level === "sub" };
+    // BG-004: bajo una subcategoría o bajo un elemento del sistema no se crea nada.
+    return { node, broken: node === null || node.level === "sub" || !!node.system };
   }
   return { node: null, broken: false };
 }
@@ -146,14 +150,15 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
   useLayoutEffect(() => {
     if (!active) return;
     shownKey.current = screenKey;
-    // La lista recupera su posición; una pantalla de detalle se abre siempre desde arriba.
-    window.scrollTo(0, screenKey === "list" ? (scrolls.current.get("list") ?? 0) : 0);
+    // La lista y Organizar recuperan su posición (con 40 categorías, volver arriba cada vez obliga a
+    // buscar de nuevo); las demás pantallas se abren siempre desde arriba.
+    window.scrollTo(0, REMEMBERED.has(screenKey) ? (scrolls.current.get(screenKey) ?? 0) : 0);
   }, [active, screenKey]);
   // Se recuerda el scroll de la lista mientras está a la vista, también al irse a Registrar.
   useEffect(() => {
     if (!active) return;
     const onScroll = () => {
-      if (shownKey.current === "list") scrolls.current.set("list", window.scrollY);
+      if (REMEMBERED.has(shownKey.current)) scrolls.current.set(shownKey.current, window.scrollY);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
