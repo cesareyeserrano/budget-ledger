@@ -1,0 +1,718 @@
+{
+  "project_name": "Ledger (T-Ledger) — gestion-movil",
+  "project_summary": "Segunda entrega del presupuesto en el teléfono (BL-089), continuación de presupuesto-movil. A ≤760px, desde la vista de presupuesto se gestiona la estructura —crear, renombrar, cambiar ícono, borrar y mover grupos, categorías y subcategorías, incluido convertir en grupo y bajar de nivel— y se cierra o reabre el mes, con las mismas funciones de dominio, acciones del store y reglas que escritorio. No añade reglas de negocio: lleva al teléfono lo que escritorio ya hace. North Star KPI: las siete operaciones (crear, renombrar, ícono, borrar, mover, cerrar, reabrir) se completan en el teléfono y dejan el libro idéntico a como lo dejaría la misma operación en escritorio. JTBD: ordenar mis categorías y cerrar el mes desde el bolsillo, sin esperar al computador. Guardrail: ninguna regla se relaja ni cambia —lo que escritorio bloquea, el teléfono lo bloquea con el mismo motivo— y escritorio y la primera entrega del teléfono no cambian.",
+  "functional_requirements": [
+    {
+      "id": "FR-3201",
+      "title": "Cada elemento de la vista de presupuesto del teléfono ofrece sus acciones de estructura",
+      "description": "When el usuario está en la vista de presupuesto del teléfono, the system shall ofrecer para cada grupo, categoría y subcategoría una entrada a sus acciones (renombrar, cambiar ícono, mover, borrar, añadir dentro), y para cada tipo (Gasto, Ingreso, Reservas) la acción de añadir un grupo. La entrada no reemplaza lo que hoy hace tocar la fila (abrir su detalle, plegar). Las acciones que no aplican a un elemento no se ofrecen: un tipo no se renombra, mueve ni borra; una subcategoría no admite «añadir dentro»; un elemento marcado como del sistema no ofrece renombrar ni borrar. La forma (menú por fila, modo de edición u otra) se decide en la fase de UX con maquetas.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 375px, la fila de la categoría Mercado ofrece una entrada de acciones de al menos 40×40px que lista: renombrar, cambiar ícono, mover, borrar y añadir subcategoría.",
+        "Tocar el nombre o las cifras de Mercado sigue abriendo su detalle, igual que antes de esta feature (no se pierde la navegación existente).",
+        "La fila del tipo Gasto ofrece solo «añadir grupo»: no hay renombrar, mover ni borrar (negativo).",
+        "La fila de una subcategoría no ofrece «añadir dentro» (negativo: el techo son 3 niveles).",
+        "Un elemento con system=true no ofrece renombrar ni borrar (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3202",
+      "title": "Desde el teléfono se crean grupos, categorías y subcategorías",
+      "description": "When el usuario elige añadir un grupo a un tipo, una categoría a un grupo o una subcategoría a una categoría, escribe un nombre y confirma, the system shall crear el elemento con la misma acción que escritorio (createNode) y mostrarlo en la lista en su lugar. Al crear el primer hijo de una hoja con montos, los montos se trasladan íntegros al hijo y el total del padre no cambia (FR-002 y FR-604 de escritorio). Sin nombre no se crea nada.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al añadir el grupo «Mascotas» al tipo Gasto, aparece al final de los grupos de Gasto y queda disponible como destino para categorías nuevas.",
+        "Al añadir la categoría «Veterinario» al grupo Mascotas, aparece dentro de Mascotas y el selector de «Registrar» la ofrece para un gasto.",
+        "Con la categoría Mercado como hoja con Pres. 800 en octubre, al crearle la primera subcategoría «Frutas», Frutas queda con 800 y Mercado sigue mostrando 800 (borde: traslado al primer hijo).",
+        "Con el grupo-hoja Mascotas con Ejec. 300, al crearle su primera categoría esta queda con 300 y el grupo sigue en 300 (borde).",
+        "Confirmar con el nombre vacío o solo espacios no crea ningún elemento y el número de nodos no cambia (negativo).",
+        "El elemento nuevo se crea del mismo tipo que su padre; no existe forma de crear una categoría de Ingreso dentro de un grupo de Gasto (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3203",
+      "title": "Desde el teléfono se renombra un elemento",
+      "description": "When el usuario elige renombrar un grupo, categoría o subcategoría, cambia el texto y confirma, the system shall guardar el nombre nuevo con la misma acción que escritorio (renameNode) y mostrarlo en todas las superficies del teléfono que nombran ese elemento. Un nombre vacío o inválido conserva el anterior.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al renombrar Mercado a «Supermercado» y confirmar, la fila, el encabezado de su detalle y el selector de «Registrar» dicen Supermercado.",
+        "Al confirmar un nombre vacío, el elemento conserva «Mercado» (negativo).",
+        "Al cancelar la edición con texto cambiado, el nombre no cambia (borde).",
+        "Un nombre de 60 caracteres se guarda completo y su fila no produce desplazamiento horizontal a 375px (borde)."
+      ]
+    },
+    {
+      "id": "FR-3204",
+      "title": "Desde el teléfono se cambia el ícono de un elemento",
+      "description": "When el usuario elige cambiar el ícono de un elemento y selecciona uno, the system shall guardarlo con la misma acción que escritorio (setNodeIcon), usando el mismo catálogo buscable de íconos, y mostrarlo en la fila del elemento.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "El selector del teléfono ofrece el mismo catálogo que escritorio (al menos 40 íconos) y permite buscar por nombre.",
+        "Al elegir el ícono «carrito» para Mercado, su fila en el teléfono lo muestra, y también la grilla de escritorio tras recargar.",
+        "Cerrar el selector sin elegir conserva el ícono anterior (negativo).",
+        "A 375px el selector no produce desplazamiento horizontal y cada ícono es un objetivo de al menos 40×40px."
+      ]
+    },
+    {
+      "id": "FR-3205",
+      "title": "Desde el teléfono se borra un elemento solo cuando escritorio lo permitiría, y si no, se dice por qué",
+      "description": "When el usuario elige borrar un elemento, the system shall evaluar el bloqueo con la misma función que escritorio (deleteBlockReason). Si no hay bloqueo, pide confirmación nombrando el elemento y, al confirmar, lo borra con la misma acción (deleteNode). Si hay bloqueo, no borra y dice el motivo en palabras: tiene elementos dentro, tiene valores (presupuestado, ejecutado o saldo de alcancía) o tiene operaciones que quedarían rotas. La opción de borrar no se esconde cuando está bloqueada.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con la categoría «Prueba» sin hijos, sin valores y sin movimientos, al borrar y confirmar desaparece de la lista y de los selectores de «Registrar».",
+        "Con Mercado con Ejec. 100 en cualquier periodo, al intentar borrarla no se borra y se lee que tiene valores y hay que vaciarla primero (negativo).",
+        "Con un grupo que tiene categorías, al intentar borrarlo no se borra y se lee que tiene elementos dentro (negativo).",
+        "Con una alcancía sin celdas pero con saldo 500 recibido por un traslado, al intentar borrarla no se borra y se lee que tiene valores (negativo).",
+        "Al cancelar la confirmación, el elemento sigue en la lista (borde).",
+        "Al borrar la última categoría de un grupo, el grupo queda como hoja editable en 0 (borde, FR-605 de escritorio)."
+      ]
+    },
+    {
+      "id": "FR-3206",
+      "title": "Desde el teléfono se mueve un elemento con «Mover a…», incluido convertir en grupo y bajar de nivel",
+      "description": "When el usuario elige «Mover a…» sobre un grupo, categoría o subcategoría, the system shall listar los destinos de su mismo tipo —la raíz del tipo (convertir en grupo), otros grupos y categorías— y, al elegir uno, aplicar el movimiento con la misma acción que escritorio (moveNode): el elemento y todo lo que tiene dentro cambian de nivel juntos, conservan sus montos y sus movimientos, y nunca cruzan de tipo. Un destino que haría caer algún descendiente por debajo de subcategoría se muestra bloqueado con el aviso de escritorio («Vacía o mueve las subcategorías primero»). No hay arrastre en el teléfono.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Al mover la categoría Restaurantes (Ejec. 400) del grupo Comida al grupo Ocio, aparece dentro de Ocio con 400, Comida baja 400, Ocio sube 400 y el total de Gasto no cambia.",
+        "Tras ese movimiento, los movimientos de Restaurantes siguen listados en su detalle (cero huérfanos).",
+        "Al elegir «convertir en grupo» sobre una categoría con dos subcategorías, queda como grupo de su tipo y sus dos subcategorías pasan a categorías.",
+        "Al mover un grupo sin hijos dentro de otro grupo del mismo tipo, queda como categoría de ese grupo con sus montos.",
+        "La lista de destinos de un elemento de Gasto no contiene ningún destino de Ingreso ni de Reservas (negativo).",
+        "Al intentar bajar un grupo que tiene categorías con subcategorías dentro de otro grupo, el destino aparece bloqueado con «Vacía o mueve las subcategorías primero» y el libro no cambia (negativo).",
+        "La lista de destinos no ofrece el propio elemento ni ninguno de sus descendientes (borde)."
+      ]
+    },
+    {
+      "id": "FR-3207",
+      "title": "Desde el teléfono se cierra el mes cerrable, con un paso de confirmación",
+      "description": "When hay un periodo cerrable y el usuario elige cerrarlo desde el teléfono, the system shall nombrar el periodo que se va a cerrar (con el rango del ciclo cuando aplica), pedir confirmación y, al confirmar, cerrarlo con la misma acción que escritorio (closeMonth), que no propone el mes al servidor. Si el cierre está bloqueado (celdas descuadradas, FR-2512), el control no se deja pulsar y muestra el motivo completo, calculado con la misma función que escritorio. Si no hay nada que cerrar, el control lo dice. El paso de confirmación es propio del teléfono (confirmado por el usuario el 6-oct-2026): en escritorio cerrar es un clic; en una pantalla táctil un toque accidental cerraría el mes.",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con septiembre como mes cerrable, el control del teléfono dice «Cerrar septiembre»; al confirmar, septiembre queda cerrado en el teléfono y, tras recargar, también en escritorio.",
+        "El periodo que el control nombra es el mismo que queda cerrado en el servidor (FR-2703).",
+        "Al cancelar la confirmación, ningún periodo se cierra (borde).",
+        "Con una celda descuadrada en septiembre, el control está deshabilitado y el motivo se lee completo, sin recortar, a 375px (negativo).",
+        "Dos toques seguidos en confirmar cierran un solo periodo, no dos (borde).",
+        "Sin ningún periodo cerrable, no hay acción de cerrar disponible (negativo)."
+      ]
+    },
+    {
+      "id": "FR-3208",
+      "title": "Desde el teléfono se reabre el último mes cerrado",
+      "description": "When hay un último periodo cerrado y el usuario elige reabrirlo desde el teléfono, the system shall nombrarlo, pedir confirmación y reabrirlo con la misma acción que escritorio (reopenMonth). Mientras haya un periodo reabierto no se ofrece reabrir otro, y el control dice cuál está reabierto (FR-2005).",
+      "priority": "MUST",
+      "type": "logic",
+      "acceptance_criteria": [
+        "Con agosto y septiembre cerrados, el control ofrece «Reabrir septiembre» y no agosto; al confirmar, septiembre vuelve a admitir cambios en el teléfono.",
+        "Con septiembre reabierto, el control dice «septiembre reabierto» y no ofrece reabrir agosto (negativo).",
+        "Sin ningún periodo cerrado, no hay acción de reabrir (negativo).",
+        "Al cancelar la confirmación, el periodo sigue cerrado (borde)."
+      ]
+    },
+    {
+      "id": "FR-3209",
+      "title": "FR-3112 cambia: el aviso de periodo cerrado ya no manda a escritorio",
+      "description": "When el periodo elegido en el teléfono está cerrado, the system shall seguir mostrando sus cifras sin ninguna vía de cambio (FR-3112 se conserva en eso), pero el aviso deja de decir que reabrir se hace en escritorio: indica que se reabre desde el cierre de mes y, si ese periodo es el reabrible, da acceso a la acción. Es el change request a presupuesto-movil FR-3112.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "En septiembre cerrado y reabrible, el aviso del teléfono no contiene la palabra «escritorio» y lleva a la acción de reabrir.",
+        "En agosto cerrado con septiembre también cerrado, el aviso explica que solo se reabre el último mes cerrado y no ofrece reabrir agosto (negativo).",
+        "En septiembre cerrado, el Presupuestado y los movimientos siguen sin ofrecer edición (negativo: FR-3112 no se relaja).",
+        "Al reabrir septiembre desde el aviso, las acciones de edición vuelven a aparecer sin recargar (borde)."
+      ]
+    },
+    {
+      "id": "FR-3210",
+      "title": "Las pantallas nuevas caben en el teléfono y se tocan con el dedo",
+      "description": "When cualquiera de las pantallas nuevas (acciones, nombre, selector de ícono, destinos de «Mover a…», confirmaciones, control de cierre) se muestra entre 360px y 760px de ancho, the system shall presentarla sin desborde horizontal de página, con objetivos táctiles de al menos 40×40px (token --control-md) y contraste de texto ≥4,5:1 en tema claro y oscuro.",
+      "priority": "MUST",
+      "type": "UX",
+      "acceptance_criteria": [
+        "A 375px y a 360px, el ancho de desplazamiento del documento es igual al del viewport en cada pantalla nueva, con una holgura de al menos 4px en los textos que caben justos (la letra de Linux es más ancha).",
+        "Cada control tocable de las pantallas nuevas mide al menos 40×40px; uno de 32px hace fallar la prueba (negativo).",
+        "Con un nombre de 60 caracteres, la lista de destinos y el diálogo de borrar no desbordan a 360px (borde).",
+        "En tema claro y oscuro, los textos de las pantallas nuevas cumplen contraste ≥4,5:1 sobre su fondo."
+      ]
+    },
+    {
+      "id": "FR-3211",
+      "title": "Lo que se cambia en el teléfono queda guardado y se ve en escritorio, y al revés",
+      "description": "When el usuario aplica desde el teléfono un cambio de estructura o un cierre, the system shall guardarlo por el mismo camino que escritorio (el guardado del libro y la ruta de cierre que ya existen) y publicarlo por la misma sincronización. Si el servidor rechaza o no responde, se muestra el aviso de guardado que ya existe y el cambio no se da por guardado.",
+      "priority": "MUST",
+      "type": "persistence",
+      "acceptance_criteria": [
+        "Tras crear «Mascotas» en el teléfono y recargar la página, Mascotas sigue en la lista.",
+        "Tras crear «Mascotas» en el teléfono, la grilla de escritorio de la misma cuenta la muestra al recargar.",
+        "Una categoría renombrada en escritorio aparece con el nombre nuevo en el teléfono al recargar (borde: sentido inverso).",
+        "Con el servidor respondiendo error al guardado, el teléfono muestra el aviso de guardado existente y, al recargar, el libro es el del servidor, sin el cambio (negativo).",
+        "Ninguna operación de esta feature llama a una ruta de /api/v1 que no existiera antes (negativo)."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del libro en el teléfono (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Ordenar sus categorías y cerrar el mes desde el teléfono, en el momento en que lo nota, sin esperar al computador.",
+      "pain_point": "Desde la primera entrega ve y ajusta el presupuesto en el teléfono, pero si falta una categoría, está mal nombrada o en el grupo equivocado, o toca cerrar el mes, tiene que ir a escritorio."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-3201",
+      "requirement_id": "FR-3201",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "encontrar en cada fila qué puedo hacer con ese elemento",
+      "so_that": "no tenga que adivinar ni ir al computador para ordenar mis categorías",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3201",
+          "given": "la vista de presupuesto a 375px con la categoría Mercado",
+          "when": "abro sus acciones",
+          "then": "veo renombrar, cambiar ícono, mover, borrar y añadir subcategoría"
+        },
+        {
+          "id": "AC-3202",
+          "given": "la fila del tipo Gasto",
+          "when": "abro sus acciones",
+          "then": "solo veo «añadir grupo»"
+        },
+        {
+          "id": "AC-3203",
+          "given": "la fila de Mercado",
+          "when": "toco su nombre",
+          "then": "se abre su detalle como antes"
+        },
+        {
+          "id": "AC-3204",
+          "given": "una subcategoría",
+          "when": "abro sus acciones",
+          "then": "no existe «añadir dentro»"
+        }
+      ]
+    },
+    {
+      "id": "US-3202",
+      "requirement_id": "FR-3202",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "crear un grupo, una categoría o una subcategoría",
+      "so_that": "pueda anotar un gasto nuevo en su sitio en el momento",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3205",
+          "given": "el tipo Gasto",
+          "when": "añado el grupo «Mascotas» y confirmo",
+          "then": "Mascotas aparece al final de los grupos de Gasto"
+        },
+        {
+          "id": "AC-3206",
+          "given": "Mercado como hoja con Pres. 800 en octubre",
+          "when": "le creo la subcategoría «Frutas»",
+          "then": "Frutas tiene 800 y Mercado sigue en 800"
+        },
+        {
+          "id": "AC-3207",
+          "given": "el formulario de nombre abierto",
+          "when": "confirmo con el nombre vacío",
+          "then": "no se crea nada y la lista tiene los mismos elementos"
+        },
+        {
+          "id": "AC-3208",
+          "given": "el grupo-hoja Mascotas con Ejec. 300",
+          "when": "le creo su primera categoría",
+          "then": "la categoría tiene 300 y el grupo sigue en 300"
+        }
+      ]
+    },
+    {
+      "id": "US-3203",
+      "requirement_id": "FR-3203",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "corregir el nombre de un elemento",
+      "so_that": "mis categorías digan lo que son",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3209",
+          "given": "la categoría Mercado",
+          "when": "la renombro a «Supermercado» y confirmo",
+          "then": "la fila, su detalle y el selector de Registrar dicen Supermercado"
+        },
+        {
+          "id": "AC-3210",
+          "given": "renombrando Mercado",
+          "when": "confirmo un nombre vacío",
+          "then": "sigue llamándose Mercado"
+        },
+        {
+          "id": "AC-3211",
+          "given": "renombrando Mercado con texto cambiado",
+          "when": "cancelo",
+          "then": "sigue llamándose Mercado"
+        }
+      ]
+    },
+    {
+      "id": "US-3204",
+      "requirement_id": "FR-3204",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "cambiar el ícono de un elemento",
+      "so_that": "lo reconozca de un vistazo en la lista",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3212",
+          "given": "el selector de íconos de Mercado",
+          "when": "busco «carrito» y lo elijo",
+          "then": "la fila de Mercado muestra el carrito"
+        },
+        {
+          "id": "AC-3213",
+          "given": "el selector abierto",
+          "when": "lo cierro sin elegir",
+          "then": "Mercado conserva su ícono anterior"
+        }
+      ]
+    },
+    {
+      "id": "US-3205",
+      "requirement_id": "FR-3205",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "borrar un elemento que ya no uso, o saber por qué no puedo",
+      "so_that": "limpie mi lista sin perder datos por accidente",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3214",
+          "given": "la categoría «Prueba» sin hijos, valores ni movimientos",
+          "when": "la borro y confirmo",
+          "then": "desaparece de la lista y de los selectores"
+        },
+        {
+          "id": "AC-3215",
+          "given": "Mercado con Ejec. 100 en septiembre",
+          "when": "intento borrarla",
+          "then": "no se borra y leo que tiene valores"
+        },
+        {
+          "id": "AC-3216",
+          "given": "un grupo con dos categorías",
+          "when": "intento borrarlo",
+          "then": "no se borra y leo que tiene elementos dentro"
+        },
+        {
+          "id": "AC-3217",
+          "given": "la confirmación de borrar abierta",
+          "when": "cancelo",
+          "then": "el elemento sigue en la lista"
+        }
+      ]
+    },
+    {
+      "id": "US-3206",
+      "requirement_id": "FR-3206",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "mover un elemento a otro lugar eligiendo el destino de una lista",
+      "so_that": "reordene mi estructura sin arrastrar con el dedo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3218",
+          "given": "Restaurantes con Ejec. 400 dentro de Comida",
+          "when": "la muevo a Ocio",
+          "then": "aparece en Ocio con 400, Comida baja 400 y el total de Gasto no cambia"
+        },
+        {
+          "id": "AC-3219",
+          "given": "una categoría con dos subcategorías",
+          "when": "elijo convertirla en grupo",
+          "then": "queda como grupo y sus subcategorías como categorías"
+        },
+        {
+          "id": "AC-3220",
+          "given": "un elemento de Gasto",
+          "when": "abro «Mover a…»",
+          "then": "ningún destino es de Ingreso ni de Reservas"
+        },
+        {
+          "id": "AC-3221",
+          "given": "un grupo con categorías que tienen subcategorías",
+          "when": "intento bajarlo dentro de otro grupo",
+          "then": "el destino está bloqueado con «Vacía o mueve las subcategorías primero» y nada cambia"
+        },
+        {
+          "id": "AC-3222",
+          "given": "un grupo sin hijos con Pres. 200",
+          "when": "lo muevo dentro de otro grupo del mismo tipo",
+          "then": "queda como categoría de ese grupo con 200"
+        }
+      ]
+    },
+    {
+      "id": "US-3207",
+      "requirement_id": "FR-3207",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "cerrar el mes sabiendo exactamente cuál se cierra",
+      "so_that": "congele sus cifras sin ir al computador y sin cerrarlo por un toque accidental",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3223",
+          "given": "septiembre como mes cerrable",
+          "when": "elijo cerrar y confirmo",
+          "then": "septiembre queda cerrado y es el mismo mes que nombraba el control"
+        },
+        {
+          "id": "AC-3224",
+          "given": "la confirmación de cierre abierta",
+          "when": "cancelo",
+          "then": "ningún periodo se cierra"
+        },
+        {
+          "id": "AC-3225",
+          "given": "una celda descuadrada en septiembre",
+          "when": "abro el control de cierre",
+          "then": "no se deja pulsar y leo el motivo completo"
+        },
+        {
+          "id": "AC-3226",
+          "given": "la confirmación de cierre",
+          "when": "toco confirmar dos veces seguidas",
+          "then": "se cierra un solo periodo"
+        }
+      ]
+    },
+    {
+      "id": "US-3208",
+      "requirement_id": "FR-3208",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "reabrir el último mes cerrado",
+      "so_that": "corrija un error que descubrí después de cerrar",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3227",
+          "given": "agosto y septiembre cerrados",
+          "when": "abro el control",
+          "then": "ofrece reabrir septiembre y no agosto"
+        },
+        {
+          "id": "AC-3228",
+          "given": "septiembre reabierto",
+          "when": "abro el control",
+          "then": "dice «septiembre reabierto» y no ofrece reabrir agosto"
+        },
+        {
+          "id": "AC-3229",
+          "given": "la confirmación de reabrir",
+          "when": "cancelo",
+          "then": "septiembre sigue cerrado"
+        }
+      ]
+    },
+    {
+      "id": "US-3209",
+      "requirement_id": "FR-3209",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "que el aviso de periodo cerrado me diga cómo reabrirlo aquí mismo",
+      "so_that": "no me mande al computador para algo que ya puedo hacer en el teléfono",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3230",
+          "given": "septiembre cerrado y reabrible",
+          "when": "lo miro en el teléfono",
+          "then": "el aviso no menciona escritorio y lleva a reabrir"
+        },
+        {
+          "id": "AC-3231",
+          "given": "agosto cerrado con septiembre también cerrado",
+          "when": "miro agosto",
+          "then": "el aviso dice que solo se reabre el último cerrado y no ofrece reabrir agosto"
+        },
+        {
+          "id": "AC-3232",
+          "given": "septiembre cerrado",
+          "when": "toco el Presupuestado de Mercado",
+          "then": "no se abre edición"
+        }
+      ]
+    },
+    {
+      "id": "US-3210",
+      "requirement_id": "FR-3210",
+      "as_a": "dueño del libro usando el teléfono",
+      "i_want": "que las pantallas nuevas quepan y los botones se dejen tocar",
+      "so_that": "no falle el toque ni tenga que desplazar de lado",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3233",
+          "given": "cada pantalla nueva a 360px",
+          "when": "se muestra",
+          "then": "el ancho de desplazamiento del documento es igual al del viewport"
+        },
+        {
+          "id": "AC-3234",
+          "given": "un control tocable de 32px",
+          "when": "corre la prueba de tamaño",
+          "then": "falla: el mínimo es 40×40px"
+        },
+        {
+          "id": "AC-3235",
+          "given": "un elemento con nombre de 60 caracteres",
+          "when": "abro «Mover a…» a 360px",
+          "then": "la lista no desborda"
+        }
+      ]
+    },
+    {
+      "id": "US-3211",
+      "requirement_id": "FR-3211",
+      "as_a": "dueño del libro que alterna teléfono y computador",
+      "i_want": "que lo que cambio en uno esté en el otro",
+      "so_that": "tenga un solo libro",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3236",
+          "given": "«Mascotas» creada en el teléfono",
+          "when": "recargo en escritorio",
+          "then": "la grilla muestra Mascotas"
+        },
+        {
+          "id": "AC-3237",
+          "given": "el servidor respondiendo error al guardado",
+          "when": "creo un grupo en el teléfono",
+          "then": "veo el aviso de guardado y al recargar el grupo no está"
+        },
+        {
+          "id": "AC-3238",
+          "given": "una categoría renombrada en escritorio",
+          "when": "recargo el teléfono",
+          "then": "muestra el nombre nuevo"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-3201",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Escritorio (>760px) no cambia: la grilla, arrastrar para mover, la edición en línea, el selector de íconos y el control de cierre con su historial y sus textos.",
+      "acceptance_criteria": "Las suites e2e de escritorio vigentes siguen en verde sin tocar sus aserciones; a 1440px cerrar el mes sigue siendo un clic sin diálogo."
+    },
+    {
+      "id": "NFR-3202",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Lo que presupuesto-movil dejó en el teléfono sigue igual: ver el periodo, cambiar lo planeado, editar y borrar movimientos, alcancías, retiros del mes, Balance y el resumen de saldos.",
+      "acceptance_criteria": "Las pruebas vigentes de presupuesto-movil siguen en verde; la única aserción que cambia a propósito es el texto del aviso de periodo cerrado (FR-3209)."
+    },
+    {
+      "id": "NFR-3203",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El registro de movimientos del teléfono sigue igual y conserva lo escrito al pasar a presupuesto y volver.",
+      "acceptance_criteria": "Con 50.000 escritos en «Registrar», ir a presupuesto, abrir las acciones de una categoría y volver deja 50.000 en el campo; las pruebas vigentes del registro siguen en verde."
+    },
+    {
+      "id": "NFR-3204",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Las reglas de borrado no se relajan: un elemento con hijos, con valores, con saldo de alcancía o con operaciones que quedarían rotas no se borra, venga la orden del teléfono o del computador.",
+      "acceptance_criteria": "Para el mismo libro, deleteBlockReason devuelve el mismo motivo en teléfono y escritorio para cada elemento; un elemento bloqueado sigue existiendo tras intentar borrarlo en el teléfono."
+    },
+    {
+      "id": "NFR-3205",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El cierre sigue en orden, mes a mes desde el inicio declarado (FR-2002, FR-2702); reabrir sigue alcanzando solo al último cerrado (FR-2005); la app sigue sin cerrar nada por su cuenta (FR-2006).",
+      "acceptance_criteria": "Desde el teléfono no existe forma de cerrar un mes distinto del cerrable ni de reabrir uno distinto del último cerrado; una petición de cierre fuera de orden al servidor se sigue rechazando."
+    },
+    {
+      "id": "NFR-3206",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Un periodo cerrado sigue sin admitir cambios de cifras desde el teléfono (FR-2003, FR-3112).",
+      "acceptance_criteria": "En un periodo cerrado, el Presupuestado, los movimientos, las alcancías y los retiros no ofrecen edición, y un guardado que cambie una cifra cerrada responde 422 closed_period_violation."
+    },
+    {
+      "id": "NFR-3207",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El dashboard y la grilla de 12 meses siguen sin renderizarse en el teléfono, y el corte sigue en 760px.",
+      "acceptance_criteria": "A 375px no existen en el DOM la grilla de 12 meses ni el dashboard; a 760px se monta mobile-shell y a 761px desktop-shell."
+    },
+    {
+      "id": "NFR-3208",
+      "category": "Security",
+      "requirement": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas en el servidor; el teléfono usa las mismas acciones y el mismo /api/v1 autenticado, validado y filtrado por dueño que escritorio.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api; el gate de seguridad existente sigue en verde."
+    },
+    {
+      "id": "NFR-3209",
+      "category": "Observability",
+      "requirement": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-3210",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "acceptance_criteria": "El workflow de CI ejecuta test:run y test:e2e e incluye las specs nuevas por su patrón de archivo."
+    }
+  ],
+  "no_go_zone": [
+    "El dashboard en el teléfono: decisión del usuario del 2-oct-2026 («ok, el dashboard queda fuera»).",
+    "Arrastrar para mover en el teléfono: se usa «Mover a…» (definido en BL-089).",
+    "Cambiar el orden de un elemento entre sus hermanos (subir / bajar): escritorio no lo tiene —mover solo cambia de padre o de nivel— y esta entrega no añade reglas nuevas. El borrador de la idea lo suponía; se retira al comprobarlo en el código el 6-oct-2026.",
+    "El historial de cierres y reaperturas en el teléfono (FR-2011): se sigue consultando en escritorio. No estaba en BL-089; si hace falta, es un añadido posterior.",
+    "El aviso de meses terminados sin cerrar (FR-2006) en el teléfono: el control de cierre ya dice qué mes se puede cerrar; el aviso no bloqueante sigue siendo de escritorio.",
+    "Reglas de negocio nuevas o distintas para categorías o para el cierre: el teléfono hace lo mismo que escritorio.",
+    "Añadir comentarios de celda, teclear el Ejecutado sobre la celda y planear retiros desde el teléfono: siguen como los dejó presupuesto-movil.",
+    "Fusionar elementos o mover los movimientos de una categoría a otra como operación propia.",
+    "Cambios en Configuración (saldo inicial, ciclos, horizonte): ya funciona en el teléfono y no se toca.",
+    "Cambios en el servidor, rutas nuevas o cambios de esquema.",
+    "Escritura incremental del libro (BL-017) y una app nativa."
+  ],
+  "constraints": [
+    "El teléfono no implementa reglas: usa las funciones de dominio (createNode, renameNode, setNodeIcon, deleteBlockReason, deleteNode, moveNode, nextClosable, el motivo de bloqueo del cierre) y las acciones del store que usa escritorio.",
+    "Sin endpoints ni cambios de esquema.",
+    "Es una app WEB en el navegador del teléfono: navegación arriba y detalle como entradas del historial del navegador, como en presupuesto-movil.",
+    "Las pruebas de ancho exigen holgura: Linux mide el texto unos 3px más ancho que macOS."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "BL-089: corte en dos entregas aceptado por el usuario el 2-oct-2026 («está bien en segunda entrega»); el 6-oct-2026 el usuario eligió continuar con ella («vamos con la otra BL-089», «ok sigamos con esa continuación»).",
+    "users": "El usuario habla de sus propias finanzas; es el usuario único de producción (confirmado en presupuesto-movil).",
+    "baseline": "El usuario el 2-oct-2026: «la app ya lo permite desde desktop»; comprobado en el código el 6-oct-2026: src/components/mobile no tiene acciones de estructura ni control de cierre, y FR-3112 manda a reabrir en escritorio.",
+    "success_metric": "Propuesto por el agente y confirmado por el usuario en el chat del 6-oct-2026 («ok» a los tres puntos presentados antes de aprobar): mismas operaciones, mismo resultado y mismos bloqueos que escritorio.",
+    "no_go_zone": "Dashboard fuera y «Mover a…» en vez de arrastrar: decisiones del usuario (2-oct-2026, BL-089). El resto —orden entre hermanos, historial de cierres y aviso de meses sin cerrar solo en escritorio— lo propuso el agente y el usuario lo confirmó en el chat del 6-oct-2026 («ok»)."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Crear grupos, categorías y subcategorías desde el teléfono",
+      "disposition": "FR-3202"
+    },
+    {
+      "need": "Renombrar un elemento desde el teléfono; nombre vacío conserva el anterior",
+      "disposition": "FR-3203"
+    },
+    {
+      "need": "Cambiar el ícono con el mismo catálogo de escritorio",
+      "disposition": "FR-3204"
+    },
+    {
+      "need": "Borrar solo cuando escritorio lo permitiría, diciendo el motivo del bloqueo",
+      "disposition": "FR-3205"
+    },
+    {
+      "need": "Mover con «Mover a…» en vez de arrastrar, listando solo destinos válidos",
+      "disposition": "FR-3206"
+    },
+    {
+      "need": "Convertir una categoría en grupo y bajar un grupo de nivel",
+      "disposition": "FR-3206"
+    },
+    {
+      "need": "Cambiar el orden de un elemento entre sus hermanos (suposición del borrador)",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cerrar el mes cerrable nombrando el mes, con confirmación y motivo si no se puede",
+      "disposition": "FR-3207"
+    },
+    {
+      "need": "Reabrir el último mes cerrado con confirmación",
+      "disposition": "FR-3208"
+    },
+    {
+      "need": "Impedir los mismos cambios que escritorio impide sobre periodos cerrados",
+      "disposition": "NFR-3206"
+    },
+    {
+      "need": "El aviso de periodo cerrado deja de mandar a escritorio (cambio a FR-3112)",
+      "disposition": "FR-3209"
+    },
+    {
+      "need": "Una entrada a las acciones de estructura en la vista de presupuesto del teléfono",
+      "disposition": "FR-3201"
+    },
+    {
+      "need": "Los cambios quedan guardados y se ven en escritorio y al revés",
+      "disposition": "FR-3211"
+    },
+    {
+      "need": "Mismo resultado en el libro que la operación hecha en escritorio",
+      "disposition": "FR-3211"
+    },
+    {
+      "need": "A 375px todo cabe sin desplazamiento horizontal y se toca con el dedo",
+      "disposition": "FR-3210"
+    },
+    {
+      "need": "Escritorio no cambia",
+      "disposition": "NFR-3201"
+    },
+    {
+      "need": "La primera entrega del teléfono sigue igual",
+      "disposition": "NFR-3202"
+    },
+    {
+      "need": "El registro del teléfono sigue igual y conserva lo escrito",
+      "disposition": "NFR-3203"
+    },
+    {
+      "need": "Las reglas de borrado no se relajan",
+      "disposition": "NFR-3204"
+    },
+    {
+      "need": "El cierre sigue en orden y reabrir solo alcanza al último",
+      "disposition": "NFR-3205"
+    },
+    {
+      "need": "Un periodo cerrado sigue sin admitir cambios de cifras",
+      "disposition": "NFR-3206"
+    },
+    {
+      "need": "Dashboard y grilla de 12 meses siguen fuera del teléfono",
+      "disposition": "NFR-3207"
+    },
+    {
+      "need": "El dashboard en el teléfono",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Arrastrar para mover en el teléfono",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Comentarios de celda, teclear Ejecutado y planear retiros desde el teléfono",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar reglas de negocio de categorías o de cierre",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambios en Configuración",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Escritura incremental del libro y app nativa",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- AGENT: if you fill this for the user, confirm the ground-truth fields\n     (Problem / Why, Target Users, Success Criteria, Out of Scope) with them —\n     do not silently infer. Mark anything you inferred as \"[ASSUMPTION] …\".\n     Phase 1 records these as a provenance contract and blocks unconfirmed,\n     untracked guesses on the highest-value inputs. -->\n\n<!-- Origen: BL-089, la segunda entrega del presupuesto en el teléfono (corte aceptado por el usuario\n     el 2026-10-02). La primera fue la feature presupuesto-movil. El bloqueo que tenía cerrar desde el\n     teléfono (BL-055) ya lo resolvió la feature cierre-coherente: no queda nada previo por decidir. -->\n\n## Feature\nDesde el teléfono se gestionan las categorías (crear, renombrar, cambiar ícono, borrar y mover) y se cierra o reabre el mes, sin tener que ir al computador.\n\n## Problem / Why\nEn el teléfono hoy se ve el presupuesto y se cambian las cifras, pero la estructura es de solo lectura: si falta una categoría, tiene mal el nombre o está en el grupo equivocado, hay que esperar a estar en el computador. Lo mismo con el cierre: el mes solo se cierra o se reabre desde escritorio. Quien lleva el día a día desde el teléfono se queda a medias justo en las dos tareas que ordenan el libro.\n\n## Target Users\nEl dueño de la cuenta cuando usa T-Ledger en el teléfono (pantalla de 760 px o menos). No hay usuarios nuevos.\n\n## New Behavior\n- El sistema debe permitir crear desde el teléfono un grupo, una categoría dentro de un grupo y una subcategoría dentro de una categoría, en ingresos, gastos y alcancías, con las mismas reglas de escritorio.\n- El sistema debe permitir renombrar desde el teléfono cualquier grupo, categoría o subcategoría que escritorio deje renombrar; un nombre vacío o inválido conserva el anterior.\n- El sistema debe permitir cambiar el ícono de un elemento desde el teléfono, con el mismo catálogo de íconos de escritorio.\n- El sistema debe permitir borrar un elemento desde el teléfono solo cuando escritorio lo permitiría; si está bloqueado, debe decir el motivo (tiene elementos dentro, tiene valores o tiene operaciones) en vez de esconder la opción.\n- El sistema debe permitir mover un elemento con una acción «Mover a…» que lista solo los destinos válidos, en lugar de arrastrar; mover incluye convertir una categoría en grupo y bajar un grupo a categoría, con las mismas reglas y bloqueos de escritorio.\n- [ASSUMPTION] El sistema debe permitir cambiar el orden de un elemento entre sus hermanos (subir / bajar) desde el teléfono.\n- El sistema debe permitir cerrar desde el teléfono el mes cerrable, nombrando siempre qué mes se va a cerrar y pidiendo confirmación; si no se puede cerrar, debe decir por qué, con el mismo motivo que da escritorio.\n- El sistema debe permitir reabrir desde el teléfono el último mes cerrado, con confirmación.\n- El sistema debe impedir desde el teléfono los mismos cambios de estructura que escritorio impide sobre periodos cerrados.\n- Todo cambio hecho desde el teléfono debe quedar guardado y verse en escritorio, y al revés, por el mismo camino de guardado y sincronización que ya existe.\n\n## Success Criteria\n- Dado el mismo libro, cuando se hace una operación de estructura desde el teléfono (crear, renombrar, ícono, borrar, mover, subir o bajar de nivel), entonces el libro queda idéntico a como lo dejaría la misma operación hecha en escritorio.\n- Dado un elemento que escritorio no deja borrar o mover, cuando se intenta desde el teléfono, entonces se bloquea con el mismo motivo y el libro no cambia.\n- Dado un mes cerrable, cuando se cierra desde el teléfono, entonces el mes que el botón nombra es el que queda cerrado, y el mismo mes aparece cerrado en escritorio.\n- Dado un mes que no se puede cerrar, cuando se abre el control en el teléfono, entonces se lee el motivo y no hay cierre.\n- A 375 px de ancho todas las pantallas nuevas caben sin desplazamiento horizontal y cada control se puede tocar con el dedo.\n- [ASSUMPTION] La entrega se da por buena cuando las siete operaciones (crear, renombrar, ícono, borrar, mover, cerrar, reabrir) se completan en el teléfono sobre el libro de pruebas de admin@admin.com sin abrir escritorio.\n\n## Touch Points\n- MODIFICA: la vista de presupuesto del teléfono (`src/components/mobile/` — secciones, pantalla de detalle, pila de pantallas) para sumar las acciones de estructura y el control de cierre.\n- MODIFICA: presupuesto-movil FR-3112 («un periodo cerrado se mira pero no se cambia») y su no_go_zone, que dejaban fuera de la primera entrega gestionar categorías y cerrar/reabrir.\n- REUTILIZA sin cambiar las reglas: `src/domain/mutations.ts` (crear, renombrar, ícono, borrar con su motivo, mover), promover/bajar de nivel (features promote-to-group y demote-node), `src/domain/closure.ts` y el estado de cierre de `src/state/store.ts`, la ruta de cierre del servidor.\n- No toca: el servidor ni el esquema de la base. [ASSUMPTION]\n\n## Must Not Break (Regression Boundary)\n- Escritorio no cambia: la grilla, arrastrar para mover, el control de cierre y sus textos siguen igual.\n- Lo que la primera entrega dejó en el teléfono sigue igual: ver el periodo, cambiar lo planeado, editar y borrar movimientos, alcancías, retiros del mes, Balance y el resumen de saldos.\n- El registro de movimientos del teléfono sigue igual y conserva lo escrito al cambiar de vista.\n- Las reglas de borrado no se relajan: un elemento con valores, con saldo de alcancía o con operaciones sigue sin poder borrarse.\n- El cierre sigue en orden, mes a mes desde el inicio declarado; reabrir sigue alcanzando solo al último cerrado.\n- Un periodo cerrado sigue sin admitir cambios de cifras desde el teléfono.\n- El dashboard y la grilla de 12 meses siguen sin renderizarse en el teléfono.\n\n## Out of Scope\n- El dashboard en el teléfono (decisión del usuario del 2026-10-02).\n- Arrastrar para mover en el teléfono: se usa «Mover a…».\n- Añadir comentarios de celda, teclear el Ejecutado sobre la celda y planear retiros desde el teléfono (siguen como en la primera entrega).\n- Cambiar reglas de negocio de categorías o de cierre: el teléfono hace lo mismo que escritorio, no algo distinto.\n- Cambios en Configuración (saldo inicial, ciclos, horizonte), que ya funciona en el teléfono.\n- Escritura incremental del libro (BL-017) y una app nativa.\n"
+}

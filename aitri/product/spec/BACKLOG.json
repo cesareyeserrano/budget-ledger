@@ -701,8 +701,16 @@
       "title": "Decidir que rango manda en el mes cerrable: inicio declarado (cliente) vs dato mas antiguo (servidor) — BG-040",
       "priority": "P2",
       "problem": "El boton de cierre puede NOMBRAR un mes y el servidor CERRAR otro, porque cliente y servidor derivan el mes objetivo de rangos distintos: activeBounds (src/domain/range.ts) ancla en el start_month DECLARADO y serverScope (src/server/data/ledgerRepo.ts) ancla en el dato mas antiguo; nextClosable devuelve range[0] cuando no hay nada cerrado, asi que cualquier diferencia entre los dos rangos se vuelve un mes objetivo distinto. Cerrar es una accion dificil de deshacer (FR-2005 solo deja reabrir el ultimo, de uno en uno), asi que que el boton mienta sobre lo que va a pasar es lo grave. LATENTE hoy: en admin@admin.com los dos anclajes coinciden en 2026-09 (ver la evidencia de BG-040); despierta en cuanto se declare un inicio anterior al primer dato. Arreglo con tamaño de FEATURE, no parche. OPCION A, EL DATO MANDA (alinear el cliente): el boton pasa a decir la verdad y cerrar no cambia de comportamiento, el menor riesgo; a cambio los meses declarados pero vacios se congelan sin haberlos cerrado y, como reabrir solo alcanza al ultimo, quedarian sin backfill posible. OPCION B, EL INICIO DECLARADO MANDA (alinear el servidor): nada se congela sin cerrarlo explicitamente y es lo que promete la regla de no cerrar fuera de orden (FR-2002); a cambio cambia una regla de negocio ya desplegada y obliga a cerrar mes a mes desde el inicio. Sea cual sea la elegida, necesita TCs propios que fijen que el mes que el boton NOMBRA y el que el servidor CIERRA son siempre el mismo: esa invariante no existe hoy, y por eso el fallo pudo aparecer sin que nada lo delatara. Detectado construyendo TC-DDC-211h de diario-de-celda.",
-      "status": "open",
-      "createdAt": "2026-09-18T15:58:01.178Z"
+      "status": "closed",
+      "createdAt": "2026-09-18T15:58:01.178Z",
+      "closedAt": "2026-10-06T20:31:03.196Z",
+      "log": [
+        {
+          "at": "2026-10-06T20:31:03.257Z",
+          "text": "Cerrada el 2026-10-06: ya la resolvio la feature cierre-coherente (FR-2701/2702/2703, opcion B: el inicio declarado manda; closureScope en src/server/data/ledgerRepo.ts). La entrada habia quedado abierta. BL-089 ya no tiene este bloqueo."
+        }
+      ],
+      "updatedAt": "2026-10-06T20:31:03.257Z"
     },
     {
       "id": "BL-056",
@@ -1195,6 +1203,38 @@
       "problem": "Corte del 2-oct-2026 aceptado por el usuario: BL-056 se parte en dos entregas. La primera es la feature presupuesto-movil (ver el periodo, cambiar Pres., movimientos, alcancias, Balance). Esta es la SEGUNDA: crear, renombrar, cambiar icono, borrar (bloqueado si hay datos) y mover categorias/subcategorias/grupos desde el telefono (en movil, 'Mover a...' en vez de arrastrar; incluye promover/bajar de nivel), y cerrar/reabrir el mes. Cerrar desde el telefono exige resolver BL-055 antes (el boton puede nombrar un mes y cerrar otro). El dashboard queda FUERA del movil por decision del usuario, no es parte de esta entrega.",
       "status": "open",
       "createdAt": "2026-10-03T01:14:15.895Z"
+    },
+    {
+      "id": "BL-090",
+      "title": "Subir a Next 16 por el pipeline (el PR 79 de Dependabot se revirtio)",
+      "priority": "P2",
+      "problem": "El 2026-10-06 el PR 79 (next 16.3.8) se mergeo sin verify ni prueba en dev y con eslint-config-next aun en 15; se revirtio en a359cca. Es un salto mayor: hay que subir next y eslint-config-next JUNTOS, probar en dev (:3100) y pasar verify de la raiz y del backend antes de mergear. Dependabot volvera a abrir el PR: no mergearlo suelto. Comprobado el 2026-10-06: Next 16 NO retira la excepcion de BG-091, porque @next/eslint-plugin-next 16.4.0 sigue trayendo fast-glob 3.3.1 > micromatch > braces.",
+      "status": "open",
+      "createdAt": "2026-10-06T20:18:58.774Z"
+    },
+    {
+      "id": "BL-091",
+      "title": "Revisar la excepcion de seguridad de braces antes de que venza el 2026-11-03 (BG-091)",
+      "priority": "P2",
+      "problem": "scripts/sca-excepciones.py acepta GHSA-vfj7-8cjw-p6xm hasta el 2026-11-03; desde ese dia el gate de dependencias sale en rojo en la raiz y en el backend y bloquea verify-complete. Al 2026-10-06 braces sigue en 3.0.3 sin version corregida, el unico arreglo que ofrece npm es bajar eslint-config-next a 14 (rompiente) y npm audit --omit=dev da 0 (produccion no afectada). Antes del vencimiento: mirar de nuevo si hay version corregida de braces o de la cadena del linter; si la hay, subirla y retirar la fila; si no, renovar con fecha nueva y motivo escrito, que es una decision del usuario y no una prorroga por inercia.",
+      "status": "open",
+      "createdAt": "2026-10-06T20:18:58.813Z"
+    },
+    {
+      "id": "BL-092",
+      "title": "Produccion: un comentario de una celda de gasto de 2026-11 quedo sin plano",
+      "priority": "P3",
+      "problem": "Arrastrado de la nota de sesion del 2026-10-06, donde solo vivia como pendiente. Tras BG-089 cada comentario lleva de cual de las dos celdas es; los anteriores a la migracion 0012 quedaron sin plano y se muestran en Ejecutado. En produccion hay uno en una celda de gasto de 2026-11, un mes que aun no se ejecuta, asi que es probable que sea de Presupuestado y se este viendo en la celda equivocada. Falta: que el usuario confirme a que celda pertenece y, si es de Presupuestado, corregirlo en la base de produccion (lo corre el usuario). Sin cifras ni texto del comentario aqui: el repo es publico.",
+      "status": "open",
+      "createdAt": "2026-10-06T20:18:58.854Z"
+    },
+    {
+      "id": "BL-093",
+      "title": "Movil: llegar a gestionar una categoria desde su detalle, sin pasar por Organizar",
+      "priority": "P3",
+      "problem": "Observacion del usuario el 2026-10-06 al probar gestion-movil en dev: '¿por que hacer una vista aparte para eso?'. La gestion de estructura vive en la pantalla Organizar, separada de la lista del mes; si estas mirando una categoria y quieres renombrarla o moverla hay que salir, entrar a Organizar y buscarla de nuevo. El usuario decidio dejarlo asi por ahora. Alternativas conversadas: (1) un boton de acciones en cada fila de la lista (aprieta las cifras de 9 digitos a 360 px y los grupos necesitarian un segundo punto de toque); (2) un boton 'Gestionar' en el detalle de la categoria, que abra su pantalla de elemento, manteniendo Organizar para los grupos — recomendada por el agente. Cambia el UX spec aprobado de gestion-movil: va por el pipeline.",
+      "status": "open",
+      "createdAt": "2026-10-07T03:07:20.910Z"
     }
   ]
 }

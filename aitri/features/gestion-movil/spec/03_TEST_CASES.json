@@ -1,0 +1,2056 @@
+{
+  "test_plan": {
+    "strategy": "Tres capas sobre un libro de ejemplo fijo, gmv-base (cifras inventadas, anclado al mes en curso M y al anterior M−1; ningún mes cerrado; inicio declarado M−2). Contenido — Ingresos: Trabajo>Salario 5.000/5.000. Gastos: Comida>{Mercado (hoja, ícono cart) Pres. 800 Ejec. 100 con un gasto de 100; Restaurantes 0/400 con un gasto de 400}; Ocio>{Cine 0/0; Prueba 0/0 sin movimientos}; Viajes>Vuelos>{Nacional, Internacional}; Mascotas (grupo-hoja) 200/300; Solo>{Única 0/0}. Reservas: Ahorro>{Viaje aporte 500; Colchón sin celdas con saldo 500 recibido por traslado}. Variantes: gmv-dos-cerrados (M−2 y M−1 cerrados; Mercado 900/850 en M−1), gmv-reabierto (M−2 cerrado, M−1 reabierto), gmv-al-dia, gmv-descuadre (celda de M−1 que no cuadra), gmv-vacio (sin grupos de Ingreso), gmv-sistema (un nodo system), gmv-operaciones (borrado que rompería un traslado), gmv-un-grupo y gmv-largo (nombre de 60 caracteres). UNIT (Vitest, proyecto app): organizeTree, moveDestinations, parseScreen/toSearch, deleteBlockText y la paridad de veredictos de borrado; a escala (312 nodos, 1.000 movimientos) se cuenta TRABAJO (llamadas a moveNode), nunca tiempo de reloj. INTEGRATION: jsdom con MobileBudget, el store real y el repositorio en memoria para las reglas de cada pantalla (vacíos, cancelaciones, bloqueos, carreras con otra sesión, espera y fallo del cierre); y Postgres efímero (proyecto backend) para persistencia real y los rechazos del servidor. E2E (Playwright) a 375, 360, 760, 761 y 1440 px: flujos completos, historial del navegador, ancho, tamaño táctil, contraste, color con significado y que escritorio y la primera entrega no cambian. Las fechas se anclan al mes en curso y al anterior; ninguna prueba usa skip/only/todo. Las dos aserciones vigentes del texto «en el computador» se reescriben en un commit propio (ADR-05).",
+    "coverage_goal": "Cada AC de Phase 1 con al menos un caso; el umbral de líneas es el del gate coverage vigente del proyecto.",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-GMV-001h",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "La pantalla de Mercado lista sus cinco acciones",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, Presupuesto en M",
+      "when": "tocar «Organizar» y luego la fila Mercado",
+      "then": "se abre la pantalla de Mercado con sus acciones rotuladas",
+      "steps": [
+        "tocar «Organizar» y luego la fila Mercado"
+      ],
+      "expected_result": "h1 = «Mercado», contexto «Gasto · Comida»; visibles exactamente 5 acciones en este orden: Renombrar, Cambiar ícono, Añadir subcategoría, Mover a…, Borrar; cada una ≥40 px de alto",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-002h",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "Tocar una hoja en la lista sigue abriendo su detalle",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, Presupuesto en M con Comida desplegado",
+      "when": "tocar la fila Mercado en la lista del periodo",
+      "then": "se abre el detalle de Mercado, no la gestión",
+      "steps": [
+        "tocar la fila Mercado en la lista del periodo"
+      ],
+      "expected_result": "URL contiene d=leaf; h1 «Mercado»; visibles las tarjetas Presupuestado «800» y Ejecutado «100»; no existe mb-node-actions",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-003f",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3202",
+      "title": "Un tipo solo ofrece «＋ Grupo»",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base, MobileBudget montado en Organizar",
+      "when": "leer el encabezado de la sección Gastos y abrir ?v=p&d=node&id=expense",
+      "then": "solo hay «＋ Grupo» y el enlace a un tipo no abre pantalla de elemento",
+      "steps": [
+        "leer el encabezado de la sección Gastos y abrir ?v=p&d=node&id=expense"
+      ],
+      "expected_result": "en mb-org-section-expense hay 1 botón («＋ Grupo») y 0 de renombrar/mover/borrar; el enlace con id=expense se reemplaza por d=org (no se monta mb-node)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-004f",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3204",
+      "title": "Una subcategoría no ofrece «Añadir dentro»",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con la subcategoría Nacional (Viajes › Vuelos)",
+      "when": "abrir la pantalla de Nacional",
+      "then": "no existe la acción de añadir",
+      "steps": [
+        "abrir la pantalla de Nacional"
+      ],
+      "expected_result": "acciones visibles = [Renombrar, Cambiar ícono, Mover a…, Borrar]; queryByTestId('mb-node-add') === null",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-005f",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "Un elemento del sistema no ofrece renombrar ni borrar",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base más un nodo heredado «Heredado» con system=true bajo Ocio",
+      "when": "abrir la pantalla de Heredado",
+      "then": "no hay renombrar ni borrar",
+      "steps": [
+        "abrir la pantalla de Heredado"
+      ],
+      "expected_result": "queryByTestId('mb-node-rename') === null y queryByTestId('mb-node-delete') === null; siguen «Cambiar ícono» y «Mover a…»",
+      "test_data": {
+        "fixture": "gmv-sistema"
+      }
+    },
+    {
+      "id": "TC-GMV-006e",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "organizeTree respeta el orden y la profundidad de escritorio",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base",
+      "when": "organizeTree(state)",
+      "then": "tres secciones en orden income, expense, transfer, con cada subárbol en preorden",
+      "steps": [
+        "organizeTree(state)"
+      ],
+      "expected_result": "sección expense: grupos [Comida, Ocio, Viajes, Mascotas, Solo]; rows de Comida = [Comida d0, Mercado d1, Restaurantes d1]; rows de Viajes = [Viajes d0, Vuelos d1, Nacional d2, Internacional d2]",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-007e",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "parseScreen acepta las pantallas nuevas y descarta lo desconocido",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "consultas «?v=p&d=org», «?v=p&d=node&id=n1», «?v=p&d=new&t=expense», «?v=p&d=new&t=robar», «?v=p&d=move», «?v=p&d=cierre»",
+      "when": "parseScreen de cada una y toSearch de vuelta",
+      "then": "las válidas ida y vuelta; las inválidas caen a la lista",
+      "steps": [
+        "parseScreen de cada una y toSearch de vuelta"
+      ],
+      "expected_result": "org → {kind:'organize'}; node&id=n1 → {kind:'node',id:'n1'}; new&t=expense → {kind:'new',parentId:null,type:'expense'}; new&t=robar → BUDGET_LIST; move sin id → BUDGET_LIST; cierre → {kind:'closure'}; toSearch(parseScreen(q)) === q en las 4 válidas",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-008e",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "El «atrás» del navegador deshace pantalla por pantalla",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, lista con scroll en 300 px",
+      "when": "Organizar → Mercado → atrás del navegador ×2",
+      "then": "vuelve a Organizar y luego a la lista en su posición",
+      "steps": [
+        "Organizar → Mercado → atrás del navegador ×2"
+      ],
+      "expected_result": "tras el primer atrás h1 «Organizar categorías»; tras el segundo h1 «Presupuesto» y window.scrollY = 300 ± 2; la página no se recargó (performance.navigation count sin cambio)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-009f",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "Un enlace a un elemento inexistente vuelve a Organizar",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base",
+      "when": "abrir ?v=p&d=node&id=no-existe y ?v=p&d=move&id=no-existe",
+      "then": "no hay pantalla en blanco",
+      "steps": [
+        "abrir ?v=p&d=node&id=no-existe y ?v=p&d=move&id=no-existe"
+      ],
+      "expected_result": "en ambos casos la URL queda en ?v=p&d=org y se ve h1 «Organizar categorías»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-010e",
+      "requirement_id": "FR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3202",
+      "title": "Sección sin grupos: guía y entrada para crear",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-vacio (sin ningún grupo de Ingreso) a 375×812 con sesión iniciada",
+      "when": "leer la sección Ingresos en la lista y tocar «Crear la primera ›»; leer la sección en Organizar",
+      "then": "la lista ofrece crear y Organizar dice que no hay grupos",
+      "steps": [
+        "leer la sección Ingresos en la lista y tocar «Crear la primera ›»; leer la sección en Organizar"
+      ],
+      "expected_result": "lista: texto «Aún no hay categorías.» sin la palabra «computador» y enlace que abre d=org; Organizar: «Aún no hay grupos» y el botón «＋ Grupo» visible",
+      "test_data": {
+        "fixture": "gmv-vacio"
+      }
+    },
+    {
+      "id": "TC-GMV-020h",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3205",
+      "title": "Crear un grupo en Gastos",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, Organizar",
+      "when": "«＋ Grupo» en Gastos, escribir «Hogar», «Crear»",
+      "then": "Hogar aparece al final de los grupos de Gasto",
+      "steps": [
+        "«＋ Grupo» en Gastos, escribir «Hogar», «Crear»"
+      ],
+      "expected_result": "vuelve a Organizar; el último mb-org-group de expense es «Hogar»; aviso «Grupo creado»; data.nodes tiene 1 nodo más con level=group, type=expense, parentId=null",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-021h",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3205",
+      "title": "Crear una categoría y usarla en Registrar",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base, pantalla del grupo Ocio",
+      "when": "«Añadir categoría», «Teatro», «Crear»; abrir Registrar con tipo Gasto",
+      "then": "Teatro queda dentro de Ocio y es destino de registro",
+      "steps": [
+        "«Añadir categoría», «Teatro», «Crear»; abrir Registrar con tipo Gasto"
+      ],
+      "expected_result": "nodo Teatro con level=category, parentId=Ocio, type=expense; el selector de categorías de Registrar contiene «Teatro»; aviso «Categoría creada»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-022e",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3206",
+      "title": "Primera subcategoría de una hoja con montos: se trasladan",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Mercado hoja con Pres. 800 y Ejec. 100 en M",
+      "when": "«Añadir subcategoría» en Mercado, «Frutas», «Crear»",
+      "then": "se avisa antes y los montos pasan a Frutas",
+      "steps": [
+        "«Añadir subcategoría» en Mercado, «Frutas», «Crear»"
+      ],
+      "expected_result": "antes de crear se ve «Los montos de Mercado pasarán a esta subcategoría»; después budgets[Frutas][M]=800, actuals[Frutas][M]=100 y el roll-up de Mercado sigue en 800/100",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-023e",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3208",
+      "title": "Primera categoría de un grupo-hoja con montos",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo-hoja Mascotas con Pres. 200 y Ejec. 300 en M",
+      "when": "«Añadir categoría» en Mascotas, «Veterinario», «Crear»",
+      "then": "Veterinario recibe los montos y el grupo conserva su total",
+      "steps": [
+        "«Añadir categoría» en Mascotas, «Veterinario», «Crear»"
+      ],
+      "expected_result": "actuals[Veterinario][M]=300, budgets[Veterinario][M]=200; roll-up de Mascotas 200/300; Mascotas deja de ser hoja",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-024f",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3207",
+      "title": "Nombre vacío o solo espacios no crea nada",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con N nodos, pantalla «Nuevo grupo» en Gastos",
+      "when": "dejar el nombre vacío; luego escribir «   » y pulsar Enter",
+      "then": "«Crear» está deshabilitado y nada se crea",
+      "steps": [
+        "dejar el nombre vacío; luego escribir «   » y pulsar Enter"
+      ],
+      "expected_result": "botón Crear disabled en ambos casos; data.nodes.length === N; la pantalla sigue en d=new; no hay aviso",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-025f",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3207",
+      "title": "No se puede crear dentro de una subcategoría ni cruzando de tipo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con N nodos",
+      "when": "abrir ?v=p&d=new&id=<Nacional (sub)>; y llamar store.createNode({level:'category',parentId:<Trabajo (income)>,type:'expense',name:'X'})",
+      "then": "ni la pantalla ni la acción crean el elemento",
+      "steps": [
+        "abrir ?v=p&d=new&id=<Nacional (sub)>; y llamar store.createNode({level:'category',parentId:<Trabajo (income)>,type:'expense',name:'X'})"
+      ],
+      "expected_result": "el enlace se reemplaza por d=org; createNode devuelve null; data.nodes.length === N",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-026e",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3207",
+      "title": "Cancelar descarta el borrador",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla «Nueva categoría» en Ocio con «Teat» escrito",
+      "when": "tocar «Cancelar»",
+      "then": "vuelve a Ocio sin crear",
+      "steps": [
+        "tocar «Cancelar»"
+      ],
+      "expected_result": "pantalla de Ocio (d=node); ningún nodo llamado «Teat»; sin aviso",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-027f",
+      "requirement_id": "FR-3202",
+      "user_story_id": "US-3202",
+      "ac_id": "AC-3205",
+      "title": "El padre desapareció mientras se escribía",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla «Nueva categoría» en Solo con «X» escrito; Solo se borra desde otra sesión (store.setState sin Solo)",
+      "when": "tocar «Crear»",
+      "then": "no se crea y se explica",
+      "steps": [
+        "tocar «Crear»"
+      ],
+      "expected_result": "texto «No se pudo crear: el elemento donde iba ya no existe.»; ningún nodo «X»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-030h",
+      "requirement_id": "FR-3203",
+      "user_story_id": "US-3203",
+      "ac_id": "AC-3209",
+      "title": "Renombrar Mercado a Supermercado",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, pantalla de Mercado",
+      "when": "«Renombrar», escribir «Supermercado», «Guardar»; ir a la lista y a Registrar",
+      "then": "el nombre cambia en todas las superficies",
+      "steps": [
+        "«Renombrar», escribir «Supermercado», «Guardar»; ir a la lista y a Registrar"
+      ],
+      "expected_result": "h1 «Supermercado»; aviso «Nombre actualizado»; fila de la lista «Supermercado»; el selector de Registrar (Gasto) contiene «Supermercado» y no «Mercado»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-031f",
+      "requirement_id": "FR-3203",
+      "user_story_id": "US-3203",
+      "ac_id": "AC-3210",
+      "title": "Nombre vacío conserva el anterior",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla de Mercado en modo renombrar",
+      "when": "borrar todo el texto",
+      "then": "no se puede guardar",
+      "steps": [
+        "borrar todo el texto"
+      ],
+      "expected_result": "«Guardar» disabled; al pulsar Enter node.name sigue «Mercado»; no hay aviso",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-032e",
+      "requirement_id": "FR-3203",
+      "user_story_id": "US-3203",
+      "ac_id": "AC-3211",
+      "title": "Cancelar tras cambiar el texto",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla de Mercado en modo renombrar con «Tienda» escrito",
+      "when": "tocar «Cancelar»",
+      "then": "vuelve a lectura con el nombre anterior",
+      "steps": [
+        "tocar «Cancelar»"
+      ],
+      "expected_result": "tarjeta de identidad «Mercado»; node.name === «Mercado»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-033e",
+      "requirement_id": "FR-3203",
+      "user_story_id": "US-3203",
+      "ac_id": "AC-3209",
+      "title": "Texto sin cambio no habilita guardar; 60 caracteres se guardan completos",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla de Mercado en modo renombrar",
+      "when": "dejar «Mercado» tal cual; luego escribir un nombre de 60 caracteres («A»×60) y guardar",
+      "then": "sin cambio no hay guardar; el largo se guarda entero",
+      "steps": [
+        "dejar «Mercado» tal cual; luego escribir un nombre de 60 caracteres («A»×60) y guardar"
+      ],
+      "expected_result": "con «Mercado»: Guardar disabled; tras guardar: node.name.length === 60",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-040h",
+      "requirement_id": "FR-3204",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3212",
+      "title": "Elegir un ícono buscándolo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, pantalla de Mercado",
+      "when": "«Cambiar ícono», buscar «pizz», tocar «pizza»",
+      "then": "el ícono se guarda y el selector se cierra",
+      "steps": [
+        "«Cambiar ícono», buscar «pizz», tocar «pizza»"
+      ],
+      "expected_result": "node.icon === «pizza»; la tarjeta de identidad pinta el ícono pizza (data-icon='pizza'); mb-icon-grid ya no está; la fila de Mercado en Organizar tiene data-icon='pizza'",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-041f",
+      "requirement_id": "FR-3204",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3213",
+      "title": "Cerrar sin elegir conserva el ícono",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Mercado con icon=«cart», selector abierto",
+      "when": "tocar «Cerrar»",
+      "then": "nada cambia",
+      "steps": [
+        "tocar «Cerrar»"
+      ],
+      "expected_result": "node.icon === «cart»; persist no se llamó",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-042e",
+      "requirement_id": "FR-3204",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3212",
+      "title": "Búsqueda sin resultados",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "selector de ícono abierto",
+      "when": "escribir «zzzz»",
+      "then": "mensaje de vacío y el campo sigue",
+      "steps": [
+        "escribir «zzzz»"
+      ],
+      "expected_result": "texto «Ningún ícono coincide con “zzzz”»; 0 celdas; el campo conserva el foco y el valor «zzzz»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-043h",
+      "requirement_id": "FR-3204",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3212",
+      "title": "Mismo catálogo que escritorio, en celdas tocables",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base, selector abierto a 375×812 y a 360×740",
+      "when": "contar las celdas y medirlas",
+      "then": "todo el catálogo, en celdas de dedo, sin desborde",
+      "steps": [
+        "contar las celdas y medirlas"
+      ],
+      "expected_result": "número de celdas === ICON_CATALOG.length (≥40); cada celda ≥40×40 px (diseño 48); scrollWidth === clientWidth del documento en ambos anchos; la celda del ícono actual tiene aria-pressed=true",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-044e",
+      "requirement_id": "FR-3204",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3212",
+      "title": "El ícono elegido en el teléfono se ve en escritorio",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Mercado con ícono «pizza» elegido a 375 px",
+      "when": "recargar a 1440×900",
+      "then": "la grilla de escritorio lo muestra",
+      "steps": [
+        "recargar a 1440×900"
+      ],
+      "expected_result": "la fila de Mercado en budget-grid pinta el ícono pizza (mismo data-icon)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-050h",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3214",
+      "title": "Borrar una categoría vacía",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, pantalla de «Prueba» (Ocio; sin hijos, valores ni movimientos)",
+      "when": "«Borrar» y confirmar con «Borrar»",
+      "then": "desaparece de Organizar y de Registrar",
+      "steps": [
+        "«Borrar» y confirmar con «Borrar»"
+      ],
+      "expected_result": "confirmación con el texto «¿Borrar la categoría “Prueba”?»; tras confirmar: d=org, sin fila «Prueba», aviso «Categoría borrada», y el selector de Registrar (Gasto) no la contiene",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-051f",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "Con valores no se borra y se dice por qué",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Mercado con Ejec. 100 en M",
+      "when": "tocar «Borrar»",
+      "then": "sin confirmación; motivo de valores",
+      "steps": [
+        "tocar «Borrar»"
+      ],
+      "expected_result": "no aparece mb-confirm-delete; role=alert con «No se puede borrar: tiene valores presupuestados, ejecutados o saldo. Vacíala primero.»; Mercado sigue en data.nodes",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-052f",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3216",
+      "title": "Con elementos dentro no se borra",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo Comida con Mercado y Restaurantes",
+      "when": "tocar «Borrar» en Comida",
+      "then": "motivo de hijos",
+      "steps": [
+        "tocar «Borrar» en Comida"
+      ],
+      "expected_result": "role=alert con «No se puede borrar: tiene categorías dentro. Muévelas o bórralas primero.»; Comida y sus dos categorías siguen",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-053f",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "Alcancía sin celdas pero con saldo recibido por traslado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "alcancía Colchón sin budgets/actuals y con saldo 500 recibido por un mover desde Viaje",
+      "when": "tocar «Borrar» en Colchón",
+      "then": "se trata como con valores",
+      "steps": [
+        "tocar «Borrar» en Colchón"
+      ],
+      "expected_result": "alert con «…tiene valores presupuestados, ejecutados o saldo…»; Colchón sigue; el reservado total no cambia (500)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-054e",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3217",
+      "title": "Cancelar la confirmación",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "pantalla de Prueba con la confirmación abierta",
+      "when": "tocar «Cancelar»",
+      "then": "se cierra y el elemento sigue",
+      "steps": [
+        "tocar «Cancelar»"
+      ],
+      "expected_result": "mb-confirm-delete desaparece; Prueba sigue en data.nodes; sin aviso",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-055e",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3214",
+      "title": "Borrar la última categoría devuelve el grupo a hoja en 0",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo Solo con una sola categoría «Única» vacía",
+      "when": "borrar Única y confirmar",
+      "then": "Solo queda como hoja editable en 0",
+      "steps": [
+        "borrar Única y confirmar"
+      ],
+      "expected_result": "isLeaf(Solo) === true; budgets[Solo][M] y actuals[Solo][M] ausentes o 0; en la lista del periodo la fila Solo abre detalle (data-leaf=true)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-056f",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "Con operaciones que quedarían rotas no se borra",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-operaciones: alcancía A cuyo borrado dejaría un mover entre alcancías inválido (deleteBlockReason = has_operations)",
+      "when": "tocar «Borrar» en A",
+      "then": "motivo de operaciones",
+      "steps": [
+        "tocar «Borrar» en A"
+      ],
+      "expected_result": "alert con «No se puede borrar: hay movimientos entre alcancías que quedarían rotos. Corrígelos primero.»; A sigue",
+      "test_data": {
+        "fixture": "gmv-operaciones"
+      }
+    },
+    {
+      "id": "TC-GMV-057e",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "deleteBlockText: tres motivos, tres textos",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "bloqueos has_children, has_data y has_operations para level category",
+      "when": "deleteBlockText(block,'category') para cada uno, y (has_children,'group')",
+      "then": "tres textos distintos, con el sustantivo del nivel",
+      "steps": [
+        "deleteBlockText(block,'category') para cada uno, y (has_children,'group')"
+      ],
+      "expected_result": "has_data contiene «Vacíala primero»; has_children/category contiene «subcategorías dentro»; has_children/group contiene «categorías dentro»; has_operations contiene «quedarían rotos»; los tres son distintos entre sí",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-058f",
+      "requirement_id": "FR-3205",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "Quedó bloqueado entre abrir la confirmación y confirmar",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Prueba vacía con la confirmación abierta; otra sesión le pone Ejec. 50 (store.setState)",
+      "when": "tocar «Borrar»",
+      "then": "no se borra y se muestra el motivo",
+      "steps": [
+        "tocar «Borrar»"
+      ],
+      "expected_result": "store.deleteNode devuelve has_data; Prueba sigue en data.nodes; la confirmación se cierra y aparece el alert de valores; la URL sigue en d=node",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-060h",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3218",
+      "title": "Mover una categoría a otro grupo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada: Restaurantes (Ejec. 400) en Comida (Ejec. total 500); Ocio en 0",
+      "when": "pantalla de Restaurantes → «Mover a…» → tocar «Ocio»",
+      "then": "queda en Ocio con su monto y los totales se reparten",
+      "steps": [
+        "pantalla de Restaurantes → «Mover a…» → tocar «Ocio»"
+      ],
+      "expected_result": "vuelve a la pantalla de Restaurantes con contexto «Gasto · Ocio»; aviso «Movido a Ocio»; en la lista de M: Ocio Ejec. 400, Comida Ejec. 100, total de Gastos sin cambio",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-061h",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3218",
+      "title": "Los movimientos viajan con el elemento",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Restaurantes con un gasto de 400 en M",
+      "when": "moverla a Ocio y abrir su detalle (d=leaf)",
+      "then": "el movimiento sigue ahí, con la categoría re-derivada",
+      "steps": [
+        "moverla a Ocio y abrir su detalle (d=leaf)"
+      ],
+      "expected_result": "la lista de movimientos de Restaurantes tiene 1 fila de 400; ese movimiento conserva target=Restaurantes y su catId apunta al nodo correcto; ningún movimiento con target inexistente",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-062h",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3219",
+      "title": "Convertir en grupo una categoría con subcategorías",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "categoría Vuelos (en Viajes) con subcategorías Nacional e Internacional",
+      "when": "«Mover a…» → «Convertir en grupo de Gastos»",
+      "then": "Vuelos pasa a grupo y sus hijas a categorías",
+      "steps": [
+        "«Mover a…» → «Convertir en grupo de Gastos»"
+      ],
+      "expected_result": "Vuelos: level=group, parentId=null; Nacional e Internacional: level=category, parentId=Vuelos; ids sin cambio",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-063h",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3222",
+      "title": "Bajar un grupo sin hijos dentro de otro grupo",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo-hoja Mascotas con Pres. 200 y Ejec. 300 en M",
+      "when": "«Mover a…» → «Ocio»",
+      "then": "queda como categoría de Ocio con sus montos",
+      "steps": [
+        "«Mover a…» → «Ocio»"
+      ],
+      "expected_result": "Mascotas: level=category, parentId=Ocio; budgets[Mascotas][M]=200, actuals=300; la fila de destino decía «como categoría»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-064f",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3220",
+      "title": "La lista nunca cruza de tipo ni se ofrece a sí misma",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base",
+      "when": "moveDestinations(state, Vuelos)",
+      "then": "solo destinos de Gasto, sin el propio subárbol ni subcategorías",
+      "steps": [
+        "moveDestinations(state, Vuelos)"
+      ],
+      "expected_result": "ningún option con nodo de type income/transfer; no aparecen Vuelos, Nacional ni Internacional; toRoot.dest = {kind:'root',type:'expense'} con becomes='group'; Viajes (padre actual) status='current'",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-065f",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3221",
+      "title": "Destino donde no cabe: bloqueado con el aviso de escritorio",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo Viajes › Vuelos › {Nacional, Internacional}",
+      "when": "abrir «Mover a…» de Viajes y tocar la fila «Ocio»",
+      "then": "la fila está apagada con su motivo y no pasa nada",
+      "steps": [
+        "abrir «Mover a…» de Viajes y tocar la fila «Ocio»"
+      ],
+      "expected_result": "fila Ocio con aria-disabled=true y el texto «Vacía o mueve las subcategorías primero»; tras el toque data === estado anterior (misma referencia) y la URL sigue en d=move",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-066e",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3222",
+      "title": "Un grupo no ofrece «convertir en grupo» y marca dónde está",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base",
+      "when": "moveDestinations(state, Mascotas) y moveDestinations(state, Mercado)",
+      "then": "sin toRoot para el grupo; el padre actual sale como current",
+      "steps": [
+        "moveDestinations(state, Mascotas) y moveDestinations(state, Mercado)"
+      ],
+      "expected_result": "Mascotas: toRoot === null; Mercado: option Comida status='current', option Restaurantes status='ok' con becomes='sub', option Ocio status='ok' con becomes='category'",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-067e",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3218",
+      "title": "A escala, un ensayo por candidato y ninguno de más",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado generado: 312 nodos (104 grupos de Gasto con 2 categorías cada uno) y 1.000 movimientos",
+      "when": "moveDestinations(state, <una categoría>) contando las llamadas a moveNode con un espía",
+      "then": "trabajo proporcional a los candidatos, no a los nodos al cuadrado",
+      "steps": [
+        "moveDestinations(state, <una categoría>) contando las llamadas a moveNode con un espía"
+      ],
+      "expected_result": "llamadas a moveNode === número de candidatos (104 grupos + 207 categorías ajenas + 1 raíz = 312) ± 0; el resultado tiene 311 options y toRoot; no se asierta tiempo de reloj",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-068f",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3221",
+      "title": "El destino dejó de ser válido al aplicarlo",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "«Mover a…» de Restaurantes abierto; otra sesión borra el grupo Ocio (store.setState)",
+      "when": "tocar «Ocio»",
+      "then": "nada se mueve y se dice",
+      "steps": [
+        "tocar «Ocio»"
+      ],
+      "expected_result": "store.moveNode devuelve invalid_target; Restaurantes conserva parentId=Comida; bajo la fila «Ese lugar ya no está disponible.»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-069e",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3221",
+      "title": "Sin ningún destino válido",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-un-grupo: Gasto con un solo grupo Viajes › Vuelos › {Nacional}",
+      "when": "abrir «Mover a…» de Viajes",
+      "then": "se explica que no cabe en ningún lado",
+      "steps": [
+        "abrir «Mover a…» de Viajes"
+      ],
+      "expected_result": "texto «No hay otro lugar donde quepa»; 0 filas con status ok",
+      "test_data": {
+        "fixture": "gmv-un-grupo"
+      }
+    },
+    {
+      "id": "TC-GMV-070e",
+      "requirement_id": "FR-3206",
+      "user_story_id": "US-3206",
+      "ac_id": "AC-3218",
+      "title": "Cada destino dice en qué se convierte",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, «Mover a…» de Restaurantes",
+      "when": "leer las filas",
+      "then": "rótulos de resultado y marca del lugar actual",
+      "steps": [
+        "leer las filas"
+      ],
+      "expected_result": "fila Ocio «como categoría»; fila Mercado «como subcategoría»; fila Comida «Aquí está» y aria-disabled=true; primera fila «Convertir en grupo de Gastos»; no existe ningún elemento arrastrable (draggable) en la pantalla",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-080h",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "Cerrar el mes cerrable desde el teléfono",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada con M−1 como mes abierto más antiguo",
+      "when": "«Cierre» → «Cerrar <M−1>» → «Sí, cerrar»; recargar a 1440×900",
+      "then": "se cierra el mes que el botón nombraba, también en escritorio",
+      "steps": [
+        "«Cierre» → «Cerrar <M−1>» → «Sí, cerrar»; recargar a 1440×900"
+      ],
+      "expected_result": "el botón y la pregunta nombran cycleLabel(M−1); tras confirmar el bloque ofrece cerrar M o dice que no hay más; la barra de periodo marca M−1 con candado; a 1440 px closure-control tiene data-reopenable = M−1",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-081e",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3224",
+      "title": "Cancelar la confirmación de cierre",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ClosureScreen con M−1 cerrable, confirmación abierta",
+      "when": "tocar «Cancelar»",
+      "then": "no se cierra nada",
+      "steps": [
+        "tocar «Cancelar»"
+      ],
+      "expected_result": "repo.closure no se llamó; closure.closedThrough sin cambio; vuelve a verse el botón «Cerrar <M−1>»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-082f",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3225",
+      "title": "Con celdas descuadradas no se deja cerrar y el motivo se lee entero",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-descuadre a 375×812 con sesión iniciada: en M−1 la celda Ejec. de Mercado (150) no cuadra con sus movimientos (100)",
+      "when": "abrir «Cierre»",
+      "then": "botón apagado y motivo completo",
+      "steps": [
+        "abrir «Cierre»"
+      ],
+      "expected_result": "botón «Cerrar <M−1>» disabled; el texto del motivo === closeBlockerText([{name:'Mercado'}]) completo; su elemento cumple scrollWidth ≤ clientWidth (sin recorte) y color computado = --alert-strong",
+      "test_data": {
+        "fixture": "gmv-descuadre"
+      }
+    },
+    {
+      "id": "TC-GMV-083e",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3226",
+      "title": "Dos toques seguidos cierran un solo mes",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ClosureScreen con M−1 cerrable y repo.closure que tarda 50 ms",
+      "when": "tocar «Sí, cerrar» dos veces seguidas",
+      "then": "una sola petición",
+      "steps": [
+        "tocar «Sí, cerrar» dos veces seguidas"
+      ],
+      "expected_result": "repo.closure llamado exactamente 1 vez con «close»; closedThrough === M−1 (no M)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-084f",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "Sin mes cerrable no hay acción",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-al-dia: todo cerrado hasta M−1 y M es el mes en curso",
+      "when": "abrir «Cierre»",
+      "then": "el bloque lo dice y no hay botón",
+      "steps": [
+        "abrir «Cierre»"
+      ],
+      "expected_result": "texto «No hay ningún mes por cerrar.»; 0 botones cuyo nombre empiece por «Cerrar»",
+      "test_data": {
+        "fixture": "gmv-al-dia"
+      }
+    },
+    {
+      "id": "TC-GMV-085f",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "El servidor no responde: error en el bloque y nada cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ClosureScreen con M−1 cerrable y repo.closure que devuelve {ok:false, reason:'error'}",
+      "when": "«Cerrar <M−1>» → «Sí, cerrar»",
+      "then": "se dice qué hacer y el mes sigue abierto",
+      "steps": [
+        "«Cerrar <M−1>» → «Sí, cerrar»"
+      ],
+      "expected_result": "texto «No se pudo cerrar. Revisa la conexión e inténtalo de nuevo.» en el bloque; closure.closedThrough sin cambio; el botón vuelve a estar disponible",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-086e",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3226",
+      "title": "Mientras espera al servidor dice «Cerrando…»",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ClosureScreen con repo.closure pendiente (promesa sin resolver)",
+      "when": "tocar «Sí, cerrar»",
+      "then": "estado de espera visible y sin doble envío",
+      "steps": [
+        "tocar «Sí, cerrar»"
+      ],
+      "expected_result": "botón con el texto «Cerrando…» y disabled mientras la promesa no resuelve; al resolver ok desaparece",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-087h",
+      "requirement_id": "FR-3207",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "La petición no propone el mes",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "ClosureScreen con M−1 cerrable y un espía en repo.closure",
+      "when": "confirmar el cierre",
+      "then": "solo viaja la acción",
+      "steps": [
+        "confirmar el cierre"
+      ],
+      "expected_result": "repo.closure recibió exactamente («close») sin periodo; el periodo cerrado es el que devuelve el servidor (closure de la respuesta)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-090h",
+      "requirement_id": "FR-3208",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3227",
+      "title": "Reabrir el último mes cerrado",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-dos-cerrados a 375×812 con sesión iniciada: M−2 y M−1 cerrados",
+      "when": "«Cierre» → «Reabrir <M−1>» → «Sí, reabrir»; ir a M−1 y abrir Mercado",
+      "then": "se ofrece solo M−1 y vuelve a admitir cambios",
+      "steps": [
+        "«Cierre» → «Reabrir <M−1>» → «Sí, reabrir»; ir a M−1 y abrir Mercado"
+      ],
+      "expected_result": "el bloque nombra M−1 y no existe botón para M−2; tras confirmar, en M−1 el detalle de Mercado muestra «Cambiar» en Presupuestado y no hay mb-closed-notice",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-091f",
+      "requirement_id": "FR-3208",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3228",
+      "title": "Con un mes reabierto no se ofrece reabrir otro",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-reabierto: M−2 cerrado y M−1 reabierto",
+      "when": "abrir «Cierre»",
+      "then": "texto de estado, sin botón",
+      "steps": [
+        "abrir «Cierre»"
+      ],
+      "expected_result": "texto «<M−1> está reabierto. Ciérralo de nuevo antes de reabrir otro.»; 0 botones cuyo nombre empiece por «Reabrir»",
+      "test_data": {
+        "fixture": "gmv-reabierto"
+      }
+    },
+    {
+      "id": "TC-GMV-092f",
+      "requirement_id": "FR-3208",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3227",
+      "title": "Sin nada cerrado no hay acción de reabrir",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base (ningún mes cerrado)",
+      "when": "abrir «Cierre»",
+      "then": "el bloque lo dice",
+      "steps": [
+        "abrir «Cierre»"
+      ],
+      "expected_result": "texto «Aún no has cerrado ningún mes.»; 0 botones «Reabrir…»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-093e",
+      "requirement_id": "FR-3208",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3229",
+      "title": "Cancelar la confirmación de reabrir",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados, confirmación de reabrir abierta",
+      "when": "tocar «Cancelar»",
+      "then": "sigue cerrado",
+      "steps": [
+        "tocar «Cancelar»"
+      ],
+      "expected_result": "repo.closure no se llamó; closure.closedThrough === M−1 y reopened === null",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-094f",
+      "requirement_id": "FR-3208",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3229",
+      "title": "Falla al reabrir",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados y repo.closure que devuelve {ok:false, reason:'error'}",
+      "when": "«Reabrir <M−1>» → «Sí, reabrir»",
+      "then": "error en el bloque y sigue cerrado",
+      "steps": [
+        "«Reabrir <M−1>» → «Sí, reabrir»"
+      ],
+      "expected_result": "texto «No se pudo reabrir. Revisa la conexión e inténtalo de nuevo.»; reopened === null",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-100h",
+      "requirement_id": "FR-3209",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3230",
+      "title": "El aviso lleva a Cierre de mes y no nombra el computador",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-dos-cerrados a 375×812 con sesión iniciada, Presupuesto en M−1",
+      "when": "leer el aviso y tocar su enlace",
+      "then": "copy nuevo y enlace que abre el cierre",
+      "steps": [
+        "leer el aviso y tocar su enlace"
+      ],
+      "expected_result": "mb-closed-notice contiene «<M−1> está cerrado. Puedes mirarlo; para cambiarlo, reábrelo.» y NO contiene «escritorio» ni «computador»; el enlace «Ir a Cierre de mes ›» abre d=cierre",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-101f",
+      "requirement_id": "FR-3209",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3231",
+      "title": "Un mes cerrado que no es el último no ofrece reabrir",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados, Presupuesto en M−2",
+      "when": "leer el aviso",
+      "then": "explica el límite y no hay enlace",
+      "steps": [
+        "leer el aviso"
+      ],
+      "expected_result": "texto «<M−2> está cerrado. Solo se puede reabrir el último mes cerrado (<M−1>).»; 0 enlaces dentro del aviso",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-102f",
+      "requirement_id": "FR-3209",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3232",
+      "title": "El periodo cerrado sigue sin edición",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados, detalle de Mercado en M−1",
+      "when": "buscar «Cambiar», lápices y papeleras",
+      "then": "no hay ninguna vía de cambio",
+      "steps": [
+        "buscar «Cambiar», lápices y papeleras"
+      ],
+      "expected_result": "0 botones «Cambiar»; 0 mb-mov-edit; el aviso de cerrado visible en el detalle",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-103e",
+      "requirement_id": "FR-3209",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3230",
+      "title": "Reabrir desde el aviso y volver: las acciones aparecen sin recargar",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados a 375×812 con sesión iniciada, Presupuesto en M−1",
+      "when": "enlace del aviso → «Reabrir <M−1>» → «Sí, reabrir» → «‹» → abrir Mercado",
+      "then": "M−1 ya se puede cambiar",
+      "steps": [
+        "enlace del aviso → «Reabrir <M−1>» → «Sí, reabrir» → «‹» → abrir Mercado"
+      ],
+      "expected_result": "no hubo recarga de página; mb-closed-notice ausente en M−1; el detalle de Mercado muestra «Cambiar»",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-104e",
+      "requirement_id": "FR-3209",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3231",
+      "title": "Cerrado con otro mes reabierto: texto sin nombrar ninguno",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-reabierto (M−2 cerrado, M−1 reabierto), Presupuesto en M−2",
+      "when": "leer el aviso",
+      "then": "no ofrece reabrir",
+      "steps": [
+        "leer el aviso"
+      ],
+      "expected_result": "texto «<M−2> está cerrado. Solo se puede reabrir el último mes cerrado.» sin enlace",
+      "test_data": {
+        "fixture": "gmv-reabierto"
+      }
+    },
+    {
+      "id": "TC-GMV-110h",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3233",
+      "title": "Sin desborde horizontal en las pantallas nuevas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 y a 360×740",
+      "when": "recorrer lista (línea del título), Organizar, Mercado (con selector de ícono y confirmación de borrar de Prueba), Nueva categoría, Mover a… y Cierre",
+      "then": "ninguna desborda",
+      "steps": [
+        "recorrer lista (línea del título), Organizar, Mercado (con selector de ícono y confirmación de borrar de Prueba), Nueva categoría, Mover a… y Cierre"
+      ],
+      "expected_result": "en las 7 vistas × 2 anchos: document.documentElement.scrollWidth === clientWidth",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-111f",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3234",
+      "title": "Ningún control tocable mide menos de 40×40",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada",
+      "when": "medir todos los button, a e input visibles en las 5 pantallas nuevas y los botones «Organizar» y «Cierre»",
+      "then": "ninguno por debajo del mínimo",
+      "steps": [
+        "medir todos los button, a e input visibles en las 5 pantallas nuevas y los botones «Organizar» y «Cierre»"
+      ],
+      "expected_result": "min(width, height) de cada control ≥ 40 px; la prueba lista por nombre cualquiera menor (un control de 32 px la hace fallar)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-112e",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3235",
+      "title": "Un nombre de 60 caracteres no rompe nada",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-largo a 360×740: categoría con nombre de 60 caracteres en Ocio",
+      "when": "abrir Organizar, su pantalla, su confirmación de borrar y «Mover a…» de Restaurantes",
+      "then": "trunca en filas y parte en la tarjeta",
+      "steps": [
+        "abrir Organizar, su pantalla, su confirmación de borrar y «Mover a…» de Restaurantes"
+      ],
+      "expected_result": "scrollWidth === clientWidth en las 4 vistas; en la tarjeta de identidad el nombre ocupa 2 líneas o más y es legible completo (textContent.length === 60)",
+      "test_data": {
+        "fixture": "gmv-largo"
+      }
+    },
+    {
+      "id": "TC-GMV-113h",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3233",
+      "title": "Contraste ≥4,5:1 en claro y oscuro",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, en tema claro y en tema oscuro",
+      "when": "calcular el contraste del color computado contra su fondo para: nombre de fila, ruta, rótulo de acción, «Borrar», motivo de bloqueo, «como categoría» y un destino deshabilitado",
+      "then": "todos cumplen AA",
+      "steps": [
+        "calcular el contraste del color computado contra su fondo para: nombre de fila, ruta, rótulo de acción, «Borrar», motivo de bloqueo, «como categoría» y un destino deshabilitado"
+      ],
+      "expected_result": "los 7 pares × 2 temas dan razón ≥ 4,5",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-114e",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3233",
+      "title": "La línea del título cabe con holgura a 360 px",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 360×740",
+      "when": "medir la fila del título con «Presupuesto», «Organizar» y «Cierre»",
+      "then": "cabe con margen para la letra de Linux",
+      "steps": [
+        "medir la fila del título con «Presupuesto», «Organizar» y «Cierre»"
+      ],
+      "expected_result": "suma de anchos + separaciones ≤ ancho del contenedor − 4 px; los tres en una sola línea (mismo offsetTop)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-115e",
+      "requirement_id": "FR-3210",
+      "user_story_id": "US-3210",
+      "ac_id": "AC-3233",
+      "title": "El color dice lo que el diseño declara",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada",
+      "when": "leer el color computado de «Borrar», del motivo de bloqueo de Mercado, del aviso de traslado de montos y de «Vacía o mueve las subcategorías primero»",
+      "then": "peligro en alerta fuerte; avisos en alerta suave",
+      "steps": [
+        "leer el color computado de «Borrar», del motivo de bloqueo de Mercado, del aviso de traslado de montos y de «Vacía o mueve las subcategorías primero»"
+      ],
+      "expected_result": "«Borrar» y motivo de bloqueo = valor resuelto de --alert-strong; aviso de traslado y motivo de no-cabe = valor resuelto de --alert-soft",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-120h",
+      "requirement_id": "FR-3211",
+      "user_story_id": "US-3211",
+      "ac_id": "AC-3236",
+      "title": "Lo creado en el teléfono está en escritorio",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, modo servidor (Postgres)",
+      "when": "crear el grupo «Hogar» en Gastos; recargar a 1440×900",
+      "then": "la grilla lo muestra",
+      "steps": [
+        "crear el grupo «Hogar» en Gastos; recargar a 1440×900"
+      ],
+      "expected_result": "existe una fila de grupo «Hogar» en budget-grid dentro de Gastos",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-121h",
+      "requirement_id": "FR-3211",
+      "user_story_id": "US-3211",
+      "ac_id": "AC-3236",
+      "title": "El snapshot guardado sobrevive a un proceso nuevo",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [
+        "proyecto backend (Postgres efímero)"
+      ],
+      "given": "Postgres efímero con el libro gmv-base del usuario A (revisión r)",
+      "when": "PUT /api/v1/ledger con el estado tras createNode(«Hogar») y revisión r; crear un repositorio nuevo y leer",
+      "then": "el nodo está en la base",
+      "steps": [
+        "PUT /api/v1/ledger con el estado tras createNode(«Hogar») y revisión r; crear un repositorio nuevo y leer"
+      ],
+      "expected_result": "PUT responde 200 con revisión r+1; un GET /api/v1/ledger desde una instancia nueva devuelve un nodo name=«Hogar», level=group, type=expense; SELECT COUNT(*) de nodos del dueño aumenta en 1",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-122e",
+      "requirement_id": "FR-3211",
+      "user_story_id": "US-3211",
+      "ac_id": "AC-3238",
+      "title": "Lo renombrado en escritorio llega al teléfono",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base, modo servidor",
+      "when": "a 1440×900 renombrar Mercado a «Súper» en la grilla; recargar a 375×812 y abrir Organizar",
+      "then": "el teléfono muestra el nombre nuevo",
+      "steps": [
+        "a 1440×900 renombrar Mercado a «Súper» en la grilla; recargar a 375×812 y abrir Organizar"
+      ],
+      "expected_result": "fila «Súper» en Organizar y en la lista del periodo; ninguna fila «Mercado»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-123f",
+      "requirement_id": "FR-3211",
+      "user_story_id": "US-3211",
+      "ac_id": "AC-3237",
+      "title": "El guardado falla: aviso y nada persistido",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, modo servidor, con PUT /api/v1/ledger interceptado para responder 500",
+      "when": "crear el grupo «Hogar»; luego quitar la intercepción y recargar",
+      "then": "se avisa y el libro del servidor no cambió",
+      "steps": [
+        "crear el grupo «Hogar»; luego quitar la intercepción y recargar"
+      ],
+      "expected_result": "storage-banner visible tras crear; tras recargar no existe ninguna fila «Hogar»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-124f",
+      "requirement_id": "FR-3211",
+      "user_story_id": "US-3211",
+      "ac_id": "AC-3236",
+      "title": "Ninguna operación usa una ruta nueva",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, modo servidor, registrando las peticiones a /api/",
+      "when": "crear, renombrar, cambiar ícono, mover, borrar, cerrar y reabrir",
+      "then": "solo las rutas vigentes",
+      "steps": [
+        "crear, renombrar, cambiar ícono, mover, borrar, cerrar y reabrir"
+      ],
+      "expected_result": "el conjunto de rutas llamadas ⊆ {/api/v1/ledger, /api/v1/closure, /api/v1/sync/stream, /api/v1/movements, /api/auth/*}; 0 respuestas 404",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-130h",
+      "requirement_id": "NFR-3201",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "Escritorio: cerrar sigue siendo un clic, sin diálogo",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 1440×900 con M−1 cerrable",
+      "when": "clic en «Cerrar <M−1>» de closure-control",
+      "then": "cierra directo",
+      "steps": [
+        "clic en «Cerrar <M−1>» de closure-control"
+      ],
+      "expected_result": "no aparece ningún role=alertdialog; closure-control pasa a data-reopenable = M−1; aviso «Mes cerrado.»",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-131e",
+      "requirement_id": "NFR-3201",
+      "user_story_id": "US-3204",
+      "ac_id": "AC-3212",
+      "title": "Escritorio: el selector de íconos sigue siendo el popover",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 1440×900",
+      "when": "clic en el ícono de la fila Mercado",
+      "then": "se abre el popover vigente",
+      "steps": [
+        "clic en el ícono de la fila Mercado"
+      ],
+      "expected_result": "icon-picker visible con icon-picker-search e icon-option; no existe mb-icon-grid",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-132f",
+      "requirement_id": "NFR-3201",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "Escritorio no monta nada de la gestión móvil",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 1440×900, en Resumen y Dashboard, y con la URL ?v=p&d=org",
+      "when": "buscar data-testid que empiece por «mb-»",
+      "then": "no hay ninguno",
+      "steps": [
+        "buscar data-testid que empiece por «mb-»"
+      ],
+      "expected_result": "$$('[data-testid^=\"mb-\"]').length === 0 en las tres situaciones; desktop-shell montado",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-135h",
+      "requirement_id": "NFR-3202",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "Teléfono: cambiar lo planeado sigue igual",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, detalle de Mercado en M (Pres. 800)",
+      "when": "«Cambiar», escribir 900, confirmar",
+      "then": "se guarda como en la primera entrega",
+      "steps": [
+        "«Cambiar», escribir 900, confirmar"
+      ],
+      "expected_result": "Presupuestado «900»; el grupo Comida sube 100 en Pres.",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-136e",
+      "requirement_id": "NFR-3202",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "Las filas de la lista no ganan controles",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base, lista del periodo con Comida desplegado",
+      "when": "contar los elementos interactivos dentro de cada mb-row",
+      "then": "cada fila sigue siendo un único botón",
+      "steps": [
+        "contar los elementos interactivos dentro de cada mb-row"
+      ],
+      "expected_result": "cada mb-row es 1 button sin button/a anidados; sus hijos con testid son mb-row-name, mb-row-actual, mb-bar y mb-row-budget, como antes",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-137f",
+      "requirement_id": "NFR-3202",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3232",
+      "title": "Teléfono: retiros y alcancías de un mes cerrado siguen sin acciones",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados, «Retiros del mes» y la alcancía Viaje en M−1",
+      "when": "buscar lápices, papeleras y «Cambiar»",
+      "then": "ninguna acción de cambio",
+      "steps": [
+        "buscar lápices, papeleras y «Cambiar»"
+      ],
+      "expected_result": "0 controles de edición en ambas pantallas; el aviso de cerrado visible",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-140h",
+      "requirement_id": "NFR-3203",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "Lo escrito en Registrar sobrevive a organizar",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, Registrar con 50.000 escritos y la categoría Mercado elegida",
+      "when": "ir a Presupuesto → Organizar → Mercado → volver a Registrar con el control segmentado",
+      "then": "el borrador sigue",
+      "steps": [
+        "ir a Presupuesto → Organizar → Mercado → volver a Registrar con el control segmentado"
+      ],
+      "expected_result": "el monto muestra 50.000 y Mercado sigue seleccionada",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-141e",
+      "requirement_id": "NFR-3203",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3224",
+      "title": "Lo escrito en Registrar sobrevive a la pantalla de cierre y al atrás",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, Registrar con 50.000 escritos",
+      "when": "Presupuesto → Cierre → abrir y cancelar la confirmación → atrás del navegador ×2 → Registrar",
+      "then": "el borrador sigue",
+      "steps": [
+        "Presupuesto → Cierre → abrir y cancelar la confirmación → atrás del navegador ×2 → Registrar"
+      ],
+      "expected_result": "el monto muestra 50.000",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-142f",
+      "requirement_id": "NFR-3203",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "Guardar desde Registrar tras organizar anota un solo movimiento",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con K movimientos; Registrar con 50.000 a Mercado escritos; se visita Organizar y se vuelve",
+      "when": "«Guardar movimiento»",
+      "then": "exactamente un movimiento nuevo",
+      "steps": [
+        "«Guardar movimiento»"
+      ],
+      "expected_result": "data.movements.length === K+1; actuals[Mercado][M] sube exactamente 50.000 (no 100.000)",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-145h",
+      "requirement_id": "NFR-3204",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "Mismo veredicto de borrado en teléfono y escritorio, nodo por nodo",
+      "type": "unit",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base y sus periodos activos",
+      "when": "para cada nodo: deleteBlockReason(state,id,periods) frente a canDeleteNode(state,id,periods)",
+      "then": "coinciden siempre",
+      "steps": [
+        "para cada nodo: deleteBlockReason(state,id,periods) frente a canDeleteNode(state,id,periods)"
+      ],
+      "expected_result": "para los nodos de gmv-base: canDeleteNode === (deleteBlockReason === null) en el 100 %; Prueba y Única → null; Mercado → has_data; Comida → has_children",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-146e",
+      "requirement_id": "NFR-3204",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3216",
+      "title": "Un grupo con hijos vacíos tampoco se borra",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "grupo Ocio con Cine y Prueba, ambas en 0",
+      "when": "tocar «Borrar» en Ocio",
+      "then": "bloqueado por tener elementos dentro aunque no haya valores",
+      "steps": [
+        "tocar «Borrar» en Ocio"
+      ],
+      "expected_result": "alert «…tiene categorías dentro…»; Ocio, Cine y Prueba siguen",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-147f",
+      "requirement_id": "NFR-3204",
+      "user_story_id": "US-3205",
+      "ac_id": "AC-3215",
+      "title": "La acción del store rechaza aunque la pantalla se equivoque",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "Mercado con Ejec. 100",
+      "when": "llamar store.deleteNode(<Mercado>) directamente",
+      "then": "el store no borra",
+      "steps": [
+        "llamar store.deleteNode(<Mercado>) directamente"
+      ],
+      "expected_result": "devuelve «has_data»; data sin cambio (misma referencia); persist no se llamó",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-150h",
+      "requirement_id": "NFR-3205",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "El teléfono solo ofrece el mes cerrable",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con M−1 y M abiertos",
+      "when": "abrir «Cierre»",
+      "then": "un único botón de cerrar, para el más antiguo",
+      "steps": [
+        "abrir «Cierre»"
+      ],
+      "expected_result": "exactamente 1 botón cuyo nombre empieza por «Cerrar», y nombra M−1; no hay selector de mes en la pantalla",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-151e",
+      "requirement_id": "NFR-3205",
+      "user_story_id": "US-3208",
+      "ac_id": "AC-3228",
+      "title": "Con M−1 reabierto no hay vía para tocar M−2",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-reabierto (M−2 cerrado, M−1 reabierto)",
+      "when": "abrir «Cierre» y el aviso de M−2",
+      "then": "ninguna acción de reabrir",
+      "steps": [
+        "abrir «Cierre» y el aviso de M−2"
+      ],
+      "expected_result": "0 botones «Reabrir…» en la pantalla; el aviso de M−2 sin enlace",
+      "test_data": {
+        "fixture": "gmv-reabierto"
+      }
+    },
+    {
+      "id": "TC-GMV-152f",
+      "requirement_id": "NFR-3205",
+      "user_story_id": "US-3207",
+      "ac_id": "AC-3223",
+      "title": "El servidor ignora un mes propuesto fuera de orden",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "proyecto backend (Postgres efímero)"
+      ],
+      "given": "Postgres efímero, libro con M−1 y M abiertos",
+      "when": "POST /api/v1/closure {action:'close', revision:r, period:'<M>'}",
+      "then": "no se cierra M saltándose M−1",
+      "steps": [
+        "POST /api/v1/closure {action:'close', revision:r, period:'<M>'}"
+      ],
+      "expected_result": "la respuesta es 200 con closedThrough = M−1 o un 4xx de validación; en ningún caso closedThrough === M",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-155h",
+      "requirement_id": "NFR-3206",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3232",
+      "title": "Mes cerrado: la lista y el detalle se miran, no se cambian",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados a 375×812 con sesión iniciada, Presupuesto en M−1",
+      "when": "abrir Mercado y «Retiros del mes»",
+      "then": "sin acciones de cambio",
+      "steps": [
+        "abrir Mercado y «Retiros del mes»"
+      ],
+      "expected_result": "0 botones «Cambiar», lápices o papeleras en ambas; las cifras de M−1 visibles",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-156e",
+      "requirement_id": "NFR-3206",
+      "user_story_id": "US-3203",
+      "ac_id": "AC-3209",
+      "title": "Renombrar con un mes cerrado no toca sus cifras",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "gmv-dos-cerrados: Mercado con Ejec. 850 en M−1 (cerrado)",
+      "when": "renombrar Mercado a «Súper» desde su pantalla",
+      "then": "cambia el nombre y ninguna cifra",
+      "steps": [
+        "renombrar Mercado a «Súper» desde su pantalla"
+      ],
+      "expected_result": "node.name === «Súper»; actuals[Mercado][M−1] === 850 y budgets sin cambio; el guardado no devuelve closed_period_violation",
+      "test_data": {
+        "fixture": "gmv-dos-cerrados"
+      }
+    },
+    {
+      "id": "TC-GMV-157f",
+      "requirement_id": "NFR-3206",
+      "user_story_id": "US-3209",
+      "ac_id": "AC-3232",
+      "title": "El servidor sigue rechazando una cifra de un mes cerrado",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [
+        "proyecto backend (Postgres efímero)"
+      ],
+      "given": "Postgres efímero, libro con M−1 cerrado y Mercado Ejec. 850 en M−1",
+      "when": "PUT /api/v1/ledger con actuals[Mercado][M−1]=900",
+      "then": "rechazo y cifra intacta",
+      "steps": [
+        "PUT /api/v1/ledger con actuals[Mercado][M−1]=900"
+      ],
+      "expected_result": "HTTP 422 con code closed_period_violation; un GET posterior devuelve 850",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-160h",
+      "requirement_id": "NFR-3207",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "En el teléfono no hay grilla de 12 meses ni dashboard",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada, recorriendo lista, Organizar y Cierre",
+      "when": "buscar budget-grid y dashboard en el DOM",
+      "then": "no existen",
+      "steps": [
+        "buscar budget-grid y dashboard en el DOM"
+      ],
+      "expected_result": "count de [data-testid=budget-grid] === 0 y de [data-testid=dashboard] === 0 en las tres pantallas",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-161e",
+      "requirement_id": "NFR-3207",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3203",
+      "title": "El corte sigue en 760 px",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base",
+      "when": "cargar a 760×900 y a 761×900",
+      "then": "760 es teléfono y 761 escritorio",
+      "steps": [
+        "cargar a 760×900 y a 761×900"
+      ],
+      "expected_result": "a 760: mobile-shell y los botones «Organizar»/«Cierre»; a 761: desktop-shell y ninguno de los dos",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-GMV-162f",
+      "requirement_id": "NFR-3207",
+      "user_story_id": "US-3201",
+      "ac_id": "AC-3201",
+      "title": "Un enlace a Organizar en escritorio muestra escritorio",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 1440×900",
+      "when": "abrir /?v=p&d=org",
+      "then": "la app de escritorio normal",
+      "steps": [
+        "abrir /?v=p&d=org"
+      ],
+      "expected_result": "desktop-shell montado, budget-grid visible, 0 elementos mb-organize",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    }
+  ]
+}
