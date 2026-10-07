@@ -17,40 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-07T15:22:56.749Z",
+  "updatedAt": "2026-10-07T19:57:33.621Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-03T00:04:31.295Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
-    {
-      "at": "2026-10-03T00:06:27.013Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-04T19:25:57.175Z",
-      "event": "approved",
-      "phase": 4,
-      "afterDrift": true
-    },
-    {
-      "at": "2026-10-04T20:46:56.533Z",
-      "event": "verify-run",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0,
-      "skipped": 0,
-      "manual": 0
-    },
     {
       "at": "2026-10-04T20:46:56.645Z",
       "event": "verify-complete",
@@ -170,6 +139,38 @@
       "phase": "verify",
       "passed": 86,
       "failed": 0
+    },
+    {
+      "at": "2026-10-07T17:40:20.996Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-07T17:40:28.083Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
+    },
+    {
+      "at": "2026-10-07T19:57:14.922Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-07T19:57:33.603Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -245,7 +246,7 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "dae82ade2b04da6aa6713cd1ec896347791d5455",
+  "verifyRanRef": "9b65f8b063bec4764f21fadd81a57bb8d8149c47",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -279,14 +280,14 @@
       "FR-513": "bab0df1ae14824f7"
     }
   },
-  "verifyResultsHash": "1153c1adba4d51c5c5440a3201c49b96f24ec849c14d4e5aa93e20858ffcaafc",
-  "verifyRanAt": "2026-10-07T15:22:44.531Z",
+  "verifyResultsHash": "b79dc68a0a8295cf4ac9ac8cd8b9ab6685ccc860f6fa16b07952c03dfc0875fb",
+  "verifyRanAt": "2026-10-07T19:57:14.886Z",
   "lastVerifyRun": {
     "passed": 86,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-07T15:22:44.531Z"
+    "at": "2026-10-07T19:57:14.886Z"
   },
   "verifySummary": {
     "total": 86,

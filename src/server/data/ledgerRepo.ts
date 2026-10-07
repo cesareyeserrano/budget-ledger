@@ -884,7 +884,8 @@ export function unionScope(state: LedgerState, a: readonly PeriodKey[], b: reado
  * reapertura.
  *
  * El inicio declarado AÑADE suelo, nunca recorta (ADR-02): el extremo inferior es el MÍNIMO, así que un
- * dato anterior al inicio sigue extendiendo el rango hacia atrás. `normalizeStartMonth` degrada un valor
+ * dato anterior al inicio sigue extendiendo el rango hacia atrás. La frontera del cierre es el tercer
+ * ancla, con la misma regla (BG-094). `normalizeStartMonth` degrada un valor
  * ausente o corrupto a `null`, que se filtra igual que hoy: sin inicio declarado, esto es `serverScope`.
  *
  * Es la MISMA regla que el cliente ya aplica en `activeBounds` (`src/domain/range.ts`), y esa coincidencia
@@ -899,13 +900,22 @@ export function unionScope(state: LedgerState, a: readonly PeriodKey[], b: reado
  */
 export function closureScope(state: LedgerState, extra?: PeriodKey): PeriodKey[] {
   const declarado = normalizeStartMonth(state.startMonth);
+  // BG-094 — la FRONTERA del cierre ancla igual que el inicio declarado, que es lo que ya hace el
+  // cliente en `activeBounds` (ADR-14): un mes que se cerró existe, tenga cifras o no. Sin este ancla,
+  // con la frontera antes del primer dato y sin inicio declarado, el rango del servidor empezaba en el
+  // primer dato y `nextClosable` saltaba los meses vacíos de en medio: el botón nombraba uno y aquí se
+  // cerraba otro. Se normaliza antes de anclar: una frontera basura no fija el inicio del rango.
+  const frontera = normalizeClosure(state.closure).closedThrough;
   const base = serverScope(state, extra);
-  if (!declarado) return base;
-  // El SUELO sale del inicio declarado y de los datos, NUNCA de `extra`: `extra` es el mes en curso, que
-  // `serverScope` añade para cubrir el presente, no un periodo que el usuario tenga. Tomarlo como suelo
-  // dejaba cerrable un mes ANTERIOR al inicio declarado cuando el ledger está vacío (TC-CCO-023f).
+  if (!declarado && !frontera) return base;
+  // El SUELO sale del inicio declarado, de la frontera y de los datos, NUNCA de `extra`: `extra` es el
+  // mes en curso, que `serverScope` añade para cubrir el presente, no un periodo que el usuario tenga.
+  // Tomarlo como suelo dejaba cerrable un mes ANTERIOR al inicio declarado cuando el ledger está vacío
+  // (TC-CCO-023f).
   const conDatos = oldestPeriodWithData(state);
-  const desde = conDatos && comparePeriods(conDatos, declarado) < 0 ? conDatos : declarado;
+  const desde = [conDatos, declarado, frontera]
+    .filter((p): p is PeriodKey => !!p)
+    .reduce((a, b) => (comparePeriods(a, b) <= 0 ? a : b));
   if (base.length === 0) return calendarOf(state, extra).keys(monthOf(desde), monthOf(desde));
   const hasta = comparePeriods(base[base.length - 1], desde) > 0 ? base[base.length - 1] : desde;
   return calendarOf(state, extra).keys(monthOf(desde), monthOf(hasta));
