@@ -8903,7 +8903,7 @@
       "actual_result": "Hallado por la revision adversarial de gestion-movil el 2026-10-07 con las funciones reales: sin startMonth, con un mes cerrado estando vacio, el siguiente mes vacio sin cerrar y datos a partir del posterior, el cliente nombra el mes vacio y el servidor cierra el primero con datos. Con inicio declarado coinciden. Afecta a escritorio y al telefono. Es el caso de borde que cierre-coherente (FR-2701/2703) no cubrio.",
       "environment": "Lectura y sonda de dominio, 2026-10-07; no reproducido en produccion",
       "severity": "medium",
-      "status": "fixed",
+      "status": "verified",
       "fr": "FR-2703",
       "tc_reference": null,
       "phase_detected": null,
@@ -8911,7 +8911,7 @@
       "evidence": null,
       "reported_by": "revision adversarial",
       "created_at": "2026-10-07T16:30:04.095Z",
-      "updated_at": "2026-10-07T19:35:53.324Z",
+      "updated_at": "2026-10-07T19:57:33.703Z",
       "resolution": "closureScope ancla en la frontera del cierre igual que activeBounds: el suelo es el minimo entre primer dato, inicio declarado y frontera. Cuatro pruebas en tests/integration/backend/bg-094-cierre-sin-inicio.test.ts, una contra la ruta real con Postgres.",
       "fix_commit_sha": "67e407d16ec77ce2f1c1b1ae2f85a96c138c77a2",
       "fix_at": "2026-10-07T19:35:53.324Z"
