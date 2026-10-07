@@ -7,10 +7,11 @@
 // Dependencias: @/state/store, @/domain (isClosed), ../cycleText, ../ui/select, lucide-react.
 
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { isClosed } from "@/domain";
+import { isClosed, nextReopenable } from "@/domain";
 import type { PeriodKey } from "@/domain/types";
 import { useCalendar, useClosure, useLedgerStore } from "@/state/store";
 import { cycleLabel, withRange } from "../cycleText";
+import { CLOSURE, openScreen } from "./screenStack";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const STEP_BUTTON =
@@ -88,13 +89,18 @@ export function PeriodBar({ period, periods }: { period: PeriodKey; periods: Per
 /**
  * Aviso de periodo cerrado: se puede mirar, no cambiar.
  *
+ * Desde gestion-movil (FR-3209) ya no manda al computador: si el periodo es el último cerrado, lleva
+ * a «Cierre de mes»; si no, explica que solo ese se reabre.
+ *
  * @param period Periodo cerrado.
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-3112, US-ID: US-3112, AC-ID: AC-3133, TC-ID: TC-PMV-110h
+ * @aitri-trace FR-ID: FR-3209, US-ID: US-3209, AC-ID: AC-3230, TC-ID: TC-GMV-100h, TC-GMV-101f, TC-GMV-104e
  */
 export function ClosedNotice({ period }: { period: PeriodKey }) {
   const cal = useCalendar();
+  const reopenable = nextReopenable(useClosure());
   return (
     <div
       data-testid="mb-closed-notice"
@@ -102,10 +108,24 @@ export function ClosedNotice({ period }: { period: PeriodKey }) {
       className="mb-3 flex items-start gap-2 rounded-(--radius-sm) border border-border bg-sunken px-3 py-2 caption text-fg-secondary"
     >
       <Lock size={14} strokeWidth={1.75} className="mt-0.5 flex-none" aria-hidden />
-      <span>
-        {cycleLabel(cal, period)} está cerrado. Puedes mirarlo; para cambiarlo, reábrelo desde el cierre de mes
-        en el computador.
-      </span>
+      {reopenable === period ? (
+        <span className="min-w-0">
+          {cycleLabel(cal, period)} está cerrado. Puedes mirarlo; para cambiarlo, reábrelo.{" "}
+          <button
+            type="button"
+            data-testid="mb-closed-notice-link"
+            onClick={() => openScreen(CLOSURE)}
+            className="-my-3 inline-flex min-h-(--control-md) items-center font-semibold underline"
+          >
+            Ir a Cierre de mes ›
+          </button>
+        </span>
+      ) : (
+        <span className="min-w-0">
+          {cycleLabel(cal, period)} está cerrado. Solo se puede reabrir el último mes cerrado
+          {reopenable ? ` (${cycleLabel(cal, reopenable)})` : ""}.
+        </span>
+      )}
     </div>
   );
 }

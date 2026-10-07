@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gestion-movil — vista previa del UX spec</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; background: #e9e9ec; color: #1c1c1f; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 32px 0 10px; }
+  p.lead { margin: 0 0 8px; font-size: 13px; color: #55555d; max-width: 860px; line-height: 1.5; }
+  .banner { margin: 14px 0; padding: 10px 14px; border: 2px dashed #9e4708; background: #fff7ee; color: #6b3306; font-size: 12px; font-weight: 600; letter-spacing: .03em; border-radius: 8px; }
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .panel { border-radius: 14px; padding: 16px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); }
+  .panel > h3 { margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+  .light { --bg:#f7f7f8; --card:#ffffff; --sunken:#f1f1f3; --primary:#1c1c1f; --on-primary:#ffffff; --accent:#55555d; --fg:#1c1c1f; --fg2:#55555d; --muted:#6b6b73; --border:#e3e3e7; --border-strong:#d3d3d9; --alert-strong:#ad3932; --alert-soft:#9e4708; --fg-muted:#6b6b73; }
+  .dark  { --bg:#131316; --card:#1b1b1f; --sunken:#0f0f12; --primary:#f4f4f5; --on-primary:#1c1c1f; --accent:#9b9ba3; --fg:#f4f4f5; --fg2:#b4b4bb; --muted:#9b9ba3; --border:#33333a; --border-strong:#43434c; --alert-strong:#ec6a66; --alert-soft:#e0a458; --fg-muted:#9b9ba3; }
+  table.sw { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.sw td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .chip { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-strong); }
+  .hex { font-family: "DM Mono", ui-monospace, Menlo, monospace; color: var(--fg2); }
+  .why { color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--border-strong); background: var(--card); white-space: nowrap; }
+  .pairs { display: grid; gap: 6px; margin-top: 12px; }
+  .pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; }
+  .type div { margin: 6px 0; }
+  .title-sm { font-size: 17px; font-weight: 600; }
+  .g14 { font-size: 14px; font-weight: 600; }
+  .label { font-size: 13px; font-weight: 500; }
+  .caption { font-size: 12px; font-weight: 400; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .scale { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .scale span { display: inline-block; background: var(--fg2); border-radius: 2px; height: 10px; }
+  .scale small, .radii small { font-size: 11px; color: var(--muted); display: block; text-align: center; margin-top: 4px; }
+  .radii { display: flex; gap: 14px; margin-top: 8px; }
+  .radii i { display: block; width: 48px; height: 48px; background: var(--card); border: 1px solid var(--border-strong); }
+  /* ── composición ilustrativa ── */
+  .strip { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+  .strip > div { flex: 0 0 375px; }
+  .phone { width: 375px; border-radius: 22px; padding: 14px 20px 20px; background: var(--bg); color: var(--fg); border: 1px solid var(--border-strong); }
+  .cap { font-size: 11px; font-weight: 600; color: #55555d; margin: 0 0 6px 4px; }
+  .hdr { display: flex; align-items: center; gap: 4px; padding: 8px 0 4px; }
+  .back { width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center; color: var(--fg2); font-size: 20px; }
+  .hdr p { margin: 0; color: var(--muted); }
+  .titlerow { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
+  .ghost { height: 40px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; color: var(--fg2); }
+  .sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 6px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .card.md { border-radius: 10px; }
+  .row { min-height: 48px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: 0; }
+  .row .n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .chev { color: var(--muted); font-size: 14px; }
+  .ico { width: 18px; height: 18px; border: 1.5px solid var(--fg2); border-radius: 5px; flex: none; }
+  .l1 { padding-left: 14px; } .l2 { padding-left: 28px; }
+  .idcard { display: flex; align-items: center; gap: 12px; padding: 12px; }
+  .icobtn { width: 40px; height: 40px; border-radius: 8px; background: var(--sunken); display: flex; align-items: center; justify-content: center; flex: none; }
+  .danger { color: var(--alert-strong); }
+  .soft { color: var(--alert-soft); }
+  .muted { color: var(--muted); }
+  .btn { height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+  .btn.primary { background: var(--primary); color: var(--on-primary); }
+  .btn.secondary { background: var(--card); border: 1px solid var(--border-strong); }
+  .btn.del { background: var(--alert-strong); color: #ffffff; }
+  .confirm { border: 1px solid var(--border-strong); background: var(--card); border-radius: 10px; padding: 12px; margin-top: 8px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .block { padding: 16px; }
+  .notice { background: var(--sunken); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--fg2); margin-top: 10px; line-height: 1.45; }
+  .notice u { font-weight: 600; }
+  .grid6 { display: grid; grid-template-columns: repeat(6, 48px); gap: 4px; padding: 12px 0; }
+  .grid6 i { width: 48px; height: 48px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+  .grid6 i.on { border: 1.5px solid var(--fg); }
+  .input { height: 48px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); display: flex; align-items: center; padding: 0 12px; }
+  footer { margin-top: 32px; font-size: 12px; color: #55555d; }
+</style>
+</head>
+<body>
+<h1>gestion-movil — vista previa del UX spec</h1>
+<p class="lead">Segunda entrega del teléfono: organizar categorías y cerrar o reabrir el mes. No hay mockups del cliente: esta es la <b>propuesta</b> que se aprueba aquí. Todos los valores salen de la tabla <i>Design Tokens</i> de <code>01_UX_SPEC.md</code>, que son los tokens vigentes del producto (sin tokens nuevos).</p>
+
+<h2>Tokens — claro y oscuro</h2>
+<div class="panels">
+  <div class="panel light" data-theme>
+    <h3>Tema claro</h3>
+    <table class="sw" data-swatches></table>
+    <div class="pairs" data-pairs></div>
+  </div>
+  <div class="panel dark" data-theme>
+    <h3>Tema oscuro</h3>
+    <table class="sw" data-swatches></table>
+    <div class="pairs" data-pairs></div>
+  </div>
+</div>
+
+<h2>Escala tipográfica (Inter) y espaciado</h2>
+<div class="panels">
+  <div class="panel light type">
+    <h3>Tipografía — a tamaño real</h3>
+    <div class="title-sm">.title-sm 17 / 600 — Organizar categorías</div>
+    <div class="g14">14 / 600 — Comida (nombre de grupo)</div>
+    <div class="label">.label 13 / 500 — Restaurantes · Mover a…</div>
+    <div class="caption">.caption 12 / 400 — Está en Gasto · Comida</div>
+    <div class="eyebrow">.eyebrow 11 / 600 — Cerrar</div>
+  </div>
+  <div class="panel light">
+    <h3>Espaciado (base 4 px) y radios</h3>
+    <div class="scale">
+      <div><span style="width:4px"></span><small>4</small></div>
+      <div><span style="width:8px"></span><small>8</small></div>
+      <div><span style="width:12px"></span><small>12</small></div>
+      <div><span style="width:16px"></span><small>16</small></div>
+      <div><span style="width:20px"></span><small>20 margen</small></div>
+      <div><span style="width:24px"></span><small>24</small></div>
+      <div><span style="width:40px"></span><small>40 control-md</small></div>
+      <div><span style="width:48px"></span><small>48 control-lg</small></div>
+    </div>
+    <div class="radii">
+      <div><i style="border-radius:8px"></i><small>sm 8</small></div>
+      <div><i style="border-radius:10px"></i><small>md 10</small></div>
+      <div><i style="border-radius:14px"></i><small>lg 14</small></div>
+    </div>
+  </div>
+</div>
+
+<h2>Composición en contexto</h2>
+<div class="banner">ILLUSTRATIVE — non-binding; the spec is the contract. Los íconos son recuadros de posición: el producto usa el catálogo Lucide vigente.</div>
+<div class="strip light">
+  <div>
+    <p class="cap">1 · Presupuesto: dos entradas nuevas</p>
+    <div class="phone">
+      <div class="titlerow"><span class="title-sm">Presupuesto</span><span><span class="ghost label"><span class="ico"></span>Organizar</span><span class="ghost label"><span class="ico"></span>Cierre</span></span></div>
+      <div class="notice caption">Septiembre 2026 está cerrado. Puedes mirarlo; para cambiarlo, reábrelo. <u>Ir a Cierre de mes ›</u></div>
+      <div class="sec"><span class="eyebrow">→ Gastos</span><span class="caption muted">400 de 1.000</span></div>
+      <div class="card"><div class="row"><span class="n g14">Comida</span><span class="label">400</span><span class="chev">›</span></div></div>
+      <p class="caption muted" style="margin:6px 0 0">La lista del periodo no cambia.</p>
+    </div>
+  </div>
+  <div>
+    <p class="cap">2 · Organizar categorías</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Organizar categorías</div><p class="caption">Crea, renombra, mueve o borra</p></div></div>
+      <div class="sec"><span class="eyebrow">→ Gastos</span><span class="ghost label">＋ Grupo</span></div>
+      <div class="card">
+        <div class="row"><span class="ico"></span><span class="n g14">Comida</span><span class="chev">›</span></div>
+        <div class="row l1"><span class="ico"></span><span class="n label">Mercado</span><span class="chev">›</span></div>
+        <div class="row l2"><span class="ico" style="border-color:transparent"></span><span class="n label">Frutas</span><span class="chev">›</span></div>
+        <div class="row l1"><span class="ico"></span><span class="n label">Restaurantes</span><span class="chev">›</span></div>
+      </div>
+      <div class="card"><div class="row"><span class="ico"></span><span class="n g14">Ocio</span><span class="chev">›</span></div></div>
+    </div>
+  </div>
+  <div>
+    <p class="cap">3 · Un elemento y sus acciones (borrado bloqueado)</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Restaurantes</div><p class="caption">Gasto · Comida</p></div></div>
+      <div class="card md idcard"><span class="icobtn"><span class="ico"></span></span><span class="title-sm">Restaurantes</span></div>
+      <div class="card md">
+        <div class="row"><span class="ico"></span><span class="n label">Renombrar</span></div>
+        <div class="row"><span class="ico"></span><span class="n label">Cambiar ícono</span></div>
+        <div class="row"><span class="ico"></span><span class="n label">Añadir subcategoría</span></div>
+        <div class="row"><span class="ico"></span><span class="n label">Mover a…</span><span class="chev">›</span></div>
+      </div>
+      <div class="card md" style="margin-top:12px"><div class="row danger"><span class="ico" style="border-color:currentColor"></span><span class="n label">Borrar</span></div></div>
+      <p class="caption danger" style="margin:8px 2px 0">⚠ No se puede borrar: tiene valores presupuestados, ejecutados o saldo. Vacíala primero.</p>
+    </div>
+  </div>
+  <div>
+    <p class="cap">4 · Mover a…</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Mover “Restaurantes”</div><p class="caption">Está en Gasto · Comida</p></div></div>
+      <div class="card md"><div class="row"><span class="ico"></span><span class="n label">Convertir en grupo de Gastos</span></div></div>
+      <div class="card md">
+        <div class="row muted"><span class="ico" style="border-color:currentColor"></span><span class="n g14">Comida</span><span class="caption">Aquí está</span></div>
+        <div class="row l1"><span class="ico"></span><span class="n label">Mercado</span><span class="caption muted">como subcategoría</span></div>
+        <div class="row"><span class="ico"></span><span class="n g14">Ocio</span><span class="caption muted">como categoría</span></div>
+        <div class="row l1" style="min-height:60px"><span class="ico" style="border-color:var(--muted)"></span><span class="n"><span class="label muted" style="display:block">Viajes</span><span class="caption soft">Vacía o mueve las subcategorías primero</span></span></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p class="cap">5 · Cierre de mes (confirmando)</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Cierre de mes</div><p class="caption">Cerrar congela las cifras del mes</p></div></div>
+      <div class="card md block">
+        <div class="eyebrow">Cerrar</div>
+        <div class="title-sm" style="margin-top:6px">Septiembre 2026</div>
+        <div class="caption muted">21 ago – 20 sep · Es el mes abierto más antiguo</div>
+        <div class="confirm"><div class="label">¿Cerrar septiembre 2026? Sus cifras quedarán fijas. Podrás reabrirlo mientras sea el último mes cerrado.</div>
+          <div class="two"><div class="btn">Cancelar</div><div class="btn primary">Sí, cerrar</div></div></div>
+      </div>
+      <div class="card md block" style="margin-top:12px">
+        <div class="eyebrow">Reabrir</div>
+        <div class="label" style="margin:6px 0 10px">Último mes cerrado: Agosto 2026</div>
+        <div class="btn secondary">Reabrir agosto</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p class="cap">6 · Nueva subcategoría y selector de ícono</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Nueva subcategoría</div><p class="caption">en Mercado</p></div></div>
+      <div class="eyebrow" style="margin:10px 0 6px">Nombre</div>
+      <div class="input label">Frutas</div>
+      <p class="caption soft" style="margin:8px 2px 12px">ⓘ Los montos de Mercado pasarán a esta subcategoría</p>
+      <div class="btn primary">Crear</div>
+      <div class="btn">Cancelar</div>
+      <div class="eyebrow" style="margin-top:14px">Selector de ícono (en la pantalla del elemento)</div>
+      <div class="grid6"><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+</div>
+
+<h2>Lo que esta vista no muestra</h2>
+<p class="lead">Honest gaps: no se pinta el <b>anillo de foco</b> (<code>--accent-light</code>; aparece solo con teclado), la animación de entrada <code>mvScreenIn</code>, ni la tira en tema oscuro (los tokens oscuros sí están arriba, con su contraste). <code>--bg-elevated</code> y los colores de tipo no se usan en esta feature. Los estados «Cerrando…», error de red y lista de destinos vacía están descritos en el spec y no dibujados aquí.</p>
+
+<footer>Generated from 01_UX_SPEC.md — non-binding; the spec is the contract.</footer>
+
+<script>
+(function () {
+  var ROLES = [
+    ["background", "--bg", "Lienzo de las pantallas nuevas"],
+    ["surface", "--card", "Tarjetas, acciones, destinos, bloques de cierre"],
+    ["sunken", "--sunken", "Botón de ícono y aviso de periodo cerrado"],
+    ["primary", "--primary", "Botones principales"],
+    ["on-primary", "--on-primary", "Texto de los botones principales"],
+    ["accent", "--accent", "Anillo de foco"],
+    ["text-primary", "--fg", "Nombres y rótulos de acción"],
+    ["text-secondary", "--fg2", "Íconos de fila, avisos, confirmaciones"],
+    ["text-muted", "--muted", "Eyebrows, ruta, destinos deshabilitados"],
+    ["border", "--border", "Hairline de filas y tarjetas"],
+    ["border-strong", "--border-strong", "Confirmación y botón «Reabrir»"],
+    ["error", "--alert-strong", "«Borrar», motivos de bloqueo, errores"],
+    ["alert-soft", "--alert-soft", "Traslado de montos, «Vacía o mueve…»"]
+  ];
+  var PAIRS = [
+    ["Nombre sobre tarjeta", "--fg", "--card"],
+    ["Texto atenuado sobre tarjeta", "--muted", "--card"],
+    ["Texto atenuado sobre lienzo", "--muted", "--bg"],
+    ["Aviso sobre hundido", "--fg2", "--sunken"],
+    ["Botón principal", "--on-primary", "--primary"],
+    ["Motivo de bloqueo sobre lienzo", "--alert-strong", "--bg"],
+    ["Aviso leve sobre tarjeta", "--alert-soft", "--card"]
+  ];
+  function lum(hex) {
+    var n = parseInt(hex.replace("#", ""), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (v) {
+      v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }).reduce(function (a, v, i) { return a + v * [0.2126, 0.7152, 0.0722][i]; }, 0);
+  }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  document.querySelectorAll("[data-theme]").forEach(function (panel) {
+    var cs = getComputedStyle(panel);
+    var v = function (name) { return cs.getPropertyValue(name).trim(); };
+    panel.querySelector("[data-swatches]").innerHTML = ROLES.map(function (r) {
+      return "<tr><td><div class='chip' style='background:" + v(r[1]) + "'></div></td><td><b>" + r[0] + "</b><br><span class='hex'>" + v(r[1]) + "</span></td><td class='why'>" + r[2] + "</td></tr>";
+    }).join("");
+    panel.querySelector("[data-pairs]").innerHTML = PAIRS.map(function (p) {
+      var c = ratio(v(p[1]), v(p[2]));
+      return "<div class='pair' style='background:" + v(p[2]) + ";color:" + v(p[1]) + "'><span>" + p[0] + "</span><span class='badge' style='color:" + v("--fg") + "'>" + (c >= 4.5 ? "AA " : "✗ ") + c.toFixed(1) + "</span></div>";
+    }).join("");
+  });
+})();
+</script>
+</body>
+</html>

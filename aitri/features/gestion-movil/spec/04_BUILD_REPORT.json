@@ -1,0 +1,121 @@
+{
+  "files_created": [
+    "src/domain/structureView.ts",
+    "src/components/mobile/OrganizeScreen.tsx",
+    "src/components/mobile/NodeScreen.tsx",
+    "src/components/mobile/IconGrid.tsx",
+    "src/components/mobile/NewNodeScreen.tsx",
+    "src/components/mobile/MoveScreen.tsx",
+    "src/components/mobile/ClosureScreen.tsx",
+    "src/components/mobile/nodeText.ts",
+    "src/components/mobile/buttonStyles.ts",
+    "tests/fixtures/gmv-base.ts",
+    "tests/domain/gestion-movil-estructura.test.ts",
+    "tests/domain/gestion-movil-escala.test.ts",
+    "tests/unit/gestion-movil-pantallas.test.ts",
+    "tests/integration/gestion-movil-pantallas.test.ts",
+    "tests/integration/backend/gestion-movil.test.ts",
+    "tests/e2e/gestion-movil.spec.ts"
+  ],
+  "files_modified": [
+    "src/components/mobile/screenStack.ts",
+    "src/components/mobile/MobileBudget.tsx",
+    "src/components/mobile/PeriodBar.tsx",
+    "src/components/mobile/BudgetSections.tsx",
+    "src/domain/index.ts",
+    "tests/integration/presupuesto-movil-pantallas.test.ts",
+    "tests/e2e/presupuesto-movil.spec.ts",
+    "tests/domain/cierre-de-mes.test.ts"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/domain/gestion-movil-estructura.test.ts",
+    "../../../tests/domain/gestion-movil-escala.test.ts",
+    "../../../tests/unit/gestion-movil-pantallas.test.ts",
+    "../../../tests/integration/gestion-movil-pantallas.test.ts",
+    "../../../tests/integration/backend/gestion-movil.test.ts",
+    "../../../tests/e2e/gestion-movil.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-3207",
+      "substitution": "Tras cerrar o reabrir, el aviso del Toaster es el de escritorio («Mes cerrado.» / «Mes reabierto: ya puedes corregirlo.»), no «Septiembre cerrado» como pedía el UX spec (F8, F9)",
+      "reason": "El texto lo emiten las acciones closeMonth/reopenMonth del store, que también usa escritorio; cambiarlo cambiaría escritorio (NFR-3201). Decisión ADR-03 del TRD, aceptada por el usuario al aprobar la arquitectura. El mes queda nombrado en el botón, la confirmación y el estado siguiente del bloque.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3204",
+      "substitution": "«Cambiar ícono» no se ofrece en subcategorías ni en elementos del sistema; el plan de pruebas (TC-GMV-004f, 005f) lo listaba también para ellos",
+      "reason": "Es la regla de escritorio: la grilla solo da ícono propio a grupos y categorías editables, y NodeIcon ignora el ícono de una subcategoría, así que ofrecerlo dejaría un cambio que no se ve. Los dos casos afirman la lista real de acciones. Un elemento del sistema tampoco ofrece «Mover a…», porque moveNode lo rechaza.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3201",
+      "substitution": "La ruta de un elemento dice «Gastos · Comida» (plural) y no «Gasto · Comida» como en el UX spec (F2)",
+      "reason": "Se reutiliza pathOf, la función que ya escribe la ruta en las pantallas de la primera entrega, en vez de una segunda forma de nombrar lo mismo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3202",
+      "substitution": "Si el elemento padre desaparece mientras se escribe el nombre, la pantalla vuelve a Organizar sin crear nada; el texto «No se pudo crear: el elemento donde iba ya no existe» casi nunca llega a leerse",
+      "reason": "La redirección por enlace a un elemento inexistente (FR-3201) actúa en el mismo instante. El texto se conserva como defensa por si createNode rechazara con el padre presente. TC-GMV-027f afirma lo que de verdad ocurre: nada creado y pantalla en Organizar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3206",
+      "substitution": "Si el destino elegido deja de existir al aplicar el movimiento, desaparece de la lista; el texto «Ese lugar ya no está disponible» no llega a verse bajo la fila",
+      "reason": "La lista se recalcula con el estado nuevo en el mismo instante. TC-GMV-068f afirma que nada se movió y que la pantalla sigue en pie. Además, mover una categoría con subcategorías dentro de otra categoría no se bloquea: escritorio las aplana al nuevo padre (rama previa de moveNode) y el teléfono lo ofrece igual; el desborde con aviso solo existe al bajar un grupo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3201",
+      "substitution": "TC-GMV-008e comprueba que la lista recupera su posición con un desplazamiento de 30 px, no de 300",
+      "reason": "«Organizar» está en la línea del título: con un desplazamiento largo el propio clic de la prueba sube la página antes de salir y no queda posición que recuperar. Con 30 px el botón sigue a la vista y la recuperación se mide de verdad.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3205",
+      "substitution": "Se amplió el guardia TC-CDM-064f de cierre-de-mes («no existe ninguna ruta de cierre automático») para admitir una tercera invocación de closeMonth: la de ClosureScreen",
+      "reason": "La pantalla llama a la acción del store desde el toque en «Sí, cerrar» y espera su resultado (ADR-03). El guardia sigue rechazando cualquier otra invocación y ahora afirma además que la del teléfono es una sola y que el archivo no tiene efectos de montaje. Las dos aserciones de presupuesto-movil que fijaban el texto «en el computador» se reescribieron (ADR-05).",
+      "effort_to_fix": "low"
+    }
+  ]
+}

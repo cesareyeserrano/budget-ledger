@@ -1373,7 +1373,10 @@ test("TC-PMV-110h: en un periodo cerrado se ven los movimientos, sin acciones y 
   await expect(valor(page, "budget")).toHaveText("900");
   await expect(valor(page, "actual")).toHaveText("850");
   await expect(page.getByTestId("mb-closed-notice")).toBeVisible();
-  await expect(page.getByTestId("mb-closed-notice")).toContainText("reábrelo desde el cierre de mes en el computador");
+  // gestion-movil FR-3209 (6-oct-2026): el aviso ya no manda al computador; lleva a «Cierre de mes».
+  await expect(page.getByTestId("mb-closed-notice")).toContainText("para cambiarlo, reábrelo.");
+  await expect(page.getByTestId("mb-closed-notice")).toContainText("Ir a Cierre de mes");
+  await expect(page.getByTestId("mb-closed-notice")).not.toContainText("computador");
 });
 
 test("TC-PMV-114e: si el periodo se cierra desde otro dispositivo con el editor abierto, el editor se cierra", async ({ page, browser }) => {

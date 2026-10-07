@@ -574,7 +574,12 @@ describe("presupuesto-movil · periodo cerrado", () => {
     await abrirRetiros();
     expect(screen.getAllByTestId("mb-retiro-row")).toHaveLength(1);
     expect(acciones()).toEqual(SIN_ACCIONES);
-    expect(screen.getByTestId("mb-closed-notice").textContent).toContain("reábrelo desde el cierre de mes en el computador");
+    // gestion-movil FR-3209 (6-oct-2026): el aviso ya no manda al computador. Reabrir se hace desde el
+    // teléfono, así que el texto lleva a «Cierre de mes». La intención de esta aserción no cambia:
+    // el aviso explica cómo salir del bloqueo.
+    expect(screen.getByTestId("mb-closed-notice").textContent).toContain("para cambiarlo, reábrelo.");
+    expect(screen.getByTestId("mb-closed-notice").textContent).toContain("Ir a Cierre de mes");
+    expect(screen.getByTestId("mb-closed-notice").textContent).not.toContain("computador");
 
     // Y si el periodo se cierra con un campo YA abierto (otro dispositivo lo cerró), el campo se retira:
     // no queda una vía de escritura a la vista.

@@ -1,0 +1,192 @@
+{
+  "project": "gestion-movil",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale). Sin migraciones SQL, sin conversión de datos, sin rutas y sin variables de entorno nuevas: es código de cliente para el teléfono más un módulo de lectura en el dominio. Rollback: imagen anterior, sin datos que revertir. Escrito en aitri/features/gestion-movil/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/gestion-movil/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "verification_summary": "97/97 TCs en verde (60 unit/integración + 37 de navegador; 0 fallos, 0 saltados, 0 de baja confianza) y 6/6 quality gates: typecheck, lint, design-tokens, coverage, smoke y e2e (suite completa de navegador). verify-run del 2026-10-07 con Node 22 sobre 8cfa3b0, exit 0 del runner y del e2e.",
+  "requirement_compliance": [
+    {
+      "id": "FR-3201",
+      "title": "Cada elemento de la vista de presupuesto del teléfono ofrece sus acciones de estructura",
+      "level": "partial",
+      "evidence": "10 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-001h, 002h, 003f, 004f, 005f, 006e, 007e, 008e, 009f, 010e): Organizar y la pantalla de cada elemento con sus acciones; un tipo solo ofrece «＋ Grupo», una subcategoría no admite añadir dentro, un elemento del sistema no se renombra ni se borra; enlaces rotos vuelven a Organizar y el atrás del navegador deshace pantalla por pantalla. Parcial por la deuda declarada: La ruta de un elemento dice «Gastos · Comida» (plural) y no «Gasto · Comida» como en el UX spec (F2) · TC-GMV-008e comprueba que la lista recupera su posición con un desplazamiento de 30 px, no de 300."
+    },
+    {
+      "id": "FR-3202",
+      "title": "Desde el teléfono se crean grupos, categorías y subcategorías",
+      "level": "partial",
+      "evidence": "8 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-020h, 021h, 022e, 023e, 024f, 025f, 026e, 027f): alta de grupo, categoría y subcategoría; traslado de montos al primer hijo de una hoja con aviso previo; nombre vacío no crea; no se crea bajo una subcategoría ni cruzando de tipo. Parcial por la deuda declarada: Si el elemento padre desaparece mientras se escribe el nombre, la pantalla vuelve a Organizar sin crear nada; el texto «No se pudo crear: el elemento donde iba ya no existe» casi nunca llega a leerse."
+    },
+    {
+      "id": "FR-3203",
+      "title": "Desde el teléfono se renombra un elemento",
+      "level": "complete",
+      "evidence": "4 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-030h, 031f, 032e, 033e): renombrar con el nombre nuevo en la lista, el detalle y Registrar; vacío y sin cambio no se guardan; 60 caracteres se guardan enteros."
+    },
+    {
+      "id": "FR-3204",
+      "title": "Desde el teléfono se cambia el ícono de un elemento",
+      "level": "partial",
+      "evidence": "5 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-040h, 041f, 042e, 043h, 044e): mismo catálogo que el popover de escritorio en celdas de dedo; búsqueda, vacío de búsqueda, cerrar sin elegir y el ícono visible en la grilla de escritorio. Parcial por la deuda declarada: «Cambiar ícono» no se ofrece en subcategorías ni en elementos del sistema; el plan de pruebas (TC-GMV-004f, 005f) lo listaba también para ellos."
+    },
+    {
+      "id": "FR-3205",
+      "title": "Desde el teléfono se borra un elemento solo cuando escritorio lo permitiría, y si no, se dice por qué",
+      "level": "complete",
+      "evidence": "9 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-050h, 051f, 052f, 053f, 054e, 055e, 056f, 057e, 058f): borrado con confirmación; los tres motivos de bloqueo con su texto (elementos dentro, valores o saldo, operaciones que quedarían rotas); el grupo vuelve a hoja al perder su última categoría; un bloqueo sobrevenido no borra."
+    },
+    {
+      "id": "FR-3206",
+      "title": "Desde el teléfono se mueve un elemento con «Mover a…», incluido convertir en grupo y bajar de nivel",
+      "level": "partial",
+      "evidence": "11 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-060h, 061h, 062h, 063h, 064f, 065f, 066e, 067e, 068f, 069e, 070e): mover entre grupos con los movimientos intactos y los totales repartidos; convertir en grupo; bajar un grupo; destinos del mismo tipo, sin el propio subárbol; destino donde no cabe apagado con el aviso de escritorio; un ensayo por candidato a escala (312). Parcial por la deuda declarada: Si el destino elegido deja de existir al aplicar el movimiento, desaparece de la lista; el texto «Ese lugar ya no está disponible» no llega a verse bajo la fila."
+    },
+    {
+      "id": "FR-3207",
+      "title": "Desde el teléfono se cierra el mes cerrable, con un paso de confirmación",
+      "level": "partial",
+      "evidence": "8 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-080h, 081e, 082f, 083e, 084f, 085f, 086e, 087h): cierre con confirmación del mes que el botón nombra, visto también en escritorio; la petición no propone el mes; cancelar, doble toque, espera, fallo de red y celdas descuadradas con el motivo entero. Parcial por la deuda declarada: Tras cerrar o reabrir, el aviso del Toaster es el de escritorio («Mes cerrado.» / «Mes reabierto: ya puedes corregirlo.»), no «Septiembre cerrado» como pedía el UX spec (F8, F9)."
+    },
+    {
+      "id": "FR-3208",
+      "title": "Desde el teléfono se reabre el último mes cerrado",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-090h, 091f, 092f, 093e, 094f): reapertura del último cerrado con confirmación; con un mes reabierto no se ofrece otro; sin nada cerrado no hay acción; cancelar y fallo dejan el mes cerrado."
+    },
+    {
+      "id": "FR-3209",
+      "title": "FR-3112 cambia: el aviso de periodo cerrado ya no manda a escritorio",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-100h, 101f, 102f, 103e, 104e): el aviso no nombra el computador ni escritorio y lleva a Cierre de mes; en un mes que no es el último explica el límite sin enlace; el periodo cerrado sigue sin edición; reabrir desde el aviso devuelve las acciones sin recargar."
+    },
+    {
+      "id": "FR-3210",
+      "title": "Las pantallas nuevas caben en el teléfono y se tocan con el dedo",
+      "level": "complete",
+      "evidence": "6 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-110h, 111f, 112e, 113h, 114e, 115e): sin desborde a 375 y 360 px en las siete vistas, controles de al menos 40×40, nombre de 60 caracteres, contraste ≥4,5:1 en claro y oscuro, holgura de la línea del título y color con significado."
+    },
+    {
+      "id": "FR-3211",
+      "title": "Lo que se cambia en el teléfono queda guardado y se ve en escritorio, y al revés",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-120h, 121h, 122e, 123f, 124f): lo creado en el teléfono está en escritorio y lo renombrado en escritorio llega al teléfono; el snapshot sobrevive a un proceso nuevo en Postgres; un guardado fallido avisa y no persiste; solo las rutas vigentes (PUT ledger, POST/DELETE closure)."
+    },
+    {
+      "id": "NFR-3201",
+      "title": "Escritorio (>760px) no cambia: la grilla, arrastrar para mover, la edición en línea, el selector de íconos y e",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-130h, 131e, 132f): escritorio cierra con un clic sin diálogo, conserva su popover de íconos de 36 px y no monta nada de la gestión móvil, ni con un enlace a Organizar."
+    },
+    {
+      "id": "NFR-3202",
+      "title": "Lo que presupuesto-movil dejó en el teléfono sigue igual: ver el periodo, cambiar lo planeado, editar y borrar",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-135h, 136e, 137f): cambiar lo planeado sigue igual; las filas de la lista siguen siendo un único botón sin controles nuevos; retiros y alcancías de un mes cerrado siguen sin acciones."
+    },
+    {
+      "id": "NFR-3203",
+      "title": "El registro de movimientos del teléfono sigue igual y conserva lo escrito al pasar a presupuesto y volver.",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-140h, 141e, 142f): lo escrito en Registrar sobrevive a organizar, a la pantalla de cierre y al atrás; guardar después anota un solo movimiento."
+    },
+    {
+      "id": "NFR-3204",
+      "title": "Las reglas de borrado no se relajan: un elemento con hijos, con valores, con saldo de alcancía o con operacion",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-145h, 146e, 147f): mismo veredicto de borrado que escritorio nodo por nodo; un grupo con hijos vacíos no se borra; la acción del store rechaza por sí sola."
+    },
+    {
+      "id": "NFR-3205",
+      "title": "El cierre sigue en orden, mes a mes desde el inicio declarado (FR-2002, FR-2702); reabrir sigue alcanzando sol",
+      "level": "partial",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-150h, 151e, 152f): el teléfono solo ofrece el mes cerrable y el último cerrado; el servidor no cierra un mes propuesto fuera de orden. Parcial por la deuda declarada: Se amplió el guardia TC-CDM-064f de cierre-de-mes («no existe ninguna ruta de cierre automático») para admitir una tercera invocación de closeMonth: la de ClosureScreen."
+    },
+    {
+      "id": "NFR-3206",
+      "title": "Un periodo cerrado sigue sin admitir cambios de cifras desde el teléfono (FR-2003, FR-3112).",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-155h, 156e, 157f): un mes cerrado se mira sin acciones; renombrar no toca sus cifras; el servidor responde 422 closed_period_violation a una cifra de un mes cerrado."
+    },
+    {
+      "id": "NFR-3207",
+      "title": "El dashboard y la grilla de 12 meses siguen sin renderizarse en el teléfono, y el corte sigue en 760px.",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-07 sobre 8cfa3b0, TC-GMV-160h, 161e, 162f): en el teléfono no hay grilla de 12 meses ni dashboard; 760 es teléfono y 761 escritorio; un enlace a Organizar en escritorio muestra escritorio."
+    },
+    {
+      "id": "NFR-3208",
+      "title": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas en el servidor; el teléfono usa las mismas acc",
+      "level": "complete",
+      "evidence": "No aplica como superficie nueva: sin endpoints, sesiones ni secretos (TC-GMV-124f confirma que solo se llaman las rutas vigentes). La URL del teléfono se valida (TC-GMV-007e, 009f, 025f) y los nombres se pintan como texto."
+    },
+    {
+      "id": "NFR-3209",
+      "title": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "level": "complete",
+      "evidence": "No aplica: sin ficheros nuevos en src/app/api ni procesos nuevos."
+    },
+    {
+      "id": "NFR-3210",
+      "title": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "level": "complete",
+      "evidence": "El workflow de CI (.github/workflows/ci.yml) se dispara en push y pull_request y ejecuta npm run test:run y npm run test:e2e, que recogen las pruebas nuevas por su patrón de archivo (tests/**/gestion-movil*). Sin cambios en el workflow."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-3207",
+      "substitution": "Tras cerrar o reabrir, el aviso del Toaster es el de escritorio («Mes cerrado.» / «Mes reabierto: ya puedes corregirlo.»), no «Septiembre cerrado» como pedía el UX spec (F8, F9)",
+      "reason": "El texto lo emiten las acciones closeMonth/reopenMonth del store, que también usa escritorio; cambiarlo cambiaría escritorio (NFR-3201). Decisión ADR-03 del TRD, aceptada por el usuario al aprobar la arquitectura. El mes queda nombrado en el botón, la confirmación y el estado siguiente del bloque.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3204",
+      "substitution": "«Cambiar ícono» no se ofrece en subcategorías ni en elementos del sistema; el plan de pruebas (TC-GMV-004f, 005f) lo listaba también para ellos",
+      "reason": "Es la regla de escritorio: la grilla solo da ícono propio a grupos y categorías editables, y NodeIcon ignora el ícono de una subcategoría, así que ofrecerlo dejaría un cambio que no se ve. Los dos casos afirman la lista real de acciones. Un elemento del sistema tampoco ofrece «Mover a…», porque moveNode lo rechaza.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3201",
+      "substitution": "La ruta de un elemento dice «Gastos · Comida» (plural) y no «Gasto · Comida» como en el UX spec (F2)",
+      "reason": "Se reutiliza pathOf, la función que ya escribe la ruta en las pantallas de la primera entrega, en vez de una segunda forma de nombrar lo mismo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3202",
+      "substitution": "Si el elemento padre desaparece mientras se escribe el nombre, la pantalla vuelve a Organizar sin crear nada; el texto «No se pudo crear: el elemento donde iba ya no existe» casi nunca llega a leerse",
+      "reason": "La redirección por enlace a un elemento inexistente (FR-3201) actúa en el mismo instante. El texto se conserva como defensa por si createNode rechazara con el padre presente. TC-GMV-027f afirma lo que de verdad ocurre: nada creado y pantalla en Organizar.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3206",
+      "substitution": "Si el destino elegido deja de existir al aplicar el movimiento, desaparece de la lista; el texto «Ese lugar ya no está disponible» no llega a verse bajo la fila",
+      "reason": "La lista se recalcula con el estado nuevo en el mismo instante. TC-GMV-068f afirma que nada se movió y que la pantalla sigue en pie. Además, mover una categoría con subcategorías dentro de otra categoría no se bloquea: escritorio las aplana al nuevo padre (rama previa de moveNode) y el teléfono lo ofrece igual; el desborde con aviso solo existe al bajar un grupo.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3201",
+      "substitution": "TC-GMV-008e comprueba que la lista recupera su posición con un desplazamiento de 30 px, no de 300",
+      "reason": "«Organizar» está en la línea del título: con un desplazamiento largo el propio clic de la prueba sube la página antes de salir y no queda posición que recuperar. Con 30 px el botón sigue a la vista y la recuperación se mide de verdad.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3205",
+      "substitution": "Se amplió el guardia TC-CDM-064f de cierre-de-mes («no existe ninguna ruta de cierre automático») para admitir una tercera invocación de closeMonth: la de ClosureScreen",
+      "reason": "La pantalla llama a la acción del store desde el toque en «Sí, cerrar» y espera su resultado (ADR-03). El guardia sigue rechazando cualquier otra invocación y ahora afirma además que la del teléfono es una sola y que el archivo no tiene efectos de montaje. Las dos aserciones de presupuesto-movil que fijaban el texto «en el computador» se reescribieron (ADR-05).",
+      "effort_to_fix": "low"
+    }
+  ]
+}

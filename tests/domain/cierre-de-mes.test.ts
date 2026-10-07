@@ -743,12 +743,18 @@ describe("FR-2006/NFR-2001/NFR-2003 — lo que NO debe existir", () => {
       'grep -rn "closeMonth(" src/ | grep -v "^src/domain/closure.ts" || true',
       { encoding: "utf8" }
     ).trim().split("\n").filter(Boolean);
-    // Las ÚNICAS invocaciones legítimas: el repositorio (que sirve al endpoint) y la acción del
-    // store (que sirve al botón). Cualquier otra es un cierre que el usuario no pidió.
+    // Las ÚNICAS invocaciones legítimas: el repositorio (que sirve al endpoint), la acción del
+    // store (que sirve al botón) y —desde gestion-movil FR-3207, 6-oct-2026— la pantalla «Cierre de
+    // mes» del teléfono, que llama a esa misma acción SOLO desde el toque en «Sí, cerrar» y espera su
+    // resultado para decir si funcionó. Cualquier otra es un cierre que el usuario no pidió.
     for (const l of llamadas) {
       expect(l, `invocación inesperada de closeMonth: ${l}`)
-        .toMatch(/^src\/(server\/data\/ledgerRepo|state\/store)\.ts:/);
+        .toMatch(/^src\/(server\/data\/ledgerRepo\.ts|state\/store\.ts|components\/mobile\/ClosureScreen\.tsx):/);
     }
+    // La del teléfono es UNA, y no vive en un efecto: la dispara un manejador de clic.
+    const enTelefono = llamadas.filter((l) => l.startsWith("src/components/mobile/ClosureScreen.tsx:"));
+    expect(enTelefono).toHaveLength(1);
+    expect(execSync('grep -c "useEffect\\|useLayoutEffect" src/components/mobile/ClosureScreen.tsx || true', { encoding: "utf8" }).trim()).toBe("0");
     // Y ninguna dentro de un temporizador o de un efecto de montaje.
     const timers = execSync(
       'grep -rn "setTimeout\\|setInterval" src/ | grep -i "close" || true',
