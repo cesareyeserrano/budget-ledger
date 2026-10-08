@@ -1,0 +1,339 @@
+{
+  "project_name": "Ledger (T-Ledger) — impacto-movil",
+  "project_summary": "Lleva al teléfono el aviso de impacto de cierre-de-mes FR-2010: mientras hay un mes reabierto y una corrección movió algún mes posterior, el teléfono muestra esos meses con su disponible de antes y de después, y señala los que quedaron sin cubrir. Usa el mismo cálculo que el panel de escritorio (downstreamImpact) y no bloquea nada. Nace del hueco 2 de la auditoría de requisitos de gestion-movil, que habilitó reabrir y corregir desde el teléfono sin llevar este aviso. North Star KPI: al corregir un mes reabierto desde el teléfono, el usuario ve los mismos meses movidos y las mismas cifras que vería en escritorio, sin ir a buscarlos. JTBD: saber dónde toqué algo cuando corrijo el pasado desde el teléfono. Guardrail: ninguna corrección se bloquea y las pantallas del teléfono no cambian cuando no hay mes reabierto.",
+  "functional_requirements": [
+    {
+      "id": "FR-3301",
+      "title": "El teléfono lista los meses posteriores que se movieron al corregir un mes reabierto",
+      "priority": "MUST",
+      "type": "reporting",
+      "description": "When hay un mes reabierto y una corrección hecha en él cambió el disponible de algún mes posterior, the system shall mostrar en el teléfono la lista de esos meses, cada uno con su periodo, su disponible anterior y su disponible nuevo, calculados con la misma función que el panel de escritorio (downstreamImpact, con la línea de base tomada al reabrir). La lista muestra el efecto neto frente a cómo estaban al reabrir, no un delta por cada cambio.",
+      "acceptance_criteria": [
+        "Con agosto reabierto y septiembre abierto con disponible 4.000, al subir en 100 un gasto de agosto la lista muestra una fila «Septiembre 2026» con 4.000 → 3.900.",
+        "Con tres meses abiertos después del reabierto y un cambio que los mueve a los tres, la lista tiene exactamente tres filas, en orden cronológico.",
+        "Un mes posterior cuyo disponible queda igual no aparece en la lista (negativo).",
+        "Tras dos correcciones seguidas de +100 y +50 en agosto, la fila de septiembre muestra el efecto neto 4.000 → 3.850, no dos filas (borde).",
+        "Para el mismo libro, los periodos y las cifras de la lista del teléfono son idénticos a los de impact-row del panel de escritorio."
+      ]
+    },
+    {
+      "id": "FR-3302",
+      "title": "Los meses que quedaron sin cubrir se señalan con ícono y texto, no solo con color",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When una fila de la lista corresponde a un mes que pasó de cubierto a descubierto por la corrección (brokenByThisEdit), the system shall marcarla con un ícono de alerta y el texto «quedó sin cubrir» en el color de alerta fuerte, y añadir bajo la lista la frase que explica que la app no frena la corrección. Un mes que ya estaba descubierto antes de reabrir no se marca.",
+      "acceptance_criteria": [
+        "Con septiembre en disponible 50 y un cambio de +100 en agosto, la fila de septiembre muestra 50 → −50, el ícono de alerta y el texto «quedó sin cubrir», con color computado igual a --alert-strong.",
+        "Con al menos una fila rota, bajo la lista se lee que ese mes quedó con gastos sin cubrir y que la app no frena.",
+        "Un mes que ya estaba en negativo antes de reabrir y sigue en negativo no lleva la marca «quedó sin cubrir» (negativo).",
+        "La marca se distingue sin color: ícono y texto presentes en el DOM (borde: escala de grises).",
+        "El texto de las cifras y de la marca cumple contraste ≥4,5:1 en tema claro y oscuro."
+      ]
+    },
+    {
+      "id": "FR-3303",
+      "title": "El aviso aparece donde se corrige, sin ir a buscarlo, y cabe en el teléfono",
+      "priority": "MUST",
+      "type": "UX",
+      "description": "When hay impacto que mostrar, the system shall pintar el aviso en la lista del periodo y en el detalle de una categoría del teléfono, en cualquier periodo que se esté mirando, de modo que tras guardar una corrección el usuario lo vea sin navegar. El aviso cabe entre 360 y 760 px sin desplazamiento horizontal, con cifras de hasta nueve dígitos, y sus controles miden al menos 40×40 px.",
+      "acceptance_criteria": [
+        "Tras cambiar el Presupuestado o editar un movimiento del mes reabierto desde el detalle de una categoría, el aviso está visible en esa misma pantalla sin recargar.",
+        "Al volver a la lista del periodo, el aviso sigue visible, también si se cambia a otro periodo.",
+        "A 375 px y a 360 px, con un disponible de 999.999.999 antes y después, el ancho de desplazamiento del documento es igual al del viewport y ninguna cifra se corta.",
+        "Si el aviso tiene un control (plegar o desplegar), mide al menos 40×40 px; uno de 32 px hace fallar la prueba (negativo).",
+        "El aviso no aparece en Registrar, en Organizar ni en la pantalla de alta: solo donde se ven o corrigen cifras (borde)."
+      ]
+    },
+    {
+      "id": "FR-3304",
+      "title": "El aviso informa y no frena, y no existe cuando no hay nada que decir",
+      "priority": "MUST",
+      "type": "logic",
+      "description": "When el usuario hace una corrección en un mes reabierto que mueve o rompe meses posteriores, the system shall aceptar y guardar la corrección igual que hoy, sin confirmación ni bloqueo por el impacto. When no hay mes reabierto, o hay uno y ningún mes posterior cambió, the system shall no pintar el aviso ni reservarle espacio.",
+      "acceptance_criteria": [
+        "Una corrección que deja septiembre sin cubrir se guarda: el Ejecutado de agosto muestra el valor nuevo y hay una escritura al servidor.",
+        "Sin ningún mes reabierto, el aviso no está en el DOM en ninguna pantalla del teléfono (negativo).",
+        "Con un mes reabierto y sin haber tocado nada, el aviso no está en el DOM (negativo).",
+        "Una corrección que no cambia el cierre del mes reabierto —mover un gasto de una categoría a otra hermana— no hace aparecer el aviso (borde).",
+        "Al volver a cerrar el mes reabierto, el aviso desaparece."
+      ]
+    }
+  ],
+  "user_personas": [
+    {
+      "role": "Dueño del libro en el teléfono (usuario único de producción)",
+      "tech_level": "mid",
+      "goal": "Corregir un error de un mes ya cerrado desde el teléfono sabiendo qué más cambió.",
+      "pain_point": "Reabre y corrige desde el teléfono, y los meses siguientes cambian sin que nada se lo diga; para verlo tiene que abrir el computador."
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "US-3301",
+      "requirement_id": "FR-3301",
+      "as_a": "dueño del libro corrigiendo un mes reabierto desde el teléfono",
+      "i_want": "ver qué meses siguientes se movieron y de cuánto a cuánto",
+      "so_that": "sepa dónde causó efecto mi corrección",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3301",
+          "given": "agosto reabierto y septiembre abierto con disponible 4.000",
+          "when": "subo en 100 un gasto de agosto",
+          "then": "veo «Septiembre 2026» con 4.000 → 3.900"
+        },
+        {
+          "id": "AC-3302",
+          "given": "agosto reabierto y un cambio que no altera octubre",
+          "when": "miro la lista",
+          "then": "octubre no aparece"
+        },
+        {
+          "id": "AC-3303",
+          "given": "dos correcciones de +100 y +50 en agosto",
+          "when": "miro la lista",
+          "then": "septiembre muestra 4.000 → 3.850 en una sola fila"
+        },
+        {
+          "id": "AC-3304",
+          "given": "el mismo libro en teléfono y en escritorio",
+          "when": "comparo las dos listas",
+          "then": "tienen los mismos periodos y las mismas cifras"
+        }
+      ]
+    },
+    {
+      "id": "US-3302",
+      "requirement_id": "FR-3302",
+      "as_a": "dueño del libro corrigiendo un mes reabierto desde el teléfono",
+      "i_want": "que me digan claramente si un mes quedó sin cubrir",
+      "so_that": "pueda arreglarlo o decidir dejarlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3305",
+          "given": "septiembre con disponible 50",
+          "when": "subo en 100 un gasto de agosto reabierto",
+          "then": "septiembre muestra 50 → −50 con ícono y «quedó sin cubrir»"
+        },
+        {
+          "id": "AC-3306",
+          "given": "septiembre ya en −200 antes de reabrir agosto",
+          "when": "subo en 100 un gasto de agosto",
+          "then": "septiembre aparece movido pero sin «quedó sin cubrir»"
+        },
+        {
+          "id": "AC-3307",
+          "given": "una fila rota",
+          "when": "leo el pie del aviso",
+          "then": "dice que la app no frena y que puedo arreglarlo ahora o después"
+        }
+      ]
+    },
+    {
+      "id": "US-3303",
+      "requirement_id": "FR-3303",
+      "as_a": "dueño del libro corrigiendo un mes reabierto desde el teléfono",
+      "i_want": "ver el aviso en la pantalla donde estoy corrigiendo",
+      "so_that": "no tenga que ir a buscarlo",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3308",
+          "given": "el detalle de Mercado en agosto reabierto",
+          "when": "cambio el Presupuestado y guardo",
+          "then": "el aviso aparece en esa misma pantalla"
+        },
+        {
+          "id": "AC-3309",
+          "given": "el aviso visible con cifras de 999.999.999 a 360 px",
+          "when": "mido la página",
+          "then": "no hay desplazamiento horizontal y las cifras se leen completas"
+        },
+        {
+          "id": "AC-3310",
+          "given": "la pantalla Organizar con agosto reabierto y meses movidos",
+          "when": "la abro",
+          "then": "el aviso no está"
+        }
+      ]
+    },
+    {
+      "id": "US-3304",
+      "requirement_id": "FR-3304",
+      "as_a": "dueño del libro corrigiendo un mes reabierto desde el teléfono",
+      "i_want": "que el aviso no me impida corregir",
+      "so_that": "pueda terminar la corrección aunque rompa otro mes",
+      "acceptance_criteria": [
+        {
+          "id": "AC-3311",
+          "given": "una corrección que deja septiembre sin cubrir",
+          "when": "la guardo",
+          "then": "se guarda y el aviso lo señala"
+        },
+        {
+          "id": "AC-3312",
+          "given": "ningún mes reabierto",
+          "when": "recorro el teléfono",
+          "then": "el aviso no existe en ninguna pantalla"
+        },
+        {
+          "id": "AC-3313",
+          "given": "agosto reabierto sin haber tocado nada",
+          "when": "abro la lista",
+          "then": "el aviso no existe"
+        },
+        {
+          "id": "AC-3314",
+          "given": "el aviso visible",
+          "when": "vuelvo a cerrar agosto",
+          "then": "el aviso desaparece"
+        }
+      ]
+    }
+  ],
+  "non_functional_requirements": [
+    {
+      "id": "NFR-3301",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El panel de impacto de escritorio (ImpactPanel, FR-2010) sigue igual: mismo contenido, mismo lugar, mismos ids.",
+      "acceptance_criteria": "A 1440 px, con un mes reabierto y corregido, impact-panel muestra las mismas filas que antes de esta feature; las pruebas vigentes de FR-2010 siguen en verde sin tocarlas."
+    },
+    {
+      "id": "NFR-3302",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Sin mes reabierto, las pantallas del teléfono no cambian: lista del periodo, detalle, retiros, Balance, Organizar y Cierre.",
+      "acceptance_criteria": "Sin mes reabierto no existe ningún elemento del aviso en el DOM y las pruebas vigentes de presupuesto-movil y gestion-movil siguen en verde."
+    },
+    {
+      "id": "NFR-3303",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "Ninguna corrección se bloquea ni pide confirmación por el impacto: cambiar lo planeado, editar o borrar un movimiento y cambiar un aporte siguen guardándose igual.",
+      "acceptance_criteria": "Con un mes reabierto, cada una de esas correcciones se guarda en un paso, como antes, también cuando deja un mes posterior sin cubrir."
+    },
+    {
+      "id": "NFR-3304",
+      "category": "Regression",
+      "priority": "MUST",
+      "requirement": "El cálculo del impacto no cambia y es uno solo: el teléfono no reimplementa downstreamImpact.",
+      "acceptance_criteria": "Para un mismo estado, las filas del teléfono salen de useDownstreamImpact y coinciden con downstreamImpact del dominio periodo a periodo y cifra a cifra."
+    },
+    {
+      "id": "NFR-3305",
+      "category": "Security",
+      "requirement": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas; el aviso solo pinta datos del libro ya cargado del propio usuario.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-3306",
+      "category": "Observability",
+      "requirement": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "acceptance_criteria": "Sin rutas nuevas en src/app/api."
+    },
+    {
+      "id": "NFR-3307",
+      "category": "CI/CD",
+      "requirement": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "acceptance_criteria": "El workflow de CI ejecuta test:run y test:e2e e incluye las specs nuevas por su patrón de archivo."
+    }
+  ],
+  "no_go_zone": [
+    "El historial de cierres y reaperturas en el teléfono: decisión del usuario del 8-oct-2026 («Siguen fuera»).",
+    "El aviso de meses terminados sin cerrar en el teléfono: misma decisión del 8-oct-2026.",
+    "Bloquear o pedir confirmación antes de una corrección que mueve o rompe otros meses: el aviso informa y no frena (decisión del usuario del 3-sep-2026 en cierre-de-mes).",
+    "Cambiar el cálculo del impacto, su línea de base o lo que muestra el panel de escritorio.",
+    "Deshacer la corrección o saltar al mes afectado desde el aviso.",
+    "Mostrar el impacto de operaciones de reserva que la regla «no empeorar» ya rechaza: no llegan a ocurrir.",
+    "Cambios en el servidor, rutas o esquema."
+  ],
+  "constraints": [
+    "El teléfono usa useDownstreamImpact y downstreamImpact tal cual; no calcula el impacto por su cuenta.",
+    "Sin endpoints ni cambios de esquema.",
+    "Las pruebas de ancho exigen holgura: Linux mide el texto unos 3 px más ancho que macOS."
+  ],
+  "technology_preferences": [
+    "Sin dependencias nuevas."
+  ],
+  "idea_provenance": {
+    "problem": "confirmed",
+    "users": "confirmed",
+    "baseline": "confirmed",
+    "success_metric": "confirmed",
+    "no_go_zone": "confirmed"
+  },
+  "idea_provenance_sources": {
+    "problem": "El usuario eligió «Sí, llevarlo» el 8-oct-2026 ante la pregunta «Al corregir un mes reabierto, escritorio te muestra qué cambió en los meses siguientes; el teléfono no. ¿Lo llevo al teléfono?». La necesidad de fondo son sus palabras del 3-sep-2026 recogidas en cierre-de-mes FR-2010.",
+    "users": "El usuario habla de sus propias cuentas; es el usuario único de producción.",
+    "baseline": "Comprobado en el código el 8-oct-2026: ImpactPanel solo se monta en DesktopShell; la auditoría de requisitos de gestion-movil lo reportó como hueco 2.",
+    "success_metric": "Propuesto por el agente y confirmado por el usuario en el chat del 8-oct-2026 («si» a la medida presentada antes de aprobar): mismos meses y mismas cifras que el panel de escritorio, visibles sin buscarlos.",
+    "no_go_zone": "Historial y aviso de meses sin cerrar fuera: el usuario eligió «Siguen fuera» el 8-oct-2026. No bloquear: decisión del 3-sep-2026 en cierre-de-mes. El resto son límites técnicos (sin servidor, sin cambiar el cálculo)."
+  },
+  "idea_gaps": [],
+  "coverage_map": [
+    {
+      "need": "Lista de meses posteriores movidos, con antes y después",
+      "disposition": "FR-3301"
+    },
+    {
+      "need": "Señalar los meses que quedaron sin cubrir con ícono y texto además del color",
+      "disposition": "FR-3302"
+    },
+    {
+      "need": "Mostrarlo sin ir a buscarlo: en la lista del periodo y donde se corrige",
+      "disposition": "FR-3303"
+    },
+    {
+      "need": "No bloquear ninguna corrección por el aviso",
+      "disposition": "FR-3304"
+    },
+    {
+      "need": "Mismo cálculo que escritorio: mismos meses y cifras",
+      "disposition": "NFR-3304"
+    },
+    {
+      "need": "No mostrar nada sin mes reabierto o sin meses movidos",
+      "disposition": "FR-3304"
+    },
+    {
+      "need": "A 360 px cabe sin desplazamiento horizontal, con cifras de nueve dígitos",
+      "disposition": "FR-3303"
+    },
+    {
+      "need": "El panel de escritorio sigue igual",
+      "disposition": "NFR-3301"
+    },
+    {
+      "need": "Las pantallas del teléfono no cambian sin mes reabierto",
+      "disposition": "NFR-3302"
+    },
+    {
+      "need": "Ninguna corrección se bloquea por el impacto",
+      "disposition": "NFR-3303"
+    },
+    {
+      "need": "Las cifras del teléfono siguen siendo las de escritorio",
+      "disposition": "NFR-3304"
+    },
+    {
+      "need": "Historial de cierres y reaperturas en el teléfono",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Aviso de meses terminados sin cerrar en el teléfono",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Bloquear o confirmar antes de corregir",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Cambiar el cálculo o el panel de escritorio",
+      "disposition": "out_of_scope"
+    },
+    {
+      "need": "Deshacer la corrección desde el aviso",
+      "disposition": "out_of_scope"
+    }
+  ],
+  "original_brief": "<!-- Origen: hueco 2 de la auditoría de requisitos de gestion-movil (7-oct-2026). El usuario decidió el\n     8-oct-2026 llevarlo al teléfono («Sí, llevarlo») y dejar fuera el historial de cierres y el aviso de\n     meses sin cerrar («Siguen fuera»). Es el FR-2010 de cierre-de-mes, que hoy solo existe en escritorio. -->\n\n## Feature\nEn el teléfono, al corregir un mes reabierto, se muestra qué meses posteriores se movieron y cuáles quedaron sin cubrir, igual que en escritorio.\n\n## Problem / Why\nDesde gestion-movil se puede reabrir un mes y corregirlo desde el teléfono. Corregir un mes reabierto mueve el saldo de apertura de los meses siguientes, y eso en el teléfono es invisible: el usuario cambia agosto y septiembre cambia bajo sus pies sin que nada lo diga. En escritorio ya existe un panel que lo muestra (cierre-de-mes FR-2010); en el teléfono no. Palabras del usuario al pedir ese panel (3-sep-2026): «lo que más quiero cuidar es que al reabrir el usuario no cause daños en sus propias cuentas o al menos poderle decir dónde los causó».\n\n## Target Users\nEl dueño de la cuenta cuando corrige un mes reabierto desde el teléfono (pantalla de 760 px o menos).\n\n## New Behavior\n- El sistema debe mostrar en el teléfono, mientras haya un mes reabierto y alguna corrección haya movido un mes posterior, la lista de esos meses: cada uno con su periodo y el disponible de antes y de después.\n- El sistema debe señalar en esa lista los meses que quedaron sin cubrir por la corrección, con ícono y texto además del color.\n- El sistema debe mostrar el aviso sin que el usuario tenga que ir a buscarlo: en la lista del periodo y en las pantallas donde se corrige (detalle de una categoría).\n- El sistema no debe bloquear ninguna corrección por este aviso: informa y deja seguir.\n- El sistema debe usar el mismo cálculo que escritorio, de modo que las dos superficies muestren los mismos meses y las mismas cifras.\n- El sistema no debe mostrar nada cuando no hay mes reabierto o cuando ningún mes posterior se movió.\n\n## Success Criteria\n- Dado agosto reabierto y septiembre abierto, cuando subo en 100 un gasto de agosto desde el teléfono, entonces veo que septiembre pasó de su disponible anterior al nuevo (100 menos), sin salir de la pantalla.\n- Dado ese mismo cambio, entonces la lista del teléfono tiene los mismos meses y cifras que el panel de escritorio.\n- Dado un cambio que deja septiembre en negativo cuando antes estaba cubierto, entonces septiembre aparece marcado «quedó sin cubrir» y el cambio se guarda igual.\n- Dado un cambio que no altera el cierre del mes reabierto, entonces no aparece ningún aviso.\n- A 360 px el aviso cabe sin desplazamiento horizontal, con cifras de nueve dígitos.\n\n## Touch Points\n- AÑADE: un aviso de impacto para el teléfono en `src/components/mobile/`.\n- MODIFICA: la lista del periodo y el detalle de una categoría del teléfono, para montarlo.\n- REUTILIZA sin cambiar: `downstreamImpact` (`src/domain/closure.ts`) y `useDownstreamImpact` (`src/state/store.ts`), los mismos que usa el panel de escritorio.\n- No toca: el servidor, el esquema ni el panel de escritorio (`ImpactPanel`).\n\n## Must Not Break (Regression Boundary)\n- El panel de impacto de escritorio sigue igual.\n- Las pantallas del teléfono no cambian cuando no hay mes reabierto: ni la lista, ni el detalle, ni Organizar, ni Cierre.\n- Ninguna corrección se bloquea por el impacto.\n- Las cifras del teléfono siguen siendo las de escritorio.\n\n## Out of Scope\n- El historial de cierres y reaperturas en el teléfono (decisión del usuario, 8-oct-2026: «Siguen fuera»).\n- El aviso de meses terminados sin cerrar en el teléfono (misma decisión).\n- Bloquear o pedir confirmación antes de una corrección que mueve otros meses: el aviso informa, no frena (decisión del usuario del 3-sep-2026, cierre-de-mes).\n- Cambiar el cálculo del impacto o lo que escritorio muestra.\n- Deshacer la corrección desde el aviso.\n"
+}

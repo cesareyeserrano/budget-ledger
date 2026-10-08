@@ -1,0 +1,664 @@
+{
+  "test_plan": {
+    "strategy": "Sobre el libro gmv-base de gestion-movil (cifras inventadas; M es el mes en curso y PREV el anterior). Variante imv-reabierto: PREV cerrado y reabierto, con la línea de base que fija el servidor al reabrir (disponible de PREV 3.150; M y los meses siguientes en 6.850). Subir 100 el gasto de Mercado en PREV (850 → 950) mueve cada mes posterior de 6.850 a 6.750; subirlo a 7.900 los deja en −200. Variantes: imv-ya-negativo (M ya en −300 antes de reabrir) e imv-grande (M en 999.999.999). UNIT (Vitest, app): ImpactCard con el hook sustituido, para fijar que pinta lo que recibe y no calcula. INTEGRATION (jsdom, store real y fetch simulado): filas iguales al dominio, neto, deshacer, marca de roto, pie igual al de escritorio, dónde aparece y dónde no, plegado, que nada se bloquea y que sin mes reabierto nada cambia. E2E (Playwright, 375, 360 y 1440 px): el flujo real —cerrar y reabrir por la ruta, corregir y ver el aviso—, paridad con el panel de escritorio, ancho con nueve dígitos, tamaño táctil, color y contraste. Sin skip/only/todo; sin tiempos de reloj.",
+    "coverage_goal": "Cada AC de Phase 1 con al menos un caso; umbral de líneas, el del gate coverage vigente.",
+    "test_types": [
+      "unit",
+      "integration",
+      "e2e"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "TC-IMV-001h",
+      "requirement_id": "FR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3301",
+      "title": "Corregir un gasto del mes reabierto muestra el mes siguiente movido",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada; PREV cerrado y reabierto por la ruta real; detalle de Mercado en PREV (gasto de 850)",
+      "when": "editar el gasto de 850 a 950 y guardar; desplegar la tarjeta",
+      "then": "aparece la tarjeta y su primera fila es M con el disponible de antes y de después",
+      "steps": [
+        "editar el gasto de 850 a 950 y guardar; desplegar la tarjeta"
+      ],
+      "expected_result": "mb-impact visible en el detalle; cabecera contiene «Al corregir Julio 2026 se movieron»; primera mb-impact-row con data-period=M, mb-impact-before «6.850» y mb-impact-after «6.750»",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-002h",
+      "requirement_id": "FR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3304",
+      "title": "Las filas del teléfono son las del dominio, en orden",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con el gasto de Mercado en PREV subido de 850 a 950",
+      "when": "montar la lista del periodo y desplegar la tarjeta",
+      "then": "una fila por cada periodo que downstreamImpact devuelve, con sus cifras",
+      "steps": [
+        "montar la lista del periodo y desplegar la tarjeta"
+      ],
+      "expected_result": "número de mb-impact-row === downstreamImpact(state, periodos).length (>1); para cada fila: data-period, antes y después iguales a la fila del dominio; periodos en orden creciente",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-003f",
+      "requirement_id": "FR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3302",
+      "title": "Una corrección deshecha no deja filas",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto, gasto de Mercado en PREV subido a 950 (tarjeta visible)",
+      "when": "volver a dejar el gasto en 850",
+      "then": "ningún mes posterior difiere de como estaba al reabrir",
+      "steps": [
+        "volver a dejar el gasto en 850"
+      ],
+      "expected_result": "downstreamImpact devuelve [] y mb-impact no está en el DOM",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-004e",
+      "requirement_id": "FR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3303",
+      "title": "Dos correcciones seguidas muestran el efecto neto",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto",
+      "when": "subir el gasto de Mercado en PREV de 850 a 950 y luego de 950 a 1.000",
+      "then": "una sola fila por mes con el neto",
+      "steps": [
+        "subir el gasto de Mercado en PREV de 850 a 950 y luego de 950 a 1.000"
+      ],
+      "expected_result": "la fila de M muestra «6.850» → «6.700»; hay exactamente una fila con data-period=M",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-005h",
+      "requirement_id": "FR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3304",
+      "title": "El teléfono y escritorio muestran las mismas filas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base con PREV reabierto por la ruta real y el gasto de Mercado en PREV corregido a 950",
+      "when": "leer las filas de la tarjeta a 375×812 y las de impact-panel a 1440×900 tras recargar",
+      "then": "mismos periodos y mismas cifras",
+      "steps": [
+        "leer las filas de la tarjeta a 375×812 y las de impact-panel a 1440×900 tras recargar"
+      ],
+      "expected_result": "la lista de (periodo, antes, después) del teléfono es igual, elemento a elemento, a la de impact-row de escritorio",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-010h",
+      "requirement_id": "FR-3302",
+      "user_story_id": "US-3302",
+      "ac_id": "AC-3305",
+      "title": "Un mes que pasa a negativo se marca «quedó sin cubrir»",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto (M con disponible 6.850)",
+      "when": "subir el gasto de Mercado en PREV de 850 a 7.900",
+      "then": "M queda en −200 y lleva la marca; la cabecera cuenta los rotos",
+      "steps": [
+        "subir el gasto de Mercado en PREV de 850 a 7.900"
+      ],
+      "expected_result": "fila de M: después «−200» (o el formato de money para −200), data-broken=true, contiene «quedó sin cubrir» y un svg; cabecera contiene «quedaron sin cubrir»; mb-impact con data-broken>0",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-011f",
+      "requirement_id": "FR-3302",
+      "user_story_id": "US-3302",
+      "ac_id": "AC-3306",
+      "title": "Un mes que ya estaba descubierto no se marca",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-ya-negativo: PREV con un gasto de 8.000 (disponible −4.000) reabierto con esa línea de base; M en −300",
+      "when": "subir ese gasto en 100",
+      "then": "M se movió pero no fue esta corrección la que lo dejó descubierto",
+      "steps": [
+        "subir ese gasto en 100"
+      ],
+      "expected_result": "fila de M con antes «−300» y después «−400», data-broken=false y sin el texto «quedó sin cubrir»; la cabecera no contiene «sin cubrir»",
+      "test_data": {
+        "fixture": "imv-ya-negativo"
+      }
+    },
+    {
+      "id": "TC-IMV-012e",
+      "requirement_id": "FR-3302",
+      "user_story_id": "US-3302",
+      "ac_id": "AC-3305",
+      "title": "La marca no depende solo del color y se lee en los dos temas",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada con PREV reabierto y el gasto de Mercado en PREV subido a 7.900, en tema claro y en oscuro",
+      "when": "desplegar la tarjeta y medir",
+      "then": "ícono y texto presentes; color de alerta fuerte; contraste suficiente",
+      "steps": [
+        "desplegar la tarjeta y medir"
+      ],
+      "expected_result": "la marca tiene un svg y el texto «quedó sin cubrir»; su color computado = --alert-strong resuelto; contraste ≥4,5 de: título, periodo, cifra «antes», cifra «después» y marca, en los dos temas (10 pares)",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-013e",
+      "requirement_id": "FR-3302",
+      "user_story_id": "US-3302",
+      "ac_id": "AC-3307",
+      "title": "El pie dice lo mismo que escritorio, en singular y en plural",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con una corrección que rompe varios meses, y otro con horizonte de un solo mes posterior roto",
+      "when": "montar la tarjeta desplegada y el ImpactPanel de escritorio sobre el mismo estado",
+      "then": "mismo texto de pie",
+      "steps": [
+        "montar la tarjeta desplegada y el ImpactPanel de escritorio sobre el mismo estado"
+      ],
+      "expected_result": "el texto del pie de mb-impact === el del pie de impact-panel en los dos casos («Esos meses quedaron…» y «Ese mes quedó…»), y contiene «La app no te frena»",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-020h",
+      "requirement_id": "FR-3303",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3308",
+      "title": "El aviso aparece en la pantalla donde se corrige y sigue en la lista",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada con PREV reabierto; detalle de Mercado en PREV, sin aviso",
+      "when": "editar el gasto a 950 y guardar; volver a la lista; pasar al periodo M",
+      "then": "visible en el detalle sin recargar, en la lista y en otro periodo",
+      "steps": [
+        "editar el gasto a 950 y guardar; volver a la lista; pasar al periodo M"
+      ],
+      "expected_result": "mb-impact visible en d=leaf tras guardar (sin navegación de página); visible en la lista de PREV bajo la barra de periodo y antes de la tarjeta de resumen; visible también con el periodo M",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-021e",
+      "requirement_id": "FR-3303",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3309",
+      "title": "Cifras de nueve dígitos caben a 375 y 360 px",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro imv-grande (M con disponible 999.999.999) con PREV reabierto y una corrección de +100, a 375×812 y a 360×740",
+      "when": "desplegar la tarjeta en la lista y en el detalle",
+      "then": "sin desborde y con las cifras completas",
+      "steps": [
+        "desplegar la tarjeta en la lista y en el detalle"
+      ],
+      "expected_result": "document.documentElement.scrollWidth === clientWidth en las 4 vistas; la fila de M muestra «999.999.999» y «999.999.899» completos; el bloque de cifras cumple scrollWidth ≤ clientWidth",
+      "test_data": {
+        "fixture": "imv-grande"
+      }
+    },
+    {
+      "id": "TC-IMV-022f",
+      "requirement_id": "FR-3303",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3309",
+      "title": "La cabecera de la tarjeta se deja tocar",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada con el aviso visible",
+      "when": "medir todos los button dentro de mb-impact",
+      "then": "ninguno por debajo del mínimo",
+      "steps": [
+        "medir todos los button dentro de mb-impact"
+      ],
+      "expected_result": "hay exactamente 1 botón (la cabecera) y mide ≥40 px de alto y de ancho; un control de 32 px haría fallar la prueba",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-023f",
+      "requirement_id": "FR-3303",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3310",
+      "title": "El aviso no aparece donde no se ven ni corrigen cifras",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con meses movidos",
+      "when": "abrir Organizar, un elemento, alta, «Mover a…», Cierre de mes, Balance y Retiros del mes",
+      "then": "la tarjeta no está en ninguna",
+      "steps": [
+        "abrir Organizar, un elemento, alta, «Mover a…», Cierre de mes, Balance y Retiros del mes"
+      ],
+      "expected_result": "queryByTestId('mb-impact') === null en las 7 pantallas; en la lista y en d=leaf sí está (control)",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-024e",
+      "requirement_id": "FR-3303",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3308",
+      "title": "El plegado se conserva al ir al detalle y volver",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con meses movidos; lista del periodo con la tarjeta plegada",
+      "when": "desplegarla, abrir el detalle de Mercado y volver a la lista",
+      "then": "sigue desplegada en las dos pantallas; plegada por defecto al montar",
+      "steps": [
+        "desplegarla, abrir el detalle de Mercado y volver a la lista"
+      ],
+      "expected_result": "al montar aria-expanded=false y 0 filas visibles; tras desplegar, en d=leaf aria-expanded=true con filas; de vuelta en la lista aria-expanded=true",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-030h",
+      "requirement_id": "FR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3311",
+      "title": "Una corrección que rompe un mes se guarda igual",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto, edición del gasto de Mercado en PREV abierta",
+      "when": "poner 7.900 y «Guardar cambios»",
+      "then": "se guarda sin pregunta adicional",
+      "steps": [
+        "poner 7.900 y «Guardar cambios»"
+      ],
+      "expected_result": "actuals[Mercado][PREV] === 7900; 1 escritura al servidor; no aparece ningún role=alertdialog; la pantalla vuelve al detalle con la tarjeta visible",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-031f",
+      "requirement_id": "FR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3312",
+      "title": "Sin mes reabierto el aviso no existe",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base sin nada cerrado, y con PREV cerrado sin reabrir",
+      "when": "recorrer lista y detalle y editar un gasto de M",
+      "then": "nunca aparece",
+      "steps": [
+        "recorrer lista y detalle y editar un gasto de M"
+      ],
+      "expected_result": "queryByTestId('mb-impact') === null antes y después de la edición, en la lista y en el detalle",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-IMV-032f",
+      "requirement_id": "FR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3313",
+      "title": "Reabierto y sin tocar, el aviso no existe ni deja hueco",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto sin ninguna corrección",
+      "when": "montar la lista y el detalle",
+      "then": "no está en el DOM",
+      "steps": [
+        "montar la lista y el detalle"
+      ],
+      "expected_result": "queryByTestId('mb-impact') === null; el hermano siguiente a mb-period-bar es la tarjeta de resumen (ningún envoltorio vacío)",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-033e",
+      "requirement_id": "FR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3314",
+      "title": "Al volver a cerrar el mes, el aviso desaparece",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con meses movidos (tarjeta visible)",
+      "when": "llega el cierre de PREV (closure: closedThrough PREV, reopened null)",
+      "then": "la tarjeta se retira",
+      "steps": [
+        "llega el cierre de PREV (closure: closedThrough PREV, reopened null)"
+      ],
+      "expected_result": "queryByTestId('mb-impact') === null",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-034e",
+      "requirement_id": "FR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3313",
+      "title": "Una corrección que no cambia el cierre del mes no hace aparecer el aviso",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto",
+      "when": "en PREV, bajar 100 el gasto de Mercado y registrar 100 en Restaurantes (el total del mes no cambia)",
+      "then": "ningún mes posterior se mueve",
+      "steps": [
+        "en PREV, bajar 100 el gasto de Mercado y registrar 100 en Restaurantes (el total del mes no cambia)"
+      ],
+      "expected_result": "queryByTestId('mb-impact') === null",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-040h",
+      "requirement_id": "NFR-3301",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3304",
+      "title": "Escritorio: el panel de impacto sigue mostrando sus filas",
+      "type": "e2e",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 1440×900 con PREV reabierto y el gasto de Mercado en PREV corregido a 950",
+      "when": "leer impact-panel",
+      "then": "mismo panel de siempre",
+      "steps": [
+        "leer impact-panel"
+      ],
+      "expected_result": "impact-panel visible con data-reopened=PREV y ≥1 impact-row; la fila de M muestra impact-before «$ 6.850» e impact-after «$ 6.750» en el formato de money",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-041e",
+      "requirement_id": "NFR-3301",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3310",
+      "title": "Escritorio no monta la tarjeta del teléfono",
+      "type": "e2e",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "mismo libro a 1440×900",
+      "when": "buscar mb-impact en Resumen y en Dashboard",
+      "then": "no existe",
+      "steps": [
+        "buscar mb-impact en Resumen y en Dashboard"
+      ],
+      "expected_result": "count de [data-testid=mb-impact] === 0 en las dos vistas, con impact-panel visible en Resumen",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-042f",
+      "requirement_id": "NFR-3301",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3312",
+      "title": "Escritorio: sin mes reabierto el panel sigue sin pintarse",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base sin nada reabierto",
+      "when": "montar ImpactPanel",
+      "then": "no pinta nada",
+      "steps": [
+        "montar ImpactPanel"
+      ],
+      "expected_result": "queryByTestId('impact-panel') === null",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-IMV-045h",
+      "requirement_id": "NFR-3302",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3312",
+      "title": "La lista del periodo no cambia sin mes reabierto",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado gmv-base sin nada reabierto",
+      "when": "montar la lista del periodo",
+      "then": "mismo orden de bloques que antes",
+      "steps": [
+        "montar la lista del periodo"
+      ],
+      "expected_result": "los hijos con testid de mb-budget son, en orden: mb-title-row, mb-period-bar, mb-summary (tarjeta de resumen) y mb-sections; ningún mb-impact",
+      "test_data": {
+        "fixture": "gmv-base"
+      }
+    },
+    {
+      "id": "TC-IMV-046e",
+      "requirement_id": "NFR-3302",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3313",
+      "title": "El detalle no cambia sin aviso que mostrar",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto sin correcciones, detalle de Mercado",
+      "when": "leer la pantalla",
+      "then": "encabezado, tarjetas y movimientos como siempre",
+      "steps": [
+        "leer la pantalla"
+      ],
+      "expected_result": "tras el encabezado vienen las dos mb-amount-card; no hay ningún nodo vacío entre ambos; mb-mov-row presentes",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-047f",
+      "requirement_id": "NFR-3302",
+      "user_story_id": "US-3303",
+      "ac_id": "AC-3310",
+      "title": "Organizar y Cierre no cambian con un mes reabierto",
+      "type": "e2e",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "libro gmv-base a 375×812 con sesión iniciada con PREV reabierto y meses movidos",
+      "when": "abrir Organizar y Cierre de mes",
+      "then": "ninguna lleva la tarjeta",
+      "steps": [
+        "abrir Organizar y Cierre de mes"
+      ],
+      "expected_result": "count de mb-impact === 0 en d=org y en d=cierre; el bloque Reabrir dice que PREV está reabierto",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-050h",
+      "requirement_id": "NFR-3303",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3311",
+      "title": "Editar un movimiento del mes reabierto sigue siendo un paso",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto, edición del gasto de Mercado en PREV",
+      "when": "cambiar a 950 y «Guardar cambios»",
+      "then": "se guarda al primer toque",
+      "steps": [
+        "cambiar a 950 y «Guardar cambios»"
+      ],
+      "expected_result": "actuals[Mercado][PREV] === 950 tras un solo clic; 1 escritura; 0 role=alertdialog",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-051e",
+      "requirement_id": "NFR-3303",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3311",
+      "title": "Borrar un movimiento conserva solo su confirmación de siempre",
+      "type": "integration",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto, edición del gasto de Mercado en PREV",
+      "when": "«Borrar movimiento» y confirmar",
+      "then": "una confirmación, la vigente; ninguna por el impacto",
+      "steps": [
+        "«Borrar movimiento» y confirmar"
+      ],
+      "expected_result": "aparece exactamente 1 mb-confirm-delete con el texto «¿Borrar este gasto…»; al confirmar el movimiento desaparece y la tarjeta muestra los meses movidos",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-052f",
+      "requirement_id": "NFR-3303",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3311",
+      "title": "La tarjeta no tiene nada que cancele o confirme",
+      "type": "integration",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con un mes roto, tarjeta desplegada",
+      "when": "inspeccionar la tarjeta",
+      "then": "solo informa",
+      "steps": [
+        "inspeccionar la tarjeta"
+      ],
+      "expected_result": "dentro de mb-impact hay 1 solo button (la cabecera, que pliega) y 0 enlaces o inputs; tocarlo no cambia data (misma referencia) ni escribe",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-055h",
+      "requirement_id": "NFR-3304",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3304",
+      "title": "Con otro horizonte, la lista sigue siendo la del dominio",
+      "type": "integration",
+      "scenario": "happy_path",
+      "priority": "high",
+      "preconditions": [],
+      "given": "estado imv-reabierto con una corrección de +100 y horizonte 2",
+      "when": "montar y desplegar",
+      "then": "tantas filas como el dominio para ese rango",
+      "steps": [
+        "montar y desplegar"
+      ],
+      "expected_result": "número de filas === downstreamImpact(state, periodsFor(horizonte 2)).length y mayor que con horizonte 0",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-056e",
+      "requirement_id": "NFR-3304",
+      "user_story_id": "US-3301",
+      "ac_id": "AC-3304",
+      "title": "La tarjeta pinta exactamente lo que devuelve el hook",
+      "type": "unit",
+      "scenario": "edge_case",
+      "priority": "high",
+      "preconditions": [],
+      "given": "useDownstreamImpact sustituido por un doble que devuelve dos filas arbitrarias (periodos 2031-01 y 2031-02, 111 → 222 y 333 → −444 rota)",
+      "when": "montar ImpactCard desplegada",
+      "then": "pinta esas dos filas y nada calculado por su cuenta",
+      "steps": [
+        "montar ImpactCard desplegada"
+      ],
+      "expected_result": "2 filas con data-period 2031-01 y 2031-02; cifras «111», «222», «333» y la de −444; la segunda con data-broken=true",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    },
+    {
+      "id": "TC-IMV-057f",
+      "requirement_id": "NFR-3304",
+      "user_story_id": "US-3304",
+      "ac_id": "AC-3313",
+      "title": "Si el hook no devuelve filas, la tarjeta no inventa ninguna",
+      "type": "unit",
+      "scenario": "negative",
+      "priority": "high",
+      "preconditions": [],
+      "given": "useDownstreamImpact sustituido por un doble que devuelve [] sobre un estado con mes reabierto y corregido",
+      "when": "montar ImpactCard",
+      "then": "no pinta nada",
+      "steps": [
+        "montar ImpactCard"
+      ],
+      "expected_result": "el componente devuelve null: 0 nodos en el contenedor",
+      "test_data": {
+        "fixture": "imv-reabierto"
+      }
+    }
+  ]
+}

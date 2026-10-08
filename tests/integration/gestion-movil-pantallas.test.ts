@@ -741,8 +741,9 @@ describe("gestion-movil · cerrar el mes", () => {
     expect(init.method).toBe("POST");
     // El cuerpo lleva solo la revisión: ni periodo, ni mes, ni nada que el servidor pudiera obedecer.
     expect(Object.keys(JSON.parse(String(init.body)))).toEqual(["baseRevision"]);
-    // El mes cerrado es el que devuelve el servidor.
+    // El mes cerrado es el que devuelve el servidor, y el aviso lo nombra.
     expect(useLedgerStore.getState().data.closure).toEqual({ closedThrough: PREV, reopened: null });
+    expect(useLedgerStore.getState().toast).toBe(`${rotulo(PREV)} cerrado.`);
     // El bloque pasa al siguiente: ahora ofrece cerrar el mes en curso.
     expect(botonesQueEmpiezan("Cerrar").map((b) => b.textContent)).toEqual([`Cerrar ${rotulo(M)}`]);
     expect(screen.queryByTestId("mb-closure-failed")).toBeNull();

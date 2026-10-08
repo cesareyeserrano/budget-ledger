@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>impacto-movil — vista previa del UX spec</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif; background: #e9e9ec; color: #1c1c1f; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 32px 0 10px; }
+  p.lead { margin: 0 0 8px; font-size: 13px; color: #55555d; max-width: 860px; line-height: 1.5; }
+  .banner { margin: 14px 0; padding: 10px 14px; border: 2px dashed #9e4708; background: #fff7ee; color: #6b3306; font-size: 12px; font-weight: 600; letter-spacing: .03em; border-radius: 8px; }
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .panel { border-radius: 14px; padding: 16px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); }
+  .panel > h3 { margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+  .light { --bg:#f7f7f8; --card:#ffffff; --sunken:#f1f1f3; --primary:#1c1c1f; --on-primary:#ffffff; --accent:#55555d; --fg:#1c1c1f; --fg2:#55555d; --muted:#6b6b73; --border:#e3e3e7; --border-strong:#d3d3d9; --alert-strong:#ad3932; --alert-soft:#9e4708; --fg-muted:#6b6b73; }
+  .dark  { --bg:#131316; --card:#1b1b1f; --sunken:#0f0f12; --primary:#f4f4f5; --on-primary:#1c1c1f; --accent:#9b9ba3; --fg:#f4f4f5; --fg2:#b4b4bb; --muted:#9b9ba3; --border:#33333a; --border-strong:#43434c; --alert-strong:#ec6a66; --alert-soft:#e0a458; --fg-muted:#9b9ba3; }
+  table.sw { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.sw td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .chip { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-strong); }
+  .hex { font-family: "DM Mono", ui-monospace, Menlo, monospace; color: var(--fg2); }
+  .why { color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--border-strong); background: var(--card); white-space: nowrap; }
+  .pairs { display: grid; gap: 6px; margin-top: 12px; }
+  .pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; }
+  .type div { margin: 6px 0; }
+  .title-sm { font-size: 17px; font-weight: 600; }
+  .g14 { font-size: 14px; font-weight: 600; }
+  .label { font-size: 13px; font-weight: 500; }
+  .caption { font-size: 12px; font-weight: 400; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .scale { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .scale span { display: inline-block; background: var(--fg2); border-radius: 2px; height: 10px; }
+  .scale small, .radii small { font-size: 11px; color: var(--muted); display: block; text-align: center; margin-top: 4px; }
+  .radii { display: flex; gap: 14px; margin-top: 8px; }
+  .radii i { display: block; width: 48px; height: 48px; background: var(--card); border: 1px solid var(--border-strong); }
+  /* ── composición ilustrativa ── */
+  .strip { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+  .strip > div { flex: 0 0 375px; }
+  .phone { width: 375px; border-radius: 22px; padding: 14px 20px 20px; background: var(--bg); color: var(--fg); border: 1px solid var(--border-strong); }
+  .cap { font-size: 11px; font-weight: 600; color: #55555d; margin: 0 0 6px 4px; }
+  .hdr { display: flex; align-items: center; gap: 4px; padding: 8px 0 4px; }
+  .back { width: 40px; height: 40px; margin-left: -8px; display: flex; align-items: center; justify-content: center; color: var(--fg2); font-size: 20px; }
+  .hdr p { margin: 0; color: var(--muted); }
+  .titlerow { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; }
+  .ghost { height: 40px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; color: var(--fg2); }
+  .sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 6px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .card.md { border-radius: 10px; }
+  .row { min-height: 48px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: 0; }
+  .row .n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .chev { color: var(--muted); font-size: 14px; }
+  .ico { width: 18px; height: 18px; border: 1.5px solid var(--fg2); border-radius: 5px; flex: none; }
+  .l1 { padding-left: 14px; } .l2 { padding-left: 28px; }
+  .idcard { display: flex; align-items: center; gap: 12px; padding: 12px; }
+  .icobtn { width: 40px; height: 40px; border-radius: 8px; background: var(--sunken); display: flex; align-items: center; justify-content: center; flex: none; }
+  .danger { color: var(--alert-strong); }
+  .soft { color: var(--alert-soft); }
+  .muted { color: var(--muted); }
+  .btn { height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+  .btn.primary { background: var(--primary); color: var(--on-primary); }
+  .btn.secondary { background: var(--card); border: 1px solid var(--border-strong); }
+  .btn.del { background: var(--alert-strong); color: #ffffff; }
+  .confirm { border: 1px solid var(--border-strong); background: var(--card); border-radius: 10px; padding: 12px; margin-top: 8px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .block { padding: 16px; }
+  .notice { background: var(--sunken); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--fg2); margin-top: 10px; line-height: 1.45; }
+  .notice u { font-weight: 600; }
+  .grid6 { display: grid; grid-template-columns: repeat(6, 48px); gap: 4px; padding: 12px 0; }
+  .grid6 i { width: 48px; height: 48px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+  .grid6 i.on { border: 1.5px solid var(--fg); }
+  .input { height: 48px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); display: flex; align-items: center; padding: 0 12px; }
+  footer { margin-top: 32px; font-size: 12px; color: #55555d; }
+  .imp { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; margin: 10px 0 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .imp.rota { border-color: var(--alert-strong); }
+  .imp .cab { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+  .imp .cab .t { flex: 1; min-width: 0; }
+  .imp .fila { border-top: 1px solid var(--border); padding: 8px 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+  .imp .cif { font-family: "DM Mono", ui-monospace, Menlo, monospace; font-size: 13px; white-space: nowrap; margin-left: auto; }
+  .imp .antes { color: var(--fg2); }
+  .imp .marca { flex-basis: 100%; text-align: right; }
+  .tri { display: inline-block; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid currentColor; flex: none; }
+</style>
+</head>
+<body>
+<h1>impacto-movil — vista previa del UX spec</h1>
+<p class="lead">El aviso de impacto al corregir un mes reabierto, en el teléfono. No hay mockups del cliente: el contenido es el del panel de escritorio y aquí se propone su forma a 375 px. Todos los valores salen de la tabla <i>Design Tokens</i> de <code>01_UX_SPEC.md</code>, que son los tokens vigentes del producto (sin tokens nuevos).</p>
+
+<h2>Tokens — claro y oscuro</h2>
+<div class="panels">
+  <div class="panel light" data-theme><h3>Tema claro</h3><table class="sw" data-swatches></table><div class="pairs" data-pairs></div></div>
+  <div class="panel dark" data-theme><h3>Tema oscuro</h3><table class="sw" data-swatches></table><div class="pairs" data-pairs></div></div>
+</div>
+
+<h2>Escala tipográfica y espaciado</h2>
+<div class="panels">
+  <div class="panel light type">
+    <h3>Tipografía — a tamaño real</h3>
+    <div class="label">.label 13 / 500 — Al corregir Agosto 2026 se movieron 2 meses</div>
+    <div class="caption">.caption 12 / 400 — frente a cómo estaban al reabrirlo</div>
+    <div style="font-family:'DM Mono',ui-monospace,Menlo,monospace;font-size:13px">DM Mono 13 — 999.999.999 → 999.999.899</div>
+  </div>
+  <div class="panel light">
+    <h3>Espaciado (base 4 px) y radio</h3>
+    <div class="scale">
+      <div><span style="width:8px"></span><small>8 fila</small></div>
+      <div><span style="width:12px"></span><small>12 tarjeta</small></div>
+      <div><span style="width:20px"></span><small>20 margen</small></div>
+      <div><span style="width:48px"></span><small>48 cabecera</small></div>
+    </div>
+    <div class="radii"><div><i style="border-radius:10px"></i><small>md 10</small></div></div>
+  </div>
+</div>
+
+<h2>Composición en contexto</h2>
+<div class="banner">ILLUSTRATIVE — non-binding; the spec is the contract. Los triángulos son de posición: el producto usa el ícono TriangleAlert de Lucide.</div>
+<div class="strip light">
+  <div>
+    <p class="cap">1 · Lista del mes: aviso plegado</p>
+    <div class="phone">
+      <div class="titlerow"><span class="title-sm">Presupuesto</span><span><span class="ghost label"><span class="ico"></span>Organizar</span><span class="ghost label"><span class="ico"></span>Cierre</span></span></div>
+      <div class="imp"><div class="cab"><span class="tri soft"></span><span class="t"><span class="label" style="display:block">Al corregir Agosto 2026 se movió 1 mes</span><span class="caption muted">frente a cómo estaban al reabrirlo</span></span><span class="chev">⌄</span></div></div>
+      <div class="sec"><span class="eyebrow">→ Gastos</span><span class="caption muted">500 de 800</span></div>
+      <div class="card"><div class="row"><span class="n g14">Comida</span><span class="label">500</span><span class="chev">›</span></div></div>
+    </div>
+  </div>
+  <div>
+    <p class="cap">2 · Desplegado, con un mes sin cubrir</p>
+    <div class="phone">
+      <div class="titlerow"><span class="title-sm">Presupuesto</span><span><span class="ghost label"><span class="ico"></span>Organizar</span><span class="ghost label"><span class="ico"></span>Cierre</span></span></div>
+      <div class="imp rota">
+        <div class="cab"><span class="tri danger"></span><span class="t"><span class="label" style="display:block">Al corregir Agosto 2026 se movieron 2 meses</span><span class="caption muted">frente a cómo estaban al reabrirlo · </span><span class="caption danger">1 quedó sin cubrir</span></span><span class="chev">⌃</span></div>
+        <div class="fila"><span class="caption muted">Septiembre 2026</span><span class="cif"><span class="antes">4.000</span> → 3.900</span></div>
+        <div class="fila"><span class="caption muted">Octubre 2026</span><span class="cif"><span class="antes">50</span> → −50</span><span class="marca caption danger">⚠ quedó sin cubrir</span></div>
+        <p class="caption muted" style="margin:6px 0 10px">Ese mes quedó con gastos sin cubrir por esta corrección. La app no te frena: puedes arreglarlo ahora o dejarlo para después.</p>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p class="cap">3 · En el detalle, tras corregir (cifras de 9 dígitos)</p>
+    <div class="phone">
+      <div class="hdr"><span class="back">‹</span><div><div class="title-sm">Mercado</div><p class="caption">Gastos · Comida · Agosto 2026</p></div></div>
+      <div class="imp">
+        <div class="cab"><span class="tri soft"></span><span class="t"><span class="label" style="display:block">Al corregir Agosto 2026 se movió 1 mes</span><span class="caption muted">frente a cómo estaban al reabrirlo</span></span><span class="chev">⌃</span></div>
+        <div class="fila"><span class="caption muted">Septiembre 2026</span><span class="cif"><span class="antes">999.999.999</span> → 999.999.899</span></div>
+      </div>
+      <div class="two"><div class="card md block"><div class="eyebrow">Presupuestado</div><div class="title-sm" style="margin-top:6px">800</div></div><div class="card md block"><div class="eyebrow">Ejecutado</div><div class="title-sm" style="margin-top:6px">200</div></div></div>
+    </div>
+  </div>
+</div>
+
+<h2>Lo que esta vista no muestra</h2>
+<p class="lead">Honest gaps: no se pinta el anillo de foco (<code>--accent-light</code>), ni la tira en tema oscuro (los tokens oscuros sí están arriba, con su contraste). <code>--primary</code> no se usa en esta feature.</p>
+
+<footer>Generated from 01_UX_SPEC.md — non-binding; the spec is the contract.</footer>
+<script>
+(function () {
+  var ROLES = [
+    ["background", "--bg", "Lienzo sobre el que flota la tarjeta"],
+    ["surface", "--card", "Fondo de la tarjeta de impacto"],
+    ["primary", "--primary", "No se usa aquí"],
+    ["accent", "--accent", "Anillo de foco"],
+    ["text-primary", "--fg", "Título y disponible «después»"],
+    ["text-secondary", "--fg2", "Disponible «antes»"],
+    ["text-muted", "--muted", "Periodo, subtítulo, pie, chevron"],
+    ["border", "--border", "Borde de la tarjeta y hairline de filas"],
+    ["error", "--alert-strong", "«quedó sin cubrir» y borde con rotos"],
+    ["alert-soft", "--alert-soft", "Ícono de la cabecera sin rotos"]
+  ];
+  var PAIRS = [
+    ["Título sobre tarjeta", "--fg", "--card"],
+    ["Disponible «antes» sobre tarjeta", "--fg2", "--card"],
+    ["Periodo y pie sobre tarjeta", "--muted", "--card"],
+    ["«quedó sin cubrir» sobre tarjeta", "--alert-strong", "--card"]
+  ];
+  function lum(hex) {
+    var n = parseInt(hex.replace("#", ""), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (v) {
+      v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }).reduce(function (a, v, i) { return a + v * [0.2126, 0.7152, 0.0722][i]; }, 0);
+  }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  document.querySelectorAll("[data-theme]").forEach(function (panel) {
+    var cs = getComputedStyle(panel);
+    var v = function (name) { return cs.getPropertyValue(name).trim(); };
+    panel.querySelector("[data-swatches]").innerHTML = ROLES.map(function (r) {
+      return "<tr><td><div class='chip' style='background:" + v(r[1]) + "'></div></td><td><b>" + r[0] + "</b><br><span class='hex'>" + v(r[1]) + "</span></td><td class='why'>" + r[2] + "</td></tr>";
+    }).join("");
+    panel.querySelector("[data-pairs]").innerHTML = PAIRS.map(function (p) {
+      var c = ratio(v(p[1]), v(p[2]));
+      return "<div class='pair' style='background:" + v(p[2]) + ";color:" + v(p[1]) + "'><span>" + p[0] + "</span><span class='badge' style='color:" + v("--fg") + "'>" + (c >= 4.5 ? "AA " : "✗ ") + c.toFixed(1) + "</span></div>";
+    }).join("");
+  });
+})();
+</script>
+</body>
+</html>

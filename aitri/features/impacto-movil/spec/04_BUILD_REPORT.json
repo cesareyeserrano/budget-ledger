@@ -1,0 +1,76 @@
+{
+  "files_created": [
+    "src/components/mobile/ImpactCard.tsx",
+    "tests/integration/impacto-movil.test.ts",
+    "tests/unit/impacto-movil-tarjeta.test.ts",
+    "tests/e2e/impacto-movil.spec.ts"
+  ],
+  "files_modified": [
+    "src/components/mobile/MobileBudget.tsx",
+    "src/components/mobile/LeafScreen.tsx"
+  ],
+  "setup_commands": [],
+  "environment_variables": [],
+  "test_runner": "../../../unit.sh",
+  "test_runner_timeout_ms": 900000,
+  "test_files": [
+    "../../../tests/integration/impacto-movil.test.ts",
+    "../../../tests/unit/impacto-movil-tarjeta.test.ts",
+    "../../../tests/e2e/impacto-movil.spec.ts"
+  ],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "timeout_ms": 900000
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "timeout_ms": 420000
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "timeout_ms": 900000
+    }
+  ],
+  "technical_debt": [
+    {
+      "fr_id": "FR-3301",
+      "substitution": "Las cifras del aviso llevan el signo de pesos («$6.850», «−$200»), como el panel de escritorio; el plan de pruebas las escribía sin él («6.850») y el caso de escritorio TC-IMV-040h con un espacio («$ 6.850»)",
+      "reason": "Se reutiliza money(), la misma función que formatea el panel de escritorio, para que las dos superficies digan lo mismo; las pruebas afirman el texto real.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3304",
+      "substitution": "TC-IMV-055h compara horizonte 1 contra horizonte 2 (doce periodos de diferencia), no «horizonte 2 contra horizonte 0» como decía el plan",
+      "reason": "El producto solo admite horizontes de 1 y 2 años; 0 no existe y se normaliza al valor por defecto.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3302",
+      "substitution": "Los dos textos del pie («Ese mes quedó…» / «Esos meses quedaron…») están escritos también en ImpactCard, además de en el ImpactPanel de escritorio",
+      "reason": "ADR-01: tarjeta propia del teléfono en vez de parametrizar el panel de escritorio. TC-IMV-013e monta los dos sobre el mismo estado y falla si los textos dejan de coincidir.",
+      "effort_to_fix": "low"
+    }
+  ]
+}

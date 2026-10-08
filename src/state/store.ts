@@ -18,6 +18,7 @@ import {
   type NewMovement, type NewNode, type MoveDest, type Plane, type ReserveEditResult, type ReserveOpResult, type DeleteBlock,
 } from "@/domain";
 import { blockMessage, retiroToast } from "@/components/reserveText";
+import { cycleLabel } from "@/components/cycleText";
 import { ServerRepository } from "@/data/serverRepository";
 import { STORAGE_KEYS } from "@/domain/types";
 import { currentPeriodFor, todayISO } from "@/lib/date";
@@ -655,7 +656,10 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
       if (res.ok) {
         set({ data: { ...get().data, closure: res.closure } });
-        get().showToast("Mes cerrado.");
+        // El aviso nombra el periodo que el SERVIDOR cerró (decisión del usuario, 8-oct-2026): con el
+        // cierre también en el teléfono, «Mes cerrado.» a secas no decía cuál.
+        const cerrado = res.closure.closedThrough;
+        get().showToast(cerrado ? `${cycleLabel(calendarFor(get().data), cerrado)} cerrado.` : "Mes cerrado.");
         return;
       }
       if (res.reason === "revision_conflict") {
@@ -693,7 +697,12 @@ export const useLedgerStore = create<LedgerStore>((set, get) => {
       if (!res.ok && res.reason === "unauthorized") { onSessionExpired(); return; } // BG-073
       if (res.ok) {
         set({ data: { ...get().data, closure: res.closure } });
-        get().showToast("Mes reabierto: ya puedes corregirlo.");
+        const reabierto = res.closure.reopened;
+        get().showToast(
+          reabierto
+            ? `${cycleLabel(calendarFor(get().data), reabierto)} reabierto: ya puedes corregirlo.`
+            : "Mes reabierto: ya puedes corregirlo."
+        );
         return;
       }
       if (res.reason === "revision_conflict") {

@@ -1,0 +1,108 @@
+{
+  "project": "impacto-movil",
+  "version": "0.0.1-beta",
+  "version_source": "manifest",
+  "phases_completed": [
+    1,
+    "ux",
+    2,
+    3,
+    4,
+    5
+  ],
+  "overall_status": "partial",
+  "deployment_model": "El modelo existente SIN CAMBIOS (contenedor Next standalone + Postgres en Ultron, detrás de Tailscale). Sin migraciones, rutas ni variables de entorno: una tarjeta de cliente que lee datos ya cargados. Rollback: imagen anterior, sin datos que revertir. Escrito en aitri/features/impacto-movil/DEPLOYMENT.md.",
+  "deployment_files": [
+    "aitri/features/impacto-movil/DEPLOYMENT.md"
+  ],
+  "environment_variables": [],
+  "verification_summary": "31/31 TCs en verde (22 unit/integración + 9 de navegador; 0 fallos, 0 saltados, 0 de baja confianza) y 6/6 quality gates. verify-run del 2026-10-08 con Node 22 sobre ddd0b12, exit 0 del runner y del e2e.",
+  "requirement_compliance": [
+    {
+      "id": "FR-3301",
+      "title": "El teléfono lista los meses posteriores que se movieron al corregir un mes reabierto",
+      "level": "partial",
+      "evidence": "5 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-001h, 002h, 003f, 004e, 005h): filas iguales a las del dominio y al panel de escritorio, en orden; efecto neto de dos correcciones; una corrección deshecha no deja filas. Parcial por la deuda declarada: Las cifras del aviso llevan el signo de pesos («$6.850», «−$200»), como el panel de escritorio; el plan de pruebas las escribía sin él («6.850») y el caso de escritorio TC-IMV-040h con un espacio («$ 6.850»)."
+    },
+    {
+      "id": "FR-3302",
+      "title": "Los meses que quedaron sin cubrir se señalan con ícono y texto, no solo con color",
+      "level": "partial",
+      "evidence": "4 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-010h, 011f, 012e, 013e): marca «quedó sin cubrir» con ícono y texto en alerta fuerte; un mes ya descubierto no se marca; pie igual al de escritorio en singular y plural; contraste en los dos temas. Parcial por la deuda declarada: Los dos textos del pie («Ese mes quedó…» / «Esos meses quedaron…») están escritos también en ImpactCard, además de en el ImpactPanel de escritorio."
+    },
+    {
+      "id": "FR-3303",
+      "title": "El aviso aparece donde se corrige, sin ir a buscarlo, y cabe en el teléfono",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-020h, 021e, 022f, 023f, 024e): aparece en el detalle tras guardar y en la lista, también al cambiar de periodo; no aparece en Organizar, elemento, alta, mover, cierre, Balance ni retiros; cifras de 999.999.999 a 375 y 360 px; cabecera tocable; el plegado se conserva."
+    },
+    {
+      "id": "FR-3304",
+      "title": "El aviso informa y no frena, y no existe cuando no hay nada que decir",
+      "level": "complete",
+      "evidence": "5 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-030h, 031f, 032f, 033e, 034e): la corrección que rompe un mes se guarda en un paso; sin mes reabierto, o reabierto sin tocar, la tarjeta no existe ni deja hueco; desaparece al volver a cerrar; una corrección que no cambia el cierre no la hace aparecer."
+    },
+    {
+      "id": "NFR-3301",
+      "title": "El panel de impacto de escritorio (ImpactPanel, FR-2010) sigue igual: mismo contenido, mismo lugar, mismos ids",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-040h, 041e, 042f): el panel de escritorio muestra sus filas como antes, no monta la tarjeta del teléfono y sigue sin pintarse sin mes reabierto."
+    },
+    {
+      "id": "NFR-3302",
+      "title": "Sin mes reabierto, las pantallas del teléfono no cambian: lista del periodo, detalle, retiros, Balance, Organi",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-045h, 046e, 047f): la lista del periodo, el detalle, Organizar y Cierre no cambian cuando no hay aviso que mostrar."
+    },
+    {
+      "id": "NFR-3303",
+      "title": "Ninguna corrección se bloquea ni pide confirmación por el impacto: cambiar lo planeado, editar o borrar un mov",
+      "level": "complete",
+      "evidence": "3 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-050h, 051e, 052f): editar sigue siendo un paso, borrar conserva solo su confirmación de siempre y la tarjeta no tiene nada que cancele o confirme."
+    },
+    {
+      "id": "NFR-3304",
+      "title": "El cálculo del impacto no cambia y es uno solo: el teléfono no reimplementa downstreamImpact.",
+      "level": "partial",
+      "evidence": "3 TCs en verde (verify-run 2026-10-08 sobre ddd0b12, TC-IMV-055h, 056e, 057f): la tarjeta pinta exactamente lo que devuelve el hook, no inventa filas y sigue al dominio con otro horizonte. Parcial por la deuda declarada: TC-IMV-055h compara horizonte 1 contra horizonte 2 (doce periodos de diferencia), no «horizonte 2 contra horizonte 0» como decía el plan."
+    },
+    {
+      "id": "NFR-3305",
+      "title": "No aplica: sin endpoints, sesiones, secretos ni entradas nuevas; el aviso solo pinta datos del libro ya cargad",
+      "level": "complete",
+      "evidence": "No aplica como superficie nueva: sin endpoints, sesiones ni secretos; la tarjeta solo pinta datos del libro ya cargado."
+    },
+    {
+      "id": "NFR-3306",
+      "title": "No aplica: sin rutas, procesos ni trabajos nuevos.",
+      "level": "complete",
+      "evidence": "No aplica: sin ficheros nuevos en src/app/api ni procesos nuevos."
+    },
+    {
+      "id": "NFR-3307",
+      "title": "El pipeline de CI existente corre las pruebas nuevas sin cambios en el workflow.",
+      "level": "complete",
+      "evidence": "El workflow de CI (.github/workflows/ci.yml) se dispara en push y pull_request y ejecuta npm run test:run y npm run test:e2e, que recogen las pruebas nuevas por su patrón de archivo. Sin cambios en el workflow."
+    }
+  ],
+  "technical_debt_inherited": [
+    {
+      "fr_id": "FR-3301",
+      "substitution": "Las cifras del aviso llevan el signo de pesos («$6.850», «−$200»), como el panel de escritorio; el plan de pruebas las escribía sin él («6.850») y el caso de escritorio TC-IMV-040h con un espacio («$ 6.850»)",
+      "reason": "Se reutiliza money(), la misma función que formatea el panel de escritorio, para que las dos superficies digan lo mismo; las pruebas afirman el texto real.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "NFR-3304",
+      "substitution": "TC-IMV-055h compara horizonte 1 contra horizonte 2 (doce periodos de diferencia), no «horizonte 2 contra horizonte 0» como decía el plan",
+      "reason": "El producto solo admite horizontes de 1 y 2 años; 0 no existe y se normaliza al valor por defecto.",
+      "effort_to_fix": "low"
+    },
+    {
+      "fr_id": "FR-3302",
+      "substitution": "Los dos textos del pie («Ese mes quedó…» / «Esos meses quedaron…») están escritos también en ImpactCard, además de en el ImpactPanel de escritorio",
+      "reason": "ADR-01: tarjeta propia del teléfono en vez de parametrizar el panel de escritorio. TC-IMV-013e monta los dos sobre el mismo estado y falla si los textos dejan de coincidir.",
+      "effort_to_fix": "low"
+    }
+  ]
+}
