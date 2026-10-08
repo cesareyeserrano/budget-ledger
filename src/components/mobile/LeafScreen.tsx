@@ -122,13 +122,16 @@ function EntryRow({ entry, period, onEdit }: { entry: DetailEntry; period: Perio
  * @param node Hoja que se muestra.
  * @param period Periodo mostrado.
  * @param closed Si el periodo está cerrado: se ve todo, sin acciones de cambio (FR-3112).
+ * @param notice Aviso opcional que se pinta bajo el encabezado (el de impacto, impacto-movil FR-3303).
  * @throws Nunca.
  *
  * @aitri-trace FR-ID: FR-3106, US-ID: US-3106, AC-ID: AC-3116, TC-ID: TC-PMV-050h, TC-PMV-051e, TC-PMV-052f
  * @aitri-trace FR-ID: FR-3105, US-ID: US-3105, AC-ID: AC-3113, TC-ID: TC-PMV-040h
  * @aitri-trace FR-ID: FR-3109, US-ID: US-3109, AC-ID: AC-3125, TC-ID: TC-PMV-080h, TC-PMV-081f, TC-PMV-082f, TC-PMV-083e
  */
-export function LeafScreen({ node, period, closed }: { node: LedgerNode; period: PeriodKey; closed: boolean }) {
+export function LeafScreen({ node, period, closed, notice }: {
+  node: LedgerNode; period: PeriodKey; closed: boolean; notice?: React.ReactNode;
+}) {
   const data = useLedgerStore((s) => s.data);
   const periods = useActivePeriods();
   const cal = useCalendar();
@@ -170,6 +173,8 @@ export function LeafScreen({ node, period, closed }: { node: LedgerNode; period:
     <div data-testid="mb-leaf" data-node-id={node.id}>
       <DetailHeader title={node.name} context={`${pathOf(data.nodes, node)} · ${label}`} />
       {closed && <ClosedNotice period={period} />}
+      {/* impacto-movil FR-3303: el aviso de impacto, donde se corrige. La pantalla no sabe qué es. */}
+      {notice}
       <div className="my-3 grid grid-cols-2 gap-3">
         <AmountEditCard
           plane="budget"

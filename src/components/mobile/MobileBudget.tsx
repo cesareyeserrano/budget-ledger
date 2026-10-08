@@ -1,5 +1,6 @@
 "use client";
 // @aitri-trace components:mobile:MobileBudget — feature presupuesto-movil (FR-3101, FR-3103);
+//               feature impacto-movil (FR-3303): monta el aviso de impacto en la lista y en el detalle;
 //               feature gestion-movil (FR-3201): despacha también las pantallas de gestión.
 //
 // Módulo:       src/components/mobile/MobileBudget.tsx
@@ -19,6 +20,7 @@ import { balanceSummary } from "../balanceView";
 import { BalanceScreen } from "./BalanceScreen";
 import { BudgetSections } from "./BudgetSections";
 import { ClosureScreen } from "./ClosureScreen";
+import { ImpactCard } from "./ImpactCard";
 import { LeafScreen } from "./LeafScreen";
 import { MoveScreen } from "./MoveScreen";
 import { MovementEditScreen } from "./MovementEditScreen";
@@ -100,6 +102,10 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   // Abre plegado cada vez que se abre la app; mientras está abierta, se queda como el usuario lo dejó.
   const [summaryOpen, setSummaryOpen] = useState(false);
+  // impacto-movil (ADR-02): el plegado del aviso de impacto vive aquí, no en la tarjeta, para que siga
+  // como el usuario lo dejó al ir de la lista al detalle y volver.
+  const [impactOpen, setImpactOpen] = useState(false);
+  const impact = <ImpactCard open={impactOpen} onToggle={() => setImpactOpen((o) => !o)} />;
   /** El scroll de cada pantalla, por su clave: cada una recupera el suyo al volver a ella. */
   const scrolls = useRef(new Map<string, number>());
   const shownKey = useRef("list");
@@ -182,7 +188,7 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
     return <MovementEditScreen key={movement.id} movement={movement} leaf={leaf} />;
   }
   if (inDetail && leaf && detail.kind === "leaf") {
-    return <LeafScreen node={leaf} period={period} closed={view.closed} />;
+    return <LeafScreen node={leaf} period={period} closed={view.closed} notice={impact} />;
   }
   if (inDetail && detail.kind === "retiros") return <WithdrawalsScreen period={period} closed={view.closed} />;
   if (inDetail && detail.kind === "balance") return <BalanceScreen series={series} period={period} />;
@@ -210,6 +216,7 @@ export function MobileBudget({ active, detail }: { active: boolean; detail: Deta
       </div>
       <PeriodBar period={period} periods={periods} />
       {view.closed && <ClosedNotice period={period} />}
+      {impact}
       <SummaryCard summary={summary} open={summaryOpen} onToggle={() => setSummaryOpen((o) => !o)} />
       <BudgetSections
         view={view}
