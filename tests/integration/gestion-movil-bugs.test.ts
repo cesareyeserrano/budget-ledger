@@ -204,6 +204,7 @@ describe("gestion-movil BG-001 · la confirmación de cierre queda atada a su me
     await act(async () => { responder(json({ revision: 2, closure: { closedThrough: PREV2, reopened: PREV } })); });
     await screen.findByTestId("mb-closure-reopened");
     expect(useLedgerStore.getState().data.closure).toEqual({ closedThrough: PREV2, reopened: PREV });
+    expect(useLedgerStore.getState().toast).toBe(`${rotulo(PREV)} reabierto: ya puedes corregirlo.`);
     expect(screen.queryByTestId("mb-reopen-failed")).toBeNull();
   });
 });

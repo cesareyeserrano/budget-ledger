@@ -855,7 +855,8 @@ test("TC-GMV-130h: escritorio: cerrar sigue siendo un clic, sin diálogo", async
 
   await expect(control).toHaveAttribute("data-reopenable", PREV);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
-  await expect(toast(page)).toContainText("Mes cerrado.");
+  // El aviso nombra el mes que se cerró (8-oct-2026), también en escritorio.
+  await expect(toast(page)).toContainText(`${LABEL_PREV} cerrado.`);
   expect(await cierreGuardado(page)).toEqual({ closedThrough: PREV, reopened: null });
 });
 
