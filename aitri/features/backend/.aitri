@@ -17,21 +17,9 @@
   "projectName": "backend",
   "createdAt": "2026-07-11T02:14:41.264Z",
   "artifactsDir": "spec",
-  "updatedAt": "2026-10-07T19:57:33.621Z",
+  "updatedAt": "2026-10-08T16:14:37.781Z",
   "driftPhases": [],
   "events": [
-    {
-      "at": "2026-10-04T20:46:56.645Z",
-      "event": "verify-complete",
-      "phase": "verify",
-      "passed": 86,
-      "failed": 0
-    },
-    {
-      "at": "2026-10-04T20:57:22.802Z",
-      "event": "started",
-      "phase": 5
-    },
     {
       "at": "2026-10-04T20:57:22.932Z",
       "event": "completed",
@@ -171,6 +159,22 @@
       "phase": "verify",
       "passed": 86,
       "failed": 0
+    },
+    {
+      "at": "2026-10-08T16:14:02.247Z",
+      "event": "verify-run",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "manual": 0
+    },
+    {
+      "at": "2026-10-08T16:14:37.772Z",
+      "event": "verify-complete",
+      "phase": "verify",
+      "passed": 86,
+      "failed": 0
     }
   ],
   "cascadedPhases": [],
@@ -246,7 +250,7 @@
     ]
   },
   "verifyPassed": true,
-  "verifyRanRef": "9b65f8b063bec4764f21fadd81a57bb8d8149c47",
+  "verifyRanRef": "ddd0b127d013b9a22c015617b9b0d8d592d67ad7",
   "verifyRanDirty": false,
   "frContentSnapshots": {
     "4": {
@@ -280,14 +284,14 @@
       "FR-513": "bab0df1ae14824f7"
     }
   },
-  "verifyResultsHash": "b79dc68a0a8295cf4ac9ac8cd8b9ab6685ccc860f6fa16b07952c03dfc0875fb",
-  "verifyRanAt": "2026-10-07T19:57:14.886Z",
+  "verifyResultsHash": "03f84d9a43924ab68c9a47873145bb5bf20a7d2dea19f0aea51340feca014a91",
+  "verifyRanAt": "2026-10-08T16:14:02.224Z",
   "lastVerifyRun": {
     "passed": 86,
     "failed": 0,
     "skipped": 0,
     "manual": 0,
-    "at": "2026-10-07T19:57:14.886Z"
+    "at": "2026-10-08T16:14:02.224Z"
   },
   "verifySummary": {
     "total": 86,

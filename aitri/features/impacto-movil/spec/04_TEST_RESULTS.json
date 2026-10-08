@@ -1,0 +1,399 @@
+{
+  "executed_at": "2026-10-08T16:00:29.713Z",
+  "test_runner": "../../../unit.sh",
+  "exit_code": 0,
+  "e2e_exit_code": 0,
+  "e2e_runner": "playwright",
+  "results": [
+    {
+      "tc_id": "TC-IMV-001h",
+      "status": "pass",
+      "notes": "✓  433 [chromium] › tests/e2e/impacto-movil.spec.ts:78:5 › TC-IMV-001h: corregir un gasto del mes reabierto muestra el mes siguiente movido (441ms)"
+    },
+    {
+      "tc_id": "TC-IMV-002h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que se movieron > TC-IMV-002h: las filas del teléfono son las del dominio, en orden 1092ms"
+    },
+    {
+      "tc_id": "TC-IMV-003f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que se movieron > TC-IMV-003f: una corrección deshecha no deja filas 87ms"
+    },
+    {
+      "tc_id": "TC-IMV-004e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que se movieron > TC-IMV-004e: dos correcciones seguidas muestran el efecto neto 117ms"
+    },
+    {
+      "tc_id": "TC-IMV-005h",
+      "status": "pass",
+      "notes": "✓  435 [chromium] › tests/e2e/impacto-movil.spec.ts:130:5 › TC-IMV-005h: el teléfono y escritorio muestran las mismas filas (570ms)"
+    },
+    {
+      "tc_id": "TC-IMV-010h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que quedaron sin cubrir > TC-IMV-010h: un mes que pasa a negativo se marca «quedó sin cubrir» 98ms"
+    },
+    {
+      "tc_id": "TC-IMV-011f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que quedaron sin cubrir > TC-IMV-011f: un mes que ya estaba descubierto no se marca 69ms"
+    },
+    {
+      "tc_id": "TC-IMV-012e",
+      "status": "pass",
+      "notes": "✓  436 [chromium] › tests/e2e/impacto-movil.spec.ts:181:5 › TC-IMV-012e: la marca no depende solo del color y se lee en los dos temas (821ms)"
+    },
+    {
+      "tc_id": "TC-IMV-013e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · los meses que quedaron sin cubrir > TC-IMV-013e: el pie dice lo mismo que escritorio, en singular y en plural 173ms"
+    },
+    {
+      "tc_id": "TC-IMV-020h",
+      "status": "pass",
+      "notes": "✓  434 [chromium] › tests/e2e/impacto-movil.spec.ts:96:5 › TC-IMV-020h: el aviso aparece en la pantalla donde se corrige y sigue en la lista (456ms)"
+    },
+    {
+      "tc_id": "TC-IMV-021e",
+      "status": "pass",
+      "notes": "✓  437 [chromium] › tests/e2e/impacto-movil.spec.ts:216:5 › TC-IMV-021e: cifras de nueve dígitos caben a 375 y 360 px (856ms)"
+    },
+    {
+      "tc_id": "TC-IMV-022f",
+      "status": "pass",
+      "notes": "✓  438 [chromium] › tests/e2e/impacto-movil.spec.ts:253:5 › TC-IMV-022f: la cabecera de la tarjeta se deja tocar (451ms)"
+    },
+    {
+      "tc_id": "TC-IMV-023f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · dónde aparece el aviso > TC-IMV-023f: el aviso no aparece donde no se ven ni corrigen cifras 131ms"
+    },
+    {
+      "tc_id": "TC-IMV-024e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · dónde aparece el aviso > TC-IMV-024e: el plegado se conserva al ir al detalle y volver 113ms"
+    },
+    {
+      "tc_id": "TC-IMV-030h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · informa y no frena > TC-IMV-030h: una corrección que rompe un mes se guarda igual 57ms"
+    },
+    {
+      "tc_id": "TC-IMV-031f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · informa y no frena > TC-IMV-031f: sin mes reabierto el aviso no existe 114ms"
+    },
+    {
+      "tc_id": "TC-IMV-032f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · informa y no frena > TC-IMV-032f: reabierto y sin tocar, el aviso no existe ni deja hueco 41ms"
+    },
+    {
+      "tc_id": "TC-IMV-033e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · informa y no frena > TC-IMV-033e: al volver a cerrar el mes, el aviso desaparece 56ms"
+    },
+    {
+      "tc_id": "TC-IMV-034e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · informa y no frena > TC-IMV-034e: una corrección que no cambia el cierre del mes no hace aparecer el aviso 44ms"
+    },
+    {
+      "tc_id": "TC-IMV-040h",
+      "status": "pass",
+      "notes": "✓  439 [chromium] › tests/e2e/impacto-movil.spec.ts:271:5 › TC-IMV-040h: escritorio: el panel de impacto sigue mostrando sus filas (543ms)"
+    },
+    {
+      "tc_id": "TC-IMV-041e",
+      "status": "pass",
+      "notes": "✓  440 [chromium] › tests/e2e/impacto-movil.spec.ts:289:5 › TC-IMV-041e: escritorio no monta la tarjeta del teléfono (531ms)"
+    },
+    {
+      "tc_id": "TC-IMV-042f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-042f: escritorio: sin mes reabierto el panel sigue sin pintarse 11ms"
+    },
+    {
+      "tc_id": "TC-IMV-045h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-045h: la lista del periodo no cambia sin mes reabierto 20ms"
+    },
+    {
+      "tc_id": "TC-IMV-046e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-046e: el detalle no cambia sin aviso que mostrar 8ms"
+    },
+    {
+      "tc_id": "TC-IMV-047f",
+      "status": "pass",
+      "notes": "✓  441 [chromium] › tests/e2e/impacto-movil.spec.ts:304:5 › TC-IMV-047f: Organizar y Cierre no cambian con un mes reabierto (519ms)"
+    },
+    {
+      "tc_id": "TC-IMV-050h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-050h: editar un movimiento del mes reabierto sigue siendo un paso 50ms"
+    },
+    {
+      "tc_id": "TC-IMV-051e",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-051e: borrar un movimiento conserva solo su confirmación de siempre 65ms"
+    },
+    {
+      "tc_id": "TC-IMV-052f",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-052f: la tarjeta no tiene nada que cancele o confirme 61ms"
+    },
+    {
+      "tc_id": "TC-IMV-055h",
+      "status": "pass",
+      "notes": "✓ |app| tests/integration/impacto-movil.test.ts > impacto-movil · escritorio y el teléfono sin mes reabierto no cambian > TC-IMV-055h: con otro horizonte, la lista sigue siendo la del dominio 58ms"
+    },
+    {
+      "tc_id": "TC-IMV-056e",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/impacto-movil-tarjeta.test.ts > impacto-movil · la tarjeta pinta lo que devuelve el hook > TC-IMV-056e: la tarjeta pinta exactamente lo que devuelve el hook 325ms"
+    },
+    {
+      "tc_id": "TC-IMV-057f",
+      "status": "pass",
+      "notes": "✓ |app| tests/unit/impacto-movil-tarjeta.test.ts > impacto-movil · la tarjeta pinta lo que devuelve el hook > TC-IMV-057f: si el hook no devuelve filas, la tarjeta no inventa ninguna 12ms"
+    }
+  ],
+  "fr_coverage": [
+    {
+      "fr_id": "FR-3301",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3302",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3303",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "fr_id": "FR-3304",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "ac_coverage": [
+    {
+      "ac_id": "AC-3301",
+      "fr_id": "FR-3301",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3302",
+      "fr_id": "FR-3301",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3303",
+      "fr_id": "FR-3301",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3304",
+      "fr_id": "FR-3301",
+      "tests_passing": 5,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3305",
+      "fr_id": "FR-3302",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3306",
+      "fr_id": "FR-3302",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3307",
+      "fr_id": "FR-3302",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3308",
+      "fr_id": "FR-3303",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3309",
+      "fr_id": "FR-3303",
+      "tests_passing": 2,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3310",
+      "fr_id": "FR-3303",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3311",
+      "fr_id": "FR-3304",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3312",
+      "fr_id": "FR-3304",
+      "tests_passing": 3,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3313",
+      "fr_id": "FR-3304",
+      "tests_passing": 4,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    },
+    {
+      "ac_id": "AC-3314",
+      "fr_id": "FR-3304",
+      "tests_passing": 1,
+      "tests_failing": 0,
+      "tests_skipped": 0,
+      "tests_manual": 0,
+      "status": "covered"
+    }
+  ],
+  "summary": {
+    "total": 31,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "skipped_e2e": 0,
+    "skipped_no_marker": 0,
+    "manual": 0,
+    "manual_verified": 0
+  },
+  "low_confidence_tcs": [],
+  "quality_gates": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 2579,
+      "output": "> t-ledger@0.0.1-beta typecheck\n> tsc --noEmit && tsc -p tsconfig.e2e.json"
+    },
+    {
+      "name": "lint",
+      "command": "npm run lint",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 3469,
+      "output": "> t-ledger@0.0.1-beta lint\n> eslint . --ignore-pattern '.next-*/**' --ignore-pattern '.claude/worktrees/**'"
+    },
+    {
+      "name": "design-tokens",
+      "command": "../../../scripts/design-tokens.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 160,
+      "output": "✅ design-tokens: color por significado, escalas respetadas, sin huérfanos"
+    },
+    {
+      "name": "coverage",
+      "command": "../../../coverage.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 72320,
+      "output": "Better Auth]: Password is too short\n\nstderr | tests/integration/backend/saldo-de-bolsillo-fallo.test.ts > NFR-3007 · una conversión fallida no deja escrituras parciales > TC-SDB-163f: una conversión fallida no deja escrituras parciales\n[ledger] no se pudo repartir los retiros planeados (FR-3006): Error: fallo simulado de la conversión\n\nstderr | tests/integration/backend/recuperar-acceso-config.test.ts > NFR-1309 — un correo caído degrada la recuperación, no la app > TC-REC-225h: /health responde 200 con el SMTP caído\n[mail] sonda del transporte fallida: ESOCKET connect ECONNREFUSED 127.0.0.1:1"
+    },
+    {
+      "name": "smoke",
+      "command": "../../../smoke.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 18357,
+      "output": "200)\n[smoke] OK   el JavaScript de la página se sirve (/_next/static/chunks/webpack-5ef55edffe3d09e0.js -> 200)\n[smoke] OK   gating sin sesión (/api/v1/ledger -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements -> 401)\n[smoke] OK   gating sin sesión (/api/v1/movements/smoke-probe -> 401)\n[smoke] OK   gating sin sesión (/api/v1/sync/stream -> 401)\n[smoke] OK   header Content-Security-Policy\n[smoke] OK   header Strict-Transport-Security\n[smoke] OK   header X-Content-Type-Options\n[smoke] OK   header X-Frame-Options\n[smoke] OK   header Referrer-Policy\n[smoke] OK   sin X-Powered-By\n[smoke] OK"
+    },
+    {
+      "name": "e2e",
+      "command": "../../../e2e.sh",
+      "required": true,
+      "status": "pass",
+      "exit_code": 0,
+      "duration_ms": 230074,
+      "output": "ar-acceso.spec.ts:407:7 › FR-1312 — las pantallas nuevas adoptan el sistema de diseño › TC-REC-057e: sin desbordes a 375px, 768px ni 1440px (240ms)\n  ✓  774 [chromium] › tests/e2e/recuperar-acceso.spec.ts:424:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-201h: sin sesión el contrato de datos responde 401 desde las pantallas nuevas (124ms)\n  ✓  775 [chromium] › tests/e2e/recuperar-acceso.spec.ts:436:7 › NFR-1301 — el gate sigue siendo la puerta única a los datos › TC-REC-203f: la ruta de contraseña nueva no monta el sincronizador ni hidrata (3.1s)\n\n  775 passed (3.8m)"
+    }
+  ],
+  "timings": {
+    "runner_ms": 66931,
+    "e2e_ms": 231258,
+    "gates_ms": 326980,
+    "total_ms": 625219
+  }
+}
