@@ -1243,7 +1243,14 @@
       "priority": "P3",
       "problem": "Hallazgos BAJOS de las cuatro revisiones adversariales de gestion-movil que no entraron en BG-001..BG-006 ni se registraron en otro sitio. Ninguno corrompe datos. NAVEGACION: (1) tras una redireccion por enlace roto con historial detras, la flecha de volver parece no hacer nada una vez (MobileBudget replaceScreen(ORGANIZE) deja dos entradas iguales); (2) cambiar de pestana Registrar/Presupuesto desde una pantalla de gestion deja su historial debajo de la lista y pierde el borrador de un alta a medio escribir (SegmentedNav usa replace con la profundidad vieja); (3) las confirmaciones (role=alertdialog) no mueven el foco y el selector de iconos no enfoca la busqueda al abrir; (4) los destinos apagados de Mover a... son botones con aria-disabled que siguen recibiendo foco y toque sin respuesta. CIERRE: (5) el 'hoy' del cliente es la hora del dispositivo y el del servidor LEDGER_TZ: cerca de fin de mes en otra zona el telefono ofrece cerrar un mes que para el servidor aun es futuro (422, no cierra nada indebido), y una pantalla abierta al cruzar la medianoche de fin de mes no se entera; (6) reopenable sale de data.closure crudo y reopened de closureFor: con un reopened corrupto el bloque dice que no hay nada cerrado. PRUEBAS: (7) TC-GMV-152f siempre cae en la rama 4xx porque el esquema de cierre es estricto: acredita el rechazo de forma, no el orden del cierre; (8) TC-GMV-142f no distingue uno de dos envios por el anti-doble-toque de 600 ms del store; (9) nadie prueba anadir una categoria dentro de un grupo recien creado ni ejecutar por pantalla un mover hacia una categoria; (10) 080h no comprueba el candado en la barra de periodo y 055e usa isLeaf en vez de la fila de la lista. DOCUMENTOS: (11) el TRD de gestion-movil describe el cuerpo de la peticion de cierre como {action, revision} cuando es POST/DELETE con baseRevision, y el plan de pruebas habla de M-2/M-1 cerrados cuando el escenario real es PREV y M; el coverage_map manda 'impedir cambios de estructura sobre periodos cerrados' a NFR-3206, que habla de cifras (el comportamiento ya lo cubre BG-002). Corregir (11) obliga a re-aprobar fases en cascada. SIN VERIFICAR: (12) el revisor de borrar/mover senalo por lectura que un gasto registrado entre una operacion optimista y su 422 viaja en el mismo snapshot rechazado y se perderia; tras BG-002 esas operaciones ya no llegan al 422 por la via normal, pero el comportamiento del store ante un 422 con cambios posteriores en cola no se reprodujo.",
       "status": "open",
-      "createdAt": "2026-10-09T23:04:27.228Z"
+      "createdAt": "2026-10-09T23:04:27.228Z",
+      "log": [
+        {
+          "at": "2026-10-09T23:35:36.539Z",
+          "text": "Punto (12) VERIFICADO el 2026-10-09 con una sonda sobre el store real: la perdida es real y quedo registrada como bug de la raiz BG-095 (medio, abierto). Ya no es un cabo suelto sin verificar."
+        }
+      ],
+      "updatedAt": "2026-10-09T23:35:36.539Z"
     }
   ]
 }

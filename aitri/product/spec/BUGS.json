@@ -8915,6 +8915,31 @@
       "resolution": "closureScope ancla en la frontera del cierre igual que activeBounds: el suelo es el minimo entre primer dato, inicio declarado y frontera. Cuatro pruebas en tests/integration/backend/bg-094-cierre-sin-inicio.test.ts, una contra la ruta real con Postgres.",
       "fix_commit_sha": "67e407d16ec77ce2f1c1b1ae2f85a96c138c77a2",
       "fix_at": "2026-10-07T19:35:53.324Z"
+    },
+    {
+      "id": "BG-095",
+      "title": "Un cambio hecho mientras viaja un guardado que el servidor rechaza se pierde sin decirlo",
+      "description": "",
+      "steps_to_reproduce": [
+        "Cerrar el mes anterior",
+        "En escritorio, arrastrar una categoria vacia dentro de una categoria que tiene cifras en el mes cerrado",
+        "Antes de que responda el servidor, registrar un gasto en el mes abierto",
+        "Llega el 422: el gasto ya no esta y el aviso solo habla del mes cerrado"
+      ],
+      "expected_result": "Si el servidor rechaza de forma definitiva un guardado (mes cerrado, celda descuadrada, regla de reserva), los cambios validos que el usuario hizo DESPUES no se pierden en silencio: o se conservan y se reenvian sobre el estado del servidor, o el aviso dice que tambien se descartaron y cuales",
+      "actual_result": "Reproducido el 2026-10-09 con el store real y un servidor simulado: con el mes anterior cerrado, mover una categoria vacia dentro de una categoria con cifras en ese mes sale en un PUT que recibe 422 closed_period_violation; un gasto registrado 20 ms despues, con ese PUT en vuelo, queda en la cola como snapshot pendiente. Al llegar el 422, drainSaves hace pendingSave = null y recarga del servidor: el gasto desaparece de la pantalla, nunca se envia (un solo PUT) y el aviso dice solo 'Ese mes esta cerrado: el cambio no se guardo.'. El usuario vio la confirmacion de su gasto y no sabe que se perdio. Las tres ramas definitivas de drainSaves (closedViolation, cellMismatch, definitiveRejection) descartan igual lo pendiente. La ventana es la ida y vuelta al servidor. Disparadores por la via normal hoy: en ESCRITORIO, arrastrar un elemento dentro de una hoja con cifras en un mes cerrado, crearle su primer hijo o borrar una alcancia con historia en un mes cerrado (el telefono ya los bloquea antes desde gestion-movil BG-002). Anterior a gestion-movil: viene del modelo de snapshot con cola de un solo elemento.",
+      "environment": "Sonda jsdom con el store real, 2026-10-09; no observado en produccion",
+      "severity": "medium",
+      "status": "open",
+      "fr": "FR-1103",
+      "tc_reference": null,
+      "phase_detected": null,
+      "detected_by": "manual",
+      "evidence": null,
+      "reported_by": "revision adversarial de gestion-movil (lectura), confirmado con sonda",
+      "created_at": "2026-10-09T23:35:36.457Z",
+      "updated_at": "2026-10-09T23:35:36.457Z",
+      "resolution": null
     }
   ]
 }
