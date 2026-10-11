@@ -8930,7 +8930,7 @@
       "actual_result": "Reproducido el 2026-10-09 con el store real y un servidor simulado: con el mes anterior cerrado, mover una categoria vacia dentro de una categoria con cifras en ese mes sale en un PUT que recibe 422 closed_period_violation; un gasto registrado 20 ms despues, con ese PUT en vuelo, queda en la cola como snapshot pendiente. Al llegar el 422, drainSaves hace pendingSave = null y recarga del servidor: el gasto desaparece de la pantalla, nunca se envia (un solo PUT) y el aviso dice solo 'Ese mes esta cerrado: el cambio no se guardo.'. El usuario vio la confirmacion de su gasto y no sabe que se perdio. Las tres ramas definitivas de drainSaves (closedViolation, cellMismatch, definitiveRejection) descartan igual lo pendiente. La ventana es la ida y vuelta al servidor. Disparadores por la via normal hoy: en ESCRITORIO, arrastrar un elemento dentro de una hoja con cifras en un mes cerrado, crearle su primer hijo o borrar una alcancia con historia en un mes cerrado (el telefono ya los bloquea antes desde gestion-movil BG-002). Anterior a gestion-movil: viene del modelo de snapshot con cola de un solo elemento.",
       "environment": "Sonda jsdom con el store real, 2026-10-09; no observado en produccion",
       "severity": "medium",
-      "status": "open",
+      "status": "fixed",
       "fr": "FR-1103",
       "tc_reference": null,
       "phase_detected": null,
@@ -8938,8 +8938,10 @@
       "evidence": null,
       "reported_by": "revision adversarial de gestion-movil (lectura), confirmado con sonda",
       "created_at": "2026-10-09T23:35:36.457Z",
-      "updated_at": "2026-10-09T23:35:36.457Z",
-      "resolution": null
+      "updated_at": "2026-10-11T00:15:13.087Z",
+      "resolution": "Las acciones createNode, moveNode y deleteNode del store ensayan structureChangeTouchesClosed antes de aplicar y guardar (no se envia lo que el servidor rechazaria); las tres ramas de rechazo definitivo de drainSaves anaden al aviso que tambien se descarto lo posterior cuando habia algo en cola. 7 pruebas en tests/integration/bg-095-guardado-rechazado.test.ts. No se cambio el modelo de snapshot: conservar y reenviar lo posterior queda fuera.",
+      "fix_commit_sha": "2353a727e8d130f961928164addaec87a5546a51",
+      "fix_at": "2026-10-11T00:15:13.087Z"
     }
   ]
 }
